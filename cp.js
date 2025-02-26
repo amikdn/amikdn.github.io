@@ -120,7 +120,6 @@
         items: [
           { title: 'Популярные Фильмы', data: { url: 'api/v2.2/films/top?type=TOP_100_POPULAR_FILMS' } },
           { title: 'Топ Фильмы', data: { url: 'api/v2.2/films/top?type=TOP_250_BEST_FILMS' } },
-          // Фиксированные русские категории (страна id = 34)
           { title: 'Популярные российские фильмы', data: { url: 'api/v2.2/films?order=NUM_VOTE&countries=34&type=FILM' } },
           { title: 'Популярные российские сериалы', data: { url: 'api/v2.2/films?order=NUM_VOTE&countries=34&type=TV_SERIES' } },
           { title: 'Популярные российские мини-сериалы', data: { url: 'api/v2.2/films?order=NUM_VOTE&countries=34&type=MINI_SERIES' } },
