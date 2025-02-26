@@ -1,9 +1,5 @@
 (function () {
   'use strict';
-
-  // =============================
-  // Часть 1. Добавление кнопки "Кинопоиск" в меню Lampa
-  // =============================
   Lampa.Platform.tv();
 
   var ITEM_TV_SELECTOR = '[data-action="tv"]';
@@ -16,7 +12,6 @@
     }, ITEM_MOVE_TIMEOUT);
   };
 
-  // Функция для добавления кнопки в меню
   function addMenuButton(newItemAttr, newItemText, iconHTML, onEnterHandler) {
     var NEW_ITEM_ATTR = newItemAttr;
     var NEW_ITEM_SELECTOR = '[' + NEW_ITEM_ATTR + ']';
@@ -40,7 +35,6 @@
     }
   }
 
-  // Новая SVG-иконка для кнопки "Кинопоиск"
   var iconKP = `
     <svg
   xmlns="http://www.w3.org/2000/svg"
@@ -116,7 +110,6 @@
 
   `;
 
-  // Добавляем кнопку "Кинопоиск" в меню
   addMenuButton(
     'data-action="kp"',
     'Кинопоиск',
@@ -153,22 +146,17 @@
     }
   );
 
-  // =============================
-  // Часть 2. Новый плагин KP_API (объект KP_PLUGIN)
-  // =============================
   if (!window.KP_PLUGIN) {
     window.KP_PLUGIN = (function () {
       'use strict';
-
-      // Локальные переменные и константы
       var network = new Lampa.Reguest();
       var cache = {};
       var total_cnt = 0;
       var proxy_cnt = 0;
       var good_cnt = 0;
       var menu_list = [];
-      var genres_map = {};     // ключ: название жанра, значение: id
-      var countries_map = {};  // ключ: название страны, значение: id
+      var genres_map = {}; 
+      var countries_map = {};
       var CACHE_SIZE = 100;
       var CACHE_TIME = 1000 * 60 * 60;
       var SOURCE_NAME = 'KP';
@@ -256,7 +244,6 @@
 
       function clear() { network.clear(); }
 
-      // Преобразование элемента из KP API в формат Lampa
       function convertElem(elem) {
         var type = (!elem.type || elem.type === 'FILM' || elem.type === 'VIDEO') ? 'movie' : 'tv';
         var kinopoisk_id = elem.kinopoiskId || elem.filmId || 0;
@@ -461,7 +448,6 @@
       }
 
       function getById(id, params = {}, oncomplite, onerror) {
-        // Перед получением деталей убеждаемся, что фильтры загружены (через kpMenu)
         kpMenu({}, function () {
           _getById(id, params, oncomplite, onerror);
         });
@@ -507,7 +493,6 @@
             }, call);
           }
         ];
-        // Добавляем фиксированные русские категории (страна id = 34)
         menu_list.push({ id: '34', title: 'Популярные российские фильмы', url: 'api/v2.2/films?order=NUM_VOTE&countries=34&type=FILM' });
         menu_list.push({ id: '34', title: 'Популярные российские сериалы', url: 'api/v2.2/films?order=NUM_VOTE&countries=34&type=TV_SERIES' });
         menu_list.push({ id: '34', title: 'Популярные российские мини-сериалы', url: 'api/v2.2/films?order=NUM_VOTE&countries=34&type=MINI_SERIES' });
@@ -716,8 +701,6 @@
           status.append('query', json);
         }, status.error.bind(status));
       }
-
-      // Функция загрузки фильтров (переименована в kpMenu)
       function kpMenu(options, oncomplite) {
         if (menu_list.length) {
           oncomplite(menu_list);
@@ -747,7 +730,6 @@
         }
       }
 
-      // Возвращаем объект плагина
       return {
         SOURCE_NAME: SOURCE_NAME,
         SOURCE_TITLE: SOURCE_TITLE,
@@ -773,10 +755,6 @@
       };
     })();
   }
-
-  // =============================
-  // Часть 3. Регистрация плагина в Lampa
-  // =============================
   (function startPlugin() {
     'use strict';
     window.kp_source_plugin = true;
