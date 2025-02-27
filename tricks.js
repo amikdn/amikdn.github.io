@@ -1,17 +1,13 @@
 (function(){
   'use strict';
 
-  // Инициализация платформы для ТВ
   Lampa.Platform.tv();
 
-  // Функция добавления кнопок перезагрузки и выхода в шапку приложения
   function addHeaderButtons(){
     try {
-      // Находим контейнер для кнопок (при необходимости измените селектор)
       var headerActions = document.querySelector('#app .head__actions');
       if(!headerActions) return;
 
-      // Кнопка перезагрузки (RELOAD)
       var reloadHTML = '<div id="RELOAD" class="head__action selector" tabindex="0">' +
                          '<svg fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="0.48">' +
                            '<g id="SVGRepo_bgCarrier" stroke-width="0"></g>' +
@@ -21,8 +17,7 @@
                            '</g>' +
                          '</svg>' +
                        '</div>';
-
-      // Обновлённая кнопка выхода (EXIT) – согласно вашему запросу
+)
       var exitHTML = '<div id="EXIT" class="head__action selector exit-screen" tabindex="0">' +
           '<svg fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">' +
             '<rect x="2" y="2" width="20" height="20" rx="2" ry="2" stroke="currentColor" stroke-width="2"/>' +
@@ -33,7 +28,6 @@
 
       headerActions.insertAdjacentHTML('beforeend', reloadHTML + exitHTML);
 
-      // Если параметр "Reloadbutton" выключен – скрываем кнопки
       if(Lampa.Storage.field('Reloadbutton') !== true){
         document.getElementById('RELOAD').classList.add('hide');
         document.getElementById('EXIT').classList.add('hide');
@@ -65,7 +59,6 @@
     }
   }
 
-  // Функция выхода из приложения Lamp с учётом платформ
   function exitLamp(){
     try {
       if(Lampa && Lampa.Activity) Lampa.Activity.out();
@@ -87,7 +80,6 @@
     }
   }
 
-  // Основная функция плагина – остальной функционал исходного кода
   function add(){
     var a = 's';
 
@@ -130,7 +122,6 @@
       }
     }
 
-    // Скрытие ленты трейлеров на главной
     Lampa.SettingsApi.addParam({
       component: 'Multi_Menu_Component',
       param: { name: 'NoTrailerMainPage', type: 'trigger', default: false },
@@ -164,7 +155,6 @@
       }
     });
 
-    // Скрытие часов на заставке CUB / Chromecast
     Lampa.SettingsApi.addParam({
       component: 'Multi_Menu_Component',
       param: { name: 'NoTimeNoDate', type: 'trigger', default: false },
@@ -181,7 +171,6 @@
       }
     });
 
-    // Пункты для удаления "Аниме" и "Клубничка"
     Lampa.SettingsApi.addParam({
       component: 'Multi_Menu_Component',
       param: { name: 'ANIME_fix', type: 'trigger', default: false },
@@ -207,7 +196,6 @@
 
     var d = 'dn';
 
-    // Параметр для управления отображением кнопок перезагрузки и выхода
     Lampa.SettingsApi.addParam({
       component: 'Multi_Menu_Component',
       param: { name: 'Reloadbutton', type: 'trigger', default: false },
@@ -223,7 +211,6 @@
       }
     });
 
-    // Часы во встроенном плеере – меню
     Lampa.SettingsApi.addParam({
       component: 'Multi_Menu_Component',
       param: { name: 'ClockInPlayer', type: 'trigger', default: false },
@@ -300,7 +287,6 @@
       }
     });
 	
-    // Стилизация встроенного плеера – YouTubeStyle
     Lampa.SettingsApi.addParam({
       component: 'Multi_Menu_Component',
       param: { name: 'YouTubeStyle', type: 'trigger', default: false },
@@ -464,7 +450,6 @@
     var timerId = setInterval(updateT, 1000);
   } // end of add()
 
-  // Регистрируем компонент плагина с названием "Приятные мелочи" и белой оригинальной иконкой
   Lampa.SettingsApi.addComponent({
     component: 'Multi_Menu_Component',
     name: 'Приятные мелочи',
@@ -480,7 +465,6 @@
     }
   });
 	
-  // Инициализация: ждем готовности приложения и запускаем основной функционал, а также добавляем кнопки в шапку
   if(window.appready){
     add();
     addHeaderButtons();
