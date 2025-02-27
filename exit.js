@@ -1,7 +1,7 @@
 (function() {
   'use strict';
 
-  // Функция выхода из приложения Lamp с учётом разных платформ
+  // Функция выхода из приложения Lampa с учётом разных платформ
   function exitLamp() {
     try {
       if (Lampa && Lampa.Activity) {
@@ -44,7 +44,7 @@
           '</svg>' +
         '</div>';
 
-      // HTML-разметка кнопки выхода с иконкой: крестик внутри квадратной рамки
+      // HTML-разметка кнопки выхода
       var exitButtonHTML =
         '<div id="EXIT" class="head__action selector exit-screen" tabindex="0">' +
           '<svg fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">' +
