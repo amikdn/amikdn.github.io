@@ -28,7 +28,7 @@
   // Функция добавления кнопок (перезагрузки и выхода)
   function addButtons() {
     try {
-      // Ищем контейнер для кнопок в шапке приложения (при необходимости скорректируйте селектор)
+      // Ищем контейнер для кнопок в шапке приложения
       var headerActions = document.querySelector('#app .head__actions');
       if (!headerActions) return;
 
