@@ -1,17 +1,15 @@
-// VaZ0NeZ
+//VaZ0NeZ
 
 (function() {
   'use strict';
 
-  // Функция выхода из приложения Lamp, учитывающая разные платформы
+  // Функция выхода из приложения Lamp с учётом разных платформ
   function exitLamp() {
-    // Попытка закрыть активность
     try {
       if (Lampa && Lampa.Activity) {
         Lampa.Activity.out();
       }
     } catch (e) {}
-    // Вызываем метод выхода в зависимости от платформы
     if (Lampa && Lampa.Platform) {
       if (Lampa.Platform.is('tizen')) {
         tizen.application.getCurrentApplication().exit();
@@ -22,7 +20,6 @@
       } else if (Lampa.Platform.is('orsay')) {
         Lampa.Orsay.exit();
       } else {
-        // Если неизвестная платформа – просто перезагружаем страницу
         location.reload();
       }
     } else {
@@ -33,14 +30,11 @@
   // Функция добавления кнопок (перезагрузки и выхода)
   function addButtons() {
     try {
-      // Ищем контейнер для кнопок в шапке приложения (при необходимости измените селектор)
+      // Ищем контейнер для кнопок в шапке приложения (при необходимости скорректируйте селектор)
       var headerActions = document.querySelector('#app .head__actions');
-      if (!headerActions) {
-        logError('Plugin Error: Контейнер ".head__actions" не найден.');
-        return;
-      }
+      if (!headerActions) return;
 
-      // HTML-разметка кнопки перезагрузки с иконкой (SVG)
+      // HTML-разметка кнопки перезагрузки
       var reloadButtonHTML =
         '<div id="RELOAD" class="head__action selector reload-screen" tabindex="0">' +
           '<svg fill="#ffffff" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">' +
@@ -52,27 +46,21 @@
           '</svg>' +
         '</div>';
 
-      // HTML-разметка кнопки выхода с иконкой крестика (SVG)
+      // HTML-разметка кнопки выхода с иконкой: крестик внутри квадратной рамки
       var exitButtonHTML =
         '<div id="EXIT" class="head__action selector exit-screen" tabindex="0">' +
-          '<svg fill="#ffffff" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">' +
-            '<g stroke-width="0"></g>' +
-            '<g stroke-linecap="round" stroke-linejoin="round"></g>' +
-            '<g>' +
-              '<line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" stroke-width="2"/>' +
-              '<line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" stroke-width="2"/>' +
-            '</g>' +
+          '<svg fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">' +
+            '<rect x="2" y="2" width="20" height="20" rx="2" ry="2" stroke="currentColor" stroke-width="2"/>' +
+            '<line x1="8" y1="8" x2="16" y2="16" stroke="currentColor" stroke-width="2"/>' +
+            '<line x1="16" y1="8" x2="8" y2="16" stroke="currentColor" stroke-width="2"/>' +
           '</svg>' +
         '</div>';
 
       // Добавляем обе кнопки в контейнер
       headerActions.insertAdjacentHTML('beforeend', reloadButtonHTML + exitButtonHTML);
 
-      // Находим добавленные элементы
-      var reloadButton = document.getElementById('RELOAD');
-      var exitButton = document.getElementById('EXIT');
-
       // Обработка событий для кнопки перезагрузки
+      var reloadButton = document.getElementById('RELOAD');
       if (reloadButton) {
         if (typeof $ !== 'undefined' && typeof $(reloadButton).on === 'function') {
           $(reloadButton).on('hover:enter hover:click hover:touch', function() {
@@ -88,11 +76,10 @@
             }
           });
         }
-      } else {
-        logError('Plugin Error: Кнопка перезагрузки не найдена после добавления.');
       }
 
       // Обработка событий для кнопки выхода
+      var exitButton = document.getElementById('EXIT');
       if (exitButton) {
         if (typeof $ !== 'undefined' && typeof $(exitButton).on === 'function') {
           $(exitButton).on('hover:enter hover:click hover:touch', function() {
@@ -108,15 +95,14 @@
             }
           });
         }
-      } else {
-        logError('Plugin Error: Кнопка выхода не найдена после добавления.');
       }
     } catch (err) {
-      logError('Plugin Exception: ' + err.message);
+      console.error('Plugin Exception: ' + err.message);
     }
   }
 
-  // Ждём готовности приложения и добавляем кнопки
+  // Если приложение уже готово, добавляем кнопки сразу;
+  // иначе ждём события готовности (через Lampa.Listener или window.load)
   if (window.appready) {
     addButtons();
   } else if (typeof Lampa !== 'undefined' && Lampa.Listener) {
