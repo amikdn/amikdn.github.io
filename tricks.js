@@ -23,13 +23,13 @@
                        '</div>';
 
       // Кнопка выхода (EXIT) – крестик внутри квадратной рамки, тоже с fill="currentColor"
-      var exitHTML = '<div id="EXIT" class="head__action selector" tabindex="0">' +
-                       '<svg fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">' +
-                         '<rect x="2" y="2" width="20" height="20" rx="2" ry="2" stroke="currentColor" stroke-width="2"></rect>' +
-                         '<line x1="8" y1="8" x2="16" y2="16" stroke="currentColor" stroke-width="2"></line>' +
-                         '<line x1="16" y1="8" x2="8" y2="16" stroke="currentColor" stroke-width="2"></line>' +
-                       '</svg>' +
-                     '</div>';
+      var exitHTML = ''<div id="EXIT" class="head__action selector exit-screen" tabindex="0">' +
+          '<svg fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">' +
+            '<rect x="2" y="2" width="20" height="20" rx="2" ry="2" stroke="currentColor" stroke-width="2"/>' +
+            '<line x1="8" y1="8" x2="16" y2="16" stroke="currentColor" stroke-width="2"/>' +
+            '<line x1="16" y1="8" x2="8" y2="16" stroke="currentColor" stroke-width="2"/>' +
+          '</svg>' +
+        '</div>;
 
       headerActions.insertAdjacentHTML('beforeend', reloadHTML + exitHTML);
 
