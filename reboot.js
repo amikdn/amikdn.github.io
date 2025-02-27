@@ -3,17 +3,14 @@
 (function() {
   'use strict';
 
-  // Функция добавления кнопки перезагрузки с обработкой событий с пульта
   function addReloadButton() {
     try {
-      // Ищем контейнер для кнопок (при необходимости измените селектор под актуальную структуру)
       var headerActions = document.querySelector('#app .head__actions');
       if (!headerActions) {
         logError('Reload Plugin Error: Контейнер ".head__actions" не найден.');
         return;
       }
       
-      // HTML-разметка кнопки с иконкой SVG
       var reloadButtonHTML = '<div id="RELOAD" class="head__action selector reload-screen" tabindex="0">' +
           '<svg fill="#ffffff" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">' +
             '<g stroke-width="0"></g>' +
@@ -24,23 +21,21 @@
           '</svg>' +
         '</div>';
       
-      // Добавляем кнопку в найденный контейнер
-      headerActions.insertAdjacentHTML('beforeend', reloadButtonHTML);
+   headerActions.insertAdjacentHTML('beforeend', reloadButtonHTML);
       
-      // Находим добавленную кнопку
       var reloadButton = document.getElementById('RELOAD');
       if (reloadButton) {
-        // Если jQuery доступен, используем его для обработки событий пульта
+
         if (typeof $ !== "undefined" && typeof $(reloadButton).on === "function") {
           $(reloadButton).on('hover:enter hover:click hover:touch', function() {
             location.reload();
           });
         } else {
-          // Обработка клика
+
           reloadButton.addEventListener('click', function() {
             location.reload();
           });
-          // Обработка клавиатурных событий для пульта (Enter или Space)
+
           reloadButton.addEventListener('keydown', function(e) {
             if (e.keyCode === 13 || e.keyCode === 32) {
               location.reload();
@@ -55,18 +50,17 @@
     }
   }
 
-  // Если приложение уже готово, добавляем кнопку сразу
   if (window.appready) {
     addReloadButton();
   } else if (typeof Lampa !== 'undefined' && Lampa.Listener) {
-    // Ждём события готовности приложения
+
     Lampa.Listener.follow('app', function(e) {
       if (e.type === 'ready') {
         addReloadButton();
       }
     });
   } else {
-    // Если Lampa недоступна, ждём полной загрузки страницы
+
     window.addEventListener('load', function() {
       addReloadButton();
     });
