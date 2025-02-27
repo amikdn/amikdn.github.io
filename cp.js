@@ -1,3 +1,5 @@
+//VaZ0NeZ
+
 (function () {
   'use strict';
   Lampa.Platform.tv();
@@ -43,10 +45,7 @@
   viewBox="0 0 192 192"
 >
   <g fill="none" fill-rule="evenodd">
-    <!-- Общая группа иконки -->
     <g fill="currentColor" fill-rule="nonzero">
-
-      <!-- Кольцевая рамка (внешний прямоугольник радиус 16, внутренний радиус 2) -->
       <path
         fill-rule="evenodd"
         d="
@@ -74,7 +73,6 @@
         "
       />
 
-      <!-- Буква «K», чуть смещена влево, чтобы по центру -->
       <g transform="translate(-10.63, 0)">
         <path
           d="
@@ -102,12 +100,9 @@
           "
         />
       </g>
-
     </g>
   </g>
 </svg>
-
-
   `;
 
   addMenuButton(
