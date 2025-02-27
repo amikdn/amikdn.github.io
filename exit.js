@@ -11,7 +11,7 @@
       var headerActions = document.querySelector('#app .head__actions');
       if(!headerActions) return;
 
-      // Кнопка перезагрузки (RELOAD) – с fill="currentColor"
+      // Кнопка перезагрузки (RELOAD) – иконка с fill="currentColor" и вызовом location.reload() с выводом сообщения в консоль
       var reloadHTML = '<div id="RELOAD" class="head__action selector" tabindex="0">' +
                          '<svg fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="0.48">' +
                            '<g id="SVGRepo_bgCarrier" stroke-width="0"></g>' +
@@ -22,7 +22,7 @@
                          '</svg>' +
                        '</div>';
 
-      // Кнопка выхода (EXIT) – крестик внутри квадратной рамки с fill="currentColor"
+      // Кнопка выхода (EXIT) – крестик внутри квадратной рамки, иконка с fill="currentColor"
       var exitHTML = '<div id="EXIT" class="head__action selector" tabindex="0">' +
                        '<svg fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">' +
                          '<rect x="2" y="2" width="20" height="20" rx="2" ry="2" stroke="currentColor" stroke-width="2"></rect>' +
@@ -67,9 +67,7 @@
 
   // Функция выхода из приложения Lamp с учётом платформ
   function exitLamp(){
-    try {
-      if(Lampa && Lampa.Activity) Lampa.Activity.out();
-    } catch(e){}
+    try { if(Lampa && Lampa.Activity) Lampa.Activity.out(); } catch(e){}
     if(Lampa && Lampa.Platform){
       if(Lampa.Platform.is('tizen')){
         tizen.application.getCurrentApplication().exit();
@@ -87,7 +85,7 @@
     }
   }
 
-  // Основная функция плагина – остальной функционал
+  // Основная функция плагина – остальной функционал исходного кода
   function add(){
     var a = 's';
 
@@ -99,14 +97,13 @@
                   "shape-rendering='geometricPrecision' text-rendering='geometricPrecision' " +
                   "image-rendering='optimizeQuality' fill-rule='evenodd' clip-rule='evenodd'>" +
                     "<circle cx='423' cy='423' r='398' fill='#3498db' class='fill-1fc255'></circle>" +
-                    "<path d='M642 423 467 322 292 221v404l175-101z' fill='#fff7f7' stroke='#fff7f7' stroke-width='42.33' stroke-linejoin='round' class='fill-fff7f7 stroke-fff7f7'></path>" +
+                    "<path d='M642 423 467 322 292 221v404l175-101z' fill='#fff7f7' stroke='#fff7f7' stroke-width='42.33' stroke-linejoin='round'></path>" +
                   "</svg><span>MODS's онлайн</span>");
         $(".view--torrent", Lampa.Activity.active().activity.render())
           .empty()
           .append("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48' width='48px' height='48px'>" +
                     "<path fill='#4caf50' fill-rule='evenodd' d='M23.501,44.125c11.016,0,20-8.984,20-20 " +
-                    "c0-11.015-8.984-20-20-20c-11.016,0-20,8.985-20,20C3.501,35.141,12.485,44.125,23.501,44.125z' " +
-                    "clip-rule='evenodd'/>" +
+                    "c0-11.015-8.984-20-20-20c-11.016,0-20,8.985-20,20C3.501,35.141,12.485,44.125,23.501,44.125z' clip-rule='evenodd'/>" +
                     "<path fill='#fff' fill-rule='evenodd' d='M43.252,27.114C39.718,25.992,38.055,19.625,34,11l-7,1.077 " +
                     "c1.615,4.905,8.781,16.872,0.728,18.853C20.825,32.722,17.573,20.519,15,14l-8,2l10.178,27.081" +
                     "c1.991,0.67,4.112,1.044,6.323,1.044c0.982,0,1.941-0.094,2.885-0.232l-4.443-8.376" +
@@ -119,7 +116,7 @@
                   "shape-rendering='geometricPrecision' text-rendering='geometricPrecision' " +
                   "image-rendering='optimizeQuality' fill-rule='evenodd' clip-rule='evenodd'>" +
                     "<circle cx='423' cy='423' r='398' fill='#3498db' class='fill-1fc255'></circle>" +
-                    "<path d='M642 423 467 322 292 221v404l175-101z' fill='#fff7f7' stroke='#fff7f7' stroke-width='42.33' stroke-linejoin='round' class='fill-fff7f7 stroke-fff7f7'></path>" +
+                    "<path d='M642 423 467 322 292 221v404l175-101z' fill='#fff7f7' stroke='#fff7f7' stroke-width='42.33' stroke-linejoin='round'></path>" +
                   "</svg><span>Смотреть</span>");
         $(".view--trailer", Lampa.Activity.active().activity.render())
           .empty()
@@ -300,7 +297,7 @@
       }
     });
 	
-    // Стилизация встроенного плеера – YouTube
+    // Стилизация встроенного плеера – YouTubeStyle
     Lampa.SettingsApi.addParam({
       component: 'Multi_Menu_Component',
       param: { name: 'YouTubeStyle', type: 'trigger', default: false },
@@ -464,11 +461,11 @@
     var timerId = setInterval(updateT, 1000);
   } // end of add()
 
-  // Регистрируем компонент плагина (иконку запуска) в главном меню с названием "Приятные мелочи" и оригинальной иконкой
+  // Регистрируем компонент плагина в главном меню с названием "Приятные мелочи" и белой иконкой
   Lampa.SettingsApi.addComponent({
     component: 'Multi_Menu_Component',
     name: 'Приятные мелочи',
-    icon: '<svg viewBox="0 0 1024 1024" class="icon" version="1.1" xmlns="http://www.w3.org/2000/svg" fill="#000000" stroke="#000000">' +
+    icon: '<svg viewBox="0 0 1024 1024" class="icon" version="1.1" xmlns="http://www.w3.org/2000/svg" fill="#ffffff" stroke="#ffffff">' +
             '<g id="SVGRepo_bgCarrier" stroke-width="0"/>' +
             '<g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"/>' +
             '<g id="SVGRepo_iconCarrier">' +
@@ -476,12 +473,12 @@
             '</g>' +
           '</svg>',
     onSelect: function(){
-         // Здесь разместите запуск функциональности плагина – например, открыть модальное окно
+         // Запуск функциональности плагина – замените alert на нужное действие
          alert('Plugin launched!');
     }
   });
 	
-  // Инициализация: ждем готовности приложения и запускаем основной функционал, а также добавляем кнопки в шапку
+  // Инициализация: ждем готовности приложения и запускаем основной функционал и добавляем кнопки в шапку
   if(window.appready){
     add();
     addHeaderButtons();
