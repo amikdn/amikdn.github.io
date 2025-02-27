@@ -4,46 +4,48 @@
   // Инициализация платформы для ТВ
   Lampa.Platform.tv();
 
-  // Функция добавления кнопок (перезагрузки и выхода) в шапку
+  // Функция добавления кнопок (перезагрузки и выхода) в шапку приложения
   function addHeaderButtons(){
-    try{
-      // Находим контейнер для кнопок в шапке (при необходимости измените селектор)
+    try {
+      // Находим контейнер для кнопок в шапке
       var headerActions = document.querySelector('#app .head__actions');
       if(!headerActions) return;
 
-      var reloadButtonHTML = '<div id="RELOAD" class="head__action selector reload-screen" tabindex="0">' +
-          '<svg fill="#ffffff" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">' +
-            '<path d="M4,12a1,1,0,0,1-2,0A9.983,9.983,0,0,1,18.242,4.206V2.758a1,1,0,1,1,2,0v4a1,1,0,0,1-1,1h-4a1,1,0,0,1,0-2h1.743A7.986,7.986,0,0,0,4,12Zm17-1a1,1,0,0,0-1,1A7.986,7.986,0,0,1,7.015,18.242H8.757a1,1,0,1,0,0-2h-4a1,1,0,0,0-1,1v4a1,1,0,0,0,2,0V19.794A9.984,9.984,0,0,0,22,12,1,1,0,0,0,21,11Z"></path>' +
-          '</svg>' +
-        '</div>';
+      // Кнопка перезагрузки (reload)
+      var reloadHTML = '<div id="RELOAD" class="head__action selector" tabindex="0">' +
+                         '<svg fill="#ffffff" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">' +
+                           '<path d="M4,12a1,1,0,0,1-2,0A9.983,9.983,0,0,1,18.242,4.206V2.758a1,1,0,1,1,2,0v4a1,1,0,0,1-1,1h-4a1,1,0,0,1,0-2h1.743A7.986,7.986,0,0,0,4,12Zm17-1a1,1,0,0,0-1,1A7.986,7.986,0,0,1,7.015,18.242H8.757a1,1,0,1,0,0-2h-4a1,1,0,0,0-1,1v4a1,1,0,0,0,2,0V19.794A9.984,9.984,0,0,0,22,12,1,1,0,0,0,21,11Z"></path>' +
+                         '</svg>' +
+                       '</div>';
 
-      var exitButtonHTML = '<div id="EXIT" class="head__action selector exit-screen" tabindex="0">' +
-          '<svg fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">' +
-            '<rect x="2" y="2" width="20" height="20" rx="2" ry="2" stroke="currentColor" stroke-width="2"></rect>' +
-            '<line x1="8" y1="8" x2="16" y2="16" stroke="currentColor" stroke-width="2"></line>' +
-            '<line x1="16" y1="8" x2="8" y2="16" stroke="currentColor" stroke-width="2"></line>' +
-          '</svg>' +
-        '</div>';
+      // Кнопка выхода (exit) – крестик внутри квадратной рамки
+      var exitHTML = '<div id="EXIT" class="head__action selector" tabindex="0">' +
+                       '<svg fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">' +
+                         '<rect x="2" y="2" width="20" height="20" rx="2" ry="2" stroke="currentColor" stroke-width="2"></rect>' +
+                         '<line x1="8" y1="8" x2="16" y2="16" stroke="currentColor" stroke-width="2"></line>' +
+                         '<line x1="16" y1="8" x2="8" y2="16" stroke="currentColor" stroke-width="2"></line>' +
+                       '</svg>' +
+                     '</div>';
 
-      headerActions.insertAdjacentHTML('beforeend', reloadButtonHTML + exitButtonHTML);
+      headerActions.insertAdjacentHTML('beforeend', reloadHTML + exitHTML);
 
-      var reloadButton = document.getElementById('RELOAD');
-      var exitButton = document.getElementById('EXIT');
+      var reloadBtn = document.getElementById('RELOAD');
+      var exitBtn = document.getElementById('EXIT');
 
-      if(reloadButton){
-        reloadButton.addEventListener('click', function(){ location.reload(); });
-        reloadButton.addEventListener('keydown', function(e){ if(e.keyCode===13||e.keyCode===32) location.reload(); });
+      if(reloadBtn){
+        reloadBtn.addEventListener('click', function(){ location.reload(); });
+        reloadBtn.addEventListener('keydown', function(e){ if(e.keyCode===13 || e.keyCode===32) location.reload(); });
       }
-      if(exitButton){
-        exitButton.addEventListener('click', function(){ exitLamp(); });
-        exitButton.addEventListener('keydown', function(e){ if(e.keyCode===13||e.keyCode===32) exitLamp(); });
+      if(exitBtn){
+        exitBtn.addEventListener('click', function(){ exitLamp(); });
+        exitBtn.addEventListener('keydown', function(e){ if(e.keyCode===13 || e.keyCode===32) exitLamp(); });
       }
     } catch(e){
       console.error(e);
     }
   }
 
-  // Функция выхода из приложения Lamp с учётом платформ
+  // Функция выхода из приложения Lamp с учётом разных платформ
   function exitLamp(){
     try {
       if(Lampa && Lampa.Activity) Lampa.Activity.out();
@@ -67,55 +69,58 @@
 
   // Основная функция плагина
   function add(){
-    var a = 's'; 
+    var a = 's';
 
+    // Функция обновления элементов (стилизация кнопок просмотра)
     function updateT(){
       if(Lampa.Storage.field('BUTTONS_fix') == true){
-        $(".view--onlines_v1", Lampa.Activity.active().activity.render()).empty().append(
-          "<svg viewBox='0 0 847 847' xml:space='preserve' xmlns='http://www.w3.org/2000/svg' " +
-          "shape-rendering='geometricPrecision' text-rendering='geometricPrecision' " +
-          "image-rendering='optimizeQuality' fill-rule='evenodd' clip-rule='evenodd'>" +
-            "<circle cx='423' cy='423' r='398' fill='#3498db' class='fill-1fc255'></circle>" +
-            "<path d='M642 423 467 322 292 221v404l175-101z' fill='#fff7f7' stroke='#fff7f7' " +
-            "stroke-width='42.33' stroke-linejoin='round' class='fill-fff7f7 stroke-fff7f7'></path>" +
-          "</svg><span>MODS's онлайн</span>"
-        );
-        $(".view--torrent", Lampa.Activity.active().activity.render()).empty().append(
-          "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48' width='48px' height='48px'>" +
-            "<path fill='#4caf50' fill-rule='evenodd' d='M23.501,44.125c11.016,0,20-8.984,20-20 " +
-            "c0-11.015-8.984-20-20-20c-11.016,0-20,8.985-20,20C3.501,35.141,12.485,44.125,23.501,44.125z' " +
-            "clip-rule='evenodd'/>" +
-            "<path fill='#fff' fill-rule='evenodd' d='M43.252,27.114C39.718,25.992,38.055,19.625,34,11l-7,1.077 " +
-            "c1.615,4.905,8.781,16.872,0.728,18.853C20.825,32.722,17.573,20.519,15,14l-8,2l10.178,27.081" +
-            "c1.991,0.67,4.112,1.044,6.323,1.044c0.982,0,1.941-0.094,2.885-0.232l-4.443-8.376" +
-            "c6.868,1.552,12.308-0.869,12.962-6.203c1.727,2.29,4.089,3.183,6.734,3.172" +
-            "C42.419,30.807,42.965,29.006,43.252,27.114z' clip-rule='evenodd'/>" +
-          "</svg><span>Торренты</span>"
-        );
-        $(".open--menu", Lampa.Activity.active().activity.render()).empty().append(
-          "<svg viewBox='0 0 847 847' xml:space='preserve' xmlns='http://www.w3.org/2000/svg' " +
-          "shape-rendering='geometricPrecision' text-rendering='geometricPrecision' " +
-          "image-rendering='optimizeQuality' fill-rule='evenodd' clip-rule='evenodd'>" +
-            "<circle cx='423' cy='423' r='398' fill='#3498db' class='fill-1fc255'></circle>" +
-            "<path d='M642 423 467 322 292 221v404l175-101z' fill='#fff7f7' stroke='#fff7f7' " +
-            "stroke-width='42.33' stroke-linejoin='round' class='fill-fff7f7 stroke-fff7f7'></path>" +
-          "</svg><span>Смотреть</span>"
-        );
-        $(".view--trailer", Lampa.Activity.active().activity.render()).empty().append(
-          "<svg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'>" +
-            "<g><path d='m31.77 234.14c-3.12-3.22-2.66-128.58 0-132 1.83-2.34 186.58-2.34 190.26 0 " +
-            "3.4 2.16 2.48 129.93 0 132-5.5 4.55-186.38 4-190.26 0z' fill='#191919'/><path d='m130.77 245.35h-4.49" +
-            "c-24.1 0-46.88-.35-64.17-.88-32.45-1-33.59-2.18-36.09-4.75s-4.54-4.72-4.42-71.52c0-16.69.25-32.56.61-44.68" +
-            ".69-23 1.49-24 3.26-26.29 2.61-3.34 6.09-3.48 14.52-3.83 5.12-.21 12.4-.4 21.63-.55 17.1-.28 40-.44 64.59-.44" +
-            "s47.61.16 64.93.44c32 .52 32.85 1.08 35.18 2.56 4 2.53 4.44 6.86 4.95 14.94 1 16.3 1.11 49.25.87 72.51" +
-            "-.56 53.77-1.68 54.7-5 57.45-2.44 2-4.06 3.36-36.37 4.32-16.06.46-37.23.72-60 .72zm-92.05-18c26.43 2.62" +
-            "150.17 2.66 176.21.07 1.41-20.23 2-97 .31-118-27.17-1.42-148.84-1.42-176.47 0-1.58 21.46-1.62 98-.05 117.93z'" +
-            " fill='#191919'/></g></svg><span>Трейлеры</span>"
-        );
+        $(".view--onlines_v1", Lampa.Activity.active().activity.render())
+          .empty()
+          .append("<svg viewBox='0 0 847 847' xml:space='preserve' xmlns='http://www.w3.org/2000/svg' " +
+                  "shape-rendering='geometricPrecision' text-rendering='geometricPrecision' " +
+                  "image-rendering='optimizeQuality' fill-rule='evenodd' clip-rule='evenodd'>" +
+                    "<circle cx='423' cy='423' r='398' fill='#3498db' class='fill-1fc255'></circle>" +
+                    "<path d='M642 423 467 322 292 221v404l175-101z' fill='#fff7f7' stroke='#fff7f7' " +
+                    "stroke-width='42.33' stroke-linejoin='round' class='fill-fff7f7 stroke-fff7f7'></path>" +
+                  "</svg><span>MODS's онлайн</span>");
+        $(".view--torrent", Lampa.Activity.active().activity.render())
+          .empty()
+          .append("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48' width='48px' height='48px'>" +
+                    "<path fill='#4caf50' fill-rule='evenodd' d='M23.501,44.125c11.016,0,20-8.984,20-20 " +
+                    "c0-11.015-8.984-20-20-20c-11.016,0-20,8.985-20,20C3.501,35.141,12.485,44.125,23.501,44.125z' " +
+                    "clip-rule='evenodd'/>" +
+                    "<path fill='#fff' fill-rule='evenodd' d='M43.252,27.114C39.718,25.992,38.055,19.625,34,11l-7,1.077 " +
+                    "c1.615,4.905,8.781,16.872,0.728,18.853C20.825,32.722,17.573,20.519,15,14l-8,2l10.178,27.081" +
+                    "c1.991,0.67,4.112,1.044,6.323,1.044c0.982,0,1.941-0.094,2.885-0.232l-4.443-8.376" +
+                    "c6.868,1.552,12.308-0.869,12.962-6.203c1.727,2.29,4.089,3.183,6.734,3.172" +
+                    "C42.419,30.807,42.965,29.006,43.252,27.114z' clip-rule='evenodd'/>" +
+                  "</svg><span>Торренты</span>");
+        $(".open--menu", Lampa.Activity.active().activity.render())
+          .empty()
+          .append("<svg viewBox='0 0 847 847' xml:space='preserve' xmlns='http://www.w3.org/2000/svg' " +
+                  "shape-rendering='geometricPrecision' text-rendering='geometricPrecision' " +
+                  "image-rendering='optimizeQuality' fill-rule='evenodd' clip-rule='evenodd'>" +
+                    "<circle cx='423' cy='423' r='398' fill='#3498db' class='fill-1fc255'></circle>" +
+                    "<path d='M642 423 467 322 292 221v404l175-101z' fill='#fff7f7' stroke='#fff7f7' " +
+                    "stroke-width='42.33' stroke-linejoin='round' class='fill-fff7f7 stroke-fff7f7'></path>" +
+                  "</svg><span>Смотреть</span>");
+        $(".view--trailer", Lampa.Activity.active().activity.render())
+          .empty()
+          .append("<svg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'>" +
+                    "<g><path d='m31.77 234.14c-3.12-3.22-2.66-128.58 0-132 1.83-2.34 186.58-2.34 190.26 0 " +
+                    "3.4 2.16 2.48 129.93 0 132-5.5 4.55-186.38 4-190.26 0z' fill='#191919'/>" +
+                    "<path d='m130.77 245.35h-4.49c-24.1 0-46.88-.35-64.17-.88-32.45-1-33.59-2.18-36.09-4.75" +
+                    "s-4.54-4.72-4.42-71.52c0-16.69.25-32.56.61-44.68.69-23 1.49-24 3.26-26.29" +
+                    "2.61-3.34 6.09-3.48 14.52-3.83 5.12-.21 12.4-.4 21.63-.55 17.1-.28 40-.44 64.59-.44" +
+                    "s47.61.16 64.93.44c32 .52 32.85 1.08 35.18 2.56 4 2.53 4.44 6.86 4.95 14.94" +
+                    "1 16.3 1.11 49.25.87 72.51-.56 53.77-1.68 54.7-5 57.45-2.44 2-4.06 3.36-36.37 4.32" +
+                    "-16.06.46-37.23.72-60 .72zm-92.05-18c26.43 2.62 150.17 2.66 176.21.07 1.41-20.23" +
+                    "2-97 .31-118-27.17-1.42-148.84-1.42-176.47 0-1.58 21.46-1.62 98-.05 117.93z' fill='#191919'/>" +
+                  "</g></svg><span>Трейлеры</span>");
       }
     }
 
-    // Скрытие ленты трейлеров на главной
+    // Скрываем ленту трейлеров на главной
     Lampa.SettingsApi.addParam({
       component: 'Multi_Menu_Component',
       param: { name: 'NoTrailerMainPage', type: 'trigger', default: false },
@@ -132,7 +137,9 @@
             if(Lampa.Activity.active().component !== 'main'){
               $('#NoTrailerMainPage').remove();
             }
-            if(Lampa.Activity.active().component == 'category' && Lampa.Activity.active().url == 'movie' && Lampa.Activity.active().source == 'cub'){
+            if(Lampa.Activity.active().component == 'category' &&
+               Lampa.Activity.active().url == 'movie' &&
+               Lampa.Activity.active().source == 'cub'){
               $('#NoTrailerMainPage').remove();
               var banner = 'div.activity__body > div > div > div > div > div:nth-child(2)';
               Lampa.Template.add('NoTrailerMainPage', '<div id="NoTrailerMainPage"><style>' + banner + '{opacity: 0%!important;display: none;}</style></div>');
@@ -147,7 +154,7 @@
       }
     });
 
-    // Скрытие часов на заставке CUB / Chromecast
+    // Скрываем часы на заставке CUB / Chromecast
     Lampa.SettingsApi.addParam({
       component: 'Multi_Menu_Component',
       param: { name: 'NoTimeNoDate', type: 'trigger', default: false },
@@ -175,12 +182,25 @@
         }
         if(Lampa.Storage.field('CustomScreenSaver') == true){
           Lampa.Storage.set('screensaver_type', 'aerial');
-          Lampa.Storage.set('screensaver_aerial_items', '[{"id":"","accessibilityLabel":"","src":{"H2641080p":"http://lampatv.site/birds-01.mkv"},"name":"","pointsOfInterest":{"0":""},"type":"","timeOfDay":""},{"id":"","accessibilityLabel":"","src":{"H2641080p":"http://lampatv.site/birds-02.mkv"},"name":"","pointsOfInterest":{"0":""},"type":"","timeOfDay":""},{"id":"","accessibilityLabel":"","src":{"H2641080p":"http://lampatv.site/birds-03.mkv"},"name":"","pointsOfInterest":{"0":""},"type":"","timeOfDay":""},{"id":"","accessibilityLabel":"","src":{"H2641080p":"http://lampatv.site/birds-04.mkv"},"name":"","pointsOfInterest":{"0":""},"type":"","timeOfDay":""},{"id":"","accessibilityLabel":"","src":{"H2641080p":"http://lampatv.site/birds-05.mkv"},"name":"","pointsOfInterest":{"0":""},"type":"","timeOfDay":""},{"id":"","accessibilityLabel":"","src":{"H2641080p":"http://lampatv.site/birds-06.mkv"},"name":"","pointsOfInterest":{"0":""},"type":"","timeOfDay":""},{"id":"","accessibilityLabel":"","src":{"H2641080p":"http://lampatv.site/birds-07.mkv"},"name":"","pointsOfInterest":{"0":""},"type":"","timeOfDay":""},{"id":"","accessibilityLabel":"","src":{"H2641080p":"http://lampatv.site/birds-08.mkv"},"name":"","pointsOfInterest":{"0":""},"type":"","timeOfDay":""},{"id":"","accessibilityLabel":"","src":{"H2641080p":"http://lampatv.site/birds-09.mkv"},"name":"","pointsOfInterest":{"0":""},"type":"","timeOfDay":""},{"id":"","accessibilityLabel":"","src":{"H2641080p":"http://lampatv.site/Aquarium_01.mp4"},"name":"","pointsOfInterest":{"0":""},"type":"","timeOfDay":""},{"id":"","accessibilityLabel":"","src":{"H2641080p":"http://lampatv.site/Aquarium_02.mp4"},"name":"","pointsOfInterest":{"0":""},"type":"","timeOfDay":""},{"id":"","accessibilityLabel":"","src":{"H2641080p":"http://lampatv.site/Aquarium_03.mp4"},"name":"","pointsOfInterest":{"0":""},"type":"","timeOfDay":""},{"id":"","accessibilityLabel":"","src":{"H2641080p":"http://lampatv.site/Aquarium_04.mp4"},"name":"","pointsOfInterest":{"0":""},"type":"","timeOfDay":""},{"id":"","accessibilityLabel":"","src":{"H2641080p":"http://lampatv.site/Aquarium_05.mp4"},"name":"","pointsOfInterest":{"0":""},"type":"","timeOfDay":""}]');
+          Lampa.Storage.set('screensaver_aerial_items', '[{"id":"","accessibilityLabel":"","src":{"H2641080p":"http://lampatv.site/birds-01.mkv"},"name":"","pointsOfInterest":{"0":""},"type":"","timeOfDay":""},' +
+          '{"id":"","accessibilityLabel":"","src":{"H2641080p":"http://lampatv.site/birds-02.mkv"},"name":"","pointsOfInterest":{"0":""},"type":"","timeOfDay":""},' +
+          '{"id":"","accessibilityLabel":"","src":{"H2641080p":"http://lampatv.site/birds-03.mkv"},"name":"","pointsOfInterest":{"0":""},"type":"","timeOfDay":""},' +
+          '{"id":"","accessibilityLabel":"","src":{"H2641080p":"http://lampatv.site/birds-04.mkv"},"name":"","pointsOfInterest":{"0":""},"type":"","timeOfDay":""},' +
+          '{"id":"","accessibilityLabel":"","src":{"H2641080p":"http://lampatv.site/birds-05.mkv"},"name":"","pointsOfInterest":{"0":""},"type":"","timeOfDay":""},' +
+          '{"id":"","accessibilityLabel":"","src":{"H2641080p":"http://lampatv.site/birds-06.mkv"},"name":"","pointsOfInterest":{"0":""},"type":"","timeOfDay":""},' +
+          '{"id":"","accessibilityLabel":"","src":{"H2641080p":"http://lampatv.site/birds-07.mkv"},"name":"","pointsOfInterest":{"0":""},"type":"","timeOfDay":""},' +
+          '{"id":"","accessibilityLabel":"","src":{"H2641080p":"http://lampatv.site/birds-08.mkv"},"name":"","pointsOfInterest":{"0":""},"type":"","timeOfDay":""},' +
+          '{"id":"","accessibilityLabel":"","src":{"H2641080p":"http://lampatv.site/birds-09.mkv"},"name":"","pointsOfInterest":{"0":""},"type":"","timeOfDay":""},' +
+          '{"id":"","accessibilityLabel":"","src":{"H2641080p":"http://lampatv.site/Aquarium_01.mp4"},"name":"","pointsOfInterest":{"0":""},"type":"","timeOfDay":""},' +
+          '{"id":"","accessibilityLabel":"","src":{"H2641080p":"http://lampatv.site/Aquarium_02.mp4"},"name":"","pointsOfInterest":{"0":""},"type":"","timeOfDay":""},' +
+          '{"id":"","accessibilityLabel":"","src":{"H2641080p":"http://lampatv.site/Aquarium_03.mp4"},"name":"","pointsOfInterest":{"0":""},"type":"","timeOfDay":""},' +
+          '{"id":"","accessibilityLabel":"","src":{"H2641080p":"http://lampatv.site/Aquarium_04.mp4"},"name":"","pointsOfInterest":{"0":""},"type":"","timeOfDay":""},' +
+          '{"id":"","accessibilityLabel":"","src":{"H2641080p":"http://lampatv.site/Aquarium_05.mp4"},"name":"","pointsOfInterest":{"0":""},"type":"","timeOfDay":""}]');
         }
       }
     });
 
-    // Скрытие панели навигации (NavyBar)
+    // Скрываем панель навигации (NavyBar)
     Lampa.SettingsApi.addParam({
       component: 'Multi_Menu_Component',
       param: { name: 'NavyBar', type: 'trigger', default: false },
@@ -272,109 +292,7 @@
     if(Lampa.Storage.field('SISI_fix') == true) $("[data-action=sisi]").eq(0).show();
     var d = 'dn';
 
-    // Кнопка Перезагрузки и Консоли (Reloadbutton)
-    Lampa.SettingsApi.addParam({
-      component: 'Multi_Menu_Component',
-      param: { name: 'Reloadbutton', type: 'trigger', default: false },
-      field: { name: 'Добавить кнопку перезагрузки', description: 'Иконка рядом с часами' },
-      onChange: function(value){
-        if(Lampa.Storage.field('Reloadbutton') == false){
-          $('#RELOAD').addClass('hide');
-        }
-        if(Lampa.Storage.field('Reloadbutton') == true){
-          $('#RELOAD').removeClass('hide');
-        }
-        if(Lampa.Storage.field('Reloadbutton') == false){
-          $('#CONSOLE').addClass('hide');
-        }
-        if(Lampa.Storage.field('Reloadbutton') == true){
-          $('#CONSOLE').removeClass('hide');
-        }
-        if(Lampa.Storage.field('Reloadbutton') == false){
-          $('#ExitButton').addClass('hide');
-        }				
-        if(Lampa.Storage.field('Reloadbutton') == true){
-          $('#ExitButton').removeClass('hide');
-        }
-      }
-    });
-
-    // Кнопка Перезагрузки (добавляется через header, см. addHeaderButtons)
-    var my_reload = '<div id="RELOAD" class="head__action selector reload-screen hide">' +
-          '<svg fill="#ffffff" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" stroke="#ffffff" stroke-width="0.48">' +
-          '<path d="M4,12a1,1,0,0,1-2,0A9.983,9.983,0,0,1,18.242,4.206V2.758a1,1,0,1,1,2,0v4a1,1,0,0,1-1,1h-4a1,1,0,0,1,0-2h1.743A7.986,7.986,0,0,0,4,12Zm17-1a1,1,0,0,0-1,1A7.986,7.986,0,0,1,7.015,18.242H8.757a1,1,0,1,0,0-2h-4a1,1,0,0,0-1,1v4a1,1,0,0,0,2,0V19.794A9.984,9.984,0,0,0,22,12,1,1,0,0,0,21,11Z" fill="currentColor"></path>' +
-          '</svg></div>';
-    $('#app > div.head > div > div.head__actions').append(my_reload);
-    $('#RELOAD').on('hover:enter hover:click hover:touch', function(){ location.reload(); });
-    if(Lampa.Storage.field('Reloadbutton') == false){
-      $('#RELOAD').addClass('hide');
-    }
-    if(Lampa.Storage.field('Reloadbutton') == true){
-      $('#RELOAD').removeClass('hide');
-    }
-
-    // Кнопка Консоли
-    var my_console = '<div id="CONSOLE" class="head__action selector console-screen hide">' +
-          '<svg width="64px" height="64px" viewBox="0 0 1024 1024" class="icon" xmlns="http://www.w3.org/2000/svg" fill="#ffffff" stroke="#ffffff" stroke-width="20.48">' +
-          '<path d="M877.685565 727.913127l-0.584863-0.365539a32.898541 32.898541 0 0 1-8.041866-46.423497 ' +
-          '411.816631 411.816631 0 1 0-141.829267 145.777092c14.621574-8.992268 33.62962-5.117551 43.645398 8.772944l0.146216 0.073108' +
-          'a30.412874 30.412874 0 0 1-7.968758 43.206751l-6.141061 4.020933a475.201154 475.201154 0 1 1 163.615412-164.419599 ' +
-          '29.974227 29.974227 0 0 1-42.841211 9.357807z" fill="currentColor"></path></svg></div>';
-    $('#app > div.head > div > div.head__actions').append(my_console);
-    $('#CONSOLE').on('hover:enter hover:click hover:touch', function(){
-      Lampa.Controller.toggle('console');
-    });
-    if(Lampa.Storage.field('Reloadbutton') == false){
-      $('#CONSOLE').addClass('hide');
-    }
-    if(Lampa.Storage.field('Reloadbutton') == true){
-      $('#CONSOLE').removeClass('hide');
-    }
-
-    // Кнопка выхода в верхнем баре
-    var my_top_exit = '<div id="my_top_exit" class="head__action selector exit-screen hide">' +
-          '<svg fill="#ffffff" width="256px" height="256px" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">' +
-          '<path d="M12,23A11,11,0,1,0,1,12,11.013,11.013,0,0,0,12,23ZM12,3a9,9,0,1,1-9,9A9.01,9.01,0,0,1,12,3ZM8.293,14.293,10.586,12,8.293,9.707' +
-          'A1,1,0,0,1,9.707,8.293L12,10.586l2.293-2.293a1,1,0,0,1,1.414,1.414L13.414,12l2.293,2.293a1,1,0,1,1-1.414,1.414L12,13.414,9.707,15.707' +
-          'a1,1,0,0,1-1.414-1.414Z" fill="currentColor"></path></svg></div>';
-    $('#app > div.head > div > div.head__actions').append(my_top_exit);
-    $('#my_top_exit').on('hover:enter hover:click hover:touch', function(){
-      Lampa.Activity.out();
-      if(Lampa.Platform.is('tizen')) tizen.application.getCurrentApplication().exit();
-      if(Lampa.Platform.is('webos')) window.close();
-      if(Lampa.Platform.is('android')) Lampa.Android.exit();
-      if(Lampa.Platform.is('orsay')) Lampa.Orsay.exit();
-    });
-    if(Lampa.Storage.field('Reloadbutton') == false){
-      $('#my_top_exit').addClass('hide');
-    }
-    if(Lampa.Storage.field('Reloadbutton') == true){
-      $('#my_top_exit').removeClass('hide');
-    }
-
-    // Стилизация встроенного плеера YouTube
-    Lampa.SettingsApi.addParam({
-      component: 'Multi_Menu_Component',
-      param: { name: 'YouTubeStyle', type: 'trigger', default: false },
-      field: { name: 'Стилизация встроенного плеера', description: 'В стиле YouTube' },
-      onChange: function(value){
-        if(Lampa.Storage.field('YouTubeStyle') == false){
-          $('#YOUTUBESTYLE').remove();
-          $('#YOUTUBESTYLE-POSITION').remove();
-          $('#YOUTUBESTYLE-POSITION-focus').remove();
-        }
-        if(Lampa.Storage.field('YouTubeStyle') == true){
-          $('body').append(Lampa.Template.get('YOUTUBESTYLE', {}, true));
-          $('body').append(Lampa.Template.get('YOUTUBESTYLE-POSITION', {}, true));
-          $('body').append(Lampa.Template.get('YOUTUBESTYLE-POSITION-focus', {}, true));
-        }
-      },
-      onRender: function(item){
-        Lampa.Template.add('YOUTUBESTYLE', '<div id="YOUTUBESTYLE" class="hide"><style>div.player-panel__position{background-color: #f00!important;}</style></div>');
-        Lampa.Template.add('YOUTUBESTYLE-POSITION', '<div id="YOUTUBESTYLE-POSITION" class="hide"><style>div.player-panel__position>div:after{background-color: #f00!important; box-shadow: 0 0 3px 0.2em!important;}</style></div>');
-        Lampa.Template.add('YOUTUBESTYLE-POSITION-focus', '<div id="YOUTUBESTYLE-POSITION-focus" class="hide"><style>body > div.player > div.player-panel.panel--paused > div > div.player-panel__timeline.selector.focus > div.player-panel__position > div:after{box-shadow: 0 0 3px 0.2em!important;}</style></div>');
-      }
-    });
+    // Здесь старые кнопки перезагрузки/консоли/выхода удалены – вместо них используются наши кнопки в шапке
 
     // Часы в плеере – меню
     Lampa.SettingsApi.addParam({
@@ -384,7 +302,8 @@
       onChange: function(value){}
     });
 	
-    Lampa.Template.add('CLOCKSTYLE', '<div id="clockstyle"><style>#MyClockDiv{position: fixed!important;' + Lampa.Storage.get('Clock_coordinates') + '; z-index: 51!important}</style></div>');
+    Lampa.Template.add('CLOCKSTYLE', '<div id="clockstyle"><style>#MyClockDiv{position: fixed!important;' +
+      Lampa.Storage.get('Clock_coordinates') + '; z-index: 51!important}</style></div>');
     $('body').append(Lampa.Template.get('CLOCKSTYLE', {}, true));
     if(Lampa.Storage.field('ClockInPlayerPosition') == 'Center_Up'){
       $('#clockstyle').remove();
@@ -397,10 +316,13 @@
       $("#MyClockDiv").remove();
       $("#MyLogoDiv").remove();
       var MyDiv = '<div id="MyClockDiv" class="head__time-now time--clock hide"></div>';
-      var MyLogo = '<div id="MyLogoDiv" class="hide" style="z-index: 51!important; position: fixed!important; visibility: hidden;"><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/f/f6/FreeTv_Egypt_Logo.png/640px-FreeTv_Egypt_Logo.png" width="100" height="100"></div>';
+      var MyLogo = '<div id="MyLogoDiv" class="hide" style="z-index: 51!important; position: fixed!important; visibility: hidden;">' +
+                   '<img src="https://upload.wikimedia.org/wikipedia/commons/thumb/f/f6/FreeTv_Egypt_Logo.png/640px-FreeTv_Egypt_Logo.png" width="100" height="100">' +
+                   '</div>';
       $('.player').append(MyDiv);
       if(Lampa.Storage.field('ClockInPlayer') == true){
-        if(($('body > div.player > div.player-panel').hasClass("panel--visible") == false) || ($('body > div.player > div.player-info').hasClass("info--visible") == false)){
+        if(($('body > div.player > div.player-panel').hasClass("panel--visible") == false) ||
+           ($('body > div.player > div.player-info').hasClass("info--visible") == false)){
           $('#MyClockDiv').removeClass('hide');
         }
       }
@@ -437,7 +359,8 @@
         if(Lampa.Storage.field('ClockInPlayerPosition') == 'Right_Down')
           Lampa.Storage.set('Clock_coordinates', 'bottom: 10%!important; right: 5%!important');
 					
-        Lampa.Template.add('CLOCKSTYLE', '<div id="clockstyle"><style>#MyClockDiv{position: fixed!important;' + Lampa.Storage.get('Clock_coordinates') + '; z-index: 51!important}</style></div>');
+        Lampa.Template.add('CLOCKSTYLE', '<div id="clockstyle"><style>#MyClockDiv{position: fixed!important;' +
+           Lampa.Storage.get('Clock_coordinates') + '; z-index: 51!important}</style></div>');
         $('body').append(Lampa.Template.get('CLOCKSTYLE', {}, true));
 					
         if(Lampa.Storage.field('ClockInPlayerPosition') == 'Center_Up'){
@@ -573,7 +496,7 @@
       }
     });
 
-    // Активация стилизации кнопок просмотра (для торрентов)
+    // Стилизация кнопок просмотра для торрентов
     var green1 = '<div id="green_style"><style>.torrent-item.selector.focus{box-shadow: 0 0 0 0.5em #1aff00!important;}</style></div>';
     var green2 = '<div id="greenn_style"><style>.torrent-serial.selector.focus{box-shadow: 0 0 0 0.3em #1aff00!important;}</style></div>';
     var green3 = '<div id="greennn_style"><style>.torrent-file.selector.focus{box-shadow: 0 0 0 0.3em #1aff00!important;}</style></div>';
@@ -588,7 +511,7 @@
     var timerId = setInterval(updateT, 1000);
   } // end of add()
 
-  // Регистрируем компонент плагина (иконка запуска) в главном меню
+  // Регистрируем компонент плагина (иконку запуска) в главном меню
   Lampa.SettingsApi.addComponent({
     component: 'Multi_Menu_Component',
     name: 'My Plugin',
@@ -596,12 +519,12 @@
             '<path d="M512 96C264.6 96 64 296.6 64 544s200.6 448 448 448 448-200.6 448-448S759.4 96 512 96zm0 820c-205.9 0-372-166.1-372-372S306.1 172 512 172s372 166.1 372 372-166.1 372-372 372z"/>' +
           '</svg>',
     onSelect: function(){
-      // Здесь можно разместить запуск основной функциональности плагина
-      alert('Plugin launched!');
+         // Здесь разместите запуск функциональности плагина
+         alert('Plugin launched!');
     }
   });
 
-  // Ждём готовности приложения и запускаем основной функционал
+  // Инициализация: ждем готовности приложения и запускаем основной функционал и добавляем кнопки в шапку
   if(window.appready){
     add();
     addHeaderButtons();
