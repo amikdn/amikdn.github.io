@@ -11,7 +11,7 @@
       var headerActions = document.querySelector('#app .head__actions');
       if(!headerActions) return;
 
-      // Кнопка перезагрузки (RELOAD) – иконка с fill="currentColor" и вызовом reload с выводом в консоль
+      // Кнопка перезагрузки (RELOAD)
       var reloadHTML = '<div id="RELOAD" class="head__action selector" tabindex="0">' +
                          '<svg fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="0.48">' +
                            '<g id="SVGRepo_bgCarrier" stroke-width="0"></g>' +
@@ -22,18 +22,18 @@
                          '</svg>' +
                        '</div>';
 
-      // Кнопка выхода (EXIT) – крестик внутри квадратной рамки, тоже с fill="currentColor"
-      var exitHTML = ''<div id="EXIT" class="head__action selector exit-screen" tabindex="0">' +
+      // Обновлённая кнопка выхода (EXIT) – согласно вашему запросу
+      var exitHTML = '<div id="EXIT" class="head__action selector exit-screen" tabindex="0">' +
           '<svg fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">' +
             '<rect x="2" y="2" width="20" height="20" rx="2" ry="2" stroke="currentColor" stroke-width="2"/>' +
             '<line x1="8" y1="8" x2="16" y2="16" stroke="currentColor" stroke-width="2"/>' +
             '<line x1="16" y1="8" x2="8" y2="16" stroke="currentColor" stroke-width="2"/>' +
           '</svg>' +
-        '</div>;
+        '</div>';
 
       headerActions.insertAdjacentHTML('beforeend', reloadHTML + exitHTML);
 
-      // Если параметр Reloadbutton выключён, скрываем кнопки
+      // Если параметр "Reloadbutton" выключен – скрываем кнопки
       if(Lampa.Storage.field('Reloadbutton') !== true){
         document.getElementById('RELOAD').classList.add('hide');
         document.getElementById('EXIT').classList.add('hide');
@@ -67,7 +67,9 @@
 
   // Функция выхода из приложения Lamp с учётом платформ
   function exitLamp(){
-    try { if(Lampa && Lampa.Activity) Lampa.Activity.out(); } catch(e){}
+    try {
+      if(Lampa && Lampa.Activity) Lampa.Activity.out();
+    } catch(e){}
     if(Lampa && Lampa.Platform){
       if(Lampa.Platform.is('tizen')){
         tizen.application.getCurrentApplication().exit();
@@ -85,7 +87,7 @@
     }
   }
 
-  // Основная функция плагина – остальной функционал
+  // Основная функция плагина – остальной функционал исходного кода
   function add(){
     var a = 's';
 
@@ -462,7 +464,7 @@
     var timerId = setInterval(updateT, 1000);
   } // end of add()
 
-  // Регистрируем компонент плагина в главном меню с названием "Приятные мелочи" и белой оригинальной иконкой
+  // Регистрируем компонент плагина с названием "Приятные мелочи" и белой оригинальной иконкой
   Lampa.SettingsApi.addComponent({
     component: 'Multi_Menu_Component',
     name: 'Приятные мелочи',
