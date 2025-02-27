@@ -7,20 +7,24 @@
   // Функция добавления кнопок перезагрузки и выхода в шапку приложения
   function addHeaderButtons(){
     try {
-      // Находим контейнер для кнопок (при необходимости скорректируйте селектор)
+      // Находим контейнер для кнопок (при необходимости измените селектор)
       var headerActions = document.querySelector('#app .head__actions');
       if(!headerActions) return;
 
-      // Кнопка перезагрузки (RELOAD)
+      // Кнопка перезагрузки (RELOAD) – иконка с fill="currentColor" и вызовом reload с выводом в консоль
       var reloadHTML = '<div id="RELOAD" class="head__action selector" tabindex="0">' +
-                         '<svg fill="#ffffff" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">' +
-                           '<path d="M4,12a1,1,0,0,1-2,0A9.983,9.983,0,0,1,18.242,4.206V2.758a1,1,0,1,1,2,0v4a1,1,0,0,1-1,1h-4a1,1,0,0,1,0-2h1.743A7.986,7.986,0,0,0,4,12Zm17-1a1,1,0,0,0-1,1A7.986,7.986,0,0,1,7.015,18.242H8.757a1,1,0,1,0,0-2h-4a1,1,0,0,0-1,1v4a1,1,0,0,0,2,0V19.794A9.984,9.984,0,0,0,22,12,1,1,0,0,0,21,11Z"></path>' +
+                         '<svg fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="0.48">' +
+                           '<g id="SVGRepo_bgCarrier" stroke-width="0"></g>' +
+                           '<g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>' +
+                           '<g id="SVGRepo_iconCarrier">' +
+                             '<path d="M4,12a1,1,0,0,1-2,0A9.983,9.983,0,0,1,18.242,4.206V2.758a1,1,0,1,1,2,0v4a1,1,0,0,1-1,1h-4a1,1,0,0,1,0-2h1.743A7.986,7.986,0,0,0,4,12Zm17-1a1,1,0,0,0-1,1A7.986,7.986,0,0,1,7.015,18.242H8.757a1,1,0,1,0,0-2h-4a1,1,0,0,0-1,1v4a1,1,0,0,0,2,0V19.794A9.984,9.984,0,0,0,22,12,1,1,0,0,0,21,11Z" fill="currentColor"></path>' +
+                           '</g>' +
                          '</svg>' +
                        '</div>';
 
-      // Кнопка выхода (EXIT) – крестик внутри квадратной рамки
+      // Кнопка выхода (EXIT) – крестик внутри квадратной рамки, тоже с fill="currentColor"
       var exitHTML = '<div id="EXIT" class="head__action selector" tabindex="0">' +
-                       '<svg fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">' +
+                       '<svg fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">' +
                          '<rect x="2" y="2" width="20" height="20" rx="2" ry="2" stroke="currentColor" stroke-width="2"></rect>' +
                          '<line x1="8" y1="8" x2="16" y2="16" stroke="currentColor" stroke-width="2"></line>' +
                          '<line x1="16" y1="8" x2="8" y2="16" stroke="currentColor" stroke-width="2"></line>' +
@@ -29,7 +33,7 @@
 
       headerActions.insertAdjacentHTML('beforeend', reloadHTML + exitHTML);
 
-      // Параметр управления видимостью кнопок (Reloadbutton)
+      // Если параметр Reloadbutton выключён, скрываем кнопки
       if(Lampa.Storage.field('Reloadbutton') !== true){
         document.getElementById('RELOAD').classList.add('hide');
         document.getElementById('EXIT').classList.add('hide');
@@ -39,12 +43,22 @@
       var exitBtn   = document.getElementById('EXIT');
 
       if(reloadBtn){
-        reloadBtn.addEventListener('click', function(){ location.reload(); });
-        reloadBtn.addEventListener('keydown', function(e){ if(e.keyCode===13 || e.keyCode===32) location.reload(); });
+        reloadBtn.addEventListener('click', function(){
+          console.log("Перезагрузка Lamp...");
+          location.reload();
+        });
+        reloadBtn.addEventListener('keydown', function(e){
+          if(e.keyCode===13 || e.keyCode===32){
+            console.log("Перезагрузка Lamp...");
+            location.reload();
+          }
+        });
       }
       if(exitBtn){
         exitBtn.addEventListener('click', function(){ exitLamp(); });
-        exitBtn.addEventListener('keydown', function(e){ if(e.keyCode===13 || e.keyCode===32) exitLamp(); });
+        exitBtn.addEventListener('keydown', function(e){
+          if(e.keyCode===13 || e.keyCode===32){ exitLamp(); }
+        });
       }
     } catch(e){
       console.error(e);
@@ -83,7 +97,7 @@
                   "shape-rendering='geometricPrecision' text-rendering='geometricPrecision' " +
                   "image-rendering='optimizeQuality' fill-rule='evenodd' clip-rule='evenodd'>" +
                     "<circle cx='423' cy='423' r='398' fill='#3498db' class='fill-1fc255'></circle>" +
-                    "<path d='M642 423 467 322 292 221v404l175-101z' fill='#fff7f7' stroke='#fff7f7' stroke-width='42.33' stroke-linejoin='round' class='fill-fff7f7 stroke-fff7f7'></path>" +
+                    "<path d='M642 423 467 322 292 221v404l175-101z' fill='#fff7f7' stroke='#fff7f7' stroke-width='42.33' stroke-linejoin='round'></path>" +
                   "</svg><span>MODS's онлайн</span>");
         $(".view--torrent", Lampa.Activity.active().activity.render())
           .empty()
@@ -103,7 +117,7 @@
                   "shape-rendering='geometricPrecision' text-rendering='geometricPrecision' " +
                   "image-rendering='optimizeQuality' fill-rule='evenodd' clip-rule='evenodd'>" +
                     "<circle cx='423' cy='423' r='398' fill='#3498db' class='fill-1fc255'></circle>" +
-                    "<path d='M642 423 467 322 292 221v404l175-101z' fill='#fff7f7' stroke='#fff7f7' stroke-width='42.33' stroke-linejoin='round' class='fill-fff7f7 stroke-fff7f7'></path>" +
+                    "<path d='M642 423 467 322 292 221v404l175-101z' fill='#fff7f7' stroke='#fff7f7' stroke-width='42.33' stroke-linejoin='round'></path>" +
                   "</svg><span>Смотреть</span>");
         $(".view--trailer", Lampa.Activity.active().activity.render())
           .empty()
@@ -114,7 +128,7 @@
       }
     }
 
-    // Скрываем ленту трейлеров на Главной
+    // Скрытие ленты трейлеров на главной
     Lampa.SettingsApi.addParam({
       component: 'Multi_Menu_Component',
       param: { name: 'NoTrailerMainPage', type: 'trigger', default: false },
@@ -148,7 +162,7 @@
       }
     });
 
-    // Скрываем часы на заставке CUB / Chromecast
+    // Скрытие часов на заставке CUB / Chromecast
     Lampa.SettingsApi.addParam({
       component: 'Multi_Menu_Component',
       param: { name: 'NoTimeNoDate', type: 'trigger', default: false },
@@ -165,96 +179,7 @@
       }
     });
 
-    // Удалён блок "CustomScreenSaver"
-
-    // Скрываем панель навигации (NavyBar)
-    Lampa.SettingsApi.addParam({
-      component: 'Multi_Menu_Component',
-      param: { name: 'NavyBar', type: 'trigger', default: false },
-      field: { name: 'Скрыть панель навигации', description: 'Если неправильно определился тип устройства' },
-      onChange: function(value){
-        if(Lampa.Storage.field('NavyBar') == true){
-          Lampa.Template.add('no_bar', '<div id="no_bar"><style>.navigation-bar{display: none!important;}</style></div>');
-          $('body').append(Lampa.Template.get('no_bar', {}, true));
-          var searchReturnButton = '<div id="searchReturnButton" class="head__action head__settings selector searchReturnButton">' +
-              '<svg width="23" height="22" viewBox="0 0 23 22" fill="none" xmlns="http://www.w3.org/2000/svg">' +
-              '<circle cx="9.9964" cy="9.63489" r="8.43556" stroke="currentColor" stroke-width="2.4"></circle>' +
-              '<path d="M20.7768 20.4334L18.2135 17.8701" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"></path>' +
-              '</svg></div>';
-          $('.open--search').hide();
-          $('#searchReturnButton').remove();
-          $('#app > div.head > div > div.head__actions').append(searchReturnButton);
-          $('#searchReturnButton').on('hover:enter hover:click hover:touch', function(){ Lampa.Search.open(); });
-          $('.menu__item').on('click', function(){
-            this.removeClass('focus'); this.addClass('focus');
-          });
-        }
-        if(Lampa.Storage.field('NavyBar') == false){
-          $('.open--search').show();
-          $('#no_bar').remove();
-          $('#searchReturnButton').remove();
-        }
-      }
-    });
-
-    // Отключение неиспользуемой раскладки клавиатуры
-    Lampa.SettingsApi.addParam({
-      component: 'Multi_Menu_Component',
-      param: {
-        name: 'KeyboardSwitchOff',
-        type: 'select',
-        values: {
-          SwitchOff_None: 'Не отключать',
-          SwitchOff_UA: 'Українська',
-          SwitchOff_RU: 'Русский',
-          SwitchOff_EN: 'English'
-        },
-        default: 'SwitchOff_None'
-      },
-      field: { name: 'Неиспользуемая клавиатура', description: 'Выберите язык для отключения' },
-      onChange: function(value){
-        if(Lampa.Storage.field('KeyboardSwitchOff') == 'SwitchOff_UA'){
-          Lampa.Storage.set('keyboard_default_lang', 'default');
-          var elementUA = $('.selectbox-item.selector > div:contains("Українська")');
-          if(elementUA.length > 0) elementUA.parent('div').hide();
-        }
-        if(Lampa.Storage.field('KeyboardSwitchOff') == 'SwitchOff_RU'){
-          Lampa.Storage.set('keyboard_default_lang', 'uk');
-          var elementRU = $('.selectbox-item.selector > div:contains("Русский")');
-          if(elementRU.length > 0) elementRU.parent('div').hide();
-        }
-        if((Lampa.Storage.field('KeyboardSwitchOff') == 'SwitchOff_EN') && (Lampa.Storage.field('language') == 'uk')){
-          Lampa.Storage.set('keyboard_default_lang', 'uk');
-          var elementEN = $('.selectbox-item.selector > div:contains("English")');
-          if(elementEN.length > 0) elementEN.parent('div').hide();
-        }
-        if((Lampa.Storage.field('KeyboardSwitchOff') == 'SwitchOff_EN') && (Lampa.Storage.field('language') == 'ru')){
-          Lampa.Storage.set('keyboard_default_lang', 'default');
-          var elementEN = $('.selectbox-item.selector > div:contains("English")');
-          if(elementEN.length > 0) elementEN.parent('div').hide();
-        }
-      }
-    });
-
-    // Стилизация кнопок просмотра (BUTTONS_fix)
-    Lampa.SettingsApi.addParam({
-      component: 'Multi_Menu_Component',
-      param: { name: 'BUTTONS_fix', type: 'trigger', default: false },
-      field: { name: 'Стилизовать кнопки просмотра', description: 'Делает кнопки цветными' },
-      onChange: function(value){
-        if(Lampa.Storage.field('BUTTONS_fix') == true){
-          updateT();
-        }
-        Lampa.Settings.update();
-      },
-      onRender: function(item){
-        if(Lampa.Storage.field('BUTTONS_fix') == true){
-          updateT();
-        }
-      }
-    });
-
-    // Удаление пунктов меню "Аниме" и "Клубничка"
+    // Пункты для удаления "Аниме" и "Клубничка"
     Lampa.SettingsApi.addParam({
       component: 'Multi_Menu_Component',
       param: { name: 'ANIME_fix', type: 'trigger', default: false },
@@ -274,13 +199,13 @@
         if(Lampa.Storage.field('SISI_fix') == true)
           $('#app > div.wrap.layer--height.layer--width > div.wrap__left.layer--height > div > div > div > div > div:nth-child(1) > ul > li:contains("Клубничка")').hide();
         else
-          $('#app > div.wrap.layer--height.layer--width > div.wrap__left.layer--height > div > div > div > div > div:nth-child(1) > ul > li:contains("Клубничка")').show();
+          $('#app > div.wrap.layer--height.layer--width > div.wrap__left.layer--height > div > div > div > div > li:contains("Клубничка")').show();
       }
     });
 
     var d = 'dn';
 
-    // Параметр для управления отображением кнопок перезагрузки и выхода (Reloadbutton)
+    // Параметр для управления отображением кнопок перезагрузки и выхода
     Lampa.SettingsApi.addParam({
       component: 'Multi_Menu_Component',
       param: { name: 'Reloadbutton', type: 'trigger', default: false },
@@ -373,6 +298,30 @@
       }
     });
 	
+    // Стилизация встроенного плеера – YouTubeStyle
+    Lampa.SettingsApi.addParam({
+      component: 'Multi_Menu_Component',
+      param: { name: 'YouTubeStyle', type: 'trigger', default: false },
+      field: { name: 'Стилизация встроенного плеера', description: 'В стиле YouTube' },
+      onChange: function(value){
+        if(Lampa.Storage.field('YouTubeStyle') == false){
+          $('#YOUTUBESTYLE').remove();
+          $('#YOUTUBESTYLE-POSITION').remove();
+          $('#YOUTUBESTYLE-POSITION-focus').remove();
+        }
+        if(Lampa.Storage.field('YouTubeStyle') == true){
+          $('body').append(Lampa.Template.get('YOUTUBESTYLE', {}, true));
+          $('body').append(Lampa.Template.get('YOUTUBESTYLE-POSITION', {}, true));
+          $('body').append(Lampa.Template.get('YOUTUBESTYLE-POSITION-focus', {}, true));
+        }
+      },
+      onRender: function(item){
+        Lampa.Template.add('YOUTUBESTYLE', '<div id="YOUTUBESTYLE" class="hide"><style>div.player-panel__position{background-color: #f00!important;}</style></div>');
+        Lampa.Template.add('YOUTUBESTYLE-POSITION', '<div id="YOUTUBESTYLE-POSITION" class="hide"><style>div.player-panel__position>div:after{background-color: #f00!important; box-shadow: 0 0 3px 0.2em!important;}</style></div>');
+        Lampa.Template.add('YOUTUBESTYLE-POSITION-focus', '<div id="YOUTUBESTYLE-POSITION-focus" class="hide"><style>body > div.player > div.player-panel.panel--paused > div > div.player-panel__timeline.selector.focus > div.player-panel__position > div:after{box-shadow: 0 0 3px 0.2em!important;}</style></div>');
+      }
+    });
+	
     Lampa.SettingsApi.addParam({
       component: 'Multi_Menu_Component',
       param: { name: 'YouTube', type: 'trigger', default: false },
@@ -430,9 +379,9 @@
         webOS.service.request("luna://com.webos.applicationManager", {
           method: "launch",
           parameters: { "id": "youtube.leanback.v4" },
-          onSuccess: function(inResponse){ console.log("The app is launched"); },
+          onSuccess: function(inResponse){ console.log("YouTube запущен"); },
           onFailure: function(inError){
-            console.log("Failed to launch the app ["+inError.errorCode+"]: "+inError.errorText);
+            console.log("Не удалось запустить YouTube ["+inError.errorCode+"]: "+inError.errorText);
             return;
           }
         });
@@ -513,11 +462,11 @@
     var timerId = setInterval(updateT, 1000);
   } // end of add()
 
-  // Регистрируем компонент плагина (иконку запуска) в главном меню с названием "Приятные мелочи" и оригинальной иконкой
+  // Регистрируем компонент плагина в главном меню с названием "Приятные мелочи" и белой оригинальной иконкой
   Lampa.SettingsApi.addComponent({
     component: 'Multi_Menu_Component',
     name: 'Приятные мелочи',
-    icon: '<svg viewBox="0 0 1024 1024" class="icon" version="1.1" xmlns="http://www.w3.org/2000/svg" fill="#000000" stroke="#000000">' +
+    icon: '<svg viewBox="0 0 1024 1024" class="icon" version="1.1" xmlns="http://www.w3.org/2000/svg" fill="#ffffff" stroke="#ffffff">' +
             '<g id="SVGRepo_bgCarrier" stroke-width="0"/>' +
             '<g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"/>' +
             '<g id="SVGRepo_iconCarrier">' +
