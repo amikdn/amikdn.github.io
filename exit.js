@@ -11,7 +11,7 @@
       var headerActions = document.querySelector('#app .head__actions');
       if(!headerActions) return;
 
-      // Кнопка перезагрузки (RELOAD) – берём код из исходного плагина с вызовом в консоли
+      // Кнопка перезагрузки (RELOAD) – с fill="currentColor"
       var reloadHTML = '<div id="RELOAD" class="head__action selector" tabindex="0">' +
                          '<svg fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="0.48">' +
                            '<g id="SVGRepo_bgCarrier" stroke-width="0"></g>' +
@@ -22,7 +22,7 @@
                          '</svg>' +
                        '</div>';
 
-      // Кнопка выхода (EXIT) – иконка (крестик внутри квадратной рамки) с fill="currentColor"
+      // Кнопка выхода (EXIT) – крестик внутри квадратной рамки с fill="currentColor"
       var exitHTML = '<div id="EXIT" class="head__action selector" tabindex="0">' +
                        '<svg fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">' +
                          '<rect x="2" y="2" width="20" height="20" rx="2" ry="2" stroke="currentColor" stroke-width="2"></rect>' +
@@ -33,7 +33,7 @@
 
       headerActions.insertAdjacentHTML('beforeend', reloadHTML + exitHTML);
 
-      // Параметр управления видимостью кнопок (Reloadbutton)
+      // Если параметр "Reloadbutton" выключен – скрываем кнопки
       if(Lampa.Storage.field('Reloadbutton') !== true){
         document.getElementById('RELOAD').classList.add('hide');
         document.getElementById('EXIT').classList.add('hide');
@@ -87,7 +87,7 @@
     }
   }
 
-  // Основная функция плагина – остальной функционал (без блока "Свой хранитель экрана" и народного TorrServer)
+  // Основная функция плагина – остальной функционал
   function add(){
     var a = 's';
 
@@ -130,7 +130,7 @@
       }
     }
 
-    // Скрываем ленту трейлеров на Главной
+    // Скрытие ленты трейлеров на главной
     Lampa.SettingsApi.addParam({
       component: 'Multi_Menu_Component',
       param: { name: 'NoTrailerMainPage', type: 'trigger', default: false },
@@ -164,7 +164,7 @@
       }
     });
 
-    // Скрываем часы на заставке CUB / Chromecast
+    // Скрытие часов на заставке CUB / Chromecast
     Lampa.SettingsApi.addParam({
       component: 'Multi_Menu_Component',
       param: { name: 'NoTimeNoDate', type: 'trigger', default: false },
@@ -201,7 +201,7 @@
         if(Lampa.Storage.field('SISI_fix') == true)
           $('#app > div.wrap.layer--height.layer--width > div.wrap__left.layer--height > div > div > div > div > div:nth-child(1) > ul > li:contains("Клубничка")').hide();
         else
-          $('#app > div.wrap.layer--height.layer--width > div.wrap__left.layer--height > div > div > div > div > div:nth-child(1) > ul > li:contains("Клубничка")').show();
+          $('#app > div.wrap.layer--height.layer--width > div.wrap__left.layer--height > div > div > div > div > ul > li:contains("Клубничка")').show();
       }
     });
 
@@ -297,6 +297,30 @@
           Lampa.Template.add('CLOCKSTYLE', '<div id="clockstyle" class="head__time-now time--clock hide"><style>#MyClockDiv{position: absolute!important; display: flex !important; z-index: 51!important; top: 2%;left: 49%;transform: translate(-50%, -50%);}</style></div>');
           $('body').append(Lampa.Template.get('CLOCKSTYLE', {}, true));
         }
+      }
+    });
+	
+    // Стилизация встроенного плеера – YouTube
+    Lampa.SettingsApi.addParam({
+      component: 'Multi_Menu_Component',
+      param: { name: 'YouTubeStyle', type: 'trigger', default: false },
+      field: { name: 'Стилизация встроенного плеера', description: 'В стиле YouTube' },
+      onChange: function(value){
+        if(Lampa.Storage.field('YouTubeStyle') == false){
+          $('#YOUTUBESTYLE').remove();
+          $('#YOUTUBESTYLE-POSITION').remove();
+          $('#YOUTUBESTYLE-POSITION-focus').remove();
+        }
+        if(Lampa.Storage.field('YouTubeStyle') == true){
+          $('body').append(Lampa.Template.get('YOUTUBESTYLE', {}, true));
+          $('body').append(Lampa.Template.get('YOUTUBESTYLE-POSITION', {}, true));
+          $('body').append(Lampa.Template.get('YOUTUBESTYLE-POSITION-focus', {}, true));
+        }
+      },
+      onRender: function(item){
+        Lampa.Template.add('YOUTUBESTYLE', '<div id="YOUTUBESTYLE" class="hide"><style>div.player-panel__position{background-color: #f00!important;}</style></div>');
+        Lampa.Template.add('YOUTUBESTYLE-POSITION', '<div id="YOUTUBESTYLE-POSITION" class="hide"><style>div.player-panel__position>div:after{background-color: #f00!important; box-shadow: 0 0 3px 0.2em!important;}</style></div>');
+        Lampa.Template.add('YOUTUBESTYLE-POSITION-focus', '<div id="YOUTUBESTYLE-POSITION-focus" class="hide"><style>body > div.player > div.player-panel.panel--paused > div > div.player-panel__timeline.selector.focus > div.player-panel__position > div:after{box-shadow: 0 0 3px 0.2em!important;}</style></div>');
       }
     });
 	
@@ -452,7 +476,7 @@
             '</g>' +
           '</svg>',
     onSelect: function(){
-         // Запуск функциональности плагина – замените alert на нужное действие
+         // Здесь разместите запуск функциональности плагина – например, открыть модальное окно
          alert('Plugin launched!');
     }
   });
