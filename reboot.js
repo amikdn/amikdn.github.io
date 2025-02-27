@@ -1,19 +1,6 @@
 (function() {
   'use strict';
 
-  // Функция для вывода ошибки на экран
-  function logError(message) {
-    var errorContainer = document.getElementById('pluginErrorContainer');
-    if (!errorContainer) {
-      errorContainer = document.createElement('div');
-      errorContainer.id = 'pluginErrorContainer';
-      errorContainer.style.cssText = 'position: fixed; top: 0; left: 0; background: red; color: white; padding: 10px; z-index: 9999; font-family: sans-serif;';
-      document.body.appendChild(errorContainer);
-    }
-    errorContainer.textContent = message;
-  }
-
-  // Функция добавления кнопки перезагрузки
   function addReloadButton() {
     try {
       // Ищем контейнер для кнопок (при необходимости измените селектор под вашу разметку)
