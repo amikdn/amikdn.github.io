@@ -3,7 +3,6 @@
 (function() {
   'use strict';
 
-  // Функция выхода из приложения Lamp с учётом разных платформ
   function exitLamp() {
     try {
       if (Lampa && Lampa.Activity) {
@@ -27,14 +26,11 @@
     }
   }
 
-  // Функция добавления кнопок (перезагрузки и выхода)
   function addButtons() {
     try {
-      // Ищем контейнер для кнопок в шапке приложения (при необходимости скорректируйте селектор)
       var headerActions = document.querySelector('#app .head__actions');
       if (!headerActions) return;
 
-      // HTML-разметка кнопки перезагрузки
       var reloadButtonHTML =
         '<div id="RELOAD" class="head__action selector reload-screen" tabindex="0">' +
           '<svg fill="#ffffff" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">' +
@@ -46,7 +42,6 @@
           '</svg>' +
         '</div>';
 
-      // HTML-разметка кнопки выхода с иконкой: крестик внутри квадратной рамки
       var exitButtonHTML =
         '<div id="EXIT" class="head__action selector exit-screen" tabindex="0">' +
           '<svg fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">' +
@@ -56,10 +51,8 @@
           '</svg>' +
         '</div>';
 
-      // Добавляем обе кнопки в контейнер
       headerActions.insertAdjacentHTML('beforeend', reloadButtonHTML + exitButtonHTML);
 
-      // Обработка событий для кнопки перезагрузки
       var reloadButton = document.getElementById('RELOAD');
       if (reloadButton) {
         if (typeof $ !== 'undefined' && typeof $(reloadButton).on === 'function') {
@@ -78,7 +71,6 @@
         }
       }
 
-      // Обработка событий для кнопки выхода
       var exitButton = document.getElementById('EXIT');
       if (exitButton) {
         if (typeof $ !== 'undefined' && typeof $(exitButton).on === 'function') {
@@ -101,8 +93,6 @@
     }
   }
 
-  // Если приложение уже готово, добавляем кнопки сразу;
-  // иначе ждём события готовности (через Lampa.Listener или window.load)
   if (window.appready) {
     addButtons();
   } else if (typeof Lampa !== 'undefined' && Lampa.Listener) {
