@@ -1,18 +1,29 @@
-(function () {
+(function() {
   'use strict';
 
-  // Ждём, пока приложение Lamp полностью загрузится
-  Lampa.Listener.follow('app', function(e) {
-    if(e.type === 'ready'){
-      
-      // Ищем контейнер для кнопок в шапке. Если структура DOM отличается, измените селектор.
-      var headerActions = document.querySelector('#app > div.head > div > div.head__actions');
-      if(!headerActions){
-        console.error("Контейнер '#app > div.head > div > div.head__actions' не найден.");
+  // Функция для вывода ошибки на экран
+  function logError(message) {
+    var errorContainer = document.getElementById('pluginErrorContainer');
+    if (!errorContainer) {
+      errorContainer = document.createElement('div');
+      errorContainer.id = 'pluginErrorContainer';
+      errorContainer.style.cssText = 'position: fixed; top: 0; left: 0; background: red; color: white; padding: 10px; z-index: 9999; font-family: sans-serif;';
+      document.body.appendChild(errorContainer);
+    }
+    errorContainer.textContent = message;
+  }
+
+  // Функция добавления кнопки перезагрузки
+  function addReloadButton() {
+    try {
+      // Ищем контейнер для кнопок (при необходимости измените селектор под вашу разметку)
+      var headerActions = document.querySelector('#app .head__actions');
+      if (!headerActions) {
+        logError('Reload Plugin Error: Контейнер ".head__actions" не найден.');
         return;
       }
       
-      // Формируем HTML-код кнопки перезагрузки с SVG-иконкой
+      // HTML-разметка кнопки с иконкой SVG
       var reloadButtonHTML = '<div id="RELOAD" class="head__action selector reload-screen">' +
           '<svg fill="#ffffff" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">' +
             '<g stroke-width="0"></g>' +
@@ -23,13 +34,37 @@
           '</svg>' +
         '</div>';
       
-      // Вставляем кнопку в найденный контейнер
+      // Добавляем кнопку в найденный контейнер
       headerActions.insertAdjacentHTML('beforeend', reloadButtonHTML);
       
-      // Добавляем обработчик события: при клике кнопка вызывает перезагрузку приложения
+      // Находим добавленную кнопку и вешаем обработчик клика
       var reloadButton = document.getElementById('RELOAD');
-      if(reloadButton){
-        reloadButton.addEventListener('click', function(){
+      if (reloadButton) {
+        reloadButton.addEventListener('click', function() {
           location.reload();
         });
+      } else {
+        logError('Reload Plugin Error: Кнопка не найдена после добавления.');
       }
+    } catch (err) {
+      logError('Reload Plugin Exception: ' + err.message);
+    }
+  }
+
+  // Если приложение уже готово, добавляем кнопку сразу
+  if (window.appready) {
+    addReloadButton();
+  } else if (typeof Lampa !== 'undefined' && Lampa.Listener) {
+    // Ждём события готовности приложения
+    Lampa.Listener.follow('app', function(e) {
+      if (e.type === 'ready') {
+        addReloadButton();
+      }
+    });
+  } else {
+    // Если Lampa недоступна, пробуем дождаться полной загрузки страницы
+    window.addEventListener('load', function() {
+      addReloadButton();
+    });
+  }
+})();
