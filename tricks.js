@@ -390,15 +390,6 @@
     }
     setInterval(updateClock, 200);
 
-    // Часы во встроенном плеере
-    Lampa.SettingsApi.addParam({
-      component: 'Multi_Menu_Component',
-      param: { name: 'ClockInPlayer', type: 'trigger', default: false },
-      field: { name: 'Часы во встроенном плеере', description: 'Через 5 секунд после включения плеера' },
-      onChange: function(value){}
-    });
-
-    
 
     // Разделы YouTube, RuTube, Twitch – создание кнопок в главном меню
     var TubeSVG = '<svg width="256px" height="256px" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" fill="#ffffff" stroke="#ffffff">' +
