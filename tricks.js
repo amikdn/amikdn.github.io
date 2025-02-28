@@ -4,14 +4,13 @@
   
   Lampa.Platform.tv();
 
-  
+  // Функция добавления кнопок перезагрузки и выхода в шапку приложения
   function addHeaderButtons(){
     try {
-      
       var headerActions = document.querySelector('#app .head__actions');
       if(!headerActions) return;
 
-      
+      // Кнопка перезагрузки (RELOAD)
       var reloadHTML = '<div id="RELOAD" class="head__action selector" tabindex="0">' +
                          '<svg fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="0.48">' +
                            '<g id="SVGRepo_bgCarrier" stroke-width="0"></g>' +
@@ -22,7 +21,7 @@
                          '</svg>' +
                        '</div>';
 
-      
+      // Кнопка выхода (EXIT)
       var exitHTML = '<div id="EXIT" class="head__action selector exit-screen" tabindex="0">' +
           '<svg fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">' +
             '<rect x="2" y="2" width="20" height="20" rx="2" ry="2" stroke="currentColor" stroke-width="2"/>' +
@@ -33,7 +32,6 @@
 
       headerActions.insertAdjacentHTML('beforeend', reloadHTML + exitHTML);
 
-      
       if(Lampa.Storage.field('Reloadbutton') !== true){
         document.getElementById('RELOAD').classList.add('hide');
         document.getElementById('EXIT').classList.add('hide');
@@ -65,11 +63,9 @@
     }
   }
 
-  
+  // Функция выхода из приложения Lampa
   function exitLamp(){
-    try {
-      if(Lampa && Lampa.Activity) Lampa.Activity.out();
-    } catch(e){}
+    try { if(Lampa && Lampa.Activity) Lampa.Activity.out(); } catch(e){}
     if(Lampa && Lampa.Platform){
       if(Lampa.Platform.is('tizen')){
         tizen.application.getCurrentApplication().exit();
@@ -87,7 +83,7 @@
     }
   }
 
-  
+  // Основная функция плагина
   function add(){
     var a = 's';
 
@@ -95,42 +91,139 @@
       if(Lampa.Storage.field('BUTTONS_fix') == true){
         $(".view--onlines_v1", Lampa.Activity.active().activity.render())
           .empty()
-          .append("<svg viewBox='0 0 847 847' xml:space='preserve' xmlns='http://www.w3.org/2000/svg' " +
-                  "shape-rendering='geometricPrecision' text-rendering='geometricPrecision' " +
-                  "image-rendering='optimizeQuality' fill-rule='evenodd' clip-rule='evenodd'>" +
+          .append("<svg viewBox='0 0 847 847' xmlns='http://www.w3.org/2000/svg' fill-rule='evenodd' clip-rule='evenodd'>" +
                     "<circle cx='423' cy='423' r='398' fill='#3498db' class='fill-1fc255'></circle>" +
                     "<path d='M642 423 467 322 292 221v404l175-101z' fill='#fff7f7' stroke='#fff7f7' stroke-width='42.33' stroke-linejoin='round'></path>" +
                   "</svg><span>MODS's онлайн</span>");
         $(".view--torrent", Lampa.Activity.active().activity.render())
           .empty()
-          .append("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48' width='48px' height='48px'>" +
-                    "<path fill='#4caf50' fill-rule='evenodd' d='M23.501,44.125c11.016,0,20-8.984,20-20 " +
-                    "c0-11.015-8.984-20-20-20c-11.016,0-20,8.985-20,20C3.501,35.141,12.485,44.125,23.501,44.125z' " +
-                    "clip-rule='evenodd'/>" +
-                    "<path fill='#fff' fill-rule='evenodd' d='M43.252,27.114C39.718,25.992,38.055,19.625,34,11l-7,1.077 " +
-                    "c1.615,4.905,8.781,16.872,0.728,18.853C20.825,32.722,17.573,20.519,15,14l-8,2l10.178,27.081" +
-                    "c1.991,0.67,4.112,1.044,6.323,1.044c0.982,0,1.941-0.094,2.885-0.232l-4.443-8.376" +
-                    "c6.868,1.552,12.308-0.869,12.962-6.203c1.727,2.29,4.089,3.183,6.734,3.172 " +
-                    "C42.419,30.807,42.965,29.006,43.252,27.114z' clip-rule='evenodd'/>" +
+          .append("<svg viewBox='0 0 48 48' xmlns='http://www.w3.org/2000/svg' width='48px' height='48px'>" +
+                    "<path fill='#4caf50' d='M23.501,44.125c11.016,0,20-8.984,20-20c0-11.015-8.984-20-20-20 c-11.016,0-20,8.985-20,20 C3.501,35.141,12.485,44.125,23.501,44.125z'/>" +
+                    "<path fill='#fff' d='M43.252,27.114C39.718,25.992,38.055,19.625,34,11l-7,1.077 c1.615,4.905,8.781,16.872,0.728,18.853 C20.825,32.722,17.573,20.519,15,14l-8,2l10.178,27.081 c1.991,0.67,4.112,1.044,6.323,1.044 c0.982,0,1.941-0.094,2.885-0.232l-4.443-8.376 c6.868,1.552,12.308-0.869,12.962-6.203 c1.727,2.29,4.089,3.183,6.734,3.172 C42.419,30.807,42.965,29.006,43.252,27.114z'/>" +
                   "</svg><span>Торренты</span>");
         $(".open--menu", Lampa.Activity.active().activity.render())
           .empty()
-          .append("<svg viewBox='0 0 847 847' xml:space='preserve' xmlns='http://www.w3.org/2000/svg' " +
-                  "shape-rendering='geometricPrecision' text-rendering='geometricPrecision' " +
-                  "image-rendering='optimizeQuality' fill-rule='evenodd' clip-rule='evenodd'>" +
+          .append("<svg viewBox='0 0 847 847' xmlns='http://www.w3.org/2000/svg' fill-rule='evenodd' clip-rule='evenodd'>" +
                     "<circle cx='423' cy='423' r='398' fill='#3498db' class='fill-1fc255'></circle>" +
                     "<path d='M642 423 467 322 292 221v404l175-101z' fill='#fff7f7' stroke='#fff7f7' stroke-width='42.33' stroke-linejoin='round'></path>" +
                   "</svg><span>Смотреть</span>");
         $(".view--trailer", Lampa.Activity.active().activity.render())
           .empty()
           .append("<svg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'>" +
-                    "<g><path d='m31.77 234.14c-3.12-3.22-2.66-128.58 0-132 1.83-2.34 186.58-2.34 190.26 0 3.4 2.16 2.48 129.93 0 132-5.5 4.55-186.38 4-190.26 0z' fill='#191919'/>" +
-                    "<path d='m130.77 245.35h-4.49c-24.1 0-46.88-.35-64.17-.88-32.45-1-33.59-2.18-36.09-4.75s-4.54-4.72-4.42-71.52c0-16.69.25-32.56.61-44.68.69-23 1.49-24 3.26-26.29 2.61-3.34 6.09-3.48 14.52-3.83 5.12-.21 12.4-.4 21.63-.55 17.1-.28 40-.44 64.59-.44s47.61.16 64.93.44c32 .52 32.85 1.08 35.18 2.56 4 2.53 4.44 6.86 4.95 14.94 1 16.3 1.11 49.25.87 72.51-.56 53.77-1.68 54.7-5 57.45-2.44 2-4.06 3.36-36.37 4.32-16.06.46-37.23.72-60 .72zm-92.05-18c26.43 2.62 150.17 2.66 176.21.07 1.41-20.23 2-97 .31-118-27.17-1.42-148.84-1.42-176.47 0-1.58 21.46-1.62 98-.05 117.93z' fill='#191919'/>" +
-                  "</g></svg><span>Трейлеры</span>");
+                    "<g><path d='m31.77 234.14c-3.12-3.22-2.66-128.58 0-132 c1.83-2.34 186.58-2.34 190.26 0 c3.4 2.16 2.48 129.93 0 132 c-5.5 4.55-186.38 4-190.26 0z' fill='#191919'/></g>" +
+                  "</svg><span>Трейлеры</span>");
       }
     }
 
     
+
+    // Скрыть панель навигации
+    Lampa.SettingsApi.addParam({
+      component: 'Multi_Menu_Component',
+      param: { name: 'NavyBar', type: 'trigger', default: false },
+      field: { name: 'Скрыть панель навигации', description: 'Если неправильно определился тип устройства' },
+      onChange: function(value){
+        if(Lampa.Storage.field('NavyBar') == true){
+          Lampa.Template.add('no_bar', '<div id="no_bar"><style>.navigation-bar{display: none!important;}</style></div>');
+          $('body').append(Lampa.Template.get('no_bar', {}, true));
+          var searchReturnButton = '<div id="searchReturnButton" class="head__action head__settings selector searchReturnButton">' +
+                                      '<svg width="23" height="22" viewBox="0 0 23 22" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+                                        '<circle cx="9.9964" cy="9.63489" r="8.43556" stroke="currentColor" stroke-width="2.4"></circle>' +
+                                        '<path d="M20.7768 20.4334L18.2135 17.8701" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"></path>' +
+                                      '</svg>' +
+                                    '</div>';
+          $('.open--search').hide();
+          $('#searchReturnButton').remove();
+          $('#app > div.head > div > div.head__actions').append(searchReturnButton);
+          $('#searchReturnButton').on('hover:enter hover:click hover:touch', function(){ Lampa.Search.open(); });
+          $('.menu__item').on('click', function(){ $(this).addClass('focus').siblings().removeClass('focus'); });
+        } else {
+          $('.open--search').show();
+          $('#no_bar').remove();
+          $('#searchReturnButton').remove();
+        }
+      }
+    });
+
+    // Неиспользуемая клавиатура
+    Lampa.SettingsApi.addParam({
+      component: 'Multi_Menu_Component',
+      param: {
+        name: 'KeyboardSwitchOff',
+        type: 'select',
+        values: {
+          SwitchOff_None: 'Не отключать',
+          SwitchOff_UA: 'Українська',
+          SwitchOff_RU: 'Русский',
+          SwitchOff_EN: 'English'
+        },
+        default: 'SwitchOff_None'
+      },
+      field: { name: 'Неиспользуемая клавиатура', description: 'Выберите язык для отключения' },
+      onChange: function(value){
+        if(Lampa.Storage.field('KeyboardSwitchOff') == 'SwitchOff_UA'){
+          Lampa.Storage.set('keyboard_default_lang', 'default');
+          var elementUA = $('.selectbox-item.selector > div:contains("Українська")');
+          if(elementUA.length > 0) elementUA.parent('div').hide();
+        }
+        if(Lampa.Storage.field('KeyboardSwitchOff') == 'SwitchOff_RU'){
+          Lampa.Storage.set('keyboard_default_lang', 'uk');
+          var elementRU = $('.selectbox-item.selector > div:contains("Русский")');
+          if(elementRU.length > 0) elementRU.parent('div').hide();
+        }
+        if(Lampa.Storage.field('KeyboardSwitchOff') == 'SwitchOff_EN' && Lampa.Storage.field('language') == 'uk'){
+          Lampa.Storage.set('keyboard_default_lang', 'uk');
+          var elementEN = $('.selectbox-item.selector > div:contains("English")');
+          if(elementEN.length > 0) elementEN.parent('div').hide();
+        }
+        if(Lampa.Storage.field('KeyboardSwitchOff') == 'SwitchOff_EN' && Lampa.Storage.field('language') == 'ru'){
+          Lampa.Storage.set('keyboard_default_lang', 'default');
+          var elementEN = $('.selectbox-item.selector > div:contains("English")');
+          if(elementEN.length > 0) elementEN.parent('div').hide();
+        }
+      }
+    });
+
+    // Контрастная рамка на торрентах
+    Lampa.SettingsApi.addParam({
+      component: 'Multi_Menu_Component',
+      param: { name: 'TORRENT_fix', type: 'trigger', default: false },
+      field: { name: 'Контрастная рамка на торрентах', description: 'Улучшает восприятие при выборе торрента' },
+      onChange: function(value){
+        var green1 = '<div id="green_style"><style>.torrent-item.selector.focus{box-shadow: 0 0 0 0.5em #1aff00!important;}</style></div>';
+        var green2 = '<div id="greenn_style"><style>.torrent-serial.selector.focus{box-shadow: 0 0 0 0.3em #1aff00!important;}</style></div>';
+        var green3 = '<div id="greennn_style"><style>.torrent-file.selector.focus{box-shadow: 0 0 0 0.3em #1aff00!important;}</style></div>';
+        var green4 = '<div id="greennnn_style"><style>.scroll__body{margin: 5px!important;}</style></div>';
+        if(Lampa.Storage.field('TORRENT_fix') == true){
+          $('body').append(green1, green2, green3, green4);
+        } else {
+          $('#green_style, #greenn_style, #greennn_style, #greennnn_style').remove();
+        }
+      }
+    });
+
+    // Стилизовать кнопки просмотра
+    Lampa.SettingsApi.addParam({
+      component: 'Multi_Menu_Component',
+      param: { name: 'BUTTONS_fix', type: 'trigger', default: false },
+      field: { name: 'Стилизовать кнопки просмотра', description: 'Делает кнопки цветными' },
+      onChange: function(value){
+        if(Lampa.Storage.field('BUTTONS_fix') == true){
+          updateT();
+        }
+        Lampa.Settings.update();
+      },
+      onRender: function(item){
+        if(Lampa.Storage.field('BUTTONS_fix') == true){
+          updateT();
+        }
+      }
+    });
+
+    
+    var d = 'dn';
+
+    // Скрыть ленту трейлеров на главной
     Lampa.SettingsApi.addParam({
       component: 'Multi_Menu_Component',
       param: { name: 'NoTrailerMainPage', type: 'trigger', default: false },
@@ -164,7 +257,7 @@
       }
     });
 
-    
+    // Скрыть часы на заставке
     Lampa.SettingsApi.addParam({
       component: 'Multi_Menu_Component',
       param: { name: 'NoTimeNoDate', type: 'trigger', default: false },
@@ -174,14 +267,13 @@
           $('#notimedatescreen').remove();
           Lampa.Template.add('notimedatescreen', '<div id="notimedatescreen"><style>.screensaver__datetime{opacity: 0%!important;display: none;}</style></div>');
           $('body').append(Lampa.Template.get('notimedatescreen', {}, true));
-        }
-        if(Lampa.Storage.field('NoTimeNoDate') == false){
+        } else {
           $('#notimedatescreen').remove();
         }
       }
     });
 
-    
+    // Удалить "Аниме"
     Lampa.SettingsApi.addParam({
       component: 'Multi_Menu_Component',
       param: { name: 'ANIME_fix', type: 'trigger', default: false },
@@ -193,6 +285,7 @@
           $("[data-action=anime]").eq(0).show();
       }
     });
+    // Удалить "Клубничка"
     Lampa.SettingsApi.addParam({
       component: 'Multi_Menu_Component',
       param: { name: 'SISI_fix', type: 'trigger', default: false },
@@ -205,32 +298,16 @@
       }
     });
 
-    var d = 'dn';
-
     
-    Lampa.SettingsApi.addParam({
-      component: 'Multi_Menu_Component',
-      param: { name: 'Reloadbutton', type: 'trigger', default: false },
-      field: { name: 'Добавить кнопку перезагрузки', description: 'Отображать кнопки перезагрузки и выхода в шапке' },
-      onChange: function(value){
-        if(Lampa.Storage.field('Reloadbutton') == true){
-          $('#RELOAD').removeClass('hide');
-          $('#EXIT').removeClass('hide');
-        } else {
-          $('#RELOAD').addClass('hide');
-          $('#EXIT').addClass('hide');
-        }
-      }
-    });
-
     
+
+    // Часы во встроенном плеере
     Lampa.SettingsApi.addParam({
       component: 'Multi_Menu_Component',
       param: { name: 'ClockInPlayer', type: 'trigger', default: false },
       field: { name: 'Часы во встроенном плеере', description: 'Через 5 секунд после включения плеера' },
       onChange: function(value){}
     });
-	
     Lampa.Template.add('CLOCKSTYLE', '<div id="clockstyle"><style>#MyClockDiv{position: fixed!important;' +
       Lampa.Storage.get('Clock_coordinates') + '; z-index: 51!important}</style></div>');
     $('body').append(Lampa.Template.get('CLOCKSTYLE', {}, true));
@@ -239,15 +316,11 @@
       Lampa.Template.add('CLOCKSTYLE', '<div id="clockstyle" class="head__time-now time--clock hide"><style>#MyClockDiv{position: absolute!important; display: flex !important; z-index: 51!important; top: 2%;left: 49%;transform: translate(-50%, -50%);}</style></div>');
       $('body').append(Lampa.Template.get('CLOCKSTYLE', {}, true));
     }
-	
     function updateClock(){
       var MyTime = document.querySelector("[class='head__time-now time--clock']").innerHTML;
       $("#MyClockDiv").remove();
       $("#MyLogoDiv").remove();
       var MyDiv = '<div id="MyClockDiv" class="head__time-now time--clock hide"></div>';
-      var MyLogo = '<div id="MyLogoDiv" class="hide" style="z-index: 51!important; position: fixed!important; visibility: hidden;">' +
-                   '<img src="https://upload.wikimedia.org/wikipedia/commons/thumb/f/f6/FreeTv_Egypt_Logo.png/640px-FreeTv_Egypt_Logo.png" width="100" height="100">' +
-                   '</div>';
       $('.player').append(MyDiv);
       if(Lampa.Storage.field('ClockInPlayer') == true){
         if(($('body > div.player > div.player-panel').hasClass("panel--visible") == false) ||
@@ -257,50 +330,9 @@
       }
       $("#MyClockDiv").text(MyTime);
     }
-	
-    Lampa.Template.add('clockcenter', '<style>.hide{visibility: hidden!important;}</style>');
-    $('body').append(Lampa.Template.get('clockcenter', {}, true));
     setInterval(updateClock, 200);
-	
-    Lampa.SettingsApi.addParam({
-      component: 'Multi_Menu_Component',
-      param: {
-        name: 'ClockInPlayerPosition',
-        type: 'select',
-        values: {
-          Left_Up: 'Слева сверху ',
-          Left_Down: 'Слева снизу',
-          Right_Up: 'Справа сверху',
-          Right_Down: 'Справа снизу',
-          Center_Up: 'В центре сверху'
-        },
-        default: 'Left_Up'
-      },
-      field: { name: 'Положение часов на экране', description: 'Выберите угол экрана' },
-      onChange: function(value){
-        document.querySelector("#clockstyle").remove();
-        if(Lampa.Storage.field('ClockInPlayerPosition') == 'Left_Up')
-          Lampa.Storage.set('Clock_coordinates', 'bottom: 90%!important; right: 90%!important');
-        if(Lampa.Storage.field('ClockInPlayerPosition') == 'Left_Down')
-          Lampa.Storage.set('Clock_coordinates', 'bottom: 10%!important; right: 90%!important');
-        if(Lampa.Storage.field('ClockInPlayerPosition') == 'Right_Up')
-          Lampa.Storage.set('Clock_coordinates', 'bottom: 90%!important; right: 12%!important');
-        if(Lampa.Storage.field('ClockInPlayerPosition') == 'Right_Down')
-          Lampa.Storage.set('Clock_coordinates', 'bottom: 10%!important; right: 5%!important');
-					
-        Lampa.Template.add('CLOCKSTYLE', '<div id="clockstyle"><style>#MyClockDiv{position: fixed!important;' +
-           Lampa.Storage.get('Clock_coordinates') + '; z-index: 51!important}</style></div>');
-        $('body').append(Lampa.Template.get('CLOCKSTYLE', {}, true));
-					
-        if(Lampa.Storage.field('ClockInPlayerPosition') == 'Center_Up'){
-          $('#clockstyle').remove();
-          Lampa.Template.add('CLOCKSTYLE', '<div id="clockstyle" class="head__time-now time--clock hide"><style>#MyClockDiv{position: absolute!important; display: flex !important; z-index: 51!important; top: 2%;left: 49%;transform: translate(-50%, -50%);}</style></div>');
-          $('body').append(Lampa.Template.get('CLOCKSTYLE', {}, true));
-        }
-      }
-    });
-	
-    
+
+    // Стилизация встроенного плеера – YouTubeStyle
     Lampa.SettingsApi.addParam({
       component: 'Multi_Menu_Component',
       param: { name: 'YouTubeStyle', type: 'trigger', default: false },
@@ -324,6 +356,7 @@
       }
     });
 	
+    // Разделы YouTube, RuTube, Twitch
     Lampa.SettingsApi.addParam({
       component: 'Multi_Menu_Component',
       param: { name: 'YouTube', type: 'trigger', default: false },
@@ -331,13 +364,11 @@
       onChange: function(value){
         if(Lampa.Storage.field('YouTube') == false){
           $('#YouTubeButton').addClass('hide');
-        }
-        if(Lampa.Storage.field('YouTube') == true){
+        } else {
           $('#YouTubeButton').removeClass('hide');
         }
       }
     });
-	
     Lampa.SettingsApi.addParam({
       component: 'Multi_Menu_Component',
       param: { name: 'RuTube', type: 'trigger', default: false },
@@ -345,13 +376,11 @@
       onChange: function(value){
         if(Lampa.Storage.field('RuTube') == false){
           $('#RuTubeButton').addClass('hide');
-        }
-        if(Lampa.Storage.field('RuTube') == true){
+        } else {
           $('#RuTubeButton').removeClass('hide');
         }
       }
     });
-	
     Lampa.SettingsApi.addParam({
       component: 'Multi_Menu_Component',
       param: { name: 'Twitch', type: 'trigger', default: false },
@@ -359,16 +388,14 @@
       onChange: function(value){
         if(Lampa.Storage.field('Twitch') == false){
           $('#TwitchButton').addClass('hide');
-        }
-        if(Lampa.Storage.field('Twitch') == true){
+        } else {
           $('#TwitchButton').removeClass('hide');
         }
       }
     });
 	
     var TubeSVG = '<svg width="256px" height="256px" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" fill="#ffffff" stroke="#ffffff">' +
-          '<path d="M45.1,12.8a5.5,5.5,0,0,0-3.9-3.9C37.8,8,24,8,24,8S10.2,8,6.8,8.9a5.5,5.5,0,0,0-3.9,3.9C2,16.2,2,23.4,2,23.4' +
-          's0,7.2.9,10.6a5.5,5.5,0,0,0,3.9,3.9c3.4.9,17.2.9,17.2.9s13.8,0,17.2-.9A5.5,5.5,0,0,0,45.1,34c.9-3.4.9-10.6.9-10.6S46,16.2,45.1,12.8Z"/>' +
+          '<path d="M45.1,12.8a5.5,5.5,0,0,0-3.9-3.9C37.8,8,24,8,24,8S10.2,8,6.8,8.9a5.5,5.5,0,0,0-3.9,3.9C2,16.2,2,23.4,2,23.4 s0,7.2.9,10.6a5.5,5.5,0,0,0,3.9,3.9c3.4.9,17.2.9,17.2.9s13.8,0,17.2-.9A5.5,5.5,0,0,0,45.1,34 c.9-3.4.9-10.6.9-10.6S46,16.2,45.1,12.8Z"/>' +
           '<path d="M19.6,30V16.8L31,23.4Z"/>' +
         '</svg>';
     var tubemenu = $('<li id="YouTubeButton" class="menu__item selector hide"><div class="menu__ico">' + TubeSVG + '</div><div class="menu__text">YouTube</div></li>');
@@ -382,10 +409,7 @@
           method: "launch",
           parameters: { "id": "youtube.leanback.v4" },
           onSuccess: function(inResponse){ console.log("YouTube запущен"); },
-          onFailure: function(inError){
-            console.log("Не удалось запустить YouTube ["+inError.errorCode+"]: "+inError.errorText);
-            return;
-          }
+          onFailure: function(inError){ console.log("Ошибка запуска YouTube ["+inError.errorCode+"]: "+inError.errorText); }
         });
       }
       if(Lampa.Platform.is('android')){
@@ -449,22 +473,19 @@
       }
     });
 	
-    
+    // Стилизация кнопок просмотра для торрентов
     var green1 = '<div id="green_style"><style>.torrent-item.selector.focus{box-shadow: 0 0 0 0.5em #1aff00!important;}</style></div>';
     var green2 = '<div id="greenn_style"><style>.torrent-serial.selector.focus{box-shadow: 0 0 0 0.3em #1aff00!important;}</style></div>';
     var green3 = '<div id="greennn_style"><style>.torrent-file.selector.focus{box-shadow: 0 0 0 0.3em #1aff00!important;}</style></div>';
     var green4 = '<div id="greennnn_style"><style>.scroll__body{margin: 5px!important;}</style></div>';
     if(Lampa.Storage.field('TORRENT_fix') == true){
-      $('body').append(green1);
-      $('body').append(green2);
-      $('body').append(green3);
-      $('body').append(green4);
+      $('body').append(green1, green2, green3, green4);
     }
 	
     var timerId = setInterval(updateT, 1000);
   } // end of add()
 
-  
+  // Регистрируем компонент плагина
   Lampa.SettingsApi.addComponent({
     component: 'Multi_Menu_Component',
     name: 'Приятные мелочи',
@@ -480,7 +501,7 @@
     }
   });
 	
-  
+  // Инициализация: ждем готовности приложения и запускаем основной функционал
   if(window.appready){
     add();
     addHeaderButtons();
