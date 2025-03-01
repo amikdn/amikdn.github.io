@@ -373,32 +373,6 @@
       }
     });
 
-    // Далее – дополнительные функции плагина (часы, обновление отображения кнопок и т.д.)
-
-    function updateClock(){
-      var MyTime = document.querySelector("[class='head__time-now time--clock']").innerHTML;
-      $("#MyClockDiv").remove();
-      var MyDiv = '<div id="MyClockDiv" class="head__time-now time--clock hide"></div>';
-      $('.player').append(MyDiv);
-      if(Lampa.Storage.field('ClockInPlayer') === true){
-        if( !$('body > div.player > div.player-panel').hasClass("panel--visible") ||
-            !$('body > div.player > div.player-info').hasClass("info--visible")){
-          $('#MyClockDiv').removeClass('hide');
-        }
-      }
-      $("#MyClockDiv").text(MyTime);
-    }
-    setInterval(updateClock, 200);
-
-    // Часы во встроенном плеере
-    Lampa.SettingsApi.addParam({
-      component: 'Multi_Menu_Component',
-      param: { name: 'ClockInPlayer', type: 'trigger', default: false },
-      field: { name: 'Часы во встроенном плеере', description: 'Через 5 секунд после включения плеера' },
-      onChange: function(value){}
-    });
-
-    // Положение часов на экране (уже добавлено выше)
 
     // Разделы YouTube, RuTube, Twitch – создание кнопок в главном меню
     var TubeSVG = '<svg width="256px" height="256px" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" fill="#ffffff" stroke="#ffffff">' +
