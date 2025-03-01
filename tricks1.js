@@ -6,8 +6,8 @@
     localhost: 'https://lam.akter-black.com/',
     apn: '10'
   };
-
-	  var unic_id = Lampa.Storage.get('lampac_unic_id', '');
+  
+    var unic_id = Lampa.Storage.get('lampac_unic_id', '');
   if (!unic_id) {
     unic_id = Lampa.Utils.uid(8).toLowerCase();
     Lampa.Storage.set('lampac_unic_id', unic_id);
@@ -285,7 +285,7 @@
 	    // =========================================================================
     // Модификация: если выбран балансер "filmix", переопределяем URL запроса
     this.requestParams = function(url) {
-      if (balanser && balanser.toLowerCase() === 'filmixtv') {
+      if (balanser && balanser.toLowerCase() === 'filmix') {
         url = "http://rc.bwa.to/rc/fxapi";
       }
       var query = [];
@@ -669,7 +669,10 @@
     };
     this.parse = function(str) {
       var json = Lampa.Arrays.decodeJson(str, {});
-
+	   if (json && json.accsdb && json.msg && json.msg.indexOf('@Abcinema_bot') !== -1) {
+        json.msg = '';
+        json.accsdb = false;
+    }
       if (Lampa.Arrays.isObject(str) && str.rch) json = str;
       if (json.rch) return this.rch(json);
       try {
