@@ -282,8 +282,8 @@
       this.saveChoice(to, balanser_name);
       Lampa.Activity.replace();
     };
-	    // =========================================================================
-    // Модификация: если выбран балансер "filmix", переопределяем URL запроса
+	  // =========================================================================
+          // Модификация: если выбран балансер "filmix", переопределяем URL запроса
     this.requestParams = function(url) {
       if (balanser && balanser.toLowerCase() === 'filmixtv') {
         url = "http://rc.bwa.to/rc/fxapi";
@@ -304,7 +304,7 @@
       if (Lampa.Storage.get('account_email', '')) query.push('cub_id=' + Lampa.Utils.hash(Lampa.Storage.get('account_email', '')));
       return url + (url.indexOf('?') >= 0 ? '&' : '?') + query.join('&');
     };
-    // =========================================================================
+        // =========================================================================
   
     this.getLastChoiceBalanser = function() {
       var last_select_balanser = Lampa.Storage.cache('online_last_balanser', 2000, {});
@@ -317,12 +317,12 @@
     this.startSource = function(json) {
       return new Promise(function(resolve, reject) {
         json.forEach(function(j) {
-  var name = balanserName(j);
-  // Если балансер — filmixtv, переопределяем отображаемое имя
-  if(name === "filmixtv") {
-    j.name = "Filmix - 720p";
+   var name = balanserName(j);
+     // Если балансер — filmixtv, переопределяем отображаемое имя
+     if(name === "filmixtv") {
+       j.name = "Filmix - 720p";
   }
-  sources[name] = {
+      sources[name] = {
     url: j.url,
     name: j.name,
     show: typeof j.show == 'undefined' ? true : j.show
