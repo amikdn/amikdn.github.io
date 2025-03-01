@@ -307,7 +307,7 @@
     // =========================================================================
   
     this.getLastChoiceBalanser = function() {
-      var last_select_balanser = Lampa.Storage.cache('online_last_balanser', 1000, {});
+      var last_select_balanser = Lampa.Storage.cache('online_last_balanser', 2000, {});
       if (last_select_balanser[object.movie.id]) {
         return last_select_balanser[object.movie.id];
       } else {
@@ -342,7 +342,7 @@
             return 0;
         });
         if (filter_sources.length) {
-          var last_select_balanser = Lampa.Storage.cache('online_last_balanser', 1000, {});
+          var last_select_balanser = Lampa.Storage.cache('online_last_balanser', 2000, {});
           if (last_select_balanser[object.movie.id]) {
             balanser = last_select_balanser[object.movie.id];
           } else {
@@ -387,23 +387,19 @@
           }
         };
         var fin = function fin(call) {
-          network.timeout(2000);
+          network.timeout(3000);
           network.silent(account(url), function(json) {
             life_wait_times++;
             filter_sources = [];
             sources = {};
-json.forEach(function(j) {
-  var name = balanserName(j);
-  // Если балансер — filmixtv, переопределяем отображаемое имя
-  if(name === "filmixtv") {
-    j.name = "Filmix - 720p";
-  }
-  sources[name] = {
-    url: j.url,
-    name: j.name,
-    show: typeof j.show == 'undefined' ? true : j.show
-  };
-});
+            json.online.forEach(function(j) {
+              var name = balanserName(j);
+              sources[name] = {
+                url: j.url,
+                name: j.name,
+                show: typeof j.show == 'undefined' ? true : j.show
+              };
+            });
             filter_sources = Lampa.Arrays.getKeys(sources);
             filter.set('sort', filter_sources.map(function(e) {
               return {
