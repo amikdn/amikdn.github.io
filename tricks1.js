@@ -656,9 +656,7 @@
     };
     this.parse = function(str) {
       var json = Lampa.Arrays.decodeJson(str, {});
-	   if (json && json.accsdb && json.msg && json.msg.indexOf('@Abcinema_bot') !== -1) {
-        json.msg = '';
-        json.accsdb = false;
+
     }
       if (Lampa.Arrays.isObject(str) && str.rch) json = str;
       if (json.rch) return this.rch(json);
