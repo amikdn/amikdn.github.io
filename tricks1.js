@@ -329,6 +329,9 @@
       if(name === "pidtor") {
     j.name = "Torrent - 2160";
   }
+	      if (name === "fancdn") {
+    j.show = true;
+  }
       sources[name] = {
         url: j.url,
         name: j.name,
