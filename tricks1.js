@@ -285,8 +285,8 @@
     // =========================================================================
     // Модификация: если выбран балансер "filmix", переопределяем URL запроса
     this.requestParams = function(url) {
-      if (balanser && balanser.toLowerCase() === 'kinopub') {
-        url = "http://vcdn3.skaz.tv/lite/kinopub";
+      if (balanser && balanser.toLowerCase() === 'kinopub'), (balanser && balanser.toLowerCase() === 'filmix') {
+        url = "http://vcdn3.skaz.tv/lite/kinopub", url = "http://vcdn3.skaz.tv/lite/filmix" ;
       }
       var query = [];
       var card_source = object.movie.source || 'tmdb'; //Lampa.Storage.field('source')
