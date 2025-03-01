@@ -464,7 +464,7 @@
           number_of_requests = 0;
         }, 4000);
       } 
-    };
+    ;
     this.parseJsonDate = function(str, name) {
       try {
         var html = $('<div>' + str + '</div>');
