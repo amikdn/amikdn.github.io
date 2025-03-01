@@ -3,7 +3,7 @@
 
   var Defined = {
     api: 'lampac',
-    localhost: 'https://lam.akter-black.com/', // Базовый адрес по умолчанию
+    localhost: 'https://akter-black.com/', // Базовый адрес по умолчанию
     apn: '10'
   };
 
