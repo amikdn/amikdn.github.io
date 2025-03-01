@@ -4,7 +4,7 @@
 
   var Defined = {
     api: 'lampac',
-    localhost: 'https://lam.akter-black.com/',
+    localhost: 'https://akter-black.com/',
     apn: '10'
   };
   
@@ -287,8 +287,10 @@
           // Модификация: если выбран балансер "filmix", переопределяем URL запроса
     this.requestParams = function(url) {
       if (balanser && balanser.toLowerCase() === 'filmixtv') {
-        url = "http://rc.bwa.to/rc/fxapi";
-      }
+    url = "http://rc.bwa.to/rc/fxapi";
+} // else if (balanser && balanser.toLowerCase() === 'pidtor') {
+  //  url = "http://new.link.for.pidtor/api"; // замените на нужный URL
+// }
       var query = [];
       var card_source = object.movie.source || 'tmdb'; //Lampa.Storage.field('source')
       query.push('id=' + object.movie.id);
