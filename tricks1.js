@@ -343,6 +343,10 @@
     if(sources.filmixtv){
       sources.filmixtv.name = "Filmix - 720p";
     }
+    if(sources.fancdn){
+      balanser = "fancdn";
+     Lampa.Storage.set('online_balanser', balanser);
+   }
     
     filter_sources = Lampa.Arrays.getKeys(sources);
     var lowPriorityBalancers = [];
