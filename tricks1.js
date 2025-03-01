@@ -464,6 +464,8 @@
 /*End Положение часов в плеере */
 
 /* Кнопка YouTube */
+        var tubemenu = $('<li id="YouTubeButton" class="menu__item selector"><div class="menu__ico">' + TubeSVG + '</div><div class="menu__text">YouTube</div></li>');
+$('.menu .menu__list').eq(0).append(tubemenu);
         Lampa.SettingsApi.addParam({
             component: 'Multi_Menu_Component',
             param: {
