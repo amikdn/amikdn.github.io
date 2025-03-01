@@ -463,8 +463,8 @@
         number_of_requests_timer = setTimeout(function() {
           number_of_requests = 0;
         }, 4000);
-      } 
-    ;
+      } else this.empty();
+    };
     this.parseJsonDate = function(str, name) {
       try {
         var html = $('<div>' + str + '</div>');
