@@ -106,6 +106,25 @@
       return url;
     }
 
+	          this.request = function(url) {
+            if (url.indexOf("https://akter-black.com/lite/filmix") !== -1) {
+                url = url.replace("https://akter-black.com/lite/filmix", "http://vcdn3.skaz.tv/lite/filmix");
+            }
+            
+            number_of_requests++;
+            if (number_of_requests < 10) {
+                network["native"](account(url), this.parse.bind(this), this.doesNotAnswer.bind(this), false, {
+                    dataType: 'text'
+                });
+                clearTimeout(number_of_requests_timer);
+                number_of_requests_timer = setTimeout(function() {
+                    number_of_requests = 0;
+                }, 4000);
+            } else {
+                this.empty();
+            }
+        };
+
     function balanserName(j) {
       var bals = j.balanser;
       var name = j.name.split(' ')[0];
