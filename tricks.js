@@ -1,7 +1,6 @@
 (function(){
   'use strict';
 
-  // Инициализация платформы для ТВ
   Lampa.Platform.tv();
 
   // Функция добавления кнопок перезагрузки и выхода в шапку приложения
@@ -10,7 +9,7 @@
       var headerActions = document.querySelector('#app .head__actions');
       if(!headerActions) return;
 
-      // Кнопка перезагрузки (RELOAD) – с fill="currentColor"
+      // Кнопка перезагрузки (RELOAD)
       var reloadHTML = '<div id="RELOAD" class="head__action selector" tabindex="0">' +
                          '<svg fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="0.48">' +
                            '<g id="SVGRepo_bgCarrier" stroke-width="0"></g>' +
@@ -21,7 +20,7 @@
                          '</svg>' +
                        '</div>';
 
-      // Кнопка выхода (EXIT) – согласно требованию
+      // Кнопка выхода (EXIT)
       var exitHTML = '<div id="EXIT" class="head__action selector exit-screen" tabindex="0">' +
           '<svg fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">' +
             '<rect x="2" y="2" width="20" height="20" rx="2" ry="2" stroke="currentColor" stroke-width="2"/>' +
@@ -63,7 +62,7 @@
     }
   }
 
-  // Функция выхода из приложения Lamp
+  // Функция выхода из приложения Lampa
   function exitLamp(){
     try { if(Lampa && Lampa.Activity) Lampa.Activity.out(); } catch(e){}
     if(Lampa && Lampa.Platform){
@@ -454,7 +453,7 @@
       }
     });
 
-    // Функция обновления отображения кнопок просмотра для торрентов
+    // Функция обновления отображения кнопок просмотра
     function updateT(){
       if(Lampa.Storage.field('BUTTONS_fix') === true){
         $(".view--onlines_v1", Lampa.Activity.active().activity.render())
@@ -484,14 +483,14 @@
     }
 
 
-    // Функция обновления кнопок просмотра для торрентов (при BUTTONS_fix)
+    // Функция обновления кнопок просмотра (при BUTTONS_fix)
     function updateTWrapper(){
       updateT();
     }
     var timerId = setInterval(updateTWrapper, 1000);
   } // end of add()
 
-  // Регистрируем компонент плагина с названием "Приятные мелочи" и белой иконкой
+  // Регистрируем компонент плагина с названием "Приятные мелочи"
   Lampa.SettingsApi.addComponent({
     component: 'Multi_Menu_Component',
     name: 'Приятные мелочи',
@@ -507,7 +506,7 @@
     }
   });
   
-  // Инициализация плагина: ждем готовности приложения и запускаем основной функционал, а также добавляем кнопки в шапку
+  // Инициализация плагина: ждем готовности приложения и запускаем основной функционал
   if(window.appready){
     add();
     addHeaderButtons();
