@@ -7,6 +7,19 @@
     apn: '10'
   };
 
+	  var unic_id = Lampa.Storage.get('lampac_unic_id', '');
+  if (!unic_id) {
+    unic_id = Lampa.Utils.uid(8).toLowerCase();
+    Lampa.Storage.set('lampac_unic_id', unic_id);
+  }
+
+  if (!window.rch) {
+    Lampa.Utils.putScript(["https://abmsx.tech/invc-rch.js"], function() {}, false, function() {
+      if (!window.rch.startTypeInvoke)
+        window.rch.typeInvoke('https://abmsx.tech', function() {});
+    }, true);
+  }
+
   function BlazorNet() {
     this.net = new Lampa.Reguest();
     this.timeout = function(time) {
