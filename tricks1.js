@@ -307,7 +307,7 @@
     // =========================================================================
   
     this.getLastChoiceBalanser = function() {
-      var last_select_balanser = Lampa.Storage.cache('online_last_balanser', 3000, {});
+      var last_select_balanser = Lampa.Storage.cache('online_last_balanser', 1000, {});
       if (last_select_balanser[object.movie.id]) {
         return last_select_balanser[object.movie.id];
       } else {
@@ -342,7 +342,7 @@
             return 0;
         });
         if (filter_sources.length) {
-          var last_select_balanser = Lampa.Storage.cache('online_last_balanser', 3000, {});
+          var last_select_balanser = Lampa.Storage.cache('online_last_balanser', 1000, {});
           if (last_select_balanser[object.movie.id]) {
             balanser = last_select_balanser[object.movie.id];
           } else {
