@@ -95,7 +95,7 @@
     var balansers_with_search = ['kinotochka', 'kinopub', 'lumex', 'filmix', 'filmixtv', 'redheadsound', 'animevost', 'animego', 'animedia', 'animebesst', 'anilibria', 'rezka', 'rhsprem', 'kodik', 'remux', 'animelib', 'kinoukr', 'rc/filmix', 'rc/fxapi', 'rc/kinopub', 'rc/rhs', 'vcdn'];
 
     // Если не задан извне, выбираем балансер по умолчанию из Storage
-    balanser = Lampa.Storage.get('online_balanser', 'zetflix').toLowerCase();
+    balanser = Lampa.Storage.get('online_balanser', 'filmix').toLowerCase();
 
     function account(url) {
       url = url + '';
