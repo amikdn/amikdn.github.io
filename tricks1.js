@@ -315,55 +315,61 @@
       }
     };
     this.startSource = function(json) {
-      return new Promise(function(resolve, reject) {
-        json.forEach(function(j) {
-   var name = balanserName(j);
-     // Если балансер — filmixtv, переопределяем отображаемое имя
-     if(name === "filmixtv") {
-       j.name = "Filmix - 720p";
-  }
+  return new Promise(function(resolve, reject) {
+    json.forEach(function(j) {
+      var name = balanserName(j);
+      // Если балансер — filmixtv, переопределяем отображаемое имя
+      if(name === "filmixtv") {
+        j.name = "Filmix - 720p";
+      }
       sources[name] = {
-    url: j.url,
-    name: j.name,
-    show: typeof j.show == 'undefined' ? true : j.show
-  };
-});
-        filter_sources = Lampa.Arrays.getKeys(sources);
-        var lowPriorityBalancers = [];
-
-        filter_sources.sort(function(a, b) {
-
-            if (a === '') return -1;
-            if (b === '') return 1;
-            var aLow = lowPriorityBalancers.indexOf(a) !== -1;
-            var bLow = lowPriorityBalancers.indexOf(b) !== -1;
-            if (aLow && !bLow) return 1;
-            if (bLow && !aLow) return -1;
-            return 0;
+        url: j.url,
+        name: j.name,
+        show: typeof j.show == 'undefined' ? true : j.show
+      };
+    });
+    
+    // Принудительно обновляем имя для источника "filmixtv", если оно вдруг перезаписалось
+    if(sources.filmixtv){
+      sources.filmixtv.name = "Filmix - 720p";
+    }
+    
+    filter_sources = Lampa.Arrays.getKeys(sources);
+    var lowPriorityBalancers = [];
+    
+    filter_sources.sort(function(a, b) {
+      if (a === '') return -1;
+      if (b === '') return 1;
+      var aLow = lowPriorityBalancers.indexOf(a) !== -1;
+      var bLow = lowPriorityBalancers.indexOf(b) !== -1;
+      if (aLow && !bLow) return 1;
+      if (bLow && !aLow) return -1;
+      return 0;
+    });
+    if (filter_sources.length) {
+      var last_select_balanser = Lampa.Storage.cache('online_last_balanser', 3000, {});
+      if (last_select_balanser[object.movie.id]) {
+        balanser = last_select_balanser[object.movie.id];
+      } else {
+        balanser = Lampa.Storage.get('online_balanser', filter_sources[0]);
+      }
+      if (lowPriorityBalancers.indexOf(balanser) !== -1 && filter_sources.some(function(item) {
+          return lowPriorityBalancers.indexOf(item) === -1;
+      })) {
+        balanser = filter_sources.find(function(item) {
+          return lowPriorityBalancers.indexOf(item) === -1;
         });
-        if (filter_sources.length) {
-          var last_select_balanser = Lampa.Storage.cache('online_last_balanser', 2000, {});
-          if (last_select_balanser[object.movie.id]) {
-            balanser = last_select_balanser[object.movie.id];
-          } else {
-            balanser = Lampa.Storage.get('online_balanser', filter_sources[0]);
-          }
-            if (lowPriorityBalancers.indexOf(balanser) !== -1 && filter_sources.some(function(item) {
-                return lowPriorityBalancers.indexOf(item) === -1;
-            })) {
-                balanser = filter_sources.find(function(item) {
-                    return lowPriorityBalancers.indexOf(item) === -1;
-                });
-            }
-            if (!sources[balanser]) balanser = filter_sources[0];
-            if (!sources[balanser].show && !object.lampac_custom_select) balanser = filter_sources[0];
-            source = sources[balanser].url;
-          resolve(json);
-        } else {
-          reject();
-        }
-      });
-    };
+      }
+      if (!sources[balanser]) balanser = filter_sources[0];
+      if (!sources[balanser].show && !object.lampac_custom_select) balanser = filter_sources[0];
+      source = sources[balanser].url;
+      resolve(json);
+    } else {
+      reject();
+    }
+  });
+};
+
     this.lifeSource = function() {
       var _this3 = this;
       return new Promise(function(resolve, reject) {
