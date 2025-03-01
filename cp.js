@@ -1,4 +1,3 @@
-//VaZ0NeZ
 
 (function () {
   'use strict';
