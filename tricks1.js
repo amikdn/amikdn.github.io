@@ -295,7 +295,7 @@
       url = "http://vcdn2.skaz.tv/lite/fancdn"; // замените на нужный URL
  }
 	    else if (balanser && balanser.toLowerCase() === 'redheadsound') {
-      url = "https://lam5.akter-black.com/lite/redheadsound"; // замените на нужный URL
+      url = "https://lam9.akter-black.com/lite/redheadsound"; // замените на нужный URL
  }
       var query = [];
       var card_source = object.movie.source || 'tmdb'; //Lampa.Storage.field('source')
