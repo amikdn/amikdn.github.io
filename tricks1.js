@@ -316,13 +316,19 @@
     };
     this.startSource = function(json) {
       return new Promise(function(resolve, reject) {
-        json.forEach(function(j) {
-          var name = balanserName(j);
-          sources[name] = {
-            url: j.url,
-            name: j.name,
-            show: typeof j.show == 'undefined' ? true : j.show
-          };
+json.forEach(function(j) {
+  var name = balanserName(j);
+  // Если балансер — filmixtv, переопределяем отображаемое имя
+  if(name === "filmixtv") {
+    j.name = "Filmix - 720p";
+  }
+  sources[name] = {
+    url: j.url,
+    name: j.name,
+    show: typeof j.show == 'undefined' ? true : j.show
+  };
+});
+
         });
         filter_sources = Lampa.Arrays.getKeys(sources);
         var lowPriorityBalancers = [];
@@ -388,18 +394,13 @@
             life_wait_times++;
             filter_sources = [];
             sources = {};
-            json.forEach(function(j) {
-  var name = balanserName(j);
-  // Если балансер — filmixtv, переопределяем отображаемое имя
-  if(name === "filmixtv") {
-    j.name = "Filmix - 720p";
-  }
-  sources[name] = {
-    url: j.url,
-    name: j.name,
-    show: typeof j.show == 'undefined' ? true : j.show
-  };
-});
+            json.online.forEach(function(j) {
+              var name = balanserName(j);
+              sources[name] = {
+                url: j.url,
+                name: j.name,
+                show: typeof j.show == 'undefined' ? true : j.show
+              };
             });
             filter_sources = Lampa.Arrays.getKeys(sources);
             filter.set('sort', filter_sources.map(function(e) {
