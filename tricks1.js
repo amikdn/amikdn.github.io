@@ -464,26 +464,18 @@
 /*End Положение часов в плеере */
 
 /* Кнопка YouTube */
-        Lampa.SettingsApi.addParam({
-            component: 'Multi_Menu_Component',
-            param: {
-                name: 'YouTube',
-                type: 'trigger',
-                default: false
-            },
-            field: {
-                name: 'Раздел YouTube',
-                description: 'Добавляет YouTube в главном меню'
-            },
-            onChange: function(value) {
-                if(Lampa.Storage.field('YouTube') == false) {
-                    $('#YouTubeButton').addClass('hide');
-                }
-                if(Lampa.Storage.field('YouTube') == true) {
-                    $('#YouTubeButton').removeClass('hide');
-                }
-            }
-        });
+    Lampa.SettingsApi.addParam({
+      component: 'Multi_Menu_Component',
+      param: { name: 'YouTube', type: 'trigger', default: false },
+      field: { name: 'Раздел YouTube', description: 'Добавляет YouTube в главном меню' },
+      onChange: function(value){
+        if(Lampa.Storage.field('YouTube') === true){
+          $('#YouTubeButton').removeClass('hide');
+        } else {
+          $('#YouTubeButton').addClass('hide');
+        }
+      }
+    });
 /* End Кнопка YouTube */
 
 /* Кнопка RuTube */
