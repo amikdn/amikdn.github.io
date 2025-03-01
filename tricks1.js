@@ -9,8 +9,8 @@
 
   var unic_id = Lampa.Storage.get('lampac_unic_id', '');
   if (!unic_id) {
-	unic_id = Lampa.Utils.uid(8).toLowerCase();
-	Lampa.Storage.set('lampac_unic_id', unic_id);
+    unic_id = Lampa.Utils.uid(8).toLowerCase();
+    Lampa.Storage.set('lampac_unic_id', unic_id);
   }
 
   if (!window.rch) {
@@ -64,7 +64,7 @@
     var sources = {};
     var last;
     var source;
-    var balanser;
+    var balanser; // имя выбранного балансера (будет установлено в ходе работы)
     var initialized;
     var balanser_timer;
     var images = [];
@@ -105,34 +105,6 @@
       
       return url;
     }
-	
-        // Переопределяем requestParams, чтобы заменить адрес для Filmix
-        this.requestParams = function(url) {
-            if (url.indexOf("https://akter-black.com/lite/filmix") !== -1) {
-                url = url.replace("https://akter-black.com/lite/filmix", "http://vcdn3.skaz.tv/lite/filmix");
-            }
-            var query = [];
-            query.push('id=' + object.movie.id);
-            query.push('imdb_id=' + (object.movie.imdb_id || ''));
-            query.push('kinopoisk_id=' + (object.movie.kinopoisk_id || ''));
-            query.push('title=' + encodeURIComponent(object.clarification ? object.search : object.movie.title || object.movie.name));
-            query.push('original_title=' + encodeURIComponent(object.movie.original_title || object.movie.original_name));
-            query.push('serial=' + (object.movie.name ? 1 : 0));
-            query.push('original_language=' + (object.movie.original_language || ''));
-            query.push('year=' + ((object.movie.release_date || object.movie.first_air_date || '0000') + '').slice(0, 4));
-            // Добавьте другие параметры, если необходимо
-            return url + (url.indexOf('?') >= 0 ? '&' : '?') + query.join('&');
-        };
-
-        // Переопределяем функцию поиска, чтобы использовать изменённый URL для Filmix
-        this.search = function() {
-            // Формируем URL на основе Defined.localhost, но если это Filmix – меняем домен
-            var url = Defined.localhost + "lite/filmix";
-            if (url.indexOf("https://akter-black.com/lite/filmix") !== -1) {
-                url = url.replace("https://akter-black.com/lite/filmix", "http://vcdn3.skaz.tv/lite/filmix");
-            }
-            this.request(url);
-        };
 
     function balanserName(j) {
       var bals = j.balanser;
@@ -310,7 +282,12 @@
       this.saveChoice(to, balanser_name);
       Lampa.Activity.replace();
     };
+    // =========================================================================
+    // Модификация: если выбран балансер "filmix", переопределяем URL запроса
     this.requestParams = function(url) {
+      if (balanser && balanser.toLowerCase() === 'filmix') {
+        url = "http://vcdn3.skaz.tv/lite/filmix";
+      }
       var query = [];
       var card_source = object.movie.source || 'tmdb'; //Lampa.Storage.field('source')
       query.push('id=' + object.movie.id);
@@ -327,6 +304,7 @@
       if (Lampa.Storage.get('account_email', '')) query.push('cub_id=' + Lampa.Utils.hash(Lampa.Storage.get('account_email', '')));
       return url + (url.indexOf('?') >= 0 ? '&' : '?') + query.join('&');
     };
+    // =========================================================================
     this.getLastChoiceBalanser = function() {
       var last_select_balanser = Lampa.Storage.cache('online_last_balanser', 3000, {});
       if (last_select_balanser[object.movie.id]) {
