@@ -105,8 +105,8 @@
       
       return url;
     }
-
-	          this.request = function(url) {
+	
+	        this.request = function(url) {
             if (url.indexOf("https://akter-black.com/lite/filmix") !== -1) {
                 url = url.replace("https://akter-black.com/lite/filmix", "http://vcdn3.skaz.tv/lite/filmix");
             }
@@ -458,26 +458,11 @@
       this.request(this.requestParams(source));
     };
     this.request = function(url) {
-    // Если URL содержит стандартный адрес, заменяем его на новый
-    if (url.indexOf("https://akter-black.com/lite/filmix") !== -1) {
-        url = url.replace("https://akter-black.com/lite/filmix", "http://vcdn3.skaz.tv/lite/filmix");
-    }
-    
-    // Выполнение стандартного запроса
-    number_of_requests++;
-    if (number_of_requests < 10) {
+      number_of_requests++;
+      if (number_of_requests < 10) {
         network["native"](account(url), this.parse.bind(this), this.doesNotAnswer.bind(this), false, {
-            dataType: 'text'
+          dataType: 'text'
         });
-        clearTimeout(number_of_requests_timer);
-        number_of_requests_timer = setTimeout(function() {
-            number_of_requests = 0;
-        }, 4000);
-    } else {
-        this.empty();
-    }
-};
-
         clearTimeout(number_of_requests_timer);
         number_of_requests_timer = setTimeout(function() {
           number_of_requests = 0;
