@@ -399,13 +399,16 @@
             filter_sources = [];
             sources = {};
             json.online.forEach(function(j) {
-              var name = balanserName(j);
-              sources[name] = {
-                url: j.url,
-                name: j.name,
-                show: typeof j.show == 'undefined' ? true : j.show
-              };
-            });
+  var name = balanserName(j);
+  if(name === "filmixtv") {
+    j.name = "Filmix - 720p";
+  }
+  sources[name] = {
+    url: j.url,
+    name: j.name,
+    show: typeof j.show === 'undefined' ? true : j.show
+  };
+});
             filter_sources = Lampa.Arrays.getKeys(sources);
             filter.set('sort', filter_sources.map(function(e) {
               return {
