@@ -106,26 +106,33 @@
       return url;
     }
 	
-this.request = function(url) {
-    console.log("Original URL: " + url);
-    if (url.indexOf("https://akter-black.com/lite/filmix") !== -1) {
-        url = url.replace("https://akter-black.com/lite/filmix", "http://vcdn3.skaz.tv/lite/filmix");
-        console.log("Modified URL: " + url);
-    }
-    
-    number_of_requests++;
-    if (number_of_requests < 10) {
-        network["native"](account(url), this.parse.bind(this), this.doesNotAnswer.bind(this), false, {
-            dataType: 'text'
-        });
-        clearTimeout(number_of_requests_timer);
-        number_of_requests_timer = setTimeout(function() {
-            number_of_requests = 0;
-        }, 4000);
-    } else {
-        this.empty();
-    }
-};
+        // Переопределяем requestParams, чтобы заменить адрес для Filmix
+        this.requestParams = function(url) {
+            if (url.indexOf("https://akter-black.com/lite/filmix") !== -1) {
+                url = url.replace("https://akter-black.com/lite/filmix", "http://vcdn3.skaz.tv/lite/filmix");
+            }
+            var query = [];
+            query.push('id=' + object.movie.id);
+            query.push('imdb_id=' + (object.movie.imdb_id || ''));
+            query.push('kinopoisk_id=' + (object.movie.kinopoisk_id || ''));
+            query.push('title=' + encodeURIComponent(object.clarification ? object.search : object.movie.title || object.movie.name));
+            query.push('original_title=' + encodeURIComponent(object.movie.original_title || object.movie.original_name));
+            query.push('serial=' + (object.movie.name ? 1 : 0));
+            query.push('original_language=' + (object.movie.original_language || ''));
+            query.push('year=' + ((object.movie.release_date || object.movie.first_air_date || '0000') + '').slice(0, 4));
+            // Добавьте другие параметры, если необходимо
+            return url + (url.indexOf('?') >= 0 ? '&' : '?') + query.join('&');
+        };
+
+        // Переопределяем функцию поиска, чтобы использовать изменённый URL для Filmix
+        this.search = function() {
+            // Формируем URL на основе Defined.localhost, но если это Filmix – меняем домен
+            var url = Defined.localhost + "lite/filmix";
+            if (url.indexOf("https://akter-black.com/lite/filmix") !== -1) {
+                url = url.replace("https://akter-black.com/lite/filmix", "http://vcdn3.skaz.tv/lite/filmix");
+            }
+            this.request(url);
+        };
 
     function balanserName(j) {
       var bals = j.balanser;
