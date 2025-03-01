@@ -4,7 +4,7 @@
 
   var Defined = {
     api: 'lampac',
-    localhost: 'https://lam5.akter-black.com/',
+    localhost: 'https://lam.akter-black.com/',
     apn: '10'
   };
   
@@ -288,9 +288,15 @@
     this.requestParams = function(url) {
       if (balanser && balanser.toLowerCase() === 'filmixtv') {
     url = "http://rc.bwa.to/rc/fxapi";
-} // else if (balanser && balanser.toLowerCase() === 'pidtor') {
-  //  url = "http://new.link.for.pidtor/api"; // замените на нужный URL
-// }
+}    else if (balanser && balanser.toLowerCase() === 'lumex') {
+      url = "http://vcdn3.skaz.tv/vcdn"; // замените на нужный URL
+ }
+	     else if (balanser && balanser.toLowerCase() === 'fancdn') {
+      url = "http://vcdn2.skaz.tv/lite/fancdn"; // замените на нужный URL
+ }
+	    else if (balanser && balanser.toLowerCase() === 'redheadsound') {
+      url = "https://lam5.akter-black.com/lite/redheadsound"; // замените на нужный URL
+ }
       var query = [];
       var card_source = object.movie.source || 'tmdb'; //Lampa.Storage.field('source')
       query.push('id=' + object.movie.id);
