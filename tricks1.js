@@ -657,7 +657,6 @@
     this.parse = function(str) {
       var json = Lampa.Arrays.decodeJson(str, {});
 
-    }
       if (Lampa.Arrays.isObject(str) && str.rch) json = str;
       if (json.rch) return this.rch(json);
       try {
