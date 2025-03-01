@@ -285,7 +285,7 @@
 	    // =========================================================================
     // Модификация: если выбран балансер "filmix", переопределяем URL запроса
     this.requestParams = function(url) {
-      if (balanser && balanser.toLowerCase() === 'filmix') {
+      if (balanser && balanser.toLowerCase() === 'filmixtv') {
         url = "http://rc.bwa.to/rc/fxapi";
       }
       var query = [];
