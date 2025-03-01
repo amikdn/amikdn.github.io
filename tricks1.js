@@ -290,7 +290,7 @@
     url = "http://rc.bwa.to/rc/fxapi";
 }
        else if (balanser && balanser.toLowerCase() === 'fancdn') {
-      url = "http://vcdn2.skaz.tv/lite/fancdn"; // замените на нужный URL
+      url = "http://vcdn3.skaz.tv/lite/fancdn"; // замените на нужный URL
  }
       var query = [];
       var card_source = object.movie.source || 'tmdb'; //Lampa.Storage.field('source')
