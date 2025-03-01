@@ -318,6 +318,7 @@
       return new Promise(function(resolve, reject) {
         json.forEach(function(j) {
   var name = balanserName(j);
+  // Если балансер — filmixtv, переопределяем отображаемое имя
   if(name === "filmixtv") {
     j.name = "Filmix - 720p";
   }
@@ -327,11 +328,6 @@
     show: typeof j.show == 'undefined' ? true : j.show
   };
 });
-
-// Принудительно обновляем имя для источника "filmixtv" если он уже есть
-if(sources.filmixtv){
-  sources.filmixtv.name = "Filmix - 720p";
-}
         filter_sources = Lampa.Arrays.getKeys(sources);
         var lowPriorityBalancers = [];
 
