@@ -568,4 +568,4 @@ function updateT(){
       addHeaderButtons();
     });
   }
-}();
+};
