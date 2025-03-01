@@ -91,40 +91,6 @@ function add() {
 				}
 	});
 
-/* Хранитель Экрана */
-		Lampa.SettingsApi.addParam({
-			component: 'Multi_Menu_Component',
-			param: {
-				name: 'CustomScreenSaver',
-				type: 'trigger',
-				//доступно select,input,trigger,title,static
-				default: false
-			},
-			field: {
-				name: 'Свой хранитель экрана',
-				//Название подпункта меню
-				description: 'В разработке' //Комментарий к подпункту
-			},
-			onChange: function(value) {
-				//Действия при изменении подпункта
-				if(Lampa.Storage.field('CustomScreenSaver') == false) {
-					Lampa.Storage.set ('screensaver_aerial_items', '');
-				}
-				if(Lampa.Storage.field('CustomScreenSaver') == true) {
-					Lampa.Storage.set ('screensaver_type', 'aerial');
-					Lampa.Storage.set ('screensaver_aerial_items', '[{"id":"","accessibilityLabel":"","src":{"H2641080p":"http://lampatv.site/birds-01.mkv"},"name":"","pointsOfInterest":{"0":""},"type":"","timeOfDay":""},{"id":"","accessibilityLabel":"","src":{"H2641080p":"http://lampatv.site/birds-02.mkv"},"name":"","pointsOfInterest":{"0":""},"type":"","timeOfDay":""},{"id":"","accessibilityLabel":"","src":{"H2641080p":"http://lampatv.site/birds-03.mkv"},"name":"","pointsOfInterest":{"0":""},"type":"","timeOfDay":""},{"id":"","accessibilityLabel":"","src":{"H2641080p":"http://lampatv.site/birds-04.mkv"},"name":"","pointsOfInterest":{"0":""},"type":"","timeOfDay":""},{"id":"","accessibilityLabel":"","src":{"H2641080p":"http://lampatv.site/birds-05.mkv"},"name":"","pointsOfInterest":{"0":""},"type":"","timeOfDay":""},{"id":"","accessibilityLabel":"","src":{"H2641080p":"http://lampatv.site/birds-06.mkv"},"name":"","pointsOfInterest":{"0":""},"type":"","timeOfDay":""},{"id":"","accessibilityLabel":"","src":{"H2641080p":"http://lampatv.site/birds-07.mkv"},"name":"","pointsOfInterest":{"0":""},"type":"","timeOfDay":""},{"id":"","accessibilityLabel":"","src":{"H2641080p":"http://lampatv.site/birds-08.mkv"},"name":"","pointsOfInterest":{"0":""},"type":"","timeOfDay":""},{"id":"","accessibilityLabel":"","src":{"H2641080p":"http://lampatv.site/birds-09.mkv"},"name":"","pointsOfInterest":{"0":""},"type":"","timeOfDay":""},{"id":"","accessibilityLabel":"","src":{"H2641080p":"http://lampatv.site/Aquarium_01.mp4"},"name":"","pointsOfInterest":{"0":""},"type":"","timeOfDay":""},{"id":"","accessibilityLabel":"","src":{"H2641080p":"http://lampatv.site/Aquarium_02.mp4"},"name":"","pointsOfInterest":{"0":""},"type":"","timeOfDay":""},{"id":"","accessibilityLabel":"","src":{"H2641080p":"http://lampatv.site/Aquarium_03.mp4"},"name":"","pointsOfInterest":{"0":""},"type":"","timeOfDay":""},{"id":"","accessibilityLabel":"","src":{"H2641080p":"http://lampatv.site/Aquarium_04.mp4"},"name":"","pointsOfInterest":{"0":""},"type":"","timeOfDay":""},{"id":"","accessibilityLabel":"","src":{"H2641080p":"http://lampatv.site/Aquarium_05.mp4"},"name":"","pointsOfInterest":{"0":""},"type":"","timeOfDay":""}]');
-				/*
-					setInterval(function() {
-						document.querySelector(".screensaver__video").removeAttr("muted");
-					}, 1000)
-				*/
-				}
-				
-				//Lampa.Settings.update();
-			}
-		});
-/* End Хранитель Экрана */
-
 
 /* Скрываем панель навигации */
 	Lampa.SettingsApi.addParam({
@@ -274,34 +240,6 @@ function add() {
 			}
 		});
 /*End Торренты */
-
-	    	Lampa.SettingsApi.addParam({
-	    		component: 'Multi_Menu_Component',
-	    		param: {
-	    			name: 'OpenSpeedTestParam',
-	    			type: 'static', //доступно select,input,trigger,title,static
-	    		},
-	    		field: {
-	    			name: 'OpenSpeedTest',
-	    			description: 'Замер скорости интернет-соединения'
-	    		},
-	    		onRender: function (item) {
-	    			item.on('hover:enter', function(){
-					var modal = $('<div style="text-align:right;"><div style="min-height:360px;"><div style="width:100%;height:0;padding-bottom:50%;position:relative;"><iframe style="border:none;position:absolute;top:0;left:0;width:100%;height:100%;min-height:360px;border:none;background-color: #ffffff;overflow:hidden !important;" src="https://speedtest.tatar.ru/?run=5"></iframe></div></div></div>');
-		  			Lampa.Modal.open({
-		  				title: '',
-		  				html: modal,
-		  				size: 'medium',
-		  				mask: true, 
-		  				onBack: function onBack() {
-		  					Lampa.Modal.close();
-							Lampa.Controller.toggle('settings_component');
-		  				},
-		  				onSelect: function () {}
-  			});});}
-				});
-	
-/* End SpeedTest */
 
 
 /* Anime */
@@ -678,36 +616,7 @@ var d = 'dn';
 			}
 		});
 /* End Кнопка Twitch */
-
-/* ТоррСервер */
-		Lampa.SettingsApi.addParam({
-			component: 'Multi_Menu_Component',
-			param: {
-				name: 'Tricks_TorrServer',
-				type: 'trigger', //доступно select,input,trigger,title,static
-				default: false
-			},
-			field: {
-				name: 'Использовать "народный" TorrServer', //Название подпункта меню
-				description: 'Работает после запроса доступа у @AndreyURL54' //Комментарий к подпункту
-			},
-			onChange: function(value) {
-				//Действия при изменении подпункта
-				var tricks_usermail = Lampa.Storage.field('account_email').toLowerCase();
-				 Lampa.Storage.set('torrserver_use_link', (value == '0') ? 'one' : 'two');
-				 Lampa.Storage.set('torrserver_auth', true);
-				 Lampa.Storage.set('torrserver_login', tricks_usermail);
-				 Lampa.Storage.set('torrserver_password', tricks_usermail);
-				 if(Lampa.Storage.field('Tricks_TorrServer') == true) Lampa.Storage.set('torrserver_url_two', '95.215.8.180:9098');
-				 if(Lampa.Storage.field('Tricks_TorrServer') == false) {
-					 Lampa.Storage.set('torrserver_url_two', '');
-					 Lampa.Storage.set('torrserver_login', '');
-					 Lampa.Storage.set('torrserver_password', '');
-				 }
-				 //Lampa.Settings.update();
-			}
-		});
-/*End ТоррСервер */		
+		
 
 /*
 * ШАБЛОНЫ
