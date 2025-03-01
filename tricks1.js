@@ -288,14 +288,9 @@
     this.requestParams = function(url) {
       if (balanser && balanser.toLowerCase() === 'filmixtv') {
     url = "http://rc.bwa.to/rc/fxapi";
-}    else if (balanser && balanser.toLowerCase() === 'lumex') {
-      url = "http://vcdn3.skaz.tv/vcdn"; // замените на нужный URL
- }
-	     else if (balanser && balanser.toLowerCase() === 'fancdn') {
+}
+       else if (balanser && balanser.toLowerCase() === 'fancdn') {
       url = "http://vcdn2.skaz.tv/lite/fancdn"; // замените на нужный URL
- }
-	    else if (balanser && balanser.toLowerCase() === 'redheadsound') {
-      url = "https://lam9.akter-black.com/lite/redheadsound"; // замените на нужный URL
  }
       var query = [];
       var card_source = object.movie.source || 'tmdb'; //Lampa.Storage.field('source')
