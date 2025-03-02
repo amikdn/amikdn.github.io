@@ -119,7 +119,7 @@
         setTimeout(() => {
           Lampa.Controller.toggle("settings_component");
           $("div[data-name='jackett_urltwo']").attr("tabindex", "0").focus();
-        }, 500);
+        }, 100);
 
         // Управляем видимостью дополнительных полей (URL и API-ключ)
         const toggleAction = selected.title !== "Свой вариант" ? "hide" : "show";
