@@ -66,6 +66,17 @@
     );
   };
 
+  // Функция, ожидающая исчезновения окна выбора (модального окна)
+  const waitForModalHidden = (callback) => {
+    // Здесь предполагается, что модальное окно имеет класс ".select"
+    // Если у вашей версии Lampa другой селектор, замените его
+    if ($("div.select").length === 0) {
+      callback();
+    } else {
+      requestAnimationFrame(() => waitForModalHidden(callback));
+    }
+  };
+
   // Асинхронная функция открытия меню выбора парсера
   const openParserSelectionMenu = async () => {
     // Ждём обновления статусов
@@ -114,13 +125,13 @@
 
         // Закрываем окно выбора парсера
         Lampa.Select.hide();
-        // Скрываем окно настроек (если оно активно)
+        // Скрываем окно настроек, если оно активно
         Lampa.Settings.hide();
 
-        // Через задержку переключаем управление в основное меню Лампы
-        setTimeout(() => {
+        // Как только окно выбора скроется, переходим в главное меню Лампы
+        waitForModalHidden(() => {
           Lampa.Controller.toggle("main");
-        }, 1500);
+        });
 
         // Управляем видимостью дополнительных полей (URL и API-ключ)
         const toggleAction = selected.title !== "Свой вариант" ? "hide" : "show";
@@ -172,9 +183,11 @@
           $(".settings-param__name", elem).css("color", "ffffff");
           $("div[data-name='jackett_urltwo']").insertAfter("div[data-name='parser_torrent_type']");
           elem.off("click hover:enter keydown").on("click hover:enter keydown", (e) => {
-            if (e.type === "click" ||
-                e.type === "hover:enter" ||
-                (e.type === "keydown" && (e.key === "Enter" || e.keyCode === 13))) {
+            if (
+              e.type === "click" ||
+              e.type === "hover:enter" ||
+              (e.type === "keydown" && (e.key === "Enter" || e.keyCode === 13))
+            ) {
               openParserSelectionMenu();
             }
           });
