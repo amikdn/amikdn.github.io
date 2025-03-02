@@ -246,26 +246,44 @@ class Lampac {
         Lampa.Activity.replace();
     }
 
-    requestParams(url) {
-        if (this.balanser && this.balanser.toLowerCase() === 'filmixtv') {
-            url = 'http://rc.bwa.to/rc/fxapi';
-        }
-        const query = [];
-        const card_source = this.object.movie.source || 'tmdb';
-        query.push('id=' + this.object.movie.id);
-        if (this.object.movie.imdb_id) query.push('imdb_id=' + (this.object.movie.imdb_id || ''));
-        if (this.object.movie.kinopoisk_id) query.push('kinopoisk_id=' + (this.object.movie.kinopoisk_id || ''));
-        query.push('title=' + encodeURIComponent(this.object.clarification ? this.object.search : (this.object.movie.title || this.object.movie.name)));
-        query.push('original_title=' + encodeURIComponent(this.object.movie.original_title || this.object.movie.original_name));
-        query.push('serial=' + (this.object.movie.name ? 1 : 0));
-        query.push('original_language=' + (this.object.movie.original_language || ''));
-        query.push('year=' + (((this.object.movie.release_date || this.object.movie.first_air_date || '0000') + '').slice(0, 4)));
-        query.push('source=' + card_source);
-        query.push('rchtype=' + (window.rch ? window.rch.type : ''));
-        query.push('clarification=' + (this.object.clarification ? 1 : 0));
-        if (Lampa.Storage.get('account_email', '')) query.push('cub_id=' + Lampa.Utils.hash(Lampa.Storage.get('account_email', '')));
-        return url + (url.indexOf('?') >= 0 ? '&' : '?') + query.join('&');
+requestParams(url) {
+  // Маппинг имен балансеров на альтернативные URL
+  const serverMap = {
+    filmixtv: 'http://rc.bwa.to/rc/fxapi',
+    zetflix: 'https://lam.akter-black.com/lite/zetflix'
+    // можно добавить другие балансеры по аналогичной схеме, например:
+    // kinopub: 'https://lam.akter-black.com/lite/kinopub',
+    // rezka: 'https://lam.akter-black.com/lite/rezka',
+    // ...
+  };
+
+  if (this.balanser) {
+    const key = this.balanser.toLowerCase();
+    if (serverMap[key]) {
+      url = serverMap[key];
     }
+  }
+  
+  const query = [];
+  const card_source = this.object.movie.source || 'tmdb';
+  query.push('id=' + this.object.movie.id);
+  if (this.object.movie.imdb_id) query.push('imdb_id=' + (this.object.movie.imdb_id || ''));
+  if (this.object.movie.kinopoisk_id) query.push('kinopoisk_id=' + (this.object.movie.kinopoisk_id || ''));
+  query.push('title=' + encodeURIComponent(this.object.clarification ? this.object.search : (this.object.movie.title || this.object.movie.name)));
+  query.push('original_title=' + encodeURIComponent(this.object.movie.original_title || this.object.movie.original_name));
+  query.push('serial=' + (this.object.movie.name ? 1 : 0));
+  query.push('original_language=' + (this.object.movie.original_language || ''));
+  query.push('year=' + (((this.object.movie.release_date || this.object.movie.first_air_date || '0000') + '').slice(0, 4)));
+  query.push('source=' + card_source);
+  query.push('rchtype=' + (window.rch ? window.rch.type : ''));
+  query.push('clarification=' + (this.object.clarification ? 1 : 0));
+  if (Lampa.Storage.get('account_email', '')) {
+    query.push('cub_id=' + Lampa.Utils.hash(Lampa.Storage.get('account_email', '')));
+  }
+
+  return url + (url.indexOf('?') >= 0 ? '&' : '?') + query.join('&');
+}
+
 
     getLastChoiceBalanser() {
         const last_select_balanser = Lampa.Storage.cache('online_last_balanser', 2000, {});
