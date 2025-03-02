@@ -66,10 +66,9 @@
     );
   };
 
-  // Функция, ожидающая исчезновения окна выбора (модального окна)
+  // Функция, ожидающая исчезновения модального окна выбора
   const waitForModalHidden = (callback) => {
-    // Здесь предполагается, что модальное окно имеет класс ".select"
-    // Если у вашей версии Lampa другой селектор, замените его
+    // Предполагаем, что окно выбора имеет класс ".select"
     if ($("div.select").length === 0) {
       callback();
     } else {
@@ -79,20 +78,16 @@
 
   // Асинхронная функция открытия меню выбора парсера
   const openParserSelectionMenu = async () => {
-    // Ждём обновления статусов
     await updateParserCache();
 
-    // Считываем обновлённый кеш
     const cachedParsers = Lampa.Storage.get("parser_statuses") || [];
-    // Добавляем вариант "Свой вариант" в начало списка
     const defaultOption = { title: "Свой вариант", url: "", apiKey: "", status: null };
     const parsers = [defaultOption, ...cachedParsers];
     const currentSelected = Lampa.Storage.get("selected_parser");
 
-    // Формируем пункты меню на основе обновлённого кеша
     const buildItems = () =>
       parsers.map(parser => {
-        let color = "#cccccc"; // нейтральный цвет
+        let color = "#cccccc";
         if (parser.status === true) color = "#64e364";
         else if (parser.status === false) color = "#ff2121";
         const activeMark = parser.title === currentSelected
@@ -125,15 +120,12 @@
 
         // Закрываем окно выбора парсера
         Lampa.Select.hide();
-        // Скрываем окно настроек, если оно активно
-        Lampa.Settings.hide();
 
-        // Как только окно выбора скроется, переходим в главное меню Лампы
+        // После закрытия модального окна сразу переключаем управление в главное меню
         waitForModalHidden(() => {
           Lampa.Controller.toggle("main");
         });
 
-        // Управляем видимостью дополнительных полей (URL и API-ключ)
         const toggleAction = selected.title !== "Свой вариант" ? "hide" : "show";
         $("div[data-name='jackett_url']")[toggleAction]();
         $("div[data-name='jackett_key']")[toggleAction]();
@@ -141,10 +133,8 @@
     });
   };
 
-  // При запуске обновляем кеш статусов
   updateParserCache();
 
-  // Добавляем параметр в настройки – кнопку "Выбрать парсер"
   Lampa.SettingsApi.addParam({
     component: "parser",
     param: {
