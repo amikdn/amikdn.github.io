@@ -111,17 +111,16 @@
         // Закрываем окно выбора парсера
         Lampa.Select.hide();
 
-        // Добавляем обработчик нажатия кнопки "назад" на пульте
-        // Как только пользователь нажмет кнопку "назад", переходим в главное меню
-        const onBackKey = (e) => {
-          // Здесь можно проверить e.key или e.keyCode в зависимости от реализации.
-          // Например, если e.key === "Back" или e.key === "Escape" (если Back транслируется как Escape)
-          if(e.key === "Back" || e.key === "Escape") {
+        // После закрытия окна добавляем обработчик кнопки "назад"
+        // Используем пространство имён для события, чтобы потом легко удалить его
+        $(document).on('keydown.parserBack', function(e) {
+          // Пробуем несколько вариантов: keyCode 461 (обычно для кнопки Back в некоторых пультах),
+          // либо Escape (27) или проверяем e.key, если там "Back" или "Escape"
+          if(e.keyCode === 461 || e.keyCode === 27 || e.key === "Back" || e.key === "Escape"){
             Lampa.Controller.toggle("main");
-            document.removeEventListener('keydown', onBackKey);
+            $(document).off('keydown.parserBack');
           }
-        };
-        document.addEventListener('keydown', onBackKey);
+        });
 
         const toggleAction = selected.title !== "Свой вариант" ? "hide" : "show";
         $("div[data-name='jackett_url']")[toggleAction]();
@@ -172,11 +171,9 @@
           $(".settings-param__name", elem).css("color", "ffffff");
           $("div[data-name='jackett_urltwo']").insertAfter("div[data-name='parser_torrent_type']");
           elem.off("click hover:enter keydown").on("click hover:enter keydown", (e) => {
-            if (
-              e.type === "click" ||
-              e.type === "hover:enter" ||
-              (e.type === "keydown" && (e.key === "Enter" || e.keyCode === 13))
-            ) {
+            if (e.type === "click" ||
+                e.type === "hover:enter" ||
+                (e.type === "keydown" && (e.key === "Enter" || e.keyCode === 13))) {
               openParserSelectionMenu();
             }
           });
