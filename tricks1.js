@@ -169,42 +169,40 @@ class Lampac {
             });
     }
 
-    rch(json, noreset) {
-        const load = () => {
-            if (this.hubConnection) {
-                clearTimeout(this.hubTimer);
-                this.hubConnection.stop();
-                this.hubConnection = null;
-                console.log('RCH', 'hubConnection stop');
-            }
-            this.hubConnection = new signalR.HubConnectionBuilder().withUrl(json.ws).build();
-            this.hubConnection.start().then(() => {
-                window.rch.Registry('https://abmsx.tech', this.hubConnection, () => {
-                    console.log('RCH', 'hubConnection start');
-                    if (!noreset) {
-                        this.find();
-                    } else if (typeof noreset === 'function') {
-                        noreset();
-                    }
-                });
-            }).catch((err) => {
-                console.error('RCH', err.toString());
-            });
-            if (json.keepalive > 0) {
-                this.hubTimer = setTimeout(() => {
-                    this.hubConnection.stop();
-                    this.hubConnection = null;
-                }, 1000 * json.keepalive);
-            }
-        };
-        if (typeof signalR === 'undefined') {
-            Lampa.Utils.putScript(['https://abmsx.tech/signalr-6.0.25_es5.js'], () => {}, false, () => {
-                load();
-            }, true);
-        } else {
-            load();
-        }
+    rch(json, callback) {
+  const load = () => {
+    if (this.hubConnection) {
+      clearTimeout(this.hubTimer);
+      this.hubConnection.stop();
+      this.hubConnection = null;
+      console.log('RCH', 'hubConnection stop');
     }
+    this.hubConnection = new signalR.HubConnectionBuilder().withUrl(json.ws).build();
+    this.hubConnection.start().then(() => {
+      window.rch.Registry('https://abmsx.tech', this.hubConnection, () => {
+        console.log('RCH', 'hubConnection start');
+        if (callback) callback();
+      });
+    }).catch((err) => {
+      console.error('RCH error:', err.toString());
+    });
+    if (json.keepalive > 0) {
+      this.hubTimer = setTimeout(() => {
+        this.hubConnection.stop();
+        this.hubConnection = null;
+      }, 1000 * json.keepalive);
+    }
+  };
+
+  if (typeof signalR === 'undefined') {
+    Lampa.Utils.putScript(["https://abmsx.tech/signalr-6.0.25_es5.js"], () => {}, false, () => {
+      load();
+    }, true);
+  } else {
+    load();
+  }
+}
+
 
     externalIds() {
         return new Promise((resolve, reject) => {
