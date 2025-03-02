@@ -115,7 +115,6 @@
         updateParserField(item.title);
         Lampa.Select.hide();
         setTimeout(() => {
-          Lampa.Settings.update();
           $("div[data-name='jackett_urltwo']").attr("tabindex", "0").focus();
         }, 300);
         // Показываем или скрываем поля ввода в зависимости от выбора
