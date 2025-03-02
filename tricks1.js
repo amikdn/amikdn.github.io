@@ -29,7 +29,7 @@
     try {
       const response = await fetch(apiUrl, { signal: controller.signal });
       const isViewbox = trimmedUrl.toLowerCase() === "jacred.viewbox.dev";
-      // Считаем парсер рабочим, если response.ok или, для jacred.viewbox.dev, статус 403 или 200
+      // Считаем парсер рабочим, если response.ok или (для jacred.viewbox.dev) статус 403 или 200
       parser.status = response.ok || (isViewbox && (response.status === 403 || response.status === 200));
     } catch (error) {
       parser.status = false;
@@ -111,13 +111,17 @@
         }
         console.log("Выбран парсер:", selected);
         updateParserField(item.title);
+
         // Закрываем окно выбора парсера
         Lampa.Select.hide();
-        // С задержкой переводим фокус на нужный элемент без обновления интерфейса
+
+        // С задержкой переключаем управление на меню настроек
         setTimeout(() => {
+          Lampa.Controller.toggle("settings_component");
           $("div[data-name='jackett_urltwo']").attr("tabindex", "0").focus();
         }, 500);
-        // Показываем или скрываем поля ввода в зависимости от выбора
+
+        // Управляем видимостью дополнительных полей (URL и API-ключ)
         const toggleAction = selected.title !== "Свой вариант" ? "hide" : "show";
         $("div[data-name='jackett_url']")[toggleAction]();
         $("div[data-name='jackett_key']")[toggleAction]();
