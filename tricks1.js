@@ -115,15 +115,13 @@
         // Закрываем окно выбора парсера
         Lampa.Select.hide();
 
-        // С задержкой переключаем управление на меню настроек, если оно ещё не активно
+        // С задержкой переключаем управление на меню настроек
         setTimeout(() => {
-          if( !Lampa.Controller.active() || Lampa.Controller.active().name !== "settings_component" ){
-            Lampa.Controller.toggle("settings_component");
-          }
+          Lampa.Controller.toggle("settings_component");
           $("div[data-name='jackett_urltwo']").attr("tabindex", "0").focus();
         }, 800);
 
-        // Показываем или скрываем поля ввода в зависимости от выбора
+        // Управляем видимостью дополнительных полей (URL и API-ключ)
         const toggleAction = selected.title !== "Свой вариант" ? "hide" : "show";
         $("div[data-name='jackett_url']")[toggleAction]();
         $("div[data-name='jackett_key']")[toggleAction]();
