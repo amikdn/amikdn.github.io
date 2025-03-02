@@ -247,28 +247,32 @@ class Lampac {
     }
 
 requestParams(url) {
-  // Маппинг имен балансеров на альтернативные URL
-  const serverMap = {
-    filmixtv: 'http://rc.bwa.to/rc/fxapi',
-    zetflix: 'https://lam.akter-black.com/lite/zetflix'
-    // можно добавить другие балансеры по аналогичной схеме, например:
-    // kinopub: 'https://lam.akter-black.com/lite/kinopub',
-    // rezka: 'https://lam.akter-black.com/lite/rezka',
-    // ...
+  // Правила замены URL для балансеров, для которых явно указаны альтернативные адреса.
+  const mapping = {
+    filmixtv: "http://rc.bwa.to/rc/fxapi",
+    zetflix: "https://lam.akter-black.com/lite/zetflix"
+    // Здесь можно добавить другие правила по необходимости.
   };
 
+  // Если для текущего балансера (this.balanser) есть правило, заменяем URL.
   if (this.balanser) {
     const key = this.balanser.toLowerCase();
-    if (serverMap[key]) {
-      url = serverMap[key];
+    if (mapping[key]) {
+      url = mapping[key];
     }
+    // Если для балансера нет правила, оставляем URL без изменений (т.е. дефолтный Defined.localhost).
   }
-  
+
+  // Формируем строку запроса с необходимыми параметрами.
   const query = [];
   const card_source = this.object.movie.source || 'tmdb';
   query.push('id=' + this.object.movie.id);
-  if (this.object.movie.imdb_id) query.push('imdb_id=' + (this.object.movie.imdb_id || ''));
-  if (this.object.movie.kinopoisk_id) query.push('kinopoisk_id=' + (this.object.movie.kinopoisk_id || ''));
+  if (this.object.movie.imdb_id) {
+    query.push('imdb_id=' + (this.object.movie.imdb_id || ''));
+  }
+  if (this.object.movie.kinopoisk_id) {
+    query.push('kinopoisk_id=' + (this.object.movie.kinopoisk_id || ''));
+  }
   query.push('title=' + encodeURIComponent(this.object.clarification ? this.object.search : (this.object.movie.title || this.object.movie.name)));
   query.push('original_title=' + encodeURIComponent(this.object.movie.original_title || this.object.movie.original_name));
   query.push('serial=' + (this.object.movie.name ? 1 : 0));
@@ -280,9 +284,10 @@ requestParams(url) {
   if (Lampa.Storage.get('account_email', '')) {
     query.push('cub_id=' + Lampa.Utils.hash(Lampa.Storage.get('account_email', '')));
   }
-
+  
   return url + (url.indexOf('?') >= 0 ? '&' : '?') + query.join('&');
 }
+
 
 
     getLastChoiceBalanser() {
