@@ -1,4 +1,3 @@
-
 (function () {
   'use strict';
 
@@ -19,17 +18,21 @@
     { title: "altjacred.duckdns.org", url: "altjacred.duckdns.org", apiKey: "" }
   ];
 
-  // Функция проверки одного парсера с использованием fetch и таймаута
+  // Функция проверки одного парсера с использованием fetch и AbortController
   const checkParser = async (parser) => {
     const protocol = location.protocol === "https:" ? "https://" : "http://";
-    const apiUrl = `${protocol}${parser.url}/api/v2.0/indexers/status:healthy/results?apikey=${parser.apiKey}`;
+    // Обрезаем пробелы для надежного сравнения
+    const trimmedUrl = parser.url.trim();
+    const apiUrl = `${protocol}${trimmedUrl}/api/v2.0/indexers/status:healthy/results?apikey=${parser.apiKey}`;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 3000);
 
     try {
       const response = await fetch(apiUrl, { signal: controller.signal });
-      // Для jacred.viewbox.dev считаем рабочим при статусе 403
-      parser.status = response.ok || (parser.url === "jacred.viewbox.dev" && response.status === 403);
+      // Приводим URL к нижнему регистру для точного сравнения
+      const isViewbox = trimmedUrl.toLowerCase() === "jacred.viewbox.dev";
+      // Если ответ ok (200) или, для jacred.viewbox.dev, статус 403 или 200 — считаем парсер рабочим
+      parser.status = response.ok || (isViewbox && (response.status === 403 || response.status === 200));
     } catch (error) {
       parser.status = false;
     } finally {
@@ -41,15 +44,15 @@
   // Проверяем все парсеры параллельно
   const checkAllParsers = () => Promise.all(parsersToCheck.map(parser => checkParser(parser)));
 
-  // Обновляем кеш статусов парсеров
-  const updateParserCache = () => {
-    checkAllParsers().then((results) => {
-      Lampa.Storage.set("parser_statuses", results);
-      console.log("Статусы парсеров обновлены:", results);
-    });
+  // Асинхронное обновление кеша статусов парсеров
+  const updateParserCache = async () => {
+    const results = await checkAllParsers();
+    Lampa.Storage.set("parser_statuses", results);
+    console.log("Статусы парсеров обновлены:", results);
+    return results;
   };
 
-  // Обновляем отображаемое поле выбранного парсера
+  // Функция обновления отображаемого выбранного парсера (заголовок)
   const updateParserField = (text) => {
     $("div[data-name='jackett_urltwo']").html(
       `<div class="settings-folder" tabindex="0" style="padding:0!important">
@@ -65,18 +68,22 @@
     );
   };
 
-  // Открытие меню выбора парсера
-  const openParserSelectionMenu = () => {
-    updateParserCache();
+  // Асинхронная функция открытия меню выбора парсера
+  const openParserSelectionMenu = async () => {
+    // Ждём обновления статусов
+    await updateParserCache();
 
+    // Считываем обновлённый кеш
     const cachedParsers = Lampa.Storage.get("parser_statuses") || [];
+    // Добавляем вариант "Свой вариант" в начало списка
     const defaultOption = { title: "Свой вариант", url: "", apiKey: "", status: null };
     const parsers = [defaultOption, ...cachedParsers];
     const currentSelected = Lampa.Storage.get("selected_parser");
 
+    // Формируем пункты меню на основе обновлённого кеша
     const buildItems = () =>
       parsers.map(parser => {
-        let color = "#cccccc";
+        let color = "#cccccc"; // нейтральный цвет
         if (parser.status === true) color = "#64e364";
         else if (parser.status === false) color = "#ff2121";
         const activeMark = parser.title === currentSelected
@@ -111,7 +118,7 @@
           Lampa.Settings.update();
           $("div[data-name='jackett_urltwo']").attr("tabindex", "0").focus();
         }, 300);
-        // Показываем/скрываем поля ввода в зависимости от выбора
+        // Показываем или скрываем поля ввода в зависимости от выбора
         const toggleAction = selected.title !== "Свой вариант" ? "hide" : "show";
         $("div[data-name='jackett_url']")[toggleAction]();
         $("div[data-name='jackett_key']")[toggleAction]();
@@ -119,10 +126,10 @@
     });
   };
 
-  // Первоначальное обновление статусов
+  // При запуске обновляем кеш статусов
   updateParserCache();
 
-  // Добавление параметра "Выбрать парсер" в настройки
+  // Добавляем параметр в настройки – кнопку "Выбрать парсер"
   Lampa.SettingsApi.addParam({
     component: "parser",
     param: {
