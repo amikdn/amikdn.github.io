@@ -21,7 +21,6 @@
   // Функция проверки одного парсера с использованием fetch и AbortController
   const checkParser = async (parser) => {
     const protocol = location.protocol === "https:" ? "https://" : "http://";
-    // Обрезаем пробелы для надежного сравнения
     const trimmedUrl = parser.url.trim();
     const apiUrl = `${protocol}${trimmedUrl}/api/v2.0/indexers/status:healthy/results?apikey=${parser.apiKey}`;
     const controller = new AbortController();
@@ -29,9 +28,8 @@
 
     try {
       const response = await fetch(apiUrl, { signal: controller.signal });
-      // Приводим URL к нижнему регистру для точного сравнения
       const isViewbox = trimmedUrl.toLowerCase() === "jacred.viewbox.dev";
-      // Если ответ ok (200) или, для jacred.viewbox.dev, статус 403 или 200 — считаем парсер рабочим
+      // Считаем парсер рабочим, если response.ok или, для jacred.viewbox.dev, статус 403 или 200
       parser.status = response.ok || (isViewbox && (response.status === 403 || response.status === 200));
     } catch (error) {
       parser.status = false;
@@ -113,10 +111,12 @@
         }
         console.log("Выбран парсер:", selected);
         updateParserField(item.title);
+        // Закрываем окно выбора парсера
         Lampa.Select.hide();
+        // С задержкой переводим фокус на нужный элемент без обновления интерфейса
         setTimeout(() => {
           $("div[data-name='jackett_urltwo']").attr("tabindex", "0").focus();
-        }, 300);
+        }, 500);
         // Показываем или скрываем поля ввода в зависимости от выбора
         const toggleAction = selected.title !== "Свой вариант" ? "hide" : "show";
         $("div[data-name='jackett_url']")[toggleAction]();
