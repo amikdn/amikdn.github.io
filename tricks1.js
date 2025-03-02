@@ -114,7 +114,7 @@
         // Возвращаемся к обновлению текущего окна настроек
         setTimeout(() => {
           Lampa.Settings.update();
-        }, 300);
+        }, 70);
 
         const toggleAction = selected.title !== "Свой вариант" ? "hide" : "show";
         $("div[data-name='jackett_url']")[toggleAction]();
