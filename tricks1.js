@@ -115,9 +115,9 @@
         // Закрываем окно выбора парсера
         Lampa.Select.hide();
 
-        // С задержкой переводим фокус на элемент выбора типа парсеров
+        // Через задержку переключаем управление в основное меню Лампы
         setTimeout(() => {
-          $("div[data-name='parser_torrent_type']").attr("tabindex", "0").focus();
+          Lampa.Controller.toggle("main");
         }, 800);
 
         // Показываем или скрываем поля ввода в зависимости от выбора
@@ -170,11 +170,9 @@
           $(".settings-param__name", elem).css("color", "ffffff");
           $("div[data-name='jackett_urltwo']").insertAfter("div[data-name='parser_torrent_type']");
           elem.off("click hover:enter keydown").on("click hover:enter keydown", (e) => {
-            if (
-              e.type === "click" ||
-              e.type === "hover:enter" ||
-              (e.type === "keydown" && (e.key === "Enter" || e.keyCode === 13))
-            ) {
+            if (e.type === "click" ||
+                e.type === "hover:enter" ||
+                (e.type === "keydown" && (e.key === "Enter" || e.keyCode === 13))) {
               openParserSelectionMenu();
             }
           });
