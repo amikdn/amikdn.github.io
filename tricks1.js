@@ -115,13 +115,12 @@
         // Закрываем окно выбора парсера
         Lampa.Select.hide();
 
-        // С задержкой переключаем управление на меню настроек
+        // С задержкой переводим фокус на элемент выбора типа парсеров
         setTimeout(() => {
-          Lampa.Controller.toggle("settings_component");
-          $("div[data-name='jackett_urltwo']").attr("tabindex", "0").focus();
+          $("div[data-name='parser_torrent_type']").attr("tabindex", "0").focus();
         }, 800);
 
-        // Управляем видимостью дополнительных полей (URL и API-ключ)
+        // Показываем или скрываем поля ввода в зависимости от выбора
         const toggleAction = selected.title !== "Свой вариант" ? "hide" : "show";
         $("div[data-name='jackett_url']")[toggleAction]();
         $("div[data-name='jackett_key']")[toggleAction]();
