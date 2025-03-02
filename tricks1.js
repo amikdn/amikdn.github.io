@@ -29,7 +29,7 @@
     try {
       const response = await fetch(apiUrl, { signal: controller.signal });
       const isViewbox = trimmedUrl.toLowerCase() === "jacred.viewbox.dev";
-      // Считаем парсер рабочим, если response.ok или (для jacred.viewbox.dev) статус 403 или 200
+      // Парсер считается рабочим, если response.ok или (для jacred.viewbox.dev) статус 403 или 200
       parser.status = response.ok || (isViewbox && (response.status === 403 || response.status === 200));
     } catch (error) {
       parser.status = false;
@@ -64,15 +64,6 @@
          </div>
        </div>`
     );
-  };
-
-  // Функция, ожидающая исчезновения модального окна выбора (предполагается, что оно имеет класс ".select")
-  const waitForModalHidden = (callback) => {
-    if ($("div.select").length === 0) {
-      callback();
-    } else {
-      requestAnimationFrame(() => waitForModalHidden(callback));
-    }
   };
 
   // Асинхронная функция открытия меню выбора парсера
@@ -120,13 +111,17 @@
         // Закрываем окно выбора парсера
         Lampa.Select.hide();
 
-        // После закрытия окна ожидаем его исчезновения и затем переключаемся в главное меню
-        waitForModalHidden(() => {
-          Lampa.Controller.toggle("main");
-          // Устанавливаем фокус на элемент главного меню
-          // Если у вас другой селектор, замените "div[data-name='main_menu']"
-          $("div[data-name='main_menu']").attr("tabindex", "0").focus();
-        });
+        // Добавляем обработчик нажатия кнопки "назад" на пульте
+        // Как только пользователь нажмет кнопку "назад", переходим в главное меню
+        const onBackKey = (e) => {
+          // Здесь можно проверить e.key или e.keyCode в зависимости от реализации.
+          // Например, если e.key === "Back" или e.key === "Escape" (если Back транслируется как Escape)
+          if(e.key === "Back" || e.key === "Escape") {
+            Lampa.Controller.toggle("main");
+            document.removeEventListener('keydown', onBackKey);
+          }
+        };
+        document.addEventListener('keydown', onBackKey);
 
         const toggleAction = selected.title !== "Свой вариант" ? "hide" : "show";
         $("div[data-name='jackett_url']")[toggleAction]();
@@ -135,8 +130,10 @@
     });
   };
 
+  // Обновляем кеш статусов при запуске
   updateParserCache();
 
+  // Добавляем параметр в настройки – кнопку "Выбрать парсер"
   Lampa.SettingsApi.addParam({
     component: "parser",
     param: {
