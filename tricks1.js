@@ -90,10 +90,14 @@
 
     /**
      * Вставляет блок LAMPA в панель рейтингов.
-     * Находит контейнер с классом ".full-start-new__rate-line" и вставляет новый блок
-     * сразу после блока KP. Если блок KP отсутствует, вставляет в конец панели.
-     * Блок LAMPA имеет размеры 67.41×23.05px и оформлен так, что сначала выводится значение рейтинга,
-     * а справа – надпись "LAMPA". При этом вставка блока сдвигает вправо остальные элементы панели.
+     * Ищет контейнер с классом ".full-start-new__rate-line" и вставляет новый блок
+     * сразу после блока KP. Новый блок создается без жестко заданных inline-стилей,
+     * чтобы его размеры определялись общими стилями интерфейса, как и для других блоков.
+     * Структура блока:
+     *   <div class="full-start__rate rate--lampa">
+     *       <div>0.0</div>
+     *       <div class="source--name">LAMPA</div>
+     *   </div>
      * @param {HTMLElement} render - контейнер карточки.
      * @returns {boolean} - true, если блок вставлен или уже существует.
      */
@@ -108,12 +112,12 @@
         if(rateLine.find('.rate--lampa').length > 0) {
             return true;
         }
-        // Формируем HTML для блока LAMPA:
-        // Блок имеет размеры 67.41px x 23.05px, используется inline-flex для выравнивания по центру.
+        // Формируем HTML для блока LAMPA без жестких inline-стилей,
+        // чтобы он наследовал размеры и стили, как остальные блоки.
         let lampaBlockHtml =
-            '<div class="full-start__rate rate--lampa" style="width:67.41px; height:23.05px; display:inline-flex; align-items:center; vertical-align:middle; margin-left:5px;">' +
-                '<div class="rate-value" style="line-height:23.05px;">0.0</div>' +
-                '<div class="source--name" style="line-height:23.05px; margin-left:4px;">LAMPA</div>' +
+            '<div class="full-start__rate rate--lampa">' +
+                '<div class="rate-value">0.0</div>' +
+                '<div class="source--name">LAMPA</div>' +
             '</div>';
         // Находим блок KP и вставляем новый блок после него
         let kpBlock = rateLine.find('.rate--kp');
