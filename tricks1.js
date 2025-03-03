@@ -10,7 +10,7 @@
 
     /**
      * Вычисляет рейтинг LAMPA по массиву реакций.
-     * Положительные: "fire", "think", "nice"
+     * Положительные: "fire", "nice"
      * Отрицательные: "bore", "shit"
      * @param {Array} reactions - массив объектов с полями type и counter.
      * @returns {number} - рейтинг, округленный до одного знака.
@@ -18,7 +18,7 @@
     function calculateLampaRating(reactions) {
         let positive = 0, negative = 0;
         reactions.forEach(item => {
-            if(item.type === "fire" || item.type === "think" || item.type === "nice"){
+            if(item.type === "fire" || item.type === "nice"){
                 positive += parseInt(item.counter, 10);
             }
             if(item.type === "bore" || item.type === "shit"){
@@ -33,9 +33,9 @@
     }
 
     /**
-     * Запрашивает рейтинг LAMPA с cub.red по сформированному ключу.
-     * @param {string} ratingKey - ключ запроса вида "movie_939243"
-     * @returns {Promise<number|null>} - рейтинг LAMPA или null в случае ошибки.
+     * Запрашивает рейтинг LAMPA с cub.red по ключу (например, "movie_939243").
+     * @param {string} ratingKey
+     * @returns {Promise<number|null>}
      */
     function fetchLampaRating(ratingKey) {
         return new Promise((resolve, reject) => {
@@ -89,9 +89,12 @@
     }
 
     /**
-     * Вставляет блок рейтинга LAMPA после блока TMDB внутри контейнера с рейтингами.
+     * Вставляет блок LAMPA в контейнер с рейтингами.
+     * Блок вставляется в контейнер с классом ".full-start-new__rate-line" после блока TMDB.
+     * Размеры: TMDB – 67.41×23.05px, LAMPA – 67.41×23.05px.
+     * Удаляются блоки с классами ".rate--imdb hide" и ".rate--kp hide".
      * @param {HTMLElement} render - контейнер карточки.
-     * @returns {boolean} - true, если блок успешно вставлен.
+     * @returns {boolean} - true, если блок вставлен или уже существует.
      */
     function insertLampaBlock(render) {
         if(!render) return false;
@@ -100,26 +103,32 @@
             console.log("[LAMPA] Контейнер .full-start-new__rate-line не найден");
             return false;
         }
-        // Находим блок TMDB
+        // Удаляем ненужные блоки
+        rateLine.find('.rate--imdb.hide, .rate--kp.hide').remove();
+
+        // Обновляем размеры блока TMDB
         let tmdbBlock = rateLine.find('.rate--tmdb');
         if(tmdbBlock.length === 0) {
             console.log("[LAMPA] Блок TMDB не найден");
             return false;
         }
-        // Если блок LAMPA уже существует, ничего не делаем
-        if(rateLine.find('.rate--lampa').length > 0) {
-            console.log("[LAMPA] Блок LAMPA уже существует");
-            return true;
+        tmdbBlock.css({
+            width: "67.41px",
+            height: "23.05px",
+            display: "inline-block",
+            "vertical-align": "middle"
+        });
+
+        // Если блока LAMPA ещё нет, вставляем его после TMDB блока
+        if(rateLine.find('.rate--lampa').length === 0){
+            let lampaBlockHtml =
+                '<div class="full-start__rate rate--lampa" style="width:67.41px;height:23.05px;display:inline-block;vertical-align:middle;margin-left:5px;">' +
+                    '<div>0.0</div>' +
+                    '<div class="source--name">LAMPA</div>' +
+                '</div>';
+            tmdbBlock.after(lampaBlockHtml);
+            console.log("[LAMPA] Блок LAMPA вставлен");
         }
-        // Создаем HTML для блока LAMPA
-        let lampaBlockHtml = 
-            '<div class="full-start__rate rate--lampa" style="width:2em;margin-top:1em;margin-right:1em;">' +
-                '<div>0.0</div>' +
-                '<div class="source--name">LAMPA</div>' +
-            '</div>';
-        // Вставляем блок после TMDB блока
-        tmdbBlock.after(lampaBlockHtml);
-        console.log("[LAMPA] Блок LAMPA вставлен");
         return true;
     }
 
@@ -136,7 +145,7 @@
                         console.log("[LAMPA] ratingKey:", ratingKey);
                         getLampaRating(ratingKey).then(rating => {
                             if(rating !== null){
-                                // Обновляем значение рейтинга в блоке LAMPA (первый div внутри блока)
+                                // Обновляем значение рейтинга в блоке LAMPA (первый вложенный div)
                                 $(render).find('.rate--lampa').find('div').first().text(rating);
                                 console.log("[LAMPA] Рейтинг LAMPA обновлен:", rating);
                             }
