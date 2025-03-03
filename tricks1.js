@@ -89,10 +89,9 @@
     }
 
     /**
-     * Вставляет блок LAMPA в контейнер с рейтингами.
-     * Блок вставляется в контейнер с классом ".full-start-new__rate-line" после блока TMDB.
-     * Размеры: TMDB – 67.41×23.05px, LAMPA – 67.41×23.05px.
-     * Удаляются блоки с классами ".rate--imdb.hide" и ".rate--kp.hide".
+     * Вставляет блок рейтинга LAMPA в панель рейтингов.
+     * Блок вставляется в контейнер с классом ".full-start-new__rate-line" сразу после блока TMDB.
+     * Размеры блока LAMPA: 67.41×23.05px.
      * @param {HTMLElement} render - контейнер карточки.
      * @returns {boolean} - true, если блок вставлен или уже существует.
      */
@@ -103,56 +102,42 @@
             console.log("[LAMPA] Контейнер .full-start-new__rate-line не найден");
             return false;
         }
-        // Удаляем ненужные блоки
-        rateLine.find('.rate--imdb.hide, .rate--kp.hide').remove();
-
-        // Обновляем размеры блока TMDB
-        let tmdbBlock = rateLine.find('.rate--tmdb');
-        if(tmdbBlock.length === 0) {
-            console.log("[LAMPA] Блок TMDB не найден");
-            return false;
+        // Если блок LAMPA уже существует, ничего не делаем
+        if(rateLine.find('.rate--lampa').length > 0) {
+            return true;
         }
-        tmdbBlock.css({
-            width: "67.41px",
-            height: "23.05px",
-            display: "inline-block",
-            "vertical-align": "middle"
-        });
-
-        // Если блока LAMPA ещё нет, вставляем его после TMDB блока
-        if(rateLine.find('.rate--lampa').length === 0){
-            let lampaBlockHtml =
-                '<div class="full-start__rate rate--lampa" style="width:67.41px;height:23.05px;display:inline-flex;align-items:center;vertical-align:middle;margin-left:5px;">' +
-                    '<div class="rate-value">0.0</div>' +
-                    '<div class="source--name" style="margin-left:4px;">LAMPA</div>' +
-                '</div>';
-            tmdbBlock.after(lampaBlockHtml);
-            console.log("[LAMPA] Блок LAMPA вставлен");
-        }
+        // Формируем HTML для блока LAMPA:
+        // - Первый вложенный div для рейтинга (значение), второй – для подписи "LAMPA"
+        let lampaBlockHtml =
+            '<div class="full-start__rate rate--lampa" style="width:67.41px;height:23.05px;display:inline-block;vertical-align:middle;margin-left:5px;">' +
+                '<div></div>' +
+                '<div class="source--name">LAMPA</div>' +
+            '</div>';
+        // Вставляем блок LAMPA сразу после блока TMDB
+        rateLine.find('.rate--tmdb').after(lampaBlockHtml);
+        console.log("[LAMPA] Блок LAMPA вставлен");
         return true;
     }
 
-    // Подписываемся на событие "full" с типом "complite"
+    // Подписываемся на событие "full" с типом "complite" (как в оригинальном плагине)
     Lampa.Listener.follow('full', function(e){
         if(e.type === 'complite'){
             let render = e.object.activity.render();
             console.log("[LAMPA] full complite event, render:", render);
-            if(render){
-                if(insertLampaBlock(render)){
-                    // Формируем ключ рейтинга из e.object.method и e.object.id
-                    if(e.object.method && e.object.id){
-                        let ratingKey = e.object.method + "_" + e.object.id;
-                        console.log("[LAMPA] ratingKey:", ratingKey);
-                        getLampaRating(ratingKey).then(rating => {
-                            if(rating !== null){
-                                // Обновляем значение рейтинга в блоке LAMPA (находим первый вложенный div в блоке)
-                                $(render).find('.rate--lampa').find('.rate-value').text(rating);
-                                console.log("[LAMPA] Рейтинг LAMPA обновлен:", rating);
-                            }
-                        });
-                    } else {
-                        console.log("[LAMPA] Недостаточно данных для формирования ratingKey", e.object);
-                    }
+            if(render && insertLampaBlock(render)){
+                // Формируем ключ рейтинга: method + "_" + id
+                if(e.object.method && e.object.id){
+                    let ratingKey = e.object.method + "_" + e.object.id;
+                    console.log("[LAMPA] ratingKey:", ratingKey);
+                    getLampaRating(ratingKey).then(rating => {
+                        if(rating !== null){
+                            // Обновляем значение рейтинга в блоке LAMPA: в первый вложенный div
+                            $(render).find('.rate--lampa').find('div').first().text(rating);
+                            console.log("[LAMPA] Рейтинг LAMPA обновлен:", rating);
+                        }
+                    });
+                } else {
+                    console.log("[LAMPA] Недостаточно данных для формирования ratingKey", e.object);
                 }
             }
         }
