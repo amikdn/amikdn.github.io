@@ -38,7 +38,7 @@
             var ratingKey = event.object.method + "_" + event.object.id;
             // Формируем URL для получения рейтинга. В оригинальном коде использовался URL вида:
             // "http://cub.red/api/reactions/get/" + ratingKey
-            var ratingUrl = "http://cub.red/api/reactions/get/" + ratingKey;
+            var ratingUrl = "http://cub.rip/api/reactions/get/" + ratingKey;
             
             // Создаём XMLHttpRequest для получения рейтинга
             var xhr = new XMLHttpRequest();
