@@ -27,7 +27,7 @@
             // Если блока рейтинга нет, создаём его
             if (ratingBlock.length === 0) {
                 ratingBlock = $('<div class="full-start__rate rate--lampa"></div>');
-                // Внутри рейтингового блока создаём дополнительный элемент для отображения значения рейтинга
+                // Внутри рейтингового блока создаём дополнительные элементы для оформления
                 ratingBlock.append($('<div></div>')); 
                 ratingBlock.append($('<div class="rate--kp"></div>'));
                 // Добавляем блок рейтинга в контейнер (например, после блока с информацией о фильме)
@@ -109,11 +109,11 @@
     }
 
     // Если приложение уже готово, инициализируем модуль сразу.
-    // Иначе – ждем события "appready" и затем инициализируем.
+    // Если нет, подписываемся на событие "appready" с помощью метода follow.
     if (window.appready) {
         initRatingModule();
     } else {
-        Lampa.Listener.on("appready", function(event) {
+        Lampa.Listener.follow("appready", function(event) {
             if (event.type === "ready") {
                 initRatingModule();
             }
