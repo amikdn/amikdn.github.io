@@ -91,8 +91,13 @@
     /**
      * Вставляет блок LAMPA в панель рейтингов.
      * Ищет контейнер с классом ".full-start-new__rate-line" и вставляет новый блок
-     * сразу после блока KP, чтобы порядок блоков был: TMDB, IMDB, KP, LAMPA, затем остальные.
-     * Новый блок оформляется так, что сначала отображается значение рейтинга, а справа – блок с надписью "LAMPA".
+     * сразу после блока KP. Новый блок создается без жестко заданных inline-стилей,
+     * чтобы его размеры определялись общими стилями интерфейса, как и для других блоков.
+     * Структура блока:
+     *   <div class="full-start__rate rate--lampa">
+     *       <div>0.0</div>
+     *       <div class="source--name">LAMPA</div>
+     *   </div>
      * @param {HTMLElement} render - контейнер карточки.
      * @returns {boolean} - true, если блок вставлен или уже существует.
      */
@@ -107,14 +112,14 @@
         if(rateLine.find('.rate--lampa').length > 0) {
             return true;
         }
-        // Формируем HTML для блока LAMPA.
-        // Здесь оба вложенных блока (значение и надпись) являются блоками.
+        // Формируем HTML для блока LAMPA без жестких inline-стилей,
+        // чтобы он наследовал размеры и стили, как остальные блоки.
         let lampaBlockHtml =
-            '<div class="full-start__rate rate--lampa" style="display:inline-flex; align-items:center; vertical-align:middle; margin-left:5px;">' +
-                '<div class="rate-value" style="display:block; flex-shrink:0;">0.0</div>' +
-                '<div class="source--name" style="display:block; margin-left:4px; flex-shrink:0;">LAMPA</div>' +
+            '<div class="full-start__rate rate--lampa">' +
+                '<div class="rate-value">0.0</div>' +
+                '<div class="source--name">LAMPA</div>' +
             '</div>';
-        // Вставляем блок LAMPA после блока KP (если он существует)
+        // Находим блок KP и вставляем новый блок после него
         let kpBlock = rateLine.find('.rate--kp');
         if(kpBlock.length > 0) {
             kpBlock.after(lampaBlockHtml);
