@@ -91,9 +91,9 @@
     /**
      * Вставляет блок LAMPA в панель рейтингов.
      * Находит контейнер с классом ".full-start-new__rate-line" и вставляет новый блок
-     * сразу после блока TMDB. Новый блок имеет размеры 67.41×23.05px и содержит два элемента:
-     * первый для значения рейтинга, второй – для надписи "LAMPA". При этом вставка блока смещает вправо
-     * последующие элементы (например, блоки .full-start__pg и .full-start__status).
+     * сразу после блока KP. Если блок KP отсутствует, вставляет в конец панели.
+     * Блок LAMPA имеет размеры 67.41×23.05px и оформлен так, что сначала выводится значение рейтинга,
+     * а справа – надпись "LAMPA". При этом вставка блока сдвигает вправо остальные элементы панели.
      * @param {HTMLElement} render - контейнер карточки.
      * @returns {boolean} - true, если блок вставлен или уже существует.
      */
@@ -104,29 +104,27 @@
             console.log("[LAMPA] Контейнер .full-start-new__rate-line не найден");
             return false;
         }
-        // Удаляем блоки с классами .rate--imdb и .rate--kp (если есть)
-        rateLine.find('.rate--imdb, .rate--kp').remove();
-
         // Если блок LAMPA уже существует, ничего не делаем
         if(rateLine.find('.rate--lampa').length > 0) {
             return true;
         }
-        // Формируем HTML для блока LAMPA.
-        // Он будет иметь размеры 67.41px x 23.05px, внутри сначала отображается значение рейтинга,
-        // а справа – надпись "LAMPA". Используем inline-flex для вертикального выравнивания.
+        // Формируем HTML для блока LAMPA:
+        // Блок имеет размеры 67.41px x 23.05px, используется inline-flex для выравнивания по центру.
         let lampaBlockHtml =
             '<div class="full-start__rate rate--lampa" style="width:67.41px; height:23.05px; display:inline-flex; align-items:center; vertical-align:middle; margin-left:5px;">' +
                 '<div class="rate-value" style="line-height:23.05px;">0.0</div>' +
                 '<div class="source--name" style="line-height:23.05px; margin-left:4px;">LAMPA</div>' +
             '</div>';
-        // Находим блок TMDB и вставляем после него новый блок
-        let tmdbBlock = rateLine.find('.rate--tmdb');
-        if(tmdbBlock.length === 0) {
-            console.log("[LAMPA] Блок TMDB не найден");
-            return false;
+        // Находим блок KP и вставляем новый блок после него
+        let kpBlock = rateLine.find('.rate--kp');
+        if(kpBlock.length > 0) {
+            kpBlock.after(lampaBlockHtml);
+            console.log("[LAMPA] Блок LAMPA вставлен после блока KP");
+        } else {
+            // Если блок KP не найден, вставляем в конец панели
+            rateLine.append(lampaBlockHtml);
+            console.log("[LAMPA] Блок LAMPA вставлен в конец панели");
         }
-        tmdbBlock.after(lampaBlockHtml);
-        console.log("[LAMPA] Блок LAMPA вставлен");
         return true;
     }
 
@@ -142,7 +140,7 @@
                     console.log("[LAMPA] ratingKey:", ratingKey);
                     getLampaRating(ratingKey).then(rating => {
                         if(rating !== null){
-                            // Обновляем значение рейтинга в блоке LAMPA (находим элемент .rate-value внутри блока)
+                            // Обновляем значение рейтинга в блоке LAMPA (элемент с классом .rate-value)
                             $(render).find('.rate--lampa .rate-value').text(rating);
                             console.log("[LAMPA] Рейтинг LAMPA обновлен:", rating);
                         }
