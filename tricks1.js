@@ -92,7 +92,7 @@
      * Вставляет блок LAMPA в контейнер с рейтингами.
      * Блок вставляется в контейнер с классом ".full-start-new__rate-line" после блока TMDB.
      * Размеры: TMDB – 67.41×23.05px, LAMPA – 67.41×23.05px.
-     * Удаляются блоки с классами ".rate--imdb hide" и ".rate--kp hide".
+     * Удаляются блоки с классами ".rate--imdb.hide" и ".rate--kp.hide".
      * @param {HTMLElement} render - контейнер карточки.
      * @returns {boolean} - true, если блок вставлен или уже существует.
      */
@@ -122,9 +122,9 @@
         // Если блока LAMPA ещё нет, вставляем его после TMDB блока
         if(rateLine.find('.rate--lampa').length === 0){
             let lampaBlockHtml =
-                '<div class="full-start__rate rate--lampa" style="width:67.41px;height:23.05px;display:inline-block;vertical-align:middle;margin-left:5px;">' +
-                    '<div>0.0</div>' +
-                    '<div class="source--name">LAMPA</div>' +
+                '<div class="full-start__rate rate--lampa" style="width:67.41px;height:23.05px;display:inline-flex;align-items:center;vertical-align:middle;margin-left:5px;">' +
+                    '<div class="rate-value">0.0</div>' +
+                    '<div class="source--name" style="margin-left:4px;">LAMPA</div>' +
                 '</div>';
             tmdbBlock.after(lampaBlockHtml);
             console.log("[LAMPA] Блок LAMPA вставлен");
@@ -145,8 +145,8 @@
                         console.log("[LAMPA] ratingKey:", ratingKey);
                         getLampaRating(ratingKey).then(rating => {
                             if(rating !== null){
-                                // Обновляем значение рейтинга в блоке LAMPA (первый вложенный div)
-                                $(render).find('.rate--lampa').find('div').first().text(rating);
+                                // Обновляем значение рейтинга в блоке LAMPA (находим первый вложенный div в блоке)
+                                $(render).find('.rate--lampa').find('.rate-value').text(rating);
                                 console.log("[LAMPA] Рейтинг LAMPA обновлен:", rating);
                             }
                         });
