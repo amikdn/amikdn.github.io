@@ -10,7 +10,7 @@
     }
 
     /**
-     * Запрашивает рейтинг Lampa с cub.red по сформированному ключу через XHR.
+     * Запрашивает рейтинг Lampa с cub.red по сформированному ключу через XMLHttpRequest.
      * @param {string} ratingKey - ключ запроса, сформированный как method + "_" + id.
      * @returns {Promise<number|null>} - рейтинг Lampa или null в случае ошибки.
      */
@@ -28,23 +28,29 @@
                         try {
                             var data = JSON.parse(xhr.responseText);
                             logDebug("Получены данные с cub.red:", data);
-                            // Подсчитываем положительные и отрицательные реакции
-                            var positive = 0, negative = 0;
-                            data.forEach(function(item){
-                                if(item.type === "like" || item.type === "plus"){
-                                    positive += parseInt(item.value);
+                            // Если API возвращает объект с полем result (массив реакций)
+                            if(data && data.result && Array.isArray(data.result)){
+                                let positive = 0, negative = 0;
+                                data.result.forEach(function(item){
+                                    // Положительные реакции: "fire", "think", "nice"
+                                    if(item.type === "fire" || item.type === "think" || item.type === "nice"){
+                                        positive += parseInt(item.counter);
+                                    }
+                                    // Отрицательные реакции: "bore", "shit"
+                                    if(item.type === "bore" || item.type === "shit"){
+                                        negative += parseInt(item.counter);
+                                    }
+                                });
+                                let ratingValue = 0;
+                                if((positive + negative) > 0){
+                                    ratingValue = (positive / (positive + negative)) * 10;
                                 }
-                                if(item.type === "dislike" || item.type === "minus" || item.type === "shit"){
-                                    negative += parseInt(item.value);
-                                }
-                            });
-                            let ratingValue = 0;
-                            if((positive + negative) > 0){
-                                ratingValue = (positive / (positive + negative)) * 10;
+                                // Округляем до одного знака после запятой
+                                ratingValue = ratingValue.toFixed(1);
+                                resolve(parseFloat(ratingValue));
+                            } else {
+                                reject(new Error("Неверный формат данных"));
                             }
-                            // Округляем до одного знака после запятой
-                            ratingValue = ratingValue.toFixed(1);
-                            resolve(parseFloat(ratingValue));
                         } catch(e){
                             reject(e);
                         }
@@ -92,6 +98,7 @@
             logDebug("Недостаточно данных в объекте события", event);
             return;
         }
+        // Формируем ключ: method + "_" + id
         var ratingKey = event.object.method + "_" + event.object.id;
         logDebug("Сформирован ключ рейтинга", ratingKey);
         const render = event.object.activity.render();
@@ -105,6 +112,7 @@
             // Если блока рейтинга Lampa нет – создаем его
             if(ratingBlock.length === 0){
                 ratingBlock = $('<div class="full-start__rate rate--lampa"></div>');
+                // Добавляем подпись "Lampa" и блок для значения рейтинга
                 ratingBlock.append($('<div class="rate-label">Lampa</div>'));
                 ratingBlock.append($('<div class="rate-value"></div>'));
                 // Пробуем вставить блок после .info__rate, если он существует,
