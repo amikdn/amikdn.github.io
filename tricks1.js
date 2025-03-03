@@ -1,34 +1,29 @@
 (function(){
     "use strict";
-
-    function startLampaRatingIcon() {
-        window.rating_plugin = true;
-        Lampa.Listener.follow('full', function(e) {
-            if(e.type === 'complite'){
-                var render = e.object.activity.render();
-                console.log('[LAMPA] Event complite, render:', render);
-                // Если блок с рейтингом LAMPA еще не вставлен, создаем его
-                if($(render).find('.rate--lampa').length === 0){
-                    // Создаем элемент с классами для рейтинга LAMPA
-                    var lampaIcon = $(
-                        '<div class="full-start__rate rate--lampa" style="width:2em;margin-top:1em;margin-right:1em;">' +
-                            '<div class="rate-label">LAMPA</div>' +
-                            '<div class="rate-value">0.0</div>' +
-                        '</div>'
-                    );
-                    // Если в render есть элемент с классом .info__rate, вставляем после него,
-                    // иначе – добавляем в конец render
-                    var infoRate = $(render).find('.info__rate');
-                    if(infoRate.length){
-                        infoRate.after(lampaIcon);
-                    } else {
-                        $(render).append(lampaIcon);
-                    }
-                    console.log('[LAMPA] LAMPA icon inserted:', lampaIcon);
-                }
-            }
-        });
+    
+    // Проверяем наличие объекта Lampa
+    if(typeof Lampa === "undefined"){
+        console.error("Lampa не определён");
+        return;
+    } else {
+        console.log("Lampa определён");
     }
-
-    if(!window.rating_plugin) startLampaRatingIcon();
+    
+    // Проверяем наличие Lampa.Listener и его метода follow
+    if(!Lampa.Listener || typeof Lampa.Listener.follow !== "function"){
+        console.error("Lampa.Listener.follow недоступен");
+        return;
+    } else {
+        console.log("Lampa.Listener.follow доступен");
+    }
+    
+    // Подписываемся на несколько возможных событий для отладки
+    const events = ["full", "card:render", "appready", "complite"];
+    events.forEach(function(eventName){
+        Lampa.Listener.follow(eventName, function(e){
+            console.log("[Отладка] Событие '" + eventName + "' получено:", e);
+        });
+    });
+    
+    console.log("Отладочные подписки на события установлены");
 })();
