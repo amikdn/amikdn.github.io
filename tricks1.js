@@ -94,11 +94,7 @@
      */
     function initRatingModule() {
         // Проверяем, что текущий Manifest соответствует ожидаемому
-        if (Lampa.Manifest.name !== "bylampa") {
-            // Если нет – выводим уведомление об ошибке доступа
-            Lampa.Noty.show("Ошибка доступа");
-            return;
-        }
+
 
         // Подписываемся на событие "full" (например, рендеринг полного экрана)
         Lampa.Listener.follow("full", function(event) {
