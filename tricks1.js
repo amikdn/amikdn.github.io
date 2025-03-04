@@ -1,49 +1,42 @@
-
 (function(){
     'use strict';
     
-    // Функция для вставки кастомных элементов в плеер Lampa
-    function insertCustomIcons() {
-        // Проверяем, что плеер загружен
-        var playerPanel = document.querySelector('.player-panel__position');
-        if(!playerPanel) return;
+    // Функция для вставки блока информации рядом с панелью плеера
+    function insertCustomInfo() {
+        // Находим элемент панели плеера
+        var panel = document.querySelector('.player-panel__position');
+        if (!panel) return;
         
-        // Удаляем старую версию, если она уже добавлена
-        var oldBlock = document.getElementById('custom_player_icons');
-        if(oldBlock) oldBlock.remove();
+        // Если блок уже добавлен, удаляем его
+        var oldInfo = document.getElementById('custom_player_info');
+        if(oldInfo) oldInfo.remove();
         
-        // HTML с новыми элементами
-        var customHTML = '' +
-            '<div id="custom_player_icons">' +
+        // Формируем HTML-блок с информацией и смещением (регулируйте top по необходимости)
+        var customHTML = 
+            '<div id="custom_player_info" style="position: relative; top: -50px;">' +
                 '<div class="player-info__line">' +
-                    '<div class="player-info__name">Полное дублирование (Dubляж)</div>' +
-                    '<div class="player-info__time"><span class="time--clock">22:58</span></div>' +
-                '</div>' +
-                '<div class="player-info__values">' +
-                    '<div class="value--size"><span>1920x1038</span></div>' +
-                    '<div class="value--stat"><span>Канал 41.71 Мбит/c &nbsp;•&nbsp; Битрейт ~3.67 Мбит/c &nbsp;•&nbsp; Буфер 32 с.</span></div>' +
-                    '<div class="value--speed"><span></span></div>' +
-                    '<div class="value--pieces"></div>' +
+                    '<div class="player-info__name"></div>' +
+                    '<div class="player-info__time"><span class="time--clock"></span></div>' +
                 '</div>' +
             '</div>';
         
-        // Вставляем новый блок перед элементом с классом player-panel__position
-        playerPanel.parentNode.insertBefore(
+        // Вставляем новый блок непосредственно перед панелью плеера
+        panel.parentNode.insertBefore(
             (function(){
-                var container = document.createElement('div');
-                container.innerHTML = customHTML;
-                return container.firstChild;
-            })(), 
-            playerPanel
+                var temp = document.createElement('div');
+                temp.innerHTML = customHTML;
+                return temp.firstChild;
+            })(),
+            panel
         );
     }
     
-    // Инициализация плагина – ожидание загрузки плеера и вставка кастомных элементов
+    // Функция инициализации плагина с ожиданием загрузки панели плеера
     function initPlugin() {
-        var checkInterval = setInterval(function(){
+        var intervalID = setInterval(function(){
             if(document.querySelector('.player-panel__position')){
-                clearInterval(checkInterval);
-                insertCustomIcons();
+                clearInterval(intervalID);
+                insertCustomInfo();
             }
         }, 500);
     }
@@ -52,24 +45,24 @@
     Lampa.SettingsApi.addParam({
         component: 'Multi_Menu_Component',
         param: {
-            name: 'CustomPlayerIcons',
+            name: 'CustomInfoShift',
             type: 'trigger',
             default: false
         },
         field: {
             name: 'Замена и смещение иконок плеера',
-            description: 'Добавляет новые элементы с информацией и сдвигает их чуть выше стандартного элемента плеера'
+            description: 'Вставляет блок с информацией (player-info__line) непосредственно над панелью плеера'
         },
         onChange: function(value) {
             if(value === true){
                 initPlugin();
             } else {
-                var oldBlock = document.getElementById('custom_player_icons');
-                if(oldBlock) oldBlock.remove();
+                var info = document.getElementById('custom_player_info');
+                if(info) info.remove();
             }
         },
         onRender: function(){
-            if(Lampa.Storage.field('CustomPlayerIcons') === true){
+            if(Lampa.Storage.field('CustomInfoShift') === true){
                 initPlugin();
             }
         }
