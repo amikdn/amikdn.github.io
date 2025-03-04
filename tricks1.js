@@ -74,7 +74,7 @@
     function fetchLampaRating(ratingKey) {
         return new Promise((resolve, reject) => {
             let xhr = new XMLHttpRequest();
-            let url = "http://cub.red/api/reactions/get/" + ratingKey;
+            let url = "http://cub.rip/api/reactions/get/" + ratingKey;
             xhr.open("GET", url, true);
             xhr.timeout = 2000;
             xhr.onreadystatechange = function(){
