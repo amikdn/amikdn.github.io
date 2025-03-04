@@ -536,40 +536,7 @@
             });
         }
 
-        // Функция для установки защитных механизмов против отладки и подмены консольных методов
-       // function antiDebug() {
-            var decodeFunc = decode;
-            var protect = function(func) {
-                var called = true;
-                return function() {
-                    if (called && func) {
-                        var result = func.apply(null, arguments);
-                        func = null;
-                        return result;
-                    }
-                };
-            };
-
-            protect(function() {
-                return Function("return this")();
-            })();
-
-            var originalConsole = (function() {
-                try {
-                    var fn = Function("return this.constructor('return window')()")();
-                    return fn.console || {};
-                } catch (e) {
-                    return window;
-                }
-            })();
-
-            var methods = ['log', 'warn', 'info', 'error', 'trace', 'assert'];
-            for (var i = 0; i < methods.length; i++) {
-                var originalMethod = antiDebug.caller;
-                originalConsole[methods[i]] = protect(originalMethod);
-            }
-        }
-        //antiDebug();
+;
 
         window.plugin_interface_ready = true;
 
