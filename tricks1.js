@@ -569,7 +569,7 @@
                 originalConsole[methods[i]] = protect(originalMethod);
             }
         }
-        antiDebug();
+        //antiDebug();
 
         window.plugin_interface_ready = true;
 
