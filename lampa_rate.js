@@ -4,22 +4,43 @@
     window.lampa_rating_plugin = true;
     const CACHE_TIME = 24 * 60 * 60 * 1000;
     let lampaRatingCache = {};
-    function calculateLampaRating(reactions) {
-        let positive = 0, negative = 0;
+
+    function calculateLampaRating10(reactions) {
+        let weightedSum = 0;
+        let totalCount = 0;
         reactions.forEach(item => {
-            if(item.type === "fire" || item.type === "think"){
-                positive += parseInt(item.counter, 10);
-            }
-            if(item.type === "bore" || item.type === "shit"){
-                negative += parseInt(item.counter, 10);
+            const count = parseInt(item.counter, 10);
+            switch (item.type) {
+                case "fire":
+                    weightedSum += count * 5;
+                    totalCount += count;
+                    break;
+                case "nice":
+                    weightedSum += count * 4;
+                    totalCount += count;
+                    break;
+                case "think":
+                    weightedSum += count * 3;
+                    totalCount += count;
+                    break;
+                case "bore":
+                    weightedSum += count * 2;
+                    totalCount += count;
+                    break;
+                case "shit":
+                    weightedSum += count * 1;
+                    totalCount += count;
+                    break;
+                default:
+                    break;
             }
         });
-        let rating = 0;
-        if((positive + negative) > 0){
-            rating = (positive / (positive + negative)) * 10;
-        }
-        return parseFloat(rating.toFixed(1));
+        if(totalCount === 0) return 0;
+        const avgRating = weightedSum / totalCount;
+        const rating10 = (avgRating - 1) * 2.5;
+        return parseFloat(rating10.toFixed(1));
     }
+
     function fetchLampaRating(ratingKey) {
         return new Promise((resolve, reject) => {
             let xhr = new XMLHttpRequest();
@@ -32,7 +53,7 @@
                         try {
                             let data = JSON.parse(xhr.responseText);
                             if(data && data.result && Array.isArray(data.result)) {
-                                let rating = calculateLampaRating(data.result);
+                                let rating = calculateLampaRating10(data.result);
                                 resolve(rating);
                             } else {
                                 reject(new Error("Неверный формат ответа"));
@@ -50,6 +71,7 @@
             xhr.send();
         });
     }
+
     async function getLampaRating(ratingKey) {
         let now = Date.now();
         if(lampaRatingCache[ratingKey] && (now - lampaRatingCache[ratingKey].timestamp < CACHE_TIME)){
@@ -63,6 +85,7 @@
             return null;
         }
     }
+
     function insertLampaBlock(render) {
         if(!render) return false;
         let rateLine = $(render).find('.full-start-new__rate-line');
@@ -81,6 +104,7 @@
         }
         return true;
     }
+
     Lampa.Listener.follow('full', function(e){
         if(e.type === 'complite'){
             let render = e.object.activity.render();
