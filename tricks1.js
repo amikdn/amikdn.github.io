@@ -1,54 +1,33 @@
 (function(){
     'use strict';
-
-    // Если плагин уже запущен, выходим
     if(window.lampa_rating_plugin) return;
     window.lampa_rating_plugin = true;
-
-    const CACHE_TIME = 24 * 60 * 60 * 1000; // 24 часа
+    const CACHE_TIME = 24 * 60 * 60 * 1000;
     let lampaRatingCache = {};
 
-    /**
-     * Вычисляет рейтинг LAMPA по массиву реакций в шкале 0–10.
-     * Вес оценок:
-     * "fire"  (супер)        → 5
-     * "nice"  (неплохо)       → 4
-     * "think" (смотрительно)   → 3
-     * "bore"  (скука)         → 2
-     * "shit"  (плохо)         → 1
-     *
-     * Сначала рассчитывается средняя оценка по шкале 1–5:
-     *    avg = (5*fire + 4*nice + 3*think + 2*bore + 1*shit) / total
-     * Затем производится нормализация, чтобы 1 → 0, а 5 → 10:
-     *    rating10 = (avg – 1) × 2.5
-     *
-     * @param {Array} reactions - массив объектов с полями type и counter.
-     * @returns {number} - рейтинг, округленный до одного знака.
-     */
     function calculateLampaRating10(reactions) {
         let weightedSum = 0;
         let totalCount = 0;
-
         reactions.forEach(item => {
             const count = parseInt(item.counter, 10);
             switch (item.type) {
-                case "fire":   // оценка 5
+                case "fire":
                     weightedSum += count * 5;
                     totalCount += count;
                     break;
-                case "nice":   // оценка 4
+                case "nice":
                     weightedSum += count * 4;
                     totalCount += count;
                     break;
-                case "think":  // оценка 3
+                case "think":
                     weightedSum += count * 3;
                     totalCount += count;
                     break;
-                case "bore":   // оценка 2
+                case "bore":
                     weightedSum += count * 2;
                     totalCount += count;
                     break;
-                case "shit":   // оценка 1
+                case "shit":
                     weightedSum += count * 1;
                     totalCount += count;
                     break;
@@ -56,25 +35,16 @@
                     break;
             }
         });
-
         if(totalCount === 0) return 0;
-
-        // Средняя оценка по шкале 1-5:
         const avgRating = weightedSum / totalCount;
-        // Преобразование в шкалу 0-10:
         const rating10 = (avgRating - 1) * 2.5;
         return parseFloat(rating10.toFixed(1));
     }
 
-    /**
-     * Запрашивает рейтинг LAMPA с cub.red по ключу (например, "movie_939243").
-     * @param {string} ratingKey
-     * @returns {Promise<number|null>}
-     */
     function fetchLampaRating(ratingKey) {
         return new Promise((resolve, reject) => {
             let xhr = new XMLHttpRequest();
-            let url = "http://cub.rip/api/reactions/get/" + ratingKey;
+            let url = "http://cub.red/api/reactions/get/" + ratingKey;
             xhr.open("GET", url, true);
             xhr.timeout = 2000;
             xhr.onreadystatechange = function(){
@@ -83,7 +53,6 @@
                         try {
                             let data = JSON.parse(xhr.responseText);
                             if(data && data.result && Array.isArray(data.result)) {
-                                // Используем функцию calculateLampaRating10 для расчёта рейтинга по шкале 0–10
                                 let rating = calculateLampaRating10(data.result);
                                 resolve(rating);
                             } else {
@@ -103,11 +72,6 @@
         });
     }
 
-    /**
-     * Обёртка с кэшированием для получения рейтинга LAMPA.
-     * @param {string} ratingKey
-     * @returns {Promise<number|null>}
-     */
     async function getLampaRating(ratingKey) {
         let now = Date.now();
         if(lampaRatingCache[ratingKey] && (now - lampaRatingCache[ratingKey].timestamp < CACHE_TIME)){
@@ -118,78 +82,42 @@
             lampaRatingCache[ratingKey] = { value: rating, timestamp: now };
             return rating;
         } catch(e) {
-            console.error("Ошибка получения рейтинга LAMPA:", e);
             return null;
         }
     }
 
-    /**
-     * Вставляет блок LAMPA в панель рейтингов.
-     * Ищет контейнер с классом ".full-start-new__rate-line" и вставляет новый блок
-     * сразу после блока KP. Новый блок создается без жестко заданных inline-стилей,
-     * чтобы его размеры определялись общими стилями интерфейса, как и для других блоков.
-     * Структура блока:
-     *   <div class="full-start__rate rate--lampa">
-     *       <div>0.0</div>
-     *       <div class="source--name">LAMPA</div>
-     *   </div>
-     * @param {HTMLElement} render - контейнер карточки.
-     * @returns {boolean} - true, если блок вставлен или уже существует.
-     */
     function insertLampaBlock(render) {
         if(!render) return false;
         let rateLine = $(render).find('.full-start-new__rate-line');
-        if(rateLine.length === 0) {
-            console.log("[LAMPA] Контейнер .full-start-new__rate-line не найден");
-            return false;
-        }
-        // Если блок LAMPA уже существует, ничего не делаем
-        if(rateLine.find('.rate--lampa').length > 0) {
-            return true;
-        }
-        // Формируем HTML для блока LAMPA без жестких inline-стилей,
-        // чтобы он наследовал размеры и стили, как остальные блоки.
+        if(rateLine.length === 0) return false;
+        if(rateLine.find('.rate--lampa').length > 0) return true;
         let lampaBlockHtml =
             '<div class="full-start__rate rate--lampa">' +
                 '<div class="rate-value">0.0</div>' +
                 '<div class="source--name">LAMPA</div>' +
             '</div>';
-        // Находим блок KP и вставляем новый блок после него
         let kpBlock = rateLine.find('.rate--kp');
         if(kpBlock.length > 0) {
             kpBlock.after(lampaBlockHtml);
-            console.log("[LAMPA] Блок LAMPA вставлен после блока KP");
         } else {
-            // Если блок KP не найден, вставляем в конец панели
             rateLine.append(lampaBlockHtml);
-            console.log("[LAMPA] Блок LAMPA вставлен в конец панели");
         }
         return true;
     }
 
-    // Подписываемся на событие "full" с типом "complite" (как в оригинальном плагине)
     Lampa.Listener.follow('full', function(e){
         if(e.type === 'complite'){
             let render = e.object.activity.render();
-            console.log("[LAMPA] full complite event, render:", render);
             if(render && insertLampaBlock(render)){
-                // Формируем ключ рейтинга: method + "_" + id
                 if(e.object.method && e.object.id){
                     let ratingKey = e.object.method + "_" + e.object.id;
-                    console.log("[LAMPA] ratingKey:", ratingKey);
                     getLampaRating(ratingKey).then(rating => {
                         if(rating !== null){
-                            // Обновляем значение рейтинга в блоке LAMPA (элемент с классом .rate-value)
                             $(render).find('.rate--lampa .rate-value').text(rating);
-                            console.log("[LAMPA] Рейтинг LAMPA обновлен:", rating);
                         }
                     });
-                } else {
-                    console.log("[LAMPA] Недостаточно данных для формирования ratingKey", e.object);
                 }
             }
         }
     });
-
-    console.log("[LAMPA] Плагин LAMPA запущен");
 })();
