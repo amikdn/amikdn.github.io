@@ -537,7 +537,7 @@
         }
 
         // Функция для установки защитных механизмов против отладки и подмены консольных методов
-        function antiDebug() {
+       // function antiDebug() {
             var decodeFunc = decode;
             var protect = function(func) {
                 var called = true;
