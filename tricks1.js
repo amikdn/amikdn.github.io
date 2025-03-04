@@ -1,32 +1,31 @@
 (function(){
     'use strict';
     
-    // Функция для внедрения кастомного CSS, смещающего панель player-info на 1px вверх
-    function applyCustomShift() {
-        // Создаем элемент стиля
-        var style = document.createElement('style');
-        style.id = 'custom_info_shift_css';
-        style.innerHTML = `
-            /* Сдвигаем панель с информацией на 1 пиксель вверх */
-            .player-info.info--visible {
-                transform: translateY(-1px) !important;
-            }
-        `;
-        // Добавляем стиль в head, если его еще нет
-        if(!document.getElementById('custom_info_shift_css')){
-            document.head.appendChild(style);
+    // Функция для смещения панели информации на 1px вверх
+    function shiftPlayerInfo() {
+        var info = document.querySelector('.player-info.info--visible');
+        if(info){
+            // Принудительно устанавливаем относительное позиционирование
+            info.style.position = 'relative';
+            // Сдвигаем на 1px вверх
+            info.style.top = '-1px';
         }
     }
     
-    // Запускаем после полной загрузки плеера
+    // Ждем, когда панель появится, и применяем смещение
     var intervalID = setInterval(function(){
         if(document.querySelector('.player-info.info--visible') && document.querySelector('.player-panel.panel--visible.panel--paused')){
             clearInterval(intervalID);
-            applyCustomShift();
+            shiftPlayerInfo();
         }
-    }, 500);
+    }, 300);
     
-    // Также можно привязаться к событию изменения размера, если динамика меняет позиционирование
-    window.addEventListener('resize', applyCustomShift);
-    
+    // Если панель может динамически меняться, можно наблюдать за изменениями и постоянно применять смещение
+    var infoNode = document.querySelector('.player-info.info--visible');
+    if(infoNode){
+        var observer = new MutationObserver(function(mutations){
+            shiftPlayerInfo();
+        });
+        observer.observe(infoNode, {attributes: true, childList: true, subtree: true});
+    }
 })();
