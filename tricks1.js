@@ -9,45 +9,47 @@
     let lampaRatingCache = {};
 
 /**
- * Вычисляет рейтинг LAMPA по массиву реакций.
+ * Вычисляет рейтинг LAMPA по массиву реакций на шкале от 0 до 10.
  * Вес оценок:
  * "fire"  (супер)        → 5
  * "nice"  (неплохо)       → 4
  * "think" (смотрительно)   → 3
  * "bore"  (скука)         → 2
  * "shit"  (плохо)         → 1
- * Рейтинг вычисляется по формуле:
- *   (5*fire + 4*nice + 3*think + 2*bore + 1*shit) / (fire + nice + think + bore + shit)
- * Результат округляется до одного знака.
+ * 
+ * Сначала рассчитывается средняя оценка по шкале 1-5:
+ *    avg = (5*fire + 4*nice + 3*think + 2*bore + 1*shit) / total
+ * Затем выполняется нормализация для получения значения от 0 до 10:
+ *    rating10 = (avg - 1) * 2.5
  *
  * @param {Array} reactions - массив объектов с полями type и counter.
- * @returns {number} - рейтинг.
+ * @returns {number} - рейтинг, округленный до одного знака.
  */
-function calculateLampaRating(reactions) {
-    let totalRating = 0;
+function calculateLampaRating10(reactions) {
+    let weightedSum = 0;
     let totalCount = 0;
 
     reactions.forEach(item => {
         const count = parseInt(item.counter, 10);
         switch (item.type) {
             case "fire":   // супер
-                totalRating += count * 5;
+                weightedSum += count * 5;
                 totalCount += count;
                 break;
             case "nice":   // неплохо
-                totalRating += count * 4;
+                weightedSum += count * 4;
                 totalCount += count;
                 break;
             case "think":  // смотрительно
-                totalRating += count * 3;
+                weightedSum += count * 3;
                 totalCount += count;
                 break;
             case "bore":   // скука
-                totalRating += count * 2;
+                weightedSum += count * 2;
                 totalCount += count;
                 break;
             case "shit":   // плохо
-                totalRating += count * 1;
+                weightedSum += count * 1;
                 totalCount += count;
                 break;
             default:
@@ -55,9 +57,13 @@ function calculateLampaRating(reactions) {
         }
     });
 
-    const rating = totalCount > 0 ? totalRating / totalCount : 0;
-    return parseFloat(rating.toFixed(1));
+    if(totalCount === 0) return 0;
+
+    const avgRating = weightedSum / totalCount; // шкала 1-5
+    const rating10 = (avgRating - 1) * 2.5;       // преобразование в шкалу 0-10
+    return parseFloat(rating10.toFixed(1));
 }
+
 
 
     /**
