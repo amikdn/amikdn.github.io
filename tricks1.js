@@ -56,11 +56,12 @@
         })(index, unused);
     }
 
-    if (typeof Lampa.Settings.get !== 'function') {
+if (typeof Lampa.Settings.get !== 'function') {
     Lampa.Settings.get = function(name) {
         return Lampa.Settings[name];
     };
 }
+
 
 
     // Антиотладочный цикл: перемешивает массив до получения нужного числового результата
