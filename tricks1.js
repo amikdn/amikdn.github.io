@@ -3,11 +3,6 @@
 
   // Определяем источники (балансеры)
   var SOURCES = {
-
-    fxapi: {
-      name: 'Filmix - 720',
-      url: 'http://rc.bwa.to/rc/fxapi'
-    },
     zetflix: {
       name: 'Zetflix - 1080',
       url: 'https://lam.akter-black.com/lite/zetflix'
