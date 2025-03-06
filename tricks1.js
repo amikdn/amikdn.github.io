@@ -21,53 +21,52 @@
     }
   };
 
-  // Конструктор плагина. При запуске создаётся карточка с выбором источников.
-  function MultiSourceComponent(object) {
-    this.object = object;
-    // Выбираем балансер из Lampa.Storage или по умолчанию
+  // Плагин "Онлайн" с выбором источников
+  function OnlineViewPlugin(object) {
+    this.object = object; // карточка фильма
+    // Читаем выбранный балансер из Lampa.Storage или используем значение по умолчанию
     this.currentSourceKey = Lampa.Storage.get('online_balancer') || 'pidtor';
     this.source = SOURCES[this.currentSourceKey];
-    // Создаем основной контейнер плагина
-    this.container = $('<div class="multi_source_plugin"></div>');
-    // Создаем контейнер для выбора источников (селектор)
+    // Основной контейнер плагина
+    this.container = $('<div class="online_view_plugin"></div>');
+    // Контейнер селектора источников – верхняя панель выбора
     this.selectorContainer = $('<div class="source_selector"></div>');
-    // Создаем контейнер для списка видео (результатов запроса)
-    this.list = $('<div class="multi_source_list"></div>');
-    // Собираем структуру: сначала селектор источников, затем список видео
+    // Контейнер для списка результатов (видео)
+    this.list = $('<div class="online_view_list"></div>');
+    // Собираем структуру карточки: сначала селектор, затем список видео
     this.container.append(this.selectorContainer).append(this.list);
     this.init();
   }
 
-  // Инициализация плагина – рендер селектора и запуск запроса для выбранного источника
-  MultiSourceComponent.prototype.init = function() {
-    console.log('Используем источник по умолчанию:', this.source.name, this.source.url);
+  // Инициализация плагина: отрисовываем селектор и запускаем запрос по выбранному источнику
+  OnlineViewPlugin.prototype.init = function() {
+    console.log('Онлайн. Используем источник:', this.source.name, this.source.url);
     this.renderSourceSelector();
-    this.list.html('<div class="multi_source_loading">Загрузка...</div>');
+    this.list.html('<div class="online_loading">Загрузка...</div>');
     this.search();
   };
 
-  // Рендер селектора источников – выводит кнопки для каждого источника
-  MultiSourceComponent.prototype.renderSourceSelector = function() {
+  // Отрисовка панели выбора источников
+  OnlineViewPlugin.prototype.renderSourceSelector = function() {
     var self = this;
     this.selectorContainer.empty();
+    // Для каждого источника создаем кнопку
     for (var key in SOURCES) {
       if (SOURCES.hasOwnProperty(key)) {
-        var source = SOURCES[key];
-        var btn = $('<div class="source_option selector" data-source-key="'+ key +'">' + source.name + '</div>');
-        if (key === this.currentSourceKey) {
-          btn.addClass('active');
-        }
+        var src = SOURCES[key];
+        var btn = $('<div class="source_option selector" data-source-key="'+ key +'">' + src.name + '</div>');
+        if (key === this.currentSourceKey) btn.addClass('active');
         btn.on('hover:enter', function() {
           var selectedKey = $(this).data('source-key');
           if (selectedKey !== self.currentSourceKey) {
             self.currentSourceKey = selectedKey;
             self.source = SOURCES[selectedKey];
             Lampa.Storage.set('online_balancer', selectedKey);
-            // Обновляем визуальное состояние кнопок
+            // Обновляем UI селектора
             self.selectorContainer.find('.source_option').removeClass('active');
             $(this).addClass('active');
-            // Обновляем UI списка и выполняем новый запрос
-            self.list.html('<div class="multi_source_loading">Загрузка...</div>');
+            // Обновляем результаты запроса для нового источника
+            self.list.html('<div class="online_loading">Загрузка...</div>');
             self.search();
           }
         });
@@ -76,8 +75,63 @@
     }
   };
 
-  // Метод start – вызывается системой Lampa при запуске активности
-  MultiSourceComponent.prototype.start = function() {
+  // Формирование запроса к выбранному источнику (URL формируется на основе данных фильма)
+  OnlineViewPlugin.prototype.search = function() {
+    var movie = this.object.movie || {};
+    var params = [
+      'id=' + encodeURIComponent(movie.id || ''),
+      'title=' + encodeURIComponent(movie.title || ''),
+      'original_title=' + encodeURIComponent(movie.original_title || '')
+    ];
+    var requestUrl = this.source.url + '?' + params.join('&');
+    console.log('Онлайн. Запрос по URL:', requestUrl);
+    fetch(requestUrl)
+      .then(function(response) { return response.json(); })
+      .then(function(data) {
+        console.log('Онлайн. Данные от источника', this.source.name, data);
+        this.display(data);
+      }.bind(this))
+      .catch(function(err) {
+        console.error('Онлайн. Ошибка запроса к источнику ' + this.source.name + ':', err);
+        this.showError(err);
+      }.bind(this));
+  };
+
+  // Отображение полученных результатов: если найдены ссылки – отрисовываем список вариантов для воспроизведения
+  OnlineViewPlugin.prototype.display = function(data) {
+    this.list.empty();
+    if (data && data.links && data.links.length) {
+      for (var i = 0; i < data.links.length; i++) {
+        var item = data.links[i];
+        var videoEl = $('<div class="video_item selector">' + (item.title || this.object.movie.title) + '</div>');
+        videoEl.on('hover:enter', function(link) {
+          return function() {
+            Lampa.Player.play({
+              title: link.title || this.object.movie.title,
+              url: link.url,
+              quality: link.quality || 'default'
+            });
+          }.bind(this);
+        }.call(this, item));
+        this.list.append(videoEl);
+      }
+    } else {
+      this.showError('Нет данных для воспроизведения');
+    }
+  };
+
+  // Отображение ошибки: приводим сообщение к строке
+  OnlineViewPlugin.prototype.showError = function(message) {
+    var errorText = typeof message === 'string'
+      ? message
+      : (message && message.toString ? message.toString() : JSON.stringify(message));
+    console.error('Онлайн. Ошибка плагина:', errorText);
+    Lampa.Noty.show(errorText || Lampa.Lang.translate('online_balanser_dont_work'));
+    this.list.html('<div class="online_error">' + errorText + '</div>');
+  };
+
+  // Метод start – вызывается при запуске активности; добавляет наш контейнер в активный рендер и настраивает коллекцию фокуса
+  OnlineViewPlugin.prototype.start = function() {
     var active = Lampa.Activity.active();
     var render;
     if (active.activity && typeof active.activity.render === 'function') {
@@ -85,7 +139,7 @@
     } else if (typeof active.render === 'function') {
       render = active.render();
     } else {
-      console.error('Невозможно получить контейнер рендера из Lampa.Activity.active()');
+      console.error('Онлайн. Невозможно получить контейнер рендера из Lampa.Activity.active()');
       return;
     }
     if (!this.container.parent().length) {
@@ -104,79 +158,22 @@
     Lampa.Controller.toggle('content');
   };
 
-  // Метод render возвращает основной контейнер плагина
-  MultiSourceComponent.prototype.render = function() {
+  // Метод render возвращает контейнер плагина (используется системой Lampa)
+  OnlineViewPlugin.prototype.render = function() {
     return this.container;
   };
 
-  // Формирование запроса к выбранному источнику с параметрами фильма
-  MultiSourceComponent.prototype.search = function() {
-    var movie = this.object.movie || {};
-    var params = [
-      'id=' + encodeURIComponent(movie.id || ''),
-      'title=' + encodeURIComponent(movie.title || ''),
-      'original_title=' + encodeURIComponent(movie.original_title || '')
-    ];
-    var requestUrl = this.source.url + '?' + params.join('&');
-    console.log('Запрос по URL:', requestUrl);
-    fetch(requestUrl)
-      .then(function(response) {
-        return response.json();
-      })
-      .then(function(data) {
-        console.log('Данные от источника', this.source.name, data);
-        this.display(data);
-      }.bind(this))
-      .catch(function(err) {
-        console.error('Ошибка запроса к источнику ' + this.source.name + ':', err);
-        this.showError(err);
-      }.bind(this));
-  };
+  // Пустые методы pause и stop для совместимости
+  OnlineViewPlugin.prototype.pause = function() {};
+  OnlineViewPlugin.prototype.stop = function() {};
 
-  // Отображение результатов запроса: если найдены ссылки – выводится список вариантов
-  MultiSourceComponent.prototype.display = function(data) {
-    this.list.empty();
-    if (data && data.links && data.links.length) {
-      for (var i = 0; i < data.links.length; i++) {
-        var item = data.links[i];
-        var videoEl = $('<div class="video_item selector">' + (item.title || this.object.movie.title) + '</div>');
-        videoEl.on('hover:enter', (function(link) {
-          return function() {
-            Lampa.Player.play({
-              title: link.title || this.object.movie.title,
-              url: link.url,
-              quality: link.quality || 'default'
-            });
-          }.bind(this);
-        }).call(this, item));
-        this.list.append(videoEl);
-      }
-    } else {
-      this.showError('Нет данных для воспроизведения');
-    }
-  };
-
-  // Отображение ошибки – приводим сообщение к строке и выводим его
-  MultiSourceComponent.prototype.showError = function(message) {
-    var errorText = typeof message === 'string'
-      ? message
-      : (message && message.toString ? message.toString() : JSON.stringify(message));
-    console.error('Ошибка плагина:', errorText);
-    Lampa.Noty.show(errorText || Lampa.Lang.translate('online_balanser_dont_work'));
-    this.list.html('<div class="multi_source_error">' + errorText + '</div>');
-  };
-
-  // Метод back для обработки нажатия кнопки "назад"
-  MultiSourceComponent.prototype.back = function() {
+  // Метод back для возврата в предыдущую активность
+  OnlineViewPlugin.prototype.back = function() {
     Lampa.Activity.backward();
   };
 
-  // Пустые методы pause и stop для корректной работы Lampa
-  MultiSourceComponent.prototype.pause = function() {};
-  MultiSourceComponent.prototype.stop = function() {};
-
   // Метод destroy для очистки ресурсов плагина
-  MultiSourceComponent.prototype.destroy = function() {
+  OnlineViewPlugin.prototype.destroy = function() {
     if (this.container) {
       this.container.remove();
     }
@@ -186,28 +183,28 @@
   };
 
   // Регистрируем компонент плагина в Lampa
-  Lampa.Component.add('multi_source', function(object) {
-    return new MultiSourceComponent(object);
+  Lampa.Component.add('online_view', function(object) {
+    return new OnlineViewPlugin(object);
   });
 
-  // Манифест плагина
+  // Манифест плагина – он будет доступен через контекстное меню и по кнопке "Смотреть онлайн"
   var manifest = {
     type: 'video',
     version: '1.0.0',
-    name: 'MultiSource Plugin',
-    description: 'Плагин для просмотра онлайн фильмов и сериалов с выбором источников (балансерами)',
-    component: 'multi_source',
+    name: 'Онлайн',
+    description: 'Плагин для просмотра онлайн фильмов и сериалов с выбором источников',
+    component: 'online_view',
     onContextMenu: function(object) {
       return {
         name: Lampa.Lang.translate('online_watch') || 'Смотреть онлайн',
-        description: 'Плагин для просмотра онлайн видео с выбором источников'
+        description: 'Выбор источника для онлайн-проигрывания'
       };
     },
     onContextLauch: function(object) {
       Lampa.Activity.push({
         url: '',
         title: Lampa.Lang.translate('online_watch') || 'Смотреть онлайн',
-        component: 'multi_source',
+        component: 'online_view',
         movie: object,
         page: 1
       });
@@ -231,12 +228,12 @@
     }
   });
 
-  // Добавляем кнопку на странице деталей фильма (режим "full")
+  // Добавляем кнопку "Смотреть онлайн" на странице деталей фильма (режим "full")
   Lampa.Listener.follow('full', function(e) {
     if (e.type === 'complite') {
-      if (e.object.activity.render().find('.multi_source--button').length) return;
+      if (e.object.activity.render().find('.online_view--button').length) return;
       var button = $(
-        '<div class="full-start__button selector multi_source--button" data-subtitle="' +
+        '<div class="full-start__button selector online_view--button" data-subtitle="' +
           manifest.name + ' ' + manifest.version + '">' +
           '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">' +
             '<path d="M8 5v14l11-7z"/>' +
@@ -249,7 +246,7 @@
         Lampa.Activity.push({
           url: '',
           title: Lampa.Lang.translate('online_watch'),
-          component: 'multi_source',
+          component: 'online_view',
           movie: e.data.movie,
           page: 1
         });
