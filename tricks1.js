@@ -3,6 +3,14 @@
 
   // Определяем источники (балансеры)
   var SOURCES = {
+    pidtor: {
+      name: 'Torrent - 2160',
+      url: 'https://lam.akter-black.com/lite/pidtor'
+    },
+    fxapi: {
+      name: 'Filmix - 720',
+      url: 'http://rc.bwa.to/rc/fxapi'
+    },
     zetflix: {
       name: 'Zetflix - 1080',
       url: 'https://lam.akter-black.com/lite/zetflix'
@@ -13,29 +21,63 @@
     }
   };
 
-  // Конструктор плагина
+  // Конструктор плагина. При запуске создаётся карточка с выбором источников.
   function MultiSourceComponent(object) {
     this.object = object;
-    // Читаем выбранный балансер из Lampa.Storage или используем значение по умолчанию
+    // Выбираем балансер из Lampa.Storage или по умолчанию
     this.currentSourceKey = Lampa.Storage.get('online_balancer') || 'pidtor';
     this.source = SOURCES[this.currentSourceKey];
     // Создаем основной контейнер плагина
     this.container = $('<div class="multi_source_plugin"></div>');
-    // Создаем контейнер для списка элементов, с которым работает фокус
+    // Создаем контейнер для выбора источников (селектор)
+    this.selectorContainer = $('<div class="source_selector"></div>');
+    // Создаем контейнер для списка видео (результатов запроса)
     this.list = $('<div class="multi_source_list"></div>');
-    this.container.append(this.list);
+    // Собираем структуру: сначала селектор источников, затем список видео
+    this.container.append(this.selectorContainer).append(this.list);
     this.init();
   }
 
-  // Инициализация – выводим сообщение о загрузке
+  // Инициализация плагина – рендер селектора и запуск запроса для выбранного источника
   MultiSourceComponent.prototype.init = function() {
-    console.log('Используем источник:', this.source.name, this.source.url);
+    console.log('Используем источник по умолчанию:', this.source.name, this.source.url);
+    this.renderSourceSelector();
     this.list.html('<div class="multi_source_loading">Загрузка...</div>');
+    this.search();
   };
 
-  // Метод start – вызывается при запуске активности
+  // Рендер селектора источников – выводит кнопки для каждого источника
+  MultiSourceComponent.prototype.renderSourceSelector = function() {
+    var self = this;
+    this.selectorContainer.empty();
+    for (var key in SOURCES) {
+      if (SOURCES.hasOwnProperty(key)) {
+        var source = SOURCES[key];
+        var btn = $('<div class="source_option selector" data-source-key="'+ key +'">' + source.name + '</div>');
+        if (key === this.currentSourceKey) {
+          btn.addClass('active');
+        }
+        btn.on('hover:enter', function() {
+          var selectedKey = $(this).data('source-key');
+          if (selectedKey !== self.currentSourceKey) {
+            self.currentSourceKey = selectedKey;
+            self.source = SOURCES[selectedKey];
+            Lampa.Storage.set('online_balancer', selectedKey);
+            // Обновляем визуальное состояние кнопок
+            self.selectorContainer.find('.source_option').removeClass('active');
+            $(this).addClass('active');
+            // Обновляем UI списка и выполняем новый запрос
+            self.list.html('<div class="multi_source_loading">Загрузка...</div>');
+            self.search();
+          }
+        });
+        this.selectorContainer.append(btn);
+      }
+    }
+  };
+
+  // Метод start – вызывается системой Lampa при запуске активности
   MultiSourceComponent.prototype.start = function() {
-    // Получаем активный контейнер рендера
     var active = Lampa.Activity.active();
     var render;
     if (active.activity && typeof active.activity.render === 'function') {
@@ -46,15 +88,12 @@
       console.error('Невозможно получить контейнер рендера из Lampa.Activity.active()');
       return;
     }
-    // Если наш контейнер еще не добавлен в DOM, добавляем его
     if (!this.container.parent().length) {
       $(render).append(this.container);
     }
-    // Если в контейнере списка нет элементов, добавляем скрытый placeholder
     if (!this.list.children().length) {
       this.list.append('<div class="dummy selector" style="opacity:0; pointer-events:none;">placeholder</div>');
     }
-    // Регистрируем управление коллекцией фокуса, передавая нативный DOM-элемент this.list.get(0)
     Lampa.Controller.add('content', {
       toggle: function() {
         Lampa.Controller.collectionSet(this.list.get(0), this.list.get(0));
@@ -63,7 +102,6 @@
       back: this.back.bind(this)
     });
     Lampa.Controller.toggle('content');
-    this.search();
   };
 
   // Метод render возвращает основной контейнер плагина
@@ -71,7 +109,7 @@
     return this.container;
   };
 
-  // Формирование запроса к источнику с данными о фильме
+  // Формирование запроса к выбранному источнику с параметрами фильма
   MultiSourceComponent.prototype.search = function() {
     var movie = this.object.movie || {};
     var params = [
@@ -81,7 +119,6 @@
     ];
     var requestUrl = this.source.url + '?' + params.join('&');
     console.log('Запрос по URL:', requestUrl);
-
     fetch(requestUrl)
       .then(function(response) {
         return response.json();
@@ -96,25 +133,30 @@
       }.bind(this));
   };
 
-  // Отображение полученных данных: если найдены ссылки – создаем элемент для выбора, иначе выводим ошибку
+  // Отображение результатов запроса: если найдены ссылки – выводится список вариантов
   MultiSourceComponent.prototype.display = function(data) {
     this.list.empty();
     if (data && data.links && data.links.length) {
-      var videoEl = $('<div class="video_item selector">' + (data.links[0].title || this.object.movie.title) + '</div>');
-      videoEl.on('hover:enter', function() {
-        Lampa.Player.play({
-          title: data.links[0].title || this.object.movie.title,
-          url: data.links[0].url,
-          quality: data.links[0].quality || 'default'
-        });
-      }.bind(this));
-      this.list.append(videoEl);
+      for (var i = 0; i < data.links.length; i++) {
+        var item = data.links[i];
+        var videoEl = $('<div class="video_item selector">' + (item.title || this.object.movie.title) + '</div>');
+        videoEl.on('hover:enter', (function(link) {
+          return function() {
+            Lampa.Player.play({
+              title: link.title || this.object.movie.title,
+              url: link.url,
+              quality: link.quality || 'default'
+            });
+          }.bind(this);
+        }).call(this, item));
+        this.list.append(videoEl);
+      }
     } else {
       this.showError('Нет данных для воспроизведения');
     }
   };
 
-  // Отображение ошибки – приводим сообщение к строке
+  // Отображение ошибки – приводим сообщение к строке и выводим его
   MultiSourceComponent.prototype.showError = function(message) {
     var errorText = typeof message === 'string'
       ? message
@@ -129,19 +171,18 @@
     Lampa.Activity.backward();
   };
 
-  // Добавляем пустые методы pause и stop, чтобы избежать ошибок
+  // Пустые методы pause и stop для корректной работы Lampa
   MultiSourceComponent.prototype.pause = function() {};
   MultiSourceComponent.prototype.stop = function() {};
 
   // Метод destroy для очистки ресурсов плагина
   MultiSourceComponent.prototype.destroy = function() {
-    // Убираем наш контейнер из DOM
     if (this.container) {
       this.container.remove();
     }
-    // Сбрасываем ссылки, если необходимо
     this.container = null;
     this.list = null;
+    this.selectorContainer = null;
   };
 
   // Регистрируем компонент плагина в Lampa
@@ -154,12 +195,12 @@
     type: 'video',
     version: '1.0.0',
     name: 'MultiSource Plugin',
-    description: 'Плагин для просмотра онлайн фильмов и сериалов с несколькими источниками (балансерами)',
+    description: 'Плагин для просмотра онлайн фильмов и сериалов с выбором источников (балансерами)',
     component: 'multi_source',
     onContextMenu: function(object) {
       return {
         name: Lampa.Lang.translate('online_watch') || 'Смотреть онлайн',
-        description: 'Плагин для просмотра онлайн видео'
+        description: 'Плагин для просмотра онлайн видео с выбором источников'
       };
     },
     onContextLauch: function(object) {
