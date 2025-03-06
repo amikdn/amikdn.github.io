@@ -39,18 +39,19 @@
   };
 
   // Метод start, который обязателен для компонента, вызывается при запуске Activity
-  MultiSourceComponent.prototype.start = function() {
-    Lampa.Controller.add('content', {
-      toggle: function() {
-        Lampa.Controller.collectionSet(this.container, this.container);
-        Lampa.Controller.collectionFocus(this.container);
-      }.bind(this),
-      back: this.back.bind(this)
-    });
-    Lampa.Controller.toggle('content');
-    // Запускаем поиск видео
-    this.search();
-  };
+MultiSourceComponent.prototype.start = function() {
+  Lampa.Controller.add('content', {
+    toggle: function() {
+      // Передаём DOM-элемент (первый элемент jQuery-объекта)
+      Lampa.Controller.collectionSet(this.container[0], this.container[0]);
+      Lampa.Controller.collectionFocus(this.container[0]);
+    }.bind(this),
+    back: this.back.bind(this)
+  });
+  Lampa.Controller.toggle('content');
+  this.search();
+};
+
 
   // Метод render возвращает контейнер для отображения
   MultiSourceComponent.prototype.render = function() {
