@@ -1,4 +1,3 @@
-
 (function() {
   'use strict';
 
@@ -7,7 +6,7 @@
     return atob(encoded);
   }
 
-  // Определение ссылок через decodeLink – исходные строки были закодированы в Base64
+  // Определение ссылок. Ссылки на SVG оставляем без кодирования.
   var Defined = {
     api: 'lampac',
     localhost: decodeLink("aHR0cHM6Ly9sYW0uYWt0ZXItYmxhY2stY29tLw=="), // https://lam.akter-black.com/
@@ -18,8 +17,11 @@
   var URL_ABMSX_TECH = decodeLink("aHR0cHM6Ly9hYm1zeC50ZWNo"); // https://abmsx.tech
   var URL_RC_FXAPI   = decodeLink("aHR0cDovL3JjLmJ3YS50by9yYy9meGFwaQ=="); // http://rc.bwa.to/rc/fxapi
   var URL_SIGNALR    = decodeLink("aHR0cHM6Ly9hYm1zeC50ZWNoL3NpZ25hbHItNi4wLjI1X2VzNS5qcw=="); // https://abmsx.tech/signalr-6.0.25_es5.js
-  var URL_IMG_LOADER = decodeLink("Li9pbWcvbG9hZGVyLnN2Zw=="); // ./img/loader.svg
-  var URL_IMG_BROKEN = decodeLink("Li9pbWcvaW1nX2Jyb2tlbi5zdmc="); // ./img/img_broken.svg
+
+  // Для SVG‑ссылок оставляем без кодирования:
+  var URL_IMG_LOADER = "./img/loader.svg";
+  var URL_IMG_BROKEN = "./img/img_broken.svg";
+
   var URL_TRACKER    = decodeLink("aHR0cHM6Ly90cmFja2VyLmFibXN4LnRlY2svdHJhY2s="); // https://tracker.abmsx.tech/track
 
   // Инициализация уникального идентификатора, если его ещё нет
@@ -65,7 +67,7 @@
     };
   }
 
-  // Используем Lampa.Reguest в качестве Network (при необходимости можно использовать BlazorNet)
+  // Используем Lampa.Reguest в качестве Network
   var Network = Lampa.Reguest;
   // var Network = Defined.api.indexOf('pwa') == 0 && typeof Blazor !== 'undefined' ? BlazorNet : Lampa.Reguest;
 
@@ -1484,7 +1486,7 @@
     };
   }
 
-  // Функция сброса шаблонов и подключения CSS с зашифрованными URL
+  // Функция сброса шаблонов и подключения CSS с зашифрованными URL (SVG ссылки остаются открытыми)
   function resetTemplates() {
     Lampa.Template.add('lampac_prestige_full',
       "<div class=\"online-prestige online-prestige--full selector\">" +
