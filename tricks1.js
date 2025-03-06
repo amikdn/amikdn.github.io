@@ -3,10 +3,7 @@
 
   // Определяем источники (балансеры)
   var SOURCES = {
-    pidtor: {
-      name: 'Torrent - 2160',
-      url: 'https://lam.akter-black.com/lite/pidtor'
-    },
+
     fxapi: {
       name: 'Filmix - 720',
       url: 'http://rc.bwa.to/rc/fxapi'
