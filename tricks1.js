@@ -40,17 +40,28 @@
 
   // Метод start, который обязателен для компонента, вызывается при запуске Activity
 MultiSourceComponent.prototype.start = function() {
+  // Получаем контейнер активного экрана
+  var render = Lampa.Activity.active().render();
+  // Если наш контейнер еще не добавлен в DOM, добавляем его
+  if (!this.container.parent().length) {
+    render.append(this.container);
+  }
+  // Если в списке (this.list) еще нет элементов, добавляем скрытый placeholder
+  if (!this.list.children().length) {
+    this.list.append('<div class="dummy selector" style="opacity:0; pointer-events:none;">placeholder</div>');
+  }
   Lampa.Controller.add('content', {
     toggle: function() {
-      // Передаём DOM-элемент (первый элемент jQuery-объекта)
-      Lampa.Controller.collectionSet(this.container[0], this.container[0]);
-      Lampa.Controller.collectionFocus(this.container[0]);
+      // Передаем нативный DOM-элемент списка
+      Lampa.Controller.collectionSet(this.list.get(0), this.list.get(0));
+      Lampa.Controller.collectionFocus(this.list.get(0));
     }.bind(this),
     back: this.back.bind(this)
   });
   Lampa.Controller.toggle('content');
   this.search();
 };
+
 
 
   // Метод render возвращает контейнер для отображения
