@@ -24,36 +24,45 @@
   // Конструктор плагина
   function MultiSourceComponent(object) {
     this.object = object;
-    // Читаем выбранный балансер или используем значение по умолчанию
+    // Читаем выбранный балансер из хранилища или используем значение по умолчанию
     this.currentSourceKey = Lampa.Storage.get('online_balancer') || 'pidtor';
     this.source = SOURCES[this.currentSourceKey];
-    // Основной контейнер плагина
+    // Создаем основной контейнер плагина
     this.container = $('<div class="multi_source_plugin"></div>');
-    // Контейнер для списка элементов, с которым работает коллекция фокуса
+    // Создаем контейнер для списка элементов, с которым будет работать фокус
     this.list = $('<div class="multi_source_list"></div>');
-    // Вложим список в основной контейнер
     this.container.append(this.list);
     this.init();
   }
 
+  // Инициализация – выводим сообщение о загрузке
   MultiSourceComponent.prototype.init = function() {
     console.log('Используем источник:', this.source.name, this.source.url);
     this.list.html('<div class="multi_source_loading">Загрузка...</div>');
   };
 
-  // Метод start – обязательный для Activity-компонентов в Lampa
+  // Метод start – вызывается при запуске активности
   MultiSourceComponent.prototype.start = function() {
-    // Получаем активный контейнер активности
-    var render = Lampa.Activity.active().render();
-    // Если наш контейнер ещё не добавлен в DOM, добавляем его
-    if (!this.container.parent().length) {
-      render.append(this.container);
+    // Получаем активный контейнер рендера
+    var active = Lampa.Activity.active();
+    var render;
+    if (active.activity && typeof active.activity.render === 'function') {
+      render = active.activity.render();
+    } else if (typeof active.render === 'function') {
+      render = active.render();
+    } else {
+      console.error('Невозможно получить контейнер рендера из Lampa.Activity.active()');
+      return;
     }
-    // Если список пуст, добавляем скрытый placeholder с классом selector
+    // Если наш контейнер еще не добавлен в DOM, добавляем его
+    if (!this.container.parent().length) {
+      $(render).append(this.container);
+    }
+    // Если в контейнере списка нет элементов, добавляем скрытый placeholder
     if (!this.list.children().length) {
       this.list.append('<div class="dummy selector" style="opacity:0; pointer-events:none;">placeholder</div>');
     }
-    // Регистрируем управление коллекцией: передаём нативный DOM-элемент this.list.get(0)
+    // Регистрируем управление коллекцией фокуса, передавая нативный DOM-элемент this.list.get(0)
     Lampa.Controller.add('content', {
       toggle: function() {
         Lampa.Controller.collectionSet(this.list.get(0), this.list.get(0));
@@ -62,7 +71,6 @@
       back: this.back.bind(this)
     });
     Lampa.Controller.toggle('content');
-    // Запускаем поиск видео
     this.search();
   };
 
@@ -71,7 +79,7 @@
     return this.container;
   };
 
-  // Формирование запроса к выбранному источнику с данными о фильме
+  // Формирование запроса к источнику с данными о фильме
   MultiSourceComponent.prototype.search = function() {
     var movie = this.object.movie || {};
     var params = [
@@ -96,12 +104,10 @@
       }.bind(this));
   };
 
-  // Отображение полученных данных – если ссылки есть, создаётся элемент для выбора
+  // Отображение полученных данных: если найдены ссылки – создаем элемент для выбора, иначе выводим ошибку
   MultiSourceComponent.prototype.display = function(data) {
-    // Очищаем контейнер списка
     this.list.empty();
     if (data && data.links && data.links.length) {
-      // Пример: создаём элемент, по нажатию которого запускается плеер
       var videoEl = $('<div class="video_item selector">' + (data.links[0].title || this.object.movie.title) + '</div>');
       videoEl.on('hover:enter', function() {
         Lampa.Player.play({
@@ -116,7 +122,7 @@
     }
   };
 
-  // Отображение ошибки – приводим сообщение к строке
+  // Отображение ошибки: приводим сообщение к строке
   MultiSourceComponent.prototype.showError = function(message) {
     var errorText = typeof message === 'string'
       ? message
@@ -126,12 +132,12 @@
     this.list.html('<div class="multi_source_error">' + errorText + '</div>');
   };
 
-  // Метод для обработки нажатия кнопки "назад"
+  // Метод back для обработки нажатия кнопки "назад"
   MultiSourceComponent.prototype.back = function() {
     Lampa.Activity.backward();
   };
 
-  // Регистрация компонента плагина
+  // Регистрируем компонент плагина в Lampa
   Lampa.Component.add('multi_source', function(object) {
     return new MultiSourceComponent(object);
   });
