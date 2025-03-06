@@ -122,7 +122,7 @@
     }
   };
 
-  // Отображение ошибки: приводим сообщение к строке
+  // Отображение ошибки – приводим сообщение к строке
   MultiSourceComponent.prototype.showError = function(message) {
     var errorText = typeof message === 'string'
       ? message
@@ -137,9 +137,20 @@
     Lampa.Activity.backward();
   };
 
-  // Добавляем пустые методы pause и stop, чтобы Lampa не вызывала ошибку
+  // Добавляем пустые методы pause и stop, чтобы избежать ошибок
   MultiSourceComponent.prototype.pause = function() {};
   MultiSourceComponent.prototype.stop = function() {};
+
+  // Метод destroy для очистки ресурсов плагина
+  MultiSourceComponent.prototype.destroy = function() {
+    // Убираем наш контейнер из DOM
+    if (this.container) {
+      this.container.remove();
+    }
+    // Сбрасываем ссылки, если необходимо
+    this.container = null;
+    this.list = null;
+  };
 
   // Регистрируем компонент плагина в Lampa
   Lampa.Component.add('multi_source', function(object) {
