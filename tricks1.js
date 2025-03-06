@@ -21,40 +21,44 @@
     }
   };
 
-  // Плагин "Онлайн" с выбором источников
+  // Плагин "Онлайн" с выбором источников и похожим визуалом, как у других плагинов Lampa
   function OnlineViewPlugin(object) {
     this.object = object; // карточка фильма
-    // Читаем выбранный балансер из Lampa.Storage или используем значение по умолчанию
+    // Выбираем источник из Lampa.Storage или используем значение по умолчанию
     this.currentSourceKey = Lampa.Storage.get('online_balancer') || 'pidtor';
     this.source = SOURCES[this.currentSourceKey];
     // Основной контейнер плагина
     this.container = $('<div class="online_view_plugin"></div>');
-    // Контейнер селектора источников – верхняя панель выбора
-    this.selectorContainer = $('<div class="source_selector"></div>');
-    // Контейнер для списка результатов (видео)
-    this.list = $('<div class="online_view_list"></div>');
+    // Панель для выбора источников (балансеров)
+    this.selectorContainer = $('<div class="online_mod__header"></div>');
+    // Контейнер для списка видео (результатов запроса)
+    this.list = $('<div class="online_mod__content"></div>');
     // Собираем структуру карточки: сначала селектор, затем список видео
     this.container.append(this.selectorContainer).append(this.list);
     this.init();
   }
 
-  // Инициализация плагина: отрисовываем селектор и запускаем запрос по выбранному источнику
+  // Инициализация – отрисовываем панель источников и запускаем запрос по выбранному источнику
   OnlineViewPlugin.prototype.init = function() {
-    console.log('Онлайн. Используем источник:', this.source.name, this.source.url);
+    // Для стилизации фона можно задать blur изображения из карточки фильма
+    if(this.object.movie) {
+      Lampa.Background.immediately(Lampa.Utils.cardImgBackgroundBlur(this.object.movie));
+    }
+    console.log('Онлайн. Используем источник по умолчанию:', this.source.name, this.source.url);
     this.renderSourceSelector();
     this.list.html('<div class="online_loading">Загрузка...</div>');
     this.search();
   };
 
-  // Отрисовка панели выбора источников
+  // Отрисовка панели выбора источников. Используется похожая верстка, как в плагине "онлайн мод"
   OnlineViewPlugin.prototype.renderSourceSelector = function() {
     var self = this;
     this.selectorContainer.empty();
-    // Для каждого источника создаем кнопку
+    // Для каждого источника создаём кнопку с классом "selector"
     for (var key in SOURCES) {
       if (SOURCES.hasOwnProperty(key)) {
         var src = SOURCES[key];
-        var btn = $('<div class="source_option selector" data-source-key="'+ key +'">' + src.name + '</div>');
+        var btn = $('<div class="online_mod__source selector" data-source-key="'+ key +'">' + src.name + '</div>');
         if (key === this.currentSourceKey) btn.addClass('active');
         btn.on('hover:enter', function() {
           var selectedKey = $(this).data('source-key');
@@ -62,10 +66,10 @@
             self.currentSourceKey = selectedKey;
             self.source = SOURCES[selectedKey];
             Lampa.Storage.set('online_balancer', selectedKey);
-            // Обновляем UI селектора
-            self.selectorContainer.find('.source_option').removeClass('active');
+            // Обновляем активное состояние кнопок
+            self.selectorContainer.find('.online_mod__source').removeClass('active');
             $(this).addClass('active');
-            // Обновляем результаты запроса для нового источника
+            // Обновляем список видео
             self.list.html('<div class="online_loading">Загрузка...</div>');
             self.search();
           }
@@ -75,7 +79,7 @@
     }
   };
 
-  // Формирование запроса к выбранному источнику (URL формируется на основе данных фильма)
+  // Формирование запроса к источнику с параметрами фильма
   OnlineViewPlugin.prototype.search = function() {
     var movie = this.object.movie || {};
     var params = [
@@ -97,13 +101,22 @@
       }.bind(this));
   };
 
-  // Отображение полученных результатов: если найдены ссылки – отрисовываем список вариантов для воспроизведения
+  // Отображение результатов.
+  // Если в data.links найден массив ссылок – для каждого элемента вызываем шаблон online_mod.
   OnlineViewPlugin.prototype.display = function(data) {
     this.list.empty();
     if (data && data.links && data.links.length) {
       for (var i = 0; i < data.links.length; i++) {
         var item = data.links[i];
-        var videoEl = $('<div class="video_item selector">' + (item.title || this.object.movie.title) + '</div>');
+        // Если шаблон "online_mod" определён – используем его для отрисовки элемента
+        var videoEl = typeof Lampa.Template.get === 'function'
+          ? Lampa.Template.get('online_mod', {
+              title: item.title || this.object.movie.title,
+              quality: item.quality ? item.quality + 'p' : '',
+              info: ''
+            })
+          : $('<div class="video_item selector">' + (item.title || this.object.movie.title) + '</div>');
+        // При нажатии запускаем плеер с данными выбранного элемента
         videoEl.on('hover:enter', function(link) {
           return function() {
             Lampa.Player.play({
@@ -120,7 +133,7 @@
     }
   };
 
-  // Отображение ошибки: приводим сообщение к строке
+  // Отображение ошибки – приводим сообщение к строке и выводим его
   OnlineViewPlugin.prototype.showError = function(message) {
     var errorText = typeof message === 'string'
       ? message
@@ -130,7 +143,7 @@
     this.list.html('<div class="online_error">' + errorText + '</div>');
   };
 
-  // Метод start – вызывается при запуске активности; добавляет наш контейнер в активный рендер и настраивает коллекцию фокуса
+  // Метод start – добавляет контейнер плагина в активный рендер и настраивает коллекцию фокуса
   OnlineViewPlugin.prototype.start = function() {
     var active = Lampa.Activity.active();
     var render;
@@ -158,7 +171,7 @@
     Lampa.Controller.toggle('content');
   };
 
-  // Метод render возвращает контейнер плагина (используется системой Lampa)
+  // Метод render – возвращает основной контейнер плагина
   OnlineViewPlugin.prototype.render = function() {
     return this.container;
   };
@@ -167,12 +180,12 @@
   OnlineViewPlugin.prototype.pause = function() {};
   OnlineViewPlugin.prototype.stop = function() {};
 
-  // Метод back для возврата в предыдущую активность
+  // Метод back – вызывается при нажатии кнопки "назад"
   OnlineViewPlugin.prototype.back = function() {
     Lampa.Activity.backward();
   };
 
-  // Метод destroy для очистки ресурсов плагина
+  // Метод destroy – очистка ресурсов плагина
   OnlineViewPlugin.prototype.destroy = function() {
     if (this.container) {
       this.container.remove();
