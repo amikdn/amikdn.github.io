@@ -24,12 +24,12 @@
   // Конструктор плагина
   function MultiSourceComponent(object) {
     this.object = object;
-    // Читаем выбранный балансер из хранилища или используем значение по умолчанию
+    // Читаем выбранный балансер из Lampa.Storage или используем значение по умолчанию
     this.currentSourceKey = Lampa.Storage.get('online_balancer') || 'pidtor';
     this.source = SOURCES[this.currentSourceKey];
     // Создаем основной контейнер плагина
     this.container = $('<div class="multi_source_plugin"></div>');
-    // Создаем контейнер для списка элементов, с которым будет работать фокус
+    // Создаем контейнер для списка элементов, с которым работает фокус
     this.list = $('<div class="multi_source_list"></div>');
     this.container.append(this.list);
     this.init();
@@ -136,6 +136,10 @@
   MultiSourceComponent.prototype.back = function() {
     Lampa.Activity.backward();
   };
+
+  // Добавляем пустые методы pause и stop, чтобы Lampa не вызывала ошибку
+  MultiSourceComponent.prototype.pause = function() {};
+  MultiSourceComponent.prototype.stop = function() {};
 
   // Регистрируем компонент плагина в Lampa
   Lampa.Component.add('multi_source', function(object) {
