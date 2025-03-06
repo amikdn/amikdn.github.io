@@ -21,36 +21,54 @@
     }
   };
 
-  // Компонент плагина. При запуске он выбирает источник (сохранённый или по умолчанию)
-  // и выполняет запрос для получения видео.
+  // Конструктор нашего плагина
   function MultiSourceComponent(object) {
     this.object = object;
-    // Выбираем источник: читаем из Lampa.Storage, если нет – по умолчанию 'pidtor'
+    // Читаем выбранный балансер из Lampa.Storage или используем значение по умолчанию
     this.currentSourceKey = Lampa.Storage.get('online_balancer') || 'pidtor';
     this.source = SOURCES[this.currentSourceKey];
+    // Создаём контейнер для отображения состояния плагина
+    this.container = $('<div class="multi_source_plugin"></div>');
     this.init();
   }
 
+  // Инициализация – можно здесь добавить интерфейс выбора источника
   MultiSourceComponent.prototype.init = function() {
     console.log('Используем источник:', this.source.name, this.source.url);
-    // Можно реализовать выбор источника (балансера) через диалоговое окно,
-    // сохраняя выбранное значение в Lampa.Storage.
+    this.container.html('<div class="multi_source_loading">Загрузка...</div>');
+  };
+
+  // Метод start, который обязателен для компонента, вызывается при запуске Activity
+  MultiSourceComponent.prototype.start = function() {
+    Lampa.Controller.add('content', {
+      toggle: function() {
+        Lampa.Controller.collectionSet(this.container, this.container);
+        Lampa.Controller.collectionFocus(this.container);
+      }.bind(this),
+      back: this.back.bind(this)
+    });
+    Lampa.Controller.toggle('content');
+    // Запускаем поиск видео
     this.search();
   };
 
+  // Метод render возвращает контейнер для отображения
+  MultiSourceComponent.prototype.render = function() {
+    return this.container;
+  };
+
+  // Формирование запроса к выбранному источнику с данными о фильме
   MultiSourceComponent.prototype.search = function() {
     var movie = this.object.movie || {};
-    // Формируем параметры запроса из данных фильма
     var params = [
       'id=' + encodeURIComponent(movie.id || ''),
       'title=' + encodeURIComponent(movie.title || ''),
       'original_title=' + encodeURIComponent(movie.original_title || '')
-      // можно добавить другие параметры (год, язык и т.п.)
     ];
     var requestUrl = this.source.url + '?' + params.join('&');
     console.log('Запрос по URL:', requestUrl);
 
-    // Выполняем запрос – в данном примере через fetch (вы можете заменить на Lampa.Reguest)
+    // Выполняем запрос – здесь используется fetch (можно заменить на Lampa.Reguest)
     fetch(requestUrl)
       .then(function(response) {
         return response.json();
@@ -65,8 +83,8 @@
       }.bind(this));
   };
 
+  // Обработка полученных данных: если есть ссылки – запускаем плеер, иначе выводим ошибку
   MultiSourceComponent.prototype.display = function(data) {
-    // Пример: если в data.links есть массив ссылок, запускаем плеер с первым найденным
     if (data && data.links && data.links.length) {
       var firstVideo = data.links[0];
       console.log('Запускаем видео:', firstVideo);
@@ -75,22 +93,33 @@
         url: firstVideo.url,
         quality: firstVideo.quality || 'default'
       });
+      // Если нужно – можно обновить UI или очистить контейнер
+      this.container.empty();
     } else {
       this.showError('Нет данных для воспроизведения');
     }
   };
 
+  // Отображение ошибки с приведением передаваемого значения к строке
   MultiSourceComponent.prototype.showError = function(message) {
-    console.error('Ошибка плагина:', message);
-    Lampa.Noty.show(message || Lampa.Lang.translate('online_balanser_dont_work'));
+    var errorText = typeof message === 'string' ? message :
+      (message && message.toString ? message.toString() : JSON.stringify(message));
+    console.error('Ошибка плагина:', errorText);
+    Lampa.Noty.show(errorText || Lampa.Lang.translate('online_balanser_dont_work'));
+    this.container.html('<div class="multi_source_error">' + errorText + '</div>');
   };
 
-  // Регистрируем компонент плагина в Lampa
+  // Метод для обработки нажатия кнопки "назад"
+  MultiSourceComponent.prototype.back = function() {
+    Lampa.Activity.backward();
+  };
+
+  // Регистрация компонента в системе Lampa
   Lampa.Component.add('multi_source', function(object) {
     return new MultiSourceComponent(object);
   });
 
-  // Манифест плагина
+  // Манифест плагина, который используется для запуска из меню контекста или по кнопке
   var manifest = {
     type: 'video',
     version: '1.0.0',
@@ -115,7 +144,7 @@
   };
   Lampa.Manifest.plugins = manifest;
 
-  // Добавляем языковые строки для плагина
+  // Добавляем языковые строки
   Lampa.Lang.add({
     online_watch: {
       ru: 'Смотреть онлайн',
@@ -131,13 +160,12 @@
     }
   });
 
-  // Добавляем кнопку в режиме "full" (на странице деталей фильма).
-  // При нажатии кнопка запускает плагин.
+  // Добавление кнопки в режиме "full" (страница деталей фильма)
   Lampa.Listener.follow('full', function(e) {
     if (e.type === 'complite') {
-      // Если кнопка уже добавлена – выходим
+      // Если кнопка уже добавлена, выходим
       if (e.object.activity.render().find('.multi_source--button').length) return;
-      // Создаём HTML кнопки. Здесь можно вставить SVG-иконку или использовать простой текст.
+      // Создаём HTML кнопки (можно использовать SVG-иконку или простой текст)
       var button = $(
         '<div class="full-start__button selector multi_source--button" data-subtitle="' +
           manifest.name + ' ' + manifest.version + '">' +
@@ -147,9 +175,9 @@
           '<span>' + Lampa.Lang.translate('online_watch') + '</span>' +
         '</div>'
       );
-      // Размещаем кнопку рядом с уже существующими кнопками (например, после кнопки «Torrent»)
+      // Размещаем кнопку рядом с кнопкой "Torrent"
       e.object.activity.render().find('.view--torrent').after(button);
-      // Привязываем событие при нажатии – запуск плагина
+      // Привязываем событие – при нажатии запускаем плагин
       button.on('hover:enter', function() {
         Lampa.Activity.push({
           url: '',
