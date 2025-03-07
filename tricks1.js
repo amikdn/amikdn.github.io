@@ -1,34 +1,29 @@
-
 (function () {
   'use strict';
 
-  /* ========= Оригинальные определения (Utils, Favorites, Locked, DB, Templates, Lang, Settings, EPG, Guide, и пр.) ========= */
-  // Предполагается, что все эти модули уже определены как в оригинальном плагине.
-  // Например, Lampa.Utils, Lampa.Storage, Lampa.DB, Lampa.Template, Lampa.Lang, и т.д.
-  // Для полноты примера ниже приведён лишь изменённый фрагмент API и инициализация плагина.
+  /* ========= Оригинальные определения (Utils, Favorites, Locked, DB, Templates, Lang, Settings, EPG, Guide и т.д.) ========= */
+  // Предполагается, что эти модули уже определены в вашем окружении.
+  // В данном примере внесена модификация метода Api.m3uClient, чтобы обрабатывать локальный адрес плейлиста "http://tv.new-ton.net.ru/plamik.m3u" через Node.js-модуль fs.
 
   /* ========= МОДИФИЦИРОВАННЫЙ API ========= */
   var Api = {
     network: new Lampa.Reguest(),
     api_url: Lampa.Utils.protocol() + Lampa.Manifest.cub_domain + '/api/iptv/',
     /**
-     * Функция для загрузки плейлиста.
-     * Если URL равен "http://tv.new-ton.net.ru/plamik.m3u" – читаем локальный файл через fs,
-     * иначе – стандартная загрузка через сеть.
+     * Функция для загрузки M3U плейлиста.
+     * Если URL равен "http://tv.new-ton.net.ru/plamik.m3u", то пытаемся прочитать локальный файл через fs.
      */
     m3uClient: function (url) {
       return new Promise(function (resolve, reject) {
         if (url === "http://tv.new-ton.net.ru/plamik.m3u") {
-          // Используем модуль fs для чтения локального файла
           try {
             var fs = require('fs'); // доступно в NW.js / Electron
-            // Предполагаем, что файл лежит в той же директории и называется "plamik.m3u"
+            // Предполагаем, что файл "plamik.m3u" находится в корневой директории приложения
             fs.readFile('plamik.m3u', 'utf8', function (err, data) {
               if (err) {
                 reject(new Error("Ошибка при чтении локального файла: " + err.message));
                 return;
               }
-              // Проверяем, что файл начинается с "#EXTM3U" – базовая проверка валидности
               if (typeof data === 'string' && data.substr(0, 7).toUpperCase() === "#EXTM3U") {
                 resolve(data);
               } else {
@@ -39,9 +34,7 @@
             reject(new Error("Ошибка доступа к модулю fs: " + e.message));
           }
         } else {
-          // Стандартная загрузка через сеть
           Api.network.timeout(20000);
-          // Выбор метода загрузки (native/silent) согласно настройкам
           Api.network[window.god_enabled ? 'native' : 'silent'](url, function (str) {
             if (typeof str !== 'string' || str.substr(0, 7).toUpperCase() !== "#EXTM3U") {
               return reject(new Error(Lampa.Lang.translate('torrent_parser_request_error') +
@@ -57,7 +50,6 @@
         }
       });
     },
-    // Остальные методы Api (например, get, m3u, playlist, program) остаются без изменений.
     playlist: function (data) {
       var id = data.id;
       return new Promise(function (resolve, reject) {
@@ -98,6 +90,7 @@
         });
       });
     }
+    // Остальные методы Api остаются без изменений.
   };
 
   /* ========= Компонент плагина ========= */
@@ -127,7 +120,7 @@
           _this.active = controller;
           _this.display(controller.render());
         });
-        listener.follow('loading', this.loading.bind(this));
+        listener.follow('loading', _this.loading.bind(_this));
         listener.follow('channels-load', channels.load.bind(channels));
         listener.follow('playlist-main', playlist.main.bind(playlist));
         playlist.load();
@@ -254,7 +247,8 @@
       }
     }
 
-    Lang.init();
+    // Используем Lampa.Lang, чтобы инициализировать язык
+    Lampa.Lang.init();
     Templates.init();
     Settings.init();
     EPG.init();
@@ -273,7 +267,7 @@
 
   if (!window.plugin_iptv_ready) startPlugin();
 
-  /* ========= Для тестирования: кнопка для загрузки локального плейлиста ========= */
+  /* ========= Для тестирования: добавляем кнопку загрузки локального плейлиста ========= */
   function addTestButton() {
     var btn = document.createElement('button');
     btn.textContent = "Загрузить локальный плейлист";
@@ -282,17 +276,14 @@
     btn.style.right = "20px";
     btn.style.zIndex = "10000";
     btn.addEventListener('click', function () {
-      // Пример вызова для загрузки плейлиста с заданным URL.
-      // Если в настройках кастомного плейлиста используется этот URL,
-      // то будет загружен файл локально через fs.
+      // Пример добавления кастомного плейлиста с адресом, который обрабатывается локально.
       var customPlaylists = Lampa.Storage.get('iptv_playlist_custom', '[]');
       var newPlaylist = {
         id: Lampa.Utils.uid(),
         custom: true,
         url: "http://tv.new-ton.net.ru/plamik.m3u",
-        name: "Локальный плейлист",
-        // Дополнительно можно сразу сохранить данные плейлиста,
-        // например, после вызова Api.m3uClient и Parser.parse.
+        name: "Локальный плейлист"
+        // Дополнительно можно сразу сохранить распарсенные данные, вызвав Api.m3uClient и Parser.parse.
       };
       customPlaylists.push(newPlaylist);
       Lampa.Storage.set('iptv_playlist_custom', customPlaylists);
@@ -301,7 +292,6 @@
     document.body.appendChild(btn);
   }
 
-  // Для теста можно добавить кнопку после загрузки приложения
   if (document.readyState === "complete" || document.readyState === "interactive") {
     setTimeout(addTestButton, 1000);
   } else {
