@@ -1,9 +1,10 @@
 (function () {
   'use strict';
 
-  /* ========= Оригинальные определения (Utils, Favorites, Locked, DB, Templates, Lang, Settings, EPG, Guide и т.д.) ========= */
-  // Предполагается, что эти модули уже определены в вашем окружении.
-  // В данном примере внесена модификация метода Api.m3uClient, чтобы обрабатывать локальный адрес плейлиста "http://tv.new-ton.net.ru/plamik.m3u" через Node.js-модуль fs.
+  /* ========= Оригинальные определения (Utils, Favorites, Locked, DB, Templates, Lang, Settings, EPG, Guide и пр.) ========= */
+  // Предполагается, что эти модули уже определены в окружении Lampa.
+  // В данном примере внесена модификация метода Api.m3uClient для обработки локального адреса плейлиста "http://tv.new-ton.net.ru/plamik.m3u"
+  // через Node.js-модуль fs (подходит для NW.js/Electron).
 
   /* ========= МОДИФИЦИРОВАННЫЙ API ========= */
   var Api = {
@@ -11,13 +12,13 @@
     api_url: Lampa.Utils.protocol() + Lampa.Manifest.cub_domain + '/api/iptv/',
     /**
      * Функция для загрузки M3U плейлиста.
-     * Если URL равен "http://tv.new-ton.net.ru/plamik.m3u", то пытаемся прочитать локальный файл через fs.
+     * Если URL равен "http://tv.new-ton.net.ru/plamik.m3u", то читаем локальный файл через fs.
      */
     m3uClient: function (url) {
       return new Promise(function (resolve, reject) {
         if (url === "http://tv.new-ton.net.ru/plamik.m3u") {
           try {
-            var fs = require('fs'); // доступно в NW.js / Electron
+            var fs = require('fs'); // Доступно в NW.js/Electron
             // Предполагаем, что файл "plamik.m3u" находится в корневой директории приложения
             fs.readFile('plamik.m3u', 'utf8', function (err, data) {
               if (err) {
@@ -120,7 +121,7 @@
           _this.active = controller;
           _this.display(controller.render());
         });
-        listener.follow('loading', _this.loading.bind(_this));
+        listener.follow('loading', this.loading.bind(this));
         listener.follow('channels-load', channels.load.bind(channels));
         listener.follow('playlist-main', playlist.main.bind(playlist));
         playlist.load();
@@ -247,8 +248,10 @@
       }
     }
 
-    // Используем Lampa.Lang, чтобы инициализировать язык
-    Lampa.Lang.init();
+    // Если функция init для Lampa.Lang не определена – пропускаем инициализацию языка.
+    if (Lampa.Lang && typeof Lampa.Lang.init === 'function') {
+      Lampa.Lang.init();
+    }
     Templates.init();
     Settings.init();
     EPG.init();
@@ -258,7 +261,9 @@
       Lampa.Storage.set('start_page', 'last');
       window.start_deep_link = { component: 'iptv' };
     }
-    if (window.appready) add(); else {
+    if (window.appready) {
+      add();
+    } else {
       Lampa.Listener.follow('app', function (e) {
         if (e.type == 'ready') add();
       });
@@ -276,14 +281,12 @@
     btn.style.right = "20px";
     btn.style.zIndex = "10000";
     btn.addEventListener('click', function () {
-      // Пример добавления кастомного плейлиста с адресом, который обрабатывается локально.
       var customPlaylists = Lampa.Storage.get('iptv_playlist_custom', '[]');
       var newPlaylist = {
         id: Lampa.Utils.uid(),
         custom: true,
         url: "http://tv.new-ton.net.ru/plamik.m3u",
         name: "Локальный плейлист"
-        // Дополнительно можно сразу сохранить распарсенные данные, вызвав Api.m3uClient и Parser.parse.
       };
       customPlaylists.push(newPlaylist);
       Lampa.Storage.set('iptv_playlist_custom', customPlaylists);
