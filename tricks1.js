@@ -1,10 +1,34 @@
 (function () {
   'use strict';
 
-  /* ========= Оригинальные определения (Utils, Favorites, Locked, DB, Templates, Lang, Settings, EPG, Guide и пр.) ========= */
-  // Предполагается, что эти модули уже определены в окружении Lampa.
-  // В данном примере внесена модификация метода Api.m3uClient для обработки локального адреса плейлиста "http://tv.new-ton.net.ru/plamik.m3u"
-  // через Node.js-модуль fs (подходит для NW.js/Electron).
+  // Заглушки для отсутствующих объектов (если они не определены в вашей среде)
+  window.Templates = window.Templates || {
+    init: function () {
+      // Здесь можно добавить инициализацию шаблонов, если необходимо
+      console.log("Templates.init вызван");
+    }
+  };
+
+  window.Settings = window.Settings || {
+    init: function () {
+      console.log("Settings.init вызван");
+    }
+  };
+
+  window.EPG = window.EPG || {
+    init: function () {
+      console.log("EPG.init вызван");
+    }
+  };
+
+  window.Guide = window.Guide || {
+    init: function () {
+      console.log("Guide.init вызван");
+    }
+  };
+
+  // Предполагается, что остальные объекты (например, Lampa, DB, Params, Playlist, Channels и т.д.)
+  // уже определены в вашем окружении. Если нет, необходимо добавить аналогичные заглушки.
 
   /* ========= МОДИФИЦИРОВАННЫЙ API ========= */
   var Api = {
@@ -12,7 +36,7 @@
     api_url: Lampa.Utils.protocol() + Lampa.Manifest.cub_domain + '/api/iptv/',
     /**
      * Функция для загрузки M3U плейлиста.
-     * Если URL равен "http://tv.new-ton.net.ru/plamik.m3u", то читаем локальный файл через fs.
+     * Если URL равен "http://tv.new-ton.net.ru/plamik.m3u", то пытаемся прочитать локальный файл через fs.
      */
     m3uClient: function (url) {
       return new Promise(function (resolve, reject) {
@@ -132,7 +156,7 @@
         $(html).append(old);
         this.activity.loader(false);
       }
-      if (window.iptv_mobile) html.addClass('iptv-mobile');
+      if (window.iptv_mobile) html.classList.add('iptv-mobile');
     };
 
     this.playlist = function () {
@@ -146,7 +170,8 @@
     };
 
     this.display = function (render) {
-      html.empty().append(render);
+      html.innerHTML = "";
+      html.appendChild(render);
       Lampa.Layer.update(html);
       Lampa.Layer.visible(html);
       this.activity.loader(false);
@@ -248,7 +273,7 @@
       }
     }
 
-    // Если функция init для Lampa.Lang не определена – пропускаем инициализацию языка.
+    // Если функция init для Lampa.Lang не определена – пропускаем её вызов.
     if (Lampa.Lang && typeof Lampa.Lang.init === 'function') {
       Lampa.Lang.init();
     }
