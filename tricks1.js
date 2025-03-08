@@ -2,7 +2,7 @@
   'use strict';
 
   // =============================
-  // 1. Базовая логика для Кинопоиска
+  // 1. Базовая логика для Кинопоиска (API, кэш, конвертация)
   // =============================
 
   var network = new Lampa.Reguest();
@@ -11,22 +11,21 @@
   var CACHE_SIZE = 100;
   var CACHE_TIME = 1000 * 60 * 60;
 
-  var SOURCE_NAME  = 'KP';           // Уникальное имя
-  var SOURCE_TITLE = 'Кинопоиск';    // Как будет отображаться
+  var SOURCE_NAME  = 'KP';           // Уникальное имя источника
+  var SOURCE_TITLE = 'Кинопоиск';    // Отображаемое название
 
-  // Очистка сетевых запросов
   function clear(){
     network.clear();
   }
 
-  // Простая реализация кэша
+  // Кэш (простая реализация)
   function getCache(key){
     var it = cache[key];
     if(it){
       var limit = Date.now() - CACHE_TIME;
       if(it.timestamp > limit) return it.value;
 
-      // чистим устаревшее
+      // чистим старое
       for(var k in cache){
         if(cache[k].timestamp < limit) delete cache[k];
       }
@@ -37,7 +36,6 @@
     var now = Date.now();
     cache[key] = { timestamp: now, value: val };
 
-    // Если переполнилось - чистим
     if(Object.keys(cache).length >= CACHE_SIZE){
       var limit = now - CACHE_TIME;
       for(var k in cache){
@@ -83,15 +81,13 @@
     );
   }
 
-  // Обёртка: берем из кэша или делаем запрос
+  // Обёртка с кэшем
   function getFromCache(method, oncomplite, onerror){
     var c = getCache(method);
     if(c){
-      // Если в кэше — вернём быстро
       setTimeout(function(){ oncomplite(c,true); }, 10);
     }
     else{
-      // Запрашиваем
       get(method, function(json){
         if(json) setCache(method,json);
         oncomplite(json,false);
@@ -99,23 +95,23 @@
     }
   }
 
-  // Простейшее преобразование одного элемента
+  // Простейшее преобразование ответа
   function convertElem(elem){
     var type = (!elem.type||elem.type==='FILM'||elem.type==='VIDEO') ? 'movie':'tv';
     var kid  = elem.kinopoiskId||elem.filmId||0;
     var rating = +(elem.rating||elem.ratingKinopoisk||0);
 
     var item = {
-      source: SOURCE_NAME,
-      type:   type,
-      adult:  false,
-      id:     SOURCE_NAME+'_'+kid,
+      source:       SOURCE_NAME,
+      type:         type,
+      adult:        false,
+      id:           SOURCE_NAME+'_'+kid,
 
-      title:  elem.nameRu || elem.nameEn || elem.nameOriginal || '',
+      title:        elem.nameRu || elem.nameEn || elem.nameOriginal || '',
       original_title: elem.nameOriginal || elem.nameEn || elem.nameRu || '',
-      overview: elem.description || elem.shortDescription || '',
+      overview:     elem.description || elem.shortDescription || '',
 
-      img:      elem.posterUrlPreview || elem.posterUrl || '',
+      img:          elem.posterUrlPreview || elem.posterUrl || '',
       background_image: elem.coverUrl || elem.posterUrl || elem.posterUrlPreview || '',
 
       vote_average: rating,
@@ -130,17 +126,16 @@
   }
 
   // =============================
-  // 2. Объект источника Lampa.Api.sources['KP']
+  // 2. Объект источника Lampa.Api.sources[SOURCE_NAME]
   // =============================
   var KpSource = {
     clear: clear,
 
-    // Для component:'category_full', source:'KP' (список)
+    // Список (category_full)
     list: function(params={}, oncomplite, onerror){
       if(!params.url) return onerror();
 
       var page = params.page||1;
-      // пример: api/v2.2/films/top?type=TOP_100_POPULAR_FILMS&page=2
       var full_url = params.url+(params.url.indexOf('?')>=0?'&':'?')+'page='+page;
 
       getFromCache(full_url, function(json){
@@ -158,7 +153,7 @@
       }, onerror);
     },
 
-    // Для карточки (full)
+    // Полные данные о фильме/сериале
     full: function(params={}, oncomplite, onerror){
       var card = params.card||{};
       if(card.source!==SOURCE_NAME) return onerror();
@@ -173,33 +168,33 @@
       getFromCache(url, function(film){
         if(!film || !film.kinopoiskId) return onerror();
         var item = convertElem(film);
-        // Возвращаем в формате { movie, persons, collection... }
+        // Возвращаем в формате { movie, ...}
         oncomplite({ movie:item });
       }, onerror);
     },
 
-    // Минимальные заглушки
+    // Заглушки (чтобы Lampa не ругалась)
     category: function(p,cb){ cb(); },
     main:     function(p,cb){ cb(); },
     person:   function(p,cb){ cb({}); },
     seasons:  function(tv, from, cb){ cb({}); },
     menuCategory: function(p,cb){ cb([]); },
 
-    // Самое важное для поиска — discovery()
+    // **Самое важное** — discovery() с полным search
     discovery: function(){
       return {
         title: SOURCE_TITLE,
 
-        // Блок, который Lampa вызывает для поиска
+        // Методы, которые Lampa вызывает при поиске
         search: {
-          // когда пользователь нажал Enter (OK) в поиске
+          // Нажали Enter (OK) для поиска
           start: function(params, onReady){
             var query = (params.query||'').trim();
             if(!query){
               onReady([]);
               return;
             }
-            // Пример: api/v2.1/films/search-by-keyword?keyword=...
+            // Пример запроса
             var url = 'api/v2.1/films/search-by-keyword?keyword='+encodeURIComponent(query);
             getFromCache(url, function(json){
               if(!json || !json.films){
@@ -208,7 +203,7 @@
               }
               var arr = (json.films||[]).map(convertElem).filter(e=>!e.adult);
 
-              // Разделим на "Фильмы" / "Сериалы"
+              // Разделим «Фильмы» / «Сериалы»
               var movies = arr.filter(a=>a.type==='movie');
               var tv     = arr.filter(a=>a.type==='tv');
               var result = [];
@@ -233,19 +228,18 @@
             });
           },
 
-          // При вводе символов (можно сделать подсказки, здесь пусто)
+          // При вводе символов
           start_typing: function(query, onChange){},
 
-          // Когда очистили строку поиска
+          // Когда очистили строку
           empty: function(){},
 
-          // Когда нажали «Back» внутри поиска
+          // Когда нажали «Back»
           back: function(){}
         },
 
-        // При нажатии «Показать ещё»
+        // «Показать ещё» (листать)
         onMore: function(params){
-          // params.query — что искали
           Lampa.Activity.push({
             url: 'api/v2.1/films/search-by-keyword?keyword='+encodeURIComponent(params.query),
             title: Lampa.Lang.translate('search')+' - '+params.query,
@@ -255,7 +249,7 @@
           });
         },
 
-        // Когда пользователь выходит из поиска
+        // Когда вышли из поиска
         onCancel: function(){
           clear();
         }
@@ -264,26 +258,28 @@
   };
 
   // =============================
-  // 3. Регистрируем источник + добавляем в общий список
-  //    (чтобы «Все источники» и сам «Кинопоиск» были доступны)
+  // 3. Добавляем в Lampa.Api.sources
   // =============================
   if(!Lampa.Api.sources[SOURCE_NAME]){
     Lampa.Api.sources[SOURCE_NAME] = KpSource;
   }
+
+  // Проверим, нет ли уже флага (чтобы не регистрировать дважды)
   if(!window.kp_source_plugin){
     window.kp_source_plugin = true;
 
+    // Подмешаем в список источников
     var old_sources = (Lampa.Params.values && Lampa.Params.values.source)
                       ? Object.assign({}, Lampa.Params.values.source)
                       : {};
     old_sources[SOURCE_NAME] = SOURCE_TITLE;
 
-    // Выставим выбор источников
+    // Обновим селектор источников
     Lampa.Params.select('source', old_sources, 'tmdb');
   }
 
   // =============================
-  // 4. Компонент «kp_categories» — страница с большими иконками
+  // 4. Компонент «kp_categories» — своя страница с иконками
   // =============================
   function KpCategories(){
     var self = this;
@@ -364,7 +360,6 @@
     this.start = function(){
       this.activity.loader(false);
 
-      // Включаем управление
       Lampa.Controller.add('content',{
         toggle: ()=>{
           Lampa.Controller.collectionSet(this.scroll.render());
@@ -398,8 +393,8 @@
     field.className = 'menu__item selector';
 
     var [attrName,attrVal] = attr.split('=');
-    attrName = attrName.trim();         // например data-action
-    attrVal  = attrVal.replace(/"/g,''); // например kp
+    attrName = attrName.trim();
+    attrVal  = attrVal.replace(/"/g,'');
     field.setAttribute(attrName, attrVal);
 
     var ico = document.createElement('div');
@@ -415,7 +410,7 @@
 
     field.addEventListener('hover:enter', handler);
 
-    // Добавляем в меню после кнопки TV
+    // Вставляем после кнопки TV
     if(window.appready){
       let $menu = Lampa.Menu.render();
       $menu.find('[data-action="tv"]').after(field);
@@ -430,7 +425,6 @@
     }
   }
 
-  // SVG-иконка кнопки
   var iconKP = `
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -498,13 +492,11 @@
     </svg>
   `;
 
-  // Добавляем кнопку «Кинопоиск» в главное меню
   addMenuButton(
     'data-action="kp"',
     'Кинопоиск',
     iconKP,
     function(){
-      // При нажатии открываем нашу страницу "kp_categories"
       Lampa.Activity.push({
         url:'',
         title:'Кинопоиск',
