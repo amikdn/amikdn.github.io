@@ -1,66 +1,65 @@
 (function(){
   'use strict';
 
-  // =============================
-  // 1. Базовая логика для Кинопоиска (API, кэш, конвертация)
-  // =============================
+  /**
+   * ======== 1. ЛОГИКА ДЛЯ API КИНОПОИСКА (И КЭШ) ========
+   */
 
-  var network = new Lampa.Reguest();
-  var cache   = {};
-  var total_cnt = 0, proxy_cnt = 0, good_cnt = 0;
-  var CACHE_SIZE = 100;
-  var CACHE_TIME = 1000 * 60 * 60;
+  var network   = new Lampa.Reguest();
+  var cache     = {};
+  var total_cnt = 0, proxy_cnt=0, good_cnt=0;
+  var CACHE_SIZE = 100, CACHE_TIME = 1000*60*60;
 
-  var SOURCE_NAME  = 'KP';           // Уникальное имя источника
-  var SOURCE_TITLE = 'Кинопоиск';    // Отображаемое название
+  var SOURCE_NAME  = 'KP';          // Уникальное имя
+  var SOURCE_TITLE = 'Кинопоиск';   // Как будет отображаться
 
   function clear(){
     network.clear();
   }
 
-  // Кэш (простая реализация)
   function getCache(key){
     var it = cache[key];
-    if(it){
-      var limit = Date.now() - CACHE_TIME;
-      if(it.timestamp > limit) return it.value;
-
-      // чистим старое
-      for(var k in cache){
-        if(cache[k].timestamp < limit) delete cache[k];
-      }
+    if(!it) return null;
+    var limit = Date.now() - CACHE_TIME;
+    if(it.timestamp>limit) return it.value;
+    // чистим старьё
+    for(var k in cache){
+      if(cache[k].timestamp<limit) delete cache[k];
     }
     return null;
   }
-  function setCache(key, val){
+  function setCache(key,val){
     var now = Date.now();
-    cache[key] = { timestamp: now, value: val };
-
-    if(Object.keys(cache).length >= CACHE_SIZE){
+    cache[key] = {timestamp:now, value:val};
+    // Если переполнен, тоже чистим
+    if(Object.keys(cache).length>=CACHE_SIZE){
       var limit = now - CACHE_TIME;
       for(var k in cache){
-        if(cache[k].timestamp < limit) delete cache[k];
+        if(cache[k].timestamp<limit) delete cache[k];
       }
     }
   }
 
-  // Запрос к API Кинопоиска (через прокси при ошибках 429)
+  // Запрос к kinopoiskapiunofficial.tech
   function get(method, oncomplite, onerror){
     var use_proxy = (total_cnt>=10 && good_cnt>total_cnt/2);
     if(!use_proxy) total_cnt++;
 
+    var base = 'https://kinopoiskapiunofficial.tech/';
     var kp_prox = 'https://cors.kp556.workers.dev:8443/';
-    var url = 'https://kinopoiskapiunofficial.tech/' + method;
 
+    var url = base + method;
     network.timeout(15000);
+
     network.silent(
-      (use_proxy ? kp_prox : '') + url,
+      (use_proxy? kp_prox:'') + url,
       function(json){
         oncomplite(json);
       },
       function(a,c){
+        // Если 429, попробуем прокси
         var can_retry = !use_proxy && (proxy_cnt<10 || good_cnt>proxy_cnt/2);
-        if(can_retry && (a.status==429 || (a.status==0 && a.statusText!=='timeout'))){
+        if(can_retry && (a.status===429 || (a.status===0 && a.statusText!=='timeout'))){
           proxy_cnt++;
           network.timeout(15000);
           network.silent(
@@ -71,7 +70,7 @@
             },
             onerror,
             false,
-            { headers:{ 'X-API-KEY':'2a4a0808-81a3-40ae-b0d3-e11335ede616' } }
+            { headers:{ 'X-API-KEY':'2a4a0808-81a3-40ae-b0d3-e11335ede616'} }
           );
         }
         else onerror(a,c);
@@ -81,11 +80,11 @@
     );
   }
 
-  // Обёртка с кэшем
+  // Запрос с кэшем
   function getFromCache(method, oncomplite, onerror){
     var c = getCache(method);
     if(c){
-      setTimeout(function(){ oncomplite(c,true); }, 10);
+      setTimeout(function(){ oncomplite(c,true); },10);
     }
     else{
       get(method, function(json){
@@ -95,51 +94,51 @@
     }
   }
 
-  // Простейшее преобразование ответа
+  // Простейшая конвертация элемента
   function convertElem(elem){
     var type = (!elem.type||elem.type==='FILM'||elem.type==='VIDEO') ? 'movie':'tv';
     var kid  = elem.kinopoiskId||elem.filmId||0;
     var rating = +(elem.rating||elem.ratingKinopoisk||0);
 
-    var item = {
+    return {
       source:       SOURCE_NAME,
       type:         type,
       adult:        false,
       id:           SOURCE_NAME+'_'+kid,
 
-      title:        elem.nameRu || elem.nameEn || elem.nameOriginal || '',
-      original_title: elem.nameOriginal || elem.nameEn || elem.nameRu || '',
-      overview:     elem.description || elem.shortDescription || '',
+      title:        elem.nameRu||elem.nameEn||elem.nameOriginal||'',
+      original_title: elem.nameOriginal||elem.nameEn||elem.nameRu||'',
+      overview:     elem.description||elem.shortDescription||'',
 
-      img:          elem.posterUrlPreview || elem.posterUrl || '',
-      background_image: elem.coverUrl || elem.posterUrl || elem.posterUrlPreview || '',
+      img:          elem.posterUrlPreview||elem.posterUrl||'',
+      background_image: elem.coverUrl||elem.posterUrl||elem.posterUrlPreview||'',
 
       vote_average: rating,
-      vote_count:   elem.ratingVoteCount || elem.ratingKinopoiskVoteCount || 0,
+      vote_count:   elem.ratingVoteCount||elem.ratingKinopoiskVoteCount||0,
 
       kinopoisk_id: kid,
       kp_rating:    rating,
-      imdb_id:      elem.imdbId || '',
-      imdb_rating:  elem.ratingImdb || 0
+      imdb_id:      elem.imdbId||'',
+      imdb_rating:  elem.ratingImdb||0
     };
-    return item;
   }
 
-  // =============================
-  // 2. Объект источника Lampa.Api.sources[SOURCE_NAME]
-  // =============================
+
+  /**
+   * ======== 2. СОЗДАЁМ ОБЪЕКТ-ИСТОЧНИК ДЛЯ LAMPA ========
+   */
   var KpSource = {
+
     clear: clear,
 
-    // Список (category_full)
+    // Для "категории" (component: 'category_full')
     list: function(params={}, oncomplite, onerror){
       if(!params.url) return onerror();
-
       var page = params.page||1;
-      var full_url = params.url+(params.url.indexOf('?')>=0?'&':'?')+'page='+page;
+      var full_url = params.url + (params.url.indexOf('?')>=0?'&':'?') + 'page='+page;
 
       getFromCache(full_url, function(json){
-        if(!json || !json.items) return onerror();
+        if(!json||!json.items) return onerror();
 
         var arr = (json.items||[]).map(convertElem);
         var total = json.pagesCount||json.totalPages||1;
@@ -153,7 +152,7 @@
       }, onerror);
     },
 
-    // Полные данные о фильме/сериале
+    // Полные данные
     full: function(params={}, oncomplite, onerror){
       var card = params.card||{};
       if(card.source!==SOURCE_NAME) return onerror();
@@ -166,44 +165,39 @@
 
       var url = 'api/v2.2/films/'+kid;
       getFromCache(url, function(film){
-        if(!film || !film.kinopoiskId) return onerror();
-        var item = convertElem(film);
-        // Возвращаем в формате { movie, ...}
-        oncomplite({ movie:item });
+        if(!film||!film.kinopoiskId) return onerror();
+
+        // Обычная структура full-ответа:
+        var movieObj = convertElem(film);
+        oncomplite({ movie: movieObj });
       }, onerror);
     },
 
-    // Заглушки (чтобы Lampa не ругалась)
+    // Заглушки (чтобы движок не ругался)
+    main: function(p,cb){ cb(); },
     category: function(p,cb){ cb(); },
-    main:     function(p,cb){ cb(); },
-    person:   function(p,cb){ cb({}); },
-    seasons:  function(tv, from, cb){ cb({}); },
+    person: function(p,cb){ cb({}); },
+    seasons: function(tv,arr,cb){ cb({}); },
     menuCategory: function(p,cb){ cb([]); },
 
-    // **Самое важное** — discovery() с полным search
+    // Важная часть — discovery() с корректным search
     discovery: function(){
       return {
         title: SOURCE_TITLE,
-
-        // Методы, которые Lampa вызывает при поиске
+        // Методы поиска
         search: {
-          // Нажали Enter (OK) для поиска
+          // Нажали Enter
           start: function(params, onReady){
             var query = (params.query||'').trim();
             if(!query){
               onReady([]);
               return;
             }
-            // Пример запроса
             var url = 'api/v2.1/films/search-by-keyword?keyword='+encodeURIComponent(query);
             getFromCache(url, function(json){
-              if(!json || !json.films){
-                onReady([]);
-                return;
-              }
-              var arr = (json.films||[]).map(convertElem).filter(e=>!e.adult);
+              if(!json||!json.films) return onReady([]);
 
-              // Разделим «Фильмы» / «Сериалы»
+              var arr = (json.films||[]).map(convertElem).filter(e=>!e.adult);
               var movies = arr.filter(a=>a.type==='movie');
               var tv     = arr.filter(a=>a.type==='tv');
               var result = [];
@@ -227,66 +221,58 @@
               onReady([]);
             });
           },
-
           // При вводе символов
-          start_typing: function(query, onChange){},
-
+          start_typing: function(query, onChange){
+            // Можно просто вызывать onChange(query)
+            onChange(query);
+          },
           // Когда очистили строку
           empty: function(){},
-
-          // Когда нажали «Back»
+          // Нажали «Back»
           back: function(){}
         },
-
-        // «Показать ещё» (листать)
+        // «Показать ещё»
         onMore: function(params){
           Lampa.Activity.push({
             url: 'api/v2.1/films/search-by-keyword?keyword='+encodeURIComponent(params.query),
             title: Lampa.Lang.translate('search')+' - '+params.query,
-            component:'category_full',
+            component: 'category_full',
             source: SOURCE_NAME,
-            page:1
+            page: 1
           });
         },
-
-        // Когда вышли из поиска
+        // Когда вышли
         onCancel: function(){
           clear();
         }
       };
     }
+
   };
 
-  // =============================
-  // 3. Добавляем в Lampa.Api.sources
-  // =============================
+  /**
+   * ======== 3. РЕГИСТРИРУЕМ ИСТОЧНИК ========
+   */
   if(!Lampa.Api.sources[SOURCE_NAME]){
     Lampa.Api.sources[SOURCE_NAME] = KpSource;
   }
-
-  // Проверим, нет ли уже флага (чтобы не регистрировать дважды)
   if(!window.kp_source_plugin){
     window.kp_source_plugin = true;
-
-    // Подмешаем в список источников
-    var old_sources = (Lampa.Params.values && Lampa.Params.values.source)
-                      ? Object.assign({}, Lampa.Params.values.source)
-                      : {};
-    old_sources[SOURCE_NAME] = SOURCE_TITLE;
-
-    // Обновим селектор источников
-    Lampa.Params.select('source', old_sources, 'tmdb');
+    // Добавим в список источников
+    var old_src = Lampa.Params.values.source || {};
+    old_src[SOURCE_NAME] = SOURCE_TITLE;
+    Lampa.Params.select('source', old_src, 'tmdb');
   }
 
-  // =============================
-  // 4. Компонент «kp_categories» — своя страница с иконками
-  // =============================
+  /**
+   * ======== 4. КОМПОНЕНТ kp_categories — СТРАНИЦА С ИКОНКАМИ ========
+   */
   function KpCategories(){
     var self = this;
-    var categories = [
+    var cats = [
       { title:'Популярные Фильмы',  url:'api/v2.2/films/top?type=TOP_100_POPULAR_FILMS' },
       { title:'Топ Фильмы',         url:'api/v2.2/films/top?type=TOP_250_BEST_FILMS' },
-      { title:'Популярные российские фильмы',  url:'api/v2.2/films?order=NUM_VOTE&countries=34&type=FILM' },
+      { title:'Популярные российские фильмы', url:'api/v2.2/films?order=NUM_VOTE&countries=34&type=FILM' },
       { title:'Популярные российские сериалы', url:'api/v2.2/films?order=NUM_VOTE&countries=34&type=TV_SERIES' },
       { title:'Популярные российские мини-сериалы', url:'api/v2.2/films?order=NUM_VOTE&countries=34&type=MINI_SERIES' },
       { title:'Популярные Сериалы', url:'api/v2.2/films?order=NUM_VOTE&type=TV_SERIES' },
@@ -297,56 +283,51 @@
       this.activity.loader(true);
 
       this.html = document.createElement('div');
-      this.html.classList.add('kp-categories');
+      this.html.classList.add('kp-cats');
 
-      this.scroll = new Lampa.Scroll({ mask:true, over:true });
-      this.scroll.render().classList.add('kp-categories__scroll');
+      this.scroll = new Lampa.Scroll({mask:true, over:true});
+      this.scroll.render().classList.add('kp-cats__scroll');
 
-      var head = document.createElement('div');
-      head.classList.add('kp-categories__title');
-      head.innerText = 'Кинопоиск - Категории';
+      let head = document.createElement('div');
+      head.classList.add('kp-cats__head');
+      head.textContent = 'Категории Кинопоиск';
       this.scroll.append(head);
 
-      var wrap = document.createElement('div');
-      wrap.classList.add('kp-categories__grid');
+      let wrap = document.createElement('div');
+      wrap.classList.add('kp-cats__wrap');
 
-      categories.forEach(function(cat){
-        var item = document.createElement('div');
-        item.classList.add('kp-categories__item','selector');
+      cats.forEach(cat=>{
+        let item = document.createElement('div');
+        item.classList.add('kp-cats__item','selector');
 
-        var icon = document.createElement('div');
-        icon.classList.add('kp-categories__icon');
-        icon.innerHTML = `
-          <svg width="64" height="64" viewBox="0 0 24 24" fill="none" 
-               stroke="currentColor" stroke-width="1.5">
-            <path d="M22 16c0 2.828 0 4.243-.879 5.121C20.243 22 
-             18.828 22 16 22H8c-2.828 0-4.243 0-5.121-.879C2 
-             20.243 2 18.828 2 16v-4c0-2.828 0-4.243.879-5.121C3.757 
-             6 5.172 6 8 6h8c2.828 0 4.243 0 5.121.879C22 
-             7.757 22 9.172 22 12z"/>
-            <path stroke-linecap="round" 
-             d="m9 2 3 3.5L15 2m1 4v16"/>
-            <path fill="currentColor" 
-             d="M20 16a1 1 0 1 0-2 
-             0 1 1 0 0 0 2 0m0-4a1 1 0 1 0-2 
-             0 1 1 0 0 0 2 0"/>
-          </svg>
+        item.innerHTML = `
+          <div class="kp-cats__icon">
+            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M22 16c0 2.828 0 4.243-.879 5.121C20.243 
+                22 18.828 22 16 22H8c-2.828 0-4.243 
+                0-5.121-.879C2 20.243 2 18.828 2 
+                16v-4c0-2.828 0-4.243.879-5.121C3.757 
+                6 5.172 6 8 6h8c2.828 0 4.243 
+                0 5.121.879C22 7.757 22 9.172 22 12z"/>
+              <path stroke-linecap="round" 
+                d="m9 2 3 3.5L15 2m1 4v16"/>
+              <path fill="currentColor" 
+                d="M20 16a1 1 0 1 0-2 
+                0 1 1 0 0 0 2 0m0-4a1 1 0 1 0-2 
+                0 1 1 0 0 0 2 0"/>
+            </svg>
+          </div>
+          <div class="kp-cats__label">${cat.title}</div>
         `;
-        item.appendChild(icon);
 
-        var label = document.createElement('div');
-        label.classList.add('kp-categories__label');
-        label.textContent = cat.title;
-        item.appendChild(label);
-
-        item.addEventListener('hover:enter', function(){
+        item.addEventListener('hover:enter', ()=>{
           Lampa.Activity.push({
             url: cat.url,
             title: cat.title,
             component: 'category_full',
             source: SOURCE_NAME,
             card_type: true,
-            page: 1
+            page:1
           });
         });
 
@@ -359,7 +340,6 @@
 
     this.start = function(){
       this.activity.loader(false);
-
       Lampa.Controller.add('content',{
         toggle: ()=>{
           Lampa.Controller.collectionSet(this.scroll.render());
@@ -385,91 +365,66 @@
     version: '1.0.0'
   });
 
-  // =============================
-  // 5. Кнопка «Кинопоиск» в меню
-  // =============================
-  function addMenuButton(attr, text, icon, handler){
-    var field = document.createElement('li');
-    field.className = 'menu__item selector';
+  /**
+   * ======== 5. КНОПКА "КИНОПОИСК" В МЕНЮ ========
+   */
+  function addMenuButton(attr, label, svg, onEnter){
+    let li = document.createElement('li');
+    li.className = 'menu__item selector';
 
-    var [attrName,attrVal] = attr.split('=');
-    attrName = attrName.trim();
-    attrVal  = attrVal.replace(/"/g,'');
-    field.setAttribute(attrName, attrVal);
+    let [attrName, attrVal] = attr.split('=');
+    attrName=attrName.trim(); attrVal=attrVal.replace(/"/g,'');
+    li.setAttribute(attrName, attrVal);
 
-    var ico = document.createElement('div');
+    let ico = document.createElement('div');
     ico.className = 'menu__ico';
-    ico.innerHTML = icon;
+    ico.innerHTML = svg;
 
-    var txt = document.createElement('div');
+    let txt = document.createElement('div');
     txt.className = 'menu__text';
-    txt.textContent = text;
+    txt.textContent = label;
 
-    field.appendChild(ico);
-    field.appendChild(txt);
+    li.appendChild(ico);
+    li.appendChild(txt);
 
-    field.addEventListener('hover:enter', handler);
+    li.addEventListener('hover:enter', onEnter);
 
-    // Вставляем после кнопки TV
-    if(window.appready){
+    function insert(){
       let $menu = Lampa.Menu.render();
-      $menu.find('[data-action="tv"]').after(field);
+      let tv = $menu.find('[data-action="tv"]');
+      if(tv.length) tv.after(li);
     }
+
+    if(window.appready) insert();
     else{
       Lampa.Listener.follow('app',(e)=>{
-        if(e.type==='ready'){
-          let $menu = Lampa.Menu.render();
-          $menu.find('[data-action="tv"]').after(field);
-        }
+        if(e.type==='ready') insert();
       });
     }
   }
 
-  var iconKP = `
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="192"
-      height="192"
-      viewBox="0 0 192 192"
-    >
+  let iconKP=`
+    <svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 192 192">
       <g fill="none" fill-rule="evenodd">
         <g fill="currentColor" fill-rule="nonzero">
-          <path
-            fill-rule="evenodd"
+          <path fill-rule="evenodd"
             d="
-              M20,4
-              H172
-              A16,16 0 0 1 188,20
-              V172
-              A16,16 0 0 1 172,188
-              H20
-              A16,16 0 0 1 4,172
-              V20
-              A16,16 0 0 1 20,4
-              Z
+              M20,4 H172 A16,16 0 0 1 188,20
+              V172 A16,16 0 0 1 172,188
+              H20 A16,16 0 0 1 4,172
+              V20 A16,16 0 0 1 20,4 Z
 
-              M20,18
-              H172
-              A2,2 0 0 1 174,20
-              V172
-              A2,2 0 0 1 172,174
-              H20
-              A2,2 0 0 1 18,172
-              V20
-              A2,2 0 0 1 20,18
-              Z
-            "
-          />
+              M20,18 H172 A2,2 0 0 1 174,20
+              V172 A2,2 0 0 1 172,174
+              H20 A2,2 0 0 1 18,172
+              V20 A2,2 0 0 1 20,18 Z
+            " />
           <g transform="translate(-10.63, 0)">
             <path
               d="
-                M96.5 20
-                L66.1 75.733
-                V20
-                H40.767
-                v152
-                H66.1
-                v-55.733
+                M96.5 20 L66.1 75.733 V20
+                H40.767 v152
+                H66.1 v-55.733
                 L96.5 172
                 h35.467
                 C116.767 153.422 95.2 133.578 80 115
@@ -482,10 +437,8 @@
                 c27.022-11.822 60.478-22.711 87.5-34.533
                 v-30.4
                 C143.789 41.956 108.711 63.11 80 80
-                L131.967 20
-                z
-              "
-            />
+                L131.967 20 z
+              " />
           </g>
         </g>
       </g>
@@ -498,7 +451,6 @@
     iconKP,
     function(){
       Lampa.Activity.push({
-        url:'',
         title:'Кинопоиск',
         component:'kp_categories',
         page:1
