@@ -2,7 +2,7 @@
     'use strict';
 
     /**
-     * 1) We only run our init code after Lampa is ready
+     * Ждём готовности приложения
      */
     if(window.appready) init();
     else {
@@ -11,150 +11,215 @@
         });
     }
 
-    /**
-     * 2) Main init
-     */
     function init(){
-        // 2.1) Create our minimal source "kp_lite" if not already present
+        // 1) Создаём упрощённый источник "kp_lite",
+        //    чтобы не ломать поиск и не вызывать ошибок
         if(!Lampa.Api.sources['kp_lite']){
             Lampa.Api.sources['kp_lite'] = {
-                // “main” is used if user opens the “Main” tab on this source, but we’ll just return empty
-                main: function(params={}, oncomplite, onerror){
-                    oncomplite({ results:[], title:'KP Lite', more:false });
-                },
-
-                // “discovery” is used by Lampa’s search UI for this source - we’ll just return empty
+                /**
+                 * Если Lampa решит вызвать discovery (поиск) для нашего источника —
+                 * вернём «заглушку», чтобы ничего не ломалось.
+                 * Некоторые старые версии вызывают discovery().start_typing().
+                 */
                 discovery: function(){
                     return {
                         title: 'KP Lite',
-                        search: (p,cb)=>{ cb([]); }, // do not break global search
-                        onMore:  (p)=>{},
-                        onCancel:()=>{}
+                        search: function(params, onResult){ onResult([]); },
+                        onMore: function(p){},
+                        onCancel: function(){},
+                        start_typing: function(query, onResult){ onResult([]); } // важно!
                     };
                 },
 
-                // The main method that Lampa’s “category_full” uses to load items
-                list: function(params={}, oncomplite, onerror){
+                // Главная вкладка — вернём пусто
+                main: function(params, onComplete, onError){
+                    onComplete({results:[], more:false, title:'KP Lite'});
+                },
+
+                /**
+                 * Основной метод, когда Lampa открывает component:'category_full', source:'kp_lite'
+                 */
+                list: function(params, onComplete, onError){
                     let page   = params.page || 1;
-                    let method = params.url || '';
-                    if(!method) return onerror();
+                    let method = params.url  || '';
 
-                    kpFetch(method, page, (data)=>{
-                        oncomplite(data); // {results, page, total_pages}
-                    }, onerror);
+                    if(!method) return onError();
+
+                    // Пример запроса на Кинопоиск
+                    kpLiteFetch(method, page, (data)=>{
+                        onComplete(data); // {results, page, total_pages,...}
+                    }, onError);
                 },
 
-                // “full” details are never used here, so we can just onerror
-                full: function(params={}, oncomplite, onerror){
-                    onerror();
+                // Детали карточки — не реализуем
+                full: function(params, onComplete, onError){
+                    onError();
                 },
 
-                // “category” is not used in standard flows here, return empty
-                category: function(params={}, oncomplite, onerror){
-                    oncomplite({results:[],title:'',more:false});
+                // category — тоже не используем
+                category: function(params, onComplete, onError){
+                    onComplete({results:[], more:false});
                 },
 
-                // optional cleanup
                 clear: function(){}
             };
         }
 
-        // 2.2) Add the “Кинопоиск” button to Lampa’s main menu
+        // 2) Регистрируем «Activity» для показа категорий
+        //    (по аналогии с плагином «TV Show стриминги»)
+        Lampa.Activity.listener.follow('kp_categories', function(e){
+            /**
+             * e.type может быть: create, start, pause, stop, render
+             * e.object — это экземпляр активити
+             */
+            if(e.type === 'create'){
+                let activity = e.object;
+
+                // Создаём заготовку: слой + скролл
+                let html   = Lampa.Template.js('scroll');  // в некоторых старых сборках можно: Lampa.Template.get('scroll_body')
+                let scroll = new Lampa.Scroll({mask:true, over:true});
+                scroll.body().addClass('kp-cats__body');
+
+                // Добавляем scroll внутрь layer__body
+                html.find('.layer__body').append(scroll.render());
+
+                // Список категорий (иконки/названия)
+                let items = [
+                    { title:'Популярные Фильмы',                  url:'api/v2.2/films/top?type=TOP_100_POPULAR_FILMS' },
+                    { title:'Топ Фильмы',                         url:'api/v2.2/films/top?type=TOP_250_BEST_FILMS' },
+                    { title:'Популярные российские фильмы',       url:'api/v2.2/films?order=NUM_VOTE&countries=34&type=FILM' },
+                    { title:'Популярные российские сериалы',      url:'api/v2.2/films?order=NUM_VOTE&countries=34&type=TV_SERIES' },
+                    { title:'Популярные российские мини-сериалы', url:'api/v2.2/films?order=NUM_VOTE&countries=34&type=MINI_SERIES' },
+                    { title:'Популярные Сериалы',                 url:'api/v2.2/films?order=NUM_VOTE&type=TV_SERIES' },
+                    { title:'Популярные Телешоу',                 url:'api/v2.2/films?order=NUM_VOTE&type=TV_SHOW' }
+                ];
+
+                items.forEach(cat=>{
+                    // Пример простого оформления
+                    let card = $(`
+                        <div class="card folder">
+                            <div class="card__view">
+                                <div class="card__img"></div>
+                            </div>
+                            <div class="card__title">${cat.title}</div>
+                        </div>
+                    `);
+
+                    // По Enter — открываем component:'category_full'
+                    card.on('hover:enter', ()=>{
+                        Lampa.Activity.push({
+                            url:       cat.url,
+                            title:     cat.title,
+                            component: 'category_full',
+                            source:    'kp_lite',
+                            page:      1
+                        });
+                    });
+
+                    scroll.append(card);
+                });
+
+                // Чтобы Lampa знала, что рисовать
+                activity.render = function(){
+                    return html;
+                };
+            }
+            else if(e.type === 'start'){
+                // Устанавливаем фокус
+                let activity = e.object;
+
+                Lampa.Controller.add('kp_categories',{
+                    toggle: ()=>{
+                        // сообщаем Lampa, где коллекция для навигации
+                        Lampa.Controller.collectionSet(activity.render().find('.card'), activity.render());
+                        // фокус на первую
+                        Lampa.Controller.collectionFocus(activity.render().find('.card')[0], activity.render());
+                    },
+                    back: ()=>{
+                        Lampa.Activity.backward(); // назад
+                    }
+                });
+
+                Lampa.Controller.toggle('kp_categories');
+            }
+            else if(e.type==='pause'){
+                // при сворачивании
+            }
+            else if(e.type==='stop'){
+                // при закрытии
+            }
+            else if(e.type==='render'){
+                // при перерисовке
+            }
+        });
+
+        // 3) Добавляем пункт «Кинопоиск» в меню
         addMenuButton();
     }
 
-    /**
-     * 3) The function to fetch from Kinopoisk
-     */
-    function kpFetch(method, page, onDone, onError){
-        // Example method: "api/v2.2/films/top?type=TOP_100_POPULAR_FILMS"
-        const base   = 'https://kinopoiskapiunofficial.tech/';
-        let   url    = base + method;
 
-        // if no “page=” param is present, add one
+    /**
+     * Функция для запроса на Кинопоиск
+     */
+    function kpLiteFetch(method, page, done, fail){
+        let base = 'https://kinopoiskapiunofficial.tech/';
+        let url  = base + method;
+
+        // добавим &page=, если не задано
         if(!url.includes('page=')){
             url += (url.includes('?') ? '&' : '?') + 'page=' + page;
         }
 
-        const net = new Lampa.Reguest();
+        let net = new Lampa.Reguest();
         net.timeout(15000);
 
-        net.silent(
-            url,
-            (json)=>{
-                let items = [];
-                if(json.items) items = json.items;
-                else if(json.films) items = json.films;
+        net.silent(url, (json)=>{
+            let items = [];
+            if(json.items) items = json.items;
+            else if(json.films) items = json.films;
+            
+            let results = items.map(elem=>{
+                let kp_id  = elem.kinopoiskId || elem.filmId || 0;
+                let poster = elem.posterUrlPreview || elem.posterUrl || '';
+                let title  = elem.nameRu || elem.nameEn || elem.nameOriginal || 'Без названия';
+                let rating = elem.ratingKinopoisk || elem.rating || 0;
+                let year   = elem.year ? String(elem.year) : '';
 
-                let results = items.map(elem=>{
-                    let kp_id   = elem.kinopoiskId || elem.filmId || 0;
-                    let poster  = elem.posterUrlPreview || elem.posterUrl || '';
-                    let title   = elem.nameRu || elem.nameEn || elem.nameOriginal || 'Без названия';
-                    let rating  = elem.ratingKinopoisk || elem.rating || 0;
-                    let year    = elem.year ? String(elem.year) : '';
+                return {
+                    id:     'kp_' + kp_id,
+                    title:  title,
+                    poster: poster,
+                    img:    poster,
+                    release_date: year,
+                    vote_average: rating,
+                    source: 'kp_lite'
+                };
+            });
 
-                    return {
-                        id:     'kp_' + kp_id,
-                        title:  title,
-                        poster: poster,
-                        img:    poster,
-                        release_date: year,
-                        vote_average: rating,
-                        source: 'kp_lite'
-                    };
-                });
+            let total = json.totalPages || json.pagesCount || 1;
 
-                let total = json.totalPages || json.pagesCount || 1;
-                onDone({ results: results, page: page, total_pages: total });
-            },
-            (err)=>{
-                onError(err);
-            },
-            false,
-            {
-                headers: { 'X-API-KEY': '2a4a0808-81a3-40ae-b0d3-e11335ede616' }
-            }
-        );
-    }
-
-    /**
-     * 4) Show a “Select” with categories
-     */
-    function openKpCategoriesMenu(){
-        Lampa.Select.show({
-            title: 'Кинопоиск',
-            items: [
-                { title: 'Популярные Фильмы',                url: 'api/v2.2/films/top?type=TOP_100_POPULAR_FILMS' },
-                { title: 'Топ Фильмы',                       url: 'api/v2.2/films/top?type=TOP_250_BEST_FILMS' },
-                { title: 'Популярные российские фильмы',     url: 'api/v2.2/films?order=NUM_VOTE&countries=34&type=FILM' },
-                { title: 'Популярные российские сериалы',    url: 'api/v2.2/films?order=NUM_VOTE&countries=34&type=TV_SERIES' },
-                { title: 'Популярные российские мини-сериалы', url:'api/v2.2/films?order=NUM_VOTE&countries=34&type=MINI_SERIES'},
-                { title: 'Популярные Сериалы',               url: 'api/v2.2/films?order=NUM_VOTE&type=TV_SERIES' },
-                { title: 'Популярные Телешоу',               url: 'api/v2.2/films?order=NUM_VOTE&type=TV_SHOW' }
-            ],
-            onSelect: (item)=>{
-                // push a standard category_full activity, but with our “kp_lite” source
-                Lampa.Activity.push({
-                    url:        item.url,
-                    title:      item.title,
-                    component:  'category_full',
-                    source:     'kp_lite',
-                    card_type:  true,
-                    page:       1
-                });
-            },
-            onBack: ()=>{
-                Lampa.Controller.toggle('menu');
-            }
+            done({
+                results:     results,
+                page:        page,
+                total_pages: total
+            });
+        }, (err)=>{
+            fail(err);
+        }, false, {
+            headers:{ 'X-API-KEY':'2a4a0808-81a3-40ae-b0d3-e11335ede616' }
         });
     }
 
+
     /**
-     * 5) Add a new button to Lampa’s main menu
+     * Добавить кнопку в меню
      */
     function addMenuButton(){
-        const iconKP = `
-          <svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 192 192">
+        const ITEM_TV_SELECTOR = '[data-action="tv"]';
+        let menu = Lampa.Menu.render();
+
+        let icon = `
+          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 192 192">
             <g fill="none" fill-rule="evenodd">
               <g fill="currentColor" fill-rule="nonzero">
                 <path fill-rule="evenodd"
@@ -189,22 +254,22 @@
           </svg>
         `;
 
-        const ITEM_TV_SELECTOR = '[data-action="tv"]';
-        const menu = Lampa.Menu.render();
-
-        const newItem = $(`
-          <li class="menu__item selector" data-action="kp_plugin_btn">
-            <div class="menu__ico">${iconKP}</div>
+        let li = $(`
+          <li class="menu__item selector" data-action="kp_categories_btn">
+            <div class="menu__ico">${icon}</div>
             <div class="menu__text">Кинопоиск</div>
           </li>
         `);
 
-        newItem.on('hover:enter', ()=>{
-            openKpCategoriesMenu();
+        li.on('hover:enter', ()=>{
+            // Переходим в нашу Activity "kp_categories"
+            Lampa.Activity.push({
+                title: 'Кинопоиск',
+                component: 'kp_categories'
+            });
         });
 
-        // Insert after the "TV" menu item
-        menu.find(ITEM_TV_SELECTOR).after(newItem);
+        menu.find(ITEM_TV_SELECTOR).after(li);
     }
 
 })();
