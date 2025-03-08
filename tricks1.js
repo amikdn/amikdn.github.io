@@ -2,6 +2,48 @@
   'use strict';
 
   // =============================
+  // 0) Функция-запрос к Кинопоиску (KP_API)
+  // =============================
+
+  var KP_API = (function(){
+    var network = new Lampa.Reguest();
+    var X_API_KEY = '2a4a0808-81a3-40ae-b0d3-e11335ede616'; // пример ключа
+
+    /**
+     * Запрос к kinopoiskapiunofficial.tech
+     * @param {string} method - например: 'api/v2.2/films/top?type=TOP_100_POPULAR_FILMS&page=1'
+     * @param {function} oncomplite - колбэк успеха
+     * @param {function} onerror - колбэк ошибки
+     */
+    function get(method, oncomplite, onerror){
+      var url = 'https://kinopoiskapiunofficial.tech/' + method;
+
+      // network.silent(url, success, fail, post_data=false, extra_headers={...})
+      network.silent(
+        url,
+        function(json){
+          oncomplite(json);
+        },
+        function(a, c){
+          if (onerror) onerror(a, c);
+        },
+        false,
+        {
+          headers: {
+            'X-API-KEY': X_API_KEY
+          }
+        }
+      );
+    }
+
+    // Можно расширять другими методами (кеш, прокси и т.п.)
+    return {
+      get: get
+    };
+  })();
+
+
+  // =============================
   // 1) Добавляем кнопку "Кинопоиск" в меню Lampa
   // =============================
 
@@ -16,7 +58,7 @@
     }, ITEM_MOVE_TIMEOUT);
   }
 
-  // Добавляем пункт в меню
+  // Функция для добавления кнопки
   function addMenuButton(newItemAttr, newItemText, iconHTML, onEnterHandler) {
     var NEW_ITEM_ATTR = newItemAttr;
     var NEW_ITEM_SELECTOR = '[' + NEW_ITEM_ATTR + ']';
@@ -43,7 +85,7 @@
     }
   }
 
-  // SVG-иконка для кнопки
+  // Иконка для кнопки
   var iconKP = `
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -111,110 +153,128 @@
     </svg>
   `;
 
-  // Добавляем пункт "Кинопоиск"
+  // Добавляем пункт «Кинопоиск»
   addMenuButton(
     'data-action="kp"',
     'Кинопоиск',
     iconKP,
     function () {
-      // Вместо Select.show() — создаём новую Activity
+      // При клике - открываем нашу Activity
       Lampa.Activity.push({
         title: 'Кинопоиск - Категории',
-        component: 'kp_categories', // наш компонент
+        component: 'kp_categories', // название компонента
         page: 1
       });
     }
   );
 
+
   // =============================
-  // 2) Создаём компонент kp_categories (новая Activity)
+  // 2) Регистрируем новый компонент "kp_categories"
   // =============================
 
-  // Регистрируем компонент
   Lampa.Component.add('kp_categories', function (activity) {
-    // Создаём корневой DOM
     var root = document.createElement('div');
     root.classList.add('kp-categories-container');
 
-    // Создаём скролл
+    // Создаём прокручиваемую область
     var scroll = new Lampa.Scroll({
       mask: true,
       over: true
     });
-    var scrollContent = scroll.render(true); // это DOM-элемент скролла
+    var scrollContent = scroll.render(true); // DOM-элемент
 
-    // Внутренний блок для карточек
+    // Блок, куда будем складывать карточки
     var body = document.createElement('div');
     body.classList.add('kp-categories-body');
 
-    // Вставляем body внутрь скролла
+    // Вставляем всё
     scrollContent.appendChild(body);
-    // Вставляем скролл в root
     root.appendChild(scrollContent);
 
-    // Список категорий (пример)
-    var categories = [
-      { title: 'Популярные Фильмы', url: 'api/v2.2/films/top?type=TOP_100_POPULAR_FILMS' },
-      { title: 'Топ Фильмы',        url: 'api/v2.2/films/top?type=TOP_250_BEST_FILMS' },
-      { title: 'Росс. фильмы',      url: 'api/v2.2/films?order=NUM_VOTE&countries=34&type=FILM' },
-      { title: 'Росс. сериалы',     url: 'api/v2.2/films?order=NUM_VOTE&countries=34&type=TV_SERIES' },
-      { title: 'Сериалы',           url: 'api/v2.2/films?order=NUM_VOTE&type=TV_SERIES' },
-      { title: 'Телешоу',           url: 'api/v2.2/films?order=NUM_VOTE&type=TV_SHOW' }
-    ];
+    // Массив для карточек
+    var cards = [];
+    var lastFocused;
 
-    var cards = [];  // массив созданных карточек
-    var lastFocused; // кто в фокусе
+    /**
+     * Загружаем список "Топ-100 популярных фильмов" (пример)
+     * через KP_API.get(...)
+     */
+    function loadTopFilms() {
+      activity.loader(true);
 
-    // Создаём контент
-    this.create = function() {
-      activity.loader(true); // показываем лоадер
+      // Пример запроса к "TOP_100_POPULAR_FILMS"
+      // В ответ придёт JSON вида { films: [...], pagesCount: ... }
+      KP_API.get(
+        'api/v2.2/films/top?type=TOP_100_POPULAR_FILMS&page=1',
+        function(json){
+          // json.films — массив
+          var items = json.films || [];
+          createCards(items);
+          activity.loader(false);
+          activity.toggle();
+        },
+        function(error){
+          console.log('KP_API error:', error);
+          activity.loader(false);
+          Lampa.Noty.show('Ошибка запроса к Кинопоиску');
+          activity.toggle();
+        }
+      );
+    }
 
-      // Для каждой категории создаём карточку
-      categories.forEach(function(cat) {
-        // Пример данных для карточки
+    /**
+     * Создаём карточки по массиву фильмов
+     */
+    function createCards(items){
+      items.forEach(function(item){
+        // item: { filmId, nameRu, posterUrlPreview, ... }
         var cardData = {
-          title: cat.title,
-          // можно хранить доп. данные, например: cat.url
+          title: item.nameRu || item.nameEn || 'Без названия',
+          img: item.posterUrlPreview || '',
+          // Можно добавить описание, год и т.д.
+          year: item.year || ''
         };
 
-        // Создаём Lampa.Card
-        var card = new Lampa.Card(cardData, { object: activity, card_category: true });
+        // Создаём карточку Lampa
+        var card = new Lampa.Card(cardData, { object: activity });
         card.create();
 
-        // onFocus
+        // События
         card.onFocus = function (target, elemData) {
           lastFocused = target;
           scroll.update(card.render(true));
         };
 
-        // onEnter
         card.onEnter = function () {
-          // Переходим на список фильмов/сериалов
+          // При клике — переходим в список фильмов (или детальную)
           Lampa.Activity.push({
-            url: cat.url,
-            title: cat.title,
-            component: 'category_full',
+            url: 'api/v2.2/films/' + item.filmId,
+            title: cardData.title,
+            component: 'full',   // можно 'category_full', но для одиночного фильма лучше 'full'
             source: 'KP',
             card_type: true,
             page: 1
           });
         };
 
-        // Добавляем карточку в DOM
+        // Добавляем в DOM
         body.appendChild(card.render(true));
         cards.push(card);
       });
+    }
 
-      activity.loader(false); // убираем лоадер
-      activity.toggle();      // показываем контент
+    // Метод create() — вызывается при инициализации
+    this.create = function() {
+      // Запускаем загрузку
+      loadTopFilms();
     };
 
-    // При первом показе
+    // При старте
     this.start = function() {
-      // Регистрируем контроллер
+      // Настраиваем контроллер
       Lampa.Controller.add('content', {
         toggle: () => {
-          // Включаем управление
           Lampa.Controller.collectionSet(false, root); 
           Lampa.Controller.collectionFocus(lastFocused, false, root);
         },
@@ -247,29 +307,21 @@
         }
       });
 
-      // Переключаемся на контроллер
       Lampa.Controller.toggle('content');
     };
 
-    // Пауза (необязательно)
-    this.pause = function() {};
-    // Стоп (необязательно)
-    this.stop = function() {};
-    // Уничтожение
-    this.destroy = function() {
+    // Дополнительно:
+    this.pause = function(){};
+    this.stop  = function(){};
+    this.render = function(internal){
+      if (internal) return root;    // DOM-элемент
+      return $(root);              // jQuery
+    };
+    this.destroy = function(){
       scroll.destroy();
-      cards.forEach(function(c) { c.destroy && c.destroy(); });
+      cards.forEach(function(c){ c.destroy && c.destroy(); });
       cards = [];
       root.remove();
-    };
-
-    // Важно: render(true) => вернуть чистый DOM
-    // render(false) => вернуть jQuery
-    this.render = function(internal) {
-      if (internal) {
-        return root;    // DOM-элемент
-      }
-      return $(root);   // jQuery-обёртка
     };
   });
 
