@@ -1,26 +1,28 @@
-function addMenuButton() {
-    const ITEM_TV_SELECTOR = '[data-action="tv"]';
-
-    // Наша иконка (SVG)
+function addMenuButton(){
+    // Пример иконки (SVG)
     let iconKP = `
       <svg width="32" height="32" viewBox="0 0 192 192" fill="currentColor">
-        <!-- ... здесь код иконки ... -->
+        <!-- ... код иконки ... -->
       </svg>
     `;
 
-    // Создаём элемент меню через jQuery
+    // Создаём пункт меню через jQuery
     let field = $(`
-      <li class="menu__item selector">
-        <div class="menu__ico">${iconKP}</div>
-        <div class="menu__text">Кинопоиск</div>
-      </li>
+       <li class="menu__item selector">
+         <div class="menu__ico">${iconKP}</div>
+         <div class="menu__text">Кинопоиск</div>
+       </li>
     `);
 
-    // Событие при клике (hover:enter)
-    field.on('hover:enter', () => {
+    // Событие при нажатии
+    field.on('hover:enter', ()=>{
+        // К примеру, открываем категорию (или любое Activity)
         Lampa.Activity.push({
-            title: 'Кинопоиск',
-            component: 'kp_menu_custom', // наша Activity
+            url: 'api/v2.2/films/top?type=TOP_100_POPULAR_FILMS',
+            title: 'Популярные фильмы',
+            component: 'category_full',
+            source: 'KP',
+            card_type: true,
             page: 1
         });
     });
@@ -29,14 +31,14 @@ function addMenuButton() {
     let menu = Lampa.Menu.render();
 
     // Ищем в меню элемент с data-action="tv"
-    let tv_item = menu.find(ITEM_TV_SELECTOR);
+    let tv_item = menu.find('[data-action="tv"]');
 
-    // Если нашли, вставляем нашу кнопку после
-    if (tv_item.length) {
+    // Если такой элемент есть, вставляем нашу кнопку после него
+    if(tv_item.length) {
         tv_item.after(field);
     }
     else {
-        // Если вдруг не нашли, просто добавим в конец
+        // Если вдруг "tv" не нашёлся, добавим кнопку в конец меню
         menu.append(field);
     }
 }
