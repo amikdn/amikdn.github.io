@@ -2,7 +2,7 @@
   'use strict';
 
   // =============================
-  // Часть 1. Добавление кнопки "Кинопоиск" в меню Lampa
+  // 1) Добавляем кнопку "Кинопоиск" в меню Lampa
   // =============================
 
   Lampa.Platform.tv();
@@ -10,19 +10,17 @@
   var ITEM_TV_SELECTOR = '[data-action="tv"]';
   var ITEM_MOVE_TIMEOUT = 2000;
 
-  // Функция для перемещения элемента в меню
   function moveItemAfter(item, after) {
     return setTimeout(function () {
       $(item).insertAfter($(after));
     }, ITEM_MOVE_TIMEOUT);
   }
 
-  // Функция для добавления кнопки в меню
+  // Добавляем пункт в меню
   function addMenuButton(newItemAttr, newItemText, iconHTML, onEnterHandler) {
     var NEW_ITEM_ATTR = newItemAttr;
     var NEW_ITEM_SELECTOR = '[' + NEW_ITEM_ATTR + ']';
 
-    // Создаём пункт меню
     var field = $(`
       <li class="menu__item selector" ${NEW_ITEM_ATTR}>
         <div class="menu__ico">${iconHTML}</div>
@@ -30,10 +28,8 @@
       </li>
     `);
 
-    // Обработка нажатия
     field.on('hover:enter', onEnterHandler);
 
-    // Вставляем пункт после кнопки TV
     if (window.appready) {
       Lampa.Menu.render().find(ITEM_TV_SELECTOR).after(field);
       moveItemAfter(NEW_ITEM_SELECTOR, ITEM_TV_SELECTOR);
@@ -47,7 +43,7 @@
     }
   }
 
-  // Иконка для кнопки "Кинопоиск"
+  // SVG-иконка для кнопки
   var iconKP = `
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -115,102 +111,85 @@
     </svg>
   `;
 
-  // Добавляем кнопку «Кинопоиск» в меню
+  // Добавляем пункт "Кинопоиск"
   addMenuButton(
     'data-action="kp"',
     'Кинопоиск',
     iconKP,
     function () {
-      // Вместо Select.show — переходим в нашу новую Activity
+      // Вместо Select.show() — создаём новую Activity
       Lampa.Activity.push({
-        component: 'kp_categories',
-        // Можем передавать любые данные
         title: 'Кинопоиск - Категории',
-        source: 'KP', 
+        component: 'kp_categories', // наш компонент
         page: 1
       });
-      console.log("Нажата кнопка Кинопоиск -> открываем Activity kp_categories");
     }
   );
 
   // =============================
-  // Часть 2. Опциональный объект KP_PLUGIN (если нужно как источник)
+  // 2) Создаём компонент kp_categories (новая Activity)
   // =============================
 
-  if (!window.KP_PLUGIN) {
-    // Сюда можно вставить ваш уже имеющийся код kp_source_plugin,
-    // если нужно регистрировать KP как полноценный источник.
-    // Если вам не нужно регистрировать как источник — можно убрать.
-    window.KP_PLUGIN = {
-      // Заглушка
-      SOURCE_NAME: 'KP',
-      SOURCE_TITLE: 'KP',
-      clear: function(){},
-      // ...и т.д.
-    };
-  }
+  // Регистрируем компонент
+  Lampa.Component.add('kp_categories', function (activity) {
+    // Создаём корневой DOM
+    var root = document.createElement('div');
+    root.classList.add('kp-categories-container');
 
-  // =============================
-  // Часть 3. Создаём компонент «kp_categories»
-  // =============================
+    // Создаём скролл
+    var scroll = new Lampa.Scroll({
+      mask: true,
+      over: true
+    });
+    var scrollContent = scroll.render(true); // это DOM-элемент скролла
 
-  // Это Activity, которое будет открываться при нажатии на кнопку «Кинопоиск».
-  // Здесь мы формируем DOM, возвращаем его в render(true),
-  // и даём Лампе управлять через collectionSet/collectionFocus.
-
-  Lampa.Component.add('kp_categories', function KpCategories(activity) {
-    // 1) Создаём корневой элемент (DOM)
-    var html = document.createElement('div');
-    html.classList.add('kp-categories-container');
-
-    // 2) Создаём скролл
-    var scroll = new Lampa.Scroll({ mask: true, over: true });
-    var scrollContent = scroll.render(true);
-
-    // 3) Внутренний контейнер для карточек
+    // Внутренний блок для карточек
     var body = document.createElement('div');
     body.classList.add('kp-categories-body');
 
-    // Вставляем body в scrollContent
+    // Вставляем body внутрь скролла
     scrollContent.appendChild(body);
+    // Вставляем скролл в root
+    root.appendChild(scrollContent);
 
-    // Вставляем scrollContent в корневой html
-    html.appendChild(scrollContent);
-
-    // Список категорий (просто пример)
+    // Список категорий (пример)
     var categories = [
       { title: 'Популярные Фильмы', url: 'api/v2.2/films/top?type=TOP_100_POPULAR_FILMS' },
       { title: 'Топ Фильмы',        url: 'api/v2.2/films/top?type=TOP_250_BEST_FILMS' },
-      { title: 'Популярные российские фильмы',  url: 'api/v2.2/films?order=NUM_VOTE&countries=34&type=FILM' },
-      { title: 'Популярные российские сериалы', url: 'api/v2.2/films?order=NUM_VOTE&countries=34&type=TV_SERIES' },
-      { title: 'Популярные Сериалы',            url: 'api/v2.2/films?order=NUM_VOTE&type=TV_SERIES' },
-      { title: 'Популярные Телешоу',            url: 'api/v2.2/films?order=NUM_VOTE&type=TV_SHOW' }
+      { title: 'Росс. фильмы',      url: 'api/v2.2/films?order=NUM_VOTE&countries=34&type=FILM' },
+      { title: 'Росс. сериалы',     url: 'api/v2.2/films?order=NUM_VOTE&countries=34&type=TV_SERIES' },
+      { title: 'Сериалы',           url: 'api/v2.2/films?order=NUM_VOTE&type=TV_SERIES' },
+      { title: 'Телешоу',           url: 'api/v2.2/films?order=NUM_VOTE&type=TV_SHOW' }
     ];
 
-    // Храним Card-объекты, чтобы потом их уничтожить
-    var items = [];
-    var lastFocused; // кто был в фокусе
+    var cards = [];  // массив созданных карточек
+    var lastFocused; // кто в фокусе
 
-    // Метод create (вызывается при создании)
+    // Создаём контент
     this.create = function() {
-      // Создаём карточки
-      categories.forEach((cat) => {
-        // Простой объект для Card
-        var elemData = { title: cat.title };
+      activity.loader(true); // показываем лоадер
 
-        // Создаём Card
-        var card = new Lampa.Card(elemData, { object: activity, card_category: true });
-        card.create();
-
-        // onFocus — когда карточка в фокусе
-        card.onFocus = (target) => {
-          lastFocused = target;
-          scroll.update(card.render(true)); 
+      // Для каждой категории создаём карточку
+      categories.forEach(function(cat) {
+        // Пример данных для карточки
+        var cardData = {
+          title: cat.title,
+          // можно хранить доп. данные, например: cat.url
         };
 
-        // onEnter — при клике Enter
-        card.onEnter = () => {
-          // Переходим на category_full
+        // Создаём Lampa.Card
+        var card = new Lampa.Card(cardData, { object: activity, card_category: true });
+        card.create();
+
+        // onFocus
+        card.onFocus = function (target, elemData) {
+          lastFocused = target;
+          scroll.update(card.render(true));
+        };
+
+        // onEnter
+        card.onEnter = function () {
+          // Переходим на список фильмов/сериалов
           Lampa.Activity.push({
             url: cat.url,
             title: cat.title,
@@ -221,46 +200,54 @@
           });
         };
 
-        // Вставляем в body
+        // Добавляем карточку в DOM
         body.appendChild(card.render(true));
-        items.push(card);
+        cards.push(card);
       });
 
-      // Отключаем лоадер
-      activity.loader(false);
-
-      // Делаем toggle (переход на слой content)
-      activity.toggle();
+      activity.loader(false); // убираем лоадер
+      activity.toggle();      // показываем контент
     };
 
-    // Метод start (вызывается при первом показе)
+    // При первом показе
     this.start = function() {
-      // Регистрируем контроллер content
+      // Регистрируем контроллер
       Lampa.Controller.add('content', {
         toggle: () => {
-          Lampa.Controller.collectionSet(false, html);
-          Lampa.Controller.collectionFocus(lastFocused, false, html);
+          // Включаем управление
+          Lampa.Controller.collectionSet(false, root); 
+          Lampa.Controller.collectionFocus(lastFocused, false, root);
         },
         left: () => {
-          if (Lampa.Navigator.canmove('left')) Lampa.Navigator.move('left');
-          else Lampa.Controller.toggle('menu');
+          if (Lampa.Navigator.canmove('left')) {
+            Lampa.Navigator.move('left');
+          } else {
+            Lampa.Controller.toggle('menu');
+          }
         },
         right: () => {
-          if (Lampa.Navigator.canmove('right')) Lampa.Navigator.move('right');
+          if (Lampa.Navigator.canmove('right')) {
+            Lampa.Navigator.move('right');
+          }
         },
         up: () => {
-          if (Lampa.Navigator.canmove('up')) Lampa.Navigator.move('up');
-          else Lampa.Controller.toggle('head');
+          if (Lampa.Navigator.canmove('up')) {
+            Lampa.Navigator.move('up');
+          } else {
+            Lampa.Controller.toggle('head');
+          }
         },
         down: () => {
-          if (Lampa.Navigator.canmove('down')) Lampa.Navigator.move('down');
+          if (Lampa.Navigator.canmove('down')) {
+            Lampa.Navigator.move('down');
+          }
         },
         back: () => {
           Lampa.Activity.backward();
         }
       });
 
-      // Переключаемся на «content»
+      // Переключаемся на контроллер
       Lampa.Controller.toggle('content');
     };
 
@@ -271,14 +258,18 @@
     // Уничтожение
     this.destroy = function() {
       scroll.destroy();
-      items.forEach(c => c.destroy && c.destroy());
-      items = [];
-      if (html) html.remove();
+      cards.forEach(function(c) { c.destroy && c.destroy(); });
+      cards = [];
+      root.remove();
     };
 
-    // Важно: render(true) должен вернуть DOM-элемент, а render(false) — jQuery
-    this.render = function(js) {
-      return js ? html : $(html);
+    // Важно: render(true) => вернуть чистый DOM
+    // render(false) => вернуть jQuery
+    this.render = function(internal) {
+      if (internal) {
+        return root;    // DOM-элемент
+      }
+      return $(root);   // jQuery-обёртка
     };
   });
 
