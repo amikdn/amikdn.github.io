@@ -2,41 +2,31 @@
     'use strict';
 
     /**
-     * Minimal helper for making requests to kinopoiskapiunofficial.tech,
-     * with the user’s own API key.  If you have a different key, replace below.
+     * 1) Minimal helper to fetch from Kinopoisk
      */
     const KP_API_KEY = '2a4a0808-81a3-40ae-b0d3-e11335ede616';
 
-    // Basic GET function with optional CORS proxy
     function kpGet(method, onComplete, onError){
-        const corsProxy   = 'https://cors.kp556.workers.dev:8443/'; 
+        const corsProxy   = 'https://cors.kp556.workers.dev:8443/';
         const baseUrl     = 'https://kinopoiskapiunofficial.tech/';
         const fullUrl     = baseUrl + method;
-        const useProxy    = false; // set to true if you want to force the CORS proxy
+        const useProxy    = false;
 
-        // Lampa’s built‐in Reguest
         const network = new Lampa.Reguest();
         network.timeout(15000);
 
         const requestUrl  = useProxy ? (corsProxy + fullUrl) : fullUrl;
-        const requestOpts = { 
-            headers: { 'X-API-KEY': KP_API_KEY }
-        };
+        const requestOpts = { headers: { 'X-API-KEY': KP_API_KEY } };
 
         network.silent(
             requestUrl,
-            (json)=>{
-                onComplete(json);
-            },
+            (json)=>{ onComplete(json); },
             (err)=>{
-                // fallback attempt with proxy if not used yet
+                // fallback with proxy if 429
                 if(!useProxy && err.status === 429){
-                    const secondUrl = corsProxy + fullUrl;
                     network.timeout(15000);
-                    network.silent(secondUrl,
-                        (js)=>{
-                            onComplete(js);
-                        },
+                    network.silent(corsProxy+fullUrl,
+                        (js)=>{ onComplete(js); },
                         (e)=>{ onError(e); },
                         false,
                         requestOpts
@@ -50,231 +40,192 @@
     }
 
     /**
-     * Convert one KP item to Lampa’s standard card object
+     * 2) Convert a KP item to a Lampa card object
      */
     function kpConvert(item){
-        const type = (!item.type || item.type==='FILM' || item.type==='VIDEO') ? 'movie' : 'tv';
-        const id   = item.kinopoiskId || item.filmId || 0;
-        const title= item.nameRu || item.nameEn || item.nameOriginal || 'No title';
+        const type  = (!item.type || item.type==='FILM' || item.type==='VIDEO') ? 'movie' : 'tv';
+        const id    = item.kinopoiskId || item.filmId || 0;
+        const title = item.nameRu || item.nameEn || item.nameOriginal || 'No title';
         const poster= item.posterUrlPreview || item.posterUrl || '';
 
         return {
             id:       'kp_' + id,
             title:    title,
-            original_title: item.nameOriginal || '',
             release_date:   (item.year ? String(item.year) : ''),
             vote_average:   item.ratingKinopoisk || item.rating || 0,
             poster:         poster,
-            img:            poster,      // Lampa also uses “img”
-            source:         'kp_plugin', // for reference
-            // overview etc. can be added:
+            img:            poster,
+            source:         'kp_plugin',
             overview:       item.description || '',
-            // ...
         };
     }
 
     /**
-     * Load a category from Kinopoisk:
-     * e.g.  top-100, top-250, or “api/v2.2/films?order=NUM_VOTE&type=TV_SERIES” etc.
-     * Then convert results into Lampa card array.
+     * 3) Load a category from Kinopoisk
      */
     function loadKpCategory(kpMethod, page, onDone, onError){
-        // we add page param if needed
-        // for top-lists: “?page=2” or for “api/v2.2/films/top?type=TOP_250_BEST_FILMS&page=2”
         let url = kpMethod;
         if(!url.includes('page=')){
             url += (url.includes('?') ? '&' : '?') + 'page=' + page;
         }
-
         kpGet(url,
             (json)=>{
-                // Usually items are in json.items or json.films
                 let arr = [];
                 if(json.items) arr = json.items;
                 else if(json.films) arr = json.films;
-                // convert each item
                 const results = arr.map(kpConvert);
-                // total pages
-                const total = json.totalPages || json.pagesCount || 1;
-
-                onDone({
-                    results: results,
-                    page:    page,
-                    total_pages: total
-                });
+                const total   = json.totalPages || json.pagesCount || 1;
+                onDone({ results, page, total_pages: total });
             },
             onError
         );
     }
 
     /**
-     * Our custom Activity “kp_category” which shows items from a chosen Kinopoisk method in Lampa’s card grid.
+     * 4) Define custom activity “kp_category” using Lampa.Activity.extend()
+     *    so older Lampa versions won't throw “directive is not a function”.
      */
-    function createKpCategoryActivity(){
-        // Use standard Lampa component logic
+    Lampa.Activity.extend('kp_category', function(){
         let html, scroll, infobox;
         let state = {
-            method: '',     // e.g. “api/v2.2/films/top?type=TOP_100_POPULAR_FILMS”
+            method: '',
             title:  '',
             page:   1,
             total:  1,
-            filter: {},
             lastData: []
         };
 
-        return {
-            // Called once when created
-            create(){
-                this.activity.loader(true);
+        /**
+         * This “create” method is called automatically by Lampa after activity is constructed.
+         */
+        this.create = ()=>{
+            this.activity.loader(true);
 
-                html   = Lampa.Template.js('list');  // standard card-list layout
-                scroll = new Lampa.Scroll({ mask: true, over: true });
-                scroll.render().addClass('layer--wheight');
-                infobox= Lampa.Template.js('list_info');
+            // standard list template
+            html    = Lampa.Template.js('list');
+            scroll  = new Lampa.Scroll({ mask:true, over:true });
+            scroll.render().addClass('layer--wheight');
+            infobox = Lampa.Template.js('list_info');
 
-                // Put info top
-                html.find('.list__sort').append(infobox);
+            html.find('.list__sort').append(infobox);
 
-                // Wait for method, then load data
-                this.load();
-            },
-
-            // Called from outside to pass {url, title, page} etc
-            start(params){
-                // e.g. params.url= 'api/v2.2/films/top?type=TOP_250_BEST_FILMS'
-                state.method = params.url || '';
-                state.title  = params.title || 'Kinopoisk';
-                state.page   = params.page || 1;
-                this.activity.poster = '';  // no poster for the list
-            },
-
-            load(){
-                loadKpCategory(
-                    state.method, 
-                    state.page,
-                    (data)=>{
-                        state.total = data.total_pages;
-                        state.lastData = data.results;
-
-                        // build card items
-                        this.build(data.results);
-                    },
-                    (err)=>{
-                        this.empty();
-                    }
-                );
-            },
-
-            build(items){
-                this.activity.loader(false);
-
-                if(!items.length){
+            // do loading
+            loadKpCategory(
+                state.method,
+                state.page,
+                (data)=>{
+                    state.total = data.total_pages;
+                    state.lastData = data.results;
+                    this.build(data.results);
+                },
+                (err)=>{
                     this.empty();
-                    return;
                 }
-
-                items.forEach(elem=>{
-                    let card = Lampa.Template.js('card', { 
-                        title: elem.title, 
-                        release_year: (elem.release_date || '').slice(0,4),
-                        vote_average: elem.vote_average 
-                    });
-
-                    card.find('.card__img').attr('src', elem.poster || './img/img_broken.svg');
-                    card.on('hover:focus',(evt)=>{
-                        // focus
-                        scroll.update(card);
-                    });
-                    card.on('hover:enter',(evt)=>{
-                        // open item details
-                        Lampa.Modal.open({
-                            title: elem.title,
-                            html: Lampa.Template.js('about',{ text:elem.overview || '—'}),
-                            size: 'medium',
-                            onBack:()=>{
-                                Lampa.Modal.close();
-                                Lampa.Controller.toggle('content');
-                            }
-                        });
-                    });
-
-                    scroll.append(card);
-                });
-
-                html.find('.list__body').empty().append(scroll.render());
-                this.activity.toggle();
-            },
-
-            empty(){
-                let empty = Lampa.Template.js('list_empty');
-                html.find('.list__body').empty().append(empty);
-                this.activity.toggle();
-            },
-
-            // handle “back” or other
-            back(){
-                Lampa.Activity.backward();
-            },
-
-            render(){
-                return html;
-            },
-
-            pause(){},
-            resume(){},
-            destroy(){
-                scroll.destroy();
-                html.remove();
-                infobox.remove();
-            }
+            );
         };
-    }
 
-    // Register our custom “kp_category” as an Activity factory
-    Lampa.Activity.directive('kp_category', createKpCategoryActivity);
+        /**
+         * “start” is called automatically, with the same “params” that were used in Activity.push
+         * e.g. { url:..., title:..., page:1, component:'kp_category' }
+         */
+        this.start = (params)=>{
+            state.method = params.url || '';
+            state.title  = params.title || 'Кинопоиск';
+            state.page   = params.page  || 1;
+            this.activity.poster = ''; // no poster
+        };
+
+        this.build = (items)=>{
+            this.activity.loader(false);
+
+            if(!items || !items.length){
+                this.empty();
+                return;
+            }
+
+            items.forEach(elem=>{
+                let card = Lampa.Template.js('card', {
+                    title: elem.title,
+                    release_year: (elem.release_date || '').slice(0,4),
+                    vote_average: elem.vote_average
+                });
+                card.find('.card__img').attr('src', elem.poster || './img/img_broken.svg');
+                card.on('hover:focus', ()=>{
+                    scroll.update(card);
+                });
+                card.on('hover:enter', ()=>{
+                    // open modal or do something
+                    Lampa.Modal.open({
+                        title: elem.title,
+                        html:  Lampa.Template.js('about', { text: elem.overview || '—' }),
+                        size:  'medium',
+                        onBack:()=>{
+                            Lampa.Modal.close();
+                            Lampa.Controller.toggle('content');
+                        }
+                    });
+                });
+                scroll.append(card);
+            });
+
+            html.find('.list__body').empty().append(scroll.render());
+            this.activity.toggle();
+        };
+
+        this.empty = ()=>{
+            let empty = Lampa.Template.js('list_empty');
+            html.find('.list__body').empty().append(empty);
+            this.activity.toggle();
+        };
+
+        /**
+         * “render” must return the main HTML of the activity
+         */
+        this.render = ()=>{
+            return html;
+        };
+
+        this.pause = ()=>{};
+        this.resume= ()=>{};
+
+        /**
+         * “back” is called when user presses back
+         */
+        this.back = ()=>{
+            Lampa.Activity.backward();
+        };
+
+        /**
+         * “destroy” is called when activity is destroyed
+         */
+        this.destroy = ()=>{
+            scroll.destroy();
+            html.remove();
+            infobox.remove();
+        };
+    });
 
     /**
-     * Show a custom menu of categories with large icons, then open the “kp_category” activity.
-     * You can style the HTML or add more categories as you like.
+     * 5) Show categories in a Lampa.Select
      */
     function openKpCategoriesMenu(){
-        // We create an Activity with big clickable icons, or you can do a simpler Lampa.Select
-        // Here is a simple approach with Lampa.Select, each item -> onSelect => push “kp_category”
-
         Lampa.Select.show({
             title: 'Кинопоиск',
             items: [
-                {
-                    title: 'Популярные Фильмы',
-                    url:   'api/v2.2/films/top?type=TOP_100_POPULAR_FILMS'
-                },
-                {
-                    title: 'Топ Фильмы',
-                    url:   'api/v2.2/films/top?type=TOP_250_BEST_FILMS'
-                },
-                {
-                    title: 'Популярные российские фильмы',
-                    url:   'api/v2.2/films?order=NUM_VOTE&countries=34&type=FILM'
-                },
-                {
-                    title: 'Популярные российские сериалы',
-                    url:   'api/v2.2/films?order=NUM_VOTE&countries=34&type=TV_SERIES'
-                },
-                {
-                    title: 'Популярные Сериалы',
-                    url:   'api/v2.2/films?order=NUM_VOTE&type=TV_SERIES'
-                },
-                {
-                    title: 'Популярные Телешоу',
-                    url:   'api/v2.2/films?order=NUM_VOTE&type=TV_SHOW'
-                }
+                { title:'Популярные Фильмы',  url:'api/v2.2/films/top?type=TOP_100_POPULAR_FILMS' },
+                { title:'Топ Фильмы',         url:'api/v2.2/films/top?type=TOP_250_BEST_FILMS' },
+                { title:'Популярные российские фильмы',  url:'api/v2.2/films?order=NUM_VOTE&countries=34&type=FILM' },
+                { title:'Популярные российские сериалы', url:'api/v2.2/films?order=NUM_VOTE&countries=34&type=TV_SERIES' },
+                { title:'Популярные Сериалы', url:'api/v2.2/films?order=NUM_VOTE&type=TV_SERIES' },
+                { title:'Популярные Телешоу', url:'api/v2.2/films?order=NUM_VOTE&type=TV_SHOW' }
             ],
             onSelect: (item)=>{
+                // push activity
                 Lampa.Activity.push({
-                    url:     item.url,
-                    title:   item.title,
-                    page:    1,
-                    component: 'kp_category'  // our custom
+                    url:   item.url,
+                    title: item.title,
+                    page:  1,
+                    component: 'kp_category'
                 });
             },
             onBack: ()=>{
@@ -284,7 +235,7 @@
     }
 
     /**
-     * Add a button “Кинопоиск” to Lampa’s main menu after the “TV” item.
+     * 6) Add “Кинопоиск” button to the main menu
      */
     function addMenuButton(){
         const iconKP = `
@@ -322,6 +273,7 @@
             </g>
           </svg>
         `;
+
         const ITEM_TV_SELECTOR = '[data-action="tv"]';
         const menu = Lampa.Menu.render();
         const newItem = $(`
@@ -338,7 +290,7 @@
         menu.find(ITEM_TV_SELECTOR).after(newItem);
     }
 
-    // If app is already ready, just do it; else wait
+    // 7) Wait for app to be ready, then add button
     if(window.appready){
         addMenuButton();
     }
