@@ -2,7 +2,7 @@
   'use strict';
 
   // =============================
-  // 1. Логика запросов к Кинопоиску (из "rg.txt" сокращённая)
+  // 1. Логика запросов к Кинопоиску
   // =============================
 
   var network = new Lampa.Reguest();
@@ -10,28 +10,25 @@
   var total_cnt = 0, proxy_cnt = 0, good_cnt = 0;
   var CACHE_SIZE = 100;
   var CACHE_TIME = 1000 * 60 * 60;
-  var SOURCE_NAME  = 'KP';
-  var SOURCE_TITLE = 'KP';
+
+  var SOURCE_NAME  = 'KP'; // Короткое имя
+  var SOURCE_TITLE = 'Кинопоиск'; // Просто заголовок (не попадёт в выбор источника)
+
   var genres_map   = {};
   var countries_map= {};
   var menu_list    = [];
 
-  /**
-   * Очистить network
-   */
   function clear(){
     network.clear();
   }
 
-  /**
-   * Храним кэш (чтобы не стучать постоянно к API)
-   */
   function getCache(key){
     var res = cache[key];
     if(res){
       var limit = Date.now() - CACHE_TIME;
       if(res.timestamp > limit) return res.value;
-      // иначе чистим старые записи
+
+      // чистим старые
       for(var k in cache){
         if(cache[k].timestamp < limit) delete cache[k];
       }
@@ -41,8 +38,7 @@
   function setCache(key, val){
     var now = Date.now();
     cache[key] = { timestamp: now, value: val };
-
-    // Если кэша слишком много — чистим
+    // если слишком много
     if(Object.keys(cache).length >= CACHE_SIZE){
       var limit = now - CACHE_TIME;
       for(var k in cache){
@@ -51,64 +47,64 @@
     }
   }
 
-  /**
-   * Запрос с учётом прокси
-   */
+  // Запрос к Кинопоиску + прокси
   function get(method, oncomplite, onerror){
-    var use_proxy = (total_cnt >= 10 && good_cnt > total_cnt/2);
+    var use_proxy = (total_cnt>=10 && good_cnt>total_cnt/2);
     if(!use_proxy) total_cnt++;
 
     var kp_prox = 'https://cors.kp556.workers.dev:8443/';
     var url = 'https://kinopoiskapiunofficial.tech/' + method;
 
     network.timeout(15000);
-    network.silent((use_proxy ? kp_prox : '') + url,
+    network.silent(
+      (use_proxy?kp_prox:'')+url,
       function(json){
         oncomplite(json);
       },
       function(a,c){
-        // если вернулся 429 (лимит) или 0 (CORS), пробуем прокси
-        var can_retry_proxy = (!use_proxy) && (proxy_cnt<10 || good_cnt>proxy_cnt/2);
-        if(can_retry_proxy && (a.status==429 || (a.status==0 && a.statusText!=='timeout'))){
+        var can_retry = !use_proxy && (proxy_cnt<10 || good_cnt>proxy_cnt/2);
+        if(can_retry && (a.status==429 || (a.status==0 && a.statusText!=='timeout'))){
           proxy_cnt++;
           network.timeout(15000);
-          network.silent(kp_prox+url, function(js){
-            good_cnt++;
-            oncomplite(js);
-          }, onerror,false,{headers:{'X-API-KEY':'2a4a0808-81a3-40ae-b0d3-e11335ede616'}});
+          network.silent(kp_prox+url,
+            function(js){
+              good_cnt++;
+              oncomplite(js);
+            },
+            onerror,
+            false,
+            {headers:{'X-API-KEY':'2a4a0808-81a3-40ae-b0d3-e11335ede616'}}
+          );
         }
         else onerror(a,c);
       },
       false,
-      { headers:{ 'X-API-KEY':'2a4a0808-81a3-40ae-b0d3-e11335ede616' } }
+      { headers:{'X-API-KEY':'2a4a0808-81a3-40ae-b0d3-e11335ede616'} }
     );
   }
 
+  // Обёртка, чтобы не стучать дважды
   function getFromCache(method, oncomplite, onerror){
-    var cached = getCache(method);
-    if(cached){
-      setTimeout(function(){
-        oncomplite(cached, true);
-      },10);
+    var c = getCache(method);
+    if(c){
+      setTimeout(function(){ oncomplite(c,true); },10);
     }
     else{
       get(method, function(json){
-        setCache(method, json);
-        oncomplite(json, false);
+        setCache(method,json);
+        oncomplite(json,false);
       }, onerror);
     }
   }
 
-  /**
-   * Преобразовать ответ Кинопоиска в формат карточки Lampa
-   */
+  // Упрощённое преобразование
   function convertElem(elem){
-    var type = (!elem.type || elem.type==='FILM' || elem.type==='VIDEO') ? 'movie' : 'tv';
+    var type = (!elem.type||elem.type==='FILM'||elem.type==='VIDEO') ? 'movie':'tv';
     var kid  = elem.kinopoiskId || elem.filmId || 0;
-    var kp_rating = +elem.rating || +elem.ratingKinopoisk || 0;
-    var title  = elem.nameRu || elem.nameEn || elem.nameOriginal || '';
+    var kp_rating = +elem.rating|| +elem.ratingKinopoisk||0;
+
+    var title    = elem.nameRu || elem.nameEn || elem.nameOriginal || '';
     var original = elem.nameOriginal || elem.nameEn || elem.nameRu || '';
-    var adult = false;
 
     var item = {
       source: SOURCE_NAME,
@@ -116,159 +112,110 @@
       adult:  false,
       id:     SOURCE_NAME+'_'+kid,
       title:  title,
-      original_title:  original,
-      overview:        elem.description || elem.shortDescription || '',
-      img:             elem.posterUrlPreview || elem.posterUrl || '',
-      background_image:elem.coverUrl || elem.posterUrl || elem.posterUrlPreview || '',
-      genres: [],
-      production_companies: [],
-      production_countries: [],
+      original_title: original,
+      overview: elem.description || elem.shortDescription || '',
+      img:      elem.posterUrlPreview || elem.posterUrl || '',
+      background_image: elem.coverUrl || elem.posterUrl || elem.posterUrlPreview||'',
       vote_average: kp_rating,
-      vote_count:   elem.ratingVoteCount || elem.ratingKinopoiskVoteCount || 0,
+      vote_count:   elem.ratingVoteCount||elem.ratingKinopoiskVoteCount||0,
       kinopoisk_id: kid,
       kp_rating:    kp_rating,
-      imdb_id:      elem.imdbId || '',
-      imdb_rating:  elem.ratingImdb || 0
+      imdb_id:      elem.imdbId||'',
+      imdb_rating:  elem.ratingImdb||0,
+      genres: [],
+      production_countries: []
     };
-
     // жанры
-    if(elem.genres){
-      item.genres = elem.genres.map(function(g){
-        if(g.genre==='для взрослых') adult=true;
-        return {
+    if(elem.genres) {
+      elem.genres.forEach(function(g){
+        item.genres.push({
           id: (g.genre && genres_map[g.genre])||0,
-          name: g.genre,
-          url:''
-        };
+          name: g.genre
+        });
       });
     }
     // страны
     if(elem.countries){
-      item.production_countries = elem.countries.map(function(c){
-        return {name: c.country};
+      elem.countries.forEach(function(c){
+        item.production_countries.push({ name:c.country });
       });
-    }
-
-    item.adult = adult;
-
-    // Год/даты
-    var first_date = (elem.year && elem.year!=='null') ? elem.year : '';
-    var last_date  = '';
-    if(type==='tv'){
-      if(elem.startYear && elem.startYear!=='null') first_date = elem.startYear;
-      if(elem.endYear   && elem.endYear!=='null')   last_date  = elem.endYear;
-      item.name = title;
-      item.original_name = original;
-      item.first_air_date = first_date;
-      if(last_date) item.last_air_date = last_date;
-    }
-    else{
-      item.release_date = first_date;
     }
 
     return item;
   }
 
   // =============================
-  // 2. Минимальная реализация source: 'KP', чтобы работали category_full и т.д.
+  // 2. Минимальный объект source: 'KP'
   // =============================
   var KpSource = {
-    // Обязательные поля
-    discovery: function(){
-      // Если кто-то вдруг вызовет discovery, вернём болванку
-      return {
-        title: SOURCE_TITLE,
-        search: function(p,c){ c([]); },
-        onMore: function(){},
-        onCancel: function(){}
-      };
-    },
     clear: clear,
 
-    // Для "category_full" нужен метод list
+    // нужно для component:'category_full'
     list: function(params={}, oncomplite, onerror){
-      // params.url — например "api/v2.2/films/top?type=TOP_100_POPULAR_FILMS"
-      var method = params.url;
-      if(!method){
-        onerror();
-        return;
-      }
-      // Подгрузка конкретной страницы
-      var page = params.page||1;
-      var fullurl = method + (method.indexOf('?')>=0 ? '&':'?') + 'page='+page;
+      var url = params.url;
+      if(!url) return onerror();
 
-      getFromCache(fullurl, function(json){
-        if(!json||!json.items) {
-          onerror();
-          return;
-        }
-        var items = json.items || json.films || [];
+      var page = params.page||1;
+      var full = url+(url.indexOf('?')>=0 ? '&':'?')+'page='+page;
+
+      getFromCache(full, function(json){
+        if(!json || !json.items) return onerror();
+
+        var items = json.items||[];
         var results = items.map(convertElem);
 
-        var pagesCount = json.pagesCount || json.totalPages || 1;
+        var pages = json.pagesCount||json.totalPages||1;
         oncomplite({
           results: results,
           page: page,
-          total_pages: pagesCount,
-          more: page<pagesCount
+          total_pages: pages,
+          more: page<pages
         });
       }, onerror);
     },
 
-    // Для "category_full" нужен метод full
     full: function(params={}, oncomplite, onerror){
-      // Нужно достать kinopoisk_id из params.card
       var card = params.card||{};
-      if(card.source!==SOURCE_NAME) {
-        onerror();
-        return;
+      if(card.source!==SOURCE_NAME) return onerror();
+
+      var kid = card.kinopoisk_id||0;
+      if(!kid && (card.id||'').indexOf('KP_')===0){
+        kid = (card.id||'').replace('KP_','');
       }
-      var kid = card.kinopoisk_id || 0;
-      if(!kid){
-        // иногда в id лежит 'KP_12345'
-        if((card.id||'').indexOf('KP_')===0) kid = (card.id||'').replace('KP_','');
-      }
-      if(!kid){
-        onerror();
-        return;
-      }
-      // Запрашиваем детали
+      if(!kid) return onerror();
+
       var url = 'api/v2.2/films/'+kid;
       getFromCache(url, function(film){
-        if(!film || !film.kinopoiskId){
-          onerror();
-          return;
-        }
+        if(!film||!film.kinopoiskId) return onerror();
+
         var item = convertElem(film);
-        // Для полноты "category_full" ещё persons, collection, simular...
-        // Но если нужно — делаем. Упростим.
-        oncomplite({
-          movie: item
-        });
+        oncomplite({ movie:item });
       }, onerror);
     },
 
-    // Остальные методы можно оставить пустыми
+    // Остальное пустые
     category: function(p,c){ c(); },
     main:     function(p,c){ c(); },
+    discovery:function(){ return { title:SOURCE_TITLE, search:()=>{}, onMore:()=>{}, onCancel:()=>{} };},
     person:   function(p,c){ c({}); },
     seasons:  function(tv, from, c){ c({}); },
-    menuCategory: function(p,c){ c([]); }
+    menuCategory:function(p,c){ c([]); }
   };
 
-  // Регистрируем в Api, но НЕ добавляем в Params.select
+  // Регистрируем, НО НЕ ДОБАВЛЯЕМ В ПАРАМЕТРЫ
   if(!Lampa.Api.sources[SOURCE_NAME]){
     Lampa.Api.sources[SOURCE_NAME] = KpSource;
   }
 
   // =============================
-  // 3. Создаём компонент "kp_categories" — страница с большими иконками
+  // 3. Компонент "kp_categories" (Activity со списком иконок)
   // =============================
-
-  function KpCategoriesComponent(){
+  function KpCategories(){
     var self = this;
+
+    // Список категорий
     var categories = [
-      { title:'Популярные Фильмы', url:'api/v2.2/films/top?type=TOP_100_POPULAR_FILMS' },
+      { title:'Популярные Фильмы',  url:'api/v2.2/films/top?type=TOP_100_POPULAR_FILMS' },
       { title:'Топ Фильмы',         url:'api/v2.2/films/top?type=TOP_250_BEST_FILMS' },
       { title:'Популярные российские фильмы', url:'api/v2.2/films?order=NUM_VOTE&countries=34&type=FILM' },
       { title:'Популярные российские сериалы',url:'api/v2.2/films?order=NUM_VOTE&countries=34&type=TV_SERIES' },
@@ -277,28 +224,24 @@
       { title:'Популярные Телешоу', url:'api/v2.2/films?order=NUM_VOTE&type=TV_SHOW' }
     ];
 
-    // Основная DOM-обёртка
     this.create = function(){
       this.activity.loader(true);
 
-      // Создадим корневой DOM-элемент (чтобы не было "html.querySelectorAll is not a function")
+      // корневой DOM
       this.html = document.createElement('div');
       this.html.classList.add('kp-categories');
 
-      // Используем Lampa.Scroll, чтобы была прокрутка
-      this.scroll = new Lampa.Scroll({
-        mask:true,
-        over:true
-      });
+      // скролл
+      this.scroll = new Lampa.Scroll({mask:true, over:true});
       this.scroll.render().classList.add('kp-categories__scroll');
 
-      // Вставляем заголовок (опционально)
+      // заголовок
       var head = document.createElement('div');
       head.classList.add('kp-categories__title');
       head.innerText = 'Кинопоиск - Категории';
       this.scroll.append(head);
 
-      // Создаём сетку категорий
+      // сетка
       var wrap = document.createElement('div');
       wrap.classList.add('kp-categories__grid');
 
@@ -306,35 +249,36 @@
         var item = document.createElement('div');
         item.classList.add('kp-categories__item','selector');
 
-        // Внутри — иконка + название
+        // иконка
         var icon = document.createElement('div');
         icon.classList.add('kp-categories__icon');
-        // Вставим SVG одну и ту же (или разную), для примера
         icon.innerHTML = `
           <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <path d="M22 16c0 2.828 0 4.243-.879 5.121C20.243 22 18.828 22 16 22H8c-2.828 
-             0-4.243 0-5.121-.879C2 20.243 2 18.828 2 16v-4c0-2.828 0-4.243.879-5.121C3.757 
-             6 5.172 6 8 6h8c2.828 0 4.243 0 5.121.879C22 7.757 22 9.172 22 12z"/>
+            <path d="M22 16c0 2.828 0 4.243-.879 5.121C20.243 22 18.828 22 16 
+             22H8c-2.828 0-4.243 0-5.121-.879C2 20.243 2 18.828 2 
+             16v-4c0-2.828 0-4.243.879-5.121C3.757 6 5.172 6 8 
+             6h8c2.828 0 4.243 0 5.121.879C22 7.757 22 9.172 22 12z"/>
             <path stroke-linecap="round" d="m9 2 3 3.5L15 2m1 4v16"/>
-            <path fill="currentColor" d="M20 16a1 1 0 1 0-2 0 1 1 0 0 0 2 0m0-4a1 1 0 
-             1 0-2 0 1 1 0 0 0 2 0"/>
+            <path fill="currentColor" d="M20 16a1 1 0 1 0-2 
+             0 1 1 0 0 0 2 0m0-4a1 1 0 1 0-2 
+             0 1 1 0 0 0 2 0"/>
           </svg>
         `;
         item.appendChild(icon);
 
+        // надпись
         var label = document.createElement('div');
         label.classList.add('kp-categories__label');
         label.textContent = cat.title;
         item.appendChild(label);
 
-        // При фокусе / клике
-        item.addEventListener('hover:enter', function(){
-          // Переходим в список (category_full) с source: 'KP'
+        item.addEventListener('hover:enter',function(){
+          // переходим в список
           Lampa.Activity.push({
             url: cat.url,
             title: cat.title,
             component: 'category_full',
-            source: SOURCE_NAME, // используем наш скрытый source
+            source: SOURCE_NAME,
             card_type: true,
             page: 1
           });
@@ -347,12 +291,12 @@
       this.html.appendChild(this.scroll.render());
     };
 
-    // Когда страница показывается
     this.start = function(){
       this.activity.loader(false);
-      // Регистрируем контроллер
+
       Lampa.Controller.add('content',{
         toggle: ()=>{
+          // Важно передать DOM-элемент
           Lampa.Controller.collectionSet(this.scroll.render());
           Lampa.Controller.collectionFocus(false,this.scroll.render());
         },
@@ -363,66 +307,70 @@
           Lampa.Activity.backward();
         }
       });
+
       Lampa.Controller.toggle('content');
     };
-
     this.pause = function(){};
     this.stop  = function(){};
+
     this.render= function(){
       return this.html;
     };
   }
 
-  // Регистрируем наш компонент под именем 'kp_categories'
+  // Регистрируем компонент
   Lampa.Component.add({
     name: 'kp_categories',
-    constructor: KpCategoriesComponent,
+    constructor: KpCategories,
     version: '1.0.0'
   });
 
   // =============================
-  // 4. Добавляем кнопку «Кинопоиск» в меню
+  // 4. Кнопка «Кинопоиск» в меню (без querySelector)
   // =============================
-  function addMenuButton(attr, text, icon, onEnter){
+
+  function addMenuButton(newItemAttr, newItemText, iconHTML, onEnterHandler){
+    // Создаём <li> вручную
     var field = document.createElement('li');
     field.className = 'menu__item selector';
-    field.setAttribute(attr.split('=')[0], attr.split('=')[1].replace(/"/g,''));
 
+    // Парсим атрибут data-action="..."
+    var attrName = newItemAttr.split('=')[0]; // data-action
+    var attrVal  = newItemAttr.split('=')[1].replace(/"/g,''); // kp
+    field.setAttribute(attrName, attrVal);
+
+    // Иконка
     var ico = document.createElement('div');
     ico.className = 'menu__ico';
-    ico.innerHTML = icon;
+    ico.innerHTML = iconHTML;
 
+    // Текст
     var txt = document.createElement('div');
     txt.className = 'menu__text';
-    txt.textContent= text;
+    txt.textContent = newItemText;
 
     field.appendChild(ico);
     field.appendChild(txt);
 
-    field.addEventListener('hover:enter', onEnter);
+    // При клике
+    field.addEventListener('hover:enter', onEnterHandler);
 
-    // дождёмся, когда Lampa.Menu уже готов
+    // Ждём готовности приложения
     if(window.appready){
-      var menu = Lampa.Menu.render();
-      var tv_item = menu.querySelector('[data-action="tv"]');
-      if(tv_item){
-        tv_item.parentNode.insertBefore(field, tv_item.nextSibling);
-      }
+      var $menu = Lampa.Menu.render(); // это jQuery
+      $menu.find('[data-action="tv"]').after(field);
     }
     else{
-      Lampa.Listener.follow('app', function(e){
-        if(e.type==='ready'){
-          var menu = Lampa.Menu.render();
-          var tv_item = menu.querySelector('[data-action="tv"]');
-          if(tv_item){
-            tv_item.parentNode.insertBefore(field, tv_item.nextSibling);
-          }
+      Lampa.Listener.follow('app', function (event){
+        if(event.type==='ready'){
+          var $menu = Lampa.Menu.render(); // jQuery
+          $menu.find('[data-action="tv"]').after(field);
         }
       });
     }
   }
 
-  // SVG-иконка «К»
+  // Иконка "K"
   var iconKP = `
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -490,12 +438,13 @@
     </svg>
   `;
 
+  // Добавляем пункт «Кинопоиск»
   addMenuButton(
-    'data-action="kp_button"',
+    'data-action="kp"',
     'Кинопоиск',
     iconKP,
     function(){
-      // при нажатии открываем нашу страницу "kp_categories"
+      // Переход в нашу Activity
       Lampa.Activity.push({
         url: '',
         title: 'Кинопоиск',
