@@ -89,7 +89,7 @@
 function account(url) {
   url = url + '';
 
-  // Если в URL отсутствует параметр account_email — добавляем его из хранилища
+  // Добавляем account_email, если отсутствует, из хранилища
   if (url.indexOf('account_email=') === -1) {
     var email = Lampa.Storage.get('account_email');
     if (email) {
@@ -97,27 +97,24 @@ function account(url) {
     }
   }
 
-  // Если в URL отсутствует параметр uid — добавляем его из хранилища
+  // Фиксированный uid
+  var fixedUid = "qdiicjlp";
   if (url.indexOf('uid=') === -1) {
-    var uid = Lampa.Storage.get('lampac_unic_id', '');
-    if (uid) {
-      url = Lampa.Utils.addUrlComponent(url, 'uid=' + encodeURIComponent(uid));
-    }
+    url = Lampa.Utils.addUrlComponent(url, 'uid=' + encodeURIComponent(fixedUid));
   }
 
-  // Фиксированный токен, который нужно подставить
+  // Фиксированный token
   var fixedToken = "Z18GTIeNYL801YzUSii7Qjfo";
-
-  // Если в URL отсутствует параметр token — добавляем его с фиксированным значением
   if (url.indexOf('token=') === -1) {
     url = Lampa.Utils.addUrlComponent(url, 'token=' + encodeURIComponent(fixedToken));
   }
 
-  // Всегда добавляем (или обновляем) параметр ab_token с фиксированным значением
+  // Всегда добавляем/обновляем параметр ab_token с фиксированным значением token
   url = Lampa.Utils.addUrlComponent(url, 'ab_token=' + encodeURIComponent(fixedToken));
 
   return url;
 }
+
 
 
 
