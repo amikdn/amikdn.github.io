@@ -1534,7 +1534,7 @@
         });
       }
     };
-    Lampa.Manifest.plugins = [manifst];
+    Lampa.Manifest.plugins = manifst;
     Lampa.Lang.add({
       lampac_watch: {
         ru: 'Онлайн 4am1k',
