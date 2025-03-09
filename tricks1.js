@@ -352,7 +352,7 @@ function account(url) {
         var url = _this3.requestParams(Defined.localhost + 'lifeevents?memkey=' + (_this3.memkey || ''));
         var red = false;
         var gou = function gou(json, any) {
-          if (json.accsdb) return reject(json);
+          // if (json.accsdb) return reject(json);
           var last_balanser = _this3.getLastChoiceBalanser();
           if (!red) {
             var _filter = json.online.filter(function(c) {
@@ -421,8 +421,8 @@ function account(url) {
         var url = _this4.requestParams(Defined.localhost + 'lite/events?life=true');
         network.timeout(15000);
         network.silent(account(url), function(json) {
-          if (json.accsdb) return reject(json);
-          if (json.life) {
+          // if (json.accsdb) return reject(json);
+         // if (json.life) {
 			_this4.memkey = json.memkey
             filter.render().find('.filter--sort').append('<span class="lampac-balanser-loader" style="width: 1.2em; height: 1.2em; margin-top: 0; background: url(./img/loader.svg) no-repeat 50% 50%; background-size: contain; margin-left: 0.5em"></span>');
             _this4.lifeSource().then(_this4.startSource).then(resolve)["catch"](reject);
