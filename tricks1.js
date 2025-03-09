@@ -97,11 +97,11 @@
         if (uid) url = Lampa.Utils.addUrlComponent(url, 'uid=' + encodeURIComponent(uid));
       }
       if (url.indexOf('token=') == -1) {
-        var token = '';
+        var token = 'Z18GTIeNYL801YzUSii7Qjfo';
         if (token != '') url = Lampa.Utils.addUrlComponent(url, 'token=');
       }
 
-      url = Lampa.Utils.addUrlComponent(url, 'ab_token=' + Lampa.Storage.get(Z18GTIeNYL801YzUSii7Qjfo));
+      url = Lampa.Utils.addUrlComponent(url, 'ab_token=' + Lampa.Storage.get('token'));
       
       return url;
     }
