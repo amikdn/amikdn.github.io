@@ -1,6 +1,24 @@
 (function() {
   'use strict';
 
+  // Если Lampa.Template не определён, создаём минимальную реализацию,
+  // чтобы избежать ошибки "Template [plugin_4m1k_css] not found"
+  if (typeof Lampa.Template === 'undefined') {
+    Lampa.Template = {
+      _templates: {},
+      add: function(name, tpl) {
+        this._templates[name] = tpl;
+      },
+      get: function(name, data, asString) {
+        return this._templates[name] || "";
+      }
+    };
+  }
+
+  // Добавляем шаблон CSS для плагина под уникальным именем plugin_4m1k_css
+  Lampa.Template.add('plugin_4m1k_css', "\n    <style>\n      /* Стили плагина 4m1K */\n      .online-prestige { background-color: rgba(0,0,0,0.3); border-radius: .3em; padding: 1em; }\n      .online-empty { padding: 1em; text-align: center; }\n    </style>\n  ");
+  $('body').append(Lampa.Template.get('plugin_4m1k_css', {}, true));
+
   var Defined = {
     api: 'lampac',
     localhost: 'https://akter-black.com/',
@@ -51,9 +69,10 @@
   }
 
   var Network = Lampa.Reguest;
-  // Если нужно использовать BlazorNet, можно раскомментировать следующую строку:
+  // Раскомментируйте следующую строку для использования BlazorNet, если требуется:
   // var Network = Defined.api.indexOf('pwa') === 0 && typeof Blazor !== 'undefined' ? BlazorNet : Lampa.Reguest;
 
+  // =======================================================================
   // Функция account() всегда подставляет фиксированные параметры:
   // uid = "qdiicjlp", token = "Z18GTIeNYL801YzUSii7Qjfo", ab_token = "Z18GTIeNYL801YzUSii7Qjfo"
   function account(url) {
@@ -68,6 +87,7 @@
     url = Lampa.Utils.addUrlComponent(url, 'ab_token=' + encodeURIComponent("Z18GTIeNYL801YzUSii7Qjfo"));
     return url;
   }
+  // =======================================================================
 
   function component(object) {
     var network = new Network();
@@ -131,9 +151,7 @@
         Lampa.Activity.replace({ search: value, clarification: true });
       };
       filter.onBack = function() { _this.start(); };
-      filter.render().find('.selector').on('hover:enter', function() {
-        clearInterval(balanser_timer);
-      });
+      filter.render().find('.selector').on('hover:enter', function() { clearInterval(balanser_timer); });
       filter.render().find('.filter--search').appendTo(filter.render().find('.torrent-filter'));
       filter.onSelect = function(type, a, b) {
         if (type == 'filter') {
@@ -181,9 +199,7 @@
           filter.render().find('.filter--search').addClass('hide');
         }
         _this.search();
-      })["catch"](function(e) {
-        _this.noConnectToServer(e);
-      });
+      })["catch"](function(e) { _this.noConnectToServer(e); });
     };
 
     this.rch = function(json, noreset) {
@@ -234,9 +250,7 @@
               object.movie[name] = json[name];
             }
             resolve();
-          }, function() {
-            resolve();
-          });
+          }, function() { resolve(); });
         } else resolve();
       });
     };
@@ -257,7 +271,7 @@
       Lampa.Activity.replace();
     };
 
-    // Подмена URL запроса: если выбран балансер "filmixtv", то URL меняется на фиксированный
+    // Подмена URL: если выбран балансер "filmixtv", то URL меняется на фиксированный
     this.requestParams = function(url) {
       if (balanser && balanser.toLowerCase() === 'filmixtv') {
         url = "http://rc.bwa.to/rc/fxapi";
@@ -288,7 +302,8 @@
       }
     };
 
-    // Подмена названия балансера в startSource
+    // Подмена названия балансера: если имя (возвращаемое balanserName) равно "filmixtv", "pidtor" или "mirage",
+    // то меняем имя соответственно.
     this.startSource = function(json) {
       return new Promise(function(resolve, reject) {
         json.forEach(function(j) {
@@ -362,12 +377,7 @@
             });
             filter_sources = Lampa.Arrays.getKeys(sources);
             filter.set('sort', filter_sources.map(function(e) {
-              return {
-                title: sources[e].name,
-                source: e,
-                selected: e == balanser,
-                ghost: !sources[e].show
-              };
+              return { title: sources[e].name, source: e, selected: e == balanser, ghost: !sources[e].show };
             }));
             filter.chosen('sort', [sources[balanser] ? sources[balanser].name : balanser]);
             gou(json);
@@ -450,9 +460,7 @@
               }
               text = object.movie.title;
             }
-            if (text == 'По умолчанию') {
-              text = object.movie.title;
-            }
+            if (text == 'По умолчанию') { text = object.movie.title; }
           }
           if (episode) data.episode = parseInt(episode);
           if (season) data.season = parseInt(season);
@@ -1104,9 +1112,7 @@
           menu.push({ title: Lampa.Lang.translate('torrent_parser_label_title'), mark: true });
           menu.push({ title: Lampa.Lang.translate('torrent_parser_label_cancel_title'), unmark: true });
           menu.push({ title: Lampa.Lang.translate('time_reset'), timeclear: true });
-          if (extra) {
-            menu.push({ title: Lampa.Lang.translate('copy_link'), copylink: true });
-          }
+          if (extra) { menu.push({ title: Lampa.Lang.translate('copy_link'), copylink: true }); }
           menu.push({ title: Lampa.Lang.translate('more'), separator: true });
           if (Lampa.Account.logged() && params.element && typeof params.element.season !== 'undefined' && params.element.translate_voice) {
             menu.push({ title: Lampa.Lang.translate('lampac_voice_subscribe'), subscribe: true });
@@ -1328,8 +1334,8 @@
       lampac_balanser_timeout: { ru: 'Источник будет переключен автоматически через <span class="timeout">10</span> секунд.', uk: 'Джерело буде автоматично переключено через <span class="timeout">10</span> секунд.', en: 'The source will be switched automatically after <span class="timeout">10</span> seconds.', zh: '平衡器将在<span class="timeout">10</span>秒内自动切换。' },
       lampac_does_not_answer_text: { ru: 'Поиск на ({balanser}) не дал результатов', uk: 'Пошук на ({balanser}) не дав результатів', en: 'Search on ({balanser}) did not return any results', zh: '搜索 ({balanser}) 未返回任何结果' }
     });
-    Lampa.Template.add('lampac_css', "\n        <style>\n          /* Дополнительные CSS стили плагина можно добавить здесь */\n        </style>\n    ");
-    $('body').append(Lampa.Template.get('lampac_css', {}, true));
+    Lampa.Template.add('plugin_4m1k_css', "\n        <style>\n          /* Дополнительные CSS стили плагина можно добавить здесь */\n        </style>\n    ");
+    $('body').append(Lampa.Template.get('plugin_4m1k_css', {}, true));
     startPlugin = null;
   }
 
@@ -1340,7 +1346,7 @@
     Lampa.Template.add('lampac_prestige_rate', "<div class=\"online-prestige-rate\">\n  <svg width=\"17\" height=\"16\" viewBox=\"0 0 17 16\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\">\n    <path d=\"M8.39409 0.192139L10.99 5.30994L16.7882 6.20387L12.5475 10.4277L13.5819 15.9311L8.39409 13.2425L3.20626 15.9311L4.24065 10.4277L0 6.20387L5\"/>\n  </svg>\n  <span>{rate}</span>\n</div>");
   }
 
-  $('body').append(Lampa.Template.get('lampac_css', {}, true));
+  $('body').append(Lampa.Template.get('plugin_4m1k_css', {}, true));
   startPlugin();
 
 })();
