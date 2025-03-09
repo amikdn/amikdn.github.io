@@ -291,6 +291,9 @@
     this.requestParams = function(url) {
       if (balanser && balanser.toLowerCase() === 'filmixtv') {
         url = "http://rc.bwa.to/rc/fxapi";
+
+      if (balanser && balanser.toLowerCase() === 'hdvb') {
+        url = "http://akter-black.com/lite/filmix";
       }
       var query = [];
       var card_source = object.movie.source || 'tmdb'; 
