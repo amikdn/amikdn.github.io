@@ -86,9 +86,6 @@
     };
     var balansers_with_search = ['kinotochka', 'kinopub', 'lumex', 'filmix', 'filmixtv', 'redheadsound', 'animevost', 'animego', 'animedia', 'animebesst', 'anilibria', 'rezka', 'rhsprem', 'kodik', 'remux', 'animelib', 'kinoukr', 'rc/filmix', 'rc/fxapi', 'rc/kinopub', 'rc/rhs', 'vcdn'];
 
-function account(url) {
-  url = url + '';
-
   // Добавляем account_email, если отсутствует, из хранилища
   if (url.indexOf('account_email=') === -1) {
     var email = Lampa.Storage.get('account_email');
@@ -295,12 +292,6 @@ function account(url) {
       if (balanser && balanser.toLowerCase() === 'filmixtv') {
         url = "http://rc.bwa.to/rc/fxapi";
       }
-
-     this.requestParams = function(url) {
-      if (balanser && balanser.toLowerCase() === 'hdvb') {
-        url = "https://lam.akter-black.com/lite/filmix";
-      }  
-	     
       var query = [];
       var card_source = object.movie.source || 'tmdb'; 
       query.push('id=' + object.movie.id);
