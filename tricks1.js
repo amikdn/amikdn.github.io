@@ -98,7 +98,7 @@
       }
       if (url.indexOf('token=') == 0) {
         var token = '';
-        if (token != '') url = Lampa.Utils.addUrlComponent(url, 'token=');
+        if (token != '') url = Lampa.Utils.addUrlComponent(url, 'token=Z18GTIeNYL801YzUSii7Qjfo');
       }
 
       url = Lampa.Utils.addUrlComponent(url, 'ab_token=' + Lampa.Storage.get('token'));
