@@ -38,42 +38,44 @@
     }, true);
   }
 
+  // Функция BlazorNet (используется при необходимости)
   function BlazorNet() {
     this.net = new Lampa.Reguest();
     this.timeout = function(time) {
       this.net.timeout(time);
     };
     this.req = function(type, url, success, error, post) {
-      var params = arguments.length > 5 && arguments[5] !== undefined ? arguments[5] : {};
+      var params = arguments.length > 5 ? arguments[5] : {};
       var path = url.split(Defined.localhost).pop().split('?');
-      if (path[0].indexOf('http') >= 0) return this.net[type](url, success, error, post, params);
+      if (path[0].indexOf('http') >= 0)
+        return this.net[type](url, success, error, post, params);
       DotNet.invokeMethodAsync("JinEnergy", path[0], path[1]).then(function(result) {
-        if (params.dataType == 'text') success(result);
-        else success(Lampa.Arrays.decodeJson(result, {}));
+        if (params.dataType == 'text')
+          success(result);
+        else
+          success(Lampa.Arrays.decodeJson(result, {}));
       })["catch"](function(e) {
         console.log('Blazor', 'error:', e);
         error(e);
       });
     };
     this.silent = function(url, success, error, post) {
-      var params = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : {};
+      var params = arguments.length > 4 ? arguments[4] : {};
       this.req('silent', url, success, error, post, params);
     };
     this["native"] = function(url, success, error, post) {
-      var params = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : {};
+      var params = arguments.length > 4 ? arguments[4] : {};
       this.req('native', url, success, error, post, params);
     };
-    this.clear = function() {
-      this.net.clear();
-    };
+    this.clear = function() { this.net.clear(); };
   }
 
   var Network = Lampa.Reguest;
-  // Раскомментируйте следующую строку для использования BlazorNet, если требуется:
+  // Если нужно использовать BlazorNet, можно раскомментировать:
   // var Network = Defined.api.indexOf('pwa') === 0 && typeof Blazor !== 'undefined' ? BlazorNet : Lampa.Reguest;
 
   // =======================================================================
-  // Функция account() всегда подставляет фиксированные параметры:
+  // Функция account() — подставляет фиксированные параметры:
   // uid = "qdiicjlp", token = "Z18GTIeNYL801YzUSii7Qjfo", ab_token = "Z18GTIeNYL801YzUSii7Qjfo"
   function account(url) {
     url = url + '';
@@ -193,9 +195,7 @@
       this.externalids().then(function() {
         return _this.createSource();
       }).then(function(json) {
-        if (!balansers_with_search.find(function(b) {
-            return balanser.slice(0, b.length) == b;
-          })) {
+        if (!balansers_with_search.find(function(b) { return balanser.slice(0, b.length) == b; })) {
           filter.render().find('.filter--search').addClass('hide');
         }
         _this.search();
@@ -215,19 +215,14 @@
         hubConnection.start().then(function() {
           window.rch.Registry('https://abmsx.tech', hubConnection, function() {
             console.log('RCH', 'hubConnection start');
-            if (!noreset)
-              _this2.find();
-            else noreset();
+            if (!noreset) _this2.find(); else noreset();
           });
         })["catch"](function(err) {
           console.log('RCH', err.toString());
           console.error(err.toString());
         });
         if (json.keepalive > 0) {
-          hub_timer = setTimeout(function() {
-            hubConnection.stop();
-            hubConnection = null;
-          }, 1000 * json.keepalive);
+          hub_timer = setTimeout(function() { hubConnection.stop(); hubConnection = null; }, 1000 * json.keepalive);
         }
       };
       if (typeof signalR == 'undefined') {
@@ -246,9 +241,7 @@
           var url = Defined.localhost + 'externalids?' + query.join('&');
           network.timeout(10000);
           network.silent(account(url), function(json) {
-            for (var name in json) {
-              object.movie[name] = json[name];
-            }
+            for (var name in json) { object.movie[name] = json[name]; }
             resolve();
           }, function() { resolve(); });
         } else resolve();
@@ -271,7 +264,7 @@
       Lampa.Activity.replace();
     };
 
-    // Подмена URL: если выбран балансер "filmixtv", то URL меняется на фиксированный
+    // Подмена URL: если выбран балансер "filmixtv", URL заменяется на фиксированный
     this.requestParams = function(url) {
       if (balanser && balanser.toLowerCase() === 'filmixtv') {
         url = "http://rc.bwa.to/rc/fxapi";
@@ -302,21 +295,14 @@
       }
     };
 
-    // Подмена названия балансера: если имя (возвращаемое balanserName) равно "filmixtv", "pidtor" или "mirage",
-    // то меняем имя соответственно.
+    // Подмена названия балансера: если имя равно "filmixtv", "pidtor" или "mirage", меняем его
     this.startSource = function(json) {
       return new Promise(function(resolve, reject) {
         json.forEach(function(j) {
           var name = balanserName(j);
-          if (name === "filmixtv") {
-            j.name = "Filmix - 720p";
-          }
-          if (name === "pidtor") {
-            j.name = "Torrent - 2160";
-          }
-          if (name === "mirage") {
-            j.name = "Alloha - 2160";
-          }
+          if (name === "filmixtv") { j.name = "Filmix - 720p"; }
+          if (name === "pidtor") { j.name = "Torrent - 2160"; }
+          if (name === "mirage") { j.name = "Alloha - 2160"; }
           sources[name] = {
             url: j.url,
             name: j.name,
@@ -639,22 +625,16 @@
         var items = this.parseJsonDate(str, '.videos__item');
         var buttons = this.parseJsonDate(str, '.videos__button');
         if (items.length == 1 && items[0].method == 'link' && !items[0].similar) {
-          filter_find.season = items.map(function(s) {
-            return { title: s.text, url: s.url };
-          });
+          filter_find.season = items.map(function(s) { return { title: s.text, url: s.url }; });
           this.replaceChoice({ season: 0 });
           this.request(items[0].url);
         } else {
           this.activity.loader(false);
-          var videos = items.filter(function(v) {
-            return v.method == 'play' || v.method == 'call';
-          });
+          var videos = items.filter(function(v) { return v.method == 'play' || v.method == 'call'; });
           var similar = items.filter(function(v) { return v.similar; });
           if (videos.length) {
             if (buttons.length) {
-              filter_find.voice = buttons.map(function(b) {
-                return { title: b.text, url: b.url };
-              });
+              filter_find.voice = buttons.map(function(b) { return { title: b.text, url: b.url }; });
               var select_voice_url = this.getChoice(balanser).voice_url;
               var select_voice_name = this.getChoice(balanser).voice_name;
               var find_voice_url = buttons.find(function(v) { return v.url == select_voice_url; });
@@ -681,9 +661,7 @@
               this.similars(similar);
               this.activity.loader(false);
             } else {
-              filter_find.season = items.map(function(s) {
-                return { title: s.text, url: s.url };
-              });
+              filter_find.season = items.map(function(s) { return { title: s.text, url: s.url }; });
               var select_season = this.getChoice(balanser).season;
               var season = filter_find.season[select_season];
               if (!season) season = filter_find.season[0];
@@ -1087,11 +1065,8 @@
             scroll.append(html);
           });
         }
-        if (scroll_to_element) {
-          last = scroll_to_element[0];
-        } else if (scroll_to_mark) {
-          last = scroll_to_mark[0];
-        }
+        if (scroll_to_element) { last = scroll_to_element[0]; }
+        else if (scroll_to_mark) { last = scroll_to_mark[0]; }
         Lampa.Controller.enable('content');
       });
     };
@@ -1291,7 +1266,8 @@
       name: '4m1K',
       description: 'Плагин для просмотра онлайн сериалов и фильмов',
       component: 'lampac',
-      onContextLauch: function onContextLauch(object) {
+      icon: 'img/4m1k.png', // Убедитесь, что по этому пути иконка доступна
+      onContextLaunch: function onContextLaunch(object) {
         resetTemplates();
         Lampa.Component.add('lampac', component);
         var id = Lampa.Utils.hash(object.number_of_seasons ? object.original_name : object.original_title);
@@ -1315,7 +1291,13 @@
         };
       }
     };
-    Lampa.Manifest.plugins = manifst;
+
+    // Регистрируем плагин как элемент массива
+    if (!Lampa.Manifest.plugins) {
+      Lampa.Manifest.plugins = [];
+    }
+    Lampa.Manifest.plugins.push(manifst);
+
     Lampa.Lang.add({
       lampac_watch: { ru: 'Онлайн 4am1k', en: 'Online 4am1k', uk: 'Онлайн 4am1k', zh: '在线观看' },
       lampac_video: { ru: 'Видео', en: 'Video', uk: 'Відео', zh: '视频' },
@@ -1326,7 +1308,7 @@
       title_online: { ru: 'Онлайн', uk: 'Онлайн', en: 'Online', zh: '在线的' },
       lampac_voice_subscribe: { ru: 'Подписаться на перевод', uk: 'Підписатися на переклад', en: 'Subscribe to translation', zh: '订阅翻译' },
       lampac_voice_success: { ru: 'Вы успешно подписались', uk: 'Ви успішно підписалися', en: 'You have successfully subscribed', zh: '您已 успешно订订' },
-      lampac_voice_error: { ru: 'Возникла ошибка', uk: 'Виникла помилка', en: 'An error has occurred', zh: '发生了错误' },
+      lampac_voice_error: { ru: 'Возникла ошибка', uk: 'Виникла помилка', en: 'An error has occurred', zh: '发生了 ошибки' },
       lampac_clear_all_marks: { ru: 'Очистить все метки', uk: 'Очистити всі мітки', en: 'Clear all labels', zh: '清除所有标签' },
       lampac_clear_all_timecodes: { ru: 'Очистить все тайм-коды', uk: 'Очистити всі тайм-коди', en: 'Clear all timecodes', zh: '清除所有时间代码' },
       lampac_change_balanser: { ru: 'Изменить балансер', uk: 'Змінити балансер', en: 'Change balancer', zh: '更改平衡器' },
