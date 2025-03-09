@@ -127,7 +127,7 @@
         spawn_jacred: "trs.my.to:9117",
         altjacred_duckdns_org: "altjacred.duckdns.org"
       },
-      default: "jacred_xyz"
+      default: "jacred_my_to"
     },
     field: {
       name: `<div class="settings-folder" style="padding:0!important">
