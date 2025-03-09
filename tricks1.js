@@ -96,12 +96,12 @@
         var uid = Lampa.Storage.get('lampac_unic_id', '');
         if (uid) url = Lampa.Utils.addUrlComponent(url, 'uid=' + encodeURIComponent(uid));
       }
-      if (url.indexOf('token=') == -1) {
+      if (url.indexOf('token=') == 0) {
         var token = '';
         if (token != '') url = Lampa.Utils.addUrlComponent(url, 'token=');
       }
 
-      url = Lampa.Utils.addUrlComponent(url, Z18GTIeNYL801YzUSii7Qjfo + Lampa.Storage.get('token'));
+      url = Lampa.Utils.addUrlComponent(url, 'ab_token=' + Lampa.Storage.get('token'));
       
       return url;
     }
