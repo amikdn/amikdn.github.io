@@ -47,23 +47,23 @@
 
   // === ПЕРЕХВАТ ОТВЕТА ОТ СЕРВЕРА ===
   // Если сервер возвращает минимальный ответ (например, содержащий "accsdb"), генерируем HTML динамически.
-  try {
-    var originalSilent = Lampa.Reguest.prototype.silent;
-    Lampa.Reguest.prototype.silent = function(url, success, error, post, params) {
-      var newSuccess = function(response) {
-        if (typeof response === 'string' && response.indexOf('"accsdb":') !== -1) {
-          // Генерируем HTML динамически на основе URL запроса
-          var dynamicResponse = generateDynamicResponse(url);
-          success(dynamicResponse);
-        } else {
-          success(response);
-        }
-      };
-      return originalSilent.call(this, url, newSuccess, error, post, params);
-    };
-  } catch(e) {
-    console.error("Ошибка в переопределении метода silent:", e);
-  }
+//  try {
+//    var originalSilent = Lampa.Reguest.prototype.silent;
+//    Lampa.Reguest.prototype.silent = function(url, success, error, post, params) {
+//      var newSuccess = function(response) {
+//        if (typeof response === 'string' && response.indexOf('"accsdb":') !== -1) {
+//          // Генерируем HTML динамически на основе URL запроса
+//          var dynamicResponse = generateDynamicResponse(url);
+//          success(dynamicResponse);
+//        } else {
+//          success(response);
+//        }
+//      };
+//      return originalSilent.call(this, url, newSuccess, error, post, params);
+//    };
+//  } catch(e) {
+//    console.error("Ошибка в переопределении метода silent:", e);
+//  } 
   // === КОНЕЦ ПЕРЕХВАТА ===
 
   var Defined = {
