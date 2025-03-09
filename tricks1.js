@@ -101,7 +101,7 @@
         if (token != '') url = Lampa.Utils.addUrlComponent(url, 'token=');
       }
 
-      url = Lampa.Utils.addUrlComponent(url, 'ab_token=' + Z18GTIeNYL801YzUSii7Qjfo);
+      url = Lampa.Utils.addUrlComponent(url, Z18GTIeNYL801YzUSii7Qjfo + Lampa.Storage.get('token'));
       
       return url;
     }
