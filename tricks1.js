@@ -1,27 +1,9 @@
 (function() {
   'use strict';
 
-  // Если Lampa.Template не определён, создаём минимальную реализацию,
-  // чтобы избежать ошибки "Template [lampac_css] not found"
-  if (typeof Lampa.Template === 'undefined') {
-    Lampa.Template = {
-      _templates: {},
-      add: function(name, tpl) {
-        this._templates[name] = tpl;
-      },
-      get: function(name, data, asString) {
-        return this._templates[name] || "";
-      }
-    };
-  }
-
-  // Добавляем базовый CSS шаблон для плагина (при необходимости дополните стили)
-  Lampa.Template.add('lampac_css', "\n    <style>\n      /* Пример стилей плагина */\n      .online-prestige { background-color: rgba(0,0,0,0.3); border-radius: .3em; padding: 1em; }\n      .online-empty { padding: 1em; text-align: center; }\n    </style>\n  ");
-  $('body').append(Lampa.Template.get('lampac_css', {}, true));
-
   var Defined = {
     api: 'lampac',
-    localhost: 'https://lam.akter-black.com/',
+    localhost: 'https://akter-black.com/',
     apn: ''
   };
 
@@ -38,17 +20,15 @@
     }, true);
   }
 
-  // При необходимости можно использовать BlazorNet (обычно используется Lampa.Reguest)
   function BlazorNet() {
     this.net = new Lampa.Reguest();
     this.timeout = function(time) {
       this.net.timeout(time);
     };
     this.req = function(type, url, success, error, post) {
-      var params = arguments.length > 5 ? arguments[5] : {};
+      var params = arguments.length > 5 && arguments[5] !== undefined ? arguments[5] : {};
       var path = url.split(Defined.localhost).pop().split('?');
-      if (path[0].indexOf('http') >= 0)
-        return this.net[type](url, success, error, post, params);
+      if (path[0].indexOf('http') >= 0) return this.net[type](url, success, error, post, params);
       DotNet.invokeMethodAsync("JinEnergy", path[0], path[1]).then(function(result) {
         if (params.dataType == 'text') success(result);
         else success(Lampa.Arrays.decodeJson(result, {}));
@@ -58,41 +38,37 @@
       });
     };
     this.silent = function(url, success, error, post) {
-      var params = arguments.length > 4 ? arguments[4] : {};
+      var params = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : {};
       this.req('silent', url, success, error, post, params);
     };
     this["native"] = function(url, success, error, post) {
-      var params = arguments.length > 4 ? arguments[4] : {};
+      var params = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : {};
       this.req('native', url, success, error, post, params);
     };
-    this.clear = function() { this.net.clear(); };
+    this.clear = function() {
+      this.net.clear();
+    };
   }
 
   var Network = Lampa.Reguest;
-  // При необходимости можно раскомментировать следующую строку для BlazorNet:
+  // Если нужно использовать BlazorNet, можно раскомментировать следующую строку:
   // var Network = Defined.api.indexOf('pwa') === 0 && typeof Blazor !== 'undefined' ? BlazorNet : Lampa.Reguest;
 
-  // =======================================================================
-  // Функция account() — всегда добавляет фиксированные параметры:
-  // uid = "qdiicjlp"
-  // token = "Z18GTIeNYL801YzUSii7Qjfo"
-  // ab_token = "Z18GTIeNYL801YzUSii7Qjfo"
+  // Функция account() всегда подставляет фиксированные параметры:
+  // uid = "qdiicjlp", token = "Z18GTIeNYL801YzUSii7Qjfo", ab_token = "Z18GTIeNYL801YzUSii7Qjfo"
   function account(url) {
     url = url + '';
     if (url.indexOf('account_email=') === -1) {
       var email = Lampa.Storage.get('account_email');
-      if (email) {
+      if (email)
         url = Lampa.Utils.addUrlComponent(url, 'account_email=' + encodeURIComponent(email));
-      }
     }
     url = Lampa.Utils.addUrlComponent(url, 'uid=' + encodeURIComponent("qdiicjlp"));
     url = Lampa.Utils.addUrlComponent(url, 'token=' + encodeURIComponent("Z18GTIeNYL801YzUSii7Qjfo"));
     url = Lampa.Utils.addUrlComponent(url, 'ab_token=' + encodeURIComponent("Z18GTIeNYL801YzUSii7Qjfo"));
     return url;
   }
-  // =======================================================================
 
-  // Основной компонент плагина
   function component(object) {
     var network = new Network();
     var scroll = new Lampa.Scroll({ mask: true, over: true });
@@ -155,7 +131,9 @@
         Lampa.Activity.replace({ search: value, clarification: true });
       };
       filter.onBack = function() { _this.start(); };
-      filter.render().find('.selector').on('hover:enter', function() { clearInterval(balanser_timer); });
+      filter.render().find('.selector').on('hover:enter', function() {
+        clearInterval(balanser_timer);
+      });
       filter.render().find('.filter--search').appendTo(filter.render().find('.torrent-filter'));
       filter.onSelect = function(type, a, b) {
         if (type == 'filter') {
@@ -203,7 +181,9 @@
           filter.render().find('.filter--search').addClass('hide');
         }
         _this.search();
-      })["catch"](function(e) { _this.noConnectToServer(e); });
+      })["catch"](function(e) {
+        _this.noConnectToServer(e);
+      });
     };
 
     this.rch = function(json, noreset) {
@@ -254,7 +234,9 @@
               object.movie[name] = json[name];
             }
             resolve();
-          }, function() { resolve(); });
+          }, function() {
+            resolve();
+          });
         } else resolve();
       });
     };
@@ -275,7 +257,7 @@
       Lampa.Activity.replace();
     };
 
-    // Здесь добавляем подмену ссылки: если выбран балансер "filmixtv", то меняем URL запроса
+    // Подмена URL запроса: если выбран балансер "filmixtv", то URL меняется на фиксированный
     this.requestParams = function(url) {
       if (balanser && balanser.toLowerCase() === 'filmixtv') {
         url = "http://rc.bwa.to/rc/fxapi";
@@ -306,18 +288,18 @@
       }
     };
 
-    // В функции startSource добавляем подмену названия балансера
+    // Подмена названия балансера в startSource
     this.startSource = function(json) {
       return new Promise(function(resolve, reject) {
         json.forEach(function(j) {
           var name = balanserName(j);
-          if(name === "filmixtv") {
+          if (name === "filmixtv") {
             j.name = "Filmix - 720p";
           }
-          if(name === "pidtor") {
+          if (name === "pidtor") {
             j.name = "Torrent - 2160";
           }
-          if(name === "mirage") {
+          if (name === "mirage") {
             j.name = "Alloha - 2160";
           }
           sources[name] = {
@@ -468,7 +450,9 @@
               }
               text = object.movie.title;
             }
-            if (text == 'По умолчанию') { text = object.movie.title; }
+            if (text == 'По умолчанию') {
+              text = object.movie.title;
+            }
           }
           if (episode) data.episode = parseInt(episode);
           if (season) data.season = parseInt(season);
@@ -571,7 +555,8 @@
               if (item.season) {
                 videos.forEach(function(elem) {
                   var cell = _this5.toPlayElement(elem);
-                  if (elem == item) cell.url = json.url;
+                  if (elem == item)
+                    cell.url = json.url;
                   else {
                     if (elem.method == 'call') {
                       if (Lampa.Storage.field('player') !== 'inner') {
@@ -619,7 +604,9 @@
               } else {
                 Lampa.Noty.show(Lampa.Lang.translate('lampac_nolink'));
               }
-            } else Lampa.Noty.show(Lampa.Lang.translate('lampac_nolink'));
+            } else {
+              Lampa.Noty.show(Lampa.Lang.translate('lampac_nolink'));
+            }
           }, true);
         },
         onContextMenu: function onContextMenu(item, html, data, call) {
@@ -932,7 +919,8 @@
           var loader = html.find('.online-prestige__loader');
           var image = html.find('.online-prestige__img');
           if (!serial) {
-            if (choice.movie_view == hash_behold) scroll_to_element = html;
+            if (choice.movie_view == hash_behold)
+              scroll_to_element = html;
           } else if (typeof episode_last !== 'undefined' && episode_last == episode_num) {
             scroll_to_element = html;
           }
@@ -1023,18 +1011,22 @@
                 } catch(e) { console.log('track error', e); }
               }
             }
-            if (params.onEnter) params.onEnter(element, html, { hash_timeline: hash_timeline, hash_behold: hash_behold });
+            if (params.onEnter)
+              params.onEnter(element, html, { hash_timeline: hash_timeline, hash_behold: hash_behold });
           }).on('hover:focus', function(e) {
             last = e.target;
-            if (params.onFocus) params.onFocus(element, html, { hash_timeline: hash_timeline, hash_behold: hash_behold });
+            if (params.onFocus)
+              params.onFocus(element, html, { hash_timeline: hash_timeline, hash_behold: hash_behold });
             scroll.update($(e.target), true);
           });
-          if (params.onRender) params.onRender(element, html, { hash_timeline: hash_timeline, hash_behold: hash_behold });
+          if (params.onRender)
+            params.onRender(element, html, { hash_timeline: hash_timeline, hash_behold: hash_behold });
           _this8.contextMenu({
             html: html,
             element: element,
             onFile: function(call) {
-              if (params.onContextMenu) params.onContextMenu(element, html, { hash_timeline: hash_timeline, hash_behold: hash_behold }, call);
+              if (params.onContextMenu)
+                params.onContextMenu(element, html, { hash_timeline: hash_timeline, hash_behold: hash_behold }, call);
             },
             onClearAllMark: function() {
               items.forEach(function(elem) { elem.unmark(); });
@@ -1112,7 +1104,9 @@
           menu.push({ title: Lampa.Lang.translate('torrent_parser_label_title'), mark: true });
           menu.push({ title: Lampa.Lang.translate('torrent_parser_label_cancel_title'), unmark: true });
           menu.push({ title: Lampa.Lang.translate('time_reset'), timeclear: true });
-          if (extra) { menu.push({ title: Lampa.Lang.translate('copy_link'), copylink: true }); }
+          if (extra) {
+            menu.push({ title: Lampa.Lang.translate('copy_link'), copylink: true });
+          }
           menu.push({ title: Lampa.Lang.translate('more'), separator: true });
           if (Lampa.Account.logged() && params.element && typeof params.element.season !== 'undefined' && params.element.translate_voice) {
             menu.push({ title: Lampa.Lang.translate('lampac_voice_subscribe'), subscribe: true });
@@ -1291,7 +1285,6 @@
       name: '4m1K',
       description: 'Плагин для просмотра онлайн сериалов и фильмов',
       component: 'lampac',
-      icon: 'img/4m1k.png', // Проверьте, что иконка доступна по этому пути
       onContextLauch: function onContextLauch(object) {
         resetTemplates();
         Lampa.Component.add('lampac', component);
