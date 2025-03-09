@@ -86,25 +86,52 @@
     };
     var balansers_with_search = ['kinotochka', 'kinopub', 'lumex', 'filmix', 'filmixtv', 'redheadsound', 'animevost', 'animego', 'animedia', 'animebesst', 'anilibria', 'rezka', 'rhsprem', 'kodik', 'remux', 'animelib', 'kinoukr', 'rc/filmix', 'rc/fxapi', 'rc/kinopub', 'rc/rhs', 'vcdn'];
 
-    function account(url) {
-      url = url + '';
-      if (url.indexOf('account_email=') == -1) {
-        var email = Lampa.Storage.get('account_email');
-        if (email) url = Lampa.Utils.addUrlComponent(url, 'account_email=' + encodeURIComponent(email));
-      }
-      if (url.indexOf('uid=') == -1) {
-        var uid = Lampa.Storage.get('lampac_unic_id', '');
-        if (uid) url = Lampa.Utils.addUrlComponent(url, 'uid=' + encodeURIComponent(uid));
-      }
-      if (url.indexOf('token=') == 0) {
-        var token = '';
-        if (token != '') url = Lampa.Utils.addUrlComponent(url, 'token=Z18GTIeNYL801YzUSii7Qjfo');
-      }
+function account(url) {
+  // Приводим url к строке
+  url = url + '';
 
-      url = Lampa.Utils.addUrlComponent(url, 'ab_token=' + Lampa.Storage.get('token'));
-      
-      return url;
-    }
+  // Вспомогательная функция для удаления параметра из строки URL
+  function removeParameter(url, param) {
+    var parts = url.split('?');
+    if (parts.length < 2) return url;
+    var base = parts[0];
+    var query = parts[1].split('&').filter(function(item) {
+      return item.indexOf(param + '=') !== 0;
+    });
+    return query.length ? base + '?' + query.join('&') : base;
+  }
+
+  // Удаляем, если уже присутствуют, параметры, которые будем добавлять/перезаписывать
+  url = removeParameter(url, 'account_email');
+  url = removeParameter(url, 'uid');
+  url = removeParameter(url, 'token');
+  url = removeParameter(url, 'ab_token');
+
+  // Если в хранилище есть email — добавляем его
+  var email = Lampa.Storage.get('account_email');
+  if (email) {
+    url = Lampa.Utils.addUrlComponent(url, 'account_email=' + encodeURIComponent(email));
+  }
+
+  // Добавляем (перезаписываем) uid из хранилища
+  var uid = Lampa.Storage.get('lampac_unic_id', '');
+  if (uid) {
+    url = Lampa.Utils.addUrlComponent(url, 'uid=' + encodeURIComponent(uid));
+  }
+
+  // Блок token оставляем, если в будущем понадобится передавать токен (пока пустой)
+  var token = ''; 
+  if (token !== '') {
+    url = Lampa.Utils.addUrlComponent(url, 'token=' + encodeURIComponent(token));
+  }
+
+  // Всегда добавляем параметр ab_token с актуальным значением из хранилища
+  var ab_token = Lampa.Storage.get('token');
+  url = Lampa.Utils.addUrlComponent(url, 'ab_token=' + ab_token);
+
+  return url;
+}
+
 
     function balanserName(j) {
       var bals = j.balanser;
