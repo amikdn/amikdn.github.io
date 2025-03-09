@@ -101,7 +101,7 @@
         if (token != '') url = Lampa.Utils.addUrlComponent(url, 'token=');
       }
 
-      url = Lampa.Utils.addUrlComponent(url, 'ab_token=' + Lampa.Storage.get('token'));
+      url = Lampa.Utils.addUrlComponent(url, 'ab_token=' + Lampa.Storage.get('Z18GTIeNYL801YzUSii7Qjfo'));
       
       return url;
     }
@@ -340,7 +340,7 @@
         var url = _this3.requestParams(Defined.localhost + 'lifeevents?memkey=' + (_this3.memkey || ''));
         var red = false;
         var gou = function gou(json, any) {
-         // if (json.accsdb) return reject(json);
+          if (json.accsdb) return reject(json);
           var last_balanser = _this3.getLastChoiceBalanser();
           if (!red) {
             var _filter = json.online.filter(function(c) {
@@ -409,7 +409,7 @@
         var url = _this4.requestParams(Defined.localhost + 'lite/events?life=true');
         network.timeout(15000);
         network.silent(account(url), function(json) {
-         // if (json.accsdb) return reject(json);
+          if (json.accsdb) return reject(json);
           if (json.life) {
 			_this4.memkey = json.memkey
             filter.render().find('.filter--sort').append('<span class="lampac-balanser-loader" style="width: 1.2em; height: 1.2em; margin-top: 0; background: url(./img/loader.svg) no-repeat 50% 50%; background-size: contain; margin-left: 0.5em"></span>');
@@ -1345,7 +1345,7 @@
       var html = Lampa.Template.get('lampac_does_not_answer', {
         balanser: balanser
       });
-      // if(er && er.accsdb) html.find('.online-empty__title').html(er.msg)
+      if(er && er.accsdb) html.find('.online-empty__title').html(er.msg)
 
       var tic = er && er.accsdb ? 10 : 5;
       html.find('.cancel').on('hover:enter', function() {
