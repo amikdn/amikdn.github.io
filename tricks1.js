@@ -1,19 +1,6 @@
 (function() {
   'use strict';
 
-  // Если Lampa.Template не определён – создаём минимальную реализацию
-  if (typeof Lampa.Template === 'undefined') {
-    Lampa.Template = {
-      _templates: {},
-      add: function(name, tpl) { this._templates[name] = tpl; },
-      get: function(name, data, asString) { return this._templates[name] || ""; }
-    };
-  }
-
-  // Регистрируем шаблон CSS под уникальным именем plugin_4m1k_css
-  Lampa.Template.add('plugin_4m1k_css', "\n    <style>\n      /* Стили плагина 4m1K */\n      .online-prestige { background-color: rgba(0,0,0,0.3); border-radius: .3em; padding: 1em; }\n      .online-empty { padding: 1em; text-align: center; }\n    </style>\n  ");
-  $('body').append(Lampa.Template.get('plugin_4m1k_css', {}, true));
-
   var Defined = {
     api: 'lampac',
     localhost: 'https://akter-black.com/',
@@ -27,19 +14,21 @@
   }
 
   if (!window.rch) {
-    Lampa.Utils.putScript(["https://abmsx.tech/invc-rch.js"], function() {}, false, function() {
+    Lampa.Utils.putScript(["https://akter-black.com/invc-rch.js"], function() {}, false, function() {
       if (!window.rch.startTypeInvoke)
-        window.rch.typeInvoke('https://abmsx.tech', function() {});
+        window.rch.typeInvoke('https://akter-black.com', function() {});
     }, true);
   }
 
   function BlazorNet() {
     this.net = new Lampa.Reguest();
-    this.timeout = function(time) { this.net.timeout(time); };
+    this.timeout = function(time) {
+      this.net.timeout(time);
+    };
     this.req = function(type, url, success, error, post) {
-      var params = arguments.length > 5 ? arguments[5] : {};
+      var params = arguments.length > 5 && arguments[5] !== undefined ? arguments[5] : {};
       var path = url.split(Defined.localhost).pop().split('?');
-      if (path[0].indexOf('http') >= 0)
+      if (path[0].indexOf('http') >= 0) 
         return this.net[type](url, success, error, post, params);
       DotNet.invokeMethodAsync("JinEnergy", path[0], path[1]).then(function(result) {
         if (params.dataType == 'text') success(result);
@@ -50,36 +39,40 @@
       });
     };
     this.silent = function(url, success, error, post) {
-      var params = arguments.length > 4 ? arguments[4] : {};
+      var params = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : {};
       this.req('silent', url, success, error, post, params);
     };
     this["native"] = function(url, success, error, post) {
-      var params = arguments.length > 4 ? arguments[4] : {};
+      var params = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : {};
       this.req('native', url, success, error, post, params);
     };
-    this.clear = function() { this.net.clear(); };
+    this.clear = function() {
+      this.net.clear();
+    };
   }
 
   var Network = Lampa.Reguest;
   // Если требуется использовать BlazorNet, можно раскомментировать следующую строку:
   // var Network = Defined.api.indexOf('pwa') === 0 && typeof Blazor !== 'undefined' ? BlazorNet : Lampa.Reguest;
 
-  // =======================================================================
-  // Функция account() — всегда подставляет фиксированные параметры:
-  // uid = "qdiicjlp", token = "Z18GTIeNYL801YzUSii7Qjfo", ab_token = "Z18GTIeNYL801YzUSii7Qjfo"
+  // Функция account – подставляет параметры из хранилища (без фиксированной подмены в данном случае)
   function account(url) {
     url = url + '';
     if (url.indexOf('account_email=') === -1) {
       var email = Lampa.Storage.get('account_email');
-      if (email)
-        url = Lampa.Utils.addUrlComponent(url, 'account_email=' + encodeURIComponent(email));
+      if (email) url = Lampa.Utils.addUrlComponent(url, 'account_email=' + encodeURIComponent(email));
     }
-    url = Lampa.Utils.addUrlComponent(url, 'uid=' + encodeURIComponent("qdiicjlp"));
-    url = Lampa.Utils.addUrlComponent(url, 'token=' + encodeURIComponent("Z18GTIeNYL801YzUSii7Qjfo"));
-    url = Lampa.Utils.addUrlComponent(url, 'ab_token=' + encodeURIComponent("Z18GTIeNYL801YzUSii7Qjfo"));
+    if (url.indexOf('uid=') === -1) {
+      var uid = Lampa.Storage.get('lampac_unic_id', '');
+      if (uid) url = Lampa.Utils.addUrlComponent(url, 'uid=' + encodeURIComponent(uid));
+    }
+    if (url.indexOf('token=') === -1) {
+      var token = ''; // Если нужен фиксированный токен – можно подставить здесь
+      if (token != '') url = Lampa.Utils.addUrlComponent(url, 'token=');
+    }
+    url = Lampa.Utils.addUrlComponent(url, 'ab_token=' + Lampa.Storage.get('token'));
     return url;
   }
-  // =======================================================================
 
   function component(object) {
     var network = new Network();
@@ -106,10 +99,12 @@
       source: Lampa.Lang.translate('settings_rest_source')
     };
     var filter_find = { season: [], voice: [] };
-    var balansers_with_search = ['kinotochka', 'kinopub', 'lumex', 'filmix', 'filmixtv',
-      'redheadsound', 'animevost', 'animego', 'animedia', 'animebesst', 'anilibria',
-      'rezka', 'rhsprem', 'kodik', 'remux', 'animelib', 'kinoukr',
-      'rc/filmix', 'rc/fxapi', 'rc/kinopub', 'rc/rhs', 'vcdn'];
+    var balansers_with_search = [
+      'kinotochka', 'kinopub', 'lumex', 'filmix', 'filmixtv',
+      'redheadsound', 'animevost', 'animego', 'animedia', 'animebesst',
+      'anilibria', 'rezka', 'rhsprem', 'kodik', 'remux', 'animelib',
+      'kinoukr', 'rc/filmix', 'rc/fxapi', 'rc/kinopub', 'rc/rhs', 'vcdn'
+    ];
 
     function balanserName(j) {
       var bals = j.balanser;
@@ -146,7 +141,7 @@
       filter.render().find('.selector').on('hover:enter', function() { clearInterval(balanser_timer); });
       filter.render().find('.filter--search').appendTo(filter.render().find('.torrent-filter'));
       filter.onSelect = function(type, a, b) {
-        if (type == 'filter') {
+        if (type === 'filter') {
           if (a.reset) {
             clarificationSearchDelete();
             _this.replaceChoice({ season: 0, voice: 0, voice_url: '', voice_name: '' });
@@ -157,7 +152,7 @@
           } else {
             var url = filter_find[a.stype][b.index].url;
             var choice = _this.getChoice();
-            if (a.stype == 'voice') {
+            if (a.stype === 'voice') {
               choice.voice_name = filter_find.voice[b.index].title;
               choice.voice_url = url;
             }
@@ -167,7 +162,7 @@
             _this.request(url);
             setTimeout(Lampa.Select.close, 10);
           }
-        } else if (type == 'sort') {
+        } else if (type === 'sort') {
           Lampa.Select.close();
           object.lampac_custom_select = a.source;
           _this.changeBalanser(a.source);
@@ -185,7 +180,7 @@
       this.externalids().then(function() {
         return _this.createSource();
       }).then(function(json) {
-        if (!balansers_with_search.find(function(b) { return balanser.slice(0, b.length) == b; })) {
+        if (!balansers_with_search.find(function(b) { return balanser.slice(0, b.length) === b; })) {
           filter.render().find('.filter--search').addClass('hide');
         }
         _this.search();
@@ -203,11 +198,9 @@
         }
         hubConnection = new signalR.HubConnectionBuilder().withUrl(json.ws).build();
         hubConnection.start().then(function() {
-          window.rch.Registry('https://abmsx.tech', hubConnection, function() {
+          window.rch.Registry('https://akter-black.com', hubConnection, function() {
             console.log('RCH', 'hubConnection start');
-            if (!noreset)
-              _this2.find();
-            else noreset();
+            if (!noreset) _this2.find(); else noreset();
           });
         })["catch"](function(err) {
           console.log('RCH', err.toString());
@@ -217,8 +210,8 @@
           hub_timer = setTimeout(function() { hubConnection.stop(); hubConnection = null; }, 1000 * json.keepalive);
         }
       };
-      if (typeof signalR == 'undefined') {
-        Lampa.Utils.putScript(["https://abmsx.tech/signalr-6.0.25_es5.js"], function() {}, false, function() { load(); }, true);
+      if (typeof signalR === 'undefined') {
+        Lampa.Utils.putScript(["https://akter-black.com/signalr-6.0.25_es5.js"], function() {}, false, function() { load(); }, true);
       } else load();
     };
 
@@ -233,7 +226,9 @@
           var url = Defined.localhost + 'externalids?' + query.join('&');
           network.timeout(10000);
           network.silent(account(url), function(json) {
-            for (var name in json) { object.movie[name] = json[name]; }
+            for (var name in json) {
+              object.movie[name] = json[name];
+            }
             resolve();
           }, function() { resolve(); });
         } else resolve();
@@ -256,7 +251,7 @@
       Lampa.Activity.replace();
     };
 
-    // Подмена URL: если выбран балансер "filmixtv", URL заменяется на фиксированный
+    // Подмена URL: если выбран балансер "filmixtv", заменяем URL на фиксированный
     this.requestParams = function(url) {
       if (balanser && balanser.toLowerCase() === 'filmixtv') {
         url = "http://rc.bwa.to/rc/fxapi";
@@ -274,7 +269,8 @@
       query.push('source=' + card_source);
       query.push('rchtype=' + (window.rch ? window.rch.type : ''));
       query.push('clarification=' + (object.clarification ? 1 : 0));
-      if (Lampa.Storage.get('account_email', '')) query.push('cub_id=' + Lampa.Utils.hash(Lampa.Storage.get('account_email', '')));
+      if (Lampa.Storage.get('account_email', '')) 
+        query.push('cub_id=' + Lampa.Utils.hash(Lampa.Storage.get('account_email', '')));
       return url + (url.indexOf('?') >= 0 ? '&' : '?') + query.join('&');
     };
 
@@ -298,7 +294,7 @@
           sources[name] = {
             url: j.url,
             name: j.name,
-            show: typeof j.show == 'undefined' ? true : j.show
+            show: typeof j.show === 'undefined' ? true : j.show
           };
         });
         filter_sources = Lampa.Arrays.getKeys(sources);
@@ -321,15 +317,17 @@
 
     this.lifeSource = function() {
       var _this3 = this;
+      var isFilm = false;
       return new Promise(function(resolve, reject) {
         var url = _this3.requestParams(Defined.localhost + 'lifeevents?memkey=' + (_this3.memkey || ''));
         var red = false;
+        isFilm = url.indexOf('serial=0') > -1;
         var gou = function gou(json, any) {
           if (json.accsdb) return reject(json);
           var last_balanser = _this3.getLastChoiceBalanser();
           if (!red) {
             var _filter = json.online.filter(function(c) {
-              return any ? c.show : c.show && c.name.toLowerCase() == last_balanser;
+              return any ? c.show : c.show && c.name.toLowerCase() === last_balanser;
             });
             if (_filter.length) {
               red = true;
@@ -339,23 +337,37 @@
             }
           }
         };
+
+        function is4k(data) {
+          return data.name.indexOf('2160') > -1;
+        }
+        function isLargeScreen() {
+          return window.matchMedia("(min-width: 768px)").matches;
+        }
         var fin = function fin(call) {
           network.timeout(3000);
           network.silent(account(url), function(json) {
             life_wait_times++;
             filter_sources = [];
             sources = {};
+            // Пример фильтрации – можно изменить при необходимости
+            json.online = json.online.filter(function(j) {
+              if (j.balanser === 'filmix' || j.balanser === 'kinopub') {
+                return is4k(j) && isLargeScreen();
+              }
+              return true;
+            });
             json.online.forEach(function(j) {
               var name = balanserName(j);
               sources[name] = {
                 url: j.url,
                 name: j.name,
-                show: typeof j.show == 'undefined' ? true : j.show
+                show: typeof j.show === 'undefined' ? true : j.show
               };
             });
             filter_sources = Lampa.Arrays.getKeys(sources);
             filter.set('sort', filter_sources.map(function(e) {
-              return { title: sources[e].name, source: e, selected: e == balanser, ghost: !sources[e].show };
+              return { title: sources[e].name, source: e, selected: e === balanser, ghost: !sources[e].show };
             }));
             filter.chosen('sort', [sources[balanser] ? sources[balanser].name : balanser]);
             gou(json);
@@ -371,8 +383,11 @@
             }
           }, function() {
             life_wait_times++;
-            if (life_wait_times > 15) { reject(); }
-            else { life_wait_timer = setTimeout(fin, 1000); }
+            if (life_wait_times > 15) {
+              reject();
+            } else {
+              life_wait_timer = setTimeout(fin, 1000);
+            }
           });
         };
         fin();
@@ -435,7 +450,9 @@
               }
               text = object.movie.title;
             }
-            if (text == 'По умолчанию') { text = object.movie.title; }
+            if (text === 'По умолчанию') {
+              text = object.movie.title;
+            }
           }
           if (episode) data.episode = parseInt(episode);
           if (season) data.season = parseInt(season);
@@ -465,7 +482,7 @@
         newfile.method = 'play';
         newfile.url = file.stream;
         call(newfile, {});
-      } else if (file.method == 'play') {
+      } else if (file.method === 'play') {
         call(file, {});
       } else {
         Lampa.Loading.start(function() {
@@ -503,14 +520,14 @@
     };
 
     this.appendAPN = function(data) {
-      if (Defined.api.indexOf('pwa') == 0 && Defined.apn.length && data.url && typeof data.url == 'string' && data.url.indexOf(Defined.apn) == -1)
+      if (Defined.api.indexOf('pwa') === 0 && Defined.apn.length && data.url && typeof data.url === 'string' && data.url.indexOf(Defined.apn) === -1)
         data.url_reserve = Defined.apn + data.url;
     };
 
     this.setDefaultQuality = function(data) {
       if (Lampa.Arrays.getKeys(data.quality).length) {
         for (var q in data.quality) {
-          if (parseInt(q) == Lampa.Storage.field('video_quality_default')) {
+          if (parseInt(q) === Lampa.Storage.field('video_quality_default')) {
             data.url = data.quality[q];
             this.appendAPN(data);
             break;
@@ -538,10 +555,10 @@
               if (item.season) {
                 videos.forEach(function(elem) {
                   var cell = _this5.toPlayElement(elem);
-                  if (elem == item)
+                  if (elem === item)
                     cell.url = json.url;
                   else {
-                    if (elem.method == 'call') {
+                    if (elem.method === 'call') {
                       if (Lampa.Storage.field('player') !== 'inner') {
                         cell.url = elem.stream;
                         delete cell.quality;
@@ -613,55 +630,55 @@
       try {
         var items = this.parseJsonDate(str, '.videos__item');
         var buttons = this.parseJsonDate(str, '.videos__button');
-        if (items.length == 1 && items[0].method == 'link' && !items[0].similar) {
+        if (items.length === 1 && items[0].method === 'link' && !items[0].similar) {
           filter_find.season = items.map(function(s) { return { title: s.text, url: s.url }; });
-          this.replaceChoice({ season: 0 });
-          this.request(items[0].url);
+          _this.replaceChoice({ season: 0 });
+          _this.request(items[0].url);
         } else {
-          this.activity.loader(false);
-          var videos = items.filter(function(v) { return v.method == 'play' || v.method == 'call'; });
+          _this.activity.loader(false);
+          var videos = items.filter(function(v) { return v.method === 'play' || v.method === 'call'; });
           var similar = items.filter(function(v) { return v.similar; });
           if (videos.length) {
             if (buttons.length) {
               filter_find.voice = buttons.map(function(b) { return { title: b.text, url: b.url }; });
-              var select_voice_url = this.getChoice(balanser).voice_url;
-              var select_voice_name = this.getChoice(balanser).voice_name;
-              var find_voice_url = buttons.find(function(v) { return v.url == select_voice_url; });
-              var find_voice_name = buttons.find(function(v) { return v.text == select_voice_name; });
+              var select_voice_url = _this.getChoice(balanser).voice_url;
+              var select_voice_name = _this.getChoice(balanser).voice_name;
+              var find_voice_url = buttons.find(function(v) { return v.url === select_voice_url; });
+              var find_voice_name = buttons.find(function(v) { return v.text === select_voice_name; });
               var find_voice_active = buttons.find(function(v) { return v.active; });
               if (find_voice_url && !find_voice_url.active) {
-                this.replaceChoice({ voice: buttons.indexOf(find_voice_url), voice_name: find_voice_url.text });
-                this.request(find_voice_url.url);
+                _this.replaceChoice({ voice: buttons.indexOf(find_voice_url), voice_name: find_voice_url.text });
+                _this.request(find_voice_url.url);
               } else if (find_voice_name && !find_voice_name.active) {
-                this.replaceChoice({ voice: buttons.indexOf(find_voice_name), voice_name: find_voice_name.text });
-                this.request(find_voice_name.url);
+                _this.replaceChoice({ voice: buttons.indexOf(find_voice_name), voice_name: find_voice_name.text });
+                _this.request(find_voice_name.url);
               } else {
                 if (find_voice_active) {
-                  this.replaceChoice({ voice: buttons.indexOf(find_voice_active), voice_name: find_voice_active.text });
+                  _this.replaceChoice({ voice: buttons.indexOf(find_voice_active), voice_name: find_voice_active.text });
                 }
-                this.display(videos);
+                _this.display(videos);
               }
             } else {
-              this.replaceChoice({ voice: 0, voice_url: '', voice_name: '' });
-              this.display(videos);
+              _this.replaceChoice({ voice: 0, voice_url: '', voice_name: '' });
+              _this.display(videos);
             }
           } else if (items.length) {
             if (similar.length) {
-              this.similars(similar);
-              this.activity.loader(false);
+              _this.similars(similar);
+              _this.activity.loader(false);
             } else {
               filter_find.season = items.map(function(s) { return { title: s.text, url: s.url }; });
-              var select_season = this.getChoice(balanser).season;
+              var select_season = _this.getChoice(balanser).season;
               var season = filter_find.season[select_season];
               if (!season) season = filter_find.season[0];
-              this.request(season.url);
+              _this.request(season.url);
             }
           } else {
-            this.doesNotAnswer(json);
+            _this.doesNotAnswer(json);
           }
         }
       } catch (e) {
-        this.doesNotAnswer(e);
+        _this.doesNotAnswer(e);
       }
     };
 
@@ -760,7 +777,7 @@
         var subitems = [];
         var value = need[type];
         items.forEach(function(name, i) {
-          subitems.push({ title: name, selected: value == i, index: i });
+          subitems.push({ title: name, selected: value === i, index: i });
         });
         select.push({ title: title, subtitle: items[value], items: subitems, stype: type });
       };
@@ -771,7 +788,7 @@
       if (filter_items.season && filter_items.season.length) add('season', Lampa.Lang.translate('torrent_serial_season'));
       filter.set('filter', select);
       filter.set('sort', filter_sources.map(function(e) {
-        return { title: sources[e].name, source: e, selected: e == balanser, ghost: !sources[e].show };
+        return { title: sources[e].name, source: e, selected: e === balanser, ghost: !sources[e].show };
       }));
       this.selected(filter_items);
     };
@@ -780,7 +797,7 @@
       var need = this.getChoice(), select = [];
       for (var i in need) {
         if (filter_items[i] && filter_items[i].length) {
-          if (i == 'voice')
+          if (i === 'voice')
             select.push(filter_translate[i] + ': ' + filter_items[i][need[i]]);
           else if (i !== 'source') {
             if (filter_items.season.length >= 1)
@@ -794,18 +811,15 @@
 
     this.getEpisodes = function(season, call) {
       var episodes = [];
-      if (['cub', 'tmdb'].indexOf(object.movie.source || 'tmdb') == -1)
-        return call(episodes);
-      if (typeof object.movie.id == 'number' && object.movie.name) {
+      if (['cub', 'tmdb'].indexOf(object.movie.source || 'tmdb') === -1) return call(episodes);
+      if (typeof object.movie.id === 'number' && object.movie.name) {
         var tmdburl = 'tv/' + object.movie.id + '/season/' + season + '?api_key=' + Lampa.TMDB.key() + '&language=' + Lampa.Storage.get('language', 'ru');
         var baseurl = Lampa.TMDB.api(tmdburl);
         network.timeout(1000 * 10);
         network["native"](baseurl, function(data) {
           episodes = data.episodes || [];
           call(episodes);
-        }, function(a, c) {
-          call(episodes);
-        });
+        }, function(a, c) { call(episodes); });
       } else call(episodes);
     };
 
@@ -813,8 +827,7 @@
       var file_id = Lampa.Utils.hash(object.movie.number_of_seasons ? object.movie.original_name : object.movie.original_title);
       var watched = Lampa.Storage.cache('online_watched_last', 5000, {});
       if (set) {
-        if (!watched[file_id])
-          watched[file_id] = {};
+        if (!watched[file_id]) watched[file_id] = {};
         Lampa.Arrays.extend(watched[file_id], set, true);
         Lampa.Storage.set('online_watched_last', watched);
         this.updateWatched();
@@ -828,14 +841,10 @@
       var body = scroll.body().find('.online-prestige-watched .online-prestige-watched__body').empty();
       if (watched) {
         var line = [];
-        if (watched.balanser_name)
-          line.push(watched.balanser_name);
-        if (watched.voice_name)
-          line.push(watched.voice_name);
-        if (watched.season)
-          line.push(Lampa.Lang.translate('torrent_serial_season') + ' ' + watched.season);
-        if (watched.episode)
-          line.push(Lampa.Lang.translate('torrent_serial_episode') + ' ' + watched.episode);
+        if (watched.balanser_name) line.push(watched.balanser_name);
+        if (watched.voice_name) line.push(watched.voice_name);
+        if (watched.season) line.push(Lampa.Lang.translate('torrent_serial_season') + ' ' + watched.season);
+        if (watched.episode) line.push(Lampa.Lang.translate('torrent_serial_episode') + ' ' + watched.episode);
         line.forEach(function(n) { body.append('<span>' + n + '</span>'); });
       } else {
         body.append('<span>' + Lampa.Lang.translate('lampac_no_watch_history') + '</span>');
@@ -845,8 +854,7 @@
     this.draw = function(items) {
       var _this8 = this;
       var params = arguments.length > 1 ? arguments[1] : {};
-      if (!items.length)
-        return this.empty();
+      if (!items.length) return this.empty();
       scroll.clear();
       scroll.append(Lampa.Template.get('lampac_prestige_watched', {}, true));
       this.updateWatched();
@@ -858,7 +866,9 @@
         var scroll_to_element = false;
         var scroll_to_mark = false;
         items.forEach(function(element, index) {
-          var episode = serial && episodes.length && !params.similars ? episodes.find(function(e) { return e.episode_number == element.episode; }) : false;
+          var episode = serial && episodes.length && !params.similars ? episodes.find(function(e) {
+            return e.episode_number == element.episode;
+          }) : false;
           var episode_num = element.episode || index + 1;
           var episode_last = choice.episodes_view[element.season];
           var voice_name = choice.voice_name || (filter_find.voice[0] ? filter_find.voice[0].title : false) || element.voice_name || (serial ? 'Неизвестно' : element.text) || 'Неизвестно';
@@ -880,8 +890,7 @@
             element.translate_episode_end = _this8.getLastEpisode(items);
             element.translate_voice = element.voice_name;
           }
-          if (element.text && !episode)
-            element.title = element.text;
+          if (element.text && !episode) element.title = element.text;
           element.timeline = Lampa.Timeline.view(hash_timeline);
           if (episode) {
             element.title = episode.name;
@@ -894,8 +903,7 @@
           }
           if (!serial && object.movie.tagline && element.info.length < 30)
             info.push(object.movie.tagline);
-          if (element.info)
-            info.push(element.info);
+          if (element.info) info.push(element.info);
           if (info.length)
             element.info = info.map(function(i) { return '<span>' + i + '</span>'; }).join('<span class="online-prestige-split">●</span>');
           var html = Lampa.Template.get('lampac_prestige_full', element);
@@ -910,7 +918,7 @@
           if (serial && !episode) {
             image.append('<div class="online-prestige__episode-number">' + ('0' + (element.episode || index + 1)).slice(-2) + '</div>');
             loader.remove();
-          } else if (!serial && ['cub', 'tmdb'].indexOf(object.movie.source || 'tmdb') == -1) {
+          } else if (!serial && ['cub', 'tmdb'].indexOf(object.movie.source || 'tmdb') === -1) {
             loader.remove();
           } else {
             var img = html.find('img')[0];
@@ -931,10 +939,10 @@
           }
           element.mark = function() {
             viewed = Lampa.Storage.cache('online_view', 5000, []);
-            if (viewed.indexOf(hash_behold) == -1) {
+            if (viewed.indexOf(hash_behold) === -1) {
               viewed.push(hash_behold);
               Lampa.Storage.set('online_view', viewed);
-              if (html.find('.online-prestige__viewed').length == 0)
+              if (html.find('.online-prestige__viewed').length === 0)
                 html.find('.online-prestige__img').append('<div class="online-prestige__viewed">' + Lampa.Template.get('icon_viewed', {}, true) + '</div>');
             }
             choice = _this8.getChoice();
@@ -995,21 +1003,21 @@
               }
             }
             if (params.onEnter)
-              params.onEnter(element, html, { hash_timeline: hash_timeline, hash_behold: hash_behold });
+              params.onEnter(element, html, data);
           }).on('hover:focus', function(e) {
             last = e.target;
             if (params.onFocus)
-              params.onFocus(element, html, { hash_timeline: hash_timeline, hash_behold: hash_behold });
+              params.onFocus(element, html, data);
             scroll.update($(e.target), true);
           });
           if (params.onRender)
-            params.onRender(element, html, { hash_timeline: hash_timeline, hash_behold: hash_behold });
+            params.onRender(element, html, data);
           _this8.contextMenu({
             html: html,
             element: element,
             onFile: function(call) {
               if (params.onContextMenu)
-                params.onContextMenu(element, html, { hash_timeline: hash_timeline, hash_behold: hash_behold }, call);
+                params.onContextMenu(element, html, data, call);
             },
             onClearAllMark: function() {
               items.forEach(function(elem) { elem.unmark(); });
@@ -1149,8 +1157,7 @@
         }
         params.onFile(show);
       }).on('hover:focus', function() {
-        if (Lampa.Helper)
-          Lampa.Helper.show('online_file', Lampa.Lang.translate('helper_online_file'), params.html);
+        if (Lampa.Helper) Lampa.Helper.show('online_file', Lampa.Lang.translate('helper_online_file'), params.html);
       });
     };
 
@@ -1178,8 +1185,7 @@
       var _this9 = this;
       this.reset();
       var html = Lampa.Template.get('lampac_does_not_answer', { balanser: balanser });
-      if (er && er.accsdb)
-        html.find('.online-empty__title').html(er.msg);
+      if (er && er.accsdb) html.find('.online-empty__title').html(er.msg);
       var tic = er && er.accsdb ? 10 : 5;
       html.find('.cancel').on('hover:enter', function() { clearInterval(balanser_timer); });
       html.find('.change').on('hover:enter', function() {
@@ -1192,14 +1198,14 @@
       balanser_timer = setInterval(function() {
         tic--;
         html.find('.timeout').text(tic);
-        if (tic == 0) {
+        if (tic === 0) {
           clearInterval(balanser_timer);
           var keys = Lampa.Arrays.getKeys(sources);
           var indx = keys.indexOf(balanser);
           var next = keys[indx + 1];
           if (!next) next = keys[0];
           balanser = next;
-          if (Lampa.Activity.active().activity == _this9.activity)
+          if (Lampa.Activity.active().activity === _this9.activity)
             _this9.changeBalanser(balanser);
         }
       }, 1000);
@@ -1215,8 +1221,7 @@
     };
 
     this.start = function() {
-      if (Lampa.Activity.active().activity !== this.activity)
-        return;
+      if (Lampa.Activity.active().activity !== this.activity) return;
       if (!initialized) {
         initialized = true;
         this.initialize();
@@ -1260,16 +1265,18 @@
 
   function startPlugin() {
     window.lampac_plugin = true;
-    // Проверяем, что Lampa.Manifest существует
-    if (!Lampa.Manifest) Lampa.Manifest = {};
-    if (!Lampa.Manifest.plugins) Lampa.Manifest.plugins = [];
     var manifst = {
       type: 'video',
-      version: '2',
-      name: '4m1K',
+      version: '1.4.3',
+      name: 'Lampac',
       description: 'Плагин для просмотра онлайн сериалов и фильмов',
       component: 'lampac',
-      icon: 'https://yourdomain.com/path/to/4m1k.png', // Замените на абсолютный URL иконки
+      onContextMenu: function onContextMenu(object) {
+        return {
+          name: Lampa.Lang.translate('lampac_watch'),
+          description: 'Плагин для просмотра онлайн сериалов и фильмов'
+        };
+      },
       onContextLauch: function onContextLauch(object) {
         resetTemplates();
         Lampa.Component.add('lampac', component);
@@ -1286,20 +1293,13 @@
           page: 1,
           clarification: all[id] ? true : false
         });
-      },
-      onContextMenu: function onContextMenu(object) {
-        return {
-          name: Lampa.Lang.translate('lampac_watch'),
-          description: 'Плагин для просмотра онлайн сериалов и фильмов'
-        };
       }
     };
-
-    // Регистрируем плагин в виде элемента массива
-    Lampa.Manifest.plugins.push(manifst);
+    // Регистрируем плагин – если Manifest.plugins должен быть объектом, заменяем его
+    Lampa.Manifest.plugins = manifst;
 
     Lampa.Lang.add({
-      lampac_watch: { ru: 'Онлайн 4am1k', en: 'Online 4am1k', uk: 'Онлайн 4am1k', zh: '在线观看' },
+      lampac_watch: { ru: 'Смотреть онлайн', en: 'Watch online', uk: 'Дивитися онлайн', zh: '在线观看' },
       lampac_video: { ru: 'Видео', en: 'Video', uk: 'Відео', zh: '视频' },
       lampac_no_watch_history: { ru: 'Нет истории просмотра', en: 'No browsing history', ua: 'Немає історії перегляду', zh: '没有浏览历史' },
       lampac_nolink: { ru: 'Не удалось извлечь ссылку', uk: 'Неможливо отримати посилання', en: 'Failed to fetch link', zh: '获取链接失败' },
@@ -1307,8 +1307,8 @@
       helper_online_file: { ru: 'Удерживайте клавишу "ОК" для вызова контекстного меню', uk: 'Утримуйте клавішу "ОК" для виклику контекстного меню', en: 'Hold the "OK" key to bring up the context menu', zh: '按住“确定”键调出上下文菜单' },
       title_online: { ru: 'Онлайн', uk: 'Онлайн', en: 'Online', zh: '在线的' },
       lampac_voice_subscribe: { ru: 'Подписаться на перевод', uk: 'Підписатися на переклад', en: 'Subscribe to translation', zh: '订阅翻译' },
-      lampac_voice_success: { ru: 'Вы успешно подписались', uk: 'Ви успішно підписалися', en: 'You have successfully subscribed', zh: '您已 успешно订订' },
-      lampac_voice_error: { ru: 'Возникла ошибка', uk: 'Виникла помилка', en: 'An error has occurred', zh: '发生了 ошибки' },
+      lampac_voice_success: { ru: 'Вы успешно подписались', uk: 'Ви успішно підписалися', en: 'You have successfully subscribed', zh: '您已成功订阅' },
+      lampac_voice_error: { ru: 'Возникла ошибка', uk: 'Виникла помилка', en: 'An error has occurred', zh: '发生了错误' },
       lampac_clear_all_marks: { ru: 'Очистить все метки', uk: 'Очистити всі мітки', en: 'Clear all labels', zh: '清除所有标签' },
       lampac_clear_all_timecodes: { ru: 'Очистить все тайм-коды', uk: 'Очистити всі тайм-коди', en: 'Clear all timecodes', zh: '清除所有时间代码' },
       lampac_change_balanser: { ru: 'Изменить балансер', uk: 'Змінити балансер', en: 'Change balancer', zh: '更改平衡器' },
@@ -1316,20 +1316,22 @@
       lampac_balanser_timeout: { ru: 'Источник будет переключен автоматически через <span class="timeout">10</span> секунд.', uk: 'Джерело буде автоматично переключено через <span class="timeout">10</span> секунд.', en: 'The source will be switched automatically after <span class="timeout">10</span> seconds.', zh: '平衡器将在<span class="timeout">10</span>秒内自动切换。' },
       lampac_does_not_answer_text: { ru: 'Поиск на ({balanser}) не дал результатов', uk: 'Пошук на ({balanser}) не дав результатів', en: 'Search on ({balanser}) did not return any results', zh: '搜索 ({balanser}) 未返回任何结果' }
     });
-
-    Lampa.Template.add('plugin_4m1k_css', "\n        <style>\n          /* Дополнительные CSS стили плагина можно добавить здесь */\n        </style>\n    ");
-    $('body').append(Lampa.Template.get('plugin_4m1k_css', {}, true));
+    Lampa.Template.add('lampac_css', "\n        <style>\n        @charset 'UTF-8';.online-prestige{position:relative;-webkit-border-radius:.3em;border-radius:.3em;background-color:rgba(0,0,0,0.3);display:-webkit-box;display:-webkit-flex;display:-moz-box;display:-ms-flexbox;display:flex}\n        .online-prestige__body{padding:1.2em;line-height:1.3;flex-grow:1;position:relative}\n        /* Дополнительные стили... */\n        </style>\n    ");
+    $('body').append(Lampa.Template.get('lampac_css', {}, true));
     startPlugin = null;
   }
 
+  // Функция resetTemplates – регистрирует шаблоны HTML
   function resetTemplates() {
-    Lampa.Template.add('lampac_prestige_full', "<div class=\"online-prestige online-prestige--full selector\">\n  <div class=\"online-prestige__img\">\n    <img alt=\"\">\n    <div class=\"online-prestige__loader\"></div>\n  </div>\n  <div class=\"online-prestige__body\">\n    <div class=\"online-prestige__head\">\n      <div class=\"online-prestige__title\">{title}</div>\n      <div class=\"online-prestige__time\">{time}</div>\n    </div>\n    <div class=\"online-prestige__timeline\"></div>\n    <div class=\"online-prestige__footer\">\n      <div class=\"online-prestige__info\">{info}</div>\n      <div class=\"online-prestige__quality\">{quality}</div>\n    </div>\n  </div>\n</div>");
-    Lampa.Template.add('lampac_content_loading', "<div class=\"online-empty\">\n  <div class=\"broadcast__scan\"><div></div></div>\n  <div class=\"online-empty__templates\">\n    <div class=\"online-empty-template selector\">\n      <div class=\"online-empty-template__ico\"></div>\n      <div class=\"online-empty-template__body\"></div>\n    </div>\n    <div class=\"online-empty-template\">\n      <div class=\"online-empty-template__ico\"></div>\n      <div class=\"online-empty-template__body\"></div>\n    </div>\n    <div class=\"online-empty-template\">\n      <div class=\"online-empty-template__ico\"></div>\n      <div class=\"online-empty-template__body\"></div>\n    </div>\n  </div>\n</div>");
-    Lampa.Template.add('lampac_does_not_answer', "<div class=\"online-empty\">\n  <div class=\"online-empty__title\">#{lampac_balanser_dont_work}</div>\n  <div class=\"online-empty__time\">#{lampac_balanser_timeout}</div>\n  <div class=\"online-empty__buttons\">\n    <div class=\"online-empty__button selector cancel\">#{cancel}</div>\n    <div class=\"online-empty__button selector change\">#{lampac_change_balanser}</div>\n  </div>\n  <div class=\"online-empty__templates\">\n    <div class=\"online-empty-template\">\n      <div class=\"online-empty-template__ico\"></div>\n      <div class=\"online-empty-template__body\"></div>\n    </div>\n    <div class=\"online-empty-template\">\n      <div class=\"online-empty-template__ico\"></div>\n      <div class=\"online-empty-template__body\"></div>\n    </div>\n    <div class=\"online-empty-template\">\n      <div class=\"online-empty-template__ico\"></div>\n      <div class=\"online-empty-template__body\"></div>\n    </div>\n  </div>\n</div>");
-    Lampa.Template.add('lampac_prestige_rate', "<div class=\"online-prestige-rate\">\n  <svg width=\"17\" height=\"16\" viewBox=\"0 0 17 16\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\">\n    <path d=\"M8.39409 0.192139L10.99 5.30994L16.7882 6.20387L12.5475 10.4277L13.5819 15.9311L8.39409 13.2425L3.20626 15.9311L4.24065 10.4277L0 6.20387L5\"/>\n  </svg>\n  <span>{rate}</span>\n</div>");
+    Lampa.Template.add('lampac_prestige_full', "<div class=\"online-prestige online-prestige--full selector\">\n            <div class=\"online-prestige__img\">\n                <img alt=\"\">\n                <div class=\"online-prestige__loader\"></div>\n            </div>\n            <div class=\"online-prestige__body\">\n                <div class=\"online-prestige__head\">\n                    <div class=\"online-prestige__title\">{title}</div>\n                    <div class=\"online-prestige__time\">{time}</div>\n                </div>\n                <div class=\"online-prestige__timeline\"></div>\n                <div class=\"online-prestige__footer\">\n                    <div class=\"online-prestige__info\">{info}</div>\n                    <div class=\"online-prestige__quality\">{quality}</div>\n                </div>\n            </div>\n        </div>");
+    Lampa.Template.add('lampac_content_loading', "<div class=\"online-empty\">\n            <div class=\"broadcast__scan\"><div></div></div>\n            <div class=\"online-empty__templates\">\n                <div class=\"online-empty-template selector\">\n                    <div class=\"online-empty-template__ico\"></div>\n                    <div class=\"online-empty-template__body\"></div>\n                </div>\n                <div class=\"online-empty-template\">\n                    <div class=\"online-empty-template__ico\"></div>\n                    <div class=\"online-empty-template__body\"></div>\n                </div>\n                <div class=\"online-empty-template\">\n                    <div class=\"online-empty-template__ico\"></div>\n                    <div class=\"online-empty-template__body\"></div>\n                </div>\n            </div>\n        </div>");
+    Lampa.Template.add('lampac_does_not_answer', "<div class=\"online-empty\">\n            <div class=\"online-empty__title\">#{lampac_balanser_dont_work}</div>\n            <div class=\"online-empty__time\">#{lampac_balanser_timeout}</div>\n            <div class=\"online-empty__buttons\">\n                <div class=\"online-empty__button selector cancel\">#{cancel}</div>\n                <div class=\"online-empty__button selector change\">#{lampac_change_balanser}</div>\n            </div>\n            <div class=\"online-empty__templates\">\n                <div class=\"online-empty-template\">\n                    <div class=\"online-empty-template__ico\"></div>\n                    <div class=\"online-empty-template__body\"></div>\n                </div>\n                <div class=\"online-empty-template\">\n                    <div class=\"online-empty-template__ico\"></div>\n                    <div class=\"online-empty-template__body\"></div>\n                </div>\n                <div class=\"online-empty-template\">\n                    <div class=\"online-empty-template__ico\"></div>\n                    <div class=\"online-empty-template__body\"></div>\n                </div>\n            </div>\n        </div>");
+    Lampa.Template.add('lampac_prestige_rate', "<div class=\"online-prestige-rate\">\n            <svg width=\"17\" height=\"16\" viewBox=\"0 0 17 16\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\">\n                <path d=\"M8.39409 0.192139L10.99 5.30994L16.7882 6.20387L12.5475 10.4277L13.5819 15.9311L8.39409 13.2425L3.20626 15.9311L4.24065 10.4277L0 6.20387L5.79819 5.30994L8.39409 0.192139Z\" fill=\"#fff\"></path>\n            </svg>\n            <span>{rate}</span>\n        </div>");
+    Lampa.Template.add('lampac_prestige_folder', "<div class=\"online-prestige online-prestige--folder selector\">\n            <div class=\"online-prestige__folder\">\n                <svg viewBox=\"0 0 128 112\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\">\n                    <rect y=\"20\" width=\"128\" height=\"92\" rx=\"13\" fill=\"white\"></rect>\n                    <path d=\"M29.9963 8H98.0037C96.0446 3.3021 91.4079 0 86 0H42C36.5921 0 31.9555 3.3021 29.9963 8Z\" fill=\"white\" fill-opacity=\"0.23\"></path>\n                    <rect x=\"11\" y=\"8\" width=\"106\" height=\"76\" rx=\"13\" fill=\"white\" fill-opacity=\"0.51\"></rect>\n                </svg>\n            </div>\n            <div class=\"online-prestige__body\">\n                <div class=\"online-prestige__head\">\n                    <div class=\"online-prestige__title\">{title}</div>\n                    <div class=\"online-prestige__time\">{time}</div>\n                </div>\n                <div class=\"online-prestige__footer\">\n                    <div class=\"online-prestige__info\">{info}</div>\n                </div>\n            </div>\n        </div>");
+    Lampa.Template.add('lampac_prestige_watched', "<div class=\"online-prestige online-prestige-watched selector\">\n            <div class=\"online-prestige-watched__icon\">\n                <svg width=\"21\" height=\"21\" viewBox=\"0 0 21 21\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\">\n                    <circle cx=\"10.5\" cy=\"10.5\" r=\"9\" stroke=\"currentColor\" stroke-width=\"3\"/>\n                    <path d=\"M14.8477 10.5628L8.20312 14.399L8.20313 6.72656L14.8477 10.5628Z\" fill=\"currentColor\"/>\n                </svg>\n            </div>\n            <div class=\"online-prestige-watched__body\"></div>\n        </div>");
   }
 
-  $('body').append(Lampa.Template.get('plugin_4m1k_css', {}, true));
+  $('body').append(Lampa.Template.get('lampac_css', {}, true));
   startPlugin();
 
 })();
