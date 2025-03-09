@@ -295,6 +295,12 @@ function account(url) {
       if (balanser && balanser.toLowerCase() === 'filmixtv') {
         url = "http://rc.bwa.to/rc/fxapi";
       }
+
+     this.requestParams = function(url) {
+      if (balanser && balanser.toLowerCase() === 'hdvb') {
+        url = "https://lam.akter-black.com/lite/filmix";
+      }  
+	     
       var query = [];
       var card_source = object.movie.source || 'tmdb'; 
       query.push('id=' + object.movie.id);
@@ -332,6 +338,9 @@ function account(url) {
    }
 	if(name === "mirage") {
         j.name = "Alloha - 2160";
+    }
+	if(name === "hdvb") {
+        j.name = "Filmix - 2160";
     }
       sources[name] = {
         url: j.url,
@@ -414,6 +423,9 @@ function account(url) {
        }
 	if(name === "mirage") {
         j.name = "Alloha - 2160";
+    }
+	if(name === "hdvb") {
+        j.name = "Filmix - 2160";
     }
            sources[name] = {
            url: j.url,
