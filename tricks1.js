@@ -420,16 +420,16 @@ function account(url) {
       return new Promise(function(resolve, reject) {
         var url = _this4.requestParams(Defined.localhost + 'lite/events?life=true');
         network.timeout(15000);
-       // network.silent(account(url), function(json) {
+        network.silent(account(url), function(json) {
       //    if (json.accsdb) return reject(json);
-      //    if (json.life) {
-	//		_this4.memkey = json.memkey
-      //     filter.render().find('.filter--sort').append('<span class="lampac-balanser-loader" style="width: 1.2em; height: 1.2em; margin-top: 0; background: url(./img/loader.svg) no-repeat 50% 50%; background-size: contain; margin-left: 0.5em"></span>');
-       //     _this4.lifeSource().then(_this4.startSource).then(resolve)["catch"](reject);
-       //   } else {
-      //      _this4.startSource(json).then(resolve)["catch"](reject);
-      //    }
-      //  }, reject);
+          if (json.life) {
+			_this4.memkey = json.memkey
+           filter.render().find('.filter--sort').append('<span class="lampac-balanser-loader" style="width: 1.2em; height: 1.2em; margin-top: 0; background: url(./img/loader.svg) no-repeat 50% 50%; background-size: contain; margin-left: 0.5em"></span>');
+            _this4.lifeSource().then(_this4.startSource).then(resolve)["catch"](reject);
+          } else {
+           _this4.startSource(json).then(resolve)["catch"](reject);
+          }
+        }, reject);
       });
     };
     /**
