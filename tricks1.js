@@ -1,70 +1,7 @@
 (function() {
   'use strict';
 
-  // Функция для парсинга query-параметров из URL
-  function getQueryParams(url) {
-    var params = {};
-    var parts = url.split('?');
-    if(parts.length > 1) {
-      var queries = parts[1].split('&');
-      queries.forEach(function(q) {
-        var pair = q.split('=');
-        params[decodeURIComponent(pair[0])] = decodeURIComponent(pair[1] || '');
-      });
-    }
-    return params;
-  }
 
-  // Функция динамической генерации HTML-ответа на основе URL
-  function generateDynamicResponse(url) {
-    var params = getQueryParams(url);
-    // Для примера: формируем URL видео на основе id (если его нет – используем "default")
-    var videoId = params.id || "default";
-    // Здесь можно задать логику формирования реального URL видео; для демонстрации используем placeholder
-    var videoUrl = "https://nl105.cdnsqu.com/s/dynamic/" + videoId + ".mp4";
-    // Формируем объект качества – здесь добавляем один вариант
-    var quality = {
-      "1080p": videoUrl
-    };
-    // Формируем JSON для data-json; название и оригинальное название берем из параметров, если есть
-    var dataJson = JSON.stringify({
-      method: "play",
-      url: videoUrl,
-      quality: quality,
-      translate: "Дубляж [Dynamic]",
-      maxquality: "1080p",
-      title: (params.title || "Unknown") + " (" + (params.original_title || "Unknown") + ")"
-    });
-    // Собираем HTML-разметку для одного видео-элемента
-    var html = '<div class="videos__line">' +
-                 '<div class="videos__item videos__movie selector focused" media="" data-json=\'' + dataJson + '\'>' +
-                   '<div class="videos__item-imgbox videos__movie-imgbox"></div>' +
-                   '<div class="videos__item-title">' + (params.title || "Unknown") + ' [Dynamic]</div>' +
-                 '</div>' +
-               '</div>';
-    return html;
-  }
-
-  // === ПЕРЕХВАТ ОТВЕТА ОТ СЕРВЕРА ===
-  // Если сервер возвращает минимальный ответ (например, содержащий "accsdb"), генерируем HTML динамически.
-  try {
-    var originalSilent = Lampa.Reguest.prototype.silent;
-    Lampa.Reguest.prototype.silent = function(url, success, error, post, params) {
-      var newSuccess = function(response) {
-        if (typeof response === 'string' && response.indexOf('"accsdb":') !== -1) {
-          // Генерируем HTML динамически на основе URL запроса
-          var dynamicResponse = generateDynamicResponse(url);
-          success(dynamicResponse);
-        } else {
-          success(response);
-        }
-      };
-      return originalSilent.call(this, url, newSuccess, error, post, params);
-    };
-  } catch(e) {
-    console.error("Ошибка в переопределении метода silent:", e);
-  } 
-  // === КОНЕЦ ПЕРЕХВАТА ===
 
   var Defined = {
     api: 'lampac',
