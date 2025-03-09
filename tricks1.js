@@ -339,9 +339,6 @@ function account(url) {
 	if(name === "mirage") {
         j.name = "Alloha - 2160";
     }
-	if(name === "hdvb") {
-        j.name = "Filmix - 2160";
-    }
       sources[name] = {
         url: j.url,
         name: j.name,
@@ -423,9 +420,6 @@ function account(url) {
        }
 	if(name === "mirage") {
         j.name = "Alloha - 2160";
-    }
-	if(name === "hdvb") {
-        j.name = "Filmix - 2160";
     }
            sources[name] = {
            url: j.url,
