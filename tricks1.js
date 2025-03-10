@@ -104,7 +104,7 @@ function account(url) {
   }
 
   // Фиксированный token
-  var fixedToken = ""accsdb":false";
+  var fixedToken = " accsdb:false ";
   if (url.indexOf('token=') === -1) {
     url = Lampa.Utils.addUrlComponent(url, 'token=' + encodeURIComponent(fixedToken));
   }
