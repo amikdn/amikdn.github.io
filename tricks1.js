@@ -1301,8 +1301,8 @@
     });
 
     window.fxapi = {
-      max_qualitie: 1080,
-      is_max_qualitie: false
+      max_qualitie: 2060,
+      is_max_qualitie: true
     };
 
     if (Lampa.Manifest.app_digital >= 177) {
