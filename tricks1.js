@@ -77,8 +77,8 @@
     }
 
     function filmixToken() {
-      var dev_id = 'waoqeEEMtP8skyG4'; // Фиксированный user_dev_id
-      var token = '5c8dc18ea0cd702ac1338ff9aa321d55'; // Фиксированный user_dev_token
+      var dev_id = 'waoqeEEMtP8skyG4'; // Ваш фиксированный user_dev_id
+      var token = '5c8dc18ea0cd702ac1338ff9aa321d55'; // Ваш фиксированный user_dev_token
       return '?user_dev_id=' + dev_id + '&user_dev_name=Lampa&user_dev_token=' + token + '&user_dev_vendor=FXAPI&user_dev_os=11&user_dev_apk=2.0.1';
     }
 
@@ -1817,4 +1817,4 @@
       }
     };
     Lampa.Manifest.plugins = manifest;
-    var button = "<div class=\"full-start__button selector view--online_mod\" data-subtitle=\"online_mod " + mod_version + "\">\n    <svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" xmlns:svgjs=\"http://svgjs.com/svgjs\" version=\"1.1\" width=\"512\" height=\"512\" x=\"0\" y=\"0\" viewBox=\"0 0 244 260\" style=\"enable-background:new 0 0 512 512\" xml:space=\"preserve\" class=\"\">\n    <g xmlns=\"http://www.w3.org/2000/svg\">\n        <path d=\"M242,88v170H10V88h41l-38,38h37.1l38-38h38.4l-38,38h38.4l38-38h38.3l-38,38H204L242,88L242,88z M228.9,2l8,37.7l0,0 L191.2,10L228.9,2z M160.6,56l-45.8-29.7l38-8.1l45.8,29.7L160
+    var button = "<div class=\"full-start__button selector view--online_mod\" data-subtitle=\"online_mod " + mod_version + "\">\n    <svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" xmlns:svgjs=\"http://svgjs.com/svgjs\" version=\"1.1\" width=\"512\" height=\"512\" x=\"0\" y=\"0\" viewBox=\"0 0 244 260\" style=\"enable-background:new 0 0 512 512\" xml:space=\"preserve\" class=\"\">\n    <g xmlns=\"http://www.w3.org/2000/svg\">\n        <path d=\"M242,88v170H10V88h41l-38,38h37.1l38-38h38.4l-38,38h38.4l38-38h38.3l-38,38H204L242,88L242,88z M228.9,2l8,37.7l0,0
