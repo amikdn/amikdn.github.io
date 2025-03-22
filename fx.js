@@ -4,7 +4,7 @@
   var fxapi_token = '5c8dc18ea0cd702ac1338ff9aa321d55';
   var unic_id = 'waoqeEEMtP8skyG4';
   
-  var proxy_url = '';
+  var proxy_url = 'http://cors.cfhttp.top/';
   var api_url = 'http://filmixapp.cyou/api/v2/';
   var dev_token = 'user_dev_apk=2.0.1&user_dev_id=' + unic_id + '&user_dev_name=Lampa&user_dev_os=11&user_dev_vendor=FXAPI&user_dev_token=' + fxapi_token;
   var modalopen = false;
