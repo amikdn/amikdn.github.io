@@ -293,17 +293,18 @@ this.requestParams = function(url) {
     var filmix_id = object.movie.filmix_id;
     
     if (filmix_id) {
-      // Формируем URL для поста без вызова account, добавляем ab_token вручную
       var postUrl = proxy_url + api_url + 'post/' + filmix_id + '?' + dev_token;
+      // Добавляем дополнительные параметры только для post
+      postUrl = Lampa.Utils.addUrlComponent(postUrl, 'uid=' + encodeURIComponent(unic_id));
       postUrl = Lampa.Utils.addUrlComponent(postUrl, 'ab_token=' + Lampa.Storage.get('token'));
       return postUrl;
     } else {
-      // Формируем URL для поиска без дополнительных параметров
+      // Чистый поисковый запрос без дополнительных параметров
       return api_url + 'search?story=' + encodeURIComponent(object.movie.title || object.movie.name) + '&' + dev_token;
     }
   }
   
-  // Стандартный код для других балансеров
+  // Стандартный код для других балансеров с применением account
   var query = [];
   var card_source = object.movie.source || 'tmdb'; 
   query.push('id=' + object.movie.id);
@@ -318,14 +319,15 @@ this.requestParams = function(url) {
   query.push('rchtype=' + (window.rch ? window.rch.type : ''));
   query.push('clarification=' + (object.clarification ? 1 : 0));
   if (Lampa.Storage.get('account_email', '')) query.push('cub_id=' + Lampa.Utils.hash(Lampa.Storage.get('account_email', '')));
-  return url + (url.indexOf('?') >= 0 ? '&' : '?') + query.join('&');
+  var baseUrl = url + (url.indexOf('?') >= 0 ? '&' : '?') + query.join('&');
+  return baseUrl; // Здесь account будет применен в request
 };
 
 this.request = function(url) {
   var _this = this;
   number_of_requests++;
   if (number_of_requests < 10) {
-    // Для Filmix /search не применяем account
+    // Применяем account только если это НЕ Filmix поиск
     var requestUrl = (balanser.toLowerCase() === 'filmixtv' && url.indexOf('/search') !== -1) ? url : account(url);
     
     network["native"](requestUrl, function(str) {
