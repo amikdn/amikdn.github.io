@@ -296,11 +296,11 @@ this.requestParams = function(url, isPost = false) {
       var postUrl = proxy_url + api_url + 'post/' + filmix_id + '?' + dev_token;
       postUrl = Lampa.Utils.addUrlComponent(postUrl, 'uid=' + encodeURIComponent(unic_id));
       postUrl = Lampa.Utils.addUrlComponent(postUrl, 'ab_token=' + Lampa.Storage.get('token'));
-      console.log('Generated POST URL:', postUrl);
+      if (window.console) console.log('Generated POST URL:', postUrl);
       return postUrl;
     } else {
       var searchUrl = api_url + 'search?story=' + encodeURIComponent(object.movie.title || object.movie.name) + '&' + dev_token;
-      console.log('Generated SEARCH URL:', searchUrl);
+      if (window.console) console.log('Generated SEARCH URL:', searchUrl);
       return searchUrl;
     }
   }
@@ -320,7 +320,7 @@ this.requestParams = function(url, isPost = false) {
   query.push('clarification=' + (object.clarification ? 1 : 0));
   if (Lampa.Storage.get('account_email', '')) query.push('cub_id=' + Lampa.Utils.hash(Lampa.Storage.get('account_email', '')));
   var baseUrl = url + (url.indexOf('?') >= 0 ? '&' : '?') + query.join('&');
-  console.log('Generated OTHER URL:', baseUrl);
+  if (window.console) console.log('Generated OTHER URL:', baseUrl);
   return baseUrl;
 };
 
@@ -330,50 +330,75 @@ this.request = function(url, isPost = false) {
   if (number_of_requests < 10) {
     var requestUrl = this.requestParams(url, isPost);
     
-    console.log('Prepared URL before processing:', requestUrl);
-    
     if (balanser.toLowerCase() === 'filmixtv' && !isPost) {
-      // Очищаем URL от нежелательных параметров
-      requestUrl = requestUrl.replace(/&uid=[^&]*/g, '').replace(/&ab_token=[^&]*/g, '');
-      console.log('Cleaned SEARCH URL:', requestUrl);
-      network["native"](requestUrl, function(str) {
-        console.log('Received SEARCH response:', str);
+      // Очищаем URL от нежелательных параметров перед отправкой
+      var cleanUrl = requestUrl.replace(/&uid=[^&]*/g, '').replace(/&ab_token=[^&]*/g, '');
+      if (window.console) console.log('Cleaned SEARCH URL:', cleanUrl);
+      network["native"](cleanUrl, function(str) {
+        if (window.console) console.log('Received SEARCH response:', str);
         try {
           var json = Lampa.Arrays.decodeJson(str, {});
-          console.log('Parsed search response:', json);
+          if (window.console) console.log('Parsed search response:', json);
           if (json && json.length > 0 && json[0].id) {
             object.movie.filmix_id = json[0].id;
-            console.log('Set filmix_id:', object.movie.filmix_id);
+            if (window.console) console.log('Set filmix_id:', object.movie.filmix_id);
             var newUrl = _this.requestParams(url, true);
-            console.log('Generated new URL for POST:', newUrl);
+            if (window.console) console.log('Generated new URL for POST:', newUrl);
             _this.request(newUrl, true);
           } else {
-            console.log('No valid search results');
+            if (window.console) console.log('No valid search results');
             _this.doesNotAnswer('No results found in search');
           }
         } catch (e) {
-          console.log('Error parsing search response:', e);
+          if (window.console) console.log('Error parsing search response:', e);
           _this.doesNotAnswer(e);
         }
       }, function(error) {
-        console.log('SEARCH request failed:', error);
+        if (window.console) console.log('SEARCH request failed:', error);
         _this.doesNotAnswer(error);
       }, false, {
         dataType: 'text'
       });
     } else {
       var finalUrl = account(requestUrl);
-      console.log('Sending request with account to:', finalUrl);
+      if (window.console) console.log('Sending request with account to:', finalUrl);
       network["native"](finalUrl, function(str) {
-        console.log('Received POST or non-Filmix response:', str);
+        if (window.console) console.log('Received POST or non-Filmix response:', str);
         _this.parse(str);
       }, function(error) {
-        console.log('POST or non-Filmix request failed:', error);
+        if (window.console) console.log('POST or non-Filmix request failed:', error);
         _this.doesNotAnswer(error);
       }, false, {
         dataType: 'text'
       });
     }
+    
+    clearTimeout(number_of_requests_timer);
+    number_of_requests_timer = setTimeout(function() {
+      number_of_requests = 0;
+    }, 4000);
+  } else {
+    if (window.console) console.log('Too many requests');
+    this.empty();
+  }
+};
+
+this.find = function() {
+  var url = this.requestParams(source);
+  if (window.console) console.log('Starting find with URL:', url);
+  this.request(url);
+};
+
+// Альтернативный способ логирования, если console.log не работает
+function debugLog(message, data) {
+  if (window.console && console.log) {
+    console.log(message, data);
+  } else {
+    // Запасной вариант: запись в глобальную переменную для отладки
+    window.debugLogs = window.debugLogs || [];
+    window.debugLogs.push({ message: message, data: data, time: new Date() });
+  }
+}
     
     clearTimeout(number_of_requests_timer);
     number_of_requests_timer = setTimeout(function() {
