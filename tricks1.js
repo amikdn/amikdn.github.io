@@ -1301,7 +1301,7 @@
     });
 
     window.fxapi = {
-      max_qualitie: 720,
+      max_qualitie: 1080,
       is_max_qualitie: true
     };
 
