@@ -389,20 +389,6 @@ this.find = function() {
   this.request(url);
 };
 
-// Дополнительная отладка для network["native"]
-if (!network["native"].original) {
-  network["native"].original = network["native"];
-  network["native"] = function(url, onsuccess, onerror, post, options) {
-    console.log('network["native"] called with URL:', url);
-    network["native"].original(url, function(response) {
-      console.log('network["native"] response:', response);
-      onsuccess(response);
-    }, function(error) {
-      console.log('network["native"] error:', error);
-      onerror(error);
-    }, post, options);
-  };
-}
   
     this.getLastChoiceBalanser = function() {
       var last_select_balanser = Lampa.Storage.cache('online_last_balanser', 1000, {});
