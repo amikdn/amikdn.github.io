@@ -508,7 +508,7 @@ this.request = function(url) {
   if (number_of_requests < 10) {
     // Получаем результат от requestParams
     var requestData = this.requestParams(url);
-    // Применяем account только если skipAccount не true
+    // Извлекаем URL из объекта и применяем account только если skipAccount не true
     var finalUrl = requestData.skipAccount ? requestData.url : account(requestData.url);
     network["native"](finalUrl, this.parse.bind(this), this.doesNotAnswer.bind(this), false, {
       dataType: 'text'
