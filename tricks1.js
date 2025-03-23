@@ -1302,7 +1302,7 @@
 
     window.fxapi = {
       max_qualitie: 1080,
-      is_max_qualitie: true
+      is_max_qualitie: false
     };
 
     if (Lampa.Manifest.app_digital >= 177) {
