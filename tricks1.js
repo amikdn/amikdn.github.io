@@ -282,17 +282,35 @@
       this.saveChoice(to, balanser_name);
       Lampa.Activity.replace();
     };
-    this.requestParams = function(url) {
+this.requestParams = function(url) {
   if (balanser && balanser.toLowerCase() === 'filmixtv') {
+    // Определяем необходимые параметры
     var fxapi_token = '5c8dc18ea0cd702ac1338ff9aa321d55';
     var unic_id = 'waoqeEEMtP8skyG4';
     var proxy_url = 'http://cors.cfhttp.top/';
     var api_url = 'http://filmixapp.cyou/api/v2/';
     var dev_token = 'user_dev_apk=2.0.1&user_dev_id=' + unic_id + '&user_dev_name=Lampa&user_dev_os=11&user_dev_vendor=FXAPI&user_dev_token=' + fxapi_token;
     
-    // Формируем URL с учетом параметров API
-    url = proxy_url + api_url + "?" + dev_token;
+    // Проверяем, знаем ли мы filmix_id
+    var filmix_id = object.movie.filmix_id;
+    
+    if (filmix_id) {
+      // Если ID уже известен, формируем прямой URL
+      return proxy_url + api_url + 'post/' + filmix_id + '?' + dev_token;
+    } else {
+      // Если ID неизвестен, нужен поисковый запрос
+      // Мы можем создать специальный флаг для обработки этого случая
+      object.need_filmix_search = true;
+      return proxy_url + api_url + 'search?' + dev_token + '&title=' + encodeURIComponent(object.movie.title || object.movie.name);
+    }
   }
+  
+  // Оригинальный код для других источников
+  var query = [];
+  var card_source = object.movie.source || 'tmdb'; 
+  query.push('id=' + object.movie.id);
+  // ... остальной код функции ...
+}
       var query = [];
       var card_source = object.movie.source || 'tmdb'; 
       query.push('id=' + object.movie.id);
