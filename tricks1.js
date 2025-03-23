@@ -294,17 +294,17 @@ this.requestParams = function(url, isPost = false) {
     
     if (isPost && filmix_id) {
       var postUrl = proxy_url + api_url + 'post/' + filmix_id + '?' + dev_token;
-      // Добавляем дополнительные параметры только для post
       postUrl = Lampa.Utils.addUrlComponent(postUrl, 'uid=' + encodeURIComponent(unic_id));
       postUrl = Lampa.Utils.addUrlComponent(postUrl, 'ab_token=' + Lampa.Storage.get('token'));
+      console.log('Generated POST URL:', postUrl);
       return postUrl;
     } else {
-      // Чистый поисковый запрос
-      return api_url + 'search?story=' + encodeURIComponent(object.movie.title || object.movie.name) + '&' + dev_token;
+      var searchUrl = api_url + 'search?story=' + encodeURIComponent(object.movie.title || object.movie.name) + '&' + dev_token;
+      console.log('Generated SEARCH URL:', searchUrl);
+      return searchUrl;
     }
   }
   
-  // Стандартный код для других балансеров
   var query = [];
   var card_source = object.movie.source || 'tmdb'; 
   query.push('id=' + object.movie.id);
@@ -320,6 +320,7 @@ this.requestParams = function(url, isPost = false) {
   query.push('clarification=' + (object.clarification ? 1 : 0));
   if (Lampa.Storage.get('account_email', '')) query.push('cub_id=' + Lampa.Utils.hash(Lampa.Storage.get('account_email', '')));
   var baseUrl = url + (url.indexOf('?') >= 0 ? '&' : '?') + query.join('&');
+  console.log('Generated OTHER URL:', baseUrl);
   return baseUrl;
 };
 
@@ -327,61 +328,58 @@ this.request = function(url, isPost = false) {
   var _this = this;
   number_of_requests++;
   if (number_of_requests < 10) {
-    // Формируем URL с учетом типа запроса
     var requestUrl = this.requestParams(url, isPost);
-    // Применяем account только для НЕ Filmix или для Filmix /post/
     if (balanser.toLowerCase() !== 'filmixtv' || isPost) {
       requestUrl = account(requestUrl);
     }
     
+    console.log('Sending request to:', requestUrl);
+    
     network["native"](requestUrl, function(str) {
+      console.log('Received response:', str);
       if (balanser.toLowerCase() === 'filmixtv' && !isPost) {
         try {
           var json = Lampa.Arrays.decodeJson(str, {});
+          console.log('Parsed search response:', json);
           if (json && json.length > 0 && json[0].id) {
             object.movie.filmix_id = json[0].id;
-            // Явно вызываем запрос для /post/
-            _this.request(url, true);
+            console.log('Found filmix_id:', object.movie.filmix_id);
+            var newUrl = _this.requestParams(url, true);
+            _this.request(newUrl, true);
           } else {
+            console.log('No valid search results');
             _this.doesNotAnswer('No results found in search');
           }
         } catch (e) {
+          console.log('Error parsing search response:', e);
           _this.doesNotAnswer(e);
         }
       } else {
-        _this.parse.bind(_this)(str);
+        console.log('Processing non-search response');
+        _this.parse(str);
       }
-    }, this.doesNotAnswer.bind(this), false, {
+    }, function(error) {
+      console.log('Request failed:', error);
+      _this.doesNotAnswer(error);
+    }, false, {
       dataType: 'text'
     });
+    
     clearTimeout(number_of_requests_timer);
     number_of_requests_timer = setTimeout(function() {
       number_of_requests = 0;
     }, 4000);
-  } else this.empty();
+  } else {
+    console.log('Too many requests');
+    this.empty();
+  }
 };
 
-// Обновляем вызов в других местах, где используется request
+// Убедимся, что find вызывает request правильно
 this.find = function() {
-  this.request(this.requestParams(source));
-};
-
-// Если есть другие вызовы this.request, их тоже нужно обновить
-this.initialize = function() {
-  var _this = this;
-  // ... остальной код ...
-  this.externalids().then(function() {
-    return _this.createSource();
-  }).then(function(json) {
-    if (!balansers_with_search.find(function(b) {
-        return balanser.slice(0, b.length) == b;
-      })) {
-      filter.render().find('.filter--search').addClass('hide');
-    }
-    _this.search();
-  })["catch"](function(e) {
-    _this.noConnectToServer(e);
-  });
+  var url = this.requestParams(source);
+  console.log('Starting find with URL:', url);
+  this.request(url);
 };
   
     this.getLastChoiceBalanser = function() {
