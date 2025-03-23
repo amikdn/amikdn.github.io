@@ -297,8 +297,11 @@ this.requestParams = function(url) {
     query.push('story=' + encodeURIComponent(object.clarification ? object.search : object.movie.title || object.movie.name));
     query.push(dev_token);
     
-    // Собираем полный URL без вызова account
-    url = proxy_url + api_url + 'search?' + query.join('&');
+    // Возвращаем объект с URL и флагом skipAccount
+    return {
+      url: proxy_url + api_url + 'search?' + query.join('&'),
+      skipAccount: true
+    };
   } else {
     var query = [];
     var card_source = object.movie.source || 'tmdb'; 
@@ -315,8 +318,12 @@ this.requestParams = function(url) {
     query.push('clarification=' + (object.clarification ? 1 : 0));
     if (Lampa.Storage.get('account_email', '')) query.push('cub_id=' + Lampa.Utils.hash(Lampa.Storage.get('account_email', '')));
     url = url + (url.indexOf('?') >= 0 ? '&' : '?') + query.join('&');
+    // Для других балансеров возвращаем только URL
+    return {
+      url: url,
+      skipAccount: false
+    };
   }
-  return url;
 };
   
     this.getLastChoiceBalanser = function() {
@@ -496,18 +503,22 @@ this.requestParams = function(url) {
     this.find = function() {
       this.request(this.requestParams(source));
     };
-    this.request = function(url) {
-      number_of_requests++;
-      if (number_of_requests < 10) {
-        network["native"](account(url), this.parse.bind(this), this.doesNotAnswer.bind(this), false, {
-          dataType: 'text'
-        });
-        clearTimeout(number_of_requests_timer);
-        number_of_requests_timer = setTimeout(function() {
-          number_of_requests = 0;
-        }, 4000);
-      } else this.empty();
-    };
+this.request = function(url) {
+  number_of_requests++;
+  if (number_of_requests < 10) {
+    // Получаем результат от requestParams
+    var requestData = this.requestParams(url);
+    // Применяем account только если skipAccount не true
+    var finalUrl = requestData.skipAccount ? requestData.url : account(requestData.url);
+    network["native"](finalUrl, this.parse.bind(this), this.doesNotAnswer.bind(this), false, {
+      dataType: 'text'
+    });
+    clearTimeout(number_of_requests_timer);
+    number_of_requests_timer = setTimeout(function() {
+      number_of_requests = 0;
+    }, 4000);
+  } else this.empty();
+};
     this.parseJsonDate = function(str, name) {
       try {
         var html = $('<div>' + str + '</div>');
