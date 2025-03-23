@@ -379,7 +379,7 @@ this.request = function(url, isPost = false) {
     }, 4000);
   } else {
     if (window.console) console.log('Too many requests');
-    this.empty();
+    _this.empty();
   }
 };
 
@@ -388,17 +388,6 @@ this.find = function() {
   if (window.console) console.log('Starting find with URL:', url);
   this.request(url);
 };
-
-// Альтернативный способ логирования, если console.log не работает
-function debugLog(message, data) {
-  if (window.console && console.log) {
-    console.log(message, data);
-  } else {
-    // Запасной вариант: запись в глобальную переменную для отладки
-    window.debugLogs = window.debugLogs || [];
-    window.debugLogs.push({ message: message, data: data, time: new Date() });
-  }
-}
     
     clearTimeout(number_of_requests_timer);
     number_of_requests_timer = setTimeout(function() {
