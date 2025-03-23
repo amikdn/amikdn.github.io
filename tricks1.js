@@ -329,16 +329,12 @@ this.request = function(url, isPost = false) {
   number_of_requests++;
   if (number_of_requests < 10) {
     var requestUrl = this.requestParams(url, isPost);
-    // Применяем account только для НЕ Filmix поиска или для Filmix POST
-    if (balanser.toLowerCase() !== 'filmixtv' || isPost) {
-      requestUrl = account(requestUrl);
-    }
     
-    console.log('Sending request to:', requestUrl);
-    
-    network["native"](requestUrl, function(str) {
-      console.log('Received response:', str);
-      if (balanser.toLowerCase() === 'filmixtv' && !isPost) {
+    // Для Filmix поиска используем чистый URL без модификаций
+    if (balanser.toLowerCase() === 'filmixtv' && !isPost) {
+      console.log('Sending raw SEARCH request to:', requestUrl);
+      network["native"](requestUrl, function(str) {
+        console.log('Received SEARCH response:', str);
         try {
           var json = Lampa.Arrays.decodeJson(str, {});
           console.log('Parsed search response:', json);
@@ -356,16 +352,26 @@ this.request = function(url, isPost = false) {
           console.log('Error parsing search response:', e);
           _this.doesNotAnswer(e);
         }
-      } else {
-        console.log('Processing POST or non-Filmix response');
+      }, function(error) {
+        console.log('SEARCH request failed:', error);
+        _this.doesNotAnswer(error);
+      }, false, {
+        dataType: 'text'
+      });
+    } else {
+      // Для всех остальных случаев применяем account
+      requestUrl = account(requestUrl);
+      console.log('Sending request with account to:', requestUrl);
+      network["native"](requestUrl, function(str) {
+        console.log('Received POST or non-Filmix response:', str);
         _this.parse(str);
-      }
-    }, function(error) {
-      console.log('Request failed:', error);
-      _this.doesNotAnswer(error);
-    }, false, {
-      dataType: 'text'
-    });
+      }, function(error) {
+        console.log('POST or non-Filmix request failed:', error);
+        _this.doesNotAnswer(error);
+      }, false, {
+        dataType: 'text'
+      });
+    }
     
     clearTimeout(number_of_requests_timer);
     number_of_requests_timer = setTimeout(function() {
