@@ -330,12 +330,14 @@ this.request = function(url, isPost = false) {
   if (number_of_requests < 10) {
     var requestUrl = this.requestParams(url, isPost);
     
+    console.log('Prepared URL before processing:', requestUrl);
+    
     if (balanser.toLowerCase() === 'filmixtv' && !isPost) {
-      // Обходим любые автоматические модификации для поиска
-      console.log('Preparing raw SEARCH URL:', requestUrl);
-      // Используем чистый вызов network["native"] без дополнительных обёрток
+      // Очищаем URL от нежелательных параметров
+      requestUrl = requestUrl.replace(/&uid=[^&]*/g, '').replace(/&ab_token=[^&]*/g, '');
+      console.log('Cleaned SEARCH URL:', requestUrl);
       network["native"](requestUrl, function(str) {
-        console.log('Received raw SEARCH response:', str);
+        console.log('Received SEARCH response:', str);
         try {
           var json = Lampa.Arrays.decodeJson(str, {});
           console.log('Parsed search response:', json);
@@ -354,7 +356,7 @@ this.request = function(url, isPost = false) {
           _this.doesNotAnswer(e);
         }
       }, function(error) {
-        console.log('Raw SEARCH request failed:', error);
+        console.log('SEARCH request failed:', error);
         _this.doesNotAnswer(error);
       }, false, {
         dataType: 'text'
