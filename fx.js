@@ -1308,7 +1308,7 @@ function getFile(element, max_quality) {
     });
 
     window.fxapi = {
-      max_qualitie: 2160,
+      max_qualitie: 1080,
       is_max_qualitie: false
     };
 
