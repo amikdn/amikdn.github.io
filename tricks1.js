@@ -485,8 +485,7 @@
       getFromCache: getFromCache,
       clear: clear
     };
-
-    function lumex(component, _object) {
+        function lumex(component, _object) {
       var network = new Lampa.Reguest();
       var extract = {};
       var object = _object;
@@ -584,6 +583,8 @@
 
           callback(json, cookie);
         };
+
+        var values = {};
 
         network.clear();
         network.timeout(20000);
@@ -1677,7 +1678,7 @@
         en: 'Filmix Token',
         zh: 'Filmix令牌'
       },
-      online_mod_filmix_param_add_descr: {
+      online_mod_filmix_param_add_desr: {
         ru: 'Добавьте токен Filmix для доступа к вашему аккаунту',
         uk: 'Додайте токен Filmix для доступу до вашого облікового запису',
         be: 'Дадайце токен Filmix для доступу да вашага акаўнта',
@@ -1755,6 +1756,7 @@
         zh: '发生了一个错误'
       }
     });
+
     var network = new Lampa.Reguest();
     var online_loading = false;
 
@@ -1796,25 +1798,235 @@
       } else onComplite();
     }
 
-    Lampa.Component.add('online_mod', component);
+    function component(object) {
+      this.proxy = function(name) { return Utils.proxy(name); };
+      this.proxyLink = function(link, proxy, proxy_enc, enc) { return Utils.proxyLink(link, proxy, proxy_enc, enc); };
+      this.proxyStream = function(link, name) { return Utils.proxyLink(link, Utils.proxy(name), '', ''); };
+      this.proxyStreamSubs = function(link, name) { return Utils.proxyLink(link, Utils.proxy(name), '', ''); };
+      this.fixLink = function(link, referrer) { return Utils.fixLink(link, referrer); };
+      this.fixLinkProtocol = function(link, prefer_http, replace_protocol) { return Utils.fixLinkProtocol(link, prefer_http, replace_protocol); };
+      this.checkMyIp = function(callback) { if (Utils.getMyIp()) callback(); else loadOnline(object); };
+      this.empty = function(params) { return Lampa.Activity.push({ url: '', title: 'Ошибка', component: 'error', error: params || {}, page: 1 }); };
+      this.emptyForQuery = function(query) { return this.empty({ text: Lampa.Lang.translate('online_mod_nolink'), query: query }); };
+      this.loading = function(status) { /* Реализация зависит от Lampa */ };
+      this.reset = function() { /* Реализация зависит от Lampa */ };
+      this.append = function(item) { /* Реализация зависит от Lampa */ };
+      this.contextmenu = function(params) { /* Реализация зависит от Lampa */ };
+      this.start = function(first) { /* Реализация зависит от Lampa */ };
+      this.formatEpisodeTitle = function(season, episode) { return 'S' + season + ' / E' + episode; };
+            this.getLastEpisode = function(items) {
+        var last = 0;
+        items.forEach(function(e) {
+          if (e.episode > last) last = e.episode;
+        });
+        return last;
+      };
+
+      this.getDefaultQuality = function(qualitys, stream) {
+        if (!qualitys) return stream;
+        var keys = Object.keys(qualitys);
+        var prefer = Lampa.Storage.get('video_quality_default', '1080');
+        var index = keys.indexOf(prefer);
+        if (index == -1) index = keys.length - 1;
+        return qualitys[keys[index]];
+      };
+
+      this.renameQualityMap = function(qualitys) {
+        if (!qualitys) return false;
+        var map = {};
+        for (var q in qualitys) {
+          map[q.replace('p', '')] = qualitys[q];
+        }
+        return map;
+      };
+
+      this.parseM3U = function(str) {
+        var items = [];
+        try {
+          var lines = str.split('\n');
+          var info = '';
+          lines.forEach(function(line) {
+            line = line.trim();
+            if (startsWith(line, '#EXTINF:')) {
+              info = line;
+            } else if (line && !startsWith(line, '#')) {
+              var height = info.match(/resolution=(\d+)/i);
+              items.push({
+                link: line,
+                height: height ? parseInt(height[1]) : 0
+              });
+              info = '';
+            }
+          });
+        } catch (e) {}
+        return items;
+      };
+
+      this.saveChoice = function(choice) {
+        Lampa.Storage.set('online_mod_choice_' + object.movie.id, choice);
+      };
+
+      var sources = {
+        lumex: lumex,
+        lumex2: lumex2
+      };
+
+      this.create = function() {
+        this.loading(true);
+        var saved = Lampa.Storage.get('online_mod_choice_' + object.movie.id, '{}');
+        var source_name = Lampa.Storage.get('online_mod_source', 'lumex');
+        var source = sources[source_name] || sources.lumex;
+        var online = new source(this, object);
+        if (saved.season || saved.voice) online.extendChoice(saved);
+        var kp_id = object.movie.kinopoisk_id || object.movie.id;
+        var imdb_id = object.movie.imdb_id;
+
+        if (Lampa.Storage.field('online_mod_skip_kp_search') === true || !kp_id) {
+          online.search(object, kp_id || imdb_id);
+        } else {
+          KP.getComplite('/api/v2.2/films/' + kp_id, function(json) {
+            if (json && json.data && json.data.imdbId) imdb_id = json.data.imdbId;
+            online.search(object, kp_id, json && json.data && json.data.type === 'TV_SERIES' ? [{
+              content_type: 'tv_series',
+              id: kp_id
+            }] : null);
+          });
+        }
+
+        return this;
+      };
+
+      this.destroy = function() {
+        if (this.online) this.online.destroy();
+        this.online = null;
+      };
+    }
 
     resetTemplates();
-    var manifest = {
-      type: 'video',
-      version: mod_version,
-      name: Lampa.Lang.translate('online_mod_title_full') + ' - ' + mod_version,
-      description: Lampa.Lang.translate('online_mod_watch'),
-      component: 'online_mod',
-      onContextMenu: function onContextMenu(object) {
-        return {
-          name: Lampa.Lang.translate('online_mod_watch'),
-          description: ''
-        };
-      },
-      onContextLauch: function onContextLauch(object) {
-        online_loading = false;
-        loadOnline(object);
+
+    Lampa.Component.add('online_mod', component);
+
+    var button_added = false;
+
+    function addButton() {
+      if (button_added || !Lampa.Activity.active().activity || Lampa.Activity.active().activity.component !== 'full') return;
+      var object = Lampa.Activity.active().activity.object;
+      if (!object.movie || !object.card) return;
+
+      button_added = true;
+
+      var menu_item = $('<li class="menu__item selector" data-action="online_mod"><div class="menu__ico menu__ico_online"></div><div class="menu__text">' + Lampa.Lang.translate('online_mod_watch') + '</div></li>');
+      menu_item.on('hover:enter', function() {
+        loadOnline(object.movie);
+      });
+
+      $('.menu .menu__list').eq(0).append(menu_item);
+    }
+
+    Lampa.Listener.follow('app', function(e) {
+      if (e.type == 'ready') {
+        setTimeout(addButton, 1000);
       }
+      if (e.type == 'activity' && e.name == 'full') {
+        button_added = false;
+        setTimeout(addButton, 1000);
+      }
+    });
+
+    Lampa.SettingsApi.addComponent({
+      component: 'online_mod_settings',
+      name: 'online_mod',
+      title: Lampa.Lang.translate('online_mod_title_full') + ' v' + mod_version
+    });
+
+    Lampa.SettingsApi.addParam({
+      component: 'online_mod_settings',
+      type: 'select',
+      name: 'online_mod_source',
+      title: 'Источник',
+      values: {
+        lumex: 'Lumex',
+        lumex2: 'Lumex 2'
+      },
+      default: 'lumex'
+    });
+
+    Lampa.SettingsApi.addParam({
+      component: 'online_mod_settings',
+      type: 'trigger',
+      name: 'online_mod_proxy_balanser',
+      title: Lampa.Lang.translate('online_mod_proxy_balanser'),
+      default: true
+    });
+
+    Lampa.SettingsApi.addParam({
+      component: 'online_mod_settings',
+      type: 'trigger',
+      name: 'online_mod_skip_kp_search',
+      title: Lampa.Lang.translate('online_mod_skip_kp_search'),
+      default: false
+    });
+
+    Lampa.SettingsApi.addParam({
+      component: 'online_mod_settings',
+      type: 'trigger',
+      name: 'online_mod_iframe_proxy',
+      title: Lampa.Lang.translate('online_mod_iframe_proxy'),
+      default: false
+    });
+
+    Lampa.SettingsApi.addParam({
+      component: 'online_mod_settings',
+      type: 'trigger',
+      name: 'online_mod_prefer_http',
+      title: Lampa.Lang.translate('online_mod_prefer_http'),
+      default: false
+    });
+
+    Lampa.SettingsApi.addParam({
+      component: 'online_mod_settings',
+      type: 'trigger',
+      name: 'online_mod_prefer_mp4',
+      title: Lampa.Lang.translate('online_mod_prefer_mp4'),
+      default: true
+    });
+
+    Lampa.SettingsApi.addParam({
+      component: 'online_mod_settings',
+      type: 'trigger',
+      name: 'online_mod_proxy_find_ip',
+      title: Lampa.Lang.translate('online_mod_proxy_find_ip'),
+      default: false
+    });
+
+    Lampa.SettingsApi.addParam({
+      component: 'online_mod_settings',
+      type: 'trigger',
+      name: 'online_mod_proxy_other',
+      title: Lampa.Lang.translate('online_mod_proxy_other'),
+      default: false
+    });
+
+    Lampa.SettingsApi.addParam({
+      component: 'online_mod_settings',
+      type: 'input',
+      name: 'online_mod_proxy_other_url',
+      title: Lampa.Lang.translate('online_mod_proxy_other_url'),
+      default: ''
+    });
+
+    Lampa.SettingsApi.addParam({
+      component: 'online_mod_settings',
+      type: 'input',
+      name: 'online_mod_secret_password',
+      title: Lampa.Lang.translate('online_mod_secret_password'),
+      default: ''
+    });
+
+    Lampa.Utils.Tricks = Utils;
+    window.LampaOnlineMod = {
+      version: mod_version,
+      Utils: Utils,
+      KP: KP
     };
-    Lampa.Manifest.plugins = manifest;
-    var button = "<div class=\"full-start__button selector view--online_mod\" data-subtitle=\"online_mod " + mod_version + "\">\n    <svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" xmlns:svgjs=\"http://svgjs.com/svgjs\" version=\"1.1\" width=\"512\" height=\"512\" x=\"0\" y=\"0\" viewBox=\"0 0 244 260\" style=\"enable-background:new 0 0 512 512\" xml:space=\"preserve\" class=\"\">\n    <g xmlns=\"http://www.w3.org/2000/svg\">\n        <path d=\"M242,88v170H10V88h41l-38,38h37.1l38-38h38.4l-38,38h38.4l38-38h38.3l-38,38H204L242,88L242,88z M228.9,2l8,37.7l0,0
+})();
