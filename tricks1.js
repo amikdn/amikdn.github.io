@@ -343,8 +343,10 @@ this.request = function(url, isPost = false) {
           console.log('Parsed search response:', json);
           if (json && json.length > 0 && json[0].id) {
             object.movie.filmix_id = json[0].id;
-            console.log('Found filmix_id:', object.movie.filmix_id);
+            console.log('Set filmix_id:', object.movie.filmix_id);
             var newUrl = _this.requestParams(url, true);
+            console.log('Generated new URL for POST:', newUrl);
+            // Вызываем новый запрос
             _this.request(newUrl, true);
           } else {
             console.log('No valid search results');
@@ -355,7 +357,7 @@ this.request = function(url, isPost = false) {
           _this.doesNotAnswer(e);
         }
       } else {
-        console.log('Processing non-search response');
+        console.log('Processing POST or non-Filmix response');
         _this.parse(str);
       }
     }, function(error) {
@@ -375,7 +377,6 @@ this.request = function(url, isPost = false) {
   }
 };
 
-// Убедимся, что find вызывает request правильно
 this.find = function() {
   var url = this.requestParams(source);
   console.log('Starting find with URL:', url);
