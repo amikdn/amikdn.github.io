@@ -329,6 +329,7 @@ this.request = function(url, isPost = false) {
   number_of_requests++;
   if (number_of_requests < 10) {
     var requestUrl = this.requestParams(url, isPost);
+    // Применяем account только для НЕ Filmix поиска или для Filmix POST
     if (balanser.toLowerCase() !== 'filmixtv' || isPost) {
       requestUrl = account(requestUrl);
     }
@@ -346,7 +347,6 @@ this.request = function(url, isPost = false) {
             console.log('Set filmix_id:', object.movie.filmix_id);
             var newUrl = _this.requestParams(url, true);
             console.log('Generated new URL for POST:', newUrl);
-            // Вызываем новый запрос
             _this.request(newUrl, true);
           } else {
             console.log('No valid search results');
