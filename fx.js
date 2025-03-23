@@ -1309,7 +1309,7 @@ function getFile(element, max_quality) {
 
     window.fxapi = {
       max_qualitie: 720,
-      is_max_qualitie: false
+      is_max_qualitie: true
     };
 
     if (Lampa.Manifest.app_digital >= 177) {
