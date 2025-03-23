@@ -284,28 +284,26 @@
     };
 this.requestParams = function(url) {
   if (balanser && balanser.toLowerCase() === 'filmixtv') {
-    // Определяем необходимые параметры
     var fxapi_token = '5c8dc18ea0cd702ac1338ff9aa321d55';
-    var unic_id = 'waoqeEEMtP8skyG4';
+    var unic_id = Lampa.Storage.get('lampac_unic_id', 'waoqeEEMtP8skyG4');
     var proxy_url = 'http://cors.cfhttp.top/';
     var api_url = 'http://filmixapp.cyou/api/v2/';
     var dev_token = 'user_dev_apk=2.0.1&user_dev_id=' + unic_id + '&user_dev_name=Lampa&user_dev_os=11&user_dev_vendor=FXAPI&user_dev_token=' + fxapi_token;
     
-    // Проверяем, знаем ли мы filmix_id
+    // Проверяем, есть ли сохраненный filmix_id
     var filmix_id = object.movie.filmix_id;
     
     if (filmix_id) {
       // Если ID уже известен, формируем прямой URL
       return proxy_url + api_url + 'post/' + filmix_id + '?' + dev_token;
     } else {
-      // Если ID неизвестен, нужен поисковый запрос
-      // Мы можем создать специальный флаг для обработки этого случая
-      object.need_filmix_search = true;
-      return proxy_url + api_url + 'search?' + dev_token + '&title=' + encodeURIComponent(object.movie.title || object.movie.name);
+      // Если ID неизвестен, возвращаем URL для поиска
+      // Используем параметр story вместо title для соответствия исходному запросу
+      return api_url + 'search?story=' + encodeURIComponent(object.movie.title || object.movie.name) + '&' + dev_token;
     }
   }
   
-  // Для других балансеров используем стандартный код
+  // Стандартный код для других балансеров
   var query = [];
   var card_source = object.movie.source || 'tmdb'; 
   query.push('id=' + object.movie.id);
@@ -321,6 +319,42 @@ this.requestParams = function(url) {
   query.push('clarification=' + (object.clarification ? 1 : 0));
   if (Lampa.Storage.get('account_email', '')) query.push('cub_id=' + Lampa.Utils.hash(Lampa.Storage.get('account_email', '')));
   return url + (url.indexOf('?') >= 0 ? '&' : '?') + query.join('&');
+};
+
+// Модифицируем функцию request для обработки поиска и последующего запроса
+this.request = function(url) {
+  var _this = this;
+  number_of_requests++;
+  if (number_of_requests < 10) {
+    network["native"](account(url), function(str) {
+      if (balanser.toLowerCase() === 'filmixtv' && url.indexOf('/search') !== -1) {
+        // Парсим результат поиска для получения filmix_id
+        try {
+          var json = Lampa.Arrays.decodeJson(str, {});
+          if (json && json.length > 0 && json[0].id) {
+            // Сохраняем filmix_id в object.movie
+            object.movie.filmix_id = json[0].id;
+            // Формируем новый URL с post и делаем новый запрос
+            var newUrl = _this.requestParams(url);
+            _this.request(newUrl);
+          } else {
+            _this.doesNotAnswer('No results found in search');
+          }
+        } catch (e) {
+          _this.doesNotAnswer(e);
+        }
+      } else {
+        // Обрабатываем как обычно для всех остальных случаев
+        _this.parse.bind(_this)(str);
+      }
+    }, this.doesNotAnswer.bind(this), false, {
+      dataType: 'text'
+    });
+    clearTimeout(number_of_requests_timer);
+    number_of_requests_timer = setTimeout(function() {
+      number_of_requests = 0;
+    }, 4000);
+  } else this.empty();
 };
   
     this.getLastChoiceBalanser = function() {
