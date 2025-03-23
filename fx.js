@@ -1308,8 +1308,8 @@ function getFile(element, max_quality) {
     });
 
     window.fxapi = {
-      max_qualitie: 720,
-      is_max_qualitie: true
+      max_qualitie: 2160,
+      is_max_qualitie: false
     };
 
     if (Lampa.Manifest.app_digital >= 177) {
