@@ -304,23 +304,24 @@ this.requestParams = function(url) {
       return proxy_url + api_url + 'search?' + dev_token + '&title=' + encodeURIComponent(object.movie.title || object.movie.name);
     }
   }
-}
-      var query = [];
-      var card_source = object.movie.source || 'tmdb'; 
-      query.push('id=' + object.movie.id);
-      if (object.movie.imdb_id) query.push('imdb_id=' + (object.movie.imdb_id || ''));
-      if (object.movie.kinopoisk_id) query.push('kinopoisk_id=' + (object.movie.kinopoisk_id || ''));
-      query.push('title=' + encodeURIComponent(object.clarification ? object.search : object.movie.title || object.movie.name));
-      query.push('original_title=' + encodeURIComponent(object.movie.original_title || object.movie.original_name));
-      query.push('serial=' + (object.movie.name ? 1 : 0));
-      query.push('original_language=' + (object.movie.original_language || ''));
-      query.push('year=' + ((object.movie.release_date || object.movie.first_air_date || '0000') + '').slice(0, 4));
-      query.push('source=' + card_source);
-	  query.push('rchtype=' + (window.rch ? window.rch.type : ''));
-      query.push('clarification=' + (object.clarification ? 1 : 0));
-      if (Lampa.Storage.get('account_email', '')) query.push('cub_id=' + Lampa.Utils.hash(Lampa.Storage.get('account_email', '')));
-      return url + (url.indexOf('?') >= 0 ? '&' : '?') + query.join('&');
-    };
+  
+  // Для других балансеров используем стандартный код
+  var query = [];
+  var card_source = object.movie.source || 'tmdb'; 
+  query.push('id=' + object.movie.id);
+  if (object.movie.imdb_id) query.push('imdb_id=' + (object.movie.imdb_id || ''));
+  if (object.movie.kinopoisk_id) query.push('kinopoisk_id=' + (object.movie.kinopoisk_id || ''));
+  query.push('title=' + encodeURIComponent(object.clarification ? object.search : object.movie.title || object.movie.name));
+  query.push('original_title=' + encodeURIComponent(object.movie.original_title || object.movie.original_name));
+  query.push('serial=' + (object.movie.name ? 1 : 0));
+  query.push('original_language=' + (object.movie.original_language || ''));
+  query.push('year=' + ((object.movie.release_date || object.movie.first_air_date || '0000') + '').slice(0, 4));
+  query.push('source=' + card_source);
+  query.push('rchtype=' + (window.rch ? window.rch.type : ''));
+  query.push('clarification=' + (object.clarification ? 1 : 0));
+  if (Lampa.Storage.get('account_email', '')) query.push('cub_id=' + Lampa.Utils.hash(Lampa.Storage.get('account_email', '')));
+  return url + (url.indexOf('?') >= 0 ? '&' : '?') + query.join('&');
+};
   
     this.getLastChoiceBalanser = function() {
       var last_select_balanser = Lampa.Storage.cache('online_last_balanser', 1000, {});
