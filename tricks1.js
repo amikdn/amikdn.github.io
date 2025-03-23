@@ -297,7 +297,7 @@ this.requestParams = function(url) {
     query.push('story=' + encodeURIComponent(object.clarification ? object.search : object.movie.title || object.movie.name));
     query.push(dev_token);
     
-    // Собираем полный URL
+    // Собираем полный URL без вызова account
     url = proxy_url + api_url + 'search?' + query.join('&');
   } else {
     var query = [];
