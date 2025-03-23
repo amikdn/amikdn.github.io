@@ -304,12 +304,6 @@ this.requestParams = function(url) {
       return proxy_url + api_url + 'search?' + dev_token + '&title=' + encodeURIComponent(object.movie.title || object.movie.name);
     }
   }
-  
-  // Оригинальный код для других источников
-  var query = [];
-  var card_source = object.movie.source || 'tmdb'; 
-  query.push('id=' + object.movie.id);
-  // ... остальной код функции ...
 }
       var query = [];
       var card_source = object.movie.source || 'tmdb'; 
