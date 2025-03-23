@@ -330,11 +330,12 @@ this.request = function(url, isPost = false) {
   if (number_of_requests < 10) {
     var requestUrl = this.requestParams(url, isPost);
     
-    // Для Filmix поиска используем чистый URL без модификаций
     if (balanser.toLowerCase() === 'filmixtv' && !isPost) {
-      console.log('Sending raw SEARCH request to:', requestUrl);
+      // Обходим любые автоматические модификации для поиска
+      console.log('Preparing raw SEARCH URL:', requestUrl);
+      // Используем чистый вызов network["native"] без дополнительных обёрток
       network["native"](requestUrl, function(str) {
-        console.log('Received SEARCH response:', str);
+        console.log('Received raw SEARCH response:', str);
         try {
           var json = Lampa.Arrays.decodeJson(str, {});
           console.log('Parsed search response:', json);
@@ -353,16 +354,15 @@ this.request = function(url, isPost = false) {
           _this.doesNotAnswer(e);
         }
       }, function(error) {
-        console.log('SEARCH request failed:', error);
+        console.log('Raw SEARCH request failed:', error);
         _this.doesNotAnswer(error);
       }, false, {
         dataType: 'text'
       });
     } else {
-      // Для всех остальных случаев применяем account
-      requestUrl = account(requestUrl);
-      console.log('Sending request with account to:', requestUrl);
-      network["native"](requestUrl, function(str) {
+      var finalUrl = account(requestUrl);
+      console.log('Sending request with account to:', finalUrl);
+      network["native"](finalUrl, function(str) {
         console.log('Received POST or non-Filmix response:', str);
         _this.parse(str);
       }, function(error) {
@@ -388,6 +388,21 @@ this.find = function() {
   console.log('Starting find with URL:', url);
   this.request(url);
 };
+
+// Дополнительная отладка для network["native"]
+if (!network["native"].original) {
+  network["native"].original = network["native"];
+  network["native"] = function(url, onsuccess, onerror, post, options) {
+    console.log('network["native"] called with URL:', url);
+    network["native"].original(url, function(response) {
+      console.log('network["native"] response:', response);
+      onsuccess(response);
+    }, function(error) {
+      console.log('network["native"] error:', error);
+      onerror(error);
+    }, post, options);
+  };
+}
   
     this.getLastChoiceBalanser = function() {
       var last_select_balanser = Lampa.Storage.cache('online_last_balanser', 1000, {});
