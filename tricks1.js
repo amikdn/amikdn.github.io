@@ -290,15 +290,15 @@ this.requestParams = function(url) {
     var api_url = 'http://filmixapp.cyou/api/v2/';
     var dev_token = 'user_dev_apk=2.0.1&user_dev_id=' + unic_id + '&user_dev_name=Lampa&user_dev_os=11&user_dev_vendor=FXAPI&user_dev_token=' + fxapi_token;
     
-    // Проверяем, есть ли сохраненный filmix_id
     var filmix_id = object.movie.filmix_id;
     
     if (filmix_id) {
-      // Если ID уже известен, формируем прямой URL
-      return proxy_url + api_url + 'post/' + filmix_id + '?' + dev_token;
+      // Формируем URL для поста без вызова account, добавляем ab_token вручную
+      var postUrl = proxy_url + api_url + 'post/' + filmix_id + '?' + dev_token;
+      postUrl = Lampa.Utils.addUrlComponent(postUrl, 'ab_token=' + Lampa.Storage.get('token'));
+      return postUrl;
     } else {
-      // Если ID неизвестен, возвращаем URL для поиска
-      // Используем параметр story вместо title для соответствия исходному запросу
+      // Формируем URL для поиска без дополнительных параметров
       return api_url + 'search?story=' + encodeURIComponent(object.movie.title || object.movie.name) + '&' + dev_token;
     }
   }
@@ -321,20 +321,19 @@ this.requestParams = function(url) {
   return url + (url.indexOf('?') >= 0 ? '&' : '?') + query.join('&');
 };
 
-// Модифицируем функцию request для обработки поиска и последующего запроса
 this.request = function(url) {
   var _this = this;
   number_of_requests++;
   if (number_of_requests < 10) {
-    network["native"](account(url), function(str) {
+    // Для Filmix /search не применяем account
+    var requestUrl = (balanser.toLowerCase() === 'filmixtv' && url.indexOf('/search') !== -1) ? url : account(url);
+    
+    network["native"](requestUrl, function(str) {
       if (balanser.toLowerCase() === 'filmixtv' && url.indexOf('/search') !== -1) {
-        // Парсим результат поиска для получения filmix_id
         try {
           var json = Lampa.Arrays.decodeJson(str, {});
           if (json && json.length > 0 && json[0].id) {
-            // Сохраняем filmix_id в object.movie
             object.movie.filmix_id = json[0].id;
-            // Формируем новый URL с post и делаем новый запрос
             var newUrl = _this.requestParams(url);
             _this.request(newUrl);
           } else {
@@ -344,7 +343,6 @@ this.request = function(url) {
           _this.doesNotAnswer(e);
         }
       } else {
-        // Обрабатываем как обычно для всех остальных случаев
         _this.parse.bind(_this)(str);
       }
     }, this.doesNotAnswer.bind(this), false, {
