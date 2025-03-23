@@ -282,48 +282,6 @@
       this.saveChoice(to, balanser_name);
       Lampa.Activity.replace();
     };
-this.requestParams = function(url, isPost = false) {
-  if (balanser && balanser.toLowerCase() === 'filmixtv') {
-    var fxapi_token = '5c8dc18ea0cd702ac1338ff9aa321d55';
-    var unic_id = Lampa.Storage.get('lampac_unic_id', 'waoqeEEMtP8skyG4');
-    var proxy_url = 'http://cors.cfhttp.top/';
-    var api_url = 'http://filmixapp.cyou/api/v2/';
-    var dev_token = 'user_dev_apk=2.0.1&user_dev_id=' + unic_id + '&user_dev_name=Lampa&user_dev_os=11&user_dev_vendor=FXAPI&user_dev_token=' + fxapi_token;
-    
-    var filmix_id = object.movie.filmix_id;
-    
-    if (isPost && filmix_id) {
-      var postUrl = proxy_url + api_url + 'post/' + filmix_id + '?' + dev_token;
-      postUrl = Lampa.Utils.addUrlComponent(postUrl, 'uid=' + encodeURIComponent(unic_id));
-      postUrl = Lampa.Utils.addUrlComponent(postUrl, 'ab_token=' + Lampa.Storage.get('token'));
-      if (window.console) console.log('Generated POST URL:', postUrl);
-      return postUrl;
-    } else {
-      var searchUrl = api_url + 'search?story=' + encodeURIComponent(object.movie.title || object.movie.name) + '&' + dev_token;
-      if (window.console) console.log('Generated SEARCH URL:', searchUrl);
-      return searchUrl;
-    }
-  }
-  
-  var query = [];
-  var card_source = object.movie.source || 'tmdb'; 
-  query.push('id=' + object.movie.id);
-  if (object.movie.imdb_id) query.push('imdb_id=' + (object.movie.imdb_id || ''));
-  if (object.movie.kinopoisk_id) query.push('kinopoisk_id=' + (object.movie.kinopoisk_id || ''));
-  query.push('title=' + encodeURIComponent(object.clarification ? object.search : object.movie.title || object.movie.name));
-  query.push('original_title=' + encodeURIComponent(object.movie.original_title || object.movie.original_name));
-  query.push('serial=' + (object.movie.name ? 1 : 0));
-  query.push('original_language=' + (object.movie.original_language || ''));
-  query.push('year=' + ((object.movie.release_date || object.movie.first_air_date || '0000') + '').slice(0, 4));
-  query.push('source=' + card_source);
-  query.push('rchtype=' + (window.rch ? window.rch.type : ''));
-  query.push('clarification=' + (object.clarification ? 1 : 0));
-  if (Lampa.Storage.get('account_email', '')) query.push('cub_id=' + Lampa.Utils.hash(Lampa.Storage.get('account_email', '')));
-  var baseUrl = url + (url.indexOf('?') >= 0 ? '&' : '?') + query.join('&');
-  if (window.console) console.log('Generated OTHER URL:', baseUrl);
-  return baseUrl;
-};
-
 this.request = function(url, isPost = false) {
   var _this = this;
   number_of_requests++;
@@ -331,34 +289,36 @@ this.request = function(url, isPost = false) {
     var requestUrl = this.requestParams(url, isPost);
     
     if (balanser.toLowerCase() === 'filmixtv' && !isPost) {
-      // Очищаем URL от нежелательных параметров перед отправкой
       var cleanUrl = requestUrl.replace(/&uid=[^&]*/g, '').replace(/&ab_token=[^&]*/g, '');
       if (window.console) console.log('Cleaned SEARCH URL:', cleanUrl);
-      network["native"](cleanUrl, function(str) {
-        if (window.console) console.log('Received SEARCH response:', str);
-        try {
-          var json = Lampa.Arrays.decodeJson(str, {});
-          if (window.console) console.log('Parsed search response:', json);
-          if (json && json.length > 0 && json[0].id) {
-            object.movie.filmix_id = json[0].id;
-            if (window.console) console.log('Set filmix_id:', object.movie.filmix_id);
-            var newUrl = _this.requestParams(url, true);
-            if (window.console) console.log('Generated new URL for POST:', newUrl);
-            _this.request(newUrl, true);
-          } else {
-            if (window.console) console.log('No valid search results');
-            _this.doesNotAnswer('No results found in search');
+      
+      // Используем fetch вместо network["native"] для чистого запроса
+      fetch(cleanUrl)
+        .then(response => response.text())
+        .then(str => {
+          if (window.console) console.log('Received SEARCH response:', str);
+          try {
+            var json = Lampa.Arrays.decodeJson(str, {});
+            if (window.console) console.log('Parsed search response:', json);
+            if (json && json.length > 0 && json[0].id) {
+              object.movie.filmix_id = json[0].id;
+              if (window.console) console.log('Set filmix_id:', object.movie.filmix_id);
+              var newUrl = _this.requestParams(url, true);
+              if (window.console) console.log('Generated new URL for POST:', newUrl);
+              _this.request(newUrl, true);
+            } else {
+              if (window.console) console.log('No valid search results');
+              _this.doesNotAnswer('No results found in search');
+            }
+          } catch (e) {
+            if (window.console) console.log('Error parsing search response:', e);
+            _this.doesNotAnswer(e);
           }
-        } catch (e) {
-          if (window.console) console.log('Error parsing search response:', e);
-          _this.doesNotAnswer(e);
-        }
-      }, function(error) {
-        if (window.console) console.log('SEARCH request failed:', error);
-        _this.doesNotAnswer(error);
-      }, false, {
-        dataType: 'text'
-      });
+        })
+        .catch(error => {
+          if (window.console) console.log('SEARCH request failed:', error);
+          _this.doesNotAnswer(error);
+        });
     } else {
       var finalUrl = account(requestUrl);
       if (window.console) console.log('Sending request with account to:', finalUrl);
@@ -381,28 +341,6 @@ this.request = function(url, isPost = false) {
     if (window.console) console.log('Too many requests');
     _this.empty();
   }
-};
-
-this.find = function() {
-  var url = this.requestParams(source);
-  if (window.console) console.log('Starting find with URL:', url);
-  this.request(url);
-};
-    
-    clearTimeout(number_of_requests_timer);
-    number_of_requests_timer = setTimeout(function() {
-      number_of_requests = 0;
-    }, 4000);
-  } else {
-    console.log('Too many requests');
-    this.empty();
-  }
-};
-
-this.find = function() {
-  var url = this.requestParams(source);
-  console.log('Starting find with URL:', url);
-  this.request(url);
 };
 
   
