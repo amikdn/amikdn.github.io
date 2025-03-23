@@ -1,20 +1,13 @@
 (function() {
   'use strict';
 
-  var fxapi_token = '5c8dc18ea0cd702ac1338ff9aa321d55';
-  var unic_id = 'waoqeEEMtP8skyG4';
-  var proxy_url = 'http://cors.cfhttp.top/';
-  var api_url = 'http://filmixapp.cyou/api/v2/';
-  var dev_token = 'user_dev_apk=2.0.1&user_dev_id=' + unic_id + '&user_dev_name=Lampa&user_dev_os=11&user_dev_vendor=FXAPI&user_dev_token=' + fxapi_token;
-  var modalopen = false;
-
   var Defined = {
     api: 'lampac',
     localhost: 'https://lam.akter-black.com/',
     apn: ''
   };
   
-  var unic_id = Lampa.Storage.get('lampac_unic_id', '');
+    var unic_id = Lampa.Storage.get('lampac_unic_id', '');
   if (!unic_id) {
     unic_id = Lampa.Utils.uid(8).toLowerCase();
     Lampa.Storage.set('lampac_unic_id', unic_id);
@@ -58,6 +51,7 @@
   }
 
   var Network = Lampa.Reguest;
+  //var Network = Defined.api.indexOf('pwa') == 0 && typeof Blazor !== 'undefined' ? BlazorNet : Lampa.Reguest;
 
   function component(object) {
     var network = new Network();
@@ -112,12 +106,193 @@
       return url;
     }
 
-    this.requestParams = function(url) {
-      if (balanser && balanser.toLowerCase() === 'filmixtv') {
-        // Формируем URL для API Filmix
-        url = proxy_url + api_url + 'lite/events?' + dev_token;
-      }
+    function balanserName(j) {
+      var bals = j.balanser;
+      var name = j.name.split(' ')[0];
+      return (bals || name).toLowerCase();
+    }
 
+	function clarificationSearchAdd(value){
+		var id = Lampa.Utils.hash(object.movie.number_of_seasons ? object.movie.original_name : object.movie.original_title)
+		var all = Lampa.Storage.get('clarification_search','{}')
+
+		all[id] = value
+
+		Lampa.Storage.set('clarification_search',all)
+	}
+
+	function clarificationSearchDelete(){
+		var id = Lampa.Utils.hash(object.movie.number_of_seasons ? object.movie.original_name : object.movie.original_title)
+		var all = Lampa.Storage.get('clarification_search','{}')
+
+		delete all[id]
+
+		Lampa.Storage.set('clarification_search',all)
+	}
+
+	function clarificationSearchGet(){
+		var id = Lampa.Utils.hash(object.movie.number_of_seasons ? object.movie.original_name : object.movie.original_title)
+		var all = Lampa.Storage.get('clarification_search','{}')
+
+		return all[id]
+	}
+
+    this.initialize = function() {
+      var _this = this;
+      this.loading(true);
+      filter.onSearch = function(value) {
+
+		clarificationSearchAdd(value)
+
+        Lampa.Activity.replace({
+          search: value,
+          clarification: true
+        });
+      };
+      filter.onBack = function() {
+        _this.start();
+      };
+      filter.render().find('.selector').on('hover:enter', function() {
+        clearInterval(balanser_timer);
+      });
+      filter.render().find('.filter--search').appendTo(filter.render().find('.torrent-filter'));
+      filter.onSelect = function(type, a, b) {
+        if (type == 'filter') {
+          if (a.reset) {
+			  clarificationSearchDelete()
+
+            _this.replaceChoice({
+              season: 0,
+              voice: 0,
+              voice_url: '',
+              voice_name: ''
+            });
+            setTimeout(function() {
+              Lampa.Select.close();
+              Lampa.Activity.replace({
+				  clarification: 0
+			  });
+            }, 10);
+          } else {
+            var url = filter_find[a.stype][b.index].url;
+            var choice = _this.getChoice();
+            if (a.stype == 'voice') {
+              choice.voice_name = filter_find.voice[b.index].title;
+              choice.voice_url = url;
+            }
+            choice[a.stype] = b.index;
+            _this.saveChoice(choice);
+            _this.reset();
+            _this.request(url);
+            setTimeout(Lampa.Select.close, 10);
+          }
+        } else if (type == 'sort') {
+          Lampa.Select.close();
+          object.lampac_custom_select = a.source;
+          _this.changeBalanser(a.source);
+        }
+      };
+      if (filter.addButtonBack) filter.addButtonBack();
+      filter.render().find('.filter--sort span').text(Lampa.Lang.translate('lampac_balanser'));
+      scroll.body().addClass('torrent-list');
+      files.appendFiles(scroll.render());
+      files.appendHead(filter.render());
+      scroll.minus(files.render().find('.explorer__files-head'));
+      scroll.body().append(Lampa.Template.get('lampac_content_loading'));
+      Lampa.Controller.enable('content');
+      this.loading(false);
+      this.externalids().then(function() {
+        return _this.createSource();
+      }).then(function(json) {
+        if (!balansers_with_search.find(function(b) {
+            return balanser.slice(0, b.length) == b;
+          })) {
+          filter.render().find('.filter--search').addClass('hide');
+        }
+        _this.search();
+      })["catch"](function(e) {
+        _this.noConnectToServer(e);
+      });
+    };
+    this.rch = function(json, noreset) {
+      var _this2 = this;
+      var load = function load() {
+        if (hubConnection) {
+          clearTimeout(hub_timer);
+          hubConnection.stop();
+          hubConnection = null;
+		  console.log('RCH', 'hubConnection stop');
+        }
+        hubConnection = new signalR.HubConnectionBuilder().withUrl(json.ws).build();
+        hubConnection.start().then(function() {
+          window.rch.Registry('https://abmsx.tech', hubConnection, function() {
+            console.log('RCH', 'hubConnection start');
+            if (!noreset) _this2.find();
+            else noreset()
+          });
+        })["catch"](function(err) {
+          console.log('RCH', err.toString());
+          return console.error(err.toString());
+        });
+		if (json.keepalive > 0) {
+          hub_timer = setTimeout(function() {
+            hubConnection.stop();
+			hubConnection = null;
+          }, 1000 * json.keepalive);
+		}
+      };
+      if (typeof signalR == 'undefined') {
+        Lampa.Utils.putScript(["https://abmsx.tech/signalr-6.0.25_es5.js"], function() {}, false, function() {
+          load();
+        }, true);
+      } else load();
+    };
+    this.externalids = function() {
+      return new Promise(function(resolve, reject) {
+        if (!object.movie.imdb_id || !object.movie.kinopoisk_id) {
+          var query = [];
+          query.push('id=' + object.movie.id);
+          query.push('serial=' + (object.movie.name ? 1 : 0));
+          if (object.movie.imdb_id) query.push('imdb_id=' + (object.movie.imdb_id || ''));
+          if (object.movie.kinopoisk_id) query.push('kinopoisk_id=' + (object.movie.kinopoisk_id || ''));
+          var url = Defined.localhost + 'externalids?' + query.join('&');
+          network.timeout(10000);
+          network.silent(account(url), function(json) {
+            for (var name in json) {
+              object.movie[name] = json[name];
+            }
+            resolve();
+          }, function() {
+            resolve();
+          });
+        } else resolve();
+      });
+    };
+    this.updateBalanser = function(balanser_name) {
+      var last_select_balanser = Lampa.Storage.cache('online_last_balanser', 2000, {});
+      last_select_balanser[object.movie.id] = balanser_name;
+      Lampa.Storage.set('online_last_balanser', last_select_balanser);
+    };
+    this.changeBalanser = function(balanser_name) {
+      this.updateBalanser(balanser_name);
+      Lampa.Storage.set('online_balanser', balanser_name);
+      var to = this.getChoice(balanser_name);
+      var from = this.getChoice();
+      if (from.voice_name) to.voice_name = from.voice_name;
+      this.saveChoice(to, balanser_name);
+      Lampa.Activity.replace();
+    };
+    this.requestParams = function(url) {
+  if (balanser && balanser.toLowerCase() === 'filmixtv') {
+    var fxapi_token = '5c8dc18ea0cd702ac1338ff9aa321d55';
+    var unic_id = 'waoqeEEMtP8skyG4';
+    var proxy_url = 'http://cors.cfhttp.top/';
+    var api_url = 'http://filmixapp.cyou/api/v2/';
+    var dev_token = 'user_dev_apk=2.0.1&user_dev_id=' + unic_id + '&user_dev_name=Lampa&user_dev_os=11&user_dev_vendor=FXAPI&user_dev_token=' + fxapi_token;
+    
+    // Формируем URL с учетом параметров API
+    url = proxy_url + api_url + "?" + dev_token;
+  }
       var query = [];
       var card_source = object.movie.source || 'tmdb'; 
       query.push('id=' + object.movie.id);
@@ -129,18 +304,12 @@
       query.push('original_language=' + (object.movie.original_language || ''));
       query.push('year=' + ((object.movie.release_date || object.movie.first_air_date || '0000') + '').slice(0, 4));
       query.push('source=' + card_source);
-      query.push('rchtype=' + (window.rch ? window.rch.type : ''));
+	  query.push('rchtype=' + (window.rch ? window.rch.type : ''));
       query.push('clarification=' + (object.clarification ? 1 : 0));
       if (Lampa.Storage.get('account_email', '')) query.push('cub_id=' + Lampa.Utils.hash(Lampa.Storage.get('account_email', '')));
-
-      // Добавляем dev_token для Filmix API
-      if (balanser && balanser.toLowerCase() === 'filmixtv') {
-        query.push(dev_token);
-      }
-
       return url + (url.indexOf('?') >= 0 ? '&' : '?') + query.join('&');
     };
-
+  
     this.getLastChoiceBalanser = function() {
       var last_select_balanser = Lampa.Storage.cache('online_last_balanser', 1000, {});
       if (last_select_balanser[object.movie.id]) {
@@ -1342,8 +1511,8 @@
         resetTemplates();
         Lampa.Component.add('lampac', component);
 
-        var id = Lampa.Utils.hash(object.number_of_seasons ? object.original_name : object.original_title);
-        var all = Lampa.Storage.get('clarification_search', '{}');
+		var id = Lampa.Utils.hash(object.number_of_seasons ? object.original_name : object.original_title)
+		var all = Lampa.Storage.get('clarification_search','{}')
 
         Lampa.Activity.push({
           url: '',
@@ -1354,13 +1523,12 @@
           search_two: object.original_title,
           movie: object,
           page: 1,
-          clarification: all[id] ? true : false
+		  clarification: all[id] ? true : false
         });
       }
     };
-
     Lampa.Manifest.plugins = manifst;
-Lampa.Lang.add({
+    Lampa.Lang.add({
       lampac_watch: { //
         ru: 'Онлайн',
         en: 'Online',
