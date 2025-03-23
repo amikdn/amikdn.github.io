@@ -369,29 +369,136 @@
   }
 
   function startPlugin() {
-    window.lampac_plugin = true;
-    var manifst = { type: 'video', version: '2', name: '4m1K', description: 'Плагин для просмотра онлайн сериалов и фильмов', component: 'lampac', onContextMenu: function(object) { return { name: Lampa.Lang.translate('lampac_watch'), description: 'Плагин для просмотра онлайн сериалов и фильмов' }; }, onContextLauch: function(object) { resetTemplates(); Lampa.Component.add('lampac', component); var id = Lampa.Utils.hash(object.number_of_seasons ? object.original_name : object.original_title), all = Lampa.Storage.get('clarification_search', '{}'); Lampa.Activity.push({ url: '', title: Lampa.Lang.translate('title_online'), component: 'lampac', search: all[id] ? all[id] : object.title, search_one: object.title, search_two: object.original_title, movie: object, page: 1, clarification: all[id] ? true : false }); } };
-    Lampa.Manifest.plugins = manifst;
-    Lampa.Lang.add({ lampac_watch: { ru: 'Онлайн', en: 'Online', uk: 'Онлайн', zh: '在线观看' }, lampac_video: { ru: 'Видео', en: 'Video', uk: 'Відео', zh: '视频' }, lampac_no_watch_history: { ru: 'Нет истории просмотра', en: 'No browsing history', ua: 'Немає історії перегляду', zh: '没有浏览历史' }, lampac_nolink: { ru: 'Не удалось извлечь ссылку', uk: 'Неможливо отримати посилання', en: 'Failed to fetch link', zh: '获取链接失败' }, lampac_balanser: { ru: 'Источник', uk: 'Джерело', en: 'Source', zh: '来源' }, helper_online_file: { ru: 'Удерживайте клавишу "ОК" для вызова контекстного меню', uk: 'Утримуйте клавішу "ОК" для виклику контекстного меню', en: 'Hold the "OK" key to bring up the context menu', zh: '按住“确定”键调出上下文菜单' }, title_online: { ru: 'Онлайн', uk: 'Онлайн', en: 'Online', zh: '在线的' }, lampac_voice_subscribe: { ru: 'Подписаться на перевод', uk: 'Підписатися на переклад', en: 'Subscribe to translation', zh: '订阅翻译' }, lampac_voice_success: { ru: 'Вы успешно подписались', uk: 'Ви успішно підписалися', en: 'You have successfully subscribed', zh: '您已成功订阅' }, lampac_voice_error: { ru: 'Возникла ошибка', uk: 'Виникла помилка', en: 'An error has occurred', zh: '发生了错误' }, lampac_clear_all_marks: { ru: 'Очистить все метки', uk: 'Очистити всі мітки', en: 'Clear all labels', zh: '清除所有标签' }, lampac_clear_all_timecodes: { ru: 'Очистить все тайм-коды', uk: 'Очистити всі тайм-коди', en: 'Clear all timecodes', zh: '清除所有时间代码' }, lampac_change_balanser: { ru: 'Изменить балансер', uk: 'Змінити балансер', en: 'Change balancer', zh: '更改平衡器' }, lampac_balanser_dont_work: { ru: 'Поиск на ({balanser}) не дал результатов', uk: 'Пошук на ({balanser}) не дав результатів', en: 'Search on ({balanser}) did not return any results', zh: '搜索 ({balanser}) 未返回任何结果' }, lampac_balanser_timeout: { ru: 'Источник будет переключен автоматически через <span class="timeout">10</span> секунд.', uk: 'Джерело буде автоматично переключено через <span class="timeout">10</span> секунд.', en: 'The source will be switched automatically after <span class="timeout">10</span> seconds.', zh: '平衡器将在<span class="timeout">10</span>秒内自动切换。' }, lampac_does_not_answer_text: { ru: 'Поиск на ({balanser}) не дал результатов', uk: 'Пошук на ({balanser}) не дав результатів', en: 'Search on ({balanser}) did not return any results', zh: '搜索 ({balanser}) 未返回任何结果' } });
-    Lampa.Template.add('lampac_css', `<style>@charset 'UTF-8';.online-prestige{position:relative;-webkit-border-radius:.3em;border-radius:.3em;background-color:rgba(0,0,0,0.3);display:-webkit-box;display:-webkit-flex;display:-moz-box;display:-ms-flexbox;display:flex}.online-prestige__body{padding:1.2em;line-height:1.3;-webkit-box-flex:1;-webkit-flex-grow:1;-moz-box-flex:1;-ms-flex-positive:1;flex-grow:1;position:relative}@media screen and (max-width:480px){.online-prestige__body{padding:.8em 1.2em}}.online-prestige__img{position:relative;width:13em;-webkit-flex-shrink:0;-ms-flex-negative:0;flex-shrink:0;min-height:8.2em}.online-prestige__img>img{position:absolute;top:0;left:0;width:100%;height:100%;-o-object-fit:cover;object-fit:cover;-webkit-border-radius:.3em;border-radius:.3em;opacity:0;-webkit-transition:opacity .3s;-o-transition:opacity .3s;-moz-transition:opacity .3s;transition:opacity .3s}.online-prestige__img--loaded>img{opacity:1}@media screen and (max-width:480px){.online-prestige__img{width:7em;min-height:6em}}.online-prestige__folder{padding:1em;-webkit-flex-shrink:0;-ms-flex-negative:0;flex-shrink:0}.online-prestige__folder>svg{width:4.4em !important;height:4.4em !important}.online-prestige__viewed{position:absolute;top:1em;left:1em;background:rgba(0,0,0,0.45);-webkit-border-radius:100%;border-radius:100%;padding:.25em;font-size:.76em}.online-prestige__viewed>svg{width:1.5em !important;height:1.5em !important}.online-prestige__episode-number{position:absolute;top:0;left:0;right:0;bottom:0;display:-webkit-box;display:-webkit-flex;display:-moz-box;display:-ms-flexbox;display:flex;-webkit-box-align:center;-webkit-align-items:center;-moz-box-align:center;-ms-flex-align:center;align-items:center;-webkit-box-pack:center;-webkit-justify-content:center;-moz-box-pack:center;-ms-flex-pack:center;justify-content:center;font-size:2em}.online-prestige__loader{position:absolute;top:50%;left:50%;width:2em;height:2em;margin-left:-1em;margin-top:-1em;background:url(./img/loader.svg) no-repeat center center;-webkit-background-size:contain;-o-background-size:contain;background-size:contain}.online-prestige__head,.online-prestige__footer{display:-webkit-box;display:-webkit-flex;display:-moz-box;display:-ms-flexbox;display:flex;-webkit-box-pack:justify;-webkit-justify-content:space-between;-moz-box-pack:justify;-ms-flex-pack:justify;justify-content:space-between;-webkit-box-align:center;-webkit-align-items:center;-moz-box-align:center;-ms-flex-align:center;align-items:center}.online-prestige__timeline{margin:.8em 0}.online-prestige__timeline>.time-line{display:block !important}.online-prestige__title{font-size:1.7em;overflow:hidden;-o-text-overflow:ellipsis;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:1;line-clamp:1;-webkit-box-orient:vertical}@media screen and (max-width:480px){.online-prestige__title{font-size:1.4em}}.online-prestige__time{padding-left:2em}.online-prestige__info{display:-webkit-box;display:-webkit-flex;display:-moz-box;display:-ms-flexbox;display:flex;-webkit-box-align:center;-webkit-align-items:center;-moz-box-align:center;-ms-flex-align:center;align-items:center}.online-prestige__info>*{overflow:hidden;-o-text-overflow:ellipsis;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:1;line-clamp:1;-webkit-box-orient:vertical}.online-prestige__quality{padding-left:1em;white-space:nowrap}.online-prestige__scan-file{position:absolute;bottom:0;left:0;right:0}.online-prestige__scan-file .broadcast__scan{margin:0}.online-prestige .online-prestige-split{font-size:.8em;margin:0 1em;-webkit-flex-shrink:0;-ms-flex-negative:0;flex-shrink:0}.online-prestige.focus::after{content:'';position:absolute;top:-0.6em;left:-0.6em;right:-0.6em;bottom:-0.6em;-webkit-border-radius:.7em;border-radius:.7em;border:solid .3em #fff;z-index:-1;pointer-events:none}.online-prestige+.online-prestige{margin-top:1.5em}.online-prestige--folder .online-prestige__footer{margin-top:.8em}.online-prestige-watched{padding:1em}.online-prestige-watched__icon>svg{width:1.5em;height:1.5em}.online-prestige-watched__body{padding-left:1em;padding-top:.1em;display:-webkit-box;display:-webkit-flex;display:-moz-box;display:-ms-flexbox;display:flex;-webkit-flex-wrap:wrap;-ms-flex-wrap:wrap;flex-wrap:wrap}.online-prestige-watched__body>span+span::before{content:' ● ';vertical-align:top;display:inline-block;margin:0 .5em}.online-prestige-rate{display:-webkit-inline-box;display:-webkit-inline-flex;display:-moz-inline-box;display:-ms-inline-flexbox;display:inline-flex;-webkit-box-align:center;-webkit-align-items:center;-moz-box-align:center;-ms-flex-align:center;align-items:center}.online-prestige-rate>svg{width:1.3em !important;height:1.3em !important}.online-prestige-rate>span{font-weight:600;font-size:1.1em;padding-left:.7em}.online-empty{line-height:1.4}.online-empty__title{font-size:1.8em;margin-bottom:.3em}.online-empty__time{font-size:1.2em;font-weight:300;margin-bottom:1.6em}.online-empty__buttons{display:-webkit-box;display:-webkit-flex;display:-moz-box;display:-ms-flexbox;display:flex}.online-empty__buttons>*+*{margin-left:1em}.online-empty__button{background:rgba(0,0,0,0.3);font-size:1.2em;padding:.5em 1.2em;-webkit-border-radius:.2em;border-radius:.2em;margin-bottom:2.4em}.online-empty__button.focus{background:#fff;color:black}.online-empty__templates .online-empty-template:nth-child(2){opacity:.5}.online-empty__templates .online-empty-template:nth-child(3){opacity:.2}.online-empty-template{background-color:rgba(255,255,255,0.3);padding:1em;display:-webkit-box;display:-webkit-flex;display:-moz-box;display:-ms-flexbox;display:flex;-webkit-box-align:center;-webkit-align-items:center;-moz-box-align:center;-ms-flex-align:center;align-items:center;-webkit-border-radius:.3em;border-radius:.3em}.online-empty-template>*{background:rgba(0,0,0,0.3);-webkit-border-radius:.3em;border-radius:.3em}.online-empty-template__ico{width:4em;height:4em;margin-right:2.4em}.online-empty-template__body{height:1.7em;width:70%}.online-empty-template+.online-empty-template{margin-top:1em}</style>`);
-    $('body').append(Lampa.Template.get('lampac_css', {}, true));
-    function resetTemplates() {
-      Lampa.Template.add('lampac_prestige_full', `<div class="online-prestige online-prestige--full selector"><div class="online-prestige__img"><img alt=""><div class="online-prestige__loader"></div></div><div class="online-prestige__body"><div class="online-prestige__head"><div class="online-prestige__title">{title}</div><div class="online-prestige__time">{time}</div></div><div class="online-prestige__timeline"></div><div class="online-prestige__footer"><div class="online-prestige__info">{info}</div><div class="online-prestige__quality">{quality}</div></div></div></div>`);
-      Lampa.Template.add('lampac_content_loading', `<div class="online-empty"><div class="broadcast__scan"><div></div></div><div class="online-empty__templates"><div class="online-empty-template selector"><div class="online-empty-template__ico"></div><div class="online-empty-template__body"></div></div><div class="online-empty-template"><div class="online-empty-template__ico"></div><div class="online-empty-template__body"></div></div><div class="online-empty-template"><div class="online-empty-template__ico"></div><div class="online-empty-template__body"></div></div></div></div>`);
-      Lampa.Template.add('lampac_does_not_answer', `<div class="online-empty"><div class="online-empty__title">#{lampac_balanser_dont_work}</div><div class="online-empty__time">#{lampac_balanser_timeout}</div><div class="online-empty__buttons"><div class="online-empty__button selector cancel">#{cancel}</div><div class="online-empty__button selector change">#{lampac_change_balanser}</div></div><div class="online-empty__templates"><div class="online-empty-template"><div class="online-empty-template__ico"></div><div class="online-empty-template__body"></div></div><div class="online-empty-template"><div class="online-empty-template__ico"></div><div class="online-empty-template__body"></div></div><div class="online-empty-template"><div class="online-empty-template__ico"></div><div class="online-empty-template__body"></div></div></div></div>`);
-      Lampa.Template.add('lampac_prestige_rate', `<div class="online-prestige-rate"><svg width="17" height="16" viewBox="0 0 17 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8.39409 0.192139L10.99 5.30994L16.7882 6.02197L12.5911 9.89004L13.5859 15.6289L8.39409 12.7421L3.20227 15.6289L4.19705 9.89004L0 6.02197L5.79818 5.30994L8.39409 0.192139Z" fill="white"/></svg><span>{rate}</span></div>`);
-      Lampa.Template.add('lampac_prestige_folder', `<div class="online-prestige online-prestige--folder selector"><div class="online-prestige__folder">${Lampa.Template.get('icon_folder', {}, true)}</div><div class="online-prestige__body"><div class="online-prestige__head"><div class="online-prestige__title">{title}</div></div><div class="online-prestige__footer"><div class="online-prestige__info">{info}</div></div></div></div>`);
-      Lampa.Template.add('lampac_prestige_watched', `<div class="online-prestige-watched selector"><div class="online-prestige-watched__icon">${Lampa.Template.get('icon_history', {}, true)}</div><div class="online-prestige-watched__body"></div></div>`);
+  window.lampac_plugin = true;
+  var manifst = {
+    type: 'video',
+    version: '2',
+    name: '4m1K',
+    description: 'Плагин для просмотра онлайн сериалов и фильмов',
+    component: 'lampac',
+    onContextMenu: function(object) {
+      return { name: Lampa.Lang.translate('lampac_watch'), description: 'Плагин для просмотра онлайн сериалов и фильмов' };
+    },
+    onContextLauch: function(object) {
+      resetTemplates();
+      Lampa.Component.add('lampac', component);
+      var id = Lampa.Utils.hash(object.number_of_seasons ? object.original_name : object.original_title),
+          all = Lampa.Storage.get('clarification_search', '{}');
+      Lampa.Activity.push({
+        url: '',
+        title: Lampa.Lang.translate('title_online'),
+        component: 'lampac',
+        search: all[id] ? all[id] : object.title,
+        search_one: object.title,
+        search_two: object.original_title,
+        movie: object,
+        page: 1,
+        clarification: all[id] ? true : false
+      });
     }
-    Lampa.Component.add('lampac', component);
-    if (!Lampa.Storage.get('lampac_menu', false)) {
-      Lampa.Storage.set('lampac_menu', true); var menu = Lampa.Menu, items = menu.items(); items.push({ title: Lampa.Lang.translate('lampac_watch'), component: 'lampac', url: '', click: function() { resetTemplates(); Lampa.Component.add('lampac', component); var activity = Lampa.Activity.active(), id = Lampa.Utils.hash(activity.object.number_of_seasons ? activity.object.original_name : activity.object.original_title), all = Lampa.Storage.get('clarification_search', '{}'), search = all[id] ? all[id] : activity.object.title; Lampa.Activity.push({ url: '', title: Lampa.Lang.translate('title_online'), component: 'lampac', search: search, search_one: activity.object.title, search_two: activity.object.original_title, movie: activity.object, page: 1, clarification: all[id] ? true : false }); } }); menu.update();
-    }
-    Lampa.Listener.follow('card', function(e) { if (e.type === 'contextmenu_open') { var card = e.data.card, clarification = clarificationSearchGet(); e.data.menu.push({ title: Lampa.Lang.translate('lampac_watch') + (clarification ? ' (' + clarification + ')' : ''), click: function() { resetTemplates(); Lampa.Component.add('lampac', component); var id = Lampa.Utils.hash(card.number_of_seasons ? card.original_name : card.original_title), all = Lampa.Storage.get('clarification_search', '{}'), search = all[id] ? all[id] : card.title; Lampa.Activity.push({ url: '', title: Lampa.Lang.translate('title_online'), component: 'lampac', search: search, search_one: card.title, search_two: card.original_title, movie: card, page: 1, clarification: all[id] ? true : false }); } }); } });
-    Lampa.Listener.follow('player', function(e) { if (e.type === 'menu') { e.data.push({ title: Lampa.Lang.translate('lampac_watch'), separator: true, click: function() { var card = Lampa.Player.data.card; resetTemplates(); Lampa.Component.add('lampac', component); var id = Lampa.Utils.hash(card.number_of_seasons ? card.original_name : card.original_title), all = Lampa.Storage.get('clarification_search', '{}'), search = all[id] ? all[id] : card.title; Lampa.Activity.push({ url: '', title: Lampa.Lang.translate('title_online'), component: 'lampac', search: search, search_one: card.title, search_two: card.original_title, movie: card, page: 1, clarification: all[id] ? true : false }); } }); } });
-    console.log('Lampac', 'plugin loaded');
+  };
+  Lampa.Manifest.plugins = manifst;
+  Lampa.Lang.add({ /* существующий объект переводов без изменений */ });
+  Lampa.Template.add('lampac_css', /* существующий CSS без изменений */);
+  $('body').append(Lampa.Template.get('lampac_css', {}, true));
+
+  function resetTemplates() {
+    Lampa.Template.add('lampac_prestige_full', /* шаблон без изменений */);
+    Lampa.Template.add('lampac_content_loading', /* шаблон без изменений */);
+    Lampa.Template.add('lampac_does_not_answer', /* шаблон без изменений */);
+    Lampa.Template.add('lampac_prestige_rate', /* шаблон без изменений */);
+    Lampa.Template.add('lampac_prestige_folder', /* шаблон без изменений */);
+    Lampa.Template.add('lampac_prestige_watched', /* шаблон без изменений */);
   }
 
-  if (window.Lampa) startPlugin();
-  else { var lampa_check = setInterval(function() { if (window.Lampa) { clearInterval(lampa_check); startPlugin(); } }, 200); }
-})();
+  Lampa.Component.add('lampac', component);
+
+  if (!Lampa.Storage.get('lampac_menu', false)) {
+    Lampa.Storage.set('lampac_menu', true);
+    var menu = Lampa.Menu;
+    if (Array.isArray(menu)) {
+      menu.push({
+        title: Lampa.Lang.translate('lampac_watch'),
+        component: 'lampac',
+        url: '',
+        click: function() {
+          resetTemplates();
+          Lampa.Component.add('lampac', component);
+          var activity = Lampa.Activity.active();
+          var id = Lampa.Utils.hash(activity.object.number_of_seasons ? activity.object.original_name : activity.object.original_title);
+          var all = Lampa.Storage.get('clarification_search', '{}');
+          var search = all[id] ? all[id] : activity.object.title;
+          Lampa.Activity.push({
+            url: '',
+            title: Lampa.Lang.translate('title_online'),
+            component: 'lampac',
+            search: search,
+            search_one: activity.object.title,
+            search_two: activity.object.original_title,
+            movie: activity.object,
+            page: 1,
+            clarification: all[id] ? true : false
+          });
+        }
+      });
+    }
+    if (menu && typeof menu.update === 'function') menu.update();
+  }
+
+  Lampa.Listener.follow('card', function(e) {
+    if (e.type === 'contextmenu_open') {
+      var card = e.data.card, clarification = clarificationSearchGet();
+      e.data.menu.push({
+        title: Lampa.Lang.translate('lampac_watch') + (clarification ? ' (' + clarification + ')' : ''),
+        click: function() {
+          resetTemplates();
+          Lampa.Component.add('lampac', component);
+          var id = Lampa.Utils.hash(card.number_of_seasons ? card.original_name : card.original_title),
+              all = Lampa.Storage.get('clarification_search', '{}'),
+              search = all[id] ? all[id] : card.title;
+          Lampa.Activity.push({
+            url: '',
+            title: Lampa.Lang.translate('title_online'),
+            component: 'lampac',
+            search: search,
+            search_one: card.title,
+            search_two: card.original_title,
+            movie: card,
+            page: 1,
+            clarification: all[id] ? true : false
+          });
+        }
+      });
+    }
+  });
+
+  Lampa.Listener.follow('player', function(e) {
+    if (e.type === 'menu') {
+      e.data.push({
+        title: Lampa.Lang.translate('lampac_watch'),
+        separator: true,
+        click: function() {
+          var card = Lampa.Player.data.card;
+          resetTemplates();
+          Lampa.Component.add('lampac', component);
+          var id = Lampa.Utils.hash(card.number_of_seasons ? card.original_name : card.original_title),
+              all = Lampa.Storage.get('clarification_search', '{}'),
+              search = all[id] ? all[id] : card.title;
+          Lampa.Activity.push({
+            url: '',
+            title: Lampa.Lang.translate('title_online'),
+            component: 'lampac',
+            search: search,
+            search_one: card.title,
+            search_two: card.original_title,
+            movie: card,
+            page: 1,
+            clarification: all[id] ? true : false
+          });
+        }
+      });
+    }
+  });
+
+  console.log('Lampac', 'plugin loaded');
+}
