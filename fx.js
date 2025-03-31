@@ -14,8 +14,6 @@
 
   function fxapi(component, _object) {
     var network = new Lampa.Reguest();
-    // (При необходимости можно установить заголовок User-Agent – если реализация Lampa.Reguest это поддерживает)
-      network.setHeader('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36');
 
     var extract = {};
     var results = [];
