@@ -6,7 +6,7 @@
   
   var proxy_url = 'http://cors.cfhttp.top/';
   var api_url = 'http://filmixapp.cyou/api/v2/';
-  // Параметры для запроса, которые будут добавляться в URL
+  // Параметры запроса, которые добавляются к URL
   var dev_token = 'user_dev_apk=2.0.1&user_dev_id=' + unic_id + '&user_dev_name=Lampa&user_dev_os=11&user_dev_vendor=FXAPI&user_dev_token=' + fxapi_token;
   var modalopen = false;
 
@@ -27,10 +27,12 @@
     };
 
     this.search = function(_object, sim) {
+      console.log('[fxapi] search called');
       if (wait_similars) this.find(sim[0].id);
     };
 
     this.searchByTitle = function(_object, query) {
+      console.log('[fxapi] searchByTitle called with query:', query);
       var _this = this;
       object = _object;
       var year = parseInt((object.movie.release_date || object.movie.first_air_date || '0000').slice(0, 4));
@@ -39,8 +41,10 @@
       // Формируем URL с параметрами: story и остальные параметры запроса
       url = Lampa.Utils.addUrlComponent(url, 'story=' + encodeURIComponent(query));
       url = Lampa.Utils.addUrlComponent(url, dev_token);
+      console.log('[fxapi] Формируем URL поиска:', url);
       network.clear();
       network.silent(url, function(json) {
+        console.log('[fxapi] Ответ поиска:', json);
         var cards = json.filter(function(c) {
           c.year = parseInt(c.alt_name.split('-').pop());
           return c.year > year - 2 && c.year < year + 2;
@@ -63,23 +67,28 @@
           component.loading(false);
         } else component.doesNotAnswer();
       }, function(a, c) {
+        console.log('[fxapi] Ошибка запроса поиска:', a, c);
         component.doesNotAnswer();
       });
     };
 
     this.find = function(filmix_id) {
+      console.log('[fxapi] find called for id:', filmix_id);
       var url = proxy_url + api_url;
       end_search(filmix_id);
       function end_search(filmix_id) {
         network.clear();
         network.timeout(10000);
-        // Формируем URL для поиска по id с добавлением dev_token
-        network.silent(url + 'post/' + filmix_id + '?' + dev_token, function(found) {
+        var full_url = url + 'post/' + filmix_id + '?' + dev_token;
+        console.log('[fxapi] Формируем URL find:', full_url);
+        network.silent(full_url, function(found) {
+          console.log('[fxapi] Ответ find:', found);
           if (found && Object.keys(found).length) {
             success(found);
             component.loading(false);
           } else component.doesNotAnswer();
         }, function(a, c) {
+          console.log('[fxapi] Ошибка запроса find:', a, c);
           component.doesNotAnswer();
         });
       }
@@ -324,6 +333,7 @@
     }
 
     function append(items) {
+      console.log('[fxapi] append called with items:', items);
       component.reset();
       component.draw(items, {
         similars: wait_similars,
@@ -343,7 +353,9 @@
             Lampa.Player.play(first);
             Lampa.Player.playlist(playlist);
             item.mark();
-          } else Lampa.Noty.show(Lampa.Lang.translate('online_nolink'));
+          } else {
+            Lampa.Noty.show(Lampa.Lang.translate('online_nolink'));
+          }
         },
         onContextMenu: function onContextMenu(item, html, data, call) {
           call(getFile(item, item.quality));
@@ -354,15 +366,13 @@
 
   function component(object) {
     var network = new Lampa.Reguest();
-    // Устанавливаем User-Agent и другие заголовки, если необходимо, для запросов компонента
+    // Устанавливаем заголовок User-Agent для запросов компонента
     network.setHeader('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36');
     
     var scroll = new Lampa.Scroll({ mask: true, over: true });
     var files = new Lampa.Explorer(object);
     var filter = new Lampa.Filter(object);
-    var sources = {
-      fxapi: fxapi
-    };
+    var sources = { fxapi: fxapi };
     var last;
     var extended;
     var selected_id;
@@ -407,6 +417,7 @@
       files.appendHead(filter.render());
       scroll.body().addClass('torrent-list');
       scroll.minus(files.render().find('.explorer__files-head'));
+      console.log('[component] Инициализация: поиск');
       this.search();
     };
 
@@ -456,6 +467,7 @@
     };
 
     this.similars = function(json) {
+      console.log('[component] similars called with json:', json);
       var _this3 = this;
       json.forEach(function(elem) {
         var info = [];
@@ -476,6 +488,7 @@
         elem.info = info.join('<span class="online-prestige-split">●</span>');
         var item = Lampa.Template.get('online_prestige_folder', elem);
         item.on('hover:enter', function() {
+          console.log('[component] Клик по элементу similars:', elem);
           _this3.activity.loader(true);
           _this3.reset();
           object.search_date = year;
@@ -598,6 +611,7 @@
     };
 
     this.draw = function(items) {
+      console.log('[component] draw called with items:', items);
       var _this5 = this;
       var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
       if (!items.length) return this.empty();
@@ -729,21 +743,12 @@
                 var enabled = Lampa.Controller.enabled().name;
                 var menu = [];
                 if (Lampa.Platform.is('webos')) {
-                  menu.push({
-                    title: Lampa.Lang.translate('player_lauch') + ' - Webos',
-                    player: 'webos'
-                  });
+                  menu.push({ title: Lampa.Lang.translate('player_lauch') + ' - Webos', player: 'webos' });
                 }
                 if (Lampa.Platform.is('android')) {
-                  menu.push({
-                    title: Lampa.Lang.translate('player_lauch') + ' - Android',
-                    player: 'android'
-                  });
+                  menu.push({ title: Lampa.Lang.translate('player_lauch') + ' - Android', player: 'android' });
                 }
-                menu.push({
-                  title: Lampa.Lang.translate('player_lauch') + ' - Lampa',
-                  player: 'lampa'
-                });
+                menu.push({ title: Lampa.Lang.translate('player_lauch') + ' - Lampa', player: 'lampa' });
                 menu.push({ title: Lampa.Lang.translate('online_video'), separator: true });
                 menu.push({ title: Lampa.Lang.translate('torrent_parser_label_title'), mark: true });
                 menu.push({ title: Lampa.Lang.translate('torrent_parser_label_cancel_title'), unmark: true });
@@ -892,61 +897,25 @@
           var enabled = Lampa.Controller.enabled().name;
           var menu = [];
           if (Lampa.Platform.is('webos')) {
-            menu.push({
-              title: Lampa.Lang.translate('player_lauch') + ' - Webos',
-              player: 'webos'
-            });
+            menu.push({ title: Lampa.Lang.translate('player_lauch') + ' - Webos', player: 'webos' });
           }
           if (Lampa.Platform.is('android')) {
-            menu.push({
-              title: Lampa.Lang.translate('player_lauch') + ' - Android',
-              player: 'android'
-            });
+            menu.push({ title: Lampa.Lang.translate('player_lauch') + ' - Android', player: 'android' });
           }
-          menu.push({
-            title: Lampa.Lang.translate('player_lauch') + ' - Lampa',
-            player: 'lampa'
-          });
-          menu.push({
-            title: Lampa.Lang.translate('online_video'),
-            separator: true
-          });
-          menu.push({
-            title: Lampa.Lang.translate('torrent_parser_label_title'),
-            mark: true
-          });
-          menu.push({
-            title: Lampa.Lang.translate('torrent_parser_label_cancel_title'),
-            unmark: true
-          });
-          menu.push({
-            title: Lampa.Lang.translate('time_reset'),
-            timeclear: true
-          });
+          menu.push({ title: Lampa.Lang.translate('player_lauch') + ' - Lampa', player: 'lampa' });
+          menu.push({ title: Lampa.Lang.translate('online_video'), separator: true });
+          menu.push({ title: Lampa.Lang.translate('torrent_parser_label_title'), mark: true });
+          menu.push({ title: Lampa.Lang.translate('torrent_parser_label_cancel_title'), unmark: true });
+          menu.push({ title: Lampa.Lang.translate('time_reset'), timeclear: true });
           if (extra) {
-            menu.push({
-              title: Lampa.Lang.translate('copy_link'),
-              copylink: true
-            });
+            menu.push({ title: Lampa.Lang.translate('copy_link'), copylink: true });
           }
-          menu.push({
-            title: Lampa.Lang.translate('more'),
-            separator: true
-          });
+          menu.push({ title: Lampa.Lang.translate('more'), separator: true });
           if (Lampa.Account.logged() && params.element && typeof params.element.season !== 'undefined' && params.element.translate_voice) {
-            menu.push({
-              title: Lampa.Lang.translate('online_voice_subscribe'),
-              subscribe: true
-            });
+            menu.push({ title: Lampa.Lang.translate('online_voice_subscribe'), subscribe: true });
           }
-          menu.push({
-            title: Lampa.Lang.translate('online_clear_all_marks'),
-            clearallmark: true
-          });
-          menu.push({
-            title: Lampa.Lang.translate('online_clear_all_timecodes'),
-            timeclearall: true
-          });
+          menu.push({ title: Lampa.Lang.translate('online_clear_all_marks'), clearallmark: true });
+          menu.push({ title: Lampa.Lang.translate('online_clear_all_timecodes'), timeclearall: true });
           Lampa.Select.show({
             title: Lampa.Lang.translate('title_action'),
             items: menu,
@@ -968,10 +937,7 @@
                 if (extra.quality) {
                   var qual = [];
                   for (var i in extra.quality) {
-                    qual.push({
-                      title: i,
-                      file: extra.quality[i]
-                    });
+                    qual.push({ title: i, file: extra.quality[i] });
                   }
                   Lampa.Select.show({
                     title: Lampa.Lang.translate('settings_server_links'),
@@ -1152,6 +1118,7 @@
       Lampa.Template.add('online_prestige_folder', "<div class=\"online-prestige online-prestige--folder selector\">\n            <div class=\"online-prestige__folder\">\n                <svg viewBox=\"0 0 128 112\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\">\n                    <rect y=\"20\" width=\"128\" height=\"92\" rx=\"13\" fill=\"white\"></rect>\n                    <path d=\"M29.9963 8H98.0037C96.0446 3.3021 91.4079 0 86 0H42C36.5921 0 31.9555 3.3021 29.9963 8Z\" fill=\"white\" fill-opacity=\"0.23\"></path>\n                    <rect x=\"11\" y=\"8\" width=\"106\" height=\"76\" rx=\"13\" fill=\"white\" fill-opacity=\"0.51\"></rect>\n                </svg>\n            </div>\n            <div class=\"online-prestige__body\">\n                <div class=\"online-prestige__head\">\n                    <div class=\"online-prestige__title\">{title}</div>\n                    <div class=\"online-prestige__time\">{time}</div>\n                </div>\n\n                <div class=\"online-prestige__footer\">\n                    <div class=\"online-prestige__info\">{info}</div>\n                </div>\n            </div>\n        </div>");
     }
 
+    // Добавляем кнопку на стартовом экране
     var button = "<div class=\"full-start__button selector view--online\" data-subtitle=\"Filmix v" + manifest.version + "\">\n" +
         "        <svg width=\"135\" height=\"147\" viewBox=\"0 0 135 147\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\">\n" +
         "            <path d=\"M121.5 96.8823C139.5 86.49 139.5 60.5092 121.5 50.1169L41.25 3.78454C23.25 -6.60776 0.750004 6.38265 0.750001 27.1673L0.75 51.9742C4.70314 35.7475 23.6209 26.8138 39.0547 35.7701L94.8534 68.1505C110.252 77.0864 111.909 97.8693 99.8725 109.369L121.5 96.8823Z\" fill=\"currentColor\"/>\n" +
@@ -1165,16 +1132,24 @@
     Lampa.Listener.follow('full', function(e) {
       if (e.type == 'complite') {
         var btn = $(Lampa.Lang.translate(button));
-        btn.on('hover:enter', function() {
+        // Добавляем обработчик для hover:enter и click для отладки
+        btn.on('hover:enter click', function() {
+          console.log('[BUTTON] Нажата кнопка Онлайн Filmix');
           resetTemplates();
           Lampa.Component.add('online_fxapi', component);
+          // Проверяем наличие объекта movie
+          if (!e.data || !e.data.movie) {
+            console.log('[BUTTON] Объект movie отсутствует!');
+          } else {
+            console.log('[BUTTON] Объект movie:', e.data.movie);
+          }
           Lampa.Activity.push({
             url: '',
             title: Lampa.Lang.translate('title_online'),
             component: 'online_fxapi',
-            search: e.data.movie.title,
-            search_one: e.data.movie.title,
-            search_two: e.data.movie.original_title,
+            search: e.data.movie ? e.data.movie.title : '',
+            search_one: e.data.movie ? e.data.movie.title : '',
+            search_two: e.data.movie ? e.data.movie.original_title : '',
             movie: e.data.movie,
             page: 1
           });
