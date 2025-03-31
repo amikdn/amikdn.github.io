@@ -1071,7 +1071,7 @@
       }
     });
 
-    window.fxapi = { max_qualitie: 720, is_max_qualitie: false };
+    window.fxapi = { max_qualitie: 2160, is_max_qualitie: false };
 
     function checkToken(token) {
       var network = new Lampa.Reguest();
