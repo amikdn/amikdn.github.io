@@ -1168,6 +1168,6 @@
     }
   }
 
-  if (!window.online_filmix && Lampa.Manifest.app_digital >= 155) startPlugin();
+  startPlugin();
 
 })();
