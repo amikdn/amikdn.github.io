@@ -1,19 +1,21 @@
 (function() {
   'use strict';
 
+  // Фиксированные данные для запросов
   var fxapi_token = '226ff3a204960f87255b7b118cfe24c9';
   var unic_id = 'waoqeEEMtP8skyG4';
   
   var proxy_url = 'http://cors.cfhttp.top/';
   var api_url = 'http://filmixapp.cyou/api/v2/';
-  // Параметры запроса, которые добавляются к URL
+  // Формируем строку параметров, которая всегда будет использоваться:
   var dev_token = 'user_dev_apk=2.0.1&user_dev_id=' + unic_id + '&user_dev_name=Lampa&user_dev_os=11&user_dev_vendor=FXAPI&user_dev_token=' + fxapi_token;
   var modalopen = false;
+  var ping_auth;
 
   function fxapi(component, _object) {
     var network = new Lampa.Reguest();
-    // Устанавливаем заголовок User-Agent для всех запросов fxapi
-    network.setHeader('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36');
+    // (При необходимости можно установить заголовок User-Agent – если реализация Lampa.Reguest это поддерживает)
+   network.setHeader('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36');
 
     var extract = {};
     var results = [];
@@ -26,25 +28,73 @@
       voice_name: ''
     };
 
+    // Если токен не задан – запрашиваем его (этот участок оставляем как в исходнике)
+    if (!fxapi_token) {
+      var user_code = '';
+      var user_token = '';
+      modalopen = true;
+
+      var modal = $('<div><div class="broadcast__text">' + Lampa.Lang.translate('modal_text') + '</div><div class="broadcast__device selector" style="text-align: center; background-color: darkslategrey; color: white;">' + Lampa.Lang.translate('modal_wait') + '...</div><br><div class="broadcast__scan"><div></div></div></div></div>');
+      Lampa.Modal.open({
+        title: '',
+        html: modal,
+        onBack: function onBack() {
+          Lampa.Modal.close();
+          clearInterval(ping_auth);
+        },
+        onSelect: function onSelect() {
+          Lampa.Utils.copyTextToClipboard(user_code, function() {
+            Lampa.Noty.show(Lampa.Lang.translate('copy_secuses'));
+          }, function() {
+            Lampa.Noty.show(Lampa.Lang.translate('copy_fail'));
+          });
+        }
+      });
+      ping_auth = setInterval(function() {
+        network.clear();
+        network.timeout(8000);
+        network.silent(Lampa.Utils.addUrlComponent(api_url + 'user_profile', dev_token + user_token), function(json) {
+          if (json && json.user_data) {
+            Lampa.Modal.close();
+            clearInterval(ping_auth);
+            Lampa.Storage.set("fxapi_token", user_token);
+            window.location.reload();
+          }
+        }, function(a, c) {});
+      }, 4000);
+      network.clear();
+      network.timeout(8000);
+      network.quiet(Lampa.Utils.addUrlComponent(api_url + 'token_request', dev_token), function(found) {
+        if (found.status == 'ok') {
+          user_token = found.code;
+          user_code = found.user_code;
+          modal.find('.selector').text(user_code);
+        } else {
+          Lampa.Noty.show(found);
+        }
+      }, function(a, c) {
+        Lampa.Noty.show(network.errorDecode(a, c));
+      });
+
+      component.loading(false);
+      return;
+    }
+
     this.search = function(_object, sim) {
-      console.log('[fxapi] search called');
       if (wait_similars) this.find(sim[0].id);
     };
 
     this.searchByTitle = function(_object, query) {
-      console.log('[fxapi] searchByTitle called with query:', query);
       var _this = this;
       object = _object;
       var year = parseInt((object.movie.release_date || object.movie.first_air_date || '0000').slice(0, 4));
       var orig = object.movie.original_title || object.movie.original_name;
       var url = api_url + 'search';
-      // Формируем URL с параметрами: story и остальные параметры запроса
+      // Формируем URL запроса с параметром story и фиксированными данными для запроса
       url = Lampa.Utils.addUrlComponent(url, 'story=' + encodeURIComponent(query));
       url = Lampa.Utils.addUrlComponent(url, dev_token);
-      console.log('[fxapi] Формируем URL поиска:', url);
       network.clear();
       network.silent(url, function(json) {
-        console.log('[fxapi] Ответ поиска:', json);
         var cards = json.filter(function(c) {
           c.year = parseInt(c.alt_name.split('-').pop());
           return c.year > year - 2 && c.year < year + 2;
@@ -52,13 +102,11 @@
         var card = cards.find(function(c) {
           return c.year == year;
         });
-
         if (!card) {
           card = cards.find(function(c) {
             return c.original_title == orig;
           });
         }
-
         if (!card && cards.length == 1) card = cards[0];
         if (card) _this.find(card.id);
         else if (json.length) {
@@ -67,28 +115,23 @@
           component.loading(false);
         } else component.doesNotAnswer();
       }, function(a, c) {
-        console.log('[fxapi] Ошибка запроса поиска:', a, c);
         component.doesNotAnswer();
       });
     };
 
     this.find = function(filmix_id) {
-      console.log('[fxapi] find called for id:', filmix_id);
       var url = proxy_url + api_url;
       end_search(filmix_id);
       function end_search(filmix_id) {
         network.clear();
         network.timeout(10000);
-        var full_url = url + 'post/' + filmix_id + '?' + dev_token;
-        console.log('[fxapi] Формируем URL find:', full_url);
-        network.silent(full_url, function(found) {
-          console.log('[fxapi] Ответ find:', found);
+        // Формируем URL запроса для метода post с фиксированными данными
+        network.silent(url + 'post/' + filmix_id + '?' + dev_token, function(found) {
           if (found && Object.keys(found).length) {
             success(found);
             component.loading(false);
           } else component.doesNotAnswer();
         }, function(a, c) {
-          console.log('[fxapi] Ошибка запроса find:', a, c);
           component.doesNotAnswer();
         });
       }
@@ -100,11 +143,7 @@
 
     this.reset = function() {
       component.reset();
-      choice = {
-        season: 0,
-        voice: 0,
-        voice_name: ''
-      };
+      choice = { season: 0, voice: 0, voice_name: '' };
       extractData(results);
       filter();
       append(filtred());
@@ -168,10 +207,7 @@
                 });
               }
             }
-            if (!extract[transl_id]) extract[transl_id] = {
-              json: [],
-              file: ''
-            };
+            if (!extract[transl_id]) extract[transl_id] = { json: [], file: '' };
             extract[transl_id].json.push({
               id: seas_num,
               comment: seas_num + ' ' + Lampa.Lang.translate('torrent_serial_season'),
@@ -272,7 +308,9 @@
         }
       }
       if (choice.voice_name) {
-        var inx = filter_items.voice.map(function(v) { return v.toLowerCase(); }).indexOf(choice.voice_name.toLowerCase());
+        var inx = filter_items.voice.map(function(v) {
+          return v.toLowerCase();
+        }).indexOf(choice.voice_name.toLowerCase());
         if (inx == -1) choice.voice = 0;
         else if (inx !== choice.voice) {
           choice.voice = inx;
@@ -333,7 +371,6 @@
     }
 
     function append(items) {
-      console.log('[fxapi] append called with items:', items);
       component.reset();
       component.draw(items, {
         similars: wait_similars,
@@ -353,9 +390,7 @@
             Lampa.Player.play(first);
             Lampa.Player.playlist(playlist);
             item.mark();
-          } else {
-            Lampa.Noty.show(Lampa.Lang.translate('online_nolink'));
-          }
+          } else Lampa.Noty.show(Lampa.Lang.translate('online_nolink'));
         },
         onContextMenu: function onContextMenu(item, html, data, call) {
           call(getFile(item, item.quality));
@@ -366,9 +401,6 @@
 
   function component(object) {
     var network = new Lampa.Reguest();
-    // Устанавливаем заголовок User-Agent для запросов компонента
-    network.setHeader('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36');
-    
     var scroll = new Lampa.Scroll({ mask: true, over: true });
     var files = new Lampa.Explorer(object);
     var filter = new Lampa.Filter(object);
@@ -417,7 +449,6 @@
       files.appendHead(filter.render());
       scroll.body().addClass('torrent-list');
       scroll.minus(files.render().find('.explorer__files-head'));
-      console.log('[component] Инициализация: поиск');
       this.search();
     };
 
@@ -467,13 +498,11 @@
     };
 
     this.similars = function(json) {
-      console.log('[component] similars called with json:', json);
       var _this3 = this;
       json.forEach(function(elem) {
         var info = [];
         var year = ((elem.start_date || elem.year || '') + '').slice(0, 4);
-        if (elem.rating && elem.rating !== 'null' && elem.filmId)
-          info.push(Lampa.Template.get('online_prestige_rate', { rate: elem.rating }, true));
+        if (elem.rating && elem.rating !== 'null' && elem.filmId) info.push(Lampa.Template.get('online_prestige_rate', { rate: elem.rating }, true));
         if (year) info.push(year);
         if (elem.countries && elem.countries.length) {
           info.push((elem.filmId ? elem.countries.map(function(c) { return c.country; }) : elem.countries).join(', '));
@@ -488,7 +517,6 @@
         elem.info = info.join('<span class="online-prestige-split">●</span>');
         var item = Lampa.Template.get('online_prestige_folder', elem);
         item.on('hover:enter', function() {
-          console.log('[component] Клик по элементу similars:', elem);
           _this3.activity.loader(true);
           _this3.reset();
           object.search_date = year;
@@ -611,7 +639,6 @@
     };
 
     this.draw = function(items) {
-      console.log('[component] draw called with items:', items);
       var _this5 = this;
       var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
       if (!items.length) return this.empty();
@@ -670,9 +697,7 @@
             loader.remove();
           } else {
             var img = html.find('img')[0];
-            img.onerror = function() {
-              img.src = './img/img_broken.svg';
-            };
+            img.onerror = function() { img.src = './img/img_broken.svg'; };
             img.onload = function() {
               image.addClass('online-prestige__img--loaded');
               loader.remove();
@@ -738,101 +763,14 @@
           _this5.contextMenu({
             html: html,
             element: element,
-            onFile: function(onFileCallback) {
-              function show(extra) {
-                var enabled = Lampa.Controller.enabled().name;
-                var menu = [];
-                if (Lampa.Platform.is('webos')) {
-                  menu.push({ title: Lampa.Lang.translate('player_lauch') + ' - Webos', player: 'webos' });
-                }
-                if (Lampa.Platform.is('android')) {
-                  menu.push({ title: Lampa.Lang.translate('player_lauch') + ' - Android', player: 'android' });
-                }
-                menu.push({ title: Lampa.Lang.translate('player_lauch') + ' - Lampa', player: 'lampa' });
-                menu.push({ title: Lampa.Lang.translate('online_video'), separator: true });
-                menu.push({ title: Lampa.Lang.translate('torrent_parser_label_title'), mark: true });
-                menu.push({ title: Lampa.Lang.translate('torrent_parser_label_cancel_title'), unmark: true });
-                menu.push({ title: Lampa.Lang.translate('time_reset'), timeclear: true });
-                if (extra) {
-                  menu.push({ title: Lampa.Lang.translate('copy_link'), copylink: true });
-                }
-                menu.push({ title: Lampa.Lang.translate('more'), separator: true });
-                if (Lampa.Account.logged() && params.element && typeof params.element.season !== 'undefined' && params.element.translate_voice) {
-                  menu.push({ title: Lampa.Lang.translate('online_voice_subscribe'), subscribe: true });
-                }
-                menu.push({ title: Lampa.Lang.translate('online_clear_all_marks'), clearallmark: true });
-                menu.push({ title: Lampa.Lang.translate('online_clear_all_timecodes'), timeclearall: true });
-                Lampa.Select.show({
-                  title: Lampa.Lang.translate('title_action'),
-                  items: menu,
-                  onBack: function() {
-                    Lampa.Controller.toggle(enabled);
-                  },
-                  onSelect: function(a) {
-                    if (a.mark) params.element.mark();
-                    if (a.unmark) params.element.unmark();
-                    if (a.timeclear) params.element.timeclear();
-                    if (a.clearallmark) params.onClearAllMark();
-                    if (a.timeclearall) params.onClearAllTime();
-                    Lampa.Controller.toggle(enabled);
-                    if (a.player) {
-                      Lampa.Player.runas(a.player);
-                      params.html.trigger('hover:enter');
-                    }
-                    if (a.copylink) {
-                      if (extra.quality) {
-                        var qual = [];
-                        for (var i in extra.quality) {
-                          qual.push({ title: i, file: extra.quality[i] });
-                        }
-                        Lampa.Select.show({
-                          title: Lampa.Lang.translate('settings_server_links'),
-                          items: qual,
-                          onBack: function() {
-                            Lampa.Controller.toggle(enabled);
-                          },
-                          onSelect: function(b) {
-                            Lampa.Utils.copyTextToClipboard(b.file, function() {
-                              Lampa.Noty.show(Lampa.Lang.translate('copy_secuses'));
-                            }, function() {
-                              Lampa.Noty.show(Lampa.Lang.translate('copy_error'));
-                            });
-                          }
-                        });
-                      } else {
-                        Lampa.Utils.copyTextToClipboard(extra.file, function() {
-                          Lampa.Noty.show(Lampa.Lang.translate('copy_secuses'));
-                        }, function() {
-                          Lampa.Noty.show(Lampa.Lang.translate('copy_error'));
-                        });
-                      }
-                    }
-                    if (a.subscribe) {
-                      Lampa.Account.subscribeToTranslation({
-                        card: object.movie,
-                        season: params.element.season,
-                        episode: params.element.translate_episode_end,
-                        voice: params.element.translate_voice
-                      }, function() {
-                        Lampa.Noty.show(Lampa.Lang.translate('online_voice_success'));
-                      }, function() {
-                        Lampa.Noty.show(Lampa.Lang.translate('online_voice_error'));
-                      });
-                    }
-                  }
-                });
-              }
-              params.onFile(show);
+            onFile: function onFile(call) {
+              if (params.onContextMenu) params.onContextMenu(element, html, data, call);
             },
-            onClearAllMark: function() {
-              items.forEach(function(elem) {
-                elem.unmark();
-              });
+            onClearAllMark: function onClearAllMark() {
+              items.forEach(function(elem) { elem.unmark(); });
             },
-            onClearAllTime: function() {
-              items.forEach(function(elem) {
-                elem.timeclear();
-              });
+            onClearAllTime: function onClearAllTime() {
+              items.forEach(function(elem) { elem.timeclear(); });
             }
           });
           scroll.append(html);
@@ -849,9 +787,7 @@
             var txt = Lampa.Lang.translate('full_episode_days_left') + ': ' + day;
             var html = Lampa.Template.get('online_prestige_full', {
               time: Lampa.Utils.secondsToTime((episode ? episode.runtime : object.movie.runtime) * 60, true),
-              info: info.length ? info.map(function(i) {
-                return '<span>' + i + '</span>';
-              }).join('<span class="online-prestige-split">●</span>') : '',
+              info: info.length ? info.map(function(i) { return '<span>' + i + '</span>'; }).join('<span class="online-prestige-split">●</span>') : '',
               title: episode.name,
               quality: day > 0 ? txt : ''
             });
@@ -861,9 +797,7 @@
             html.find('.online-prestige__timeline').append(Lampa.Timeline.render(Lampa.Timeline.view(Lampa.Utils.hash([season, episode.episode_number, object.movie.original_title].join('')))));
             var img = html.find('img')[0];
             if (episode.still_path) {
-              img.onerror = function() {
-                img.src = './img/img_broken.svg';
-              };
+              img.onerror = function() { img.src = './img/img_broken.svg'; };
               img.onload = function() {
                 image.addClass('online-prestige__img--loaded');
                 loader.remove();
@@ -919,10 +853,8 @@
           Lampa.Select.show({
             title: Lampa.Lang.translate('title_action'),
             items: menu,
-            onBack: function() {
-              Lampa.Controller.toggle(enabled);
-            },
-            onSelect: function(a) {
+            onBack: function onBack() { Lampa.Controller.toggle(enabled); },
+            onSelect: function onSelect(a) {
               if (a.mark) params.element.mark();
               if (a.unmark) params.element.unmark();
               if (a.timeclear) params.element.timeclear();
@@ -942,10 +874,8 @@
                   Lampa.Select.show({
                     title: Lampa.Lang.translate('settings_server_links'),
                     items: qual,
-                    onBack: function() {
-                      Lampa.Controller.toggle(enabled);
-                    },
-                    onSelect: function(b) {
+                    onBack: function onBack() { Lampa.Controller.toggle(enabled); },
+                    onSelect: function onSelect(b) {
                       Lampa.Utils.copyTextToClipboard(b.file, function() {
                         Lampa.Noty.show(Lampa.Lang.translate('copy_secuses'));
                       }, function() {
@@ -1013,28 +943,26 @@
       }
       Lampa.Background.immediately(Lampa.Utils.cardImgBackgroundBlur(object.movie));
       Lampa.Controller.add('content', {
-        toggle: function() {
+        toggle: function toggle() {
           Lampa.Controller.collectionSet(scroll.render(), files.render());
           Lampa.Controller.collectionFocus(last || false, scroll.render());
         },
-        up: function() {
+        up: function up() {
           if (Navigator.canmove('up')) Navigator.move('up');
           else Lampa.Controller.toggle('head');
         },
-        down: function() {
+        down: function down() {
           Navigator.move('down');
         },
-        right: function() {
+        right: function right() {
           if (Navigator.canmove('right')) Navigator.move('right');
           else filter.show(Lampa.Lang.translate('title_filter'), 'filter');
         },
-        left: function() {
+        left: function left() {
           if (Navigator.canmove('left')) Navigator.move('left');
           else Lampa.Controller.toggle('menu');
         },
-        gone: function() {
-          clearInterval(balanser_timer);
-        },
+        gone: function gone() { clearInterval(balanser_timer); },
         back: this.back
       });
       Lampa.Controller.toggle('content');
@@ -1049,9 +977,7 @@
     };
 
     this.pause = function() {};
-
     this.stop = function() {};
-
     this.destroy = function() {
       network.clear();
       this.clearImages();
@@ -1060,6 +986,7 @@
       clearInterval(balanser_timer);
       if (source && source.destroy) source.destroy();
       if (modalopen) { modalopen = false; Lampa.Modal.close(); }
+      clearInterval(ping_auth);
     };
   }
 
@@ -1071,10 +998,10 @@
       name: 'Онлайн - Filmix',
       description: 'Плагин для просмотра онлайн сериалов и фильмов',
       component: 'online_fxapi',
-      onContextMenu: function(object) {
+      onContextMenu: function onContextMenu(object) {
         return { name: Lampa.Lang.translate('online_watch'), description: '' };
       },
-      onContextLauch: function(object) {
+      onContextLauch: function onContextLauch(object) {
         resetTemplates();
         Lampa.Component.add('online_fxapi', component);
         Lampa.Activity.push({
@@ -1102,7 +1029,7 @@
       copy_fail: { ru: 'Ошибка при копировании', uk: 'Помилка при копіюванні', en: 'Copy error', zh: '复制错误' },
       title_status: { ru: 'Статус', uk: 'Статус', en: 'Status', zh: '地位' },
       online_voice_subscribe: { ru: 'Подписаться на перевод', uk: 'Підписатися на переклад', en: 'Subscribe to translation', zh: '订阅翻译' },
-      online_voice_success: { ru: 'Вы успешно подписались', uk: 'Ви успішно підписалися', en: 'You have successfully subscribed', zh: '您已成功订阅' },
+      online_voice_success: { ru: 'Вы успешно подписались', uk: 'Ви успішно підписалися', en: 'You have successfully subscribed', zh: '您已成功订订阅' },
       online_voice_error: { ru: 'Возникла ошибка', uk: 'Виникла помилка', en: 'An error has occurred', zh: '发生了错误' },
       online_clear_all_marks: { ru: 'Очистить все метки', uk: 'Очистити всі мітки', en: 'Clear all labels', zh: '清除所有标签' },
       online_clear_all_timecodes: { ru: 'Очистить все тайм-коды', uk: 'Очистити всі тайм-коди', en: 'Clear all timecodes', zh: '清除所有时间代码' },
@@ -1112,44 +1039,30 @@
     $('body').append(Lampa.Template.get('online_prestige_css', {}, true));
 
     function resetTemplates() {
-      Lampa.Template.add('online_prestige_full', "<div class=\"online-prestige online-prestige--full selector\">\n            <div class=\"online-prestige__img\">\n                <img alt=\"\">\n                <div class=\"online-prestige__loader\"></div>\n            </div>\n            <div class=\"online-prestige__body\">\n                <div class=\"online-prestige__head\">\n                    <div class=\"online-prestige__title\">{title}</div>\n                    <div class=\"online-prestige__time\">{time}</div>\n                </div>\n\n                <div class=\"online-prestige__timeline\"></div>\n\n                <div class=\"online-prestige__footer\">\n                    <div class=\"online-prestige__info\">{info}</div>\n                    <div class=\"online-prestige__quality\">{quality}</div>\n                </div>\n            </div>\n        </div>");
+      Lampa.Template.add('online_prestige_full', "<div class=\"online-prestige online-prestige--full selector\">\n            <div class=\"online-prestige__img\">\n                <img alt=\"\">\n                <div class=\"online-prestige__loader\"></div>\n            </div>\n            <div class=\"online-prestige__body\">\n                <div class=\"online-prestige__head\">\n                    <div class=\"online-prestige__title\">{title}</div>\n                    <div class=\"online-prestige__time\">{time}</div>\n                </div>\n                <div class=\"online-prestige__timeline\"></div>\n                <div class=\"online-prestige__footer\">\n                    <div class=\"online-prestige__info\">{info}</div>\n                    <div class=\"online-prestige__quality\">{quality}</div>\n                </div>\n            </div>\n        </div>");
       Lampa.Template.add('online_does_not_answer', "<div class=\"online-empty\">\n            <div class=\"online-empty__title\" style=\"font-size: 2em; margin-bottom: .9em;\">\n                #{online_balanser_dont_work}\n            </div>\n          <div class=\"online-empty__templates\">\n                <div class=\"online-empty-template\">\n                    <div class=\"online-empty-template__ico\"></div>\n                    <div class=\"online-empty-template__body\"></div>\n                </div>\n                <div class=\"online-empty-template\">\n                    <div class=\"online-empty-template__ico\"></div>\n                    <div class=\"online-empty-template__body\"></div>\n                </div>\n                <div class=\"online-empty-template\">\n                    <div class=\"online-empty-template__ico\"></div>\n                    <div class=\"online-empty-template__body\"></div>\n                </div>\n            </div>\n        </div>");
       Lampa.Template.add('online_prestige_rate', "<div class=\"online-prestige-rate\">\n            <svg width=\"17\" height=\"16\" viewBox=\"0 0 17 16\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\">\n                <path d=\"M8.39409 0.192139L10.99 5.30994L16.7882 6.20387L12.5475 10.4277L13.5819 15.9311L8.39409 13.2425L3.20626 15.9311L4.24065 10.4277L0 6.20387L5.79819 5.30994L8.39409 0.192139Z\" fill=\"#fff\"></path>\n            </svg>\n            <span>{rate}</span>\n        </div>");
-      Lampa.Template.add('online_prestige_folder', "<div class=\"online-prestige online-prestige--folder selector\">\n            <div class=\"online-prestige__folder\">\n                <svg viewBox=\"0 0 128 112\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\">\n                    <rect y=\"20\" width=\"128\" height=\"92\" rx=\"13\" fill=\"white\"></rect>\n                    <path d=\"M29.9963 8H98.0037C96.0446 3.3021 91.4079 0 86 0H42C36.5921 0 31.9555 3.3021 29.9963 8Z\" fill=\"white\" fill-opacity=\"0.23\"></path>\n                    <rect x=\"11\" y=\"8\" width=\"106\" height=\"76\" rx=\"13\" fill=\"white\" fill-opacity=\"0.51\"></rect>\n                </svg>\n            </div>\n            <div class=\"online-prestige__body\">\n                <div class=\"online-prestige__head\">\n                    <div class=\"online-prestige__title\">{title}</div>\n                    <div class=\"online-prestige__time\">{time}</div>\n                </div>\n\n                <div class=\"online-prestige__footer\">\n                    <div class=\"online-prestige__info\">{info}</div>\n                </div>\n            </div>\n        </div>");
+      Lampa.Template.add('online_prestige_folder', "<div class=\"online-prestige online-prestige--folder selector\">\n            <div class=\"online-prestige__folder\">\n                <svg viewBox=\"0 0 128 112\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\">\n                    <rect y=\"20\" width=\"128\" height=\"92\" rx=\"13\" fill=\"white\"></rect>\n                    <path d=\"M29.9963 8H98.0037C96.0446 3.3021 91.4079 0 86 0H42C36.5921 0 31.9555 3.3021 29.9963 8Z\" fill=\"white\" fill-opacity=\"0.23\"></path>\n                    <rect x=\"11\" y=\"8\" width=\"106\" height=\"76\" rx=\"13\" fill=\"white\" fill-opacity=\"0.51\"></rect>\n                </svg>\n            </div>\n            <div class=\"online-prestige__body\">\n                <div class=\"online-prestige__head\">\n                    <div class=\"online-prestige__title\">{title}</div>\n                    <div class=\"online-prestige__time\">{time}</div>\n                </div>\n                <div class=\"online-prestige__footer\">\n                    <div class=\"online-prestige__info\">{info}</div>\n                </div>\n            </div>\n        </div>");
     }
 
     // Добавляем кнопку на стартовом экране
-    var button = "<div class=\"full-start__button selector view--online\" data-subtitle=\"Filmix v" + manifest.version + "\">\n" +
-        "        <svg width=\"135\" height=\"147\" viewBox=\"0 0 135 147\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\">\n" +
-        "            <path d=\"M121.5 96.8823C139.5 86.49 139.5 60.5092 121.5 50.1169L41.25 3.78454C23.25 -6.60776 0.750004 6.38265 0.750001 27.1673L0.75 51.9742C4.70314 35.7475 23.6209 26.8138 39.0547 35.7701L94.8534 68.1505C110.252 77.0864 111.909 97.8693 99.8725 109.369L121.5 96.8823Z\" fill=\"currentColor\"/>\n" +
-        "            <path d=\"M63 84.9836C80.3333 94.991 80.3333 120.01 63 130.017L39.75 143.44C22.4167 153.448 0.749999 140.938 0.75 120.924L0.750001 94.0769C0.750002 74.0621 22.4167 61.5528 39.75 71.5602L63 84.9836Z\" fill=\"currentColor\"/>\n" +
-        "        </svg>\n\n" +
-        "        <span>#{title_online}</span>\n" +
-        "    </div>";
+    var button = "<div class=\"full-start__button selector view--online\" data-subtitle=\"Filmix v" + manifest.version + "\">\n        <svg width=\"135\" height=\"147\" viewBox=\"0 0 135 147\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\">\n            <path d=\"M121.5 96.8823C139.5 86.49 139.5 60.5092 121.5 50.1169L41.25 3.78454C23.25 -6.60776 0.750004 6.38265 0.750001 27.1673L0.75 51.9742C4.70314 35.7475 23.6209 26.8138 39.0547 35.7701L94.8534 68.1505C110.252 77.0864 111.909 97.8693 99.8725 109.369L121.5 96.8823Z\" fill=\"currentColor\"/>\n            <path d=\"M63 84.9836C80.3333 94.991 80.3333 120.01 63 130.017L39.75 143.44C22.4167 153.448 0.749999 140.938 0.75 120.924L0.750001 94.0769C0.750002 74.0621 22.4167 61.5528 39.75 71.5602L63 84.9836Z\" fill=\"currentColor\"/>\n        </svg>\n        <span>#{title_online}</span>\n    </div>";
 
     Lampa.Component.add('online_fxapi', component);
     resetTemplates();
     Lampa.Listener.follow('full', function(e) {
       if (e.type == 'complite') {
         var btn = $(Lampa.Lang.translate(button));
-        // Добавляем обработчик для hover:enter и click для отладки
-        btn.on('hover:enter click', function() {
-          console.log('[BUTTON] Нажата кнопка Онлайн Filmix');
+        btn.on('hover:enter', function() {
           resetTemplates();
           Lampa.Component.add('online_fxapi', component);
-          // Проверяем наличие объекта movie
-          if (!e.data || !e.data.movie) {
-            console.log('[BUTTON] Объект movie отсутствует!');
-          } else {
-            console.log('[BUTTON] Объект movie:', e.data.movie);
-          }
           Lampa.Activity.push({
             url: '',
             title: Lampa.Lang.translate('title_online'),
             component: 'online_fxapi',
-            search: e.data.movie ? e.data.movie.title : '',
-            search_one: e.data.movie ? e.data.movie.title : '',
-            search_two: e.data.movie ? e.data.movie.original_title : '',
+            search: e.data.movie.title,
+            search_one: e.data.movie.title,
+            search_two: e.data.movie.original_title,
             movie: e.data.movie,
             page: 1
           });
@@ -1158,16 +1071,35 @@
       }
     });
 
-    window.fxapi = {
-      max_qualitie: 2160,
-      is_max_qualitie: false
-    };
+    window.fxapi = { max_qualitie: 720, is_max_qualitie: false };
+
+    function checkToken(token) {
+      var network = new Lampa.Reguest();
+      network.timeout(8000);
+      network.silent(Lampa.Utils.addUrlComponent(api_url + 'user_profile', dev_token + token), function(json) {
+        if (json) {
+          if (json.user_data) {
+            if (json.user_data.is_pro) window.fxapi.max_qualitie = 1080;
+            if (json.user_data.is_pro_plus) window.fxapi.max_qualitie = 2160;
+          } else {
+            Lampa.Storage.set('fxapi_token', '');
+            fxapi_token = '';
+          }
+        }
+      }, function(a, c) {
+        Lampa.Noty.show(network.errorDecode(a, c));
+      });
+    }
+
+    var token = Lampa.Storage.get('fxapi_token', '');
+    if (token)
+      checkToken(token);
 
     if (Lampa.Manifest.app_digital >= 177) {
       Lampa.Storage.sync('online_choice_fxapi', 'object_object');
     }
   }
 
-  startPlugin();
+  if (!window.online_filmix && Lampa.Manifest.app_digital >= 155) startPlugin();
 
 })();
