@@ -1,7 +1,7 @@
 (function() {
   'use strict';
 
-  var fxapi_token = '23ef7d6978a5afcc6569aa33ea5d4280';
+  var fxapi_token = '226ff3a204960f87255b7b118cfe24c9';
   var unic_id = 'waoqeEEMtP8skyG4';
   
   var proxy_url = 'http://cors.cfhttp.top/';
