@@ -1,4 +1,4 @@
-(function() {
+function( {
   'use strict';
 
   var fxapi_token = '226ff3a204960f87255b7b118cfe24c9';
