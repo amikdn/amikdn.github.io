@@ -1,32 +1,44 @@
 (function() {
   'use strict';
 
-  // Функция ищет и кликает по кнопке полноэкранного режима
-  function clickFullScreen() {
+  // Функция симуляции клика через MouseEvent
+  function simulateClick(element) {
+    if (!element) return;
+    var event = new MouseEvent('click', {
+      view: window,
+      bubbles: true,
+      cancelable: true
+    });
+    element.dispatchEvent(event);
+    console.log('Полноэкранная кнопка нажата.');
+  }
+
+  // Функция, которая ищет кнопку и кликает по ней
+  function tryClick() {
     var btn = document.querySelector('.head__action.selector.full-screen');
     if (btn) {
-      btn.click();
-      console.log('Полноэкранная кнопка нажата.');
+      simulateClick(btn);
       return true;
     }
     return false;
   }
 
-  // Функция инициализации плагина: сразу пытается кликнуть,
-  // а если кнопка не найдена — начинает наблюдать за изменениями в DOM.
+  // Инициализация: пробуем кликать каждые 500 мс (до 10 секунд)
   function initPlugin() {
-    if (!clickFullScreen()) {
-      // Если кнопка не найдена, запускаем MutationObserver
-      var observer = new MutationObserver(function(mutations, obs) {
-        if (clickFullScreen()) {
-          obs.disconnect(); // Останавливаем наблюдение, как только кнопка найдена и кликнута
-        }
-      });
-      observer.observe(document.body, { childList: true, subtree: true });
-    }
+    var attempts = 0;
+    var intervalId = setInterval(function() {
+      if (tryClick()) {
+        clearInterval(intervalId);
+      }
+      attempts++;
+      if (attempts > 20) { // 20 * 500 мс = 10 секунд
+        clearInterval(intervalId);
+        console.warn('Не удалось найти кнопку полноэкранного режима.');
+      }
+    }, 500);
   }
 
-  // Запускаем инициализацию, когда DOM готов
+  // Запускаем инициализацию после загрузки DOM
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initPlugin);
   } else {
