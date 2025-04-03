@@ -1,44 +1,55 @@
 (function() {
   'use strict';
 
-  // Функция симуляции клика через MouseEvent
-  function simulateClick(element) {
-    if (!element) return;
-    var event = new MouseEvent('click', {
-      view: window,
-      bubbles: true,
-      cancelable: true
-    });
-    element.dispatchEvent(event);
-    console.log('Полноэкранная кнопка нажата.');
-  }
-
-  // Функция, которая ищет кнопку и кликает по ней
-  function tryClick() {
-    var btn = document.querySelector('.head__action.selector.full-screen');
-    if (btn) {
-      simulateClick(btn);
+  // Функция для автоматического клика по кнопке полноэкранного режима
+  function clickFullScreenButton() {
+    const fullScreenBtn = document.querySelector('.head__action.selector.full-screen');
+    if (fullScreenBtn) {
+      fullScreenBtn.click();
+      console.log('Кнопка полноэкранного режима нажата.');
       return true;
     }
     return false;
   }
 
-  // Инициализация: пробуем кликать каждые 500 мс (до 10 секунд)
-  function initPlugin() {
-    var attempts = 0;
-    var intervalId = setInterval(function() {
-      if (tryClick()) {
-        clearInterval(intervalId);
-      }
-      attempts++;
-      if (attempts > 20) { // 20 * 500 мс = 10 секунд
-        clearInterval(intervalId);
-        console.warn('Не удалось найти кнопку полноэкранного режима.');
-      }
-    }, 500);
+  // Функция для отслеживания изменений стилей у контейнера с классом .wrap
+  function observeWrapStyleChanges() {
+    const wrapEl = document.querySelector('.wrap.layer--height.layer--width');
+    if (!wrapEl) {
+      console.warn('Элемент .wrap не найден.');
+      return;
+    }
+    const observer = new MutationObserver(mutations => {
+      mutations.forEach(mutation => {
+        if (mutation.attributeName === 'style') {
+          console.log('Изменился стиль элемента .wrap: ', wrapEl.getAttribute('style'));
+          // Здесь можно добавить дополнительную логику,
+          // например, подстроить другие элементы или выполнить другие действия.
+        }
+      });
+    });
+    observer.observe(wrapEl, { attributes: true });
+    console.log('Запущено наблюдение за изменениями стиля элемента .wrap.');
   }
 
-  // Запускаем инициализацию после загрузки DOM
+  // Инициализация плагина
+  function initPlugin() {
+    // Попытка нажать на кнопку сразу
+    if (clickFullScreenButton()) {
+      observeWrapStyleChanges();
+    } else {
+      // Если кнопка не найдена сразу, пробуем через MutationObserver
+      const btnObserver = new MutationObserver(() => {
+        if (clickFullScreenButton()) {
+          observeWrapStyleChanges();
+          btnObserver.disconnect();
+        }
+      });
+      btnObserver.observe(document.body, { childList: true, subtree: true });
+    }
+  }
+
+  // Ждем готовности DOM или приложения Lampa
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initPlugin);
   } else {
