@@ -14,7 +14,7 @@
     { title: "jacred.xyz",         url: "jacred.xyz",         apiKey: "" },
     { title: "jacred.pro",         url: "jacred.pro",         apiKey: "" },
     { title: "jacred.viewbox.dev", url: "jacred.viewbox.dev", apiKey: "viewbox" },
-    { title: "jr.maxvol.pro",     url: "jr.maxvol.pro",     apiKey: "" },
+    { title: "https://jr.maxvol.pro",     url: "jr.maxvol.pro",     apiKey: "" },
     { title: "altjacred.duckdns.org", url: "altjacred.duckdns.org", apiKey: "" }
   ];
 
