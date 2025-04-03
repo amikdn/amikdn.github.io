@@ -1,29 +1,35 @@
 (function() {
   'use strict';
 
+  // Функция ищет и кликает по кнопке полноэкранного режима
   function clickFullScreen() {
-    var fullScreenBtn = document.querySelector('.head__action.selector.full-screen');
-    if (fullScreenBtn) {
-      fullScreenBtn.click();
-      console.log('Полноэкранная кнопка автоматически нажата.');
-    } else {
-      console.warn('Кнопка полноэкранного режима не найдена.');
+    var btn = document.querySelector('.head__action.selector.full-screen');
+    if (btn) {
+      btn.click();
+      console.log('Полноэкранная кнопка нажата.');
+      return true;
     }
+    return false;
   }
 
+  // Функция инициализации плагина: сразу пытается кликнуть,
+  // а если кнопка не найдена — начинает наблюдать за изменениями в DOM.
   function initPlugin() {
-    if (window.appready) {
-      clickFullScreen();
-    } else if (typeof Lampa !== 'undefined' && Lampa.Listener) {
-      Lampa.Listener.follow('app', function(e) {
-        if (e.type === 'ready') {
-          clickFullScreen();
+    if (!clickFullScreen()) {
+      // Если кнопка не найдена, запускаем MutationObserver
+      var observer = new MutationObserver(function(mutations, obs) {
+        if (clickFullScreen()) {
+          obs.disconnect(); // Останавливаем наблюдение, как только кнопка найдена и кликнута
         }
       });
-    } else {
-      window.addEventListener('load', clickFullScreen);
+      observer.observe(document.body, { childList: true, subtree: true });
     }
   }
 
-  initPlugin();
+  // Запускаем инициализацию, когда DOM готов
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initPlugin);
+  } else {
+    initPlugin();
+  }
 })();
