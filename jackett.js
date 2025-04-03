@@ -1,21 +1,24 @@
 (function () {
   'use strict';
 
+  // Устанавливаем тип парсера по умолчанию, если не задан
   const defaultParserType = "jackett";
   if (!Lampa.Storage.get("parser_torrent_type")) {
     Lampa.Storage.set("parser_torrent_type", defaultParserType);
   }
   Lampa.Platform.tv();
 
+  // Конфигурация парсеров для проверки
   const parsersToCheck = [
-    { title: "79.137.204.8:2601", url: "79.137.204.8:2601", apiKey: "" },
+    { title: "jacblack.ru:9117", url: "jacblack.ru:9117", apiKey: "" },
     { title: "jacred.xyz",         url: "jacred.xyz",         apiKey: "" },
     { title: "jacred.pro",         url: "jacred.pro",         apiKey: "" },
     { title: "jacred.viewbox.dev", url: "jacred.viewbox.dev", apiKey: "viewbox" },
-    { title: "trs.my.to:9117",     url: "trs.my.to:9117",     apiKey: "" },
+    { title: "https://jr.maxvol.pro",     url: "https://jr.maxvol.pro",     apiKey: "" },
     { title: "altjacred.duckdns.org", url: "altjacred.duckdns.org", apiKey: "" }
   ];
 
+  // Функция проверки одного парсера с использованием fetch и AbortController
   const checkParser = async (parser) => {
     const protocol = location.protocol === "https:" ? "https://" : "http://";
     const trimmedUrl = parser.url.trim();
@@ -26,6 +29,7 @@
     try {
       const response = await fetch(apiUrl, { signal: controller.signal });
       const isViewbox = trimmedUrl.toLowerCase() === "jacred.viewbox.dev";
+      // Парсер считается рабочим, если response.ok или (для jacred.viewbox.dev) статус 403 или 200
       parser.status = response.ok || (isViewbox && (response.status === 403 || response.status === 200));
     } catch (error) {
       parser.status = false;
@@ -35,8 +39,10 @@
     return parser;
   };
 
+  // Проверяем все парсеры параллельно
   const checkAllParsers = () => Promise.all(parsersToCheck.map(parser => checkParser(parser)));
 
+  // Асинхронное обновление кеша статусов парсеров
   const updateParserCache = async () => {
     const results = await checkAllParsers();
     Lampa.Storage.set("parser_statuses", results);
@@ -44,6 +50,7 @@
     return results;
   };
 
+  // Функция обновления отображаемого выбранного парсера (заголовок)
   const updateParserField = (text) => {
     $("div[data-name='jackett_urltwo']").html(
       `<div class="settings-folder" tabindex="0" style="padding:0!important">
@@ -59,6 +66,7 @@
     );
   };
 
+  // Асинхронная функция открытия меню выбора парсера
   const openParserSelectionMenu = async () => {
     await updateParserCache();
 
@@ -100,6 +108,7 @@
         console.log("Выбран парсер:", selected);
         updateParserField(item.title);
 
+        // Закрываем окно выбора парсера
         Lampa.Select.hide();
         
           Lampa.Settings.update();
@@ -111,8 +120,10 @@
     });
   };
 
+  // Обновляем кеш статусов при запуске
   updateParserCache();
 
+  // Добавляем параметр в настройки – кнопку "Выбрать парсер"
   Lampa.SettingsApi.addParam({
     component: "parser",
     param: {
@@ -120,11 +131,11 @@
       type: "select",
       values: {
         no_parser: "Свой вариант",
-        jac_lampa32_ru: "79.137.204.8:2601",
+        jac_lampa32_ru: "jacblack.ru:9117",
         jacred_xyz: "jacred.xyz",
         jacred_my_to: "jacred.pro",
         jacred_viewbox_dev: "jacred.viewbox.dev",
-        spawn_jacred: "trs.my.to:9117",
+        spawn_jacred: "https://jr.maxvol.pro",
         altjacred_duckdns_org: "altjacred.duckdns.org"
       },
       default: "jacred_my_to"
