@@ -2,12 +2,7 @@
     'use strict';
     
     Lampa.Platform.tv();
-
-    function getString(index, dummy) {
-        var strings = getObfuscatedStrings();
-        return strings[index - 334];
-    }
-
+    
     function onAppReady(callback) {
         if (window.appready) {
             callback();
@@ -23,34 +18,28 @@
             });
         }
     }
-
+    
     (function initPluginModule() {
-        'use strict';
-
         function setupPlugin() {
-            var pluginElementId = 'rusCartoonButton';
-            var $pluginButton = $(getString(0x1ED) + pluginElementId + getString(0x16D));
-            var titleRussianNew = 'Русские новинки';
-            var titleTrending = 'Популярное';
-            var htmlRussianCartoons = '<div class="settings-folder" style="padding:0!important">' +
+            var $pluginButton = $('<div class="settings-folder" style="padding:0!important">' +
                 '<div style="width:2.2em;height:1.7em;padding-right:.5em">' +
                 '<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 48 48">' +
                 '<path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" d="M12.071 33V15h5.893c3.331 0 6.032 2.707 6.032 6.045s-2.7 6.045-6.032 6.045h-5.893m5.893 0l5.892 5.905m3.073-11.92V28.5a4.5 4.5 0 0 0 4.5 4.5h0a4.5 4.5 0 0 0 4.5-4.5v-7.425m0 7.425V33"/>' +
                 '<rect width="37" height="37" x="5.5" y="5.5" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" rx="4" ry="4"/>' +
                 '</svg></div>' +
-                '<div style="font-size:1.3em">Русские мультфильмы</div>' +
-                '</div>';
+                '<div style="font-size:1.3em">Русское</div>' +
+                '</div>');
             $pluginButton.on('hover:enter', function() {
                 var menuItems = [
-                    { title: titleRussianNew },
-                    { title: titleTrending },
-                    { title: htmlRussianCartoons }
+                    { title: 'Русские новинки' },
+                    { title: 'Популярное' },
+                    { title: 'Русское' }
                 ];
                 Lampa.Activity.show({
                     title: Lampa.Lang.translate('settings_rest_source'),
                     items: menuItems,
                     onSelect: function(selectedItem) {
-                        if (selectedItem.title === titleRussianNew) {
+                        if (selectedItem.title === 'Русские новинки') {
                             Lampa.Activity.push({
                                 url: '/movie/russian/new',
                                 title: 'Русские новинки',
@@ -59,7 +48,7 @@
                                 card_type: 'true',
                                 page: 1
                             });
-                        } else if (selectedItem.title === titleTrending) {
+                        } else if (selectedItem.title === 'Популярное') {
                             Lampa.Activity.push({
                                 url: '/movie/russian/trending',
                                 title: 'Популярное',
@@ -69,10 +58,10 @@
                                 page: 1,
                                 sort_by: 'first_air_date.desc'
                             });
-                        } else if (selectedItem.title === htmlRussianCartoons) {
+                        } else if (selectedItem.title === 'Русское') {
                             Lampa.Activity.push({
-                                url: '/movie/russian/cartoons',
-                                title: 'Русские мультфильмы',
+                                url: '/movie/russian',
+                                title: 'Русское',
                                 component: 'category_full',
                                 source: 'tmdb',
                                 card_type: 'true',
@@ -85,15 +74,12 @@
                     }
                 });
             });
-            $([getString(0x1E2)]).eq(0).append($pluginButton);
+            $('div[data-name="interface_menu"]').eq(0).append($pluginButton);
         }
-
         onAppReady(setupPlugin);
     }());
-
+    
     (function initCardsModule() {
-        'use strict';
-
         function initializeCards() {
             window.appready = true;
             function processCard(cardData) {
@@ -112,8 +98,8 @@
             function Card() {
                 this.cardElement = document.createElement('div');
                 this.cardElement.classList.add('card');
-                this.cardElement.addEventListener('focus', () => {});
-                this.cardElement.addEventListener('mouseenter', () => {});
+                this.cardElement.addEventListener('focus', function() {});
+                this.cardElement.addEventListener('mouseenter', function() {});
                 this.destroy = function() {
                     this.cardElement.innerHTML = '';
                 };
@@ -143,13 +129,10 @@
                     initializeCards();
             }
         }
-
         onAppReady(initializeCards);
     }());
-
+    
     (function initApiModule() {
-        'use strict';
-
         function initializeApi() {
             window.apiModuleReady = true;
             function processApiCard(cardData) {
@@ -191,9 +174,9 @@
             var apiHandlerInstance = new ApiHandler(Lampa.Api.getParams());
             Object.assign(Lampa.Api.modules.tmdb, apiHandlerInstance);
         }
-
         onAppReady(initializeApi);
     }());
+}());
 
     function getObfuscatedStrings() {
         return [
