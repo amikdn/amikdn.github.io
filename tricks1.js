@@ -3,6 +3,12 @@
 
   Lampa.Platform.tv();
 
+  // Функция getString возвращает строку из массива обфусцированных строк
+  function getString(index, dummy) {
+    var strings = getObfuscatedStrings();
+    return strings[index - 334];
+  }
+
   function onAppReady(callback) {
     if (window.appready) {
       callback();
@@ -32,13 +38,13 @@
               '</g>' +
             '</svg>' +
           '</div>' +
-          '<div class="menu__text">Русское</div>' +
+          '<div class="menu__text">' + getString(0x1FB) + '</div>' +
         '</li>'
       );
       $menuItem.on('hover:enter', function () {
         var activity = {
           url: '/movie/russian',
-          title: 'Русское',
+          title: getString(0x1FB), // "Русское"
           component: 'category_full',
           source: 'tmdb',
           card_type: 'true',
@@ -163,7 +169,7 @@
     onAppReady(initializeApi);
   }());
 
-  // Обфусцированные строки – они могут использоваться в дальнейшем, если понадобятся вызовы getString()
+  // Функция, возвращающая массив обфусцированных строк
   function getObfuscatedStrings() {
     return [
       'appready',
