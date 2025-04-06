@@ -7,18 +7,10 @@
       var email = Lampa.Storage.get('account_email');
       if (email) url = Lampa.Utils.addUrlComponent(url, 'account_email=' + encodeURIComponent(email));
     }
-    if (url.indexOf('uid=') == -1) {
-      var uid = Lampa.Storage.get('lampac_unic_id', '');
-      if (uid) url = Lampa.Utils.addUrlComponent(url, 'uid=' + encodeURIComponent(uid));
-    }
-    if (url.indexOf('token=') == -1) {
-      var token = '';
-      if (token != '') url = Lampa.Utils.addUrlComponent(url, 'token=');
-    }
 	
-	  var uniqueId = Lampa.Storage.get("lampac_unic_id", "");
-    if (uniqueId !== "tyusdt") {
-      Lampa.Storage.set("lampac_unic_id", "tyusdt");
+      var uniqueId = Lampa.Storage.get("lampac_unic_id", "");
+      if (uniqueId !== "tyusdt") {
+        Lampa.Storage.set("lampac_unic_id", "tyusdt");
    }
 	
     return url;
