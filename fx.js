@@ -17,7 +17,6 @@
         var uid = Lampa.Storage.get('lampac_unic_id', '');
         if (uid) url = Lampa.Utils.addUrlComponent(url, 'uid=' + encodeURIComponent(uid));
       }
-	
     }
 
     Lampa.TMDB.image = function (url) {
