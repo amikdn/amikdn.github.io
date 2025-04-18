@@ -793,7 +793,7 @@
             });
             
             if (needCheck) {
-                setTimeout(function() {ки
+                setTimeout(function() {
                     cardsToUpdate.forEach(function(card) {
                         updateCardLabel(card);
                     });
