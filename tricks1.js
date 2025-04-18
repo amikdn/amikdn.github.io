@@ -108,7 +108,7 @@
                     }
                 }
             }, 0x64);
-        }
+        };
 
         if (window.appready) {
             _0x52a4d3();
