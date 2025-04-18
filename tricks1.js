@@ -117,7 +117,7 @@
                 if (_0x59cbfc.type === 'ready') _0x52a4d3();
             });
         }
-    })();
+     }());
 
     function _0x5481() {
         var _0x92b9f2 = [
