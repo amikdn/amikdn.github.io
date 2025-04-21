@@ -314,7 +314,6 @@
     // Компонент настроек
     function addSettingsComponent() {
         Lampa.SettingsApi.addComponent({ component:'movieamikdn', name:'Онлайн‑кино', icon:'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="5" width="20" height="14" rx="2" stroke="currentColor" stroke-width="2"/><polygon points="10,9 16,12 10,15" fill="currentColor"/></svg>' });
-        Lampa.SettingsApi.addParam({ component:'movieamikdn', param:{ type:'button', component:'about' }, field:{ name:'О плагине', description:'Информация и поддержка' }, onChange:showAbout });
         Lampa.SettingsApi.addParam({ component:'movieamikdn', param:{ name:'show_ru', type:'trigger', default:MovieAmikdn.settings.show_ru }, field:{ name:'Показывать RU на главной' }, onChange:function(v){ MovieAmikdn.settings.show_ru=v; saveSettings(); refreshMenuButtons(); }});
         Lampa.SettingsApi.addParam({ component:'movieamikdn', param:{ name:'show_en', type:'trigger', default:MovieAmikdn.settings.show_en }, field:{ name:'Показывать EN на главной' }, onChange:function(v){ MovieAmikdn.settings.show_en=v; saveSettings(); refreshMenuButtons(); }});
         Lampa.SettingsApi.addParam({ component:'movieamikdn', param:{ type:'button', component:'ru_list' }, field:{ name:'Включение RU', description:'Выбрать RU сервисы' }, onChange:showRuMoviesSettings });
