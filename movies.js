@@ -52,9 +52,6 @@
         }
     }
 
-    /*
-     *  SVG‑иконки для RU / EN
-     */
     function removeMenuButtons () {
         $('.movieamikdn-btn-ru, .movieamikdn-btn-en').remove();
     }
@@ -74,7 +71,6 @@
             return;
         }
 
-        // RU button
         if (String(MovieAmikdn.settings.show_ru).toLowerCase() !== 'false') {
             var icoRU = `<svg xmlns="http://www.w3.org/2000/svg" width="1.2em" height="1.2em" viewBox="0 0 48 48"><text x="50%" y="55%" text-anchor="middle" font-family="Arial" font-size="38" font-weight="700" fill="currentColor" dominant-baseline="middle">RU</text></svg>`;
             var $btnRU = $(`<li class="menu__item selector movieamikdn-btn-ru"><div class="menu__ico">${icoRU}</div><div class="menu__text">Кинотеатры</div></li>`);
@@ -82,7 +78,6 @@
             $menu.append($btnRU);
         }
 
-        // EN button
         if (String(MovieAmikdn.settings.show_en).toLowerCase() !== 'false') {
             var icoEN = `<svg xmlns="http://www.w3.org/2000/svg" width="1.2em" height="1.2em" viewBox="0 0 48 48"><text x="50%" y="55%" text-anchor="middle" font-family="Arial" font-size="38" font-weight="700" fill="currentColor" dominant-baseline="middle">EN</text></svg>`;
             var $btnEN = $(`<li class="menu__item selector movieamikdn-btn-en"><div class="menu__ico">${icoEN}</div><div class="menu__text">Кинотеатры</div></li>`);
@@ -179,9 +174,6 @@
         Lampa.Controller.toggle(ctrlName);
     }
 
-    /*
-     *  Модальное окно со списком сервисов (карточки‑логотипы)
-     */
     function openMoviesModal (type) {
         var list     = type === 'ru' ? RU_MOVIES : EN_MOVIES;
         var enabled  = type === 'ru' ? MovieAmikdn.settings.ru_movies : MovieAmikdn.settings.en_movies;
@@ -216,9 +208,6 @@
         setTimeout(function () { activateCardsController($cards); }, 100);
     }
 
-    /*
-     *  Модальные окна для включения / отключения сервисов (RU / EN)
-     */
     function buildToggleModal (type) {
         var LIST    = type === 'ru' ? RU_MOVIES : EN_MOVIES;
         var STATE   = type === 'ru' ? MovieAmikdn.settings.ru_movies : MovieAmikdn.settings.en_movies;
@@ -274,9 +263,7 @@
     function showRuMoviesSettings () { buildToggleModal('ru'); }
     function showEnMoviesSettings () { buildToggleModal('en'); }
 
-    /*
-     *  Стили (минимально то, что необходимо)
-     */
+ 
     function addStyles () {
         var css = '<style id="movieamikdn-styles">'
             + '.movieamikdn-cards{max-height:70vh;overflow-y:auto;display:flex;flex-wrap:wrap;justify-content:center;border-radius:18px;}'
