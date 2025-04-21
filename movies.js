@@ -316,7 +316,7 @@
     function addSettingsComponent () {
         Lampa.SettingsApi.addComponent({
             component: 'movieamikdn',
-            name:      'Онлайн Кинотеатры',
+            name:      'Ru En Кинотеатры',
             icon:      '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="5" width="20" height="14" rx="2" stroke="currentColor" stroke-width="2"/><polygon points="10,9 16,12 10,15" fill="currentColor"/></svg>'
         });
 
