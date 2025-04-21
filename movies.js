@@ -57,8 +57,18 @@
      */
     function getSVGIcon (type) {
         return type === 'ru'
-            ? '<svg width="24" height="24" viewBox="0 0 24 24"><rect width="24" height="8" y="0" fill="#fff"/><rect width="24" height="8" y="8" fill="#0039a6"/><rect width="24" height="8" y="16" fill="#d52b1e"/></svg>'
-            : '<svg width="24" height="24" viewBox="0 0 24 24"><rect width="24" height="24" fill="#00247d"/><text x="12" y="16" font-size="12" fill="#fff" text-anchor="middle" font-family="Arial">EN</text></svg>';
+            ? '<svg xmlns="http://www.w3.org/2000/svg" width="1.2em" height="1.2em" viewBox="0 0 48 48">
+                <text x="50%" y="55%" text-anchor="middle" font-family="Arial" font-size="38" 
+                      font-weight="700" fill="currentColor" dominant-baseline="middle">
+                    RU
+                </text>
+            </svg>'
+            : '<svg xmlns="http://www.w3.org/2000/svg" width="1.2em" height="1.2em" viewBox="0 0 48 48">
+                <text x="50%" y="55%" text-anchor="middle" font-family="Arial" font-size="38" 
+                      font-weight="700" fill="currentColor" dominant-baseline="middle">
+                    EN
+                </text>
+            </svg>';
     }
 
     function removeMenuButtons () {
