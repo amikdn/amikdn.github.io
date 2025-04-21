@@ -3,7 +3,7 @@
 
     var MovieAmikdn = {
         name:    'movieamikdn',
-        version: '2.2.0',        
+        version: '2.2.1',        
         debug:   true,
         settings: {
             enabled:  true,
@@ -72,29 +72,15 @@
         }
 
         if (String(MovieAmikdn.settings.show_ru).toLowerCase() !== 'false') {
-            var icoRU = `<svg xmlns="http://www.w3.org/2000/svg" width="1.2em" height="1.2em" viewBox="0 0 48 48">
-                <text x="50%" y="55%" text-anchor="middle" font-family="Arial" font-size="38" font-weight="700" fill="currentColor" dominant-baseline="middle">RU</text>
-            </svg>`;
-            var $btnRU = $(
-                `<li class="menu__item selector movieamikdn-btn-ru">
-                    <div class="menu__ico">${icoRU}</div>
-                    <div class="menu__text">Кинотеатры</div>
-                </li>`
-            );
+            var icoRU = `<svg xmlns="http://www.w3.org/2000/svg" width="1.2em" height="1.2em" viewBox="0 0 48 48"><text x="50%" y="55%" text-anchor="middle" font-family="Arial" font-size="38" font-weight="700" fill="currentColor" dominant-baseline="middle">RU</text></svg>`;
+            var $btnRU = $(`<li class="menu__item selector movieamikdn-btn-ru"><div class="menu__ico">${icoRU}</div><div class="menu__text">Кинотеатры</div></li>`);
             $btnRU.on('hover:enter', function () { openMoviesModal('ru'); });
             $menu.append($btnRU);
         }
 
         if (String(MovieAmikdn.settings.show_en).toLowerCase() !== 'false') {
-            var icoEN = `<svg xmlns="http://www.w3.org/2000/svg" width="1.2em" height="1.2em" viewBox="0 0 48 48">
-                <text x="50%" y="55%" text-anchor="middle" font-family="Arial" font-size="38" font-weight="700" fill="currentColor" dominant-baseline="middle">EN</text>
-            </svg>`;
-            var $btnEN = $(
-                `<li class="menu__item selector movieamikdn-btn-en">
-                    <div class="menu__ico">${icoEN}</div>
-                    <div class="menu__text">Кинотеатры</div>
-                </li>`
-            );
+            var icoEN = `<svg xmlns="http://www.w3.org/2000/svg" width="1.2em" height="1.2em" viewBox="0 0 48 48"><text x="50%" y="55%" text-anchor="middle" font-family="Arial" font-size="38" font-weight="700" fill="currentColor" dominant-baseline="middle">EN</text></svg>`;
+            var $btnEN = $(`<li class="menu__item selector movieamikdn-btn-en"><div class="menu__ico">${icoEN}</div><div class="menu__text">Кинотеатры</div></li>`);
             $btnEN.on('hover:enter', function () { openMoviesModal('en'); });
             $menu.append($btnEN);
         }
@@ -113,9 +99,7 @@
     function getMovieLogo (networkId, name, cb) {
         var logoPath = getLogoPathFromCache(networkId);
         if (logoPath) {
-            var url = (Lampa.TMDB && Lampa.TMDB.image)
-                ? Lampa.TMDB.image('t/p/w300' + logoPath)
-                : 'https://image.tmdb.org/t/p/w300' + logoPath;
+            var url = (Lampa.TMDB && Lampa.TMDB.image) ? Lampa.TMDB.image('t/p/w300' + logoPath) : 'https://image.tmdb.org/t/p/w300' + logoPath;
             cb('<img src="' + url + '" alt="' + name + '" style="max-width:68px;max-height:68px;">');
             return;
         }
@@ -125,9 +109,7 @@
             type: 'GET',
             success: function (data) {
                 if (data && data.logo_path) {
-                    var imgUrl = (Lampa.TMDB && Lampa.TMDB.image)
-                        ? Lampa.TMDB.image('t/p/w300' + data.logo_path)
-                        : 'https://image.tmdb.org/t/p/w300' + data.logo_path;
+                    var imgUrl = (Lampa.TMDB && Lampa.TMDB.image) ? Lampa.TMDB.image('t/p/w300' + data.logo_path) : 'https://image.tmdb.org/t/p/w300' + data.logo_path;
                     cb('<img src="' + imgUrl + '" alt="' + name + '" style="max-width:68px;max-height:68px;">');
                 } else {
                     cb('<div style="font-size:22px;line-height:44px;color:#222;font-weight:bold;display:flex;align-items:center;justify-content:center;width:100%;height:100%;">' + name.charAt(0) + '</div>');
@@ -176,176 +158,4 @@
         }
 
         Lampa.Controller.add(ctrlName, {
-            toggle ()        { Lampa.Controller.collectionSet($root); focus(last); },
-            up     ()        { var i = last - perRow(); if (i >= 0) focus(i); },
-            down   ()        { var i = last + perRow(); if (i < $cards.length) focus(i); },
-            left   ()        { if (last > 0) focus(last - 1); },
-            right  ()        { if (last < $cards.length - 1) focus(last + 1); },
-            back   ()        { Lampa.Modal.close(); Lampa.Controller.toggle('menu'); },
-            enter  ()        { $cards.eq(last).trigger('hover:enter'); }
-        });
-
-        Lampa.Controller.toggle(ctrlName);
-    }
-
-    function openMoviesModal (type) {
-        var list     = type === 'ru' ? RU_MOVIES : EN_MOVIES;
-        var enabled  = type === 'ru' ? MovieAmikdn.settings.ru_movies : MovieAmikdn.settings.en_movies;
-        var filtered = list.filter(function (m) { return enabled[m.networkId]; });
-
-        var title = (type === 'ru' ? 'Русские' : 'Зарубежные') + ' онлайн‑сервисы';
-        var $header = $('<div class="movieamikdn-modal-header"></div>')
-            .append('<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="5" width="20" height="14" rx="2" stroke="#00dbde" stroke-width="2"/><polygon points="10,9 16,12 10,15" fill="#fc00ff"/></svg>')
-            .append('<span class="movieamikdn-modal-title">' + title + '</span>');
-
-        var $cards = $('<div class="movieamikdn-cards"></div>');
-        filtered.forEach(function (svc) {
-            var $card  = $('<div class="movieamikdn-card selector"></div>');
-            var $logo  = $('<div class="movieamikdn-card__logo"></div>');
-            getMovieLogo(svc.networkId, svc.name, function (html) { $logo.html(html); });
-            $card.append($logo).append('<div class="movieamikdn-card__name">' + svc.name + '</div>');
-            $card.on('hover:enter', function () {
-                Lampa.Modal.close();
-                openMovieCatalog(svc.networkId, svc.name);
-            });
-            $cards.append($card);
-        });
-
-        var $wrap = $('<div></div>').append($header).append($cards);
-        Lampa.Modal.open({
-            html:   $wrap,
-            title:  '',
-            size:   'full',
-            onBack: function () { Lampa.Modal.close(); Lampa.Controller.toggle('menu'); }
-        });
-
-        setTimeout(function () { activateCardsController($cards); }, 100);
-    }
-    
-    var STORAGE_KEY = 'movieamikdn_settings';
-
-    var SORT_MODES = {
-        'popularity.desc':  'Популярные',
-        'release_date.desc':'По дате (новые)',
-        'release_date.asc': 'По дате (старые)',
-        'vote_average.desc':'По рейтингу',
-        'vote_count.desc':  'По количеству голосов'
-    };
-
-    function loadSettings () {
-        var saved = localStorage.getItem(STORAGE_KEY);
-        if (saved) try { Object.assign(MovieAmikdn.settings, JSON.parse(saved)); } catch (e) {}
-
-        if (!MovieAmikdn.settings.ru_movies) {
-            MovieAmikdn.settings.ru_movies = {};
-            RU_MOVIES.forEach(function (s) { MovieAmikdn.settings.ru_movies[s.networkId] = true; });
-        }
-        if (!MovieAmikdn.settings.en_movies) {
-            MovieAmikdn.settings.en_movies = {};
-            EN_MOVIES.forEach(function (s) { MovieAmikdn.settings.en_movies[s.networkId] = true; });
-        }
-        if (!MovieAmikdn.settings.sort_mode) MovieAmikdn.settings.sort_mode = 'popularity.desc';
-    }
-
-    function saveSettings () {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(MovieAmikdn.settings));
-        if (MovieAmikdn.debug) console.log('movieamikdn: settings saved');
-        refreshMenuButtons();
-    }
-
-    function addSettingsComponent () {
-        Lampa.SettingsApi.addComponent({
-            component: 'movieamikdn',
-            name:      'Онлайн Кинотеатры',
-            icon:      '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="5" width="20" height="14" rx="2" stroke="currentColor" stroke-width="2"/><polygon points="10,9 16,12 10,15" fill="currentColor"/></svg>'
-        });
-
-        Lampa.SettingsApi.addParam({
-            component: 'movieamikdn',
-            param: { name: 'show_ru', type: 'trigger', default: MovieAmikdn.settings.show_ru },
-            field: { name: 'Показывать RU‑Кинотеатры на главной' },
-            onChange (v) { MovieAmikdn.settings.show_ru = v; saveSettings(); }
-        });
-
-        Lampa.SettingsApi.addParam({
-            component: 'movieamikdn',
-            param: { name: 'show_en', type: 'trigger', default: MovieAmikdn.settings.show_en },
-            field: { name: 'Показывать EN‑Кинотеатры на главной' },
-            onChange (v) { MovieAmikdn.settings.show_en = v; saveSettings(); }
-        });
-
-        Lampa.SettingsApi.addParam({
-            component: 'movieamikdn',
-            param: { type: 'button', component: 'ru_movies_list' },
-            field: { name: 'Включение RU‑Кинотеатры', description: 'Выберите, какие RU сервисы показывать' },
-            onChange: function() { buildToggleModal('ru'); }
-        });
-
-        Lampa.SettingsApi.addParam({
-            component: 'movieamikdn',
-            param: { type: 'button', component: 'en_movies_list' },
-            field: { name: 'Включение EN‑Кинотеатры', description: 'Выберите, какие EN сервисы показывать' },
-            onChange: function() { buildToggleModal('en'); }
-        });
-
-        Lampa.SettingsApi.addParam({
-            component: 'movieamikdn',
-            param: {
-                name:    'sort_mode',
-                type:    'select',
-                values:  SORT_MODES,
-                default: MovieAmikdn.settings.sort_mode
-            },
-            field: { name: 'Режим сортировки' },
-            onChange (v) { MovieAmikdn.settings.sort_mode = v; saveSettings(); }
-        });
-    }
-
-    function addStyles () {
-        var css = '<style id="movieamikdn-styles">'
-            + '.movieamikdn-cards{max-height:70vh;overflow-y:auto;display:flex;flex-wrap:wrap;justify-content:center;border-radius:18px;}'
-            + '.movieamikdn-card{width:120px;height:120px;background:rgba(24,24,40,.95);border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:.2s;margin:12px;box-shadow:0 2px 12px rgba(233,64,87,.08);border:1.5px solid rgba(233,64,87,.08);}'
-            + '.movieamikdn-card.selector:hover,.movieamikdn-card.selector:focus{box-shadow:0 0 24px #e94057,0 0 30px #f27121;background:linear-gradient(135deg,#1a1a1a 0%,#2a2a2a 100%);outline:none;border-color:#e94057;}'
-            + '.movieamikdn-card__logo{width:84px;height:84px;background:#918d8db8;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:32px;color:#222;font-weight:bold;margin-bottom:10px;box-shadow:0 2px 8px rgba(233,64,87,.08);}'
-            + '.movieamikdn-card__name{color:#fff;font-size:16px;text-align:center;text-shadow:0 2px 8px rgba(233,64,87,.15);}'
-            + '.movieamikdn-modal-header{display:flex;align-items:center;justify-content:center;margin-bottom:28px;width:100%;}'
-            + '.movieamikdn-modal-header svg{width:34px;height:34px;margin-right:16px;flex-shrink:0;}'
-            + '.movieamikdn-modal-title{font-size:1.6em;font-weight:bold;background:linear-gradient(90deg,#8a2387,#e94057,#f27121);-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-shadow:0 2px 8px rgba(233,64,87,.15);}'
-            + '.movieamikdn-movie-btn{max-width:500px;min-width:260px;margin:0 auto 18px;display:flex;align-items:center;padding:0 0 0 32px;height:68px;font-size:1.6em;color:#888;background:rgba(24,24,40,.95);border-radius:14px;transition:.2s;}'
-            + '.movieamikdn-movie-btn__icon{font-size:1.3em;margin-right:24px;width:32px;display:flex;align-items:center;justify-content:center;}'
-            + '.movieamikdn-movie-btn.enabled .movieamikdn-movie-btn__icon{color:#fff;}'
-            + '.movieamikdn-movie-btn.enabled .movieamikdn-movie-btn__name{color:#fff;}'
-            + '.movieamikdn-movie-btn.focus{background:linear-gradient(90deg,#e94057 0%,#f27121 100%);color:#fff !important;outline:none;box-shadow:0 0 0 2px #e94057,0 0 12px #f27121;}'
-            + '</style>';
-        if (!$('#movieamikdn-styles').length) $('head').append(css);
-    }
-
-    function refreshMenuButtons () {
-        removeMenuButtons();
-        addMenuButtons();
-    }
-
-    function startPlugin () {
-        loadSettings();
-        addLocalization();
-        addStyles();
-        addSettingsComponent();
-
-        if (MovieAmikdn.debug) console.log('movieamikdn: init complete', MovieAmikdn.settings);
-
-        Lampa.Listener.follow('app', function (e) {
-            if (e.type === 'ready') setTimeout(refreshMenuButtons, 1000);
-        });
-        Lampa.Listener.follow('settings', function (e) {
-            if (e.type === 'update') refreshMenuButtons();
-        });
-        Lampa.Listener.follow('menu', function (e) {
-            if (e.type === 'open') refreshMenuButtons();
-        });
-    }
-
-    startPlugin();
-
-    window.movieamikdn = MovieAmikdn;
-
-})();
+            toggle ()        { L
