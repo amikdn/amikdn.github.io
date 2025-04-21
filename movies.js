@@ -45,9 +45,9 @@
     function addLocalization () {
         if (Lampa && Lampa.Lang) {
             Lampa.Lang.add({
-                movieamikdn_ru:    { ru: 'RU Movies',     en: 'RU Movies'    },
-                movieamikdn_en:    { ru: 'EN Movies',     en: 'EN Movies'    },
-                movieamikdn_title: { ru: 'Online Movies', en: 'Online Movies'}
+                movieamikdn_ru:    { ru: 'RU Кинотеатры',     en: 'RU Movies'    },
+                movieamikdn_en:    { ru: 'EN Кинотеатры',     en: 'EN Movies'    },
+                movieamikdn_title: { ru: 'Online Кинотеатры', en: 'Online Movies'}
             });
         }
     }
@@ -81,7 +81,7 @@
             var $btnRU = $(`
                 <li class="menu__item selector movieamikdn-btn-ru">
                     <div class="menu__ico">${getSVGIcon('ru')}</div>
-                    <div class="menu__text">Movies</div>
+                    <div class="menu__text">Кинотеатры</div>
                 </li>`);
             $btnRU.on('hover:enter', function () { openMoviesModal('ru'); });
             $menu.append($btnRU);
@@ -92,7 +92,7 @@
             var $btnEN = $(`
                 <li class="menu__item selector movieamikdn-btn-en">
                     <div class="menu__ico">${getSVGIcon('en')}</div>
-                    <div class="menu__text">Movies</div>
+                    <div class="menu__text">Кинотеатры</div>
                 </li>`);
             $btnEN.on('hover:enter', function () { openMoviesModal('en'); });
             $menu.append($btnEN);
@@ -337,35 +337,35 @@
     function addSettingsComponent () {
         Lampa.SettingsApi.addComponent({
             component: 'movieamikdn',
-            name:      'Онлайн муви',
+            name:      'Онлайн Кинотеатры',
             icon:      '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="5" width="20" height="14" rx="2" stroke="currentColor" stroke-width="2"/><polygon points="10,9 16,12 10,15" fill="currentColor"/></svg>'
         });
 
         Lampa.SettingsApi.addParam({
             component: 'movieamikdn',
             param: { name: 'show_ru', type: 'trigger', default: MovieAmikdn.settings.show_ru },
-            field: { name: 'Показывать RU‑Movies на главной' },
+            field: { name: 'Показывать RU‑Кинотеатры на главной' },
             onChange (v) { MovieAmikdn.settings.show_ru = v; saveSettings(); refreshMenuButtons(); }
         });
 
         Lampa.SettingsApi.addParam({
             component: 'movieamikdn',
             param: { name: 'show_en', type: 'trigger', default: MovieAmikdn.settings.show_en },
-            field: { name: 'Показывать EN‑Movies на главной' },
+            field: { name: 'Показывать EN‑Кинотеатры на главной' },
             onChange (v) { MovieAmikdn.settings.show_en = v; saveSettings(); refreshMenuButtons(); }
         });
 
         Lampa.SettingsApi.addParam({
             component: 'movieamikdn',
             param: { type: 'button', component: 'ru_movies_list' },
-            field: { name: 'Включение RU‑муви', description: 'Выберите, какие RU сервисы показывать' },
+            field: { name: 'Включение RU‑Кинотеатры', description: 'Выберите, какие RU сервисы показывать' },
             onChange: showRuMoviesSettings
         });
 
         Lampa.SettingsApi.addParam({
             component: 'movieamikdn',
             param: { type: 'button', component: 'en_movies_list' },
-            field: { name: 'Включение EN‑муви', description: 'Выберите, какие EN сервисы показывать' },
+            field: { name: 'Включение EN‑Кинотеатры', description: 'Выберите, какие EN сервисы показывать' },
             onChange: showEnMoviesSettings
         });
 
