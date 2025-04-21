@@ -1,30 +1,17 @@
 (function () {
     'use strict';
 
-    // ---------------------------
-    //  Плагин «Онлайн муви»
-    //  Версия   : 2.1.1
-    //  Автор     : amikdn
-    //  Назначение: быстрый доступ к популярным онлайн‑сервисам (RU / EN)
-    // ---------------------------
-
-    /*
-     *  Основной объект плагина
-     */
     var MovieAmikdn = {
-        name: 'movieamikdn',        // системное имя
-        version: '2.1.1',           // версия
-        debug: true,                // режим отладки (вывод в консоль)
+        name: 'movieamikdn',        
+        version: '2.1.1',           
+        debug: true,                
         settings: {
-            enabled: true,          // включён ли плагин
-            show_ru: true,          // показывать RU‑кнопку в меню
-            show_en: true           // показывать EN‑кнопку в меню
+            enabled: true,          
+            show_ru: true,          
+            show_en: true           
         }
     };
 
-    /*
-     *  Списки сервисов TMDB (идентификаторы сетей)
-     */
     var RU_MOVIES = [
         { name: 'Start',      networkId: '2493' },
         { name: 'Premier',    networkId: '2859' },
@@ -55,15 +42,12 @@
         { name: 'Amazon Prime',    networkId: '1024' }
     ];
 
-    /*
-     *  Локализация (RU / EN)
-     */
     function addLocalization () {
         if (Lampa && Lampa.Lang) {
             Lampa.Lang.add({
-                movieamikdn_ru:    { ru: 'RU Муви',     en: 'RU Movies'    },
-                movieamikdn_en:    { ru: 'EN Муви',     en: 'EN Movies'    },
-                movieamikdn_title: { ru: 'Онлайн муви', en: 'Online Movies'}
+                movieamikdn_ru:    { ru: 'RU Movies',     en: 'RU Movies'    },
+                movieamikdn_en:    { ru: 'EN Movies',     en: 'EN Movies'    },
+                movieamikdn_title: { ru: 'Online Movies', en: 'Online Movies'}
             });
         }
     }
@@ -77,20 +61,13 @@
             : '<svg width="24" height="24" viewBox="0 0 24 24"><rect width="24" height="24" fill="#00247d"/><text x="12" y="16" font-size="12" fill="#fff" text-anchor="middle" font-family="Arial">EN</text></svg>';
     }
 
-    /*
-     *  Удаляем старые кнопки из главного меню
-     */
     function removeMenuButtons () {
         $('.movieamikdn-btn-ru, .movieamikdn-btn-en').remove();
     }
 
-    /*
-     *  Добавляем кнопки RU / EN в главное меню
-     */
     function addMenuButtons () {
         if (MovieAmikdn.debug) console.log('movieamikdn: addMenuButtons');
 
-        // чистим меню на всякий случай
         removeMenuButtons();
 
         var $menu = $('.menu .menu__list').eq(0);
@@ -104,7 +81,7 @@
             var $btnRU = $(`
                 <li class="menu__item selector movieamikdn-btn-ru">
                     <div class="menu__ico">${getSVGIcon('ru')}</div>
-                    <div class="menu__text">Муви</div>
+                    <div class="menu__text">Movies</div>
                 </li>`);
             $btnRU.on('hover:enter', function () { openMoviesModal('ru'); });
             $menu.append($btnRU);
@@ -115,16 +92,13 @@
             var $btnEN = $(`
                 <li class="menu__item selector movieamikdn-btn-en">
                     <div class="menu__ico">${getSVGIcon('en')}</div>
-                    <div class="menu__text">Муви</div>
+                    <div class="menu__text">Movies</div>
                 </li>`);
             $btnEN.on('hover:enter', function () { openMoviesModal('en'); });
             $menu.append($btnEN);
         }
     }
 
-    /*
-     *  Получаем logo_path из кеша Lampa.TMDB.networks
-     */
     function getLogoPathFromCache (networkId) {
         if (!(Lampa && Lampa.TMDB && Lampa.TMDB.networks)) return null;
         for (var i = 0; i < Lampa.TMDB.networks.length; i++) {
@@ -135,9 +109,6 @@
         return null;
     }
 
-    /*
-     *  Получить логотип сервиса (асинхронно)
-     */
     function getMovieLogo (networkId, name, cb) {
         var logoPath = getLogoPathFromCache(networkId);
         if (logoPath) {
@@ -147,7 +118,6 @@
             cb('<img src="' + url + '" alt="' + name + '" style="max-width:68px;max-height:68px;">');
             return;
         }
-        // если в кеше нет — пробуем через API TMDB (через прокси Lampa)
         var apiUrl = Lampa.TMDB.api('network/' + networkId + '?api_key=' + Lampa.TMDB.key());
         $.ajax({
             url: apiUrl,
@@ -168,9 +138,6 @@
         });
     }
 
-    /*
-     *  Открыть каталог TMDB по конкретному сервису
-     */
     function openMovieCatalog (networkId, name) {
         var sort = MovieAmikdn.settings.sort_mode;
         if (sort === 'release_date.desc') sort = 'first_air_date.desc';
@@ -187,9 +154,6 @@
         });
     }
 
-    /*
-     *  Контроллер карточек (стрелки/пульт)
-     */
     function activateCardsController ($root) {
         var ctrlName = 'movieamikdn-cards';
         var $cards   = $root.find('.movieamikdn-card.selector');
@@ -295,7 +259,6 @@
             onBack: function () { Lampa.Modal.close(); Lampa.Controller.toggle('settings'); }
         });
 
-        // простой контроллер для списка кнопок
         setTimeout(function () {
             var $btns = $cont.find('.movieamikdn-movie-btn');
             var ctrl  = 'movieamikdn-' + type + '-btns';
@@ -341,14 +304,8 @@
         if (!$('#movieamikdn-styles').length) $('head').append(css);
     }
 
-    /*
-     *  Ключ для localStorage
-     */
     var STORAGE_KEY = 'movieamikdn_settings';
 
-    /*
-     *  Список режимов сортировки TMDB
-     */
     var SORT_MODES = {
         'popularity.desc':  'Популярные',
         'release_date.desc':'По дате (новые)',
@@ -357,14 +314,10 @@
         'vote_count.desc':  'По количеству голосов'
     };
 
-    /*
-     *  Загрузка настроек из localStorage
-     */
     function loadSettings () {
         var saved = localStorage.getItem(STORAGE_KEY);
         if (saved) try { Object.assign(MovieAmikdn.settings, JSON.parse(saved)); } catch (e) {}
 
-        // инициализируем таблицы включённых сервисов
         if (!MovieAmikdn.settings.ru_movies) {
             MovieAmikdn.settings.ru_movies = {};
             RU_MOVIES.forEach(function (s) { MovieAmikdn.settings.ru_movies[s.networkId] = true; });
@@ -376,17 +329,11 @@
         if (!MovieAmikdn.settings.sort_mode) MovieAmikdn.settings.sort_mode = 'popularity.desc';
     }
 
-    /*
-     *  Сохранение настроек
-     */
     function saveSettings () {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(MovieAmikdn.settings));
         if (MovieAmikdn.debug) console.log('movieamikdn: settings saved');
     }
 
-    /*
-     *  Компонент настроек в Lampa
-     */
     function addSettingsComponent () {
         Lampa.SettingsApi.addComponent({
             component: 'movieamikdn',
@@ -394,23 +341,20 @@
             icon:      '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="5" width="20" height="14" rx="2" stroke="currentColor" stroke-width="2"/><polygon points="10,9 16,12 10,15" fill="currentColor"/></svg>'
         });
 
-        // переключатель: показывать RU
         Lampa.SettingsApi.addParam({
             component: 'movieamikdn',
             param: { name: 'show_ru', type: 'trigger', default: MovieAmikdn.settings.show_ru },
-            field: { name: 'Показывать RU‑муви на главной' },
+            field: { name: 'Показывать RU‑Movies на главной' },
             onChange (v) { MovieAmikdn.settings.show_ru = v; saveSettings(); refreshMenuButtons(); }
         });
 
-        // переключатель: показывать EN
         Lampa.SettingsApi.addParam({
             component: 'movieamikdn',
             param: { name: 'show_en', type: 'trigger', default: MovieAmikdn.settings.show_en },
-            field: { name: 'Показывать EN‑муви на главной' },
+            field: { name: 'Показывать EN‑Movies на главной' },
             onChange (v) { MovieAmikdn.settings.show_en = v; saveSettings(); refreshMenuButtons(); }
         });
 
-        // кнопка открытия списка RU сервисов
         Lampa.SettingsApi.addParam({
             component: 'movieamikdn',
             param: { type: 'button', component: 'ru_movies_list' },
@@ -418,7 +362,6 @@
             onChange: showRuMoviesSettings
         });
 
-        // кнопка открытия списка EN сервисов
         Lampa.SettingsApi.addParam({
             component: 'movieamikdn',
             param: { type: 'button', component: 'en_movies_list' },
@@ -426,7 +369,6 @@
             onChange: showEnMoviesSettings
         });
 
-        // выбор режима сортировки
         Lampa.SettingsApi.addParam({
             component: 'movieamikdn',
             param: {
@@ -440,17 +382,11 @@
         });
     }
 
-    /*
-     *  Обновляем меню
-     */
     function refreshMenuButtons () {
         removeMenuButtons();
         addMenuButtons();
     }
 
-    /*
-     *  Инициализация плагина
-     */
     function startPlugin () {
         loadSettings();
         addLocalization();
@@ -472,7 +408,6 @@
 
     startPlugin();
 
-    // экспортируем объект для внешнего доступа (на случай debugg)
     window.movieamikdn = MovieAmikdn;
 
 })();
