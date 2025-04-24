@@ -86,31 +86,20 @@
     };
     var balansers_with_search = ['kinotochka', 'kinopub', 'lumex', 'filmix', 'filmixtv', 'redheadsound', 'animevost', 'animego', 'animedia', 'animebesst', 'anilibria', 'rezka', 'rhsprem', 'kodik', 'remux', 'animelib', 'kinoukr', 'rc/filmix', 'rc/fxapi', 'rc/kinopub', 'rc/rhs', 'vcdn'];
 
-   function account(url) {
-     url = url + '';
-    if (url.indexOf('account_email=') == -1) {
-      var email = Lampa.Storage.get('account_email');
-      if (email) url = Lampa.Utils.addUrlComponent(url, 'account_email=' + encodeURIComponent(email));
-    }
-    if (url.indexOf('uid=') == -1) {
-      var uid = Lampa.Storage.get('lampac_unic_id', '');
-      if (uid) url = Lampa.Utils.addUrlComponent(url, 'uid=' + encodeURIComponent(uid));
-    }
-    if (url.indexOf('token=') == -1) {
-      var token = '';
-      if (token != '') url = Lampa.Utils.addUrlComponent(url, 'token=');
-    }
+function account(url) {
+  // 1) Убираем из URL всё, что выглядит как uid=... или ab_token=...
+  url = url.replace(/([?&])uid=[^&]*/g, '$1').replace(/([?&])ab_token=[^&]*/g, '$1');
+  
+  // 2) Убираем возможные хвостовые «лишние» & или ? в конце
+  url = url.replace(/[?&]$/, '');
+  
+  // 3) Добавляем нужные константы
+  url = Lampa.Utils.addUrlComponent(url, 'uid=ofkrtxdg');
+  url = Lampa.Utils.addUrlComponent(url, 'ab_token=dVk65RpXQyZVstKg9CcTXO5r');
+  
+  return url;
+}
 
-    url = Lampa.Utils.addUrlComponent(url, 'ab_token=' + Lampa.Storage.get('token'));
-    // Всегда подставляем фиксированные параметры:
-    if (url.indexOf('uid=') === -1) {
-      url = Lampa.Utils.addUrlComponent(url, 'uid=ofkrtxd');
-    }
-    if (url.indexOf('ab_token=') === -1) {
-      url = Lampa.Utils.addUrlComponent(url, 'ab_token=dVk65RpXQyZVstKg9CcTXO5r');
-    }
-     return url;
-   }
 
 
     function balanserName(j) {
