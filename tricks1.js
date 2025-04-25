@@ -309,7 +309,7 @@ function account(url) {
       query.push('original_language=' + (object.movie.original_language || ''));
       query.push('year=' + ((object.movie.release_date || object.movie.first_air_date || '0000') + '').slice(0, 4));
       query.push('source=' + card_source);
-	  query.push('rchtype=' + (window.rch ? window.rch.type : ''));
+	  query.push('rchtype=web');
       query.push('clarification=' + (object.clarification ? 1 : 0));
       if (Lampa.Storage.get('account_email', '')) query.push('cub_id=' + Lampa.Utils.hash(Lampa.Storage.get('account_email', '')));
       return url + (url.indexOf('?') >= 0 ? '&' : '?') + query.join('&');
