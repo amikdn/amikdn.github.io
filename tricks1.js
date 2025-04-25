@@ -216,18 +216,55 @@ function account(url) {
       scroll.body().append(Lampa.Template.get('lampac_content_loading'));
       Lampa.Controller.enable('content');
       this.loading(false);
-      this.externalids().then(function() {
-        return _this.createSource();
-      }).then(function(json) {
-        if (!balansers_with_search.find(function(b) {
-            return balanser.slice(0, b.length) == b;
-          })) {
-          filter.render().find('.filter--search').addClass('hide');
-        }
-        _this.search();
-      })["catch"](function(e) {
-        _this.noConnectToServer(e);
-      });
+this.externalids().then(function() {
+  return _this.createSource();
+}).then(function(json) {
+  // 1) Существующие настройки
+  if (!balansers_with_search.find(function(b) {
+      return balanser.slice(0, b.length) == b;
+  })) {
+    filter.render().find('.filter--search').addClass('hide');
+  }
+
+  // 2) Собираем параметры для ручных URL
+  var params = {
+    id:           object.movie.id,
+    imdb_id:      object.movie.imdb_id || '',
+    kinopoisk_id: object.movie.kinopoisk_id || '',
+    title:        encodeURIComponent(object.clarification ? object.search : object.movie.title || ''),
+    original_title: encodeURIComponent(object.movie.original_title || object.movie.original_name || ''),
+    serial:       object.movie.name ? 1 : 0,
+    original_language: object.movie.original_language || '',
+    year:         ((object.movie.release_date || object.movie.first_air_date || '0000') + '').slice(0,4),
+    source:       object.movie.source || 'tmdb',
+    rchtype:      'web',        // жёстко «браузерный» режим
+    clarification: object.clarification ? 1 : 0
+  };
+  function buildUrl(name) {
+    var qs = Object.keys(params).map(function(k){
+      return k + '=' + params[k];
+    }).join('&');
+    return Defined.localhost + name + '?' + qs;
+  }
+
+  // 3) Принудительно добавляем filmix и kinopub, если их нет
+  ['filmix','kinopub'].forEach(function(key){
+    if (!sources[key]) {
+      sources[key] = {
+        url:  buildUrl(key),
+        name: Lampa.Utils.capitalizeFirstLetter(key),
+        show: true
+      };
+    }
+  });
+
+  // 4) Обновляем массив ключей и запускаем поиск
+  filter_sources = Lampa.Arrays.getKeys(sources);
+  _this.search();
+})["catch"](function(e) {
+  _this.noConnectToServer(e);
+});
+
     };
     this.rch = function(json, noreset) {
       var _this2 = this;
