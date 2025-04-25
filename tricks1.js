@@ -1,4 +1,24 @@
 (function() {
+  // ————————————————————————————————————————————————————————————————————
+  // Патч: заставляем Lampa думать, что это browser/noname, а не android
+  if (window.Lampa && Lampa.Platform) {
+    const _origIs = Lampa.Platform.is;
+    Lampa.Platform.is = function(name) {
+      if (name === 'android')             return false;
+      if (name === 'browser' || name === 'noname') return true;
+      return _origIs.call(this, name);
+    };
+    // иногда Lampa смотрит на поле os
+    Lampa.Platform.os = 'browser';
+  }
+  // Подменим ещё и userAgent — на всякий случай
+  if (window.navigator) {
+    Object.defineProperty(navigator, 'userAgent', {
+      get: () => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) noname'
+    });
+  } 
+
+ {
   'use strict';
 
   var Defined = {
@@ -1464,19 +1484,6 @@ function account(url) {
       }
     };
   }
-
-(function(){
-  // сохраняем оригинальный метод
-  const _origIs = Lampa.Platform.is;
-
-  // переопределяем
-  Lampa.Platform.is = function(name){
-    if (name === 'android') return false;     // Android — никогда
-    if (name === 'browser' || name === 'noname') return true; // браузер/noname — всегда
-    // для остальных платформ — отдадим оригинал, если нужно
-    return _origIs.call(this, name);
-  };
-})();
 
   function startPlugin() {
     window.lampac_plugin = true;
