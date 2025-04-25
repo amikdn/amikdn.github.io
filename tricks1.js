@@ -1465,6 +1465,19 @@ function account(url) {
     };
   }
 
+(function(){
+  // сохраняем оригинальный метод
+  const _origIs = Lampa.Platform.is;
+
+  // переопределяем
+  Lampa.Platform.is = function(name){
+    if (name === 'android') return false;     // Android — никогда
+    if (name === 'browser' || name === 'noname') return true; // браузер/noname — всегда
+    // для остальных платформ — отдадим оригинал, если нужно
+    return _origIs.call(this, name);
+  };
+})();
+
   function startPlugin() {
     window.lampac_plugin = true;
     var manifst = {
