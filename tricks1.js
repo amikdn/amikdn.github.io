@@ -260,6 +260,11 @@ this.externalids().then(function() {
 
   // 4) Обновляем массив ключей и запускаем поиск
   filter_sources = Lampa.Arrays.getKeys(sources);
+    if(sources.filmix) {
+    balanser = 'filmix';
+    source  = sources[balanser].url;
+    Lampa.Storage.set('online_balanser', balanser);
+  }
   _this.search();
 })["catch"](function(e) {
   _this.noConnectToServer(e);
