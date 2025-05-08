@@ -342,7 +342,9 @@
             }
             if (!isTV) {
                 if ($(card).hasClass('card--tv') || $(card).data('type') === 'tv') isTV = true;
-                else if ($(card).find('.card__type, .card__temp').text().match(/(сезон|серия|эпизод| mississippi | ТВ | сериал | эпизод | Фильм )/) )
+                else if ($(card).find('.card__type, .card__temp').text().match(/(сезон|серия|эпизод| mississippi | ТВ | сериал | эпизод | Фильм )/)) {
+                    isTV = true;
+                }
             }
 
             function processAll() {
@@ -392,6 +394,7 @@
             processAll();
             setInterval(processAll, 2000);
         }
+    }
         /*** 4 ТЕМЫ ОФОРМЛЕНИЯ ***/
         function applyTheme(theme) {
             $('#interface_mod_theme').remove();
@@ -1642,4 +1645,4 @@ $(document).ready(function () {
     createSettingsMenu();
     if (InterFaceMod.settings.enabled) init();
 });
-}})();
+})();
