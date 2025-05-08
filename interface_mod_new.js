@@ -3,8 +3,8 @@
 
     var InterFaceMod = {
         name: 'interface_mod',
-        version: '2.4.0', // Обновленная версия
-        debug: false,
+        version: '2.4.1', // Обновленная версия
+        debug: true, // Включено для диагностики
         settings: {
             enabled: true,
             show_movie_type: Lampa.Storage.get('interface_mod_new_show_movie_type', true),
@@ -312,36 +312,18 @@
             }]
         }];
 
-        Lampa.SettingsApi.addParam({
-            component: 'interface_mod_new',
-            name: 'theme_select',
-            type: 'select',
-            values: {
-                'default': Lampa.Lang.translate('interface_mod_new_theme_default'),
-                'minimalist': Lampa.Lang.translate('interface_mod_new_theme_minimalist'),
-                'glow_outline': Lampa.Lang.translate('interface_mod_new_theme_glow_outline'),
-                'menu_lines': Lampa.Lang.translate('interface_mod_new_theme_menu_lines'),
-                'dark_emerald': Lampa.Lang.translate('interface_mod_new_theme_dark_emerald'),
-                'neon_pulse': Lampa.Lang.translate('interface_mod_new_theme_neon_pulse'),
-                'cyber_green': Lampa.Lang.translate('interface_mod_new_theme_cyber_green'),
-                'electric_blue': Lampa.Lang.translate('interface_mod_new_theme_electric_blue'),
-                'crimson_glow': Lampa.Lang.translate('interface_mod_new_theme_crimson_glow'),
-                'wave_motion': Lampa.Lang.translate('interface_mod_new_theme_wave_motion'),
-                'pulse_beat': Lampa.Lang.translate('interface_mod_new_theme_pulse_beat'),
-                'rainbow_shift': Lampa.Lang.translate('interface_mod_new_theme_rainbow_shift'),
-                'clean_dark': Lampa.Lang.translate('interface_mod_new_theme_clean_dark'),
-                'slate_blue': Lampa.Lang.translate('interface_mod_new_theme_slate_blue'),
-                'light_minimal': Lampa.Lang.translate('interface_mod_new_theme_light_minimal')
-            },
-            default: InterFaceMod.settings.theme,
-            onChange: function (value) {
-                InterFaceMod.settings.theme = value;
-                Lampa.Storage.set('interface_mod_new_theme_select', value);
-                applyTheme(value);
-            }
-        });
+        // Логирование для диагностики
+        if (InterFaceMod.debug) {
+            console.log('InterfaceMod: Lampa.SettingsApi exists:', !!Lampa.SettingsApi);
+            console.log('InterfaceMod: Lampa.SettingsApi.addParam exists:', !!Lampa.SettingsApi?.addParam);
+        }
 
-        Lampa.Settings.main().menu.unshift(menu[0]);
+        // Добавляем меню настроек
+        try {
+            Lampa.Settings.main().menu.unshift(menu[0]);
+        } catch (e) {
+            console.error('InterfaceMod: Failed to add settings menu:', e);
+        }
     }
 
     // Функция для изменения лейблов типа контента
