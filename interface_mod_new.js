@@ -1551,14 +1551,14 @@ function createSettingsMenu() {
         ]
     };
 
-    Lampa.SettingsApi.addParam({
-        component: 'interface',
-        name: 'interface_mod',
-        type: 'menu',
-        place: 'after',
-        field: 'interface',
-        value: menu 
-});
+//    Lampa.SettingsApi.addParam({
+//        component: 'interface',
+//        name: 'interface_mod',
+//        type: 'menu',
+//        place: 'after',
+//        field: 'interface',
+//        value: menu 
+// });
 }
 
 /*** 11 ЛОКАЛИЗАЦИЯ ***/
