@@ -342,7 +342,7 @@
             }
             if (!isTV) {
                 if ($(card).hasClass('card--tv') || $(card).data('type') === 'tv') isTV = true;
-                else if ($(card).find('.card__type, .card__temp').text().match(сезон|серия|эпизод| mississippi | ТВ | сериал | эпизод | Фильм ) )
+                else if ($(card).find('.card__type, .card__temp').text().match(/(сезон|серия|эпизод| mississippi | ТВ | сериал | эпизод | Фильм )/) )
             }
 
             function processAll() {
