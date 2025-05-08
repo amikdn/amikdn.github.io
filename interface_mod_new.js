@@ -299,7 +299,7 @@
         }).observe(document.body, { childList: true, subtree: true });
     }
 
-    /*** 3) ТИП КОНТЕНТА ***/
+        /*** 3) ТИП КОНТЕНТА ***/
     function changeMovieTypeLabels() {
         var style = $(`<style id="movie_type_styles">
             .content-label { position: absolute!important; top: 1.4em!important; left: -0.8em!important; color: white!important; padding: 0.4em 0.4em!important; border-radius: 0.3em!important; font-size: 0.8em!important; z-index: 10!important; }
@@ -406,7 +406,6 @@
         processAll();
         setInterval(processAll, 2000);
     }
-
         /*** 4) ТЕМЫ ОФОРМЛЕНИЯ ***/
         function applyTheme(theme) {
             $('#interface_mod_theme').remove();
