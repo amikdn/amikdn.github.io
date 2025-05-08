@@ -1642,4 +1642,4 @@ $(document).ready(function () {
     createSettingsMenu();
     if (InterFaceMod.settings.enabled) init();
 });
-}}()
+}}();
