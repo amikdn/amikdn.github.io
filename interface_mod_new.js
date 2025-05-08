@@ -4,19 +4,19 @@
     var InterFaceMod = {
         name: 'interface_mod',
         version: '2.2.1',
-        debug: false,
+        debug: true, // Включён дебаг для логов
         settings: {
             enabled: true,
             buttons_mode: 'default',
-            show_movie_type: true,
+            show_movie_type: false,
             theme: 'default',
-            colored_ratings: true,
+            colored_ratings: false,
             seasons_info_mode: 'aired',
             show_episodes_on_main: false,
             label_position: 'top-right',
-            show_buttons: true,
-            colored_elements: true,
-            info_panel: true,
+            show_buttons: false,
+            colored_elements: false,
+            info_panel: false,
             stylize_titles: false,
             buttons_style_mode: 'default'
         }
@@ -24,9 +24,10 @@
 
     /*** 1) СЕЗОНЫ И ЭПИЗОДЫ ***/
     function addSeasonInfo() {
+        if (!InterFaceMod.settings.enabled || InterFaceMod.settings.seasons_info_mode === 'none') return;
+        
         Lampa.Listener.follow('full', function (data) {
             if (data.type !== 'complite' || !data.data || !data.data.movie || !data.data.movie.number_of_seasons) return;
-            if (InterFaceMod.settings.seasons_info_mode === 'none') return;
 
             var movie = data.data.movie;
             var status = movie.status;
@@ -167,6 +168,16 @@
 
     /*** 2) ВСЕ КНОПКИ ***/
     function showAllButtons() {
+        if (!InterFaceMod.settings.show_buttons) {
+            $('#interface_mod_buttons_style').remove();
+            $('.full-start-new__buttons, .full-start__buttons').css({
+                display: '',
+                flexWrap: '',
+                gap: ''
+            });
+            return;
+        }
+
         var style = document.createElement('style');
         style.id = 'interface_mod_buttons_style';
         style.innerHTML = `
@@ -300,6 +311,13 @@
 
     /*** 3) ТИП КОНТЕНТА ***/
     function changeMovieTypeLabels() {
+        if (!InterFaceMod.settings.show_movie_type) {
+            $('#movie_type_styles').remove();
+            $('.content-label').remove();
+            $('body').removeAttr('data-movie-labels');
+            return;
+        }
+
         var style = $(`<style id="movie_type_styles">
             .content-label { position: absolute!important; top: 1.4em!important; left: -0.8em!important; color: white!important; padding: 0.4em 0.4em!important; border-radius: 0.3em!important; font-size: 0.8em!important; z-index: 10!important; }
             .serial-label { background-color: #3498db!important; }
@@ -307,7 +325,7 @@
             body[data-movie-labels="on"] .card--tv .card__type { display: none!important; }
         </style>`);
         $('head').append(style);
-        $('body').attr('data-movie-labels', InterFaceMod.settings.show_movie_type ? 'on' : 'off');
+        $('body').attr('data-movie-labels', 'on');
 
         function addLabel(card) {
             if (!InterFaceMod.settings.show_movie_type) return;
@@ -358,25 +376,23 @@
         }
 
         Lampa.Listener.follow('full', function (e) {
-            if (e.type === 'complite' && e.data && e.data.movie) {
+            if (e.type === 'complite' && e.data && e.data.movie && InterFaceMod.settings.show_movie_type) {
                 var poster = $(e.object.activity.render()).find('.full-start__poster');
                 if (!poster.length) return;
                 var m = e.data.movie;
                 var isTV = m.number_of_seasons > 0 || m.seasons || m.type === 'tv';
-                if (InterFaceMod.settings.show_movie_type) {
-                    poster.find('.content-label').remove();
-                    var lbl = $('<div class="content-label"></div>').css({
-                        position: 'absolute', top: '1.4em', left: '-0.8em',
-                        color: 'white', padding: '0.4em', borderRadius: '0.3em',
-                        fontSize: '0.8em', zIndex: 10
-                    });
-                    if (isTV) {
-                        lbl.addClass('serial-label').text('Сериал').css('backgroundColor', '#3498db');
-                    } else {
-                        lbl.addClass('movie-label').text('Фильм').css('backgroundColor', '#2ecc71');
-                    }
-                    poster.css('position', 'relative').append(lbl);
+                poster.find('.content-label').remove();
+                var lbl = $('<div class="content-label"></div>').css({
+                    position: 'absolute', top: '1.4em', left: '-0.8em',
+                    color: 'white', padding: '0.4em', borderRadius: '0.3em',
+                    fontSize: '0.8em', zIndex: 10
+                });
+                if (isTV) {
+                    lbl.addClass('serial-label').text('Сериал').css('backgroundColor', '#3498db');
+                } else {
+                    lbl.addClass('movie-label').text('Фильм').css('backgroundColor', '#2ecc71');
                 }
+                poster.css('position', 'relative').append(lbl);
             }
         });
 
@@ -406,288 +422,303 @@
         if (theme === 'default') return;
         var style = $('<style id="interface_mod_theme"></style>');
         var themes = {
-            neon: `
-                body { background: linear-gradient(135deg, #0d0221 0%, #150734 50%, #1f0c47 100%); color: #ffffff; }
-                .menu__item.focus, .menu__item.traverse, .menu__item.hover,
-                .settings-folder.focus, .settings-param.focus,
-                .selectbox-item.focus, .full-start__button.focus,
-                .full-descr__tag.focus, .player-panel .button.focus {
+            neon_pulse: `
+                body { background: linear-gradient(135deg, #000428 0%, #004e92 100%); color: #ffffff; }
+                .menu__item.focus, .menu__item.traverse, .menu__item.hover, .settings-folder.focus, .settings-param.focus, .selectbox-item.focus, 
+                .full-start__button.focus, .full-descr__tag.focus, .player-panel .button.focus,
+                .custom-online-btn.focus, .custom-torrent-btn.focus, .main2-more-btn.focus, .simple-button.focus, .menu__version.focus {
                     background: linear-gradient(to right, #ff00ff, #00ffff);
                     color: #fff;
-                    box-shadow: 0 0 20px rgba(255,0,255,0.4);
-                    text-shadow: 0 0 10px rgba(255,255,255,0.5);
+                    box-shadow: 0 0 20px rgba(255, 0, 255, 0.4);
+                    text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
                     border: none;
+                    animation: neon-pulse 2s infinite;
+                }
+                @keyframes neon-pulse {
+                    0% { box-shadow: 0 0 10px rgba(255, 0, 255, 0.4); }
+                    50% { box-shadow: 0 0 25px rgba(255, 0, 255, 0.8); }
+                    100% { box-shadow: 0 0 10px rgba(255, 0, 255, 0.4); }
                 }
                 .card.focus .card__view::after, .card.hover .card__view::after {
                     border: 2px solid #ff00ff;
                     box-shadow: 0 0 20px #00ffff;
+                    animation: card-pulse 2s infinite;
+                }
+                @keyframes card-pulse {
+                    0% { box-shadow: 0 0 10px #00ffff; }
+                    50% { box-shadow: 0 0 25px #00ffff; }
+                    100% { box-shadow: 0 0 10px #00ffff; }
+                }
+                .settings__content, .settings-input__content, .selectbox__content, .modal__content {
+                    background: rgba(0, 4, 40, 0.95);
+                    border: 1px solid rgba(0, 78, 146, 0.2);
+                }
+            `,
+            cyber_green: `
+                body { background: #0a0f0d; color: #7adb92; }
+                .menu__item.focus, .menu__item.traverse, .menu__item.hover, .settings-folder.focus, .settings-param.focus, .selectbox-item.focus, 
+                .full-start__button.focus, .full-descr__tag.focus, .player-panel .button.focus,
+                .custom-online-btn.focus, .custom-torrent-btn.focus, .main2-more-btn.focus, .simple-button.focus, .menu__version.focus {
+                    background: #0a3622;
+                    color: #7adb92;
+                    border: 1px solid #7adb92;
+                    box-shadow: 0 0 10px rgba(122, 219, 146, 0.5);
+                    text-shadow: 0 0 5px rgba(122, 219, 146, 0.7);
+                }
+                .card.focus .card__view::after, .card.hover .card__view::after {
+                    border: 1px solid #7adb92;
+                    box-shadow: 0 0 15px rgba(122, 219, 146, 0.5);
+                }
+                .card__title, .card__vote, .card__title-original {
+                    color: #7adb92;
+                    text-shadow: 0 0 5px rgba(122, 219, 146, 0.3);
+                }
+                .settings__content, .settings-input__content, .selectbox__content, .modal__content {
+                    background: rgba(10, 15, 13, 0.95);
+                    border: 1px solid rgba(122, 219, 146, 0.2);
+                }
+            `,
+            electric_blue: `
+                body { background: linear-gradient(135deg, #000000 0%, #0c0c2b 100%); color: #00e1ff; }
+                .menu__item.focus, .menu__item.traverse, .menu__item.hover, .settings-folder.focus, .settings-param.focus, .selectbox-item.focus, 
+                .full-start__button.focus, .full-descr__tag.focus, .player-panel .button.focus,
+                .custom-online-btn.focus, .custom-torrent-btn.focus, .main2-more-btn.focus, .simple-button.focus, .menu__version.focus {
+                    background: rgba(0, 45, 100, 0.7);
+                    color: #00e1ff;
+                    box-shadow: 0 0 15px rgba(0, 225, 255, 0.6);
+                    border: 1px solid #00e1ff;
+                    text-shadow: 0 0 10px rgba(0, 225, 255, 0.8);
+                }
+                .card.focus .card__view::after, .card.hover .card__view::after {
+                    border: 2px solid #00e1ff;
+                    box-shadow: 0 0 20px rgba(0, 225, 255, 0.7);
                 }
                 .head__action.focus, .head__action.hover {
-                    background: linear-gradient(45deg, #ff00ff, #00ffff);
-                    box-shadow: 0 0 15px rgba(255,0,255,0.3);
+                    background: rgba(0, 45, 100, 0.7);
+                    box-shadow: 0 0 15px rgba(0, 225, 255, 0.6);
+                    border: 1px solid #00e1ff;
                 }
                 .full-start__background {
                     opacity: 0.7;
-                    filter: brightness(1.2) saturate(1.3);
+                    filter: brightness(0.8) contrast(1.2) saturate(1.2);
                 }
-                .settings__content, .settings-input__content,
-                .selectbox__content, .modal__content {
-                    background: rgba(15,2,33,0.95);
-                    border: 1px solid rgba(255,0,255,0.1);
-                }
-            `,
-            dark_night: `
-                body { background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0f0f0f 100%); color: #ffffff; }
-                .menu__item.focus, .menu__item.traverse, .menu__item.hover,
-                .settings-folder.focus, .settings-param.focus,
-                .selectbox-item.focus, .full-start__button.focus,
-                .full-descr__tag.focus, .player-panel .button.focus {
-                    background: linear-gradient(to right, #8a2387, #e94057, #f27121);
-                    color: #fff;
-                    box-shadow: 0 0 30px rgba(233,64,87,0.3);
-                    animation: night-pulse 2s infinite;
-                }
-                @keyframes night-pulse {
-                    0%   { box-shadow: 0 0 20px rgba(233,64,87,0.3); }
-                    50%  { box-shadow: 0 0 30px rgba(242,113,33,0.3); }
-                    100% { box-shadow: 0 0 20px rgba(138,35,135,0.3); }
-                }
-                .card.focus .card__view::after, .card.hover .card__view::after {
-                    border: 2px solid #e94057;
-                    box-shadow: 0 0 30px rgba(242,113,33,0.5);
-                }
-                .head__action.focus, .head__action.hover {
-                    background: linear-gradient(45deg, #8a2387, #f27121);
-                    animation: night-pulse 2s infinite;
-                }
-                .full-start__background {
-                    opacity: 0.8;
-                    filter: saturate(1.3) contrast(1.1);
-                }
-                .settings__content, .settings-input__content,
-                .selectbox__content, .modal__content {
-                    background: rgba(10,10,10,0.95);
-                    border: 1px solid rgba(233,64,87,0.1);
-                    box-shadow: 0 0 30px rgba(242,113,33,0.1);
+                .settings__content, .settings-input__content, .selectbox__content, .modal__content {
+                    background: rgba(0, 12, 43, 0.93);
+                    border: 1px solid rgba(0, 225, 255, 0.2);
                 }
             `,
-            blue_cosmos: `
-                body { background: linear-gradient(135deg, #0b365c 0%, #144d80 50%, #0c2a4d 100%); color: #ffffff; }
-                .menu__item.focus, .menu__item.traverse, .menu__item.hover,
-                .settings-folder.focus, .settings-param.focus,
-                .selectbox-item.focus, .full-start__button.focus,
-                .full-descr__tag.focus, .player-panel .button.focus {
-                    background: linear-gradient(to right, #12c2e9, #c471ed, #f64f59);
-                    color: #fff;
-                    box-shadow: 0 0 30px rgba(18,194,233,0.3);
-                    animation: cosmos-pulse 2s infinite;
-                }
-                @keyframes cosmos-pulse {
-                    0%   { box-shadow: 0 0 20px rgba(18,194,233,0.3); }
-                    50%  { box-shadow: 0 0 30px rgba(196,113,237,0.3); }
-                    100% { box-shadow: 0 0 20px rgba(246,79,89,0.3); }
+            crimson_glow: `
+                body { background: linear-gradient(135deg, #190000 0%, #360000 100%); color: #ff5a5a; }
+                .menu__item.focus, .menu__item.traverse, .menu__item.hover, .settings-folder.focus, .settings-param.focus, .selectbox-item.focus, 
+                .full-start__button.focus, .full-descr__tag.focus, .player-panel .button.focus,
+                .custom-online-btn.focus, .custom-torrent-btn.focus, .main2-more-btn.focus, .simple-button.focus, .menu__version.focus {
+                    background: linear-gradient(to right, #8e0000, #ff0000);
+                    color: #ffffff;
+                    box-shadow: 0 0 15px rgba(255, 0, 0, 0.5);
+                    text-shadow: 0 0 5px rgba(255, 255, 255, 0.7);
+                    border: none;
                 }
                 .card.focus .card__view::after, .card.hover .card__view::after {
-                    border: 2px solid #12c2e9;
-                    box-shadow: 0 0 30px rgba(196,113,237,0.5);
+                    border: 2px solid #ff0000;
+                    box-shadow: 0 0 15px rgba(255, 0, 0, 0.7);
                 }
                 .head__action.focus, .head__action.hover {
-                    background: linear-gradient(45deg, #12c2e9, #f64f59);
-                    animation: cosmos-pulse 2s infinite;
-                }
-                .full-start__background {
-                    opacity: 0.8;
-                    filter: saturate(1.3) contrast(1.1);
-                }
-                .settings__content, .settings-input__content,
-                .selectbox__content, .modal__content {
-                    background: rgba(11,54,92,0.95);
-                    border: 1px solid rgba(18,194,233,0.1);
-                    box-shadow: 0 0 30px rgba(196,113,237,0.1);
-                }
-            `,
-            sunset: `
-                body { background: linear-gradient(135deg, #2d1f3d 0%, #614385 50%, #516395 100%); color: #ffffff; }
-                .menu__item.focus, .menu__item.traverse, .menu__item.hover,
-                .settings-folder.focus, .settings-param.focus,
-                .selectbox-item.focus, .full-start__button.focus,
-                .full-descr__tag.focus, .player-panel .button.focus {
-                    background: linear-gradient(to right, #ff6e7f, #bfe9ff);
-                    color: #2d1f3d;
-                    box-shadow: 0 0 15px rgba(255,110,127,0.3);
-                    font-weight: bold;
-                }
-                .card.focus .card__view::after, .card.hover .card__view::after {
-                    border: 2px solid #ff6e7f;
-                    box-shadow: 0 0 15px rgba(255,110,127,0.5);
-                }
-                .head__action.focus, .head__action.hover {
-                    background: linear-gradient(45deg, #ff6e7f, #bfe9ff);
-                    color: #2d1f3d;
-                }
-                .full-start__background {
-                    opacity: 0.8;
-                    filter: saturate(1.2) contrast(1.1);
-                }
-            `,
-            emerald: `
-                body { background: linear-gradient(135deg, #1a2a3a 0%, #2C5364 50%, #203A43 100%); color: #ffffff; }
-                .menu__item.focus, .menu__item.traverse, .menu__item.hover,
-                .settings-folder.focus, .settings-param.focus,
-                .selectbox-item.focus, .full-start__button.focus,
-                .full-descr__tag.focus, .player-panel .button.focus {
-                    background: linear-gradient(to right, #43cea2, #185a9d);
-                    color: #fff;
-                    box-shadow: 0 4px 15px rgba(67,206,162,0.3);
-                    border-radius: 5px;
-                }
-                .card.focus .card__view::after, .card.hover .card__view::after {
-                    border: 3px solid #43cea2;
-                    box-shadow: 0 0 20px rgba(67,206,162,0.4);
-                }
-                .head__action.focus, .head__action.hover {
-                    background: linear-gradient(45deg, #43cea2, #185a9d);
-                }
-                .full-start__background {
-                    opacity: 0.85;
-                    filter: brightness(1.1) saturate(1.2);
-                }
-                .settings__content, .settings-input__content,
-                .selectbox__content, .modal__content {
-                    background: rgba(26,42,58,0.98);
-                    border: 1px solid rgba(67,206,162,0.1);
-                }
-            `,
-            aurora: `
-                body { background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%); color: #ffffff; }
-                .menu__item.focus, .menu__item.traverse, .menu__item.hover,
-                .settings-folder.focus, .settings-param.focus,
-                .selectbox-item.focus, .full-start__button.focus,
-                .full-descr__tag.focus, .player-panel .button.focus {
-                    background: linear-gradient(to right, #aa4b6b, #6b6b83, #3b8d99);
-                    color: #fff;
-                    box-shadow: 0 0 20px rgba(170,75,107,0.3);
-                    transform: scale(1.02);
-                    transition: all 0.3s ease;
-                }
-                .card.focus .card__view::after, .card.hover .card__view::after {
-                    border: 2px solid #aa4b6b;
-                    box-shadow: 0 0 25px rgba(170,75,107,0.5);
-                }
-                .head__action.focus, .head__action.hover {
-                    background: linear-gradient(45deg, #aa4b6b, #3b8d99);
-                    transform: scale(1.05);
+                    background: linear-gradient(to right, #8e0000, #ff0000);
+                    box-shadow: 0 0 15px rgba(255, 0, 0, 0.5);
                 }
                 .full-start__background {
                     opacity: 0.75;
-                    filter: contrast(1.1) brightness(1.1);
+                    filter: brightness(0.8) contrast(1.2) saturate(1.3);
                 }
-                .settings__content, .settings-input__content,
-                .selectbox__content, .modal__content {
-                    background: rgba(15,2,33,0.95);
-                }
-            `,
-            bywolf_mod: `
-                body { background: linear-gradient(135deg, #090227 0%, #170b34 50%, #261447 100%); color: #ffffff; }
-                .menu__item.focus, .menu__item.traverse, .menu__item.hover,
-                .settings-folder.focus, .settings-param.focus,
-                .selectbox-item.focus, .full-start__button.focus,
-                .full-descr__tag.focus, .player-panel .button.focus {
-                    background: linear-gradient(to right, #fc00ff, #00dbde);
-                    color: #fff;
-                    box-shadow: 0 0 30px rgba(252,0,255,0.3);
-                    animation: cosmic-pulse 2s infinite;
-                }
-                @keyframes cosmic-pulse {
-                    0%   { box-shadow: 0 0 20px rgba(252,0,255,0.3); }
-                    50%  { box-shadow: 0 0 30px rgba(0,219,222,0.3); }
-                    100% { box-shadow: 0 0 20px rgba(252,0,255,0.3); }
-                }
-                .card.focus .card__view::after, .card.hover .card__view::after {
-                    border: 2px solid #fc00ff;
-                    box-shadow: 0 0 30px rgba(0,219,222,0.5);
-                }
-                .head__action.focus, .head__action.hover {
-                    background: linear-gradient(to right, #fc00ff, #00dbde);
-                    animation: cosmic-pulse 2s infinite;
-                }
-                .full-start__background {
-                    opacity: 0.8;
-                    filter: saturate(1.3) contrast(1.1);
-                }
-                .settings__content, .settings-input__content,
-                .selectbox__content, .modal__content {
-                    background: rgba(9,2,39,0.95);
-                    border: 1px solid rgba(252,0,255,0.1);
-                    box-shadow: 0 0 30px rgba(0,219,222,0.1);
+                .settings__content, .settings-input__content, .selectbox__content, .modal__content {
+                    background: rgba(20, 0, 0, 0.95);
+                    border: 1px solid rgba(255, 0, 0, 0.2);
                 }
             `,
-            neon_pulse: `
-                body { background: linear-gradient(135deg, #1c2526 0%, #2f4858 50%, #355c7d 100%); color: #ffffff; }
-                .menu__item.focus, .menu__item.traverse, .menu__item.hover,
-                .settings-folder.focus, .settings-param.focus,
-                .selectbox-item.focus, .full-start__button.focus,
-                .full-descr__tag.focus, .player-panel .button.focus {
-                    background: linear-gradient(to right, #ff758c, #ff7eb3);
+            wave_motion: `
+                body { background: linear-gradient(135deg, #000, #1e2d61); color: #7dc7ff; }
+                .menu__item.focus, .menu__item.traverse, .menu__item.hover, .settings-folder.focus, .settings-param.focus, .selectbox-item.focus, 
+                .full-start__button.focus, .full-descr__tag.focus, .player-panel .button.focus,
+                .custom-online-btn.focus, .custom-torrent-btn.focus, .main2-more-btn.focus, .simple-button.focus, .menu__version.focus {
+                    background: linear-gradient(90deg, #003973, #1e5799, #007cb9, #003973);
+                    background-size: 300% 100%;
                     color: #fff;
-                    box-shadow: 0 0 25px rgba(255,117,140,0.4);
-                    animation: neon-pulse 1.5s infinite;
+                    box-shadow: 0 0 10px rgba(0, 57, 115, 0.5);
+                    animation: wave-bg 3s ease infinite;
                 }
-                @keyframes neon-pulse {
-                    0%   { box-shadow: 0 0 15px rgba(255,117,140,0.4); }
-                    50%  { box-shadow: 0 0 25px rgba(255,126,179,0.6); }
-                    100% { box-shadow: 0 0 15px rgba(255,117,140,0.4); }
+                @keyframes wave-bg {
+                    0% { background-position: 0% 50%; }
+                    50% { background-position: 100% 50%; }
+                    100% { background-position: 0% 50%; }
                 }
                 .card.focus .card__view::after, .card.hover .card__view::after {
-                    border: 2px solid #ff758c;
-                    box-shadow: 0 0 20px rgba(255,126,179,0.5);
+                    border: 2px solid transparent;
+                    background: linear-gradient(90deg, #003973, #1e5799, #007cb9, #003973);
+                    background-size: 300% 100%;
+                    animation: wave-border 3s ease infinite;
+                    box-shadow: 0 0 15px rgba(0, 57, 115, 0.5);
                 }
-                .head__action.focus, .head__action.hover {
-                    background: linear-gradient(45deg, #ff758c, #ff7eb3);
-                    animation: neon-pulse 1.5s infinite;
+                @keyframes wave-border {
+                    0% { background-position: 0% 50%; }
+                    50% { background-position: 100% 50%; }
+                    100% { background-position: 0% 50%; }
                 }
-                .full-start__background {
-                    opacity: 0.8;
-                    filter: brightness(1.1) saturate(1.2);
-                }
-                .settings__content, .settings-input__content,
-                .selectbox__content, .modal__content {
-                    background: rgba(28,37,38,0.95);
-                    border: 1px solid rgba(255,117,140,0.1);
+                .settings__content, .settings-input__content, .selectbox__content, .modal__content {
+                    background: rgba(0, 13, 30, 0.93);
+                    border: 1px solid rgba(0, 149, 255, 0.2);
                 }
             `,
-            cosmic_glow: `
-                body { background: linear-gradient(135deg, #1b0033 0%, #330066 50%, #4d0099 100%); color: #ffffff; }
-                .menu__item.focus, .menu__item.traverse, .menu__item.hover,
-                .settings-folder.focus, .settings-param.focus,
-                .selectbox-item.focus, .full-start__button.focus,
-                .full-descr__tag.focus, .player-panel .button.focus {
-                    background: linear-gradient(to right, #ff33cc, #33ccff);
-                    color: #fff;
-                    box-shadow: 0 0 25px rgba(255,51,204,0.4);
-                    animation: cosmic-glow 2s infinite;
+            pulse_beat: `
+                body { background: #111111; color: #e0e0e0; }
+                .menu__item.focus, .menu__item.traverse, .menu__item.hover, .settings-folder.focus, .settings-param.focus, .selectbox-item.focus, 
+                .full-start__button.focus, .full-descr__tag.focus, .player-panel .button.focus,
+                .custom-online-btn.focus, .custom-torrent-btn.focus, .main2-more-btn.focus, .simple-button.focus, .menu__version.focus {
+                    background: #333333;
+                    color: #ffffff;
+                    animation: pulse 1.5s ease-in-out infinite;
                 }
-                @keyframes cosmic-glow {
-                    0%   { box-shadow: 0 0 15px rgba(255,51,204,0.4); }
-                    50%  { box-shadow: 0 0 25px rgba(51,204,255,0.6); }
-                    100% { box-shadow: 0 0 15px rgba(255,51,204,0.4); }
+                @keyframes pulse {
+                    0% { transform: scale(1); }
+                    50% { transform: scale(1.03); }
+                    100% { transform: scale(1); }
                 }
                 .card.focus .card__view::after, .card.hover .card__view::after {
-                    border: 2px solid #ff33cc;
-                    box-shadow: 0 0 20px rgba(51,204,255,0.5);
+                    border: 2px solid #555555;
+                    box-shadow: 0 0 10px rgba(85, 85, 85, 0.7);
+                    animation: card-pulse 1.5s ease-in-out infinite;
+                }
+                @keyframes card-pulse {
+                    0% { box-shadow: 0 0 5px rgba(85, 85, 85, 0.5); }
+                    50% { box-shadow: 0 0 15px rgba(85, 85, 85, 0.8); }
+                    100% { box-shadow: 0 0 5px rgba(85, 85, 85, 0.5); }
+                }
+                .settings__content, .settings-input__content, .selectbox__content, .modal__content {
+                    background: rgba(17, 17, 17, 0.95);
+                    border: 1px solid rgba(85, 85, 85, 0.2);
+                }
+            `,
+            rainbow_shift: `
+                body { background: #0a0a0a; color: #ffffff; }
+                .menu__item.focus, .menu__item.traverse, .menu__item.hover, .settings-folder.focus, .settings-param.focus, .selectbox-item.focus, 
+                .full-start__button.focus, .full-descr__tag.focus, .player-panel .button.focus,
+                .custom-online-btn.focus, .custom-torrent-btn.focus, .main2-more-btn.focus, .simple-button.focus, .menu__version.focus {
+                    background: linear-gradient(90deg, #ff0000, #ffa500, #ffff00, #008000, #0000ff, #4b0082, #ee82ee);
+                    background-size: 700% 100%;
+                    color: #ffffff;
+                    text-shadow: 0 0 5px rgba(0, 0, 0, 0.7);
+                    animation: rainbow 8s linear infinite;
+                    border: none;
+                }
+                @keyframes rainbow {
+                    0% { background-position: 0% 50%; }
+                    100% { background-position: 100% 50%; }
+                }
+                .card.focus .card__view::after, .card.hover .card__view::after {
+                    border: none;
+                    background: linear-gradient(90deg, #ff0000, #ffa500, #ffff00, #008000, #0000ff, #4b0082, #ee82ee);
+                    background-size: 700% 100%;
+                    animation: rainbow 8s linear infinite;
+                    box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+                }
+                .settings__content, .settings-input__content, .selectbox__content, .modal__content {
+                    background: rgba(10, 10, 10, 0.95);
+                    border: 1px solid rgba(128, 128, 128, 0.2);
+                }
+            `,
+            clean_dark: `
+                body { background: #121212; color: #e0e0e0; }
+                .menu__item.focus, .menu__item.traverse, .menu__item.hover, .settings-folder.focus, .settings-param.focus, .selectbox-item.focus, 
+                .full-start__button.focus, .full-descr__tag.focus, .player-panel .button.focus,
+                .custom-online-btn.focus, .custom-torrent-btn.focus, .main2-more-btn.focus, .simple-button.focus, .menu__version.focus {
+                    background: #2c2c2c;
+                    color: #ffffff;
+                    box-shadow: none;
+                    border-radius: 3px;
+                    border-left: 3px solid #3d3d3d;
+                }
+                .card.focus .card__view::after, .card.hover .card__view::after {
+                    border: 1px solid #3d3d3d;
+                    box-shadow: none;
                 }
                 .head__action.focus, .head__action.hover {
-                    background: linear-gradient(45deg, #ff33cc, #33ccff);
-                    animation: cosmic-glow 2s infinite;
+                    background: #2c2c2c;
                 }
                 .full-start__background {
-                    opacity: 0.8;
-                    filter: brightness(1.2) saturate(1.3);
+                    opacity: 0.6;
+                    filter: grayscale(0.5) brightness(0.7);
                 }
-                .settings__content, .settings-input__content,
-                .selectbox__content, .modal__content {
-                    background: rgba(27,0,51,0.95);
-                    border: 1px solid rgba(255,51,204,0.1);
+                .settings__content, .settings-input__content, .selectbox__content, .modal__content {
+                    background: rgba(18, 18, 18, 0.95);
+                    border: 1px solid #2c2c2c;
+                }
+                .selectbox-item + .selectbox-item {
+                    border-top: 1px solid #2c2c2c;
+                }
+                .card__title, .card__vote, .full-start__title, .full-start__rate, .full-start-new__title, .full-start-new__rate {
+                    color: #e0e0e0;
+                }
+            `,
+            slate_blue: `
+                body { background: #1a202c; color: #e2e8f0; }
+                .menu__item.focus, .menu__item.traverse, .menu__item.hover, .settings-folder.focus, .settings-param.focus, .selectbox-item.focus, 
+                .full-start__button.focus, .full-descr__tag.focus, .player-panel .button.focus,
+                .custom-online-btn.focus, .custom-torrent-btn.focus, .main2-more-btn.focus, .simple-button.focus, .menu__version.focus {
+                    background: #2d3748;
+                    color: #ffffff;
+                    box-shadow: none;
+                    border-radius: 2px;
+                    border-bottom: 2px solid #4a5568;
+                }
+                .card.focus .card__view::after, .card.hover .card__view::after {
+                    border: 1px solid #4a5568;
+                    box-shadow: none;
+                }
+                .head__action.focus, .head__action.hover {
+                    background: #2d3748;
+                    border-bottom: 2px solid #4a5568;
+                }
+                .full-start__background {
+                    opacity: 0.7;
+                    filter: brightness(0.8);
+                }
+                .settings__content, .settings-input__content, .selectbox__content, .modal__content {
+                    background: rgba(26, 32, 44, 0.97);
+                    border: 1px solid #4a5568;
+                }
+                .card__title, .full-start__title, .full-start-new__title {
+                    color: #e2e8f0;
+                }
+            `,
+            light_minimal: `
+                body { background: #f5f5f5; color: #333333; }
+                .menu__item.focus, .menu__item.traverse, .menu__item.hover, .settings-folder.focus, .settings-param.focus, .selectbox-item.focus, 
+                .full-start__button.focus, .full-descr__tag.focus, .player-panel .button.focus,
+                .custom-online-btn.focus, .custom-torrent-btn.focus, .main2-more-btn.focus, .simple-button.focus, .menu__version.focus {
+                    background: #e0e0e0;
+                    color: #333333;
+                    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+                    border-radius: 3px;
+                    border: none;
+                }
+                .card.focus .card__view::after, .card.hover .card__view::after {
+                    border: 1px solid #cccccc;
+                    box-shadow: 0 1px 5px rgba(0, 0, 0, 0.1);
+                }
+                .head__action.focus, .head__action.hover {
+                    background: #e0e0e0;
+                    color: #333333;
+                }
+                .full-start__background {
+                    opacity: 0.9;
+                    filter: brightness(1.1);
+                }
+                .settings__content, .settings-input__content, .selectbox__content, .modal__content {
+                    background: rgba(255, 255, 255, 0.98);
+                    border: 1px solid #e0e0e0;
+                    box-shadow: 0 1px 5px rgba(0, 0, 0, 0.1);
+                }
+                .card__title, .card__vote, .full-start__title, .full-start__rate, .full-start-new__title, .full-start-new__rate {
+                    color: #333333;
                 }
             `
         };
@@ -698,7 +729,12 @@
 
     /*** 5) ЦВЕТНЫЕ РЕЙТИНГИ ***/
     function updateVoteColors() {
-        if (!InterFaceMod.settings.colored_ratings) return;
+        if (!InterFaceMod.settings.colored_ratings) {
+            $('.card__vote, .full-start__rate, .full-start-new__rate, .info__rate, .card__imdb-rate, .card__kinopoisk-rate')
+                .css('color', '');
+            return;
+        }
+
         function apply(el) {
             var m = $(el).text().match(/(\d+(\.\d+)?)/);
             if (!m) return;
@@ -713,12 +749,14 @@
         $('.full-start__rate, .full-start-new__rate').each(function(){ apply(this); });
         $('.info__rate, .card__imdb-rate, .card__kinopoisk-rate').each(function(){ apply(this); });
     }
+
     function setupVoteColorsObserver() {
         if (!InterFaceMod.settings.colored_ratings) return;
         setTimeout(updateVoteColors, 500);
         new MutationObserver(function(){ setTimeout(updateVoteColors, 100); })
             .observe(document.body, { childList: true, subtree: true });
     }
+
     function setupVoteColorsForDetailPage() {
         if (!InterFaceMod.settings.colored_ratings) return;
         Lampa.Listener.follow('full', function (d) {
@@ -728,7 +766,16 @@
 
     /*** 6) ЦВЕТНЫЕ ЭЛЕМЕНТЫ (СТАТУС, AGE) ***/
     function colorizeSeriesStatus() {
-        if (!InterFaceMod.settings.colored_elements) return;
+        if (!InterFaceMod.settings.colored_elements) {
+            $('.full-start__status').css({
+                backgroundColor: '',
+                color: '',
+                borderRadius: '',
+                display: ''
+            });
+            return;
+        }
+
         var map = {
             completed: { bg: 'rgba(46,204,113,0.8)', text: 'white' },
             canceled:  { bg: 'rgba(231,76,60,0.8)',  text: 'white' },
@@ -740,6 +787,7 @@
             rumored:   { bg: 'rgba(149,165,166,0.8)', text: 'white' },
             post:      { bg: 'rgba(0,188,212,0.8)',  text: 'white' }
         };
+
         function apply(el) {
             var t = $(el).text().trim().toLowerCase();
             var cfg = null;
@@ -761,6 +809,7 @@
                 });
             }
         }
+
         $('.full-start__status').each(function(){ apply(this); });
         new MutationObserver(function (muts) {
             muts.forEach(function (m) {
@@ -779,7 +828,14 @@
     }
 
     function colorizeAgeRating() {
-        if (!InterFaceMod.settings.colored_elements) return;
+        if (!InterFaceMod.settings.colored_elements) {
+            $('.full-start__pg').css({
+                backgroundColor: '',
+                color: ''
+            });
+            return;
+        }
+
         var groups = {
             kids:        ['G','TV-Y','0+','3+'],
             children:    ['PG','TV-PG','6+','7+'],
@@ -794,6 +850,7 @@
             almostAdult: { bg: '#e67e22', text: 'white' },
             adult:       { bg: '#e74c3c', text: 'white' }
         };
+
         function apply(el) {
             var t = $(el).text().trim();
             var grp = null;
@@ -811,6 +868,7 @@
                 });
             }
         }
+
         $('.full-start__pg').each(function(){ apply(this); });
         new MutationObserver(function (muts) {
             muts.forEach(function (m) {
@@ -836,11 +894,17 @@
         }
 
         Lampa.Listener.follow('full', function(data) {
-            if (data.type !== 'complite' || !data.data || !data.data.movie || !data.object || !data.object.activity) return;
+            if (data.type !== 'complite' || !data.data || !data.data.movie || !data.object || !data.object.activity) {
+                if (InterFaceMod.debug) console.log('[InterfaceMod] newInfoPanel: Недостаточно данных', data);
+                return;
+            }
 
             setTimeout(function() {
-                var details = $('.full-start-new__details');
-                if (!details.length) return;
+                var details = $('.full-start-new__details, .full-start__details');
+                if (!details.length) {
+                    if (InterFaceMod.debug) console.log('[InterfaceMod] newInfoPanel: Не найдены .full-start-new__details или .full-start__details');
+                    return;
+                }
 
                 var unifiedLine = $('<div class="info-unified-line"></div>').css({
                     'display': 'flex',
@@ -904,7 +968,10 @@
                     });
                 }
 
-                if (infoItems.length === 0) return;
+                if (infoItems.length === 0) {
+                    if (InterFaceMod.debug) console.log('[InterfaceMod] newInfoPanel: Нет данных для отображения');
+                    return;
+                }
 
                 infoItems.forEach(function(item) {
                     var el = $('<span></span>').text(item.text).css({
@@ -921,7 +988,7 @@
                 new MutationObserver(function(muts) {
                     muts.forEach(function(m) {
                         if (m.addedNodes) {
-                            $(m.addedNodes).find('.full-start-new__details').each(function() {
+                            $(m.addedNodes).find('.full-start-new__details, .full-start__details').each(function() {
                                 if (!$(this).find('.info-unified-line').length) {
                                     $(this).prepend(unifiedLine.clone());
                                 }
@@ -929,6 +996,8 @@
                         }
                     });
                 }).observe(document.body, { childList: true, subtree: true });
+
+                if (InterFaceMod.debug) console.log('[InterfaceMod] newInfoPanel: Панель добавлена', infoItems);
             }, 100);
         });
     }
@@ -937,6 +1006,13 @@
     function stylizeTitles() {
         if (!InterFaceMod.settings.stylize_titles) {
             $('#stylize_titles').remove();
+            $('.card__title, .full-start__title, .full-start-new__title').css({
+                fontWeight: '',
+                textShadow: '',
+                background: '',
+                '-webkit-background-clip': '',
+                '-webkit-text-fill-color': ''
+            });
             return;
         }
 
@@ -1059,7 +1135,7 @@
                 InterFaceMod.settings.seasons_info_mode = v;
                 InterFaceMod.settings.enabled = (v !== 'none');
                 Lampa.Storage.set('interface_mod_settings', InterFaceMod.settings);
-                if (v !== 'none') addSeasonInfo();
+                addSeasonInfo();
             }
         });
 
@@ -1134,15 +1210,16 @@
                 type: 'select',
                 values: {
                     default: 'Нет',
-                    neon: 'Neon',
-                    dark_night: 'Dark Night',
-                    blue_cosmos: 'Blue Cosmos',
-                    sunset: 'Sunset',
-                    emerald: 'Emerald',
-                    aurora: 'Aurora',
-                    bywolf_mod: 'Bywolf Mod',
                     neon_pulse: 'Neon Pulse',
-                    cosmic_glow: 'Cosmic Glow'
+                    cyber_green: 'Cyber Green',
+                    electric_blue: 'Electric Blue',
+                    crimson_glow: 'Crimson Glow',
+                    wave_motion: 'Wave Motion',
+                    pulse_beat: 'Pulse Beat',
+                    rainbow_shift: 'Rainbow Shift',
+                    clean_dark: 'Clean Dark',
+                    slate_blue: 'Slate Blue',
+                    light_minimal: 'Light Minimal'
                 },
                 default: InterFaceMod.settings.theme
             },
@@ -1172,12 +1249,10 @@
             onChange: function (v) {
                 InterFaceMod.settings.colored_ratings = v;
                 Lampa.Storage.set('interface_mod_settings', InterFaceMod.settings);
+                updateVoteColors();
                 if (v) {
                     setupVoteColorsObserver();
                     setupVoteColorsForDetailPage();
-                } else {
-                    $('.card__vote, .full-start__rate, .full-start-new__rate, .info__rate, .card__imdb-rate, .card__kinopoisk-rate')
-                        .css('color', '');
                 }
             }
         });
@@ -1197,13 +1272,8 @@
             onChange: function (v) {
                 InterFaceMod.settings.colored_elements = v;
                 Lampa.Storage.set('interface_mod_settings', InterFaceMod.settings);
-                if (v) {
-                    colorizeSeriesStatus();
-                    colorizeAgeRating();
-                } else {
-                    $('.full-start__status').css({ backgroundColor: '', color: '', borderRadius: '', display: '' });
-                    $('.full-start__pg').css({ backgroundColor: '', color: '' });
-                }
+                colorizeSeriesStatus();
+                colorizeAgeRating();
             }
         });
 
@@ -1278,21 +1348,20 @@
             }
         }
 
-        // Применить тему сразу
+        // Применить тему
         applyTheme(InterFaceMod.settings.theme);
 
         // Запустить функции
         if (InterFaceMod.settings.enabled && InterFaceMod.settings.seasons_info_mode !== 'none') addSeasonInfo();
         showAllButtons();
         changeMovieTypeLabels();
+        updateVoteColors();
         if (InterFaceMod.settings.colored_ratings) {
             setupVoteColorsObserver();
             setupVoteColorsForDetailPage();
         }
-        if (InterFaceMod.settings.colored_elements) {
-            colorizeSeriesStatus();
-            colorizeAgeRating();
-        }
+        colorizeSeriesStatus();
+        colorizeAgeRating();
         newInfoPanel();
         stylizeTitles();
         applyButtonStyles();
