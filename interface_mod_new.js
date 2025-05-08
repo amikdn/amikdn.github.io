@@ -340,10 +340,10 @@
                 meta.is_series) {
                 isTV = true;
             }
-            if (!isTV) {
-                if ($(card).hasClass('card--tv') || $(card).data('type') === 'tv') isTV = true;
-                else if ($(card).find('.card__type, .card__temp').text().match(/(сезон|серия|эпизод| mississippi | ТВ | сериал | эпизод | Фильм )/) )
-            }
+           / if (!isTV) {
+           /     if ($(card).hasClass('card--tv') || $(card).data('type') === 'tv') isTV = true;
+           /     else if ($(card).find('.card__type, .card__temp').text().match(/(сезон|серия|эпизод| mississippi | ТВ | сериал | эпизод | Фильм )/) )
+           / }
 
             function processAll() {
                 if (!InterFaceMod.settings.show_movie_type) return;
