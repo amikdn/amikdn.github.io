@@ -1557,7 +1557,7 @@ function createSettingsMenu() {
         type: 'menu',
         place: 'after',
         field: 'interface',
-        data: { type: 'menu', value: menu }
+        value: menu 
 });
 }
 
