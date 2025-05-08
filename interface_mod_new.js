@@ -1377,6 +1377,7 @@ function applyButtonStyles() {
 
 /*** 10 НАСТРОЙКИ ***/
 function createSettingsMenu() {
+    console.log('Interface Mod: Creating settings menu');
     var menu = [
         {
             title: 'Включить модуль',
@@ -1517,14 +1518,19 @@ function createSettingsMenu() {
         }
     ];
 
-    Lampa.SettingsApi.addParam({
-        component: 'interface',
-        name: 'interface_mod',
-        type: 'menu',
-        place: 'after',
-        field: 'interface',
-        value: menu
-    });
+    try {
+        Lampa.SettingsApi.addParam({
+            component: 'more', // Изменено на 'more' для совместимости
+            name: 'interface_mod',
+            type: 'menu',
+            place: 'after',
+            field: 'interface',
+            value: menu
+        });
+        console.log('Interface Mod: Menu added successfully');
+    } catch (e) {
+        console.error('Interface Mod: Error adding menu', e);
+    }
 
     Lampa.Storage.listener.follow('change', function(event) {
         if (event.name === 'interface_mod') {
