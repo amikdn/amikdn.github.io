@@ -16,6 +16,11 @@
             en: 'Interface MOD',
             uk: 'Інтерфейс MOD'
         },
+        interface_mod_new_about_plugin: {
+            ru: 'О плагине',
+            en: 'About plugin',
+            uk: 'Про плагін'
+        },
         interface_mod_new_show_movie_type: {
             ru: 'Показывать лейблы типа',
             en: 'Show type labels',
