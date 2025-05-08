@@ -443,7 +443,7 @@
 			neon_pulse:
 			    "body { background: linear-gradient(135deg, #000428 0%, #004e92 100%); color: #ffffff; }\n.menu__item.focus, .menu__item.traverse, .menu__item.hover, .settings-folder.focus, .settings-param.focus, .selectbox-item.focus, \n.full-start__button.focus, .full-descr__tag.focus, .player-panel .button.focus,\n.custom-online-btn.focus, .custom-torrent-btn.focus, .main2-more-btn.focus, .simple-button.focus, .menu__version.focus {\n    background: linear-gradient(to right, #ff00ff, #00ffff);\n    color: #fff;\n    box-shadow: 0 0 20px rgba(255, 0, 255, 0.4);\n    text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);\n    border: none;\n    animation: neon-pulse 2s infinite;\n}\n@keyframes neon-pulse {\n    0% { box-shadow: 0 0 10px rgba(255, 0, 255, 0.4); }\n    50% { box-shadow: 0 0 25px rgba(255, 0, 255, 0.8); }\n    100% { box-shadow: 0 0 10px rgba(255, 0, 255, 0.4); }\n}\n.card.focus .card__view::after, .card.hover .card__view::after {\n    border: 2px solid #ff00ff;\n    box-shadow: 0 0 20px #00ffff;\n    animation: card-pulse 2s infinite;\n}\n@keyframes card-pulse {\n    0% { box-shadow: 0 0 10px #00ffff; }\n    50% { box-shadow: 0 0 25px #00ffff; }\n    100% { box-shadow: 0 0 10px #00ffff; }\n}\n.settings__content, .settings-input__content, .selectbox__content, .modal__content {\n    background: rgba(0, 4, 40, 0.95);\n    border: 1px solid rgba(0, 78, 146, 0.2);\n}"
     },
-            dark_night: `
+            dark_night: '
                 body { background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0f0f0f 100%); color: #ffffff; }
                 .menu__item.focus, .menu__item.traverse, .menu__item.hover,
                 .settings-folder.focus, .settings-param.focus,
@@ -477,7 +477,7 @@
                     border: 1px solid rgba(233,64,87,0.1);
                     box-shadow: 0 0 30px rgba(242,113,33,0.1);
                 }
-            `,
+            ',
             blue_cosmos: `
                 body { background: linear-gradient(135deg, #0b365c 0%, #144d80 50%, #0c2a4d 100%); color: #ffffff; }
                 .menu__item.focus, .menu__item.traverse, .menu__item.hover,
