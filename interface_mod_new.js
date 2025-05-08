@@ -3,181 +3,172 @@
 
     var InterFaceMod = {
         name: 'interface_mod',
-        version: '2.2.1',
-        debug: true, // Включён дебаг для логов
+        version: '2.3.0', // Updated version
+        debug: false,
         settings: {
             enabled: true,
             buttons_mode: 'default',
-            show_movie_type: false,
+            show_movie_type: true,
             theme: 'default',
-            colored_ratings: false,
+            colored_ratings: true,
             seasons_info_mode: 'aired',
             show_episodes_on_main: false,
             label_position: 'top-right',
-            show_buttons: false,
-            colored_elements: false,
-            info_panel: false,
-            stylize_titles: false,
-            buttons_style_mode: 'default'
+            show_buttons: true,
+            colored_elements: true
         }
     };
 
     /*** 1) СЕЗОНЫ И ЭПИЗОДЫ ***/
     function addSeasonInfo() {
-        if (!InterFaceMod.settings.enabled || InterFaceMod.settings.seasons_info_mode === 'none') return;
-        
         Lampa.Listener.follow('full', function (data) {
-            if (data.type !== 'complite' || !data.data || !data.data.movie || !data.data.movie.number_of_seasons) return;
+            if (data.type === 'complite' && data.data.movie.number_of_seasons) {
+                if (InterFaceMod.settings.seasons_info_mode === 'none') return;
 
-            var movie = data.data.movie;
-            var status = movie.status;
-            var totalSeasons = movie.number_of_seasons || 0;
-            var totalEpisodes = movie.number_of_episodes || 0;
-            var airedSeasons = 0, airedEpisodes = 0;
-            var now = new Date();
+                var movie = data.data.movie;
+                var status = movie.status;
+                var totalSeasons = movie.number_of_seasons || 0;
+                var totalEpisodes = movie.number_of_episodes || 0;
+                var airedSeasons = 0, airedEpisodes = 0;
+                var now = new Date();
 
-            if (movie.seasons) {
-                movie.seasons.forEach(function (s) {
-                    if (s.season_number === 0) return;
-                    var seasonAired = s.air_date && new Date(s.air_date) <= now;
-                    if (seasonAired) airedSeasons++;
-                    if (s.episodes) {
-                        s.episodes.forEach(function (ep) {
-                            if (ep.air_date && new Date(ep.air_date) <= now) {
-                                airedEpisodes++;
-                            }
-                        });
-                    } else if (seasonAired && s.episode_count) {
-                        airedEpisodes += s.episode_count;
-                    }
-                });
-            } else if (movie.last_episode_to_air) {
-                airedSeasons = movie.last_episode_to_air.season_number || 0;
-                if (movie.season_air_dates) {
-                    airedEpisodes = movie.season_air_dates.reduce(function (sum, s) {
-                        return sum + (s.episode_count || 0);
-                    }, 0);
-                } else {
-                    var ls = movie.last_episode_to_air;
-                    if (movie.seasons) {
-                        movie.seasons.forEach(function (s) {
-                            if (s.season_number === 0) return;
-                            if (s.season_number < ls.season_number) airedEpisodes += s.episode_count || 0;
-                            else if (s.season_number === ls.season_number) airedEpisodes += ls.episode_number;
-                        });
-                    } else {
-                        var prev = 0;
-                        for (var i = 1; i < ls.season_number; i++) prev += 10;
-                        airedEpisodes = prev + ls.episode_number;
-                    }
-                }
-            }
-
-            if (movie.next_episode_to_air && totalEpisodes > 0) {
-                var ne = movie.next_episode_to_air, rem = 0;
+                // по структуре "seasons"
                 if (movie.seasons) {
                     movie.seasons.forEach(function (s) {
-                        if (s.season_number === ne.season_number) {
-                            rem += (s.episode_count || 0) - ne.episode_number + 1;
-                        } else if (s.season_number > ne.season_number) {
-                            rem += s.episode_count || 0;
+                        if (s.season_number === 0) return;
+                        var seasonAired = s.air_date && new Date(s.air_date) <= now;
+                        if (seasonAired) airedSeasons++;
+                        if (s.episodes) {
+                            s.episodes.forEach(function (ep) {
+                                if (ep.air_date && new Date(ep.air_date) <= now) {
+                                    airedEpisodes++;
+                                }
+                            });
+                        } else if (seasonAired && s.episode_count) {
+                            airedEpisodes += s.episode_count;
                         }
                     });
                 }
-                if (rem > 0) {
-                    var calc = totalEpisodes - rem;
-                    if (calc >= 0 && calc <= totalEpisodes) airedEpisodes = calc;
+                // fallback на last_episode_to_air
+                else if (movie.last_episode_to_air) {
+                    airedSeasons = movie.last_episode_to_air.season_number || 0;
+                    if (movie.season_air_dates) {
+                        airedEpisodes = movie.season_air_dates.reduce(function (sum, s) {
+                            return sum + (s.episode_count || 0);
+                        }, 0);
+                    } else {
+                        var ls = movie.last_episode_to_air;
+                        if (movie.seasons) {
+                            movie.seasons.forEach(function (s) {
+                                if (s.season_number === 0) return;
+                                if (s.season_number < ls.season_number) airedEpisodes += s.episode_count || 0;
+                                else if (s.season_number === ls.season_number) airedEpisodes += ls.episode_number;
+                            });
+                        } else {
+                            var prev = 0;
+                            for (var i = 1; i < ls.season_number; i++) prev += 10;
+                            airedEpisodes = prev + ls.episode_number;
+                        }
+                    }
                 }
-            }
 
-            if (!airedSeasons) airedSeasons = totalSeasons;
-            if (!airedEpisodes) airedEpisodes = totalEpisodes;
-            if (totalEpisodes > 0 && airedEpisodes > totalEpisodes) airedEpisodes = totalEpisodes;
-
-            function plural(n, one, two, five) {
-                var m = Math.abs(n) % 100;
-                if (m >= 5 && m <= 20) return five;
-                m %= 10;
-                if (m === 1) return one;
-                if (m >= 2 && m <= 4) return two;
-                return five;
-            }
-            function getStatusText(st) {
-                if (st === 'Ended') return 'Завершён';
-                if (st === 'Canceled') return 'Отменён';
-                if (st === 'Returning Series') return 'Выходит';
-                if (st === 'In Production') return 'В производстве';
-                return st || 'Неизвестно';
-            }
-
-            var displaySeasons, displayEpisodes;
-            if (InterFaceMod.settings.seasons_info_mode === 'aired') {
-                displaySeasons = airedSeasons;
-                displayEpisodes = airedEpisodes;
-            } else {
-                displaySeasons = totalSeasons;
-                displayEpisodes = totalEpisodes;
-            }
-            var seasonsText = plural(displaySeasons, 'сезон', 'сезона', 'сезонов');
-            var episodesText = plural(displayEpisodes, 'серия', 'серии', 'серий');
-            var isCompleted = (status === 'Ended' || status === 'Canceled');
-            var bgColor = isCompleted ? 'rgba(33,150,243,0.8)' : 'rgba(244,67,54,0.8)';
-
-            var info = $('<div class="season-info-label"></div>');
-            if (isCompleted) {
-                info.append($('<div>').text(displaySeasons + ' ' + seasonsText + ' ' + displayEpisodes + ' ' + episodesText));
-                info.append($('<div>').text(getStatusText(status)));
-            } else {
-                var txt = displaySeasons + ' ' + seasonsText + ' ' + displayEpisodes + ' ' + episodesText;
-                if (InterFaceMod.settings.seasons_info_mode === 'aired' && totalEpisodes > 0 && airedEpisodes < totalEpisodes && airedEpisodes > 0) {
-                    txt = displaySeasons + ' ' + seasonsText + ' ' + airedEpisodes + ' ' + episodesText + ' из ' + totalEpisodes;
+                // next_episode_to_air уточняет airedEpisodes
+                if (movie.next_episode_to_air && totalEpisodes > 0) {
+                    var ne = movie.next_episode_to_air, rem = 0;
+                    if (movie.seasons) {
+                        movie.seasons.forEach(function (s) {
+                            if (s.season_number === ne.season_number) {
+                                rem += (s.episode_count || 0) - ne.episode_number + 1;
+                            } else if (s.season_number > ne.season_number) {
+                                rem += s.episode_count || 0;
+                            }
+                        });
+                    }
+                    if (rem > 0) {
+                        var calc = totalEpisodes - rem;
+                        if (calc >= 0 && calc <= totalEpisodes) airedEpisodes = calc;
+                    }
                 }
-                info.append($('<div>').text(txt));
-            }
 
-            var positions = {
-                'top-right':  { top: '1.4em', right: '-0.8em' },
-                'top-left':   { top: '1.4em', left: '-0.8em' },
-                'bottom-right': { bottom: '1.4em', right: '-0.8em' },
-                'bottom-left':  { bottom: '1.4em', left: '-0.8em' }
-            };
-            var pos = positions[InterFaceMod.settings.label_position] || positions['top-right'];
-            info.css($.extend({
-                position: 'absolute',
-                backgroundColor: bgColor,
-                color: 'white',
-                padding: '0.4em 0.6em',
-                borderRadius: '0.3em',
-                fontSize: '0.8em',
-                zIndex: 999,
-                textAlign: 'center',
-                whiteSpace: 'nowrap',
-                lineHeight: '1.2em',
-                backdropFilter: 'blur(2px)',
-                boxShadow: '0 2px 5px rgba(0,0,0,0.2)'
-            }, pos));
+                if (!airedSeasons) airedSeasons = totalSeasons;
+                if (!airedEpisodes) airedEpisodes = totalEpisodes;
+                if (totalEpisodes > 0 && airedEpisodes > totalEpisodes) airedEpisodes = totalEpisodes;
 
-            setTimeout(function () {
-                var poster = $(data.object.activity.render()).find('.full-start-new__poster');
-                if (poster.length) {
-                    poster.css('position', 'relative').append(info);
+                function plural(n, one, two, five) {
+                    var m = Math.abs(n) % 100;
+                    if (m >= 5 && m <= 20) return five;
+                    m %= 10;
+                    if (m === 1) return one;
+                    if (m >= 2 && m <= 4) return two;
+                    return five;
                 }
-            }, 100);
+                function getStatusText(st) {
+                    if (st === 'Ended') return 'Завершён';
+                    if (st === 'Canceled') return 'Отменён';
+                    if (st === 'Returning Series') return 'Выходит';
+                    if (st === 'In Production') return 'В производстве';
+                    return st || 'Неизвестно';
+                }
+
+                var displaySeasons, displayEpisodes;
+                if (InterFaceMod.settings.seasons_info_mode === 'aired') {
+                    displaySeasons = airedSeasons;
+                    displayEpisodes = airedEpisodes;
+                } else {
+                    displaySeasons = totalSeasons;
+                    displayEpisodes = totalEpisodes;
+                }
+                var seasonsText = plural(displaySeasons, 'сезон', 'сезона', 'сезонов');
+                var episodesText = plural(displayEpisodes, 'серия', 'серии', 'серий');
+                var isCompleted = (status === 'Ended' || status === 'Canceled');
+                var bgColor = isCompleted ? 'rgba(33,150,243,0.8)' : 'rgba(244,67,54,0.8)';
+
+                var info = $('<div class="season-info-label"></div>');
+                if (isCompleted) {
+                    info.append($('<div>').text(displaySeasons + ' ' + seasonsText + ' ' + displayEpisodes + ' ' + episodesText));
+                    info.append($('<div>').text(getStatusText(status)));
+                } else {
+                    var txt = displaySeasons + ' ' + seasonsText + ' ' + displayEpisodes + ' ' + episodesText;
+                    if (InterFaceMod.settings.seasons_info_mode === 'aired' && totalEpisodes > 0 && airedEpisodes < totalEpisodes && airedEpisodes > 0) {
+                        txt = displaySeasons + ' ' + seasonsText + ' ' + airedEpisodes + ' ' + episodesText + ' из ' + totalEpisodes;
+                    }
+                    info.append($('<div>').text(txt));
+                }
+
+                var positions = {
+                    'top-right':  { top: '1.4em', right: '-0.8em' },
+                    'top-left':   { top: '1.4em', left: '-0.8em' },
+                    'bottom-right': { bottom: '1.4em', right: '-0.8em' },
+                    'bottom-left':  { bottom: '1.4em', left: '-0.8em' }
+                };
+                var pos = positions[InterFaceMod.settings.label_position] || positions['top-right'];
+                info.css($.extend({
+                    position: 'absolute',
+                    backgroundColor: bgColor,
+                    color: 'white',
+                    padding: '0.4em 0.6em',
+                    borderRadius: '0.3em',
+                    fontSize: '0.8em',
+                    zIndex: 999,
+                    textAlign: 'center',
+                    whiteSpace: 'nowrap',
+                    lineHeight: '1.2em',
+                    backdropFilter: 'blur(2px)',
+                    boxShadow: '0 2px 5px rgba(0,0,0,0.2)'
+                }, pos));
+
+                setTimeout(function () {
+                    var poster = $(data.object.activity.render()).find('.full-start-new__poster');
+                    if (poster.length) {
+                        poster.css('position', 'relative').append(info);
+                    }
+                }, 100);
+            }
         });
     }
 
     /*** 2) ВСЕ КНОПКИ ***/
     function showAllButtons() {
-        if (!InterFaceMod.settings.show_buttons) {
-            $('#interface_mod_buttons_style').remove();
-            $('.full-start-new__buttons, .full-start__buttons').css({
-                display: '',
-                flexWrap: '',
-                gap: ''
-            });
-            return;
-        }
-
         var style = document.createElement('style');
         style.id = 'interface_mod_buttons_style';
         style.innerHTML = `
@@ -311,13 +302,6 @@
 
     /*** 3) ТИП КОНТЕНТА ***/
     function changeMovieTypeLabels() {
-        if (!InterFaceMod.settings.show_movie_type) {
-            $('#movie_type_styles').remove();
-            $('.content-label').remove();
-            $('body').removeAttr('data-movie-labels');
-            return;
-        }
-
         var style = $(`<style id="movie_type_styles">
             .content-label { position: absolute!important; top: 1.4em!important; left: -0.8em!important; color: white!important; padding: 0.4em 0.4em!important; border-radius: 0.3em!important; font-size: 0.8em!important; z-index: 10!important; }
             .serial-label { background-color: #3498db!important; }
@@ -325,7 +309,7 @@
             body[data-movie-labels="on"] .card--tv .card__type { display: none!important; }
         </style>`);
         $('head').append(style);
-        $('body').attr('data-movie-labels', 'on');
+        $('body').attr('data-movie-labels', InterFaceMod.settings.show_movie_type ? 'on' : 'off');
 
         function addLabel(card) {
             if (!InterFaceMod.settings.show_movie_type) return;
@@ -347,7 +331,9 @@
                 if (id && Lampa.Storage.cache('card_' + id)) {
                     meta = Object.assign(meta, Lampa.Storage.cache('card_' + id));
                 }
-            } catch (e) {}
+            } catch (e) {
+                // парсинг мог упасть — игнорируем
+            }
 
             var isTV = false;
             if (meta.type === 'tv' || meta.card_type === 'tv' ||
@@ -376,23 +362,25 @@
         }
 
         Lampa.Listener.follow('full', function (e) {
-            if (e.type === 'complite' && e.data && e.data.movie && InterFaceMod.settings.show_movie_type) {
+            if (e.type === 'complite' && e.data.movie) {
                 var poster = $(e.object.activity.render()).find('.full-start__poster');
                 if (!poster.length) return;
                 var m = e.data.movie;
                 var isTV = m.number_of_seasons > 0 || m.seasons || m.type === 'tv';
-                poster.find('.content-label').remove();
-                var lbl = $('<div class="content-label"></div>').css({
-                    position: 'absolute', top: '1.4em', left: '-0.8em',
-                    color: 'white', padding: '0.4em', borderRadius: '0.3em',
-                    fontSize: '0.8em', zIndex: 10
-                });
-                if (isTV) {
-                    lbl.addClass('serial-label').text('Сериал').css('backgroundColor', '#3498db');
-                } else {
-                    lbl.addClass('movie-label').text('Фильм').css('backgroundColor', '#2ecc71');
+                if (InterFaceMod.settings.show_movie_type) {
+                    poster.find('.content-label').remove();
+                    var lbl = $('<div class="content-label"></div>').css({
+                        position: 'absolute', top: '1.4em', left: '-0.8em',
+                        color: 'white', padding: '0.4em', borderRadius: '0.3em',
+                        fontSize: '0.8em', zIndex: 10
+                    });
+                    if (isTV) {
+                        lbl.addClass('serial-label').text('Сериал').css('backgroundColor', '#3498db');
+                    } else {
+                        lbl.addClass('movie-label').text('Фильм').css('backgroundColor', '#2ecc71');
+                    }
+                    poster.css('position', 'relative').append(lbl);
                 }
-                poster.css('position', 'relative').append(lbl);
             }
         });
 
@@ -422,303 +410,281 @@
         if (theme === 'default') return;
         var style = $('<style id="interface_mod_theme"></style>');
         var themes = {
-            neon_pulse: `
-                body { background: linear-gradient(135deg, #000428 0%, #004e92 100%); color: #ffffff; }
-                .menu__item.focus, .menu__item.traverse, .menu__item.hover, .settings-folder.focus, .settings-param.focus, .selectbox-item.focus, 
-                .full-start__button.focus, .full-descr__tag.focus, .player-panel .button.focus,
-                .custom-online-btn.focus, .custom-torrent-btn.focus, .main2-more-btn.focus, .simple-button.focus, .menu__version.focus {
+            neon: `
+                body { background: linear-gradient(135deg, #0d0221 0%, #150734 50%, #1f0c47 100%); color: #ffffff; }
+                .menu__item.focus, .menu__item.traverse, .menu__item.hover,
+                .settings-folder.focus, .settings-param.focus,
+                .selectbox-item.focus, .full-start__button.focus,
+                .full-descr__tag.focus, .player-panel .button.focus {
                     background: linear-gradient(to right, #ff00ff, #00ffff);
                     color: #fff;
-                    box-shadow: 0 0 20px rgba(255, 0, 255, 0.4);
-                    text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+                    box-shadow: 0 0 20px rgba(255,0,255,0.4);
+                    text-shadow: 0 0 10px rgba(255,255,255,0.5);
                     border: none;
-                    animation: neon-pulse 2s infinite;
-                }
-                @keyframes neon-pulse {
-                    0% { box-shadow: 0 0 10px rgba(255, 0, 255, 0.4); }
-                    50% { box-shadow: 0 0 25px rgba(255, 0, 255, 0.8); }
-                    100% { box-shadow: 0 0 10px rgba(255, 0, 255, 0.4); }
                 }
                 .card.focus .card__view::after, .card.hover .card__view::after {
                     border: 2px solid #ff00ff;
                     box-shadow: 0 0 20px #00ffff;
-                    animation: card-pulse 2s infinite;
-                }
-                @keyframes card-pulse {
-                    0% { box-shadow: 0 0 10px #00ffff; }
-                    50% { box-shadow: 0 0 25px #00ffff; }
-                    100% { box-shadow: 0 0 10px #00ffff; }
-                }
-                .settings__content, .settings-input__content, .selectbox__content, .modal__content {
-                    background: rgba(0, 4, 40, 0.95);
-                    border: 1px solid rgba(0, 78, 146, 0.2);
-                }
-            `,
-            cyber_green: `
-                body { background: #0a0f0d; color: #7adb92; }
-                .menu__item.focus, .menu__item.traverse, .menu__item.hover, .settings-folder.focus, .settings-param.focus, .selectbox-item.focus, 
-                .full-start__button.focus, .full-descr__tag.focus, .player-panel .button.focus,
-                .custom-online-btn.focus, .custom-torrent-btn.focus, .main2-more-btn.focus, .simple-button.focus, .menu__version.focus {
-                    background: #0a3622;
-                    color: #7adb92;
-                    border: 1px solid #7adb92;
-                    box-shadow: 0 0 10px rgba(122, 219, 146, 0.5);
-                    text-shadow: 0 0 5px rgba(122, 219, 146, 0.7);
-                }
-                .card.focus .card__view::after, .card.hover .card__view::after {
-                    border: 1px solid #7adb92;
-                    box-shadow: 0 0 15px rgba(122, 219, 146, 0.5);
-                }
-                .card__title, .card__vote, .card__title-original {
-                    color: #7adb92;
-                    text-shadow: 0 0 5px rgba(122, 219, 146, 0.3);
-                }
-                .settings__content, .settings-input__content, .selectbox__content, .modal__content {
-                    background: rgba(10, 15, 13, 0.95);
-                    border: 1px solid rgba(122, 219, 146, 0.2);
-                }
-            `,
-            electric_blue: `
-                body { background: linear-gradient(135deg, #000000 0%, #0c0c2b 100%); color: #00e1ff; }
-                .menu__item.focus, .menu__item.traverse, .menu__item.hover, .settings-folder.focus, .settings-param.focus, .selectbox-item.focus, 
-                .full-start__button.focus, .full-descr__tag.focus, .player-panel .button.focus,
-                .custom-online-btn.focus, .custom-torrent-btn.focus, .main2-more-btn.focus, .simple-button.focus, .menu__version.focus {
-                    background: rgba(0, 45, 100, 0.7);
-                    color: #00e1ff;
-                    box-shadow: 0 0 15px rgba(0, 225, 255, 0.6);
-                    border: 1px solid #00e1ff;
-                    text-shadow: 0 0 10px rgba(0, 225, 255, 0.8);
-                }
-                .card.focus .card__view::after, .card.hover .card__view::after {
-                    border: 2px solid #00e1ff;
-                    box-shadow: 0 0 20px rgba(0, 225, 255, 0.7);
                 }
                 .head__action.focus, .head__action.hover {
-                    background: rgba(0, 45, 100, 0.7);
-                    box-shadow: 0 0 15px rgba(0, 225, 255, 0.6);
-                    border: 1px solid #00e1ff;
+                    background: linear-gradient(45deg, #ff00ff, #00ffff);
+                    box-shadow: 0 0 15px rgba(255,0,255,0.3);
                 }
                 .full-start__background {
                     opacity: 0.7;
-                    filter: brightness(0.8) contrast(1.2) saturate(1.2);
+                    filter: brightness(1.2) saturate(1.3);
                 }
-                .settings__content, .settings-input__content, .selectbox__content, .modal__content {
-                    background: rgba(0, 12, 43, 0.93);
-                    border: 1px solid rgba(0, 225, 255, 0.2);
+                .settings__content, .settings-input__content,
+                .selectbox__content, .modal__content {
+                    background: rgba(15,2,33,0.95);
+                    border: 1px solid rgba(255,0,255,0.1);
                 }
             `,
-            crimson_glow: `
-                body { background: linear-gradient(135deg, #190000 0%, #360000 100%); color: #ff5a5a; }
-                .menu__item.focus, .menu__item.traverse, .menu__item.hover, .settings-folder.focus, .settings-param.focus, .selectbox-item.focus, 
-                .full-start__button.focus, .full-descr__tag.focus, .player-panel .button.focus,
-                .custom-online-btn.focus, .custom-torrent-btn.focus, .main2-more-btn.focus, .simple-button.focus, .menu__version.focus {
-                    background: linear-gradient(to right, #8e0000, #ff0000);
-                    color: #ffffff;
-                    box-shadow: 0 0 15px rgba(255, 0, 0, 0.5);
-                    text-shadow: 0 0 5px rgba(255, 255, 255, 0.7);
-                    border: none;
+            dark_night: `
+                body { background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0f0f0f 100%); color: #ffffff; }
+                .menu__item.focus, .menu__item.traverse, .menu__item.hover,
+                .settings-folder.focus, .settings-param.focus,
+                .selectbox-item.focus, .full-start__button.focus,
+                .full-descr__tag.focus, .player-panel .button.focus {
+                    background: linear-gradient(to Doh, #8a2387, #e94057, #f27121);
+                    color: #fff;
+                    box-shadow: 0 0 30px rgba(233,64,87,0.3);
+                    animation: night-pulse 2s infinite;
+                }
+                @keyframes night-pulse {
+                    0%   { box-shadow: 0 0 20px rgba(233,64,87,0.3); }
+                    50%  { box-shadow: 0 0 30px rgba(242,113,33,0.3); }
+                    100% { box-shadow: 0 0 20px rgba(138,35,135,0.3); }
                 }
                 .card.focus .card__view::after, .card.hover .card__view::after {
-                    border: 2px solid #ff0000;
-                    box-shadow: 0 0 15px rgba(255, 0, 0, 0.7);
+                    border: 2px solid #e94057;
+                    box-shadow: 0 0 30px rgba(242,113,33,0.5);
                 }
                 .head__action.focus, .head__action.hover {
-                    background: linear-gradient(to right, #8e0000, #ff0000);
-                    box-shadow: 0 0 15px rgba(255, 0, 0, 0.5);
+                    background: linear-gradient(45deg, #8a2387, #f27121);
+                    animation: night-pulse 2s infinite;
+                }
+                .full-start__background {
+                    opacity: 0.8;
+                    filter: saturate(1.3) contrast(1.1);
+                }
+                .settings__content, .settings-input__content,
+                .selectbox__content, .modal__content {
+                    background: rgba(10,10,10,0.95);
+                    border: 1px solid rgba(233,64,87,0.1);
+                    box-shadow: 0 0 30px rgba(242,113,33,0.1);
+                }
+            `,
+            blue_cosmos: `
+                body { background: linear-gradient(135deg, #0b365c 0%, #144d80 50%, #0c2a4d 100%); color: #ffffff; }
+                .menu__item.focus, .menu__item.traverse, .menu__item.hover,
+                .settings-folder.focus, .settings-param.focus,
+                .selectbox-item.focus, .full-start__button.focus,
+                .full-descr__tag.focus, .player-panel .button.focus {
+                    background: linear-gradient(to right, #12c2e9, #c471ed, #f64f59);
+                    color: #fff;
+                    box-shadow: 0 0 30px rgba(18,194,233,0.3);
+                    animation: cosmos-pulse 2s infinite;
+                }
+                @keyframes cosmos-pulse {
+                    0%   { box-shadow: 0 0 20px rgba(18,194,233,0.3); }
+                    50%  { box-shadow: 0 0 30px rgba(196,113,237,0.3); }
+                    100% { box-shadow: 0 0 20px rgba(246,79,89,0.3); }
+                }
+                .card.focus .card__view::after, .card.hover .card__view::after {
+                    border: 2px solid #12c2e9;
+                    box-shadow: 0 0 30px rgba(196,113,237,0.5);
+                }
+                .head__action.focus, .head__action.hover {
+                    background: linear-gradient(45deg, #12c2e9, #f64f59);
+                    animation: cosmos-pulse 2s infinite;
+                }
+                .full-start__background {
+                    opacity: 0.8;
+                    filter: saturate(1.3) contrast(1.1);
+                }
+                .settings__content, .settings-input__content,
+                .selectbox__content, .modal__content {
+                    background: rgba(11,54,92,0.95);
+                    border: 1px solid rgba(18,194,233,0.1);
+                    box-shadow: 0 0 30px rgba(196,113,237,0.1);
+                }
+            `,
+            sunset: `
+                body { background: linear-gradient(135deg, #2d1f3d 0%, #614385 50%, #516395 100%); color: #ffffff; }
+                .menu__item.focus, .menu__item.traverse, .menu__item.hover,
+                .settings-folder.focus, .settings-param.focus,
+                .selectbox-item.focus, .full-start__button.focus,
+                .full-descr__tag.focus, .player-panel .button.focus {
+                    background: linear-gradient(to right, #ff6e7f, #bfe9ff);
+                    color: #2d1f3d;
+                    box-shadow: 0 0 15px rgba(255,110,127,0.3);
+                    font-weight: bold;
+                }
+                .card.focus .card__view::after, .card.hover .card__view::after {
+                    border: 2px solid #ff6e7f;
+                    box-shadow: 0 0 15px rgba(255,110,127,0.5);
+                }
+                .head__action.focus, .head__action.hover {
+                    background: linear-gradient(45deg, #ff6e7f, #bfe9ff);
+                    color: #2d1f3d;
+                }
+                .full-start__background {
+                    opacity: 0.8;
+                    filter: saturate(1.2) contrast(1.1);
+                }
+            `,
+            emerald: `
+                body { background: linear-gradient(135deg, #1a2a3a 0%, #2C5364 50%, #203A43 100%); color: #ffffff; }
+                .menu__item.focus, .menu__item.traverse, .menu__item.hover,
+                .settings-folder.focus, .settings-param.focus,
+                .selectbox-item.focus, .full-start__button.focus,
+                .full-descr__tag.focus, .player-panel .button.focus {
+                    background: linear-gradient(to right, #43cea2, #185a9d);
+                    color: #fff;
+                    box-shadow: 0 4px 15px rgba(67,206,162,0.3);
+                    border-radius: 5px;
+                }
+                .card.focus .card__view::after, .card.hover .card__view::after {
+                    border: 3px solid #43cea2;
+                    box-shadow: 0 0 20px rgba(67,206,162,0.4);
+                }
+                .head__action.focus, .head__action.hover {
+                    background: linear-gradient(45deg, #43cea2, #185a9d);
+                }
+                .full-start__background {
+                    opacity: 0.85;
+                    filter: brightness(1.1) saturate(1.2);
+                }
+                .settings__content, .settings-input__content,
+                .selectbox__content, .modal__content {
+                    background: rgba(26,42,58,0.98);
+                    border: 1px solid rgba(67,206,162,0.1);
+                }
+            `,
+            aurora: `
+                body { background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%); color: #ffffff; }
+                .menu__item.focus, .menu__item.traverse, .menu__item.hover,
+                .settings-folder.focus, .settings-param.focus,
+                .selectbox-item.focus, .full-start__button.focus,
+                .full-descr__tag.focus, .player-panel .button.focus {
+                    background: linear-gradient(to right, #aa4b6b, #6b6b83, #3b8d99);
+                    color: #fff;
+                    box-shadow: 0 0 20px rgba(170,75,107,0.3);
+                    transform: scale(1.02);
+                    transition: all 0.3s ease;
+                }
+                .card.focus .card__view::after, .card.hover .card__view::after {
+                    border: 2px solid #aa4b6b;
+                    box-shadow: 0 0 25px rgba(170,75,107,0.5);
+                }
+                .head__action.focus, .head__action.hover {
+                    background: linear-gradient(45deg, #aa4b6b, #3b8d99);
+                    transform: scale(1.05);
                 }
                 .full-start__background {
                     opacity: 0.75;
-                    filter: brightness(0.8) contrast(1.2) saturate(1.3);
+                    filter: contrast(1.1) brightness(1.1);
                 }
-                .settings__content, .settings-input__content, .selectbox__content, .modal__content {
-                    background: rgba(20, 0, 0, 0.95);
-                    border: 1px solid rgba(255, 0, 0, 0.2);
+                .settings__content, .settings-input__content,
+                .selectbox__content, .modal__content {
+                    background: rgba(15,2,33,0.95);
                 }
             `,
-            wave_motion: `
-                body { background: linear-gradient(135deg, #000, #1e2d61); color: #7dc7ff; }
-                .menu__item.focus, .menu__item.traverse, .menu__item.hover, .settings-folder.focus, .settings-param.focus, .selectbox-item.focus, 
-                .full-start__button.focus, .full-descr__tag.focus, .player-panel .button.focus,
-                .custom-online-btn.focus, .custom-torrent-btn.focus, .main2-more-btn.focus, .simple-button.focus, .menu__version.focus {
-                    background: linear-gradient(90deg, #003973, #1e5799, #007cb9, #003973);
-                    background-size: 300% 100%;
+            bywolf_mod: `
+                body { background: linear-gradient(135deg, #090227 0%, #170b34 50%, #261447 100%); color: #ffffff; }
+                .menu__item.focus, .menu__item.traverse, .menu__item.hover,
+                .settings-folder.focus, .settings-param.focus,
+                .selectbox-item.focus, .full-start__button.focus,
+                .full-descr__tag.focus, .player-panel .button.focus {
+                    background: linear-gradient(to right, #fc00ff, #00dbde);
                     color: #fff;
-                    box-shadow: 0 0 10px rgba(0, 57, 115, 0.5);
-                    animation: wave-bg 3s ease infinite;
+                    box-shadow: 0 0 30px rgba(252,0,255,0.3);
+                    animation: cosmic-pulse 2s infinite;
                 }
-                @keyframes wave-bg {
-                    0% { background-position: 0% 50%; }
-                    50% { background-position: 100% 50%; }
-                    100% { background-position: 0% 50%; }
-                }
-                .card.focus .card__view::after, .card.hover .card__view::after {
-                    border: 2px solid transparent;
-                    background: linear-gradient(90deg, #003973, #1e5799, #007cb9, #003973);
-                    background-size: 300% 100%;
-                    animation: wave-border 3s ease infinite;
-                    box-shadow: 0 0 15px rgba(0, 57, 115, 0.5);
-                }
-                @keyframes wave-border {
-                    0% { background-position: 0% 50%; }
-                    50% { background-position: 100% 50%; }
-                    100% { background-position: 0% 50%; }
-                }
-                .settings__content, .settings-input__content, .selectbox__content, .modal__content {
-                    background: rgba(0, 13, 30, 0.93);
-                    border: 1px solid rgba(0, 149, 255, 0.2);
-                }
-            `,
-            pulse_beat: `
-                body { background: #111111; color: #e0e0e0; }
-                .menu__item.focus, .menu__item.traverse, .menu__item.hover, .settings-folder.focus, .settings-param.focus, .selectbox-item.focus, 
-                .full-start__button.focus, .full-descr__tag.focus, .player-panel .button.focus,
-                .custom-online-btn.focus, .custom-torrent-btn.focus, .main2-more-btn.focus, .simple-button.focus, .menu__version.focus {
-                    background: #333333;
-                    color: #ffffff;
-                    animation: pulse 1.5s ease-in-out infinite;
-                }
-                @keyframes pulse {
-                    0% { transform: scale(1); }
-                    50% { transform: scale(1.03); }
-                    100% { transform: scale(1); }
+                @keyframes cosmic-pulse {
+                    0%   { box-shadow: 0 0 20px rgba(252,0,255,0.3); }
+                    50%  { box-shadow: 0 0 30px rgba(0,219,222,0.3); }
+                    100% { box-shadow: 0 0 20px rgba(252,0,255,0.3); }
                 }
                 .card.focus .card__view::after, .card.hover .card__view::after {
-                    border: 2px solid #555555;
-                    box-shadow: 0 0 10px rgba(85, 85, 85, 0.7);
-                    animation: card-pulse 1.5s ease-in-out infinite;
-                }
-                @keyframes card-pulse {
-                    0% { box-shadow: 0 0 5px rgba(85, 85, 85, 0.5); }
-                    50% { box-shadow: 0 0 15px rgba(85, 85, 85, 0.8); }
-                    100% { box-shadow: 0 0 5px rgba(85, 85, 85, 0.5); }
-                }
-                .settings__content, .settings-input__content, .selectbox__content, .modal__content {
-                    background: rgba(17, 17, 17, 0.95);
-                    border: 1px solid rgba(85, 85, 85, 0.2);
-                }
-            `,
-            rainbow_shift: `
-                body { background: #0a0a0a; color: #ffffff; }
-                .menu__item.focus, .menu__item.traverse, .menu__item.hover, .settings-folder.focus, .settings-param.focus, .selectbox-item.focus, 
-                .full-start__button.focus, .full-descr__tag.focus, .player-panel .button.focus,
-                .custom-online-btn.focus, .custom-torrent-btn.focus, .main2-more-btn.focus, .simple-button.focus, .menu__version.focus {
-                    background: linear-gradient(90deg, #ff0000, #ffa500, #ffff00, #008000, #0000ff, #4b0082, #ee82ee);
-                    background-size: 700% 100%;
-                    color: #ffffff;
-                    text-shadow: 0 0 5px rgba(0, 0, 0, 0.7);
-                    animation: rainbow 8s linear infinite;
-                    border: none;
-                }
-                @keyframes rainbow {
-                    0% { background-position: 0% 50%; }
-                    100% { background-position: 100% 50%; }
-                }
-                .card.focus .card__view::after, .card.hover .card__view::after {
-                    border: none;
-                    background: linear-gradient(90deg, #ff0000, #ffa500, #ffff00, #008000, #0000ff, #4b0082, #ee82ee);
-                    background-size: 700% 100%;
-                    animation: rainbow 8s linear infinite;
-                    box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
-                }
-                .settings__content, .settings-input__content, .selectbox__content, .modal__content {
-                    background: rgba(10, 10, 10, 0.95);
-                    border: 1px solid rgba(128, 128, 128, 0.2);
-                }
-            `,
-            clean_dark: `
-                body { background: #121212; color: #e0e0e0; }
-                .menu__item.focus, .menu__item.traverse, .menu__item.hover, .settings-folder.focus, .settings-param.focus, .selectbox-item.focus, 
-                .full-start__button.focus, .full-descr__tag.focus, .player-panel .button.focus,
-                .custom-online-btn.focus, .custom-torrent-btn.focus, .main2-more-btn.focus, .simple-button.focus, .menu__version.focus {
-                    background: #2c2c2c;
-                    color: #ffffff;
-                    box-shadow: none;
-                    border-radius: 3px;
-                    border-left: 3px solid #3d3d3d;
-                }
-                .card.focus .card__view::after, .card.hover .card__view::after {
-                    border: 1px solid #3d3d3d;
-                    box-shadow: none;
+                    border: 2px solid #fc00ff;
+                    box-shadow: 0 0 30px rgba(0,219,222,0.5);
                 }
                 .head__action.focus, .head__action.hover {
-                    background: #2c2c2c;
+                    background: linear-gradient(to right, #fc00ff, #00dbde);
+                    animation: cosmic-pulse 2s infinite;
                 }
                 .full-start__background {
-                    opacity: 0.6;
-                    filter: grayscale(0.5) brightness(0.7);
+                    opacity: 0.8;
+                    filter: saturate(1.3) contrast(1.1);
                 }
-                .settings__content, .settings-input__content, .selectbox__content, .modal__content {
-                    background: rgba(18, 18, 18, 0.95);
-                    border: 1px solid #2c2c2c;
-                }
-                .selectbox-item + .selectbox-item {
-                    border-top: 1px solid #2c2c2c;
-                }
-                .card__title, .card__vote, .full-start__title, .full-start__rate, .full-start-new__title, .full-start-new__rate {
-                    color: #e0e0e0;
+                .settings__content, .settings-input__content,
+                .selectbox__content, .modal__content {
+                    background: rgba(9,2,39,0.95);
+                    border: 1px solid rgba(252,0,255,0.1);
+                    box-shadow: 0 0 30px rgba(0,219,222,0.1);
                 }
             `,
-            slate_blue: `
-                body { background: #1a202c; color: #e2e8f0; }
-                .menu__item.focus, .menu__item.traverse, .menu__item.hover, .settings-folder.focus, .settings-param.focus, .selectbox-item.focus, 
-                .full-start__button.focus, .full-descr__tag.focus, .player-panel .button.focus,
-                .custom-online-btn.focus, .custom-torrent-btn.focus, .main2-more-btn.focus, .simple-button.focus, .menu__version.focus {
-                    background: #2d3748;
-                    color: #ffffff;
-                    box-shadow: none;
-                    border-radius: 2px;
-                    border-bottom: 2px solid #4a5568;
+            cyberpunk: `
+                body { background: linear-gradient(135deg, #1a0a2e 0%, #2e1a5c 50%, #3a1e6b 100%); color: #ffffff; }
+                .menu__item.focus, .menu__item.traverse, .menu__item.hover,
+                .settings-folder.focus, .settings-param.focus,
+                .selectbox-item.focus, .full-start__button.focus,
+                .full-descr__tag.focus, .player-panel .button.focus {
+                    background: linear-gradient(to right, #ff007a, #00f7ff);
+                    color: #fff;
+                    box-shadow: 0 0 25px rgba(255,0,122,0.5);
+                    text-shadow: 0 0 8px rgba(255,255,255,0.6);
+                    border: 1px solid #ff007a;
                 }
                 .card.focus .card__view::after, .card.hover .card__view::after {
-                    border: 1px solid #4a5568;
-                    box-shadow: none;
+                    border: 3px solid #00f7ff;
+                    box-shadow: 0 0 20px rgba(255,0,122,0.6);
                 }
                 .head__action.focus, .head__action.hover {
-                    background: #2d3748;
-                    border-bottom: 2px solid #4a5568;
+                    background: linear-gradient(45deg, #ff007a, #00f7ff);
+                    box-shadow: 0 0 15px rgba(255,0,122,0.4);
                 }
                 .full-start__background {
                     opacity: 0.7;
-                    filter: brightness(0.8);
+                    filter: brightness(1.3) saturate(1.4);
                 }
-                .settings__content, .settings-input__content, .selectbox__content, .modal__content {
-                    background: rgba(26, 32, 44, 0.97);
-                    border: 1px solid #4a5568;
-                }
-                .card__title, .full-start__title, .full-start-new__title {
-                    color: #e2e8f0;
+                .settings__content, .settings-input__content,
+                .selectbox__content, .modal__content {
+                    background: rgba(26,10,46,0.95);
+                    border: 1px solid rgba(255,0,122,0.2);
+                    box-shadow: 0 0 20px rgba(0,247,255,0.2);
                 }
             `,
-            light_minimal: `
-                body { background: #f5f5f5; color: #333333; }
-                .menu__item.focus, .menu__item.traverse, .menu__item.hover, .settings-folder.focus, .settings-param.focus, .selectbox-item.focus, 
-                .full-start__button.focus, .full-descr__tag.focus, .player-panel .button.focus,
-                .custom-online-btn.focus, .custom-torrent-btn.focus, .main2-more-btn.focus, .simple-button.focus, .menu__version.focus {
-                    background: #e0e0e0;
-                    color: #333333;
-                    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-                    border-radius: 3px;
-                    border: none;
+            midnight: `
+                body { background: linear-gradient(135deg, #1c2526 0%, #2e3b3e 50%, #354647 100%); color: #ffffff; }
+                .menu__item.focus, .menu__item.traverse, .menu__item.hover,
+                .settings-folder.focus, .settings-param.focus,
+                .selectbox-item.focus, .full-start__button.focus,
+                .full-descr__tag.focus, .player-panel .button.focus {
+                    background: linear-gradient(to right, #4a00e0, #8e2de2);
+                    color: #fff;
+                    box-shadow: 0 0 20px rgba(74,0,224,0.4);
+                    border-radius: 4px;
                 }
                 .card.focus .card__view::after, .card.hover .card__view::after {
-                    border: 1px solid #cccccc;
-                    box-shadow: 0 1px 5px rgba(0, 0, 0, 0.1);
+                    border: 2px solid #8e2de2;
+                    box-shadow: 0 0 25px rgba(74,0,224,0.5);
                 }
                 .head__action.focus, .head__action.hover {
-                    background: #e0e0e0;
-                    color: #333333;
+                    background: linear-gradient(45deg, #4a00e0, #8e2de2);
+                    box-shadow: 0 0 15px rgba(74,0,224,0.3);
                 }
                 .full-start__background {
-                    opacity: 0.9;
-                    filter: brightness(1.1);
+                    opacity: 0.8;
+                    filter: brightness(1.1) contrast(1.2);
                 }
-                .settings__content, .settings-input__content, .selectbox__content, .modal__content {
-                    background: rgba(255, 255, 255, 0.98);
-                    border: 1px solid #e0e0e0;
-                    box-shadow: 0 1px 5px rgba(0, 0, 0, 0.1);
-                }
-                .card__title, .card__vote, .full-start__title, .full-start__rate, .full-start-new__title, .full-start-new__rate {
-                    color: #333333;
+                .settings__content, .settings-input__content,
+                .selectbox__content, .modal__content {
+                    background: rgba(28,37,38,0.98);
+                    border: 1px solid rgba(74,0,224,0.1);
+                    box-shadow: 0 0 20px rgba(142,45,226,0.1);
                 }
             `
         };
@@ -727,14 +693,9 @@
         $('head').append(style);
     }
 
-    /*** 5) ЦВЕТНЫЕ РЕЙТИНГИ ***/
+    /*** 5) ЦВЕТНЫЕ РЕЙТИНГИ И СТАТУСЫ ***/
     function updateVoteColors() {
-        if (!InterFaceMod.settings.colored_ratings) {
-            $('.card__vote, .full-start__rate, .full-start-new__rate, .info__rate, .card__imdb-rate, .card__kinopoisk-rate')
-                .css('color', '');
-            return;
-        }
-
+        if (!InterFaceMod.settings.colored_ratings) return;
         function apply(el) {
             var m = $(el).text().match(/(\d+(\.\d+)?)/);
             if (!m) return;
@@ -749,14 +710,12 @@
         $('.full-start__rate, .full-start-new__rate').each(function(){ apply(this); });
         $('.info__rate, .card__imdb-rate, .card__kinopoisk-rate').each(function(){ apply(this); });
     }
-
     function setupVoteColorsObserver() {
         if (!InterFaceMod.settings.colored_ratings) return;
         setTimeout(updateVoteColors, 500);
         new MutationObserver(function(){ setTimeout(updateVoteColors, 100); })
             .observe(document.body, { childList: true, subtree: true });
     }
-
     function setupVoteColorsForDetailPage() {
         if (!InterFaceMod.settings.colored_ratings) return;
         Lampa.Listener.follow('full', function (d) {
@@ -766,16 +725,7 @@
 
     /*** 6) ЦВЕТНЫЕ ЭЛЕМЕНТЫ (СТАТУС, AGE) ***/
     function colorizeSeriesStatus() {
-        if (!InterFaceMod.settings.colored_elements) {
-            $('.full-start__status').css({
-                backgroundColor: '',
-                color: '',
-                borderRadius: '',
-                display: ''
-            });
-            return;
-        }
-
+        if (!InterFaceMod.settings.colored_elements) return;
         var map = {
             completed: { bg: 'rgba(46,204,113,0.8)', text: 'white' },
             canceled:  { bg: 'rgba(231,76,60,0.8)',  text: 'white' },
@@ -787,7 +737,6 @@
             rumored:   { bg: 'rgba(149,165,166,0.8)', text: 'white' },
             post:      { bg: 'rgba(0,188,212,0.8)',  text: 'white' }
         };
-
         function apply(el) {
             var t = $(el).text().trim().toLowerCase();
             var cfg = null;
@@ -809,7 +758,6 @@
                 });
             }
         }
-
         $('.full-start__status').each(function(){ apply(this); });
         new MutationObserver(function (muts) {
             muts.forEach(function (m) {
@@ -828,14 +776,7 @@
     }
 
     function colorizeAgeRating() {
-        if (!InterFaceMod.settings.colored_elements) {
-            $('.full-start__pg').css({
-                backgroundColor: '',
-                color: ''
-            });
-            return;
-        }
-
+        if (!InterFaceMod.settings.colored_elements) return;
         var groups = {
             kids:        ['G','TV-Y','0+','3+'],
             children:    ['PG','TV-PG','6+','7+'],
@@ -850,7 +791,6 @@
             almostAdult: { bg: '#e67e22', text: 'white' },
             adult:       { bg: '#e74c3c', text: 'white' }
         };
-
         function apply(el) {
             var t = $(el).text().trim();
             var grp = null;
@@ -868,7 +808,6 @@
                 });
             }
         }
-
         $('.full-start__pg').each(function(){ apply(this); });
         new MutationObserver(function (muts) {
             muts.forEach(function (m) {
@@ -886,235 +825,59 @@
         });
     }
 
-    /*** 7) НОВАЯ ИНФО-ПАНЕЛЬ ***/
-    function newInfoPanel() {
-        if (!InterFaceMod.settings.info_panel) {
-            $('.info-unified-line').remove();
-            return;
-        }
+    /*** 7) СПИСОК ЭПИЗОДОВ НА ГЛАВНОЙ ***/
+    function showEpisodesOnMain() {
+        if (!InterFaceMod.settings.show_episodes_on_main) return;
+        Lampa.Listener.follow('full', function (e) {
+            if (e.type === 'complite' && e.data.movie && e.data.movie.number_of_seasons > 0) {
+                var movie = e.data.movie;
+                var render = e.object.activity.render();
+                var details = $(render).find('.full-start__details, .full-start-new__details');
+                if (!details.length) return;
 
-        Lampa.Listener.follow('full', function(data) {
-            if (data.type !== 'complite' || !data.data || !data.data.movie || !data.object || !data.object.activity) {
-                if (InterFaceMod.debug) console.log('[InterfaceMod] newInfoPanel: Недостаточно данных', data);
-                return;
-            }
-
-            setTimeout(function() {
-                var details = $('.full-start-new__details, .full-start__details');
-                if (!details.length) {
-                    if (InterFaceMod.debug) console.log('[InterfaceMod] newInfoPanel: Не найдены .full-start-new__details или .full-start__details');
-                    return;
-                }
-
-                var unifiedLine = $('<div class="info-unified-line"></div>').css({
-                    'display': 'flex',
-                    'flex-wrap': 'wrap',
-                    'gap': '8px',
-                    'margin-bottom': '10px'
-                });
-
-                var infoItems = [];
-                var movie = data.data.movie;
-
-                if (movie.release_date || movie.first_air_date) {
-                    var date = movie.release_date || movie.first_air_date;
-                    if (typeof date === 'string' && date.includes('-')) {
-                        var year = date.split('-')[0];
-                        infoItems.push({
-                            text: year,
-                            style: {
-                                'background-color': 'rgba(52, 152, 219, 0.8)',
-                                'color': 'white'
-                            }
-                        });
-                    }
-                }
-
-                if (movie.genres && Array.isArray(movie.genres) && movie.genres.length) {
-                    var genres = movie.genres.map(g => g.name).join(', ');
-                    infoItems.push({
-                        text: genres,
-                        style: {
-                            'background-color': 'rgba(46, 204, 113, 0.8)',
-                            'color': 'white'
-                        }
-                    });
-                }
-
-                if (movie.runtime || (movie.episode_run_time && movie.episode_run_time.length)) {
-                    var runtime = movie.runtime || (movie.episode_run_time && movie.episode_run_time[0]);
-                    if (runtime && typeof runtime === 'number') {
-                        var hours = Math.floor(runtime / 60);
-                        var minutes = runtime % 60;
-                        var timeText = (hours > 0 ? hours + ' ч ' : '') + (minutes > 0 ? minutes + ' мин' : '');
-                        infoItems.push({
-                            text: timeText,
-                            style: {
-                                'background-color': 'rgba(243, 156, 18, 0.8)',
-                                'color': 'black'
-                            }
-                        });
-                    }
-                }
-
-                if (movie.production_countries && Array.isArray(movie.production_countries) && movie.production_countries.length) {
-                    var country = movie.production_countries[0].name;
-                    infoItems.push({
-                        text: country,
-                        style: {
-                            'background-color': 'rgba(155, 89, 182, 0.8)',
-                            'color': 'white'
-                        }
-                    });
-                }
-
-                if (infoItems.length === 0) {
-                    if (InterFaceMod.debug) console.log('[InterfaceMod] newInfoPanel: Нет данных для отображения');
-                    return;
-                }
-
-                infoItems.forEach(function(item) {
-                    var el = $('<span></span>').text(item.text).css({
-                        'padding': '0.4em 0.6em',
-                        'border-radius': '0.3em',
-                        'font-size': '0.9em',
-                        'backdrop-filter': 'blur(2px)'
-                    }).css(item.style);
-                    unifiedLine.append(el);
-                });
-
-                details.prepend(unifiedLine);
-
-                new MutationObserver(function(muts) {
-                    muts.forEach(function(m) {
-                        if (m.addedNodes) {
-                            $(m.addedNodes).find('.full-start-new__details, .full-start__details').each(function() {
-                                if (!$(this).find('.info-unified-line').length) {
-                                    $(this).prepend(unifiedLine.clone());
-                                }
+                var episodesContainer = $('<div class="episodes-list" style="margin-top: 1em; max-height: 200px; overflow-y: auto;"></div>');
+                if (movie.seasons && movie.seasons.length > 0) {
+                    var lastSeason = movie.seasons[movie.seasons.length - 1];
+                    if (lastSeason.episodes && lastSeason.episodes.length > 0) {
+                        episodesContainer.append($('<div>').text('Последний сезон ' + lastSeason.season_number).css({
+                            fontWeight: 'bold',
+                            marginBottom: '0.5em',
+                            color: '#fff'
+                        }));
+                        lastSeason.episodes.slice(0, 5).forEach(function (ep) {
+                            var epTitle = ep.name || 'Эпизод ' + ep.episode_number;
+                            var epDate = ep.air_date ? new Date(ep.air_date).toLocaleDateString() : 'TBA';
+                            var epItem = $('<div>').text('Эп. ' + ep.episode_number + ': ' + epTitle + ' (' + epDate + ')').css({
+                                padding: '0.3em',
+                                background: 'rgba(255,255,255,0.1)',
+                                marginBottom: '0.3em',
+                                borderRadius: '0.3em',
+                                fontSize: '0.9em'
                             });
-                        }
-                    });
-                }).observe(document.body, { childList: true, subtree: true });
-
-                if (InterFaceMod.debug) console.log('[InterfaceMod] newInfoPanel: Панель добавлена', infoItems);
-            }, 100);
-        });
-    }
-
-    /*** 8) СТИЛИЗАЦИЯ ЗАГОЛОВКОВ ***/
-    function stylizeTitles() {
-        if (!InterFaceMod.settings.stylize_titles) {
-            $('#stylize_titles').remove();
-            $('.card__title, .full-start__title, .full-start-new__title').css({
-                fontWeight: '',
-                textShadow: '',
-                background: '',
-                '-webkit-background-clip': '',
-                '-webkit-text-fill-color': ''
-            });
-            return;
-        }
-
-        var style = $('<style id="stylize_titles"></style>').html(`
-            .card__title, .full-start__title, .full-start-new__title {
-                font-weight: bold;
-                text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
-                background: linear-gradient(to right, #ffffff, #cccccc);
-                -webkit-background-clip: text;
-                -webkit-text-fill-color: transparent;
-            }
-        `);
-        $('head').append(style);
-
-        Lampa.Listener.follow('full', function(e) {
-            if (e.type === 'complite' && e.object && e.object.activity) {
-                setTimeout(function() {
-                    var title = $(e.object.activity.render()).find('.full-start__title, .full-start-new__title');
-                    title.css({
-                        'font-weight': 'bold',
-                        'text-shadow': '0 0 5px rgba(255, 255, 255, 0.5)',
-                        'background': 'linear-gradient(to right, #ffffff, #cccccc)',
-                        '-webkit-background-clip': 'text',
-                        '-webkit-text-fill-color': 'transparent'
-                    });
-                }, 100);
+                            episodesContainer.append(epItem);
+                        });
+                    }
+                }
+                details.append(episodesContainer);
             }
         });
     }
 
-    /*** 9) СТИЛИ КНОПОК ***/
-    function applyButtonStyles() {
-        var mode = InterFaceMod.settings.buttons_style_mode;
-        $('#interface_mod_buttons_custom_style').remove();
-
-        if (mode === 'default') return;
-
-        var style = $('<style id="interface_mod_buttons_custom_style"></style>');
-        var styles = {
-            neon: `
-                .full-start__button, .custom-online-btn, .custom-torrent-btn, .main2-more-btn, .simple-button {
-                    background: linear-gradient(to right, #ff00ff, #00ffff);
-                    color: #fff;
-                    border: none;
-                    box-shadow: 0 0 10px rgba(255, 0, 255, 0.5);
-                    transition: all 0.3s ease;
-                }
-                .full-start__button:hover, .custom-online-btn:hover, .custom-torrent-btn:hover, .main2-more-btn:hover, .simple-button:hover {
-                    box-shadow: 0 0 20px rgba(255, 0, 255, 0.8);
-                    transform: scale(1.05);
-                }
-            `,
-            minimal: `
-                .full-start__button, .custom-online-btn, .custom-torrent-btn, .main2-more-btn, .simple-button {
-                    background: #2c2c2c;
-                    color: #ffffff;
-                    border: 1px solid #3d3d3d;
-                    border-radius: 3px;
-                    box-shadow: none;
-                    transition: all 0.2s ease;
-                }
-                .full-start__button:hover, .custom-online-btn:hover, .custom-torrent-btn:hover, .main2-more-btn:hover, .simple-button:hover {
-                    background: #3d3d3d;
-                    border-color: #4a4a4a;
-                }
-            `,
-            gradient: `
-                .full-start__button, .custom-online-btn, .custom-torrent-btn, .main2-more-btn, .simple-button {
-                    background: linear-gradient(to right, #43cea2, #185a9d);
-                    color: #fff;
-                    border: none;
-                    border-radius: 5px;
-                    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-                    transition: all 0.3s ease;
-                }
-                .full-start__button:hover, .custom-online-btn:hover, .custom-torrent-btn:hover, .main2-more-btn:hover, .simple-button:hover {
-                    background: linear-gradient(to right, #185a9d, #43cea2);
-                    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-                }
-            `
-        };
-
-        style.html(styles[mode] || '');
-        $('head').append(style);
-    }
-
-    /*** 10) ИНИЦИАЛИЗАЦИЯ ***/
+    /*** 8) ИНИЦИАЛИЗАЦИЯ ***/
     function startPlugin() {
-        // Компонент настроек
+        // компонент настроек
         Lampa.SettingsApi.addComponent({
             component: 'season_info',
             name: 'Интерфейс мод',
-            icon: `
-                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M4 5C4 4.44772 4.44772 4 5 4H19C19.5523 4 20 4.44772 20 5V7C20 7.55228 19.5523 8 19 8H5C4.44772 8 4 7.55228 4 7V5Z" fill="currentColor"/>
-                    <path d="M4 11C4 10.4477 4.44772 10 5 10H19C19.5523 10 20 10.4477 20 11V13C20 13.5523 19.5523 14 19 14H5C4.44772 14 4 13.5523 4 13V11Z" fill="currentColor"/>
-                    <path d="M4 17C4 16.4477 4.44772 16 5 16H19C19.5523 16 20 16.4477 20 17V19C20 19.5523 19.5523 20 19 20H5C4.44772 20 4 19.5523 4 19V17Z" fill="currentColor"/>
-                </svg>
-            `
+            icon: ''
+                + '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">'
+                +   '<path d="M4 5C4 4.44772 4.44772 4 5 4H19C19.5523 4 20 4.44772 20 5V7C20 7.55228 19.5523 8 19 8H5C4.44772 8 4 7.55228 4 7V5Z" fill="currentColor"/>'
+                +   '<path d="M4 11C4 10.4477 4.44772 10 5 10H19C19.5523 10 20 10.4477 20 11V13C20 13.5523 19.5523 14 19 14H5C4.44772 14 4 13.5523 4 13V11Z" fill="currentColor"/>'
+                +   '<path d="M4 17C4 16.4477 4.44772 16 5 16H19C19.5523 16 20 16.4477 20 17V19C20 19.5523 19.5523 20 19 20H5C4.44772 20 4 19.5523 4 19V17Z" fill="currentColor"/>'
+                + '</svg>'
         });
 
-        // Режим серий
+        // режим серий
         Lampa.SettingsApi.addParam({
             component: 'season_info',
             param: {
@@ -1125,7 +888,7 @@
                     aired: 'Актуальная информация',
                     total: 'Полное количество'
                 },
-                default: InterFaceMod.settings.seasons_info_mode
+                default: 'aired'
             },
             field: {
                 name: 'Информация о сериях',
@@ -1134,12 +897,11 @@
             onChange: function (v) {
                 InterFaceMod.settings.seasons_info_mode = v;
                 InterFaceMod.settings.enabled = (v !== 'none');
-                Lampa.Storage.set('interface_mod_settings', InterFaceMod.settings);
-                addSeasonInfo();
+                Lampa.Settings.update();
             }
         });
 
-        // Позиция лейбла
+        // позиция лейбла
         Lampa.SettingsApi.addParam({
             component: 'season_info',
             param: {
@@ -1151,7 +913,7 @@
                     'bottom-right': 'Нижний правый угол',
                     'bottom-left': 'Нижний левый угол'
                 },
-                default: InterFaceMod.settings.label_position
+                default: 'top-right'
             },
             field: {
                 name: 'Расположение лейбла о сериях',
@@ -1159,50 +921,50 @@
             },
             onChange: function (v) {
                 InterFaceMod.settings.label_position = v;
-                Lampa.Storage.set('interface_mod_settings', InterFaceMod.settings);
+                Lampa.Settings.update();
                 Lampa.Noty.show('Для применения изменений откройте карточку сериала заново');
             }
         });
 
-        // Показать все кнопки
+        // показать все кнопки
         Lampa.SettingsApi.addParam({
             component: 'season_info',
-            param: {
-                name: 'show_buttons',
-                type: 'trigger',
-                default: InterFaceMod.settings.show_buttons
-            },
-            field: {
-                name: 'Показывать все кнопки',
-                description: 'Отображать все кнопки действий в карточке'
-            },
+            param: { name: 'show_buttons', type: 'trigger', default: true },
+            field: { name: 'Показывать все кнопки', description: 'Отображать все кнопки действий в карточке' },
             onChange: function (v) {
                 InterFaceMod.settings.show_buttons = v;
-                Lampa.Storage.set('interface_mod_settings', InterFaceMod.settings);
-                showAllButtons();
+                Lampa.Settings.update();
             }
         });
 
-        // Тип контента
+        // тип контента
         Lampa.SettingsApi.addParam({
             component: 'season_info',
-            param: {
-                name: 'show_movie_type',
-                type: 'trigger',
-                default: InterFaceMod.settings.show_movie_type
-            },
-            field: {
-                name: 'Изменить лейблы типа',
-                description: 'Изменить "TV" на "Сериал" и добавить лейбл "Фильм"'
-            },
+            param: { name: 'season_info_show_movie_type', type: 'trigger', default: true },
+            field: { name: 'Изменить лейблы типа', description: 'Изменить "TV" на "Сериал" и добавить лейбл "Фильм"' },
             onChange: function (v) {
                 InterFaceMod.settings.show_movie_type = v;
-                Lampa.Storage.set('interface_mod_settings', InterFaceMod.settings);
-                changeMovieTypeLabels();
+                Lampa.Settings.update();
             }
         });
 
-        // Тема
+        // список эпизодов на главной
+        Lampa.SettingsApi.addParam({
+            component: 'season_info',
+            param: { name: 'show_episodes_on_main', type: 'trigger', default: false },
+            field: { name: 'Список эпизодов', description: 'Показывать последние эпизоды на главной карточке сериала' },
+            onChange: function (v) {
+                InterFaceMod.settings.show_episodes_on_main = v;
+                Lampa.Settings.update();
+                if (v) {
+                    showEpisodesOnMain();
+                } else {
+                    $('.episodes-list').remove();
+                }
+            }
+        });
+
+        // тема
         Lampa.SettingsApi.addParam({
             component: 'season_info',
             param: {
@@ -1210,164 +972,95 @@
                 type: 'select',
                 values: {
                     default: 'Нет',
-                    neon_pulse: 'Neon Pulse',
-                    cyber_green: 'Cyber Green',
-                    electric_blue: 'Electric Blue',
-                    crimson_glow: 'Crimson Glow',
-                    wave_motion: 'Wave Motion',
-                    pulse_beat: 'Pulse Beat',
-                    rainbow_shift: 'Rainbow Shift',
-                    clean_dark: 'Clean Dark',
-                    slate_blue: 'Slate Blue',
-                    light_minimal: 'Light Minimal'
+                    bywolf_mod: 'Bywolf_mod',
+                    dark_night: 'Dark Night bywolf',
+                    blue_cosmos: 'Blue Cosmos',
+                    neon: 'Neon',
+                    sunset: 'Dark MOD',
+                    emerald: 'Emerald V1',
+                    aurora: 'Aurora',
+                    cyberpunk: 'Cyberpunk',
+                    midnight: 'Midnight'
                 },
-                default: InterFaceMod.settings.theme
+                default: 'default'
             },
-            field: {
-                name: 'Тема интерфейса',
-                description: 'Выберите тему оформления интерфейса'
-            },
+            field: { name: 'Тема интерфейса', description: 'Выберите тему оформления интерфейса' },
             onChange: function (v) {
                 InterFaceMod.settings.theme = v;
-                Lampa.Storage.set('interface_mod_settings', InterFaceMod.settings);
+                Lampa.Settings.update();
                 applyTheme(v);
             }
         });
 
-        // Цвет рейтингов
+        // цвет рейтингов
         Lampa.SettingsApi.addParam({
             component: 'season_info',
-            param: {
-                name: 'colored_ratings',
-                type: 'trigger',
-                default: InterFaceMod.settings.colored_ratings
-            },
-            field: {
-                name: 'Цветные рейтинги',
-                description: 'Изменять цвет рейтинга в зависимости от оценки'
-            },
+            param: { name: 'colored_ratings', type: 'trigger', default: true },
+            field: { name: 'Цветные рейтинги', description: 'Изменять цвет рейтинга в зависимости от оценки' },
             onChange: function (v) {
+                var active = document.activeElement;
                 InterFaceMod.settings.colored_ratings = v;
-                Lampa.Storage.set('interface_mod_settings', InterFaceMod.settings);
-                updateVoteColors();
+                Lampa.Settings.update();
+                setTimeout(function () {
+                    if (v) {
+                        setupVoteColorsObserver();
+                        setupVoteColorsForDetailPage();
+                    } else {
+                        $('.card__vote, .full-start__rate, .full-start-new__rate, .info__rate, .card__imdb-rate, .card__kinopoisk-rate')
+                            .css('color', '');
+                    }
+                    if (active && document.body.contains(active)) active.focus();
+                }, 0);
+            }
+        });
+
+        // цвет элементов
+        Lampa.SettingsApi.addParam({
+            component: 'season_info',
+            param: { name: 'colored_elements', type: 'trigger', default: true },
+            field: { name: 'Цветные элементы', description: 'Отображать статусы сериалов и возрастные ограничения цветными' },
+            onChange: function (v) {
+                InterFaceMod.settings.colored_elements = v;
+                Lampa.Settings.update();
                 if (v) {
-                    setupVoteColorsObserver();
-                    setupVoteColorsForDetailPage();
+                    colorizeSeriesStatus();
+                    colorizeAgeRating();
+                } else {
+                    $('.full-start__status').css({ backgroundColor: '', color: '', borderRadius: '', display: '' });
+                    $('.full-start__pg').css({ backgroundColor: '', color: '' });
                 }
             }
         });
 
-        // Цвет элементов
-        Lampa.SettingsApi.addParam({
-            component: 'season_info',
-            param: {
-                name: 'colored_elements',
-                type: 'trigger',
-                default: InterFaceMod.settings.colored_elements
-            },
-            field: {
-                name: 'Цветные элементы',
-                description: 'Отображать статусы сериалов и возрастные ограничения цветными'
-            },
-            onChange: function (v) {
-                InterFaceMod.settings.colored_elements = v;
-                Lampa.Storage.set('interface_mod_settings', InterFaceMod.settings);
-                colorizeSeriesStatus();
-                colorizeAgeRating();
-            }
-        });
+        // загрузить сохранённые
+        InterFaceMod.settings.seasons_info_mode    = Lampa.Storage.get('seasons_info_mode', 'aired');
+        InterFaceMod.settings.label_position       = Lampa.Storage.get('label_position', 'top-right');
+        InterFaceMod.settings.show_buttons         = Lampa.Storage.get('show_buttons', true);
+        InterFaceMod.settings.show_movie_type      = Lampa.Storage.get('season_info_show_movie_type', true);
+        InterFaceMod.settings.show_episodes_on_main = Lampa.Storage.get('show_episodes_on_main', false);
+        InterFaceMod.settings.theme                = Lampa.Storage.get('theme_select', 'default');
+        InterFaceMod.settings.colored_ratings      = Lampa.Storage.get('colored_ratings', true);
+        InterFaceMod.settings.colored_elements     = Lampa.Storage.get('colored_elements', true);
 
-        // Новая инфо-панель
-        Lampa.SettingsApi.addParam({
-            component: 'season_info',
-            param: {
-                name: 'info_panel',
-                type: 'trigger',
-                default: InterFaceMod.settings.info_panel
-            },
-            field: {
-                name: 'Информационная панель',
-                description: 'Показывать новую информационную панель'
-            },
-            onChange: function (v) {
-                InterFaceMod.settings.info_panel = v;
-                Lampa.Storage.set('interface_mod_settings', InterFaceMod.settings);
-                newInfoPanel();
-            }
-        });
-
-        // Стилизация заголовков
-        Lampa.SettingsApi.addParam({
-            component: 'season_info',
-            param: {
-                name: 'stylize_titles',
-                type: 'trigger',
-                default: InterFaceMod.settings.stylize_titles
-            },
-            field: {
-                name: 'Стилизация заголовков',
-                description: 'Применять стили к заголовкам карточек и страниц'
-            },
-            onChange: function (v) {
-                InterFaceMod.settings.stylize_titles = v;
-                Lampa.Storage.set('interface_mod_settings', InterFaceMod.settings);
-                stylizeTitles();
-            }
-        });
-
-        // Стиль кнопок
-        Lampa.SettingsApi.addParam({
-            component: 'season_info',
-            param: {
-                name: 'buttons_style_mode',
-                type: 'select',
-                values: {
-                    default: 'По умолчанию',
-                    neon: 'Неон',
-                    minimal: 'Минимализм',
-                    gradient: 'Градиент'
-                },
-                default: InterFaceMod.settings.buttons_style_mode
-            },
-            field: {
-                name: 'Стиль кнопок',
-                description: 'Выберите стиль оформления кнопок'
-            },
-            onChange: function (v) {
-                InterFaceMod.settings.buttons_style_mode = v;
-                Lampa.Storage.set('interface_mod_settings', InterFaceMod.settings);
-                applyButtonStyles();
-            }
-        });
-
-        // Загрузить сохранённые настройки
-        var savedSettings = Lampa.Storage.get('interface_mod_settings', {});
-        for (var key in InterFaceMod.settings) {
-            if (savedSettings[key] !== undefined) {
-                InterFaceMod.settings[key] = savedSettings[key];
-            }
-        }
-
-        // Применить тему
+        // применить тему сразу
         applyTheme(InterFaceMod.settings.theme);
 
-        // Запустить функции
-        if (InterFaceMod.settings.enabled && InterFaceMod.settings.seasons_info_mode !== 'none') addSeasonInfo();
+        // запустить
+        if (InterFaceMod.settings.enabled) addSeasonInfo();
         showAllButtons();
         changeMovieTypeLabels();
-        updateVoteColors();
+        if (InterFaceMod.settings.show_episodes_on_main) showEpisodesOnMain();
         if (InterFaceMod.settings.colored_ratings) {
             setupVoteColorsObserver();
             setupVoteColorsForDetailPage();
         }
-        colorizeSeriesStatus();
-        colorizeAgeRating();
-        newInfoPanel();
-        stylizeTitles();
-        applyButtonStyles();
+        if (InterFaceMod.settings.colored_elements) {
+            colorizeSeriesStatus();
+            colorizeAgeRating();
+        }
     }
 
-    // Ждём готовности
+    // ждём готовности
     if (window.appready) {
         startPlugin();
     } else {
@@ -1376,11 +1069,12 @@
         });
     }
 
-    // Manifest & экспорт
+    // manifest & экспорт
     Lampa.Manifest.plugins = {
         name: 'Интерфейс мод',
-        version: '2.2.1',
+        version: '2.3.0',
         description: 'Улучшенный интерфейс для приложения Lampa'
     };
     window.season_info = InterFaceMod;
+
 })();
