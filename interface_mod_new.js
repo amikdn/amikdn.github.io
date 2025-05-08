@@ -3,7 +3,7 @@
 
     var InterFaceMod = {
         name: 'interface_mod',
-        version: '2.4.1', // Обновленная версия
+        version: '2.4.2', // Обновленная версия
         debug: true, // Включено для диагностики
         settings: {
             enabled: true,
@@ -314,16 +314,22 @@
 
         // Логирование для диагностики
         if (InterFaceMod.debug) {
-            console.log('InterfaceMod: Lampa.SettingsApi exists:', !!Lampa.SettingsApi);
-            console.log('InterfaceMod: Lampa.SettingsApi.addParam exists:', !!Lampa.SettingsApi?.addParam);
+            console.log('InterfaceMod: Lampa.Settings exists:', !!Lampa.Settings);
+            console.log('InterfaceMod: Lampa.Settings.main exists:', !!Lampa.Settings?.main);
+            console.log('InterfaceMod: Lampa.Settings.main().menu exists:', !!Lampa.Settings?.main?.().menu);
         }
 
-        // Добавляем меню настроек
-        try {
-            Lampa.Settings.main().menu.unshift(menu[0]);
-        } catch (e) {
-            console.error('InterfaceMod: Failed to add settings menu:', e);
-        }
+        // Отложенное добавление настроек
+        setTimeout(function () {
+            if (Lampa.Settings && typeof Lampa.Settings.main === 'function' && Lampa.Settings.main().menu) {
+                Lampa.Settings.main().menu.unshift(menu[0]);
+                if (InterFaceMod.debug) {
+                    console.log('InterfaceMod: Settings menu added successfully');
+                }
+            } else {
+                console.warn('InterfaceMod: Cannot add settings menu - Lampa.Settings.main().menu is undefined');
+            }
+        }, 1000); // Задержка 1 секунда
     }
 
     // Функция для изменения лейблов типа контента
