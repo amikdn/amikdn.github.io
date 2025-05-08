@@ -1557,8 +1557,8 @@ function createSettingsMenu() {
         type: 'menu',
         place: 'after',
         field: 'interface',
-        value: menu
-    });
+        data: { type: 'menu', value: menu }
+});
 }
 
 /*** 11 ЛОКАЛИЗАЦИЯ ***/
