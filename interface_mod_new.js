@@ -1,4 +1,4 @@
-(function () {
+ (function () {
     'use strict';
 
     var InterFaceMod = {
@@ -22,7 +22,7 @@
         }
     };
 
-    /*** 1) СЕЗОНЫ И ЭПИЗОДЫ ***/
+    /*** 1 СЕЗОНЫ И ЭПИЗОДЫ ***/
     function addSeasonInfo() {
         Lampa.Listener.follow('full', function (data) {
             if (data.type === 'complite' && data.data.movie.number_of_seasons) {
@@ -166,7 +166,7 @@
         });
     }
 
-    /*** 2) ВСЕ КНОПКИ ***/
+    /*** 2 ВСЕ КНОПКИ ***/
     function showAllButtons() {
         var style = document.createElement('style');
         style.id = 'interface_mod_buttons_style';
@@ -300,7 +300,7 @@
     }
 
         
-    /*** 3) ТИП КОНТЕНТА ***/
+    /*** 3 ТИП КОНТЕНТА ***/
     function changeMovieTypeLabels() {
         var style = $(`<style id="movie_type_styles">
             .content-label { position: absolute!important; top: 1.4em!important; left: -0.8em!important; color: white!important; padding: 0.4em 0.4em!important; border-radius: 0.3em!important; font-size: 0.8em!important; z-index: 10!important; }
@@ -340,10 +340,10 @@
                 meta.is_series) {
                 isTV = true;
             }
-           // if (!isTV) {
-           //     if ($(card).hasClass('card--tv') || $(card).data('type') === 'tv') isTV = true;
-           //     else if ($(card).find('.card__type, .card__temp').text().match(/(сезон|серия|эпизод| mississippi | ТВ | сериал | эпизод | Фильм )/) )
-           // }
+            if (!isTV) {
+                if ($(card).hasClass('card--tv') || $(card).data('type') === 'tv') isTV = true;
+                else if ($(card).find('.card__type, .card__temp').text().match(/(сезон|серия|эпизод| mississippi | ТВ | сериал | эпизод | Фильм )/) )
+            }
 
             function processAll() {
                 if (!InterFaceMod.settings.show_movie_type) return;
@@ -392,7 +392,7 @@
             processAll();
             setInterval(processAll, 2000);
         }
-        /*** 4) ТЕМЫ ОФОРМЛЕНИЯ ***/
+        /*** 4 ТЕМЫ ОФОРМЛЕНИЯ ***/
         function applyTheme(theme) {
             $('#interface_mod_theme').remove();
             if (theme === 'default') return;
@@ -1053,7 +1053,7 @@
             $('head').append(style);
         }
 
-        /*** 5) ЦВЕТНЫЕ РЕЙТИНГИ И СТАТУСЫ ***/
+        /*** 5 ЦВЕТНЫЕ РЕЙТИНГИ И СТАТУСЫ ***/
         function updateVoteColors() {
             if (!InterFaceMod.settings.colored_ratings) return;
             function apply(el) {
@@ -1083,7 +1083,7 @@
             });
         }
 
-        /*** 6) ЦВЕТНЫЕ ЭЛЕМЕНТЫ (СТАТУС, AGE) ***/
+        /*** 6 ЦВЕТНЫЕ ЭЛЕМЕНТЫ (СТАТУС, AGE) ***/
         function colorizeSeriesStatus() {
             if (!InterFaceMod.settings.colored_elements) return;
             var map = {
@@ -1185,7 +1185,7 @@
             });
         }
 
-        /*** 7) НОВАЯ ИНФО-ПАНЕЛЬ ***/
+        /*** 7 НОВАЯ ИНФО-ПАНЕЛЬ ***/
         function newInfoPanel() {
             if (!InterFaceMod.settings.info_panel) {
                 $('.info-unified-line').remove();
@@ -1274,7 +1274,7 @@
             });
         }
 
-        /*** 8) НОВЫЙ СТИЛЬ ЗАГОЛОВКОВ ***/
+        /*** 8 НОВЫЙ СТИЛЬ ЗАГОЛОВКОВ ***/
         function stylizeCollectionTitles() {
             if (!InterFaceMod.settings.stylize_titles) {
                 var oldStyle = document.getElementById('stylized-titles-css');
@@ -1306,7 +1306,7 @@
             document.head.appendChild(styleElement);
         }
 
-        /*** 9) СТИЛЬ КНОПОК ***/
+        /*** 9 СТИЛЬ КНОПОК ***/
 function updateButtonStyle() {
     var styleElement = document.getElementById('button-style-css');
     if (styleElement) styleElement.remove();
@@ -1380,7 +1380,7 @@ function updateButtonStyle() {
     document.head.appendChild(styleElement);
 }
 
-/*** 10) ИНИЦИАЛИЗАЦИЯ И НАСТРОЙКИ ***/
+/*** 10 ИНИЦИАЛИЗАЦИЯ И НАСТРОЙКИ ***/
 function init() {
     if (!InterFaceMod.settings.enabled) return;
 
@@ -1558,7 +1558,7 @@ function createSettingsMenu() {
     });
 }
 
-/*** 11) ЛОКАЛИЗАЦИЯ ***/
+/*** 11 ЛОКАЛИЗАЦИЯ ***/
 function setupLocalization() {
     Lampa.Lang.add({
         interface_mod_title: {
@@ -1629,17 +1629,17 @@ function setupLocalization() {
     });
 }
 
-/*** 12) ЗАГРУЗКА НАСТРОЕК ***/
+/*** 12 ЗАГРУЗКА НАСТРОЕК ***/
 function loadSettings() {
     var saved = Lampa.Storage.get('interface_mod_settings', '{}');
     InterFaceMod.settings = $.extend(InterFaceMod.settings, saved);
 }
 
-/*** 13) СТАРТ ПЛАГИНА ***/
+/*** 13 СТАРТ ПЛАГИНА ***/
 $(document).ready(function () {
     loadSettings();
     setupLocalization();
     createSettingsMenu();
     if (InterFaceMod.settings.enabled) init();
 });
-})();
+}})();
