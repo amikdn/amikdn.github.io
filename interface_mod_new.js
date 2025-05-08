@@ -299,7 +299,8 @@
         }).observe(document.body, { childList: true, subtree: true });
     }
 
-        /*** 3) ТИП КОНТЕНТА ***/
+        
+    /*** 3) ТИП КОНТЕНТА ***/
     function changeMovieTypeLabels() {
         var style = $(`<style id="movie_type_styles">
             .content-label { position: absolute!important; top: 1.4em!important; left: -0.8em!important; color: white!important; padding: 0.4em 0.4em!important; border-radius: 0.3em!important; font-size: 0.8em!important; z-index: 10!important; }
@@ -340,72 +341,57 @@
                 isTV = true;
             }
             if (!isTV) {
-                if ($(card).hasClass('card--tv') || $(card).data('type') === 'tv') {
-                    isTV = true;
-                } else {
-                    var text = $(card).find('.card__type, .card__temp').text().toLowerCase();
-                    if (text.match(/(сезон|серия|эпизод|тв|сериал)/i)) {
-                        isTV = true;
+                if ($(card).hasClass('card--tv') || $(card).data('type') === 'tv') isTV = true;
+                else if ($(card).find('.card__type, .card__temp').text().match(сезон|серия|эпизод| mississippi | ТВ | сериал | эпизод | Фильм )
+            }
+
+            function processAll() {
+                if (!InterFaceMod.settings.show_movie_type) return;
+                $('.card').each(function () { addLabel(this); });
+            }
+
+            Lampa.Listener.follow('full', function (e) {
+                if (e.type === 'complite' && e.data.movie) {
+                    var poster = $(e.object.activity.render()).find('.full-start__poster');
+                    if (!poster.length) return;
+                    var m = e.data.movie;
+                    var isTV = m.number_of_seasons > 0 || m.seasons || m.type === 'tv';
+                    if (InterFaceMod.settings.show_movie_type) {
+                        poster.find('.content-label').remove();
+                        var lbl = $('<div class="content-label"></div>').css({
+                            position: 'absolute', top: '1.4em', left: '-0.8em',
+                            color: 'white', padding: '0.4em', borderRadius: '0.3em',
+                            fontSize: '0.8em', zIndex: 10
+                        });
+                        if (isTV) {
+                            lbl.addClass('serial-label').text('Сериал').css('backgroundColor', '#3498db');
+                        } else {
+                            lbl.addClass('movie-label').text('Фильм').css('backgroundColor', '#2ecc71');
+                        }
+                        poster.css('position', 'relative').append(lbl);
                     }
-                }
-            }
-
-            var lbl = $('<div class="content-label"></div>');
-            if (isTV) {
-                lbl.addClass('serial-label').text('Сериал').data('type', 'serial');
-            } else {
-                lbl.addClass('movie-label').text('Фильм').data('type', 'movie');
-            }
-            view.append(lbl);
-        }
-
-        function processAll() {
-            if (!InterFaceMod.settings.show_movie_type) return;
-            $('.card').each(function () { addLabel(this); });
-        }
-
-        Lampa.Listener.follow('full', function (e) {
-            if (e.type === 'complite' && e.data.movie) {
-                var poster = $(e.object.activity.render()).find('.full-start__poster');
-                if (!poster.length) return;
-                var m = e.data.movie;
-                var isTV = m.number_of_seasons > 0 || m.seasons || m.type === 'tv';
-                if (InterFaceMod.settings.show_movie_type) {
-                    poster.find('.content-label').remove();
-                    var lbl = $('<div class="content-label"></div>').css({
-                        position: 'absolute', top: '1.4em', left: '-0.8em',
-                        color: 'white', padding: '0.4em', borderRadius: '0.3em',
-                        fontSize: '0.8em', zIndex: 10
-                    });
-                    if (isTV) {
-                        lbl.addClass('serial-label').text('Сериал').css('backgroundColor', '#3498db');
-                    } else {
-                        lbl.addClass('movie-label').text('Фильм').css('backgroundColor', '#2ecc71');
-                    }
-                    poster.css('position', 'relative').append(lbl);
-                }
-            }
-        });
-
-        new MutationObserver(function (muts) {
-            muts.forEach(function (m) {
-                if (m.addedNodes) {
-                    $(m.addedNodes).find('.card').each(function () { addLabel(this); });
-                }
-                if (m.type === 'attributes' &&
-                    ['class', 'data-card', 'data-type'].includes(m.attributeName) &&
-                    $(m.target).hasClass('card')) {
-                    addLabel(m.target);
                 }
             });
-        }).observe(document.body, {
-            childList: true, subtree: true,
-            attributes: true, attributeFilter: ['class', 'data-card', 'data-type']
-        });
 
-        processAll();
-        setInterval(processAll, 2000);
-    }
+            new MutationObserver(function (muts) {
+                muts.forEach(function (m) {
+                    if (m.addedNodes) {
+                        $(m.addedNodes).find('.card').each(function () { addLabel(this); });
+                    }
+                    if (m.type === 'attributes' &&
+                        ['class', 'data-card', 'data-type'].includes(m.attributeName) &&
+                        $(m.target).hasClass('card')) {
+                        addLabel(m.target);
+                    }
+                });
+            }).observe(document.body, {
+                childList: true, subtree: true,
+                attributes: true, attributeFilter: ['class', 'data-card', 'data-type']
+            });
+
+            processAll();
+            setInterval(processAll, 2000);
+        }
         /*** 4) ТЕМЫ ОФОРМЛЕНИЯ ***/
         function applyTheme(theme) {
             $('#interface_mod_theme').remove();
