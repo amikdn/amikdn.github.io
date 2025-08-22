@@ -4,8 +4,8 @@
     // Объект плагина
     var TorrentQuality = {
         name: 'torrent_quality',
-        version: '1.0.0',
-        debug: false,
+        version: '1.0.1',
+        debug: true, // Включаем отладку для диагностики
         settings: {
             enabled: true,
             quality_filter: 'any' // По умолчанию "Любое"
@@ -43,13 +43,42 @@
                 description: 'Выберите качество для фильтрации торрентов'
             },
             onRender: function (element) {
+                if (TorrentQuality.debug) {
+                    console.log('[torrent_quality.js] onRender вызван, element:', element);
+                }
+
+                // Проверяем, что element является DOM-элементом
+                if (!(element instanceof HTMLElement)) {
+                    console.error('[torrent_quality.js] element не является DOM-элементом:', element);
+                    return;
+                }
+
                 // Находим контейнер настроек
-                var container = element.closest('.settings-param');
-                if (!container) return;
+                var container = element.closest('.settings-param') || element.closest('.settings__content');
+                if (!container) {
+                    console.error('[torrent_quality.js] Контейнер (.settings-param или .settings__content) не найден для element:', element);
+                    // Пробуем альтернативный контейнер
+                    container = document.querySelector('.settings__content') || element.parentElement;
+                    if (!container) {
+                        console.error('[torrent_quality.js] Альтернативный контейнер не найден, подменю не будет добавлено');
+                        return;
+                    }
+                }
+                if (TorrentQuality.debug) {
+                    console.log('[torrent_quality.js] Найден контейнер:', container);
+                }
+
+                // Проверяем, не добавлено ли уже подменю
+                if (container.querySelector('.selectbox__content.torrent-quality-submenu')) {
+                    if (TorrentQuality.debug) {
+                        console.log('[torrent_quality.js] Подменю уже добавлено, пропускаем');
+                    }
+                    return;
+                }
 
                 // Создаем подменю
                 var submenu = document.createElement('div');
-                submenu.className = 'selectbox__content layer--height';
+                submenu.className = 'selectbox__content layer--height torrent-quality-submenu';
                 submenu.style.height = '945px';
                 submenu.style.display = 'none';
                 submenu.innerHTML = `
@@ -82,21 +111,41 @@
                 `;
 
                 // Вставляем подменю
-                container.appendChild(submenu);
+                try {
+                    container.appendChild(submenu);
+                    if (TorrentQuality.debug) {
+                        console.log('[torrent_quality.js] Подменю успешно добавлено в контейнер');
+                    }
+                } catch (e) {
+                    console.error('[torrent_quality.js] Ошибка при добавлении подменю:', e);
+                    return;
+                }
+
+                // Находим заголовок параметра
+                var title = container.querySelector('.settings-param__name') || element.querySelector('.settings-param__name');
+                if (!title) {
+                    console.warn('[torrent_quality.js] Заголовок .settings-param__name не найден, пробуем альтернативный селектор');
+                    title = element.querySelector('span') || element;
+                }
+                if (TorrentQuality.debug) {
+                    console.log('[torrent_quality.js] Найден заголовок:', title);
+                }
 
                 // Обработчик клика на заголовок параметра
-                var title = container.querySelector('.settings-param__name');
                 if (title) {
                     title.addEventListener('click', function () {
                         submenu.style.display = submenu.style.display === 'none' ? 'block' : 'none';
                         // Скрываем другие подменю
-                        container.closest('.settings__content')
-                            .querySelectorAll('.selectbox__content')
-                            .forEach(content => {
+                        var settingsContent = container.closest('.settings__content') || document.querySelector('.settings__content');
+                        if (settingsContent) {
+                            settingsContent.querySelectorAll('.selectbox__content').forEach(content => {
                                 if (content !== submenu) content.style.display = 'none';
                             });
+                        }
                         console.log('[torrent_quality.js] Подменю "Качество":', submenu.style.display);
                     });
+                } else {
+                    console.error('[torrent_quality.js] Не удалось найти заголовок для привязки события клика');
                 }
 
                 // Обработчики для пунктов подменю
@@ -104,9 +153,11 @@
                     item.addEventListener('click', function () {
                         var value = item.dataset.value || item.querySelector('.selectbox-item__title').textContent.trim();
                         value = value === 'Сброс' ? 'any' : value.toLowerCase();
-                        var subtitle = container.querySelector('.settings-param__value');
+                        var subtitle = container.querySelector('.settings-param__value') || element.querySelector('.settings-param__value');
                         if (subtitle) {
                             subtitle.textContent = value === 'any' ? 'Любое' : value.toUpperCase();
+                        } else {
+                            console.warn('[torrent_quality.js] Не найден .settings-param__value для обновления текста');
                         }
 
                         // Переключаем состояние чекбокса
@@ -245,7 +296,7 @@
     // Манифест плагина
     Lampa.Manifest.plugins = {
         name: 'Качество Торрентов',
-        version: '1.0.0',
+        version: '1.0.1',
         description: 'Фильтрация торрентов по качеству (WEB-DL, WEB-DLRip, BDRip)'
     };
     window.torrent_quality = TorrentQuality;
