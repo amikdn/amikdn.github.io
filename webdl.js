@@ -4,8 +4,8 @@
     // Объект плагина
     var TorrentQuality = {
         name: 'torrent_quality',
-        version: '1.0.4',
-        debug: true, // Включаем отладку для диагностики
+        version: '1.0.5',
+        debug: true, // Включаем отладку
         settings: {
             enabled: true,
             quality_filter: 'any' // По умолчанию "Любое"
@@ -243,12 +243,12 @@
                         console.warn('[torrent_quality.js] Пропущен элемент без заголовка или с некорректным заголовком:', result);
                         return false;
                     }
-                    const titleLower = title.toLowerCase();
-                    // Учитываем вариации написания
+                    const titleLower = title.toLowerCase().replace(/[- ]/g, ''); // Удаляем дефисы и пробелы
+                    // Учитываем все возможные вариации написания
                     return (
-                        (filterLower === 'web-dl' && (titleLower.includes('web-dl') || titleLower.includes('webdl') || titleLower.includes('web dl'))) ||
-                        (filterLower === 'web-dlrip' && (titleLower.includes('web-dlrip') || titleLower.includes('webdl-rip') || titleLower.includes('webdlrip') || titleLower.includes('web dlrip'))) ||
-                        (filterLower === 'bdrip' && (titleLower.includes('bdrip') || titleLower.includes('bd-rip') || titleLower.includes('bd rip')))
+                        (filterLower === 'web-dl' && (titleLower.includes('webdl') || titleLower.includes('web dl'))) ||
+                        (filterLower === 'web-dlrip' && (titleLower.includes('webdlrip') || titleLower.includes('web dlrip') || titleLower.includes('webdl rip'))) ||
+                        (filterLower === 'bdrip' && (titleLower.includes('bdrip') || titleLower.includes('bd rip')))
                     );
                 });
             }
@@ -260,7 +260,7 @@
 
             if (filteredResults.length === 0) {
                 console.warn('[torrent_quality.js] Не найдено торрентов для фильтра:', filterValue);
-                console.log('[torrent_quality.js] Проверьте, содержат ли элементы torrents_data поле Title (или title, Name, name) с ожидаемыми значениями (WEB-DL, WEB-DLRip, BDRip)');
+                console.log('[torrent_quality.js] Проверьте, содержат ли элементы torrents_data поле Title с ожидаемыми значениями (WEB-DL, WEB-DLRip, BDRip)');
                 Lampa.Utils.message?.(`Не найдено торрентов для фильтра: ${filterValue}. Проверьте данные торрентов.`) ||
                     alert(`Не найдено торрентов для фильтра: ${filterValue}. Проверьте данные торрентов.`);
                 return;
@@ -326,7 +326,7 @@
     // Манифест плагина
     Lampa.Manifest.plugins = {
         name: 'Качество Торрентов',
-        version: '1.0.4',
+        version: '1.0.5',
         description: 'Фильтрация торрентов по качеству (WEB-DL, WEB-DLRip, BDRip)'
     };
     window.torrent_quality = TorrentQuality;
