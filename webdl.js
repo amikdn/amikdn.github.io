@@ -4,7 +4,7 @@
     // Объект плагина
     var TorrentQuality = {
         name: 'torrent_quality',
-        version: '1.1.9',
+        version: '1.1.10',
         debug: true, // Оставлено true для отладки, можно выключить позже
         settings: {
             enabled: true,
@@ -18,11 +18,19 @@
 
     // Функция форматирования даты
     function formatDate(dateString) {
-        if (!dateString) return 'Неизвестно';
+        if (!dateString || typeof dateString !== 'string' || dateString.trim() === '') {
+            if (TorrentQuality.debug) console.log(`[torrent_quality.js] Неверная или пустая дата: ${dateString}`);
+            return 'Неизвестно';
+        }
         try {
             const date = new Date(dateString);
+            if (isNaN(date.getTime())) {
+                if (TorrentQuality.debug) console.log(`[torrent_quality.js] Неверный формат даты: ${dateString}`);
+                return 'Неизвестно';
+            }
             return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
         } catch (e) {
+            if (TorrentQuality.debug) console.error(`[torrent_quality.js] Ошибка парсинга даты "${dateString}":`, e);
             return 'Неизвестно';
         }
     }
@@ -480,7 +488,7 @@
         });
 
         let retryCount = 0;
-        const maxRetries = 15; // Увеличено для большей надежности
+        const maxRetries = 15;
         function retryFilter() {
             if (retryCount < maxRetries) {
                 const torrentItems = document.querySelectorAll('.torrent-item');
@@ -492,7 +500,7 @@
                     return;
                 }
                 retryCount++;
-                setTimeout(retryFilter, 1500); // Уменьшено до 1.5 секунд
+                setTimeout(retryFilter, 1500);
             } else if (TorrentQuality.debug) {
                 console.warn('[torrent_quality.js] Превышено максимальное количество попыток загрузки данных');
                 Lampa.Utils.message?.('Нет данных для фильтрации торрентов') || alert('Нет данных для фильтрации торрентов');
@@ -515,7 +523,7 @@
     // Манифест плагина
     Lampa.Manifest.plugins = {
         name: 'Фильтр Торрентов',
-        version: '1.1.9',
+        version: '1.1.10',
         description: 'Фильтрация торрентов по качеству и другим параметрам для текущего фильма'
     };
     window.torrent_quality = TorrentQuality;
