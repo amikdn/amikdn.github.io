@@ -4,7 +4,7 @@
     // Объект плагина
     var TorrentQuality = {
         name: 'torrent_quality',
-        version: '1.1.1',
+        version: '1.1.3',
         debug: true, // Включаем отладку
         settings: {
             enabled: true,
@@ -50,16 +50,17 @@
     // Функция получения данных торрентов
     function getTorrentsData() {
         let results = [];
-        const possibleKeys = ['torrents_data', 'torrent_data', 'results', 'torrent_results', 'torrents'];
+        const possibleStorageKeys = ['torrents_data', 'torrent_data', 'results', 'torrent_results', 'torrents', 'torrent_list'];
+        const possibleObjectKeys = ['data', 'results', 'items', 'list', 'torrents'];
 
         // Проверяем Lampa.Storage
-        for (const key of possibleKeys) {
+        for (const key of possibleStorageKeys) {
             let data = Lampa.Storage.get(key, '[]');
             if (typeof data === 'string') {
                 try {
                     data = JSON.parse(data);
                 } catch (e) {
-                    console.error(`[torrent_quality.js] Ошибка парсинга ${key}:`, e);
+                    console.error(`[torrent_quality.js] Ошибка парсинга Lampa.Storage.get('${key}'):`, e);
                     data = [];
                 }
             }
@@ -74,8 +75,7 @@
 
         // Проверяем Lampa.Torrents
         if (!results.length && Lampa.Torrents) {
-            const possibleTorrentsKeys = ['data', 'results', 'items', 'list'];
-            for (const key of possibleTorrentsKeys) {
+            for (const key of possibleObjectKeys) {
                 if (Lampa.Torrents[key] && Array.isArray(Lampa.Torrents[key]) && Lampa.Torrents[key].length > 0) {
                     results = Lampa.Torrents[key];
                     if (TorrentQuality.debug) {
@@ -88,8 +88,7 @@
 
         // Проверяем Lampa.Activity
         if (!results.length && Lampa.Activity?.active?.()?.data) {
-            const possibleActivityKeys = ['torrents', 'results', 'items', 'list'];
-            for (const key of possibleActivityKeys) {
+            for (const key of possibleObjectKeys) {
                 if (Lampa.Activity.active().data[key] && Array.isArray(Lampa.Activity.active().data[key]) && Lampa.Activity.active().data[key].length > 0) {
                     results = Lampa.Activity.active().data[key];
                     if (TorrentQuality.debug) {
@@ -100,11 +99,47 @@
             }
         }
 
-        // Дополнительная отладка: выводим все доступные ключи и объекты
+        // Дополнительная проверка DOM для извлечения данных
+        if (!results.length) {
+            const torrentItems = document.querySelectorAll('.torrent-item');
+            if (torrentItems.length > 0) {
+                results = Array.from(torrentItems).map(item => {
+                    const title = item.querySelector('.torrent-item__title')?.textContent || 'Без названия';
+                    const ffprobe = {
+                        video: {
+                            width: parseInt(item.querySelector('.m-video')?.textContent?.split('x')[0]) || 0,
+                            height: parseInt(item.querySelector('.m-video')?.textContent?.split('x')[1]) || 0
+                        },
+                        audio: {
+                            channel_layout: item.querySelector('.m-channels')?.textContent || 'Неизвестно'
+                        }
+                    };
+                    const voices = Array.from(item.querySelectorAll('.m-audio')).map(el => el.textContent);
+                    const subtitles = Array.from(item.querySelectorAll('.m-subtitle')).map(el => el.textContent);
+                    return {
+                        Title: title,
+                        PublishDate: item.querySelector('.torrent-item__date')?.textContent,
+                        Tracker: item.querySelector('.torrent-item__tracker')?.textContent,
+                        Size: parseFloat(item.querySelector('.torrent-item__size')?.textContent) * 1024 * 1024 * 1024 || 0,
+                        Seeders: parseInt(item.querySelector('.torrent-item__seeds span')?.textContent) || 0,
+                        Peers: parseInt(item.querySelector('.torrent-item__grabs span')?.textContent) || 0,
+                        ffprobe: ffprobe,
+                        languages: voices,
+                        subtitles: subtitles
+                    };
+                });
+                if (TorrentQuality.debug) {
+                    console.log('[torrent_quality.js] Извлечены данные из DOM:', results);
+                }
+            }
+        }
+
+        // Дополнительная отладка
         if (TorrentQuality.debug) {
             console.log('[torrent_quality.js] Все ключи Lampa.Storage.cache:', Object.keys(Lampa.Storage.cache || {}));
             console.log('[torrent_quality.js] Lampa.Torrents:', Lampa.Torrents);
             console.log('[torrent_quality.js] Lampa.Activity.active():', Lampa.Activity?.active?.());
+            console.log('[torrent_quality.js] Глобальные объекты Lampa:', Object.keys(Lampa));
         }
 
         return results;
@@ -289,9 +324,9 @@
 
         // Проверяем, активен ли раздел торрентов
         Lampa.Listener.follow('activity', function (e) {
-            if (e.type === 'active' && e.data?.action === 'mytorrents') {
+            if (e.type === 'active' && (e.data?.action === 'mytorrents' || e.data?.action === 'torrents')) {
                 if (TorrentQuality.debug) {
-                    console.log('[torrent_quality.js] Раздел "Торренты" активирован');
+                    console.log('[torrent_quality.js] Раздел "Торренты" активирован:', e);
                 }
                 applyFilterOnTorrentsLoad();
             }
@@ -299,7 +334,7 @@
 
         // Ждем загрузки данных торрентов
         Lampa.Listener.follow('torrents', function (e) {
-            if (e.type === 'load' || e.type === 'update') {
+            if (e.type === 'load' || e.type === 'update' || e.type === 'torrent_load' || e.type === 'torrent_update') {
                 if (TorrentQuality.debug) {
                     console.log('[torrent_quality.js] Событие загрузки торрентов:', e);
                 }
@@ -307,13 +342,20 @@
             }
         });
 
-        // Дополнительно: таймер для проверки данных, если события не срабатывают
-        setTimeout(() => {
-            if (TorrentQuality.debug) {
-                console.log('[torrent_quality.js] Проверка данных через таймер');
+        // Дополнительно: периодическая проверка данных
+        let retryCount = 0;
+        const maxRetries = 5;
+        function retryFilter() {
+            if (retryCount < maxRetries) {
+                if (TorrentQuality.debug) {
+                    console.log(`[torrent_quality.js] Проверка данных (попытка ${retryCount + 1}/${maxRetries})`);
+                }
+                applyFilterOnTorrentsLoad();
+                retryCount++;
+                setTimeout(retryFilter, 3000); // Проверяем каждые 3 секунды
             }
-            applyFilterOnTorrentsLoad();
-        }, 5000);
+        }
+        setTimeout(retryFilter, 3000);
 
         // Инициализация при старте
         if (window.appready) {
@@ -332,8 +374,10 @@
         try {
             // Проверяем, активен ли раздел торрентов
             const isTorrentsPage = document.querySelector('.menu__item[data-action="mytorrents"].active') ||
+                                   document.querySelector('.menu__item[data-action="torrents"].active') ||
                                    document.querySelector('.activity--active .torrent-list') ||
-                                   Lampa.Activity?.active?.()?.data?.action === 'mytorrents';
+                                   Lampa.Activity?.active?.()?.data?.action === 'mytorrents' ||
+                                   Lampa.Activity?.active?.()?.data?.action === 'torrents';
             if (!isTorrentsPage) {
                 console.log('[torrent_quality.js] Фильтрация не выполняется: раздел торрентов не активен');
                 return;
@@ -365,7 +409,10 @@
                         Tracker: item.Tracker,
                         Size: item.Size,
                         Seeders: item.Seeders,
-                        Peers: item.Peers
+                        Peers: item.Peers,
+                        ffprobe: item.ffprobe,
+                        languages: item.languages,
+                        subtitles: item.subtitles
                     });
                 });
             }
@@ -415,7 +462,7 @@
         }
     }
 
-    // Альтернативная функция рендеринга
+    // Функция рендеринга, соответствующая разметке из поиск 1.txt
     function renderResultsFallback(results) {
         const container = document.querySelector('.torrent-list') || document.createElement('div');
         if (!container.classList.contains('torrent-list')) {
@@ -427,33 +474,36 @@
 
         results.forEach(result => {
             const title = result.Title || result.title || result.Name || result.name || 'Без названия';
-            const resolution = result.ffprobe?.find(f => f.codec_type === 'video')?.width && result.ffprobe?.find(f => f.codec_type === 'video')?.height
-                ? `${result.ffprobe.find(f => f.codec_type === 'video').width}x${result.ffprobe.find(f => f.codec_type === 'video').height}`
+            const resolution = result.ffprobe?.video?.width && result.ffprobe?.video?.height
+                ? `${result.ffprobe.video.width}x${result.ffprobe.video.height}`
                 : 'Неизвестно';
-            const audio = result.ffprobe?.find(f => f.codec_type === 'audio')?.channel_layout || 'Неизвестно';
+            const audio = result.ffprobe?.audio?.channel_layout || 'Неизвестно';
             const trackers = result.Tracker || 'Неизвестно';
             const publishDate = formatDate(result.PublishDate);
-            const sizeName = result.info?.sizeName || (result.Size ? (result.Size / 1024 / 1024 / 1024).toFixed(2) + ' ГБ' : 'Неизвестно');
-            const bitrate = result.ffprobe?.find(f => f.codec_type === 'video')?.bit_rate && result.ffprobe?.find(f => f.codec_type === 'audio')?.duration
-                ? formatBitrate(result.Size, result.ffprobe.find(f => f.codec_type === 'audio').duration)
+            const sizeName = result.Size ? (result.Size / 1024 / 1024 / 1024).toFixed(2) + ' ГБ' : 'Неизвестно';
+            const bitrate = result.ffprobe?.video?.bit_rate && result.ffprobe?.audio?.duration
+                ? formatBitrate(result.Size, result.ffprobe.audio.duration)
                 : 'Неизвестно';
             const voices = result.languages?.join(', ') || result.info?.voices?.join(', ') || 'Неизвестно';
+            const subtitles = result.subtitles?.join(', ') || 'Неизвестно';
 
             const item = document.createElement('div');
-            item.className = 'torrent-item';
+            item.className = 'torrent-item selector layer--visible layer--render';
             item.innerHTML = `
                 <div class="torrent-item__title">${title}</div>
                 <div class="torrent-item__ffprobe">
                     <div class="m-video">${resolution}</div>
-                    <div class="m-audio">${audio}</div>
-                    <div class="m-voices">${voices}</div>
+                    <div class="m-channels">${audio}</div>
+                    ${result.languages ? result.languages.map(v => `<div class="m-audio">${v}</div>`).join('') : `<div class="m-audio">${voices}</div>`}
+                    ${result.subtitles ? result.subtitles.map(s => `<div class="m-subtitle">${s}</div>`).join('') : `<div class="m-subtitle">${subtitles}</div>`}
                 </div>
-                <div>${publishDate}</div>
-                <div>${trackers}</div>
-                <div>Битрейт: ${bitrate}</div>
-                <div>Раздают: ${result.Seeders || 0}</div>
-                <div>Качают: ${result.Peers || 0}</div>
-                <div>${sizeName}</div>
+                <div class="torrent-item__details">
+                    <div class="torrent-item__date">${publishDate}</div>
+                    <div class="torrent-item__tracker">${trackers}</div>
+                    <div class="torrent-item__seeds">Раздают: <span>${result.Seeders || 0}</span></div>
+                    <div class="torrent-item__grabs">Качают: <span>${result.Peers || 0}</span></div>
+                    <div class="torrent-item__size">${sizeName}</div>
+                </div>
                 ${result.MagnetUri ? `<a href="${result.MagnetUri}" target="_blank">Скачать</a>` : ''}
             `;
             container.appendChild(item);
@@ -476,7 +526,7 @@
     // Манифест плагина
     Lampa.Manifest.plugins = {
         name: 'Качество Торрентов',
-        version: '1.1.1',
+        version: '1.1.3',
         description: 'Фильтрация торрентов по качеству (WEB-DL, WEB-DLRip, BDRip) для текущего фильма'
     };
     window.torrent_quality = TorrentQuality;
