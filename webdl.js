@@ -4,7 +4,7 @@
     // Объект плагина
     var TorrentQuality = {
         name: 'torrent_quality',
-        version: '1.1.12',
+        version: '1.1.13',
         debug: true, // Оставлено true для отладки, можно выключить позже
         settings: {
             enabled: true,
@@ -17,7 +17,7 @@
     let allTorrents = [];
 
     // Функция форматирования даты
-    function formatDate(dateString) {
+    function formatDate(dateString, context) {
         if (!dateString || typeof dateString !== 'string' || dateString.trim() === '') {
             if (TorrentQuality.debug) console.log(`[torrent_quality.js] Неверная или пустая дата: ${dateString}`);
             return 'Неизвестно';
@@ -36,7 +36,17 @@
             const monthName = match[2].toLowerCase();
             const month = monthMap[monthName];
             if (month !== undefined && day >= 1 && day <= 31) {
-                const year = new Date().getFullYear(); // Предполагаем текущий год
+                // Пытаемся извлечь год из context.Title (например, "Чужой: Земля (2021) [WEB-DL]")
+                let year = new Date().getFullYear(); // Текущий год как запасной вариант
+                if (context && context.Title) {
+                    const yearMatch = context.Title.match(/\((\d{4})\)/);
+                    if (yearMatch && yearMatch[1]) {
+                        year = parseInt(yearMatch[1], 10);
+                        if (TorrentQuality.debug) console.log(`[torrent_quality.js] Извлечён год ${year} из Title: ${context.Title}`);
+                    } else {
+                        if (TorrentQuality.debug) console.log(`[torrent_quality.js] Год не найден в Title: ${context.Title}, используется текущий год: ${year}`);
+                    }
+                }
                 const date = new Date(year, month, day);
                 if (!isNaN(date.getTime())) {
                     return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
@@ -276,7 +286,7 @@
                 : 'Неизвестно';
             const audio = result.ffprobe?.audio?.channel_layout || 'Неизвестно';
             const trackers = result.Tracker || 'Неизвестно';
-            const publishDate = formatDate(result.PublishDate);
+            const publishDate = formatDate(result.PublishDate, result);
             const sizeName = result.Size ? (result.Size / 1024 / 1024 / 1024).toFixed(2) + ' ГБ' : 'Неизвестно';
             const bitrate = result.ffprobe?.video?.bit_rate && result.ffprobe?.audio?.duration
                 ? formatBitrate(result.Size, result.ffprobe.audio.duration)
@@ -515,7 +525,7 @@
     // Манифест плагина
     Lampa.Manifest.plugins = {
         name: 'Фильтр Торрентов',
-        version: '1.1.12',
+        version: '1.1.13',
         description: 'Фильтрация торрентов по качеству и другим параметрам для текущего фильма'
     };
     window.torrent_quality = TorrentQuality;
