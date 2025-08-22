@@ -4,86 +4,13 @@
     // Объект плагина
     var TorrentQuality = {
         name: 'torrent_quality',
-        version: '1.0.8',
+        version: '1.0.9',
         debug: true, // Включаем отладку
         settings: {
             enabled: true,
             quality_filter: 'any' // По умолчанию "Любое"
         }
     };
-
-    // Функция для получения данных текущего фильма
-    function getCurrentMovie() {
-        try {
-            // Проверяем активную активность в Lampa
-            const active = Lampa.Activity?.active?.() || {};
-            const movieData = active.data || {};
-            
-            // Извлекаем данные из DOM, если доступно
-            const titleElement = document.querySelector('.card__title') || document.querySelector('.torrent-item__title');
-            const title = movieData.title || (titleElement ? titleElement.textContent.trim() : '');
-            const title_original = movieData.title_original || movieData.original_title || title;
-            const year = movieData.year || (document.querySelector('.card__year') ? document.querySelector('.card__year').textContent.trim() : '');
-            const genres = movieData.genres ? movieData.genres.join(',') : 'боевик,приключения,триллер'; // Фallback жанры
-            
-            if (TorrentQuality.debug) {
-                console.log('[torrent_quality.js] Данные текущего фильма:', { title, title_original, year, genres });
-            }
-
-            if (!title || !year) {
-                console.error('[torrent_quality.js] Не удалось определить данные фильма');
-                return null;
-            }
-
-            return { title, title_original, year, genres };
-        } catch (error) {
-            console.error('[torrent_quality.js] Ошибка при получении данных фильма:', error);
-            return null;
-        }
-    }
-
-    // Функция для получения данных из API
-    async function fetchTorrentsData() {
-        const movie = getCurrentMovie();
-        if (!movie) {
-            console.error('[torrent_quality.js] Не удалось загрузить данные торрентов: информация о фильме отсутствует');
-            Lampa.Utils.message?.('Не удалось определить текущий фильм') || alert('Не удалось определить текущий фильм');
-            return [];
-        }
-
-        const { title, title_original, year, genres } = movie;
-        const encodedTitle = encodeURIComponent(title);
-        const encodedTitleOriginal = encodeURIComponent(title_original);
-        const encodedGenres = encodeURIComponent(genres);
-        const apiUrl = `http://jacred.xyz/api/v2.0/indexers/all/results?apikey=&Query=${encodedTitleOriginal}&title=${encodedTitle}&title_original=${encodedTitleOriginal}&year=${year}&is_serial=0&genres=${encodedGenres}&Category[]=2000`;
-
-        if (TorrentQuality.debug) {
-            console.log('[torrent_quality.js] Формируем URL API:', apiUrl);
-        }
-
-        try {
-            const response = await fetch(apiUrl, {
-                method: 'GET',
-                headers: {
-                    'Accept': 'application/json',
-                    'Origin': 'http://lampa.mx',
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36'
-                }
-            });
-            if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
-            }
-            const data = await response.json();
-            if (TorrentQuality.debug) {
-                console.log('[torrent_quality.js] Данные из API:', data);
-            }
-            return data.Results || [];
-        } catch (error) {
-            console.error('[torrent_quality.js] Ошибка при получении данных из API:', error);
-            Lampa.Utils.message?.('Ошибка загрузки данных торрентов из API') || alert('Ошибка загрузки данных торрентов из API');
-            return [];
-        }
-    }
 
     // Функция форматирования даты
     function formatDate(dateString) {
@@ -318,22 +245,12 @@
                 }
             }
 
-            // Если данные отсутствуют или не соответствуют текущему фильму, загружаем из API
-            const movie = getCurrentMovie();
-            if (!results || !Array.isArray(results) || results.length === 0 || !results.some(r => r.Title && r.Title.includes(movie?.title || ''))) {
-                console.warn('[torrent_quality.js] torrents_data пустой или не соответствует текущему фильму:', results);
-                results = await fetchTorrentsData();
-                if (results.length === 0) {
-                    console.error('[torrent_quality.js] Не удалось загрузить данные из API');
-                    Lampa.Utils.message?.('Нет данных для фильтрации торрентов. Проверьте подключение к API или настройки Lampa.') ||
-                        alert('Нет данных для фильтрации торрентов. Проверьте подключение к API или настройки Lampa.');
-                    return;
-                }
-                // Сохраняем данные в хранилище
-                Lampa.Storage.set('torrents_data', JSON.stringify(results));
-                if (TorrentQuality.debug) {
-                    console.log('[torrent_quality.js] Данные сохранены в torrents_data:', results);
-                }
+            // Проверяем, есть ли данные
+            if (!results || !Array.isArray(results) || results.length === 0) {
+                console.warn('[torrent_quality.js] torrents_data пустой или undefined:', results);
+                Lampa.Utils.message?.('Нет данных для фильтрации торрентов. Проверьте настройки Lampa или загрузку торрентов.') ||
+                    alert('Нет данных для фильтрации торрентов. Проверьте настройки Lampa или загрузку торрентов.');
+                return;
             }
 
             if (TorrentQuality.debug) {
@@ -462,7 +379,7 @@
     // Манифест плагина
     Lampa.Manifest.plugins = {
         name: 'Качество Торрентов',
-        version: '1.0.8',
+        version: '1.0.9',
         description: 'Фильтрация торрентов по качеству (WEB-DL, WEB-DLRip, BDRip) для текущего фильма'
     };
     window.torrent_quality = TorrentQuality;
