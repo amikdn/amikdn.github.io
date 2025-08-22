@@ -4,8 +4,8 @@
     // Объект плагина
     var TorrentQuality = {
         name: 'torrent_quality',
-        version: '1.1.4',
-        debug: false, // Отладка отключена
+        version: '1.1.5',
+        debug: false,
         settings: {
             enabled: true,
             quality_filter: 'any'
@@ -147,17 +147,15 @@
                                    Lampa.Activity?.active?.()?.data?.action === 'torrents';
             if (!isTorrentsPage) return;
 
-            // Получаем данные торрентов
+            // Получаем полный список торрентов перед фильтрацией
             let results = getTorrentsData();
             if (!results || !Array.isArray(results) || results.length === 0) {
                 Lampa.Utils.message?.('Нет данных для фильтрации торрентов') || alert('Нет данных для фильтрации торрентов');
                 return;
             }
 
-            // Сбрасываем результаты перед новой фильтрацией
-            let filteredResults = results;
-
             // Фильтруем результаты
+            let filteredResults = results;
             if (filterValue && filterValue !== 'any') {
                 const filterLower = filterValue.toLowerCase();
                 filteredResults = results.filter(result => {
@@ -395,7 +393,7 @@
     // Манифест плагина
     Lampa.Manifest.plugins = {
         name: 'Качество Торрентов',
-        version: '1.1.4',
+        version: '1.1.5',
         description: 'Фильтрация торрентов по качеству (WEB-DL, WEB-DLRip, BDRip) для текущего фильма'
     };
     window.torrent_quality = TorrentQuality;
