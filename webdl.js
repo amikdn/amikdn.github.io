@@ -3,31 +3,47 @@
 
     var RefineFilter = {
         name: 'refine_filter',
-        version: '1.0.1',
-        debug: false,
+        version: '1.0.2',
+        debug: true, // Включена отладка для диагностики
         settings: {
             enabled: true,
             refine_values: []
         }
     };
 
+    function log(message) {
+        if (RefineFilter.debug) console.log('[RefineFilter] ' + message);
+    }
+
     function addRefineFilter() {
+        log('Инициализация фильтра "Уточнить"');
         // Ждем загрузки интерфейса фильтров
         Lampa.Listener.follow('filter', function (e) {
             if (e.type === 'open' || e.type === 'render') {
+                log('Событие filter: ' + e.type);
                 setTimeout(function () {
-                    // Находим элемент "Качество" в меню фильтров
+                    // Поиск элемента "Качество"
                     var qualityItem = $('.selectbox-item__title').filter(function () {
                         return $(this).text().trim() === 'Качество';
                     }).closest('.selectbox-item.selector');
 
                     if (!qualityItem.length) {
-                        console.warn('[RefineFilter] Элемент "Качество" не найден');
+                        log('Элемент "Качество" не найден, пробуем альтернативный селектор');
+                        qualityItem = $('.selectbox-item.selector').has('.selectbox-item__subtitle:contains("Любое")').first();
+                    }
+
+                    if (!qualityItem.length) {
+                        console.warn('[RefineFilter] Элемент "Качество" не найден в меню фильтров');
                         return;
                     }
 
+                    log('Элемент "Качество" найден');
+
                     // Проверяем, не добавлен ли уже наш фильтр
-                    if (qualityItem.next().hasClass('refine-filter')) return;
+                    if (qualityItem.next().hasClass('refine-filter')) {
+                        log('Фильтр "Уточнить" уже добавлен');
+                        return;
+                    }
 
                     // Создаем новый элемент фильтра "Уточнить"
                     var refineItem = $('<div class="selectbox-item selector refine-filter">' +
@@ -37,16 +53,17 @@
 
                     // Вставляем после "Качество"
                     qualityItem.after(refineItem);
+                    log('Элемент "Уточнить" добавлен в DOM');
 
                     // Создаем подменю для "Уточнить"
-                    var refineSubmenu = $('<div class="selectbox__content layer--height refine-submenu" style="display: none;">' +
+                    var refineSubmenu = $('<div class="selectbox__content layer--height refine-submenu" style="display: none; height: 953px;">' +
                         '<div class="selectbox__head">' +
                             '<div class="selectbox__title">Уточнить</div>' +
                         '</div>' +
-                        '<div class="selectbox__body layer--wheight" style="max-height: unset;">' +
+                        '<div class="selectbox__body layer--wheight" style="max-height: unset; height: 906.453px;">' +
                             '<div class="scroll scroll--mask scroll--over">' +
                                 '<div class="scroll__content">' +
-                                    '<div class="scroll__body">' +
+                                    '<div class="scroll__body" style="transform: translate3d(0px, 0px, 0px);">' +
                                         '<div class="selectbox-item selector">' +
                                             '<div class="selectbox-item__title">Любое</div>' +
                                         '</div>' +
@@ -66,6 +83,7 @@
 
                     // Добавляем подменю в DOM
                     refineItem.append(refineSubmenu);
+                    log('Подменю "Уточнить" добавлено');
 
                     // Получаем элементы для взаимодействия
                     var subtitle = refineItem.find('.selectbox-item__subtitle');
@@ -75,6 +93,7 @@
 
                     // Обработчик открытия подменю
                     refineItem.on('hover:enter', function () {
+                        log('Открытие подменю "Уточнить"');
                         submenu.show();
                         Lampa.Controller.enable('selectbox');
                         submenu.find('.selectbox-item').first().addClass('focus');
@@ -82,6 +101,7 @@
 
                     // Обработчик выбора "Любое"
                     anyOption.on('hover:enter', function () {
+                        log('Выбрано "Любое"');
                         RefineFilter.settings.refine_values = [];
                         subtitle.text('Не выбрано');
                         Lampa.Storage.set('refine_filter_values', []);
@@ -97,6 +117,7 @@
                         var checkboxEl = checkbox.find('.selectbox-item__checkbox');
 
                         checkbox.on('hover:enter', function () {
+                            log('Выбран формат: ' + title);
                             var isChecked = checkboxEl.hasClass('active');
                             checkboxEl.toggleClass('active', !isChecked);
 
@@ -117,6 +138,7 @@
                     // Восстанавливаем сохраненные значения
                     var savedValues = Lampa.Storage.get('refine_filter_values', []);
                     if (savedValues.length) {
+                        log('Восстановлены значения: ' + savedValues.join(', '));
                         RefineFilter.settings.refine_values = savedValues;
                         subtitle.text(savedValues.join(', '));
                         checkboxes.each(function () {
@@ -130,16 +152,20 @@
 
                     // Закрытие подменю при уходе
                     submenu.on('hover:leave', function () {
+                        log('Закрытие подменю "Уточнить"');
                         submenu.hide();
                         Lampa.Controller.toggle('filter');
                     });
-                }, 100);
+                }, 200); // Увеличена задержка для асинхронной загрузки
             }
         });
     }
 
     function applyRefineFilter() {
-        if (!RefineFilter.settings.enabled) return;
+        if (!RefineFilter.settings.enabled) {
+            log('Фильтр отключен');
+            return;
+        }
 
         var parser = Lampa.Parser || window.Lampa.Parser;
         if (!parser) {
@@ -152,12 +178,15 @@
             var values = RefineFilter.settings.refine_values;
             if (values.length) {
                 filter.refine = values.join('|').toUpperCase();
+                log('Применение фильтра: ' + filter.refine);
             } else {
                 filter.refine = '';
+                log('Сброс фильтра');
             }
 
             parser.filter(filter);
             Lampa.Activity.reload();
+            log('Фильтр применен, активность перезагружена');
         } catch (e) {
             console.error('[RefineFilter] Ошибка при применении фильтра:', e);
         }
@@ -165,6 +194,7 @@
 
     // Инициализация плагина
     function startPlugin() {
+        log('Запуск плагина RefineFilter v' + RefineFilter.version);
         // Сохраняем настройки
         RefineFilter.settings.enabled = Lampa.Storage.get('refine_filter_enabled', true);
         RefineFilter.settings.refine_values = Lampa.Storage.get('refine_filter_values', []);
@@ -197,8 +227,10 @@
                 if (!value) {
                     $('.refine-filter').remove();
                     applyRefineFilter();
+                    log('Фильтр отключен и удален из DOM');
                 } else {
                     addRefineFilter();
+                    log('Фильтр включен');
                 }
                 Lampa.Settings.update();
             }
@@ -212,10 +244,14 @@
 
     // Запуск плагина
     if (window.appready) {
+        log('Приложение уже загружено, запуск плагина');
         startPlugin();
     } else {
         Lampa.Listener.follow('app', function (e) {
-            if (e.type === 'ready') startPlugin();
+            if (e.type === 'ready') {
+                log('Приложение загружено, запуск плагина');
+                startPlugin();
+            }
         });
     }
 
