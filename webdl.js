@@ -27,46 +27,60 @@
                 // Вставляем новый пункт после "Качество"
                 qualityItem.parentElement.insertAdjacentElement('afterend', refineItem);
 
-                // Добавляем обработчик клика для открытия поля ввода
+                // Создаем подменю для "Уточнить"
+                const submenu = document.createElement('div');
+                submenu.className = 'selectbox__content layer--height refine-submenu';
+                submenu.style.display = 'none';
+                submenu.innerHTML = `
+                    <div class="selectbox__head">
+                        <div class="selectbox__title">Уточнить</div>
+                    </div>
+                    <div class="selectbox__body layer--wheight">
+                        <div class="scroll scroll--mask scroll--over">
+                            <div class="scroll__content">
+                                <div class="scroll__body">
+                                    <div class="selectbox-item selector">
+                                        <div class="selectbox-item__title">Отмена</div>
+                                    </div>
+                                    <div class="selectbox-item selector selectbox-item--checkbox">
+                                        <div class="selectbox-item__title">WEB-DL</div>
+                                        <div class="selectbox-item__checkbox"></div>
+                                    </div>
+                                    <div class="selectbox-item selector selectbox-item--checkbox">
+                                        <div class="selectbox-item__title">WEBDL-Rip</div>
+                                        <div class="selectbox-item__checkbox"></div>
+                                    </div>
+                                    <div class="selectbox-item selector selectbox-item--checkbox">
+                                        <div class="selectbox-item__title">BDRip</div>
+                                        <div class="selectbox-item__checkbox"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                // Вставляем подменю после основного пункта
+                refineItem.insertAdjacentElement('afterend', submenu);
+
+                // Обработчик клика на "Уточнить" для показа/скрытия подменю
                 refineItem.addEventListener('click', function () {
-                    // Проверяем или создаем поле ввода
-                    let refineInputContainer = document.querySelector('.w2');
-                    if (!refineInputContainer) {
-                        console.log('[refine_filter.js] Поле ввода "Уточнить" не найдено, создаем новое');
-                        refineInputContainer = document.createElement('div');
-                        refineInputContainer.className = 'w2';
-                        refineInputContainer.innerHTML = `
-                            <div class="filter-label">Уточнить</div>
-                            <input name="refine" placeholder="Например BDRip, WEB-DL">
-                        `;
-                        const selectboxBody = document.querySelector('.selectbox__body');
-                        if (selectboxBody) {
-                            selectboxBody.appendChild(refineInputContainer);
-                        } else {
-                            console.error('[refine_filter.js] Контейнер .selectbox__body не найден');
-                            if (typeof Lampa.Utils.message === 'function') {
-                                Lampa.Utils.message('Ошибка: Контейнер меню не найден');
-                            } else {
-                                alert('Ошибка: Контейнер меню не найден');
-                            }
-                            return;
-                        }
-                    }
-
-                    const refineInput = refineInputContainer.querySelector('input[name="refine"]');
-                    refineInputContainer.style.display = 'block';
-
-                    // Обновляем подзаголовок и фильтруем при вводе
-                    refineInput.addEventListener('input', function () {
-                        const value = refineInput.value.trim();
-                        refineItem.querySelector('.selectbox-item__subtitle').textContent = value || 'Не выбрано';
-                        filterResultsByRefine(value);
-                    });
-
-                    console.log('[refine_filter.js] Пункт "Уточнить" активирован');
+                    submenu.style.display = submenu.style.display === 'none' ? 'block' : 'none';
+                    console.log('[refine_filter.js] Подменю "Уточнить" открыто/закрыто');
                 });
 
-                console.log('[refine_filter.js] Пункт "Уточнить" добавлен в меню');
+                // Обработчики для пунктов подменю
+                submenu.querySelectorAll('.selectbox-item__title').forEach(item => {
+                    item.addEventListener('click', function () {
+                        const value = item.textContent.trim();
+                        refineItem.querySelector('.selectbox-item__subtitle').textContent = value === 'Отмена' ? 'Не выбрано' : value;
+                        filterResultsByRefine(value === 'Отмена' ? '' : value);
+                        submenu.style.display = 'none'; // Закрываем подменю после выбора
+                        console.log('[refine_filter.js] Выбран фильтр:', value);
+                    });
+                });
+
+                console.log('[refine_filter.js] Пункт "Уточнить" и подменю добавлены');
             }
 
             // Запускаем добавление пункта меню
@@ -74,8 +88,8 @@
         }
     });
 
-    // Функция для фильтрации результатов по BDRip или WEB-DL
-    function filterResultsByRefine(refineValue) {
+    // Функция для фильтрации результатов по BDRip, WEB-DL или WEBDL-Rip
+    function filterResultsByRefine(filterValue) {
         try {
             // Получаем данные из хранилища Lampa
             let results = Lampa.Storage.get('torrents_data', '[]');
@@ -93,18 +107,17 @@
                 return;
             }
 
-            // Фильтруем результаты по значению из поля ввода
-            const filterValue = refineValue.toLowerCase().trim();
+            // Фильтруем результаты по выбранному значению
             let filteredResults = results;
-
             if (filterValue) {
+                const filterLower = filterValue.toLowerCase();
                 filteredResults = results.filter(result => {
                     if (!result.Title) return false;
                     const titleLower = result.Title.toLowerCase();
                     return (
-                        (filterValue.includes('bdrip') && titleLower.includes('bdrip')) ||
-                        (filterValue.includes('web-dl') && 
-                         (titleLower.includes('web-dl') || titleLower.includes('webdl-rip')))
+                        (filterLower === 'web-dl' && titleLower.includes('web-dl')) ||
+                        (filterLower === 'webdl-rip' && titleLower.includes('webdl-rip')) ||
+                        (filterLower === 'bdrip' && titleLower.includes('bdrip'))
                     );
                 });
             }
@@ -114,9 +127,9 @@
             // Проверяем, есть ли результаты
             if (filteredResults.length === 0) {
                 if (typeof Lampa.Utils.message === 'function') {
-                    Lampa.Utils.message('Не найдено результатов для фильтра: ' + refineValue);
+                    Lampa.Utils.message('Не найдено результатов для фильтра: ' + filterValue);
                 } else {
-                    alert('Не найдено результатов для фильтра: ' + refineValue);
+                    alert('Не найдено результатов для фильтра: ' + filterValue);
                 }
                 return;
             }
@@ -175,9 +188,15 @@
             .torrent-item p { margin: 5px 0; }
             .torrent-item a { color: #007bff; text-decoration: none; }
             .torrent-item a:hover { text-decoration: underline; }
-            .w2 { padding: 10px; }
-            .w2 .filter-label { font-weight: bold; margin-bottom: 5px; }
-            .w2 input[name="refine"] { width: 100%; padding: 8px; }
+            .refine-submenu { position: absolute; background: #fff; z-index: 1000; }
+            .selectbox-item.selector { display: block !important; visibility: visible !important; }
+            .selectbox-item__title { cursor: pointer; }
+            .selectbox-item--checkbox .selectbox-item__checkbox { 
+                width: 20px; height: 20px; border: 1px solid #ccc; display: inline-block; margin-left: 10px; 
+            }
+            .selectbox-item--checkbox.selected .selectbox-item__checkbox { 
+                background: #007bff; border-color: #007bff; 
+            }
         `;
         document.head.appendChild(style);
     }
