@@ -4,7 +4,7 @@
     // Объект плагина
     var TorrentQuality = {
         name: 'torrent_quality',
-        version: '1.0.6',
+        version: '1.0.7',
         debug: true, // Включаем отладку
         settings: {
             enabled: true,
@@ -37,6 +37,41 @@
             Lampa.Utils.message?.('Ошибка загрузки данных торрентов из API') || alert('Ошибка загрузки данных торрентов из API');
             return [];
         }
+    }
+
+    // Функция форматирования даты
+    function formatDate(dateString) {
+        if (!dateString) return 'Неизвестно';
+        try {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
+        } catch (e) {
+            return 'Неизвестно';
+        }
+    }
+
+    // Функция форматирования битрейта
+    function formatBitrate(size, duration) {
+        if (!size || !duration) return 'Неизвестно';
+        try {
+            const durationSeconds = parseDuration(duration);
+            if (!durationSeconds) return 'Неизвестно';
+            const bitrate = (size * 8) / durationSeconds / 1000000; // Мбит/с
+            return `${bitrate.toFixed(2)} Мбит/с`;
+        } catch (e) {
+            return 'Неизвестно';
+        }
+    }
+
+    // Функция парсинга длительности (например, "02:49:35.776000000")
+    function parseDuration(duration) {
+        if (!duration) return 0;
+        const parts = duration.split(':');
+        if (parts.length < 3) return 0;
+        const hours = parseInt(parts[0], 10);
+        const minutes = parseInt(parts[1], 10);
+        const seconds = parseFloat(parts[2]);
+        return hours * 3600 + minutes * 60 + seconds;
     }
 
     // Функция инициализации плагина
@@ -264,7 +299,12 @@
                         Name: item.Name,
                         name: item.name,
                         HasTitle: !!item.Title || !!item.title || !!item.Name || !!item.name,
-                        TitleType: typeof (item.Title || item.title || item.Name || item.name)
+                        TitleType: typeof (item.Title || item.title || item.Name || item.name),
+                        PublishDate: item.PublishDate,
+                        Tracker: item.Tracker,
+                        Size: item.Size,
+                        Seeders: item.Seeders,
+                        Peers: item.Peers
                     });
                 });
             }
@@ -303,7 +343,7 @@
                 return;
             }
 
-            // Отображаем результаты через запасной метод
+            // Отображаем результаты
             renderResultsFallback(filteredResults);
             if (TorrentQuality.debug) {
                 console.log('[torrent_quality.js] Результаты отрендерены через renderResultsFallback:', filteredResults.length);
@@ -326,15 +366,33 @@
 
         results.forEach(result => {
             const title = result.Title || result.title || result.Name || result.name || 'Без названия';
+            const resolution = result.ffprobe?.find(f => f.codec_type === 'video')?.width && result.ffprobe?.find(f => f.codec_type === 'video')?.height
+                ? `${result.ffprobe.find(f => f.codec_type === 'video').width}x${result.ffprobe.find(f => f.codec_type === 'video').height}`
+                : 'Неизвестно';
+            const audio = result.ffprobe?.find(f => f.codec_type === 'audio')?.channel_layout || 'Неизвестно';
+            const trackers = result.Tracker || 'Неизвестно';
+            const publishDate = formatDate(result.PublishDate);
+            const sizeName = result.info?.sizeName || (result.Size ? (result.Size / 1024 / 1024 / 1024).toFixed(2) + ' ГБ' : 'Неизвестно');
+            const bitrate = result.ffprobe?.find(f => f.codec_type === 'video')?.bit_rate && result.ffprobe?.find(f => f.codec_type === 'audio')?.duration
+                ? formatBitrate(result.Size, result.ffprobe.find(f => f.codec_type === 'audio').duration)
+                : 'Неизвестно';
+            const voices = result.languages?.join(', ') || result.info?.voices?.join(', ') || 'Неизвестно';
+
             const item = document.createElement('div');
             item.className = 'torrent-item';
             item.innerHTML = `
                 <div class="torrent-item__title">${title}</div>
                 <div class="torrent-item__ffprobe">
-                    <div class="m-video">${result.info?.ffprobe?.video || 'Неизвестно'}</div>
+                    <div class="m-video">${resolution}</div>
+                    <div class="m-audio">${audio}</div>
+                    <div class="m-voices">${voices}</div>
                 </div>
-                <div>Размер: ${result.info?.sizeName || 'Неизвестно'}</div>
-                <div>Сиды: ${result.Seeders || 0}, Пиры: ${result.Peers || 0}</div>
+                <div>${publishDate}</div>
+                <div>${trackers}</div>
+                <div>Битрейт: ${bitrate}</div>
+                <div>Раздают: ${result.Seeders || 0}</div>
+                <div>Качают: ${result.Peers || 0}</div>
+                <div>${sizeName}</div>
                 ${result.MagnetUri ? `<a href="${result.MagnetUri}" target="_blank">Скачать</a>` : ''}
             `;
             container.appendChild(item);
@@ -357,7 +415,7 @@
     // Манифест плагина
     Lampa.Manifest.plugins = {
         name: 'Качество Торрентов',
-        version: '1.0.6',
+        version: '1.0.7',
         description: 'Фильтрация торрентов по качеству (WEB-DL, WEB-DLRip, BDRip)'
     };
     window.torrent_quality = TorrentQuality;
