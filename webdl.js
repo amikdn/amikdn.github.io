@@ -4,7 +4,7 @@
     // Объект плагина
     var TorrentQuality = {
         name: 'torrent_quality',
-        version: '1.1.15',
+        version: '1.1.16',
         debug: true, // Оставлено true для отладки
         settings: {
             enabled: true,
@@ -15,6 +15,7 @@
     // Хранилище полного списка торрентов
     let originalTorrents = [];
     let allTorrents = [];
+    let currentMovieId = null; // Для отслеживания текущего фильма
 
     // Функция форматирования даты
     function formatDate(dateString, context) {
@@ -36,9 +37,15 @@
             const monthName = match[2].toLowerCase();
             const month = monthMap[monthName];
             if (month !== undefined && day >= 1 && day <= 31) {
-                // Пытаемся извлечь год из context или Lampa.Activity.active().movie
+                // Пытаемся извлечь год из Lampa.Activity.active().movie.year или context.Title
                 let year = new Date().getFullYear() - 1; // Запасной год: 2024
-                if (context && context.Title) {
+                if (Lampa.Activity?.active?.()?.movie?.year) {
+                    const movieYear = parseInt(Lampa.Activity.active().movie.year, 10);
+                    if (movieYear >= 1900 && movieYear <= new Date().getFullYear()) {
+                        year = movieYear;
+                        if (TorrentQuality.debug) console.log(`[torrent_quality.js] Извлечён год ${year} из Lampa.Activity.active().movie.year`);
+                    }
+                } else if (context && context.Title) {
                     const yearMatch = context.Title.match(/(\((\d{4})\)|\[(\d{4})\]|Год:\s*(\d{4})|(\d{4}))/i);
                     if (yearMatch) {
                         const foundYear = yearMatch[2] || yearMatch[3] || yearMatch[4] || yearMatch[5];
@@ -46,14 +53,8 @@
                             year = parseInt(foundYear, 10);
                             if (TorrentQuality.debug) console.log(`[torrent_quality.js] Извлечён год ${year} из Title: ${context.Title}`);
                         }
-                    }
-                }
-                // Проверяем Lampa.Activity.active().movie, если год не найден
-                if (year === new Date().getFullYear() - 1 && Lampa.Activity?.active?.()?.movie?.year) {
-                    const movieYear = parseInt(Lampa.Activity.active().movie.year, 10);
-                    if (movieYear >= 1900 && movieYear <= new Date().getFullYear()) {
-                        year = movieYear;
-                        if (TorrentQuality.debug) console.log(`[torrent_quality.js] Извлечён год ${year} из Lampa.Activity.active().movie.year`);
+                    } else {
+                        if (TorrentQuality.debug) console.log(`[torrent_quality.js] Год не найден в Title: ${context.Title}, используется запасной год: ${year}`);
                     }
                 }
                 const date = new Date(year, month, day);
@@ -223,6 +224,15 @@
         Lampa.Storage.set('torrent_quality_filter', 'any');
         if (TorrentQuality.debug) console.log(`[torrent_quality.js] Фильтр сброшен, allTorrents: ${allTorrents.length}`);
         return true;
+    }
+
+    // Функция очистки списков и DOM
+    function clearTorrents() {
+        originalTorrents = [];
+        allTorrents = [];
+        const container = document.querySelector('.torrent-list');
+        if (container) container.innerHTML = '';
+        if (TorrentQuality.debug) console.log('[torrent_quality.js] Очищены списки и DOM');
     }
 
     // Функция фильтрации торрентов
@@ -533,6 +543,12 @@
 
         Lampa.Listener.follow('activity', function (e) {
             if (e.type === 'active' && (e.data?.action === 'mytorrents' || e.data?.action === 'torrents' || e.data?.component === 'torrents')) {
+                const newMovieId = e.data?.movie?.id || e.data?.movie?.imdb_id || e.data?.movie?.title;
+                if (newMovieId && newMovieId !== currentMovieId) {
+                    if (TorrentQuality.debug) console.log(`[torrent_quality.js] Смена фильма: ${currentMovieId} -> ${newMovieId}`);
+                    clearTorrents();
+                    currentMovieId = newMovieId;
+                }
                 if (TorrentQuality.debug) console.log('[torrent_quality.js] Активирован раздел торрентов:', e);
                 applyFilterOnTorrentsLoad();
             }
@@ -560,7 +576,7 @@
     // Манифест плагина
     Lampa.Manifest.plugins = {
         name: 'Фильтр Торрентов',
-        version: '1.1.15',
+        version: '1.1.16',
         description: 'Фильтрация торрентов по качеству и другим параметрам для текущего фильма'
     };
     window.torrent_quality = TorrentQuality;
