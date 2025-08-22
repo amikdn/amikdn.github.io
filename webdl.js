@@ -1,75 +1,55 @@
 (function () {
     'use strict';
 
-    // Ждем полной загрузки приложения Lampa
-    Lampa.Listener.follow('app', function (e) {
-        if (e.type === 'ready') {
-            console.log('[refine_filter.js] Приложение готово, инициализация плагина');
+    // Объект плагина
+    var TorrentQuality = {
+        name: 'torrent_quality',
+        version: '1.0.0',
+        debug: false,
+        settings: {
+            enabled: true,
+            quality_filter: 'any' // По умолчанию "Любое"
+        }
+    };
 
-            // Функция для настройки обработчика кнопки "Фильтр"
-            function setupFilterButtonListener() {
-                const filterButton = document.querySelector('.simple-button.simple-button--filter.filter--filter.selector');
-                if (!filterButton) {
-                    console.warn('[refine_filter.js] Кнопка "Фильтр" не найдена, повторная попытка...');
-                    setTimeout(setupFilterButtonListener, 500);
-                    return;
-                }
+    // Функция инициализации плагина
+    function startPlugin() {
+        // Добавляем компонент настроек
+        Lampa.SettingsApi.addComponent({
+            component: 'torrent_quality',
+            name: 'Качество Торрентов',
+            icon: '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+                  '<path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" fill="currentColor"/>' +
+                  '<path d="M12 6c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79-4-4-4z" fill="currentColor"/>' +
+                  '</svg>'
+        });
 
-                // Удаляем предыдущие обработчики, чтобы избежать дублирования
-                filterButton.removeEventListener('click', handleFilterButtonClick);
-                filterButton.addEventListener('click', handleFilterButtonClick);
+        // Добавляем параметр "Качество Торрентов"
+        Lampa.SettingsApi.addParam({
+            component: 'torrent_quality',
+            param: {
+                name: 'quality_filter',
+                type: 'select',
+                values: {
+                    any: 'Любое',
+                    'web-dl': 'WEB-DL',
+                    'web-dlrip': 'WEB-DLRip',
+                    bdrip: 'BDRip'
+                },
+                default: 'any'
+            },
+            field: {
+                name: 'Качество Торрентов',
+                description: 'Выберите качество для фильтрации торрентов'
+            },
+            onRender: function (element) {
+                // Находим контейнер настроек
+                var container = element.closest('.settings-param');
+                if (!container) return;
 
-                console.log('[refine_filter.js] Обработчик кнопки "Фильтр" установлен');
-            }
-
-            // Обработчик клика на кнопку "Фильтр"
-            function handleFilterButtonClick() {
-                console.log('[refine_filter.js] Кнопка "Фильтр" нажата, пытаемся заменить пункт "Трекер"');
-                // Даем время на открытие панели фильтров
-                setTimeout(replaceTrackerMenuItem, 100);
-            }
-
-            // Функция для замены пункта "Трекер" на "Качество"
-            function replaceTrackerMenuItem(attempt = 0) {
-                // Проверяем, активен ли раздел торрентов
-                const isTorrentsPage = document.querySelector('.menu__item[data-action="mytorrents"].active') ||
-                                       document.querySelector('.activity--active .torrent-list');
-                if (!isTorrentsPage) {
-                    console.log('[refine_filter.js] Раздел торрентов не активен, ждем 500 мс');
-                    if (attempt < 5) {
-                        setTimeout(() => replaceTrackerMenuItem(attempt + 1), 500);
-                    }
-                    return;
-                }
-
-                // Находим пункт "Трекер"
-                const trackerItem = Array.from(document.querySelectorAll('.selectbox-item__title'))
-                    .find(el => el.textContent.trim() === 'Трекер');
-                if (!trackerItem) {
-                    if (attempt < 5) {
-                        console.warn('[refine_filter.js] Элемент "Трекер" не найден, попытка', attempt + 1);
-                        setTimeout(() => replaceTrackerMenuItem(attempt + 1), 500);
-                    } else {
-                        console.error('[refine_filter.js] Элемент "Трекер" не найден после 5 попыток');
-                    }
-                    return;
-                }
-
-                // Заменяем текст "Трекер" на "Качество"
-                trackerItem.textContent = 'Качество';
-                trackerItem.dataset.refine = 'true'; // Метка для предотвращения повторной замены
-
-                // Находим существующий контейнер подменю
-                const trackerParent = trackerItem.closest('.selectbox-item.selector');
-                let submenu = trackerParent.nextElementSibling;
-                if (!submenu || !submenu.classList.contains('selectbox__content')) {
-                    console.warn('[refine_filter.js] Подменю для "Трекер" не найдено, создаем новое');
-                    submenu = document.createElement('div');
-                    submenu.className = 'selectbox__content layer--height';
-                    trackerParent.insertAdjacentElement('afterend', submenu);
-                }
-
-                // Заменяем содержимое подменю
+                // Создаем подменю
+                var submenu = document.createElement('div');
+                submenu.className = 'selectbox__content layer--height';
                 submenu.style.height = '945px';
                 submenu.style.display = 'none';
                 submenu.innerHTML = `
@@ -81,17 +61,17 @@
                             <div class="scroll__content">
                                 <div class="scroll__body" style="transform: translate3d(0px, 0px, 0px);">
                                     <div class="selectbox-item selector">
-                                        <div class="selectbox-item__title">Любое</div>
+                                        <div class="selectbox-item__title">Сброс</div>
                                     </div>
-                                    <div class="selectbox-item selector selectbox-item--checkbox" data-value="WEB-DL">
+                                    <div class="selectbox-item selector selectbox-item--checkbox" data-value="web-dl">
                                         <div class="selectbox-item__title">WEB-DL</div>
                                         <div class="selectbox-item__checkbox"></div>
                                     </div>
-                                    <div class="selectbox-item selector selectbox-item--checkbox" data-value="WEB-DLRip">
+                                    <div class="selectbox-item selector selectbox-item--checkbox" data-value="web-dlrip">
                                         <div class="selectbox-item__title">WEB-DLRip</div>
                                         <div class="selectbox-item__checkbox"></div>
                                     </div>
-                                    <div class="selectbox-item selector selectbox-item--checkbox" data-value="BDRip">
+                                    <div class="selectbox-item selector selectbox-item--checkbox" data-value="bdrip">
                                         <div class="selectbox-item__title">BDRip</div>
                                         <div class="selectbox-item__checkbox"></div>
                                     </div>
@@ -101,33 +81,36 @@
                     </div>
                 `;
 
-                // Находим контейнер selectbox animate
-                const selectbox = trackerItem.closest('.selectbox.animate');
-                if (selectbox) {
-                    selectbox.querySelector('.selectbox__content').style.display = 'none';
-                    submenu.style.display = 'block';
-                }
+                // Вставляем подменю
+                container.appendChild(submenu);
 
-                // Обработчик клика на "Качество"
-                trackerParent.addEventListener('click', function () {
-                    submenu.style.display = submenu.style.display === 'none' ? 'block' : 'none';
-                    if (selectbox) {
-                        selectbox.querySelectorAll('.selectbox__content').forEach(content => {
-                            if (content !== submenu) content.style.display = 'none';
-                        });
-                    }
-                    console.log('[refine_filter.js] Подменю "Качество":', submenu.style.display);
-                });
+                // Обработчик клика на заголовок параметра
+                var title = container.querySelector('.settings-param__name');
+                if (title) {
+                    title.addEventListener('click', function () {
+                        submenu.style.display = submenu.style.display === 'none' ? 'block' : 'none';
+                        // Скрываем другие подменю
+                        container.closest('.settings__content')
+                            .querySelectorAll('.selectbox__content')
+                            .forEach(content => {
+                                if (content !== submenu) content.style.display = 'none';
+                            });
+                        console.log('[torrent_quality.js] Подменю "Качество":', submenu.style.display);
+                    });
+                }
 
                 // Обработчики для пунктов подменю
                 submenu.querySelectorAll('.selectbox-item').forEach(item => {
                     item.addEventListener('click', function () {
-                        const value = item.dataset.value || item.querySelector('.selectbox-item__title').textContent.trim();
-                        const subtitle = trackerParent.querySelector('.selectbox-item__subtitle');
-                        subtitle.textContent = value === 'Любое' ? 'Любое' : value;
+                        var value = item.dataset.value || item.querySelector('.selectbox-item__title').textContent.trim();
+                        value = value === 'Сброс' ? 'any' : value.toLowerCase();
+                        var subtitle = container.querySelector('.settings-param__value');
+                        if (subtitle) {
+                            subtitle.textContent = value === 'any' ? 'Любое' : value.toUpperCase();
+                        }
 
                         // Переключаем состояние чекбокса
-                        if (value !== 'Любое') {
+                        if (value !== 'any') {
                             submenu.querySelectorAll('.selectbox-item--checkbox').forEach(el => {
                                 el.classList.toggle('selected', el.dataset.value === value);
                             });
@@ -137,38 +120,40 @@
                             });
                         }
 
-                        filterResultsByRefine(value === 'Любое' ? '' : value);
+                        // Сохраняем выбранное значение
+                        TorrentQuality.settings.quality_filter = value;
+                        Lampa.Storage.set('torrent_quality_filter', value);
+                        filterTorrents(value);
                         submenu.style.display = 'none';
-                        console.log('[refine_filter.js] Выбран фильтр:', value);
+                        console.log('[torrent_quality.js] Выбран фильтр:', value);
                     });
                 });
-
-                console.log('[refine_filter.js] Пункт "Трекер" заменен на "Качество" с подменю');
+            },
+            onChange: function (value) {
+                TorrentQuality.settings.quality_filter = value;
+                Lampa.Storage.set('torrent_quality_filter', value);
+                filterTorrents(value);
+                console.log('[torrent_quality.js] Изменено качество через настройки:', value);
             }
+        });
 
-            // Запускаем обработчик кнопки "Фильтр"
-            setupFilterButtonListener();
+        // Загружаем сохраненное значение
+        TorrentQuality.settings.quality_filter = Lampa.Storage.get('torrent_quality_filter', 'any');
 
-            // Отслеживание изменений в DOM
-            const observer = new MutationObserver(() => {
-                if (document.querySelector('.menu__item[data-action="mytorrents"].active') &&
-                    !document.querySelector('.selectbox-item__title[data-refine="true"]') &&
-                    document.querySelector('.simple-button--filter')) {
-                    setupFilterButtonListener();
-                }
-            });
-            observer.observe(document.body, { childList: true, subtree: true });
+        // Применяем фильтр при загрузке
+        if (TorrentQuality.settings.enabled && TorrentQuality.settings.quality_filter !== 'any') {
+            filterTorrents(TorrentQuality.settings.quality_filter);
         }
-    });
+    }
 
-    // Функция фильтрации результатов
-    function filterResultsByRefine(filterValue) {
+    // Функция фильтрации торрентов
+    function filterTorrents(filterValue) {
         try {
             // Проверяем, активен ли раздел торрентов
             const isTorrentsPage = document.querySelector('.menu__item[data-action="mytorrents"].active') ||
                                    document.querySelector('.activity--active .torrent-list');
             if (!isTorrentsPage) {
-                console.log('[refine_filter.js] Фильтрация не выполняется: раздел торрентов не активен');
+                console.log('[torrent_quality.js] Фильтрация не выполняется: раздел торрентов не активен');
                 return;
             }
 
@@ -179,19 +164,18 @@
             }
 
             if (!results || !Array.isArray(results)) {
-                console.error('[refine_filter.js] Нет данных для фильтрации или данные некорректны');
+                console.error('[torrent_quality.js] Нет данных для фильтрации или данные некорректны');
                 Lampa.Utils.message?.('Нет данных для фильтрации') || alert('Нет данных для фильтрации');
                 return;
             }
 
             // Фильтруем результаты
             let filteredResults = results;
-            if (filterValue) {
+            if (filterValue && filterValue !== 'any') {
                 const filterLower = filterValue.toLowerCase();
                 filteredResults = results.filter(result => {
                     const title = result.Title || '';
                     const titleLower = title.toLowerCase();
-                    const ffprobe = result.info?.ffprobe?.video || '';
                     return (
                         (filterLower === 'web-dl' && titleLower.includes('web-dl')) ||
                         (filterLower === 'web-dlrip' && titleLower.includes('webdl-rip')) ||
@@ -200,7 +184,7 @@
                 });
             }
 
-            console.log('[refine_filter.js] Отфильтрованные результаты:', filteredResults);
+            console.log('[torrent_quality.js] Отфильтрованные результаты:', filteredResults);
 
             // Проверяем результаты
             if (filteredResults.length === 0) {
@@ -213,12 +197,12 @@
             if (typeof Lampa.Torrents.render === 'function') {
                 Lampa.Torrents.render(filteredResults);
             } else {
-                console.error('[refine_filter.js] Метод Lampa.Torrents.render не найден');
+                console.error('[torrent_quality.js] Метод Lampa.Torrents.render не найден');
                 Lampa.Utils.message?.('Ошибка отображения результатов') || alert('Ошибка отображения результатов');
                 renderResultsFallback(filteredResults);
             }
         } catch (error) {
-            console.error('[refine_filter.js] Ошибка при фильтрации:', error);
+            console.error('[torrent_quality.js] Ошибка при фильтрации:', error);
             Lampa.Utils.message?.('Ошибка при фильтрации результатов') || alert('Ошибка при фильтрации результатов');
         }
     }
@@ -249,5 +233,21 @@
         });
     }
 
-    console.log('[refine_filter.js] Плагин успешно инициализирован');
+    // Ждем готовности приложения
+    if (window.appready) {
+        startPlugin();
+    } else {
+        Lampa.Listener.follow('app', function (e) {
+            if (e.type === 'ready') startPlugin();
+        });
+    }
+
+    // Манифест плагина
+    Lampa.Manifest.plugins = {
+        name: 'Качество Торрентов',
+        version: '1.0.0',
+        description: 'Фильтрация торрентов по качеству (WEB-DL, WEB-DLRip, BDRip)'
+    };
+    window.torrent_quality = TorrentQuality;
+
 })();
