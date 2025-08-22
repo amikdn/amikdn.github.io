@@ -6,9 +6,24 @@
         if (e.type === 'ready') {
             console.log('[refine_filter.js] Приложение готово, инициализация плагина');
 
+            // Обработчик клика на кнопку "Фильтр"
+            function setupFilterButtonListener() {
+                const filterButton = document.querySelector('.simple-button--filter');
+                if (!filterButton) {
+                    console.warn('[refine_filter.js] Кнопка "Фильтр" не найдена, повторная попытка...');
+                    setTimeout(setupFilterButtonListener, 500);
+                    return;
+                }
+
+                filterButton.addEventListener('click', function () {
+                    console.log('[refine_filter.js] Кнопка "Фильтр" нажата, добавляем пункт "Уточнить"');
+                    addRefineMenuItem();
+                });
+            }
+
             // Функция для добавления пункта меню "Уточнить"
             function addRefineMenuItem() {
-                // Проверяем, открыт ли раздел "Торренты"
+                // Проверяем, активен ли раздел торрентов
                 const isTorrentsPage = document.querySelector('.menu__item[data-action="mytorrents"].active') ||
                                        document.querySelector('.activity--active .torrent-list');
                 if (!isTorrentsPage) {
@@ -17,17 +32,17 @@
                     return;
                 }
 
+                // Проверяем, не добавлен ли уже пункт "Уточнить"
+                if (document.querySelector('.selectbox-item__title[data-refine="true"]')) {
+                    console.log('[refine_filter.js] Пункт "Уточнить" уже добавлен');
+                    return;
+                }
+
                 const qualityItem = Array.from(document.querySelectorAll('.selectbox-item__title'))
                     .find(el => el.textContent.trim() === 'Качество');
                 if (!qualityItem) {
                     console.warn('[refine_filter.js] Элемент "Качество" не найден, повторная попытка...');
                     setTimeout(addRefineMenuItem, 500);
-                    return;
-                }
-
-                // Проверяем, не добавлен ли уже пункт "Уточнить"
-                if (document.querySelector('.selectbox-item__title[data-refine="true"]')) {
-                    console.log('[refine_filter.js] Пункт "Уточнить" уже добавлен');
                     return;
                 }
 
@@ -44,18 +59,19 @@
 
                 // Создаем подменю
                 const submenu = document.createElement('div');
-                submenu.className = 'selectbox__content layer--height refine-submenu';
+                submenu.className = 'selectbox__content layer--height';
+                submenu.style.height = '953px';
                 submenu.style.display = 'none';
                 submenu.innerHTML = `
                     <div class="selectbox__head">
                         <div class="selectbox__title">Уточнить</div>
                     </div>
-                    <div class="selectbox__body layer--wheight">
+                    <div class="selectbox__body layer--wheight" style="max-height: unset; height: 906.453px;">
                         <div class="scroll scroll--mask scroll--over">
                             <div class="scroll__content">
-                                <div class="scroll__body">
+                                <div class="scroll__body" style="transform: translate3d(0px, 0px, 0px);">
                                     <div class="selectbox-item selector">
-                                        <div class="selectbox-item__title">Отмена</div>
+                                        <div class="selectbox-item__title">Сброс</div>
                                     </div>
                                     <div class="selectbox-item selector selectbox-item--checkbox" data-value="WEB-DL">
                                         <div class="selectbox-item__title">WEB-DL</div>
@@ -89,10 +105,10 @@
                     item.addEventListener('click', function () {
                         const value = item.dataset.value || item.querySelector('.selectbox-item__title').textContent.trim();
                         const subtitle = refineItem.querySelector('.selectbox-item__subtitle');
-                        subtitle.textContent = value === 'Отмена' ? 'Не выбрано' : value;
+                        subtitle.textContent = value === 'Сброс' ? 'Не выбрано' : value;
 
                         // Переключаем состояние чекбокса
-                        if (value !== 'Отмена') {
+                        if (value !== 'Сброс') {
                             submenu.querySelectorAll('.selectbox-item--checkbox').forEach(el => {
                                 el.classList.toggle('selected', el.dataset.value === value);
                             });
@@ -102,7 +118,7 @@
                             });
                         }
 
-                        filterResultsByRefine(value === 'Отмена' ? '' : value);
+                        filterResultsByRefine(value === 'Сброс' ? '' : value);
                         submenu.style.display = 'none';
                         console.log('[refine_filter.js] Выбран фильтр:', value);
                     });
@@ -111,14 +127,15 @@
                 console.log('[refine_filter.js] Пункт "Уточнить" и подменю добавлены');
             }
 
-            // Запускаем добавление пункта меню
-            addRefineMenuItem();
+            // Запускаем обработчик кнопки "Фильтр"
+            setupFilterButtonListener();
 
             // Отслеживание изменений в DOM для повторного добавления при смене раздела
             const observer = new MutationObserver(() => {
                 if (document.querySelector('.menu__item[data-action="mytorrents"].active') &&
-                    !document.querySelector('.selectbox-item__title[data-refine="true"]')) {
-                    addRefineMenuItem();
+                    !document.querySelector('.selectbox-item__title[data-refine="true"]') &&
+                    document.querySelector('.simple-button--filter')) {
+                    setupFilterButtonListener();
                 }
             });
             observer.observe(document.body, { childList: true, subtree: true });
@@ -212,53 +229,6 @@
             container.appendChild(item);
         });
     }
-
-    // Добавляем стили
-    const style = document.createElement('style');
-    style.textContent = `
-        .selectbox-item.selector { display: block !important; visibility: visible !important; }
-        .selectbox-item__title { cursor: pointer; padding: 10px; }
-        .refine-submenu { 
-            position: absolute; 
-            background: #2a2a2a; 
-            z-index: 1000; 
-            border: 1px solid #444; 
-            border-radius: 4px;
-            min-width: 150px;
-        }
-        .selectbox-item--checkbox .selectbox-item__checkbox { 
-            width: 18px; 
-            height: 18px; 
-            border: 1px solid #ccc; 
-            display: inline-block; 
-            margin-left: 8px; 
-            vertical-align: middle;
-        }
-        .selectbox-item--checkbox.selected .selectbox-item__checkbox { 
-            background: #007bff; 
-            border-color: #007bff; 
-            position: relative;
-        }
-        .selectbox-item--checkbox.selected .selectbox-item__checkbox::after {
-            content: '✔';
-            color: white;
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 12px;
-        }
-        .torrent-item { 
-            margin-bottom: 15px; 
-            padding: 10px; 
-            border: 1px solid #444; 
-            border-radius: 4px; 
-        }
-        .torrent-item__title { font-size: 16px; font-weight: bold; }
-        .torrent-item a { color: #007bff; text-decoration: none; }
-        .torrent-item a:hover { text-decoration: underline; }
-    `;
-    document.head.appendChild(style);
 
     console.log('[refine_filter.js] Плагин успешно инициализирован');
 })();
