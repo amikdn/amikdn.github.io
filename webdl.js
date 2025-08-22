@@ -4,7 +4,7 @@
     // Объект плагина
     var TorrentQuality = {
         name: 'torrent_quality',
-        version: '1.1.17',
+        version: '1.1.18',
         debug: true, // Оставлено true для отладки
         settings: {
             enabled: true,
@@ -379,27 +379,31 @@
 
         function applyFilterOnTorrentsLoad() {
             if (TorrentQuality.settings.enabled) {
+                clearTorrents(); // Очищаем при каждой загрузке торрентов
                 resetFilter();
                 filterTorrents(TorrentQuality.settings.quality_filter);
             }
         }
 
         Lampa.Listener.follow('activity', function (e) {
-            if (e.type === 'active' && (e.data?.action === 'mytorrents' || e.data?.action === 'torrents' || e.data?.component === 'torrents')) {
-                const newMovieId = e.data?.movie?.id || e.data?.movie?.imdb_id || e.data?.movie?.kinopoisk_id || e.data?.movie?.title || JSON.stringify(e.data?.movie);
+            if (e.type === 'active' || e.type === 'push' || e.type === 'toggle') {
+                const activeMovie = Lampa.Activity.active()?.movie;
+                const newMovieId = activeMovie?.id || activeMovie?.imdb_id || activeMovie?.kinopoisk_id || activeMovie?.title || e.data?.title || window.location.search || JSON.stringify(activeMovie);
+                if (TorrentQuality.debug) {
+                    console.log('[torrent_quality.js] Событие activity:', { type: e.type, data: e.data, activeMovie: Lampa.Activity.active() });
+                }
                 if (newMovieId && newMovieId !== currentMovieId) {
                     if (TorrentQuality.debug) console.log(`[torrent_quality.js] Смена фильма: ${currentMovieId} -> ${newMovieId}`);
                     clearTorrents();
                     currentMovieId = newMovieId;
+                    applyFilterOnTorrentsLoad();
                 }
-                if (TorrentQuality.debug) console.log('[torrent_quality.js] Активирован раздел торрентов:', e);
-                applyFilterOnTorrentsLoad();
             }
         });
 
         Lampa.Listener.follow('torrents', function (e) {
             if (e.type === 'load' || e.type === 'update' || e.type === 'torrent_load' || e.type === 'torrent_update') {
-                if (TorrentQuality.debug) console.log('[torrent_quality.js] Событие загрузки торрентов:', e);
+                if (TorrentQuality.debug) console.log('[torrent_quality.js] Событие torrents:', e);
                 applyFilterOnTorrentsLoad();
             }
         });
@@ -416,7 +420,7 @@
     // Манифест плагина
     Lampa.Manifest.plugins = {
         name: 'Фильтр Торрентов',
-        version: '1.1.17',
+        version: '1.1.18',
         description: 'Фильтрация торрентов по качеству для текущего фильма'
     };
     window.torrent_quality = TorrentQuality;
