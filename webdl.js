@@ -4,87 +4,116 @@
     // Ждем полной загрузки приложения Lampa
     Lampa.Listener.follow('app', function (e) {
         if (e.type === 'ready') {
-            console.log('[webdl.js] Приложение готово, добавляем кнопку WEB-DL в меню');
+            console.log('[refine_filter.js] Приложение готово, добавляем пункт "Уточнить" в меню фильтров');
 
-            // Добавляем кнопку с подменю в главное меню
-            Lampa.Menu.add('filter_webdl', {
-                title: 'Фильтр WEB-DL',
-                icon: 'filter',
-                submenu: [
-                    {
-                        title: 'Все качества',
-                        action: function () {
-                            filterWebDLResults();
-                        }
-                    },
-                    {
-                        title: '1080p+',
-                        action: function () {
-                            filterWebDLResults(1080);
-                        }
-                    },
-                    {
-                        title: '2160p',
-                        action: function () {
-                            filterWebDLResults(2160);
-                        }
-                    }
-                ]
+            // Находим элемент меню "Качество"
+            const qualityItem = document.querySelector('.selectbox-item__title[title="Качество"]');
+            if (!qualityItem) {
+                console.error('[refine_filter.js] Элемент "Качество" не найден в меню');
+                Lampa.Notice.show('Ошибка: Не удалось найти пункт "Качество" в меню');
+                return;
+            }
+
+            // Создаем новый пункт меню "Уточнить"
+            const refineItem = document.createElement('div');
+            refineItem.className = 'selectbox-item selector';
+            refineItem.innerHTML = `
+                <div class="selectbox-item__title">Уточнить</div>
+                <div class="selectbox-item__subtitle">Не выбрано</div>
+            `;
+
+            // Вставляем новый пункт после "Качество"
+            qualityItem.parentElement.insertAdjacentElement('afterend', refineItem);
+
+            // Добавляем обработчик клика для открытия поля ввода
+            refineItem.addEventListener('click', function () {
+                // Создаем или находим поле ввода
+                let refineInput = document.querySelector('.w2 .filter-label');
+                if (!refineInput) {
+                    console.log('[refine_filter.js] Поле ввода "Уточнить" не найдено, создаем новое');
+                    const inputContainer = document.createElement('div');
+                    inputContainer.className = 'w2';
+                    inputContainer.innerHTML = `
+                        <div class="filter-label">Уточнить</div>
+                        <input name="refine" placeholder="Например BDRip, WEB-DL">
+                    `;
+                    document.querySelector('.selectbox__body').appendChild(inputContainer);
+                    refineInput = inputContainer.querySelector('input[name="refine"]');
+                } else {
+                    refineInput = document.querySelector('input[name="refine"]');
+                }
+
+                // Показываем поле ввода
+                refineInput.parentElement.style.display = 'block';
+
+                // Обновляем подзаголовок при вводе
+                refineInput.addEventListener('input', function () {
+                    const value = refineInput.value.trim();
+                    refineItem.querySelector('.selectbox-item__subtitle').textContent = value || 'Не выбрано';
+                    filterResultsByRefine(value);
+                });
+
+                console.log('[refine_filter.js] Пункт "Уточнить" активирован');
             });
 
-            console.log('[webdl.js] Кнопка и подменю WEB-DL добавлены в меню');
+            console.log('[refine_filter.js] Пункт "Уточнить" добавлен в меню');
         }
     });
 
-    // Функция для фильтрации результатов по WEB-DL
-    function filterWebDLResults(minQuality) {
+    // Функция для фильтрации результатов по BDRip или WEB-DL
+    function filterResultsByRefine(refineValue) {
         try {
-            // Получаем данные из хранилища Lampa или выполняем API-запрос
+            // Получаем данные из хранилища Lampa
             let results = Lampa.Storage.get('torrents_data', '[]');
             if (typeof results === 'string') {
                 results = JSON.parse(results);
             }
 
             if (!results || !Array.isArray(results)) {
-                console.error('[webdl.js] Нет данных для фильтрации или данные некорректны');
-                Lampa.Notice.show('Нет данных для фильтрации WEB-DL');
+                console.error('[refine_filter.js] Нет данных для фильтрации или данные некорректны');
+                Lampa.Notice.show('Нет данных для фильтрации');
                 return;
             }
 
-            // Фильтруем результаты по WEB-DL и, при необходимости, по качеству
-            const webDLResults = results.filter(result => {
-                const isWebDL = result.Title && (
-                    result.Title.toLowerCase().includes('web-dl') || 
-                    result.Title.toLowerCase().includes('webdl-rip')
-                );
-                const meetsQuality = !minQuality || (result.info && result.info.quality >= minQuality);
-                return isWebDL && meetsQuality;
-            });
+            // Фильтруем результаты по значению из поля ввода
+            const filterValue = refineValue.toLowerCase().trim();
+            let filteredResults = results;
 
-            console.log('[webdl.js] Отфильтрованные WEB-DL результаты:', webDLResults);
+            if (filterValue) {
+                filteredResults = results.filter(result => {
+                    if (!result.Title) return false;
+                    const titleLower = result.Title.toLowerCase();
+                    return (
+                        (filterValue.includes('bdrip') && titleLower.includes('bdrip')) ||
+                        (filterValue.includes('web-dl') && 
+                         (titleLower.includes('web-dl') || titleLower.includes('webdl-rip')))
+                    );
+                });
+            }
+
+            console.log('[refine_filter.js] Отфильтрованные результаты:', filteredResults);
 
             // Проверяем, есть ли результаты
-            if (webDLResults.length === 0) {
-                Lampa.Notice.show('Не найдено WEB-DL результатов для отображения');
+            if (filteredResults.length === 0) {
+                Lampa.Notice.show('Не найдено результатов для фильтра: ' + refineValue);
                 return;
             }
 
             // Отображаем результаты в интерфейсе Lampa
             if (typeof Lampa.Torrents.render === 'function') {
-                Lampa.Torrents.render(webDLResults);
+                Lampa.Torrents.render(filteredResults);
             } else {
-                console.error('[webdl.js] Метод Lampa.Torrents.render не найден');
+                console.error('[refine_filter.js] Метод Lampa.Torrents.render не найден');
                 Lampa.Notice.show('Ошибка отображения результатов');
-                // Альтернативный рендеринг, если метод неизвестен
-                renderResultsFallback(webDLResults);
+                renderResultsFallback(filteredResults);
             }
         } catch (error) {
-            console.error('[webdl.js] Ошибка при фильтрации:', error);
-            Lampa.Notice.show('Ошибка при фильтрации WEB-DL');
+            console.error('[refine_filter.js] Ошибка при фильтрации:', error);
+            Lampa.Notice.show('Ошибка при фильтрации результатов');
         }
     }
 
-    // Альтернативная функция рендеринга результатов (если Lampa.Torrents.render недоступен)
+    // Альтернативная функция рендеринга результатов
     function renderResultsFallback(results) {
         const container = document.querySelector('.torrent-list') || document.createElement('div');
         if (!container.classList.contains('torrent-list')) {
@@ -116,28 +145,20 @@
             .torrent-item p { margin: 5px 0; }
             .torrent-item a { color: #007bff; text-decoration: none; }
             .torrent-item a:hover { text-decoration: underline; }
+            .w2 { padding: 10px; }
+            .w2 .filter-label { font-weight: bold; margin-bottom: 5px; }
+            .w2 input[name="refine"] { width: 100%; padding: 8px; }
         `;
         document.head.appendChild(style);
     }
 
-    // Проверка загрузки данных, если они еще не сохранены
-    Lampa.Listener.follow('torrents_data', function (e) {
-        if (e.type === 'update') {
-            console.log('[webdl.js] Данные torrents_data обновлены:', e.data);
-        }
-    });
-
-    // Добавляем CSS для видимости кнопки в меню
+    // Добавляем CSS для видимости пункта меню
     const style = document.createElement('style');
     style.textContent = `
-        .menu__item.filter_webdl {
-            display: block !important;
-            visibility: visible !important;
-            padding: 10px;
-            cursor: pointer;
-        }
+        .selectbox-item.selector { display: block !important; visibility: visible !important; }
+        .selectbox-item__title[title="Уточнить"] { cursor: pointer; }
     `;
     document.head.appendChild(style);
 
-    console.log('[webdl.js] Плагин инициализирован');
+    console.log('[refine_filter.js] Плагин инициализирован');
 })();
