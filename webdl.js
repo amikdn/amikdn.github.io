@@ -48,16 +48,6 @@
         }
     }
 
-    // Функция парсинга длительности
-    function parseDuration(duration) {
-        if (!duration) return 0;
-        const parts = duration.split(':');
-        if (parts.length < 3) return 0;
-        const hours = parseInt(parts[0], 10);
-        const minutes = parseInt(parts[1], 10);
-        const seconds = parseFloat(parts[2]);
-        return hours * 3600 + minutes * 60 + seconds;
-    }
 
     // Оптимизация Canvas
     function optimizeCanvas() {
@@ -70,7 +60,7 @@
     function getTorrentsData() {
         let results = [];
         const possibleStorageKeys = ['torrents_data', 'torrent_data', 'results', 'torrent_results', 'torrents', 'torrent_list'];
-        const possibleObjectKeys = ['data', 'results', 'items', 'list', 'torrents'];
+        const possibleObjectKeys = ['results', 'items', 'list', 'torrents'];
 
         // Проверяем Lampa.Storage
         for (const key of possibleStorageKeys) {
@@ -172,20 +162,6 @@
         return true;
     }
 
-    // Функция фильтрации торрентов
-    async function filterTorrents(filterValue) {
-        try {
-            // Проверяем, активен ли раздел торрентов
-            const isTorrentsPage = document.querySelector('.menu__item[data-action="mytorrents"].active') ||
-                                   document.querySelector('.menu__item[data-action="torrents"].active') ||
-                                   document.querySelector('.activity--active .torrent-list') ||
-                                   (Lampa.Activity?.active?.()?.data?.action === 'mytorrents') ||
-                                   (Lampa.Activity?.active?.()?.data?.action === 'torrents') ||
-                                   (Lampa.Activity?.active?.()?.component === 'torrents');
-            if (!isTorrentsPage) {
-                if (TorrentQuality.debug) console.log('[torrent_quality.js] Раздел торрентов не активен, фильтрация пропущена');
-                return;
-            }
 
             // Инициализируем originalTorrents, если пусто
             if (!originalTorrents.length) {
@@ -537,3 +513,4 @@
         });
     }
 })();
+
