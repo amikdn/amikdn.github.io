@@ -4,7 +4,7 @@
     // Объект плагина
     var TorrentQuality = {
         name: 'torrent_quality',
-        version: '1.1.0',
+        version: '1.1.1',
         debug: true, // Включаем отладку
         settings: {
             enabled: true,
@@ -50,9 +50,9 @@
     // Функция получения данных торрентов
     function getTorrentsData() {
         let results = [];
-        const possibleKeys = ['torrents_data', 'torrent_data', 'results'];
+        const possibleKeys = ['torrents_data', 'torrent_data', 'results', 'torrent_results', 'torrents'];
 
-        // Проверяем возможные ключи в Lampa.Storage
+        // Проверяем Lampa.Storage
         for (const key of possibleKeys) {
             let data = Lampa.Storage.get(key, '[]');
             if (typeof data === 'string') {
@@ -73,19 +73,38 @@
         }
 
         // Проверяем Lampa.Torrents
-        if (!results.length && Lampa.Torrents?.data) {
-            results = Lampa.Torrents.data;
-            if (TorrentQuality.debug) {
-                console.log('[torrent_quality.js] Найдены данные в Lampa.Torrents.data:', results);
+        if (!results.length && Lampa.Torrents) {
+            const possibleTorrentsKeys = ['data', 'results', 'items', 'list'];
+            for (const key of possibleTorrentsKeys) {
+                if (Lampa.Torrents[key] && Array.isArray(Lampa.Torrents[key]) && Lampa.Torrents[key].length > 0) {
+                    results = Lampa.Torrents[key];
+                    if (TorrentQuality.debug) {
+                        console.log(`[torrent_quality.js] Найдены данные в Lampa.Torrents.${key}:`, results);
+                    }
+                    break;
+                }
             }
         }
 
         // Проверяем Lampa.Activity
-        if (!results.length && Lampa.Activity?.active?.()?.data?.torrents) {
-            results = Lampa.Activity.active().data.torrents;
-            if (TorrentQuality.debug) {
-                console.log('[torrent_quality.js] Найдены данные в Lampa.Activity.active().data.torrents:', results);
+        if (!results.length && Lampa.Activity?.active?.()?.data) {
+            const possibleActivityKeys = ['torrents', 'results', 'items', 'list'];
+            for (const key of possibleActivityKeys) {
+                if (Lampa.Activity.active().data[key] && Array.isArray(Lampa.Activity.active().data[key]) && Lampa.Activity.active().data[key].length > 0) {
+                    results = Lampa.Activity.active().data[key];
+                    if (TorrentQuality.debug) {
+                        console.log(`[torrent_quality.js] Найдены данные в Lampa.Activity.active().data.${key}:`, results);
+                    }
+                    break;
+                }
             }
+        }
+
+        // Дополнительная отладка: выводим все доступные ключи и объекты
+        if (TorrentQuality.debug) {
+            console.log('[torrent_quality.js] Все ключи Lampa.Storage.cache:', Object.keys(Lampa.Storage.cache || {}));
+            console.log('[torrent_quality.js] Lampa.Torrents:', Lampa.Torrents);
+            console.log('[torrent_quality.js] Lampa.Activity.active():', Lampa.Activity?.active?.());
         }
 
         return results;
@@ -288,6 +307,14 @@
             }
         });
 
+        // Дополнительно: таймер для проверки данных, если события не срабатывают
+        setTimeout(() => {
+            if (TorrentQuality.debug) {
+                console.log('[torrent_quality.js] Проверка данных через таймер');
+            }
+            applyFilterOnTorrentsLoad();
+        }, 5000);
+
         // Инициализация при старте
         if (window.appready) {
             applyFilterOnTorrentsLoad();
@@ -449,7 +476,7 @@
     // Манифест плагина
     Lampa.Manifest.plugins = {
         name: 'Качество Торрентов',
-        version: '1.1.0',
+        version: '1.1.1',
         description: 'Фильтрация торрентов по качеству (WEB-DL, WEB-DLRip, BDRip) для текущего фильма'
     };
     window.torrent_quality = TorrentQuality;
