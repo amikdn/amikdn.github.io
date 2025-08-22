@@ -5,7 +5,7 @@
     var TorrentQuality = {
         name: 'torrent_quality',
         version: '1.1.8',
-        debug: false, // Включите true для отладки
+        debug: true, // Включите true для отладки
         settings: {
             enabled: true,
             quality_filter: 'any'
@@ -510,3 +510,4 @@
         });
     }
 })();
+
