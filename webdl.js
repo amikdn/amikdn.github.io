@@ -4,7 +4,7 @@
     // Объект плагина
     var TorrentQuality = {
         name: 'torrent_quality',
-        version: '1.0.7',
+        version: '1.0.8',
         debug: true, // Включаем отладку
         settings: {
             enabled: true,
@@ -12,9 +12,55 @@
         }
     };
 
+    // Функция для получения данных текущего фильма
+    function getCurrentMovie() {
+        try {
+            // Проверяем активную активность в Lampa
+            const active = Lampa.Activity?.active?.() || {};
+            const movieData = active.data || {};
+            
+            // Извлекаем данные из DOM, если доступно
+            const titleElement = document.querySelector('.card__title') || document.querySelector('.torrent-item__title');
+            const title = movieData.title || (titleElement ? titleElement.textContent.trim() : '');
+            const title_original = movieData.title_original || movieData.original_title || title;
+            const year = movieData.year || (document.querySelector('.card__year') ? document.querySelector('.card__year').textContent.trim() : '');
+            const genres = movieData.genres ? movieData.genres.join(',') : 'боевик,приключения,триллер'; // Фallback жанры
+            
+            if (TorrentQuality.debug) {
+                console.log('[torrent_quality.js] Данные текущего фильма:', { title, title_original, year, genres });
+            }
+
+            if (!title || !year) {
+                console.error('[torrent_quality.js] Не удалось определить данные фильма');
+                return null;
+            }
+
+            return { title, title_original, year, genres };
+        } catch (error) {
+            console.error('[torrent_quality.js] Ошибка при получении данных фильма:', error);
+            return null;
+        }
+    }
+
     // Функция для получения данных из API
     async function fetchTorrentsData() {
-        const apiUrl = 'http://jacred.xyz/api/v2.0/indexers/all/results?apikey=&Query=Mission%3A%20Impossible%20-%20The%20Final%20Reckoning&title=%D0%9C%D0%B8%D1%81%D1%81%D0%B8%D1%8F%20%D0%BD%D0%B5%D0%B2%D1%8B%D0%BF%D0%BE%D0%BB%D0%BD%D0%B8%D0%BC%D0%B0%3A%20%D0%A4%D0%B8%D0%BD%D0%B0%D0%BB%D1%8C%D0%BD%D0%B0%D1%8F%20%D1%80%D0%B0%D1%81%D0%BF%D0%BB%D0%B0%D1%82%D0%B0&title_original=Mission%3A%20Impossible%20-%20The%20Final%20Reckoning&year=2025&is_serial=1&genres=%D0%B1%D0%BE%D0%B5%D0%B2%D0%B8%D0%BA%2C%D0%BF%D1%80%D0%B8%D0%BA%D0%BB%D1%8E%D1%87%D0%B5%D0%BD%D0%B8%D1%8F%2C%D1%82%D1%80%D0%B8%D0%BB%D0%BB%D0%B5%D1%80&Category[]=2000';
+        const movie = getCurrentMovie();
+        if (!movie) {
+            console.error('[torrent_quality.js] Не удалось загрузить данные торрентов: информация о фильме отсутствует');
+            Lampa.Utils.message?.('Не удалось определить текущий фильм') || alert('Не удалось определить текущий фильм');
+            return [];
+        }
+
+        const { title, title_original, year, genres } = movie;
+        const encodedTitle = encodeURIComponent(title);
+        const encodedTitleOriginal = encodeURIComponent(title_original);
+        const encodedGenres = encodeURIComponent(genres);
+        const apiUrl = `http://jacred.xyz/api/v2.0/indexers/all/results?apikey=&Query=${encodedTitleOriginal}&title=${encodedTitle}&title_original=${encodedTitleOriginal}&year=${year}&is_serial=0&genres=${encodedGenres}&Category[]=2000`;
+
+        if (TorrentQuality.debug) {
+            console.log('[torrent_quality.js] Формируем URL API:', apiUrl);
+        }
+
         try {
             const response = await fetch(apiUrl, {
                 method: 'GET',
@@ -63,7 +109,7 @@
         }
     }
 
-    // Функция парсинга длительности (например, "02:49:35.776000000")
+    // Функция парсинга длительности
     function parseDuration(duration) {
         if (!duration) return 0;
         const parts = duration.split(':');
@@ -272,9 +318,10 @@
                 }
             }
 
-            // Если данные отсутствуют, пробуем загрузить из API
-            if (!results || !Array.isArray(results) || results.length === 0) {
-                console.warn('[torrent_quality.js] torrents_data пустой или undefined:', results);
+            // Если данные отсутствуют или не соответствуют текущему фильму, загружаем из API
+            const movie = getCurrentMovie();
+            if (!results || !Array.isArray(results) || results.length === 0 || !results.some(r => r.Title && r.Title.includes(movie?.title || ''))) {
+                console.warn('[torrent_quality.js] torrents_data пустой или не соответствует текущему фильму:', results);
                 results = await fetchTorrentsData();
                 if (results.length === 0) {
                     console.error('[torrent_quality.js] Не удалось загрузить данные из API');
@@ -415,8 +462,8 @@
     // Манифест плагина
     Lampa.Manifest.plugins = {
         name: 'Качество Торрентов',
-        version: '1.0.7',
-        description: 'Фильтрация торрентов по качеству (WEB-DL, WEB-DLRip, BDRip)'
+        version: '1.0.8',
+        description: 'Фильтрация торрентов по качеству (WEB-DL, WEB-DLRip, BDRip) для текущего фильма'
     };
     window.torrent_quality = TorrentQuality;
 
