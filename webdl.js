@@ -4,12 +4,11 @@
     // Объект плагина
     var TorrentQuality = {
         name: 'torrent_quality',
-        version: '1.0.2',
+        version: '1.0.4',
         debug: true, // Включаем отладку для диагностики
         settings: {
             enabled: true,
-            quality_filter: 'any', // По умолчанию "Любое"
-            sort_by: 'seeds' // По умолчанию сортировка по сидам
+            quality_filter: 'any' // По умолчанию "Любое"
         }
     };
 
@@ -180,34 +179,8 @@
             }
         });
 
-        // Добавляем параметр сортировки
-        Lampa.SettingsApi.addParam({
-            component: 'torrent_quality',
-            param: {
-                name: 'sort_by',
-                type: 'select',
-                values: {
-                    seeds: 'По сидам',
-                    size: 'По размеру',
-                    date: 'По дате'
-                },
-                default: 'seeds'
-            },
-            field: {
-                name: 'Сортировка торрентов',
-                description: 'Выберите порядок сортировки торрентов'
-            },
-            onChange: function (value) {
-                TorrentQuality.settings.sort_by = value;
-                Lampa.Storage.set('torrent_sort_by', value);
-                filterTorrents(TorrentQuality.settings.quality_filter);
-                console.log('[torrent_quality.js] Изменена сортировка:', value);
-            }
-        });
-
-        // Загружаем сохраненные значения
+        // Загружаем сохраненное значение
         TorrentQuality.settings.quality_filter = Lampa.Storage.get('torrent_quality_filter', 'any');
-        TorrentQuality.settings.sort_by = Lampa.Storage.get('torrent_sort_by', 'seeds');
 
         // Применяем фильтр при загрузке
         if (TorrentQuality.settings.enabled && TorrentQuality.settings.quality_filter !== 'any') {
@@ -215,7 +188,7 @@
         }
     }
 
-    // Функция фильтрации и сортировки торрентов
+    // Функция фильтрации торрентов
     function filterTorrents(filterValue) {
         try {
             // Проверяем, активен ли раздел торрентов
@@ -229,17 +202,34 @@
             // Получаем данные из хранилища Lampa
             let results = Lampa.Storage.get('torrents_data', '[]');
             if (typeof results === 'string') {
-                results = JSON.parse(results);
+                try {
+                    results = JSON.parse(results);
+                } catch (e) {
+                    console.error('[torrent_quality.js] Ошибка парсинга torrents_data:', e);
+                    Lampa.Utils.message?.('Ошибка парсинга данных торрентов') || alert('Ошибка парсинга данных торрентов');
+                    return;
+                }
             }
 
-            if (!results || !Array.isArray(results)) {
+            if (!results || !Array.isArray(results) || results.length === 0) {
                 console.error('[torrent_quality.js] Нет данных для фильтрации или данные некорректны:', results);
-                Lampa.Utils.message?.('Нет данных для фильтрации') || alert('Нет данных для фильтрации');
+                Lampa.Utils.message?.('Нет данных для фильтрации торрентов') || alert('Нет данных для фильтрации торрентов');
                 return;
             }
 
             if (TorrentQuality.debug) {
                 console.log('[torrent_quality.js] Исходные данные torrents_data:', results);
+                // Проверяем наличие поля Title или альтернативных полей
+                results.forEach((item, index) => {
+                    console.log(`[torrent_quality.js] Элемент ${index}:`, {
+                        Title: item.Title,
+                        title: item.title,
+                        Name: item.Name,
+                        name: item.name,
+                        HasTitle: !!item.Title || !!item.title || !!item.Name || !!item.name,
+                        TitleType: typeof (item.Title || item.title || item.Name || item.name)
+                    });
+                });
             }
 
             // Фильтруем результаты
@@ -247,41 +237,32 @@
             if (filterValue && filterValue !== 'any') {
                 const filterLower = filterValue.toLowerCase();
                 filteredResults = results.filter(result => {
-                    const title = result.Title || '';
+                    // Проверяем возможные поля для заголовка
+                    const title = result.Title || result.title || result.Name || result.name || '';
+                    if (!title || typeof title !== 'string') {
+                        console.warn('[torrent_quality.js] Пропущен элемент без заголовка или с некорректным заголовком:', result);
+                        return false;
+                    }
                     const titleLower = title.toLowerCase();
                     // Учитываем вариации написания
                     return (
-                        (filterLower === 'web-dl' && (titleLower.includes('web-dl') || titleLower.includes('webdl'))) ||
-                        (filterLower === 'web-dlrip' && (titleLower.includes('web-dlrip') || titleLower.includes('webdl-rip') || titleLower.includes('webdlrip'))) ||
-                        (filterLower === 'bdrip' && (titleLower.includes('bdrip') || titleLower.includes('bd-rip')))
+                        (filterLower === 'web-dl' && (titleLower.includes('web-dl') || titleLower.includes('webdl') || titleLower.includes('web dl'))) ||
+                        (filterLower === 'web-dlrip' && (titleLower.includes('web-dlrip') || titleLower.includes('webdl-rip') || titleLower.includes('webdlrip') || titleLower.includes('web dlrip'))) ||
+                        (filterLower === 'bdrip' && (titleLower.includes('bdrip') || titleLower.includes('bd-rip') || titleLower.includes('bd rip')))
                     );
                 });
             }
 
             if (TorrentQuality.debug) {
                 console.log('[torrent_quality.js] Отфильтрованные результаты:', filteredResults);
+                console.log('[torrent_quality.js] Количество отфильтрованных результатов:', filteredResults.length);
             }
 
-            // Сортировка результатов
-            filteredResults = filteredResults.sort((a, b) => {
-                if (TorrentQuality.settings.sort_by === 'seeds') {
-                    return (b.Seeders || 0) - (a.Seeders || 0);
-                } else if (TorrentQuality.settings.sort_by === 'size') {
-                    const sizeA = parseSize(a.info?.sizeName || '0');
-                    const sizeB = parseSize(b.info?.sizeName || '0');
-                    return sizeB - sizeA;
-                } else if (TorrentQuality.settings.sort_by === 'date') {
-                    const dateA = new Date(a.Date || '1970-01-01');
-                    const dateB = new Date(b.Date || '1970-01-01');
-                    return dateB - dateA;
-                }
-                return 0;
-            });
-
             if (filteredResults.length === 0) {
-                console.warn('[torrent_quality.js] Не найдено результатов для фильтра:', filterValue);
-                Lampa.Utils.message?.(`Не найдено результатов для фильтра: ${filterValue}`) ||
-                    alert(`Не найдено результатов для фильтра: ${filterValue}`);
+                console.warn('[torrent_quality.js] Не найдено торрентов для фильтра:', filterValue);
+                console.log('[torrent_quality.js] Проверьте, содержат ли элементы torrents_data поле Title (или title, Name, name) с ожидаемыми значениями (WEB-DL, WEB-DLRip, BDRip)');
+                Lampa.Utils.message?.(`Не найдено торрентов для фильтра: ${filterValue}. Проверьте данные торрентов.`) ||
+                    alert(`Не найдено торрентов для фильтра: ${filterValue}. Проверьте данные торрентов.`);
                 return;
             }
 
@@ -298,18 +279,8 @@
             }
         } catch (error) {
             console.error('[torrent_quality.js] Ошибка при фильтрации:', error);
-            Lampa.Utils.message?.('Ошибка при фильтрации результатов') || alert('Ошибка при фильтрации результатов');
+            Lampa.Utils.message?.('Ошибка при фильтрации торрентов') || alert('Ошибка при фильтрации торрентов');
         }
-    }
-
-    // Вспомогательная функция для парсинга размера (GB, MB)
-    function parseSize(sizeStr) {
-        if (!sizeStr || typeof sizeStr !== 'string') return 0;
-        const match = sizeStr.match(/(\d+\.?\d*)\s*(GB|MB|ГБ|МБ)/i);
-        if (!match) return 0;
-        const value = parseFloat(match[1]);
-        const unit = match[2].toLowerCase();
-        return unit.includes('gb') || unit.includes('гб') ? value * 1024 : value;
     }
 
     // Альтернативная функция рендеринга
@@ -323,10 +294,11 @@
         container.innerHTML = '';
 
         results.forEach(result => {
+            const title = result.Title || result.title || result.Name || result.name || 'Без названия';
             const item = document.createElement('div');
             item.className = 'torrent-item';
             item.innerHTML = `
-                <div class="torrent-item__title">${result.Title || 'Без названия'}</div>
+                <div class="torrent-item__title">${title}</div>
                 <div class="torrent-item__ffprobe">
                     <div class="m-video">${result.info?.ffprobe?.video || 'Неизвестно'}</div>
                 </div>
@@ -354,8 +326,8 @@
     // Манифест плагина
     Lampa.Manifest.plugins = {
         name: 'Качество Торрентов',
-        version: '1.0.2',
-        description: 'Фильтрация и сортировка торрентов по качеству (WEB-DL, WEB-DLRip, BDRip)'
+        version: '1.0.4',
+        description: 'Фильтрация торрентов по качеству (WEB-DL, WEB-DLRip, BDRip)'
     };
     window.torrent_quality = TorrentQuality;
 
