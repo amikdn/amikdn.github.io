@@ -4,8 +4,8 @@
     // Объект плагина
     var TorrentQuality = {
         name: 'torrent_quality',
-        version: '1.1.7',
-        debug: false,
+        version: '1.1.8',
+        debug: false, // Включите true для отладки
         settings: {
             enabled: true,
             quality_filter: 'any'
@@ -132,8 +132,15 @@
                         subtitles: subtitles
                     };
                 });
-                if (TorrentQuality.debug) console.log('[torrent_quality.js] Извлечены данные из DOM:', results);
+                if (TorrentQuality.debug) console.log(`[torrent_quality.js] Извлечены данные из DOM: ${results.length} элементов`, results);
             }
+        }
+
+        if (TorrentQuality.debug && results.length === 0) {
+            console.warn('[torrent_quality.js] Данные торрентов не найдены ни в одном источнике');
+            console.log('[torrent_quality.js] Lampa.Storage:', Object.keys(Lampa.Storage.cache || {}));
+            console.log('[torrent_quality.js] Lampa.Torrents:', Lampa.Torrents);
+            console.log('[torrent_quality.js] Lampa.Activity.active():', Lampa.Activity?.active?.());
         }
 
         return results;
@@ -144,11 +151,12 @@
         allTorrents = getTorrentsData();
         if (!allTorrents || !Array.isArray(allTorrents) || allTorrents.length === 0) {
             allTorrents = [];
-            Lampa.Utils.message?.('Нет данных для фильтрации торрентов') || alert('Нет данных для фильтрации торрентов');
+            if (TorrentQuality.debug) console.warn('[torrent_quality.js] resetFilter: Данные торрентов пусты');
             return false;
         }
         TorrentQuality.settings.quality_filter = 'any';
         Lampa.Storage.set('torrent_quality_filter', 'any');
+        if (TorrentQuality.debug) console.log('[torrent_quality.js] Фильтр сброшен, allTorrents:', allTorrents.length);
         return true;
     }
 
@@ -161,16 +169,23 @@
                                    document.querySelector('.activity--active .torrent-list') ||
                                    Lampa.Activity?.active?.()?.data?.action === 'mytorrents' ||
                                    Lampa.Activity?.active?.()?.data?.action === 'torrents';
-            if (!isTorrentsPage) return;
+            if (!isTorrentsPage) {
+                if (TorrentQuality.debug) console.log('[torrent_quality.js] Раздел торрентов не активен, фильтрация пропущена');
+                return;
+            }
 
-            // Если фильтр не "any", сбрасываем данные
+            // Сбрасываем фильтр, если он не "any"
             if (filterValue !== 'any') {
                 resetFilter();
             }
 
             if (!allTorrents || allTorrents.length === 0) {
                 resetFilter();
-                if (!allTorrents || allTorrents.length === 0) return;
+                if (!allTorrents || allTorrents.length === 0) {
+                    Lampa.Utils.message?.('Нет данных для фильтрации торрентов') || alert('Нет данных для фильтрации торрентов');
+                    if (TorrentQuality.debug) console.warn('[torrent_quality.js] allTorrents пуст после сброса');
+                    return;
+                }
             }
 
             // Фильтруем результаты
@@ -179,7 +194,10 @@
                 const filterLower = filterValue.toLowerCase();
                 filteredResults = allTorrents.filter(result => {
                     const title = result.Title || result.title || result.Name || result.name || '';
-                    if (!title || typeof title !== 'string') return false;
+                    if (!title || typeof title !== 'string') {
+                        if (TorrentQuality.debug) console.warn('[torrent_quality.js] Пропущен элемент без корректного заголовка:', result);
+                        return false;
+                    }
                     const titleLower = title.toLowerCase().replace(/[- ]/g, '');
                     if (filterLower === 'web-dl') {
                         return (titleLower.includes('webdl') || titleLower.includes('webdl')) && !titleLower.includes('webdlrip');
@@ -194,12 +212,15 @@
 
             if (filteredResults.length === 0) {
                 Lampa.Utils.message?.(`Не найдено торрентов для фильтра: ${filterValue}`) || alert(`Не найдено торрентов для фильтра: ${filterValue}`);
+                if (TorrentQuality.debug) console.warn(`[torrent_quality.js] Фильтр ${filterValue} не нашел результатов`);
                 return;
             }
 
             renderResultsFallback(filteredResults);
+            if (TorrentQuality.debug) console.log(`[torrent_quality.js] Отфильтровано ${filteredResults.length} торрентов для ${filterValue}`);
         } catch (error) {
             Lampa.Utils.message?.('Ошибка при фильтрации торрентов') || alert('Ошибка при фильтрации торрентов');
+            if (TorrentQuality.debug) console.error('[torrent_quality.js] Ошибка при фильтрации:', error);
         }
     }
 
@@ -249,6 +270,8 @@
             `;
             container.appendChild(item);
         });
+
+        if (TorrentQuality.debug) console.log(`[torrent_quality.js] Отрендерено ${results.length} торрентов`);
     }
 
     // Инициализация плагина
@@ -295,7 +318,7 @@
                     <div class="selectbox__head">
                         <div class="selectbox__title">Фильтр</div>
                     </div>
-                    <div class="selectbox__body layer--wheight" style="max-height: unset; height: 894.016px;">
+                    <div class="selectbox__body layer--w collegiatewheight" style="max-height: unset; height: 894.016px;">
                         <div class="scroll scroll--mask scroll--over">
                             <div class="scroll__content">
                                 <div class="scroll__body" style="transform: translate3d(0px, 0px, 0px);">
@@ -384,11 +407,8 @@
                                 el.classList.remove('selected');
                             });
                             submenu.querySelectorAll('.selectbox-item__subtitle').forEach(sub => {
-                                if (sub.parentElement.querySelector('.selectbox-item__title').textContent !== 'Качество') {
-                                    sub.textContent = 'Не выбрано';
-                                } else {
-                                    sub.textContent = 'Любое';
-                                }
+                                const parentTitle = sub.parentElement.querySelector('.selectbox-item__title').textContent;
+                                sub.textContent = parentTitle === 'Качество' || parentTitle === 'Перевод' || parentTitle === 'Язык' || parentTitle === 'Сезон' || parentTitle === 'Трекер' || parentTitle === 'Год' ? 'Любой' : 'Не выбрано';
                             });
                             filterTorrents('any');
                         } else if (titleText === 'Качество') {
@@ -433,26 +453,33 @@
 
         Lampa.Listener.follow('activity', function (e) {
             if (e.type === 'active' && (e.data?.action === 'mytorrents' || e.data?.action === 'torrents')) {
+                if (TorrentQuality.debug) console.log('[torrent_quality.js] Активирован раздел торрентов:', e);
                 applyFilterOnTorrentsLoad();
             }
         });
 
         Lampa.Listener.follow('torrents', function (e) {
             if (e.type === 'load' || e.type === 'update' || e.type === 'torrent_load' || e.type === 'torrent_update') {
+                if (TorrentQuality.debug) console.log('[torrent_quality.js] Событие загрузки торрентов:', e);
                 applyFilterOnTorrentsLoad();
             }
         });
 
         let retryCount = 0;
-        const maxRetries = 5;
+        const maxRetries = 10;
         function retryFilter() {
             if (retryCount < maxRetries) {
-                applyFilterOnTorrentsLoad();
+                if (allTorrents.length === 0) {
+                    if (TorrentQuality.debug) console.log(`[torrent_quality.js] Попытка загрузки данных (${retryCount + 1}/${maxRetries})`);
+                    applyFilterOnTorrentsLoad();
+                }
                 retryCount++;
-                setTimeout(retryFilter, 3000);
+                setTimeout(retryFilter, 2000); // Уменьшено до 2 секунд для более частых попыток
+            } else if (TorrentQuality.debug) {
+                console.warn('[torrent_quality.js] Превышено максимальное количество попыток загрузки данных');
             }
         }
-        setTimeout(retryFilter, 3000);
+        setTimeout(retryFilter, 2000);
 
         if (window.appready) {
             applyFilterOnTorrentsLoad();
@@ -469,7 +496,7 @@
     // Манифест плагина
     Lampa.Manifest.plugins = {
         name: 'Фильтр Торрентов',
-        version: '1.1.7',
+        version: '1.1.8',
         description: 'Фильтрация торрентов по качеству и другим параметрам для текущего фильма'
     };
     window.torrent_quality = TorrentQuality;
