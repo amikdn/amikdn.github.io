@@ -4,7 +4,7 @@
     // Объект плагина
     var TorrentQuality = {
         name: 'torrent_quality',
-        version: '1.1.14',
+        version: '1.1.15',
         debug: true, // Оставлено true для отладки
         settings: {
             enabled: true,
@@ -36,44 +36,32 @@
             const monthName = match[2].toLowerCase();
             const month = monthMap[monthName];
             if (month !== undefined && day >= 1 && day <= 31) {
-                // Пытаемся извлечь год из context.Title или других источников
+                // Пытаемся извлечь год из context или Lampa.Activity.active().movie
                 let year = new Date().getFullYear() - 1; // Запасной год: 2024
                 if (context && context.Title) {
-                    // Проверяем разные форматы года в Title: (2021), [2021], 2021, Год: 2021
                     const yearMatch = context.Title.match(/(\((\d{4})\)|\[(\d{4})\]|Год:\s*(\d{4})|(\d{4}))/i);
                     if (yearMatch) {
                         const foundYear = yearMatch[2] || yearMatch[3] || yearMatch[4] || yearMatch[5];
                         if (foundYear && parseInt(foundYear, 10) >= 1900 && parseInt(foundYear, 10) <= new Date().getFullYear()) {
                             year = parseInt(foundYear, 10);
                             if (TorrentQuality.debug) console.log(`[torrent_quality.js] Извлечён год ${year} из Title: ${context.Title}`);
-                        } else {
-                            if (TorrentQuality.debug) console.log(`[torrent_quality.js] Найден некорректный год в Title: ${context.Title}, используется запасной год: ${year}`);
-                        }
-                    } else {
-                        if (TorrentQuality.debug) console.log(`[torrent_quality.js] Год не найден в Title: ${context.Title}, используется запасной год: ${year}`);
-                    }
-                } else {
-                    if (TorrentQuality.debug) console.log(`[torrent_quality.js] context.Title отсутствует, используется запасной год: ${year}`);
-                }
-
-                // Проверяем Tracker, если год не найден в Title
-                if (context && context.Tracker && year === new Date().getFullYear() - 1) {
-                    const trackerYearMatch = context.Tracker.match(/(\((\d{4})\)|\[(\d{4})\]|Год:\s*(\d{4})|(\d{4}))/i);
-                    if (trackerYearMatch) {
-                        const foundYear = trackerYearMatch[2] || trackerYearMatch[3] || trackerYearMatch[4] || trackerYearMatch[5];
-                        if (foundYear && parseInt(foundYear, 10) >= 1900 && parseInt(foundYear, 10) <= new Date().getFullYear()) {
-                            year = parseInt(foundYear, 10);
-                            if (TorrentQuality.debug) console.log(`[torrent_quality.js] Извлечён год ${year} из Tracker: ${context.Tracker}`);
                         }
                     }
                 }
-
+                // Проверяем Lampa.Activity.active().movie, если год не найден
+                if (year === new Date().getFullYear() - 1 && Lampa.Activity?.active?.()?.movie?.year) {
+                    const movieYear = parseInt(Lampa.Activity.active().movie.year, 10);
+                    if (movieYear >= 1900 && movieYear <= new Date().getFullYear()) {
+                        year = movieYear;
+                        if (TorrentQuality.debug) console.log(`[torrent_quality.js] Извлечён год ${year} из Lampa.Activity.active().movie.year`);
+                    }
+                }
                 const date = new Date(year, month, day);
                 if (!isNaN(date.getTime())) {
                     return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
                 }
             }
-            if (TorrentQuality.debug) console.log(`[torrent_quality.js] Неверный формат даты: ${dateString}`);
+            if (TorrentQuality.debug) console.log(`[torrent_quality.js] Не удалось распознать дату: ${dateString}, context:`, context);
             return 'Неизвестно';
         }
 
@@ -122,36 +110,31 @@
         return ctx;
     }
 
-    // Функция получения данных торрентов
+    // Функция получения данных торрентов из Lampa
     function getTorrentsData() {
         let results = [];
-        const possibleStorageKeys = ['torrents_data', 'torrent_data', 'results', 'torrent_results', 'torrents', 'torrent_list'];
         const possibleObjectKeys = ['data', 'results', 'items', 'list', 'torrents'];
 
-        // Проверяем Lampa.Storage
-        for (const key of possibleStorageKeys) {
-            let data = Lampa.Storage.get(key, '[]');
-            if (typeof data === 'string') {
-                try {
-                    data = JSON.parse(data);
-                } catch (e) {
-                    if (TorrentQuality.debug) console.error(`[torrent_quality.js] Ошибка парсинга Lampa.Storage.get('${key}'):`, e);
-                    data = [];
-                }
-            }
-            if (Array.isArray(data) && data.length > 0) {
-                if (TorrentQuality.debug) console.log(`[torrent_quality.js] Найдены данные в Lampa.Storage.get('${key}')`, data);
-                results = data;
-                break;
-            }
-        }
-
         // Проверяем Lampa.Torrents
-        if (!results.length && Lampa.Torrents) {
+        if (Lampa.Torrents) {
             for (const key of possibleObjectKeys) {
                 if (Lampa.Torrents[key] && Array.isArray(Lampa.Torrents[key]) && Lampa.Torrents[key].length > 0) {
-                    results = Lampa.Torrents[key];
-                    if (TorrentQuality.debug) console.log(`[torrent_quality.js] Найдены данные в Lampa.Torrents.${key}:`, results);
+                    results = Lampa.Torrents[key].map(torrent => ({
+                        Title: torrent.title || torrent.name || torrent.Title || torrent.Name || 'Без названия',
+                        PublishDate: torrent.date || torrent.publish_date || torrent.PublishDate,
+                        Tracker: torrent.tracker || torrent.Tracker,
+                        Size: torrent.size || torrent.Size || 0,
+                        Seeders: torrent.seeders || torrent.Seeders || 0,
+                        Peers: torrent.peers || torrent.Peers || 0,
+                        ffprobe: torrent.ffprobe || {
+                            video: { width: 0, height: 0 },
+                            audio: { channel_layout: 'Неизвестно' }
+                        },
+                        languages: torrent.languages || torrent.voices || [],
+                        subtitles: torrent.subtitles || [],
+                        MagnetUri: torrent.magnet || torrent.MagnetUri
+                    }));
+                    if (TorrentQuality.debug) console.log(`[torrent_quality.js] Найдены данные в Lampa.Torrents.${key}: ${results.length} элементов`, results);
                     break;
                 }
             }
@@ -161,14 +144,28 @@
         if (!results.length && Lampa.Activity?.active?.()?.data) {
             for (const key of possibleObjectKeys) {
                 if (Lampa.Activity.active().data[key] && Array.isArray(Lampa.Activity.active().data[key]) && Lampa.Activity.active().data[key].length > 0) {
-                    results = Lampa.Activity.active().data[key];
-                    if (TorrentQuality.debug) console.log(`[torrent_quality.js] Найдены данные в Lampa.Activity.active().data.${key}:`, results);
+                    results = Lampa.Activity.active().data[key].map(torrent => ({
+                        Title: torrent.title || torrent.name || torrent.Title || torrent.Name || 'Без названия',
+                        PublishDate: torrent.date || torrent.publish_date || torrent.PublishDate,
+                        Tracker: torrent.tracker || torrent.Tracker,
+                        Size: torrent.size || torrent.Size || 0,
+                        Seeders: torrent.seeders || torrent.Seeders || 0,
+                        Peers: torrent.peers || torrent.Peers || 0,
+                        ffprobe: torrent.ffprobe || {
+                            video: { width: 0, height: 0 },
+                            audio: { channel_layout: 'Неизвестно' }
+                        },
+                        languages: torrent.languages || torrent.voices || [],
+                        subtitles: torrent.subtitles || [],
+                        MagnetUri: torrent.magnet || torrent.MagnetUri
+                    }));
+                    if (TorrentQuality.debug) console.log(`[torrent_quality.js] Найдены данные в Lampa.Activity.active().data.${key}: ${results.length} элементов`, results);
                     break;
                 }
             }
         }
 
-        // Проверяем DOM
+        // Запасной вариант: проверяем DOM
         if (!results.length) {
             const torrentItems = document.querySelectorAll('.torrent-item');
             if (torrentItems.length > 0) {
@@ -194,7 +191,8 @@
                         Peers: parseInt(item.querySelector('.torrent-item__grabs span')?.textContent) || 0,
                         ffprobe: ffprobe,
                         languages: voices,
-                        subtitles: subtitles
+                        subtitles: subtitles,
+                        MagnetUri: item.querySelector('a[href*="magnet:"]')?.href
                     };
                 });
                 if (TorrentQuality.debug) console.log(`[torrent_quality.js] Извлечены данные из DOM: ${results.length} элементов`, results);
@@ -203,7 +201,6 @@
 
         if (TorrentQuality.debug && results.length === 0) {
             console.warn('[torrent_quality.js] Данные торрентов не найдены ни в одном источнике');
-            console.log('[torrent_quality.js] Lampa.Storage:', Object.keys(Lampa.Storage.cache || {}));
             console.log('[torrent_quality.js] Lampa.Torrents:', Lampa.Torrents);
             console.log('[torrent_quality.js] Lampa.Activity.active():', Lampa.Activity?.active?.());
         }
@@ -213,10 +210,10 @@
 
     // Функция сброса фильтра
     function resetFilter() {
-        allTorrents = [...originalTorrents]; // Восстанавливаем из originalTorrents
+        allTorrents = [...originalTorrents];
         if (!allTorrents || !Array.isArray(allTorrents) || allTorrents.length === 0) {
             allTorrents = getTorrentsData();
-            originalTorrents = [...allTorrents]; // Сохраняем копию полного списка
+            originalTorrents = [...allTorrents];
             if (!allTorrents || allTorrents.length === 0) {
                 if (TorrentQuality.debug) console.warn('[torrent_quality.js] resetFilter: Данные торрентов пусты');
                 return false;
@@ -282,7 +279,7 @@
                 return;
             }
 
-            renderResultsFallback(filteredResults);
+            renderResults(filteredResults);
             if (TorrentQuality.debug) console.log(`[torrent_quality.js] Отфильтровано ${filteredResults.length} торрентов для ${filterValue}`);
         } catch (error) {
             Lampa.Utils.message?.('Ошибка при фильтрации торрентов') || alert('Ошибка при фильтрации торрентов');
@@ -290,7 +287,24 @@
         }
     }
 
-    // Функция рендеринга
+    // Функция рендеринга (скрытие/показ элементов вместо переписывания DOM)
+    function renderResults(results) {
+        const torrentItems = document.querySelectorAll('.torrent-item');
+        if (!torrentItems.length) {
+            if (TorrentQuality.debug) console.warn('[torrent_quality.js] Не найдено элементов .torrent-item для рендеринга');
+            return renderResultsFallback(results); // Запасной рендеринг, если DOM пуст
+        }
+
+        const resultTitles = results.map(r => r.Title.toLowerCase());
+        torrentItems.forEach(item => {
+            const title = item.querySelector('.torrent-item__title')?.textContent.toLowerCase() || '';
+            item.style.display = resultTitles.includes(title) ? 'block' : 'none';
+        });
+
+        if (TorrentQuality.debug) console.log(`[torrent_quality.js] Отрендерено ${results.length} торрентов`);
+    }
+
+    // Запасная функция рендеринга (если DOM пуст)
     function renderResultsFallback(results) {
         const container = document.querySelector('.torrent-list') || document.createElement('div');
         if (!container.classList.contains('torrent-list')) {
@@ -337,7 +351,7 @@
             container.appendChild(item);
         });
 
-        if (TorrentQuality.debug) console.log(`[torrent_quality.js] Отрендерено ${results.length} торрентов`);
+        if (TorrentQuality.debug) console.log(`[torrent_quality.js] Отрендерено (fallback) ${results.length} торрентов`);
     }
 
     // Инициализация плагина
@@ -546,7 +560,7 @@
     // Манифест плагина
     Lampa.Manifest.plugins = {
         name: 'Фильтр Торрентов',
-        version: '1.1.14',
+        version: '1.1.15',
         description: 'Фильтрация торрентов по качеству и другим параметрам для текущего фильма'
     };
     window.torrent_quality = TorrentQuality;
