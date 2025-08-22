@@ -4,7 +4,7 @@
     // Объект плагина
     var TorrentQuality = {
         name: 'torrent_quality',
-        version: '1.1.18',
+        version: '1.1.19',
         debug: true, // Оставлено true для отладки
         settings: {
             enabled: true,
@@ -15,7 +15,7 @@
     // Хранилище полного списка торрентов
     let originalTorrents = [];
     let allTorrents = [];
-    let currentMovieId = null; // Для отслеживания текущего фильма
+    let currentMovieTitle = null; // Для отслеживания текущего фильма по заголовку
 
     // Функция получения данных торрентов из DOM
     function getTorrentsData() {
@@ -207,6 +207,37 @@
         if (TorrentQuality.debug) console.log(`[torrent_quality.js] Отрендерено (fallback) ${results.length} торрентов`);
     }
 
+    // Настройка MutationObserver для отслеживания смены фильма
+    function setupMovieChangeObserver() {
+        const targetNode = document.querySelector('.full-start-new__title');
+        if (!targetNode) {
+            if (TorrentQuality.debug) console.warn('[torrent_quality.js] Элемент .full-start-new__title не найден для MutationObserver');
+            return;
+        }
+
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.type === 'childList' || mutation.type === 'characterData') {
+                    const newTitle = targetNode.textContent.trim();
+                    if (newTitle && newTitle !== currentMovieTitle) {
+                        if (TorrentQuality.debug) console.log(`[torrent_quality.js] Смена фильма по DOM: ${currentMovieTitle} -> ${newTitle}`);
+                        clearTorrents();
+                        currentMovieTitle = newTitle;
+                        applyFilterOnTorrentsLoad();
+                    }
+                }
+            });
+        });
+
+        observer.observe(targetNode, {
+            childList: true,
+            characterData: true,
+            subtree: true
+        });
+
+        if (TorrentQuality.debug) console.log('[torrent_quality.js] MutationObserver установлен на .full-start-new__title');
+    }
+
     // Инициализация плагина
     function startPlugin() {
         Lampa.SettingsApi.addComponent({
@@ -385,22 +416,24 @@
             }
         }
 
+        // Отслеживание событий activity
         Lampa.Listener.follow('activity', function (e) {
             if (e.type === 'active' || e.type === 'push' || e.type === 'toggle') {
                 const activeMovie = Lampa.Activity.active()?.movie;
-                const newMovieId = activeMovie?.id || activeMovie?.imdb_id || activeMovie?.kinopoisk_id || activeMovie?.title || e.data?.title || window.location.search || JSON.stringify(activeMovie);
+                const newTitle = activeMovie?.title || document.querySelector('.full-start-new__title')?.textContent?.trim() || e.data?.title || JSON.stringify(activeMovie);
                 if (TorrentQuality.debug) {
                     console.log('[torrent_quality.js] Событие activity:', { type: e.type, data: e.data, activeMovie: Lampa.Activity.active() });
                 }
-                if (newMovieId && newMovieId !== currentMovieId) {
-                    if (TorrentQuality.debug) console.log(`[torrent_quality.js] Смена фильма: ${currentMovieId} -> ${newMovieId}`);
+                if (newTitle && newTitle !== currentMovieTitle) {
+                    if (TorrentQuality.debug) console.log(`[torrent_quality.js] Смена фильма по activity: ${currentMovieTitle} -> ${newTitle}`);
                     clearTorrents();
-                    currentMovieId = newMovieId;
+                    currentMovieTitle = newTitle;
                     applyFilterOnTorrentsLoad();
                 }
             }
         });
 
+        // Отслеживание событий torrents
         Lampa.Listener.follow('torrents', function (e) {
             if (e.type === 'load' || e.type === 'update' || e.type === 'torrent_load' || e.type === 'torrent_update') {
                 if (TorrentQuality.debug) console.log('[torrent_quality.js] Событие torrents:', e);
@@ -408,11 +441,16 @@
             }
         });
 
+        // Инициализация MutationObserver при запуске
         if (window.appready) {
+            setupMovieChangeObserver();
             applyFilterOnTorrentsLoad();
         } else {
             Lampa.Listener.follow('app', function (e) {
-                if (e.type === 'ready') applyFilterOnTorrentsLoad();
+                if (e.type === 'ready') {
+                    setupMovieChangeObserver();
+                    applyFilterOnTorrentsLoad();
+                }
             });
         }
     }
@@ -420,7 +458,7 @@
     // Манифест плагина
     Lampa.Manifest.plugins = {
         name: 'Фильтр Торрентов',
-        version: '1.1.18',
+        version: '1.1.19',
         description: 'Фильтрация торрентов по качеству для текущего фильма'
     };
     window.torrent_quality = TorrentQuality;
