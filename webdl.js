@@ -4,13 +4,40 @@
     // Объект плагина
     var TorrentQuality = {
         name: 'torrent_quality',
-        version: '1.0.5',
+        version: '1.0.6',
         debug: true, // Включаем отладку
         settings: {
             enabled: true,
             quality_filter: 'any' // По умолчанию "Любое"
         }
     };
+
+    // Функция для получения данных из API
+    async function fetchTorrentsData() {
+        const apiUrl = 'http://jacred.xyz/api/v2.0/indexers/all/results?apikey=&Query=Mission%3A%20Impossible%20-%20The%20Final%20Reckoning&title=%D0%9C%D0%B8%D1%81%D1%81%D0%B8%D1%8F%20%D0%BD%D0%B5%D0%B2%D1%8B%D0%BF%D0%BE%D0%BB%D0%BD%D0%B8%D0%BC%D0%B0%3A%20%D0%A4%D0%B8%D0%BD%D0%B0%D0%BB%D1%8C%D0%BD%D0%B0%D1%8F%20%D1%80%D0%B0%D1%81%D0%BF%D0%BB%D0%B0%D1%82%D0%B0&title_original=Mission%3A%20Impossible%20-%20The%20Final%20Reckoning&year=2025&is_serial=1&genres=%D0%B1%D0%BE%D0%B5%D0%B2%D0%B8%D0%BA%2C%D0%BF%D1%80%D0%B8%D0%BA%D0%BB%D1%8E%D1%87%D0%B5%D0%BD%D0%B8%D1%8F%2C%D1%82%D1%80%D0%B8%D0%BB%D0%BB%D0%B5%D1%80&Category[]=2000';
+        try {
+            const response = await fetch(apiUrl, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                    'Origin': 'http://lampa.mx',
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36'
+                }
+            });
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            const data = await response.json();
+            if (TorrentQuality.debug) {
+                console.log('[torrent_quality.js] Данные из API:', data);
+            }
+            return data.Results || [];
+        } catch (error) {
+            console.error('[torrent_quality.js] Ошибка при получении данных из API:', error);
+            Lampa.Utils.message?.('Ошибка загрузки данных торрентов из API') || alert('Ошибка загрузки данных торрентов из API');
+            return [];
+        }
+    }
 
     // Функция инициализации плагина
     function startPlugin() {
@@ -189,7 +216,7 @@
     }
 
     // Функция фильтрации торрентов
-    function filterTorrents(filterValue) {
+    async function filterTorrents(filterValue) {
         try {
             // Проверяем, активен ли раздел торрентов
             const isTorrentsPage = document.querySelector('.menu__item[data-action="mytorrents"].active') ||
@@ -206,15 +233,25 @@
                     results = JSON.parse(results);
                 } catch (e) {
                     console.error('[torrent_quality.js] Ошибка парсинга torrents_data:', e);
-                    Lampa.Utils.message?.('Ошибка парсинга данных торрентов') || alert('Ошибка парсинга данных торрентов');
-                    return;
+                    results = [];
                 }
             }
 
+            // Если данные отсутствуют, пробуем загрузить из API
             if (!results || !Array.isArray(results) || results.length === 0) {
-                console.error('[torrent_quality.js] Нет данных для фильтрации или данные некорректны:', results);
-                Lampa.Utils.message?.('Нет данных для фильтрации торрентов') || alert('Нет данных для фильтрации торрентов');
-                return;
+                console.warn('[torrent_quality.js] torrents_data пустой или undefined:', results);
+                results = await fetchTorrentsData();
+                if (results.length === 0) {
+                    console.error('[torrent_quality.js] Не удалось загрузить данные из API');
+                    Lampa.Utils.message?.('Нет данных для фильтрации торрентов. Проверьте подключение к API или настройки Lampa.') ||
+                        alert('Нет данных для фильтрации торрентов. Проверьте подключение к API или настройки Lampa.');
+                    return;
+                }
+                // Сохраняем данные в хранилище
+                Lampa.Storage.set('torrents_data', JSON.stringify(results));
+                if (TorrentQuality.debug) {
+                    console.log('[torrent_quality.js] Данные сохранены в torrents_data:', results);
+                }
             }
 
             if (TorrentQuality.debug) {
@@ -261,21 +298,15 @@
             if (filteredResults.length === 0) {
                 console.warn('[torrent_quality.js] Не найдено торрентов для фильтра:', filterValue);
                 console.log('[torrent_quality.js] Проверьте, содержат ли элементы torrents_data поле Title с ожидаемыми значениями (WEB-DL, WEB-DLRip, BDRip)');
-                Lampa.Utils.message?.(`Не найдено торрентов для фильтра: ${filterValue}. Проверьте данные торрентов.`) ||
-                    alert(`Не найдено торрентов для фильтра: ${filterValue}. Проверьте данные торрентов.`);
+                Lampa.Utils.message?.(`Не найдено торрентов для фильтра: ${filterValue}. Проверьте данные торрентов или сбросьте другие фильтры.`) ||
+                    alert(`Не найдено торрентов для фильтра: ${filterValue}. Проверьте данные торрентов или сбросьте другие фильтры.`);
                 return;
             }
 
-            // Отображаем результаты
-            if (typeof Lampa.Torrents.render === 'function') {
-                Lampa.Torrents.render(filteredResults);
-                if (TorrentQuality.debug) {
-                    console.log('[torrent_quality.js] Результаты отрендерены через Lampa.Torrents.render:', filteredResults.length);
-                }
-            } else {
-                console.error('[torrent_quality.js] Метод Lampa.Torrents.render не найден');
-                Lampa.Utils.message?.('Ошибка отображения результатов') || alert('Ошибка отображения результатов');
-                renderResultsFallback(filteredResults);
+            // Отображаем результаты через запасной метод
+            renderResultsFallback(filteredResults);
+            if (TorrentQuality.debug) {
+                console.log('[torrent_quality.js] Результаты отрендерены через renderResultsFallback:', filteredResults.length);
             }
         } catch (error) {
             console.error('[torrent_quality.js] Ошибка при фильтрации:', error);
@@ -326,7 +357,7 @@
     // Манифест плагина
     Lampa.Manifest.plugins = {
         name: 'Качество Торрентов',
-        version: '1.0.5',
+        version: '1.0.6',
         description: 'Фильтрация торрентов по качеству (WEB-DL, WEB-DLRip, BDRip)'
     };
     window.torrent_quality = TorrentQuality;
