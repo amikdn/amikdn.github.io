@@ -6,29 +6,39 @@
         if (e.type === 'ready') {
             console.log('[refine_filter.js] Приложение готово, инициализация плагина');
 
-            // Обработчик клика на кнопку "Фильтр"
+            // Функция для настройки обработчика кнопки "Фильтр"
             function setupFilterButtonListener() {
-                const filterButton = document.querySelector('.simple-button--filter');
+                const filterButton = document.querySelector('.simple-button.simple-button--filter.filter--filter.selector');
                 if (!filterButton) {
                     console.warn('[refine_filter.js] Кнопка "Фильтр" не найдена, повторная попытка...');
                     setTimeout(setupFilterButtonListener, 500);
                     return;
                 }
 
-                filterButton.addEventListener('click', function () {
-                    console.log('[refine_filter.js] Кнопка "Фильтр" нажата, добавляем пункт "Уточнить"');
-                    addRefineMenuItem();
-                });
+                // Удаляем предыдущие обработчики, чтобы избежать дублирования
+                filterButton.removeEventListener('click', handleFilterButtonClick);
+                filterButton.addEventListener('click', handleFilterButtonClick);
+
+                console.log('[refine_filter.js] Обработчик кнопки "Фильтр" установлен');
+            }
+
+            // Обработчик клика на кнопку "Фильтр"
+            function handleFilterButtonClick() {
+                console.log('[refine_filter.js] Кнопка "Фильтр" нажата, пытаемся добавить пункт "Уточнить"');
+                // Даем время на открытие панели фильтров
+                setTimeout(addRefineMenuItem, 100);
             }
 
             // Функция для добавления пункта меню "Уточнить"
-            function addRefineMenuItem() {
+            function addRefineMenuItem(attempt = 0) {
                 // Проверяем, активен ли раздел торрентов
                 const isTorrentsPage = document.querySelector('.menu__item[data-action="mytorrents"].active') ||
                                        document.querySelector('.activity--active .torrent-list');
                 if (!isTorrentsPage) {
                     console.log('[refine_filter.js] Раздел торрентов не активен, ждем 500 мс');
-                    setTimeout(addRefineMenuItem, 500);
+                    if (attempt < 5) {
+                        setTimeout(() => addRefineMenuItem(attempt + 1), 500);
+                    }
                     return;
                 }
 
@@ -41,8 +51,12 @@
                 const qualityItem = Array.from(document.querySelectorAll('.selectbox-item__title'))
                     .find(el => el.textContent.trim() === 'Качество');
                 if (!qualityItem) {
-                    console.warn('[refine_filter.js] Элемент "Качество" не найден, повторная попытка...');
-                    setTimeout(addRefineMenuItem, 500);
+                    if (attempt < 5) {
+                        console.warn('[refine_filter.js] Элемент "Качество" не найден, попытка', attempt + 1);
+                        setTimeout(() => addRefineMenuItem(attempt + 1), 500);
+                    } else {
+                        console.error('[refine_filter.js] Элемент "Качество" не найден после 5 попыток');
+                    }
                     return;
                 }
 
@@ -130,7 +144,7 @@
             // Запускаем обработчик кнопки "Фильтр"
             setupFilterButtonListener();
 
-            // Отслеживание изменений в DOM для повторного добавления при смене раздела
+            // Отслеживание изменений в DOM
             const observer = new MutationObserver(() => {
                 if (document.querySelector('.menu__item[data-action="mytorrents"].active') &&
                     !document.querySelector('.selectbox-item__title[data-refine="true"]') &&
