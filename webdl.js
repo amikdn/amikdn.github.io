@@ -6,66 +6,71 @@
         if (e.type === 'ready') {
             console.log('[refine_filter.js] Приложение готово, добавляем пункт "Уточнить" в меню фильтров');
 
-            // Находим элемент меню "Качество" по тексту заголовка
-            const qualityItem = Array.from(document.querySelectorAll('.selectbox-item__title'))
-                .find(el => el.textContent === 'Качество');
-            if (!qualityItem) {
-                console.error('[refine_filter.js] Элемент "Качество" не найден в меню');
-                if (typeof Lampa.Utils.message === 'function') {
-                    Lampa.Utils.message('Ошибка: Не удалось найти пункт "Качество" в меню');
-                } else {
-                    console.log('[refine_filter.js] Альтернативное уведомление: Элемент "Качество" не найден');
+            // Функция для добавления пункта меню с попытками ожидания DOM
+            function addRefineMenuItem() {
+                const qualityItem = Array.from(document.querySelectorAll('.selectbox-item__title'))
+                    .find(el => el.textContent.trim() === 'Качество');
+                if (!qualityItem) {
+                    console.warn('[refine_filter.js] Элемент "Качество" еще не найден, повторная попытка...');
+                    setTimeout(addRefineMenuItem, 500); // Повторяем через 500 мс
+                    return;
                 }
-                return;
-            }
 
-            // Создаем новый пункт меню "Уточнить"
-            const refineItem = document.createElement('div');
-            refineItem.className = 'selectbox-item selector';
-            refineItem.innerHTML = `
-                <div class="selectbox-item__title">Уточнить</div>
-                <div class="selectbox-item__subtitle">Не выбрано</div>
-            `;
+                // Создаем новый пункт меню "Уточнить"
+                const refineItem = document.createElement('div');
+                refineItem.className = 'selectbox-item selector';
+                refineItem.innerHTML = `
+                    <div class="selectbox-item__title">Уточнить</div>
+                    <div class="selectbox-item__subtitle">Не выбрано</div>
+                `;
 
-            // Вставляем новый пункт после "Качество"
-            qualityItem.parentElement.insertAdjacentElement('afterend', refineItem);
+                // Вставляем новый пункт после "Качество"
+                qualityItem.parentElement.insertAdjacentElement('afterend', refineItem);
 
-            // Добавляем обработчик клика для открытия поля ввода
-            refineItem.addEventListener('click', function () {
-                // Создаем или находим поле ввода
-                let refineInputContainer = document.querySelector('.w2');
-                if (!refineInputContainer) {
-                    console.log('[refine_filter.js] Поле ввода "Уточнить" не найдено, создаем новое');
-                    refineInputContainer = document.createElement('div');
-                    refineInputContainer.className = 'w2';
-                    refineInputContainer.innerHTML = `
-                        <div class="filter-label">Уточнить</div>
-                        <input name="refine" placeholder="Например BDRip, WEB-DL">
-                    `;
-                    const selectboxBody = document.querySelector('.selectbox__body');
-                    if (selectboxBody) {
-                        selectboxBody.appendChild(refineInputContainer);
-                    } else {
-                        console.error('[refine_filter.js] Контейнер .selectbox__body не найден');
-                        return;
+                // Добавляем обработчик клика для открытия поля ввода
+                refineItem.addEventListener('click', function () {
+                    // Проверяем или создаем поле ввода
+                    let refineInputContainer = document.querySelector('.w2');
+                    if (!refineInputContainer) {
+                        console.log('[refine_filter.js] Поле ввода "Уточнить" не найдено, создаем новое');
+                        refineInputContainer = document.createElement('div');
+                        refineInputContainer.className = 'w2';
+                        refineInputContainer.innerHTML = `
+                            <div class="filter-label">Уточнить</div>
+                            <input name="refine" placeholder="Например BDRip, WEB-DL">
+                        `;
+                        const selectboxBody = document.querySelector('.selectbox__body');
+                        if (selectboxBody) {
+                            selectboxBody.appendChild(refineInputContainer);
+                        } else {
+                            console.error('[refine_filter.js] Контейнер .selectbox__body не найден');
+                            if (typeof Lampa.Utils.message === 'function') {
+                                Lampa.Utils.message('Ошибка: Контейнер меню не найден');
+                            } else {
+                                alert('Ошибка: Контейнер меню не найден');
+                            }
+                            return;
+                        }
                     }
-                }
 
-                const refineInput = refineInputContainer.querySelector('input[name="refine"]');
-                // Показываем поле ввода
-                refineInputContainer.style.display = 'block';
+                    const refineInput = refineInputContainer.querySelector('input[name="refine"]');
+                    refineInputContainer.style.display = 'block';
 
-                // Обновляем подзаголовок и фильтруем при вводе
-                refineInput.addEventListener('input', function () {
-                    const value = refineInput.value.trim();
-                    refineItem.querySelector('.selectbox-item__subtitle').textContent = value || 'Не выбрано';
-                    filterResultsByRefine(value);
+                    // Обновляем подзаголовок и фильтруем при вводе
+                    refineInput.addEventListener('input', function () {
+                        const value = refineInput.value.trim();
+                        refineItem.querySelector('.selectbox-item__subtitle').textContent = value || 'Не выбрано';
+                        filterResultsByRefine(value);
+                    });
+
+                    console.log('[refine_filter.js] Пункт "Уточнить" активирован');
                 });
 
-                console.log('[refine_filter.js] Пункт "Уточнить" активирован');
-            });
+                console.log('[refine_filter.js] Пункт "Уточнить" добавлен в меню');
+            }
 
-            console.log('[refine_filter.js] Пункт "Уточнить" добавлен в меню');
+            // Запускаем добавление пункта меню
+            addRefineMenuItem();
         }
     });
 
@@ -83,7 +88,7 @@
                 if (typeof Lampa.Utils.message === 'function') {
                     Lampa.Utils.message('Нет данных для фильтрации');
                 } else {
-                    console.log('[refine_filter.js] Альтернативное уведомление: Нет данных для фильтрации');
+                    alert('Нет данных для фильтрации');
                 }
                 return;
             }
@@ -111,7 +116,7 @@
                 if (typeof Lampa.Utils.message === 'function') {
                     Lampa.Utils.message('Не найдено результатов для фильтра: ' + refineValue);
                 } else {
-                    console.log('[refine_filter.js] Альтернативное уведомление: Не найдено результатов для фильтра: ' + refineValue);
+                    alert('Не найдено результатов для фильтра: ' + refineValue);
                 }
                 return;
             }
@@ -124,7 +129,7 @@
                 if (typeof Lampa.Utils.message === 'function') {
                     Lampa.Utils.message('Ошибка отображения результатов');
                 } else {
-                    console.log('[refine_filter.js] Альтернативное уведомление: Ошибка отображения результатов');
+                    alert('Ошибка отображения результатов');
                 }
                 renderResultsFallback(filteredResults);
             }
@@ -133,7 +138,7 @@
             if (typeof Lampa.Utils.message === 'function') {
                 Lampa.Utils.message('Ошибка при фильтрации результатов');
             } else {
-                console.log('[refine_filter.js] Альтернативное уведомление: Ошибка при фильтрации результатов');
+                alert('Ошибка при фильтрации результатов');
             }
         }
     }
