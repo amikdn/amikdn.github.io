@@ -4,7 +4,7 @@
     // Объект плагина
     var TorrentQuality = {
         name: 'torrent_quality',
-        version: '1.1.11',
+        version: '1.1.12',
         debug: true, // Оставлено true для отладки, можно выключить позже
         settings: {
             enabled: true,
@@ -22,13 +22,38 @@
             if (TorrentQuality.debug) console.log(`[torrent_quality.js] Неверная или пустая дата: ${dateString}`);
             return 'Неизвестно';
         }
+
+        // Словарь для русских месяцев
+        const monthMap = {
+            'января': 0, 'февраля': 1, 'марта': 2, 'апреля': 3, 'мая': 4, 'июня': 5,
+            'июля': 6, 'августа': 7, 'сентября': 8, 'октября': 9, 'ноября': 10, 'декабря': 11
+        };
+
+        // Проверяем формат "ДД ММММ" (например, "17 Августа")
+        const match = dateString.match(/^(\d{1,2})\s+([а-яё]+)$/i);
+        if (match) {
+            const day = parseInt(match[1], 10);
+            const monthName = match[2].toLowerCase();
+            const month = monthMap[monthName];
+            if (month !== undefined && day >= 1 && day <= 31) {
+                const year = new Date().getFullYear(); // Предполагаем текущий год
+                const date = new Date(year, month, day);
+                if (!isNaN(date.getTime())) {
+                    return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
+                }
+            }
+            if (TorrentQuality.debug) console.log(`[torrent_quality.js] Неверный формат даты: ${dateString}`);
+            return 'Неизвестно';
+        }
+
+        // Пробуем стандартный формат даты
         try {
             const date = new Date(dateString);
             if (isNaN(date.getTime())) {
                 if (TorrentQuality.debug) console.log(`[torrent_quality.js] Неверный формат даты: ${dateString}`);
                 return 'Неизвестно';
             }
-            return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
+            return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
         } catch (e) {
             if (TorrentQuality.debug) console.error(`[torrent_quality.js] Ошибка парсинга даты "${dateString}":`, e);
             return 'Неизвестно';
@@ -490,7 +515,7 @@
     // Манифест плагина
     Lampa.Manifest.plugins = {
         name: 'Фильтр Торрентов',
-        version: '1.1.11',
+        version: '1.1.12',
         description: 'Фильтрация торрентов по качеству и другим параметрам для текущего фильма'
     };
     window.torrent_quality = TorrentQuality;
