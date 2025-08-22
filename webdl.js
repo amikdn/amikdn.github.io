@@ -24,68 +24,64 @@
 
             // Обработчик клика на кнопку "Фильтр"
             function handleFilterButtonClick() {
-                console.log('[refine_filter.js] Кнопка "Фильтр" нажата, пытаемся добавить пункт "Уточнить"');
+                console.log('[refine_filter.js] Кнопка "Фильтр" нажата, пытаемся заменить пункт "Трекер"');
                 // Даем время на открытие панели фильтров
-                setTimeout(addRefineMenuItem, 100);
+                setTimeout(replaceTrackerMenuItem, 100);
             }
 
-            // Функция для добавления пункта меню "Уточнить"
-            function addRefineMenuItem(attempt = 0) {
+            // Функция для замены пункта "Трекер" на "Качество"
+            function replaceTrackerMenuItem(attempt = 0) {
                 // Проверяем, активен ли раздел торрентов
                 const isTorrentsPage = document.querySelector('.menu__item[data-action="mytorrents"].active') ||
                                        document.querySelector('.activity--active .torrent-list');
                 if (!isTorrentsPage) {
                     console.log('[refine_filter.js] Раздел торрентов не активен, ждем 500 мс');
                     if (attempt < 5) {
-                        setTimeout(() => addRefineMenuItem(attempt + 1), 500);
+                        setTimeout(() => replaceTrackerMenuItem(attempt + 1), 500);
                     }
                     return;
                 }
 
-                // Проверяем, не добавлен ли уже пункт "Уточнить"
-                if (document.querySelector('.selectbox-item__title[data-refine="true"]')) {
-                    console.log('[refine_filter.js] Пункт "Уточнить" уже добавлен');
-                    return;
-                }
-
-                const qualityItem = Array.from(document.querySelectorAll('.selectbox-item__title'))
-                    .find(el => el.textContent.trim() === 'Качество');
-                if (!qualityItem) {
+                // Находим пункт "Трекер"
+                const trackerItem = Array.from(document.querySelectorAll('.selectbox-item__title'))
+                    .find(el => el.textContent.trim() === 'Трекер');
+                if (!trackerItem) {
                     if (attempt < 5) {
-                        console.warn('[refine_filter.js] Элемент "Качество" не найден, попытка', attempt + 1);
-                        setTimeout(() => addRefineMenuItem(attempt + 1), 500);
+                        console.warn('[refine_filter.js] Элемент "Трекер" не найден, попытка', attempt + 1);
+                        setTimeout(() => replaceTrackerMenuItem(attempt + 1), 500);
                     } else {
-                        console.error('[refine_filter.js] Элемент "Качество" не найден после 5 попыток');
+                        console.error('[refine_filter.js] Элемент "Трекер" не найден после 5 попыток');
                     }
                     return;
                 }
 
-                // Создаем пункт меню "Уточнить"
-                const refineItem = document.createElement('div');
-                refineItem.className = 'selectbox-item selector';
-                refineItem.innerHTML = `
-                    <div class="selectbox-item__title" data-refine="true">Уточнить</div>
-                    <div class="selectbox-item__subtitle">Не выбрано</div>
-                `;
+                // Заменяем текст "Трекер" на "Качество"
+                trackerItem.textContent = 'Качество';
+                trackerItem.dataset.refine = 'true'; // Метка для предотвращения повторной замены
 
-                // Вставляем пункт после "Качество"
-                qualityItem.parentElement.insertAdjacentElement('afterend', refineItem);
+                // Находим существующий контейнер подменю
+                const trackerParent = trackerItem.closest('.selectbox-item.selector');
+                let submenu = trackerParent.nextElementSibling;
+                if (!submenu || !submenu.classList.contains('selectbox__content')) {
+                    console.warn('[refine_filter.js] Подменю для "Трекер" не найдено, создаем новое');
+                    submenu = document.createElement('div');
+                    submenu.className = 'selectbox__content layer--height';
+                    trackerParent.insertAdjacentElement('afterend', submenu);
+                }
 
-                // Создаем подменю
-                const submenu = document.createElement('div');
-                submenu.className = 'selectbox__content layer--height';
-                submenu.style.height = '953px';
+                // Заменяем содержимое подменю
+                submenu.style.height = '945px';
                 submenu.style.display = 'none';
                 submenu.innerHTML = `
                     <div class="selectbox__head">
-                        <div class="selectbox__title">Уточнить</div>
+                        <div class="selectbox__title">Качество</div>
                     </div>
-                    <div class="selectbox__body layer--wheight" style="max-height: unset; height: 906.453px;">
+                    <div class="selectbox__body layer--wheight" style="max-height: unset; height: 899.109px;">
                         <div class="scroll scroll--mask scroll--over">
                             <div class="scroll__content">
                                 <div class="scroll__body" style="transform: translate3d(0px, 0px, 0px);">
                                     <div class="selectbox-item selector">
-                                        <div class="selectbox-item__title">Сброс</div>
+                                        <div class="selectbox-item__title">Любое</div>
                                     </div>
                                     <div class="selectbox-item selector selectbox-item--checkbox" data-value="WEB-DL">
                                         <div class="selectbox-item__title">WEB-DL</div>
@@ -105,24 +101,33 @@
                     </div>
                 `;
 
-                // Вставляем подменю
-                refineItem.insertAdjacentElement('afterend', submenu);
+                // Находим контейнер selectbox animate
+                const selectbox = trackerItem.closest('.selectbox.animate');
+                if (selectbox) {
+                    selectbox.querySelector('.selectbox__content').style.display = 'none';
+                    submenu.style.display = 'block';
+                }
 
-                // Обработчик клика на "Уточнить"
-                refineItem.addEventListener('click', function () {
+                // Обработчик клика на "Качество"
+                trackerParent.addEventListener('click', function () {
                     submenu.style.display = submenu.style.display === 'none' ? 'block' : 'none';
-                    console.log('[refine_filter.js] Подменю "Уточнить":', submenu.style.display);
+                    if (selectbox) {
+                        selectbox.querySelectorAll('.selectbox__content').forEach(content => {
+                            if (content !== submenu) content.style.display = 'none';
+                        });
+                    }
+                    console.log('[refine_filter.js] Подменю "Качество":', submenu.style.display);
                 });
 
                 // Обработчики для пунктов подменю
                 submenu.querySelectorAll('.selectbox-item').forEach(item => {
                     item.addEventListener('click', function () {
                         const value = item.dataset.value || item.querySelector('.selectbox-item__title').textContent.trim();
-                        const subtitle = refineItem.querySelector('.selectbox-item__subtitle');
-                        subtitle.textContent = value === 'Сброс' ? 'Не выбрано' : value;
+                        const subtitle = trackerParent.querySelector('.selectbox-item__subtitle');
+                        subtitle.textContent = value === 'Любое' ? 'Любое' : value;
 
                         // Переключаем состояние чекбокса
-                        if (value !== 'Сброс') {
+                        if (value !== 'Любое') {
                             submenu.querySelectorAll('.selectbox-item--checkbox').forEach(el => {
                                 el.classList.toggle('selected', el.dataset.value === value);
                             });
@@ -132,13 +137,13 @@
                             });
                         }
 
-                        filterResultsByRefine(value === 'Сброс' ? '' : value);
+                        filterResultsByRefine(value === 'Любое' ? '' : value);
                         submenu.style.display = 'none';
                         console.log('[refine_filter.js] Выбран фильтр:', value);
                     });
                 });
 
-                console.log('[refine_filter.js] Пункт "Уточнить" и подменю добавлены');
+                console.log('[refine_filter.js] Пункт "Трекер" заменен на "Качество" с подменю');
             }
 
             // Запускаем обработчик кнопки "Фильтр"
