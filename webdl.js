@@ -4,7 +4,7 @@
     // Объект плагина
     var TorrentQuality = {
         name: 'torrent_quality',
-        version: '1.1.6',
+        version: '1.1.7',
         debug: false,
         settings: {
             enabled: true,
@@ -144,7 +144,12 @@
         allTorrents = getTorrentsData();
         if (!allTorrents || !Array.isArray(allTorrents) || allTorrents.length === 0) {
             allTorrents = [];
+            Lampa.Utils.message?.('Нет данных для фильтрации торрентов') || alert('Нет данных для фильтрации торрентов');
+            return false;
         }
+        TorrentQuality.settings.quality_filter = 'any';
+        Lampa.Storage.set('torrent_quality_filter', 'any');
+        return true;
     }
 
     // Функция фильтрации торрентов
@@ -158,12 +163,14 @@
                                    Lampa.Activity?.active?.()?.data?.action === 'torrents';
             if (!isTorrentsPage) return;
 
-            // Сбрасываем фильтр и получаем полный список
-            resetFilter();
+            // Если фильтр не "any", сбрасываем данные
+            if (filterValue !== 'any') {
+                resetFilter();
+            }
 
             if (!allTorrents || allTorrents.length === 0) {
-                Lampa.Utils.message?.('Нет данных для фильтрации торрентов') || alert('Нет данных для фильтрации торрентов');
-                return;
+                resetFilter();
+                if (!allTorrents || allTorrents.length === 0) return;
             }
 
             // Фильтруем результаты
@@ -248,7 +255,7 @@
     function startPlugin() {
         Lampa.SettingsApi.addComponent({
             component: 'torrent_quality',
-            name: 'Качество Торрентов',
+            name: 'Фильтр',
             icon: '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">' +
                   '<path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" fill="currentColor"/>' +
                   '<path d="M12 6c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79-4-4-4z" fill="currentColor"/>' +
@@ -269,8 +276,8 @@
                 default: 'any'
             },
             field: {
-                name: 'Качество Торрентов',
-                description: 'Выберите качество для фильтрации торрентов'
+                name: 'Фильтр',
+                description: 'Выберите параметры для фильтрации торрентов'
             },
             onRender: function (element) {
                 if (!(element instanceof HTMLElement)) return;
@@ -278,22 +285,26 @@
                 var container = element.closest('.settings-param') || element.closest('.settings__content') || element.parentElement;
                 if (!container) return;
 
-                if (container.querySelector('.selectbox__content.torrent-quality-submenu')) return;
+                if (container.querySelector('.selectbox__content')) return;
 
                 var submenu = document.createElement('div');
-                submenu.className = 'selectbox__content layer--height torrent-quality-submenu';
+                submenu.className = 'selectbox__content layer--height';
                 submenu.style.height = '945px';
                 submenu.style.display = 'none';
                 submenu.innerHTML = `
                     <div class="selectbox__head">
-                        <div class="selectbox__title">Качество</div>
+                        <div class="selectbox__title">Фильтр</div>
                     </div>
-                    <div class="selectbox__body layer--wheight" style="max-height: unset; height: 899.109px;">
+                    <div class="selectbox__body layer--wheight" style="max-height: unset; height: 894.016px;">
                         <div class="scroll scroll--mask scroll--over">
                             <div class="scroll__content">
                                 <div class="scroll__body" style="transform: translate3d(0px, 0px, 0px);">
                                     <div class="selectbox-item selector">
-                                        <div class="selectbox-item__title">Сброс</div>
+                                        <div class="selectbox-item__title">Сбросить фильтр</div>
+                                    </div>
+                                    <div class="selectbox-item selector">
+                                        <div class="selectbox-item__title">Качество</div>
+                                        <div class="selectbox-item__subtitle">Любое</div>
                                     </div>
                                     <div class="selectbox-item selector selectbox-item--checkbox" data-value="web-dl">
                                         <div class="selectbox-item__title">WEB-DL</div>
@@ -306,6 +317,38 @@
                                     <div class="selectbox-item selector selectbox-item--checkbox" data-value="bdrip">
                                         <div class="selectbox-item__title">BDRip</div>
                                         <div class="selectbox-item__checkbox"></div>
+                                    </div>
+                                    <div class="selectbox-item selector">
+                                        <div class="selectbox-item__title">HDR</div>
+                                        <div class="selectbox-item__subtitle">Не выбрано</div>
+                                    </div>
+                                    <div class="selectbox-item selector">
+                                        <div class="selectbox-item__title">Dolby Vision</div>
+                                        <div class="selectbox-item__subtitle">Не выбрано</div>
+                                    </div>
+                                    <div class="selectbox-item selector">
+                                        <div class="selectbox-item__title">Субтитры</div>
+                                        <div class="selectbox-item__subtitle">Не выбрано</div>
+                                    </div>
+                                    <div class="selectbox-item selector">
+                                        <div class="selectbox-item__title">Перевод</div>
+                                        <div class="selectbox-item__subtitle">Любой</div>
+                                    </div>
+                                    <div class="selectbox-item selector">
+                                        <div class="selectbox-item__title">Язык</div>
+                                        <div class="selectbox-item__subtitle">Любой</div>
+                                    </div>
+                                    <div class="selectbox-item selector">
+                                        <div class="selectbox-item__title">Сезон</div>
+                                        <div class="selectbox-item__subtitle">Любой</div>
+                                    </div>
+                                    <div class="selectbox-item selector">
+                                        <div class="selectbox-item__title">Трекер</div>
+                                        <div class="selectbox-item__subtitle">Любой</div>
+                                    </div>
+                                    <div class="selectbox-item selector">
+                                        <div class="selectbox-item__title">Год</div>
+                                        <div class="selectbox-item__subtitle">Любой</div>
                                     </div>
                                 </div>
                             </div>
@@ -330,24 +373,44 @@
 
                 submenu.querySelectorAll('.selectbox-item').forEach(item => {
                     item.addEventListener('click', function () {
-                        var value = item.dataset.value || item.querySelector('.selectbox-item__title').textContent.trim();
-                        value = value === 'Сброс' ? 'any' : value.toLowerCase();
-                        var subtitle = container.querySelector('.settings-param__value') || element.querySelector('.settings-param__value');
-                        if (subtitle) subtitle.textContent = value === 'any' ? 'Любое' : value.toUpperCase();
+                        const titleText = item.querySelector('.selectbox-item__title').textContent.trim();
+                        let value = item.dataset.value || titleText;
+                        let subtitle = item.querySelector('.selectbox-item__subtitle');
 
-                        if (value !== 'any') {
-                            submenu.querySelectorAll('.selectbox-item--checkbox').forEach(el => {
-                                el.classList.toggle('selected', el.dataset.value === value);
-                            });
-                        } else {
+                        if (titleText === 'Сбросить фильтр') {
+                            resetFilter();
+                            if (subtitle) subtitle.textContent = 'Любое';
                             submenu.querySelectorAll('.selectbox-item--checkbox').forEach(el => {
                                 el.classList.remove('selected');
                             });
+                            submenu.querySelectorAll('.selectbox-item__subtitle').forEach(sub => {
+                                if (sub.parentElement.querySelector('.selectbox-item__title').textContent !== 'Качество') {
+                                    sub.textContent = 'Не выбрано';
+                                } else {
+                                    sub.textContent = 'Любое';
+                                }
+                            });
+                            filterTorrents('any');
+                        } else if (titleText === 'Качество') {
+                            value = 'any';
+                            if (subtitle) subtitle.textContent = 'Любое';
+                            submenu.querySelectorAll('.selectbox-item--checkbox').forEach(el => {
+                                el.classList.remove('selected');
+                            });
+                            TorrentQuality.settings.quality_filter = value;
+                            Lampa.Storage.set('torrent_quality_filter', value);
+                            filterTorrents(value);
+                        } else if (item.dataset.value) {
+                            value = item.dataset.value.toLowerCase();
+                            if (subtitle) subtitle.textContent = value.toUpperCase();
+                            submenu.querySelectorAll('.selectbox-item--checkbox').forEach(el => {
+                                el.classList.toggle('selected', el.dataset.value === value);
+                            });
+                            TorrentQuality.settings.quality_filter = value;
+                            Lampa.Storage.set('torrent_quality_filter', value);
+                            filterTorrents(value);
                         }
 
-                        TorrentQuality.settings.quality_filter = value;
-                        Lampa.Storage.set('torrent_quality_filter', value);
-                        filterTorrents(value);
                         submenu.style.display = 'none';
                     });
                 });
@@ -363,7 +426,7 @@
 
         function applyFilterOnTorrentsLoad() {
             if (TorrentQuality.settings.enabled) {
-                resetFilter(); // Сбрасываем фильтр перед загрузкой
+                resetFilter();
                 filterTorrents(TorrentQuality.settings.quality_filter);
             }
         }
@@ -405,9 +468,9 @@
 
     // Манифест плагина
     Lampa.Manifest.plugins = {
-        name: 'Качество Торрентов',
-        version: '1.1.6',
-        description: 'Фильтрация торрентов по качеству (WEB-DL, WEB-DLRip, BDRip) для текущего фильма'
+        name: 'Фильтр Торрентов',
+        version: '1.1.7',
+        description: 'Фильтрация торрентов по качеству и другим параметрам для текущего фильма'
     };
     window.torrent_quality = TorrentQuality;
 
