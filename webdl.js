@@ -4,13 +4,16 @@
     // Объект плагина
     var TorrentQuality = {
         name: 'torrent_quality',
-        version: '1.1.5',
+        version: '1.1.6',
         debug: false,
         settings: {
             enabled: true,
             quality_filter: 'any'
         }
     };
+
+    // Хранилище полного списка торрентов
+    let allTorrents = [];
 
     // Функция форматирования даты
     function formatDate(dateString) {
@@ -136,6 +139,14 @@
         return results;
     }
 
+    // Функция сброса фильтра
+    function resetFilter() {
+        allTorrents = getTorrentsData();
+        if (!allTorrents || !Array.isArray(allTorrents) || allTorrents.length === 0) {
+            allTorrents = [];
+        }
+    }
+
     // Функция фильтрации торрентов
     async function filterTorrents(filterValue) {
         try {
@@ -147,18 +158,19 @@
                                    Lampa.Activity?.active?.()?.data?.action === 'torrents';
             if (!isTorrentsPage) return;
 
-            // Получаем полный список торрентов перед фильтрацией
-            let results = getTorrentsData();
-            if (!results || !Array.isArray(results) || results.length === 0) {
+            // Сбрасываем фильтр и получаем полный список
+            resetFilter();
+
+            if (!allTorrents || allTorrents.length === 0) {
                 Lampa.Utils.message?.('Нет данных для фильтрации торрентов') || alert('Нет данных для фильтрации торрентов');
                 return;
             }
 
             // Фильтруем результаты
-            let filteredResults = results;
+            let filteredResults = allTorrents;
             if (filterValue && filterValue !== 'any') {
                 const filterLower = filterValue.toLowerCase();
-                filteredResults = results.filter(result => {
+                filteredResults = allTorrents.filter(result => {
                     const title = result.Title || result.title || result.Name || result.name || '';
                     if (!title || typeof title !== 'string') return false;
                     const titleLower = title.toLowerCase().replace(/[- ]/g, '');
@@ -351,6 +363,7 @@
 
         function applyFilterOnTorrentsLoad() {
             if (TorrentQuality.settings.enabled) {
+                resetFilter(); // Сбрасываем фильтр перед загрузкой
                 filterTorrents(TorrentQuality.settings.quality_filter);
             }
         }
@@ -393,7 +406,7 @@
     // Манифест плагина
     Lampa.Manifest.plugins = {
         name: 'Качество Торрентов',
-        version: '1.1.5',
+        version: '1.1.6',
         description: 'Фильтрация торрентов по качеству (WEB-DL, WEB-DLRip, BDRip) для текущего фильма'
     };
     window.torrent_quality = TorrentQuality;
