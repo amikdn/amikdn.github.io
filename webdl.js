@@ -126,11 +126,11 @@
     }
 
     // Функция оптимизации canvas
-    function optimizeCanvas() {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d', { willReadFrequently: true });
-        return ctx;
-    }
+//    function optimizeCanvas() {
+//        const canvas = document.createElement('canvas');
+//        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+//        return ctx;
+//    }
 
     // Функция фильтрации торрентов
     async function filterTorrents(filterValue) {
@@ -435,4 +435,5 @@
     };
     window.torrent_quality = TorrentQuality;
 })();
+
 
