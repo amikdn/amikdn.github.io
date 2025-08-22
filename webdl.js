@@ -6,11 +6,16 @@
         if (e.type === 'ready') {
             console.log('[refine_filter.js] Приложение готово, добавляем пункт "Уточнить" в меню фильтров');
 
-            // Находим элемент меню "Качество"
-            const qualityItem = document.querySelector('.selectbox-item__title[title="Качество"]');
+            // Находим элемент меню "Качество" по тексту заголовка
+            const qualityItem = Array.from(document.querySelectorAll('.selectbox-item__title'))
+                .find(el => el.textContent === 'Качество');
             if (!qualityItem) {
                 console.error('[refine_filter.js] Элемент "Качество" не найден в меню');
-                Lampa.Notice.show('Ошибка: Не удалось найти пункт "Качество" в меню');
+                if (typeof Lampa.Utils.message === 'function') {
+                    Lampa.Utils.message('Ошибка: Не удалось найти пункт "Качество" в меню');
+                } else {
+                    console.log('[refine_filter.js] Альтернативное уведомление: Элемент "Качество" не найден');
+                }
                 return;
             }
 
@@ -28,25 +33,29 @@
             // Добавляем обработчик клика для открытия поля ввода
             refineItem.addEventListener('click', function () {
                 // Создаем или находим поле ввода
-                let refineInput = document.querySelector('.w2 .filter-label');
-                if (!refineInput) {
+                let refineInputContainer = document.querySelector('.w2');
+                if (!refineInputContainer) {
                     console.log('[refine_filter.js] Поле ввода "Уточнить" не найдено, создаем новое');
-                    const inputContainer = document.createElement('div');
-                    inputContainer.className = 'w2';
-                    inputContainer.innerHTML = `
+                    refineInputContainer = document.createElement('div');
+                    refineInputContainer.className = 'w2';
+                    refineInputContainer.innerHTML = `
                         <div class="filter-label">Уточнить</div>
                         <input name="refine" placeholder="Например BDRip, WEB-DL">
                     `;
-                    document.querySelector('.selectbox__body').appendChild(inputContainer);
-                    refineInput = inputContainer.querySelector('input[name="refine"]');
-                } else {
-                    refineInput = document.querySelector('input[name="refine"]');
+                    const selectboxBody = document.querySelector('.selectbox__body');
+                    if (selectboxBody) {
+                        selectboxBody.appendChild(refineInputContainer);
+                    } else {
+                        console.error('[refine_filter.js] Контейнер .selectbox__body не найден');
+                        return;
+                    }
                 }
 
+                const refineInput = refineInputContainer.querySelector('input[name="refine"]');
                 // Показываем поле ввода
-                refineInput.parentElement.style.display = 'block';
+                refineInputContainer.style.display = 'block';
 
-                // Обновляем подзаголовок при вводе
+                // Обновляем подзаголовок и фильтруем при вводе
                 refineInput.addEventListener('input', function () {
                     const value = refineInput.value.trim();
                     refineItem.querySelector('.selectbox-item__subtitle').textContent = value || 'Не выбрано';
@@ -71,7 +80,11 @@
 
             if (!results || !Array.isArray(results)) {
                 console.error('[refine_filter.js] Нет данных для фильтрации или данные некорректны');
-                Lampa.Notice.show('Нет данных для фильтрации');
+                if (typeof Lampa.Utils.message === 'function') {
+                    Lampa.Utils.message('Нет данных для фильтрации');
+                } else {
+                    console.log('[refine_filter.js] Альтернативное уведомление: Нет данных для фильтрации');
+                }
                 return;
             }
 
@@ -95,7 +108,11 @@
 
             // Проверяем, есть ли результаты
             if (filteredResults.length === 0) {
-                Lampa.Notice.show('Не найдено результатов для фильтра: ' + refineValue);
+                if (typeof Lampa.Utils.message === 'function') {
+                    Lampa.Utils.message('Не найдено результатов для фильтра: ' + refineValue);
+                } else {
+                    console.log('[refine_filter.js] Альтернативное уведомление: Не найдено результатов для фильтра: ' + refineValue);
+                }
                 return;
             }
 
@@ -104,12 +121,20 @@
                 Lampa.Torrents.render(filteredResults);
             } else {
                 console.error('[refine_filter.js] Метод Lampa.Torrents.render не найден');
-                Lampa.Notice.show('Ошибка отображения результатов');
+                if (typeof Lampa.Utils.message === 'function') {
+                    Lampa.Utils.message('Ошибка отображения результатов');
+                } else {
+                    console.log('[refine_filter.js] Альтернативное уведомление: Ошибка отображения результатов');
+                }
                 renderResultsFallback(filteredResults);
             }
         } catch (error) {
             console.error('[refine_filter.js] Ошибка при фильтрации:', error);
-            Lampa.Notice.show('Ошибка при фильтрации результатов');
+            if (typeof Lampa.Utils.message === 'function') {
+                Lampa.Utils.message('Ошибка при фильтрации результатов');
+            } else {
+                console.log('[refine_filter.js] Альтернативное уведомление: Ошибка при фильтрации результатов');
+            }
         }
     }
 
@@ -156,7 +181,7 @@
     const style = document.createElement('style');
     style.textContent = `
         .selectbox-item.selector { display: block !important; visibility: visible !important; }
-        .selectbox-item__title[title="Уточнить"] { cursor: pointer; }
+        .selectbox-item__title { cursor: pointer; }
     `;
     document.head.appendChild(style);
 
