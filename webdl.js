@@ -3,11 +3,11 @@
 
     var RefineFilter = {
         name: 'refine_filter',
-        version: '1.0.0',
+        version: '1.0.1',
         debug: false,
         settings: {
             enabled: true,
-            refine_value: ''
+            refine_values: []
         }
     };
 
@@ -16,7 +16,7 @@
         Lampa.Listener.follow('filter', function (e) {
             if (e.type === 'open' || e.type === 'render') {
                 setTimeout(function () {
-                    // Находим элемент "Качество" в меню фильтра
+                    // Находим элемент "Качество" в меню фильтров
                     var qualityItem = $('.selectbox-item__title').filter(function () {
                         return $(this).text().trim() === 'Качество';
                     }).closest('.selectbox-item.selector');
@@ -33,80 +33,131 @@
                     var refineItem = $('<div class="selectbox-item selector refine-filter">' +
                         '<div class="selectbox-item__title">Уточнить</div>' +
                         '<div class="selectbox-item__subtitle">Не выбрано</div>' +
-                        '<div class="refine-input" style="display: none; padding: 10px;">' +
-                            '<input type="text" name="refine" placeholder="Например BDRip, WEB-DL" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">' +
-                        '</div>' +
                     '</div>');
 
                     // Вставляем после "Качество"
                     qualityItem.after(refineItem);
 
+                    // Создаем подменю для "Уточнить"
+                    var refineSubmenu = $('<div class="selectbox__content layer--height refine-submenu" style="display: none;">' +
+                        '<div class="selectbox__head">' +
+                            '<div class="selectbox__title">Уточнить</div>' +
+                        '</div>' +
+                        '<div class="selectbox__body layer--wheight" style="max-height: unset;">' +
+                            '<div class="scroll scroll--mask scroll--over">' +
+                                '<div class="scroll__content">' +
+                                    '<div class="scroll__body">' +
+                                        '<div class="selectbox-item selector">' +
+                                            '<div class="selectbox-item__title">Любое</div>' +
+                                        '</div>' +
+                                        '<div class="selectbox-item selector selectbox-item--checkbox">' +
+                                            '<div class="selectbox-item__title">WEB-DL</div>' +
+                                            '<div class="selectbox-item__checkbox"></div>' +
+                                        '</div>' +
+                                        '<div class="selectbox-item selector selectbox-item--checkbox">' +
+                                            '<div class="selectbox-item__title">BDRip</div>' +
+                                            '<div class="selectbox-item__checkbox"></div>' +
+                                        '</div>' +
+                                    '</div>' +
+                                '</div>' +
+                            '</div>' +
+                        '</div>' +
+                    '</div>');
+
+                    // Добавляем подменю в DOM
+                    refineItem.append(refineSubmenu);
+
                     // Получаем элементы для взаимодействия
                     var subtitle = refineItem.find('.selectbox-item__subtitle');
-                    var inputContainer = refineItem.find('.refine-input');
-                    var input = refineItem.find('input[name="refine"]');
+                    var submenu = refineItem.find('.refine-submenu');
+                    var checkboxes = submenu.find('.selectbox-item--checkbox');
+                    var anyOption = submenu.find('.selectbox-item:not(.selectbox-item--checkbox)');
 
-                    // Обработчик клика для показа/скрытия поля ввода
+                    // Обработчик открытия подменю
                     refineItem.on('hover:enter', function () {
-                        inputContainer.toggle();
-                        if (inputContainer.is(':visible')) {
-                            input.focus();
-                        }
+                        submenu.show();
+                        Lampa.Controller.enable('selectbox');
+                        submenu.find('.selectbox-item').first().addClass('focus');
                     });
 
-                    // Обработчик ввода в поле
-                    input.on('input', function () {
-                        var value = input.val().trim().toUpperCase();
-                        RefineFilter.settings.refine_value = value;
-                        subtitle.text(value || 'Не выбрано');
-                        Lampa.Storage.set('refine_filter_value', value);
-
-                        // Применяем фильтр
-                        applyRefineFilter(value);
+                    // Обработчик выбора "Любое"
+                    anyOption.on('hover:enter', function () {
+                        RefineFilter.settings.refine_values = [];
+                        subtitle.text('Не выбрано');
+                        Lampa.Storage.set('refine_filter_values', []);
+                        applyRefineFilter();
+                        submenu.hide();
+                        Lampa.Controller.toggle('filter');
                     });
 
-                    // Восстанавливаем сохраненное значение
-                    var savedValue = Lampa.Storage.get('refine_filter_value', '');
-                    if (savedValue) {
-                        input.val(savedValue);
-                        subtitle.text(savedValue);
-                        applyRefineFilter(savedValue);
+                    // Обработчик выбора чекбоксов
+                    checkboxes.each(function () {
+                        var checkbox = $(this);
+                        var title = checkbox.find('.selectbox-item__title').text();
+                        var checkboxEl = checkbox.find('.selectbox-item__checkbox');
+
+                        checkbox.on('hover:enter', function () {
+                            var isChecked = checkboxEl.hasClass('active');
+                            checkboxEl.toggleClass('active', !isChecked);
+
+                            var values = RefineFilter.settings.refine_values;
+                            if (!isChecked) {
+                                if (!values.includes(title)) values.push(title);
+                            } else {
+                                values = values.filter(function (v) { return v !== title; });
+                                RefineFilter.settings.refine_values = values;
+                            }
+
+                            subtitle.text(values.length ? values.join(', ') : 'Не выбрано');
+                            Lampa.Storage.set('refine_filter_values', values);
+                            applyRefineFilter();
+                        });
+                    });
+
+                    // Восстанавливаем сохраненные значения
+                    var savedValues = Lampa.Storage.get('refine_filter_values', []);
+                    if (savedValues.length) {
+                        RefineFilter.settings.refine_values = savedValues;
+                        subtitle.text(savedValues.join(', '));
+                        checkboxes.each(function () {
+                            var title = $(this).find('.selectbox-item__title').text();
+                            if (savedValues.includes(title)) {
+                                $(this).find('.selectbox-item__checkbox').addClass('active');
+                            }
+                        });
+                        applyRefineFilter();
                     }
 
-                    // Закрытие поля ввода при потере фокуса
-                    input.on('blur', function () {
-                        setTimeout(function () {
-                            inputContainer.hide();
-                        }, 200);
+                    // Закрытие подменю при уходе
+                    submenu.on('hover:leave', function () {
+                        submenu.hide();
+                        Lampa.Controller.toggle('filter');
                     });
                 }, 100);
             }
         });
     }
 
-    function applyRefineFilter(value) {
+    function applyRefineFilter() {
         if (!RefineFilter.settings.enabled) return;
 
-        // Получаем текущие данные парсера
         var parser = Lampa.Parser || window.Lampa.Parser;
         if (!parser) {
             console.warn('[RefineFilter] Lampa.Parser не найден');
             return;
         }
 
-        // Фильтрация результатов
         try {
             var filter = {};
-            if (value) {
-                var formats = value.split(',').map(function (v) { return v.trim().toUpperCase(); }).filter(function (v) { return v; });
-                filter.refine = formats.join('|');
+            var values = RefineFilter.settings.refine_values;
+            if (values.length) {
+                filter.refine = values.join('|').toUpperCase();
             } else {
                 filter.refine = '';
             }
 
-            // Применяем фильтр через API Lampa
             parser.filter(filter);
-            Lampa.Activity.reload(); // Перезагружаем активность для обновления результатов
+            Lampa.Activity.reload();
         } catch (e) {
             console.error('[RefineFilter] Ошибка при применении фильтра:', e);
         }
@@ -116,7 +167,7 @@
     function startPlugin() {
         // Сохраняем настройки
         RefineFilter.settings.enabled = Lampa.Storage.get('refine_filter_enabled', true);
-        RefineFilter.settings.refine_value = Lampa.Storage.get('refine_filter_value', '');
+        RefineFilter.settings.refine_values = Lampa.Storage.get('refine_filter_values', []);
 
         // Добавляем настройки в интерфейс
         Lampa.SettingsApi.addComponent({
@@ -145,7 +196,7 @@
                 Lampa.Storage.set('refine_filter_enabled', value);
                 if (!value) {
                     $('.refine-filter').remove();
-                    applyRefineFilter(''); // Сбрасываем фильтр
+                    applyRefineFilter();
                 } else {
                     addRefineFilter();
                 }
