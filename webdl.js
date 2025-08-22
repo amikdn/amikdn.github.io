@@ -4,7 +4,7 @@
     // Объект плагина
     var TorrentQuality = {
         name: 'torrent_quality',
-        version: '1.1.4', // Увеличиваем версию для отличия
+        version: '1.1.5', // Увеличиваем версию
         debug: false, // Отладка отключена
         settings: {
             enabled: true,
@@ -156,11 +156,11 @@
 
             // Сбрасываем фильтрацию и фильтруем результаты
             let filteredResults = results;
-           if (filterValue && filterValue !== 'any') {
+            if (filterValue && filterValue !== 'any') {
                 const filterLower = filterValue.toLowerCase();
                 filteredResults = results.filter(result => {
                     const title = result.Title || result.title || result.Name || result.name || '';
-                   if (!title || typeof title !== 'string') {
+                    if (!title || typeof title !== 'string') {
                         return false;
                     }
                     const titleLower = title.toLowerCase().replace(/[- ]/g, '');
@@ -270,7 +270,7 @@
                 description: 'Выберите качество для фильтрации торрентов'
             },
             onRender: function (element) {
-                // Проверяем, является ли element jQuery-объектом или DOM-элементом
+                // Проверяем, является ли element корректным
                 const nativeElement = element instanceof jQuery ? element.get(0) : element;
                 if (!nativeElement || !(nativeElement instanceof HTMLElement)) {
                     return; // Прерываем, если элемент некорректен
@@ -375,7 +375,7 @@
                 });
             },
             onChange: function (value) {
-                if (!value) return; // Пропускаем, если значение undefined
+                if (!value || typeof value !== 'string') return; // Пропускаем некорректные значения
                 TorrentQuality.settings.quality_filter = value;
                 Lampa.Storage.set('torrent_quality_filter', value);
                 filterTorrents(value);
@@ -406,6 +406,13 @@
             }
         });
 
+        // Обрабатываем событие парсинга торрентов
+        Lampa.Listener.follow('torrent_parser', function (e) {
+            if (e.type === 'parse' || e.type === 'parsed') {
+                applyFilterOnTorrentsLoad();
+            }
+        });
+
         // Инициализация при старте
         if (window.appready) {
             applyFilterOnTorrentsLoad();
@@ -430,11 +437,8 @@
     // Манифест плагина
     Lampa.Manifest.plugins = {
         name: 'Качество Торрентов',
-        version: '1.1.4',
+        version: '1.1.5',
         description: 'Фильтрация торрентов по качеству (WEB-DL, WEB-DLRip, BDRip) для текущего фильма'
     };
     window.torrent_quality = TorrentQuality;
 })();
-
-
-
