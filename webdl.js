@@ -4,7 +4,7 @@
     // Объект плагина
     var TorrentQuality = {
         name: 'torrent_quality',
-        version: '1.1.3',
+        version: '1.1.4', // Увеличиваем версию для отличия
         debug: false, // Отладка отключена
         settings: {
             enabled: true,
@@ -189,7 +189,12 @@
         const container = document.querySelector('.torrent-list') || document.createElement('div');
         if (!container.classList.contains('torrent-list')) {
             container.className = 'torrent-list';
-            document.querySelector('.activity--active')?.appendChild(container);
+            const activityContainer = document.querySelector('.activity--active');
+            if (activityContainer) {
+                activityContainer.appendChild(container);
+            } else {
+                return; // Прерываем, если нет активного контейнера
+            }
         }
 
         container.innerHTML = '';
@@ -265,16 +270,16 @@
                 description: 'Выберите качество для фильтрации торрентов'
             },
             onRender: function (element) {
-                // Проверяем, является ли element jQuery-объектом
+                // Проверяем, является ли element jQuery-объектом или DOM-элементом
                 const nativeElement = element instanceof jQuery ? element.get(0) : element;
-                if (!(nativeElement instanceof HTMLElement)) {
-                    return;
+                if (!nativeElement || !(nativeElement instanceof HTMLElement)) {
+                    return; // Прерываем, если элемент некорректен
                 }
 
                 // Находим контейнер настроек
-                var container = nativeElement.closest('.settings-param') || nativeElement.closest('.settings__content') || nativeElement.parentElement;
-                if (!container) {
-                    return;
+                const container = nativeElement.closest('.settings-param') || nativeElement.closest('.settings__content') || nativeElement.parentElement;
+                if (!container || !(container instanceof HTMLElement)) {
+                    return; // Прерываем, если контейнер не найден
                 }
 
                 // Проверяем, не добавлено ли уже подменю
@@ -283,7 +288,7 @@
                 }
 
                 // Создаем подменю
-                var submenu = document.createElement('div');
+                const submenu = document.createElement('div');
                 submenu.className = 'selectbox__content layer--height torrent-quality-submenu';
                 submenu.style.height = '945px';
                 submenu.style.display = 'none';
@@ -324,35 +329,36 @@
                 }
 
                 // Находим заголовок параметра
-                var title = container.querySelector('.settings-param__name') || nativeElement.querySelector('.settings-param__name') || nativeElement.querySelector('span') || nativeElement;
+                const title = container.querySelector('.settings-param__name') || nativeElement.querySelector('.settings-param__name') || nativeElement.querySelector('span') || nativeElement;
+                if (!(title instanceof HTMLElement)) {
+                    return;
+                }
 
                 // Обработчик клика на заголовок параметра
-                if (title) {
-                    title.addEventListener('click', function () {
-                        submenu.style.display = submenu.style.display === 'none' ? 'block' : 'none';
-                        var settingsContent = container.closest('.settings__content') || document.querySelector('.settings__content');
-                        if (settingsContent) {
-                            settingsContent.querySelectorAll('.selectbox__content').forEach(content => {
-                                if (content !== submenu) content.style.display = 'none';
-                            });
-                        }
-                    });
-                }
+                title.addEventListener('click', function () {
+                    submenu.style.display = submenu.style.display === 'none' ? 'block' : 'none';
+                    const settingsContent = container.closest('.settings__content') || document.querySelector('.settings__content');
+                    if (settingsContent) {
+                        settingsContent.querySelectorAll('.selectbox__content').forEach(content => {
+                            if (content !== submenu) content.style.display = 'none';
+                        });
+                    }
+                });
 
                 // Обработчики для пунктов подменю
                 submenu.querySelectorAll('.selectbox-item').forEach(item => {
                     item.addEventListener('click', function () {
-                        var value = item.dataset.value || item.querySelector('.selectbox-item__title').textContent.trim();
-                        value = value === 'Сброс' ? 'any' : value.toLowerCase();
-                        var subtitle = container.querySelector('.settings-param__value') || nativeElement.querySelector('.settings-param__value');
+                        const value = item.dataset.value || item.querySelector('.selectbox-item__title')?.textContent?.trim() || 'any';
+                        const normalizedValue = value === 'Сброс' ? 'any' : value.toLowerCase();
+                        const subtitle = container.querySelector('.settings-param__value') || nativeElement.querySelector('.settings-param__value');
                         if (subtitle) {
-                            subtitle.textContent = value === 'any' ? 'Любое' : value.toUpperCase();
+                            subtitle.textContent = normalizedValue === 'any' ? 'Любое' : normalizedValue.toUpperCase();
                         }
 
                         // Переключаем состояние чекбокса
-                        if (value !== 'any') {
+                        if (normalizedValue !== 'any') {
                             submenu.querySelectorAll('.selectbox-item--checkbox').forEach(el => {
-                                el.classList.toggle('selected', el.dataset.value === value);
+                                el.classList.toggle('selected', el.dataset.value === normalizedValue);
                             });
                         } else {
                             submenu.querySelectorAll('.selectbox-item--checkbox').forEach(el => {
@@ -361,14 +367,15 @@
                         }
 
                         // Сохраняем выбранное значение
-                        TorrentQuality.settings.quality_filter = value;
-                        Lampa.Storage.set('torrent_quality_filter', value);
-                        filterTorrents(value);
+                        TorrentQuality.settings.quality_filter = normalizedValue;
+                        Lampa.Storage.set('torrent_quality_filter', normalizedValue);
+                        filterTorrents(normalizedValue);
                         submenu.style.display = 'none';
                     });
                 });
             },
             onChange: function (value) {
+                if (!value) return; // Пропускаем, если значение undefined
                 TorrentQuality.settings.quality_filter = value;
                 Lampa.Storage.set('torrent_quality_filter', value);
                 filterTorrents(value);
@@ -423,7 +430,7 @@
     // Манифест плагина
     Lampa.Manifest.plugins = {
         name: 'Качество Торрентов',
-        version: '1.1.3',
+        version: '1.1.4',
         description: 'Фильтрация торрентов по качеству (WEB-DL, WEB-DLRip, BDRip) для текущего фильма'
     };
     window.torrent_quality = TorrentQuality;
