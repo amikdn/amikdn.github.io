@@ -4,8 +4,8 @@
     // Объект плагина
     var TorrentQuality = {
         name: 'torrent_quality',
-        version: '1.1.13',
-        debug: true, // Оставлено true для отладки, можно выключить позже
+        version: '1.1.14',
+        debug: true, // Оставлено true для отладки
         settings: {
             enabled: true,
             quality_filter: 'any'
@@ -36,17 +36,38 @@
             const monthName = match[2].toLowerCase();
             const month = monthMap[monthName];
             if (month !== undefined && day >= 1 && day <= 31) {
-                // Пытаемся извлечь год из context.Title (например, "Чужой: Земля (2021) [WEB-DL]")
-                let year = new Date().getFullYear(); // Текущий год как запасной вариант
+                // Пытаемся извлечь год из context.Title или других источников
+                let year = new Date().getFullYear() - 1; // Запасной год: 2024
                 if (context && context.Title) {
-                    const yearMatch = context.Title.match(/\((\d{4})\)/);
-                    if (yearMatch && yearMatch[1]) {
-                        year = parseInt(yearMatch[1], 10);
-                        if (TorrentQuality.debug) console.log(`[torrent_quality.js] Извлечён год ${year} из Title: ${context.Title}`);
+                    // Проверяем разные форматы года в Title: (2021), [2021], 2021, Год: 2021
+                    const yearMatch = context.Title.match(/(\((\d{4})\)|\[(\d{4})\]|Год:\s*(\d{4})|(\d{4}))/i);
+                    if (yearMatch) {
+                        const foundYear = yearMatch[2] || yearMatch[3] || yearMatch[4] || yearMatch[5];
+                        if (foundYear && parseInt(foundYear, 10) >= 1900 && parseInt(foundYear, 10) <= new Date().getFullYear()) {
+                            year = parseInt(foundYear, 10);
+                            if (TorrentQuality.debug) console.log(`[torrent_quality.js] Извлечён год ${year} из Title: ${context.Title}`);
+                        } else {
+                            if (TorrentQuality.debug) console.log(`[torrent_quality.js] Найден некорректный год в Title: ${context.Title}, используется запасной год: ${year}`);
+                        }
                     } else {
-                        if (TorrentQuality.debug) console.log(`[torrent_quality.js] Год не найден в Title: ${context.Title}, используется текущий год: ${year}`);
+                        if (TorrentQuality.debug) console.log(`[torrent_quality.js] Год не найден в Title: ${context.Title}, используется запасной год: ${year}`);
+                    }
+                } else {
+                    if (TorrentQuality.debug) console.log(`[torrent_quality.js] context.Title отсутствует, используется запасной год: ${year}`);
+                }
+
+                // Проверяем Tracker, если год не найден в Title
+                if (context && context.Tracker && year === new Date().getFullYear() - 1) {
+                    const trackerYearMatch = context.Tracker.match(/(\((\d{4})\)|\[(\d{4})\]|Год:\s*(\d{4})|(\d{4}))/i);
+                    if (trackerYearMatch) {
+                        const foundYear = trackerYearMatch[2] || trackerYearMatch[3] || trackerYearMatch[4] || trackerYearMatch[5];
+                        if (foundYear && parseInt(foundYear, 10) >= 1900 && parseInt(foundYear, 10) <= new Date().getFullYear()) {
+                            year = parseInt(foundYear, 10);
+                            if (TorrentQuality.debug) console.log(`[torrent_quality.js] Извлечён год ${year} из Tracker: ${context.Tracker}`);
+                        }
                     }
                 }
+
                 const date = new Date(year, month, day);
                 if (!isNaN(date.getTime())) {
                     return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
@@ -525,7 +546,7 @@
     // Манифест плагина
     Lampa.Manifest.plugins = {
         name: 'Фильтр Торрентов',
-        version: '1.1.13',
+        version: '1.1.14',
         description: 'Фильтрация торрентов по качеству и другим параметрам для текущего фильма'
     };
     window.torrent_quality = TorrentQuality;
