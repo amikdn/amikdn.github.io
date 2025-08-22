@@ -126,11 +126,11 @@
     }
 
     // Функция оптимизации canvas
-//    function optimizeCanvas() {
-//        const canvas = document.createElement('canvas');
-//        const ctx = canvas.getContext('2d', { willReadFrequently: true });
-//        return ctx;
-//    }
+    function optimizeCanvas() {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        return ctx;
+    }
 
     // Функция фильтрации торрентов
     async function filterTorrents(filterValue) {
@@ -155,22 +155,22 @@
             }
 
             // Сбрасываем фильтрацию и фильтруем результаты
-     //       let filteredResults = results;
-    //        if (filterValue && filterValue !== 'any') {
-    //            const filterLower = filterValue.toLowerCase();
-    //            filteredResults = results.filter(result => {
-    //                const title = result.Title || result.title || result.Name || result.name || '';
-    //               if (!title || typeof title !== 'string') {
-    //                    return false;
-    //                }
-    //                const titleLower = title.toLowerCase().replace(/[- ]/g, '');
-  //                  return (
-  //                      (filterLower === 'web-dl' && (titleLower.includes('webdl') && !titleLower.includes('webdlrip'))) ||
-   //                     (filterLower === 'web-dlrip' && (titleLower.includes('webdlrip') || titleLower.includes('webdl rip'))) ||
-   //                     (filterLower === 'bdrip' && (titleLower.includes('bdrip') || titleLower.includes('bd rip')))
-  //                  );
-   //             });
-    //        }
+            let filteredResults = results;
+           if (filterValue && filterValue !== 'any') {
+                const filterLower = filterValue.toLowerCase();
+                filteredResults = results.filter(result => {
+                    const title = result.Title || result.title || result.Name || result.name || '';
+                   if (!title || typeof title !== 'string') {
+                        return false;
+                    }
+                    const titleLower = title.toLowerCase().replace(/[- ]/g, '');
+                    return (
+                        (filterLower === 'web-dl' && (titleLower.includes('webdl') && !titleLower.includes('webdlrip'))) ||
+                        (filterLower === 'web-dlrip' && (titleLower.includes('webdlrip') || titleLower.includes('webdl rip'))) ||
+                        (filterLower === 'bdrip' && (titleLower.includes('bdrip') || titleLower.includes('bd rip')))
+                    );
+                });
+            }
 
             if (filteredResults.length === 0) {
                 Lampa.Utils.message?.(`Не найдено торрентов для фильтра: ${filterValue}.`) || alert(`Не найдено торрентов для фильтра: ${filterValue}.`);
@@ -435,5 +435,6 @@
     };
     window.torrent_quality = TorrentQuality;
 })();
+
 
 
