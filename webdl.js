@@ -363,14 +363,6 @@
         }
     }
 
-    // Манифест плагина
-    Lampa.Manifest.plugins = {
-        name: 'Фильтр WEB-DL',
-        version: '1.1.27',
-        description: 'Фильтрация торрентов по качеству для текущего фильма'
-    };
-    window.torrent_quality = TorrentQuality;
-
     // Запуск плагина
     if (window.appready) {
         startPlugin();
@@ -380,4 +372,5 @@
         });
     }
 })();
+
 
