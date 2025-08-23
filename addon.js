@@ -44,7 +44,7 @@ Lampa.Modal.open({
 
 /* Функция анимации установки плагина */	
 function showLoadingBar() {
-  // Создаем контейнер для анимации
+  // Создаем контейнер
   var loadingContainer = document.createElement('div');
   loadingContainer.className = 'loading-container';
   loadingContainer.style.position = 'fixed';
@@ -56,20 +56,31 @@ function showLoadingBar() {
   loadingContainer.style.height = '3em';
   loadingContainer.style.background = 'rgba(0, 0, 0, 0.8)';
   loadingContainer.style.borderRadius = '8px';
-  loadingContainer.style.display = 'flex';
-  loadingContainer.style.alignItems = 'center';
-  loadingContainer.style.justifyContent = 'center';
+  loadingContainer.style.overflow = 'hidden';
   loadingContainer.style.boxShadow = '0 4px 15px rgba(0, 0, 0, 0.3)';
 
-  // Создаем элемент прогресс-бара
+  // Создаем прогресс-бар
   var progressBar = document.createElement('div');
   progressBar.className = 'progress-bar';
   progressBar.style.width = '0%';
   progressBar.style.height = '100%';
   progressBar.style.background = 'linear-gradient(90deg, #00cc00, #66ff66)';
-  progressBar.style.borderRadius = '8px';
+  progressBar.style.position = 'relative';
+  progressBar.style.overflow = 'hidden';
 
-  // Создаем текст для процентов
+  // Создаем волновой эффект
+  var wave = document.createElement('div');
+  wave.className = 'wave';
+  wave.style.position = 'absolute';
+  wave.style.top = '0';
+  wave.style.left = '0';
+  wave.style.width = '200%';
+  wave.style.height = '100%';
+  wave.style.background = 'url("data:image/svg+xml,%3Csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 100\"%3E%3Cpath d=\"M0 50 Q 100 20 200 50 T 400 50 T 600 50 T 800 50 V100 H0 Z\" fill=\"rgba(255,255,255,0.2)\"/%3E%3C/svg%3E")';
+  wave.style.backgroundSize = '400px 100%';
+  wave.style.animation = 'wave 2s linear infinite';
+
+  // Создаем текст процентов
   var loadingText = document.createElement('div');
   loadingText.className = 'loading-text';
   loadingText.style.position = 'absolute';
@@ -78,7 +89,8 @@ function showLoadingBar() {
   loadingText.style.fontSize = '1.5em';
   loadingText.textContent = '0%';
 
-  // Добавляем элементы на страницу
+  // Добавляем элементы
+  progressBar.appendChild(wave);
   loadingContainer.appendChild(progressBar);
   loadingContainer.appendChild(loadingText);
   document.body.appendChild(loadingContainer);
@@ -90,6 +102,10 @@ function showLoadingBar() {
       from { width: 0%; }
       to { width: 100%; }
     }
+    @keyframes wave {
+      from { transform: translateX(0); }
+      to { transform: translateX(-400px); }
+    }
     .progress-bar {
       animation: fillProgress 1s ease-in-out forwards;
     }
@@ -98,17 +114,15 @@ function showLoadingBar() {
 
   // Обновляем текст процентов
   var startTime = Date.now();
-  var duration = 1000; // 1 секунда
+  var duration = 1000;
   var interval = setInterval(function() {
     var elapsed = Date.now() - startTime;
     var progress = Math.min((elapsed / duration) * 100, 100);
     loadingText.textContent = Math.round(progress) + '%';
-    if (elapsed >= duration) {
-      clearInterval(interval);
-    }
+    if (elapsed >= duration) clearInterval(interval);
   }, 16);
 
-  // Удаляем через 1.2 секунды
+  // Удаляем
   setTimeout(() => {
     loadingContainer.style.opacity = '0';
     loadingContainer.style.transition = 'opacity 0.2s ease';
@@ -121,7 +135,7 @@ function showLoadingBar() {
 
 /* Функция анимации удаления плагина */	
 function showDeletedBar() {
-  // Создаем контейнер для анимации
+  // Создаем контейнер
   var loadingContainer = document.createElement('div');
   loadingContainer.className = 'loading-container';
   loadingContainer.style.position = 'fixed';
@@ -133,20 +147,31 @@ function showDeletedBar() {
   loadingContainer.style.height = '3em';
   loadingContainer.style.background = 'rgba(0, 0, 0, 0.8)';
   loadingContainer.style.borderRadius = '8px';
-  loadingContainer.style.display = 'flex';
-  loadingContainer.style.alignItems = 'center';
-  loadingContainer.style.justifyContent = 'center';
+  loadingContainer.style.overflow = 'hidden';
   loadingContainer.style.boxShadow = '0 4px 15px rgba(0, 0, 0, 0.3)';
 
-  // Создаем элемент прогресс-бара
+  // Создаем прогресс-бар
   var progressBar = document.createElement('div');
   progressBar.className = 'progress-bar';
   progressBar.style.width = '100%';
   progressBar.style.height = '100%';
   progressBar.style.background = 'linear-gradient(90deg, #ff3333, #ff6666)';
-  progressBar.style.borderRadius = '8px';
+  progressBar.style.position = 'relative';
+  progressBar.style.overflow = 'hidden';
 
-  // Создаем текст для процентов
+  // Создаем волновой эффект
+  var wave = document.createElement('div');
+  wave.className = 'wave';
+  wave.style.position = 'absolute';
+  wave.style.top = '0';
+  wave.style.left = '0';
+  wave.style.width = '200%';
+  wave.style.height = '100%';
+  wave.style.background = 'url("data:image/svg+xml,%3Csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 100\"%3E%3Cpath d=\"M0 50 Q 100 20 200 50 T 400 50 T 600 50 T 800 50 V100 H0 Z\" fill=\"rgba(255,255,255,0.2)\"/%3E%3C/svg%3E")';
+  wave.style.backgroundSize = '400px 100%';
+  wave.style.animation = 'wave 2s linear infinite';
+
+  // Создаем текст процентов
   var loadingText = document.createElement('div');
   loadingText.className = 'loading-text';
   loadingText.style.position = 'absolute';
@@ -155,7 +180,8 @@ function showDeletedBar() {
   loadingText.style.fontSize = '1.5em';
   loadingText.textContent = '100%';
 
-  // Добавляем элементы на страницу
+  // Добавляем элементы
+  progressBar.appendChild(wave);
   loadingContainer.appendChild(progressBar);
   loadingContainer.appendChild(loadingText);
   document.body.appendChild(loadingContainer);
@@ -167,6 +193,10 @@ function showDeletedBar() {
       from { width: 100%; }
       to { width: 0%; }
     }
+    @keyframes wave {
+      from { transform: translateX(0); }
+      to { transform: translateX(-400px); }
+    }
     .progress-bar {
       animation: reduceProgress 1s ease-in-out forwards;
     }
@@ -175,17 +205,15 @@ function showDeletedBar() {
 
   // Обновляем текст процентов
   var startTime = Date.now();
-  var duration = 1000; // 1 секунда
+  var duration = 1000;
   var interval = setInterval(function() {
     var elapsed = Date.now() - startTime;
     var progress = 100 - Math.min((elapsed / duration) * 100, 100);
     loadingText.textContent = Math.round(progress) + '%';
-    if (elapsed >= duration) {
-      clearInterval(interval);
-    }
+    if (elapsed >= duration) clearInterval(interval);
   }, 16);
 
-  // Удаляем через 1.2 секунды
+  // Удаляем
   setTimeout(() => {
     loadingContainer.style.opacity = '0';
     loadingContainer.style.transition = 'opacity 0.2s ease';
