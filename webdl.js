@@ -4,7 +4,7 @@
     // Объект плагина
     const TorrentQuality = {
         name: 'torrent_quality',
-        version: '1.1.34',
+        version: '1.1.27',
         debug: false,
         settings: {
             enabled: true,
@@ -188,184 +188,180 @@
                     }
                 });
                 observer.observe(container, { childList: true, subtree: true });
-                setTimeout(() => observer.disconnect(), 15000); // Остановить через 15 секунд
+                setTimeout(() => observer.disconnect(), 5000); // Остановить через 5 секунд
             }
         }
     }
 
     // Инициализация плагина
     function startPlugin() {
-        // Интервальный опрос для поиска simple-button и selectbox__content
-        const interval = setInterval(() => {
-            console.log('[torrent_quality.js] Checking for simple-button');
-            const filterButton = document.querySelector('[class*="simple-button"]');
-            if (filterButton && filterButton.querySelector('.selectbox__content')) {
-                console.log('[torrent_quality.js] Found simple-button with selectbox__content');
-                addTorrentFilters(filterButton.querySelector('.selectbox__content'));
-                clearInterval(interval);
-            }
-        }, 500);
-        setTimeout(() => clearInterval(interval), 30000); // Остановить через 30 секунд
-
-        // Обработчик клика по simple-button
-        document.addEventListener('click', e => {
-            const filterButton = e.target.closest('[class*="simple-button"]');
-            if (filterButton && filterButton.querySelector('.selectbox__content')) {
-                console.log('[torrent_quality.js] Clicked simple-button with selectbox__content');
-                addTorrentFilters(filterButton.querySelector('.selectbox__content'));
-            }
+        Lampa.SettingsApi.addComponent({
+            component: 'torrent_quality',
+            name: 'Фильтр WEB-DL',
+            icon: '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" fill="currentColor"/><path d="M12 6c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79-4-4-4z" fill="currentColor"/></svg>'
         });
 
-        function addTorrentFilters(selectboxContent) {
-            // Проверяем, не добавлены ли уже наши пункты
-            if (selectboxContent.querySelector('.torrent-quality-filters')) {
-                console.log('[torrent_quality.js] Torrent filters already added');
-                return;
-            }
+        Lampa.SettingsApi.addParam({
+            component: 'torrent_quality',
+            param: {
+                name: 'quality_filter',
+                type: 'select',
+                values: {
+                    any: 'Все',
+                    'web-dl': 'WEB-DL',
+                    'web-dlrip': 'WEB-DLRip',
+                    openmatte: 'Open Matte'
+                },
+                default: 'any'
+            },
+            field: {
+                name: 'Фильтр WEB-DL',
+                description: 'Выберите параметры для фильтрации торрентов'
+            },
+            onRender: function (element) {
+                if (!(element instanceof HTMLElement)) return;
 
-            const scrollBody = selectboxContent.querySelector('.scroll__body');
-            if (!scrollBody) {
-                console.log('[torrent_quality.js] .scroll__body not found');
-                return;
-            }
+                const container = element.closest('.settings-param') || element.closest('.settings__content') || element.parentElement;
+                if (!container || container.querySelector('.selectbox__content')) return;
 
-            // Находим пункт "Указать название"
-            const specifyTitleItem = Array.from(scrollBody.querySelectorAll('.selectbox-item.selector')).find(item => {
-                const title = item.querySelector('.selectbox-item__title');
-                return title && title.textContent.trim() === 'Указать название';
-            });
+                const submenu = document.createElement('div');
+                submenu.className = 'selectbox__content layer--height';
+                submenu.style.height = '945px';
+                submenu.style.display = 'none';
+                submenu.innerHTML = `
+                    <div class="selectbox__head">
+                        <div class="selectbox__title">Фильтр</div>
+                    </div>
+                    <div class="selectbox__body layer--wheight" style="max-height: unset; height: 894.016px;">
+                        <div class="scroll scroll--mask scroll--over">
+                            <div class="scroll__content">
+                                <div class="scroll__body" style="transform: translate3d(0px, 0px, 0px);">
+                                    <div class="selectbox-item selector">
+                                        <div class="selectbox-item__title">Сбросить фильтр</div>
+                                    </div>
+                                    <div class="selectbox-item selector">
+                                        <div class="selectbox-item__title">Качество</div>
+                                        <div class="selectbox-item__subtitle">Все</div>
+                                    </div>
+                                    <div class="selectbox-item selector selectbox-item--checkbox" data-value="web-dl">
+                                        <div class="selectbox-item__title">WEB-DL</div>
+                                        <div class="selectbox-item__checkbox"></div>
+                                    </div>
+                                    <div class="selectbox-item selector selectbox-item--checkbox" data-value="web-dlrip">
+                                        <div class="selectbox-item__title">WEB-DLRip</div>
+                                        <div class="selectbox-item__checkbox"></div>
+                                    </div>
+                                    <div class="selectbox-item selector selectbox-item--checkbox" data-value="openmatte">
+                                        <div class="selectbox-item__title">Open Matte</div>
+                                        <div class="selectbox-item__checkbox"></div>
+                                    </div>
+                                    <div class="selectbox-item selector">
+                                        <div class="selectbox-item__title">HDR</div>
+                                        <div class="selectbox-item__subtitle">Не выбрано</div>
+                                    </div>
+                                    <div class="selectbox-item selector">
+                                        <div class="selectbox-item__title">Dolby Vision</div>
+                                        <div class="selectbox-item__subtitle">Не выбрано</div>
+                                    </div>
+                                    <div class="selectbox-item selector">
+                                        <div class="selectbox-item__title">Субтитры</div>
+                                        <div class="selectbox-item__subtitle">Не выбрано</div>
+                                    </div>
+                                    <div class="selectbox-item selector">
+                                        <div class="selectbox-item__title">Перевод</div>
+                                        <div class="selectbox-item__subtitle">Все</div>
+                                    </div>
+                                    <div class="selectbox-item selector">
+                                        <div class="selectbox-item__title">Язык</div>
+                                        <div class="selectbox-item__subtitle">Все</div>
+                                    </div>
+                                    <div class="selectbox-item selector">
+                                        <div class="selectbox-item__title">Сезон</div>
+                                        <div class="selectbox-item__subtitle">Все</div>
+                                    </div>
+                                    <div class="selectbox-item selector">
+                                        <div class="selectbox-item__title">Трекер</div>
+                                        <div class="selectbox-item__subtitle">Все</div>
+                                    </div>
+                                    <div class="selectbox-item selector">
+                                        <div class="selectbox-item__title">Год</div>
+                                        <div class="selectbox-item__subtitle">Все</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
 
-            // HTML для пунктов фильтрации
-            const filtersHtml = `
-                <style>
-                    .torrent-quality-debug { border: 1px solid red; display: block !important; visibility: visible !important; position: relative; z-index: 1000; min-height: 20px; }
-                    .torrent-quality-filters { margin: 10px 0; padding: 5px; background: rgba(0,0,0,0.8); }
-                    .torrent-quality-filter { cursor: pointer; padding: 5px; display: block !important; min-height: 20px; }
-                </style>
-                <div class="settings-param-title torrent-quality-filters torrent-quality-debug"><span>Фильтры торрентов</span></div>
-                <div class="selectbox-item selector torrent-quality-filter torrent-quality-debug" data-action="reset">
-                    <div class="selectbox-item__title">Сбросить фильтр</div>
-                </div>
-                <div class="selectbox-item selector torrent-quality-filter torrent-quality-debug" data-action="quality" data-value="any">
-                    <div class="selectbox-item__title">Качество</div>
-                    <div class="selectbox-item__subtitle">Все</div>
-                </div>
-                <div class="selectbox-item selector selectbox-item--checkbox torrent-quality-filter torrent-quality-debug" data-value="web-dl">
-                    <div class="selectbox-item__title">WEB-DL</div>
-                    <div class="selectbox-item__checkbox"></div>
-                </div>
-                <div class="selectbox-item selector selectbox-item--checkbox torrent-quality-filter torrent-quality-debug" data-value="web-dlrip">
-                    <div class="selectbox-item__title">WEB-DLRip</div>
-                    <div class="selectbox-item__checkbox"></div>
-                </div>
-                <div class="selectbox-item selector selectbox-item--checkbox torrent-quality-filter torrent-quality-debug" data-value="openmatte">
-                    <div class="selectbox-item__title">Open Matte</div>
-                    <div class="selectbox-item__checkbox"></div>
-                </div>
-            `;
+                container.appendChild(submenu);
 
-            // Вставляем после "Указать название" или в начало scroll__body
-            if (specifyTitleItem) {
-                console.log('[torrent_quality.js] Found specify title item');
-                specifyTitleItem.insertAdjacentHTML('afterend', filtersHtml);
-            } else {
-                console.log('[torrent_quality.js] Specify title item not found, inserting at start');
-                scrollBody.insertAdjacentHTML('afterbegin', filtersHtml);
-            }
-            console.log('[torrent_quality.js] Inserted torrent filters');
-
-            // Добавляем обработчики событий для новых пунктов
-            scrollBody.querySelectorAll('.torrent-quality-filter').forEach(item => {
-                item.addEventListener('click', () => {
-                    const action = item.dataset.action;
-                    const value = item.dataset.value;
-                    const subtitle = item.querySelector('.selectbox-item__subtitle');
-
-                    if (action === 'reset') {
-                        resetFilter();
-                        if (subtitle) subtitle.textContent = 'Все';
-                        scrollBody.querySelectorAll('.torrent-quality-filter.selectbox-item--checkbox').forEach(el => el.classList.remove('selected'));
-                        scrollBody.querySelectorAll('.torrent-quality-filter .selectbox-item__subtitle').forEach(sub => {
-                            const parentTitle = sub.parentElement.querySelector('.selectbox-item__title').textContent;
-                            sub.textContent = parentTitle === 'Качество' ? 'Все' : '';
+                const title = container.querySelector('.settings-param__name') || element.querySelector('.settings-param__name') || element.querySelector('span') || element;
+                if (title) {
+                    title.addEventListener('click', () => {
+                        submenu.style.display = submenu.style.display === 'none' ? 'block' : 'none';
+                        document.querySelectorAll('.selectbox__content').forEach(content => {
+                            if (content !== submenu) content.style.display = 'none';
                         });
-                        filterTorrents('any');
-                    } else if (action === 'quality') {
-                        if (subtitle) subtitle.textContent = 'Все';
-                        scrollBody.querySelectorAll('.torrent-quality-filter.selectbox-item--checkbox').forEach(el => el.classList.remove('selected'));
-                        TorrentQuality.settings.quality_filter = 'any';
-                        Lampa.Storage.set('torrent_quality_filter', 'any');
-                        filterTorrents('any');
-                    } else if (value) {
-                        if (subtitle) subtitle.textContent = value === 'web-dl' ? 'WEB-DL' : value === 'web-dlrip' ? 'WEB-DLRip' : 'Open Matte';
-                        scrollBody.querySelectorAll('.torrent-quality-filter.selectbox-item--checkbox').forEach(el => {
-                            el.classList.toggle('selected', el.dataset.value === value);
-                        });
-                        TorrentQuality.settings.quality_filter = value;
-                        Lampa.Storage.set('torrent_quality_filter', value);
-                        filterTorrents(value);
-                    }
+                    });
+                }
 
-                    // Закрываем меню после выбора
-                    selectboxContent.style.display = 'none';
+                submenu.querySelectorAll('.selectbox-item').forEach(item => {
+                    item.addEventListener('click', () => {
+                        const titleText = item.querySelector('.selectbox-item__title').textContent.trim();
+                        let value = item.dataset.value || titleText;
+                        const subtitle = item.querySelector('.selectbox-item__subtitle');
+
+                        if (titleText === 'Сбросить фильтр') {
+                            resetFilter();
+                            if (subtitle) subtitle.textContent = 'Все';
+                            submenu.querySelectorAll('.selectbox-item--checkbox').forEach(el => el.classList.remove('selected'));
+                            submenu.querySelectorAll('.selectbox-item__subtitle').forEach(sub => {
+                                const parentTitle = sub.parentElement.querySelector('.selectbox-item__title').textContent;
+                                sub.textContent = parentTitle === 'Качество' || parentTitle === 'Перевод' || parentTitle === 'Язык' || parentTitle === 'Сезон' || parentTitle === 'Трекер' || parentTitle === 'Год' ? 'Все' : 'Не выбрано';
+                            });
+                            filterTorrents('any');
+                        } else if (titleText === 'Качество') {
+                            value = 'any';
+                            if (subtitle) subtitle.textContent = 'Все';
+                            submenu.querySelectorAll('.selectbox-item--checkbox').forEach(el => el.classList.remove('selected'));
+                            TorrentQuality.settings.quality_filter = value;
+                            Lampa.Storage.set('torrent_quality_filter', value);
+                            filterTorrents(value);
+                        } else if (item.dataset.value) {
+                            value = item.dataset.value.toLowerCase();
+                            if (subtitle) subtitle.textContent = value === 'web-dl' ? 'WEB-DL' : value === 'web-dlrip' ? 'WEB-DLRip' : 'Open Matte';
+                            submenu.querySelectorAll('.selectbox-item--checkbox').forEach(el => {
+                                el.classList.toggle('selected', el.dataset.value === value);
+                            });
+                            TorrentQuality.settings.quality_filter = value;
+                            Lampa.Storage.set('torrent_quality_filter', value);
+                            filterTorrents(value);
+                        }
+
+                        submenu.style.display = 'none';
+                    });
                 });
-            });
-        }
+            },
+            onChange: function (value) {
+                TorrentQuality.settings.quality_filter = value;
+                Lampa.Storage.set('torrent_quality_filter', value);
+                filterTorrents(value);
+            }
+        });
 
         TorrentQuality.settings.quality_filter = Lampa.Storage.get('torrent_quality_filter', 'any');
         if (window.appready) {
             setupUrlChangeObserver();
             applyFilterOnTorrentsLoad();
-            // Проверяем при загрузке
-            const interval = setInterval(() => {
-                console.log('[torrent_quality.js] Checking for simple-button on app ready');
-                const filterButton = document.querySelector('[class*="simple-button"]');
-                if (filterButton && filterButton.querySelector('.selectbox__content')) {
-                    console.log('[torrent_quality.js] Found simple-button with selectbox__content on app ready');
-                    addTorrentFilters(filterButton.querySelector('.selectbox__content'));
-                    clearInterval(interval);
-                }
-            }, 500);
-            setTimeout(() => clearInterval(interval), 30000);
         } else {
             Lampa.Listener.follow('app', e => {
                 if (e.type === 'ready') {
                     setupUrlChangeObserver();
                     applyFilterOnTorrentsLoad();
-                    // Проверяем после app ready
-                    const interval = setInterval(() => {
-                        console.log('[torrent_quality.js] Checking for simple-button after app ready');
-                        const filterButton = document.querySelector('[class*="simple-button"]');
-                        if (filterButton && filterButton.querySelector('.selectbox__content')) {
-                            console.log('[torrent_quality.js] Found simple-button with selectbox__content after app ready');
-                            addTorrentFilters(filterButton.querySelector('.selectbox__content'));
-                            clearInterval(interval);
-                        }
-                    }, 500);
-                    setTimeout(() => clearInterval(interval), 30000);
                 }
             });
         }
-
-        // Попытка подписки на событие Lampa
-        Lampa.Listener.follow('filter_menu', e => {
-            if (e.type === 'render') {
-                console.log('[torrent_quality.js] Detected filter_menu render event');
-                const selectboxContent = document.querySelector('.selectbox__content');
-                if (selectboxContent) {
-                    addTorrentFilters(selectboxContent);
-                }
-            }
-        });
     }
-
-    // Манифест плагина
-    Lampa.Manifest.plugins = {
-        name: 'Фильтр Торрентов',
-        version: '1.1.34',
-        description: 'Фильтрация торрентов по качеству для текущего фильма'
-    };
-    window.torrent_quality = TorrentQuality;
 
     // Запуск плагина
     if (window.appready) {
