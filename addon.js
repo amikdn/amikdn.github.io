@@ -873,7 +873,7 @@ Lampa.SettingsApi.addComponent({
 						}
 					},
 			                onRender: function (item) {$('.settings-param__name', item).css('color','f3d900'); hideInstall()
-						/*var myResult = checkPlugin('hhttps://4m1k.github.io/weather.js')
+						/*var myResult = checkPlugin('https://4m1k.github.io/weather.js')
 						setTimeout(function() {	
 							$('div[data-name="Weather"]').append('<div class="settings-param__status one"></div>')
 							if (myResult) {
@@ -928,7 +928,7 @@ Lampa.SettingsApi.addComponent({
 						}
 					},
 			                onRender: function (item) {$('.settings-param__name', item).css('color','f3d900'); hideInstall()
-						/*var myResult = checkPlugin('hhttps://4m1k.github.io/cuboff.js')
+						/*var myResult = checkPlugin('https://4m1k.github.io/cuboff.js')
 						setTimeout(function() {	
 							$('div[data-name="Cub_off"]').append('<div class="settings-param__status one"></div>')
 							if (myResult) {
