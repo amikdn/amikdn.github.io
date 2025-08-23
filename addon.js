@@ -44,134 +44,118 @@ Lampa.Modal.open({
 
 /* Функция анимации установки плагина */	
 function showLoadingBar() {
-  // Создаем элемент для полосы загрузки
-  var loadingBar = document.createElement('div');
-  loadingBar.className = 'loading-bar';
-  loadingBar.style.position = 'fixed';
-  loadingBar.style.top = '50%';
-  loadingBar.style.left = '50%';
-  loadingBar.style.transform = 'translate(-50%, -50%)'; // Центрируем по центру
-  loadingBar.style.zIndex = '9999';
-  loadingBar.style.display = 'none';
-  loadingBar.style.width = '30em';
-  loadingBar.style.height = '2.5em'; 
-  loadingBar.style.backgroundColor = '#595959';
-  loadingBar.style.borderRadius = '4em';
+  // Создаем контейнер для анимации
+  var loadingContainer = document.createElement('div');
+  loadingContainer.className = 'loading-container';
+  loadingContainer.style.position = 'fixed';
+  loadingContainer.style.top = '50%';
+  loadingContainer.style.left = '50%';
+  loadingContainer.style.transform = 'translate(-50%, -50%)';
+  loadingContainer.style.zIndex = '9999';
+  loadingContainer.style.width = '25em';
+  loadingContainer.style.height = '3em';
+  loadingContainer.style.background = 'rgba(0, 0, 0, 0.8)';
+  loadingContainer.style.borderRadius = '8px';
+  loadingContainer.style.display = 'flex';
+  loadingContainer.style.alignItems = 'center';
+  loadingContainer.style.justifyContent = 'center';
+  loadingContainer.style.boxShadow = '0 4px 15px rgba(0, 0, 0, 0.3)';
 
-  // Создаем элемент для индикатора загрузки
-  var loadingIndicator = document.createElement('div');
-  loadingIndicator.className = 'loading-indicator';
-  loadingIndicator.style.position = 'absolute';
-  loadingIndicator.style.left = '0';
-  loadingIndicator.style.top = '0';
-  loadingIndicator.style.bottom = '0';
-  loadingIndicator.style.width = '0';
-  loadingIndicator.style.backgroundColor = '#64e364';
-  loadingIndicator.style.borderRadius = '4em';
+  // Создаем элемент прогресс-бара
+  var progressBar = document.createElement('div');
+  progressBar.className = 'progress-bar';
+  progressBar.style.width = '0%';
+  progressBar.style.height = '100%';
+  progressBar.style.background = 'linear-gradient(90deg, #00cc00, #66ff66)';
+  progressBar.style.borderRadius = '8px';
+  progressBar.style.transition = 'width 1s ease-in-out';
 
-  // Создаем элемент для отображения процента загрузки
-  var loadingPercentage = document.createElement('div');
-  loadingPercentage.className = 'loading-percentage';
-  loadingPercentage.style.position = 'absolute';
-  loadingPercentage.style.top = '50%';
-  loadingPercentage.style.left = '50%';
-  loadingPercentage.style.transform = 'translate(-50%, -50%)';
-  loadingPercentage.style.color = '#fff';
-  loadingPercentage.style.fontWeight = 'bold';
-  loadingPercentage.style.fontSize = '1.7em';
+  // Создаем текст для процентов
+  var loadingText = document.createElement('div');
+  loadingText.className = 'loading-text';
+  loadingText.style.position = 'absolute';
+  loadingText.style.color = '#fff';
+  loadingText.style.fontWeight = 'bold';
+  loadingText.style.fontSize = '1.5em';
+  loadingText.textContent = '0%';
 
   // Добавляем элементы на страницу
-  loadingBar.appendChild(loadingIndicator);
-  loadingBar.appendChild(loadingPercentage);
-  document.body.appendChild(loadingBar);
+  loadingContainer.appendChild(progressBar);
+  loadingContainer.appendChild(loadingText);
+  document.body.appendChild(loadingContainer);
 
-  // Отображаем полосу загрузки
-  loadingBar.style.display = 'block';
+  // Запускаем анимацию
+  setTimeout(() => {
+    progressBar.style.width = '100%';
+    loadingText.textContent = '100%';
+  }, 10);
 
-  // Анимация с использованием setTimeout
-  var startTime = Date.now();
-  var duration = 1000; // 1 секунда
-  var interval = setInterval(function() {
-  var elapsed = Date.now() - startTime;
-  var progress = Math.min((elapsed / duration) * 100, 100);
-
-    loadingIndicator.style.width = progress + '%';
-    loadingPercentage.textContent = Math.round(progress) + '%';
-
-    if (elapsed >= duration) {
-      clearInterval(interval);
-      setTimeout(function() {
-        loadingBar.style.display = 'none';
-        loadingBar.parentNode.removeChild(loadingBar);
-      }, 250);
-    }
-  }, 16);
+  // Удаляем через 1.2 секунды
+  setTimeout(() => {
+    loadingContainer.style.opacity = '0';
+    loadingContainer.style.transition = 'opacity 0.2s ease';
+    setTimeout(() => {
+      loadingContainer.remove();
+    }, 200);
+  }, 1200);
 }
 
 /* Функция анимации удаления плагина */	
 function showDeletedBar() {
-  // Создаем элемент для полосы загрузки
-  var loadingBar = document.createElement('div');
-  loadingBar.className = 'loading-bar';
-  loadingBar.style.position = 'fixed';
-  loadingBar.style.top = '50%';
-  loadingBar.style.left = '50%';
-  loadingBar.style.transform = 'translate(-50%, -50%)'; // Центрируем по центру
-  loadingBar.style.zIndex = '9999';
-  loadingBar.style.display = 'none';
-  loadingBar.style.width = '30em';
-  loadingBar.style.height = '2.5em';
-  loadingBar.style.backgroundColor = '#595959';
-  loadingBar.style.borderRadius = '4em';
+  // Создаем контейнер для анимации
+  var loadingContainer = document.createElement('div');
+  loadingContainer.className = 'loading-container';
+  loadingContainer.style.position = 'fixed';
+  loadingContainer.style.top = '50%';
+  loadingContainer.style.left = '50%';
+  loadingContainer.style.transform = 'translate(-50%, -50%)';
+  loadingContainer.style.zIndex = '9999';
+  loadingContainer.style.width = '25em';
+  loadingContainer.style.height = '3em';
+  loadingContainer.style.background = 'rgba(0, 0, 0, 0.8)';
+  loadingContainer.style.borderRadius = '8px';
+  loadingContainer.style.display = 'flex';
+  loadingContainer.style.alignItems = 'center';
+  loadingContainer.style.justifyContent = 'center';
+  loadingContainer.style.boxShadow = '0 4px 15px rgba(0, 0, 0, 0.3)';
 
-  // Создаем элемент для индикатора загрузки
-  var loadingIndicator = document.createElement('div');
-  loadingIndicator.className = 'loading-indicator';
-  loadingIndicator.style.position = 'absolute';
-  loadingIndicator.style.left = '0';
-  loadingIndicator.style.top = '0';
-  loadingIndicator.style.bottom = '0';
-  loadingIndicator.style.width = '0';
-  loadingIndicator.style.backgroundColor = '#ff2121';
-  loadingIndicator.style.borderRadius = '4em';
+  // Создаем элемент прогресс-бара
+  var progressBar = document.createElement('div');
+  progressBar.className = 'progress-bar';
+  progressBar.style.width = '100%';
+  progressBar.style.height = '100%';
+  progressBar.style.background = 'linear-gradient(90deg, #ff3333, #ff6666)';
+  progressBar.style.borderRadius = '8px';
+  progressBar.style.transition = 'width 1s ease-in-out';
 
-  // Создаем элемент для отображения процента загрузки
-  var loadingPercentage = document.createElement('div');
-  loadingPercentage.className = 'loading-percentage';
-  loadingPercentage.style.position = 'absolute';
-  loadingPercentage.style.top = '50%';
-  loadingPercentage.style.left = '50%';
-  loadingPercentage.style.transform = 'translate(-50%, -50%)';
-  loadingPercentage.style.color = '#fff';
-  loadingPercentage.style.fontWeight = 'bold';
-  loadingPercentage.style.fontSize = '1.7em';
+  // Создаем текст для процентов
+  var loadingText = document.createElement('div');
+  loadingText.className = 'loading-text';
+  loadingText.style.position = 'absolute';
+  loadingText.style.color = '#fff';
+  loadingText.style.fontWeight = 'bold';
+  loadingText.style.fontSize = '1.5em';
+  loadingText.textContent = '100%';
 
   // Добавляем элементы на страницу
-  loadingBar.appendChild(loadingIndicator);
-  loadingBar.appendChild(loadingPercentage);
-  document.body.appendChild(loadingBar);
+  loadingContainer.appendChild(progressBar);
+  loadingContainer.appendChild(loadingText);
+  document.body.appendChild(loadingContainer);
 
-  // Отображаем полосу загрузки
-  loadingBar.style.display = 'block';
+  // Запускаем анимацию
+  setTimeout(() => {
+    progressBar.style.width = '0%';
+    loadingText.textContent = '0%';
+  }, 10);
 
-  // Анимация с использованием setTimeout
-  var startTime = Date.now();
-  var duration = 1000; // 1 секунда
-  var interval = setInterval(function() {
-  var elapsed = Date.now() - startTime;
-  var progress = 100 - Math.min((elapsed / duration) * 100, 100);
-
-    loadingIndicator.style.width = progress + '%';
-    loadingPercentage.textContent = Math.round(progress) + '%';
-
-    if (elapsed >= duration) {
-      clearInterval(interval);
-      setTimeout(function() {
-        loadingBar.style.display = 'none';
-        loadingBar.parentNode.removeChild(loadingBar);
-      }, 250);
-    }
-  }, 16);
+  // Удаляем через 1.2 секунды
+  setTimeout(() => {
+    loadingContainer.style.opacity = '0';
+    loadingContainer.style.transition = 'opacity 0.2s ease';
+    setTimeout(() => {
+      loadingContainer.remove();
+    }, 200);
+  }, 1200);
 }
 	
 /* Следим за настройками */
