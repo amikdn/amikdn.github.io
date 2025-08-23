@@ -4,7 +4,7 @@
     // Объект плагина
     const TorrentQuality = {
         name: 'torrent_quality',
-        version: '1.1.28',
+        version: '1.1.30',
         debug: false,
         settings: {
             enabled: true,
@@ -227,63 +227,45 @@
             const scrollBody = selectboxContent.querySelector('.scroll__body');
             if (!scrollBody) return;
 
-            // Добавляем раздел "Фильтры торрентов"
+            // Находим пункт "Указать название"
+            const specifyTitleItem = Array.from(scrollBody.querySelectorAll('.selectbox-item.selector')).find(item => {
+                const title = item.querySelector('.selectbox-item__title');
+                return title && title.textContent.trim() === 'Указать название';
+            });
+
+            // HTML для пунктов фильтрации
             const filtersHtml = `
-                <div class="settings-param-title torrent-quality-filters"><span>Фильтры торрентов</span></div>
-                <div class="selectbox-item selector torrent-quality-filter" data-action="reset">
+                <style>
+                    .torrent-quality-debug { border: 1px solid red; }
+                </style>
+                <div class="settings-param-title torrent-quality-filters torrent-quality-debug"><span>Фильтры торрентов</span></div>
+                <div class="selectbox-item selector torrent-quality-filter torrent-quality-debug" data-action="reset">
                     <div class="selectbox-item__title">Сбросить фильтр</div>
                 </div>
-                <div class="selectbox-item selector torrent-quality-filter" data-action="quality" data-value="any">
+                <div class="selectbox-item selector torrent-quality-filter torrent-quality-debug" data-action="quality" data-value="any">
                     <div class="selectbox-item__title">Качество</div>
                     <div class="selectbox-item__subtitle">Все</div>
                 </div>
-                <div class="selectbox-item selector selectbox-item--checkbox torrent-quality-filter" data-value="web-dl">
+                <div class="selectbox-item selector selectbox-item--checkbox torrent-quality-filter torrent-quality-debug" data-value="web-dl">
                     <div class="selectbox-item__title">WEB-DL</div>
                     <div class="selectbox-item__checkbox"></div>
                 </div>
-                <div class="selectbox-item selector selectbox-item--checkbox torrent-quality-filter" data-value="web-dlrip">
+                <div class="selectbox-item selector selectbox-item--checkbox torrent-quality-filter torrent-quality-debug" data-value="web-dlrip">
                     <div class="selectbox-item__title">WEB-DLRip</div>
                     <div class="selectbox-item__checkbox"></div>
                 </div>
-                <div class="selectbox-item selector selectbox-item--checkbox torrent-quality-filter" data-value="openmatte">
+                <div class="selectbox-item selector selectbox-item--checkbox torrent-quality-filter torrent-quality-debug" data-value="openmatte">
                     <div class="selectbox-item__title">Open Matte</div>
                     <div class="selectbox-item__checkbox"></div>
                 </div>
-                <div class="selectbox-item selector torrent-quality-filter" data-action="hdr">
-                    <div class="selectbox-item__title">HDR</div>
-                    <div class="selectbox-item__subtitle">Не выбрано</div>
-                </div>
-                <div class="selectbox-item selector torrent-quality-filter" data-action="dolby-vision">
-                    <div class="selectbox-item__title">Dolby Vision</div>
-                    <div class="selectbox-item__subtitle">Не выбрано</div>
-                </div>
-                <div class="selectbox-item selector torrent-quality-filter" data-action="subtitles">
-                    <div class="selectbox-item__title">Субтитры</div>
-                    <div class="selectbox-item__subtitle">Не выбрано</div>
-                </div>
-                <div class="selectbox-item selector torrent-quality-filter" data-action="translation">
-                    <div class="selectbox-item__title">Перевод</div>
-                    <div class="selectbox-item__subtitle">Все</div>
-                </div>
-                <div class="selectbox-item selector torrent-quality-filter" data-action="language">
-                    <div class="selectbox-item__title">Язык</div>
-                    <div class="selectbox-item__subtitle">Все</div>
-                </div>
-                <div class="selectbox-item selector torrent-quality-filter" data-action="season">
-                    <div class="selectbox-item__title">Сезон</div>
-                    <div class="selectbox-item__subtitle">Все</div>
-                </div>
-                <div class="selectbox-item selector torrent-quality-filter" data-action="tracker">
-                    <div class="selectbox-item__title">Трекер</div>
-                    <div class="selectbox-item__subtitle">Все</div>
-                </div>
-                <div class="selectbox-item selector torrent-quality-filter" data-action="year">
-                    <div class="selectbox-item__title">Год</div>
-                    <div class="selectbox-item__subtitle">Все</div>
-                </div>
             `;
 
-            scrollBody.insertAdjacentHTML('beforeend', filtersHtml);
+            // Вставляем после пункта "Указать название" или в начало scroll__body
+            if (specifyTitleItem) {
+                specifyTitleItem.insertAdjacentHTML('afterend', filtersHtml);
+            } else {
+                scrollBody.insertAdjacentHTML('afterbegin', filtersHtml);
+            }
 
             // Добавляем обработчики событий для новых пунктов
             scrollBody.querySelectorAll('.torrent-quality-filter').forEach(item => {
@@ -298,7 +280,7 @@
                         scrollBody.querySelectorAll('.torrent-quality-filter.selectbox-item--checkbox').forEach(el => el.classList.remove('selected'));
                         scrollBody.querySelectorAll('.torrent-quality-filter .selectbox-item__subtitle').forEach(sub => {
                             const parentTitle = sub.parentElement.querySelector('.selectbox-item__title').textContent;
-                            sub.textContent = parentTitle === 'Качество' || parentTitle === 'Перевод' || parentTitle === 'Язык' || parentTitle === 'Сезон' || parentTitle === 'Трекер' || parentTitle === 'Год' ? 'Все' : 'Не выбрано';
+                            sub.textContent = parentTitle === 'Качество' ? 'Все' : '';
                         });
                         filterTorrents('any');
                     } else if (action === 'quality') {
@@ -340,7 +322,7 @@
     // Манифест плагина
     Lampa.Manifest.plugins = {
         name: 'Фильтр Торрентов',
-        version: '1.1.28',
+        version: '1.1.30',
         description: 'Фильтрация торрентов по качеству для текущего фильма'
     };
     window.torrent_quality = TorrentQuality;
