@@ -4,7 +4,7 @@
     // Объект плагина
     var TorrentQuality = {
         name: 'torrent_quality',
-        version: '1.1.19',
+        version: '1.1.20',
         debug: true, // Оставлено true для отладки
         settings: {
             enabled: true,
@@ -16,6 +16,7 @@
     let originalTorrents = [];
     let allTorrents = [];
     let currentMovieTitle = null; // Для отслеживания текущего фильма по заголовку
+    let lastUrl = window.location.search; // Для отслеживания изменений URL
 
     // Функция получения данных торрентов из DOM
     function getTorrentsData() {
@@ -209,33 +210,55 @@
 
     // Настройка MutationObserver для отслеживания смены фильма
     function setupMovieChangeObserver() {
-        const targetNode = document.querySelector('.full-start-new__title');
-        if (!targetNode) {
-            if (TorrentQuality.debug) console.warn('[torrent_quality.js] Элемент .full-start-new__title не найден для MutationObserver');
-            return;
+        function trySetupObserver() {
+            const targetNode = document.querySelector('.full-start-new');
+            if (!targetNode) {
+                if (TorrentQuality.debug) console.warn('[torrent_quality.js] Элемент .full-start-new не найден, повторная попытка через 500мс');
+                setTimeout(trySetupObserver, 500);
+                return;
+            }
+
+            const observer = new MutationObserver((mutations) => {
+                mutations.forEach((mutation) => {
+                    if (mutation.type === 'childList' || mutation.type === 'subtree') {
+                        const newTitle = document.querySelector('.full-start-new__title')?.textContent?.trim();
+                        if (newTitle && newTitle !== currentMovieTitle) {
+                            if (TorrentQuality.debug) console.log(`[torrent_quality.js] Смена фильма по DOM: ${currentMovieTitle} -> ${newTitle}`);
+                            clearTorrents();
+                            currentMovieTitle = newTitle;
+                            applyFilterOnTorrentsLoad();
+                        }
+                    }
+                });
+            });
+
+            observer.observe(targetNode, {
+                childList: true,
+                subtree: true
+            });
+
+            if (TorrentQuality.debug) console.log('[torrent_quality.js] MutationObserver установлен на .full-start-new');
         }
 
-        const observer = new MutationObserver((mutations) => {
-            mutations.forEach((mutation) => {
-                if (mutation.type === 'childList' || mutation.type === 'characterData') {
-                    const newTitle = targetNode.textContent.trim();
-                    if (newTitle && newTitle !== currentMovieTitle) {
-                        if (TorrentQuality.debug) console.log(`[torrent_quality.js] Смена фильма по DOM: ${currentMovieTitle} -> ${newTitle}`);
-                        clearTorrents();
-                        currentMovieTitle = newTitle;
-                        applyFilterOnTorrentsLoad();
-                    }
+        trySetupObserver();
+    }
+
+    // Отслеживание изменений URL
+    function setupUrlChangeObserver() {
+        setInterval(() => {
+            const currentUrl = window.location.search;
+            if (currentUrl !== lastUrl) {
+                const newTitle = document.querySelector('.full-start-new__title')?.textContent?.trim() || currentUrl;
+                if (newTitle && newTitle !== currentMovieTitle) {
+                    if (TorrentQuality.debug) console.log(`[torrent_quality.js] Смена фильма по URL: ${currentMovieTitle} -> ${newTitle}, URL: ${lastUrl} -> ${currentUrl}`);
+                    clearTorrents();
+                    currentMovieTitle = newTitle;
+                    lastUrl = currentUrl;
+                    applyFilterOnTorrentsLoad();
                 }
-            });
-        });
-
-        observer.observe(targetNode, {
-            childList: true,
-            characterData: true,
-            subtree: true
-        });
-
-        if (TorrentQuality.debug) console.log('[torrent_quality.js] MutationObserver установлен на .full-start-new__title');
+            }
+        }, 500);
+        if (TorrentQuality.debug) console.log('[torrent_quality.js] Отслеживание URL запущено');
     }
 
     // Инициализация плагина
@@ -420,7 +443,7 @@
         Lampa.Listener.follow('activity', function (e) {
             if (e.type === 'active' || e.type === 'push' || e.type === 'toggle') {
                 const activeMovie = Lampa.Activity.active()?.movie;
-                const newTitle = activeMovie?.title || document.querySelector('.full-start-new__title')?.textContent?.trim() || e.data?.title || JSON.stringify(activeMovie);
+                const newTitle = activeMovie?.title || document.querySelector('.full-start-new__title')?.textContent?.trim() || e.data?.title || window.location.search;
                 if (TorrentQuality.debug) {
                     console.log('[torrent_quality.js] Событие activity:', { type: e.type, data: e.data, activeMovie: Lampa.Activity.active() });
                 }
@@ -441,14 +464,16 @@
             }
         });
 
-        // Инициализация MutationObserver при запуске
+        // Инициализация при запуске
         if (window.appready) {
             setupMovieChangeObserver();
+            setupUrlChangeObserver();
             applyFilterOnTorrentsLoad();
         } else {
             Lampa.Listener.follow('app', function (e) {
                 if (e.type === 'ready') {
                     setupMovieChangeObserver();
+                    setupUrlChangeObserver();
                     applyFilterOnTorrentsLoad();
                 }
             });
@@ -458,7 +483,7 @@
     // Манифест плагина
     Lampa.Manifest.plugins = {
         name: 'Фильтр Торрентов',
-        version: '1.1.19',
+        version: '1.1.20',
         description: 'Фильтрация торрентов по качеству для текущего фильма'
     };
     window.torrent_quality = TorrentQuality;
