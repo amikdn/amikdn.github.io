@@ -4,7 +4,7 @@
     // Объект плагина
     const TorrentQuality = {
         name: 'torrent_quality',
-        version: '1.1.22', // Обновлена версия
+        version: '1.1.23', // Обновлена версия
         debug: true,
         settings: {
             enabled: true,
@@ -118,8 +118,8 @@
                         return (title.includes('webdl') || title.includes('web-dl')) && !title.includes('webdlrip') && !title.includes('web-dlrip');
                     } else if (filterLower === 'web-dlrip') {
                         return title.includes('webdlrip') || title.includes('web-dlrip');
-                    } else if (filterLower === 'open matte') {
-                        return title.includes('open matte') || title.includes('open matte');
+                    } else if (filterLower === 'openmatte') {
+                        return title.includes('openmatte') || title.includes('open-matte');
                     }
                     return false;
                 });
@@ -193,7 +193,7 @@
                     <div class="torrent-item__date">${publishDate}</div>
                     <div class="torrent-item__tracker">${trackers}</div>
                     <div class="torrent-item__seeds">Раздают: <span>${result.Seeders || 0}</span></div>
-                    <div class="torrent-item__grabs">Качают: <span>${result.Peer || 0}</span></div>
+                    <div class="torrent-item__grabs">Качают: <span>${result.Peers || 0}</span></div>
                     <div class="torrent-item__size">${sizeName}</div>
                 </div>
                 ${result.MagnetUri ? `<a href="${result.MagnetUri}" target="_blank">Скачать</a>` : ''}
@@ -249,7 +249,7 @@
     function startPlugin() {
         Lampa.SettingsApi.addComponent({
             component: 'torrent_quality',
-            name: 'Фильтр Торрентов',
+            name: 'Фильтр',
             icon: '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" fill="currentColor"/><path d="M12 6c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79-4-4-4z" fill="currentColor"/></svg>'
         });
 
@@ -262,12 +262,12 @@
                     any: 'Любое',
                     'web-dl': 'WEB-DL',
                     'web-dlrip': 'WEB-DLRip',
-                    bdrip: 'Open Matte'
+                    openmatte: 'Open Matte'
                 },
                 default: 'any'
             },
             field: {
-                name: 'Фильтр Торрентов',
+                name: 'Фильтр',
                 description: 'Выберите параметры для фильтрации торрентов'
             },
             onRender: function (element) {
@@ -303,8 +303,8 @@
                                         <div class="selectbox-item__title">WEB-DLRip</div>
                                         <div class="selectbox-item__checkbox"></div>
                                     </div>
-                                    <div class="selectbox-item selector selectbox-item--checkbox" data-value="bdrip">
-                                        <div class="selectbox-item__title">BDRip</div>
+                                    <div class="selectbox-item selector selectbox-item--checkbox" data-value="openmatte">
+                                        <div class="selectbox-item__title">Open Matte</div>
                                         <div class="selectbox-item__checkbox"></div>
                                     </div>
                                     <div class="selectbox-item selector">
@@ -381,7 +381,7 @@
                             filterTorrents(value);
                         } else if (item.dataset.value) {
                             value = item.dataset.value.toLowerCase();
-                            if (subtitle) subtitle.textContent = value.toUpperCase();
+                            if (subtitle) subtitle.textContent = value === 'web-dl' ? 'WEB-DL' : value === 'web-dlrip' ? 'WEB-DLRip' : 'Open Matte';
                             submenu.querySelectorAll('.selectbox-item--checkbox').forEach(el => {
                                 el.classList.toggle('selected', el.dataset.value === value);
                             });
@@ -418,7 +418,7 @@
     // Манифест плагина
     Lampa.Manifest.plugins = {
         name: 'Фильтр Торрентов',
-        version: '1.1.22',
+        version: '1.1.23',
         description: 'Фильтрация торрентов по качеству для текущего фильма'
     };
     window.torrent_quality = TorrentQuality;
@@ -432,6 +432,3 @@
         });
     }
 })();
-
-
-
