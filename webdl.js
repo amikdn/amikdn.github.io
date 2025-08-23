@@ -4,7 +4,7 @@
     // Объект плагина
     const TorrentQuality = {
         name: 'torrent_quality',
-        version: '1.1.33',
+        version: '1.1.34',
         debug: false,
         settings: {
             enabled: true,
@@ -195,17 +195,26 @@
 
     // Инициализация плагина
     function startPlugin() {
-        // Интервальный опрос для поиска .simple-button--filter и .selectbox__content
+        // Интервальный опрос для поиска simple-button и selectbox__content
         const interval = setInterval(() => {
-            console.log('[torrent_quality.js] Checking for filter button');
-            const filterButton = document.querySelector('[class*="simple-button"][class*="filter"]');
+            console.log('[torrent_quality.js] Checking for simple-button');
+            const filterButton = document.querySelector('[class*="simple-button"]');
             if (filterButton && filterButton.querySelector('.selectbox__content')) {
-                console.log('[torrent_quality.js] Found filter button and selectbox__content');
+                console.log('[torrent_quality.js] Found simple-button with selectbox__content');
                 addTorrentFilters(filterButton.querySelector('.selectbox__content'));
                 clearInterval(interval);
             }
         }, 500);
-        setTimeout(() => clearInterval(interval), 20000); // Остановить через 20 секунд
+        setTimeout(() => clearInterval(interval), 30000); // Остановить через 30 секунд
+
+        // Обработчик клика по simple-button
+        document.addEventListener('click', e => {
+            const filterButton = e.target.closest('[class*="simple-button"]');
+            if (filterButton && filterButton.querySelector('.selectbox__content')) {
+                console.log('[torrent_quality.js] Clicked simple-button with selectbox__content');
+                addTorrentFilters(filterButton.querySelector('.selectbox__content'));
+            }
+        });
 
         function addTorrentFilters(selectboxContent) {
             // Проверяем, не добавлены ли уже наши пункты
@@ -229,9 +238,9 @@
             // HTML для пунктов фильтрации
             const filtersHtml = `
                 <style>
-                    .torrent-quality-debug { border: 1px solid red; display: block !important; visibility: visible !important; position: relative; z-index: 1000; }
-                    .torrent-quality-filters { margin: 10px 0; padding: 5px; }
-                    .torrent-quality-filter { cursor: pointer; padding: 5px; display: block !important; }
+                    .torrent-quality-debug { border: 1px solid red; display: block !important; visibility: visible !important; position: relative; z-index: 1000; min-height: 20px; }
+                    .torrent-quality-filters { margin: 10px 0; padding: 5px; background: rgba(0,0,0,0.8); }
+                    .torrent-quality-filter { cursor: pointer; padding: 5px; display: block !important; min-height: 20px; }
                 </style>
                 <div class="settings-param-title torrent-quality-filters torrent-quality-debug"><span>Фильтры торрентов</span></div>
                 <div class="selectbox-item selector torrent-quality-filter torrent-quality-debug" data-action="reset">
@@ -309,15 +318,15 @@
             applyFilterOnTorrentsLoad();
             // Проверяем при загрузке
             const interval = setInterval(() => {
-                console.log('[torrent_quality.js] Checking for filter button on app ready');
-                const filterButton = document.querySelector('[class*="simple-button"][class*="filter"]');
+                console.log('[torrent_quality.js] Checking for simple-button on app ready');
+                const filterButton = document.querySelector('[class*="simple-button"]');
                 if (filterButton && filterButton.querySelector('.selectbox__content')) {
-                    console.log('[torrent_quality.js] Found filter button and selectbox__content on app ready');
+                    console.log('[torrent_quality.js] Found simple-button with selectbox__content on app ready');
                     addTorrentFilters(filterButton.querySelector('.selectbox__content'));
                     clearInterval(interval);
                 }
             }, 500);
-            setTimeout(() => clearInterval(interval), 20000);
+            setTimeout(() => clearInterval(interval), 30000);
         } else {
             Lampa.Listener.follow('app', e => {
                 if (e.type === 'ready') {
@@ -325,24 +334,35 @@
                     applyFilterOnTorrentsLoad();
                     // Проверяем после app ready
                     const interval = setInterval(() => {
-                        console.log('[torrent_quality.js] Checking for filter button after app ready');
-                        const filterButton = document.querySelector('[class*="simple-button"][class*="filter"]');
+                        console.log('[torrent_quality.js] Checking for simple-button after app ready');
+                        const filterButton = document.querySelector('[class*="simple-button"]');
                         if (filterButton && filterButton.querySelector('.selectbox__content')) {
-                            console.log('[torrent_quality.js] Found filter button and selectbox__content after app ready');
+                            console.log('[torrent_quality.js] Found simple-button with selectbox__content after app ready');
                             addTorrentFilters(filterButton.querySelector('.selectbox__content'));
                             clearInterval(interval);
                         }
                     }, 500);
-                    setTimeout(() => clearInterval(interval), 20000);
+                    setTimeout(() => clearInterval(interval), 30000);
                 }
             });
         }
+
+        // Попытка подписки на событие Lampa
+        Lampa.Listener.follow('filter_menu', e => {
+            if (e.type === 'render') {
+                console.log('[torrent_quality.js] Detected filter_menu render event');
+                const selectboxContent = document.querySelector('.selectbox__content');
+                if (selectboxContent) {
+                    addTorrentFilters(selectboxContent);
+                }
+            }
+        });
     }
 
     // Манифест плагина
     Lampa.Manifest.plugins = {
         name: 'Фильтр Торрентов',
-        version: '1.1.33',
+        version: '1.1.34',
         description: 'Фильтрация торрентов по качеству для текущего фильма'
     };
     window.torrent_quality = TorrentQuality;
