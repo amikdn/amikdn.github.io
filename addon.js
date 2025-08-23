@@ -44,33 +44,46 @@ Lampa.Modal.open({
 
 /* Функция анимации установки плагина */	
 function showLoadingBar() {
-  // Создаем контейнер для анимации
-  var loadingContainer = document.createElement('div');
-  loadingContainer.className = 'loading-container';
-  loadingContainer.style.position = 'fixed';
-  loadingContainer.style.top = '50%';
-  loadingContainer.style.left = '50%';
-  loadingContainer.style.transform = 'translate(-50%, -50%)';
-  loadingContainer.style.zIndex = '9999';
-  loadingContainer.style.width = '25em';
-  loadingContainer.style.height = '3em';
-  loadingContainer.style.background = 'rgba(0, 0, 0, 0.8)';
-  loadingContainer.style.borderRadius = '8px';
-  loadingContainer.style.display = 'flex';
-  loadingContainer.style.alignItems = 'center';
-  loadingContainer.style.justifyContent = 'center';
-  loadingContainer.style.boxShadow = '0 4px 15px rgba(0, 0, 0, 0.3)';
+  // Создаем контейнер
+  var container = document.createElement('div');
+  container.className = 'loading-circle-container';
+  container.style.position = 'fixed';
+  container.style.top = '50%';
+  container.style.left = '50%';
+  container.style.transform = 'translate(-50%, -50%)';
+  container.style.zIndex = '9999';
+  container.style.display = 'flex';
+  container.style.alignItems = 'center';
+  container.style.justifyContent = 'center';
 
-  // Создаем элемент прогресс-бара
-  var progressBar = document.createElement('div');
-  progressBar.className = 'progress-bar';
-  progressBar.style.width = '0%';
-  progressBar.style.height = '100%';
-  progressBar.style.background = 'linear-gradient(90deg, #00cc00, #66ff66)';
-  progressBar.style.borderRadius = '8px';
-  progressBar.style.transition = 'width 1s ease-in-out';
+  // Создаем SVG для кругового индикатора
+  var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('width', '100');
+  svg.setAttribute('height', '100');
+  svg.style.transform = 'rotate(-90deg)';
 
-  // Создаем текст для процентов
+  // Фоновый круг
+  var bgCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+  bgCircle.setAttribute('cx', '50');
+  bgCircle.setAttribute('cy', '50');
+  bgCircle.setAttribute('r', '40');
+  bgCircle.setAttribute('fill', 'none');
+  bgCircle.setAttribute('stroke', '#333');
+  bgCircle.setAttribute('stroke-width', '10');
+
+  // Анимированный круг
+  var progressCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+  progressCircle.className = 'progress-circle';
+  progressCircle.setAttribute('cx', '50');
+  progressCircle.setAttribute('cy', '50');
+  progressCircle.setAttribute('r', '40');
+  progressCircle.setAttribute('fill', 'none');
+  progressCircle.setAttribute('stroke', '#00cc00');
+  progressCircle.setAttribute('stroke-width', '10');
+  progressCircle.setAttribute('stroke-dasharray', '251.2');
+  progressCircle.setAttribute('stroke-dashoffset', '251.2');
+
+  // Текст процентов
   var loadingText = document.createElement('div');
   loadingText.className = 'loading-text';
   loadingText.style.position = 'absolute';
@@ -79,56 +92,71 @@ function showLoadingBar() {
   loadingText.style.fontSize = '1.5em';
   loadingText.textContent = '0%';
 
-  // Добавляем элементы на страницу
-  loadingContainer.appendChild(progressBar);
-  loadingContainer.appendChild(loadingText);
-  document.body.appendChild(loadingContainer);
+  // Добавляем элементы
+  svg.appendChild(bgCircle);
+  svg.appendChild(progressCircle);
+  container.appendChild(svg);
+  container.appendChild(loadingText);
+  document.body.appendChild(container);
 
-  // Запускаем анимацию
+  // Анимация
   setTimeout(() => {
-    progressBar.style.width = '100%';
+    progressCircle.style.transition = 'stroke-dashoffset 1s ease-in-out';
+    progressCircle.setAttribute('stroke-dashoffset', '0');
     loadingText.textContent = '100%';
   }, 10);
 
-  // Удаляем через 1.2 секунды
+  // Удаление
   setTimeout(() => {
-    loadingContainer.style.opacity = '0';
-    loadingContainer.style.transition = 'opacity 0.2s ease';
+    container.style.opacity = '0';
+    container.style.transition = 'opacity 0.2s ease';
     setTimeout(() => {
-      loadingContainer.remove();
+      container.remove();
     }, 200);
   }, 1200);
 }
 
 /* Функция анимации удаления плагина */	
 function showDeletedBar() {
-  // Создаем контейнер для анимации
-  var loadingContainer = document.createElement('div');
-  loadingContainer.className = 'loading-container';
-  loadingContainer.style.position = 'fixed';
-  loadingContainer.style.top = '50%';
-  loadingContainer.style.left = '50%';
-  loadingContainer.style.transform = 'translate(-50%, -50%)';
-  loadingContainer.style.zIndex = '9999';
-  loadingContainer.style.width = '25em';
-  loadingContainer.style.height = '3em';
-  loadingContainer.style.background = 'rgba(0, 0, 0, 0.8)';
-  loadingContainer.style.borderRadius = '8px';
-  loadingContainer.style.display = 'flex';
-  loadingContainer.style.alignItems = 'center';
-  loadingContainer.style.justifyContent = 'center';
-  loadingContainer.style.boxShadow = '0 4px 15px rgba(0, 0, 0, 0.3)';
+  // Создаем контейнер
+  var container = document.createElement('div');
+  container.className = 'loading-circle-container';
+  container.style.position = 'fixed';
+  container.style.top = '50%';
+  container.style.left = '50%';
+  container.style.transform = 'translate(-50%, -50%)';
+  container.style.zIndex = '9999';
+  container.style.display = 'flex';
+  container.style.alignItems = 'center';
+  container.style.justifyContent = 'center';
 
-  // Создаем элемент прогресс-бара
-  var progressBar = document.createElement('div');
-  progressBar.className = 'progress-bar';
-  progressBar.style.width = '100%';
-  progressBar.style.height = '100%';
-  progressBar.style.background = 'linear-gradient(90deg, #ff3333, #ff6666)';
-  progressBar.style.borderRadius = '8px';
-  progressBar.style.transition = 'width 1s ease-in-out';
+  // Создаем SVG для кругового индикатора
+  var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('width', '100');
+  svg.setAttribute('height', '100');
+  svg.style.transform = 'rotate(-90deg)';
 
-  // Создаем текст для процентов
+  // Фоновый круг
+  var bgCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+  bgCircle.setAttribute('cx', '50');
+  bgCircle.setAttribute('cy', '50');
+  bgCircle.setAttribute('r', '40');
+  bgCircle.setAttribute('fill', 'none');
+  bgCircle.setAttribute('stroke', '#333');
+  bgCircle.setAttribute('stroke-width', '10');
+
+  // Анимированный круг
+  var progressCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+  progressCircle.className = 'progress-circle';
+  progressCircle.setAttribute('cx', '50');
+  progressCircle.setAttribute('cy', '50');
+  progressCircle.setAttribute('r', '40');
+  progressCircle.setAttribute('fill', 'none');
+  progressCircle.setAttribute('stroke', '#ff3333');
+  progressCircle.setAttribute('stroke-dasharray', '251.2');
+  progressCircle.setAttribute('stroke-dashoffset', '0');
+
+  // Текст процентов
   var loadingText = document.createElement('div');
   loadingText.className = 'loading-text';
   loadingText.style.position = 'absolute';
@@ -137,23 +165,26 @@ function showDeletedBar() {
   loadingText.style.fontSize = '1.5em';
   loadingText.textContent = '100%';
 
-  // Добавляем элементы на страницу
-  loadingContainer.appendChild(progressBar);
-  loadingContainer.appendChild(loadingText);
-  document.body.appendChild(loadingContainer);
+  // Добавляем элементы
+  svg.appendChild(bgCircle);
+  svg.appendChild(progressCircle);
+  container.appendChild(svg);
+  container.appendChild(loadingText);
+  document.body.appendChild(container);
 
-  // Запускаем анимацию
+  // Анимация
   setTimeout(() => {
-    progressBar.style.width = '0%';
+    progressCircle.style.transition = 'stroke-dashoffset 1s ease-in-out';
+    progressCircle.setAttribute('stroke-dashoffset', '251.2');
     loadingText.textContent = '0%';
   }, 10);
 
-  // Удаляем через 1.2 секунды
+  // Удаление
   setTimeout(() => {
-    loadingContainer.style.opacity = '0';
-    loadingContainer.style.transition = 'opacity 0.2s ease';
+    container.style.opacity = '0';
+    container.style.transition = 'opacity 0.2s ease';
     setTimeout(() => {
-      loadingContainer.remove();
+      container.remove();
     }, 200);
   }, 1200);
 }
