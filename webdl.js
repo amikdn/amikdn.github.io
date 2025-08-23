@@ -4,7 +4,7 @@
     // Объект плагина
     const TorrentQuality = {
         name: 'torrent_quality',
-        version: '1.1.24', // Обновлена версия
+        version: '1.1.25', // Обновлена версия
         debug: true,
         settings: {
             enabled: true,
@@ -149,7 +149,7 @@
         const torrentItems = document.querySelectorAll('.torrent-item');
         if (!torrentItems.length) {
             if (TorrentQuality.debug) console.warn('[torrent_quality.js] renderResults: Не найдено элементов .torrent-item для рендеринга');
-            return renderResultsFallback(results);
+            return; // Просто выходим, если элементы не найдены
         }
 
         const resultTitles = results.map(r => r.Title.toLowerCase());
@@ -159,55 +159,6 @@
         });
 
         if (TorrentQuality.debug) console.log(`[torrent_quality.js] renderResults: Отрендерено ${results.length} торрентов`);
-    }
-
-    // Запасная функция рендеринга
-    function renderResultsFallback(results) {
-        if (TorrentQuality.debug) console.log(`[torrent_quality.js] Вызвана функция renderResultsFallback с ${results.length} результатами`);
-        let container = document.querySelector('.torrent-list');
-        if (!container) {
-            container = document.createElement('div');
-            container.className = 'torrent-list';
-            document.querySelector('.activity--active')?.appendChild(container);
-        }
-
-        container.innerHTML = '';
-
-        results.forEach(result => {
-            const title = result.Title || 'Без названия';
-            const resolution = result.ffprobe?.video?.width && result.ffprobe?.video?.height
-                ? `${result.ffprobe.video.width}x${result.ffprobe.video.height}`
-                : 'Неизвестно';
-            const audio = result.ffprobe?.audio?.channel_layout || 'Неизвестно';
-            const trackers = result.Tracker || 'Неизвестно';
-            const publishDate = result.PublishDate || 'Неизвестно';
-            const sizeName = result.Size ? (result.Size / 1024 / 1024 / 1024).toFixed(2) + ' ГБ' : 'Неизвестно';
-            const voices = result.languages?.join(', ') || 'Неизвестно';
-            const subtitles = result.subtitles?.join(', ') || 'Неизвестно';
-
-            const item = document.createElement('div');
-            item.className = 'torrent-item selector layer--visible layer--render';
-            item.innerHTML = `
-                <div class="torrent-item__title">${title}</div>
-                <div class="torrent-item__ffprobe">
-                    <div class="m-video">${resolution}</div>
-                    <div class="m-channels">${audio}</div>
-                    ${result.languages?.map(v => `<div class="m-audio">${v}</div>`).join('') || `<div class="m-audio">${voices}</div>`}
-                    ${result.subtitles?.map(s => `<div class="m-subtitle">${s}</div>`).join('') || `<div class="m-subtitle">${subtitles}</div>`}
-                </div>
-                <div class="torrent-item__details">
-                    <div class="torrent-item__date">${publishDate}</div>
-                    <div class="torrent-item__tracker">${trackers}</div>
-                    <div class="torrent-item__seeds">Раздают: <span>${result.Seeders || 0}</span></div>
-                    <div class="torrent-item__grabs">Качают: <span>${result.Peers || 0}</span></div>
-                    <div class="torrent-item__size">${sizeName}</div>
-                </div>
-                ${result.MagnetUri ? `<a href="${result.MagnetUri}" target="_blank">Скачать</a>` : ''}
-            `;
-            container.appendChild(item);
-        });
-
-        if (TorrentQuality.debug) console.log(`[torrent_quality.js] renderResultsFallback: Отрендерено (fallback) ${results.length} торрентов`);
     }
 
     // Отслеживание изменений URL с помощью history API
@@ -435,7 +386,7 @@
     // Манифест плагина
     Lampa.Manifest.plugins = {
         name: 'Фильтр Торрентов',
-        version: '1.1.24',
+        version: '1.1.25',
         description: 'Фильтрация торрентов по качеству для текущего фильма'
     };
     window.torrent_quality = TorrentQuality;
