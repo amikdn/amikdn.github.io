@@ -118,8 +118,8 @@
                         return (title.includes('webdl') || title.includes('web-dl')) && !title.includes('webdlrip') && !title.includes('web-dlrip');
                     } else if (filterLower === 'web-dlrip') {
                         return title.includes('webdlrip') || title.includes('web-dlrip');
-                    } else if (filterLower === 'open mate') {
-                        return title.includes('open mate') || title.includes('open mate');
+                    } else if (filterLower === 'open matte') {
+                        return title.includes('open matte') || title.includes('open matte');
                     }
                     return false;
                 });
@@ -262,7 +262,7 @@
                     any: 'Любое',
                     'web-dl': 'WEB-DL',
                     'web-dlrip': 'WEB-DLRip',
-                    bdrip: 'Open Mate'
+                    bdrip: 'Open Matte'
                 },
                 default: 'any'
             },
@@ -432,5 +432,6 @@
         });
     }
 })();
+
 
 
