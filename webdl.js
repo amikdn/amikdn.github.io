@@ -2,9 +2,9 @@
     'use strict';
 
     // Объект плагина
-    var TorrentQuality = {
+    const TorrentQuality = {
         name: 'torrent_quality',
-        version: '1.1.20',
+        version: '1.1.21',
         debug: true, // Оставлено true для отладки
         settings: {
             enabled: true,
@@ -12,46 +12,47 @@
         }
     };
 
-    // Хранилище полного списка торрентов
+    // Хранилище данных
     let originalTorrents = [];
     let allTorrents = [];
-    let currentMovieTitle = null; // Для отслеживания текущего фильма по заголовку
-    let lastUrl = window.location.search; // Для отслеживания изменений URL
+    let currentMovieTitle = null;
+    let lastUrl = window.location.search;
+    let observerTimeoutAttempts = 0;
+    const MAX_OBSERVER_ATTEMPTS = 10;
 
     // Функция получения данных торрентов из DOM
     function getTorrentsData() {
         const torrentItems = document.querySelectorAll('.torrent-item');
-        let results = [];
-        if (torrentItems.length > 0) {
-            results = Array.from(torrentItems).map(item => {
-                const title = item.querySelector('.torrent-item__title')?.textContent || 'Без названия';
-                const ffprobe = {
-                    video: {
-                        width: parseInt(item.querySelector('.m-video')?.textContent?.split('x')[0]) || 0,
-                        height: parseInt(item.querySelector('.m-video')?.textContent?.split('x')[1]) || 0
-                    },
-                    audio: {
-                        channel_layout: item.querySelector('.m-channels')?.textContent || 'Неизвестно'
-                    }
-                };
-                const voices = Array.from(item.querySelectorAll('.m-audio')).map(el => el.textContent);
-                const subtitles = Array.from(item.querySelectorAll('.m-subtitle')).map(el => el.textContent);
-                return {
-                    Title: title,
-                    PublishDate: item.querySelector('.torrent-item__date')?.textContent || 'Неизвестно',
-                    Tracker: item.querySelector('.torrent-item__tracker')?.textContent || 'Неизвестно',
-                    Size: parseFloat(item.querySelector('.torrent-item__size')?.textContent) * 1024 * 1024 * 1024 || 0,
-                    Seeders: parseInt(item.querySelector('.torrent-item__seeds span')?.textContent) || 0,
-                    Peers: parseInt(item.querySelector('.torrent-item__grabs span')?.textContent) || 0,
-                    ffprobe: ffprobe,
-                    languages: voices,
-                    subtitles: subtitles,
-                    MagnetUri: item.querySelector('a[href*="magnet:"]')?.href || ''
-                };
-            });
-            if (TorrentQuality.debug) console.log(`[torrent_quality.js] Извлечены данные из DOM: ${results.length} элементов`, results);
-        } else {
-            if (TorrentQuality.debug) console.warn('[torrent_quality.js] Не найдено элементов .torrent-item в DOM');
+        const results = Array.from(torrentItems).map(item => {
+            const title = item.querySelector('.torrent-item__title')?.textContent.trim() || 'Без названия';
+            const ffprobe = {
+                video: {
+                    width: parseInt(item.querySelector('.m-video')?.textContent?.split('x')[0]) || 0,
+                    height: parseInt(item.querySelector('.m-video')?.textContent?.split('x')[1]) || 0
+                },
+                audio: {
+                    channel_layout: item.querySelector('.m-channels')?.textContent?.trim() || 'Неизвестно'
+                }
+            };
+            const voices = Array.from(item.querySelectorAll('.m-audio')).map(el => el.textContent.trim());
+            const subtitles = Array.from(item.querySelectorAll('.m-subtitle')).map(el => el.textContent.trim());
+            return {
+                Title: title,
+                PublishDate: item.querySelector('.torrent-item__date')?.textContent?.trim() || 'Неизвестно',
+                Tracker: item.querySelector('.torrent-item__tracker')?.textContent?.trim() || 'Неизвестно',
+                Size: parseFloat(item.querySelector('.torrent-item__size')?.textContent) * 1024 * 1024 * 1024 || 0,
+                Seeders: parseInt(item.querySelector('.torrent-item__seeds span')?.textContent) || 0,
+                Peers: parseInt(item.querySelector('.torrent-item__grabs span')?.textContent) || 0,
+                ffprobe: ffprobe,
+                languages: voices,
+                subtitles: subtitles,
+                MagnetUri: item.querySelector('a[href*="magnet:"]')?.href || ''
+            };
+        });
+
+        if (TorrentQuality.debug) {
+            console.log(`[torrent_quality.js] Извлечены данные из DOM: ${results.length} элементов`, results);
+            if (!results.length) console.warn('[torrent_quality.js] Не найдено элементов .torrent-item в DOM');
         }
         return results;
     }
@@ -59,10 +60,10 @@
     // Функция сброса фильтра
     function resetFilter() {
         allTorrents = [...originalTorrents];
-        if (!allTorrents || !Array.isArray(allTorrents) || allTorrents.length === 0) {
+        if (!allTorrents.length) {
             allTorrents = getTorrentsData();
             originalTorrents = [...allTorrents];
-            if (!allTorrents || allTorrents.length === 0) {
+            if (!allTorrents.length) {
                 if (TorrentQuality.debug) console.warn('[torrent_quality.js] resetFilter: Данные торрентов пусты');
                 return false;
             }
@@ -85,7 +86,6 @@
     // Функция фильтрации торрентов
     async function filterTorrents(filterValue) {
         try {
-            // Инициализируем originalTorrents, если пусто
             if (!originalTorrents.length) {
                 originalTorrents = getTorrentsData();
                 allTorrents = [...originalTorrents];
@@ -95,42 +95,39 @@
                 }
             }
 
-            // Сбрасываем фильтр, если он не "any"
             if (filterValue !== 'any') {
                 resetFilter();
             }
 
-            if (!allTorrents || allTorrents.length === 0) {
+            if (!allTorrents.length) {
                 resetFilter();
-                if (!allTorrents || allTorrents.length === 0) {
+                if (!allTorrents.length) {
                     if (TorrentQuality.debug) console.warn('[torrent_quality.js] allTorrents пуст после сброса');
                     return;
                 }
             }
 
-            // Фильтруем результаты
             let filteredResults = allTorrents;
             if (filterValue && filterValue !== 'any') {
                 const filterLower = filterValue.toLowerCase();
                 filteredResults = allTorrents.filter(result => {
-                    const title = result.Title || '';
-                    if (!title || typeof title !== 'string') {
+                    const title = result.Title?.toLowerCase().replace(/[- ]/g, '') || '';
+                    if (!title) {
                         if (TorrentQuality.debug) console.warn('[torrent_quality.js] Пропущен элемент без корректного заголовка:', result);
                         return false;
                     }
-                    const titleLower = title.toLowerCase().replace(/[- ]/g, '');
                     if (filterLower === 'web-dl') {
-                        return (titleLower.includes('webdl') || titleLower.includes('webdl')) && !titleLower.includes('webdlrip');
+                        return (title.includes('webdl') || title.includes('web-dl')) && !title.includes('webdlrip') && !title.includes('web-dlrip');
                     } else if (filterLower === 'web-dlrip') {
-                        return titleLower.includes('webdlrip') || titleLower.includes('webdl rip');
+                        return title.includes('webdlrip') || title.includes('web-dlrip');
                     } else if (filterLower === 'bdrip') {
-                        return titleLower.includes('bdrip') || titleLower.includes('bd rip');
+                        return title.includes('bdrip') || title.includes('bd-rip');
                     }
                     return false;
                 });
             }
 
-            if (filteredResults.length === 0) {
+            if (!filteredResults.length) {
                 Lampa.Utils.message?.(`Не найдено торрентов для фильтра: ${filterValue}`) || alert(`Не найдено торрентов для фильтра: ${filterValue}`);
                 if (TorrentQuality.debug) console.warn(`[torrent_quality.js] Фильтр ${filterValue} не нашел результатов`);
                 return;
@@ -144,12 +141,12 @@
         }
     }
 
-    // Функция рендеринга (скрытие/показ элементов вместо переписывания DOM)
+    // Функция рендеринга
     function renderResults(results) {
         const torrentItems = document.querySelectorAll('.torrent-item');
         if (!torrentItems.length) {
             if (TorrentQuality.debug) console.warn('[torrent_quality.js] Не найдено элементов .torrent-item для рендеринга');
-            return renderResultsFallback(results); // Запасной рендеринг, если DOM пуст
+            return renderResultsFallback(results);
         }
 
         const resultTitles = results.map(r => r.Title.toLowerCase());
@@ -161,10 +158,11 @@
         if (TorrentQuality.debug) console.log(`[torrent_quality.js] Отрендерено ${results.length} торрентов`);
     }
 
-    // Запасная функция рендеринга (если DOM пуст)
+    // Запасная функция рендеринга
     function renderResultsFallback(results) {
-        const container = document.querySelector('.torrent-list') || document.createElement('div');
-        if (!container.classList.contains('torrent-list')) {
+        let container = document.querySelector('.torrent-list');
+        if (!container) {
+            container = document.createElement('div');
             container.className = 'torrent-list';
             document.querySelector('.activity--active')?.appendChild(container);
         }
@@ -190,8 +188,8 @@
                 <div class="torrent-item__ffprobe">
                     <div class="m-video">${resolution}</div>
                     <div class="m-channels">${audio}</div>
-                    ${result.languages ? result.languages.map(v => `<div class="m-audio">${v}</div>`).join('') : `<div class="m-audio">${voices}</div>`}
-                    ${result.subtitles ? result.subtitles.map(s => `<div class="m-subtitle">${s}</div>`).join('') : `<div class="m-subtitle">${subtitles}</div>`}
+                    ${result.languages?.map(v => `<div class="m-audio">${v}</div>`).join('') || `<div class="m-audio">${voices}</div>`}
+                    ${result.subtitles?.map(s => `<div class="m-subtitle">${s}</div>`).join('') || `<div class="m-subtitle">${subtitles}</div>`}
                 </div>
                 <div class="torrent-item__details">
                     <div class="torrent-item__date">${publishDate}</div>
@@ -211,41 +209,53 @@
     // Настройка MutationObserver для отслеживания смены фильма
     function setupMovieChangeObserver() {
         function trySetupObserver() {
+            if (observerTimeoutAttempts >= MAX_OBSERVER_ATTEMPTS) {
+                if (TorrentQuality.debug) console.error('[torrent_quality.js] Превышено максимальное количество попыток поиска .full-start-new');
+                return;
+            }
+
             const targetNode = document.querySelector('.full-start-new');
             if (!targetNode) {
                 if (TorrentQuality.debug) console.warn('[torrent_quality.js] Элемент .full-start-new не найден, повторная попытка через 500мс');
+                observerTimeoutAttempts++;
                 setTimeout(trySetupObserver, 500);
                 return;
             }
 
             const observer = new MutationObserver((mutations) => {
-                mutations.forEach((mutation) => {
-                    if (mutation.type === 'childList' || mutation.type === 'subtree') {
-                        const newTitle = document.querySelector('.full-start-new__title')?.textContent?.trim();
-                        if (newTitle && newTitle !== currentMovieTitle) {
-                            if (TorrentQuality.debug) console.log(`[torrent_quality.js] Смена фильма по DOM: ${currentMovieTitle} -> ${newTitle}`);
-                            clearTorrents();
-                            currentMovieTitle = newTitle;
-                            applyFilterOnTorrentsLoad();
-                        }
-                    }
-                });
+                const newTitle = document.querySelector('.full-start-new__title')?.textContent?.trim();
+                if (newTitle && newTitle !== currentMovieTitle) {
+                    if (TorrentQuality.debug) console.log(`[torrent_quality.js] Смена фильма по DOM: ${currentMovieTitle} -> ${newTitle}`);
+                    clearTorrents();
+                    currentMovieTitle = newTitle;
+                    applyFilterOnTorrentsLoad();
+                }
             });
 
-            observer.observe(targetNode, {
-                childList: true,
-                subtree: true
-            });
-
+            observer.observe(targetNode, { childList: true, subtree: true });
             if (TorrentQuality.debug) console.log('[torrent_quality.js] MutationObserver установлен на .full-start-new');
         }
 
         trySetupObserver();
     }
 
-    // Отслеживание изменений URL
+    // Отслеживание изменений URL с помощью history API
     function setupUrlChangeObserver() {
-        setInterval(() => {
+        const originalPushState = history.pushState;
+        const originalReplaceState = history.replaceState;
+
+        history.pushState = function (...args) {
+            originalPushState.apply(this, args);
+            handleUrlChange();
+        };
+        history.replaceState = function (...args) {
+            originalReplaceState.apply(this, args);
+            handleUrlChange();
+        };
+
+        window.addEventListener('popstate', handleUrlChange);
+
+        function handleUrlChange() {
             const currentUrl = window.location.search;
             if (currentUrl !== lastUrl) {
                 const newTitle = document.querySelector('.full-start-new__title')?.textContent?.trim() || currentUrl;
@@ -257,8 +267,17 @@
                     applyFilterOnTorrentsLoad();
                 }
             }
-        }, 500);
-        if (TorrentQuality.debug) console.log('[torrent_quality.js] Отслеживание URL запущено');
+        }
+
+        if (TorrentQuality.debug) console.log('[torrent_quality.js] Отслеживание URL запущено через history API');
+    }
+
+    // Применение фильтра при загрузке торрентов
+    function applyFilterOnTorrentsLoad() {
+        if (!TorrentQuality.settings.enabled) return;
+        clearTorrents();
+        resetFilter();
+        filterTorrents(TorrentQuality.settings.quality_filter);
     }
 
     // Инициализация плагина
@@ -266,10 +285,7 @@
         Lampa.SettingsApi.addComponent({
             component: 'torrent_quality',
             name: 'Фильтр',
-            icon: '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">' +
-                  '<path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" fill="currentColor"/>' +
-                  '<path d="M12 6c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79-4-4-4z" fill="currentColor"/>' +
-                  '</svg>'
+            icon: '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" fill="currentColor"/><path d="M12 6c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79-4-4-4z" fill="currentColor"/></svg>'
         });
 
         Lampa.SettingsApi.addParam({
@@ -292,12 +308,10 @@
             onRender: function (element) {
                 if (!(element instanceof HTMLElement)) return;
 
-                var container = element.closest('.settings-param') || element.closest('.settings__content') || element.parentElement;
-                if (!container) return;
+                const container = element.closest('.settings-param') || element.closest('.settings__content') || element.parentElement;
+                if (!container || container.querySelector('.selectbox__content')) return;
 
-                if (container.querySelector('.selectbox__content')) return;
-
-                var submenu = document.createElement('div');
+                const submenu = document.createElement('div');
                 submenu.className = 'selectbox__content layer--height';
                 submenu.style.height = '945px';
                 submenu.style.display = 'none';
@@ -368,31 +382,26 @@
 
                 container.appendChild(submenu);
 
-                var title = container.querySelector('.settings-param__name') || element.querySelector('.settings-param__name') || element.querySelector('span') || element;
+                const title = container.querySelector('.settings-param__name') || element.querySelector('.settings-param__name') || element.querySelector('span') || element;
                 if (title) {
-                    title.addEventListener('click', function () {
+                    title.addEventListener('click', () => {
                         submenu.style.display = submenu.style.display === 'none' ? 'block' : 'none';
-                        var settingsContent = container.closest('.settings__content') || document.querySelector('.settings__content');
-                        if (settingsContent) {
-                            settingsContent.querySelectorAll('.selectbox__content').forEach(content => {
-                                if (content !== submenu) content.style.display = 'none';
-                            });
-                        }
+                        document.querySelectorAll('.selectbox__content').forEach(content => {
+                            if (content !== submenu) content.style.display = 'none';
+                        });
                     });
                 }
 
                 submenu.querySelectorAll('.selectbox-item').forEach(item => {
-                    item.addEventListener('click', function () {
+                    item.addEventListener('click', () => {
                         const titleText = item.querySelector('.selectbox-item__title').textContent.trim();
                         let value = item.dataset.value || titleText;
-                        let subtitle = item.querySelector('.selectbox-item__subtitle');
+                        const subtitle = item.querySelector('.selectbox-item__subtitle');
 
                         if (titleText === 'Сбросить фильтр') {
                             resetFilter();
                             if (subtitle) subtitle.textContent = 'Любое';
-                            submenu.querySelectorAll('.selectbox-item--checkbox').forEach(el => {
-                                el.classList.remove('selected');
-                            });
+                            submenu.querySelectorAll('.selectbox-item--checkbox').forEach(el => el.classList.remove('selected'));
                             submenu.querySelectorAll('.selectbox-item__subtitle').forEach(sub => {
                                 const parentTitle = sub.parentElement.querySelector('.selectbox-item__title').textContent;
                                 sub.textContent = parentTitle === 'Качество' || parentTitle === 'Перевод' || parentTitle === 'Язык' || parentTitle === 'Сезон' || parentTitle === 'Трекер' || parentTitle === 'Год' ? 'Любой' : 'Не выбрано';
@@ -401,9 +410,7 @@
                         } else if (titleText === 'Качество') {
                             value = 'any';
                             if (subtitle) subtitle.textContent = 'Любое';
-                            submenu.querySelectorAll('.selectbox-item--checkbox').forEach(el => {
-                                el.classList.remove('selected');
-                            });
+                            submenu.querySelectorAll('.selectbox-item--checkbox').forEach(el => el.classList.remove('selected'));
                             TorrentQuality.settings.quality_filter = value;
                             Lampa.Storage.set('torrent_quality_filter', value);
                             filterTorrents(value);
@@ -430,47 +437,12 @@
         });
 
         TorrentQuality.settings.quality_filter = Lampa.Storage.get('torrent_quality_filter', 'any');
-
-        function applyFilterOnTorrentsLoad() {
-            if (TorrentQuality.settings.enabled) {
-                clearTorrents(); // Очищаем при каждой загрузке торрентов
-                resetFilter();
-                filterTorrents(TorrentQuality.settings.quality_filter);
-            }
-        }
-
-        // Отслеживание событий activity
-        Lampa.Listener.follow('activity', function (e) {
-            if (e.type === 'active' || e.type === 'push' || e.type === 'toggle') {
-                const activeMovie = Lampa.Activity.active()?.movie;
-                const newTitle = activeMovie?.title || document.querySelector('.full-start-new__title')?.textContent?.trim() || e.data?.title || window.location.search;
-                if (TorrentQuality.debug) {
-                    console.log('[torrent_quality.js] Событие activity:', { type: e.type, data: e.data, activeMovie: Lampa.Activity.active() });
-                }
-                if (newTitle && newTitle !== currentMovieTitle) {
-                    if (TorrentQuality.debug) console.log(`[torrent_quality.js] Смена фильма по activity: ${currentMovieTitle} -> ${newTitle}`);
-                    clearTorrents();
-                    currentMovieTitle = newTitle;
-                    applyFilterOnTorrentsLoad();
-                }
-            }
-        });
-
-        // Отслеживание событий torrents
-        Lampa.Listener.follow('torrents', function (e) {
-            if (e.type === 'load' || e.type === 'update' || e.type === 'torrent_load' || e.type === 'torrent_update') {
-                if (TorrentQuality.debug) console.log('[torrent_quality.js] Событие torrents:', e);
-                applyFilterOnTorrentsLoad();
-            }
-        });
-
-        // Инициализация при запуске
         if (window.appready) {
             setupMovieChangeObserver();
             setupUrlChangeObserver();
             applyFilterOnTorrentsLoad();
         } else {
-            Lampa.Listener.follow('app', function (e) {
+            Lampa.Listener.follow('app', e => {
                 if (e.type === 'ready') {
                     setupMovieChangeObserver();
                     setupUrlChangeObserver();
@@ -483,7 +455,7 @@
     // Манифест плагина
     Lampa.Manifest.plugins = {
         name: 'Фильтр Торрентов',
-        version: '1.1.20',
+        version: '1.1.21',
         description: 'Фильтрация торрентов по качеству для текущего фильма'
     };
     window.torrent_quality = TorrentQuality;
@@ -492,7 +464,7 @@
     if (window.appready) {
         startPlugin();
     } else {
-        Lampa.Listener.follow('app', function (e) {
+        Lampa.Listener.follow('app', e => {
             if (e.type === 'ready') startPlugin();
         });
     }
