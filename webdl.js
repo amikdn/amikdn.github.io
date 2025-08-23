@@ -4,8 +4,8 @@
     // Объект плагина
     const TorrentQuality = {
         name: 'torrent_quality',
-        version: '1.1.21',
-        debug: true, // Оставлено true для отладки
+        version: '1.1.22', // Обновлена версия
+        debug: true,
         settings: {
             enabled: true,
             quality_filter: 'any'
@@ -17,8 +17,6 @@
     let allTorrents = [];
     let currentMovieTitle = null;
     let lastUrl = window.location.search;
-    let observerTimeoutAttempts = 0;
-    const MAX_OBSERVER_ATTEMPTS = 10;
 
     // Функция получения данных торрентов из DOM
     function getTorrentsData() {
@@ -195,7 +193,7 @@
                     <div class="torrent-item__date">${publishDate}</div>
                     <div class="torrent-item__tracker">${trackers}</div>
                     <div class="torrent-item__seeds">Раздают: <span>${result.Seeders || 0}</span></div>
-                    <div class="torrent-item__grabs">Качают: <span>${result.Peers || 0}</span></div>
+                    <div class="torrent-item__grabs">Качают: <span>${result.Peer || 0}</span></div>
                     <div class="torrent-item__size">${sizeName}</div>
                 </div>
                 ${result.MagnetUri ? `<a href="${result.MagnetUri}" target="_blank">Скачать</a>` : ''}
@@ -204,39 +202,6 @@
         });
 
         if (TorrentQuality.debug) console.log(`[torrent_quality.js] Отрендерено (fallback) ${results.length} торрентов`);
-    }
-
-    // Настройка MutationObserver для отслеживания смены фильма
-    function setupMovieChangeObserver() {
-        function trySetupObserver() {
-            if (observerTimeoutAttempts >= MAX_OBSERVER_ATTEMPTS) {
-                if (TorrentQuality.debug) console.error('[torrent_quality.js] Превышено максимальное количество попыток поиска .full-start-new');
-                return;
-            }
-
-            const targetNode = document.querySelector('.full-start-new');
-            if (!targetNode) {
-                if (TorrentQuality.debug) console.warn('[torrent_quality.js] Элемент .full-start-new не найден, повторная попытка через 500мс');
-                observerTimeoutAttempts++;
-                setTimeout(trySetupObserver, 500);
-                return;
-            }
-
-            const observer = new MutationObserver((mutations) => {
-                const newTitle = document.querySelector('.full-start-new__title')?.textContent?.trim();
-                if (newTitle && newTitle !== currentMovieTitle) {
-                    if (TorrentQuality.debug) console.log(`[torrent_quality.js] Смена фильма по DOM: ${currentMovieTitle} -> ${newTitle}`);
-                    clearTorrents();
-                    currentMovieTitle = newTitle;
-                    applyFilterOnTorrentsLoad();
-                }
-            });
-
-            observer.observe(targetNode, { childList: true, subtree: true });
-            if (TorrentQuality.debug) console.log('[torrent_quality.js] MutationObserver установлен на .full-start-new');
-        }
-
-        trySetupObserver();
     }
 
     // Отслеживание изменений URL с помощью history API
@@ -438,13 +403,11 @@
 
         TorrentQuality.settings.quality_filter = Lampa.Storage.get('torrent_quality_filter', 'any');
         if (window.appready) {
-            setupMovieChangeObserver();
             setupUrlChangeObserver();
             applyFilterOnTorrentsLoad();
         } else {
             Lampa.Listener.follow('app', e => {
                 if (e.type === 'ready') {
-                    setupMovieChangeObserver();
                     setupUrlChangeObserver();
                     applyFilterOnTorrentsLoad();
                 }
@@ -455,7 +418,7 @@
     // Манифест плагина
     Lampa.Manifest.plugins = {
         name: 'Фильтр Торрентов',
-        version: '1.1.21',
+        version: '1.1.22',
         description: 'Фильтрация торрентов по качеству для текущего фильма'
     };
     window.torrent_quality = TorrentQuality;
