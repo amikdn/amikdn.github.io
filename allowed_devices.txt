@@ -1,2 +1,0 @@
-test_device_id_12
-
