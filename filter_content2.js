@@ -296,11 +296,12 @@
         });
     }
 
-    if (window.appready) {
-        startPlugin();
+    // Инициализация плагина
+    if (window.content_filter_plugin) {
+        initPlugin();
     } else {
-        Lampa.Listener.follow('app', function (e) {
-            if (e.type === 'ready') startPlugin();
+        Lampa.Listener.follow('app', (e) => {
+            if (e.type === 'ready') initPlugin();
         });
     }
 })();
