@@ -219,11 +219,11 @@
 
     // Добавление параметров в настройки
     function addSettings() {
-        if (!Lampa || !Lampa.SettingsApi || !Lampa.SettingsApi.listener || typeof Lampa.SettingsApi.listener.follow !== 'function') {
+        if (!Lampa || !Lampa.SettingsApi) {
             if (Lampa && Lampa.Noty) {
-                Lampa.Noty.show('Ошибка: Lampa.SettingsApi.listener недоступен для настроек');
+                Lampa.Noty.show('Ошибка: Lampa.SettingsApi недоступен для настроек');
             }
-            console.log('Lampa.SettingsApi.listener недоступен для addSettings');
+            console.log('Lampa.SettingsApi недоступен для addSettings');
             return;
         }
 
@@ -241,19 +241,36 @@
             history_filter_desc: { ru: 'Скрываем карточки фильмов и сериалов из истории, которые вы закончили смотреть', en: 'Hide cards from your viewing history', uk: 'Сховати картки з вашої історії перегляду' }
         });
 
-        Lampa.SettingsApi.listener.follow('open', function (event) {
-            if (event.name === 'main') {
-                if (Lampa.Settings.main().render().find('[data-component="content_filters"]').length === 0) {
+        // Проверка доступности Lampa.SettingsApi.listener
+        if (Lampa.SettingsApi.listener && typeof Lampa.SettingsApi.listener.follow === 'function') {
+            Lampa.SettingsApi.listener.follow('open', function (event) {
+                if (event.name === 'main') {
+                    if (Lampa.Settings.main().render().find('[data-component="content_filters"]').length === 0) {
+                        Lampa.Settings.addComponent({
+                            component: 'content_filters',
+                            name: Lampa.Lang.translate('content_filters')
+                        });
+                    }
+                    Lampa.Settings.main().render();
+                    Lampa.Settings.main().render().find('[data-component="content_filters"]').addClass('hide');
+                }
+            });
+        } else {
+            console.log('Lampa.SettingsApi.listener недоступен, пропускаем динамическое обновление настроек');
+            // Попытка добавить компонент напрямую, если возможно
+            if (Lampa.Settings && Lampa.Settings.addComponent) {
+                try {
                     Lampa.Settings.addComponent({
                         component: 'content_filters',
                         name: Lampa.Lang.translate('content_filters')
                     });
+                } catch (e) {
+                    console.log('Ошибка при добавлении компонента настроек:', e);
                 }
-                Lampa.Settings.main().render();
-                Lampa.Settings.main().render().find('[data-component="content_filters"]').addClass('hide');
             }
-        });
+        }
 
+        // Добавление параметров настроек
         Lampa.SettingsApi.addParam({
             component: 'interface',
             param: { name: 'content_filters', type: 'trigger', default: true },
@@ -377,8 +394,6 @@
             !Lampa.Listener ||
             typeof Lampa.Listener.follow !== 'function' ||
             !Lampa.SettingsApi ||
-            !Lampa.SettingsApi.listener ||
-            typeof Lampa.SettingsApi.listener.follow !== 'function' ||
             !Lampa.Card ||
             !Lampa.TMDB) {
             console.log('Зависимости недоступны, повторная попытка через 100 мс:', {
