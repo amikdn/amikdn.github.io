@@ -1,9 +1,15 @@
 (function () {
     'use strict';
 
+    // Временное логирование для отладки (можно закомментировать после проверки)
+    window.console = window.console || {};
+    window.console.log = window.console.log || function () {};
+
     // Проверка платформы
     if (typeof Lampa !== 'undefined' && Lampa.Platform) {
         Lampa.Platform.tv();
+    } else {
+        console.log('Lampa или Lampa.Platform недоступен');
     }
 
     // Фильтры контента
@@ -133,7 +139,10 @@
     // Добавление кнопки "Ещё"
     function addMoreButton() {
         if (!Lampa || !Lampa.Listener || typeof Lampa.Listener.follow !== 'function') {
-            Lampa.Noty.show('Ошибка: Lampa.Listener недоступен для кнопки "Ещё"');
+            if (Lampa && Lampa.Noty) {
+                Lampa.Noty.show('Ошибка: Lampa.Listener недоступен для кнопки "Ещё"');
+            }
+            console.log('Lampa.Listener недоступен для addMoreButton');
             return;
         }
         Lampa.Listener.follow('line', function (event) {
@@ -189,7 +198,10 @@
     // Фильтрация запросов
     function filterRequests() {
         if (!Lampa || !Lampa.Listener || typeof Lampa.Listener.follow !== 'function') {
-            Lampa.Noty.show('Ошибка: Lampa.Listener недоступен для фильтрации запросов');
+            if (Lampa && Lampa.Noty) {
+                Lampa.Noty.show('Ошибка: Lampa.Listener недоступен для фильтрации запросов');
+            }
+            console.log('Lampa.Listener недоступен для filterRequests');
             return;
         }
         Lampa.Listener.follow('request_secuses', function (event) {
@@ -201,15 +213,20 @@
 
     // Проверка URL
     function isValidUrl(url) {
+        if (!Lampa || !Lampa.TMDB || typeof Lampa.TMDB.api !== 'function') return false;
         return url.indexOf(Lampa.TMDB.api('')) > -1 && url.indexOf('/search') === -1 && url.indexOf('/person/') === -1;
     }
 
     // Добавление параметров в настройки
     function addSettings() {
-        if (!Lampa || !Lampa.Listener || typeof Lampa.Listener.follow !== 'function') {
-            Lampa.Noty.show('Ошибка: Lampa.Listener недоступен для настроек');
+        if (!Lampa || !Lampa.SettingsApi || !Lampa.SettingsApi.listener || typeof Lampa.SettingsApi.listener.follow !== 'function') {
+            if (Lampa && Lampa.Noty) {
+                Lampa.Noty.show('Ошибка: Lampa.SettingsApi.listener недоступен для настроек');
+            }
+            console.log('Lampa.SettingsApi.listener недоступен для addSettings');
             return;
         }
+
         Lampa.Lang.add({
             content_filters: { ru: 'Фильтр контента', en: 'Content Filter', uk: 'Фільтр контенту' },
             asian_filter: { ru: 'Убрать азиатский контент', en: 'Remove Asian Content', uk: 'Прибрати азіатський контент' },
@@ -311,7 +328,10 @@
         if (window.lampa_listener_extensions) return;
         window.lampa_listener_extensions = true;
         if (!Lampa || !Lampa.Card || !Lampa.Card.prototype) {
-            Lampa.Noty.show('Ошибка: Lampa.Card недоступен');
+            if (Lampa && Lampa.Noty) {
+                Lampa.Noty.show('Ошибка: Lampa.Card недоступен');
+            }
+            console.log('Lampa.Card недоступен для interceptCardBuild');
             return;
         }
         Object.defineProperty(Lampa.Card.prototype, 'build', {
@@ -332,7 +352,10 @@
     // Скрытие карточек с качеством TS
     function hideLowQualityCards() {
         if (!Lampa || !Lampa.Listener || typeof Lampa.Listener.follow !== 'function') {
-            Lampa.Noty.show('Ошибка: Lampa.Listener недоступен для фильтрации качества');
+            if (Lampa && Lampa.Noty) {
+                Lampa.Noty.show('Ошибка: Lampa.Listener недоступен для фильтрации качества');
+            }
+            console.log('Lampa.Listener недоступен для hideLowQualityCards');
             return;
         }
         Lampa.Listener.follow('card', function (event) {
@@ -349,7 +372,23 @@
 
     // Инициализация плагина
     function initializePlugin() {
-        if (!Lampa || !Lampa.Listener || typeof Lampa.Listener.follow !== 'function') {
+        // Проверка всех зависимостей
+        if (!Lampa ||
+            !Lampa.Listener ||
+            typeof Lampa.Listener.follow !== 'function' ||
+            !Lampa.SettingsApi ||
+            !Lampa.SettingsApi.listener ||
+            typeof Lampa.SettingsApi.listener.follow !== 'function' ||
+            !Lampa.Card ||
+            !Lampa.TMDB) {
+            console.log('Зависимости недоступны, повторная попытка через 100 мс:', {
+                Lampa: !!Lampa,
+                Listener: !!(Lampa && Lampa.Listener),
+                SettingsApi: !!(Lampa && Lampa.SettingsApi),
+                SettingsApiListener: !!(Lampa && Lampa.SettingsApi && Lampa.SettingsApi.listener),
+                Card: !!(Lampa && Lampa.Card),
+                TMDB: !!(Lampa && Lampa.TMDB)
+            });
             setTimeout(initializePlugin, 100); // Повторить через 100 мс
             return;
         }
@@ -377,5 +416,6 @@
     }
 
     // Запуск инициализации
+    console.log('Запуск плагина filter_content2.js');
     initializePlugin();
 })();
