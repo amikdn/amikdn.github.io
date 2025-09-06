@@ -1,7 +1,10 @@
 (function () {
     'use strict';
 
-    Lampa.Platform.tv(); // Устанавливает платформу как TV
+    // Проверка платформы
+    if (typeof Lampa !== 'undefined' && Lampa.Platform) {
+        Lampa.Platform.tv();
+    }
 
     // Фильтры контента
     var filtersConfig = {
@@ -129,6 +132,10 @@
 
     // Добавление кнопки "Ещё"
     function addMoreButton() {
+        if (!Lampa || !Lampa.Listener || typeof Lampa.Listener.follow !== 'function') {
+            Lampa.Noty.show('Ошибка: Lampa.Listener недоступен для кнопки "Ещё"');
+            return;
+        }
         Lampa.Listener.follow('line', function (event) {
             if (event.type !== 'append' || !isValidData(event.data)) return;
             var $line = $(findLineElement(event.body, '.items-line')).find('.items-line__head');
@@ -181,6 +188,10 @@
 
     // Фильтрация запросов
     function filterRequests() {
+        if (!Lampa || !Lampa.Listener || typeof Lampa.Listener.follow !== 'function') {
+            Lampa.Noty.show('Ошибка: Lampa.Listener недоступен для фильтрации запросов');
+            return;
+        }
         Lampa.Listener.follow('request_secuses', function (event) {
             if (!isValidUrl(event.params.url) || !event.data || !Array.isArray(event.data.results)) return;
             event.data.original_length = event.data.results.length;
@@ -195,6 +206,10 @@
 
     // Добавление параметров в настройки
     function addSettings() {
+        if (!Lampa || !Lampa.Listener || typeof Lampa.Listener.follow !== 'function') {
+            Lampa.Noty.show('Ошибка: Lampa.Listener недоступен для настроек');
+            return;
+        }
         Lampa.Lang.add({
             content_filters: { ru: 'Фильтр контента', en: 'Content Filter', uk: 'Фільтр контенту' },
             asian_filter: { ru: 'Убрать азиатский контент', en: 'Remove Asian Content', uk: 'Прибрати азіатський контент' },
@@ -295,14 +310,20 @@
     function interceptCardBuild() {
         if (window.lampa_listener_extensions) return;
         window.lampa_listener_extensions = true;
-        Object.defineProperty(window.Lampa.Card.prototype, 'build', {
+        if (!Lampa || !Lampa.Card || !Lampa.Card.prototype) {
+            Lampa.Noty.show('Ошибка: Lampa.Card недоступен');
+            return;
+        }
+        Object.defineProperty(Lampa.Card.prototype, 'build', {
             get: function () {
                 return this._build;
             },
             set: function (value) {
                 this._build = function () {
                     value.apply(this);
-                    Lampa.Listener.send('card', { type: 'card', object: this });
+                    if (Lampa.Listener) {
+                        Lampa.Listener.send('card', { type: 'card', object: this });
+                    }
                 }.bind(this);
             }
         });
@@ -310,6 +331,10 @@
 
     // Скрытие карточек с качеством TS
     function hideLowQualityCards() {
+        if (!Lampa || !Lampa.Listener || typeof Lampa.Listener.follow !== 'function') {
+            Lampa.Noty.show('Ошибка: Lampa.Listener недоступен для фильтрации качества');
+            return;
+        }
         Lampa.Listener.follow('card', function (event) {
             if (event.type !== 'card' || !filtersConfig.quality_filter_enabled) return;
             setTimeout(function () {
@@ -322,25 +347,35 @@
         });
     }
 
-    // Инициализация
-    if (window.content_filter_plugin) return;
-    window.content_filter_plugin = true;
+    // Инициализация плагина
+    function initializePlugin() {
+        if (!Lampa || !Lampa.Listener || typeof Lampa.Listener.follow !== 'function') {
+            setTimeout(initializePlugin, 100); // Повторить через 100 мс
+            return;
+        }
 
-    interceptCardBuild();
-    addSettings();
-    addMoreButton();
-    filterRequests();
-    hideLowQualityCards();
+        if (window.content_filter_plugin) return;
+        window.content_filter_plugin = true;
 
-    if (!window.appready) {
-        Lampa.Listener.follow('app', function (event) {
-            if (event.type === 'ready') {
-                interceptCardBuild();
-                addSettings();
-                addMoreButton();
-                filterRequests();
-                hideLowQualityCards();
-            }
-        });
+        interceptCardBuild();
+        addSettings();
+        addMoreButton();
+        filterRequests();
+        hideLowQualityCards();
+
+        if (!window.appready) {
+            Lampa.Listener.follow('app', function (event) {
+                if (event.type === 'ready') {
+                    interceptCardBuild();
+                    addSettings();
+                    addMoreButton();
+                    filterRequests();
+                    hideLowQualityCards();
+                }
+            });
+        }
     }
+
+    // Запуск инициализации
+    initializePlugin();
 })();
