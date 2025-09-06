@@ -1,3 +1,4 @@
+
 (function() {
     'use strict';
 
@@ -228,15 +229,11 @@
 
     // Перехват построения карточек
     function overrideCardBuild() {
-        Object.defineProperty(Lampa.Card.prototype, 'build', {
-            get: function() { return this._build; },
-            set: function(func) {
-                this._build = () => {
-                    func.apply(this);
-                    Lampa.Listener.follow('card', { type: 'build', object: this });
-                };
-            }
-        });
+        const originalBuild = Lampa.Card.prototype.build;
+        Lampa.Card.prototype.build = function() {
+            originalBuild.apply(this, arguments);
+            Lampa.Listener.follow('card', { type: 'build', object: this });
+        };
     }
 
     // Основная функция плагина
