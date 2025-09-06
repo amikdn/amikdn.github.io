@@ -3,15 +3,6 @@
 
     Lampa.Platform.tv(); // Устанавливает платформу как TV
 
-    // Защита консоли
-    (function () {
-        var console = window.console || {};
-        var methods = ['log', 'warn', 'info', 'error', 'exception', 'table', 'trace'];
-        methods.forEach(function (method) {
-            console[method] = function () {}; // Пустая функция для предотвращения вывода
-        });
-    })();
-
     // Фильтры контента
     var filtersConfig = {
         asian_filter_enabled: Lampa.Storage.get('asian_filter_enabled', false),
