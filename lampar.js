@@ -17,7 +17,7 @@
             border-radius: 5px;
             font-size: 14px;
             font-weight: bold;
-            z-index: 10;
+            z-index: 1000; /* Увеличенный z-index для предотвращения перекрытия */
         }
         .items-cards .card__vote {
             display: none !important; /* Скрываем рейтинг TMDB только на карточках в списках */
@@ -79,27 +79,28 @@
                             let data = JSON.parse(xhr.responseText);
                             if(data && data.result && Array.isArray(data.result)) {
                                 let rating = calculateLampaRating10(data.result);
+                                console.log("LAMPA Rating: Успешно получен рейтинг", rating, "для", ratingKey);
                                 resolve(rating);
                             } else {
-                                console.warn("LAMPA Rating: Неверный формат ответа для ratingKey:", ratingKey);
+                                console.warn("LAMPA Rating: Неверный формат ответа для", ratingKey, ":", data);
                                 reject(new Error("Неверный формат ответа"));
                             }
                         } catch(e) {
-                            console.error("LAMPA Rating: Ошибка парсинга ответа:", e);
+                            console.error("LAMPA Rating: Ошибка парсинга ответа для", ratingKey, ":", e);
                             reject(e);
                         }
                     } else {
-                        console.warn("LAMPA Rating: Ошибка запроса, статус:", xhr.status, "для ratingKey:", ratingKey);
+                        console.warn("LAMPA Rating: Ошибка запроса, статус:", xhr.status, "для", ratingKey);
                         reject(new Error("Ошибка запроса, статус: " + xhr.status));
                     }
                 }
             };
             xhr.onerror = function(){
-                console.error("LAMPA Rating: XHR ошибка для ratingKey:", ratingKey);
+                console.error("LAMPA Rating: XHR ошибка для", ratingKey);
                 reject(new Error("XHR ошибка"));
             };
             xhr.ontimeout = function(){
-                console.warn("LAMPA Rating: Таймаут запроса для ratingKey:", ratingKey);
+                console.warn("LAMPA Rating: Таймаут запроса для", ratingKey);
                 reject(new Error("Таймаут запроса"));
             };
             xhr.send();
@@ -115,7 +116,6 @@
         try {
             let rating = await fetchLampaRating(ratingKey);
             lampaRatingCache[ratingKey] = { value: rating, timestamp: now };
-            console.log("LAMPA Rating: Получен новый рейтинг для", ratingKey, ":", rating);
             return rating;
         } catch(e) {
             console.error("LAMPA Rating: Ошибка получения рейтинга для", ratingKey, ":", e.message);
@@ -124,9 +124,15 @@
     }
 
     function insertLampaBlock(render) {
-        if(!render) return false;
+        if(!render) {
+            console.warn("LAMPA Rating: render отсутствует в полной карточке");
+            return false;
+        }
         let rateLine = $(render).find('.full-start-new__rate-line');
-        if(rateLine.length === 0) return false;
+        if(rateLine.length === 0) {
+            console.warn("LAMPA Rating: .full-start-new__rate-line не найден");
+            return false;
+        }
         if(rateLine.find('.rate--lampa').length > 0) return true;
         let lampaBlockHtml =
             '<div class="full-start__rate rate--lampa">' +
@@ -139,45 +145,88 @@
         } else {
             rateLine.append(lampaBlockHtml);
         }
+        console.log("LAMPA Rating: Вставлен блок LAMPA в полную карточку");
         return true;
     }
 
-    function insertRatingOnPoster(card, rating) {
+    function insertRatingOnPoster(card, rating, ratingKey) {
         const cardView = card.querySelector('.card__view');
-        if (cardView && rating !== null && rating !== 0) {
-            let ratingOverlay = cardView.querySelector('.card__rating-overlay');
-            if (!ratingOverlay) {
-                ratingOverlay = document.createElement('div');
-                ratingOverlay.className = 'card__rating-overlay';
-                cardView.appendChild(ratingOverlay);
-            }
+        if (!cardView) {
+            console.warn("LAMPA Rating: .card__view не найден для карточки", ratingKey);
+            return;
+        }
+        let ratingOverlay = cardView.querySelector('.card__rating-overlay');
+        if (!ratingOverlay) {
+            ratingOverlay = document.createElement('div');
+            ratingOverlay.className = 'card__rating-overlay';
+            ratingOverlay.textContent = '0.0'; // Временный рейтинг до загрузки
+            cardView.appendChild(ratingOverlay);
+            console.log("LAMPA Rating: Создан .card__rating-overlay для", ratingKey);
+        }
+        if (rating !== null && rating !== 0) {
             ratingOverlay.textContent = rating;
-            console.log("LAMPA Rating: Добавлен рейтинг", rating, "на карточку:", card);
+            console.log("LAMPA Rating: Установлен рейтинг", rating, "для", ratingKey);
         } else {
-            console.warn("LAMPA Rating: Не добавлен рейтинг на карточку, rating:", rating, "cardView:", !!cardView);
+            console.warn("LAMPA Rating: Рейтинг не установлен для", ratingKey, ", rating:", rating);
         }
     }
 
     // Обработка карточек в списках
     Lampa.Listener.follow('view', function(e) {
         if (e.type === 'view_cards') {
-            console.log("LAMPA Rating: Обработка события view_cards, найдено карточек:", e.cards.length);
+            console.log("LAMPA Rating: Событие view_cards, найдено карточек:", e.cards.length);
             const cards = e.cards;
             cards.forEach(card => {
                 const data = card.data || {};
-                const method = data.method || (data.movie ? 'movie' : 'tv');
-                const id = data.id || data.movie?.id;
+                const method = data.method || (data.movie ? 'movie' : data.tv ? 'tv' : null);
+                const id = data.id || data.movie?.id || data.tv?.id;
                 if (method && id) {
                     const ratingKey = `${method}_${id}`;
                     console.log("LAMPA Rating: Обрабатывается карточка с ratingKey:", ratingKey);
+                    insertRatingOnPoster(card.element[0], '0.0', ratingKey); // Временный рейтинг
                     getLampaRating(ratingKey).then(rating => {
-                        insertRatingOnPoster(card.element[0], rating);
+                        insertRatingOnPoster(card.element[0], rating, ratingKey);
                     });
                 } else {
-                    console.warn("LAMPA Rating: Пропущена карточка, method:", method, "id:", id);
+                    console.warn("LAMPA Rating: Пропущена карточка, method:", method, "id:", id, "data:", data);
                 }
             });
         }
+    });
+
+    // Обработка динамических изменений DOM
+    const observer = new MutationObserver((mutations) => {
+        mutations.forEach(mutation => {
+            if (mutation.addedNodes.length) {
+                mutation.addedNodes.forEach(node => {
+                    if (node.classList && node.classList.contains('items-cards')) {
+                        console.log("LAMPA Rating: Обнаружены новые карточки в .items-cards");
+                        const cards = node.querySelectorAll('.card');
+                        cards.forEach(card => {
+                            const cardData = card.__vue__?.$props?.data || {};
+                            const method = cardData.method || (cardData.movie ? 'movie' : cardData.tv ? 'tv' : null);
+                            const id = cardData.id || cardData.movie?.id || cardData.tv?.id;
+                            if (method && id) {
+                                const ratingKey = `${method}_${id}`;
+                                console.log("LAMPA Rating: MutationObserver, ratingKey:", ratingKey);
+                                insertRatingOnPoster(card, '0.0', ratingKey); // Временный рейтинг
+                                getLampaRating(ratingKey).then(rating => {
+                                    insertRatingOnPoster(card, rating, ratingKey);
+                                });
+                            } else {
+                                console.warn("LAMPA Rating: MutationObserver, пропущена карточка, method:", method, "id:", id);
+                            }
+                        });
+                    }
+                });
+            }
+        });
+    });
+
+    // Наблюдение за изменениями в DOM
+    observer.observe(document.body, {
+        childList: true,
+        subtree: true
     });
 
     // Обработчик для полной карточки
