@@ -16,7 +16,6 @@
             color: white;
             padding: 0.4em 0.6em;
             border-radius: 0.3em;
-            font-size: 0.8em;
             font-weight: bold;
             z-index: 1001;
         }
@@ -24,6 +23,13 @@
         .card__vote.lampa-rating.medium { color: orange; }
         .card__vote.lampa-rating.good { color: cornflowerblue; }
         .card__vote.lampa-rating.high { color: lawngreen; }
+        .card__vote:not(.lampa-rating) {
+            display: none !important; /* Скрываем TMDB рейтинг */
+        }
+        .rate--lampa .rate-value.low { color: red; }
+        .rate--lampa .rate-value.medium { color: orange; }
+        .rate--lampa .rate-value.good { color: cornflowerblue; }
+        .rate--lampa .rate-value.high { color: lawngreen; }
     `;
 
     // Добавление стилей в документ
@@ -74,7 +80,7 @@
             let xhr = new XMLHttpRequest();
             let url = "http://cub.rip/api/reactions/get/" + ratingKey;
             xhr.open("GET", url, true);
-            xhr.timeout = 5000; // Увеличен таймаут
+            xhr.timeout = 5000;
             xhr.onreadystatechange = function(){
                 if(xhr.readyState === 4) {
                     if(xhr.status === 200) {
@@ -153,8 +159,7 @@
 
     function applyRatingColor(element, rating) {
         if (rating === null || rating === 0) return;
-        element.removeClass('lampa-rating low medium good high');
-        element.addClass('lampa-rating');
+        element.removeClass('low medium good high');
         if (rating <= 3) element.addClass('low');
         else if (rating < 6) element.addClass('medium');
         else if (rating < 8) element.addClass('good');
@@ -229,7 +234,7 @@
         var id = meta.id || meta.movie?.id || meta.tv?.id || $(card).attr('data-quality-id')?.replace('card_', '');
         if (method && id) {
             var ratingKey = `${method}_${id}`;
-            vote.text('0.0');
+            vote.addClass('lampa-rating').text('0.0');
             console.log("LAMPA Rating: Добавлен временный рейтинг 0.0 для", ratingKey, "card:", card);
             getLampaRating(ratingKey).then(rating => {
                 if (rating !== null && rating !== 0) {
