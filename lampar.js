@@ -39,6 +39,17 @@
     document.head.appendChild(styleSheet);
     console.log("LAMPA Rating: Стили добавлены");
 
+    function normalizeTitle(title) {
+        if (!title) return '';
+        return title.toLowerCase()
+            .replace(/[\s.,:;''`!?]+/g, ' ')
+            .replace(/^[ \/\\]+/, '')
+            .replace(/[ \/\\]+$/, '')
+            .replace(/ё/g, 'е')
+            .replace(/[\-\u2010-\u2015\u2E3A\u2E3B\uFE58\uFE63\uFF0D]+/g, '-')
+            .trim();
+    }
+
     function calculateLampaRating10(reactions) {
         let weightedSum = 0;
         let totalCount = 0;
@@ -227,6 +238,28 @@
             console.warn("LAMPA Rating: Ошибка парсинга метаданных карточки:", e, "card:", card);
         }
 
+        // Проверка кэша для ratingKey
+        var title = normalizeTitle(meta.title || meta.name || meta.original_title || meta.original_name || $(card).find('.card__title').text());
+        var cacheKey = 'lampa_rating_key_' + title;
+        var cachedData = Lampa.Storage.cache(cacheKey, 0x1f4, {});
+        if (cachedData.ratingKey && (Date.now() - cachedData.timestamp < CACHE_TIME)) {
+            console.log("LAMPA Rating: Используется кэшированный ratingKey:", cachedData.ratingKey, "для title:", title);
+            var ratingKey = cachedData.ratingKey;
+            vote.addClass('lampa-rating').text('0.0');
+            getLampaRating(ratingKey).then(rating => {
+                if (rating !== null && rating !== 0) {
+                    vote.text(rating);
+                    applyRatingColor(vote, rating);
+                    console.log("LAMPA Rating: Установлен рейтинг", rating, "для", ratingKey);
+                } else {
+                    vote.text('N/A');
+                    applyRatingColor(vote, 0);
+                    console.warn("LAMPA Rating: Рейтинг не установлен для", ratingKey, ", rating:", rating);
+                }
+            });
+            return;
+        }
+
         // Проверка URL карточки
         var url = meta.url || $(card).find('a').attr('href') || '';
         var { method, id: urlId } = extractMethodAndIdFromUrl(url);
@@ -252,7 +285,8 @@
 
         if (method && id) {
             var ratingKey = `${method}_${id}`;
-            console.log("LAMPA Rating: Формирование ratingKey:", ratingKey, "meta:", meta, "url:", url);
+            console.log("LAMPA Rating: Формирование ratingKey:", ratingKey, "meta:", meta, "url:", url, "title:", title);
+            Lampa.Storage.set(cacheKey, { ratingKey: ratingKey, timestamp: Date.now() });
             vote.addClass('lampa-rating').text('0.0');
             getLampaRating(ratingKey).then(rating => {
                 if (rating !== null && rating !== 0) {
@@ -266,7 +300,7 @@
                 }
             });
         } else {
-            console.warn("LAMPA Rating: Пропущена карточка, method:", method, "id:", id, "meta:", meta, "url:", url);
+            console.warn("LAMPA Rating: Пропущена карточка, method:", method, "id:", id, "meta:", meta, "url:", url, "title:", title);
         }
     }
 
@@ -319,6 +353,9 @@
                             rateValue.text(rating);
                             applyRatingColor(rateValue, rating);
                             console.log("LAMPA Rating: Установлен рейтинг", rating, "в полной карточке");
+                            // Сохраняем ratingKey в кэш по названию
+                            let title = normalizeTitle(e.object.title || e.object.name || e.object.original_title || e.object.original_name);
+                            Lampa.Storage.set('lampa_rating_key_' + title, { ratingKey: ratingKey, timestamp: Date.now() });
                         }
                     });
                 } else {
