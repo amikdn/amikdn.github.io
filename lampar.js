@@ -9,12 +9,9 @@
     const CACHE_TIME = 24 * 60 * 60 * 1000;
     let lampaRatingCache = {};
 
-    // Стили для рейтинга на постере
+    // Стили для цветного рейтинга LAMPA
     const styles = `
-        .card__rating-overlay {
-            position: absolute;
-            top: 4em; /* Смещение ниже меток Фильм/Сериал */
-            left: -0.8em;
+        .card__vote.lampa-rating {
             background-color: rgba(0, 0, 0, 0.7);
             color: white;
             padding: 0.4em 0.6em;
@@ -22,12 +19,11 @@
             font-size: 0.8em;
             font-weight: bold;
             z-index: 1001;
-            text-align: center;
-            white-space: nowrap;
         }
-        .items-cards .card__vote {
-            display: none !important; /* Скрываем рейтинг TMDB на главной */
-        }
+        .card__vote.lampa-rating.low { color: red; }
+        .card__vote.lampa-rating.medium { color: orange; }
+        .card__vote.lampa-rating.good { color: cornflowerblue; }
+        .card__vote.lampa-rating.high { color: lawngreen; }
     `;
 
     // Добавление стилей в документ
@@ -73,12 +69,12 @@
         return parseFloat(rating10.toFixed(1));
     }
 
-    function fetchLampaRating(ratingKey) {
+    function fetchLampaRating(ratingKey, retries = 2) {
         return new Promise((resolve, reject) => {
             let xhr = new XMLHttpRequest();
             let url = "http://cub.rip/api/reactions/get/" + ratingKey;
             xhr.open("GET", url, true);
-            xhr.timeout = 5000;
+            xhr.timeout = 5000; // Увеличен таймаут
             xhr.onreadystatechange = function(){
                 if(xhr.readyState === 4) {
                     if(xhr.status === 200) {
@@ -90,25 +86,50 @@
                                 resolve(rating);
                             } else {
                                 console.warn("LAMPA Rating: Неверный формат ответа для", ratingKey, ":", data);
-                                reject(new Error("Неверный формат ответа"));
+                                if (retries > 0) {
+                                    console.log("LAMPA Rating: Повторная попытка для", ratingKey, "осталось попыток:", retries);
+                                    setTimeout(() => fetchLampaRating(ratingKey, retries - 1).then(resolve).catch(reject), 1000);
+                                } else {
+                                    reject(new Error("Неверный формат ответа"));
+                                }
                             }
                         } catch(e) {
                             console.error("LAMPA Rating: Ошибка парсинга ответа для", ratingKey, ":", e);
-                            reject(e);
+                            if (retries > 0) {
+                                console.log("LAMPA Rating: Повторная попытка для", ratingKey, "осталось попыток:", retries);
+                                setTimeout(() => fetchLampaRating(ratingKey, retries - 1).then(resolve).catch(reject), 1000);
+                            } else {
+                                reject(e);
+                            }
                         }
                     } else {
                         console.warn("LAMPA Rating: Ошибка запроса, статус:", xhr.status, "для", ratingKey);
-                        reject(new Error("Ошибка запроса, статус: " + xhr.status));
+                        if (retries > 0) {
+                            console.log("LAMPA Rating: Повторная попытка для", ratingKey, "осталось попыток:", retries);
+                            setTimeout(() => fetchLampaRating(ratingKey, retries - 1).then(resolve).catch(reject), 1000);
+                        } else {
+                            reject(new Error("Ошибка запроса, статус: " + xhr.status));
+                        }
                     }
                 }
             };
             xhr.onerror = function(){
                 console.error("LAMPA Rating: XHR ошибка для", ratingKey);
-                reject(new Error("XHR ошибка"));
+                if (retries > 0) {
+                    console.log("LAMPA Rating: Повторная попытка для", ratingKey, "осталось попыток:", retries);
+                    setTimeout(() => fetchLampaRating(ratingKey, retries - 1).then(resolve).catch(reject), 1000);
+                } else {
+                    reject(new Error("XHR ошибка"));
+                }
             };
             xhr.ontimeout = function(){
                 console.warn("LAMPA Rating: Таймаут запроса для", ratingKey);
-                reject(new Error("Таймаут запроса"));
+                if (retries > 0) {
+                    console.log("LAMPA Rating: Повторная попытка для", ratingKey, "осталось попыток:", retries);
+                    setTimeout(() => fetchLampaRating(ratingKey, retries - 1).then(resolve).catch(reject), 1000);
+                } else {
+                    reject(new Error("Таймаут запроса"));
+                }
             };
             xhr.send();
         });
@@ -130,15 +151,47 @@
         }
     }
 
+    function applyRatingColor(element, rating) {
+        if (rating === null || rating === 0) return;
+        element.removeClass('lampa-rating low medium good high');
+        element.addClass('lampa-rating');
+        if (rating <= 3) element.addClass('low');
+        else if (rating < 6) element.addClass('medium');
+        else if (rating < 8) element.addClass('good');
+        else element.addClass('high');
+    }
+
+    function insertLampaBlock(render) {
+        if(!render) {
+            console.warn("LAMPA Rating: render отсутствует в полной карточке");
+            return false;
+        }
+        let rateLine = $(render).find('.full-start-new__rate-line');
+        if(rateLine.length === 0) {
+            console.warn("LAMPA Rating: .full-start-new__rate-line не найден");
+            return false;
+        }
+        if(rateLine.find('.rate--lampa').length > 0) return true;
+        let lampaBlockHtml =
+            '<div class="full-start__rate rate--lampa">' +
+                '<div class="rate-value">0.0</div>' +
+                '<div class="source--name">LAMPA</div>' +
+            '</div>';
+        let kpBlock = rateLine.find('.rate--kp');
+        if(kpBlock.length > 0) {
+            kpBlock.after(lampaBlockHtml);
+        } else {
+            rateLine.append(lampaBlockHtml);
+        }
+        console.log("LAMPA Rating: Вставлен блок LAMPA в полную карточку");
+        return true;
+    }
+
     function addLampaRatingToCard(card) {
         console.log("LAMPA Rating: Попытка добавить рейтинг для карточки", card);
-        if ($(card).find('.card__rating-overlay').length) {
-            console.log("LAMPA Rating: Рейтинг уже добавлен для карточки", card);
-            return;
-        }
-        var view = $(card).find('.card__view');
-        if (!view.length) {
-            console.warn("LAMPA Rating: .card__view не найден для карточки", card);
+        var vote = $(card).find('.card__vote');
+        if (!vote.length) {
+            console.warn("LAMPA Rating: .card__vote не найден для карточки", card);
             return;
         }
 
@@ -176,15 +229,16 @@
         var id = meta.id || meta.movie?.id || meta.tv?.id || $(card).attr('data-quality-id')?.replace('card_', '');
         if (method && id) {
             var ratingKey = `${method}_${id}`;
-            var ratingOverlay = $('<div class="card__rating-overlay">0.0</div>');
-            view.css('position', 'relative').append(ratingOverlay);
+            vote.text('0.0');
             console.log("LAMPA Rating: Добавлен временный рейтинг 0.0 для", ratingKey, "card:", card);
             getLampaRating(ratingKey).then(rating => {
                 if (rating !== null && rating !== 0) {
-                    ratingOverlay.text(rating);
+                    vote.text(rating);
+                    applyRatingColor(vote, rating);
                     console.log("LAMPA Rating: Установлен рейтинг", rating, "для", ratingKey);
                 } else {
-                    ratingOverlay.text('N/A');
+                    vote.text('N/A');
+                    applyRatingColor(vote, 0);
                     console.warn("LAMPA Rating: Рейтинг не установлен для", ratingKey, ", rating:", rating);
                 }
             });
@@ -227,6 +281,29 @@
 
     // Периодическая обработка карточек
     setInterval(processAllCards, 1000);
+
+    // Обработчик для полной карточки
+    Lampa.Listener.follow('full', function(e){
+        if(e.type === 'complite'){
+            let render = e.object.activity.render();
+            if(render && insertLampaBlock(render)){
+                if(e.object.method && e.object.id){
+                    let ratingKey = e.object.method + "_" + e.object.id;
+                    console.log("LAMPA Rating: Обработка полной карточки с ratingKey:", ratingKey);
+                    getLampaRating(ratingKey).then(rating => {
+                        if(rating !== null){
+                            let rateValue = $(render).find('.rate--lampa .rate-value');
+                            rateValue.text(rating);
+                            applyRatingColor(rateValue, rating);
+                            console.log("LAMPA Rating: Установлен рейтинг", rating, "в полной карточке");
+                        }
+                    });
+                } else {
+                    console.warn("LAMPA Rating: Пропущена полная карточка, method:", e.object.method, "id:", e.object.id);
+                }
+            }
+        }
+    });
 
     // Инициализация при старте
     if (window.appready) {
