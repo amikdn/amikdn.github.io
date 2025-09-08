@@ -218,6 +218,7 @@
             console.warn("LAMPA Rating: Ошибка парсинга метаданных карточки:", e, "card:", card);
         }
 
+        // Усиленная проверка типа контента
         var isTV = false;
         if (meta.type === 'tv' || meta.card_type === 'tv' ||
             meta.seasons || meta.number_of_seasons > 0 ||
@@ -228,14 +229,21 @@
         if (!isTV) {
             if ($(card).hasClass('card--tv') || $(card).data('type') === 'tv') isTV = true;
             else if ($(card).find('.card__type, .card__temp').text().match(/(сезон|серия|эпизод|ТВ|TV)/i)) isTV = true;
+            else if ($(card).find('.card__title').text().match(/(сезон|серия|эпизод|ТВ|TV)/i)) isTV = true; // Проверка заголовка
+        }
+
+        // Проверка на основе URL изображения
+        if (!isTV && $(card).find('.card__img').attr('src')) {
+            let imgSrc = $(card).find('.card__img').attr('src');
+            if (imgSrc.includes('tv')) isTV = true;
         }
 
         var method = meta.method || (isTV ? 'tv' : 'movie');
         var id = meta.id || meta.movie?.id || meta.tv?.id || $(card).attr('data-quality-id')?.replace('card_', '');
         if (method && id) {
             var ratingKey = `${method}_${id}`;
+            console.log("LAMPA Rating: Формирование ratingKey:", ratingKey, "meta:", meta);
             vote.addClass('lampa-rating').text('0.0');
-            console.log("LAMPA Rating: Добавлен временный рейтинг 0.0 для", ratingKey, "card:", card);
             getLampaRating(ratingKey).then(rating => {
                 if (rating !== null && rating !== 0) {
                     vote.text(rating);
