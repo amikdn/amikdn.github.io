@@ -1,7 +1,11 @@
 (function(){
     'use strict';
-    if(window.lampa_rating_plugin) return;
+    if(window.lampa_rating_plugin) {
+        console.log("LAMPA Rating: Плагин уже загружен, пропуск");
+        return;
+    }
     window.lampa_rating_plugin = true;
+    console.log("LAMPA Rating: Плагин инициализирован");
     const CACHE_TIME = 24 * 60 * 60 * 1000;
     let lampaRatingCache = {};
 
@@ -9,7 +13,7 @@
     const styles = `
         .card__rating-overlay {
             position: absolute;
-            top: 3em; /* Смещение вниз, чтобы не перекрывать метки Фильм/Сериал */
+            top: 4em; /* Смещение ниже меток Фильм/Сериал */
             left: -0.8em;
             background-color: rgba(0, 0, 0, 0.7);
             color: white;
@@ -17,7 +21,7 @@
             border-radius: 0.3em;
             font-size: 0.8em;
             font-weight: bold;
-            z-index: 1001; /* Выше других элементов */
+            z-index: 1001;
             text-align: center;
             white-space: nowrap;
         }
@@ -31,6 +35,7 @@
     styleSheet.type = 'text/css';
     styleSheet.innerText = styles;
     document.head.appendChild(styleSheet);
+    console.log("LAMPA Rating: Стили добавлены");
 
     function calculateLampaRating10(reactions) {
         let weightedSum = 0;
@@ -73,7 +78,7 @@
             let xhr = new XMLHttpRequest();
             let url = "http://cub.rip/api/reactions/get/" + ratingKey;
             xhr.open("GET", url, true);
-            xhr.timeout = 5000; // Увеличен таймаут до 5 секунд
+            xhr.timeout = 5000;
             xhr.onreadystatechange = function(){
                 if(xhr.readyState === 4) {
                     if(xhr.status === 200) {
@@ -125,33 +130,8 @@
         }
     }
 
-    function insertLampaBlock(render) {
-        if(!render) {
-            console.warn("LAMPA Rating: render отсутствует в полной карточке");
-            return false;
-        }
-        let rateLine = $(render).find('.full-start-new__rate-line');
-        if(rateLine.length === 0) {
-            console.warn("LAMPA Rating: .full-start-new__rate-line не найден");
-            return false;
-        }
-        if(rateLine.find('.rate--lampa').length > 0) return true;
-        let lampaBlockHtml =
-            '<div class="full-start__rate rate--lampa">' +
-                '<div class="rate-value">0.0</div>' +
-                '<div class="source--name">LAMPA</div>' +
-            '</div>';
-        let kpBlock = rateLine.find('.rate--kp');
-        if(kpBlock.length > 0) {
-            kpBlock.after(lampaBlockHtml);
-        } else {
-            rateLine.append(lampaBlockHtml);
-        }
-        console.log("LAMPA Rating: Вставлен блок LAMPA в полную карточку");
-        return true;
-    }
-
     function addLampaRatingToCard(card) {
+        console.log("LAMPA Rating: Попытка добавить рейтинг для карточки", card);
         if ($(card).find('.card__rating-overlay').length) {
             console.log("LAMPA Rating: Рейтинг уже добавлен для карточки", card);
             return;
@@ -172,7 +152,7 @@
                 var c = Lampa.Card.get($(card).attr('id'));
                 if (c) meta = Object.assign(meta, c);
             }
-            var id = $(card).data('id') || $(card).attr('data-id') || meta.id;
+            var id = $(card).data('id') || $(card).attr('data-id') || meta.id || $(card).attr('data-quality-id')?.replace('card_', '');
             if (id && Lampa.Storage.cache('card_' + id)) {
                 meta = Object.assign(meta, Lampa.Storage.cache('card_' + id));
             }
@@ -193,7 +173,7 @@
         }
 
         var method = meta.method || (isTV ? 'tv' : 'movie');
-        var id = meta.id || meta.movie?.id || meta.tv?.id;
+        var id = meta.id || meta.movie?.id || meta.tv?.id || $(card).attr('data-quality-id')?.replace('card_', '');
         if (method && id) {
             var ratingKey = `${method}_${id}`;
             var ratingOverlay = $('<div class="card__rating-overlay">0.0</div>');
@@ -204,7 +184,7 @@
                     ratingOverlay.text(rating);
                     console.log("LAMPA Rating: Установлен рейтинг", rating, "для", ratingKey);
                 } else {
-                    ratingOverlay.text('N/A'); // Если рейтинг отсутствует
+                    ratingOverlay.text('N/A');
                     console.warn("LAMPA Rating: Рейтинг не установлен для", ratingKey, ", rating:", rating);
                 }
             });
@@ -215,6 +195,7 @@
 
     // Обработка всех карточек
     function processAllCards() {
+        console.log("LAMPA Rating: Запуск обработки всех карточек");
         $('.items-cards .card').each(function () {
             addLampaRatingToCard(this);
         });
@@ -222,15 +203,18 @@
 
     // Обработка динамических изменений DOM
     new MutationObserver(function (muts) {
+        console.log("LAMPA Rating: Обнаружены изменения в DOM");
         muts.forEach(function (m) {
             if (m.addedNodes) {
                 $(m.addedNodes).find('.items-cards .card').each(function () {
+                    console.log("LAMPA Rating: Обнаружена новая карточка", this);
                     addLampaRatingToCard(this);
                 });
             }
             if (m.type === 'attributes' &&
-                ['class', 'data-card', 'data-type'].includes(m.attributeName) &&
+                ['class', 'data-card', 'data-type', 'data-quality-id'].includes(m.attributeName) &&
                 $(m.target).hasClass('card')) {
+                console.log("LAMPA Rating: Изменены атрибуты карточки", m.target);
                 addLampaRatingToCard(m.target);
             }
         });
@@ -238,35 +222,15 @@
         childList: true,
         subtree: true,
         attributes: true,
-        attributeFilter: ['class', 'data-card', 'data-type']
+        attributeFilter: ['class', 'data-card', 'data-type', 'data-quality-id']
     });
 
     // Периодическая обработка карточек
-    setInterval(processAllCards, 1500);
-
-    // Обработчик для полной карточки
-    Lampa.Listener.follow('full', function(e){
-        if(e.type === 'complite'){
-            let render = e.object.activity.render();
-            if(render && insertLampaBlock(render)){
-                if(e.object.method && e.object.id){
-                    let ratingKey = e.object.method + "_" + e.object.id;
-                    console.log("LAMPA Rating: Обработка полной карточки с ratingKey:", ratingKey);
-                    getLampaRating(ratingKey).then(rating => {
-                        if(rating !== null){
-                            $(render).find('.rate--lampa .rate-value').text(rating);
-                            console.log("LAMPA Rating: Установлен рейтинг", rating, "в полной карточке");
-                        }
-                    });
-                } else {
-                    console.warn("LAMPA Rating: Пропущена полная карточка, method:", e.object.method, "id:", e.object.id);
-                }
-            }
-        }
-    });
+    setInterval(processAllCards, 1000);
 
     // Инициализация при старте
     if (window.appready) {
+        console.log("LAMPA Rating: Приложение уже готово, запуск обработки карточек");
         processAllCards();
     } else {
         Lampa.Listener.follow('app', function (e) {
