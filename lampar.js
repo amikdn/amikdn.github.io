@@ -99,7 +99,7 @@
                             let data = JSON.parse(xhr.responseText);
                             if(data && data.result && Array.isArray(data.result)) {
                                 let rating = calculateLampaRating10(data.result);
-                                console.log("LAMPA Rating: Успешно получен рейтинг", rating, "для", ratingKey);
+                                console.log("LAMPA Rating: Успешно получен рейтинг", rating, "для", ratingKey, "ответ:", data);
                                 resolve(rating);
                             } else {
                                 console.warn("LAMPA Rating: Неверный формат ответа для", ratingKey, ":", data);
@@ -238,12 +238,13 @@
             console.warn("LAMPA Rating: Ошибка парсинга метаданных карточки:", e, "card:", card);
         }
 
-        // Проверка кэша для ratingKey
+        // Нормализация названия и года
         var title = normalizeTitle(meta.title || meta.name || meta.original_title || meta.original_name || $(card).find('.card__title').text());
-        var cacheKey = 'lampa_rating_key_' + title;
+        var year = meta.release_date?.slice(0, 4) || meta.first_air_date?.slice(0, 4) || meta.year || '';
+        var cacheKey = `lampa_rating_key_${title}_${year}`;
         var cachedData = Lampa.Storage.cache(cacheKey, 0x1f4, {});
         if (cachedData.ratingKey && (Date.now() - cachedData.timestamp < CACHE_TIME)) {
-            console.log("LAMPA Rating: Используется кэшированный ratingKey:", cachedData.ratingKey, "для title:", title);
+            console.log("LAMPA Rating: Используется кэшированный ratingKey:", cachedData.ratingKey, "для title:", title, "year:", year);
             var ratingKey = cachedData.ratingKey;
             vote.addClass('lampa-rating').text('0.0');
             getLampaRating(ratingKey).then(rating => {
@@ -269,7 +270,7 @@
             if (meta.type === 'tv' || meta.card_type === 'tv' ||
                 meta.seasons || meta.number_of_seasons > 0 ||
                 meta.episodes || meta.number_of_episodes > 0 ||
-                meta.is_series) {
+                meta.is_series || meta.first_air_date || meta.last_air_date) {
                 isTV = true;
             }
             if (!isTV) {
@@ -278,30 +279,30 @@
                 else if ($(card).find('.card__title').text().match(/(сезон|серия|эпизод|ТВ|TV)/i)) isTV = true;
             }
             method = meta.method || (isTV ? 'tv' : 'movie');
-            id = meta.id || meta.movie?.id || meta.tv?.id || $(card).attr('data-quality-id')?.replace('card_', '');
+            id = meta.id || meta.movie?.id || meta.tv?.id;
+            if (!id) {
+                console.warn("LAMPA Rating: Не удалось определить id, пропуск карточки", meta, url, title, year);
+                return;
+            }
         } else {
             id = urlId;
         }
 
-        if (method && id) {
-            var ratingKey = `${method}_${id}`;
-            console.log("LAMPA Rating: Формирование ratingKey:", ratingKey, "meta:", meta, "url:", url, "title:", title);
-            Lampa.Storage.set(cacheKey, { ratingKey: ratingKey, timestamp: Date.now() });
-            vote.addClass('lampa-rating').text('0.0');
-            getLampaRating(ratingKey).then(rating => {
-                if (rating !== null && rating !== 0) {
-                    vote.text(rating);
-                    applyRatingColor(vote, rating);
-                    console.log("LAMPA Rating: Установлен рейтинг", rating, "для", ratingKey);
-                } else {
-                    vote.text('N/A');
-                    applyRatingColor(vote, 0);
-                    console.warn("LAMPA Rating: Рейтинг не установлен для", ratingKey, ", rating:", rating);
-                }
-            });
-        } else {
-            console.warn("LAMPA Rating: Пропущена карточка, method:", method, "id:", id, "meta:", meta, "url:", url, "title:", title);
-        }
+        var ratingKey = `${method}_${id}`;
+        console.log("LAMPA Rating: Формирование ratingKey:", ratingKey, "meta:", meta, "url:", url, "title:", title, "year:", year);
+        Lampa.Storage.set(cacheKey, { ratingKey: ratingKey, timestamp: Date.now() });
+        vote.addClass('lampa-rating').text('0.0');
+        getLampaRating(ratingKey).then(rating => {
+            if (rating !== null && rating !== 0) {
+                vote.text(rating);
+                applyRatingColor(vote, rating);
+                console.log("LAMPA Rating: Установлен рейтинг", rating, "для", ratingKey);
+            } else {
+                vote.text('N/A');
+                applyRatingColor(vote, 0);
+                console.warn("LAMPA Rating: Рейтинг не установлен для", ratingKey, ", rating:", rating);
+            }
+        });
     }
 
     // Обработка всех карточек
@@ -353,9 +354,10 @@
                             rateValue.text(rating);
                             applyRatingColor(rateValue, rating);
                             console.log("LAMPA Rating: Установлен рейтинг", rating, "в полной карточке");
-                            // Сохраняем ratingKey в кэш по названию
+                            // Сохраняем ratingKey в кэш по названию и году
                             let title = normalizeTitle(e.object.title || e.object.name || e.object.original_title || e.object.original_name);
-                            Lampa.Storage.set('lampa_rating_key_' + title, { ratingKey: ratingKey, timestamp: Date.now() });
+                            let year = e.object.release_date?.slice(0, 4) || e.object.first_air_date?.slice(0, 4) || e.object.year || '';
+                            Lampa.Storage.set(`lampa_rating_key_${title}_${year}`, { ratingKey: ratingKey, timestamp: Date.now() });
                         }
                     });
                 } else {
