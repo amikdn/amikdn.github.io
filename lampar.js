@@ -192,29 +192,13 @@
         return true;
     }
 
-    async function getCardTypeFromCubRip(card, id) {
-        console.log("LAMPA Rating: Проверка типа контента через cub.rip для id:", id);
-        try {
-            let xhr = new XMLHttpRequest();
-            let url = `https://cub.rip/film/${id}`;
-            xhr.open("GET", url, false); // Синхронный запрос для упрощения
-            xhr.send();
-            if (xhr.status === 200) {
-                if (xhr.responseText.includes('/serial/')) {
-                    console.log("LAMPA Rating: Обнаружен serial для id:", id);
-                    return 'tv';
-                } else {
-                    console.log("LAMPA Rating: Обнаружен film для id:", id);
-                    return 'movie';
-                }
-            } else {
-                console.warn("LAMPA Rating: Ошибка проверки cub.rip для id:", id, "статус:", xhr.status);
-                return null;
-            }
-        } catch (e) {
-            console.error("LAMPA Rating: Ошибка запроса к cub.rip для id:", id, ":", e);
-            return null;
+    function extractMethodAndIdFromUrl(url) {
+        if (!url) return { method: null, id: null };
+        const match = url.match(/card\/tmdb\/(movie|tv)\/(\d+)-/);
+        if (match) {
+            return { method: match[1], id: match[2] };
         }
+        return { method: null, id: null };
     }
 
     function addLampaRatingToCard(card) {
@@ -243,33 +227,32 @@
             console.warn("LAMPA Rating: Ошибка парсинга метаданных карточки:", e, "card:", card);
         }
 
-        // Усиленная проверка типа контента
-        var isTV = false;
-        if (meta.type === 'tv' || meta.card_type === 'tv' ||
-            meta.seasons || meta.number_of_seasons > 0 ||
-            meta.episodes || meta.number_of_episodes > 0 ||
-            meta.is_series) {
-            isTV = true;
-        }
-        if (!isTV) {
-            if ($(card).hasClass('card--tv') || $(card).data('type') === 'tv') isTV = true;
-            else if ($(card).find('.card__type, .card__temp').text().match(/(сезон|серия|эпизод|ТВ|TV)/i)) isTV = true;
-            else if ($(card).find('.card__title').text().match(/(сезон|серия|эпизод|ТВ|TV)/i)) isTV = true;
-        }
-
-        // Проверка через cub.rip
-        var id = meta.id || meta.movie?.id || meta.tv?.id || $(card).attr('data-quality-id')?.replace('card_', '');
-        var method = meta.method || (isTV ? 'tv' : 'movie');
-        if (id) {
-            let cubRipType = getCardTypeFromCubRip(card, id);
-            if (cubRipType) {
-                method = cubRipType;
+        // Проверка URL карточки
+        var url = meta.url || $(card).find('a').attr('href') || '';
+        var { method, id: urlId } = extractMethodAndIdFromUrl(url);
+        if (!method || !urlId) {
+            // Усиленная проверка типа контента
+            var isTV = false;
+            if (meta.type === 'tv' || meta.card_type === 'tv' ||
+                meta.seasons || meta.number_of_seasons > 0 ||
+                meta.episodes || meta.number_of_episodes > 0 ||
+                meta.is_series) {
+                isTV = true;
             }
+            if (!isTV) {
+                if ($(card).hasClass('card--tv') || $(card).data('type') === 'tv') isTV = true;
+                else if ($(card).find('.card__type, .card__temp').text().match(/(сезон|серия|эпизод|ТВ|TV)/i)) isTV = true;
+                else if ($(card).find('.card__title').text().match(/(сезон|серия|эпизод|ТВ|TV)/i)) isTV = true;
+            }
+            method = meta.method || (isTV ? 'tv' : 'movie');
+            id = meta.id || meta.movie?.id || meta.tv?.id || $(card).attr('data-quality-id')?.replace('card_', '');
+        } else {
+            id = urlId;
         }
 
         if (method && id) {
             var ratingKey = `${method}_${id}`;
-            console.log("LAMPA Rating: Формирование ratingKey:", ratingKey, "meta:", meta);
+            console.log("LAMPA Rating: Формирование ratingKey:", ratingKey, "meta:", meta, "url:", url);
             vote.addClass('lampa-rating').text('0.0');
             getLampaRating(ratingKey).then(rating => {
                 if (rating !== null && rating !== 0) {
@@ -283,7 +266,7 @@
                 }
             });
         } else {
-            console.warn("LAMPA Rating: Пропущена карточка, method:", method, "id:", id, "meta:", meta);
+            console.warn("LAMPA Rating: Пропущена карточка, method:", method, "id:", id, "meta:", meta, "url:", url);
         }
     }
 
