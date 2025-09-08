@@ -78,7 +78,7 @@
     function fetchLampaRating(ratingKey, retries = 2) {
         return new Promise((resolve, reject) => {
             let xhr = new XMLHttpRequest();
-            let url = "http://cub.rip/api/reactions/get/" + ratingKey;
+            let url = "https://cub.rip/api/reactions/get/" + ratingKey;
             xhr.open("GET", url, true);
             xhr.timeout = 5000;
             xhr.onreadystatechange = function(){
@@ -192,6 +192,31 @@
         return true;
     }
 
+    async function getCardTypeFromCubRip(card, id) {
+        console.log("LAMPA Rating: Проверка типа контента через cub.rip для id:", id);
+        try {
+            let xhr = new XMLHttpRequest();
+            let url = `https://cub.rip/film/${id}`;
+            xhr.open("GET", url, false); // Синхронный запрос для упрощения
+            xhr.send();
+            if (xhr.status === 200) {
+                if (xhr.responseText.includes('/serial/')) {
+                    console.log("LAMPA Rating: Обнаружен serial для id:", id);
+                    return 'tv';
+                } else {
+                    console.log("LAMPA Rating: Обнаружен film для id:", id);
+                    return 'movie';
+                }
+            } else {
+                console.warn("LAMPA Rating: Ошибка проверки cub.rip для id:", id, "статус:", xhr.status);
+                return null;
+            }
+        } catch (e) {
+            console.error("LAMPA Rating: Ошибка запроса к cub.rip для id:", id, ":", e);
+            return null;
+        }
+    }
+
     function addLampaRatingToCard(card) {
         console.log("LAMPA Rating: Попытка добавить рейтинг для карточки", card);
         var vote = $(card).find('.card__vote');
@@ -229,17 +254,19 @@
         if (!isTV) {
             if ($(card).hasClass('card--tv') || $(card).data('type') === 'tv') isTV = true;
             else if ($(card).find('.card__type, .card__temp').text().match(/(сезон|серия|эпизод|ТВ|TV)/i)) isTV = true;
-            else if ($(card).find('.card__title').text().match(/(сезон|серия|эпизод|ТВ|TV)/i)) isTV = true; // Проверка заголовка
+            else if ($(card).find('.card__title').text().match(/(сезон|серия|эпизод|ТВ|TV)/i)) isTV = true;
         }
 
-        // Проверка на основе URL изображения
-        if (!isTV && $(card).find('.card__img').attr('src')) {
-            let imgSrc = $(card).find('.card__img').attr('src');
-            if (imgSrc.includes('tv')) isTV = true;
-        }
-
-        var method = meta.method || (isTV ? 'tv' : 'movie');
+        // Проверка через cub.rip
         var id = meta.id || meta.movie?.id || meta.tv?.id || $(card).attr('data-quality-id')?.replace('card_', '');
+        var method = meta.method || (isTV ? 'tv' : 'movie');
+        if (id) {
+            let cubRipType = getCardTypeFromCubRip(card, id);
+            if (cubRipType) {
+                method = cubRipType;
+            }
+        }
+
         if (method && id) {
             var ratingKey = `${method}_${id}`;
             console.log("LAMPA Rating: Формирование ratingKey:", ratingKey, "meta:", meta);
