@@ -5,11 +5,11 @@
     const CACHE_TIME = 24 * 60 * 60 * 1000;
     let lampaRatingCache = {};
 
-    // Стили для рейтинга на постере и скрытия TMDB рейтинга на главной
+    // Стили для рейтинга на постере
     const styles = `
         .card__rating-overlay {
             position: absolute;
-            top: 1.4em;
+            top: 3em; /* Смещение вниз, чтобы не перекрывать метки Фильм/Сериал */
             left: -0.8em;
             background-color: rgba(0, 0, 0, 0.7);
             color: white;
@@ -17,7 +17,7 @@
             border-radius: 0.3em;
             font-size: 0.8em;
             font-weight: bold;
-            z-index: 1000;
+            z-index: 1001; /* Выше других элементов */
             text-align: center;
             white-space: nowrap;
         }
@@ -73,7 +73,7 @@
             let xhr = new XMLHttpRequest();
             let url = "http://cub.rip/api/reactions/get/" + ratingKey;
             xhr.open("GET", url, true);
-            xhr.timeout = 3000; // Увеличен таймаут до 3 секунд
+            xhr.timeout = 5000; // Увеличен таймаут до 5 секунд
             xhr.onreadystatechange = function(){
                 if(xhr.readyState === 4) {
                     if(xhr.status === 200) {
@@ -152,10 +152,13 @@
     }
 
     function addLampaRatingToCard(card) {
-        if ($(card).find('.card__rating-overlay').length) return;
+        if ($(card).find('.card__rating-overlay').length) {
+            console.log("LAMPA Rating: Рейтинг уже добавлен для карточки", card);
+            return;
+        }
         var view = $(card).find('.card__view');
         if (!view.length) {
-            console.warn("LAMPA Rating: .card__view не найден для карточки");
+            console.warn("LAMPA Rating: .card__view не найден для карточки", card);
             return;
         }
 
@@ -174,21 +177,34 @@
                 meta = Object.assign(meta, Lampa.Storage.cache('card_' + id));
             }
         } catch (e) {
-            console.warn("LAMPA Rating: Ошибка парсинга метаданных карточки:", e);
+            console.warn("LAMPA Rating: Ошибка парсинга метаданных карточки:", e, "card:", card);
         }
 
-        var method = meta.method || (meta.movie ? 'movie' : meta.tv ? 'tv' : null);
+        var isTV = false;
+        if (meta.type === 'tv' || meta.card_type === 'tv' ||
+            meta.seasons || meta.number_of_seasons > 0 ||
+            meta.episodes || meta.number_of_episodes > 0 ||
+            meta.is_series) {
+            isTV = true;
+        }
+        if (!isTV) {
+            if ($(card).hasClass('card--tv') || $(card).data('type') === 'tv') isTV = true;
+            else if ($(card).find('.card__type, .card__temp').text().match(/(сезон|серия|эпизод|ТВ|TV)/i)) isTV = true;
+        }
+
+        var method = meta.method || (isTV ? 'tv' : 'movie');
         var id = meta.id || meta.movie?.id || meta.tv?.id;
         if (method && id) {
             var ratingKey = `${method}_${id}`;
             var ratingOverlay = $('<div class="card__rating-overlay">0.0</div>');
             view.css('position', 'relative').append(ratingOverlay);
-            console.log("LAMPA Rating: Добавлен временный рейтинг 0.0 для", ratingKey);
+            console.log("LAMPA Rating: Добавлен временный рейтинг 0.0 для", ratingKey, "card:", card);
             getLampaRating(ratingKey).then(rating => {
                 if (rating !== null && rating !== 0) {
                     ratingOverlay.text(rating);
                     console.log("LAMPA Rating: Установлен рейтинг", rating, "для", ratingKey);
                 } else {
+                    ratingOverlay.text('N/A'); // Если рейтинг отсутствует
                     console.warn("LAMPA Rating: Рейтинг не установлен для", ratingKey, ", rating:", rating);
                 }
             });
@@ -197,9 +213,9 @@
         }
     }
 
-    // Обработка карточек на главной
+    // Обработка всех карточек
     function processAllCards() {
-        $('.card').each(function () {
+        $('.items-cards .card').each(function () {
             addLampaRatingToCard(this);
         });
     }
@@ -208,7 +224,7 @@
     new MutationObserver(function (muts) {
         muts.forEach(function (m) {
             if (m.addedNodes) {
-                $(m.addedNodes).find('.card').each(function () {
+                $(m.addedNodes).find('.items-cards .card').each(function () {
                     addLampaRatingToCard(this);
                 });
             }
@@ -226,7 +242,7 @@
     });
 
     // Периодическая обработка карточек
-    setInterval(processAllCards, 2000);
+    setInterval(processAllCards, 1500);
 
     // Обработчик для полной карточки
     Lampa.Listener.follow('full', function(e){
@@ -254,7 +270,10 @@
         processAllCards();
     } else {
         Lampa.Listener.follow('app', function (e) {
-            if (e.type === 'ready') processAllCards();
+            if (e.type === 'ready') {
+                console.log("LAMPA Rating: Приложение готово, запуск обработки карточек");
+                processAllCards();
+            }
         });
     }
 })();
