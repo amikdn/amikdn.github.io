@@ -5,7 +5,7 @@
     const CACHE_TIME = 24 * 60 * 60 * 1000;
     let lampaRatingCache = {};
 
-    // Стили для рейтинга на постере
+    // Стили для рейтинга на постере и скрытия TMDB рейтинга
     const styles = `
         .card__rating-overlay {
             position: absolute;
@@ -18,6 +18,9 @@
             font-size: 14px;
             font-weight: bold;
             z-index: 10;
+        }
+        .card__vote {
+            display: none !important; /* Скрываем рейтинг TMDB */
         }
     `;
 
