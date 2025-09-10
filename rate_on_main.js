@@ -46,7 +46,8 @@
     function fetchLampaRating(ratingKey) {
         return new Promise((resolve, reject) => {
             let xhr = new XMLHttpRequest();
-            let url = "http://cub.rip/api/reactions/get/" + ratingKey;
+            let url = "http://cub.bylampa.online/api/reactions/get/" + ratingKey;
+            console.log('Fetching rating from:', url);
             xhr.open("GET", url, true);
             xhr.timeout = 2000;
             xhr.onreadystatechange = function() {
@@ -59,7 +60,7 @@
                                 let rating = calculateLampaRating10(data.result);
                                 resolve(rating);
                             } else {
-                                resolve(0); // Возвращаем 0 для пустого результата
+                                resolve(0); // Фallback на 0 для пустого результата
                             }
                         } catch (e) {
                             reject(e);
@@ -129,31 +130,14 @@
             type = 'tv';
         }
         let ratingKey = type + "_" + id;
-        console.log('Checking card:', { card, data, cardData, event: event.object }, 'Initial ratingKey:', ratingKey);
-        let attempts = 0;
-        let interval = setInterval(() => {
-            if (attempts >= 5) {
-                clearInterval(interval);
-                console.warn('Max attempts reached for card:', card, 'Using:', ratingKey);
-                return;
-            }
-            let updatedData = card.dataset || {};
-            let updatedId = updatedData.id || card.getAttribute('data-id') || (card.getAttribute('data-card-id') || '0').replace('movie_', '') || event.object.id || '0';
-            let updatedRatingKey = type + "_" + updatedId;
-            if (updatedId !== '0') {
-                console.log('Updated ratingKey:', updatedRatingKey);
-                getLampaRating(updatedRatingKey).then(rating => {
-                    voteEl.innerHTML = rating !== null ? rating : '0.0';
-                    console.log('Rating set to:', voteEl.innerHTML, 'for', updatedRatingKey);
-                    clearInterval(interval);
-                }).catch(error => {
-                    console.error('Error setting rating for ' + updatedRatingKey + ':', error);
-                    voteEl.innerHTML = '0.0';
-                    clearInterval(interval);
-                });
-            }
-            attempts++;
-        }, 500);
+        console.log('Rating key for card:', ratingKey, 'Card data:', { card, data, cardData, event: event.object });
+        getLampaRating(ratingKey).then(rating => {
+            voteEl.innerHTML = rating !== null ? rating : '0.0';
+            console.log('Rating set to:', voteEl.innerHTML, 'for', ratingKey);
+        }).catch(error => {
+            console.error('Error setting rating for ' + ratingKey + ':', error);
+            voteEl.innerHTML = '0.0';
+        });
     }
 
     Lampa.Listener.follow('full', function(e) {
