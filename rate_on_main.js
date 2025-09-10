@@ -6,7 +6,6 @@
 
     const CACHE_TIME = 24 * 60 * 60 * 1000;
     let lampaRatingCache = {};
-    let ratingIntervals = new WeakMap(); // Для хранения интервалов по карточкам
 
     function calculateLampaRating10(reactions) {
         let weightedSum = 0;
@@ -118,8 +117,7 @@
             voteEl.className = 'card__vote';
             let viewEl = card.querySelector('.card__view') || card;
             viewEl.appendChild(voteEl);
-        } else {
-            voteEl.innerHTML = ''; // Очищаем предыдущий контент
+            voteEl.innerHTML = '0.0'; // Устанавливаем начальное значение
         }
         let data = card.dataset || {};
         let cardData = event.object.card_data || {};
@@ -129,28 +127,8 @@
             type = 'tv';
         }
         let ratingKey = type + "_" + id;
-        console.log('Initial Rating key for card:', ratingKey, 'Card:', card, 'Event:', event.object);
-        if (id === '0') {
-            console.warn('No valid ID found, setting up interval for:', card);
-            if (!ratingIntervals.has(card)) {
-                let interval = setInterval(() => {
-                    let updatedData = card.dataset || {};
-                    let updatedId = updatedData.id || card.getAttribute('data-id') || (card.getAttribute('data-card-id') || '0').replace('movie_', '') || event.object.id || '0';
-                    let updatedRatingKey = type + "_" + updatedId;
-                    if (updatedId !== '0') {
-                        console.log('Updated Rating key:', updatedRatingKey);
-                        getLampaRating(updatedRatingKey).then(rating => {
-                            if (rating !== null) {
-                                voteEl.innerHTML = rating;
-                                clearInterval(interval); // Останавливаем интервал после успеха
-                                ratingIntervals.delete(card);
-                            }
-                        });
-                    }
-                }, 500); // Проверка каждые 500 мс
-                ratingIntervals.set(card, interval);
-            }
-        } else {
+        console.log('Rating key for card:', ratingKey, 'Card:', card, 'Event:', event.object);
+        if (id !== '0') {
             getLampaRating(ratingKey).then(rating => {
                 if (rating !== null) {
                     voteEl.innerHTML = rating;
@@ -159,6 +137,29 @@
                     console.warn('No rating data for ' + ratingKey);
                 }
             });
+        } else {
+            // Проверка с интервалом (максимум 5 попыток)
+            let attempts = 0;
+            let interval = setInterval(() => {
+                if (attempts >= 5) {
+                    clearInterval(interval);
+                    console.warn('Max attempts reached for card:', card);
+                    return;
+                }
+                let updatedData = card.dataset || {};
+                let updatedId = updatedData.id || card.getAttribute('data-id') || (card.getAttribute('data-card-id') || '0').replace('movie_', '') || event.object.id || '0';
+                let updatedRatingKey = type + "_" + updatedId;
+                if (updatedId !== '0') {
+                    console.log('Updated Rating key:', updatedRatingKey);
+                    getLampaRating(updatedRatingKey).then(rating => {
+                        if (rating !== null) {
+                            voteEl.innerHTML = rating;
+                            clearInterval(interval);
+                        }
+                    });
+                }
+                attempts++;
+            }, 500);
         }
     }
 
