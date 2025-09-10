@@ -108,7 +108,7 @@
             voteEl.className = 'card__vote';
             let viewEl = card.querySelector('.card__view') || card;
             viewEl.appendChild(voteEl);
-            voteEl.innerHTML =
+            voteEl.innerHTML = '0'
         }
         let data = card.dataset || {};
         let cardData = event.object.data || {}; // Используем event.object.data как в обфусцированном коде
@@ -124,7 +124,7 @@
             console.log('Rating set to:', voteEl.innerHTML, 'for', ratingKey);
         }).catch(error => {
             console.error('Error setting rating for ' + ratingKey + ':', error);
-            voteEl.innerHTML = ;
+            voteEl.innerHTML = '0' ;
         });
     }
 
