@@ -59,17 +59,10 @@
                             } else {
                                 resolve(0); // Фallback на 0 для пустого результата
                             }
-                        } catch (e) {
-                            reject(e);
-                        }
-                    } else {
-                        reject(new Error("Ошибка запроса, статус: " + xhr.status));
-                    }
+                        } 
+                    } 
                 }
             };
-            xhr.onerror = function() { reject(new Error("XHR ошибка")); };
-            xhr.ontimeout = function() { reject(new Error("Таймаут запроса")); };
-            xhr.send();
         });
     }
 
@@ -115,9 +108,7 @@
             voteEl.className = 'card__vote';
             let viewEl = card.querySelector('.card__view') || card;
             viewEl.appendChild(voteEl);
-            voteEl.innerHTML = '0'; // Начальное значение
-        } else {
-            voteEl.innerHTML = ''; // Очищаем предыдущий контент (TMDB)
+            voteEl.innerHTML =
         }
         let data = card.dataset || {};
         let cardData = event.object.data || {}; // Используем event.object.data как в обфусцированном коде
@@ -133,7 +124,7 @@
             console.log('Rating set to:', voteEl.innerHTML, 'for', ratingKey);
         }).catch(error => {
             console.error('Error setting rating for ' + ratingKey + ':', error);
-            voteEl.innerHTML = '0';
+            voteEl.innerHTML = ;
         });
     }
 
