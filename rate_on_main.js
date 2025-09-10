@@ -1,9 +1,6 @@
 (function() {
     'use strict';
-
-    if (window.lampa_rating_plugin) return;
-    window.lampa_rating_plugin = true;
-
+    
     const CACHE_TIME = 24 * 60 * 60 * 1000;
     let lampaRatingCache = {};
 
@@ -99,7 +96,7 @@
         if (rateLine.find('.rate--lampa').length > 0) return true;
         let lampaBlockHtml =
             '<div class="full-start__rate rate--lampa">' +
-                '<div class="rate-value">0 LAMPA</div>' +
+                '<div class="rate-value">0</div>' +
                 '<div class="source--name">LAMPA</div>' +
             '</div>';
         let kpBlock = rateLine.find('.rate--kp');
@@ -118,7 +115,7 @@
             voteEl.className = 'card__vote';
             let viewEl = card.querySelector('.card__view') || card;
             viewEl.appendChild(voteEl);
-            voteEl.innerHTML = '0 LAMPA'; // Начальное значение
+            voteEl.innerHTML = '0'; // Начальное значение
         } else {
             voteEl.innerHTML = ''; // Очищаем предыдущий контент (TMDB)
         }
@@ -132,11 +129,11 @@
         let ratingKey = type + "_" + id;
         console.log('Rating key for card:', ratingKey, 'Card data:', { card, data, cardData, event: event.object });
         getLampaRating(ratingKey).then(rating => {
-            voteEl.innerHTML = rating !== null ? rating : '0 LAMPA';
+            voteEl.innerHTML = rating !== null ? rating : '0';
             console.log('Rating set to:', voteEl.innerHTML, 'for', ratingKey);
         }).catch(error => {
             console.error('Error setting rating for ' + ratingKey + ':', error);
-            voteEl.innerHTML = '0.0';
+            voteEl.innerHTML = '0';
         });
     }
 
