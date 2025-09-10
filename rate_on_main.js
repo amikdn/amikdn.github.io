@@ -56,7 +56,7 @@
                                 let rating = calculateLampaRating10(data.result);
                                 resolve(rating);
                             } else {
-                                resolve(0); // Фallback на 0 для пустого результата
+                                resolve(0);
                             }
                         } catch (e) {
                             reject(e);
