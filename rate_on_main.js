@@ -99,7 +99,7 @@
         if (rateLine.find('.rate--lampa').length > 0) return true;
         let lampaBlockHtml =
             '<div class="full-start__rate rate--lampa">' +
-                '<div class="rate-value">0.0</div>' +
+                '<div class="rate-value">0.0 LAMPA</div>' +
                 '<div class="source--name">LAMPA</div>' +
             '</div>';
         let kpBlock = rateLine.find('.rate--kp');
