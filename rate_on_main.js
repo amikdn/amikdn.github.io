@@ -54,6 +54,7 @@
                     if (xhr.status === 200) {
                         try {
                             let data = JSON.parse(xhr.responseText);
+                            console.log('API Response for ' + ratingKey + ':', data);
                             if (data && data.result && Array.isArray(data.result)) {
                                 let rating = calculateLampaRating10(data.result);
                                 resolve(rating);
@@ -82,8 +83,10 @@
         try {
             let rating = await fetchLampaRating(ratingKey);
             lampaRatingCache[ratingKey] = { value: rating, timestamp: now };
+            console.log('Cached rating for ' + ratingKey + ':', rating);
             return rating;
         } catch (e) {
+            console.error('Error fetching rating for ' + ratingKey + ':', e.message);
             return null;
         }
     }
@@ -119,15 +122,19 @@
         }
         let data = card.dataset || {};
         let type = 'movie';
-        if (card.dataset.seasons || card.dataset.firstAirDate || card.dataset.originalName) {
+        if (data.seasons || data.firstAirDate || data.originalName) {
             type = 'tv';
         }
-        let ratingKey = type + "_" + (data.id || '0');
+        let id = data.id || (card.getAttribute('data-id') || '0');
+        let method = data.method || 'movie'; // По умолчанию 'movie', если method отсутствует
+        let ratingKey = type + "_" + id;
+        console.log('Rating key for card:', ratingKey, 'Data:', data);
         getLampaRating(ratingKey).then(rating => {
             if (rating !== null) {
                 voteEl.innerHTML = rating;
             } else {
                 voteEl.innerHTML = '0.0';
+                console.warn('No rating data for ' + ratingKey);
             }
         });
     }
