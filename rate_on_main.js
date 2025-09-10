@@ -115,7 +115,7 @@
     }
 
     function insertCardRating(card, event) {
-        if (!Lampa.Storage.get('lampa_rating_enabled', true)) return; // Проверяем настройку
+        if (!Lampa.Storage.get('lampa_rating_enabled', true)) return;
         let voteEl = card.querySelector('.card__vote');
         if (!voteEl) {
             voteEl = document.createElement('div');
@@ -144,22 +144,9 @@
         });
     }
 
-    // Добавление настройки
+    // Добавление настройки через Lampa.Settings.addParam
     Lampa.Listener.follow('app', function(e) {
         if (e.type === 'ready') {
-            if (!Lampa.Settings.main) Lampa.Settings.main = [];
-            Lampa.Settings.main.push({
-                subtitle: 'Rating Settings',
-                items: [{
-                    title: 'Show LAMPA Rating on Posters',
-                    enabled: true,
-                    value: Lampa.Storage.get('lampa_rating_enabled', true),
-                    on_change: function (value) {
-                        Lampa.Storage.set('lampa_rating_enabled', value);
-                    }
-                }]
-            });
-
             if (!window.Lampa.Card._build_original) {
                 window.Lampa.Card._build_original = window.Lampa.Card._build;
                 window.Lampa.Card._build = function() {
@@ -169,6 +156,30 @@
                     return result;
                 };
             }
+
+            Lampa.Settings.addParam({
+                component: 'interface',
+                param: {
+                    name: 'lampa_rating_enabled',
+                    type: 'toggle',
+                    values: { true: 'Show LAMPA Rating', false: 'Hide LAMPA Rating' },
+                    default: true
+                },
+                field: {
+                    name: 'Show LAMPA Rating on Posters',
+                    description: 'Enable or disable LAMPA rating display on posters'
+                },
+                onChange: function (value) {
+                    Lampa.Storage.set('lampa_rating_enabled', value);
+                    console.log('Lampa rating enabled:', value);
+                    // Перерендер карточек при смене настройки (опционально)
+                    let cards = document.querySelectorAll('.card');
+                    cards.forEach(card => {
+                        let event = { type: 'build', object: { card: card, data: card.dataset || {} } };
+                        insertCardRating(card, event);
+                    });
+                }
+            });
         }
     });
 
