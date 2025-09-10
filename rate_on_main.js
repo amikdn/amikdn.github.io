@@ -1,14 +1,18 @@
 (function() {
     'use strict';
-    
+
+    if (window.lampa_rating_plugin) return;
+    window.lampa_rating_plugin = true;
+
     const CACHE_TIME = 24 * 60 * 60 * 1000;
     let lampaRatingCache = {};
 
     function calculateLampaRating10(reactions) {
         let weightedSum = 0;
         let totalCount = 0;
+        console.log('Calculating rating for:', reactions);
         reactions.forEach(item => {
-            const count = parseInt(item.counter, 10);
+            const count = parseInt(item.counter, 10) || 0;
             switch (item.type) {
                 case "fire":
                     weightedSum += count * 5;
@@ -31,13 +35,15 @@
                     totalCount += count;
                     break;
                 default:
+                    console.warn('Unknown reaction type:', item.type);
                     break;
             }
         });
+        console.log('Weighted sum:', weightedSum, 'Total count:', totalCount);
         if (totalCount === 0) return 0;
         const avgRating = weightedSum / totalCount;
         const rating10 = (avgRating - 1) * 2.5;
-        return parseFloat(rating10.toFixed(1));
+        return rating10 >= 0 ? parseFloat(rating10.toFixed(1)) : 0;
     }
 
     function fetchLampaRating(ratingKey) {
@@ -57,12 +63,19 @@
                                 let rating = calculateLampaRating10(data.result);
                                 resolve(rating);
                             } else {
-                                resolve(0); // Фallback на 0 для пустого результата
+                                resolve(0);
                             }
-                        } 
-                    } 
+                        } catch (e) {
+                            reject(e);
+                        }
+                    } else {
+                        reject(new Error("Ошибка запроса, статус: " + xhr.status));
+                    }
                 }
             };
+            xhr.onerror = function() { reject(new Error("XHR ошибка")); };
+            xhr.ontimeout = function() { reject(new Error("Таймаут запроса")); };
+            xhr.send();
         });
     }
 
@@ -78,7 +91,7 @@
             return rating;
         } catch (e) {
             console.error('Error fetching rating for ' + ratingKey + ':', e.message);
-            return 0; // Fallback на 0 при ошибке
+            return 0;
         }
     }
 
@@ -89,8 +102,7 @@
         if (rateLine.find('.rate--lampa').length > 0) return true;
         let lampaBlockHtml =
             '<div class="full-start__rate rate--lampa">' +
-                '<div class="rate-value">0</div>' +
-                '<div class="source--name">LAMPA</div>' +
+                '<div class="rate-value">0.0 LAMPA</div>' + // Добавлена надпись LAMPA
             '</div>';
         let kpBlock = rateLine.find('.rate--kp');
         if (kpBlock.length > 0) {
@@ -108,10 +120,12 @@
             voteEl.className = 'card__vote';
             let viewEl = card.querySelector('.card__view') || card;
             viewEl.appendChild(voteEl);
-            voteEl.innerHTML = '0'
+            voteEl.innerHTML = '0.0 LAMPA'; // Начальное значение с надписью LAMPA
+        } else {
+            voteEl.innerHTML = ''; // Очищаем предыдущий контент
         }
         let data = card.dataset || {};
-        let cardData = event.object.data || {}; // Используем event.object.data как в обфусцированном коде
+        let cardData = event.object.data || {};
         let id = cardData.id || data.id || card.getAttribute('data-id') || (card.getAttribute('data-card-id') || '0').replace('movie_', '') || '0';
         let type = 'movie';
         if (cardData.seasons || cardData.first_air_date || cardData.original_name || data.seasons || data.firstAirDate || data.originalName) {
@@ -120,23 +134,22 @@
         let ratingKey = type + "_" + id;
         console.log('Rating key for card:', ratingKey, 'Card data:', { card, data, cardData, event: event.object });
         getLampaRating(ratingKey).then(rating => {
-            voteEl.innerHTML = rating !== null ? rating : '0';
+            voteEl.innerHTML = rating !== null ? rating + ' LAMPA' : '0.0 LAMPA'; // Добавляем LAMPA к рейтингу
             console.log('Rating set to:', voteEl.innerHTML, 'for', ratingKey);
         }).catch(error => {
             console.error('Error setting rating for ' + ratingKey + ':', error);
-            voteEl.innerHTML = '0' ;
+            voteEl.innerHTML = '0.0 LAMPA';
         });
     }
 
-    // Перехват _build с задержкой
     Lampa.Listener.follow('app', function(e) {
         if (e.type === 'ready') {
             if (!window.Lampa.Card._build_original) {
                 window.Lampa.Card._build_original = window.Lampa.Card._build;
                 window.Lampa.Card._build = function() {
                     let result = window.Lampa.Card._build_original.call(this);
-                    console.log('Card build data:', this); // Логируем объект this
-                    setTimeout(() => Lampa.Listener.send('card', { type: 'build', object: this }), 100); // Задержка для инициализации
+                    console.log('Card build data:', this);
+                    setTimeout(() => Lampa.Listener.send('card', { type: 'build', object: this }), 100);
                     return result;
                 };
             }
@@ -151,7 +164,7 @@
                     let ratingKey = e.object.method + "_" + e.object.id;
                     getLampaRating(ratingKey).then(rating => {
                         if (rating !== null) {
-                            $(render).find('.rate--lampa .rate-value').text(rating);
+                            $(render).find('.rate--lampa .rate-value').text(rating + ' LAMPA'); // Добавляем LAMPA
                         }
                     });
                 }
