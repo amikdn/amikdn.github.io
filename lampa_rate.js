@@ -49,7 +49,7 @@
             let url = "http://cub.rip/api/reactions/get/" + ratingKey;
             console.log('Fetching rating from:', url);
             xhr.open("GET", url, true);
-            xhr.timeout = 2000;
+            xhr.timeout = 5000;
             xhr.onreadystatechange = function() {
                 if (xhr.readyState === 4) {
                     if (xhr.status === 200) {
@@ -177,4 +177,5 @@
         }
     });
 })();
+
 
