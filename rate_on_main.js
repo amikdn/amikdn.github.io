@@ -144,43 +144,55 @@
         });
     }
 
-    // Добавление настройки через Lampa.Settings.addParam
-    Lampa.Listener.follow('app', function(e) {
-        if (e.type === 'ready') {
-            if (!window.Lampa.Card._build_original) {
-                window.Lampa.Card._build_original = window.Lampa.Card._build;
-                window.Lampa.Card._build = function() {
-                    let result = window.Lampa.Card._build_original.call(this);
-                    console.log('Card build data:', this);
-                    setTimeout(() => Lampa.Listener.send('card', { type: 'build', object: this }), 100);
-                    return result;
-                };
-            }
+    // Инициализация плагина и добавление настройки
+    function startPlugin() {
+        // Добавляем компонент настроек
+        Lampa.SettingsApi.addComponent({
+            component: 'lampa_rating',
+            name: 'LAMPA Rating',
+            icon: '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21L12 17.77L5.82 21L7 14.14L2 9.27L8.91 8.26L12 2Z" fill="currentColor"/></svg>'
+        });
 
-            Lampa.Settings.addParam({
-                component: 'interface',
-                param: {
-                    name: 'lampa_rating_enabled',
-                    type: 'toggle',
-                    values: { true: 'Show LAMPA Rating', false: 'Hide LAMPA Rating' },
-                    default: true
-                },
-                field: {
-                    name: 'Show LAMPA Rating on Posters',
-                    description: 'Enable or disable LAMPA rating display on posters'
-                },
-                onChange: function (value) {
-                    Lampa.Storage.set('lampa_rating_enabled', value);
-                    console.log('Lampa rating enabled:', value);
-                    // Перерендер карточек при смене настройки (опционально)
-                    let cards = document.querySelectorAll('.card');
-                    cards.forEach(card => {
-                        let event = { type: 'build', object: { card: card, data: card.dataset || {} } };
-                        insertCardRating(card, event);
-                    });
-                }
-            });
+        // Добавляем параметр переключателя
+        Lampa.SettingsApi.addParam({
+            component: 'lampa_rating',
+            param: {
+                name: 'lampa_rating_enabled',
+                type: 'trigger',
+                default: true
+            },
+            field: {
+                name: 'Show LAMPA Rating on Posters',
+                description: 'Enable or disable LAMPA rating display on posters'
+            },
+            onChange: function (value) {
+                Lampa.Storage.set('lampa_rating_enabled', value);
+                console.log('Lampa rating enabled:', value);
+                // Перерендер карточек при смене настройки
+                let cards = document.querySelectorAll('.card');
+                cards.forEach(card => {
+                    let event = { type: 'build', object: { card: card, data: card.dataset || {} } };
+                    insertCardRating(card, event);
+                });
+            }
+        });
+
+        // Загружаем сохранённое значение
+        Lampa.Storage.set('lampa_rating_enabled', Lampa.Storage.get('lampa_rating_enabled', true));
+
+        if (!window.Lampa.Card._build_original) {
+            window.Lampa.Card._build_original = window.Lampa.Card._build;
+            window.Lampa.Card._build = function() {
+                let result = window.Lampa.Card._build_original.call(this);
+                console.log('Card build data:', this);
+                setTimeout(() => Lampa.Listener.send('card', { type: 'build', object: this }), 100);
+                return result;
+            };
         }
+    }
+
+    Lampa.Listener.follow('app', function(e) {
+        if (e.type === 'ready') startPlugin();
     });
 
     Lampa.Listener.follow('full', function(e) {
