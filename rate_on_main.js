@@ -1,6 +1,6 @@
 (function() {
     'use strict';
-    
+
     if (window.lampa_rating_plugin) return;
     window.lampa_rating_plugin = true;
 
@@ -114,17 +114,22 @@
             voteEl.className = 'card__vote';
             let viewEl = card.querySelector('.card__view') || card;
             viewEl.appendChild(voteEl);
+        } else {
+            voteEl.innerHTML = ''; // Очищаем предыдущий контент
         }
         let data = card.dataset || {};
-        if (data.id) {
-            getLampaRating(data.method + "_" + data.id).then(rating => {
-                if (rating !== null) {
-                    voteEl.innerHTML = rating;
-                } else {
-                    voteEl.innerHTML = '0.0';
-                }
-            });
+        let type = 'movie';
+        if (card.dataset.seasons || card.dataset.firstAirDate || card.dataset.originalName) {
+            type = 'tv';
         }
+        let ratingKey = type + "_" + (data.id || '0');
+        getLampaRating(ratingKey).then(rating => {
+            if (rating !== null) {
+                voteEl.innerHTML = rating;
+            } else {
+                voteEl.innerHTML = '0.0';
+            }
+        });
     }
 
     Lampa.Listener.follow('full', function(e) {
