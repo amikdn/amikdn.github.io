@@ -110,7 +110,7 @@
         return true;
     }
 
-    function insertCardRating(card) {
+    function insertCardRating(card, event) {
         let voteEl = card.querySelector('.card__vote');
         if (!voteEl) {
             voteEl = document.createElement('div');
@@ -121,13 +121,18 @@
             voteEl.innerHTML = ''; // Очищаем предыдущий контент
         }
         let data = card.dataset || {};
-        let id = data.id || card.getAttribute('data-id') || (card.getAttribute('data-card-id') || '0').replace('movie_', '');
+        let cardData = event.object.card_data || {};
+        let id = cardData.id || data.id || card.getAttribute('data-id') || (card.getAttribute('data-card-id') || '0').replace('movie_', '') || '0';
         let type = 'movie';
-        if (data.seasons || data.firstAirDate || data.originalName) {
+        if (cardData.seasons || cardData.first_air_date || cardData.original_name || data.seasons || data.firstAirDate || data.originalName) {
             type = 'tv';
         }
         let ratingKey = type + "_" + id;
-        console.log('Rating key for card:', ratingKey, 'Data:', data);
+        if (id === '0') {
+            console.warn('No valid ID found for card:', card, 'Using default:', ratingKey);
+        } else {
+            console.log('Rating key for card:', ratingKey, 'Data:', data, 'CardData:', cardData);
+        }
         getLampaRating(ratingKey).then(rating => {
             if (rating !== null) {
                 voteEl.innerHTML = rating;
@@ -157,7 +162,7 @@
     Lampa.Listener.follow('card', function(e) {
         if (e.type === 'build' && e.object.card) {
             let card = e.object.card;
-            insertCardRating(card);
+            insertCardRating(card, e);
         }
     });
 
