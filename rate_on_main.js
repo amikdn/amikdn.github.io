@@ -1,11 +1,6 @@
 (function() {
     'use strict';
 
-    if (Lampa.Manifest.origin !== 'bylampa') {
-        Lampa.Noty.show('Ошибка доступа');
-        return;
-    }
-
     if (window.lampa_rating_plugin) return;
     window.lampa_rating_plugin = true;
 
