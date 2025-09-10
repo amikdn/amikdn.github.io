@@ -123,8 +123,8 @@
             voteEl.innerHTML = ''; // Очищаем предыдущий контент (TMDB)
         }
         let data = card.dataset || {};
-        let cardData = event.object.card_data || {};
-        let id = event.object.id || cardData.id || data.id || card.getAttribute('data-id') || (card.getAttribute('data-card-id') || '0').replace('movie_', '') || '0'; // Приоритет на event.object.id
+        let cardData = event.object.data || {}; // Используем event.object.data как в обфусцированном коде
+        let id = cardData.id || data.id || card.getAttribute('data-id') || (card.getAttribute('data-card-id') || '0').replace('movie_', '') || '0';
         let type = 'movie';
         if (cardData.seasons || cardData.first_air_date || cardData.original_name || data.seasons || data.firstAirDate || data.originalName) {
             type = 'tv';
@@ -140,7 +140,7 @@
         });
     }
 
-    // Улучшенный перехват _build
+    // Перехват _build с задержкой
     Lampa.Listener.follow('app', function(e) {
         if (e.type === 'ready') {
             if (!window.Lampa.Card._build_original) {
@@ -148,7 +148,7 @@
                 window.Lampa.Card._build = function() {
                     let result = window.Lampa.Card._build_original.call(this);
                     console.log('Card build data:', this); // Логируем объект this
-                    Lampa.Listener.send('card', { type: 'build', object: this });
+                    setTimeout(() => Lampa.Listener.send('card', { type: 'build', object: this }), 100); // Задержка для инициализации
                     return result;
                 };
             }
