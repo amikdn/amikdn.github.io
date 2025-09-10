@@ -122,14 +122,14 @@
         }
         let data = card.dataset || {};
         let cardData = event.object.card_data || {};
-        let id = cardData.id || data.id || card.getAttribute('data-id') || (card.getAttribute('data-card-id') || '0').replace('movie_', '') || '0';
+        let id = cardData.id || data.id || card.getAttribute('data-id') || (card.getAttribute('data-card-id') || '0').replace('movie_', '') || event.object.id || '0';
         let type = 'movie';
         if (cardData.seasons || cardData.first_air_date || cardData.original_name || data.seasons || data.firstAirDate || data.originalName) {
             type = 'tv';
         }
         let ratingKey = type + "_" + id;
         if (id === '0') {
-            console.warn('No valid ID found for card:', card, 'Using default:', ratingKey);
+            console.warn('No valid ID found for card:', card, 'Event:', event.object, 'Using default:', ratingKey);
         } else {
             console.log('Rating key for card:', ratingKey, 'Data:', data, 'CardData:', cardData);
         }
@@ -163,6 +163,10 @@
         if (e.type === 'build' && e.object.card) {
             let card = e.object.card;
             insertCardRating(card, e);
+            // Отложенное обновление для случаев, когда ID подтягивается позже
+            setTimeout(() => {
+                insertCardRating(card, e);
+            }, 500);
         }
     });
 
