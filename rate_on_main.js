@@ -1,9 +1,6 @@
 (function() {
     'use strict';
 
-    if (window.lampa_rating_plugin) return;
-    window.lampa_rating_plugin = true;
-
     const CACHE_TIME = 24 * 60 * 60 * 1000;
     let lampaRatingCache = {};
 
@@ -33,6 +30,9 @@
                     weightedSum += count * 1;
                     totalCount += count;
                     break;
+                default:
+                    console.warn('Unknown reaction type:', item.type);
+                    break;
             }
         });
         if (totalCount === 0) return 0;
@@ -56,7 +56,7 @@
                                 let rating = calculateLampaRating10(data.result);
                                 resolve(rating);
                             } else {
-                                resolve(0);
+                                resolve(0); // Фallback на 0 для пустого результата
                             }
                         } catch (e) {
                             reject(e);
@@ -107,75 +107,41 @@
 
     function insertCardRating(card, event) {
         let voteEl = card.querySelector('.card__vote');
-        if (Lampa.Storage.get('lampa_rating_enabled', true)) {
-            if (!voteEl) {
-                voteEl = document.createElement('div');
-                voteEl.className = 'card__vote';
-                let viewEl = card.querySelector('.card__view') || card;
-                viewEl.appendChild(voteEl);
-                voteEl.innerHTML = '0.0';
-            } else {
-                voteEl.innerHTML = '';
-            }
-            let data = card.dataset || {};
-            let cardData = event.object.data || {};
-            let id = cardData.id || data.id || card.getAttribute('data-id') || (card.getAttribute('data-card-id') || '0').replace('movie_', '') || '0';
-            let type = 'movie';
-            if (cardData.seasons || cardData.first_air_date || cardData.original_name || data.seasons || data.firstAirDate || data.originalName) {
-                type = 'tv';
-            }
-            let ratingKey = type + "_" + id;
-            getLampaRating(ratingKey).then(rating => {
-                voteEl.innerHTML = rating !== null ? rating : '0.0';
-            }).catch(() => {
-                voteEl.innerHTML = '0.0';
-            });
-        } else if (voteEl) {
-            // Восстанавливаем TMDB рейтинг, удаляя LAMPA
-            voteEl.remove();
+        if (!voteEl) {
+            voteEl = document.createElement('div');
+            voteEl.className = 'card__vote';
+            let viewEl = card.querySelector('.card__view') || card;
+            viewEl.appendChild(voteEl);
+            voteEl.innerHTML = '0.0';
+        } else {
+            voteEl.innerHTML = '';
         }
-    }
-
-    function startPlugin() {
-        Lampa.SettingsApi.addComponent({
-            component: 'lampa_rating',
-            name: 'LAMPA Rating',
-            icon: '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21L12 17.77L5.82 21L7 14.14L2 9.27L8.91 8.26L12 2Z" fill="currentColor"/></svg>'
-        });
-
-        Lampa.SettingsApi.addParam({
-            component: 'lampa_rating',
-            param: {
-                name: 'lampa_rating_enabled',
-                type: 'trigger',
-                default: true
-            },
-            field: {
-                name: 'Show LAMPA Rating on Posters',
-                description: 'Enable or disable LAMPA rating display on posters'
-            },
-            onChange: function (value) {
-                Lampa.Storage.set('lampa_rating_enabled', value);
-                let cards = document.querySelectorAll('.card');
-                cards.forEach(card => {
-                    let event = { type: 'build', object: { card: card, data: card.dataset || {} } };
-                    insertCardRating(card, event);
-                });
-            }
-        });
-
-        if (!window.Lampa.Card._build_original) {
-            window.Lampa.Card._build_original = window.Lampa.Card._build;
-            window.Lampa.Card._build = function() {
-                let result = window.Lampa.Card._build_original.call(this);
-                setTimeout(() => Lampa.Listener.send('card', { type: 'build', object: this }), 100);
-                return result;
-            };
+        let data = card.dataset || {};
+        let cardData = event.object.data || {};
+        let id = cardData.id || data.id || card.getAttribute('data-id') || (card.getAttribute('data-card-id') || '0').replace('movie_', '') || '0';
+        let type = 'movie';
+        if (cardData.seasons || cardData.first_air_date || cardData.original_name || data.seasons || data.firstAirDate || data.originalName) {
+            type = 'tv';
         }
+        let ratingKey = type + "_" + id;
+        getLampaRating(ratingKey).then(rating => {
+            voteEl.innerHTML = rating !== null ? rating : '0.0';
+        }).catch(error => {
+            voteEl.innerHTML = '0.0';
+        });
     }
 
     Lampa.Listener.follow('app', function(e) {
-        if (e.type === 'ready') startPlugin();
+        if (e.type === 'ready') {
+            if (!window.Lampa.Card._build_original) {
+                window.Lampa.Card._build_original = window.Lampa.Card._build;
+                window.Lampa.Card._build = function() {
+                    let result = window.Lampa.Card._build_original.call(this);
+                    setTimeout(() => Lampa.Listener.send('card', { type: 'build', object: this }), 100);
+                    return result;
+                };
+            }
+        }
     });
 
     Lampa.Listener.follow('full', function(e) {
