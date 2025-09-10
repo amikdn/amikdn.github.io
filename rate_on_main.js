@@ -102,7 +102,8 @@
         if (rateLine.find('.rate--lampa').length > 0) return true;
         let lampaBlockHtml =
             '<div class="full-start__rate rate--lampa">' +
-                '<div class="rate-value">0.0 LAMPA</div>' + // Добавлена надпись LAMPA
+                '<div class="rate-value">0.0</div>' +
+                '<div class="source--name">LAMPA</div>' +
             '</div>';
         let kpBlock = rateLine.find('.rate--kp');
         if (kpBlock.length > 0) {
@@ -114,15 +115,16 @@
     }
 
     function insertCardRating(card, event) {
+        if (!Lampa.Storage.get('lampa_rating_enabled', true)) return; // Проверяем настройку
         let voteEl = card.querySelector('.card__vote');
         if (!voteEl) {
             voteEl = document.createElement('div');
             voteEl.className = 'card__vote';
             let viewEl = card.querySelector('.card__view') || card;
             viewEl.appendChild(voteEl);
-            voteEl.innerHTML = '0.0 LAMPA'; // Начальное значение с надписью LAMPA
+            voteEl.innerHTML = '0.0';
         } else {
-            voteEl.innerHTML = ''; // Очищаем предыдущий контент
+            voteEl.innerHTML = '';
         }
         let data = card.dataset || {};
         let cardData = event.object.data || {};
@@ -134,16 +136,30 @@
         let ratingKey = type + "_" + id;
         console.log('Rating key for card:', ratingKey, 'Card data:', { card, data, cardData, event: event.object });
         getLampaRating(ratingKey).then(rating => {
-            voteEl.innerHTML = rating !== null ? rating + ' LAMPA' : '0.0 LAMPA'; // Добавляем LAMPA к рейтингу
+            voteEl.innerHTML = rating !== null ? rating : '0.0';
             console.log('Rating set to:', voteEl.innerHTML, 'for', ratingKey);
         }).catch(error => {
             console.error('Error setting rating for ' + ratingKey + ':', error);
-            voteEl.innerHTML = '0.0 LAMPA';
+            voteEl.innerHTML = '0.0';
         });
     }
 
+    // Добавление настройки
     Lampa.Listener.follow('app', function(e) {
         if (e.type === 'ready') {
+            if (!Lampa.Settings.main) Lampa.Settings.main = [];
+            Lampa.Settings.main.push({
+                subtitle: 'Rating Settings',
+                items: [{
+                    title: 'Show LAMPA Rating on Posters',
+                    enabled: true,
+                    value: Lampa.Storage.get('lampa_rating_enabled', true),
+                    on_change: function (value) {
+                        Lampa.Storage.set('lampa_rating_enabled', value);
+                    }
+                }]
+            });
+
             if (!window.Lampa.Card._build_original) {
                 window.Lampa.Card._build_original = window.Lampa.Card._build;
                 window.Lampa.Card._build = function() {
@@ -164,7 +180,7 @@
                     let ratingKey = e.object.method + "_" + e.object.id;
                     getLampaRating(ratingKey).then(rating => {
                         if (rating !== null) {
-                            $(render).find('.rate--lampa .rate-value').text(rating + ' LAMPA'); // Добавляем LAMPA
+                            $(render).find('.rate--lampa .rate-value').text(rating);
                         }
                     });
                 }
