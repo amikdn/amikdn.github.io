@@ -121,12 +121,11 @@
             voteEl.innerHTML = ''; // Очищаем предыдущий контент
         }
         let data = card.dataset || {};
+        let id = data.id || card.getAttribute('data-id') || (card.getAttribute('data-card-id') || '0').replace('movie_', '');
         let type = 'movie';
         if (data.seasons || data.firstAirDate || data.originalName) {
             type = 'tv';
         }
-        let id = data.id || (card.getAttribute('data-id') || '0');
-        let method = data.method || 'movie'; // По умолчанию 'movie', если method отсутствует
         let ratingKey = type + "_" + id;
         console.log('Rating key for card:', ratingKey, 'Data:', data);
         getLampaRating(ratingKey).then(rating => {
