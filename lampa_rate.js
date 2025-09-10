@@ -7,7 +7,7 @@
     function calculateLampaRating10(reactions) {
         let weightedSum = 0;
         let totalCount = 0;
-        console.log('Calculating rating for:', reactions); // Отладка
+        console.log('Calculating rating for:', reactions);
         reactions.forEach(item => {
             const count = parseInt(item.counter, 10) || 0;
             switch (item.type) {
@@ -36,11 +36,11 @@
                     break;
             }
         });
-        console.log('Weighted sum:', weightedSum, 'Total count:', totalCount); // Отладка
+        console.log('Weighted sum:', weightedSum, 'Total count:', totalCount);
         if (totalCount === 0) return 0;
         const avgRating = weightedSum / totalCount;
         const rating10 = (avgRating - 1) * 2.5;
-        return rating10 >= 0 ? parseFloat(rating10.toFixed(1)) : 0; // Ограничиваем снизу 0
+        return rating10 >= 0 ? parseFloat(rating10.toFixed(1)) : 0;
     }
 
     function fetchLampaRating(ratingKey) {
@@ -60,7 +60,7 @@
                                 let rating = calculateLampaRating10(data.result);
                                 resolve(rating);
                             } else {
-                                resolve(0); // Фallback на 0 для пустого результата
+                                resolve(0);
                             }
                         } catch (e) {
                             reject(e);
@@ -88,7 +88,7 @@
             return rating;
         } catch (e) {
             console.error('Error fetching rating for ' + ratingKey + ':', e.message);
-            return 0; // Fallback на 0 при ошибке
+            return 0;
         }
     }
 
@@ -118,9 +118,9 @@
             voteEl.className = 'card__vote';
             let viewEl = card.querySelector('.card__view') || card;
             viewEl.appendChild(voteEl);
-            voteEl.innerHTML = '0.0'; // Начальное значение
+            voteEl.innerHTML = '0.0'; 
         } else {
-            voteEl.innerHTML = ''; // Очищаем предыдущий контент (TMDB)
+            voteEl.innerHTML = '';
         }
         let data = card.dataset || {};
         let cardData = event.object.data || {};
@@ -177,3 +177,4 @@
         }
     });
 })();
+
