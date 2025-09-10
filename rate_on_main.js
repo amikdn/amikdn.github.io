@@ -1,6 +1,11 @@
 (function() {
     'use strict';
 
+    if (Lampa.Manifest.origin !== 'bylampa') {
+        Lampa.Noty.show('Ошибка доступа');
+        return;
+    }
+
     if (window.lampa_rating_plugin) return;
     window.lampa_rating_plugin = true;
 
@@ -83,9 +88,9 @@
     function handleCard(event) {
         if (event.type !== 'build' || !event.object.card) return;
         var card = event.object.card;
-        var data = event.object.activity.card_data || {};
-        if (!data.id) return;
-
+        var data = (event.object.activity && event.object.activity.card_data) || {}; // Проверка на undefined
+        if (!data.id && !card.dataset.id) return; // Альтернатива: проверка dataset.id
+        data.id = data.id || card.dataset.id; // Используем dataset.id как запасной вариант
         var voteEl = createVoteElement(card);
         getLampaRating(data, function(rating) {
             voteEl.innerHTML = rating;
@@ -96,7 +101,6 @@
     Lampa.Listener.follow('card', handleCard);
     Lampa.Listener.follow('app', function(e) {
         if (e.type === 'ready') {
-            // Переопределение для событий (опционально, если нужно)
             if (!window.Lampa.Card._build_original) {
                 window.Lampa.Card._build_original = window.Lampa.Card._build;
                 window.Lampa.Card._build = function() {
