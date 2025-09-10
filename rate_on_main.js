@@ -124,7 +124,7 @@
         }
         let data = card.dataset || {};
         let cardData = event.object.card_data || {};
-        let id = cardData.id || data.id || card.getAttribute('data-id') || (card.getAttribute('data-card-id') || '0').replace('movie_', '') || event.object.id || '0';
+        let id = cardData.id || data.id || card.getAttribute('data-id') || (card.getAttribute('data-card-id') || '0').replace('movie_', '') || (event.object.id || '0');
         let type = 'movie';
         if (cardData.seasons || cardData.first_air_date || cardData.original_name || data.seasons || data.firstAirDate || data.originalName) {
             type = 'tv';
@@ -139,6 +139,20 @@
             voteEl.innerHTML = '0.0';
         });
     }
+
+    // Восстановление логики перехвата _build из обфусцированного кода
+    Lampa.Listener.follow('app', function(e) {
+        if (e.type === 'ready') {
+            if (!window.Lampa.Card._build_original) {
+                window.Lampa.Card._build_original = window.Lampa.Card._build;
+                window.Lampa.Card._build = function() {
+                    let result = window.Lampa.Card._build_original.call(this);
+                    Lampa.Listener.send('card', { type: 'build', object: this });
+                    return result;
+                };
+            }
+        }
+    });
 
     Lampa.Listener.follow('full', function(e) {
         if (e.type === 'complite') {
@@ -160,18 +174,6 @@
         if (e.type === 'build' && e.object.card) {
             let card = e.object.card;
             insertCardRating(card, e);
-        }
-    });
-
-    Lampa.Listener.follow('app', function(e) {
-        if (e.type === 'ready') {
-            if (!window.Lampa.Card._build_original) {
-                window.Lampa.Card._build_original = window.Lampa.Card._build;
-                window.Lampa.Card._build = function() {
-                    window.Lampa.Card._build_original.call(this);
-                    Lampa.Listener.send('card', { type: 'build', object: this });
-                };
-            }
         }
     });
 })();
