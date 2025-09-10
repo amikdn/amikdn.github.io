@@ -59,7 +59,7 @@
                                 let rating = calculateLampaRating10(data.result);
                                 resolve(rating);
                             } else {
-                                reject(new Error("Неверный формат ответа"));
+                                resolve(0); // Возвращаем 0 вместо ошибки для пустого результата
                             }
                         } catch (e) {
                             reject(e);
@@ -87,7 +87,7 @@
             return rating;
         } catch (e) {
             console.error('Error fetching rating for ' + ratingKey + ':', e.message);
-            return null;
+            return 0; // Фallback на 0 при ошибке
         }
     }
 
@@ -117,7 +117,7 @@
             voteEl.className = 'card__vote';
             let viewEl = card.querySelector('.card__view') || card;
             viewEl.appendChild(voteEl);
-            voteEl.innerHTML = '0.0'; // Устанавливаем начальное значение
+            voteEl.innerHTML = '0.0'; // Начальное значение
         }
         let data = card.dataset || {};
         let cardData = event.object.card_data || {};
@@ -128,39 +128,13 @@
         }
         let ratingKey = type + "_" + id;
         console.log('Rating key for card:', ratingKey, 'Card:', card, 'Event:', event.object);
-        if (id !== '0') {
-            getLampaRating(ratingKey).then(rating => {
-                if (rating !== null) {
-                    voteEl.innerHTML = rating;
-                } else {
-                    voteEl.innerHTML = '0.0';
-                    console.warn('No rating data for ' + ratingKey);
-                }
-            });
-        } else {
-            // Проверка с интервалом (максимум 5 попыток)
-            let attempts = 0;
-            let interval = setInterval(() => {
-                if (attempts >= 5) {
-                    clearInterval(interval);
-                    console.warn('Max attempts reached for card:', card);
-                    return;
-                }
-                let updatedData = card.dataset || {};
-                let updatedId = updatedData.id || card.getAttribute('data-id') || (card.getAttribute('data-card-id') || '0').replace('movie_', '') || event.object.id || '0';
-                let updatedRatingKey = type + "_" + updatedId;
-                if (updatedId !== '0') {
-                    console.log('Updated Rating key:', updatedRatingKey);
-                    getLampaRating(updatedRatingKey).then(rating => {
-                        if (rating !== null) {
-                            voteEl.innerHTML = rating;
-                            clearInterval(interval);
-                        }
-                    });
-                }
-                attempts++;
-            }, 500);
-        }
+        getLampaRating(ratingKey).then(rating => {
+            voteEl.innerHTML = rating !== null ? rating : '0.0';
+            console.log('Rating set to:', voteEl.innerHTML, 'for', ratingKey);
+        }).catch(error => {
+            console.error('Error setting rating for ' + ratingKey + ':', error);
+            voteEl.innerHTML = '0.0';
+        });
     }
 
     Lampa.Listener.follow('full', function(e) {
