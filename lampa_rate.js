@@ -7,7 +7,6 @@
     function calculateLampaRating10(reactions) {
         let weightedSum = 0;
         let totalCount = 0;
-        console.log('Calculating rating for:', reactions);
         reactions.forEach(item => {
             const count = parseInt(item.counter, 10) || 0;
             switch (item.type) {
@@ -31,12 +30,8 @@
                     weightedSum += count * 1;
                     totalCount += count;
                     break;
-                default:
-                    console.warn('Unknown reaction type:', item.type);
-                    break;
             }
         });
-        console.log('Weighted sum:', weightedSum, 'Total count:', totalCount);
         if (totalCount === 0) return 0;
         const avgRating = weightedSum / totalCount;
         const rating10 = (avgRating - 1) * 2.5;
@@ -44,10 +39,9 @@
     }
 
     function fetchLampaRating(ratingKey) {
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve) => {
             let xhr = new XMLHttpRequest();
             let url = "http://cub.rip/api/reactions/get/" + ratingKey;
-            console.log('Fetching rating from:', url);
             xhr.open("GET", url, true);
             xhr.timeout = 5000;
             xhr.onreadystatechange = function() {
@@ -55,23 +49,22 @@
                     if (xhr.status === 200) {
                         try {
                             let data = JSON.parse(xhr.responseText);
-                            console.log('API Response for ' + ratingKey + ':', data);
                             if (data && data.result && Array.isArray(data.result)) {
                                 let rating = calculateLampaRating10(data.result);
                                 resolve(rating);
                             } else {
                                 resolve(0);
                             }
-                        } catch (e) {
-                            reject(e);
+                        } catch {
+                            resolve(0);
                         }
                     } else {
-                        reject(new Error("Ошибка запроса, статус: " + xhr.status));
+                        resolve(0);
                     }
                 }
             };
-            xhr.onerror = function() { reject(new Error("XHR ошибка")); };
-            xhr.ontimeout = function() { reject(new Error("Таймаут запроса")); };
+            xhr.onerror = function() { resolve(0); };
+            xhr.ontimeout = function() { resolve(0); };
             xhr.send();
         });
     }
@@ -81,15 +74,9 @@
         if (lampaRatingCache[ratingKey] && (now - lampaRatingCache[ratingKey].timestamp < CACHE_TIME)) {
             return lampaRatingCache[ratingKey].value;
         }
-        try {
-            let rating = await fetchLampaRating(ratingKey);
-            lampaRatingCache[ratingKey] = { value: rating, timestamp: now };
-            console.log('Cached rating for ' + ratingKey + ':', rating);
-            return rating;
-        } catch (e) {
-            console.error('Error fetching rating for ' + ratingKey + ':', e.message);
-            return 0;
-        }
+        let rating = await fetchLampaRating(ratingKey);
+        lampaRatingCache[ratingKey] = { value: rating, timestamp: now };
+        return rating;
     }
 
     function insertLampaBlock(render) {
@@ -130,13 +117,8 @@
             type = 'tv';
         }
         let ratingKey = type + "_" + id;
-        console.log('Rating key for card:', ratingKey, 'Card data:', { card, data, cardData, event: event.object });
         getLampaRating(ratingKey).then(rating => {
             voteEl.innerHTML = rating !== null ? rating : '0.0';
-            console.log('Rating set to:', voteEl.innerHTML, 'for', ratingKey);
-        }).catch(error => {
-            console.error('Error setting rating for ' + ratingKey + ':', error);
-            voteEl.innerHTML = '0.0';
         });
     }
 
@@ -146,7 +128,6 @@
                 window.Lampa.Card._build_original = window.Lampa.Card._build;
                 window.Lampa.Card._build = function() {
                     let result = window.Lampa.Card._build_original.call(this);
-                    console.log('Card build data:', this);
                     setTimeout(() => Lampa.Listener.send('card', { type: 'build', object: this }), 100);
                     return result;
                 };
@@ -177,5 +158,3 @@
         }
     });
 })();
-
-
