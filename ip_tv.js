@@ -448,54 +448,250 @@ function networkSilentSessCache(url, success, fail, param) {
     }
 }
 
+function epgRender(epgId) {
+    // Заглушка для epgRender, так как она не предоставлена в исходнике
+    console.log(plugin.name, 'EPG render called for', epgId);
+}
+
+function cardsEpgRender(cards) {
+    // Заглушка для cardsEpgRender, так как она не предоставлена в исходнике
+    console.log(plugin.name, 'Cards EPG render called for', cards.length, 'cards');
+}
+
 // Стиль
 Lampa.Template.add(plugin.component + '_style', '<style>#PLUGIN_epg{margin-right:1em}.PLUGIN-program__desc{font-size:0.9em;margin:0.5em;text-align:justify;max-height:15em;overflow:hidden;}.PLUGIN.category-full{padding-bottom:10em}.PLUGIN div.card__view{position:relative;background-color:#353535;background-color:#353535a6;border-radius:1em;cursor:pointer;padding-bottom:60%}.PLUGIN.square_icons div.card__view{padding-bottom:100%}.PLUGIN img.card__img,.PLUGIN div.card__img{background-color:unset;border-radius:unset;max-height:100%;max-width:100%;height:auto;width:auto;position:absolute;top:50%;left:50%;-moz-transform:translate(-50%,-50%);-webkit-transform:translate(-50%,-50%);transform:translate(-50%,-50%);font-size:2em}.PLUGIN.contain_icons img.card__img{height:95%;width:95%}</style>');
 
 function pluginPage(object) {
+    if (object.id !== curListId) {
+        catalog = {};
+        listCfg = {};
+        curListId = object.id;
+    }
+    EPG = {};
+    var epgIdCurrent = '';
+    var epgPath = '';
+    var favorite = getStorage('favorite' + object.id, '[]');
+    var network = new Lampa.Reguest();
+    var scroll = new Lampa.Scroll({
+        mask: true,
+        over: true,
+        step: 250
+    });
     var html = $('<div></div>');
-    var scroll = new Lampa.Scroll({mask: true, over: true});
-    var body = $('<div class="category-full ' + plugin.component + '"></div>');
+    var body = $('<div class="' + plugin.component + ' category-full"></div>');
+    body.toggleClass('square_icons', getSettings('square_icons'));
+    body.toggleClass('contain_icons', getSettings('contain_icons'));
     var info;
     var last;
-    var network = new Lampa.Reguest();
+    if (epgInterval) clearInterval(epgInterval);
+    epgInterval = setInterval(function() {
+        for (var epgId in EPG) {
+            epgRender(epgId);
+        }
+    }, 10000);
 
-    function setEpgId(channelGroup) {
-        // Простая реализация для установки EPG ID (может быть расширена при необходимости)
-        channelGroup.channels.forEach(function(channel) {
-            if (!channel['tvg-id'] && channel['tvg-name']) {
-                channel['tvg-id'] = channel['tvg-name'];
-            }
-        });
-    }
+    var layerCards, layerMinPrev = 0, layerMaxPrev = 0, layerFocusI = 0, layerCnt = 24;
+    if (layerInterval) clearInterval(layerInterval);
+    layerInterval = setInterval(function() {
+        if (!layerCards) return;
+        var minI = Math.max(layerFocusI - layerCnt, 0);
+        var maxI = Math.min(layerFocusI + layerCnt, layerCards.length - 1);
+        if (layerMinPrev > maxI || layerMaxPrev < minI) {
+            layerCards.slice(layerMinPrev, layerMaxPrev + 1).removeClass('js-layer--visible');
+            cardsEpgRender(layerCards.slice(minI, maxI + 1).addClass('js-layer--visible'));
+        } else {
+            if (layerMinPrev < minI) layerCards.slice(layerMinPrev, minI + 1).removeClass('js-layer--visible');
+            if (layerMaxPrev > maxI) layerCards.slice(maxI, layerMaxPrev + 1).removeClass('js-layer--visible');
+            if (layerMinPrev > minI) cardsEpgRender(layerCards.slice(minI, layerMinPrev + 1).addClass('js-layer--visible'));
+            if (layerMaxPrev < maxI) cardsEpgRender(layerCards.slice(layerMaxPrev, maxI + 1).addClass('js-layer--visible'));
+        }
+        layerMinPrev = minI;
+        layerMaxPrev = maxI;
+    }, 50);
 
-    this.append = function(channels) {
-        scroll.clear();
-        body.empty();
-        channels.forEach(function(channel) {
-            var card = $('<div class="card card--collection selector"><div class="card__view"><img class="card__img" /></div><div class="card__info"><div class="card__title"></div></div></div>');
-            card.find('.card__title').text(channel.title);
-            if (channel['tvg-logo']) {
-                card.find('.card__img').attr('src', channel['tvg-logo']);
+    this.create = function () {
+        var _this = this;
+        this.activity.loader(true);
+        var emptyResult = function () {
+            var empty = new Lampa.Empty();
+            html.append(empty.render());
+            _this.start = empty.start;
+            _this.activity.loader(false);
+            _this.activity.toggle();
+        };
+        if (Object.keys(catalog).length) {
+            _this.build(catalog);
+        } else if(!lists[object.id] || !object.url) {
+            emptyResult();
+            return;
+        } else {
+            var load = 1, data;
+            var compileList = function (dataList) {
+                data = dataList;
+                if (!--load) parseListHeader();
+            };
+            if (!timeOffsetSet) {
+                load++;
+                (function () {
+                    var ts = new Date().getTime();
+                    network.silent(Lampa.Utils.protocol() + 'epg.rootu.top/api/time',
+                        function (serverTime) {
+                            var te = new Date().getTime();
+                            timeOffset = (serverTime < ts || serverTime > te) ? serverTime - te : 0;
+                            timeOffsetSet = true;
+                            compileList(data);
+                        },
+                        function () {
+                            timeOffsetSet = true;
+                            compileList(data);
+                        }
+                    );
+                })();
             }
-            card.on('hover:enter', function() {
-                last = card;
-                Lampa.Player.play({
-                    url: channel.url,
-                    title: channel.title,
-                    plugin: plugin.component
-                });
-                Lampa.PlayerPlaylist.set([{
-                    url: channel.url,
-                    title: channel.title,
-                    plugin: plugin.component,
-                    tv: true
-                }]);
-            });
-            body.append(card);
-        });
-        scroll.append(body);
-        Lampa.Controller.collectionSet(scroll.render());
-        Lampa.Controller.collectionFocus(last || false, scroll.render());
+            var parseListHeader = function () {
+                if (typeof data != 'string'
+                    || data.substr(0, 7).toUpperCase() !== "#EXTM3U"
+                ) {
+                    emptyResult();
+                    return;
+                }
+                var m, mm, channelsUri = 'channels';
+                var l = data.split(/\r?\n/, 2)[0];
+                if (!!(m = l.match(/([^\s=]+)=((["'])(.*?)\3|\S+)/g))) {
+                    for (var jj = 0; jj < m.length; jj++) {
+                        if (!!(mm = m[jj].match(/([^\s=]+)=((["'])(.*?)\3|\S+)/))) {
+                            listCfg[mm[1].toLowerCase()] = mm[4] || (mm[3] ? '' : mm[2]);
+                        }
+                    }
+                }
+                listCfg['epgUrl'] = listCfg['url-tvg'] || listCfg['x-tvg-url'] || '';
+                listCfg['epgCode'] = utils.hash36(listCfg['epgUrl'].toLowerCase().replace(/https:\/\//g, 'http://'));
+                console.log(plugin.name, 'epgCode', listCfg['epgCode']);
+                listCfg['isEpgIt999'] = ["0", "4v7a2u", "skza0s", "oj8j5z", "sab9bx", "rv7awh", "2blr83"].indexOf(listCfg['epgCode']) >= 0;
+                listCfg['isYosso'] = ["godxcd"].indexOf(listCfg['epgCode']) >= 0;
+                if (/^https?:\/\/.+/i.test(listCfg['epgUrl']) && listCfg['epgUrl'].length < 8000) {
+                    channelsUri = listCfg['epgCode'] + '/' + channelsUri + '?url=' + encodeURIComponent(listCfg['epgUrl'])
+                        + '&uid=' + utils.uid() + '&sig=' + generateSigForString(listCfg['epgUrl']);
+                }
+                listCfg['epgApiChUrl'] = Lampa.Utils.protocol() + 'epg.rootu.top/api/' + channelsUri;
+                networkSilentSessCache(listCfg['epgApiChUrl'], parseList, parseList);
+            }
+            var parseList = function () {
+                if (typeof data != 'string'
+                    || data.substr(0, 7).toUpperCase() !== "#EXTM3U"
+                ) {
+                    emptyResult();
+                    return;
+                }
+                catalog = {
+                    '': {
+                        title: langGet('favorites'),
+                        setEpgId: false,
+                        channels: []
+                    }
+                };
+                lists[object.id].groups = [{
+                    title: langGet('favorites'),
+                    key: ''
+                }];
+                var l = data.split(/\r?\n/);
+                var cnt = 0, i = 1, chNum = 0, m, mm, defGroup = defaultGroup, chInGroupCnt = {}, maxChInGroup = getSettings('max_ch_in_group');
+                while (i < l.length) {
+                    chNum = cnt + 1;
+                    var channel = {
+                        ChNum: chNum,
+                        Title: "Ch " + chNum,
+                        isYouTube: false,
+                        Url: '',
+                        Group: '',
+                        Options: {}
+                    };
+                    for (; cnt < chNum && i < l.length; i++) {
+                        if (!!(m = l[i].match(/^#EXTGRP:\s*(.+?)\s*$/i))
+                            && m[1].trim() !== ''
+                        ) {
+                            defGroup = m[1].trim();
+                        } else if (!!(m = l[i].match(/^#EXTINF:\s*-?\d+(\s+\S.*?\s*)?,(.+)$/i))) {
+                            channel.Title = m[2].trim();
+                            if (!!m[1]
+                                && !!(m = m[1].match(/([^\s=]+)=((["'])(.*?)\3|\S+)/g))
+                            ) {
+                                for (var j = 0; j < m.length; j++) {
+                                    if (!!(mm = m[j].match(/([^\s=]+)=((["'])(.*?)\3|\S+)/))) {
+                                        channel[mm[1].toLowerCase()] = mm[4] || (mm[3] ? '' : mm[2]);
+                                    }
+                                }
+                            }
+                        } else if (!!(m = l[i].match(/^#EXTVLCOPT:\s*([^\s=]+)=(.+)$/i))) {
+                            channel.Options[m[1].trim().toLowerCase()] = m[2].trim();
+                        } else if (!!(m = l[i].match(/^(https?):\/\/(.+)$/i))) {
+                            channel.Url = m[0].trim();
+                            channel.isYouTube = !!(m[2].match(/^(www\.)?youtube\.com/));
+                            channel.Group = (channel['group-title'] || defGroup) + "";
+                            cnt++;
+                        }
+                    }
+                    if (!!channel.Url && !channel.isYouTube) {
+                        chInGroupCnt[channel.Group] = (chInGroupCnt[channel.Group] || 0) + 1;
+                        var groupPage = maxChInGroup ? Math.floor((chInGroupCnt[channel.Group] - 1) / maxChInGroup) : 0;
+                        if (groupPage) channel.Group += ' #' + (groupPage + 1);
+                        if (!catalog[channel.Group]) {
+                            catalog[channel.Group] = {
+                                title: channel.Group,
+                                setEpgId: false,
+                                channels: []
+                            };
+                            lists[object.id].groups.push({
+                                title: channel.Group,
+                                key: channel.Group
+                            });
+                        }
+                        channel['Title'] = channel['Title'].replace(/\s+(\s|ⓢ|ⓖ|ⓥ|ⓞ|Ⓢ|Ⓖ|Ⓥ|Ⓞ)/g, ' ').trim();
+                        catalog[channel.Group].channels.push(channel);
+                        var favI = favorite.indexOf(favID(channel.Title));
+                        if (favI !== -1) {
+                            catalog[''].channels[favI] = channel;
+                        }
+                    }
+                }
+                for (i = 0; i < lists[object.id].groups.length; i++) {
+                    var group = lists[object.id].groups[i];
+                    group.title += ' [' + catalog[group.key].channels.length + ']';
+                }
+                for (i = 0; i < favorite.length; i++) {
+                    if (!catalog[''].channels[i]) {
+                        catalog[''].channels[i] = {
+                            ChNum: -1,
+                            Title: "#" + favorite[i],
+                            isYouTube: false,
+                            Url: Lampa.Utils.protocol() + 'epg.rootu.top/empty/_.m3u8',
+                            Group: '',
+                            Options: {},
+                            'tvg-logo': Lampa.Utils.protocol() + 'epg.rootu.top/empty/_.gif'
+                        };
+                    }
+                }
+                _this.build(catalog);
+            }
+            var listUrl = prepareUrl(object.url);
+            network.native(
+                listUrl,
+                compileList,
+                function () {
+                    network.silent(
+                        Lampa.Utils.protocol() + 'epg.rootu.top/cors.php?url=' + encodeURIComponent(listUrl)
+                        + '&uid=' + utils.uid() + '&sig=' + generateSigForString(listUrl),
+                        compileList,
+                        emptyResult,
+                        false,
+                        {dataType: 'text'}
+                    );
+                },
+                false,
+                {dataType: 'text'}
+            );
+        }
+        return this.render();
     };
 
     this.build = function (catalog) {
@@ -518,7 +714,15 @@ function pluginPage(object) {
         info.find('.info__title').text('');
         html.append(info.append());
         if (channelGroup.channels.length) {
-            setEpgId(channelGroup);
+            if (!channelGroup.setEpgId) {
+                channelGroup.setEpgId = true;
+                channelGroup.channels.forEach(function(channel) {
+                    if (!channel['tvg-id'] && channel['tvg-name']) {
+                        channel['tvg-id'] = channel['tvg-name'];
+                    }
+                });
+            }
+            layerCards = null;
             scroll.render().addClass('layer--wheight').data('mheight', info);
             html.append(scroll.render());
             this.append(channelGroup.channels);
@@ -536,6 +740,63 @@ function pluginPage(object) {
             Lampa.Controller.collectionSet(info);
             Navigator.move('right');
         }
+    };
+
+    this.append = function(channels) {
+        scroll.clear();
+        body.empty();
+        layerCards = $();
+        channels.forEach(function(channel, i) {
+            var card = $('<div class="card card--collection selector"><div class="card__view"><img class="card__img" /></div><div class="card__info"><div class="card__title"></div></div></div>');
+            card.find('.card__title').text(channel.Title);
+            if (channel['tvg-logo']) {
+                card.find('.card__img').attr('src', channel['tvg-logo']);
+            }
+            card.data('channel', channel);
+            card.on('hover:focus', function(e) {
+                layerFocusI = i;
+                last = card;
+            });
+            card.on('hover:enter', function() {
+                last = card;
+                var ch = card.data('channel');
+                var playlist = [];
+                var chNum = 0;
+                for (var gr in catalog) {
+                    catalog[gr].channels.forEach(function(item, i) {
+                        if (!item.isYouTube) {
+                            chNum++;
+                            item['ch-num'] = chNum;
+                            playlist.push({
+                                url: item.Url,
+                                title: item.Title,
+                                plugin: plugin.component,
+                                tv: true,
+                                'tvg-id': item['tvg-id'],
+                                'tvg-logo': item['tvg-logo'],
+                                'group-title': item.Group,
+                                'catchup-type': item['catchup-type'] || listCfg['catchup'] || '',
+                                'catchup-source': item['catchup-source'] || listCfg['catchup-source'] || '',
+                                'ch-num': chNum
+                            });
+                        }
+                    });
+                }
+                var chPos = playlist.findIndex(function(p) {return p['ch-num'] === ch.ChNum});
+                Lampa.Player.play({
+                    url: ch.Url,
+                    title: ch.Title,
+                    plugin: plugin.component
+                });
+                Lampa.PlayerPlaylist.set(playlist, chPos);
+                Lampa.Player.runas && Lampa.Player.runas(Lampa.Storage.field('player_iptv'));
+            });
+            body.append(card);
+            layerCards = layerCards.add(card);
+        });
+        scroll.append(body);
+        Lampa.Controller.collectionSet(scroll.render());
+        Lampa.Controller.collectionFocus(last || false, scroll.render());
     };
 
     this.selectGroup = function () {
