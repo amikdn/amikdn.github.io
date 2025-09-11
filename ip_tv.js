@@ -53,7 +53,7 @@ var epgTemplate = $(('<div id="PLUGIN_epg">\n' +
     '   <div class="PLUGIN-details__program-list">' +
     '<div class="PLUGIN-program selector">\n' +
     '   <div class="PLUGIN-program__time js-epgTime">XX:XX</div>\n' +
-    '   <div class="PLUGIN-program__body">\n' +
+    '   <div class=\"PLUGIN-program__body\">\n' +
     '	   <div class="PLUGIN-program__title js-epgTitle"> </div>\n' +
     '	   <div class="PLUGIN-program__progressbar"><div class="PLUGIN-program__progress js-epgProgress" style="width: 50%"></div></div>\n' +
     '   </div>\n' +
@@ -489,9 +489,18 @@ function pluginPage(object) {
                     });
                     catalog[list.activity.url] = groups;
                     _this.build(catalog[list.activity.url]);
+                } else {
+                    // Добавлена обработка ошибки: если data не парсится как channels, покажем сообщение
+                    console.log('Ошибка загрузки плейлиста:', data);
+                    var empty = new Lampa.Empty({descr: 'Плейлист не загружен или пустой. Проверьте URL.'});
+                    html.append(empty.render());
+                    _this.activity.loader(false);
                 }
-            }, function () {
+            }, function (error) {
+                console.log('Ошибка сети при загрузке плейлиста:', error);
                 _this.activity.loader(false);
+                var empty = new Lampa.Empty({descr: 'Ошибка загрузки плейлиста. Проверьте соединение.'});
+                html.append(empty.render());
             });
         } else {
             this.build(catalog[list.activity.url]);
