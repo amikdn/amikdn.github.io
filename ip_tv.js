@@ -9,7 +9,7 @@ var isSNG = false;
 var lists = [{
     activity: {
         id: 0,
-        url: 'https://raw.githubusercontent.com/IPTVSHARED/iptv/refs/heads/main/IPTV_SHARED.m3u',
+        url: 'https://raw.githubusercontent.com/Free-TV/IPTV/master/playlist.m3u8',
         title: plugin.name,
         groups: [],
         currentGroup: '',
