@@ -1,8 +1,3 @@
-/*
-// https://ss-iptv.com/ru/operators/catchup
-// niklabs.com/catchup-settings/
-// http://plwxk8hl.russtv.net/iptv/00000000000000/9201/index.m3u8?utc=1666796400&lutc=1666826200
-*/
 ;(function () {
 'use strict';
 var plugin = {
@@ -128,10 +123,8 @@ function channelSwitch(dig, isChNum) {
 	    chTimeout = setTimeout(chSwitch, 1000);
 	    chNumber = "";
 	} else if (parseInt(chNumber + '0') > cnt) {
-	    // Ещё одна цифра невозможна - переключаем
 	    chSwitch();
 	} else {
-	    // Ждём следующую цифру или переключаем
 	    chTimeout = setTimeout(chSwitch, 3000);
 	}
     } else {
@@ -273,26 +266,12 @@ function catchupUrl(url, type, source) {
 	case 'flussonic-hls':
 	case 'flussonic-ts':
 	case 'fs':
-	    // Example stream and catchup URLs
-	    // stream:  http://ch01.spr24.net/151/mpegts?token=my_token
-	    // catchup: http://ch01.spr24.net/151/timeshift_abs-{utc}.ts?token=my_token
-	    // stream:  http://list.tv:8888/325/index.m3u8?token=secret
-	    // catchup: http://list.tv:8888/325/timeshift_rel-{offset:1}.m3u8?token=secret
-	    // stream:  http://list.tv:8888/325/mono.m3u8?token=secret
-	    // catchup: http://list.tv:8888/325/mono-timeshift_rel-{offset:1}.m3u8?token=secret
-	    // stream:  http://list.tv:8888/325/live?token=my_token
-	    // catchup: http://list.tv:8888/325/{utc}.ts?token=my_token
 	    return url
 		.replace(/\/(video|mono)\.(m3u8|ts)/, '/$1-\${start}-\${duration}.$2')
 		.replace(/\/(index|playlist)\.(m3u8|ts)/, '/archive-\${start}-\${duration}.$2')
 		.replace(/\/mpegts/, '/timeshift_abs-\${start}.ts')
 	    ;
 	case 'xc':
-	    // Example stream and catchup URLs
-	    // stream:  http://list.tv:8080/my@account.xc/my_password/1477
-	    // catchup: http://list.tv:8080/timeshift/my@account.xc/my_password/{duration}/{Y}-{m}-{d}:{H}-{M}/1477.ts
-	    // stream:  http://list.tv:8080/live/my@account.xc/my_password/1477.m3u8
-	    // catchup: http://list.tv:8080/timeshift/my@account.xc/my_password/{duration}/{Y}-{m}-{d}:{H}-{M}/1477.m3u8
 	    newUrl = url
 		.replace(
 		    /^(https?:\/\/[^/]+)(\/live)?(\/[^/]+\/[^/]+\/)([^/.]+)\.m3u8?$/,
@@ -316,15 +295,6 @@ function catchupUrl(url, type, source) {
     if (newUrl.indexOf('${') < 0) return catchupUrl(newUrl,'shift');
     return newUrl;
 }
-
-/* ***********************************
- * Управление плеером клавишами пульта
- * ***********************************
- * Поддержка переключения каналов (возможно не все устройства):
- * - цифровыми клавишами (по номеру канала)
- * - клавишами влево-вправо
- * - клавиши Pg+ и Pg-
- */
 function keydown(e) {
     var code = e.code;
     if (Lampa.Player.opened() && !$('body.selectbox--open').length) {
@@ -336,14 +306,14 @@ function keydown(e) {
 	    //4 - Samsung orsay
 	    || ((code === 37 || code === 4) && !$('.player.tv .panel--visible .focus').length) // left
 	) {
-	    curCh = curCh === 1 ? playlist.length : curCh - 1; // зацикливаем
+	    curCh = curCh === 1 ? playlist.length : curCh - 1; 
 	    cache('curCh', curCh, 1000);
 	    isStopEvent = channelSwitch(curCh, true);
 	} else if (code === 427 || code === 33 // Pg+
 	    // 5 - Samsung orsay right
 	    || ((code === 39 || code === 5) && !$('.player.tv .panel--visible .focus').length) // right
 	) {
-	    curCh = curCh === playlist.length ? 1 : curCh + 1; // зацикливаем
+	    curCh = curCh === playlist.length ? 1 : curCh + 1;
 	    cache('curCh', curCh, 1000);
 	    isStopEvent = channelSwitch(curCh, true);
 	} else if (code >= 48 && code <= 57) { // numpad
@@ -939,7 +909,6 @@ function pluginPage(object) {
 		var playlistForExtrnalPlayer = [];
 		var i = 0;
 		data.forEach(function (elem) {
-		    // Изменяем порядок для внешнего плейлиста (плейлист начинается с текущего элемента)
 		    var j = i < chI ? data.length - chI + i : i - chI;
 		    var videoUrl = i === chI ? video.url : prepareUrl(elem.Url);
 		    playlistForExtrnalPlayer[j] = {
