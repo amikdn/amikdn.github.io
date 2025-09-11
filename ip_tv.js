@@ -1352,28 +1352,35 @@ function getSettings(key) {
     return Lampa.Storage.get(key, 'false') === 'true';
 }
 
-lists.forEach(function (list, i) {
-    list.activity = new Lampa.Activity({
-        url: '',
-        title: list.title,
-        component: plugin.component,
-        id: i,
-        currentGroup: getStorage('last_catalog' + i, '!!'),
-        page: 1
-    });
-    list.activity.component_object = new pluginPage(list.activity);
-    Lampa.Component.add(list.title, list.activity);
-});
+document.addEventListener('DOMContentLoaded', function () {
+    if (typeof Lampa === 'undefined' || typeof Lampa.Activity !== 'function') {
+        console.error('Lampa or Lampa.Activity is not defined. Ensure Lampa library is loaded.');
+        return;
+    }
 
-Lampa.Menu.add({
-    title: plugin.name,
-    icon: plugin.icon,
-    component: plugin.component,
-    submenu: lists.map(function (list) {
-        return {
+    lists.forEach(function (list, i) {
+        list.activity = new Lampa.Activity({
+            url: '',
             title: list.title,
-            activity: list.activity
-        };
-    })
+            component: plugin.component,
+            id: i,
+            currentGroup: getStorage('last_catalog' + i, '!!'),
+            page: 1
+        });
+        list.activity.component_object = new pluginPage(list.activity);
+        Lampa.Component.add(list.title, list.activity);
+    });
+
+    Lampa.Menu.add({
+        title: plugin.name,
+        icon: plugin.icon,
+        component: plugin.component,
+        submenu: lists.map(function (list) {
+            return {
+                title: list.title,
+                activity: list.activity
+            };
+        })
+    });
 });
 })();
