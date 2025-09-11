@@ -576,6 +576,169 @@
     return header;
   }
 
+  // Заглушка для Lang$1
+  var Lang$1 = {
+    init: function () {
+      console.log('Lang$1.init called (stub implementation)');
+      // Если требуется сложная инициализация переводов, добавьте здесь логику
+      if (typeof Lampa.Lang !== 'undefined' && Lampa.Lang.translate) {
+        console.log('Lampa.Lang.translate is available');
+      } else {
+        console.warn('Lampa.Lang.translate is not available');
+      }
+    },
+    translate: function (key) {
+      // Минимальная реализация перевода
+      var translations = {
+        iptv_need_update_app: {
+          ru: 'Обновите приложение до последней версии',
+          en: 'Update the application to the latest version',
+          uk: 'Оновіть програму до останньої версії',
+          be: 'Абновіце прыкладанне да апошняй версіі',
+          zh: '升级应用程序到最新版本',
+          pt: 'Atualize o aplicativo para a versão mais recente',
+          bg: 'Актуализирайте приложението до последната версия'
+        },
+        iptv_channel_lock: {
+          ru: 'Заблокировать',
+          en: 'Lock',
+          uk: 'Заблокувати',
+          be: 'Заблакаваць',
+          zh: '锁定',
+          pt: 'Bloquear',
+          bg: 'Заключване'
+        },
+        iptv_channel_unlock: {
+          ru: 'Разблокировать',
+          en: 'Unlock',
+          uk: 'Розблокувати',
+          be: 'Разблакаваць',
+          zh: '解锁',
+          pt: 'Desbloquear',
+          bg: 'Отключване'
+        },
+        iptv_about_text: {
+          ru: 'Удобное приложение IPTV – откройте доступ к множеству каналов, фильмам и сериалам прямо на вашем телевизоре. Интуитивный интерфейс, легкая навигация, и безграничные возможности развлечений на вашем большом экране. Ваш личный портал в мир цифрового телевидения!',
+          en: 'Convenient IPTV application - access a variety of channels, movies, and series directly on your television. Intuitive interface, easy navigation, and unlimited entertainment possibilities on your big screen. Your personal portal to the world of digital television!',
+          uk: 'Зручний додаток IPTV - отримайте доступ до безлічі каналів, фільмів і серіалів прямо на вашому телевізорі. Інтуїтивний інтерфейс, легка навігація та необмежені можливості розваг на вашому великому екрані. Ваш особистий портал у світ цифрового телебачення!',
+          be: 'Зручнае прыкладанне IPTV - атрымайце доступ да шматліканальнага тэлебачання, фільмаў і серыялаў проста на вашым тэлевізары. Інтуітыўны інтэрфейс, лёгкая навігацыя і неабмежаваныя магчымасці разваг на вашым вялікім экране. Ваш асабісты партал у свет цыфравага тэлебачання!',
+          zh: '方便的IPTV应用程序-直接在您的电视上访问各种频道，电影和系列。直观的界面，简单的导航以及在您的大屏幕上无限的娱乐可能性。您数字电视世界的个人门户！',
+          pt: 'Aplicativo IPTV conveniente - acesse uma variedade de canais, filmes e séries diretamente na sua televisão. Interface intuitiva, navegação fácil e possibilidades de entretenimento ilimitadas na sua tela grande. Seu portal pessoal para o mundo da televisão digital!',
+          bg: 'Удобно приложение за IPTV - отворете достъп до множество канали, филми и сериали директно на вашия телевизор. Интуитивен интерфейс, лесна навигация и неограничени възможности за забавления на големия ви екран. Вашият личен портал към света на цифровата телевизия!'
+        },
+        iptv_confirm_delete_playlist: {
+          ru: 'Вы точно хотите удалить плейлист?',
+          en: 'Are you sure you want to delete the playlist?',
+          uk: 'Ви точно хочете видалити плейлист?',
+          be: 'Вы ўпэўненыя, що хочаце выдаліць плейліст?',
+          zh: '您确定要删除播放列表吗？',
+          pt: 'Tem certeza de que deseja excluir a lista de reprodução?',
+          bg: 'Сигурни ли сте, че искате да изтриете списъка с канали?'
+        },
+        iptv_cache_clear: {
+          ru: 'Кеш удален',
+          en: 'Cache cleared',
+          uk: 'Кеш видалено',
+          be: 'Кеш выдалены',
+          zh: '缓存已清除',
+          pt: 'Cache limpo',
+          bg: 'Кешът е изчистен'
+        },
+        iptv_playlist_deleted: {
+          ru: 'Плейлист удален',
+          en: 'Playlist deleted',
+          uk: 'Плейлист видалено',
+          be: 'Плейліст выдалены',
+          zh: '播放列表已删除',
+          pt: 'Lista de reprodução excluída',
+          bg: 'Плейлистът е изтрит'
+        },
+        iptv_playlist_add_set_url: {
+          ru: 'Укажите URL плейлиста',
+          en: 'Enter the playlist URL',
+          uk: 'Вкажіть URL плейлиста',
+          be: 'Укажыце URL плейліста',
+          zh: '请输入播放列表的 URL',
+          pt: 'Insira o URL da lista de reprodução',
+          bg: 'Въведете URL адреса на плейлиста'
+        },
+        iptv_playlist_add_new: {
+          ru: 'Добавить новый плейлист',
+          en: 'Add new playlist',
+          uk: 'Додати новий плейлист',
+          be: 'Дадаць новы плейліст',
+          zh: '添加新播放列表',
+          pt: 'Adicionar nova lista de reprodução',
+          bg: 'Добавяне на нов списък с канали'
+        },
+        iptv_playlist_url_changed: {
+          ru: 'Ссылка изменена',
+          en: 'Link changed',
+          uk: 'Посилання змінено',
+          be: 'Спасылка зменена',
+          zh: '链接已更改',
+          pt: 'Link alterado',
+          bg: 'Връзката е променена'
+        },
+        iptv_playlist_add_set_name: {
+          ru: 'Укажите название плейлиста',
+          en: 'Enter the playlist name',
+          uk: 'Вкажіть назву плейлиста',
+          be: 'Укажыце назву плейліста',
+          zh: '请输入播放列表名称',
+          pt: 'Insira o nome da lista de reprodução',
+          bg: 'Въведете име на плейлиста'
+        },
+        iptv_playlist_name_changed: {
+          ru: 'Название изменено',
+          en: 'Name changed',
+          uk: 'Назва змінена',
+          be: 'Назва зменена',
+          zh: '名称已更改',
+          pt: 'Nome alterado',
+          bg: 'Името е променено'
+        },
+        iptv_playlist_change_name: {
+          ru: 'Изменить название',
+          en: 'Change name',
+          uk: 'Змінити назву',
+          be: 'Змяніць назву',
+          zh: '更改名称',
+          pt: 'Alterar nome',
+          bg: 'Промяна на името'
+        },
+        iptv_param_view_in_main: {
+          ru: 'Показывать каналы на главной',
+          en: 'Show channels on main page',
+          uk: 'Показувати канали на головній',
+          be: 'Паказваць каналы на галоўнай',
+          zh: '在主页上显示频道',
+          pt: 'Mostrar canais na página principal',
+          bg: 'Показване на канали на главната страница'
+        },
+        title_continue: {
+          ru: 'Продолжить',
+          en: 'Continue',
+          uk: 'Продовжити',
+          be: 'Працягнуць',
+          zh: '继续',
+          pt: 'Continuar',
+          bg: 'Продължи'
+        },
+        player_playlist: {
+          ru: 'Плейлист',
+          en: 'Playlist',
+          uk: 'Плейлист',
+          be: 'Плейліст',
+          zh: '播放列表',
+          pt: 'Lista de reprodução',
+          bg: 'Списък за възпроизвеждане'
+        }
+      };
+      return translations[key] ? translations[key][Lampa.Lang.getLanguage ? Lampa.Lang.getLanguage() : 'en'] || translations[key].en : key;
+    }
+  };
+
   var Channel = /*#__PURE__*/function () {
     function Channel(data, playlist) {
       _classCallCheck(this, Channel);
@@ -695,7 +858,7 @@
         console.log('Main page playlist:', playlist);
         return {
           results: playlist,
-          title: Lampa.Lang.translate('title_continue'),
+          title: Lang$1.translate('title_continue'),
           nomore: true,
           line_type: 'iptv',
           cardClass: function cardClass(item) {
@@ -707,7 +870,7 @@
     Lampa.Manifest.plugins = manifest;
 
     function add() {
-      var button = $("<li class=\"menu__item selector\">\n            <div class=\"menu__ico\">\n                <svg height=\"36\" viewBox=\"0 0 38 36\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\">\n                    <rect x=\"2\" y=\"8\" width=\"34\" height=\"21\" rx=\"3\" stroke=\"currentColor\" stroke-width=\"3\"/>\n                    <line x1=\"13.0925\" y1=\"2.34874\" x2=\"16.3487\" y2=\"6.90754\" stroke=\"currentColor\" stroke-width=\"3\" stroke-linecap=\"round\"/>\n                    <line x1=\"1.5\" y1=\"-1.5\" x2=\"9.31665\" y2=\"-1.5\" transform=\"matrix(-0.757816 0.652468 0.652468 0.757816 26.197 2)\" stroke=\"currentColor\" stroke-width=\"3\" stroke-linecap=\"round\"/>\n                    <line x1=\"9.5\" y1=\"34.5\" x2=\"29.5\" y2=\"34.5\" stroke=\"currentColor\" stroke-width=\"3\" stroke-linecap=\"round\"/>\n                </svg>\n            </div>\n            <div class=\"menu__text\">".concat(window.lampa_settings.iptv ? Lampa.Lang.translate('player_playlist') : 'IPTV', "</div>\n        </li>"));
+      var button = $("<li class=\"menu__item selector\">\n            <div class=\"menu__ico\">\n                <svg height=\"36\" viewBox=\"0 0 38 36\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\">\n                    <rect x=\"2\" y=\"8\" width=\"34\" height=\"21\" rx=\"3\" stroke=\"currentColor\" stroke-width=\"3\"/>\n                    <line x1=\"13.0925\" y1=\"2.34874\" x2=\"16.3487\" y2=\"6.90754\" stroke=\"currentColor\" stroke-width=\"3\" stroke-linecap=\"round\"/>\n                    <line x1=\"1.5\" y1=\"-1.5\" x2=\"9.31665\" y2=\"-1.5\" transform=\"matrix(-0.757816 0.652468 0.652468 0.757816 26.197 2)\" stroke=\"currentColor\" stroke-width=\"3\" stroke-linecap=\"round\"/>\n                    <line x1=\"9.5\" y1=\"34.5\" x2=\"29.5\" y2=\"34.5\" stroke=\"currentColor\" stroke-width=\"3\" stroke-linecap=\"round\"/>\n                </svg>\n            </div>\n            <div class=\"menu__text\">".concat(window.lampa_settings.iptv ? Lang$1.translate('player_playlist') : 'IPTV', "</div>\n        </li>"));
       button.on('hover:enter', function () {
         console.log('Menu button clicked, opening IPTV');
         if (window.lampa_settings.iptv) {
@@ -739,7 +902,12 @@
       }
     }
 
-    Lang$1.init();
+    try {
+      Lang$1.init();
+      console.log('Lang$1 initialized successfully');
+    } catch (e) {
+      console.error('Lang$1.init failed:', e);
+    }
     Templates.init();
     Settings.init();
     EPG.init();
