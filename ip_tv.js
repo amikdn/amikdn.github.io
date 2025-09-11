@@ -465,7 +465,7 @@
     }, {
       key: "value",
       value: function value(params, name) {
-        return Lampa.Lang.translate('iptv_params_' + params[name]);
+        return Lang$1.translate('iptv_params_' + params[name]);
       }
     }]);
 
@@ -576,11 +576,9 @@
     return header;
   }
 
-  // Заглушка для Lang$1
   var Lang$1 = {
     init: function () {
       console.log('Lang$1.init called (stub implementation)');
-      // Если требуется сложная инициализация переводов, добавьте здесь логику
       if (typeof Lampa.Lang !== 'undefined' && Lampa.Lang.translate) {
         console.log('Lampa.Lang.translate is available');
       } else {
@@ -588,7 +586,6 @@
       }
     },
     translate: function (key) {
-      // Минимальная реализация перевода
       var translations = {
         iptv_need_update_app: {
           ru: 'Обновите приложение до последней версии',
@@ -736,6 +733,35 @@
         }
       };
       return translations[key] ? translations[key][Lampa.Lang.getLanguage ? Lampa.Lang.getLanguage() : 'en'] || translations[key].en : key;
+    }
+  };
+
+  var Templates = {
+    init: function () {
+      console.log('Templates.init called (stub implementation)');
+      if (typeof Lampa.Template !== 'undefined' && Lampa.Template.js) {
+        console.log('Lampa.Template.js is available');
+      } else {
+        console.warn('Lampa.Template.js is not available, using fallback');
+      }
+    }
+  };
+
+  var Settings = {
+    init: function () {
+      console.log('Settings.init called (stub implementation)');
+    }
+  };
+
+  var EPG = {
+    init: function () {
+      console.log('EPG.init called (stub implementation)');
+    }
+  };
+
+  var Guide = {
+    init: function () {
+      console.log('Guide.init called (stub implementation)');
     }
   };
 
@@ -908,12 +934,41 @@
     } catch (e) {
       console.error('Lang$1.init failed:', e);
     }
-    Templates.init();
-    Settings.init();
-    EPG.init();
-    Guide.init();
-    Lampa.Component.add('iptv', Component);
-    console.log('IPTV Component registered');
+
+    try {
+      Templates.init();
+      console.log('Templates initialized successfully');
+    } catch (e) {
+      console.error('Templates.init failed:', e);
+    }
+
+    try {
+      Settings.init();
+      console.log('Settings initialized successfully');
+    } catch (e) {
+      console.error('Settings.init failed:', e);
+    }
+
+    try {
+      EPG.init();
+      console.log('EPG initialized successfully');
+    } catch (e) {
+      console.error('EPG.init failed:', e);
+    }
+
+    try {
+      Guide.init();
+      console.log('Guide initialized successfully');
+    } catch (e) {
+      console.error('Guide.init failed:', e);
+    }
+
+    try {
+      Lampa.Component.add('iptv', Component);
+      console.log('IPTV Component registered');
+    } catch (e) {
+      console.error('Lampa.Component.add failed:', e);
+    }
 
     if (window.lampa_settings.iptv) {
       Lampa.Storage.set('start_page', 'last');
