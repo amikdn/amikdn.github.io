@@ -741,6 +741,13 @@
       console.log('Templates.init called (stub implementation)');
       if (typeof Lampa.Template !== 'undefined' && Lampa.Template.js) {
         console.log('Lampa.Template.js is available');
+        // Регистрация заглушки для cub_iptv_style
+        if (typeof Lampa.Template.register === 'function') {
+          Lampa.Template.register('cub_iptv_style', function () {
+            console.log('Using stub for cub_iptv_style');
+            return $('<style>.iptv-channel { display: block; }</style>');
+          });
+        }
       } else {
         console.warn('Lampa.Template.js is not available, using fallback');
       }
@@ -765,6 +772,14 @@
     }
   };
 
+  var Component = {
+    playlist: function () {
+      console.log('Component.playlist called (stub implementation)');
+      // Здесь можно добавить логику для загрузки и отображения плейлиста
+      return [];
+    }
+  };
+
   var Channel = /*#__PURE__*/function () {
     function Channel(data, playlist) {
       _classCallCheck(this, Channel);
@@ -776,9 +791,18 @@
       key: "build",
       value: function build() {
         console.log('Building channel:', this.data.name);
-        this.card = Lampa.Template.js('cub_iptv_channel_main_board');
-        this.icon = this.card.querySelector('.iptv-channel__ico') || {};
-        this.card.addEventListener('visible', this.visible.bind(this));
+        try {
+          this.card = Lampa.Template.js('cub_iptv_channel_main_board');
+          this.icon = this.card.querySelector('.iptv-channel__ico') || {};
+          this.card.addEventListener('visible', this.visible.bind(this));
+        } catch (e) {
+          console.error('Failed to build channel:', this.data.name, e);
+          // Создаём заглушку для карточки канала
+          this.card = document.createElement('div');
+          this.card.className = 'iptv-channel';
+          this.icon = document.createElement('img');
+          this.card.appendChild(this.icon);
+        }
       }
     }, {
       key: "image",
@@ -798,6 +822,7 @@
           var text = document.createElement('div');
           text.classList.add('iptv-channel__name');
           text.textContent = Utils.clear(_this.data.name);
+          _this.card.querySelector('.iptv-channel__body') || _this.card.appendChild(document.createElement('div')).classList.add('iptv-channel__body');
           _this.card.querySelector('.iptv-channel__body').append(simb);
           _this.card.querySelector('.iptv-channel__body').append(text);
           console.log('Image failed to load, using fallback for:', _this.data.name);
@@ -913,8 +938,17 @@
         });
       });
       $('.menu .menu__list').eq(0).append(button);
-      $('body').append(Lampa.Template.get('cub_iptv_style', {}, true));
-      console.log('Menu button and styles added');
+      try {
+        $('body').append(Lampa.Template.get('cub_iptv_style', {}, true));
+        console.log('cub_iptv_style template added to body');
+      } catch (e) {
+        console.error('Failed to load cub_iptv_style:', e);
+        // Добавляем минимальные стили напрямую
+        var style = document.createElement('style');
+        style.textContent = '.iptv-channel { display: block; }';
+        document.body.appendChild(style);
+        console.log('Fallback styles added');
+      }
 
       if (window.lampa_settings.iptv) {
         $('.head .head__action.open--search').addClass('hide');
