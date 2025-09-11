@@ -339,8 +339,7 @@ function keydown(e) {
             isStopEvent = channelSwitch(code - 48);
         } else if (code >= 96 && code <= 105) {
             isStopEvent = channelSwitch(code - 96);
-        }
-        if (code === 38 || code === 29460) {
+        } else if (code === 38 || code === 29460) {
             // this.selectGroup();
             // isStopEvent = true;
         }
@@ -528,6 +527,7 @@ function pluginPage(object) {
             var compileList = function (dataList) {
                 data = dataList;
                 if (!--load) parseListHeader();
+                console.log(plugin.name, 'Playlist loaded, length:', dataList.length);
             };
             if (!timeOffsetSet) {
                 load++;
@@ -547,7 +547,7 @@ function pluginPage(object) {
                             console.log(plugin.name, 'Time offset request failed, proceeding without offset');
                         },
                         false,
-                        { timeout: 5000 }
+                        { timeout: 5000, headers: {'Cache-Control': 'no-cache'} }
                     );
                 })();
             }
@@ -571,13 +571,7 @@ function pluginPage(object) {
                 console.log(plugin.name, 'epgCode', listCfg['epgCode']);
                 listCfg['isEpgIt999'] = ["0", "4v7a2u", "skza0s", "oj8j5z", "sab9bx", "rv7awh", "2blr83"].indexOf(listCfg['epgCode']) >= 0;
                 listCfg['isYosso'] = ["godxcd"].indexOf(listCfg['epgCode']) >= 0;
-                if (/^https?:\/\/.+/i.test(listCfg['epgUrl']) && listCfg['epgUrl'].length < 8000) {
-                    channelsUri = listCfg['epgCode'] + '/' + channelsUri + '?url=' + encodeURIComponent(listCfg['epgUrl'])
-                        + '&uid=' + utils.uid() + '&sig=' + generateSigForString(listCfg['epgUrl']);
-                }
-                listCfg['epgApiChUrl'] = Lampa.Utils.protocol() + 'epg.rootu.top/api/' + channelsUri;
-                // networkSilentSessCache(listCfg['epgApiChUrl'], parseList, parseList);
-                parseList(); // Пропускаем EPG, чтобы избежать зависания
+                parseList(); // Пропускаем EPG, чтобы избежать CORS
             }
             var parseList = function () {
                 console.log(plugin.name, 'Starting parseList, data length:', data.length);
@@ -678,16 +672,7 @@ function pluginPage(object) {
             network.native(
                 listUrl,
                 compileList,
-                function () {
-                    network.silent(
-                        Lampa.Utils.protocol() + 'epg.rootu.top/cors.php?url=' + encodeURIComponent(listUrl)
-                        + '&uid=' + utils.uid() + '&sig=' + generateSigForString(listUrl),
-                        compileList,
-                        emptyResult,
-                        false,
-                        {dataType: 'text', headers: {'Cache-Control': 'no-cache'}}
-                    );
-                },
+                emptyResult,
                 false,
                 {dataType: 'text', headers: {'Cache-Control': 'no-cache'}}
             );
