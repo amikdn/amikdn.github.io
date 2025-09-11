@@ -373,9 +373,9 @@ function keydown(e) {
 			// this.selectGroup();
 			// isStopEvent = true;
 		}
-		if (isStopEvent) {
-			e.event.preventDefault();
-			e.event.stopPropagation();
+		if (isStopEvent && e.preventDefault) {
+			e.preventDefault();
+			e.stopPropagation();
 		}
 	}
 }
@@ -417,7 +417,7 @@ function bulkWrapper(func, bulk) {
 						queueEndCallback.apply(context, [i, cnt, queue.length]);
 					}
 				},
-				timeout || os
+				timeout || 0
 			);
 		}
 	}
@@ -469,6 +469,7 @@ function networkSilentSessCache(url, success, fail, param) {
 				typeof success === 'function' && success.apply(context, [data]);
 			},
 			function (data) {
+				console.error(plugin.name, 'Network request failed for URL:', url, 'Error:', data);
 				sessionStorage.setItem(key, JSON.stringify([false, data]));
 				typeof fail === 'function' && fail.apply(context, [data]);
 			},
@@ -530,135 +531,136 @@ function pluginPage(object) {
 		Lampa.Controller.collectionFocus(last || false, scroll.render());
 		this.activity.loader(false);
 	};
-	this.build = function (physics = Lampa.Storage.get(plugin.component + '_square_icons', 'false') === 'true' ? ' square_icons' : '';
-	body.addClass('category-full' + style);
-	if (Lampa.Storage.get(plugin.component + '_contain_icons', 'true') === 'true') body.addClass('contain_icons');
-	this.activity.loader(true);
-	var maxCh = parseInt(getStorage('max_ch_in_group', '300'));
-	var channelGroup = !catalog[object.currentGroup]
-		? (lists[object.id].groups.length > 1 && !!catalog[lists[object.id].groups[1].key]
-			? catalog[lists[object.id].groups[1].key]
-			: {'channels': []}
-		)
-		: catalog[object.currentGroup];
-	var _this2 = this;
-	Lampa.Background.change();
-	Lampa.Template.add(plugin.component + '_button_category', "<style>@media screen and (max-width: 2560px) {." + plugin.component + " .card--collection {width: 16.6%!important;}}@media screen and (max-width: 800px) {." + plugin.component + " .card--collection {width: 24.6%!important;}}@media screen and (max-width: 500px) {." + plugin.component + " .card--collection {width: 33.3%!important;}}</style><div class=\"full-start__button selector view--category\"><svg style=\"enable-background:new 0 0 512 512;\" version=\"1.1\" viewBox=\"0 0 24 24\" xml:space=\"preserve\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"><g id=\"info\"/><g id=\"icons\"><g id=\"menu\"><path d=\"M20,10H4c-1.1,0-2,0.9-2,2c0,1.1,0.9,2,2,2h16c1.1,0,2-0.9,2-2C22,10.9,21.1,10,20,10z\" fill=\"currentColor\"/><path d=\"M4,8h12c1.1,0,2-0.9,2-2c0-1.1-0.9-2-2-2H4C2.9,4,2,4.9,2,6C2,7.1,2.9,8,4,8z\" fill=\"currentColor\"/><path d=\"M16,16H4c-1.1,0-2,0.9-2,2c0,1.1,0.9,2,2,2h12c1.1,0,2-0.9,2-2C18,16.9,17.1,16,16,16z\" fill=\"currentColor\"/></g></g></svg><span>" + langGet('categories') + "</span>\n	</div>");
-	Lampa.Template.add(plugin.component + '_info_radio', '<div class="info layer--width"><div class="info__left"><div class="info__title"></div><div class="info__title-original"></div><div class="info__create"></div></div><div class="info__right" style="display: flex !important;">  <div id="stantion_filtr"></div></div></div>');
-	var btn = Lampa.Template.get(plugin.component + '_button_category');
-	info = Lampa.Template.get(plugin.component + '_info_radio');
-	info.find('#stantion_filtr').append(btn);
-	info.find('.view--category').on('hover:enter hover:click', function () {
-		_this2.selectGroup();
-	});
-	info.find('.info__title-original').text(!catalog[object.currentGroup] ? '' : catalog[object.currentGroup].title);
-	info.find('.info__title').text('');
-	html.append(info.append());
-	if (channelGroup.channels.length) {
-		setEpgId(channelGroup);
-		scroll.render().addClass('layer--wheight').data('mheight', info);
-		html.append(scroll.render());
-		this.append(channelGroup.channels);
-		if (getStorage('epg', false)) {
-			scroll.render().css({float: "left", width: '70%'});
-			scroll.render().parent().append(epgTemplate);
+	this.build = function () {
+		var style = Lampa.Storage.get(plugin.component + '_square_icons', 'false') === 'true' ? ' square_icons' : '';
+		body.addClass('category-full' + style);
+		if (Lampa.Storage.get(plugin.component + '_contain_icons', 'true') === 'true') body.addClass('contain_icons');
+		this.activity.loader(true);
+		var maxCh = parseInt(getStorage('max_ch_in_group', '300'));
+		var channelGroup = !catalog[object.currentGroup]
+			? (lists[object.id].groups.length > 1 && !!catalog[lists[object.id].groups[1].key]
+				? catalog[lists[object.id].groups[1].key]
+				: {'channels': []}
+			)
+			: catalog[object.currentGroup];
+		var _this2 = this;
+		Lampa.Background.change();
+		Lampa.Template.add(plugin.component + '_button_category', "<style>@media screen and (max-width: 2560px) {." + plugin.component + " .card--collection {width: 16.6%!important;}}@media screen and (max-width: 800px) {." + plugin.component + " .card--collection {width: 24.6%!important;}}@media screen and (max-width: 500px) {." + plugin.component + " .card--collection {width: 33.3%!important;}}</style><div class=\"full-start__button selector view--category\"><svg style=\"enable-background:new 0 0 512 512;\" version=\"1.1\" viewBox=\"0 0 24 24\" xml:space=\"preserve\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"><g id=\"info\"/><g id=\"icons\"><g id=\"menu\"><path d=\"M20,10H4c-1.1,0-2,0.9-2,2c0,1.1,0.9,2,2,2h16c1.1,0,2-0.9,2-2C22,10.9,21.1,10,20,10z\" fill=\"currentColor\"/><path d=\"M4,8h12c1.1,0,2-0.9,2-2c0-1.1-0.9-2-2-2H4C2.9,4,2,4.9,2,6C2,7.1,2.9,8,4,8z\" fill=\"currentColor\"/><path d=\"M16,16H4c-1.1,0-2,0.9-2,2c0,1.1,0.9,2,2,2h12c1.1,0,2-0.9,2-2C18,16.9,17.1,16,16,16z\" fill=\"currentColor\"/></g></g></svg><span>" + langGet('categories') + "</span>\n	</div>");
+		Lampa.Template.add(plugin.component + '_info_radio', '<div class="info layer--width"><div class="info__left"><div class="info__title"></div><div class="info__title-original"></div><div class="info__create"></div></div><div class="info__right" style="display: flex !important;">  <div id="stantion_filtr"></div></div></div>');
+		var btn = Lampa.Template.get(plugin.component + '_button_category');
+		info = Lampa.Template.get(plugin.component + '_info_radio');
+		info.find('#stantion_filtr').append(btn);
+		info.find('.view--category').on('hover:enter hover:click', function () {
+			_this2.selectGroup();
+		});
+		info.find('.info__title-original').text(!catalog[object.currentGroup] ? '' : catalog[object.currentGroup].title);
+		info.find('.info__title').text('');
+		html.append(info.append());
+		if (channelGroup.channels.length) {
+			setEpgId(channelGroup);
+			scroll.render().addClass('layer--wheight').data('mheight', info);
+			html.append(scroll.render());
+			this.append(channelGroup.channels);
+			if (getStorage('epg', false)) {
+				scroll.render().css({float: "left", width: '70%'});
+				scroll.render().parent().append(epgTemplate);
+			}
+			scroll.append(body);
+			setStorage('last_catalog' + object.id, object.currentGroup ? object.currentGroup : '!!');
+			lists[object.id].activity.currentGroup = object.currentGroup;
+		} else {
+			var empty = new Lampa.Empty();
+			html.append(empty.render());
+			this.activity.loader(false);
+			Lampa.Controller.collectionSet(info);
+			Navigator.move('right');
 		}
-		scroll.append(body);
-		setStorage('last_catalog' + object.id, object.currentGroup ? object.currentGroup : '!!');
-		lists[object.id].activity.currentGroup = object.currentGroup;
-	} else {
-		var empty = new Lampa.Empty();
-		html.append(empty.render());
-		this.activity.loader(false);
-		Lampa.Controller.collectionSet(info);
-		Navigator.move('right');
-	}
-};
-this.selectGroup = function () {
-	var activity = Lampa.Arrays.clone(lists[object.id].activity);
-	var groups = Lampa.Arrays.clone(lists[object.id].groups).map(function(group){
-		group.selected = object.currentGroup === group.key;
-		return group;
-	});
-	Lampa.Select.show({
-		title: langGet('categories'),
-		items: groups,
-		onSelect: function(group) {
-			if (object.currentGroup !== group.key) {
-				activity.currentGroup = group.key;
-				Lampa.Activity.replace(activity);
-			} else {
+	};
+	this.selectGroup = function () {
+		var activity = Lampa.Arrays.clone(lists[object.id].activity);
+		var groups = Lampa.Arrays.clone(lists[object.id].groups).map(function(group){
+			group.selected = object.currentGroup === group.key;
+			return group;
+		});
+		Lampa.Select.show({
+			title: langGet('categories'),
+			items: groups,
+			onSelect: function(group) {
+				if (object.currentGroup !== group.key) {
+					activity.currentGroup = group.key;
+					Lampa.Activity.replace(activity);
+				} else {
+					Lampa.Player.opened() || Lampa.Controller.toggle('content');
+				}
+			},
+			onBack: function() {
 				Lampa.Player.opened() || Lampa.Controller.toggle('content');
 			}
-		},
-		onBack: function() {
-			Lampa.Player.opened() || Lampa.Controller.toggle('content');
-		}
-	});
-};
-this.start = function () {
-	if (Lampa.Activity.active().activity !== this.activity) return; //обязательно, иначе наблюдается баг, активность создается но не стартует, в то время как компонент загружается и стартует самого себя.
-	var _this = this;
-	Lampa.Controller.add('content', {
-		toggle: function toggle() {
-			Lampa.Controller.collectionSet(scroll.render());
-			Lampa.Controller.collectionFocus(last || false, scroll.render());
-		},
-		left: function left() {
-			if (Navigator.canmove('left')) Navigator.move('left');
-			else Lampa.Controller.toggle('menu');
-		},
-		right: function right() {
-			if (Navigator.canmove('right')) Navigator.move('right');
-			else _this.selectGroup();
-		},
-		up: function up() {
-			if (Navigator.canmove('up')) {
-				Navigator.move('up');
-			} else {
-				if (!info.find('.view--category').hasClass('focus')) {
-					Lampa.Controller.collectionSet(info);
-					Navigator.move('right')
-				} else Lampa.Controller.toggle('head');
+		});
+	};
+	this.start = function () {
+		if (Lampa.Activity.active().activity !== this.activity) return; //обязательно, иначе наблюдается баг, активность создается но не стартует, в то время как компонент загружается и стартует самого себя.
+		var _this = this;
+		Lampa.Controller.add('content', {
+			toggle: function toggle() {
+				Lampa.Controller.collectionSet(scroll.render());
+				Lampa.Controller.collectionFocus(last || false, scroll.render());
+			},
+			left: function left() {
+				if (Navigator.canmove('left')) Navigator.move('left');
+				else Lampa.Controller.toggle('menu');
+			},
+			right: function right() {
+				if (Navigator.canmove('right')) Navigator.move('right');
+				else _this.selectGroup();
+			},
+			up: function up() {
+				if (Navigator.canmove('up')) {
+					Navigator.move('up');
+				} else {
+					if (!info.find('.view--category').hasClass('focus')) {
+						Lampa.Controller.collectionSet(info);
+						Navigator.move('right')
+					} else Lampa.Controller.toggle('head');
+				}
+			},
+			down: function down() {
+				if (Navigator.canmove('down')) Navigator.move('down');
+				else if (info.find('.view--category').hasClass('focus')) {
+					Lampa.Controller.toggle('content');
+				}
+			},
+			back: function back() {
+				Lampa.Activity.backward();
 			}
-		},
-		down: function down() {
-			if (Navigator.canmove('down')) Navigator.move('down');
-			else if (info.find('.view--category').hasClass('focus')) {
-				Lampa.Controller.toggle('content');
-			}
-		},
-		back: function back() {
-			Lampa.Activity.backward();
-		}
-	});
-	Lampa.Controller.toggle('content');
-};
-this.pause = function () {
-	Lampa.Player.runas && Lampa.Player.runas('');
-};
-this.stop = function () {
-	Lampa.Player.runas && Lampa.Player.runas('');
-};
-this.render = function () {
-	return html;
-};
-this.destroy = function () {
-	Lampa.Player.runas && Lampa.Player.runas('');
-	network.clear();
-	scroll.destroy();
-	if (info) info.remove();
-	layerCards = null;
-	if (layerInterval) clearInterval(layerInterval);
-	if (epgInterval) clearInterval(epgInterval);
-	html.remove();
-	body.remove();
-	favorite = null;
-	network = null;
-	html = null;
-	body = null;
-	info = null;
-};
+		});
+		Lampa.Controller.toggle('content');
+	};
+	this.pause = function () {
+		Lampa.Player.runas && Lampa.Player.runas('');
+	};
+	this.stop = function () {
+		Lampa.Player.runas && Lampa.Player.runas('');
+	};
+	this.render = function () {
+		return html;
+	};
+	this.destroy = function () {
+		Lampa.Player.runas && Lampa.Player.runas('');
+		network.clear();
+		scroll.destroy();
+		if (info) info.remove();
+		layerCards = null;
+		if (layerInterval) clearInterval(layerInterval);
+		if (epgInterval) clearInterval(epgInterval);
+		html.remove();
+		body.remove();
+		favorite = null;
+		network = null;
+		html = null;
+		body = null;
+		info = null;
+	};
 }
 
 if (!Lampa.Lang) {
