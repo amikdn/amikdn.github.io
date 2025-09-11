@@ -741,11 +741,17 @@
       console.log('Templates.init called (stub implementation)');
       if (typeof Lampa.Template !== 'undefined' && Lampa.Template.js) {
         console.log('Lampa.Template.js is available');
-        // Регистрация заглушки для cub_iptv_style
         if (typeof Lampa.Template.register === 'function') {
           Lampa.Template.register('cub_iptv_style', function () {
             console.log('Using stub for cub_iptv_style');
-            return $('<style>.iptv-channel { display: block; }</style>');
+            return $('<style>.iptv-channel { display: block; } .menu__item { display: flex; align-items: center; padding: 10px; } .menu__ico { margin-right: 10px; } .menu__text { font-size: 16px; }</style>');
+          });
+          Lampa.Template.register('cub_iptv_channel_main_board', function () {
+            console.log('Using stub for cub_iptv_channel_main_board');
+            var div = document.createElement('div');
+            div.className = 'iptv-channel';
+            div.innerHTML = '<img class="iptv-channel__ico"><div class="iptv-channel__body"></div>';
+            return div;
           });
         }
       } else {
@@ -775,7 +781,6 @@
   var Component = {
     playlist: function () {
       console.log('Component.playlist called (stub implementation)');
-      // Здесь можно добавить логику для загрузки и отображения плейлиста
       return [];
     }
   };
@@ -797,7 +802,6 @@
           this.card.addEventListener('visible', this.visible.bind(this));
         } catch (e) {
           console.error('Failed to build channel:', this.data.name, e);
-          // Создаём заглушку для карточки канала
           this.card = document.createElement('div');
           this.card.className = 'iptv-channel';
           this.icon = document.createElement('img');
@@ -921,44 +925,60 @@
     Lampa.Manifest.plugins = manifest;
 
     function add() {
-      var button = $("<li class=\"menu__item selector\">\n            <div class=\"menu__ico\">\n                <svg height=\"36\" viewBox=\"0 0 38 36\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\">\n                    <rect x=\"2\" y=\"8\" width=\"34\" height=\"21\" rx=\"3\" stroke=\"currentColor\" stroke-width=\"3\"/>\n                    <line x1=\"13.0925\" y1=\"2.34874\" x2=\"16.3487\" y2=\"6.90754\" stroke=\"currentColor\" stroke-width=\"3\" stroke-linecap=\"round\"/>\n                    <line x1=\"1.5\" y1=\"-1.5\" x2=\"9.31665\" y2=\"-1.5\" transform=\"matrix(-0.757816 0.652468 0.652468 0.757816 26.197 2)\" stroke=\"currentColor\" stroke-width=\"3\" stroke-linecap=\"round\"/>\n                    <line x1=\"9.5\" y1=\"34.5\" x2=\"29.5\" y2=\"34.5\" stroke=\"currentColor\" stroke-width=\"3\" stroke-linecap=\"round\"/>\n                </svg>\n            </div>\n            <div class=\"menu__text\">".concat(window.lampa_settings.iptv ? Lang$1.translate('player_playlist') : 'IPTV', "</div>\n        </li>"));
-      button.on('hover:enter', function () {
-        console.log('Menu button clicked, opening IPTV');
-        if (window.lampa_settings.iptv) {
-          if (Lampa.Activity.active().component == 'iptv') {
-            console.log('Already in IPTV, opening playlist');
-            return Lampa.Activity.active().activity.component().playlist();
-          }
-        }
-        Lampa.Activity.push({
-          url: '',
-          title: 'IPTV',
-          component: 'iptv',
-          page: 1
-        });
-      });
-      $('.menu .menu__list').eq(0).append(button);
+      console.log('IPTV: Adding menu button and styles');
       try {
-        $('body').append(Lampa.Template.get('cub_iptv_style', {}, true));
-        console.log('cub_iptv_style template added to body');
-      } catch (e) {
-        console.error('Failed to load cub_iptv_style:', e);
-        // Добавляем минимальные стили напрямую
-        var style = document.createElement('style');
-        style.textContent = '.iptv-channel { display: block; }';
-        document.body.appendChild(style);
-        console.log('Fallback styles added');
-      }
-
-      if (window.lampa_settings.iptv) {
-        $('.head .head__action.open--search').addClass('hide');
-        $('.head .head__action.open--premium').remove();
-        $('.head .head__action.open--feed').remove();
-        $('.navigation-bar__body [data-action="main"]').unbind().on('click', function () {
-          console.log('Main navigation clicked, opening playlist');
-          Lampa.Activity.active().activity.component().playlist();
+        var menuList = $('.menu .menu__list').eq(0);
+        if (menuList.length === 0) {
+          console.warn('Menu list (.menu .menu__list) not found, using fallback');
+          menuList = document.querySelector('.menu__list') || document.createElement('ul');
+          menuList.className = 'menu__list';
+          var menu = document.querySelector('.menu') || document.body;
+          menu.appendChild(menuList);
+        }
+        var button = $("<li class=\"menu__item selector\">\n            <div class=\"menu__ico\">\n                <svg height=\"36\" viewBox=\"0 0 38 36\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\">\n                    <rect x=\"2\" y=\"8\" width=\"34\" height=\"21\" rx=\"3\" stroke=\"currentColor\" stroke-width=\"3\"/>\n                    <line x1=\"13.0925\" y1=\"2.34874\" x2=\"16.3487\" y2=\"6.90754\" stroke=\"currentColor\" stroke-width=\"3\" stroke-linecap=\"round\"/>\n                    <line x1=\"1.5\" y1=\"-1.5\" x2=\"9.31665\" y2=\"-1.5\" transform=\"matrix(-0.757816 0.652468 0.652468 0.757816 26.197 2)\" stroke=\"currentColor\" stroke-width=\"3\" stroke-linecap=\"round\"/>\n                    <line x1=\"9.5\" y1=\"34.5\" x2=\"29.5\" y2=\"34.5\" stroke=\"currentColor\" stroke-width=\"3\" stroke-linecap=\"round\"/>\n                </svg>\n            </div>\n            <div class=\"menu__text\">".concat(window.lampa_settings.iptv ? Lang$1.translate('player_playlist') : 'IPTV', "</div>\n        </li>"));
+        button.on('hover:enter', function () {
+          console.log('Menu button clicked, opening IPTV');
+          if (window.lampa_settings.iptv) {
+            if (Lampa.Activity.active().component == 'iptv') {
+              console.log('Already in IPTV, opening playlist');
+              return Lampa.Activity.active().activity.component().playlist();
+            }
+          }
+          Lampa.Activity.push({
+            url: '',
+            title: 'IPTV',
+            component: 'iptv',
+            page: 1
+          });
         });
-        $('.navigation-bar__body [data-action="search"]').addClass('hide');
+        menuList.append(button[0]);
+        console.log('Menu button added to DOM');
+
+        try {
+          var styleTemplate = Lampa.Template.get('cub_iptv_style', {}, true);
+          $('body').append(styleTemplate);
+          console.log('cub_iptv_style template added to body');
+        } catch (e) {
+          console.error('Failed to load cub_iptv_style:', e);
+          var style = document.createElement('style');
+          style.textContent = '.iptv-channel { display: block; } .menu__item { display: flex; align-items: center; padding: 10px; } .menu__ico { margin-right: 10px; } .menu__text { font-size: 16px; }';
+          document.body.appendChild(style);
+          console.log('Fallback styles added');
+        }
+
+        if (window.lampa_settings.iptv) {
+          $('.head .head__action.open--search').addClass('hide');
+          $('.head .head__action.open--premium').remove();
+          $('.head .head__action.open--feed').remove();
+          $('.navigation-bar__body [data-action="main"]').unbind().on('click', function () {
+            console.log('Main navigation clicked, opening playlist');
+            Lampa.Activity.active().activity.component().playlist();
+          });
+          $('.navigation-bar__body [data-action="search"]').addClass('hide');
+          console.log('IPTV-specific UI modifications applied');
+        }
+      } catch (e) {
+        console.error('Failed to add menu button or styles:', e);
       }
     }
 
@@ -1012,10 +1032,12 @@
       console.log('IPTV set as start page');
     }
 
+    console.log('Checking appready:', window.appready);
     if (window.appready) {
       console.log('App ready, adding IPTV');
       add();
     } else {
+      console.log('Subscribing to app ready event');
       Lampa.Listener.follow('app', function (e) {
         if (e.type == 'ready') {
           console.log('App ready event, adding IPTV');
@@ -1023,6 +1045,14 @@
         }
       });
     }
+
+    // Принудительный вызов add через setTimeout как запасной вариант
+    setTimeout(function () {
+      if (!$('.menu__item .menu__text').filter(function () { return $(this).text() === 'IPTV' || $(this).text() === Lang$1.translate('player_playlist'); }).length) {
+        console.log('Menu button not found after delay, forcing add');
+        add();
+      }
+    }, 1000);
   }
 
   if (!window.plugin_iptv_ready) {
