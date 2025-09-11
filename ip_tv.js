@@ -743,16 +743,18 @@
         console.log('Lampa.Template.js is available');
         if (typeof Lampa.Template.register === 'function') {
           Lampa.Template.register('cub_iptv_style', function () {
-            console.log('Using stub for cub_iptv_style');
-            return $('<style>.iptv-channel { display: block; } .menu__item { display: flex; align-items: center; padding: 10px; } .menu__ico { margin-right: 10px; } .menu__text { font-size: 16px; }</style>');
+            console.log('Registering stub for cub_iptv_style');
+            return $('<style>.iptv-channel { display: block; } .menu__item { display: flex !important; align-items: center; padding: 10px; cursor: pointer; } .menu__ico { margin-right: 10px; } .menu__text { font-size: 16px; color: #fff; }</style>');
           });
           Lampa.Template.register('cub_iptv_channel_main_board', function () {
-            console.log('Using stub for cub_iptv_channel_main_board');
+            console.log('Registering stub for cub_iptv_channel_main_board');
             var div = document.createElement('div');
             div.className = 'iptv-channel';
             div.innerHTML = '<img class="iptv-channel__ico"><div class="iptv-channel__body"></div>';
             return div;
           });
+        } else {
+          console.warn('Lampa.Template.register is not available');
         }
       } else {
         console.warn('Lampa.Template.js is not available, using fallback');
@@ -935,7 +937,14 @@
           var menu = document.querySelector('.menu') || document.body;
           menu.appendChild(menuList);
         }
-        var button = $("<li class=\"menu__item selector\">\n            <div class=\"menu__ico\">\n                <svg height=\"36\" viewBox=\"0 0 38 36\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\">\n                    <rect x=\"2\" y=\"8\" width=\"34\" height=\"21\" rx=\"3\" stroke=\"currentColor\" stroke-width=\"3\"/>\n                    <line x1=\"13.0925\" y1=\"2.34874\" x2=\"16.3487\" y2=\"6.90754\" stroke=\"currentColor\" stroke-width=\"3\" stroke-linecap=\"round\"/>\n                    <line x1=\"1.5\" y1=\"-1.5\" x2=\"9.31665\" y2=\"-1.5\" transform=\"matrix(-0.757816 0.652468 0.652468 0.757816 26.197 2)\" stroke=\"currentColor\" stroke-width=\"3\" stroke-linecap=\"round\"/>\n                    <line x1=\"9.5\" y1=\"34.5\" x2=\"29.5\" y2=\"34.5\" stroke=\"currentColor\" stroke-width=\"3\" stroke-linecap=\"round\"/>\n                </svg>\n            </div>\n            <div class=\"menu__text\">".concat(window.lampa_settings.iptv ? Lang$1.translate('player_playlist') : 'IPTV', "</div>\n        </li>"));
+        console.log('Menu list found or created:', menuList);
+
+        // Удаляем старую кнопку IPTV, если она существует
+        $('.menu__item .menu__text').filter(function () {
+          return $(this).text() === 'IPTV' || $(this).text() === Lang$1.translate('player_playlist');
+        }).closest('.menu__item').remove();
+
+        var button = $("<li class=\"menu__item selector\" style=\"display: flex; align-items: center; padding: 10px; cursor: pointer;\">\n            <div class=\"menu__ico\">\n                <svg height=\"36\" viewBox=\"0 0 38 36\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\">\n                    <rect x=\"2\" y=\"8\" width=\"34\" height=\"21\" rx=\"3\" stroke=\"currentColor\" stroke-width=\"3\"/>\n                    <line x1=\"13.0925\" y1=\"2.34874\" x2=\"16.3487\" y2=\"6.90754\" stroke=\"currentColor\" stroke-width=\"3\" stroke-linecap=\"round\"/>\n                    <line x1=\"1.5\" y1=\"-1.5\" x2=\"9.31665\" y2=\"-1.5\" transform=\"matrix(-0.757816 0.652468 0.652468 0.757816 26.197 2)\" stroke=\"currentColor\" stroke-width=\"3\" stroke-linecap=\"round\"/>\n                    <line x1=\"9.5\" y1=\"34.5\" x2=\"29.5\" y2=\"34.5\" stroke=\"currentColor\" stroke-width=\"3\" stroke-linecap=\"round\"/>\n                </svg>\n            </div>\n            <div class=\"menu__text\">".concat(window.lampa_settings.iptv ? Lang$1.translate('player_playlist') : 'IPTV', "</div>\n        </li>"));
         button.on('hover:enter', function () {
           console.log('Menu button clicked, opening IPTV');
           if (window.lampa_settings.iptv) {
@@ -951,8 +960,23 @@
             page: 1
           });
         });
+        button.on('click', function () {
+          console.log('Menu button clicked (click event), opening IPTV');
+          if (window.lampa_settings.iptv) {
+            if (Lampa.Activity.active().component == 'iptv') {
+              console.log('Already in IPTV, opening playlist');
+              return Lampa.Activity.active().activity.component().playlist();
+            }
+          }
+          Lampa.Activity.push({
+            url: '',
+            title: 'IPTV',
+            component: 'iptv',
+            page: 1
+          });
+        });
         menuList.append(button[0]);
-        console.log('Menu button added to DOM');
+        console.log('Menu button added to DOM:', button[0].outerHTML);
 
         try {
           var styleTemplate = Lampa.Template.get('cub_iptv_style', {}, true);
@@ -961,7 +985,7 @@
         } catch (e) {
           console.error('Failed to load cub_iptv_style:', e);
           var style = document.createElement('style');
-          style.textContent = '.iptv-channel { display: block; } .menu__item { display: flex; align-items: center; padding: 10px; } .menu__ico { margin-right: 10px; } .menu__text { font-size: 16px; }';
+          style.textContent = '.iptv-channel { display: block; } .menu__item { display: flex !important; align-items: center; padding: 10px; cursor: pointer; } .menu__ico { margin-right: 10px; } .menu__text { font-size: 16px; color: #fff; }';
           document.body.appendChild(style);
           console.log('Fallback styles added');
         }
@@ -1051,6 +1075,8 @@
       if (!$('.menu__item .menu__text').filter(function () { return $(this).text() === 'IPTV' || $(this).text() === Lang$1.translate('player_playlist'); }).length) {
         console.log('Menu button not found after delay, forcing add');
         add();
+      } else {
+        console.log('Menu button found in DOM');
       }
     }, 1000);
   }
