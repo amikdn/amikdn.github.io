@@ -174,7 +174,6 @@ function toLocaleTimeString(time) {
     var date = new Date(),
 	ofst = parseInt(Lampa.Storage.get('time_offset', 'n0').replace('n',''));
     time = time || date.getTime();
-
     date = new Date(time + (ofst * 1000 * 60 * 60));
     return ('0' + date.getHours()).substr(-2) + ':' + ('0' + date.getMinutes()).substr(-2);
 }
@@ -183,7 +182,6 @@ function toLocaleDateString(time) {
     var date = new Date(),
 	ofst = parseInt(Lampa.Storage.get('time_offset', 'n0').replace('n',''));
     time = time || date.getTime();
-
     date = new Date(time + (ofst * 1000 * 60 * 60));
     return date.toLocaleDateString();
 }
@@ -369,7 +367,7 @@ function bulkWrapper(func, bulk) {
 		    while (queue.length && ++i <= bulkCnt) func.apply(context, queue.shift());
 		    i = queue.length ? i : i-1;
 		    cnt += i;
-		    queueStepCallback.apply(context, [i, cnt, queue.length])
+		    queueStepCallback.apply(context, [i, cnt, queue.length]);
 		    if (!queue.length) {
 			clearInterval(interval);
 			interval = null;
@@ -1352,35 +1350,47 @@ function getSettings(key) {
     return Lampa.Storage.get(key, 'false') === 'true';
 }
 
-document.addEventListener('DOMContentLoaded', function () {
-    if (typeof Lampa === 'undefined' || typeof Lampa.Activity !== 'function') {
-        console.error('Lampa or Lampa.Activity is not defined. Ensure Lampa library is loaded.');
-        return;
-    }
+Lampa.Listener.follow('app', function(e) {
+    if (e.type === 'ready') {
+        if (typeof Lampa === 'undefined' || typeof Lampa.Activity !== 'function') {
+            console.error('Lampa or Lampa.Activity is not defined. Ensure Lampa library is loaded.');
+            return;
+        }
 
-    lists.forEach(function (list, i) {
-        list.activity = new Lampa.Activity({
-            url: '',
-            title: list.title,
-            component: plugin.component,
-            id: i,
-            currentGroup: getStorage('last_catalog' + i, '!!'),
-            page: 1
-        });
-        list.activity.component_object = new pluginPage(list.activity);
-        Lampa.Component.add(list.title, list.activity);
-    });
-
-    Lampa.Menu.add({
-        title: plugin.name,
-        icon: plugin.icon,
-        component: plugin.component,
-        submenu: lists.map(function (list) {
-            return {
+        lists.forEach(function (list, i) {
+            list.activity = new Lampa.Activity({
+                url: '',
                 title: list.title,
-                activity: list.activity
-            };
-        })
-    });
+                component: plugin.component,
+                id: i,
+                currentGroup: getStorage('last_catalog' + i, '!!'),
+                page: 1
+            });
+            list.activity.component_object = new pluginPage(list.activity);
+            Lampa.Component.add(list.title, list.activity);
+        });
+
+        Lampa.Menu.add({
+            title: plugin.name,
+            icon: plugin.icon,
+            action: function() {
+                Lampa.Select.show({
+                    title: plugin.name,
+                    items: lists.map(function(list) {
+                        return {
+                            title: list.title,
+                            activity: list.activity
+                        };
+                    }),
+                    onSelect: function(item) {
+                        Lampa.Activity.push(item.activity);
+                    },
+                    onBack: function() {
+                        Lampa.Controller.toggle('menu');
+                    }
+                });
+            }
+        });
+    }
 });
 })();
