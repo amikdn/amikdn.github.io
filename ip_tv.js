@@ -9,7 +9,7 @@ var isSNG = false;
 var lists = [{
     activity: {
         id: 0,
-        url: 'https://raw.githubusercontent.com/Free-TV/IPTV/master/playlist.m3u8',
+        url: 'https://raw.githubusercontent.com/IPTVSHARED/iptv/refs/heads/main/IPTV_SHARED.m3u',
         title: plugin.name,
         groups: [],
         currentGroup: '',
@@ -53,7 +53,7 @@ var epgTemplate = $(('<div id="PLUGIN_epg">\n' +
     '   <div class="PLUGIN-details__program-list">' +
     '<div class="PLUGIN-program selector">\n' +
     '   <div class="PLUGIN-program__time js-epgTime">XX:XX</div>\n' +
-    '   <div class=\"PLUGIN-program__body\">\n' +
+    '   <div class="PLUGIN-program__body">\n' +
     '	   <div class="PLUGIN-program__title js-epgTitle"> </div>\n' +
     '	   <div class="PLUGIN-program__progressbar"><div class="PLUGIN-program__progress js-epgProgress" style="width: 50%"></div></div>\n' +
     '   </div>\n' +
@@ -270,7 +270,6 @@ function catchupUrl(url, type, source) {
         }
         else if (url.indexOf('${') < 0) type = 'shift';
         else type = 'default';
-        console.log(plugin.name, 'Autodetect catchup-type "' + type + '"');
     }
     var newUrl = '';
     switch (type) {
@@ -309,7 +308,6 @@ function catchupUrl(url, type, source) {
         case 'disabled':
             return false;
         default:
-            console.log(plugin.name, 'Err: no support catchup-type="' + type + '"');
             return false;
     }
     if (newUrl.indexOf('${') < 0) return catchupUrl(newUrl,'shift');
@@ -460,6 +458,36 @@ function networkSilentSessCache(url, success, fail, param) {
 // Стиль
 Lampa.Template.add(plugin.component + '_style', '<style>#PLUGIN_epg{margin-right:1em}.PLUGIN-program__desc{font-size:0.9em;margin:0.5em;text-align:justify;max-height:15em;overflow:hidden;}.PLUGIN.category-full{padding-bottom:10em}.PLUGIN div.card__view{position:relative;background-color:#353535;background-color:#353535a6;border-radius:1em;cursor:pointer;padding-bottom:60%}.PLUGIN.square_icons div.card__view{padding-bottom:100%}.PLUGIN img.card__img,.PLUGIN div.card__img{background-color:unset;border-radius:unset;max-height:100%;max-width:100%;height:auto;width:auto;position:absolute;top:50%;left:50%;-moz-transform:translate(-50%,-50%);-webkit-transform:translate(-50%,-50%);transform:translate(-50%,-50%);font-size:2em}.PLUGIN.contain_icons img.card__img{height:95%;width:95%}</style>');
 
+function parseM3U(data) {
+    var channels = [];
+    var lines = data.split('\n');
+    var currentChannel = null;
+    for (var i = 0; i < lines.length; i++) {
+        var line = lines[i].trim();
+        if (line.startsWith('#EXTM3U')) {
+            continue;
+        } else if (line.startsWith('#EXTINF:')) {
+            currentChannel = { title: '', url: '', group: defaultGroup, tv: true, plugin: plugin.component };
+            var extinf = line.match(/#EXTINF:-?\d+\s*(?:,(.+)|.*)/);
+            if (extinf && extinf[1]) currentChannel.title = extinf[1].trim();
+            var attrs = line.match(/(\w+?)="([^"]*?)"/g) || [];
+            attrs.forEach(function(attr) {
+                var [key, value] = attr.split('="');
+                value = value.slice(0, -1);
+                if (key === 'tvg-id') currentChannel.tvg_id = value;
+                else if (key === 'tvg-name') currentChannel.title = value || currentChannel.title;
+                else if (key === 'group-title') currentChannel.group = value || defaultGroup;
+                else if (key === 'tvg-logo') currentChannel.logo = value;
+            });
+        } else if (line && !line.startsWith('#') && currentChannel) {
+            currentChannel.url = line;
+            channels.push(currentChannel);
+            currentChannel = null;
+        }
+    }
+    return { channels: channels };
+}
+
 function pluginPage(object) {
     var html = $('<div></div>');
     var body = $('<div class="category-full ' + plugin.component + '"></div>');
@@ -476,10 +504,11 @@ function pluginPage(object) {
             catalog[list.activity.url] = {};
             curListId = object.id;
             network.silent(list.activity.url, function (data) {
-                var channels = [];
+                var parsed = parseM3U(data);
+                var channels = parsed.channels || [];
                 var groups = {};
-                if (data && data.channels) {
-                    data.channels.forEach(function (channel) {
+                if (channels.length) {
+                    channels.forEach(function (channel) {
                         var group = channel.group || defaultGroup;
                         if (!groups[group]) groups[group] = {title: group, key: group, channels: []};
                         groups[group].channels.push(channel);
@@ -490,16 +519,13 @@ function pluginPage(object) {
                     catalog[list.activity.url] = groups;
                     _this.build(catalog[list.activity.url]);
                 } else {
-                    // Добавлена обработка ошибки: если data не парсится как channels, покажем сообщение
-                    console.log('Ошибка загрузки плейлиста:', data);
-                    var empty = new Lampa.Empty({descr: 'Плейлист не загружен или пустой. Проверьте URL.'});
-                    html.append(empty.render());
                     _this.activity.loader(false);
+                    var empty = new Lampa.Empty();
+                    html.append(empty.render());
                 }
-            }, function (error) {
-                console.log('Ошибка сети при загрузке плейлиста:', error);
+            }, function () {
                 _this.activity.loader(false);
-                var empty = new Lampa.Empty({descr: 'Ошибка загрузки плейлиста. Проверьте соединение.'});
+                var empty = new Lampa.Empty();
                 html.append(empty.render());
             });
         } else {
@@ -902,7 +928,6 @@ addSettings('static', {title: UID, description: langGet('unique_id')});
 
 function pluginStart() {
     if (!!window['plugin_' + plugin.component + '_ready']) {
-        console.log(plugin.name, 'plugin already start');
         return;
     }
     window['plugin_' + plugin.component + '_ready'] = true;
@@ -922,10 +947,8 @@ function pluginStart() {
         });
     menu.append(menuEl);
     isSNG = ['uk', 'ru', 'be'].indexOf(Lampa.Storage.field('language')) >= 0;
-    console.log(plugin.name, 'plugin start', menu.length, lists.length, isSNG);
 }
 
-console.log(plugin.name, 'plugin ready start', !!window.appready ? 'now' : 'waiting event ready');
 if (!!window.appready) pluginStart();
 else Lampa.Listener.follow('app', function(e){if (e.type === 'ready') pluginStart()});
 })();
