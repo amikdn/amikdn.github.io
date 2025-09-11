@@ -443,22 +443,20 @@ function networkSilentSessCache(url, success, fail, param) {
                 sessionStorage.setItem(key, JSON.stringify([false, data]));
                 typeof fail === 'function' && fail.apply(context, [data]);
             },
-            param
+            param,
+            { timeout: 5000 }
         );
     }
 }
 
 function epgRender(epgId) {
-    // Заглушка для epgRender, так как она не предоставлена в исходнике
     console.log(plugin.name, 'EPG render called for', epgId);
 }
 
 function cardsEpgRender(cards) {
-    // Заглушка для cardsEpgRender, так как она не предоставлена в исходнике
     console.log(plugin.name, 'Cards EPG render called for', cards.length, 'cards');
 }
 
-// Стиль
 Lampa.Template.add(plugin.component + '_style', '<style>#PLUGIN_epg{margin-right:1em}.PLUGIN-program__desc{font-size:0.9em;margin:0.5em;text-align:justify;max-height:15em;overflow:hidden;}.PLUGIN.category-full{padding-bottom:10em}.PLUGIN div.card__view{position:relative;background-color:#353535;background-color:#353535a6;border-radius:1em;cursor:pointer;padding-bottom:60%}.PLUGIN.square_icons div.card__view{padding-bottom:100%}.PLUGIN img.card__img,.PLUGIN div.card__img{background-color:unset;border-radius:unset;max-height:100%;max-width:100%;height:auto;width:auto;position:absolute;top:50%;left:50%;-moz-transform:translate(-50%,-50%);-webkit-transform:translate(-50%,-50%);transform:translate(-50%,-50%);font-size:2em}.PLUGIN.contain_icons img.card__img{height:95%;width:95%}</style>');
 
 function pluginPage(object) {
@@ -518,6 +516,7 @@ function pluginPage(object) {
             _this.start = empty.start;
             _this.activity.loader(false);
             _this.activity.toggle();
+            console.log(plugin.name, 'Empty result displayed');
         };
         if (Object.keys(catalog).length) {
             _this.build(catalog);
@@ -540,18 +539,21 @@ function pluginPage(object) {
                             timeOffset = (serverTime < ts || serverTime > te) ? serverTime - te : 0;
                             timeOffsetSet = true;
                             compileList(data);
+                            console.log(plugin.name, 'Time offset set:', timeOffset);
                         },
                         function () {
                             timeOffsetSet = true;
                             compileList(data);
-                        }
+                            console.log(plugin.name, 'Time offset request failed, proceeding without offset');
+                        },
+                        false,
+                        { timeout: 5000 }
                     );
                 })();
             }
             var parseListHeader = function () {
-                if (typeof data != 'string'
-                    || data.substr(0, 7).toUpperCase() !== "#EXTM3U"
-                ) {
+                if (typeof data != 'string' || data.substr(0, 7).toUpperCase() !== "#EXTM3U") {
+                    console.log(plugin.name, 'Invalid playlist format');
                     emptyResult();
                     return;
                 }
@@ -574,12 +576,13 @@ function pluginPage(object) {
                         + '&uid=' + utils.uid() + '&sig=' + generateSigForString(listCfg['epgUrl']);
                 }
                 listCfg['epgApiChUrl'] = Lampa.Utils.protocol() + 'epg.rootu.top/api/' + channelsUri;
-                networkSilentSessCache(listCfg['epgApiChUrl'], parseList, parseList);
+                // networkSilentSessCache(listCfg['epgApiChUrl'], parseList, parseList);
+                parseList(); // Пропускаем EPG, чтобы избежать зависания
             }
             var parseList = function () {
-                if (typeof data != 'string'
-                    || data.substr(0, 7).toUpperCase() !== "#EXTM3U"
-                ) {
+                console.log(plugin.name, 'Starting parseList, data length:', data.length);
+                if (typeof data != 'string' || data.substr(0, 7).toUpperCase() !== "#EXTM3U") {
+                    console.log(plugin.name, 'Invalid playlist format');
                     emptyResult();
                     return;
                 }
@@ -607,15 +610,11 @@ function pluginPage(object) {
                         Options: {}
                     };
                     for (; cnt < chNum && i < l.length; i++) {
-                        if (!!(m = l[i].match(/^#EXTGRP:\s*(.+?)\s*$/i))
-                            && m[1].trim() !== ''
-                        ) {
+                        if (!!(m = l[i].match(/^#EXTGRP:\s*(.+?)\s*$/i)) && m[1].trim() !== '') {
                             defGroup = m[1].trim();
                         } else if (!!(m = l[i].match(/^#EXTINF:\s*-?\d+(\s+\S.*?\s*)?,(.+)$/i))) {
                             channel.Title = m[2].trim();
-                            if (!!m[1]
-                                && !!(m = m[1].match(/([^\s=]+)=((["'])(.*?)\3|\S+)/g))
-                            ) {
+                            if (!!m[1] && !!(m = m[1].match(/([^\s=]+)=((["'])(.*?)\3|\S+)/g))) {
                                 for (var j = 0; j < m.length; j++) {
                                     if (!!(mm = m[j].match(/([^\s=]+)=((["'])(.*?)\3|\S+)/))) {
                                         channel[mm[1].toLowerCase()] = mm[4] || (mm[3] ? '' : mm[2]);
@@ -624,11 +623,12 @@ function pluginPage(object) {
                             }
                         } else if (!!(m = l[i].match(/^#EXTVLCOPT:\s*([^\s=]+)=(.+)$/i))) {
                             channel.Options[m[1].trim().toLowerCase()] = m[2].trim();
-                        } else if (!!(m = l[i].match(/^(https?):\/\/(.+)$/i))) {
+                        } else if (!!(m = l[i].match(/^(https?):\/\/(.+)$/i)) && !l[i].match(/\.mp4$/i)) {
                             channel.Url = m[0].trim();
                             channel.isYouTube = !!(m[2].match(/^(www\.)?youtube\.com/));
                             channel.Group = (channel['group-title'] || defGroup) + "";
                             cnt++;
+                            console.log(plugin.name, 'Added channel:', channel.Title, channel.Url);
                         }
                     }
                     if (!!channel.Url && !channel.isYouTube) {
@@ -654,6 +654,7 @@ function pluginPage(object) {
                         }
                     }
                 }
+                console.log(plugin.name, 'Parsed catalog:', Object.keys(catalog).length, 'groups');
                 for (i = 0; i < lists[object.id].groups.length; i++) {
                     var group = lists[object.id].groups[i];
                     group.title += ' [' + catalog[group.key].channels.length + ']';
@@ -684,22 +685,24 @@ function pluginPage(object) {
                         compileList,
                         emptyResult,
                         false,
-                        {dataType: 'text'}
+                        {dataType: 'text', headers: {'Cache-Control': 'no-cache'}}
                     );
                 },
                 false,
-                {dataType: 'text'}
+                {dataType: 'text', headers: {'Cache-Control': 'no-cache'}}
             );
         }
         return this.render();
     };
 
     this.build = function (catalog) {
+        console.log(plugin.name, 'Building catalog with groups:', Object.keys(catalog));
         var channelGroup = !catalog[object.currentGroup]
             ? (lists[object.id].groups.length > 1 && !!catalog[lists[object.id].groups[1].key]
                 ? catalog[lists[object.id].groups[1].key]
                 : {'channels': []})
             : catalog[object.currentGroup];
+        console.log(plugin.name, 'Selected group:', channelGroup.title, 'Channels:', channelGroup.channels.length);
         var _this2 = this;
         Lampa.Background.change();
         Lampa.Template.add(plugin.component + '_button_category', "<style>@media screen and (max-width: 2560px) {." + plugin.component + " .card--collection {width: 16.6%!important;}}@media screen and (max-width: 800px) {." + plugin.component + " .card--collection {width: 24.6%!important;}}@media screen and (max-width: 500px) {." + plugin.component + " .card--collection {width: 33.3%!important;}}</style><div class=\"full-start__button selector view--category\"><svg style=\"enable-background:new 0 0 512 512;\" version=\"1.1\" viewBox=\"0 0 24 24\" xml:space=\"preserve\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"><g id=\"info\"/><g id=\"icons\"><g id=\"menu\"><path d=\"M20,10H4c-1.1,0-2,0.9-2,2c0,1.1,0.9,2,2,2h16c1.1,0,2-0.9,2-2C22,10.9,21.1,10,20,10z\" fill=\"currentColor\"/><path d=\"M4,8h12c1.1,0,2-0.9,2-2c0-1.1-0.9-2-2-2H4C2.9,4,2,4.9,2,6C2,7.1,2.9,8,4,8z\" fill=\"currentColor\"/><path d=\"M16,16H4c-1.1,0-2,0.9-2,2c0,1.1,0.9,2,2,2h12c1.1,0,2-0.9,2-2C18,16.9,17.1,16,16,16z\" fill=\"currentColor\"/></g></g></svg><span>" + langGet('categories') + "</span>\n	</div>");
@@ -740,6 +743,8 @@ function pluginPage(object) {
             Lampa.Controller.collectionSet(info);
             Navigator.move('right');
         }
+        this.activity.loader(false);
+        this.activity.toggle();
     };
 
     this.append = function(channels) {
