@@ -1473,6 +1473,7 @@ addSettings(
 	}
     }
 );
+// Добавление настройки для ввода URL плейлиста
 addSettings(
     'input',
     {
@@ -1482,9 +1483,8 @@ addSettings(
         placeholder: langGet('playlist_url_desc'),
         description: langGet('playlist_url_desc'),
         onChange: function(value) {
-            // Обработчик изменения URL плейлиста
+            console.log('Playlist URL changed to:', value); // Логирование для отладки
             if (value) {
-                // Обновляем URL плейлиста
                 lists[0] = lists[0] || { id: 0, url: value, groups: [], activity: { currentGroup: '' } };
                 lists[0].url = value;
                 Lampa.Activity.replace({
@@ -1497,3 +1497,4 @@ addSettings(
         }
     }
 );
+
