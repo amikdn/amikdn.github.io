@@ -1450,29 +1450,15 @@ function addSettings(type, param) {
 Lampa.Component.add(plugin.component, pluginPage);
 
 Lampa.SettingsApi.addComponent(plugin);
-addSettings(
-    'trigger',
-    {
-	title: langGet('square_icons'),
-	name: 'square_icons',
-	default: false,
-	onChange: function(v){
-	    $('.my_iptv2.category-full').toggleClass('square_icons', v === 'true');
-	}
-    }
-);
-addSettings(
-    'trigger',
-    {
-	title: langGet('contain_icons'),
-	description: langGet('contain_icons_desc'),
-	name: 'contain_icons',
-	default: true,
-	onChange: function(v){
-	    $('.my_iptv2.category-full').toggleClass('contain_icons', v === 'true');
-	}
-    }
-);
+
+// Инициализация списка плейлистов
+lists[0] = lists[0] || {
+    id: 0,
+    url: getSettings('playlist_url') || '', // Загружаем URL из настроек, если он есть
+    groups: [],
+    activity: { currentGroup: '' }
+};
+
 // Добавление настройки для ввода URL плейлиста
 addSettings(
     'input',
@@ -1483,10 +1469,10 @@ addSettings(
         placeholder: langGet('playlist_url_desc'),
         description: langGet('playlist_url_desc'),
         onChange: function(value) {
-            console.log('Playlist URL changed to:', value); // Логирование для отладки
+            console.log('Playlist URL changed to:', value); // Для отладки
+            lists[0].url = value; // Обновляем URL в списке
             if (value) {
-                lists[0] = lists[0] || { id: 0, url: value, groups: [], activity: { currentGroup: '' } };
-                lists[0].url = value;
+                // Заменяем активность для загрузки нового плейлиста
                 Lampa.Activity.replace({
                     component: plugin.component,
                     id: 0,
@@ -1498,3 +1484,5 @@ addSettings(
     }
 );
 
+// Завершение анонимной функции плагина
+})();
