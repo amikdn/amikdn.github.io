@@ -1,7 +1,7 @@
 ;(function () {
     'use strict';
     var plugin = {
-        component: 'my_iptv2',
+        component: 'hack_tv_iptv', // Изменено на уникальное имя, чтобы избежать конфликта с tvip.js
         icon: "<svg height=\"244\" viewBox=\"0 0 260 244\" xmlns=\"http://www.w3.org/2000/svg\" style=\"fill-rule:evenodd;\" fill=\"currentColor\"><path d=\"M259.5 47.5v114c-1.709 14.556-9.375 24.723-23 30.5a2934.377 2934.377 0 0 1-107 1.5c-35.704.15-71.37-.35-107-1.5-13.625-5.777-21.291-15.944-23-30.5v-115c1.943-15.785 10.61-25.951 26-30.5a10815.71 10815.71 0 0 1 208 0c15.857 4.68 24.523 15.18 26 31.5zm-230-13a4963.403 4963.403 0 0 0 199 0c5.628 1.128 9.128 4.462 10.5 10 .667 40 .667 80 0 120-1.285 5.618-4.785 8.785-10.5 9.5-66 .667-132 .667-198 0-5.715-.715-9.215-3.882-10.5-9.5-.667-40-.667-80 0-120 1.35-5.18 4.517-8.514 9.5-10z\"/><path d=\"M70.5 71.5c17.07-.457 34.07.043 51 1.5 5.44 5.442 5.107 10.442-1 15-5.991.5-11.991.666-18 .5.167 14.337 0 28.671-.5 43-3.013 5.035-7.18 6.202-12.5 3.5a11.529 11.529 0 0 1-3.5-4.5 882.407 882.407 0 0 1-.5-42c-5.676.166-11.343 0-17-.5-4.569-2.541-6.069-6.375-4.5-11.5 1.805-2.326 3.972-3.992 6.5-5zM137.5 73.5c4.409-.882 7.909.452 10.5 4a321.009 321.009 0 0 0 16 30 322.123 322.123 0 0 0 16-30c2.602-3.712 6.102-4.879 10.5-3.5 5.148 3.334 6.314 7.834 3.5 13.5a1306.032 1306.032 0 0 0-22 43c-5.381 6.652-10.715 6.652-16 0a1424.647 1424.647 0 0 0-23-45c-1.691-5.369-.191-9.369 4.5-12zM57.5 207.5h144c7.788 2.242 10.288 7.242 7.5 15a11.532 11.532 0 0 1-4.5 3.5c-50 .667-100 .667-150 0-6.163-3.463-7.496-8.297-4-14.5 2.025-2.064 4.358-3.398 7-4z\"/></svg>",
         name: 'Hack TV'
     };
@@ -173,7 +173,6 @@
     }
 
     var utils = {
-        uid: function() {return ''}, // UID больше не используется
         timestamp: unixtime,
         token: function() {return generateSigForString(Lampa.Storage.field('account_email').toLowerCase())},
         hash: Lampa.Utils.hash,
@@ -408,6 +407,52 @@
                 param
             );
         }
+    }
+
+    // Функция для загрузки плейлиста
+    function loadPlaylist(url, success, fail) {
+        console.log('Hack TV', 'Loading playlist from:', url);
+        var network = new Lampa.Reguest();
+        network.silent(
+            url,
+            function(data) {
+                console.log('Hack TV', 'Playlist loaded:', data);
+                var channels = parsePlaylist(data);
+                typeof success === 'function' && success(channels);
+            },
+            function(error) {
+                console.error('Hack TV', 'Error loading playlist:', error);
+                typeof fail === 'function' && fail(error);
+            }
+        );
+    }
+
+    // Функция для парсинга M3U плейлиста
+    function parsePlaylist(data) {
+        var channels = [];
+        var lines = data.split('\n');
+        var currentChannel = null;
+        for (var i = 0; i < lines.length; i++) {
+            var line = lines[i].trim();
+            if (line.startsWith('#EXTINF:')) {
+                var titleMatch = line.match(/,(.+)/);
+                var title = titleMatch ? titleMatch[1] : 'Unknown';
+                var logoMatch = line.match(/tvg-logo="([^"]+)"/);
+                var epgIdMatch = line.match(/tvg-id="([^"]+)"/);
+                currentChannel = {
+                    Title: title,
+                    Logo: logoMatch ? logoMatch[1] : '',
+                    epgId: epgIdMatch ? epgIdMatch[1] : '',
+                    Url: ''
+                };
+            } else if (line && !line.startsWith('#') && currentChannel) {
+                currentChannel.Url = line;
+                channels.push(currentChannel);
+                currentChannel = null;
+            }
+        }
+        console.log('Hack TV', 'Parsed channels:', channels);
+        return channels;
     }
 
     // Стиль
@@ -857,12 +902,28 @@
             _this.info = null;
         };
 
-        // Загрузка данных (заглушка, так как оригинальный код обрезан)
+        // Загрузка плейлиста
         _this.activity = object;
         _this.activity.loader(true);
-        // Здесь должен быть код загрузки данных плейлиста, но он обрезан
-        // Для теста предположим, что данные загружаются и передаются в _this.build
-        _this.build([]); // Пустой массив для примера, замените на реальные данные
+        var playlistUrl = getStorage('playlist_url', 'http://amikdn.github.io/playlist.m3u8');
+        loadPlaylist(playlistUrl, function(channels) {
+            console.log('Hack TV', 'Channels loaded:', channels);
+            _this.catalog[object.currentGroup] = {
+                title: object.currentGroup || 'Channels',
+                channels: channels
+            };
+            lists[object.id].groups = [{
+                title: langGet('favorites') || 'Избранное',
+                key: ''
+            }, {
+                title: object.currentGroup || 'Channels',
+                key: object.currentGroup
+            }];
+            _this.build(channels);
+        }, function(error) {
+            console.error('Hack TV', 'Failed to load playlist:', error);
+            _this.build([]);
+        });
 
         return _this;
     }
@@ -948,7 +1009,8 @@
                 default: (typeof param.default === 'undefined') ? '' : param.default
             },
             field: {
-                name: param.title || param.name || ''
+                name: param.title || param.name || '',
+                icon: plugin.icon // Добавляем иконку для настроек
             }
         };
         if (param.description) data.field.description = param.description;
@@ -975,6 +1037,7 @@
             Lampa.SettingsApi.addComponent({
                 component: plugin.component,
                 name: langGet('settings_title') || 'Hack TV PlayList',
+                icon: plugin.icon, // Добавляем иконку для настроек
                 onOpen: function() {
                     console.log('Hack TV', 'Opening settings, rendering fields');
                     var settingsContainer = $('div[data-component="' + plugin.component + '"]');
@@ -1051,7 +1114,7 @@
                 default: false,
                 onChange: function(v) {
                     console.log('Hack TV', 'Square icons toggled:', v);
-                    $('.my_iptv2.category-full').toggleClass('square_icons', v === 'true');
+                    $('.hack_tv_iptv.category-full').toggleClass('square_icons', v === 'true');
                     setStorage('square_icons', v);
                 }
             });
@@ -1062,7 +1125,7 @@
                 description: langGet('contain_icons_desc'),
                 onChange: function(v) {
                     console.log('Hack TV', 'Contain icons toggled:', v);
-                    $('.my_iptv2.category-full').toggleClass('contain_icons', v === 'true');
+                    $('.hack_tv_iptv.category-full').toggleClass('contain_icons', v === 'true');
                     setStorage('contain_icons', v);
                 }
             });
@@ -1074,7 +1137,7 @@
     // Меню
     var activity = {
         id: 0,
-        url: getStorage('playlist_url', 'https://u.to/PpMrIg'),
+        url: getStorage('playlist_url', 'http://amikdn.github.io/playlist.m3u8'),
         title: plugin.name,
         groups: [],
         currentGroup: getStorage('last_catalog0', 'Other'),
@@ -1122,7 +1185,6 @@
                     console.log('Hack TV', 'Menu item added to .menu__list');
                 } else {
                     console.error('Hack TV', 'Alternative menu element .menu__list not found');
-                    // Последняя попытка: поиск любого ul в .menu
                     var fallbackMenu = $('.menu ul').eq(0);
                     if (fallbackMenu.length) {
                         fallbackMenu.append(menuEl);
@@ -1158,9 +1220,9 @@
         if (e.name === 'main') {
             console.log('Hack TV', 'Settings main opened, removing duplicate component');
             setTimeout(function() {
-                $('div[data-component="my_iptv2"]').not(':last').remove();
-                // Удаление надписи undefined
+                $('div[data-component="' + plugin.component + '"]').not(':last').remove();
                 $('.settings__title:contains("undefined")').remove();
+                $('.settings__icon:contains("undefined")').remove();
             }, 0);
         }
     });
