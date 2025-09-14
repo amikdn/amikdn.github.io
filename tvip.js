@@ -1486,11 +1486,12 @@ addSettings(
 
 // Регистрация пункта меню в левом боковом меню
 Lampa.Menu.add({
-    title: plugin.name, // Название плагина ("Hack TV")
+    title: plugin.name, // Название плагина ("Hack TV PlayList")
     icon: plugin.icon,  // Иконка плагина
     component: plugin.component, // Компонент "my_iptv2"
     action: function () {
         // Запускаем активность с текущим URL плейлиста
+        console.log('Opening IPTV with URL:', getSettings('playlist_url')); // Для отладки
         Lampa.Activity.push({
             component: plugin.component,
             id: 0,
@@ -1499,6 +1500,5 @@ Lampa.Menu.add({
         });
     }
 });
-})();
-})();
 
+})();
