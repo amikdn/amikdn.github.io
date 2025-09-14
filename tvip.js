@@ -1341,7 +1341,7 @@ langAdd('favorites_move_down', { ru: 'Переместить вниз' });
 langAdd('favorites_move_end', { ru: 'В конец списка' });
 langAdd('epg_on', { ru: 'Включить EPG' });
 langAdd('epg_off', { ru: 'Выключить EPG' });
-langAdd('settings_title', { ru: 'Hack TV PlayList' }); // Название раздела настроек
+langAdd('settings_title', { ru: 'Hack TV PlayList' });
 
 function getStorage(key, def) {
     return Lampa.Storage.get(plugin.component + '_' + key, def);
@@ -1362,9 +1362,10 @@ function setSettings(key, value) {
 
 var settings = {
     create: function () {
+        console.log(plugin.name, 'Creating settings component');
         var settings = Lampa.SettingsApi.addComponent({
             component: plugin.component,
-            name: langGet('settings_title'), // Явно задаем название раздела
+            name: langGet('settings_title'),
             fields: {
                 uid: {
                     name: langGet('uid'),
@@ -1399,72 +1400,84 @@ var settings = {
 };
 
 function addMenu() {
-    // Проверяем доступные методы для добавления пункта меню
-    if (typeof Lampa.Menu !== 'undefined' && typeof Lampa.Menu.register === 'function') {
-        console.log(plugin.name, 'Using Lampa.Menu.register to add menu item');
-        Lampa.Menu.register({
-            title: plugin.name,
-            icon: plugin.icon,
-            component: plugin.component,
-            params: function () {
-                return lists;
-            }
-        });
-    } else if (typeof Lampa.MainMenu !== 'undefined' && typeof Lampa.MainMenu.add === 'function') {
-        console.log(plugin.name, 'Using Lampa.MainMenu.add to add menu item');
-        Lampa.MainMenu.add({
-            title: plugin.name,
-            icon: plugin.icon,
-            component: plugin.component,
-            params: function () {
-                return lists;
-            }
-        });
-    } else {
-        // Альтернативный способ через Lampa.Listener
-        console.log(plugin.name, 'Falling back to Lampa.Listener for menu item');
-        Lampa.Listener.follow('app', function (e) {
-            if (e.name === 'ready') {
-                console.log(plugin.name, 'App ready, attempting to add menu item');
-                if (typeof Lampa.Menu !== 'undefined' && typeof Lampa.Menu.items === 'object') {
-                    Lampa.Menu.items.push({
-                        title: plugin.name,
-                        icon: plugin.icon,
-                        component: plugin.component,
-                        params: function () {
-                            return lists;
-                        }
-                    });
-                    console.log(plugin.name, 'Menu item added via Lampa.Menu.items');
-                } else {
-                    console.error(plugin.name, 'Failed to add menu item: No suitable menu API found');
+    console.log(plugin.name, 'Attempting to add menu item');
+    try {
+        if (typeof Lampa.Menu !== 'undefined' && typeof Lampa.Menu.register === 'function') {
+            console.log(plugin.name, 'Using Lampa.Menu.register');
+            Lampa.Menu.register({
+                title: plugin.name,
+                icon: plugin.icon,
+                component: plugin.component,
+                params: function () {
+                    return lists;
                 }
-            }
-        });
+            });
+        } else if (typeof Lampa.MainMenu !== 'undefined' && typeof Lampa.MainMenu.add === 'function') {
+            console.log(plugin.name, 'Using Lampa.MainMenu.add');
+            Lampa.MainMenu.add({
+                title: plugin.name,
+                icon: plugin.icon,
+                component: plugin.component,
+                params: function () {
+                    return lists;
+                }
+            });
+        } else {
+            console.log(plugin.name, 'Falling back to Lampa.Listener for menu');
+            Lampa.Listener.follow('app', function (e) {
+                if (e.name === 'ready') {
+                    console.log(plugin.name, 'App ready, adding menu item via Lampa.Menu.items');
+                    if (typeof Lampa.Menu !== 'undefined' && typeof Lampa.Menu.items === 'object') {
+                        Lampa.Menu.items.push({
+                            title: plugin.name,
+                            icon: plugin.icon,
+                            component: plugin.component,
+                            params: function () {
+                                return lists;
+                            }
+                        });
+                        console.log(plugin.name, 'Menu item added successfully');
+                    } else {
+                        console.error(plugin.name, 'No suitable menu API found');
+                    }
+                }
+            });
+        }
+    } catch (e) {
+        console.error(plugin.name, 'Error adding menu item:', e);
     }
 }
 
 function addSettings() {
-    // Регистрация компонента настроек с явным названием
     console.log(plugin.name, 'Adding settings component');
-    Lampa.SettingsApi.addComponent({
-        component: plugin.component,
-        name: langGet('settings_title'), // Явно задаем название раздела
-        onOpen: function () {
-            settings.create();
-        }
-    });
+    try {
+        Lampa.SettingsApi.addComponent({
+            component: plugin.component,
+            name: langGet('settings_title'),
+            onOpen: function () {
+                settings.create();
+            }
+        });
+    } catch (e) {
+        console.error(plugin.name, 'Error adding settings component:', e);
+    }
 }
 
 (function () {
+    console.log(plugin.name, 'Initializing plugin');
     UID = getSettings('uid', '');
     addMenu();
     addSettings();
 
-    // Слушатель для добавления активности
     Lampa.Listener.follow('activity', function (a) {
+        console.log(plugin.name, 'Activity event:', a.name, a.activity);
+        if (!a.activity) {
+            console.error(plugin.name, 'Activity is undefined');
+            return;
+        }
         if (a.name === 'start') {
             a.activity.onCreate = function (act) {
+                console.log(plugin.name, 'Creating activity:', act);
                 var actLists = [];
                 var source = getSettings('source', '{}');
                 try {
@@ -1503,10 +1516,10 @@ function addSettings() {
         }
         if (a.activity.component === plugin.component) {
             a.activity.render = function () {
+                console.log(plugin.name, 'Rendering activity for component:', plugin.component);
                 return (new pluginPage(a.activity)).render();
             };
         }
     });
 })();
 })();
-
