@@ -1453,6 +1453,17 @@ Lampa.SettingsApi.addComponent(plugin);
 addSettings(
     'trigger',
     {
+	title: langGet('square_icons'),
+	name: 'square_icons',
+	default: false,
+	onChange: function(v){
+	    $('.my_iptv2.category-full').toggleClass('square_icons', v === 'true');
+	}
+    }
+);
+addSettings(
+    'trigger',
+    {
 	title: langGet('contain_icons'),
 	description: langGet('contain_icons_desc'),
 	name: 'contain_icons',
@@ -1462,59 +1473,27 @@ addSettings(
 	}
     }
 );
-
-var activity = {
-    id: 0,
-    url: 'https://u.to/PpMrIg',
-    title: plugin.name,
-    groups: [],
-    currentGroup: getStorage('last_catalog0', 'Other'),
-    component: plugin.component,
-    page: 1
-};
-if (activity.currentGroup === '!!') activity.currentGroup = '';
-var menuEl = $('<li class="menu__item selector js-' + plugin.component + '-menu0">'
-    + '<div class="menu__ico">' + plugin.icon + '</div>'
-    + '<div class="menu__text js-' + plugin.component + '-menu0-title">'
-        + encoder.text(plugin.name).html()
-    + '</div>'
-+ '</li>')
-.on('hover:enter', function(){
-    if (Lampa.Activity.active().component === plugin.component) {
-        Lampa.Activity.replace(Lampa.Arrays.clone(activity));
-    } else {
-        Lampa.Activity.push(Lampa.Arrays.clone(activity));
+addSettings(
+    'input',
+    {
+        title: langGet('playlist_url'),
+        name: 'playlist_url',
+        default: '',
+        placeholder: langGet('playlist_url_desc'),
+        description: langGet('playlist_url_desc'),
+        onChange: function(value) {
+            // Обработчик изменения URL плейлиста
+            if (value) {
+                // Обновляем URL плейлиста
+                lists[0] = lists[0] || { id: 0, url: value, groups: [], activity: { currentGroup: '' } };
+                lists[0].url = value;
+                Lampa.Activity.replace({
+                    component: plugin.component,
+                    id: 0,
+                    url: value,
+                    currentGroup: ''
+                });
+            }
+        }
     }
-});
-lists.push({activity: activity, menuEl: menuEl, groups: []});
-menuEl.show();
-
-UID = getStorage('uid', '');
-if (!UID) {
-    UID = Lampa.Utils.uid(10).toUpperCase().replace(/(.{4})/g, '$1-');
-    setStorage('uid', UID);
-} else if (UID.length > 12) {
-    UID = UID.substring(0, 12);
-    setStorage('uid', UID);
-}
-addSettings('title', {title: langGet('uid')});
-addSettings('static', {title: UID, description: langGet('unique_id')});
-//~ Готовим настройки
-Lampa.Settings.listener.follow('open', function (e) { 
- if (e.name == 'main') {
-   setTimeout(function() {
-     $('div[data-component="my_iptv2"]').remove();
-   }, 0)
- }
-});
-function pluginStart() {
-    if (!!window['plugin_' + plugin.component + '_ready']) return;
-    window['plugin_' + plugin.component + '_ready'] = true;
-    var menu = $('.menu .menu__list').eq(0);
-    menu.append(lists[0].menuEl);
-}
- 
-if (!!window.appready) pluginStart();
-else Lampa.Listener.follow('app', function(e){if (e.type === 'ready') pluginStart()});
-
-})();
+);
