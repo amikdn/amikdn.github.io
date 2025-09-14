@@ -37,7 +37,6 @@
     function parsePlaylist(data) {
         var channels = [];
         var lines = data.split('\n');
-        var currentChannel = null;
         console.log('Hack TV', 'Parsing playlist with', lines.length, 'lines');
         for (var i = 0; i < lines.length; i++) {
             var line = lines[i].trim();
@@ -46,25 +45,24 @@
                 var title = titleMatch ? titleMatch[1] : 'Unknown';
                 var logoMatch = line.match(/tvg-logo="([^"]+)"/);
                 var epgIdMatch = line.match(/tvg-id="([^"]+)"/);
-                currentChannel = {
+                var currentChannel = {
                     Title: title,
                     Logo: logoMatch ? logoMatch[1] : '',
                     epgId: epgIdMatch ? epgIdMatch[1] : '',
                     Url: ''
                 };
                 console.log('Hack TV', 'Found channel:', currentChannel.Title);
-            } else if (line && !line.startsWith('#') && currentChannel) {
-                currentChannel.Url = line;
                 channels.push(currentChannel);
-                console.log('Hack TV', 'Channel URL:', currentChannel.Url);
-                currentChannel = null;
+            } else if (line && !line.startsWith('#') && channels.length > 0) {
+                channels[channels.length - 1].Url = line;
+                console.log('Hack TV', 'Channel URL:', line);
             }
         }
         console.log('Hack TV', 'Total channels parsed:', channels.length);
         return channels;
     }
 
-    // Упрощенная функция pluginPage
+    // Функция pluginPage
     function pluginPage(object) {
         var _this = this;
         _this.activity = object;
@@ -124,7 +122,7 @@
         };
 
         _this.start = function() {
-            console.log('Hack TV', 'Starting activity');
+            console.log('Hack TV', 'Starting activity:', _this.activity);
             if (Lampa.Activity.active().activity !== _this.activity) {
                 console.log('Hack TV', 'Activity mismatch, aborting start');
                 return;
@@ -156,10 +154,12 @@
         };
 
         _this.render = function() {
+            console.log('Hack TV', 'Rendering plugin page');
             return _this.html;
         };
 
         _this.destroy = function() {
+            console.log('Hack TV', 'Destroying plugin page');
             _this.network.clear();
             _this.scroll.destroy();
             _this.html.remove();
@@ -393,7 +393,7 @@
         '</div>' +
         '</li>')
         .on('hover:enter hover:click', function() {
-            console.log('Hack TV', 'Menu item clicked, pushing activity');
+            console.log('Hack TV', 'Menu item clicked, pushing activity:', activity);
             Lampa.Activity.push(Lampa.Arrays.clone(activity));
         });
 
@@ -407,13 +407,27 @@
         window['plugin_' + plugin.component + '_ready'] = true;
         console.log('Hack TV', 'Starting plugin initialization');
         try {
-            var menu = $('.menu .menu__list').eq(0);
-            if (menu.length) {
-                menu.append(menuEl);
-                menuEl.show();
-                console.log('Hack TV', 'Menu item added to .menu .menu__list');
-            } else {
-                console.error('Hack TV', 'Menu element .menu .menu__list not found');
+            // Пробуем разные селекторы для меню
+            var menuSelectors = [
+                '.menu .menu__list',
+                '.menu__list',
+                '.menu ul',
+                'ul.menu__list',
+                'nav.menu ul'
+            ];
+            var menuAdded = false;
+            for (var i = 0; i < menuSelectors.length; i++) {
+                var menu = $(menuSelectors[i]).eq(0);
+                if (menu.length) {
+                    menu.append(menuEl);
+                    menuEl.show();
+                    console.log('Hack TV', 'Menu item added to:', menuSelectors[i]);
+                    menuAdded = true;
+                    break;
+                }
+            }
+            if (!menuAdded) {
+                console.error('Hack TV', 'No menu elements found for selectors:', menuSelectors);
             }
         } catch (e) {
             console.error('Hack TV', 'Error adding menu item:', e);
@@ -449,6 +463,7 @@
     Lampa.Listener.follow('activity', function(a) {
         console.log('Hack TV', 'Activity event:', a.name, a.activity);
         if (a.activity && a.activity.component === plugin.component) {
+            console.log('Hack TV', 'Registering render for activity:', a.activity);
             a.activity.render = function() {
                 console.log('Hack TV', 'Rendering activity for component:', plugin.component);
                 return (new pluginPage(a.activity)).render();
