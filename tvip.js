@@ -1328,9 +1328,13 @@ var langData = {};
 function langAdd(name, values) {
     langData[plugin.component + '_' + name] = values;
     console.log('Hack TV', 'Added language key:', plugin.component + '_' + name, values);
+    // Принудительно добавляем перевод в Lampa.Lang
+    Lampa.Lang.add({ [plugin.component + '_' + name]: values });
 }
 function langGet(name) {
-    return Lampa.Lang.translate(plugin.component + '_' + name);
+    var translation = Lampa.Lang.translate(plugin.component + '_' + name);
+    // Резервное значение, если перевод не сработал
+    return translation === (plugin.component + '_' + name) ? (langData[plugin.component + '_' + name]?.ru || name) : translation;
 }
 
 langAdd('categories', { ru: 'Категории' });
@@ -1382,8 +1386,8 @@ var settings = {
                 name: langGet('settings_title') || 'Hack TV PlayList', // Резервное название
                 fields: {
                     uid: {
-                        name: langGet('uid'),
-                        description: langGet('unique_id'),
+                        name: langGet('uid') || 'UID',
+                        description: langGet('unique_id') || 'Уникальный идентификатор',
                         placeholder: '00000000-0000-0000-0000-000000000000',
                         type: 'input',
                         onChange: function (v) {
@@ -1393,7 +1397,7 @@ var settings = {
                         }
                     },
                     square_icons: {
-                        name: 'Квадратные иконки',
+                        name: langGet('square_icons') || 'Квадратные иконки',
                         type: 'toggle',
                         onChange: function (v) {
                             console.log('Hack TV', 'Square icons toggled:', v);
@@ -1401,7 +1405,7 @@ var settings = {
                         }
                     },
                     contain_icons: {
-                        name: 'Иконки без обрезки',
+                        name: langGet('contain_icons') || 'Иконки без обрезки',
                         type: 'toggle',
                         onChange: function (v) {
                             console.log('Hack TV', 'Contain icons toggled:', v);
@@ -1411,9 +1415,14 @@ var settings = {
                 }
             });
             console.log('Hack TV', 'Settings component created:', settingsComponent);
-            settingsComponent.field('uid').val(getSettings('uid', ''));
-            settingsComponent.field('square_icons').val(getSettings('square_icons', false));
-            settingsComponent.field('contain_icons').val(getSettings('contain_icons', false));
+            // Проверка на существование fields и их инициализация
+            if (settingsComponent && settingsComponent.field) {
+                settingsComponent.field('uid').val(getSettings('uid', ''));
+                settingsComponent.field('square_icons').val(getSettings('square_icons', false));
+                settingsComponent.field('contain_icons').val(getSettings('contain_icons', false));
+            } else {
+                console.error('Hack TV', 'Settings component fields not initialized');
+            }
         } catch (e) {
             console.error('Hack TV', 'Error creating settings component:', e);
         }
@@ -1423,7 +1432,7 @@ var settings = {
 function addMenu() {
     console.log('Hack TV', 'Attempting to add menu item');
     try {
-        // Проверяем наличие объекта plugin
+        // Проверка объекта plugin
         if (!plugin || !plugin.component) {
             console.error('Hack TV', 'Plugin object is undefined or missing component');
             return;
@@ -1437,9 +1446,15 @@ function addMenu() {
                 icon: plugin.icon,
                 component: plugin.component,
                 params: function () {
+                    console.log('Hack TV', 'Menu params called, returning lists:', lists);
                     return lists;
                 }
             });
+            // Принудительное обновление меню
+            if (typeof Lampa.Menu.update === 'function') {
+                Lampa.Menu.update();
+                console.log('Hack TV', 'Menu updated via Lampa.Menu.update');
+            }
         }
         // Попытка 2: Lampa.MainMenu.add
         else if (typeof Lampa.MainMenu !== 'undefined' && typeof Lampa.MainMenu.add === 'function') {
@@ -1449,9 +1464,15 @@ function addMenu() {
                 icon: plugin.icon,
                 component: plugin.component,
                 params: function () {
+                    console.log('Hack TV', 'Menu params called, returning lists:', lists);
                     return lists;
                 }
             });
+            // Принудительное обновление меню
+            if (typeof Lampa.MainMenu.update === 'function') {
+                Lampa.MainMenu.update();
+                console.log('Hack TV', 'Menu updated via Lampa.MainMenu.update');
+            }
         }
         // Попытка 3: Lampa.Menu.items через слушатель
         else {
@@ -1459,23 +1480,33 @@ function addMenu() {
             Lampa.Listener.follow('app', function (e) {
                 if (e.name === 'ready') {
                     console.log('Hack TV', 'App ready, attempting to add menu item via Lampa.Menu.items');
-                    if (typeof Lampa.Menu !== 'undefined' && typeof Lampa.Menu.items === 'object') {
-                        Lampa.Menu.items.push({
-                            title: plugin.name,
-                            icon: plugin.icon,
-                            component: plugin.component,
-                            params: function () {
-                                return lists;
+                    try {
+                        if (typeof Lampa.Menu !== 'undefined' && typeof Lampa.Menu.items === 'object') {
+                            Lampa.Menu.items.push({
+                                title: plugin.name,
+                                icon: plugin.icon,
+                                component: plugin.component,
+                                params: function () {
+                                    console.log('Hack TV', 'Menu params called, returning lists:', lists);
+                                    return lists;
+                                }
+                            });
+                            console.log('Hack TV', 'Menu item added via Lampa.Menu.items');
+                            // Принудительное обновление меню
+                            if (typeof Lampa.Menu.update === 'function') {
+                                Lampa.Menu.update();
+                                console.log('Hack TV', 'Menu updated via Lampa.Menu.update');
+                            } else if (typeof Lampa.Menu.render === 'function') {
+                                Lampa.Menu.render();
+                                console.log('Hack TV', 'Menu rendered via Lampa.Menu.render');
+                            } else {
+                                console.warn('Hack TV', 'No menu update or render method available');
                             }
-                        });
-                        console.log('Hack TV', 'Menu item added via Lampa.Menu.items');
-                        // Принудительное обновление меню
-                        if (typeof Lampa.Menu.update === 'function') {
-                            Lampa.Menu.update();
-                            console.log('Hack TV', 'Menu updated');
+                        } else {
+                            console.error('Hack TV', 'Lampa.Menu.items not available');
                         }
-                    } else {
-                        console.error('Hack TV', 'No suitable menu API found');
+                    } catch (err) {
+                        console.error('Hack TV', 'Error adding menu item via Lampa.Listener:', err);
                     }
                 }
             });
@@ -1492,10 +1523,11 @@ function addSettings() {
             component: plugin.component,
             name: langGet('settings_title') || 'Hack TV PlayList', // Резервное название
             onOpen: function () {
-                console.log('Hack TV', 'Opening settings');
+                console.log('Hack TV', 'Opening settings, calling settings.create');
                 settings.create();
             }
         });
+        console.log('Hack TV', 'Settings component added');
     } catch (e) {
         console.error('Hack TV', 'Error adding settings component:', e);
     }
@@ -1535,7 +1567,7 @@ function addSettings() {
                                 url: source[k].url,
                                 currentGroup: getStorage('last_catalog' + id, '!!') === '!!' ? '' : getStorage('last_catalog' + id),
                                 groups: [{
-                                    title: langGet('favorites'),
+                                    title: langGet('favorites') || 'Избранное',
                                     key: ''
                                 }],
                                 activity: {
@@ -1554,6 +1586,7 @@ function addSettings() {
                     console.error('Hack TV', 'Error parsing source:', e);
                 }
                 act.params = function () {
+                    console.log('Hack TV', 'Activity params called, returning actLists:', actLists);
                     return actLists;
                 };
             };
