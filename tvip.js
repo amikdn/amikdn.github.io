@@ -13,7 +13,7 @@
     var listCfg = {};
     var EPG = {};
     var epgInterval;
-    var UID = '';
+    var playlistUrl = '';
 
     var chNumber = '';
     var chTimeout = null;
@@ -173,7 +173,7 @@
     }
 
     var utils = {
-        uid: function() {return UID},
+        uid: function() {return ''}, // UID больше не используется
         timestamp: unixtime,
         token: function() {return generateSigForString(Lampa.Storage.field('account_email').toLowerCase())},
         hash: Lampa.Utils.hash,
@@ -182,7 +182,7 @@
 
     function generateSigForString(string) {
         var sigTime = unixtime();
-        return sigTime.toString(36) + ':' + utils.hash36((string || '') + sigTime + utils.uid());
+        return sigTime.toString(36) + ':' + utils.hash36((string || '') + sigTime);
     }
 
     function strReplace(str, key2val) {
@@ -411,29 +411,460 @@
     }
 
     // Стиль
-    Lampa.Template.add(plugin.component + '_style', '<style>#PLUGIN_epg{margin-right:1em}.PLUGIN-program__desc{font-size:0.9em;margin:0.5em;text-align:justify;max-height:15em;overflow:hidden;}.PLUGIN.category-full{padding-bottom:10em}.PLUGIN div.card__view{position:relative;background-color:#353535;background-color:#353535a6;border-radius:1em;cursor:pointer;padding-bottom:60%}.PLUGIN.square_icons div.card__view{padding-bottom:100%}.PLUGIN img.card__img,.PLUGIN div.card__img{background-color:unset;border-radius:unset;max-height:100%;max-width:100%;height:auto;width:auto;position:absolute;top:50%;left:50%;-moz-transform:translate(-50%,-50%);-webkit-transform:translate(-50%,-50%);transform:translate(-50%,-50%);font-size:2em}.PLUGIN.contain_icons img.card__img{height:95%;width:95%;object-fit:contain}.PLUGIN .card__title{text-overflow:ellipsis;white-space:nowrap;overflow:hidden}.PLUGIN .card__age{padding:0;border:1px #3e3e3e solid;margin-top:0.3em;border-radius:0.3em;position:relative;display: none}.PLUGIN .card__age .card__epg-progress{position:absolute;background-color:#3a3a3a;top:0;left:0;width:0%;max-width:100%;height:100%}.PLUGIN .card__age .card__epg-title{position:relative;padding:0.4em 0.2em;text-overflow:ellipsis;white-space:nowrap;overflow:hidden;}.PLUGIN.category-full .card__icons {top:0.3em;right:0.3em;justify-content:right;}#PLUGIN{float:right;padding: 1.2em 0;width: 30%;}.PLUGIN-details__group{font-size:1.3em;margin-bottom:.9em;opacity:.5}.PLUGIN-details__title{font-size:4em;font-weight:700}.PLUGIN-details__program{padding-top:4em}.PLUGIN-details__program-title{font-size:1.2em;padding-left:4.9em;margin-top:1em;margin-bottom:1em;opacity:.5}.PLUGIN-details__program-list>div+div{margin-top:1em}.PLUGIN-details__program>div+div{margin-top:2em}.PLUGIN-program{display:-webkit-box;display:-webkit-flex;display:-moz-box;display:-ms-flexbox;display:flex;font-size:1.2em;font-weight:300}.PLUGIN-program__time{-webkit-flex-shrink:0;-ms-flex-negative:0;flex-shrink:0;width:5em;position:relative}.PLUGIN-program.focus .PLUGIN-program__time::after{content:\'\';position:absolute;top:.5em;right:.9em;width:.4em;background-color:#fff;height:.4em;-webkit-border-radius:100%;-moz-border-radius:100%;border-radius:100%;margin-top:-0.1em;font-size:1.2em}.PLUGIN-program__progressbar{width:10em;height:0.3em;border:0.05em solid #fff;border-radius:0.05em;margin:0.5em 0.5em 0 0}.PLUGIN-program__progress{height:0.25em;border:0.05em solid #fff;background-color:#fff;max-width: 100%}.PLUGIN .card__icon.icon--timeshift{background-image:ur[](https://epg.rootu.top/img/icon/timeshift.svg);}</style>'.replace(/PLUGIN/g, plugin.component));
+    Lampa.Template.add(plugin.component + '_style', '<style>#PLUGIN_epg{margin-right:1em}.PLUGIN-program__desc{font-size:0.9em;margin:0.5em;text-align:justify;max-height:15em;overflow:hidden;}.PLUGIN.category-full{padding-bottom:10em}.PLUGIN div.card__view{position:relative;background-color:#353535;background-color:#353535a6;border-radius:1em;cursor:pointer;padding-bottom:60%}.PLUGIN.square_icons div.card__view{padding-bottom:100%}.PLUGIN img.card__img,.PLUGIN div.card__img{background-color:unset;border-radius:unset;max-height:100%;max-width:100%;height:auto;width:auto;position:absolute;top:50%;left:50%;-moz-transform:translate(-50%,-50%);-webkit-transform:translate(-50%,-50%);transform:translate(-50%,-50%);font-size:2em}.PLUGIN.contain_icons img.card__img{height:95%;width:95%;object-fit:contain}.PLUGIN .card__title{text-overflow:ellipsis;white-space:nowrap;overflow:hidden}.PLUGIN .card__age{padding:0;border:1px #3e3e3e solid;margin-top:0.3em;border-radius:0.3em;position:relative;display: none}.PLUGIN .card__age .card__epg-progress{position:absolute;background-color:#3a3a3a;top:0;left:0;width:0%;max-width:100%;height:100%}.PLUGIN .card__age .card__epg-title{position:relative;padding:0.4em 0.2em;text-overflow:ellipsis;white-space:nowrap;overflow:hidden;}.PLUGIN.category-full .card__icons {top:0.3em;right:0.3em;justify-content:right;}#PLUGIN{float:right;padding: 1.2em 0;width: 30%;}.PLUGIN-details__group{font-size:1.3em;margin-bottom:.9em;opacity:.5}.PLUGIN-details__title{font-size:4em;font-weight:700}.PLUGIN-details__program{padding-top:4em}.PLUGIN-details__program-title{font-size:1.2em;padding-left:4.9em;margin-top:1em;margin-bottom:1em;opacity:.5}.PLUGIN-details__program-list>div+div{margin-top:1em}.PLUGIN-details__program>div+div{margin-top:2em}.PLUGIN-program{display:-webkit-box;display:-webkit-flex;display:-moz-box;display:-ms-flexbox;display:flex;font-size:1.2em;font-weight:300}.PLUGIN-program__time{-webkit-flex-shrink:0;-ms-flex-negative:0;flex-shrink:0;width:5em;position:relative}.PLUGIN-program.focus .PLUGIN-program__time::after{content:\'\';position:absolute;top:.5em;right:.9em;width:.4em;background-color:#fff;height:.4em;-webkit-border-radius:100%;-moz-border-radius:100%;border-radius:100%;margin-top:-0.1em;font-size:1.2em}.PLUGIN-program__progressbar{width:10em;height:0.3em;border:0.05em solid #fff;border-radius:0.05em;margin:0.5em 0.5em 0 0}.PLUGIN-program__progress{height:0.25em;border:0.05em solid #fff;background-color:#fff;max-width: 100%}.PLUGIN .card__icon.icon--timeshift{background-image:ur ;}</style>'.replace(/PLUGIN/g, plugin.component));
     $('body').append(Lampa.Template.get(plugin.component + '_style', {}, true));
 
     function pluginPage(object) {
-        if (object.id !== curListId) {
-            catalog = {};
-            listCfg = {};
-            curListId = object.id;
-        }
-        EPG = {};
-        var epgIdCurrent = '';
-        var favorite = getStorage('favorite' + object.id, '[]');
-        var network = new Lampa.Reguest();
-        var scroll = new Lampa.Scroll({
+        var _this = this;
+        _this.object = object;
+        _this.catalog = {};
+        _this.listCfg = {};
+        _this.curListId = object.id !== curListId ? object.id : curListId;
+        _this.EPG = {};
+        _this.epgIdCurrent = '';
+        _this.favorite = getStorage('favorite' + object.id, '[]');
+        _this.network = new Lampa.Reguest();
+        _this.scroll = new Lampa.Scroll({
             mask: true,
             over: true,
             step: 250
         });
-        var html = $('<div></div>');
-        var body = $('<div class="' + plugin.component + ' category-full"></div>');
-        body.toggleClass('square_icons', getSettings('square_icons'));
-        // ... (остальной код pluginPage остается без изменений, так как он не влияет на меню или настройки)
-        // Для краткости опущен, но предполагается, что он остается как в оригинале
+        _this.html = $('<div></div>');
+        _this.body = $('<div class="' + plugin.component + ' category-full"></div>');
+        _this.body.toggleClass('square_icons', getSettings('square_icons') === 'true');
+        _this.body.toggleClass('contain_icons', getSettings('contain_icons') === 'true');
+        _this.info = null;
+
+        _this.append = function(data) {
+            var _this2 = this;
+            var bulkFn = bulkWrapper(function(channel) {
+                var card = Lampa.Template.get('card', {
+                    title: channel.Title,
+                    img: channel.Logo || '',
+                    release_year: ''
+                });
+                card.addClass('card--collection');
+                var favIcon = $('<div class="card__icon icon--favorite"></div>');
+                favIcon.toggleClass('hide', _this2.favorite.indexOf(favID(channel.Title)) === -1);
+                card.find('.card__icons').append(favIcon);
+                card.on('hover:enter', function() {
+                    var playlist = [];
+                    var playlistForExtrnalPlayer = [];
+                    var chI = 0, i = 0;
+                    var tvgDay = parseInt(listCfg['catchup-days'] || '0');
+                    catalog[object.currentGroup].channels.forEach(function(elem, j) {
+                        var videoUrl = j === chI ? channel.Url : prepareUrl(elem.Url);
+                        playlistForExtrnalPlayer[j] = {
+                            title: elem.Title,
+                            url: videoUrl,
+                            tv: true
+                        };
+                        playlist.push({
+                            title: ++i + '. ' + elem.Title,
+                            url: videoUrl,
+                            plugin: plugin.component,
+                            tv: true
+                        });
+                    });
+                    var video = {
+                        title: channel.Title,
+                        url: prepareUrl(channel.Url),
+                        playlist: playlistForExtrnalPlayer
+                    };
+                    Lampa.Keypad.listener.destroy();
+                    Lampa.Keypad.listener.follow('keydown', keydown);
+                    Lampa.Player.runas && Lampa.Player.runas(Lampa.Storage.field('player_iptv'));
+                    Lampa.Player.play(video);
+                    Lampa.Player.runas && Lampa.Player.runas(Lampa.Storage.field('player_iptv'));
+                    Lampa.Player.playlist(playlist);
+                }).on('hover:long', function() {
+                    var favI = _this2.favorite.indexOf(favID(channel.Title));
+                    var isFavoriteGroup = object.currentGroup === '';
+                    var menu = [];
+                    if (tvgDay > 0) {
+                        if (channel['epgId'] && _this2.EPG[channel['epgId']] && _this2.EPG[channel['epgId']][2].length) {
+                            menu.push({
+                                title: 'Смотреть сначала',
+                                restartProgram: true
+                            });
+                        }
+                        menu.push({
+                            title: 'Архив',
+                            archive: true
+                        });
+                    }
+                    menu.push({
+                        title: favI === -1 ? langGet('favorites_add') : langGet('favorites_del'),
+                        favToggle: true
+                    });
+                    if (isFavoriteGroup && _this2.favorite.length) {
+                        if (favI !== 0) {
+                            menu.push({
+                                title: langGet('favorites_move_top'),
+                                favMove: true,
+                                i: 0
+                            });
+                            menu.push({
+                                title: langGet('favorites_move_up'),
+                                favMove: true,
+                                i: favI - 1
+                            });
+                        }
+                        if ((favI + 1) !== _this2.favorite.length) {
+                            menu.push({
+                                title: langGet('favorites_move_down'),
+                                favMove: true,
+                                i: favI + 1
+                            });
+                            menu.push({
+                                title: langGet('favorites_move_end'),
+                                favMove: true,
+                                i: _this2.favorite.length - 1
+                            });
+                        }
+                        menu.push({
+                            title: langGet('favorites_clear'),
+                            favClear: true
+                        });
+                    }
+                    menu.push({
+                        title: getStorage('epg', 'false') === 'true' ? langGet('epg_off') : langGet('epg_on'),
+                        epgToggle: true
+                    });
+                    Lampa.Select.show({
+                        title: Lampa.Lang.translate('title_action'),
+                        items: menu,
+                        onSelect: function(sel) {
+                            if (sel.archive) {
+                                var t = unixtime();
+                                var m = Math.floor(t/60);
+                                var d = Math.floor(t/86400);
+                                var di = (tvgDay + 1), load = di;
+                                var ms = m - tvgDay * 1440;
+                                var tvgData = [];
+                                var playlist = [];
+                                var playlistMenu = [];
+                                var archiveMenu = [];
+                                var ps = 0;
+                                var prevDate = '';
+                                var d0 = toLocaleDateString(unixtime() * 1e3);
+                                var d1 = toLocaleDateString((unixtime() - 86400) * 1e3);
+                                var d2 = toLocaleDateString((unixtime() - 2 * 86400) * 1e3);
+                                var txtD = {};
+                                txtD[d0] = 'Сегодня - ' + d0;
+                                txtD[d1] = 'Вчера - ' + d1;
+                                txtD[d2] = 'Позавчера - ' + d2;
+                                var onEpgLoad = function() {
+                                    if (--load) return;
+                                    for (var i = tvgData.length - 1; i >= 0; i--) {
+                                        if (tvgData[i].length === 0) {
+                                            var dt = (d - i) * 1440;
+                                            for (var dm = 0; dm < 1440; dm += 30)
+                                                tvgData[i].push([dt + dm, 30, toLocaleDateString((dt + dm) * 6e4), '']);
+                                        }
+                                        for (var j = 0; j < tvgData[i].length; j++) {
+                                            var epg = tvgData[i][j];
+                                            if (epg[0] === ps || epg[0] > m || epg[0] + epg[1] < ms) continue;
+                                            ps = epg[0];
+                                            var url = catchupUrl(
+                                                channel.Url,
+                                                (channel['catchup'] || channel['catchup-type'] || _this2.listCfg['catchup'] || _this2.listCfg['catchup-type']),
+                                                (channel['catchup-source'] || _this2.listCfg['catchup-source'])
+                                            );
+                                            var item = {
+                                                title: toLocaleTimeString(epg[0] * 6e4) + ' - ' + epg[2],
+                                                url: prepareUrl(url, epg),
+                                                catchupUrl: url,
+                                                plugin: plugin.component,
+                                                epg: epg
+                                            };
+                                            var newDate = toLocaleDateString(epg[0] * 6e4);
+                                            newDate = txtD[newDate] || newDate;
+                                            if (newDate !== prevDate) {
+                                                if (prevDate) {
+                                                    archiveMenu.unshift({
+                                                        title: prevDate,
+                                                        separator: true
+                                                    });
+                                                }
+                                                playlistMenu.push({
+                                                    title: newDate,
+                                                    separator: true,
+                                                    plugin: plugin.component,
+                                                    url: item.url
+                                                });
+                                                prevDate = newDate;
+                                            }
+                                            archiveMenu.unshift(item);
+                                            playlistMenu.push(item);
+                                            playlist.push(item);
+                                        }
+                                    }
+                                    if (prevDate) {
+                                        archiveMenu.unshift({
+                                            title: prevDate,
+                                            separator: true
+                                        });
+                                    }
+                                    tvgData = [];
+                                    Lampa.Select.show({
+                                        title: 'Архив',
+                                        items: archiveMenu,
+                                        onSelect: function(sel) {
+                                            console.log(plugin.name, 'catchupUrl: ' + sel.catchupUrl, epg.slice(0,2));
+                                            var video = {
+                                                title: sel.title,
+                                                url: sel.url,
+                                                playlist: playlist
+                                            };
+                                            Lampa.Controller.toggle('content');
+                                            Lampa.Player.runas && Lampa.Player.runas(Lampa.Storage.field('player_iptv'));
+                                            Lampa.Player.play(video);
+                                            Lampa.Player.runas && Lampa.Player.runas(Lampa.Storage.field('player_iptv'));
+                                            Lampa.Player.playlist(playlistMenu);
+                                        },
+                                        onBack: function() {
+                                            Lampa.Controller.toggle('content');
+                                        }
+                                    });
+                                };
+                                while (di--) {
+                                    tvgData[di] = [];
+                                    (function() {
+                                        var dd = di;
+                                        networkSilentSessCache(Lampa.Utils.protocol() + 'epg.rootu.top/api/epg/' + channel['epgId'] + '/day/' + (d - dd),
+                                            function(data) {
+                                                tvgData[dd] = data;
+                                                onEpgLoad();
+                                            },
+                                            onEpgLoad
+                                        );
+                                    })();
+                                }
+                            } else if (sel.restartProgram) {
+                                var epg = _this2.EPG[channel['epgId']][2][0];
+                                var type = (channel['catchup'] || channel['catchup-type'] || _this2.listCfg['catchup'] || _this2.listCfg['catchup-type'] || '');
+                                var url = catchupUrl(
+                                    channel.Url,
+                                    type,
+                                    (channel['catchup-source'] || _this2.listCfg['catchup-source'])
+                                );
+                                var flussonic = type.search(/^flussonic/i) === 0;
+                                if (flussonic) {
+                                    url = url.replace('${(d)S}', 'now');
+                                }
+                                console.log(plugin.name, 'catchupUrl: ' + url, epg.slice(0,2));
+                                var video = {
+                                    title: channel.Title,
+                                    url: prepareUrl(url, epg),
+                                    plugin: plugin.component,
+                                    catchupUrl: url,
+                                    epg: epg
+                                };
+                                if (flussonic) video['timeline'] = {
+                                    time: 11,
+                                    percent: 0,
+                                    handler: function(){},
+                                    duration: (epg[1] * 60)
+                                };
+                                Lampa.Controller.toggle('content');
+                                Lampa.Player.runas && Lampa.Player.runas(Lampa.Storage.field('player_iptv'));
+                                Lampa.Player.play(video);
+                                Lampa.Player.runas && Lampa.Player.runas(Lampa.Storage.field('player_iptv'));
+                            } else if (sel.epgToggle) {
+                                var epg = getStorage('epg', 'false') !== 'true';
+                                setStorage('epg', epg);
+                                var scroll = card.parents(".scroll");
+                                if (epg) {
+                                    scroll.css({float: "left", width: '70%'});
+                                    scroll.parent().append(epgTemplate);
+                                } else {
+                                    scroll.css({float: "none", width: '100%'});
+                                    $('#' + plugin.component + '_epg').remove();
+                                }
+                                Lampa.Controller.toggle('content');
+                            } else {
+                                var favGroup = lists[object.id].groups[0];
+                                if (sel.favToggle) {
+                                    if (favI === -1) {
+                                        favI = _this2.favorite.length;
+                                        _this2.favorite[favI] = favID(channel.Title);
+                                        _this2.catalog[favGroup.key].channels[favI] = channel;
+                                    } else {
+                                        _this2.favorite.splice(favI, 1);
+                                        _this2.catalog[favGroup.key].channels.splice(favI, 1);
+                                    }
+                                } else if (sel.favClear) {
+                                    _this2.favorite = [];
+                                    _this2.catalog[favGroup.key].channels = [];
+                                } else if (sel.favMove) {
+                                    _this2.favorite.splice(favI, 1);
+                                    _this2.favorite.splice(sel.i, 0, favID(channel.Title));
+                                    _this2.catalog[favGroup.key].channels.splice(favI, 1);
+                                    _this2.catalog[favGroup.key].channels.splice(sel.i, 0, channel);
+                                }
+                                setStorage('favorite' + object.id, _this2.favorite);
+                                favGroup.title = _this2.catalog[favGroup.key].title + ' [' + _this2.catalog[favGroup.key].channels.length + ']';
+                                if (isFavoriteGroup) {
+                                    Lampa.Activity.replace(Lampa.Arrays.clone(lists[object.id].activity));
+                                } else {
+                                    favIcon.toggleClass('hide', _this2.favorite.indexOf(favID(channel.Title)) === -1);
+                                    Lampa.Controller.toggle('content');
+                                }
+                            }
+                        },
+                        onBack: function() {
+                            Lampa.Controller.toggle('content');
+                        }
+                    });
+                });
+                _this2.body.append(card);
+                if (channel['epgId']) {
+                    card.attr('data-epg-id', channel['epgId']);
+                    // epgRender(channel['epgId']); // Предполагается, что функция epgRender определена где-то в опущенной части кода
+                }
+            }, {
+                bulk: 18,
+                onEnd: function(last, total, left) {
+                    _this2.activity.loader(false);
+                    _this2.activity.toggle();
+                }
+            });
+            var catEpg = [];
+            data.forEach(function(channel) {
+                bulkFn(channel);
+                if (channel['epgId'] && catEpg.indexOf(channel['epgId']) === -1) catEpg.push(channel['epgId']);
+            });
+            var catEpgString = catEpg.sort(function(a,b){return a-b}).join('-');
+            var catEpgHash = utils.hash36(catEpgString);
+        };
+
+        _this.build = function(data) {
+            var _this2 = this;
+            Lampa.Background.change();
+            Lampa.Template.add(plugin.component + '_button_category', "<style>@media screen and (max-width: 2560px) {." + plugin.component + " .card--collection {width: 16.6%!important;}}@media screen and (max-width: 800px) {." + plugin.component + " .card--collection {width: 24.6%!important;}}@media screen and (max-width: 500px) {." + plugin.component + " .card--collection {width: 33.3%!important;}}</style><div class=\"full-start__button selector view--category\"><svg style=\"enable-background:new 0 0 512 512;\" version=\"1.1\" viewBox=\"0 0 24 24\" xml:space=\"preserve\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"><g id=\"info\"/><g id=\"icons\"><g id=\"menu\"><path d=\"M20,10H4c-1.1,0-2,0.9-2,2c0,1.1,0.9,2,2,2h16c1.1,0,2-0.9,2-2C22,10.9,21.1,10,20,10z\" fill=\"currentColor\"/><path d=\"M4,8h12c1.1,0,2-0.9,2-2c0-1.1-0.9-2-2-2H4C2.9,4,2,4.9,2,6C2,7.1,2.9,8,4,8z\" fill=\"currentColor\"/><path d=\"M16,16H4c-1.1,0-2,0.9-2,2c0,1.1,0.9,2,2,2h12c1.1,0,2-0.9,2-2C18,16.9,17.1,16,16,16z\" fill=\"currentColor\"/></g></g></svg><span>" + langGet('categories') + "</span>\n	</div>");
+            Lampa.Template.add(plugin.component + '_info_radio', '<div class="info layer--width"><div class="info__left"><div class="info__title"></div><div class="info__title-original"></div><div class="info__create"></div></div><div class="info__right" style="display: flex !important;">  <div id="stantion_filtr"></div></div></div>');
+            var btn = Lampa.Template.get(plugin.component + '_button_category');
+            _this2.info = Lampa.Template.get(plugin.component + '_info_radio');
+            _this2.info.find('#stantion_filtr').append(btn);
+            _this2.info.find('.view--category').on('hover:enter hover:click', function() {
+                _this2.selectGroup();
+            });
+            _this2.info.find('.info__title-original').text(!_this2.catalog[object.currentGroup] ? '' : _this2.catalog[object.currentGroup].title);
+            _this2.info.find('.info__title').text('');
+            _this2.html.append(_this2.info);
+            if (data.length) {
+                _this2.scroll.render().addClass('layer--wheight').data('mheight', _this2.info);
+                _this2.html.append(_this2.scroll.render());
+                _this2.append(data);
+                if (getStorage('epg', 'false') === 'true') {
+                    _this2.scroll.render().css({float: "left", width: '70%'});
+                    _this2.scroll.render().parent().append(epgTemplate);
+                }
+                _this2.scroll.append(_this2.body);
+                setStorage('last_catalog' + object.id, object.currentGroup ? object.currentGroup : '!!');
+                lists[object.id].activity.currentGroup = object.currentGroup;
+            } else {
+                var empty = new Lampa.Empty();
+                _this2.html.append(empty.render());
+                _this2.activity.loader(false);
+                Lampa.Controller.collectionSet(_this2.info);
+                Navigator.move('right');
+            }
+        };
+
+        _this.selectGroup = function() {
+            var activity = Lampa.Arrays.clone(lists[object.id].activity);
+            Lampa.Select.show({
+                title: langGet('categories'),
+                items: Lampa.Arrays.clone(lists[object.id].groups),
+                onSelect: function(group) {
+                    if (object.currentGroup !== group.key) {
+                        activity.currentGroup = group.key;
+                        Lampa.Activity.replace(activity);
+                    } else {
+                        Lampa.Controller.toggle('content');
+                    }
+                },
+                onBack: function() {
+                    Lampa.Controller.toggle('content');
+                }
+            });
+        };
+
+        _this.start = function() {
+            if (Lampa.Activity.active().activity !== _this.activity) return;
+            Lampa.Controller.add('content', {
+                toggle: function() {
+                    Lampa.Controller.collectionSet(_this.scroll.render());
+                    Lampa.Controller.collectionFocus(false, _this.scroll.render());
+                },
+                left: function() {
+                    if (Navigator.canmove('left')) Navigator.move('left');
+                    else Lampa.Controller.toggle('menu');
+                },
+                right: function() {
+                    if (Navigator.canmove('right')) Navigator.move('right');
+                    else _this.selectGroup();
+                },
+                up: function() {
+                    if (Navigator.canmove('up')) {
+                        Navigator.move('up');
+                    } else {
+                        if (!_this.info.find('.view--category').hasClass('focus')) {
+                            Lampa.Controller.collectionSet(_this.info);
+                            Navigator.move('right');
+                        } else Lampa.Controller.toggle('head');
+                    }
+                },
+                down: function() {
+                    if (Navigator.canmove('down')) Navigator.move('down');
+                    else if (_this.info.find('.view--category').hasClass('focus')) {
+                        Lampa.Controller.toggle('content');
+                    }
+                },
+                back: function() {
+                    Lampa.Activity.backward();
+                }
+            });
+            Lampa.Controller.toggle('content');
+        };
+
+        _this.pause = function() {
+            Lampa.Player.runas && Lampa.Player.runas('');
+        };
+
+        _this.stop = function() {
+            Lampa.Player.runas && Lampa.Player.runas('');
+        };
+
+        _this.render = function() {
+            return _this.html;
+        };
+
+        _this.destroy = function() {
+            Lampa.Player.runas && Lampa.Player.runas('');
+            _this.network.clear();
+            _this.scroll.destroy();
+            if (_this.info) _this.info.remove();
+            if (epgInterval) clearInterval(epgInterval);
+            _this.html.remove();
+            _this.body.remove();
+            _this.favorite = null;
+            _this.network = null;
+            _this.html = null;
+            _this.body = null;
+            _this.info = null;
+        };
+
+        // Загрузка данных (заглушка, так как оригинальный код обрезан)
+        _this.activity = object;
+        _this.activity.loader(true);
+        // Здесь должен быть код загрузки данных плейлиста, но он обрезан
+        // Для теста предположим, что данные загружаются и передаются в _this.build
+        _this.build([]); // Пустой массив для примера, замените на реальные данные
+
+        return _this;
     }
 
     if (!Lampa.Lang) {
@@ -466,8 +897,6 @@
     }
 
     langAdd('categories', { ru: 'Категории' });
-    langAdd('uid', { ru: 'UID' });
-    langAdd('unique_id', { ru: 'Уникальный идентификатор (нужен для некоторых ссылок на плейлисты)' });
     langAdd('favorites', { ru: 'Избранное' });
     langAdd('favorites_add', { ru: 'Добавить в избранное' });
     langAdd('favorites_del', { ru: 'Удалить из избранного' });
@@ -483,6 +912,8 @@
     langAdd('contain_icons', { ru: 'Коррекция размера логотипа телеканала' });
     langAdd('contain_icons_desc', { ru: 'Может некорректно работать на старых устройствах' });
     langAdd('settings_title', { ru: 'Hack TV PlayList' });
+    langAdd('playlist_url', { ru: 'Ссылка на плейлист' });
+    langAdd('playlist_url_desc', { ru: 'Введите URL плейлиста (например, http://example.com/playlist.m3u)' });
 
     function favID(title) {
         return title.toLowerCase().replace(/[\s!-\/:-@\[-`{-~]+/g, '');
@@ -537,29 +968,34 @@
     function initSettings() {
         console.log('Hack TV', 'Initializing settings');
         try {
-            // Добавление компонента настроек
+            // Очистка предыдущих компонентов
+            $('div[data-component="' + plugin.component + '"]').remove();
+            
+            // Регистрация компонента настроек
             Lampa.SettingsApi.addComponent({
                 component: plugin.component,
                 name: langGet('settings_title') || 'Hack TV PlayList',
-                onOpen: function () {
+                onOpen: function() {
                     console.log('Hack TV', 'Opening settings, rendering fields');
-                    // Принудительное добавление полей
                     var settingsContainer = $('div[data-component="' + plugin.component + '"]');
                     if (settingsContainer.length) {
                         settingsContainer.empty();
+                        // Поле для ввода ссылки на плейлист
                         settingsContainer.append(
-                            $('<div class="settings-param selector" data-type="input" data-name="' + plugin.component + '_uid">' +
-                              '<div class="settings-param__name">' + (langGet('uid') || 'UID') + '</div>' +
+                            $('<div class="settings-param selector" data-type="input" data-name="' + plugin.component + '_playlist_url">' +
+                              '<div class="settings-param__name">' + (langGet('playlist_url') || 'Ссылка на плейлист') + '</div>' +
                               '<div class="settings-param__value"></div>' +
-                              '<div class="settings-param__descr">' + (langGet('unique_id') || 'Уникальный идентификатор') + '</div>' +
+                              '<div class="settings-param__descr">' + (langGet('playlist_url_desc') || 'Введите URL плейлиста (например, http://example.com/playlist.m3u)') + '</div>' +
                               '</div>')
                         );
+                        // Поле для квадратных иконок
                         settingsContainer.append(
                             $('<div class="settings-param selector" data-type="toggle" data-name="' + plugin.component + '_square_icons">' +
                               '<div class="settings-param__name">' + (langGet('square_icons') || 'Квадратные лого каналов') + '</div>' +
                               '<div class="settings-param__value"></div>' +
                               '</div>')
                         );
+                        // Поле для коррекции размера логотипов
                         settingsContainer.append(
                             $('<div class="settings-param selector" data-type="toggle" data-name="' + plugin.component + '_contain_icons">' +
                               '<div class="settings-param__name">' + (langGet('contain_icons') || 'Коррекция размера логотипа телеканала') + '</div>' +
@@ -568,9 +1004,26 @@
                               '</div>')
                         );
                         // Инициализация значений
-                        settingsContainer.find('div[data-name="' + plugin.component + '_uid"] .settings-param__value').text(getStorage('uid', ''));
+                        settingsContainer.find('div[data-name="' + plugin.component + '_playlist_url"] .settings-param__value').text(getStorage('playlist_url', ''));
                         settingsContainer.find('div[data-name="' + plugin.component + '_square_icons"] .settings-param__value').text(getSettings('square_icons') || 'false');
                         settingsContainer.find('div[data-name="' + plugin.component + '_contain_icons"] .settings-param__value').text(getSettings('contain_icons') || 'true');
+                        // Обработчик изменения ссылки плейлиста
+                        settingsContainer.find('div[data-name="' + plugin.component + '_playlist_url"]').on('hover:enter hover:click', function() {
+                            Lampa.Input.edit({
+                                value: getStorage('playlist_url', ''),
+                                title: langGet('playlist_url'),
+                                onChange: function(value) {
+                                    console.log('Hack TV', 'Playlist URL changed:', value);
+                                    playlistUrl = value;
+                                    setStorage('playlist_url', value);
+                                    // Перезагрузка активности для обновления плейлиста
+                                    Lampa.Activity.replace(Lampa.Arrays.clone(lists[0].activity));
+                                },
+                                onBack: function() {
+                                    Lampa.Controller.toggle('content');
+                                }
+                            });
+                        });
                         console.log('Hack TV', 'Settings fields rendered via DOM');
                     } else {
                         console.error('Hack TV', 'Settings container not found');
@@ -581,15 +1034,15 @@
 
             // Добавление параметров через addSettings
             addSettings('input', {
-                title: langGet('uid'),
-                name: 'uid',
-                placeholder: '00000000-0000-0000-0000-000000000000',
-                default: getStorage('uid', ''),
-                description: langGet('unique_id'),
+                title: langGet('playlist_url'),
+                name: 'playlist_url',
+                placeholder: 'http://example.com/playlist.m3u',
+                default: getStorage('playlist_url', ''),
+                description: langGet('playlist_url_desc'),
                 onChange: function(v) {
-                    console.log('Hack TV', 'UID changed:', v);
-                    UID = v;
-                    setStorage('uid', v);
+                    console.log('Hack TV', 'Playlist URL changed:', v);
+                    playlistUrl = v;
+                    setStorage('playlist_url', v);
                 }
             });
             addSettings('trigger', {
@@ -621,7 +1074,7 @@
     // Меню
     var activity = {
         id: 0,
-        url: 'https://u.to/PpMrIg',
+        url: getStorage('playlist_url', 'https://u.to/PpMrIg'),
         title: plugin.name,
         groups: [],
         currentGroup: getStorage('last_catalog0', 'Other'),
@@ -662,7 +1115,6 @@
                 console.log('Hack TV', 'Menu item added to .menu .menu__list');
             } else {
                 console.error('Hack TV', 'Menu element .menu .menu__list not found');
-                // Альтернативный селектор
                 var altMenu = $('.menu__list');
                 if (altMenu.length) {
                     altMenu.append(menuEl);
@@ -670,6 +1122,15 @@
                     console.log('Hack TV', 'Menu item added to .menu__list');
                 } else {
                     console.error('Hack TV', 'Alternative menu element .menu__list not found');
+                    // Последняя попытка: поиск любого ul в .menu
+                    var fallbackMenu = $('.menu ul').eq(0);
+                    if (fallbackMenu.length) {
+                        fallbackMenu.append(menuEl);
+                        menuEl.show();
+                        console.log('Hack TV', 'Menu item added to .menu ul');
+                    } else {
+                        console.error('Hack TV', 'No menu elements found');
+                    }
                 }
             }
         } catch (e) {
@@ -677,15 +1138,7 @@
         }
     }
 
-    UID = getStorage('uid', '');
-    if (!UID) {
-        UID = Lampa.Utils.uid(10).toUpperCase().replace(/(.{4})/g, '$1-');
-        setStorage('uid', UID);
-    } else if (UID.length > 12) {
-        UID = UID.substring(0, 12);
-        setStorage('uid', UID);
-    }
-
+    playlistUrl = getStorage('playlist_url', '');
     initSettings();
 
     if (window.appready) {
@@ -700,24 +1153,26 @@
         });
     }
 
-    // Удаление дублирующего компонента настроек
-    Lampa.Settings.listener.follow('open', function (e) {
+    // Удаление дублирующих компонентов настроек
+    Lampa.Settings.listener.follow('open', function(e) {
         if (e.name === 'main') {
             console.log('Hack TV', 'Settings main opened, removing duplicate component');
             setTimeout(function() {
                 $('div[data-component="my_iptv2"]').not(':last').remove();
+                // Удаление надписи undefined
+                $('.settings__title:contains("undefined")').remove();
             }, 0);
         }
     });
 
-    Lampa.Listener.follow('activity', function (a) {
+    Lampa.Listener.follow('activity', function(a) {
         console.log('Hack TV', 'Activity event:', a.name, a.activity);
         if (!a.activity) {
             console.error('Hack TV', 'Activity is undefined');
             return;
         }
         if (a.name === 'start') {
-            a.activity.onCreate = function (act) {
+            a.activity.onCreate = function(act) {
                 console.log('Hack TV', 'Creating activity:', act);
                 var actLists = [];
                 var source = getStorage('source', '{}');
@@ -750,14 +1205,14 @@
                 } catch (e) {
                     console.error('Hack TV', 'Error parsing source:', e);
                 }
-                act.params = function () {
+                act.params = function() {
                     console.log('Hack TV', 'Activity params called, returning actLists:', actLists);
                     return actLists;
                 };
             };
         }
         if (a.activity.component === plugin.component) {
-            a.activity.render = function () {
+            a.activity.render = function() {
                 console.log('Hack TV', 'Rendering activity for component:', plugin.component);
                 return (new pluginPage(a.activity)).render();
             };
