@@ -1,4 +1,3 @@
-```javascript
 ;(function () {
     'use strict';
 
@@ -1510,3 +1509,4 @@ function addSettings() {
     });
 })();
 })();
+
