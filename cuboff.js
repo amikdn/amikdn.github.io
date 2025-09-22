@@ -61,16 +61,29 @@
     function initializeApp() {
       // Перехват fetch-запросов для блокировки рекламы
       const originalFetch = window.fetch;
-      window.fetch = function(url, options) {
+      window.fetch = async function(url, options) {
         if (
           url.includes('ads.betweendigital.com') ||
-          url.includes('lampa.mx/img/video_poster.png') ||
-          url.match(/\.mp4$/)
+          url.includes('lbs-ru1.ads.betweendigital.com') ||
+          url.includes('eye.targetads.io') ||
+          url.includes('impressions.onelink.me') ||
+          url.includes('data.ad-score.com') ||
+          url.includes('tns-counter.ru') ||
+          url.includes('lampa.mx/img/video_poster.png')
         ) {
           console.log('Blocked ad request:', url);
-          return Promise.resolve({ ok: true, json: () => ({}) });
+          return Promise.resolve({ ok: true, json: () => ({}), text: () => '' });
         }
-        return originalFetch(url, options);
+        const response = await originalFetch(url, options);
+        // Проверяем, содержит ли ответ VAST
+        if (response.ok && url.includes('ads.betweendigital.com')) {
+          const text = await response.clone().text();
+          if (text.includes('<VAST')) {
+            console.log('Blocked VAST response:', url);
+            return Promise.resolve({ ok: true, json: () => ({}), text: () => '' });
+          }
+        }
+        return response;
       };
 
       // Перехват создания видеоэлементов
@@ -82,7 +95,13 @@
           element.setAttribute = function(name, value) {
             if (
               name === 'src' &&
-              (value.includes('ads.betweendigital.com') || value.includes('lampa.mx') || value.match(/\.mp4$/))
+              (value.includes('ads.betweendigital.com') ||
+               value.includes('lbs-ru1.ads.betweendigital.com') ||
+               value.includes('eye.targetads.io') ||
+               value.includes('impressions.onelink.me') ||
+               value.includes('data.ad-score.com') ||
+               value.includes('tns-counter.ru') ||
+               value.includes('lampa.mx'))
             ) {
               console.log('Blocked video source:', value);
               return;
