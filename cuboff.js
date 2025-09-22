@@ -1,4 +1,5 @@
 (function () {
+	'use strict';
     window.Account = window.Account || {};
     window.Account.hasPremium = () => true;
 
