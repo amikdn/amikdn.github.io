@@ -1,3 +1,4 @@
+
 (function () {
     'use strict';
 
@@ -15,6 +16,7 @@
     document.createElement = function (tagName, options) {
         if (tagName.toLowerCase() === "video") {
             const fakeElement = originalCreateElement.call(document, "div");
+            fakeElement.style.display = 'none'; // Скрываем элемент
             fakeElement.play = () => Promise.resolve();
             fakeElement.pause = () => {};
             fakeElement.load = () => {};
@@ -36,7 +38,13 @@
     // Перехват воспроизведения видео
     const originalPlay = HTMLVideoElement.prototype.play;
     HTMLVideoElement.prototype.play = function () {
-        if (this.src.includes("ad") || this.className.includes("ad") || this.parentElement?.className.includes("ad")) {
+        const isAd = this.src.includes("ad") || 
+                     this.className.includes("ad") || 
+                     (this.parentElement && this.parentElement.className.includes("ad")) ||
+                     this.src.includes("cub") || 
+                     this.className.includes("cub");
+        if (isAd) {
+            this.style.display = 'none'; // Скрываем рекламное видео
             this.dispatchEvent(new Event("ended"));
             return Promise.resolve();
         }
@@ -66,14 +74,18 @@
             '.black-friday__button',
             '.christmas__button',
             '.settings--account-premium',
-            'div > span:contains("CUB Premium")',
-            'div > span:contains("Статус")',
             '.full-reviews',
             '.button--subscribe'
         ];
         selectors.forEach(selector => {
-            const elements = document.querySelectorAll(selector);
-            elements.forEach(el => el.remove());
+            document.querySelectorAll(selector).forEach(el => el.remove());
+        });
+
+        // Удаление элементов с текстом "CUB Premium" или "Статус"
+        document.querySelectorAll('div > span').forEach(span => {
+            if (span.textContent.includes('CUB Premium') || span.textContent.includes('Статус')) {
+                if (span.parentElement) span.parentElement.remove();
+            }
         });
 
         // Скрытие заблокированных элементов
