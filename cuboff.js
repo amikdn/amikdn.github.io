@@ -3,34 +3,6 @@
 
   Lampa.Platform.tv();
 
-  // Начальное переопределение checkPremium
-  window.checkPremium = () => {
-    console.log('checkPremium overridden (window), returning 1');
-    return 1;
-  };
-  Lampa.Account.checkPremium = () => {
-    console.log('checkPremium overridden (Lampa.Account), returning 1');
-    return 1;
-  };
-  console.log('Initial hasPremium check:', Lampa.Account.hasPremium());
-
-  // Периодическая проверка для предотвращения перезаписи
-  var checkPremiumInterval = setInterval(function () {
-    if (typeof Lampa.Account.checkPremium !== 'function' || Lampa.Account.checkPremium() !== 1) {
-      Lampa.Account.checkPremium = () => {
-        console.log('checkPremium re-overridden (Lampa.Account), returning 1');
-        return 1;
-      };
-      console.log('hasPremium recheck:', Lampa.Account.hasPremium());
-    }
-  }, 500);
-
-  // Остановить интервал через 10 секунд
-  setTimeout(function () {
-    clearInterval(checkPremiumInterval);
-    console.log('checkPremium interval stopped');
-  }, 10000);
-
   (function () {
     var isCardProcessed = 0;
 
@@ -87,17 +59,41 @@
     }
 
     function initializeApp() {
-      // Повторное переопределение checkPremium для надёжности
-      window.checkPremium = () => {
-        console.log('checkPremium overridden (window, initializeApp), returning 1');
-        return 1;
+      // Перехват fetch-запросов для блокировки рекламы
+      const originalFetch = window.fetch;
+      window.fetch = function(url, options) {
+        if (
+          url.includes('ads.betweendigital.com') ||
+          url.includes('lampa.mx/img/video_poster.png') ||
+          url.match(/\.mp4$/)
+        ) {
+          console.log('Blocked ad request:', url);
+          return Promise.resolve({ ok: true, json: () => ({}) });
+        }
+        return originalFetch(url, options);
       };
-      Lampa.Account.checkPremium = () => {
-        console.log('checkPremium overridden (Lampa.Account, initializeApp), returning 1');
-        return 1;
-      };
-      console.log('hasPremium check (initializeApp):', Lampa.Account.hasPremium());
 
+      // Перехват создания видеоэлементов
+      const originalCreateElement = document.createElement;
+      document.createElement = function(tagName) {
+        const element = originalCreateElement.call(document, tagName);
+        if (tagName === 'video') {
+          const originalSetAttribute = element.setAttribute;
+          element.setAttribute = function(name, value) {
+            if (
+              name === 'src' &&
+              (value.includes('ads.betweendigital.com') || value.includes('lampa.mx') || value.match(/\.mp4$/))
+            ) {
+              console.log('Blocked video source:', value);
+              return;
+            }
+            originalSetAttribute.call(element, name, value);
+          };
+        }
+        return element;
+      };
+
+      // Добавление стилей для скрытия подписки
       var style = document.createElement('style');
       style.innerHTML = '.button--subscribe { display: none; }';
       document.body.appendChild(style);
@@ -108,6 +104,12 @@
             $('.full-reviews').parent().parent().parent().parent().remove();
           }, 100);
         }
+      });
+
+      $(document).ready(function () {
+        var now = new Date();
+        var timestamp = now.getTime();
+        localStorage.setItem('region', '{"code":"us","time":' + timestamp + '}');
       });
 
       $('[data-action="tv"]').on('hover:enter hover:click hover:touch', function () {
