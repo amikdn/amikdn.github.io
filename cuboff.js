@@ -14,6 +14,20 @@
               if (document.querySelector('.ad-server') !== null) {
                 $('.ad-server').remove();
               }
+              // Проверяем и обрабатываем заставку "Реклама"
+              var adLabel = document.querySelector('.ad-label, .ad-overlay, [class*="ad"], div:contains("Реклама")');
+              if (adLabel) {
+                console.log('Found ad label element:', adLabel);
+                // Пытаемся заменить текст на "Приятного просмотра :)"
+                if (adLabel.textContent.includes('Реклама')) {
+                  adLabel.textContent = 'Приятного просмотра :)';
+                  console.log('Ad label text changed to "Приятного просмотра :)"');
+                } else {
+                  // Если текст не удаётся заменить, скрываем элемент
+                  adLabel.style.display = 'none';
+                  console.log('Ad label hidden');
+                }
+              }
             }
             if (Lampa.Activity.active().component === 'modss_online') {
               $('.selectbox-item--icon').remove();
@@ -72,7 +86,7 @@
           url.includes('lampa.mx/img/video_poster.png')
         ) {
           console.log('Blocked ad request:', url);
-          return Promise.resolve({ ok: true, json: () => ({}), text: () => '' });
+          return Promise.reject(new Error('Ad request blocked'));
         }
         const response = await originalFetch(url, options);
         // Проверяем, содержит ли ответ VAST
@@ -80,7 +94,7 @@
           const text = await response.clone().text();
           if (text.includes('<VAST')) {
             console.log('Blocked VAST response:', url);
-            return Promise.resolve({ ok: true, json: () => ({}), text: () => '' });
+            return Promise.reject(new Error('VAST response blocked'));
           }
         }
         return response;
@@ -107,6 +121,10 @@
               return;
             }
             originalSetAttribute.call(element, name, value);
+            // Логируем все источники видео для диагностики
+            if (name === 'src') {
+              console.log('Video source set:', value);
+            }
           };
         }
         return element;
