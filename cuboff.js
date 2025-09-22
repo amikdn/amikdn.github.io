@@ -1,6 +1,11 @@
-Object.defineProperty(Lampa.Account, 'hasPremium', {
-  value: () => 1,
-  writable: false, // Блокируем перезапись
-  configurable: false // Блокируем изменение дескриптора
+Lampa.Account = new Proxy(Lampa.Account, {
+  get(target, prop) {
+    if (prop === 'hasPremium') {
+      return () => {
+        console.log('hasPremium intercepted, returning 1');
+        return 1;
+      };
+    }
+    return target[prop];
+  }
 });
-console.log('hasPremium locked:', Lampa.Account.hasPremium()); // Для отладки
