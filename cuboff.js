@@ -16,7 +16,7 @@
     document.createElement = function (tagName, options) {
         if (tagName.toLowerCase() === "video") {
             const fakeElement = originalCreateElement.call(document, "div");
-            fakeElement.style.display = 'none'; // Скрываем элемент
+            fakeElement.style.display = 'none';
             fakeElement.play = () => Promise.resolve();
             fakeElement.pause = () => {};
             fakeElement.load = () => {};
@@ -39,26 +39,17 @@
     const originalPlay = HTMLVideoElement.prototype.play;
     HTMLVideoElement.prototype.play = function () {
         const isAd = this.src.includes("ad") || 
-                     this.className.includes("ad") || 
-                     (this.parentElement && this.parentElement.className.includes("ad")) ||
                      this.src.includes("cub") || 
-                     this.className.includes("cub");
+                     this.className.includes("ad") || 
+                     this.className.includes("cub") || 
+                     (this.parentElement && (this.parentElement.className.includes("ad") || this.parentElement.className.includes("cub")));
         if (isAd) {
-            this.style.display = 'none'; // Скрываем рекламное видео
+            this.style.display = 'none';
             this.dispatchEvent(new Event("ended"));
             return Promise.resolve();
         }
         return originalPlay.apply(this);
     };
-
-    // Очистка таймеров
-    function clearAdTimers() {
-        const highestTimeout = setTimeout(() => {}, 0);
-        for (let i = Math.max(0, highestTimeout - 1000); i <= highestTimeout; i++) {
-            clearTimeout(i);
-            clearInterval(i);
-        }
-    }
 
     // Удаление рекламных элементов
     function removeAdElements() {
@@ -98,22 +89,17 @@
             .forEach(el => el.style.display = 'none');
     }
 
-    // Мониторинг изменений DOM
+    // Мониторинг изменений DOM с ограничением
     function observeDomChanges() {
+        let isObserving = false;
         const observer = new MutationObserver((mutations) => {
-            for (const mutation of mutations) {
-                if (mutation.type === 'childList') {
-                    removeAdElements();
-                    if (document.getElementsByClassName('card').length > 0) {
-                        observer.disconnect();
-                        setTimeout(observeDomChanges, 500);
-                        break;
-                    }
-                }
-            }
+            if (isObserving) return;
+            isObserving = true;
+            removeAdElements();
+            isObserving = false;
         });
         observer.observe(document.body, { childList: true, subtree: true });
-        setTimeout(() => observer.disconnect(), 10000);
+        setTimeout(() => observer.disconnect(), 5000); // Ограничение времени наблюдения
     }
 
     // Инициализация плагина
@@ -140,11 +126,6 @@
                         }
                     }, 100);
                 }
-                if (event.type === 'complite') {
-                    document.querySelectorAll('.button--book').forEach(el => {
-                        el.addEventListener('mouseenter', removeAdElements);
-                    });
-                }
             });
 
             Lampa.Settings.listener.follow('open', (event) => {
@@ -166,20 +147,9 @@
             });
         }
 
-        // Обработчик для TV-режима
-        document.querySelectorAll('[data-action="tv"]').forEach(el => {
-            el.addEventListener('mouseenter', () => {
-                const adInterval = setInterval(removeAdElements, 500);
-                setTimeout(() => clearInterval(adInterval), 10000);
-            });
-        });
-
         // Начальная очистка
-        setTimeout(() => {
-            removeAdElements();
-            clearAdTimers();
-            observeDomChanges();
-        }, 100);
+        setTimeout(removeAdElements, 100);
+        setTimeout(observeDomChanges, 500);
     }
 
     // Запуск плагина
