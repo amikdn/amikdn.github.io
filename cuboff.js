@@ -1,10 +1,3 @@
-// ==LampaPlugin==
-// @name AdBlock for Lampa
-// @description Blocks ads, including videos and CUB elements, in Lampa
-// @version 1.0.0
-// @author Grok
-// ==/LampaPlugin==
-
 (function () {
     'use strict';
 
