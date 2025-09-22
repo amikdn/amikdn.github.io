@@ -19,7 +19,7 @@
             }
             return target.apply(thisArg, args);
         }
-    };
+    });
     function clearAdTimers() {
         let highestTimeout = setTimeout(() => {}, 0);
         for (let i = 0; i <= highestTimeout; i++) {
