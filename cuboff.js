@@ -1,3 +1,9 @@
+// ==LampaPlugin==
+// @name CUB AdBlock for Lampa
+// @description Blocks CUB ads and videos in Lampa
+// @version 1.3.0
+// @author Grok
+// ==/LampaPlugin==
 
 (function () {
     'use strict';
@@ -10,6 +16,9 @@
     // Установка премиум-статуса
     window.Account = window.Account || {};
     window.Account.hasPremium = () => true;
+
+    // Проверка платформы (Android)
+    const isAndroid = /Android/i.test(navigator.userAgent);
 
     // Перехват создания видеоэлементов
     const originalCreateElement = document.createElement;
@@ -27,7 +36,7 @@
             });
             fakeElement.addEventListener = (event, callback) => {
                 if (event === "ended") {
-                    setTimeout(() => callback(new Event("ended")), 0);
+                    callback(new Event("ended"));
                 }
             };
             return fakeElement;
@@ -51,55 +60,35 @@
         return originalPlay.apply(this);
     };
 
-    // Удаление рекламных элементов
+    // Удаление только рекламных элементов CUB
     function removeAdElements() {
-        const selectors = [
+        const adSelectors = [
             '.ad-server',
             '.ad-bot',
-            '.card__textbox',
-            '.selectbox-item--icon',
-            '.open--feed',
             '.open--premium',
-            '.open--notice',
-            '.icon--blink',
-            '.black-friday__button',
-            '.christmas__button',
             '.settings--account-premium',
-            '.full-reviews',
             '.button--subscribe'
         ];
-        selectors.forEach(selector => {
+        adSelectors.forEach(selector => {
             document.querySelectorAll(selector).forEach(el => el.remove());
         });
 
-        // Удаление элементов с текстом "CUB Premium" или "Статус"
+        // Удаление элементов с текстом "CUB Premium"
         document.querySelectorAll('div > span').forEach(span => {
-            if (span.textContent.includes('CUB Premium') || span.textContent.includes('Статус')) {
+            if (span.textContent.includes('CUB Premium')) {
                 if (span.parentElement) span.parentElement.remove();
             }
         });
-
-        // Скрытие заблокированных элементов
-        document.querySelectorAll('.selectbox-item__lock').forEach(el => {
-            if (el.parentElement) el.parentElement.style.display = 'none';
-        });
-
-        // Скрытие элементов в закладках
-        document.querySelectorAll('.register:nth-child(4), .register:nth-child(5), .register:nth-child(6), .register:nth-child(7), .register:nth-child(8)')
-            .forEach(el => el.style.display = 'none');
     }
 
-    // Мониторинг изменений DOM с ограничением
+    // Мониторинг изменений DOM с оптимизацией
     function observeDomChanges() {
-        let isObserving = false;
-        const observer = new MutationObserver((mutations) => {
-            if (isObserving) return;
-            isObserving = true;
+        const observer = new MutationObserver(() => {
             removeAdElements();
-            isObserving = false;
         });
         observer.observe(document.body, { childList: true, subtree: true });
-        setTimeout(() => observer.disconnect(), 5000); // Ограничение времени наблюдения
+        // Остановка наблюдения после 3 секунд для снижения нагрузки
+        setTimeout(() => observer.disconnect(), 3000);
     }
 
     // Инициализация плагина
@@ -107,49 +96,32 @@
         // Добавление стилей для скрытия подписки
         const style = document.createElement('style');
         style.innerHTML = '.button--subscribe { display: none !important; }';
-        document.body.appendChild(style);
+        document.head.appendChild(style);
 
         // Установка региона
         const now = new Date();
         localStorage.setItem('region', JSON.stringify({ code: "uk", time: now.getTime() }));
 
+        // Удаление рекламы при загрузке
+        removeAdElements();
+
         // Обработчик событий Lampa
         if (typeof Lampa !== 'undefined') {
-            Lampa.Listener.follow('full', (event) => {
-                if (event.type === 'build' && event.name === 'discuss') {
-                    setTimeout(() => {
-                        const reviews = document.querySelector('.full-reviews');
-                        if (reviews) {
-                            let parent = reviews.parentElement;
-                            for (let i = 0; i < 4 && parent; i++) parent = parent.parentElement;
-                            if (parent) parent.remove();
-                        }
-                    }, 100);
-                }
-            });
-
             Lampa.Settings.listener.follow('open', (event) => {
                 if (event.name === 'account' || event.name === 'server') {
-                    setTimeout(removeAdElements, 100);
-                }
-            });
-
-            Lampa.Storage.listener.follow('change', (event) => {
-                if (event.name === 'activity' && Lampa.Activity.active().component === 'bookmarks') {
-                    setTimeout(removeAdElements, 200);
+                    removeAdElements();
                 }
             });
 
             Lampa.Controller.listener.follow('toggle', (event) => {
-                if (event.name === 'select' && Lampa.Activity.active().component === 'full') {
-                    setTimeout(removeAdElements, 100);
+                if (event.name === 'select' && Lampa.Activity.active().component === 'full' && !isAndroid) {
+                    removeAdElements();
                 }
             });
         }
 
-        // Начальная очистка
-        setTimeout(removeAdElements, 100);
-        setTimeout(observeDomChanges, 500);
+        // Запуск наблюдения за DOM
+        observeDomChanges();
     }
 
     // Запуск плагина
@@ -159,7 +131,6 @@
         Lampa.Listener.follow('app', (event) => {
             if (event.type === 'ready') {
                 initializePlugin();
-                document.querySelectorAll('[data-action="feed"], [data-action="subscribes"], [data-action="myperson"]').forEach(el => el.remove());
             }
         });
     }
