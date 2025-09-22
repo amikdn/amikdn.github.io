@@ -11,7 +11,7 @@
                 fakeVideo.play = function () {
                     setTimeout(() => {
                         fakeVideo.ended = true;
-                        fakeVideo.dispatchEvent(new Event("ended")); // Эмулируем завершение рекламы
+                        fakeVideo.dispatchEvent(new Event("ended"));
                     }, 500);
                 };
 
