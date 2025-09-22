@@ -3,6 +3,7 @@
 
   Lampa.Platform.tv();
 
+  // Начальное переопределение checkPremium
   window.checkPremium = () => {
     console.log('checkPremium overridden (window), returning 1');
     return 1;
@@ -11,7 +12,24 @@
     console.log('checkPremium overridden (Lampa.Account), returning 1');
     return 1;
   };
-  console.log('hasPremium check:', Lampa.Account.hasPremium());
+  console.log('Initial hasPremium check:', Lampa.Account.hasPremium());
+
+  // Периодическая проверка для предотвращения перезаписи
+  var checkPremiumInterval = setInterval(function () {
+    if (typeof Lampa.Account.checkPremium !== 'function' || Lampa.Account.checkPremium() !== 1) {
+      Lampa.Account.checkPremium = () => {
+        console.log('checkPremium re-overridden (Lampa.Account), returning 1');
+        return 1;
+      };
+      console.log('hasPremium recheck:', Lampa.Account.hasPremium());
+    }
+  }, 500);
+
+  // Остановить интервал через 10 секунд
+  setTimeout(function () {
+    clearInterval(checkPremiumInterval);
+    console.log('checkPremium interval stopped');
+  }, 10000);
 
   (function () {
     var isCardProcessed = 0;
@@ -69,6 +87,7 @@
     }
 
     function initializeApp() {
+      // Повторное переопределение checkPremium для надёжности
       window.checkPremium = () => {
         console.log('checkPremium overridden (window, initializeApp), returning 1');
         return 1;
