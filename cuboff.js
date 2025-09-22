@@ -14,20 +14,6 @@
               if (document.querySelector('.ad-server') !== null) {
                 $('.ad-server').remove();
               }
-              // Проверяем и обрабатываем заставку "Реклама"
-              var adLabel = document.querySelector('.ad-label, .ad-overlay, [class*="ad"], div:contains("Реклама")');
-              if (adLabel) {
-                console.log('Found ad label element:', adLabel);
-                // Пытаемся заменить текст на "Приятного просмотра :)"
-                if (adLabel.textContent.includes('Реклама')) {
-                  adLabel.textContent = 'Приятного просмотра :)';
-                  console.log('Ad label text changed to "Приятного просмотра :)"');
-                } else {
-                  // Если текст не удаётся заменить, скрываем элемент
-                  adLabel.style.display = 'none';
-                  console.log('Ad label hidden');
-                }
-              }
             }
             if (Lampa.Activity.active().component === 'modss_online') {
               $('.selectbox-item--icon').remove();
@@ -35,6 +21,33 @@
           }, 100);
         }
       });
+    }
+
+    function observeAdBlock() {
+      var observer = new MutationObserver(function (mutations) {
+        mutations.forEach(function (mutation) {
+          if (mutation.type === 'childList') {
+            var adBlock = document.querySelector('.ad-video-block, .ad-video-block__text');
+            if (adBlock) {
+              console.log('Found ad block element:', adBlock);
+              var adText = adBlock.querySelector('.ad-video-block__text');
+              if (adText && adText.textContent.includes('Реклама')) {
+                adText.textContent = 'Приятного просмотра :)';
+                console.log('Ad text changed to "Приятного просмотра :)"');
+              } else {
+                adBlock.style.display = 'none';
+                console.log('Ad block hidden');
+              }
+            }
+          }
+        });
+      });
+      observer.observe(document.body, { childList: true, subtree: true });
+      // Отключаем наблюдатель через 10 секунд, чтобы не нагружать систему
+      setTimeout(function () {
+        observer.disconnect();
+        console.log('Ad block observer disconnected');
+      }, 10000);
     }
 
     function hideLockedItems() {
@@ -73,6 +86,23 @@
     }
 
     function initializeApp() {
+      // Перехват VASTPlayer
+      if (window.VASTPlayer) {
+        const originalVASTPlayer = window.VASTPlayer;
+        window.VASTPlayer = function(container) {
+          console.log('Blocked VASTPlayer initialization');
+          return {
+            load: function() { return Promise.reject(new Error('VASTPlayer blocked')); },
+            startAd: function() { return Promise.reject(new Error('VASTPlayer blocked')); },
+            stopAd: function() { return Promise.resolve(); },
+            pauseAd: function() {},
+            resumeAd: function() {},
+            on: function() {},
+            once: function() {}
+          };
+        };
+      }
+
       // Перехват fetch-запросов для блокировки рекламы
       const originalFetch = window.fetch;
       window.fetch = async function(url, options) {
@@ -89,7 +119,6 @@
           return Promise.reject(new Error('Ad request blocked'));
         }
         const response = await originalFetch(url, options);
-        // Проверяем, содержит ли ответ VAST
         if (response.ok && url.includes('ads.betweendigital.com')) {
           const text = await response.clone().text();
           if (text.includes('<VAST')) {
@@ -121,7 +150,6 @@
               return;
             }
             originalSetAttribute.call(element, name, value);
-            // Логируем все источники видео для диагностики
             if (name === 'src') {
               console.log('Video source set:', value);
             }
@@ -130,9 +158,12 @@
         return element;
       };
 
-      // Добавление стилей для скрытия подписки
+      // Добавление стилей для скрытия подписки и рекламных блоков
       var style = document.createElement('style');
-      style.innerHTML = '.button--subscribe { display: none; }';
+      style.innerHTML = `
+        .button--subscribe { display: none; }
+        .ad-video-block, .ad-video-block__text { display: none !important; }
+      `;
       document.body.appendChild(style);
 
       Lampa.Listener.follow('full', function (event) {
@@ -231,12 +262,14 @@
       initializeApp();
       observeDomChanges();
       removeAdsOnToggle();
+      observeAdBlock();
     } else {
       Lampa.Listener.follow('app', function (event) {
         if (event.type === 'ready') {
           initializeApp();
           observeDomChanges();
           removeAdsOnToggle();
+          observeAdBlock();
           $('[data-action="feed"]').eq(0).remove();
           $('[data-action="subscribes"]').eq(0).remove();
           $('[data-action="myperson"]').eq(0).remove();
