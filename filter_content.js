@@ -205,7 +205,6 @@ function setupSettings() {
                     name: Lampa.Lang.translate('content_filters')
                 });
                 Lampa.Settings.main().update();
-                Lampa.Settings.main().render().find('[data-component="content_filters"]').addClass('hide');
             }
         }
     });
@@ -222,10 +221,6 @@ function setupSettings() {
             description: 'Настройка отображения карточек по фильтрам'
         },
         onRender: function(element) {
-            setTimeout(function() {
-                var filterName = Lampa.Lang.translate('content_filters');
-                $('.settings-param > div:contains("' + filterName + '")').parent().insertAfter($('div[data-name="interface_size"]'));
-            }, 0);
             element.on('hover:enter', function() {
                 Lampa.Settings.show('content_filters');
                 Lampa.Controller.back = function() {
