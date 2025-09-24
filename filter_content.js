@@ -410,7 +410,7 @@ function initializePlugin() {
 }
 
 // Запуск плагина
-if (window.bylampa) {
+if (window.lampa) {
     initializePlugin();
 } else {
     Lampa.Listener.follow('app', function(event) {
