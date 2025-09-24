@@ -1,3 +1,192 @@
+var _0x1ecb_list = [
+    'vote_average', // 0x17e
+    'Lang', // 0x17f
+    'page', // 0x180
+    'asian_filter_enabled', // 0x181
+    'back', // 0x182
+    'mozMatchesSelector', // 0x183
+    'lampa_listener_extensions', // 0x184
+    'type', // 0x185
+    'more', // 0x186
+    'prepend', // 0x187
+    'settings_component_open', // 0x188
+    'trigger', // 0x189
+    'enabled', // 0x18a
+    'Фильтровать содержимое карточек', // 0x18b
+    'name', // 0x18c
+    'title', // 0x18d
+    'filters', // 0x18e
+    'filter', // 0x18f
+    'isArray', // 0x190
+    'main', // 0x191
+    'original_name', // 0x192
+    'Activity', // 0x193
+    'Скрыть контент с низким рейтингом', // 0x194
+    'trigger', // 0x195
+    'Фільтри вмісту', // 0x196
+    'source', // 0x197
+    'length', // 0x198
+    'original_language', // 0x199
+    'translate', // 0x19a
+    'language_filter', // 0x19b
+    'replace', // 0x19c
+    'find', // 0x19d
+    '', // 0x19e
+    'Скрыть просмотренный контент', // 0x19f
+    'join', // 0x1a0
+    'className', // 0x1a1
+    'Arrays', // 0x1a2
+    '', // 0x1a3
+    'time', // 0x1a4
+    'add', // 0x1a5
+    'Скрыть просмотренные сериалы', // 0x1a6
+    'Скрыть просмотренные сериалы и фильмы', // 0x1a7
+    '', // 0x1a8
+    'viewed', // 0x1a9
+    'url', // 0x1aa
+    'render', // 0x1ab
+    'plugin_ready', // 0x1ac
+    'episode_number', // 0x1ad
+    'msMatchesSelector', // 0x1ae
+    'end_time', // 0x1af
+    'parentNode', // 0x1b0
+    '.items-line__head', // 0x1b1
+    'data', // 0x1b2
+    'platform', // 0x1b3
+    'content_filters', // 0x1b4
+    'collectionAppend', // 0x1b5
+    'join', // 0x1b6
+    'language', // 0x1b7
+    'season_number', // 0x1b8
+    'Timeline', // 0x1b9
+    'SettingsApi', // 0x1ba
+    'Controller', // 0x1bb
+    '', // 0x1bc
+    'extensions', // 0x1bd
+    '', // 0x1be
+    '', // 0x1bf
+    'main', // 0x1c0
+    'parentElement', // 0x1c1
+    'enable', // 0x1c2
+    'Content Filters', // 0x1c3
+    '', // 0x1c4
+    'api', // 0x1c5
+    'Listener', // 0x1c6
+    '.settings--filter', // 0x1c7
+    'Скрыть карточки на другом языке', // 0x1c8
+    '', // 0x1c9
+    'check', // 0x1ca
+    'Скрыть карточки на другом языке', // 0x1cb
+    'Настройки фильтрации контента', // 0x1cc
+    '', // 0x1cd
+    'append', // 0x1ce
+    'params', // 0x1cf
+    'settings', // 0x1d0
+    'media_type', // 0x1d1
+    'rating_filter', // 0x1d2
+    'component', // 0x1d3
+    'Скрыть карточки с рейтингом ниже 6', // 0x1d4
+    'Сховати переглянутий вміст', // 0x1d5
+    'append', // 0x1d6
+    'rating_filter_enabled', // 0x1d7
+    'div', // 0x1d8
+    'parent', // 0x1d9
+    'Сховати азійський контент', // 0x1da
+    'original_length', // 0x1db
+    'Сховати карточки на іншій мові', // 0x1dc
+    'toLowerCase', // 0x1dd
+    'history', // 0x1de
+    '<div\x20class=\x22settings-folder\x20selector\x22\x20data-name=\x22', // 0x1df
+    'Скрыть карточки с рейтингом ниже 6', // 0x1e0
+    'trailer', // 0x1e1
+    'movie', // 0x1e2
+    'active', // 0x1e3
+    'name', // 0x1e4
+    '/person/', // 0x1e5
+    'history_filter_enabled', // 0x1e6
+    'defineProperty', // 0x1e7
+    '', // 0x1e8
+    'Hide viewed series and movies', // 0x1e9
+    'title', // 0x1ea
+    'Manifest', // 0x1eb
+    '', // 0x1ec
+    'percent', // 0x1ed
+    'genres', // 0x1ee
+    'history_filter', // 0x1ef
+    'Hide content in a different language', // 0x1f0
+    'history', // 0x1f1
+    'movie', // 0x1f2
+    'view', // 0x1f3
+    'Hide Viewed Content', // 0x1f4
+    'Hide cards with a rating below 6', // 0x1f5
+    'call', // 0x1f6
+    'addParam', // 0x1f7
+    'Settings', // 0x1f8
+    'viewed', // 0x1f9
+    'matchesSelector', // 0x1fa
+    'addSubMenu', // 0x1fb
+    'card', // 0x1fc
+    'webkitMatchesSelector', // 0x1fd
+    'Favorite', // 0x1fe
+    '', // 0x1ff
+    '.items-line__more', // 0x200
+    '', // 0x201
+    'rating_filter_desc', // 0x202
+    'language_filter_enabled', // 0x203
+    'episodes', // 0x204
+    'items', // 0x205
+    'addEventListener', // 0x206
+    'total_pages', // 0x207
+    '', // 0x208
+    'follow', // 0x209
+    'hover:enter', // 0x20a
+    'asian_filter_desc', // 0x20b
+    'settings_extensions', // 0x20c
+    'first_air_date', // 0x20d
+    'push', // 0x20e
+    'settings--opened', // 0x20f
+    'querySelector', // 0x210
+    '', // 0x211
+    'Сховати переглянуті серіали та фільми', // 0x212
+    'Storage', // 0x213
+    '', // 0x214
+    '', // 0x215
+    '', // 0x216
+    'Remove Asian Content', // 0x217
+    '', // 0x218
+    'innerText', // 0x219
+    '', // 0x21a
+    '_render', // 0x21b
+    'Фильтры контента', // 0x21c
+    '', // 0x21d
+    '', // 0x21e
+    'matches', // 0x21f
+    'get', // 0x220
+    'original_name', // 0x221
+    '', // 0x222
+    'results', // 0x223
+    'ready', // 0x224
+    'Скрыть карточки азиатского происхождения', // 0x225
+    'addParam', // 0x226
+    '.settings-folder[data-name=\x22', // 0x227
+    '', // 0x228
+    'asian_filter', // 0x229
+    'body', // 0x22a
+    'indexOf', // 0x22b
+    'Lampa', // 0x22c
+    'settings', // 0x22d
+    'Фильтр контента', // 0x22e
+    'open', // 0x22f
+    '', // 0x230
+    '', // 0x231
+    'set', // 0x232
+    'items-line__more', // 0x233
+    '' // 0x234
+];
+var _0x1ecb = function(_0x123456) {
+    return _0x1ecb_list[_0x123456 - 0x17e];
+};
+
 (function() {
     var _0x38fdd0 = _0x1ecb;
     var _0x17b761 = {
@@ -16,6 +205,7 @@
                     if (!_0x2bf78c || !_0x2bf78c[_0x231e4a(0x199)]) return !![];
                     var _0x333cdb = _0x2bf78c[_0x231e4a(0x199)][_0x231e4a(0x1dd)]();
                     var _0x39e8d1 = ['ja', 'ko', 'zh', 'th', 'vi', 'hi', 'ta', 'te', 'ml', 'kn', 'bn', 'ur', 'pa', 'gu', 'mr', 'ne', 'si', 'my', 'km', 'lo', 'mn', 'ka', 'hy', 'az', 'kk', 'ky', 'tg', 'tk', 'uz'];
+                    console.log('Asian filter - Item:', _0x2bf78c, 'Language:', _0x333cdb, 'Filtered:', _0x39e8d1[_0x231e4a(0x22b)](_0x333cdb) === -0x1);
                     return _0x39e8d1[_0x231e4a(0x22b)](_0x333cdb) === -0x1;
                 });
             },
@@ -254,7 +444,7 @@
                 });
             }
         });
-        Lampa['SettingsApi']['addParam']({
+        Lampa[_0x2c87df(0x1ba)]['addParam']({
             'component': _0x2c87df(0x1b4),
             'param': {
                 'name': _0x2c87df(0x181),
