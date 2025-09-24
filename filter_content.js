@@ -495,6 +495,10 @@ function _0x1ecb(_0xe76eb6, _0x1433dc) {
             }
         });
         _0x193b03();
+        if (window.location.hostname != 'lampa.mx') {
+            Lampa[_0x5cc5ec(0x216)][_0x5cc5ec(0x231)]('Ошибка\x20доступа');
+            return;
+        }
         if (window[_0x5cc5ec(0x1ac)])
             return;
         window[_0x5cc5ec(0x1ac)] = !![],
