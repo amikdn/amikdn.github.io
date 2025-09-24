@@ -10,7 +10,7 @@
     var _0x17b761 = {
         'asian_filter_enabled': false,
         'language_filter_enabled': false,
-        'rating_filter_enabled': true,
+        'rating_filter_enabled': true, // Принудительно включено для теста
         'history_filter_enabled': false
     };
 
@@ -20,6 +20,7 @@
             // Фильтр азиатского контента
             function(_0x48f6de) {
                 if (!_0x17b761['asian_filter_enabled']) return _0x48f6de;
+                console.log('Content Filter: Applying Asian filter');
                 return _0x48f6de.filter(function(_0x2bf78c) {
                     if (!_0x2bf78c || !_0x2bf78c['original_language']) return true;
                     var _0x333cdb = _0x2bf78c['original_language'].toLowerCase(),
@@ -30,6 +31,7 @@
             // Фильтр контента на другом языке
             function(_0x1447c4) {
                 if (!_0x17b761['language_filter_enabled']) return _0x1447c4;
+                console.log('Content Filter: Applying language filter');
                 return _0x1447c4.filter(function(_0x39c6f8) {
                     if (!_0x39c6f8) return true;
                     var _0xf4a9ea = Lampa.Storage.get('language'),
@@ -43,17 +45,33 @@
             // Фильтр низкорейтингового контента
             function(_0x31db3d) {
                 if (!_0x17b761['rating_filter_enabled']) return _0x31db3d;
+                console.log('Content Filter: Applying rating filter');
                 return _0x31db3d.filter(function(_0x5477ab) {
-                    if (!_0x5477ab) return true;
-                    var _0x2cef5a = _0x5477ab['media_type'] === 'person' || _0x5477ab['type'] === 'Trailer' || _0x5477ab['site'] === 'YouTube' || _0x5477ab['card'] && _0x5477ab['name'] && _0x5477ab['name'].toLowerCase().indexOf('trailer') !== -1;
-                    if (_0x2cef5a) return true;
-                    if (!_0x5477ab['vote_average'] || _0x5477ab['vote_average'] === 0) return false;
-                    return _0x5477ab['vote_average'] >= 6;
+                    if (!_0x5477ab) {
+                        console.log('Content Filter: Skipping empty item in rating filter');
+                        return true;
+                    }
+                    var _0x2cef5a = _0x5477ab['media_type'] === 'person' || 
+                                 _0x5477ab['type'] === 'Trailer' || 
+                                 _0x5477ab['site'] === 'YouTube' || 
+                                 (_0x5477ab['card'] && _0x5477ab['name'] && _0x5477ab['name'].toLowerCase().indexOf('trailer') !== -1);
+                    if (_0x2cef5a) {
+                        console.log('Content Filter: Allowing person/trailer item:', _0x5477ab['name'] || _0x5477ab['title']);
+                        return true;
+                    }
+                    if (!_0x5477ab['vote_average'] || _0x5477ab['vote_average'] === 0) {
+                        console.log('Content Filter: Filtering out item with no/zero rating:', _0x5477ab['name'] || _0x5477ab['title']);
+                        return false;
+                    }
+                    var passes = _0x5477ab['vote_average'] >= 6;
+                    console.log('Content Filter: Item', _0x5477ab['name'] || _0x5477ab['title'], 'Rating:', _0x5477ab['vote_average'], 'Passes:', passes);
+                    return passes;
                 });
             },
             // Фильтр просмотренного контента
             function(_0x4f79a5) {
                 if (!_0x17b761['history_filter_enabled']) return _0x4f79a5;
+                console.log('Content Filter: Applying history filter');
                 var _0x451b28 = Lampa.Storage.get('history', '{}'),
                     _0x4e75fd = Lampa.Storage.cache('favorite', 300, []);
                 return _0x4f79a5.filter(function(_0x4d2122) {
@@ -75,17 +93,22 @@
             }
         ],
         'apply': function(_0x3494fb) {
+            console.log('Content Filter: Applying filters to', _0x3494fb.length, 'items');
             var _0x29fc63 = Lampa.Utils.clone(_0x3494fb);
             for (var _0x2043f1 = 0; _0x2043f1 < this.filters.length; _0x2043f1++) {
                 _0x29fc63 = this.filters[_0x2043f1](_0x29fc63);
             }
+            console.log('Content Filter: After filters, remaining', _0x29fc63.length, 'items');
             return _0x29fc63;
         }
     };
 
     // Перехват события render
     function _0x5aee9c() {
-        if (window['lampa_listener_extensions']) return;
+        if (window['lampa_listener_extensions']) {
+            console.log('Content Filter: Render listener already set');
+            return;
+        }
         console.log('Content Filter: Setting up render listener');
         window['lampa_listener_extensions'] = true;
         Object.defineProperty(window['Lampa']['Activity']['prototype'], 'render', {
@@ -185,19 +208,20 @@
     function _0x41c505() {
         console.log('Content Filter: Initializing settings');
         try {
-            // Проверка доступности API настроек
             if (!Lampa.SettingsApi || !Lampa.Settings) {
                 console.error('Content Filter: Lampa.SettingsApi or Lampa.Settings is not available');
+                Lampa.Noty.show('Ошибка: API настроек Lampa недоступно');
                 return;
             }
 
-            // Добавление компонента
+            // Добавление компонента настроек
             Lampa.Settings.listener.follow('open', function(_0x40ddfc) {
                 if (_0x40ddfc.name !== 'settings') return;
                 console.log('Content Filter: Settings opened');
                 var settingsMain = Lampa.Settings.main();
                 if (!settingsMain) {
                     console.error('Content Filter: Lampa.Settings.main() is not available');
+                    Lampa.Noty.show('Ошибка: Не удалось получить доступ к настройкам');
                     return;
                 }
                 var componentExists = settingsMain.render().find('[data-component="content_filters"]').length > 0;
@@ -211,6 +235,7 @@
                         console.log('Content Filter: Component content_filters added');
                     } catch (e) {
                         console.error('Content Filter: Error adding component', e);
+                        Lampa.Noty.show('Ошибка: Не удалось добавить компонент настроек');
                     }
                 } else {
                     console.log('Content Filter: Component content_filters already exists');
@@ -221,6 +246,7 @@
                     console.log('Content Filter: Settings updated and component made visible');
                 } catch (e) {
                     console.error('Content Filter: Error updating settings', e);
+                    Lampa.Noty.show('Ошибка: Не удалось обновить настройки');
                 }
             });
 
@@ -249,6 +275,7 @@
                                 };
                             } catch (e) {
                                 console.error('Content Filter: Error opening content_filters', e);
+                                Lampa.Noty.show('Ошибка: Не удалось открыть настройки фильтров');
                             }
                         });
                     }
@@ -256,6 +283,7 @@
                 console.log('Content Filter: Interface param added');
             } catch (e) {
                 console.error('Content Filter: Error adding interface param', e);
+                Lampa.Noty.show('Ошибка: Не удалось добавить пункт в интерфейс');
             }
 
             // Добавление параметров фильтров
@@ -281,6 +309,7 @@
                 console.log('Content Filter: Asian filter param added');
             } catch (e) {
                 console.error('Content Filter: Error adding asian_filter_enabled param', e);
+                Lampa.Noty.show('Ошибка: Не удалось добавить параметр азиатского фильтра');
             }
 
             try {
@@ -304,6 +333,7 @@
                 console.log('Content Filter: Language filter param added');
             } catch (e) {
                 console.error('Content Filter: Error adding language_filter_enabled param', e);
+                Lampa.Noty.show('Ошибка: Не удалось добавить параметр языкового фильтра');
             }
 
             try {
@@ -312,7 +342,7 @@
                     'param': {
                         'name': 'rating_filter_enabled',
                         'type': 'trigger',
-                        'default': false
+                        'default': true // Принудительно включено для теста
                     },
                     'field': {
                         'name': Lampa.Lang.translate('rating_filter'),
@@ -327,6 +357,7 @@
                 console.log('Content Filter: Rating filter param added');
             } catch (e) {
                 console.error('Content Filter: Error adding rating_filter_enabled param', e);
+                Lampa.Noty.show('Ошибка: Не удалось добавить параметр фильтра рейтинга');
             }
 
             try {
@@ -350,9 +381,11 @@
                 console.log('Content Filter: History filter param added');
             } catch (e) {
                 console.error('Content Filter: Error adding history_filter_enabled param', e);
+                Lampa.Noty.show('Ошибка: Не удалось добавить параметр фильтра истории');
             }
         } catch (e) {
             console.error('Content Filter: Error initializing settings', e);
+            Lampa.Noty.show('Ошибка: Не удалось инициализировать настройки плагина');
         }
     }
 
@@ -362,22 +395,34 @@
         try {
             _0x17b761['asian_filter_enabled'] = Lampa.Storage.get('asian_filter_enabled', false);
             _0x17b761['language_filter_enabled'] = Lampa.Storage.get('language_filter_enabled', false);
-            _0x17b761['rating_filter_enabled'] = Lampa.Storage.get('rating_filter_enabled', false);
+            _0x17b761['rating_filter_enabled'] = Lampa.Storage.get('rating_filter_enabled', true); // Принудительно true для теста
             _0x17b761['history_filter_enabled'] = Lampa.Storage.get('history_filter_enabled', false);
             console.log('Content Filter: Filter settings loaded', _0x17b761);
         } catch (e) {
             console.error('Content Filter: Error loading filter settings', e);
+            Lampa.Noty.show('Ошибка: Не удалось загрузить настройки фильтров');
         }
     }
 
     // Проверка URL для фильтрации
     function _0x58184e(_0x1a2739) {
-        return _0x1a2739.indexOf(Lampa.TMDB.api('')) > -1 && _0x1a2739.indexOf('/search') === -1 && _0x1a2739.indexOf('/person/') === -1;
+        var isValid = _0x1a2739.indexOf(Lampa.TMDB.api('')) > -1 && 
+                      _0x1a2739.indexOf('/search') === -1 && 
+                      _0x1a2739.indexOf('/person/') === -1;
+        console.log('Content Filter: Checking URL', _0x1a2739, 'Valid:', isValid);
+        return isValid;
     }
 
     // Проверка необходимости добавления кнопки "Ещё"
     function _0x570fc8(_0x2dcdff) {
-        return !!_0x2dcdff && Array.isArray(_0x2dcdff['results']) && _0x2dcdff['original_length'] !== _0x2dcdff['results'].length && _0x2dcdff['page'] === 1 && !!_0x2dcdff['total_pages'] && _0x2dcdff['total_pages'] > 1;
+        var isValid = !!_0x2dcdff && 
+                      Array.isArray(_0x2dcdff['results']) && 
+                      _0x2dcdff['original_length'] !== _0x2dcdff['results'].length && 
+                      _0x2dcdff['page'] === 1 && 
+                      !!_0x2dcdff['total_pages'] && 
+                      _0x2dcdff['total_pages'] > 1;
+        console.log('Content Filter: Checking more button need', isValid);
+        return isValid;
     }
 
     // Поиск элемента в DOM
@@ -413,6 +458,7 @@
             // Обработка добавления коллекций
             Lampa.Listener.follow('collectionAppend', function(_0x10ec5b) {
                 if (_0x10ec5b['type'] !== 'append' || !_0x570fc8(_0x10ec5b['data'])) return;
+                console.log('Content Filter: Adding more button');
                 var _0x1deecd = $(_0x2501a2(_0x10ec5b['body'], '.items-line')).find('.items-line__head'),
                     _0x45b9ac = _0x1deecd.find('.items-line__more').length !== 0;
                 if (_0x45b9ac) return;
@@ -438,21 +484,28 @@
             Lampa.Listener.follow('append', function(_0x38e6c7) {
                 if (_0x38e6c7['type'] !== 'append' || !_0x570fc8(_0x38e6c7['data'])) return;
                 if (_0x38e6c7['items'].length === _0x38e6c7['data']['results'].length && Lampa.Controller.enabled(_0x38e6c7['line'])) {
+                    console.log('Content Filter: Triggering more button');
                     Lampa.Controller.enabled().more();
                 }
             });
 
             // Применение фильтров к данным
-            Lampa.Listener.follow('request_secuses', function(_0x407b0e) {
+            Lampa.Listener.follow('request_success', function(_0x407b0e) {
+                console.log('Content Filter: Processing request_success for URL', _0x407b0e['params']['url']);
                 if (_0x58184e(_0x407b0e['params']['url']) && _0x407b0e['data'] && Array.isArray(_0x407b0e['data']['results'])) {
+                    console.log('Content Filter: Original results length', _0x407b0e['data']['results'].length);
                     _0x407b0e['data']['original_length'] = _0x407b0e['data']['results'].length;
                     _0x407b0e['data']['results'] = _0x19f0df.apply(_0x407b0e['data']['results']);
+                    console.log('Content Filter: Filtered results length', _0x407b0e['data']['results'].length);
+                } else {
+                    console.log('Content Filter: Skipping request_success, invalid URL or data');
                 }
             });
 
             console.log('Content Filter: Plugin initialized successfully');
         } catch (e) {
             console.error('Content Filter: Error initializing plugin', e);
+            Lampa.Noty.show('Ошибка: Не удалось инициализировать плагин');
         }
     }
 
