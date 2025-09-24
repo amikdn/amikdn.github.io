@@ -8,8 +8,7 @@
         version: '1.0.0',
         description: 'Плагин для фильтрации контента по языку, рейтингу, истории и происхождению',
         status: 1, // Подтверждённый плагин
-        author: 'YourName',
-        url: 'https://example.com/content_filter.js'
+
     };
 
     function _0x132d() {
