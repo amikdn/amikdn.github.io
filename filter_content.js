@@ -10,7 +10,7 @@
     var _0x17b761 = {
         'asian_filter_enabled': false,
         'language_filter_enabled': false,
-        'rating_filter_enabled': false,
+        'rating_filter_enabled': true,
         'history_filter_enabled': false
     };
 
