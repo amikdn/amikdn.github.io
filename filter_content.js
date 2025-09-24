@@ -25,7 +25,7 @@
             console.log('Content Filter: Applying rating filter to', data.length, 'items');
             var result = data.filter(function(item) {
                 if (!item) {
-                    console.log('Content Filter: Skipping empty item');
+                    console.logContent Filter: Skipping empty item');
                     return true;
                 }
                 var isSpecial = item.media_type === 'person' || 
@@ -68,12 +68,6 @@
     function addSettings() {
         console.log('Content Filter: Initializing settings');
         try {
-            if (!Lampa.SettingsApi || !Lampa.Settings) {
-                console.error('Content Filter: Settings API is not available');
-                alert('Content Filter: Settings API is not available');
-                return;
-            }
-
             Lampa.Settings.listener.follow('open', function(e) {
                 if (e.name !== 'settings') return;
                 console.log('Content Filter: Settings opened');
@@ -116,7 +110,7 @@
                     console.log('Content Filter: Rendering interface param');
                     element.on('hover:enter', function() {
                         console.log('Content Filter: Opening content_filters settings');
-                        settingsMain.render().querySelector('[data-component="content_filters"]').click();
+                        Lampa.Settings.main().render().querySelector('[data-component="content_filters"]').click();
                     });
                 }
             });
@@ -158,15 +152,18 @@
             addSettings();
 
             // Применение фильтров
-            Lampa.Listener.follow('request_success', function(e) {
-                console.log('Content Filter: Processing request_success for URL', e.params.url);
+            Lampa.Listener.follow('request_secuses', function(e) {
+                console.log('Content Filter: Processing request_secuses for URL', e.params.url, 'Data:', e.data);
                 if (isValidUrl(e.params.url) && e.data && Array.isArray(e.data.results)) {
                     console.log('Content Filter: Original results length', e.data.results.length);
+                    e.data.results.forEach(item => {
+                        console.log('Item:', item.name || item.title, 'Rating:', item.vote_average || 'none');
+                    });
                     e.data.original_length = e.data.results.length;
                     e.data.results = filters.apply(e.data.results);
                     console.log('Content Filter: Filtered results length', e.data.results.length);
                 } else {
-                    console.log('Content Filter: Skipping request_success, invalid URL or data');
+                    console.log('Content Filter: Skipping request_secuses, invalid URL or data');
                 }
             });
 
