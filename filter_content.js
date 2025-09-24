@@ -496,8 +496,7 @@ function _0x1ecb(_0xe76eb6, _0x1433dc) {
             }
         });
 
-        if (window[_0x5cc5ec(0x1ac)])
-            return;
+
         window[_0x5cc5ec(0x1ac)] = !![],
         _0x5aee9c(),
         _0x293ab2(),
