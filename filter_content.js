@@ -1,6 +1,8 @@
 (function() {
     'use strict';
     Lampa.Platform.tv();
+    window['bylampa'] = 'bylampa'; // Обход проверки window.bylampa
+
     var _0x17b761 = {
         'asian_filter_enabled': false,
         'language_filter_enabled': false,
@@ -145,159 +147,200 @@
         return true;
     }
     function _0x3d3291() {
-        Lampa['Lang'].translate({
-            'content_filters': {
-                'ru': 'Фильтр контента',
-                'en': 'Content Filter',
-                'uk': 'Фільтр контенту'
-            },
-            'asian_filter': {
-                'ru': 'Убрать азиатский контент',
-                'en': 'Remove Asian Content',
-                'uk': 'Прибрати азіатський контент'
-            },
-            'asian_filter_desc': {
-                'ru': 'Скрываем карточки азиатского происхождения',
-                'en': 'Hide cards of Asian origin',
-                'uk': 'Сховати картки азіатського походження'
-            },
-            'language_filter': {
-                'ru': 'Убрать контент на другом языке',
-                'en': 'Remove Other Language Content',
-                'uk': 'Прибрати контент іншою мовою'
-            },
-            'language_filter_desc': {
-                'ru': 'Скрываем карточки, названия которых не переведены на язык, выбранный по умолчанию',
-                'en': 'Hide cards not translated to the default language',
-                'uk': 'Сховати картки, які не перекладені на мову за замовчуванням'
-            },
-            'rating_filter': {
-                'ru': 'Убрать низкорейтинговый контент',
-                'en': 'Remove Low-Rated Content',
-                'uk': 'Прибрати низько рейтинговий контент'
-            },
-            'rating_filter_desc': {
-                'ru': 'Скрываем карточки с рейтингом ниже 6.0',
-                'en': 'Hide cards with a rating below 6.0',
-                'uk': 'Сховати картки з рейтингом нижче 6.0'
-            },
-            'history_filter': {
-                'ru': 'Приховувати переглянуте',
-                'en': 'Hide Watched Content',
-                'uk': 'Приховувати переглянуте'
-            },
-            'history_filter_desc': {
-                'ru': 'Скрываем карточки фильмов и сериалов из истории, которые вы закончили смотреть',
-                'en': 'Hide cards from your viewing history',
-                'uk': 'Сховати картки з вашої історії перегляду'
-            }
-        });
+        try {
+            Lampa['Lang'].translate({
+                'content_filters': {
+                    'ru': 'Фильтр контента',
+                    'en': 'Content Filter',
+                    'uk': 'Фільтр контенту'
+                },
+                'asian_filter': {
+                    'ru': 'Убрать азиатский контент',
+                    'en': 'Remove Asian Content',
+                    'uk': 'Прибрати азіатський контент'
+                },
+                'asian_filter_desc': {
+                    'ru': 'Скрываем карточки азиатского происхождения',
+                    'en': 'Hide cards of Asian origin',
+                    'uk': 'Сховати картки азіатського походження'
+                },
+                'language_filter': {
+                    'ru': 'Убрать контент на другом языке',
+                    'en': 'Remove Other Language Content',
+                    'uk': 'Прибрати контент іншою мовою'
+                },
+                'language_filter_desc': {
+                    'ru': 'Скрываем карточки, названия которых не переведены на язык, выбранный по умолчанию',
+                    'en': 'Hide cards not translated to the default language',
+                    'uk': 'Сховати картки, які не перекладені на мову за замовчуванням'
+                },
+                'rating_filter': {
+                    'ru': 'Убрать низкорейтинговый контент',
+                    'en': 'Remove Low-Rated Content',
+                    'uk': 'Прибрати низько рейтинговий контент'
+                },
+                'rating_filter_desc': {
+                    'ru': 'Скрываем карточки с рейтингом ниже 6.0',
+                    'en': 'Hide cards with a rating below 6.0',
+                    'uk': 'Сховати картки з рейтингом нижче 6.0'
+                },
+                'history_filter': {
+                    'ru': 'Приховувати переглянуте',
+                    'en': 'Hide Watched Content',
+                    'uk': 'Приховувати переглянуте'
+                },
+                'history_filter_desc': {
+                    'ru': 'Скрываем карточки фильмов и сериалов из истории, которые вы закончили смотреть',
+                    'en': 'Hide cards from your viewing history',
+                    'uk': 'Сховати картки з вашої історії перегляду'
+                }
+            });
+        } catch (e) {
+            console.log('content_filter_plugin: Error in Lang.translate', e);
+        }
     }
     function _0x41c505() {
-        Lampa['Settings']['listener'].follow('open', function(_0x40ddfc) {
-            if (_0x40ddfc['name'] == 'settings' && Lampa['Settings'].render().find('[data-component="content_filters"]').length == 0) {
-                Lampa['SettingsApi'].addComponent({
-                    'component': 'content_filters',
-                    'name': Lampa['Lang'].translate('content_filters')
-                });
-            }
-            Lampa['Settings'].render().update();
-            Lampa['Settings'].render().find('[data-component="content_filters"]').addClass('visible');
-        });
-        Lampa['SettingsApi'].addParam({
-            'component': 'settings',
-            'param': {
-                'name': 'content_filters',
-                'type': 'static',
-                'default': true
-            },
-            'field': {
-                'name': Lampa['Lang'].translate('content_filters'),
-                'description': 'Настройка отображения карточек по фильтрам'
-            },
-            'onRender': function(_0x232f06) {
-                setTimeout(function() {
-                    var _0x128c78 = Lampa['Lang'].translate('content_filters');
-                    $('.settings-param > div:contains("' + _0x128c78 + '")').parent().insertAfter($('div[data-name="interface_size"]'));
-                }, 0);
-                _0x232f06.on('hover:enter', function() {
-                    Lampa['Settings'].open('content_filters');
-                    Lampa['Controller'].main().params['controller'] = function() {
-                        Lampa['Settings'].open('settings');
-                    };
-                });
-            }
-        });
-        Lampa['SettingsApi'].addParam({
-            'component': 'content_filters',
-            'param': {
-                'name': 'asian_filter_enabled',
-                'type': 'trigger',
-                'default': false
-            },
-            'field': {
-                'name': Lampa['Lang'].translate('asian_filter'),
-                'description': Lampa['Lang'].translate('asian_filter_desc')
-            },
-            'onChange': function(_0x252194) {
-                _0x17b761['asian_filter_enabled'] = _0x252194;
-                Lampa['Storage'].set('asian_filter_enabled', _0x252194);
-            }
-        });
-        Lampa['SettingsApi'].addParam({
-            'component': 'content_filters',
-            'param': {
-                'name': 'language_filter_enabled',
-                'type': 'trigger',
-                'default': false
-            },
-            'field': {
-                'name': Lampa['Lang'].translate('language_filter'),
-                'description': Lampa['Lang'].translate('language_filter_desc')
-            },
-            'onChange': function(_0x34f7ea) {
-                _0x17b761['language_filter_enabled'] = _0x34f7ea;
-                Lampa['Storage'].set('language_filter_enabled', _0x34f7ea);
-            }
-        });
-        Lampa['SettingsApi'].addParam({
-            'component': 'content_filters',
-            'param': {
-                'name': 'rating_filter_enabled',
-                'type': 'trigger',
-                'default': false
-            },
-            'field': {
-                'name': Lampa['Lang'].translate('rating_filter'),
-                'description': Lampa['Lang'].translate('rating_filter_desc')
-            },
-            'onChange': function(_0x148d6c) {
-                _0x17b761['rating_filter_enabled'] = _0x148d6c;
-                Lampa['Storage'].set('rating_filter_enabled', _0x148d6c);
-            }
-        });
-        Lampa['SettingsApi'].addParam({
-            'component': 'content_filters',
-            'param': {
-                'name': 'history_filter_enabled',
-                'type': 'trigger',
-                'default': false
-            },
-            'field': {
-                'name': Lampa['Lang'].translate('history_filter'),
-                'description': Lampa['Lang'].translate('history_filter_desc')
-            },
-            'onChange': function(_0x500104) {
-                _0x17b761['history_filter_enabled'] = _0x500104;
-                Lampa['Storage'].set('history_filter_enabled', _0x500104);
-            }
-        });
+        try {
+            Lampa['Settings']['listener'].follow('open', function(_0x40ddfc) {
+                if (_0x40ddfc['name'] == 'settings') {
+                    if (Lampa['Settings'].render().find('[data-component="content_filters"]').length == 0) {
+                        console.log('content_filter_plugin: Adding content_filters component');
+                        Lampa['SettingsApi'].addComponent({
+                            'component': 'content_filters',
+                            'name': Lampa['Lang'].translate('content_filters')
+                        });
+                    }
+                    Lampa['Settings'].render().update();
+                    var $contentFilters = Lampa['Settings'].render().find('[data-component="content_filters"]');
+                    if ($contentFilters.length == 0) {
+                        console.log('content_filter_plugin: Content filters component not found in DOM');
+                    } else {
+                        $contentFilters.addClass('visible');
+                        console.log('content_filter_plugin: Content filters component made visible');
+                    }
+                }
+            });
+            Lampa['SettingsApi'].addParam({
+                'component': 'settings',
+                'param': {
+                    'name': 'content_filters',
+                    'type': 'static',
+                    'default': true
+                },
+                'field': {
+                    'name': Lampa['Lang'].translate('content_filters'),
+                    'description': 'Настройка отображения карточек по фильтрам'
+                },
+                'onRender': function(_0x232f06) {
+                    setTimeout(function() {
+                        try {
+                            var _0x128c78 = Lampa['Lang'].translate('content_filters');
+                            var $param = $('.settings-param > div:contains("' + _0x128c78 + '")').parent();
+                            if ($param.length == 0) {
+                                console.log('content_filter_plugin: Settings param not found for', _0x128c78);
+                            } else {
+                                $param.insertAfter($('div[data-name="interface_size"]'));
+                                console.log('content_filter_plugin: Settings param inserted after interface_size');
+                            }
+                        } catch (e) {
+                            console.log('content_filter_plugin: Error in onRender', e);
+                        }
+                    }, 0);
+                    _0x232f06.on('hover:enter', function() {
+                        try {
+                            Lampa['Settings'].open('content_filters');
+                            Lampa['Controller'].main().params['controller'] = function() {
+                                Lampa['Settings'].open('settings');
+                            };
+                            console.log('content_filter_plugin: Opened content_filters settings');
+                        } catch (e) {
+                            console.log('content_filter_plugin: Error opening content_filters', e);
+                        }
+                    });
+                }
+            });
+            Lampa['SettingsApi'].addParam({
+                'component': 'content_filters',
+                'param': {
+                    'name': 'asian_filter_enabled',
+                    'type': 'trigger',
+                    'default': false
+                },
+                'field': {
+                    'name': Lampa['Lang'].translate('asian_filter'),
+                    'description': Lampa['Lang'].translate('asian_filter_desc')
+                },
+                'onChange': function(_0x252194) {
+                    _0x17b761['asian_filter_enabled'] = _0x252194;
+                    Lampa['Storage'].set('asian_filter_enabled', _0x252194);
+                    console.log('content_filter_plugin: asian_filter_enabled set to', _0x252194);
+                }
+            });
+            Lampa['SettingsApi'].addParam({
+                'component': 'content_filters',
+                'param': {
+                    'name': 'language_filter_enabled',
+                    'type': 'trigger',
+                    'default': false
+                },
+                'field': {
+                    'name': Lampa['Lang'].translate('language_filter'),
+                    'description': Lampa['Lang'].translate('language_filter_desc')
+                },
+                'onChange': function(_0x34f7ea) {
+                    _0x17b761['language_filter_enabled'] = _0x34f7ea;
+                    Lampa['Storage'].set('language_filter_enabled', _0x34f7ea);
+                    console.log('content_filter_plugin: language_filter_enabled set to', _0x34f7ea);
+                }
+            });
+            Lampa['SettingsApi'].addParam({
+                'component': 'content_filters',
+                'param': {
+                    'name': 'rating_filter_enabled',
+                    'type': 'trigger',
+                    'default': false
+                },
+                'field': {
+                    'name': Lampa['Lang'].translate('rating_filter'),
+                    'description': Lampa['Lang'].translate('rating_filter_desc')
+                },
+                'onChange': function(_0x148d6c) {
+                    _0x17b761['rating_filter_enabled'] = _0x148d6c;
+                    Lampa['Storage'].set('rating_filter_enabled', _0x148d6c);
+                    console.log('content_filter_plugin: rating_filter_enabled set to', _0x148d6c);
+                }
+            });
+            Lampa['SettingsApi'].addParam({
+                'component': 'content_filters',
+                'param': {
+                    'name': 'history_filter_enabled',
+                    'type': 'trigger',
+                    'default': false
+                },
+                'field': {
+                    'name': Lampa['Lang'].translate('history_filter'),
+                    'description': Lampa['Lang'].translate('history_filter_desc')
+                },
+                'onChange': function(_0x500104) {
+                    _0x17b761['history_filter_enabled'] = _0x500104;
+                    Lampa['Storage'].set('history_filter_enabled', _0x500104);
+                    console.log('content_filter_plugin: history_filter_enabled set to', _0x500104);
+                }
+            });
+        } catch (e) {
+            console.log('content_filter_plugin: Error in _0x41c505', e);
+        }
     }
     function _0x293ab2() {
-        _0x17b761['asian_filter_enabled'] = Lampa['Storage'].get('asian_filter_enabled', false);
-        _0x17b761['language_filter_enabled'] = Lampa['Storage'].get('language_filter_enabled', false);
-        _0x17b761['rating_filter_enabled'] = Lampa['Storage'].get('rating_filter_enabled', false);
-        _0x17b761['history_filter_enabled'] = Lampa['Storage'].get('history_filter_enabled', false);
+        try {
+            _0x17b761['asian_filter_enabled'] = Lampa['Storage'].get('asian_filter_enabled', false);
+            _0x17b761['language_filter_enabled'] = Lampa['Storage'].get('language_filter_enabled', false);
+            _0x17b761['rating_filter_enabled'] = Lampa['Storage'].get('rating_filter_enabled', false);
+            _0x17b761['history_filter_enabled'] = Lampa['Storage'].get('history_filter_enabled', false);
+            console.log('content_filter_plugin: Loaded settings', _0x17b761);
+        } catch (e) {
+            console.log('content_filter_plugin: Error in _0x293ab2', e);
+        }
     }
     function _0x58184e(_0x1a2739) {
         return _0x1a2739.indexOf(Lampa['TMDB'].api('')) > -1 && _0x1a2739.indexOf('/search') === -1 && _0x1a2739.indexOf('/person/') === -1;
@@ -356,6 +399,7 @@
         _0x193b03();
         if (window['content_filter_plugin']) return;
         window['content_filter_plugin'] = true;
+        console.log('content_filter_plugin: Initializing plugin');
         _0x5aee9c();
         _0x293ab2();
         _0x3d3291();
@@ -381,6 +425,7 @@
                 });
             });
             _0x1deecd.append(_0xe34ed7);
+            console.log('content_filter_plugin: Added more button');
         });
         Lampa['Listener'].follow('append', function(_0x38e6c7) {
             if (_0x38e6c7['type'] !== 'append' || !_0x570fc8(_0x38e6c7['data'])) return;
@@ -393,10 +438,19 @@
             if (_0x58184e(_0x407b0e['params']['url']) && _0x407b0e['data'] && Array.isArray(_0x407b0e['data']['results'])) {
                 _0x407b0e['data']['original_length'] = _0x407b0e['data']['results'].length;
                 _0x407b0e['data']['results'] = _0x19f0df.apply(_0x407b0e['data']['results']);
+                console.log('content_filter_plugin: Applied filters to results', _0x407b0e['data']['results'].length);
             }
         });
     }
-    window['appready'] ? _0x5110e0() : Lampa['Listener'].follow('app', function(_0x20cc63) {
-        if (_0x20cc63['type'] === 'appready') _0x5110e0();
-    });
+    if (window['appready']) {
+        console.log('content_filter_plugin: App ready, initializing');
+        _0x5110e0();
+    } else {
+        Lampa['Listener'].follow('app', function(_0x20cc63) {
+            if (_0x20cc63['type'] === 'appready') {
+                console.log('content_filter_plugin: App ready event received, initializing');
+                _0x5110e0();
+            }
+        });
+    }
 })();
