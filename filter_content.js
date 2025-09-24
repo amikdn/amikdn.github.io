@@ -2,14 +2,17 @@
     var _0x38fdd0 = _0x1ecb;
 
     // Регистрация плагина в Lampa.Manifest
-    Lampa.Manifest.plugins = Lampa.Manifest.plugins || {};
-    Lampa.Manifest.plugins['content_filter'] = {
-        name: 'Content Filter',
-        version: '1.0.0',
-        description: 'Плагин для фильтрации контента по языку, рейтингу, истории и происхождению',
-        status: 1, // Подтверждённый плагин
-
-    };
+    if (window.Lampa && window.Lampa.Manifest) {
+        Lampa.Manifest.plugins = Lampa.Manifest.plugins || {};
+        Lampa.Manifest.plugins['content_filter'] = {
+            name: 'Content Filter',
+            version: '1.0.0',
+            description: 'Плагин для фильтрации контента по языку, рейтингу, истории и происхождению',
+            status: 1,
+            author: 'YourName',
+            url: 'https://example.com/content_filter.js'
+        };
+    }
 
     function _0x132d() {
         var _0x453100 = ['isArray', 'category_full', 'name', 'Activity', 'Прибрати\x20низько\x20рейтинговий\x20контент', 'trigger', 'Фільтр\x20контенту', 'source', 'length', 'original_language', 'translate', 'language_filter', 'replace', 'find', 'constructor', 'Убрать\x20просмотренный\x20контент', 'hash', 'className', 'Arrays', 'apply', 'episode_count', 'add', 'origin', 'Скрываем\x20карточки\x20фильмов\x20и\x20сериалов\x20из\x20истории,\x20которые\x20вы\x20закончили\x20смотреть', 'trace', 'episodes', 'url', 'build', 'content_filter_plugin', 'episode_number', 'oMatchesSelector', 'air_date', 'parentElement', '.items-line__head', 'data', 'site', 'content_filters', 'line', 'join', 'language', 'season_number', 'Utils', 'SettingsApi', 'Controller', '1128812scyQPr', 'prototype', '114116tyndIc', '{}.constructor(\x22return\x20this\x22)(\x20)', 'render', 'parentNode', 'collectionAppend', 'Content\x20Filter', '10JoMVbn', 'api', 'Listener', '[data-component=\x22content_filters\x22]', 'Сховати\x20картки,\x20які\x20не\x20перекладені\x20на\x20мову\x20за\x20замовчуванням', '77320PPcYzA', 'check', 'Убрать\x20контент\x20на\x20другом\x20языке', 'Настройка\x20отображения\x20карточек\x20по\x20фильтрам', '117QyUMoS', 'visible', 'params', 'main', 'media_type', 'rating_filter', 'controller', 'Сховати\x20картки\x20з\x20рейтингом\x20нижче\x206.0', 'Приховувати\x20переглянуте', 'append', 'rating_filter_enabled', 'div', 'parent', 'Прибрати\x20азіатський\x20контент', 'original_length', 'Прибрати\x20контент\x20іншою\x20мовою', 'toLowerCase', 'favorite', 'div[data-name=\x22interface_size\x22]', 'Скрываем\x20карточки\x20с\x20рейтингом\x20ниже\x206.0', 'trailer', 'video', 'enabled', 'original_name', '/person/', 'history_filter_enabled', 'defineProperty', 'Manifest', 'Hide\x20cards\x20from\x20your\x20viewing\x20history', 'title', 'Card', 'error', 'percent', 'genres', 'history_filter', 'Hide\x20cards\x20not\x20translated\x20to\x20the\x20default\x20language', 'card', 'movie', 'view', 'Hide\x20Watched\x20Content', 'Hide\x20cards\x20with\x20a\x20rating\x20below\x206.0', 'bind', 'addComponent', 'Settings', 'history', 'msMatchesSelector', 'warn', 'timetable', 'webkitMatchesSelector', 'Favorite', '114OBqUhl', '.items-line__more', 'console', 'rating_filter_desc', 'language_filter_enabled', 'seasons', 'items', 'addEventListener', 'total_pages', 'return\x20(function()\x20', 'follow', 'hover:enter', 'asian_filter_desc', 'interface', 'first_air_date', 'push', 'hide', 'closest', '__proto__', 'Сховати\x20картки\x20з\x20вашої\x20історії\x20перегляду', 'Storage', 'exception', 'log', 'Noty', 'Remove\x20Asian\x20Content', '25ZrgQRe', 'innerText', 'info', '_build', 'Фильтр\x20контента', '1059306MUnmHp', 'toString', 'matches', 'get', 'original_title', '1859360dEMlnS', 'results', 'ready', 'Скрываем\x20карточки\x20азиатского\x20происхождения', 'addParam', '.settings-param\x20>\x20div:contains(\x22', '35624479MnKgJf', 'asian_filter', 'body', 'indexOf', 'appready', 'object', 'title_category', 'create', '1429533oYzlxR', 'show', 'set', 'items-line__more', 'vote_average', 'Lang', 'page', 'asian_filter_enabled', 'back', 'mozMatchesSelector', 'lampa_listener_extensions', 'type', 'more', 'insertAfter', 'open', 'static', 'own', 'Скрываем\x20карточки,\x20названия\x20которых\x20не\x20переведены\x20на\x20язык,\x20выбранный\x20по\x20умолчанию', 'bylampa', 'key', 'filters', 'filter'];
@@ -121,8 +124,7 @@
 
     function _0x5aee9c() {
         var _0x57722b = _0x1ecb;
-        if (window[_0x57722b(0x184)])
-            return;
+        if (window[_0x57722b(0x184)] || !window.Lampa || !window.Lampa.Manifest) return;
         window['lampa_listener_extensions'] = !![];
         Object[_0x57722b(0x1e7)](window['Lampa'][_0x57722b(0x1eb)][_0x57722b(0x1bd)], _0x57722b(0x1ab), {
             'get': function() {
@@ -384,7 +386,7 @@
     }
 
     function _0x58184e(_0x1a2739) {
-        return true; // Всегда возвращает true
+        return true;
     }
 
     function _0x570fc8(_0x2dcdff) {
@@ -432,7 +434,7 @@
 
     function _0x5110e0() {
         var _0x5cc5ec = _0x1ecb;
-        if (window[_0x5cc5ec(0x1ac)]) return;
+        if (window[_0x5cc5ec(0x1ac)] || !window.Lampa || !window.Lampa.Listener) return;
         window[_0x5cc5ec(0x1ac)] = !![];
         _0x5aee9c();
         _0x293ab2();
@@ -469,15 +471,29 @@
         });
         Lampa[_0x5cc5ec(0x1c6)][_0x5cc5ec(0x209)]('request_secuses', function(_0x407b0e) {
             var _0xf247e7 = _0x5cc5ec;
-            if (_0x58184e(_0x407b0e['params'][_0xf247e7(0x1aa)]) && _0x407b0e['data'] && Array[_0xf247e7(0x190)](_0x407b0e[_0xf247e7(0x1b2)]['results'])) {
+            if (!_0x407b0e || !_0x407b0e['params'] || !_0x407b0e['data'] || !Array[_0xf247e7(0x190)](_0x407b0e[_0xf247e7(0x1b2)]['results'])) return;
+            if (_0x58184e(_0x407b0e['params'][_0xf247e7(0x1aa)])) {
                 _0x407b0e['data'][_0xf247e7(0x1db)] = _0x407b0e['data'][_0xf247e7(0x223)][_0xf247e7(0x198)];
                 _0x407b0e[_0xf247e7(0x1b2)][_0xf247e7(0x223)] = _0x19f0df['apply'](_0x407b0e[_0xf247e7(0x1b2)]['results']);
             }
         });
     }
 
-    window[_0x38fdd0(0x22c)] ? _0x5110e0() : Lampa[_0x38fdd0(0x1c6)]['follow']('app', function(_0x20cc63) {
-        var _0x1e06bf = _0x38fdd0;
-        _0x20cc63['type'] === _0x1e06bf(0x224) && _0x5110e0();
-    });
+    // Инициализация плагина после полной загрузки Lampa
+    if (window.Lampa && window.Lampa.Listener) {
+        window[_0x38fdd0(0x22c)] ? _0x5110e0() : Lampa[_0x38fdd0(0x1c6)]['follow']('app', function(_0x20cc63) {
+            var _0x1e06bf = _0x38fdd0;
+            _0x20cc63['type'] === _0x1e06bf(0x224) && _0x5110e0();
+        });
+    } else {
+        // Повторная попытка через setTimeout, если Lampa ещё не готова
+        setTimeout(function() {
+            if (window.Lampa && window.Lampa.Listener) {
+                window[_0x38fdd0(0x22c)] ? _0x5110e0() : Lampa[_0x38fdd0(0x1c6)]['follow']('app', function(_0x20cc63) {
+                    var _0x1e06bf = _0x38fdd0;
+                    _0x20cc63['type'] === _0x1e06bf(0x224) && _0x5110e0();
+                });
+            }
+        }, 1000);
+    }
 })();
