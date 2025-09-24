@@ -148,12 +148,17 @@ function _0x1ecb(_0xe76eb6, _0x1433dc) {
             }
         ],
         'apply': function(_0x3494fb) {
-            var _0xaf7d28 = _0x1ecb,
-                _0x29fc63 = Lampa[_0xaf7d28(0x1a2)]['clone'](_0x3494fb);
+            var _0xaf7d28 = _0x1ecb;
+            if (!_0x3494fb || !_0x3494fb[_0xaf7d28(0x223)]) {
+                Lampa[_0xaf7d28(0x216)][_0xaf7d28(0x231)]('No valid data to filter');
+                return _0x3494fb;
+            }
+            var _0x29fc63 = Lampa[_0xaf7d28(0x1a2)]['clone'](_0x3494fb);
             Lampa.Noty.show(`Applying filters to ${_0x3494fb.results.length} items`);
             for (var _0x2043f1 = 0x0; _0x2043f1 < this[_0xaf7d28(0x18e)]['length']; _0x2043f1++) {
-                _0x29fc63 = this[_0xaf7d28(0x18e)][_0x2043f1](_0x29fc63);
+                _0x29fc63.results = this[_0xaf7d28(0x18e)][_0x2043f1](_0x29fc63.results);
             }
+            _0x29fc63.total_results = _0x29fc63.results.length;
             Lampa.Noty.show(`Filtered to ${_0x29fc63.results.length} items`);
             return _0x29fc63;
         }
@@ -298,20 +303,46 @@ function _0x1ecb(_0xe76eb6, _0x1433dc) {
                 'uk': _0x4255a7(0x212)
             }
         });
+        Lampa[_0x4255a7(0x216)][_0x4255a7(0x231)]('Translations added');
     }
 
     function _0x41c505() {
         var _0x2c87df = _0x1ecb;
+        // Диагностика начала функции
+        Lampa[_0x2c87df(0x216)][_0x2c87df(0x231)]('Adding settings component');
+        
+        // Регистрация компонента настроек
+        Lampa[_0x2c87df(0x1f8)][_0x2c87df(0x1ba)][_0x2c87df(0x1f7)]({
+            'component': _0x2c87df(0x1b4),
+            'name': Lampa[_0x2c87df(0x17f)][_0x2c87df(0x19a)](_0x2c87df(0x1b4))
+        });
+        Lampa[_0x2c87df(0x216)][_0x2c87df(0x231)](`Component content_filters added`);
+
+        // Слушатель открытия настроек
         Lampa[_0x2c87df(0x1f8)]['listener'][_0x2c87df(0x209)](_0x2c87df(0x188), function(_0x40ddfc) {
             var _0x5e2390 = _0x2c87df;
-            _0x40ddfc['name'] == _0x5e2390(0x1d0) && (Lampa[_0x5e2390(0x1f8)][_0x5e2390(0x1d0)]()[_0x5e2390(0x1c0)]()['find'](_0x5e2390(0x1c7))[_0x5e2390(0x198)] == 0x0 && Lampa[_0x5e2390(0x1ba)][_0x5e2390(0x1f7)]({
-                'component': _0x5e2390(0x1b4),
-                'name': Lampa[_0x5e2390(0x17f)][_0x5e2390(0x19a)](_0x5e2390(0x1b4))
-            }),
-            Lampa[_0x5e2390(0x1f8)][_0x5e2390(0x1d0)]()['update'](),
-            Lampa[_0x5e2390(0x1f8)][_0x5e2390(0x1d0)]()[_0x5e2390(0x1c0)]()['find'](_0x5e2390(0x1c7))['addClass'](_0x5e2390(0x20f)));
-        }),
-        Lampa[_0x2c87df(0x1ba)][_0x2c87df(0x226)]({
+            if (_0x40ddfc['name'] !== _0x5e2390(0x1d0)) return;
+            Lampa[_0x5e2390(0x216)][_0x5e2390(0x231)](`Settings main opened, checking component`);
+            
+            var settingsMain = Lampa[_0x5e2390(0x1f8)][_0x5e2390(0x1d0)]();
+            var render = settingsMain[_0x5e2390(0x1c0)]();
+            var componentExists = render[_0x5e2390(0x19d)](_0x5e2390(0x1c7))[_0x5e2390(0x198)] > 0;
+            
+            if (!componentExists) {
+                Lampa[_0x5e2390(0x1ba)][_0x5e2390(0x1f7)]({
+                    'component': _0x5e2390(0x1b4),
+                    'name': Lampa[_0x5e2390(0x17f)][_0x5e2390(0x19a)](_0x5e2390(0x1b4))
+                });
+                Lampa[_0x5e2390(0x216)][_0x5e2390(0x231)](`Component content_filters re-added`);
+            }
+            
+            settingsMain['update']();
+            render[_0x5e2390(0x19d)](_0x5e2390(0x1c7))['addClass'](_0x5e2390(0x20f));
+            Lampa[_0x5e2390(0x216)][_0x5e2390(0x231)](`Settings updated, component class added`);
+        });
+
+        // Добавление пункта в интерфейс
+        Lampa[_0x2c87df(0x1f8)][_0x2c87df(0x1a5)]({
             'component': _0x2c87df(0x20c),
             'param': {
                 'name': _0x2c87df(0x1b4),
@@ -319,26 +350,43 @@ function _0x1ecb(_0xe76eb6, _0x1433dc) {
                 'default': true
             },
             'field': {
-                'name': Lampa[_0x2c87df(0x17f)]['translate'](_0x2c87df(0x1b4)),
+                'name': Lampa[_0x2c87df(0x17f)][_0x2c87df(0x19a)](_0x2c87df(0x1b4)),
                 'description': _0x2c87df(0x1cc)
             },
             'onRender': function(_0x232f06) {
                 var _0x44db38 = _0x2c87df;
+                Lampa[_0x44db38(0x216)][_0x44db38(0x231)](`Rendering content_filters menu item`);
                 setTimeout(function() {
                     var _0x523ee9 = _0x1ecb,
                         _0x128c78 = Lampa[_0x523ee9(0x17f)][_0x523ee9(0x19a)](_0x523ee9(0x1b4));
-                    $(_0x523ee9(0x227) + _0x128c78 + '\x22)')[_0x523ee9(0x1d9)]()[_0x523ee9(0x187)]($(_0x523ee9(0x1df)));
-                }, 0x0),
+                    var menuItem = $(_0x523ee9(0x227) + _0x128c78 + '\x22)');
+                    if (menuItem.length === 0) {
+                        Lampa[_0x523ee9(0x216)][_0x523ee9(0x231)](`Menu item for content_filters not found`);
+                        return;
+                    }
+                    var interfaceSize = $(_0x523ee9(0x1df));
+                    if (interfaceSize.length === 0) {
+                        Lampa[_0x523ee9(0x216)][_0x523ee9(0x231)](`Interface size item not found, appending to parent`);
+                        menuItem[_0x523ee9(0x1d9)]().appendTo($('.settings-param'));
+                    } else {
+                        menuItem[_0x523ee9(0x1d9)]()[_0x523ee9(0x187)](interfaceSize);
+                    }
+                    Lampa[_0x523ee9(0x216)][_0x523ee9(0x231)](`Menu item moved after interface_size`);
+                }, 0x0);
                 _0x232f06['on'](_0x44db38(0x20a), function() {
                     var _0x4700c4 = _0x44db38;
-                    Lampa[_0x4700c4(0x1f8)][_0x4700c4(0x22f)](_0x4700c4(0x1b4)),
-                    Lampa[_0x4700c4(0x1bb)][_0x4700c4(0x1d0)]()[_0x4700c4(0x1d3)][_0x4700c4(0x182)] = function() {
+                    Lampa[_0x4700c4(0x1f8)][_0x4700c4(0x22f)](_0x4700c4(0x1b4));
+                    Lampa[_0x4700c4(0x216)][_0x4700c4(0x231)](`Opening content_filters settings`);
+                    Lampa[_0x4700c4(0x1f8)][_0x4700c4(0x1d0)]()[_0x4700c4(0x1d3)][_0x4700c4(0x182)] = function() {
                         var _0x39d845 = _0x4700c4;
                         Lampa[_0x39d845(0x1f8)][_0x39d845(0x22f)](_0x39d845(0x20c));
+                        Lampa[_0x39d845(0x216)][_0x39d845(0x231)](`Back to interface settings`);
                     };
                 });
             }
-        }),
+        });
+
+        // Добавление параметров фильтров
         Lampa[_0x2c87df(0x1ba)][_0x2c87df(0x226)]({
             'component': _0x2c87df(0x1b4),
             'param': {
@@ -358,7 +406,7 @@ function _0x1ecb(_0xe76eb6, _0x1433dc) {
                 var stored = Lampa[_0x3d979a(0x213)][_0x3d979a(0x220)](_0x3d979a(0x181));
                 Lampa[_0x3d979a(0x216)][_0x3d979a(0x231)](`Asian filter stored: ${stored}`);
             }
-        }),
+        });
         Lampa[_0x2c87df(0x1ba)][_0x2c87df(0x226)]({
             'component': _0x2c87df(0x1b4),
             'param': {
@@ -378,7 +426,7 @@ function _0x1ecb(_0xe76eb6, _0x1433dc) {
                 var stored = Lampa[_0x474cd1(0x213)][_0x474cd1(0x220)](_0x474cd1(0x203));
                 Lampa[_0x474cd1(0x216)][_0x474cd1(0x231)](`Language filter stored: ${stored}`);
             }
-        }),
+        });
         Lampa[_0x2c87df(0x1ba)][_0x2c87df(0x226)]({
             'component': _0x2c87df(0x1b4),
             'param': {
@@ -398,7 +446,7 @@ function _0x1ecb(_0xe76eb6, _0x1433dc) {
                 var stored = Lampa[_0x5e4c35(0x213)][_0x5e4c35(0x220)](_0x5e4c35(0x1d7));
                 Lampa[_0x5e4c35(0x216)][_0x5e4c35(0x231)](`Rating filter stored: ${stored}`);
             }
-        }),
+        });
         Lampa[_0x2c87df(0x1ba)][_0x2c87df(0x226)]({
             'component': _0x2c87df(0x1b4),
             'param': {
@@ -475,6 +523,7 @@ function _0x1ecb(_0xe76eb6, _0x1433dc) {
         _0x293ab2();
         _0x3d3291();
         _0x41c505();
+        Lampa[_0x5cc5ec(0x216)][_0x5cc5ec(0x231)]('Plugin initialized');
         Lampa[_0x5cc5ec(0x1c6)][_0x5cc5ec(0x209)](_0x5cc5ec(0x1b5), function(_0x10ec5b) {
             var _0x96f872 = _0x5cc5ec;
             if (_0x10ec5b[_0x96f872(0x185)] !== _0x96f872(0x1ce) || !_0x570fc8(_0x10ec5b[_0x96f872(0x1b2)])) return;
@@ -496,8 +545,10 @@ function _0x1ecb(_0xe76eb6, _0x1433dc) {
                     'filter': _0x10ec5b[_0x4e86c8(0x1b2)][_0x4e86c8(0x18f)],
                     'source': _0x10ec5b[_0x4e86c8(0x1b2)][_0x4e86c8(0x197)] || _0x10ec5b[_0x4e86c8(0x1cf)][_0x4e86c8(0x22d)][_0x4e86c8(0x197)]
                 });
+                Lampa[_0x4e86c8(0x216)][_0x4e86c8(0x231)](`Filter button clicked`);
             });
             _0x1deecd[_0x96f872(0x1d6)](_0xe34ed7);
+            Lampa[_0x96f872(0x216)][_0x96f872(0x231)](`Filter button added`);
         });
         Lampa[_0x5cc5ec(0x1c6)][_0x5cc5ec(0x209)](_0x5cc5ec(0x1b5), function(_0x38e6c7) {
             var _0x52db0f = _0x5cc5ec;
@@ -505,6 +556,7 @@ function _0x1ecb(_0xe76eb6, _0x1433dc) {
             if (_0x38e6c7[_0x52db0f(0x205)][_0x52db0f(0x198)] === _0x38e6c7[_0x52db0f(0x1b2)][_0x52db0f(0x223)][_0x52db0f(0x198)]) {
                 Lampa[_0x52db0f(0x1bb)][_0x52db0f(0x18a)](_0x38e6c7[_0x52db0f(0x205)]);
                 Lampa[_0x52db0f(0x1bb)][_0x52db0f(0x1c2)](_0x38e6c7[_0x52db0f(0x1b5)][_0x52db0f(0x186)]);
+                Lampa[_0x52db0f(0x216)][_0x52db0f(0x231)](`Pagination updated`);
             }
         });
         Lampa[_0x5cc5ec(0x1c6)][_0x5cc5ec(0x209)]('request_sucuses', function(_0x407b0e) {
