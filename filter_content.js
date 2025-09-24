@@ -4,21 +4,15 @@
     console.log('Content Filter: Starting plugin initialization');
 
     // Проверка доступности Lampa
-    function waitForLampa(callback) {
-        if (window.Lampa && typeof window.Lampa === 'object') {
-            console.log('Content Filter: Lampa is available');
-            callback(window.Lampa);
-        } else {
-            console.log('Content Filter: Lampa not available, retrying...');
-            setTimeout(function() {
-                waitForLampa(callback);
-            }, 500);
-        }
+    if (typeof Lampa === 'undefined') {
+        console.error('Content Filter: Lampa is not defined');
+        alert('Content Filter: Lampa is not defined');
+        return;
     }
 
     // Объект для хранения состояния фильтров
     var settings = {
-        rating_filter_enabled: true // Принудительно включено для теста
+        rating_filter_enabled: true // Принудительно включено
     };
 
     // Объект с фильтрами
@@ -54,8 +48,24 @@
         }
     };
 
-    // Добавление настроек (упрощённая версия)
-    function addSettings(Lampa) {
+    // Добавление переводов
+    function addTranslations() {
+        console.log('Content Filter: Adding translations');
+        try {
+            Lampa.Lang.translate({
+                content_filters: { ru: 'Фильтр контента', en: 'Content Filter', uk: 'Фільтр контенту' },
+                rating_filter: { ru: 'Убрать низкорейтинговый контент', en: 'Remove Low-Rated Content', uk: 'Прибрати низько рейтинговий контент' },
+                rating_filter_desc: { ru: 'Скрываем карточки с рейтингом ниже 6.0', en: 'Hide cards with a rating below 6.0', uk: 'Сховати картки з рейтингом нижче 6.0' }
+            });
+            console.log('Content Filter: Translations added');
+        } catch (e) {
+            console.error('Content Filter: Error adding translations', e);
+            alert('Content Filter: Error adding translations: ' + e.message);
+        }
+    }
+
+    // Добавление настроек
+    function addSettings() {
         console.log('Content Filter: Initializing settings');
         try {
             if (!Lampa.SettingsApi || !Lampa.Settings) {
@@ -78,12 +88,12 @@
                     console.log('Content Filter: Adding content_filters component');
                     Lampa.SettingsApi.addComponent({
                         component: 'content_filters',
-                        name: 'Фильтр контента'
+                        name: Lampa.Lang.translate('content_filters')
                     });
                     Lampa.SettingsApi.addParam({
                         component: 'content_filters',
                         param: { name: 'rating_filter_enabled', type: 'trigger', default: true },
-                        field: { name: 'Убрать низкорейтинговый контент', description: 'Скрываем карточки с рейтингом ниже 6.0' },
+                        field: { name: Lampa.Lang.translate('rating_filter'), description: Lampa.Lang.translate('rating_filter_desc') },
                         onChange: function(value) {
                             console.log('Content Filter: rating_filter_enabled changed to', value);
                             settings.rating_filter_enabled = value;
@@ -101,13 +111,12 @@
             Lampa.SettingsApi.addParam({
                 component: 'interface',
                 param: { name: 'content_filters', type: 'static', default: true },
-                field: { name: 'Фильтр контента', description: 'Настройка фильтрации контента' },
+                field: { name: Lampa.Lang.translate('content_filters'), description: 'Настройка фильтрации контента' },
                 onRender: function(element) {
                     console.log('Content Filter: Rendering interface param');
                     element.on('hover:enter', function() {
                         console.log('Content Filter: Opening content_filters settings');
-                        // Избегаем Lampa.Settings.open
-                        Lampa.Settings.main().render().querySelector('[data-component="content_filters"]').click();
+                        settingsMain.render().querySelector('[data-component="content_filters"]').click();
                     });
                 }
             });
@@ -120,7 +129,7 @@
     }
 
     // Загрузка сохранённых настроек
-    function loadSettings(Lampa) {
+    function loadSettings() {
         console.log('Content Filter: Loading filter settings');
         try {
             settings.rating_filter_enabled = Lampa.Storage.get('rating_filter_enabled', true);
@@ -132,7 +141,7 @@
     }
 
     // Проверка URL для фильтрации
-    function isValidUrl(url, Lampa) {
+    function isValidUrl(url) {
         var isValid = url.indexOf(Lampa.TMDB.api('')) > -1 && 
                       url.indexOf('/search') === -1 && 
                       url.indexOf('/person/') === -1;
@@ -141,16 +150,17 @@
     }
 
     // Основная функция инициализации
-    function initialize(Lampa) {
+    function initialize() {
         console.log('Content Filter: Initializing plugin');
         try {
-            loadSettings(Lampa);
-            addSettings(Lampa);
+            loadSettings();
+            addTranslations();
+            addSettings();
 
             // Применение фильтров
             Lampa.Listener.follow('request_success', function(e) {
                 console.log('Content Filter: Processing request_success for URL', e.params.url);
-                if (isValidUrl(e.params.url, Lampa) && e.data && Array.isArray(e.data.results)) {
+                if (isValidUrl(e.params.url) && e.data && Array.isArray(e.data.results)) {
                     console.log('Content Filter: Original results length', e.data.results.length);
                     e.data.original_length = e.data.results.length;
                     e.data.results = filters.apply(e.data.results);
@@ -168,20 +178,18 @@
         }
     }
 
-    // Ожидание Lampa
-    waitForLampa(function(Lampa) {
-        if (window.content_filter_plugin) {
-            console.log('Content Filter: Plugin already loaded, running initialization');
-            initialize(Lampa);
-        } else {
-            console.log('Content Filter: Setting up app listener');
-            window.content_filter_plugin = true;
-            Lampa.Listener.follow('app', function(e) {
-                if (e.type === 'appready') {
-                    console.log('Content Filter: App ready, initializing plugin');
-                    initialize(Lampa);
-                }
-            });
-        }
-    });
+    // Инициализация плагина
+    if (window.content_filter_plugin) {
+        console.log('Content Filter: Plugin already loaded, running initialization');
+        initialize();
+    } else {
+        console.log('Content Filter: Setting up app listener');
+        window.content_filter_plugin = true;
+        Lampa.Listener.follow('app', function(e) {
+            if (e.type === 'appready') {
+                console.log('Content Filter: App ready, initializing plugin');
+                initialize();
+            }
+        });
+    }
 })();
