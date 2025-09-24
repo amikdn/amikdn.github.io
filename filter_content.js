@@ -2,6 +2,7 @@
     'use strict';
 
     Lampa.Platform.tv();
+
     var _0x17b761 = {
         'asian_filter_enabled': ![],
         'language_filter_enabled': ![],
@@ -143,6 +144,7 @@
     }
 
     function _0x3d3291() {
+        console.log('Content Filter: Adding translations');
         Lampa.Lang.translate({
             'content_filters': { 'ru': 'Фильтр контента', 'en': 'Content Filter', 'uk': 'Фільтр контенту' },
             'asian_filter': { 'ru': 'Убрать азиатский контент', 'en': 'Remove Asian Content', 'uk': 'Прибрати азіатський контент' },
@@ -157,27 +159,40 @@
     }
 
     function _0x41c505() {
+        console.log('Content Filter: Initializing settings');
+
+        // Добавление компонента настроек
         Lampa.Settings.listener.follow('open', function(_0x40ddfc) {
-            if (_0x40ddfc.name == 'settings') {
-                if (Lampa.Settings.main().render().find('[data-component="content_filters"]').length == 0x0) {
-                    Lampa.SettingsApi.addComponent({ 'component': 'content_filters', 'name': Lampa.Lang.translate('content_filters') });
-                }
-                Lampa.Settings.main().update();
-                Lampa.Settings.main().render().find('[data-component="content_filters"]').addClass('visible');
+            if (_0x40ddfc.name !== 'settings') return;
+            console.log('Content Filter: Settings opened, checking for component');
+            var settingsMain = Lampa.Settings.main();
+            if (settingsMain.render().find('[data-component="content_filters"]').length === 0) {
+                console.log('Content Filter: Adding content_filters component');
+                Lampa.SettingsApi.addComponent({
+                    'component': 'content_filters',
+                    'name': Lampa.Lang.translate('content_filters')
+                });
             }
+            settingsMain.update();
+            settingsMain.render().find('[data-component="content_filters"]').addClass('visible');
         });
 
+        // Добавление пункта меню в раздел "Интерфейс"
         Lampa.SettingsApi.addParam({
             'component': 'interface',
-            'param': { 'name': 'content_filters', 'type': 'static', 'default': !![]
+            'param': {
+                'name': 'content_filters',
+                'type': 'static',
+                'default': !![]
             },
-            'field': { 'name': Lampa.Lang.translate('content_filters'), 'description': 'Настройка отображения карточек по фильтрам' },
+            'field': {
+                'name': Lampa.Lang.translate('content_filters'),
+                'description': 'Настройка отображения карточек по фильтрам'
+            },
             'onRender': function(_0x232f06) {
-                setTimeout(function() {
-                    var _0x128c78 = Lampa.Lang.translate('content_filters');
-                    $('.settings-param > div:contains("' + _0x128c78 + '")').parent().insertAfter($('div[data-name="interface_size"]'));
-                }, 0x0);
+                console.log('Content Filter: Rendering interface param');
                 _0x232f06.on('hover:enter', function() {
+                    console.log('Content Filter: Opening content_filters settings');
                     Lampa.Settings.open('content_filters');
                     Lampa.Controller.enabled().controller.back = function() {
                         Lampa.Settings.open('interface');
@@ -186,11 +201,20 @@
             }
         });
 
+        // Добавление параметров фильтров
         Lampa.SettingsApi.addParam({
             'component': 'content_filters',
-            'param': { 'name': 'asian_filter_enabled', 'type': 'trigger', 'default': ![] },
-            'field': { 'name': Lampa.Lang.translate('asian_filter'), 'description': Lampa.Lang.translate('asian_filter_desc') },
+            'param': {
+                'name': 'asian_filter_enabled',
+                'type': 'trigger',
+                'default': ![]
+            },
+            'field': {
+                'name': Lampa.Lang.translate('asian_filter'),
+                'description': Lampa.Lang.translate('asian_filter_desc')
+            },
             'onChange': function(_0x252194) {
+                console.log('Content Filter: asian_filter_enabled changed to', _0x252194);
                 _0x17b761['asian_filter_enabled'] = _0x252194;
                 Lampa.Storage.set('asian_filter_enabled', _0x252194);
             }
@@ -198,9 +222,17 @@
 
         Lampa.SettingsApi.addParam({
             'component': 'content_filters',
-            'param': { 'name': 'language_filter_enabled', 'type': 'trigger', 'default': ![] },
-            'field': { 'name': Lampa.Lang.translate('language_filter'), 'description': Lampa.Lang.translate('language_filter_desc') },
+            'param': {
+                'name': 'language_filter_enabled',
+                'type': 'trigger',
+                'default': ![]
+            },
+            'field': {
+                'name': Lampa.Lang.translate('language_filter'),
+                'description': Lampa.Lang.translate('language_filter_desc')
+            },
             'onChange': function(_0x34f7ea) {
+                console.log('Content Filter: language_filter_enabled changed to', _0x34f7ea);
                 _0x17b761['language_filter_enabled'] = _0x34f7ea;
                 Lampa.Storage.set('language_filter_enabled', _0x34f7ea);
             }
@@ -208,9 +240,17 @@
 
         Lampa.SettingsApi.addParam({
             'component': 'content_filters',
-            'param': { 'name': 'rating_filter_enabled', 'type': 'trigger', 'default': ![] },
-            'field': { 'name': Lampa.Lang.translate('rating_filter'), 'description': Lampa.Lang.translate('rating_filter_desc') },
+            'param': {
+                'name': 'rating_filter_enabled',
+                'type': 'trigger',
+                'default': ![]
+            },
+            'field': {
+                'name': Lampa.Lang.translate('rating_filter'),
+                'description': Lampa.Lang.translate('rating_filter_desc')
+            },
             'onChange': function(_0x148d6c) {
+                console.log('Content Filter: rating_filter_enabled changed to', _0x148d6c);
                 _0x17b761['rating_filter_enabled'] = _0x148d6c;
                 Lampa.Storage.set('rating_filter_enabled', _0x148d6c);
             }
@@ -218,9 +258,17 @@
 
         Lampa.SettingsApi.addParam({
             'component': 'content_filters',
-            'param': { 'name': 'history_filter_enabled', 'type': 'trigger', 'default': ![] },
-            'field': { 'name': Lampa.Lang.translate('history_filter'), 'description': Lampa.Lang.translate('history_filter_desc') },
+            'param': {
+                'name': 'history_filter_enabled',
+                'type': 'trigger',
+                'default': ![]
+            },
+            'field': {
+                'name': Lampa.Lang.translate('history_filter'),
+                'description': Lampa.Lang.translate('history_filter_desc')
+            },
             'onChange': function(_0x500104) {
+                console.log('Content Filter: history_filter_enabled changed to', _0x500104);
                 _0x17b761['history_filter_enabled'] = _0x500104;
                 Lampa.Storage.set('history_filter_enabled', _0x500104);
             }
@@ -228,6 +276,7 @@
     }
 
     function _0x293ab2() {
+        console.log('Content Filter: Loading filter settings');
         _0x17b761['asian_filter_enabled'] = Lampa.Storage.get('asian_filter_enabled', ![]);
         _0x17b761['language_filter_enabled'] = Lampa.Storage.get('language_filter_enabled', ![]);
         _0x17b761['rating_filter_enabled'] = Lampa.Storage.get('rating_filter_enabled', ![]);
@@ -263,10 +312,12 @@
     }
 
     function _0x5110e0() {
+        console.log('Content Filter: Initializing plugin');
         _0x5aee9c();
         _0x293ab2();
         _0x3d3291();
         _0x41c505();
+
         Lampa.Listener.follow('collectionAppend', function(_0x10ec5b) {
             if (_0x10ec5b['type'] !== 'append' || !_0x570fc8(_0x10ec5b['data'])) return;
             var _0x1deecd = $(_0x2501a2(_0x10ec5b['body'], '.items-line')).find('.items-line__head'),
@@ -305,7 +356,17 @@
         });
     }
 
-    window['content_filter_plugin'] ? _0x5110e0() : Lampa.Listener.follow('app', function(_0x20cc63) {
-        if (_0x20cc63['type'] === 'appready') _0x5110e0();
-    });
+    if (window['content_filter_plugin']) {
+        console.log('Content Filter: Plugin already loaded, skipping initialization');
+        _0x5110e0();
+    } else {
+        console.log('Content Filter: Setting up app listener');
+        window['content_filter_plugin'] = !![];
+        Lampa.Listener.follow('app', function(_0x20cc63) {
+            if (_0x20cc63['type'] === 'appready') {
+                console.log('Content Filter: App ready, initializing plugin');
+                _0x5110e0();
+            }
+        });
+    }
 })();
