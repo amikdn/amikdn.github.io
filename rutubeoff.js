@@ -1,27 +1,32 @@
-﻿(function () {
-  // Сохраняем оригинальную функцию VPN.region, если она существует
-  var originalRegion = window.VPN ? window.VPN.region : null;
+(function () {
+    'use strict';
 
-  // Переопределяем функцию VPN.region
-  window.VPN = window.VPN || {};
-  window.VPN.region = function (callback) {
-    // Вызываем оригинальную функцию, если она есть
-    if (originalRegion) {
-      originalRegion(function (code) {
-        // Игнорируем загрузку rutube.js для региона 'ru'
-        if (code === 'ru') {
-          console.log('Пропущена загрузка rutube.js для региона ru');
-          return;
+    // Удаление кнопки трейлеров из меню
+    Lampa.Listener.follow('full', function (e) {
+        if (e.type === 'complite') {
+            e.object.activity.render().find('.view--trailer').remove();
+            console.log('Кнопка трейлеров удалена из меню');
         }
-        // Вызываем callback для других регионов
-        callback(code);
-      });
-    } else {
-      // Если оригинальной функции нет, просто ничего не делаем
-      console.log('VPN.region не найден, rutube.js не загружается');
-    }
-  };
+    });
 
-  // Логируем запуск плагина
-  console.log('Плагин для отключения rutube.js активирован');
+    // Перехват функции VPN.region для блокировки rutube.js
+    var originalRegion = window.VPN ? window.VPN.region : null;
+
+    window.VPN = window.VPN || {};
+    window.VPN.region = function (callback) {
+        if (originalRegion) {
+            originalRegion(function (code) {
+                if (code === 'ru') {
+                    console.log('Загрузка rutube.js для региона ru заблокирована');
+                    return; // Пропускаем загрузку rutube.js
+                }
+                callback(code); // Вызываем callback для других регионов
+            });
+        } else {
+            console.log('VPN.region не найден, rutube.js не загружается');
+        }
+    };
+
+    // Логируем запуск плагина
+    console.log('Плагин для удаления трейлеров и блокировки rutube.js активирован');
 })();
