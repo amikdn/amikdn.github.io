@@ -25,7 +25,7 @@
             console.log('Content Filter: Applying rating filter to', data.length, 'items');
             var result = data.filter(function(item) {
                 if (!item) {
-                    console.logContent Filter: Skipping empty item');
+                    console.log('Content Filter: Skipping empty item');
                     return true;
                 }
                 var isSpecial = item.media_type === 'person' || 
@@ -157,7 +157,7 @@
                 if (isValidUrl(e.params.url) && e.data && Array.isArray(e.data.results)) {
                     console.log('Content Filter: Original results length', e.data.results.length);
                     e.data.results.forEach(item => {
-                        console.log('Item:', item.name || item.title, 'Rating:', item.vote_average || 'none');
+                        console.log('Item:', item.name || item.title, 'Rating:', item.vote_average || 'none', 'Fields:', Object.keys(item || {}));
                     });
                     e.data.original_length = e.data.results.length;
                     e.data.results = filters.apply(e.data.results);
