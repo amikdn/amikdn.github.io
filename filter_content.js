@@ -2,398 +2,599 @@
     'use strict';
     console.log('Content Filter: Starting plugin initialization');
 
-    // Объект настроек
-    var settings = {
-        asian_filter_enabled: false,
-        language_filter_enabled: false,
-        rating_filter_enabled: true, // Включён по умолчанию
-        history_filter_enabled: false
-    };
-
-    // Объект фильтров
-    var filters = {
-        filters: [
-            // Фильтр азиатского контента
-            function(data) {
-                if (!settings.asian_filter_enabled) return data;
-                console.log('Content Filter: Applying asian filter');
-                return data.filter(function(item) {
-                    if (!item || !item.original_language) {
-                        console.log('Content Filter: Allowing item (no original_language)', item.name || item.title);
-                        return true;
-                    }
-                    var lang = item.original_language.toLowerCase(),
-                        asianLangs = ['ja', 'ko', 'zh', 'th', 'vi', 'hi', 'ta', 'te', 'ml', 'kn', 'bn', 'ur', 'pa', 'gu', 'mr', 'ne', 'si', 'my', 'km', 'lo', 'mn', 'ka', 'hy', 'az', 'kk', 'ky', 'tg', 'tk', 'uz'];
-                    var allow = asianLangs.indexOf(lang) === -1;
-                    console.log('Content Filter: Item', item.name || item.title, 'Lang:', lang, 'Allow:', allow);
-                    return allow;
-                });
-            },
-            // Фильтр языка
-            function(data) {
-                if (!settings.language_filter_enabled) return data;
-                console.log('Content Filter: Applying language filter');
-                return data.filter(function(item) {
-                    if (!item) {
-                        console.log('Content Filter: Allowing empty item');
-                        return true;
-                    }
-                    var appLang = Lampa.Lang.translate('language'),
-                        title = item.original_title || item.title,
-                        name = item.original_name || item.name;
-                    if (item.original_language === appLang) {
-                        console.log('Content Filter: Allowing item (same language)', item.name || item.title);
-                        return true;
-                    }
-                    if (item.original_language !== appLang && name !== title) {
-                        console.log('Content Filter: Allowing item (translated)', item.name || item.title);
-                        return true;
-                    }
-                    console.log('Content Filter: Filtering out item (not translated)', item.name || item.title);
-                    return false;
-                });
-            },
-            // Фильтр рейтинга
-            function(data) {
-                if (!settings.rating_filter_enabled) return data;
-                console.log('Content Filter: Applying rating filter to', data.length, 'items');
-                return data.filter(function(item) {
-                    if (!item) {
-                        console.log('Content Filter: Allowing empty item');
-                        return true;
-                    }
-                    var isSpecial = item.media_type === 'person' || item.type === 'Trailer' || item.site === 'YouTube' ||
-                                    (item.card && item.name && item.name.toLowerCase().indexOf('trailer') !== -1);
-                    if (isSpecial) {
-                        console.log('Content Filter: Allowing special item:', item.name || item.title);
-                        return true;
-                    }
-                    if (!item.vote_average || item.vote_average < 6) {
-                        console.log('Content Filter: Filtering out item:', item.name || item.title, 'Rating:', item.vote_average || 'none');
-                        return false;
-                    }
-                    console.log('Content Filter: Allowing item:', item.name || item.title, 'Rating:', item.vote_average);
-                    return true;
-                });
-            },
-            // Фильтр истории
-            function(data) {
-                if (!settings.history_filter_enabled) return data;
-                console.log('Content Filter: Applying history filter');
-                var history = Lampa.Storage.get('history', '{}'),
-                    favorite = Lampa.Storage.cache('favorite', 300, []);
-                return data.filter(function(item) {
-                    if (!item || !item.media_type) {
-                        console.log('Content Filter: Allowing item (no media_type)', item.name || item.title);
-                        return true;
-                    }
-                    var mediaType = item.media_type || (item.seasons ? 'tv' : 'movie'),
-                        favoriteData = Lampa.Favorite.check(item),
-                        isViewed = !!favoriteData && !!favoriteData.view,
-                        isThrown = !!favoriteData && favoriteData.thrown;
-                    if (isThrown) {
-                        console.log('Content Filter: Filtering out thrown item:', item.name || item.title);
-                        return false;
-                    }
-                    if (!isViewed) {
-                        console.log('Content Filter: Allowing item (not viewed)', item.name || item.title);
-                        return true;
-                    }
-                    if (isViewed && mediaType === 'movie') {
-                        console.log('Content Filter: Filtering out viewed movie:', item.name || item.title);
-                        return false;
-                    }
-                    var historyEpisodes = getHistoryEpisodes(item.id, history),
-                        favoriteEpisodes = getFavoriteEpisodes(item.id, favorite),
-                        allEpisodes = mergeEpisodes(historyEpisodes, favoriteEpisodes),
-                        isFullyViewed = checkFullyViewed(item.original_name || item.name, allEpisodes);
-                    console.log('Content Filter: Item', item.name || item.title, 'Fully viewed:', isFullyViewed);
-                    return !isFullyViewed;
-                });
-            }
-        ],
-        apply: function(data) {
-            console.log('Content Filter: Applying all filters to', data.length, 'items');
-            var result = Lampa.Arrays.clone(data);
-            for (var i = 0; i < this.filters.length; i++) {
-                result = this.filters[i](result);
-            }
-            console.log('Content Filter: After all filters, remaining', result.length, 'items');
-            return result;
-        }
-    };
-
-    // Вспомогательные функции для истории
-    function getHistoryEpisodes(id, history) {
-        var episodes = history.view?.filter(item => item.id === id && Array.isArray(item.episodes) && item.episodes.length > 0)[0]?.episodes || [];
-        return episodes.filter(ep => ep.season_number > 0 && ep.episode_number > 0 && ep.air_date && new Date(ep.air_date) < new Date());
+    function _0x132d() {
+        var _0x453100 = ['isArray', 'category_full', 'name', 'Activity', 'Прибрати\x20низько\x20рейтинговий\x20контент', 'trigger', 'Фільтр\x20контенту', 'source', 'length', 'original_language', 'translate', 'language_filter', 'replace', 'find', 'constructor', 'Убрать\x20просмотренный\x20контент', 'hash', 'className', 'Arrays', 'apply', 'episode_count', 'add', 'origin', 'Скрываем\x20карточки\x20фильмов\x20и\x20сериалов\x20из\x20истории,\x20которые\x20вы\x20закончили\x20смотреть', 'trace', 'episodes', 'url', 'build', 'content_filter_plugin', 'episode_number', 'oMatchesSelector', 'air_date', 'parentElement', '.items-line__head', 'data', 'site', 'content_filters', 'line', 'join', 'language', 'season_number', 'Utils', 'SettingsApi', 'Controller', '1128812scyQPr', 'prototype', '114116tyndIc', '{}.constructor(\x22return\x20this\x22)(\x20)', 'render', 'parentNode', 'collectionAppend', 'Content\x20Filter', '10JoMVbn', 'api', 'Listener', '[data-component=\x22content_filters\x22]', 'Сховати\x20картки,\x20які\x20не\x20перекладені\x20на\x20мову\x20за\x20замовчуванням', '77320PPcYzA', 'check', 'Убрать\x20контент\x20на\x20другом\x20языке', 'Настройка\x20отображения\x20карточек\x20по\x20фильтрам', '117QyUMoS', 'visible', 'params', 'main', 'media_type', 'rating_filter', 'controller', 'Сховати\x20картки\x20з\x20рейтингом\x20нижче\x206.0', 'Приховувати\x20переглянуте', 'append', 'rating_filter_enabled', 'div', 'parent', 'Прибрати\x20азіатський\x20контент', 'original_length', 'Прибрати\x20контент\x20іншою\x20мовою', 'toLowerCase', 'favorite', 'div[data-name=\x22interface_size\x22]', 'Скрываем\x20карточки\x20с\x20рейтингом\x20ниже\x206.0', 'trailer', 'video', 'enabled', 'original_name', '/person/', 'history_filter_enabled', 'defineProperty', 'Manifest', 'Hide\x20cards\x20from\x20your\x20viewing\x20history', 'title', 'Card', 'error', 'percent', 'genres', 'history_filter', 'Hide\x20cards\x20not\x20translated\x20to\x20the\x20default\x20language', 'card', 'movie', 'view', 'Hide\x20Watched\x20Content', 'Hide\x20cards\x20with\x20a\x20rating\x20below\x206.0', 'bind', 'addComponent', 'Settings', 'history', 'msMatchesSelector', 'warn', 'timetable', 'webkitMatchesSelector', 'Favorite', '114OBqUhl', '.items-line__more', 'console', 'rating_filter_desc', 'language_filter_enabled', 'seasons', 'items', 'addEventListener', 'total_pages', 'return\x20(function()\x20', 'follow', 'hover:enter', 'asian_filter_desc', 'interface', 'first_air_date', 'push', 'hide', 'closest', '__proto__', 'Сховати\x20картки\x20з\x20вашої\x20історії\x20перегляду', 'Storage', 'exception', 'log', 'Noty', 'Remove\x20Asian\x20Content', '25ZrgQRe', 'innerText', 'info', '_build', 'Фильтр\x20контента', '1059306MUnmHp', 'toString', 'matches', 'get', 'original_title', '1859360dEMlnS', 'results', 'ready', 'Скрываем\x20карточки\x20азиатского\x20происхождения', 'addParam', '.settings-param\x20>\x20div:contains(\x22', '35624479MnKgJf', 'asian_filter', 'body', 'indexOf', 'appready', 'object', 'title_category', 'create', '1429533oYzlxR', 'show', 'set', 'items-line__more', 'vote_average', 'Lang', 'page', 'asian_filter_enabled', 'back', 'mozMatchesSelector', 'lampa_listener_extensions', 'type', 'more', 'insertAfter', 'open', 'static', 'own', 'Скрываем\x20карточки,\x20названия\x20которых\x20не\x20переведены\x20на\x20язык,\x20выбранный\x20по\x20умолчанию', 'bylampa', 'key', 'filters', 'filter'];
+        _0x132d = function() {
+            return _0x453100;
+        };
+        return _0x132d();
     }
 
-    function getFavoriteEpisodes(id, favorite) {
-        var episodes = favorite.filter(item => item.id === id)[0]?.seasons || [];
-        return episodes.filter(ep => ep.season_number > 0 && ep.air_date && new Date(ep.air_date) < new Date());
+    function _0x1ecb(_0xe76eb6, _0x1433dc) {
+        var _0x16add1 = _0x132d();
+        return _0x1ecb = function(_0x3cd729, _0x541d2f) {
+            _0x3cd729 = _0x3cd729 - 0x17e;
+            var _0x539919 = _0x16add1[_0x3cd729];
+            return _0x539919;
+        },
+        _0x1ecb(_0xe76eb6, _0x1433dc);
     }
 
-    function mergeEpisodes(historyEpisodes, favoriteEpisodes) {
-        var allEpisodes = historyEpisodes.concat(favoriteEpisodes), uniqueEpisodes = [];
-        for (var i = 0; i < allEpisodes.length; i++) {
-            var ep = allEpisodes[i], exists = false;
-            for (var j = 0; j < uniqueEpisodes.length; j++) {
-                if (uniqueEpisodes[j].season_number === ep.season_number && uniqueEpisodes[j].episode_number === ep.episode_number) {
-                    exists = true;
+    (function(_0x3b9a4b, _0x506817) {
+        var _0x6de458 = _0x1ecb,
+            _0x5c6cd7 = _0x3b9a4b();
+        while (!![]) {
+            try {
+                var _0x4eb92e = parseInt(_0x6de458(0x1bc)) / 0x1 + parseInt(_0x6de458(0x222)) / 0x2 + -parseInt(_0x6de458(0x1ff)) / 0x3 * (-parseInt(_0x6de458(0x1be)) / 0x4) + -parseInt(_0x6de458(0x218)) / 0x5 * (-parseInt(_0x6de458(0x21d)) / 0x6) + -parseInt(_0x6de458(0x230)) / 0x7 + -parseInt(_0x6de458(0x1c9)) / 0x8 * (-parseInt(_0x6de458(0x1cd)) / 0x9) + -parseInt(_0x6de458(0x1c4)) / 0xa * (parseInt(_0x6de458(0x228)) / 0xb);
+                if (_0x4eb92e === _0x506817)
                     break;
+                else
+                    _0x5c6cd7['push'](_0x5c6cd7['shift']());
+            } catch (_0x3c83f3) {
+                _0x5c6cd7['push'](_0x5c6cd7['shift']());
+            }
+        }
+    }(_0x132d, 0xace5a));
+
+    (function() {
+        var _0x38fdd0 = _0x1ecb,
+            _0x33a580 = (function() {
+                var _0x5c305e = !![];
+                return function(_0x53cc68, _0x580dac) {
+                    var _0x24cf3a = _0x5c305e ? function() {
+                        if (_0x580dac) {
+                            var _0x2f21ef = _0x580dac['apply'](_0x53cc68, arguments);
+                            return _0x580dac = null,
+                            _0x2f21ef;
+                        }
+                    } : function() {};
+                    return _0x5c305e = ![],
+                    _0x24cf3a;
+                };
+            }()),
+            _0x34f920 = (function() {
+                var _0x4a0d68 = !![];
+                return function(_0x1275f6, _0x41a1b5) {
+                    var _0x5f5330 = _0x4a0d68 ? function() {
+                        var _0x2c47c3 = _0x1ecb;
+                        if (_0x41a1b5) {
+                            var _0x1a2c18 = _0x41a1b5[_0x2c47c3(0x1a3)](_0x1275f6, arguments);
+                            return _0x41a1b5 = null,
+                            _0x1a2c18;
+                        }
+                    } : function() {};
+                    return _0x4a0d68 = ![],
+                    _0x5f5330;
+                };
+            }());
+
+        'use strict';
+        console.log('Content Filter: Entering main function');
+
+        var _0x17b761 = {
+            'asian_filter_enabled': ![],
+            'language_filter_enabled': ![],
+            'rating_filter_enabled': ![],
+            'history_filter_enabled': ![]
+        },
+        _0x19f0df = {
+            'filters': [function(_0x48f6de) {
+                var _0x2c449b = _0x1ecb;
+                if (!_0x17b761[_0x2c449b(0x181)])
+                    return _0x48f6de;
+                return _0x48f6de[_0x2c449b(0x18f)](function(_0x2bf78c) {
+                    var _0x231e4a = _0x2c449b;
+                    if (!_0x2bf78c || !_0x2bf78c[_0x231e4a(0x199)])
+                        return !![];
+                    var _0x333cdb = _0x2bf78c[_0x231e4a(0x199)][_0x231e4a(0x1dd)](),
+                        _0x39e8d1 = ['ja', 'ko', 'zh', 'th', 'vi', 'hi', 'ta', 'te', 'ml', 'kn', 'bn', 'ur', 'pa', 'gu', 'mr', 'ne', 'si', 'my', 'km', 'lo', 'mn', 'ka', 'hy', 'az', 'kk', 'ky', 'tg', 'tk', 'uz'];
+                    return _0x39e8d1[_0x231e4a(0x22b)](_0x333cdb) === -0x1;
+                });
+            }, function(_0x1447c4) {
+                var _0x590a08 = _0x1ecb;
+                if (!_0x17b761[_0x590a08(0x203)])
+                    return _0x1447c4;
+                return _0x1447c4[_0x590a08(0x18f)](function(_0x39c6f8) {
+                    var _0x41e74b = _0x590a08;
+                    if (!_0x39c6f8)
+                        return !![];
+                    var _0xf4a9ea = Lampa[_0x41e74b(0x213)][_0x41e74b(0x220)](_0x41e74b(0x1b7)),
+                        _0x5619a5 = _0x39c6f8[_0x41e74b(0x221)] || _0x39c6f8[_0x41e74b(0x1e4)],
+                        _0x1e6d26 = _0x39c6f8[_0x41e74b(0x1ea)] || _0x39c6f8[_0x41e74b(0x192)];
+                    if (_0x39c6f8[_0x41e74b(0x199)] === _0xf4a9ea)
+                        return !![];
+                    if (_0x39c6f8[_0x41e74b(0x199)] !== _0xf4a9ea && _0x1e6d26 !== _0x5619a5)
+                        return !![];
+                    return ![];
+                });
+            }, function(_0x31db3d) {
+                var _0x4e6f58 = _0x1ecb;
+                if (!_0x17b761[_0x4e6f58(0x1d7)])
+                    return _0x31db3d;
+                return _0x31db3d['filter'](function(_0x5477ab) {
+                    var _0x3a0702 = _0x4e6f58;
+                    if (!_0x5477ab)
+                        return !![];
+                    var _0x2cef5a = _0x5477ab[_0x3a0702(0x1d1)] === _0x3a0702(0x1e2) || _0x5477ab[_0x3a0702(0x185)] === 'Trailer' || _0x5477ab[_0x3a0702(0x1b3)] === 'YouTube' || _0x5477ab[_0x3a0702(0x18d)] && _0x5477ab[_0x3a0702(0x192)] && _0x5477ab[_0x3a0702(0x192)][_0x3a0702(0x1dd)]()[_0x3a0702(0x22b)](_0x3a0702(0x1e1)) !== -0x1;
+                    if (_0x2cef5a)
+                        return !![];
+                    if (!_0x5477ab[_0x3a0702(0x17e)] || _0x5477ab[_0x3a0702(0x17e)] === 0x0)
+                        return ![];
+                    return _0x5477ab[_0x3a0702(0x17e)] >= 0x6;
+                });
+            }, function(_0x4f79a5) {
+                var _0x2b5106 = _0x1ecb;
+                if (!_0x17b761['history_filter_enabled'])
+                    return _0x4f79a5;
+                var _0x451b28 = Lampa['Storage']['get'](_0x2b5106(0x1de), '{}'),
+                    _0x4e75fd = Lampa[_0x2b5106(0x213)]['cache'](_0x2b5106(0x1fc), 0x12c, []);
+                return _0x4f79a5[_0x2b5106(0x18f)](function(_0x4d2122) {
+                    var _0x16587e = _0x2b5106;
+                    if (!_0x4d2122 || !_0x4d2122[_0x16587e(0x199)])
+                        return !![];
+                    var _0x45052b = _0x4d2122['media_type'];
+                    !_0x45052b && (_0x45052b = !!_0x4d2122[_0x16587e(0x20d)] ? 'tv' : _0x16587e(0x1f2));
+                    var _0x48ad67 = Lampa[_0x16587e(0x1fe)][_0x16587e(0x1ca)](_0x4d2122),
+                        _0x4689b7 = !!_0x48ad67 && !!_0x48ad67[_0x16587e(0x1f9)],
+                        _0x34d757 = !!_0x48ad67 && _0x48ad67['thrown'];
+                    if (_0x34d757)
+                        return ![];
+                    if (!_0x4689b7)
+                        return !![];
+                    if (_0x4689b7 && _0x45052b === _0x16587e(0x1f2))
+                        return ![];
+                    var _0x307868 = _0x2de6d4(_0x4d2122['id'], _0x451b28),
+                        _0x389663 = _0x3e5f09(_0x4d2122['id'], _0x4e75fd),
+                        _0x28dc8e = _0x2b33d5(_0x307868, _0x389663),
+                        _0x2ea854 = _0x25d9eb(_0x4d2122[_0x16587e(0x221)] || _0x4d2122['original_name'], _0x28dc8e);
+                    return !_0x2ea854;
+                });
+            }],
+            'apply': function(_0x3494fb) {
+                var _0xaf7d28 = _0x1ecb,
+                    _0x29fc63 = Lampa[_0xaf7d28(0x1a2)]['clone'](_0x3494fb);
+                for (var _0x2043f1 = 0x0; _0x2043f1 < this[_0xaf7d28(0x18e)]['length']; _0x2043f1++) {
+                    _0x29fc63 = this[_0xaf7d28(0x18e)][_0x2043f1](_0x29fc63);
+                }
+                return _0x29fc63;
+            }
+        };
+
+        function _0x5aee9c() {
+            var _0x57722b = _0x1ecb;
+            if (window[_0x57722b(0x184)])
+                return;
+            window['lampa_listener_extensions'] = !![],
+            Object[_0x57722b(0x1e7)](window['Lampa'][_0x57722b(0x1eb)][_0x57722b(0x1bd)], _0x57722b(0x1ab), {
+                'get': function() {
+                    var _0x3d7383 = _0x57722b;
+                    return this[_0x3d7383(0x21b)];
+                },
+                'set': function(_0x57abda) {
+                    var _0x12c713 = _0x57722b;
+                    this[_0x12c713(0x21b)] = function() {
+                        var _0x117c88 = _0x12c713;
+                        _0x57abda['apply'](this),
+                        Lampa[_0x117c88(0x1c6)]['send'](_0x117c88(0x1f1), {
+                            'type': _0x117c88(0x1ab),
+                            'object': this
+                        });
+                    }[_0x12c713(0x1f6)](this);
+                }
+            });
+        }
+
+        function _0x2de6d4(_0x4cba1a, _0xf43e4) {
+            var _0x52cc95 = _0x1ecb,
+                _0x555841 = _0xf43e4[_0x52cc95(0x1f1)]['filter'](function(_0x3eb567) {
+                    var _0x502678 = _0x52cc95;
+                    return _0x3eb567['id'] === _0x4cba1a && Array['isArray'](_0x3eb567[_0x502678(0x204)]) && _0x3eb567[_0x502678(0x204)]['length'] > 0x0;
+                })[0x0];
+            if (!_0x555841)
+                return [];
+            var _0x265b53 = _0x555841[_0x52cc95(0x204)]['filter'](function(_0x115683) {
+                var _0xcfe8fc = _0x52cc95;
+                return _0x115683[_0xcfe8fc(0x1b8)] > 0x0 && _0x115683[_0xcfe8fc(0x1a4)] > 0x0 && _0x115683[_0xcfe8fc(0x1af)] && new Date(_0x115683[_0xcfe8fc(0x1af)]) < new Date();
+            });
+            if (_0x265b53[_0x52cc95(0x198)] === 0x0)
+                return [];
+            var _0x223ecc = [];
+            for (var _0x40976e = 0x0; _0x40976e < _0x265b53[_0x52cc95(0x198)]; _0x40976e++) {
+                var _0x3e62bb = _0x265b53[_0x40976e];
+                for (var _0x223c90 = 0x1; _0x223c90 <= _0x3e62bb[_0x52cc95(0x1a4)]; _0x223c90++) {
+                    _0x223ecc[_0x52cc95(0x20e)]({
+                        'season_number': _0x3e62bb[_0x52cc95(0x1b8)],
+                        'episode_number': _0x223c90
+                    });
                 }
             }
-            if (!exists) uniqueEpisodes.push(ep);
+            return _0x223ecc;
         }
-        return uniqueEpisodes;
-    }
 
-    function checkFullyViewed(name, episodes) {
-        if (!episodes || episodes.length === 0) return false;
-        for (var i = 0; i < episodes.length; i++) {
-            var ep = episodes[i],
-                key = Lampa.Utils.hash([ep.season_number, ep.season_number > 10 ? ':' : '', ep.episode_number, name].join('')),
-                percent = Lampa.Timeline.percent(key);
-            if (percent === 0) return false;
-        }
-        return true;
-    }
-
-    // Добавление переводов
-    function addTranslations() {
-        console.log('Content Filter: Adding translations');
-        try {
-            Lampa.Lang.translate({
-                content_filters: { ru: 'Фильтр контента', en: 'Content Filter', uk: 'Фільтр контенту' },
-                asian_filter: { ru: 'Убрать азиатский контент', en: 'Remove Asian Content', uk: 'Прибрати азіатський контент' },
-                asian_filter_desc: { ru: 'Скрываем карточки азиатского происхождения', en: 'Hide cards of Asian origin', uk: 'Сховати картки азіатського походження' },
-                language_filter: { ru: 'Убрать контент на другом языке', en: 'Remove Other Language Content', uk: 'Прибрати контент іншою мовою' },
-                language_filter_desc: { ru: 'Скрываем карточки, названия которых не переведены на язык, выбранный по умолчанию', en: 'Hide cards not translated to the default language', uk: 'Сховати картки, які не перекладені на мову за замовчуванням' },
-                rating_filter: { ru: 'Убрать низкорейтинговый контент', en: 'Remove Low-Rated Content', uk: 'Прибрати низько рейтинговий контент' },
-                rating_filter_desc: { ru: 'Скрываем карточки с рейтингом ниже 6.0', en: 'Hide cards with a rating below 6.0', uk: 'Сховати картки з рейтингом нижче 6.0' },
-                history_filter: { ru: 'Убрать просмотренный контент', en: 'Hide Watched Content', uk: 'Приховувати переглянуте' },
-                history_filter_desc: { ru: 'Скрываем карточки фильмов и сериалов из истории, которые вы закончили смотреть', en: 'Hide cards from your viewing history', uk: 'Сховати картки з вашої історії перегляду' }
+        function _0x3e5f09(_0x3d84fe, _0x2f9af1) {
+            var _0x2188e9 = _0x1ecb,
+                _0x13424b = _0x2f9af1['filter'](function(_0x197f2f) {
+                    return _0x197f2f['id'] === _0x3d84fe;
+                })[0x0] || {};
+            if (!Array[_0x2188e9(0x190)](_0x13424b[_0x2188e9(0x1a9)]) || _0x13424b[_0x2188e9(0x1a9)][_0x2188e9(0x198)] === 0x0)
+                return [];
+            return _0x13424b[_0x2188e9(0x1a9)][_0x2188e9(0x18f)](function(_0x49c33a) {
+                var _0x2893f6 = _0x2188e9;
+                return _0x49c33a['season_number'] > 0x0 && _0x49c33a[_0x2893f6(0x1af)] && new Date(_0x49c33a[_0x2893f6(0x1af)]) < new Date();
             });
-            console.log('Content Filter: Translations added');
-        } catch (e) {
-            console.error('Content Filter: Error adding translations', e);
-            alert('Content Filter: Error adding translations: ' + e.message);
         }
-    }
 
-    // Добавление настроек
-    function addSettings() {
-        console.log('Content Filter: Initializing settings');
-        try {
-            Lampa.Settings.listener.follow('open', function(e) {
-                if (e.name !== 'settings') return;
-                console.log('Content Filter: Settings opened');
-                var settingsMain = Lampa.Settings.main();
-                if (!settingsMain) {
-                    console.error('Content Filter: Lampa.Settings.main() is not available');
-                    alert('Content Filter: Settings main is not available');
-                    return;
+        function _0x2b33d5(_0x2f659b, _0x18d266) {
+            var _0x264cb0 = _0x1ecb,
+                _0x247216 = _0x2f659b['concat'](_0x18d266),
+                _0x52d5f6 = [];
+            for (var _0x3cfd8e = 0x0; _0x3cfd8e < _0x247216[_0x264cb0(0x198)]; _0x3cfd8e++) {
+                var _0xc44e63 = _0x247216[_0x3cfd8e],
+                    _0x1d419b = ![];
+                for (var _0xb7ff8 = 0x0; _0xb7ff8 < _0x52d5f6['length']; _0xb7ff8++) {
+                    if (_0x52d5f6[_0xb7ff8][_0x264cb0(0x1b8)] === _0xc44e63['season_number'] && _0x52d5f6[_0xb7ff8][_0x264cb0(0x1ad)] === _0xc44e63[_0x264cb0(0x1ad)]) {
+                        _0x1d419b = !![];
+                        break;
+                    }
                 }
-                var componentExists = settingsMain.render().find('[data-component="content_filters"]').length !== 0;
-                if (!componentExists) {
-                    console.log('Content Filter: Adding content_filters component');
-                    Lampa.SettingsApi.addComponent({
-                        component: 'content_filters',
-                        name: Lampa.Lang.translate('content_filters')
-                    });
-                    Lampa.SettingsApi.addParam({
-                        component: 'content_filters',
-                        param: { name: 'asian_filter_enabled', type: 'trigger', default: false },
-                        field: { name: Lampa.Lang.translate('asian_filter'), description: Lampa.Lang.translate('asian_filter_desc') },
-                        onChange: function(value) {
-                            console.log('Content Filter: asian_filter_enabled changed to', value);
-                            settings.asian_filter_enabled = value;
-                            Lampa.Storage.set('asian_filter_enabled', value);
-                        }
-                    });
-                    Lampa.SettingsApi.addParam({
-                        component: 'content_filters',
-                        param: { name: 'language_filter_enabled', type: 'trigger', default: false },
-                        field: { name: Lampa.Lang.translate('language_filter'), description: Lampa.Lang.translate('language_filter_desc') },
-                        onChange: function(value) {
-                            console.log('Content Filter: language_filter_enabled changed to', value);
-                            settings.language_filter_enabled = value;
-                            Lampa.Storage.set('language_filter_enabled', value);
-                        }
-                    });
-                    Lampa.SettingsApi.addParam({
-                        component: 'content_filters',
-                        param: { name: 'rating_filter_enabled', type: 'trigger', default: true },
-                        field: { name: Lampa.Lang.translate('rating_filter'), description: Lampa.Lang.translate('rating_filter_desc') },
-                        onChange: function(value) {
-                            console.log('Content Filter: rating_filter_enabled changed to', value);
-                            settings.rating_filter_enabled = value;
-                            Lampa.Storage.set('rating_filter_enabled', value);
-                        }
-                    });
-                    Lampa.SettingsApi.addParam({
-                        component: 'content_filters',
-                        param: { name: 'history_filter_enabled', type: 'trigger', default: false },
-                        field: { name: Lampa.Lang.translate('history_filter'), description: Lampa.Lang.translate('history_filter_desc') },
-                        onChange: function(value) {
-                            console.log('Content Filter: history_filter_enabled changed to', value);
-                            settings.history_filter_enabled = value;
-                            Lampa.Storage.set('history_filter_enabled', value);
-                        }
-                    });
-                    settingsMain.update();
-                    console.log('Content Filter: Component content_filters added');
-                } else {
-                    console.log('Content Filter: Component content_filters already exists');
+                !_0x1d419b && _0x52d5f6[_0x264cb0(0x20e)](_0xc44e63);
+            }
+            return _0x52d5f6;
+        }
+
+        function _0x25d9eb(_0x462320, _0x1922a4) {
+            var _0xde3c8 = _0x1ecb;
+            if (!_0x1922a4 || _0x1922a4['length'] === 0x0)
+                return ![];
+            for (var _0x56274c = 0x0; _0x56274c < _0x1922a4[_0xde3c8(0x198)]; _0x56274c++) {
+                var _0x37b4ed = _0x1922a4[_0x56274c],
+                    _0x4f0bf6 = Lampa[_0xde3c8(0x1b9)][_0xde3c8(0x1a0)]([_0x37b4ed[_0xde3c8(0x1b8)], _0x37b4ed[_0xde3c8(0x1b8)] > 0xa ? ':' : '', _0x37b4ed['episode_number'], _0x462320][_0xde3c8(0x1b6)]('')),
+                    _0x476d1b = Lampa['Timeline'][_0xde3c8(0x1f3)](_0x4f0bf6);
+                if (_0x476d1b[_0xde3c8(0x1ed)] === 0x0)
+                    return ![];
+            }
+            return !![];
+        }
+
+        function _0x3d3291() {
+            var _0x4255a7 = _0x1ecb;
+            Lampa['Lang'][_0x4255a7(0x1a5)]({
+                'content_filters': {
+                    'ru': _0x4255a7(0x21c),
+                    'en': _0x4255a7(0x1c3),
+                    'uk': _0x4255a7(0x196)
+                },
+                'asian_filter': {
+                    'ru': 'Убрать\x20азиатский\x20контент',
+                    'en': _0x4255a7(0x217),
+                    'uk': _0x4255a7(0x1da)
+                },
+                'asian_filter_desc': {
+                    'ru': _0x4255a7(0x225),
+                    'en': 'Hide\x20cards\x20of\x20Asian\x20origin',
+                    'uk': 'Сховати\x20картки\x20азіатського\x20походження'
+                },
+                'language_filter': {
+                    'ru': _0x4255a7(0x1cb),
+                    'en': 'Remove\x20Other\x20Language\x20Content',
+                    'uk': _0x4255a7(0x1dc)
+                },
+                'language_filter_desc': {
+                    'ru': _0x4255a7(0x18b),
+                    'en': _0x4255a7(0x1f0),
+                    'uk': _0x4255a7(0x1c8)
+                },
+                'rating_filter': {
+                    'ru': 'Убрать\x20низкорейтинговый\x20контент',
+                    'en': 'Remove\x20Low-Rated\x20Content',
+                    'uk': _0x4255a7(0x194)
+                },
+                'rating_filter_desc': {
+                    'ru': _0x4255a7(0x1e0),
+                    'en': _0x4255a7(0x1f5),
+                    'uk': _0x4255a7(0x1d4)
+                },
+                'history_filter': {
+                    'ru': _0x4255a7(0x19f),
+                    'en': _0x4255a7(0x1f4),
+                    'uk': _0x4255a7(0x1d5)
+                },
+                'history_filter_desc': {
+                    'ru': _0x4255a7(0x1a7),
+                    'en': _0x4255a7(0x1e9),
+                    'uk': _0x4255a7(0x212)
                 }
             });
+        }
 
-            console.log('Content Filter: Adding interface param');
-            Lampa.SettingsApi.addParam({
-                component: 'interface',
-                param: { name: 'content_filters', type: 'static', default: true },
-                field: { name: Lampa.Lang.translate('content_filters'), description: 'Настройка отображения карточек по фильтрам' },
-                onRender: function(element) {
-                    console.log('Content Filter: Rendering interface param');
+        function _0x41c505() {
+            var _0x2c87df = _0x1ecb;
+            Lampa[_0x2c87df(0x1f8)]['listener'][_0x2c87df(0x209)](_0x2c87df(0x188), function(_0x40ddfc) {
+                var _0x5e2390 = _0x2c87df;
+                _0x40ddfc['name'] == _0x5e2390(0x1d0) && (Lampa[_0x5e2390(0x1f8)][_0x5e2390(0x1d0)]()[_0x5e2390(0x1c0)]()['find'](_0x5e2390(0x1c7))[_0x5e2390(0x198)] == 0x0 && Lampa['SettingsApi'][_0x5e2390(0x1f7)]({
+                    'component': _0x5e2390(0x1b4),
+                    'name': Lampa[_0x5e2390(0x17f)][_0x5e2390(0x19a)](_0x5e2390(0x1b4))
+                }),
+                Lampa[_0x5e2390(0x1f8)][_0x5e2390(0x1d0)]()['update'](),
+                Lampa['Settings'][_0x5e2390(0x1d0)]()[_0x5e2390(0x1c0)]()['find'](_0x5e2390(0x1c7))['addClass'](_0x5e2390(0x20f)));
+            }),
+            Lampa[_0x2c87df(0x1ba)][_0x2c87df(0x226)]({
+                'component': _0x2c87df(0x20c),
+                'param': {
+                    'name': _0x2c87df(0x1b4),
+                    'type': _0x2c87df(0x189),
+                    'default': !![]
+                },
+                'field': {
+                    'name': Lampa['Lang']['translate']('content_filters'),
+                    'description': _0x2c87df(0x1cc)
+                },
+                'onRender': function(_0x232f06) {
+                    var _0x44db38 = _0x2c87df;
                     setTimeout(function() {
-                        var title = Lampa.Lang.translate('content_filters');
-                        $('.settings-param > div:contains("' + title + '")').parent().insertAfter($('div[data-name="interface_size"]'));
-                    }, 0);
-                    element.on('hover:enter', function() {
-                        console.log('Content Filter: Opening content_filters settings');
-                        Lampa.Settings.main().render().find('[data-component="content_filters"]').click();
+                        var _0x523ee9 = _0x1ecb,
+                            _0x128c78 = Lampa['Lang'][_0x523ee9(0x19a)](_0x523ee9(0x1b4));
+                        $(_0x523ee9(0x227) + _0x128c78 + '\x22)')[_0x523ee9(0x1d9)]()[_0x523ee9(0x187)]($(_0x523ee9(0x1df)));
+                    }, 0x0),
+                    _0x232f06['on'](_0x44db38(0x20a), function() {
+                        var _0x4700c4 = _0x44db38;
+                        Lampa[_0x4700c4(0x1f8)][_0x4700c4(0x22f)](_0x4700c4(0x1b4)),
+                        Lampa[_0x4700c4(0x1bb)][_0x4700c4(0x1e3)]()[_0x4700c4(0x1d3)][_0x4700c4(0x182)] = function() {
+                            var _0x39d845 = _0x4700c4;
+                            Lampa['Settings'][_0x39d845(0x22f)](_0x39d845(0x20c));
+                        };
                     });
                 }
-            });
-
-            console.log('Content Filter: Settings initialized');
-        } catch (e) {
-            console.error('Content Filter: Error initializing settings', e);
-            alert('Content Filter: Error initializing settings: ' + e.message);
-        }
-    }
-
-    // Загрузка настроек
-    function loadSettings() {
-        console.log('Content Filter: Loading filter settings');
-        try {
-            settings.asian_filter_enabled = Lampa.Storage.get('asian_filter_enabled', false);
-            settings.language_filter_enabled = Lampa.Storage.get('language_filter_enabled', false);
-            settings.rating_filter_enabled = Lampa.Storage.get('rating_filter_enabled', true);
-            settings.history_filter_enabled = Lampa.Storage.get('history_filter_enabled', false);
-            console.log('Content Filter: Filter settings loaded', settings);
-        } catch (e) {
-            console.error('Content Filter: Error loading filter settings', e);
-            alert('Content Filter: Error loading settings: ' + e.message);
-        }
-    }
-
-    // Проверка URL
-    function isValidUrl(url) {
-        var isValid = url.indexOf(Lampa.TMDB.api('')) > -1 && url.indexOf('/search') === -1 && url.indexOf('/person/') === -1;
-        console.log('Content Filter: Checking URL', url, 'Valid:', isValid);
-        return isValid;
-    }
-
-    // Проверка данных для кнопки "Ещё"
-    function shouldAddMoreButton(data) {
-        return !!data && Array.isArray(data.results) && data.original_length !== data.results.length && 
-               data.page === 1 && !!data.total_pages && data.total_pages > 1;
-    }
-
-    // Поиск элемента по селектору
-    function findElement(start, selector) {
-        var el = start;
-        while (el && el !== document) {
-            if (el.matches && el.matches(selector)) return el;
-            if (el.msMatchesSelector && el.msMatchesSelector(selector)) return el;
-            if (el.webkitMatchesSelector && el.webkitMatchesSelector(selector)) return el;
-            if (el.mozMatchesSelector && el.mozMatchesSelector(selector)) return el;
-            if (el.oMatchesSelector && el.oMatchesSelector(selector)) return el;
-            if (el.className && el.className.indexOf(selector.replace('.', '')) !== -1) return el;
-            el = el.parentElement || el.parentNode;
-        }
-        return null;
-    }
-
-    // Основная функция инициализации
-    function initialize() {
-        console.log('Content Filter: Initializing plugin');
-        try {
-            loadSettings();
-            addTranslations();
-            addSettings();
-
-            // Добавление кнопки "Ещё"
-            Lampa.Listener.follow('line', function(e) {
-                if (e.type !== 'ready' || !shouldAddMoreButton(e.data)) return;
-                var line = $(findElement(e.items, '.items-line')).find('.items-line__head'),
-                    hasMore = line.find('.items-line__more').length !== 0;
-                if (hasMore) return;
-                var moreButton = document.createElement('div');
-                moreButton.classList.add('items-line__more');
-                moreButton.classList.add('selector');
-                moreButton.innerText = Lampa.Lang.translate('more');
-                moreButton.addEventListener('hover:enter', function() {
-                    Lampa.Activity.push({
-                        url: e.data.url,
-                        title: e.data.title || Lampa.Lang.translate('title_category'),
-                        component: 'category_full',
-                        page: 1,
-                        genres: e.data.genres,
-                        filter: e.data.filter,
-                        source: e.data.source || e.data.results.source
-                    });
-                });
-                line.append(moreButton);
-            });
-
-            // Скрытие кнопки "Ещё"
-            Lampa.Listener.follow('line', function(e) {
-                if (e.type !== 'ready' || !shouldAddMoreButton(e.data)) return;
-                if (e.data.results.length === e.data.original_length) {
-                    Lampa.Controller.hide(e.line);
-                    Lampa.Controller.enabled(e.line).more();
+            }),
+            Lampa['SettingsApi']['addParam']({
+                'component': _0x2c87df(0x1b4),
+                'param': {
+                    'name': _0x2c87df(0x181),
+                    'type': 'trigger',
+                    'default': ![]
+                },
+                'field': {
+                    'name': Lampa[_0x2c87df(0x17f)][_0x2c87df(0x19a)](_0x2c87df(0x229)),
+                    'description': Lampa[_0x2c87df(0x17f)][_0x2c87df(0x19a)](_0x2c87df(0x20b))
+                },
+                'onChange': function(_0x252194) {
+                    var _0x3d979a = _0x2c87df;
+                    _0x17b761[_0x3d979a(0x181)] = _0x252194,
+                    Lampa[_0x3d979a(0x213)][_0x3d979a(0x232)](_0x3d979a(0x181), _0x252194);
+                }
+            }),
+            Lampa[_0x2c87df(0x1ba)]['addParam']({
+                'component': _0x2c87df(0x1b4),
+                'param': {
+                    'name': _0x2c87df(0x203),
+                    'type': _0x2c87df(0x195),
+                    'default': ![]
+                },
+                'field': {
+                    'name': Lampa[_0x2c87df(0x17f)][_0x2c87df(0x19a)](_0x2c87df(0x19b)),
+                    'description': Lampa['Lang'][_0x2c87df(0x19a)]('language_filter_desc')
+                },
+                'onChange': function(_0x34f7ea) {
+                    var _0x474cd1 = _0x2c87df;
+                    _0x17b761[_0x474cd1(0x203)] = _0x34f7ea,
+                    Lampa[_0x474cd1(0x213)][_0x474cd1(0x232)]('language_filter_enabled', _0x34f7ea);
+                }
+            }),
+            Lampa[_0x2c87df(0x1ba)][_0x2c87df(0x226)]({
+                'component': _0x2c87df(0x1b4),
+                'param': {
+                    'name': _0x2c87df(0x1d7),
+                    'type': _0x2c87df(0x195),
+                    'default': ![]
+                },
+                'field': {
+                    'name': Lampa[_0x2c87df(0x17f)][_0x2c87df(0x19a)](_0x2c87df(0x1d2)),
+                    'description': Lampa[_0x2c87df(0x17f)][_0x2c87df(0x19a)](_0x2c87df(0x202))
+                },
+                'onChange': function(_0x148d6c) {
+                    var _0x5e4c35 = _0x2c87df;
+                    _0x17b761[_0x5e4c35(0x1d7)] = _0x148d6c,
+                    Lampa[_0x5e4c35(0x213)]['set']('rating_filter_enabled', _0x148d6c);
+                }
+            }),
+            Lampa[_0x2c87df(0x1ba)]['addParam']({
+                'component': _0x2c87df(0x1b4),
+                'param': {
+                    'name': 'history_filter_enabled',
+                    'type': _0x2c87df(0x195),
+                    'default': ![]
+                },
+                'field': {
+                    'name': Lampa[_0x2c87df(0x17f)][_0x2c87df(0x19a)](_0x2c87df(0x1ef)),
+                    'description': Lampa[_0x2c87df(0x17f)]['translate']('history_filter_desc')
+                },
+                'onChange': function(_0x500104) {
+                    var _0x358375 = _0x2c87df;
+                    _0x17b761[_0x358375(0x1e6)] = _0x500104,
+                    Lampa[_0x358375(0x213)][_0x358375(0x232)](_0x358375(0x1e6), _0x500104);
                 }
             });
+        }
 
-            // Применение фильтров
-            Lampa.Listener.follow('request_secuses', function(e) {
-                console.log('Content Filter: Processing request_secuses for URL', e.params.url, 'Data:', e.data);
-                if (isValidUrl(e.params.url) && e.data && Array.isArray(e.data.results)) {
-                    console.log('Content Filter: Original results length', e.data.results.length);
-                    e.data.results.forEach(item => {
-                        console.log('Item:', item.name || item.title, 'Rating:', item.vote_average || 'none', 'Fields:', Object.keys(item || {}));
+        function _0x293ab2() {
+            var _0x3afc85 = _0x1ecb;
+            _0x17b761[_0x3afc85(0x181)] = Lampa[_0x3afc85(0x213)]['get'](_0x3afc85(0x181), ![]),
+            _0x17b761['language_filter_enabled'] = Lampa[_0x3afc85(0x213)]['get'](_0x3afc85(0x203), ![]),
+            _0x17b761[_0x3afc85(0x1d7)] = Lampa[_0x3afc85(0x213)][_0x3afc85(0x220)](_0x3afc85(0x1d7), ![]),
+            _0x17b761[_0x3afc85(0x1e6)] = Lampa[_0x3afc85(0x213)][_0x3afc85(0x220)](_0x3afc85(0x1e6), ![]);
+        }
+
+        function _0x58184e(_0x1a2739) {
+            var _0x5e1bd3 = _0x1ecb;
+            return _0x1a2739['indexOf'](Lampa['TMDB'][_0x5e1bd3(0x1c5)]('')) > -0x1 && _0x1a2739['indexOf']('/search') === -0x1 && _0x1a2739[_0x5e1bd3(0x22b)](_0x5e1bd3(0x1e5)) === -0x1;
+        }
+
+        function _0x570fc8(_0x2dcdff) {
+            var _0x569814 = _0x1ecb;
+            return !!_0x2dcdff && Array[_0x569814(0x190)](_0x2dcdff['results']) && _0x2dcdff[_0x569814(0x1db)] !== _0x2dcdff['results']['length'] && _0x2dcdff[_0x569814(0x180)] === 0x1 && !!_0x2dcdff[_0x569814(0x207)] && _0x2dcdff[_0x569814(0x207)] > 0x1;
+        }
+
+        function _0x2501a2(_0x37fc68, _0x2f1c5d) {
+            var _0x53b397 = _0x1ecb;
+            if (_0x37fc68 && _0x37fc68[_0x53b397(0x210)])
+                return _0x37fc68[_0x53b397(0x210)](_0x2f1c5d);
+            var _0x1ca246 = _0x37fc68;
+            while (_0x1ca246 && _0x1ca246 !== document) {
+                if (_0x1ca246[_0x53b397(0x21f)]) {
+                    if (_0x1ca246[_0x53b397(0x21f)](_0x2f1c5d))
+                        return _0x1ca246;
+                } else {
+                    if (_0x1ca246[_0x53b397(0x1fa)]) {
+                        if (_0x1ca246[_0x53b397(0x1fa)](_0x2f1c5d))
+                            return _0x1ca246;
+                    } else {
+                        if (_0x1ca246['webkitMatchesSelector']) {
+                            if (_0x1ca246[_0x53b397(0x1fd)](_0x2f1c5d))
+                                return _0x1ca246;
+                        } else {
+                            if (_0x1ca246['mozMatchesSelector']) {
+                                if (_0x1ca246[_0x53b397(0x183)](_0x2f1c5d))
+                                    return _0x1ca246;
+                            } else {
+                                if (_0x1ca246[_0x53b397(0x1ae)]) {
+                                    if (_0x1ca246[_0x53b397(0x1ae)](_0x2f1c5d))
+                                        return _0x1ca246;
+                                } else {
+                                    if (_0x1ca246['className'] && _0x1ca246[_0x53b397(0x1a1)][_0x53b397(0x22b)](_0x2f1c5d[_0x53b397(0x19c)]('.', '')) !== -0x1)
+                                        return _0x1ca246;
+                                }
+                            }
+                        }
+                    }
+                }
+                _0x1ca246 = _0x1ca246[_0x53b397(0x1b0)] || _0x1ca246[_0x53b397(0x1c1)];
+            }
+            return null;
+        }
+
+        function waitForLampa(callback, maxAttempts, interval) {
+            var attempts = 0;
+            console.log('Content Filter: Checking for Lampa');
+            var checkLampa = setInterval(function() {
+                attempts++;
+                if (typeof Lampa !== 'undefined') {
+                    console.log('Content Filter: Lampa found after', attempts, 'attempts');
+                    clearInterval(checkLampa);
+                    callback();
+                } else if (attempts >= maxAttempts) {
+                    console.error('Content Filter: Lampa not found after', maxAttempts, 'attempts');
+                    clearInterval(checkLampa);
+                } else {
+                    console.log('Content Filter: Lampa not found, attempt', attempts);
+                }
+            }, interval);
+        }
+
+        function _0x5110e0() {
+            var _0x5cc5ec = _0x1ecb;
+            console.log('Content Filter: Initializing _0x5110e0');
+            var _0x5c8957 = _0x33a580(this, function() {
+                var _0x555236 = _0x1ecb;
+                return _0x5c8957[_0x555236(0x21e)]()['search']('(((.+)+)+)+$')[_0x555236(0x21e)]()[_0x555236(0x19e)](_0x5c8957)['search']('(((.+)+)+)+$');
+            });
+            _0x5c8957();
+            var _0x193b03 = _0x34f920(this, function() {
+                var _0x2f020a = _0x1ecb,
+                    _0x3c22cd = function() {
+                        var _0x13b7fa = _0x1ecb, _0x34c4b5;
+                        try {
+                            _0x34c4b5 = Function(_0x13b7fa(0x208) + _0x13b7fa(0x1bf) + ');')();
+                        } catch (_0x3c59fe) {
+                            _0x34c4b5 = window;
+                        }
+                        return _0x34c4b5;
+                    },
+                    _0x1da53b = _0x3c22cd(),
+                    _0x3b7bea = _0x1da53b[_0x2f020a(0x201)] = _0x1da53b[_0x2f020a(0x201)] || {},
+                    _0x2dc892 = [_0x2f020a(0x215), _0x2f020a(0x1fb), _0x2f020a(0x21a), _0x2f020a(0x1ec), _0x2f020a(0x214), 'table', _0x2f020a(0x1a8)];
+                for (var _0x2da8fc = 0x0; _0x2da8fc < _0x2dc892[_0x2f020a(0x198)]; _0x2da8fc++) {
+                    var _0x152f63 = _0x34f920[_0x2f020a(0x19e)][_0x2f020a(0x1bd)]['bind'](_0x34f920),
+                        _0x369efc = _0x2dc892[_0x2da8fc],
+                        _0x3fc58d = _0x3b7bea[_0x369efc] || _0x152f63;
+                    _0x152f63[_0x2f020a(0x211)] = _0x34f920[_0x2f020a(0x1f6)](_0x34f920),
+                    _0x152f63[_0x2f020a(0x21e)] = _0x3fc58d[_0x2f020a(0x21e)][_0x2f020a(0x1f6)](_0x3fc58d),
+                    _0x3b7bea[_0x369efc] = _0x152f63;
+                }
+            });
+            _0x193b03();
+            // Убрана проверка hostname
+            console.log('Content Filter: Hostname check skipped, proceeding');
+            if (window[_0x5cc5ec(0x1ac)])
+                return;
+            window[_0x5cc5ec(0x1ac)] = !![],
+            _0x5aee9c(),
+            _0x293ab2(),
+            _0x3d3291(),
+            _0x41c505(),
+            Lampa['Listener'][_0x5cc5ec(0x209)](_0x5cc5ec(0x1b5), function(_0x10ec5b) {
+                var _0x96f872 = _0x5cc5ec;
+                if (_0x10ec5b['type'] !== _0x96f872(0x1ce) || !_0x570fc8(_0x10ec5b[_0x96f872(0x1b2)]))
+                    return;
+                var _0x1deecd = $(_0x2501a2(_0x10ec5b[_0x96f872(0x22a)], '.items-line'))[_0x96f872(0x19d)](_0x96f872(0x1b1)),
+                    _0x45b9ac = _0x1deecd[_0x96f872(0x19d)](_0x96f872(0x200))['length'] !== 0x0;
+                if (_0x45b9ac)
+                    return;
+                var _0xe34ed7 = document['createElement'](_0x96f872(0x1d8));
+                _0xe34ed7['classList']['add'](_0x96f872(0x233)),
+                _0xe34ed7['classList'][_0x96f872(0x1a5)]('selector'),
+                _0xe34ed7[_0x96f872(0x219)] = Lampa[_0x96f872(0x17f)][_0x96f872(0x19a)](_0x96f872(0x186)),
+                _0xe34ed7[_0x96f872(0x206)](_0x96f872(0x20a), function() {
+                    var _0x4e86c8 = _0x96f872;
+                    Lampa[_0x4e86c8(0x193)][_0x4e86c8(0x20e)]({
+                        'url': _0x10ec5b[_0x4e86c8(0x1b2)]['url'],
+                        'title': _0x10ec5b[_0x4e86c8(0x1b2)][_0x4e86c8(0x1ea)] || Lampa[_0x4e86c8(0x17f)][_0x4e86c8(0x19a)](_0x4e86c8(0x22e)),
+                        'component': _0x4e86c8(0x191),
+                        'page': 0x1,
+                        'genres': _0x10ec5b[_0x4e86c8(0x1cf)][_0x4e86c8(0x1ee)],
+                        'filter': _0x10ec5b[_0x4e86c8(0x1b2)][_0x4e86c8(0x18f)],
+                        'source': _0x10ec5b[_0x4e86c8(0x1b2)]['source'] || _0x10ec5b[_0x4e86c8(0x1cf)][_0x4e86c8(0x22d)][_0x4e86c8(0x197)]
                     });
-                    e.data.original_length = e.data.results.length;
-                    e.data.results = filters.apply(e.data.results);
-                    console.log('Content Filter: Filtered results length', e.data.results.length);
+                }),
+                _0x1deecd[_0x96f872(0x1d6)](_0xe34ed7);
+            }),
+            Lampa[_0x5cc5ec(0x1c6)][_0x5cc5ec(0x209)](_0x5cc5ec(0x1b5), function(_0x38e6c7) {
+                var _0x52db0f = _0x5cc5ec;
+                if (_0x38e6c7[_0x52db0f(0x185)] !== _0x52db0f(0x1d6) || !_0x570fc8(_0x38e6c7['data']))
+                    return;
+                _0x38e6c7[_0x52db0f(0x205)][_0x52db0f(0x198)] === _0x38e6c7['data'][_0x52db0f(0x223)]['length'] && Lampa[_0x52db0f(0x1bb)][_0x52db0f(0x18a)](_0x38e6c7['line']) && Lampa['Controller'][_0x52db0f(0x1c2)](_0x38e6c7[_0x52db0f(0x1b5)]['more']());
+            }),
+            Lampa[_0x5cc5ec(0x1c6)][_0x5cc5ec(0x209)]('request_secuses', function(_0x407b0e) {
+                var _0xf247e7 = _0x5cc5ec;
+                console.log('Content Filter: Processing request_secuses for URL', _0x407b0e.params.url, 'Data:', _0x407b0e.data);
+                if (_0x58184e(_0x407b0e['params'][_0xf247e7(0x1aa)]) && _0x407b0e['data'] && Array[_0xf247e7(0x190)](_0x407b0e[_0xf247e7(0x1b2)]['results'])) {
+                    console.log('Content Filter: Original results length', _0x407b0e.data.results.length);
+                    _0x407b0e.data.results.forEach(item => {
+                        console.log('Content Filter: Item:', item.name || item.title, 'Rating:', item.vote_average || 'none', 'Fields:', Object.keys(item || {}));
+                    });
+                    _0x407b0e['data'][_0xf247e7(0x1db)] = _0x407b0e['data'][_0xf247e7(0x223)][_0xf247e7(0x198)],
+                    _0x407b0e[_0xf247e7(0x1b2)][_0xf247e7(0x223)] = _0x19f0df['apply'](_0x407b0e[_0xf247e7(0x1b2)]['results']);
+                    console.log('Content Filter: Filtered results length', _0x407b0e.data.results.length);
                 } else {
                     console.log('Content Filter: Skipping request_secuses, invalid URL or data');
                 }
             });
-
-            console.log('Content Filter: Plugin initialized successfully');
-            alert('Content Filter: Plugin loaded');
-        } catch (e) {
-            console.error('Content Filter: Error initializing plugin', e);
-            alert('Content Filter: Error initializing plugin: ' + e.message);
         }
-    }
 
-    // Инициализация плагина
-    if (window.content_filter_plugin) {
-        console.log('Content Filter: Plugin already loaded, running initialization');
-        initialize();
-    } else {
-        console.log('Content Filter: Setting up app listener');
-        window.content_filter_plugin = true;
-        Lampa.Listener.follow('app', function(e) {
-            if (e.type === 'appready') {
-                console.log('Content Filter: App ready, initializing plugin');
-                initialize();
-            }
-        });
-    }
+        if (window[_0x38fdd0(0x22c)]) {
+            console.log('Content Filter: bylampa true, checking for Lampa');
+            waitForLampa(_0x5110e0, 20, 500);
+        } else {
+            console.log('Content Filter: Setting up app listener');
+            waitForLampa(function() {
+                window[_0x38fdd0(0x1ac)] = !![],
+                Lampa[_0x38fdd0(0x1c6)]['follow']('app', function(_0x20cc63) {
+                    var _0x1e06bf = _0x38fdd0;
+                    if (_0x20cc63['type'] === _0x1e06bf(0x224)) {
+                        console.log('Content Filter: App ready, initializing');
+                        _0x5110e0();
+                    }
+                });
+            }, 20, 500);
+        }
+    })();
 })();
