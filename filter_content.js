@@ -495,7 +495,7 @@ function _0x1ecb(_0xe76eb6, _0x1433dc) {
             }
         });
         _0x193b03();
-        if (window.location.hostname != 'lampa.mx') {
+        if (window.location.hostname != 'lampa.byskaz.ru') {
             Lampa[_0x5cc5ec(0x216)][_0x5cc5ec(0x231)]('Ошибка\x20доступа');
             return;
         }
