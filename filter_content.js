@@ -177,29 +177,45 @@
 
     // Добавление настроек в интерфейс
     function addSettings() {
-        Lampa.Settings.main.add({
-            component: 'interface',
-            param: {
+        // Проверка наличия метода Lampa.Settings.main.add
+        if (Lampa.Settings.main && typeof Lampa.Settings.main.add === 'function') {
+            Lampa.Settings.main.add({
+                component: 'interface',
+                param: {
+                    name: 'content_filters',
+                    type: 'trigger',
+                    default: true
+                },
+                field: {
+                    name: Lampa.Lang.translate('content_filters'),
+                    description: 'Настройка отображения карточек по фильтрам'
+                },
+                onRender: function(view) {
+                    setTimeout(() => {
+                        var name = Lampa.Lang.translate('content_filters');
+                        $(`.settings-param > div:contains("${name}")`).parent().after($('div[data-name="interface_size"]'));
+                    }, 0);
+                    view.on('hover:enter', () => {
+                        Lampa.Settings.open('content_filters');
+                        Lampa.Settings.main(Lampa.Settings.get('interface'));
+                    });
+                }
+            });
+        } else {
+            console.warn('Lampa.Settings.main.add is not available, using fallback SettingsApi.addComponent');
+            // Альтернативный метод добавления настроек
+            Lampa.SettingsApi.addComponent({
+                component: 'interface',
                 name: 'content_filters',
-                type: 'trigger',
-                default: true
-            },
-            field: {
-                name: Lampa.Lang.translate('content_filters'),
-                description: 'Настройка отображения карточек по фильтрам'
-            },
-            onRender: function(view) {
-                setTimeout(() => {
-                    var name = Lampa.Lang.translate('content_filters');
-                    $(`.settings-param > div:contains("${name}")`).parent().after($('div[data-name="interface_size"]'));
-                }, 0);
-                view.on('hover:enter', () => {
+                title: Lampa.Lang.translate('content_filters'),
+                description: 'Настройка отображения карточек по фильтрам',
+                onClick: () => {
                     Lampa.Settings.open('content_filters');
-                    Lampa.Settings.main(Lampa.Settings.get('interface'));
-                });
-            }
-        });
+                }
+            });
+        }
 
+        // Добавление параметров фильтров
         Lampa.SettingsApi.addParam({
             component: 'content_filters',
             param: {
@@ -215,7 +231,7 @@
                 settings.asian_filter_enabled = value;
                 Lampa.Storage.set('asian_filter_enabled', value);
                 console.log('Asian filter toggled:', value, 'Saved:', Lampa.Storage.get('asian_filter_enabled', false));
-                Lampa.Activity.active().render(true); // Принудительный ререндер
+                Lampa.Activity.active().render(true);
             }
         });
 
@@ -234,7 +250,7 @@
                 settings.language_filter_enabled = value;
                 Lampa.Storage.set('language_filter_enabled', value);
                 console.log('Language filter toggled:', value, 'Saved:', Lampa.Storage.get('language_filter_enabled', false));
-                Lampa.Activity.active().render(true); // Принудительный ререндер
+                Lampa.Activity.active().render(true);
             }
         });
 
@@ -253,7 +269,7 @@
                 settings.rating_filter_enabled = value;
                 Lampa.Storage.set('rating_filter_enabled', value);
                 console.log('Rating filter toggled:', value, 'Saved:', Lampa.Storage.get('rating_filter_enabled', false));
-                Lampa.Activity.active().render(true); // Принудительный ререндер
+                Lampa.Activity.active().render(true);
             }
         });
 
@@ -272,7 +288,7 @@
                 settings.history_filter_enabled = value;
                 Lampa.Storage.set('history_filter_enabled', value);
                 console.log('History filter toggled:', value, 'Saved:', Lampa.Storage.get('history_filter_enabled', false));
-                Lampa.Activity.active().render(true); // Принудительный ререндер
+                Lampa.Activity.active().render(true);
             }
         });
     }
