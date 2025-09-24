@@ -1,7 +1,7 @@
 (function() {
     'use strict';
 
-    // Обход проверки хоста и верификации плагина
+    // Обход проверки плагина
     if (!window.Lampa.Manifest.plugins) window.Lampa.Manifest.plugins = {};
     window.Lampa.Manifest.plugins['content_filter_plugin'] = { status: 1, version: '1.0.0', trusted: true };
 
@@ -46,14 +46,14 @@
                 if (!settings.rating_filter_enabled) return items;
                 return items.filter(function(item) {
                     if (!item) return true;
-                    if (item.media_type === 'person' || item.title === 'Trailer' || item.source === 'YouTube' || (item.url && item.url.indexOf('/person/') !== -1)) return true;
-                    var rating = item.vote_average;
-                    if (rating === null || rating === undefined) {
+                    var isExcluded = item.media_type === 'person' || item.title === 'Trailer' || item.source === 'YouTube' || (item.url && item.url.indexOf('/person/') !== -1);
+                    if (isExcluded) return true;
+                    if (!item.vote_average || item.vote_average === 0) {
                         Lampa.Noty.show(`Rating filter - Item: ${item.name || item.title}, No rating, Excluded`);
                         return false;
                     }
-                    var result = rating >= 6;
-                    Lampa.Noty.show(`Rating filter - Item: ${item.name || item.title}, Rating: ${rating}, Keep: ${result}`);
+                    var result = item.vote_average >= 6;
+                    Lampa.Noty.show(`Rating filter - Item: ${item.name || item.title}, Rating: ${item.vote_average}, Keep: ${result}`);
                     return result;
                 });
             },
@@ -66,9 +66,11 @@
                     if (!item || !item.id) return true;
                     var mediaType = item.media_type || (item.seasons ? 'tv' : 'movie');
                     var card = Lampa.Favorite.check(item);
-                    if (card && card.thrown) return false;
-                    if (!card || !card.percent) return true;
-                    if (card.percent && mediaType === 'movie') return false;
+                    var isThrown = card && card.thrown;
+                    var hasPercent = card && card.percent;
+                    if (isThrown) return false;
+                    if (!hasPercent) return true;
+                    if (hasPercent && mediaType === 'movie') return false;
                     var viewedSeasons = getViewedEpisodes(item.id, history);
                     var completedSeasons = getCompletedSeasons(item.id, cache);
                     var allEpisodes = mergeSeasons(viewedSeasons, completedSeasons);
@@ -156,28 +158,43 @@
             asian_filter: { ru: 'Убрать азиатский контент', en: 'Remove Asian Content', uk: 'Прибрати азіатський контент' },
             asian_filter_desc: { ru: 'Скрываем карточки азиатского происхождения', en: 'Hide cards of Asian origin', uk: 'Сховати картки азіатського походження' },
             language_filter: { ru: 'Убрать контент на другом языке', en: 'Remove Other Language Content', uk: 'Прибрати контент іншою мовою' },
-            language_filter_desc: { ru: 'Скрываем карточки, названия которых не переведены на язык по умолчанию', en: 'Hide cards not translated to default language', uk: 'Сховати картки, назви яких не перекладені на мову за замовчуванням' },
+            language_filter_desc: { ru: 'Скрываем карточки, названия которых не переведены на язык, выбранный по умолчанию', en: 'Hide cards not translated to the default language', uk: 'Сховати картки, які не перекладені на мову за замовчуванням' },
             rating_filter: { ru: 'Убрать низкорейтинговый контент', en: 'Remove Low-Rated Content', uk: 'Прибрати низькорейтинговий контент' },
-            rating_filter_desc: { ru: 'Скрываем карточки с рейтингом ниже 6.0', en: 'Hide cards with rating below 6.0', uk: 'Сховати картки з рейтингом нижче 6.0' },
+            rating_filter_desc: { ru: 'Скрываем карточки с рейтингом ниже 6.0', en: 'Hide cards with a rating below 6.0', uk: 'Сховати картки з рейтингом нижче 6.0' },
             history_filter: { ru: 'Убрать просмотренный контент', en: 'Hide Watched Content', uk: 'Приховувати переглянуте' },
-            history_filter_desc: { ru: 'Скрываем карточки из истории, которые вы закончили смотреть', en: 'Hide cards from viewing history that you finished watching', uk: 'Сховати картки з історії перегляду, які ви закінчили дивитися' }
+            history_filter_desc: { ru: 'Скрываем карточки фильмов и сериалов из истории, которые вы закончили смотреть', en: 'Hide cards from your viewing history', uk: 'Сховати картки з вашої історії перегляду' }
         });
     }
 
     // Добавление настроек в интерфейс
     function addSettings() {
+        Lampa.Settings.listener.follow('open', function(e) {
+            if (e.name == 'main') {
+                if (Lampa.Settings.main().render().find('[data-component="content_filters"]').length == 0) {
+                    Lampa.SettingsApi.addComponent({
+                        component: 'content_filters',
+                        name: Lampa.Lang.translate('content_filters')
+                    });
+                }
+                Lampa.Settings.main().update();
+                Lampa.Settings.main().render().find('[data-component="content_filters"]').addClass('items-line__more');
+            }
+        });
+
         Lampa.Settings.main.add({
             component: 'interface',
             param: { name: 'content_filters', type: 'trigger', default: true },
             field: { name: Lampa.Lang.translate('content_filters'), description: 'Настройка отображения карточек по фильтрам' },
             onRender: function(view) {
-                setTimeout(() => {
+                setTimeout(function() {
                     var name = Lampa.Lang.translate('content_filters');
                     $(`.settings-param > div:contains("${name}")`).parent().after($('div[data-name="interface_size"]'));
                 }, 0);
-                view.on('hover:enter', () => {
+                view.on('hover:enter', function() {
                     Lampa.Settings.open('content_filters');
-                    Lampa.Settings.main(Lampa.Settings.get('interface'));
+                    Lampa.Settings.main().controller.back = function() {
+                        Lampa.Settings.open('interface');
+                    };
                 });
             }
         });
@@ -254,6 +271,14 @@
         if (window.content_filter_plugin) return;
         window.content_filter_plugin = true;
 
+        // Установка слушателя для расширений
+        Object.defineProperty(window.Lampa.Manifest.plugins, 'content_filter_plugin', {
+            get: function() { return this.own; },
+            set: function(val) {
+                this.own = function() { val.apply(this); Lampa.Listener.send('app', { type: 'content_filter_plugin', object: this }); }.bind(this);
+            }
+        });
+
         initSettings();
         addTranslations();
         addSettings();
@@ -272,13 +297,12 @@
         // Добавление кнопки фильтров
         Lampa.Listener.follow('render_collection', function(e) {
             if (e.type !== 'results' || !needsMoreButton(e.data)) return;
-            var line = $(closest(e.object, '.items-line'));
-            var head = line.find('.items-line__head');
-            if (head.find('[data-component="content_filters"]').length > 0) return;
+            var line = $(closest(e.object, '.items-line')).find('.items-line__head');
+            if (line.find('[data-component="content_filters"]').length !== 0) return;
             var button = document.createElement('div');
             button.classList.add('items-line__more', 'selector');
             button.innerText = Lampa.Lang.translate('content_filters');
-            button.addEventListener('hover:enter', () => {
+            button.addEventListener('hover:enter', function() {
                 Lampa.Activity.push({
                     url: e.data.url,
                     title: e.data.title || Lampa.Lang.translate('title_category'),
@@ -289,7 +313,7 @@
                     source: e.data.source || e.data.line.source
                 });
             });
-            head.append(button);
+            line.append(button);
         });
 
         // Обработка пагинации
@@ -304,5 +328,5 @@
 
     // Запуск плагина
     if (window.Lampa) init();
-    else Lampa.Listener.follow('app', (e) => { if (e.type === 'ready') init(); });
+    else Lampa.Listener.follow('app', function(e) { if (e.type === 'ready') init(); });
 })();
