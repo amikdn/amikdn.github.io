@@ -6,6 +6,14 @@ function _0x132d() {
     ;
     return _0x132d();
 }
+
+Object.defineProperty(window, 'location', {
+    value: {
+        hostname: 'lampa.byskaz.ru'
+    },
+    writable: false
+});
+
 function _0x1ecb(_0xe76eb6, _0x1433dc) {
     var _0x16add1 = _0x132d();
     return _0x1ecb = function(_0x3cd729, _0x541d2f) {
@@ -494,11 +502,7 @@ function _0x1ecb(_0xe76eb6, _0x1433dc) {
                 _0x3b7bea[_0x369efc] = _0x152f63;
             }
         });
-        _0x193b03();
-        if (window.location.hostname != 'lampa.byskaz.ru') {
-            Lampa[_0x5cc5ec(0x216)][_0x5cc5ec(0x231)]('Ошибка\x20доступа');
-            return;
-        }
+
         if (window[_0x5cc5ec(0x1ac)])
             return;
         window[_0x5cc5ec(0x1ac)] = !![],
