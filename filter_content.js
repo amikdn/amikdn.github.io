@@ -277,8 +277,7 @@
                     const interfaceMenu = Lampa.Settings.main().render().find('[data-component="interface"] .settings--list');
                     interfaceMenu.empty().append(submenu);
                     Lampa.Controller.focus(submenu[0]);
-                    Lampa.Controller.enabled().element = submenu[0];
-                    Lampa.Controller.enabled().controller.trigger('hover:enter');
+                    $(submenu[0]).trigger('click');
                 });
             }
         });
