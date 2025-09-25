@@ -151,11 +151,6 @@
     // ======================= ЛОКАЛИЗАЦИЯ =======================
     function setupLang() {
         Lampa.Lang.add({
-            content_filters: {
-                ru: 'Фильтр контента',
-                en: 'Content Filter',
-                uk: 'Фільтр контенту'
-            },
             asian_filter: {
                 ru: 'Убрать азиатский контент',
                 en: 'Remove Asian Content',
@@ -209,18 +204,20 @@
                 default: true
             },
             field: {
-                name: Lampa.Lang.translate('content_filters'),
-                description: 'Настройка отображения карточек по фильтрам'
+                name: 'Фильтр контента',
+                description: 'Настройка отображения карточек по фильтрам',
+                icon: 'filter'
             },
             onRender: function (elem) {
-                // Переносим сразу под "Интерфейс"
                 setTimeout(() => {
-                    $('div[data-name="interface_size"]').after(elem);
-                }, 0);
+                    let uiSection = $('div[data-name="interface_size"]').closest('.settings-param');
+                    if (uiSection.length) {
+                        uiSection.after(elem);
+                    }
+                }, 50);
             }
         });
 
-        // Переключатели
         [
             { key: 'asian_filter_enabled', title: 'asian_filter', desc: 'asian_filter_desc' },
             { key: 'language_filter_enabled', title: 'language_filter', desc: 'language_filter_desc' },
@@ -236,7 +233,8 @@
                 },
                 field: {
                     name: Lampa.Lang.translate(f.title),
-                    description: Lampa.Lang.translate(f.desc)
+                    description: Lampa.Lang.translate(f.desc),
+                    icon: 'dot-circle'
                 },
                 onChange: v => {
                     filtersState[f.key] = v;
@@ -256,7 +254,6 @@
         setupLang();
         setupSettings();
 
-        // Перехват запросов
         Lampa.Listener.follow('request_secuses', e => {
             if (e.data && Array.isArray(e.data.results)) {
                 e.data.original_length = e.data.results.length;
