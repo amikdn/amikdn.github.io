@@ -1,7 +1,7 @@
 (function () {
     'use strict';
 
-    // Включенные фильтры (по умолчанию выключены)
+    // Состояние фильтров
     let filtersState = {
         asian_filter_enabled: false,
         language_filter_enabled: false,
@@ -9,7 +9,7 @@
         history_filter_enabled: false,
     };
 
-    // Логика применения фильтров
+    // Логика фильтров
     let Filters = {
         filters: [
             // Фильтр азиатского контента
@@ -36,11 +36,11 @@
                     if (!item) return true;
 
                     let defLang = Lampa.Storage.get('language');
-                    let title = item.original_title || item.original_name;
-                    let name = item.title || item.name;
+                    let originalTitle = item.original_title || item.original_name;
+                    let translatedTitle = item.title || item.name;
 
                     if (item.original_language === defLang) return true;
-                    if (item.original_language !== defLang && name !== title) return true;
+                    if (item.original_language !== defLang && translatedTitle !== originalTitle) return true;
 
                     return false;
                 });
@@ -57,7 +57,7 @@
                         item.type === 'trailer' ||
                         item.name === 'Trailer' ||
                         item.site === 'YouTube' ||
-                        (item.title && item.title && item.title.toLowerCase().indexOf('trailer') !== -1);
+                        (item.title && item.title.toLowerCase().indexOf('trailer') !== -1);
 
                     if (isTrailer) return true;
 
@@ -97,7 +97,6 @@
             },
         ],
 
-        // Применение фильтров
         apply: function (items) {
             let filtered = Lampa.Arrays.clone(items);
             for (let i = 0; i < this.filters.length; i++) {
@@ -109,22 +108,19 @@
 
     // Проверка просмотренных эпизодов
     function getWatchedEpisodes(id, history) {
-        let found = history.timeline.filter(obj => {
-            return obj.id === id && Array.isArray(obj.seasons) && obj.seasons.length > 0;
-        })[0];
+        let found = history.timeline
+            ? history.timeline.filter(obj => obj.id === id && Array.isArray(obj.seasons) && obj.seasons.length > 0)[0]
+            : null;
         if (!found) return [];
 
         let result = [];
-        found.seasons.filter(season => {
-            return season.season_number > 0 &&
-                season.episode_count > 0 &&
-                season.air_date &&
-                new Date(season.air_date) < new Date();
-        }).forEach(season => {
-            for (let i = 1; i <= season.episode_count; i++) {
-                result.push({ season_number: season.season_number, episode_number: i });
-            }
-        });
+        found.seasons
+            .filter(season => season.season_number > 0 && season.episode_count > 0 && season.air_date && new Date(season.air_date) < new Date())
+            .forEach(season => {
+                for (let i = 1; i <= season.episode_count; i++) {
+                    result.push({ season_number: season.season_number, episode_number: i });
+                }
+            });
         return result;
     }
 
@@ -212,6 +208,21 @@
 
     // Настройки
     function initSettings() {
+        // Добавляем сам раздел "Фильтр контента"
+        Lampa.SettingsApi.addComponent({
+            component: 'content_filter_plugin',
+            param: {
+                name: 'content_filters',
+                type: 'static',
+                default: true
+            },
+            field: {
+                name: Lampa.Lang.translate('content_filters'),
+                description: 'Настройка отображения карточек по фильтрам'
+            }
+        });
+
+        // --- Переключатели ---
         Lampa.SettingsApi.addParam({
             component: 'content_filter_plugin',
             param: { name: 'asian_filter_enabled', type: 'trigger', default: false },
@@ -270,6 +281,7 @@
         initLang();
         initSettings();
 
+        // Перехват запросов и применение фильтров
         Lampa.Listener.follow('request_secuses', e => {
             if (e.data && Array.isArray(e.data.results)) {
                 e.data.original_length = e.data.results.length;
