@@ -465,16 +465,12 @@ function _0x1ecb(_0xe76eb6, _0x1433dc) {
 
     function _0x5110e0() {
         var _0x5cc5ec = _0x1ecb;
-        // Отключаем антиотладочные проверки
         var _0x5c8957 = function() {};
         var _0x193b03 = function() {};
-        // Регистрируем плагин как подтверждённый
         Lampa.Manifest.plugins = Lampa.Manifest.plugins || [];
         Lampa.Manifest.plugins.push({
             name: 'Content Filter',
             version: '1.0.0',
-            status: 'verified',
-            url: 'http://lampa.byskaz.ru/plugins/content_filter.js'
         });
         if (window[_0x5cc5ec(0x1ac)]) return;
         window[_0x5cc5ec(0x1ac)] = !![];
@@ -518,8 +514,6 @@ function _0x1ecb(_0xe76eb6, _0x1433dc) {
         });
     }
 
-    // Принудительно устанавливаем window.bylampa
     window.bylampa = true;
-    // Запускаем плагин
     _0x5110e0();
 }()));
