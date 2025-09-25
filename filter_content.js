@@ -154,6 +154,7 @@
     // Добавление переводов
     function addTranslations() {
         console.log('Adding translations for content filters');
+        console.log('Lampa.Lang available:', !!Lampa.Lang, typeof Lampa.Lang.translate);
         const translations = {
             content_filters: {
                 ru: 'Фильтр контента',
@@ -201,7 +202,12 @@
                 uk: 'Сховати картки з вашої історії перегляду'
             }
         };
-        Lampa.Lang.translate(translations);
+        try {
+            Lampa.Lang.translate(translations);
+            console.log('Translations applied successfully');
+        } catch (e) {
+            console.error('Failed to apply translations:', e);
+        }
         // Проверка переводов
         console.log('Translations check:', {
             content_filters: Lampa.Lang.translate('content_filters'),
@@ -289,7 +295,7 @@
             console.error('Failed to add content_filters component:', e);
         }
 
-        // Добавляем параметры фильтров
+        // Добавляем параметры фильтров с прямыми переводами
         try {
             Lampa.SettingsApi.addParam({
                 component: 'content_filters',
@@ -386,9 +392,9 @@
             console.error('Failed to add history_filter_enabled param:', e);
         }
 
-        // Принудительное отображение и перемещение
-        function ensureVisibilityAndMove() {
-            console.log('Ensuring content_filters visibility and moving');
+        // Принудительное отображение и перемещение с повторными попытками
+        function ensureVisibilityAndMove(attempt = 1, maxAttempts = 5) {
+            console.log(`Ensuring content_filters visibility and moving, attempt ${attempt}`);
             const settingsMenu = Lampa.Settings.main().render();
             
             // Вывод всех элементов главного меню для отладки
@@ -402,16 +408,16 @@
             console.log('Main settings elements:', mainSettings);
 
             // Удаление дубликата из подменю "Интерфейс"
-            const interfaceMenu = settingsMenu.find('[data-component="interface"]');
-            const interfaceContentFilters = interfaceMenu.find('[data-name="content_filters"], [data-component="content_filters"], .settings-param:contains("Фильтр контента"), .settings-folder:contains("Фильтр контента")');
+            const interfaceMenu = settingsMenu.find('[data-component="interface"], [data-name="interface"], .settings-folder:contains("Интерфейс")');
+            const interfaceContentFilters = interfaceMenu.find('[data-name="content_filters"], [data-component="content_filters"], .settings-param:contains("Фильтр контента"), .settings-folder:contains("Фильтр контента"), [data-name="filter_content"]');
             if (interfaceContentFilters.length) {
                 console.log('Removing content_filters from interface menu');
                 interfaceContentFilters.remove();
             }
 
             // Перемещение пункта ниже "Интерфейс"
-            const targetElement = settingsMenu.find('[data-component="content_filters"], .settings-folder:contains("Фильтр контента")');
-            const interfaceElement = settingsMenu.find('[data-component="interface"], .settings-folder:contains("Интерфейс")');
+            const targetElement = settingsMenu.find('[data-component="content_filters"], .settings-folder:contains("Фильтр контента"), [data-name="filter_content"]');
+            const interfaceElement = settingsMenu.find('[data-component="interface"], [data-name="interface"], .settings-folder:contains("Интерфейс")');
             console.log('Target element (content_filters) found:', targetElement.length);
             console.log('Interface element found:', interfaceElement.length);
             if (targetElement.length && interfaceElement.length) {
@@ -419,6 +425,11 @@
                 targetElement.insertAfter(interfaceElement.last());
             } else {
                 console.warn('Failed to move content_filters: target or interface not found');
+                if (attempt < maxAttempts) {
+                    console.log(`Retrying move, attempt ${attempt + 1}`);
+                    setTimeout(() => ensureVisibilityAndMove(attempt + 1, maxAttempts), 500);
+                    return;
+                }
                 // Fallback: перемещение в конец главного меню
                 const settingsContainer = settingsMenu.find('.settings--list');
                 if (targetElement.length && settingsContainer.length) {
@@ -430,11 +441,11 @@
 
         // Выполняем после готовности приложения
         if (window.appready) {
-            setTimeout(ensureVisibilityAndMove, 200); // Увеличена задержка до 200 мс
+            setTimeout(() => ensureVisibilityAndMove(), 500);
         } else {
             Lampa.Listener.follow('app', function(e) {
                 if (e.type === 'ready') {
-                    setTimeout(ensureVisibilityAndMove, 200);
+                    setTimeout(() => ensureVisibilityAndMove(), 500);
                 }
             });
         }
@@ -450,9 +461,9 @@
             version: '1.0.0'
         });
 
-        addTranslations(); // Переводы вызываются первыми
         addEventListenerExtension();
         initFilterSettings();
+        addTranslations(); // Переводы вызываются после инициализации
         addSettings();
 
         // Обработчик события для добавления кнопки "Ещё"
