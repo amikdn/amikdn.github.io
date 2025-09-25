@@ -1,14 +1,6 @@
 (function() {
     'use strict';
 
-    // Проверка на повторную инициализацию
-    if (window.contentFilterInitialized) {
-        console.log('Content Filter plugin already initialized, skipping');
-        return;
-    }
-    window.contentFilterInitialized = true;
-    console.log('Starting Content Filter plugin initialization');
-
     // Локальный объект переводов
     const translations = {
         content_filters: 'Фильтр контента',
