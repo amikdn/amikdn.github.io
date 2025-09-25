@@ -48,7 +48,6 @@
             // Фильтр просмотренного
             function (items) {
                 if (!filtersState.history_filter_enabled) return items;
-                let history = Lampa.Storage.get('history', '{}');
                 return items.filter(item => {
                     if (!item) return true;
                     let viewed = Lampa.Timeline.view(item);
@@ -117,13 +116,12 @@
     }
 
     function addSettings() {
-        // Заголовок-группа "Фильтр контента" внутри секции Интерфейс
+        // Подзаголовок "Фильтр контента" внутри Интерфейса
         Lampa.SettingsApi.addParam({
             component: 'interface',
             param: {
-                name: 'content_filters',
-                type: 'group',
-                default: true
+                name: 'content_filters_header',
+                type: 'static'
             },
             field: {
                 name: Lampa.Lang.translate('content_filters'),
@@ -131,7 +129,7 @@
             }
         });
 
-        // Все фильтры добавляем в компонент "interface"
+        // Все фильтры как параметры внутри Интерфейса
         Lampa.SettingsApi.addParam({
             component: 'interface',
             param: {
@@ -218,7 +216,7 @@
         });
     }
 
-    // ждём готовности приложения
+    // Ждём готовности приложения
     if (window.appready) {
         init();
     } else {
