@@ -198,89 +198,6 @@
     }
 
     function addSettings() {
-        Lampa.SettingsApi.addComponent({
-            component: 'content_filters',
-            name: translations.content_filters
-        });
-
-        Lampa.Listener.follow('settings_component', function(e) {
-            if (e.name === 'content_filters') {
-                $(e.element).hide();
-            }
-        });
-
-        Lampa.SettingsApi.addParam({
-            component: 'content_filters',
-            param: {
-                name: 'asian_filter_enabled',
-                type: 'trigger',
-                default: false
-            },
-            field: {
-                name: translations.asian_filter,
-                description: translations.asian_filter_desc
-            },
-            onChange: function(value) {
-                filterSettings.asian_filter_enabled = value;
-                Lampa.Storage.set('asian_filter_enabled', value);
-                Lampa.Settings.update();
-            }
-        });
-
-        Lampa.SettingsApi.addParam({
-            component: 'content_filters',
-            param: {
-                name: 'language_filter_enabled',
-                type: 'trigger',
-                default: false
-            },
-            field: {
-                name: translations.language_filter,
-                description: translations.language_filter_desc
-            },
-            onChange: function(value) {
-                filterSettings.language_filter_enabled = value;
-                Lampa.Storage.set('language_filter_enabled', value);
-                Lampa.Settings.update();
-            }
-        });
-
-        Lampa.SettingsApi.addParam({
-            component: 'content_filters',
-            param: {
-                name: 'rating_filter_enabled',
-                type: 'trigger',
-                default: false
-            },
-            field: {
-                name: translations.rating_filter,
-                description: translations.rating_filter_desc
-            },
-            onChange: function(value) {
-                filterSettings.rating_filter_enabled = value;
-                Lampa.Storage.set('rating_filter_enabled', value);
-                Lampa.Settings.update();
-            }
-        });
-
-        Lampa.SettingsApi.addParam({
-            component: 'content_filters',
-            param: {
-                name: 'history_filter_enabled',
-                type: 'trigger',
-                default: false
-            },
-            field: {
-                name: translations.history_filter,
-                description: translations.history_filter_desc
-            },
-            onChange: function(value) {
-                filterSettings.history_filter_enabled = value;
-                Lampa.Storage.set('history_filter_enabled', value);
-                Lampa.Settings.update();
-            }
-        });
-
         Lampa.SettingsApi.addParam({
             component: 'interface',
             param: {
@@ -308,7 +225,59 @@
                 }, 0);
 
                 element.on('hover:enter', function() {
-                    Lampa.Settings.show('content_filters');
+                    const submenu = $('<div class="settings-folder selector" data-component="content_filters"><div class="settings-folder__name">' + translations.content_filters + '</div><div class="settings--list"></div></div>');
+                    const submenuList = submenu.find('.settings--list');
+
+                    const params = [
+                        {
+                            name: 'asian_filter_enabled',
+                            title: translations.asian_filter,
+                            description: translations.asian_filter_desc,
+                            storageKey: 'asian_filter_enabled'
+                        },
+                        {
+                            name: 'language_filter_enabled',
+                            title: translations.language_filter,
+                            description: translations.language_filter_desc,
+                            storageKey: 'language_filter_enabled'
+                        },
+                        {
+                            name: 'rating_filter_enabled',
+                            title: translations.rating_filter,
+                            description: translations.rating_filter_desc,
+                            storageKey: 'rating_filter_enabled'
+                        },
+                        {
+                            name: 'history_filter_enabled',
+                            title: translations.history_filter,
+                            description: translations.history_filter_desc,
+                            storageKey: 'history_filter_enabled'
+                        }
+                    ];
+
+                    params.forEach(param => {
+                        const isEnabled = Lampa.Storage.get(param.storageKey, false);
+                        const paramElement = $(`
+                            <div class="settings-param selector" data-name="${param.name}" data-type="trigger">
+                                <div class="settings-param__name"><span>${param.title}</span></div>
+                                <div class="settings-param__descr">${param.description}</div>
+                                <div class="settings-param__value">${isEnabled ? 'Вкл' : 'Выкл'}</div>
+                            </div>
+                        `);
+                        paramElement.on('hover:enter', function() {
+                            const newValue = !Lampa.Storage.get(param.storageKey, false);
+                            Lampa.Storage.set(param.storageKey, newValue);
+                            filterSettings[param.name] = newValue;
+                            paramElement.find('.settings-param__value').text(newValue ? 'Вкл' : 'Выкл');
+                            Lampa.Settings.update();
+                        });
+                        submenuList.append(paramElement);
+                    });
+
+                    const interfaceMenu = Lampa.Settings.main().render().find('[data-component="interface"] .settings--list');
+                    interfaceMenu.append(submenu);
+                    Lampa.Controller.focus(submenu);
+                    submenu.trigger('hover:enter');
                 });
             }
         });
@@ -362,9 +331,13 @@
         });
     }
 
-    Lampa.Listener.follow('app', function(e) {
-        if (e.type === 'ready') {
-            initPlugin();
-        }
-    });
+    if (window.appready) {
+        initPlugin();
+    } else {
+        Lampa.Listener.follow('app', function(e) {
+            if (e.type === 'ready') {
+                initPlugin();
+            }
+        });
+    }
 })();
