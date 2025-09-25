@@ -10,16 +10,20 @@
 
     let Filters = {
         filters: [
-            // фильтр азиатского контента
+            // Азиатский контент
             function (items) {
                 if (!filtersState.asian_filter_enabled) return items;
-                const asianLangs = ['ja', 'ko', 'zh', 'th', 'vi', 'hi', 'ta', 'te', 'ml', 'kn', 'bn', 'ur', 'pa', 'gu', 'mr', 'ne', 'si', 'my', 'km', 'lo', 'mn', 'ka', 'hy', 'az', 'kk', 'ky', 'tg', 'tk', 'uz'];
+                const asianLangs = [
+                    'ja', 'ko', 'zh', 'th', 'vi', 'hi', 'ta', 'te', 'ml', 'kn',
+                    'bn', 'ur', 'pa', 'gu', 'mr', 'ne', 'si', 'my', 'km', 'lo',
+                    'mn', 'ka', 'hy', 'az', 'kk', 'ky', 'tg', 'tk', 'uz'
+                ];
                 return items.filter(item => {
                     if (!item || !item.original_language) return true;
                     return asianLangs.indexOf(item.original_language.toLowerCase()) === -1;
                 });
             },
-            // фильтр по языку
+            // Фильтр по языку
             function (items) {
                 if (!filtersState.language_filter_enabled) return items;
                 let lang = Lampa.Storage.get('language', 'ru');
@@ -32,7 +36,7 @@
                     return false;
                 });
             },
-            // фильтр по рейтингу
+            // Фильтр по рейтингу
             function (items) {
                 if (!filtersState.rating_filter_enabled) return items;
                 return items.filter(item => {
@@ -41,22 +45,14 @@
                     return item.vote_average >= 6;
                 });
             },
-            // фильтр просмотренного
+            // Фильтр просмотренного
             function (items) {
                 if (!filtersState.history_filter_enabled) return items;
                 let history = Lampa.Storage.get('history', '{}');
-                let cache = Lampa.Storage.get('cache', []);
-
                 return items.filter(item => {
-                    if (!item || !item.original_language) return true;
-
-                    let type = item.media_type;
-                    if (!type) type = item.seasons ? 'tv' : 'movie';
-
+                    if (!item) return true;
                     let viewed = Lampa.Timeline.view(item);
-
                     if (viewed && viewed.percent === 100) return false;
-
                     return true;
                 });
             }
@@ -121,16 +117,23 @@
     }
 
     function addSettings() {
-        Lampa.SettingsApi.addComponent({
-            component: 'content_filters',
-            name: Lampa.Lang.translate('content_filters'),
-            type: 'button',
-            default: true,
-            onRender: fixSettingsUI
+        // Заголовок-группа "Фильтр контента" внутри секции Интерфейс
+        Lampa.SettingsApi.addParam({
+            component: 'interface',
+            param: {
+                name: 'content_filters',
+                type: 'group',
+                default: true
+            },
+            field: {
+                name: Lampa.Lang.translate('content_filters'),
+                description: 'Настройка отображения карточек по фильтрам'
+            }
         });
 
+        // Все фильтры добавляем в компонент "interface"
         Lampa.SettingsApi.addParam({
-            component: 'content_filters',
+            component: 'interface',
             param: {
                 name: 'asian_filter_enabled',
                 type: 'trigger',
@@ -147,7 +150,7 @@
         });
 
         Lampa.SettingsApi.addParam({
-            component: 'content_filters',
+            component: 'interface',
             param: {
                 name: 'language_filter_enabled',
                 type: 'trigger',
@@ -164,7 +167,7 @@
         });
 
         Lampa.SettingsApi.addParam({
-            component: 'content_filters',
+            component: 'interface',
             param: {
                 name: 'rating_filter_enabled',
                 type: 'trigger',
@@ -181,7 +184,7 @@
         });
 
         Lampa.SettingsApi.addParam({
-            component: 'content_filters',
+            component: 'interface',
             param: {
                 name: 'history_filter_enabled',
                 type: 'trigger',
@@ -198,23 +201,6 @@
         });
     }
 
-    function fixSettingsUI() {
-        setTimeout(() => {
-            let filterBlock = $(`.settings-param[data-component="content_filters"]`);
-            let interfaceBlock = $(`.settings-param[data-component="interface"]`);
-
-            if (filterBlock.length && interfaceBlock.length) {
-                interfaceBlock.after(filterBlock);
-            }
-
-            filterBlock.find('.settings-param__name').text('Фильтр контента');
-
-            if (!filterBlock.find('.settings-param__icon').length) {
-                filterBlock.prepend(`<div class="settings-param__icon"><i class="fas fa-filter"></i></div>`);
-            }
-        }, 200);
-    }
-
     function init() {
         addLangs();
         addSettings();
@@ -224,7 +210,7 @@
         filtersState.rating_filter_enabled = Lampa.Storage.get('rating_filter_enabled', false);
         filtersState.history_filter_enabled = Lampa.Storage.get('history_filter_enabled', false);
 
-        // перехватываем запросы и фильтруем
+        // Перехватываем результаты запросов
         Lampa.Listener.follow('request_secuses', function (e) {
             if (e.data && Array.isArray(e.data.results)) {
                 e.data.results = Filters.apply(e.data.results);
