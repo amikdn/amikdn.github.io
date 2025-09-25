@@ -80,10 +80,12 @@
             }
         ],
         apply: function(items) {
-            let filteredItems = Lampa.Utils.clone(items);
+            console.log('Applying filters to items:', items.length);
+            let filteredItems = [...items]; // Используем spread для клонирования
             for (let i = 0; i < this.filters.length; i++) {
                 filteredItems = this.filters[i](filteredItems);
             }
+            console.log('Filtered items:', filteredItems.length);
             return filteredItems;
         }
     };
@@ -232,7 +234,7 @@
             if (element.matches(selector)) return element;
         }
         let current = element;
-        while (current && current !== document) {
+        while (current && current !== document)52
             if (current.msMatchesSelector && current.msMatchesSelector(selector)) return current;
             if (current.webkitMatchesSelector && current.webkitMatchesSelector(selector)) return current;
             if (current.mozMatchesSelector && current.mozMatchesSelector(selector)) return current;
@@ -439,6 +441,12 @@
                 }
             });
         }
+
+        // Принудительное отображение компонента
+        $(document).ready(function() {
+            console.log('Ensuring content_filters visibility');
+            $('[data-component="content_filters"]').removeClass('hide').css('display', 'block');
+        });
     }
 
     // Инициализация плагина
@@ -455,28 +463,6 @@
         initFilterSettings();
         addTranslations();
         addSettings();
-
-        // Проверяем, добавлен ли компонент настроек
-        Lampa.Listener.follow('appready', function(event) {
-            console.log('Appready event triggered, name:', event.name);
-            if (event.name === 'main') {
-                console.log('Main settings page detected, ensuring content_filters component');
-                const settingsMain = Lampa.Settings.main();
-                const render = settingsMain.render();
-                const contentFiltersElement = render.find('[data-component="content_filters"]');
-                if (contentFiltersElement.length === 0) {
-                    console.log('Adding content_filters component');
-                    Lampa.SettingsApi.addComponent({
-                        component: 'content_filters',
-                        name: Lampa.Lang.translate('content_filters')
-                    });
-                } else {
-                    console.log('content_filters component already exists');
-                }
-                settingsMain.update();
-                console.log('Settings updated');
-            }
-        });
 
         // Обработчик события для добавления кнопки "Ещё"
         Lampa.Listener.follow('more', function(event) {
