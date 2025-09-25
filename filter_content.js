@@ -154,7 +154,7 @@
     // Добавление переводов
     function addTranslations() {
         console.log('Adding translations for content filters');
-        Lampa.Lang.translate({
+        const translations = {
             content_filters: {
                 ru: 'Фильтр контента',
                 en: 'Content Filter',
@@ -200,6 +200,13 @@
                 en: 'Hide cards from your viewing history',
                 uk: 'Сховати картки з вашої історії перегляду'
             }
+        };
+        Lampa.Lang.translate(translations);
+        // Проверка переводов
+        console.log('Translations check:', {
+            content_filters: Lampa.Lang.translate('content_filters'),
+            asian_filter: Lampa.Lang.translate('asian_filter'),
+            asian_filter_desc: Lampa.Lang.translate('asian_filter_desc')
         });
     }
 
@@ -396,7 +403,7 @@
 
             // Удаление дубликата из подменю "Интерфейс"
             const interfaceMenu = settingsMenu.find('[data-component="interface"]');
-            const interfaceContentFilters = interfaceMenu.find('[data-name="content_filters"], .settings-param:contains("Фильтр контента")');
+            const interfaceContentFilters = interfaceMenu.find('[data-name="content_filters"], [data-component="content_filters"], .settings-param:contains("Фильтр контента"), .settings-folder:contains("Фильтр контента")');
             if (interfaceContentFilters.length) {
                 console.log('Removing content_filters from interface menu');
                 interfaceContentFilters.remove();
@@ -423,11 +430,11 @@
 
         // Выполняем после готовности приложения
         if (window.appready) {
-            setTimeout(ensureVisibilityAndMove, 100);
+            setTimeout(ensureVisibilityAndMove, 200); // Увеличена задержка до 200 мс
         } else {
             Lampa.Listener.follow('app', function(e) {
                 if (e.type === 'ready') {
-                    setTimeout(ensureVisibilityAndMove, 100);
+                    setTimeout(ensureVisibilityAndMove, 200);
                 }
             });
         }
@@ -443,9 +450,9 @@
             version: '1.0.0'
         });
 
+        addTranslations(); // Переводы вызываются первыми
         addEventListenerExtension();
         initFilterSettings();
-        addTranslations();
         addSettings();
 
         // Обработчик события для добавления кнопки "Ещё"
