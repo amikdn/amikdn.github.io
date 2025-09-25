@@ -319,30 +319,27 @@
 
                         // Удаление дубликата из главного меню
                         const settingsMenu = Lampa.Settings.main().render();
-                        const mainMenuContentFilters = settingsMenu.find('[data-component="content_filters"]:not(.settings--list [data-component="content_filters"])');
+                        const mainMenuContentFilters = settingsMenu.find('[data-component="content_filters"]:not(.settings--list [data-component="content_filters"]), .settings-folder:contains("Фильтр контента")');
                         if (mainMenuContentFilters.length) {
                             console.log('Removing content_filters from main menu');
                             mainMenuContentFilters.remove();
                         }
-                    }, 100);
 
-                    // Вывод элементов подменю "Интерфейс" для отладки
-                    const interfaceMenu = Lampa.Settings.main().render().find('[data-component="interface"]');
-                    const interfaceSettings = interfaceMenu.find('.settings-param, .settings-folder').map((i, el) => {
-                        return {
-                            name: $(el).attr('data-name'),
-                            title: $(el).attr('title') || $(el).find('.settings-param-title').text() || $(el).text().trim(),
-                            component: $(el).attr('data-component')
-                        };
-                    }).get();
-                    console.log('Interface settings elements:', interfaceSettings);
+                        // Вывод элементов подменю "Интерфейс" для отладки
+                        const interfaceMenu = Lampa.Settings.main().render().find('[data-component="interface"]');
+                        const interfaceSettings = interfaceMenu.find('.settings-param, .settings-folder').map((i, el) => {
+                            return {
+                                name: $(el).attr('data-name'),
+                                title: $(el).attr('title') || $(el).find('.settings-param-title').text() || $(el).text().trim(),
+                                component: $(el).attr('data-component')
+                            };
+                        }).get();
+                        console.log('Interface settings elements:', interfaceSettings);
+                    }, 100);
 
                     element.on('hover:enter', function() {
                         console.log('Opening content_filters settings');
                         try {
-                            Lampa.Settings.main().render().find('[data-component="content_filters"]').trigger('click');
-                        } catch (e) {
-                            console.error('Failed to open content_filters settings:', e);
                             Lampa.Activity.push({
                                 url: '',
                                 title: Lampa.Lang.translate('content_filters') || 'Фильтр контента',
@@ -352,6 +349,8 @@
                                     component: 'content_filters'
                                 }
                             });
+                        } catch (e) {
+                            console.error('Failed to open content_filters settings:', e);
                         }
                     });
                 }
