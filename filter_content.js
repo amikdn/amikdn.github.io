@@ -100,7 +100,6 @@
         }
     };
 
-    // Получение эпизодов из истории
     function getHistoryEpisodes(id, history) {
         const historyItem = history.filter(item => item.id === id && Array.isArray(item.episodes) && item.episodes.length > 0)[0];
         if (!historyItem) return [];
@@ -121,7 +120,6 @@
         return result;
     }
 
-    // Получение эпизодов из избранного
     function getFavoriteEpisodes(id, favorites) {
         const favoriteItem = favorites.filter(item => item.id === id)[0] || {};
         if (!Array.isArray(favoriteItem.items) || favoriteItem.items.length === 0) return [];
@@ -130,7 +128,6 @@
         );
     }
 
-    // Объединение эпизодов
     function mergeEpisodes(historyEpisodes, favoriteEpisodes) {
         const allEpisodes = historyEpisodes.concat(favoriteEpisodes);
         const uniqueEpisodes = [];
@@ -149,7 +146,6 @@
         return uniqueEpisodes;
     }
 
-    // Проверка, полностью ли просмотрен контент
     function isFullyWatched(title, episodes) {
         if (!episodes || episodes.length === 0) return false;
         for (let i = 0; i < episodes.length; i++) {
@@ -161,13 +157,11 @@
         return true;
     }
 
-    // Проверка, нужно ли применять фильтры к URL
     function shouldApplyFilters(url) {
         console.log('Checking URL for filtering:', url);
         return true;
     }
 
-    // Проверка, нужно ли показывать кнопку "Ещё"
     function shouldShowMoreButton(data) {
         return !!data && 
                Array.isArray(data.results) && 
@@ -177,7 +171,6 @@
                data.total_pages > 1;
     }
 
-    // Поиск ближайшего элемента по селектору
     function findClosestElement(element, selector) {
         if (element && element.matches && element.matches(selector)) return element;
         let current = element;
@@ -192,7 +185,6 @@
         return null;
     }
 
-    // Добавление слушателя событий
     function addEventListenerExtension() {
         if (window.lampa_listener_extensions) {
             console.log('Event listener extension already added, skipping');
@@ -213,7 +205,6 @@
         });
     }
 
-    // Инициализация настроек фильтров
     function initFilterSettings() {
         console.log('Initializing filter settings');
         filterSettings.asian_filter_enabled = Lampa.Storage.get('asian_filter_enabled', false);
@@ -222,7 +213,6 @@
         filterSettings.history_filter_enabled = Lampa.Storage.get('history_filter_enabled', false);
     }
 
-    // Добавление настроек
     function addSettings() {
         console.log('Attempting to add content_filters settings');
 
@@ -237,7 +227,7 @@
             console.error('Failed to add content_filters component:', e);
         }
 
-        // Добавляем параметры фильтров
+        // Добавляем параметры фильтров в подменю content_filters
         try {
             Lampa.SettingsApi.addParam({
                 component: 'content_filters',
@@ -388,7 +378,7 @@
                         }).get();
                         console.log('Registered settings components:', allSettings);
 
-                        // Проверка содержимого подменю "Фильтр контента"
+                        // Вывод содержимого подменю content_filters
                         const contentFiltersItems = Lampa.Settings.main().render().find('[data-component="content_filters"] .settings-param').map((i, el) => {
                             return {
                                 name: $(el).attr('data-name'),
@@ -400,17 +390,14 @@
                     }, 0);
 
                     element.on('hover:enter', function() {
-                        console.log('Hover:enter triggered for content_filters');
+                        console.log('Attempting to open content_filters submenu');
                         try {
                             console.log('Content filters component exists:', Lampa.Settings.main().render().find('[data-component="content_filters"]').length);
-                            Lampa.Settings.open('content_filters');
+                            Lampa.Settings.show('content_filters');
                         } catch (e) {
-                            console.error('Failed to open content_filters:', e);
-                            try {
-                                Lampa.Settings.show('content_filters');
-                            } catch (e2) {
-                                console.error('Fallback failed to open content_filters:', e2);
-                            }
+                            console.error('Failed to open content_filters submenu:', e);
+                            // Fallback: пытаемся триггерить событие
+                            Lampa.Settings.main().render().find('[data-component="content_filters"]').trigger('hover:enter');
                         }
                     });
                 }
@@ -419,22 +406,11 @@
         } catch (e) {
             console.error('Failed to add content_filters param to interface:', e);
         }
-
-        // Периодическая проверка на случай появления content_filters в главном меню
-        setInterval(() => {
-            const mainMenuContentFilters = Lampa.Settings.main().render().find('[data-component="content_filters"], .settings-folder:contains("Фильтр контента"), .settings-folder:contains("Content Filter"), .settings-folder:contains("content_filters")');
-            if (mainMenuContentFilters.length) {
-                console.log('Removing content_filters from main menu (periodic check)');
-                mainMenuContentFilters.remove();
-            }
-        }, 1000);
     }
 
-    // Инициализация плагина
     function initPlugin() {
         console.log('Initializing Content Filter plugin');
 
-        // Регистрируем плагин
         Lampa.Manifest.plugins = Lampa.Manifest.plugins || [];
         Lampa.Manifest.plugins.push({
             name: 'Content Filter',
@@ -445,7 +421,6 @@
         initFilterSettings();
         addSettings();
 
-        // Обработчик события для добавления кнопки "Ещё"
         Lampa.Listener.follow('more', function(event) {
             if (event.type !== 'open' || !shouldShowMoreButton(event.data)) return;
             const lineElement = $(findClosestElement(event.body, '.items-line')).find('.items-line__head');
@@ -469,7 +444,6 @@
             lineElement.append(moreButton);
         });
 
-        // Обработчик события для автоматической загрузки следующей страницы
         Lampa.Listener.follow('more', function(event) {
             if (event.type !== 'append' || !shouldShowMoreButton(event.data)) return;
             if (event.items.length === event.data.results.length) {
@@ -477,7 +451,6 @@
             }
         });
 
-        // Обработчик успешных запросов для применения фильтров
         Lampa.Listener.follow('request_secuses', function(event) {
             if (shouldApplyFilters(event.params.url) && event.data && Array.isArray(event.data.results)) {
                 console.log('Applying filters to URL:', event.params.url, 'Results:', event.data.results);
@@ -487,7 +460,6 @@
         });
     }
 
-    // Ждём готовности приложения
     if (window.appready) {
         initPlugin();
     } else {
