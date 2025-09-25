@@ -234,7 +234,7 @@
             if (element.matches(selector)) return element;
         }
         let current = element;
-        while (current && current !== document)52
+        while (current && current !== document)
             if (current.msMatchesSelector && current.msMatchesSelector(selector)) return current;
             if (current.webkitMatchesSelector && current.webkitMatchesSelector(selector)) return current;
             if (current.mozMatchesSelector && current.mozMatchesSelector(selector)) return current;
