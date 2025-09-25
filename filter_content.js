@@ -39,7 +39,7 @@
                 if (!filterSettings.language_filter_enabled) return items;
                 return items.filter(item => {
                     if (!item) return true;
-                    const defaultLang = Lampa.Lang.translate('language');
+                    const defaultLang = Lampa.Lang.translate('language') || 'ru';
                     const originalTitle = item.original_title || item.original_name;
                     const title = item.title || item.name;
                     return item.original_language === defaultLang || title !== originalTitle;
@@ -274,7 +274,10 @@
         try {
             Lampa.SettingsApi.addComponent({
                 component: 'content_filters',
-                name: 'Фильтр контента' // Явное задание названия
+                name: 'Фильтр контента',
+                icon: '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+                      '<path d="M3 4H21V6H3V4ZM3 11H21V13H3V11ZM3 18H21V20H3V18Z" fill="currentColor"/>' +
+                      '</svg>'
             });
             console.log('content_filters component added');
         } catch (e) {
@@ -291,22 +294,11 @@
                     default: true
                 },
                 field: {
-                    name: 'Фильтр контента', // Явное задание названия
+                    name: 'Фильтр контента',
                     description: 'Настройка отображения карточек по фильтрам'
                 },
                 onRender: function(element) {
                     console.log('Rendering content_filters param in interface');
-                    // Перемещаем элемент после "Размер интерфейса"
-                    setTimeout(function() {
-                        const targetElement = $('div[data-name="content_filters"]');
-                        const interfaceSizeElement = $('div[data-name="interface_size"]');
-                        if (targetElement.length && interfaceSizeElement.length) {
-                            console.log('Moving content_filters after interface_size');
-                            targetElement.parent().insertAfter(interfaceSizeElement);
-                        } else {
-                            console.warn('Failed to move content_filters: target or interface_size not found');
-                        }
-                    }, 0);
                     element.on('hover:enter', function() {
                         console.log('Opening content_filters settings');
                         try {
@@ -344,12 +336,13 @@
                 },
                 field: {
                     name: 'Убрать азиатский контент',
-                    description: Lampa.Lang.translate('asian_filter_desc') || 'Скрываем карточки азиатского происхождения'
+                    description: 'Скрываем карточки азиатского происхождения'
                 },
                 onChange: function(value) {
                     console.log('asian_filter_enabled changed to:', value);
                     filterSettings.asian_filter_enabled = value;
                     Lampa.Storage.set('asian_filter_enabled', value);
+                    Lampa.Settings.update();
                 }
             });
             console.log('asian_filter_enabled param added');
@@ -367,12 +360,13 @@
                 },
                 field: {
                     name: 'Убрать контент на другом языке',
-                    description: Lampa.Lang.translate('language_filter_desc') || 'Скрываем карточки, названия которых не переведены на язык, выбранный по умолчанию'
+                    description: 'Скрываем карточки, названия которых не переведены на язык, выбранный по умолчанию'
                 },
                 onChange: function(value) {
                     console.log('language_filter_enabled changed to:', value);
                     filterSettings.language_filter_enabled = value;
                     Lampa.Storage.set('language_filter_enabled', value);
+                    Lampa.Settings.update();
                 }
             });
             console.log('language_filter_enabled param added');
@@ -390,12 +384,13 @@
                 },
                 field: {
                     name: 'Убрать низкорейтинговый контент',
-                    description: Lampa.Lang.translate('rating_filter_desc') || 'Скрываем карточки с рейтингом ниже 6.0'
+                    description: 'Скрываем карточки с рейтингом ниже 6.0'
                 },
                 onChange: function(value) {
                     console.log('rating_filter_enabled changed to:', value);
                     filterSettings.rating_filter_enabled = value;
                     Lampa.Storage.set('rating_filter_enabled', value);
+                    Lampa.Settings.update();
                 }
             });
             console.log('rating_filter_enabled param added');
@@ -413,12 +408,13 @@
                 },
                 field: {
                     name: 'Убрать просмотренный контент',
-                    description: Lampa.Lang.translate('history_filter_desc') || 'Скрываем карточки фильмов и сериалов из истории, которые вы закончили смотреть'
+                    description: 'Скрываем карточки фильмов и сериалов из истории, которые вы закончили смотреть'
                 },
                 onChange: function(value) {
                     console.log('history_filter_enabled changed to:', value);
                     filterSettings.history_filter_enabled = value;
                     Lampa.Storage.set('history_filter_enabled', value);
+                    Lampa.Settings.update();
                 }
             });
             console.log('history_filter_enabled param added');
@@ -426,17 +422,35 @@
             console.error('Failed to add history_filter_enabled param:', e);
         }
 
-        // Принудительное отображение компонента
-        $(document).ready(function() {
-            console.log('Ensuring content_filters visibility');
+        // Принудительное отображение компонента и проверка параметров
+        function ensureVisibilityAndMove() {
+            console.log('Ensuring content_filters visibility and moving');
+            const settingsMenu = Lampa.Settings.main().render();
+            const params = settingsMenu.find('[data-component="content_filters"]');
+            console.log('Content_filters params found:', params.length);
             $('[data-component="content_filters"]').removeClass('hide').css('display', 'block');
-            // Проверка отображения параметров
-            setTimeout(function() {
-                const settingsMenu = Lampa.Settings.main().render();
-                const params = settingsMenu.find('[data-component="content_filters"]');
-                console.log('Content_filters params found:', params.length);
-            }, 1000);
-        });
+            
+            // Перемещение пункта
+            const targetElement = $('div[data-name="content_filters"]');
+            const interfaceSizeElement = $('div[data-name="interface_size"], .settings-param[data-name="interface_size"]');
+            if (targetElement.length && interfaceSizeElement.length) {
+                console.log('Moving content_filters after interface_size');
+                targetElement.parent().insertAfter(interfaceSizeElement);
+            } else {
+                console.warn('Failed to move content_filters: target or interface_size not found');
+            }
+        }
+
+        // Выполняем после готовности приложения
+        if (window.appready) {
+            ensureVisibilityAndMove();
+        } else {
+            Lampa.Listener.follow('app', function(e) {
+                if (e.type === 'ready') {
+                    ensureVisibilityAndMove();
+                }
+            });
+        }
     }
 
     // Инициализация плагина
@@ -462,12 +476,12 @@
             const moreButton = document.createElement('div');
             moreButton.classList.add('items-line__more');
             moreButton.classList.add('selector');
-            moreButton.innerText = Lampa.Lang.translate('more');
+            moreButton.innerText = Lampa.Lang.translate('more') || 'Ещё';
             moreButton.addEventListener('hover:enter', function() {
                 console.log('More button clicked, opening activity');
                 Lampa.Activity.push({
                     url: event.data.url,
-                    title: event.data.title || Lampa.Lang.translate('title_category'),
+                    title: event.data.title || Lampa.Lang.translate('title_category') || 'Категория',
                     component: 'category_full',
                     page: 1,
                     genres: event.data.genres,
@@ -496,7 +510,15 @@
         });
     }
 
-    // Запуск плагина
-    console.log('Starting plugin execution');
-    initPlugin();
+    // Ждём готовности приложения
+    if (window.appready) {
+        initPlugin();
+    } else {
+        Lampa.Listener.follow('app', function(e) {
+            if (e.type === 'ready') {
+                console.log('App is ready, starting plugin');
+                initPlugin();
+            }
+        });
+    }
 })();
