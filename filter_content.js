@@ -7,10 +7,10 @@
 
     // Объект для хранения настроек фильтров
     var settings = {
-        asian_filter_enabled: Lampa.Storage.get('asian_filter_enabled', false),
-        language_filter_enabled: Lampa.Storage.get('language_filter_enabled', false),
-        rating_filter_enabled: Lampa.Storage.get('rating_filter_enabled', false),
-        history_filter_enabled: Lampa.Storage.get('history_filter_enabled', false)
+        asian_filter_enabled: false,
+        language_filter_enabled: false,
+        rating_filter_enabled: false,
+        history_filter_enabled: false
     };
 
     // Переводы для интерфейса
@@ -25,68 +25,68 @@
                 zh: '内容过滤器'
             },
             asian_filter: {
-                ru: 'Скрыть азиатский контент',
-                en: 'Hide Asian content',
-                uk: 'Приховати азійський контент',
+                ru: 'Убрать азиатский контент',
+                en: 'Remove Asian Content',
+                uk: 'Прибрати азіатський контент',
                 be: 'Схаваць азіяцкі кантэнт',
                 pt: 'Ocultar conteúdo asiático',
                 zh: '隐藏亚洲内容'
             },
             asian_filter_desc: {
-                ru: 'Скрывает контент из азиатских стран (Китай, Корея, Япония и т.д.)',
-                en: 'Hides content from Asian countries (China, Korea, Japan, etc.)',
-                uk: 'Приховує контент з азійських країн (Китай, Корея, Японія тощо)',
-                be: 'Хавае кантэнт з азіяцкіх краін (Кітай, Карэя, Японія і г.д.)',
-                pt: 'Oculta conteúdo de países asiáticos (China, Coreia, Japão, etc.)',
-                zh: '隐藏来自亚洲国家（中国、韩国、日本等）的内容'
+                ru: 'Скрываем карточки азиатского происхождения',
+                en: 'Hide cards of Asian origin',
+                uk: 'Сховати картки азіатського походження',
+                be: 'Схаваць карткі азіяцкага паходжання',
+                pt: 'Oculta cartões de origem asiática',
+                zh: '隐藏亚洲来源的卡片'
             },
             language_filter: {
-                ru: 'Фильтр по языку',
-                en: 'Language filter',
-                uk: 'Фільтр за мовою',
-                be: 'Фільтр па мове',
-                pt: 'Filtro de idioma',
-                zh: '语言过滤器'
+                ru: 'Убрать контент на другом языке',
+                en: 'Remove Other Language Content',
+                uk: 'Прибрати контент іншою мовою',
+                be: 'Схаваць кантэнт на іншай мове',
+                pt: 'Remover conteúdo em outro idioma',
+                zh: '移除其他语言内容'
             },
             language_filter_desc: {
-                ru: 'Показывает только контент на выбранном языке',
-                en: 'Shows only content in the selected language',
-                uk: 'Показує лише контент на обраній мові',
-                be: 'Паказвае толькі кантэнт на абранай мове',
-                pt: 'Mostra apenas conteúdo no idioma selecionado',
-                zh: '仅显示所选语言的内容'
+                ru: 'Скрываем карточки, названия которых не переведены на язык, выбранный по умолчанию',
+                en: 'Hide cards not translated to the default language',
+                uk: 'Сховати картки, які не перекладені на мову за замовчуванням',
+                be: 'Схаваць карткі, якія не перакладзены на мову па змаўчанні',
+                pt: 'Ocultar cartões não traduzidos para o idioma padrão',
+                zh: '隐藏未翻译为默认语言的卡片'
             },
             rating_filter: {
-                ru: 'Фильтр по рейтингу',
-                en: 'Rating filter',
-                uk: 'Фільтр за рейтингом',
-                be: 'Фільтр па рэйтынгу',
-                pt: 'Filtro de classificação',
-                zh: '评分过滤器'
+                ru: 'Убрать низкорейтинговый контент',
+                en: 'Remove Low-Rated Content',
+                uk: 'Прибрати низько рейтинговий контент',
+                be: 'Схаваць нізка рэйтынгавы кантэнт',
+                pt: 'Remover conteúdo de baixa classificação',
+                zh: '移除低评分内容'
             },
             rating_filter_desc: {
-                ru: 'Скрывает контент с рейтингом ниже 7',
-                en: 'Hides content with a rating below 7',
-                uk: 'Приховує контент з рейтингом нижче 7',
-                be: 'Хавае кантэнт з рэйтынгам ніжэй за 7',
-                pt: 'Oculta conteúdo com classificação inferior a 7',
-                zh: '隐藏评分低于7的内容'
+                ru: 'Скрываем карточки с рейтингом ниже 6.0',
+                en: 'Hide cards with a rating below 6.0',
+                uk: 'Сховати картки з рейтингом нижче 6.0',
+                be: 'Схаваць карткі з рэйтынгам ніжэй за 6.0',
+                pt: 'Ocultar cartões com classificação abaixo de 6.0',
+                zh: '隐藏评分低于6.0的卡片'
             },
             history_filter: {
-                ru: 'Скрыть просмотренное',
-                en: 'Hide watched content',
-                uk: 'Приховати переглянуте',
+                ru: 'Убрать просмотренный контент',
+                en: 'Hide Watched Content',
+                uk: 'Приховувати переглянуте',
                 be: 'Схаваць прагледжанае',
                 pt: 'Ocultar conteúdo assistido',
                 zh: '隐藏已观看内容'
             },
             history_filter_desc: {
-                ru: 'Скрывает контент, отмеченный как просмотренный',
-                en: 'Hides content marked as watched',
-                uk: 'Приховує контент, позначений як переглянутий',
-                be: 'Хавае кантэнт, пазначаны як прагледжаны',
-                pt: 'Oculta conteúdo marcado como assistido',
-                zh: '隐藏标记为已观看的内容'
+                ru: 'Скрываем карточки фильмов и сериалов из истории, которые вы закончили смотреть',
+                en: 'Hide cards from your viewing history',
+                uk: 'Сховати картки з вашої історії перегляду',
+                be: 'Схаваць карткі з вашай гісторыі прагляду',
+                pt: 'Ocultar cartões do seu histórico de visualização',
+                zh: '隐藏您的观看历史中的卡片'
             }
         });
     }
@@ -137,7 +137,7 @@
                 // Фильтр по рейтингу
                 if (pass && settings.rating_filter_enabled) {
                     var rating = item.vote_average || 0;
-                    if (rating < 7) pass = false;
+                    if (rating < 6) pass = false;
                 }
 
                 // Фильтр просмотренного
@@ -162,7 +162,7 @@
 
     // Проверка, нужно ли добавлять кнопку "Ещё"
     function shouldAddMoreButton(data) {
-        return data && data.results && data.results.length > 0 && data.total_results > data.results.length;
+        return data && Array.isArray(data.results) && data.results.length > 0 && data.total_results > data.results.length;
     }
 
     // Поиск ближайшего родителя
@@ -175,7 +175,13 @@
 
     // Добавление компонента и параметров в настройки
     function addSettings() {
-        console.log('Content Filter Plugin: Adding content_filters component');
+        console.log('Content Filter Plugin: Attempting to add content_filters component');
+
+        // Проверяем, что Lampa.Settings доступен
+        if (!Lampa.Settings || !Lampa.Settings.main) {
+            console.warn('Content Filter Plugin: Lampa.Settings is not available yet');
+            return;
+        }
 
         // Добавляем компонент content_filters
         if (!Lampa.Settings.main().component().find('[data-component="content_filters"]').length) {
@@ -199,7 +205,6 @@
                 description: 'Настройка отображения карточек по фильтрам'
             },
             onRender: function (element) {
-                // Перемещаем параметр после interface_size
                 setTimeout(function () {
                     var name = Lampa.Lang.translate('content_filters');
                     $('.settings-param > div:contains("' + name + '")').parent().insertAfter($('div[data-name="interface_size"]'));
@@ -369,13 +374,20 @@
         initListener();
         loadSettings();
         addTranslations();
-        addSettings();
 
-        // Принудительно обновляем меню настроек
-        setTimeout(function () {
-            Lampa.Settings.main().update();
-            console.log('Content Filter Plugin: Forced settings menu update');
-        }, 100);
+        // Ждём события appready для инициализации настроек
+        Lampa.Listener.follow('app', function (e) {
+            if (e.name === 'appready') {
+                console.log('Content Filter Plugin: App is ready, initializing settings');
+                addSettings();
+            }
+        });
+
+        // Проверяем, если Lampa.Settings уже доступен, вызываем addSettings сразу
+        if (Lampa.Settings && Lampa.Settings.main) {
+            console.log('Content Filter Plugin: Lampa.Settings is available, calling addSettings immediately');
+            addSettings();
+        }
     }
 
     // Запускаем плагин
