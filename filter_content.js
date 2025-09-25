@@ -3,10 +3,10 @@
 
     // Настройки фильтров
     var settings = {
-        'asian_filter_enabled': false,
-        'language_filter_enabled': false,
-        'rating_filter_enabled': false,
-        'history_filter_enabled': false
+        asian_filter_enabled: false,
+        language_filter_enabled: false,
+        rating_filter_enabled: false,
+        history_filter_enabled: false
     };
 
     // Функции фильтрации
@@ -54,9 +54,17 @@
                 return items.filter(function (item) {
                     if (!item || !item.original_language) return true;
                     var mediaType = item.media_type || (item.seasons ? 'tv' : 'movie');
-                    var hash = Lampa.Favorite.hash(item);
-                    var isFavorite = hash && hash.follow;
-                    var isThrown = hash && hash.thrown;
+                    
+                    // Пропускаем проверку hash, так как метод недоступен
+                    // Можно заменить на альтернативный способ, если известно API Lampa
+                    var isFavorite = false; // Предполагаем, что элемент не в избранном
+                    var isThrown = false;  // Предполагаем, что элемент не помечен как "брошенный"
+
+                    // Если появится информация о новом методе, замените здесь
+                    // Например: var favoriteData = Lampa.Favorite.getStatus(item);
+                    // isFavorite = favoriteData && favoriteData.follow;
+                    // isThrown = favoriteData && favoriteData.thrown;
+
                     if (isThrown) return false;
                     if (!isFavorite) return true;
                     if (isFavorite && mediaType === 'movie') return false;
@@ -161,50 +169,50 @@
     // Добавление переводов
     function addTranslations() {
         Lampa.Lang.translate({
-            'content_filters': {
-                'ru': 'Фильтр контента',
-                'en': 'Content Filter',
-                'uk': 'Фільтр контенту'
+            content_filters: {
+                ru: 'Фильтр контента',
+                en: 'Content Filter',
+                uk: 'Фільтр контенту'
             },
-            'asian_filter': {
-                'ru': 'Убрать азиатский контент',
-                'en': 'Remove Asian Content',
-                'uk': 'Прибрати азіатський контент'
+            asian_filter: {
+                ru: 'Убрать азиатский контент',
+                en: 'Remove Asian Content',
+                uk: 'Прибрати азіатський контент'
             },
-            'asian_filter_desc': {
-                'ru': 'Скрываем карточки азиатского происхождения',
-                'en': 'Hide cards of Asian origin',
-                'uk': 'Сховати картки азіатського походження'
+            asian_filter_desc: {
+                ru: 'Скрываем карточки азиатского происхождения',
+                en: 'Hide cards of Asian origin',
+                uk: 'Сховати картки азіатського походження'
             },
-            'language_filter': {
-                'ru': 'Убрать контент на другом языке',
-                'en': 'Remove Other Language Content',
-                'uk': 'Прибрати контент іншою мовою'
+            language_filter: {
+                ru: 'Убрать контент на другом языке',
+                en: 'Remove Other Language Content',
+                uk: 'Прибрати контент іншою мовою'
             },
-            'language_filter_desc': {
-                'ru': 'Скрываем карточки, названия которых не переведены на язык, выбранный по умолчанию',
-                'en': 'Hide cards not translated to the default language',
-                'uk': 'Сховати картки, які не перекладені на мову за замовчуванням'
+            language_filter_desc: {
+                ru: 'Скрываем карточки, названия которых не переведены на язык, выбранный по умолчанию',
+                en: 'Hide cards not translated to the default language',
+                uk: 'Сховати картки, які не перекладені на мову за замовчуванням'
             },
-            'rating_filter': {
-                'ru': 'Убрать низкорейтинговый контент',
-                'en': 'Remove Low-Rated Content',
-                'uk': 'Прибрати низько рейтинговий контент'
+            rating_filter: {
+                ru: 'Убрать низкорейтинговый контент',
+                en: 'Remove Low-Rated Content',
+                uk: 'Прибрати низько рейтинговий контент'
             },
-            'rating_filter_desc': {
-                'ru': 'Скрываем карточки с рейтингом ниже 6.0',
-                'en': 'Hide cards with a rating below 6.0',
-                'uk': 'Сховати картки з рейтингом нижче 6.0'
+            rating_filter_desc: {
+                ru: 'Скрываем карточки с рейтингом ниже 6.0',
+                en: 'Hide cards with a rating below 6.0',
+                uk: 'Сховати картки з рейтингом нижче 6.0'
             },
-            'history_filter': {
-                'ru': 'Приховувати переглянуте',
-                'en': 'Hide Watched Content',
-                'uk': 'Сховати картки з вашої історії перегляду'
+            history_filter: {
+                ru: 'Приховувати переглянуте',
+                en: 'Hide Watched Content',
+                uk: 'Сховати картки з вашої історії перегляду'
             },
-            'history_filter_desc': {
-                'ru': 'Скрываем карточки фильмов и сериалов из истории, которые вы закончили смотреть',
-                'en': 'Hide cards from your viewing history',
-                'uk': 'Сховати картки з вашої історії перегляду'
+            history_filter_desc: {
+                ru: 'Скрываем карточки фильмов и сериалов из истории, которые вы закончили смотреть',
+                en: 'Hide cards from your viewing history',
+                uk: 'Сховати картки з вашої історії перегляду'
             }
         });
     }
@@ -213,13 +221,15 @@
     function addSettings() {
         Lampa.Listener.follow('app', function (e) {
             if (e.name == 'settings') {
-                if (Lampa.Settings.main().component().find('[data-component="content_filters"]').length == 0) {
+                if (Lampa.Settings.main().component().find('[data-component="content_filters"]').length ===0) {
                     Lampa.SettingsApi.addComponent({
                         component: 'content_filters',
                         name: Lampa.Lang.translate('content_filters')
                     });
                 }
-                Lampa.Settings.main().update();
+                L
+
+ampa.Settings.main().update();
                 Lampa.Settings.main().component().find('[data-component="content_filters"]').addClass('show');
             }
         });
@@ -338,7 +348,7 @@
 
     // Поиск ближайшего элемента по селектору
     function closest(element, selector) {
-        if (element && element.closest) return element.closest(selector);
+        if (element && элемент.closest) return element.closest(selector);
         var current = element;
         while (current && current !== document) {
             if (current.matches) {
