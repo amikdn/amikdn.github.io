@@ -234,7 +234,7 @@
             if (element.matches(selector)) return element;
         }
         let current = element;
-        while (current && current !== document)
+        while (current && current !== document) {
             if (current.msMatchesSelector && current.msMatchesSelector(selector)) return current;
             if (current.webkitMatchesSelector && current.webkitMatchesSelector(selector)) return current;
             if (current.mozMatchesSelector && current.mozMatchesSelector(selector)) return current;
@@ -270,80 +270,19 @@
     function addSettings() {
         console.log('Attempting to add content_filters settings');
         
-        // Проверяем, поддерживает ли Lampa метод add
-        if (typeof Lampa.Settings.add === 'function') {
-            console.log('Using Lampa.Settings.add for settings');
-            Lampa.Settings.add({
-                component: 'content_filters',
-                name: Lampa.Lang.translate('content_filters'),
-                params: [
-                    {
-                        name: 'asian_filter_enabled',
-                        type: 'trigger',
-                        default: false,
-                        field: {
-                            name: Lampa.Lang.translate('asian_filter'),
-                            description: Lampa.Lang.translate('asian_filter_desc')
-                        },
-                        onChange: function(value) {
-                            console.log('asian_filter_enabled changed to:', value);
-                            filterSettings.asian_filter_enabled = value;
-                            Lampa.Storage.set('asian_filter_enabled', value);
-                        }
-                    },
-                    {
-                        name: 'language_filter_enabled',
-                        type: 'trigger',
-                        default: false,
-                        field: {
-                            name: Lampa.Lang.translate('language_filter'),
-                            description: Lampa.Lang.translate('language_filter_desc')
-                        },
-                        onChange: function(value) {
-                            console.log('language_filter_enabled changed to:', value);
-                            filterSettings.language_filter_enabled = value;
-                            Lampa.Storage.set('language_filter_enabled', value);
-                        }
-                    },
-                    {
-                        name: 'rating_filter_enabled',
-                        type: 'trigger',
-                        default: false,
-                        field: {
-                            name: Lampa.Lang.translate('rating_filter'),
-                            description: Lampa.Lang.translate('rating_filter_desc')
-                        },
-                        onChange: function(value) {
-                            console.log('rating_filter_enabled changed to:', value);
-                            filterSettings.rating_filter_enabled = value;
-                            Lampa.Storage.set('rating_filter_enabled', value);
-                        }
-                    },
-                    {
-                        name: 'history_filter_enabled',
-                        type: 'trigger',
-                        default: false,
-                        field: {
-                            name: Lampa.Lang.translate('history_filter'),
-                            description: Lampa.Lang.translate('history_filter_desc')
-                        },
-                        onChange: function(value) {
-                            console.log('history_filter_enabled changed to:', value);
-                            filterSettings.history_filter_enabled = value;
-                            Lampa.Storage.set('history_filter_enabled', value);
-                        }
-                    }
-                ]
-            });
-        } else {
-            console.log('Using Lampa.SettingsApi.addComponent for settings');
-            // Регистрируем компонент
+        // Регистрируем компонент
+        try {
             Lampa.SettingsApi.addComponent({
                 component: 'content_filters',
                 name: Lampa.Lang.translate('content_filters')
             });
+            console.log('content_filters component added');
+        } catch (e) {
+            console.error('Failed to add content_filters component:', e);
+        }
 
-            // Добавляем основной параметр в интерфейс
+        // Добавляем основной параметр в интерфейс
+        try {
             Lampa.SettingsApi.addParam({
                 component: 'interface',
                 param: {
@@ -367,8 +306,13 @@
                     });
                 }
             });
+            console.log('content_filters param added to interface');
+        } catch (e) {
+            console.error('Failed to add content_filters param:', e);
+        }
 
-            // Добавляем параметры фильтров
+        // Добавляем параметры фильтров
+        try {
             Lampa.SettingsApi.addParam({
                 component: 'content_filters',
                 param: {
@@ -386,7 +330,12 @@
                     Lampa.Storage.set('asian_filter_enabled', value);
                 }
             });
+            console.log('asian_filter_enabled param added');
+        } catch (e) {
+            console.error('Failed to add asian_filter_enabled param:', e);
+        }
 
+        try {
             Lampa.SettingsApi.addParam({
                 component: 'content_filters',
                 param: {
@@ -404,7 +353,12 @@
                     Lampa.Storage.set('language_filter_enabled', value);
                 }
             });
+            console.log('language_filter_enabled param added');
+        } catch (e) {
+            console.error('Failed to add language_filter_enabled param:', e);
+        }
 
+        try {
             Lampa.SettingsApi.addParam({
                 component: 'content_filters',
                 param: {
@@ -422,7 +376,12 @@
                     Lampa.Storage.set('rating_filter_enabled', value);
                 }
             });
+            console.log('rating_filter_enabled param added');
+        } catch (e) {
+            console.error('Failed to add rating_filter_enabled param:', e);
+        }
 
+        try {
             Lampa.SettingsApi.addParam({
                 component: 'content_filters',
                 param: {
@@ -440,6 +399,9 @@
                     Lampa.Storage.set('history_filter_enabled', value);
                 }
             });
+            console.log('history_filter_enabled param added');
+        } catch (e) {
+            console.error('Failed to add history_filter_enabled param:', e);
         }
 
         // Принудительное отображение компонента
