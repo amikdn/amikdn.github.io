@@ -81,7 +81,7 @@
         ],
         apply: function(items) {
             console.log('Applying filters to items:', items.length);
-            let filteredItems = [...items]; // Используем spread для клонирования
+            let filteredItems = [...items];
             for (let i = 0; i < this.filters.length; i++) {
                 filteredItems = this.filters[i](filteredItems);
             }
@@ -230,9 +230,7 @@
 
     // Поиск ближайшего элемента по селектору
     function findClosestElement(element, selector) {
-        if (element && element.matches) {
-            if (element.matches(selector)) return element;
-        }
+        if (element && element.matches && element.matches(selector)) return element;
         let current = element;
         while (current && current !== document) {
             if (current.msMatchesSelector && current.msMatchesSelector(selector)) return current;
@@ -270,21 +268,7 @@
     function addSettings() {
         console.log('Attempting to add content_filters settings');
 
-        // Регистрируем компонент
-        try {
-            Lampa.SettingsApi.addComponent({
-                component: 'content_filters',
-                name: 'Фильтр контента',
-                icon: '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">' +
-                      '<path d="M3 4H21V6H3V4ZM3 11H21V13H3V11ZM3 18H21V20H3V18Z" fill="currentColor"/>' +
-                      '</svg>'
-            });
-            console.log('content_filters component added');
-        } catch (e) {
-            console.error('Failed to add content_filters component:', e);
-        }
-
-        // Добавляем основной параметр в интерфейс
+        // Добавляем параметр в подменю "Интерфейс"
         try {
             Lampa.SettingsApi.addParam({
                 component: 'interface',
@@ -302,11 +286,9 @@
                     element.on('hover:enter', function() {
                         console.log('Opening content_filters settings');
                         try {
-                            // Прямое отображение подменю
                             Lampa.Settings.main().render().find('[data-component="content_filters"]').trigger('click');
                         } catch (e) {
                             console.error('Failed to open content_filters settings:', e);
-                            // Fallback: использование Activity.push
                             Lampa.Activity.push({
                                 url: '',
                                 title: 'Фильтр контента',
@@ -322,10 +304,23 @@
             });
             console.log('content_filters param added to interface');
         } catch (e) {
-            console.error('Failed to add content_filters param:', e);
+            console.error('Failed to add content_filters param to interface:', e);
         }
 
-        // Добавляем параметры фильтров
+        // Добавляем параметры фильтров в компонент content_filters
+        try {
+            Lampa.SettingsApi.addComponent({
+                component: 'content_filters',
+                name: 'Фильтр контента',
+                icon: '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+                      '<path d="M3 4H21V6H3V4ZM3 11H21V13H3V11ZM3 18H21V20H3V18Z" fill="currentColor"/>' +
+                      '</svg>'
+            });
+            console.log('content_filters component added');
+        } catch (e) {
+            console.error('Failed to add content_filters component:', e);
+        }
+
         try {
             Lampa.SettingsApi.addParam({
                 component: 'content_filters',
@@ -422,45 +417,59 @@
             console.error('Failed to add history_filter_enabled param:', e);
         }
 
-        // Принудительное отображение компонента и проверка параметров
+        // Принудительное отображение компонента и перемещение
         function ensureVisibilityAndMove() {
             console.log('Ensuring content_filters visibility and moving');
             const settingsMenu = Lampa.Settings.main().render();
-            const params = settingsMenu.find('[data-component="content_filters"]');
-            console.log('Content_filters params found:', params.length);
+            const interfaceMenu = settingsMenu.find('[data-component="interface"]');
+            const params = interfaceMenu.find('[data-name="content_filters"]');
+            console.log('Content_filters params found in interface:', params.length);
 
-            // Выводим все элементы настроек для отладки
-            const allSettings = $('.settings-param, .settings-folder').map((i, el) => {
+            // Выводим все элементы подменю "Интерфейс" для отладки
+            const interfaceSettings = interfaceMenu.find('.settings-param, .settings-folder').map((i, el) => {
                 return {
                     name: $(el).attr('data-name'),
                     title: $(el).attr('title') || $(el).find('.settings-param-title').text() || $(el).text().trim(),
                     component: $(el).attr('data-component')
                 };
             }).get();
-            console.log('All settings elements:', allSettings);
+            console.log('Interface settings elements:', interfaceSettings);
 
-            $('[data-component="content_filters"]').removeClass('hide').css('display', 'block');
-            
+            // Удаляем content_filters из главного меню, если присутствует
+            const mainMenuContentFilters = settingsMenu.find('[data-component="content_filters"]');
+            if (mainMenuContentFilters.length) {
+                console.log('Removing content_filters from main menu');
+                mainMenuContentFilters.remove();
+            }
+
             // Перемещение пункта
-            const targetElement = $('div[data-name="content_filters"], .settings-folder[data-name="content_filters"]');
-            const interfaceSizeElement = $('div[data-name="interface_size"], .settings-param[data-name="interface_size"], .settings-param[title*="Размер интерфейса"], .settings-folder[data-name="interface"]');
-            console.log('Target element found:', targetElement.length);
+            const targetElement = interfaceMenu.find('div[data-name="content_filters"], .settings-param[data-name="content_filters"], .settings-folder[data-name="content_filters"]');
+            const interfaceSizeElement = interfaceMenu.find('div[data-name="interface_size"], .settings-param[data-name="interface_size"], .settings-param[title*="Размер интерфейса"], .settings-folder[data-name="interface_size"]');
+            console.log('Target element (content_filters) found:', targetElement.length);
             console.log('Interface size element found:', interfaceSizeElement.length);
             if (targetElement.length && interfaceSizeElement.length) {
                 console.log('Moving content_filters after interface_size');
                 targetElement.parent().insertAfter(interfaceSizeElement.last());
             } else {
                 console.warn('Failed to move content_filters: target or interface_size not found');
+                // Альтернатива: перемещение в начало подменю "Интерфейс"
+                const interfaceContainer = interfaceMenu.find('.settings--list');
+                if (targetElement.length && interfaceContainer.length) {
+                    console.log('Moving content_filters to top of interface menu');
+                    targetElement.parent().prependTo(interfaceContainer);
+                } else {
+                    console.warn('Failed to move content_filters to top: interface container not found');
+                }
             }
         }
 
         // Выполняем после готовности приложения
         if (window.appready) {
-            ensureVisibilityAndMove();
+            setTimeout(ensureVisibilityAndMove, 100);
         } else {
             Lampa.Listener.follow('app', function(e) {
                 if (e.type === 'ready') {
-                    setTimeout(ensureVisibilityAndMove, 100); // Небольшая задержка для DOM
+                    setTimeout(ensureVisibilityAndMove, 100);
                 }
             });
         }
