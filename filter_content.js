@@ -9,7 +9,7 @@
         history_filter_enabled: false
     };
 
-    // Набор фильтров
+    // ======================= ФИЛЬТРЫ =======================
     let Filters = {
         filters: [
             // Фильтр азиатского контента
@@ -46,10 +46,7 @@
                 if (!filtersState.rating_filter_enabled) return items;
                 return items.filter(it => {
                     if (!it) return true;
-
-                    // Пропускаем трейлеры и видео
                     if (it.type === 'trailer' || it.type === 'Trailer' || it.site === 'YouTube') return true;
-
                     if (!it.vote_average || it.vote_average === 0) return false;
                     return it.vote_average >= 6;
                 });
@@ -67,7 +64,10 @@
                     let type = it.media_type;
                     if (!type) type = it.episode_count ? 'tv' : 'movie';
 
-                    let viewed = Lampa.Timeline.hash(it);
+                    // генерируем id для поиска в Timeline
+                    let id = Lampa.Utils.hash((it.id || (it.original_title || it.original_name || '')) + '_' + type);
+                    let viewed = Lampa.Timeline.view(id);
+
                     if (viewed && viewed.thrown) return false;
                     if (viewed && viewed.percent && type === 'movie') return false;
 
@@ -90,14 +90,11 @@
         }
     };
 
-    // ===== Хелперы =====
-
+    // ======================= ХЕЛПЕРЫ =======================
     function collectSeasonsFromTMDB(id, history) {
-        let entry = history.history.filter(x =>
-            x.id === id &&
-            Array.isArray(x.seasons) &&
-            x.seasons.length > 0
-        )[0];
+        let entry = history.history
+            ? history.history.find(x => x.id === id && Array.isArray(x.seasons) && x.seasons.length > 0)
+            : null;
         if (!entry) return [];
 
         let valid = entry.seasons.filter(season =>
@@ -121,7 +118,7 @@
     }
 
     function collectSeasonsFromCache(id, cache) {
-        let entry = cache.filter(x => x.id === id)[0] || {};
+        let entry = cache.find(x => x.id === id) || {};
         if (!Array.isArray(entry.seasons) || entry.seasons.length === 0) return [];
         return entry.seasons.filter(season =>
             season.season_number > 0 &&
@@ -144,14 +141,14 @@
     function isWatchedAll(title, episodes) {
         if (!episodes || episodes.length === 0) return false;
         for (let ep of episodes) {
-            let hash = Lampa.Utils.hash([ep.season_number, ep.season_number > 10 ? ':' : '', ep.episode_number, title].join(''));
-            let timeline = Lampa.Timeline.view(hash);
-            if (timeline.percent === 0) return false;
+            let id = Lampa.Utils.hash([ep.season_number, ep.season_number > 10 ? ':' : '', ep.episode_number, title].join(''));
+            let timeline = Lampa.Timeline.view(id);
+            if (!timeline || timeline.percent === 0) return false;
         }
         return true;
     }
 
-    // ===== Локализация =====
+    // ======================= ЛОКАЛИЗАЦИЯ =======================
     function setupLang() {
         Lampa.Lang.add({
             content_filters: {
@@ -202,7 +199,7 @@
         });
     }
 
-    // ===== Настройки =====
+    // ======================= НАСТРОЙКИ =======================
     function setupSettings() {
         Lampa.SettingsApi.addComponent({
             component: 'content_filters',
@@ -216,84 +213,41 @@
                 description: 'Настройка отображения карточек по фильтрам'
             },
             onRender: function (elem) {
+                // Переносим сразу под "Интерфейс"
                 setTimeout(() => {
                     $('div[data-name="interface_size"]').after(elem);
                 }, 0);
             }
         });
 
-        Lampa.SettingsApi.addParam({
-            component: 'content_filters',
-            param: {
-                name: 'asian_filter_enabled',
-                type: 'trigger',
-                default: false
-            },
-            field: {
-                name: Lampa.Lang.translate('asian_filter'),
-                description: Lampa.Lang.translate('asian_filter_desc')
-            },
-            onChange: v => {
-                filtersState.asian_filter_enabled = v;
-                Lampa.Storage.set('asian_filter_enabled', v);
-            }
-        });
-
-        Lampa.SettingsApi.addParam({
-            component: 'content_filters',
-            param: {
-                name: 'language_filter_enabled',
-                type: 'trigger',
-                default: false
-            },
-            field: {
-                name: Lampa.Lang.translate('language_filter'),
-                description: Lampa.Lang.translate('language_filter_desc')
-            },
-            onChange: v => {
-                filtersState.language_filter_enabled = v;
-                Lampa.Storage.set('language_filter_enabled', v);
-            }
-        });
-
-        Lampa.SettingsApi.addParam({
-            component: 'content_filters',
-            param: {
-                name: 'rating_filter_enabled',
-                type: 'trigger',
-                default: false
-            },
-            field: {
-                name: Lampa.Lang.translate('rating_filter'),
-                description: Lampa.Lang.translate('rating_filter_desc')
-            },
-            onChange: v => {
-                filtersState.rating_filter_enabled = v;
-                Lampa.Storage.set('rating_filter_enabled', v);
-            }
-        });
-
-        Lampa.SettingsApi.addParam({
-            component: 'content_filters',
-            param: {
-                name: 'history_filter_enabled',
-                type: 'trigger',
-                default: false
-            },
-            field: {
-                name: Lampa.Lang.translate('history_filter'),
-                description: Lampa.Lang.translate('history_filter_desc')
-            },
-            onChange: v => {
-                filtersState.history_filter_enabled = v;
-                Lampa.Storage.set('history_filter_enabled', v);
-            }
+        // Переключатели
+        [
+            { key: 'asian_filter_enabled', title: 'asian_filter', desc: 'asian_filter_desc' },
+            { key: 'language_filter_enabled', title: 'language_filter', desc: 'language_filter_desc' },
+            { key: 'rating_filter_enabled', title: 'rating_filter', desc: 'rating_filter_desc' },
+            { key: 'history_filter_enabled', title: 'history_filter', desc: 'history_filter_desc' }
+        ].forEach(f => {
+            Lampa.SettingsApi.addParam({
+                component: 'content_filters',
+                param: {
+                    name: f.key,
+                    type: 'trigger',
+                    default: false
+                },
+                field: {
+                    name: Lampa.Lang.translate(f.title),
+                    description: Lampa.Lang.translate(f.desc)
+                },
+                onChange: v => {
+                    filtersState[f.key] = v;
+                    Lampa.Storage.set(f.key, v);
+                }
+            });
         });
     }
 
-    // ===== Подключение =====
+    // ======================= ИНИЦИАЛИЗАЦИЯ =======================
     function init() {
-        // Загружаем сохранённые значения
         filtersState.asian_filter_enabled = Lampa.Storage.get('asian_filter_enabled', false);
         filtersState.language_filter_enabled = Lampa.Storage.get('language_filter_enabled', false);
         filtersState.rating_filter_enabled = Lampa.Storage.get('rating_filter_enabled', false);
@@ -302,7 +256,7 @@
         setupLang();
         setupSettings();
 
-        // Перехват ответов TMDB
+        // Перехват запросов
         Lampa.Listener.follow('request_secuses', e => {
             if (e.data && Array.isArray(e.data.results)) {
                 e.data.original_length = e.data.results.length;
