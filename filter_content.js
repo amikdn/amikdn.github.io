@@ -39,7 +39,7 @@
                 if (!filterSettings.language_filter_enabled) return items;
                 return items.filter(item => {
                     if (!item) return true;
-                    const defaultLang = Lampa.Lang.translate('language') || 'ru';
+                    const defaultLang = Lampa.Lang.translate('language');
                     const originalTitle = item.original_title || item.original_name;
                     const title = item.title || item.name;
                     return item.original_language === defaultLang || title !== originalTitle;
@@ -81,7 +81,7 @@
         ],
         apply: function(items) {
             console.log('Applying filters to items:', items.length);
-            let filteredItems = [...items];
+            let filteredItems = [...items]; // Используем spread для клонирования
             for (let i = 0; i < this.filters.length; i++) {
                 filteredItems = this.filters[i](filteredItems);
             }
@@ -230,7 +230,9 @@
 
     // Поиск ближайшего элемента по селектору
     function findClosestElement(element, selector) {
-        if (element && element.matches && element.matches(selector)) return element;
+        if (element && element.matches) {
+            if (element.matches(selector)) return element;
+        }
         let current = element;
         while (current && current !== document) {
             if (current.msMatchesSelector && current.msMatchesSelector(selector)) return current;
@@ -268,21 +270,18 @@
     function addSettings() {
         console.log('Attempting to add content_filters settings');
 
-        // Регистрируем компонент только для подменю
+        // Регистрируем компонент
         try {
             Lampa.SettingsApi.addComponent({
                 component: 'content_filters',
-                name: Lampa.Lang.translate('content_filters') || 'Фильтр контента',
-                icon: '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">' +
-                      '<path d="M3 4H21V6H3V4ZM3 11H21V13H3V11ZM3 18H21V20H3V18Z" fill="currentColor"/>' +
-                      '</svg>'
+                name: Lampa.Lang.translate('content_filters') || 'Фильтр контента' // Fallback на случай проблем с переводом
             });
             console.log('content_filters component added');
         } catch (e) {
             console.error('Failed to add content_filters component:', e);
         }
 
-        // Добавляем параметр в подменю "Интерфейс"
+        // Добавляем основной параметр в интерфейс
         try {
             Lampa.SettingsApi.addParam({
                 component: 'interface',
@@ -292,54 +291,27 @@
                     default: true
                 },
                 field: {
-                    name: Lampa.Lang.translate('content_filters') || 'Фильтр контента',
+                    name: Lampa.Lang.translate('content_filters') || 'Фильтр контента', // Fallback на случай проблем с переводом
                     description: 'Настройка отображения карточек по фильтрам'
                 },
                 onRender: function(element) {
                     console.log('Rendering content_filters param in interface');
-                    // Перемещение элемента после "Размер интерфейса"
+                    // Перемещаем элемент после "Размер интерфейса"
                     setTimeout(function() {
                         const componentName = Lampa.Lang.translate('content_filters') || 'Фильтр контента';
                         const targetElement = $(`.settings-param > div:contains("${componentName}")`);
-                        const interfaceSizeElement = $('div[data-name="interface_size"], .settings-param[data-name="interface_size"], .settings-param[title*="Размер интерфейса"]');
-                        console.log('Target element (content_filters) found:', targetElement.length);
-                        console.log('Interface size element found:', interfaceSizeElement.length);
+                        const interfaceSizeElement = $('div[data-name="interface_size"]');
                         if (targetElement.length && interfaceSizeElement.length) {
                             console.log('Moving content_filters after interface_size');
-                            targetElement.parent().insertAfter(interfaceSizeElement.last());
+                            targetElement.parent().insertAfter(interfaceSizeElement);
                         } else {
                             console.warn('Failed to move content_filters: target or interface_size not found');
-                            // Fallback: перемещение в начало подменю "Интерфейс"
-                            const interfaceMenu = Lampa.Settings.main().render().find('[data-component="interface"] .settings--list');
-                            if (targetElement.length && interfaceMenu.length) {
-                                console.log('Moving content_filters to top of interface menu');
-                                targetElement.parent().prependTo(interfaceMenu);
-                            }
                         }
-
-                        // Удаление дубликата из главного меню
-                        const settingsMenu = Lampa.Settings.main().render();
-                        const mainMenuContentFilters = settingsMenu.find('[data-component="content_filters"]:not(.settings--list [data-component="content_filters"]), .settings-folder:contains("Фильтр контента")');
-                        if (mainMenuContentFilters.length) {
-                            console.log('Removing content_filters from main menu');
-                            mainMenuContentFilters.remove();
-                        }
-
-                        // Вывод элементов подменю "Интерфейс" для отладки
-                        const interfaceMenu = Lampa.Settings.main().render().find('[data-component="interface"]');
-                        const interfaceSettings = interfaceMenu.find('.settings-param, .settings-folder').map((i, el) => {
-                            return {
-                                name: $(el).attr('data-name'),
-                                title: $(el).attr('title') || $(el).find('.settings-param-title').text() || $(el).text().trim(),
-                                component: $(el).attr('data-component')
-                            };
-                        }).get();
-                        console.log('Interface settings elements:', interfaceSettings);
-                    }, 100);
-
+                    }, 0);
                     element.on('hover:enter', function() {
                         console.log('Opening content_filters settings');
                         try {
+                            // Альтернативный способ открытия подменю
                             Lampa.Activity.push({
                                 url: '',
                                 title: Lampa.Lang.translate('content_filters') || 'Фильтр контента',
@@ -357,7 +329,7 @@
             });
             console.log('content_filters param added to interface');
         } catch (e) {
-            console.error('Failed to add content_filters param to interface:', e);
+            console.error('Failed to add content_filters param:', e);
         }
 
         // Добавляем параметры фильтров
@@ -371,13 +343,12 @@
                 },
                 field: {
                     name: Lampa.Lang.translate('asian_filter') || 'Убрать азиатский контент',
-                    description: Lampa.Lang.translate('asian_filter_desc') || 'Скрываем карточки азиатского происхождения'
+                    description: Lampa.Lang.translate('asian_filter_desc')
                 },
                 onChange: function(value) {
                     console.log('asian_filter_enabled changed to:', value);
                     filterSettings.asian_filter_enabled = value;
                     Lampa.Storage.set('asian_filter_enabled', value);
-                    Lampa.Settings.update();
                 }
             });
             console.log('asian_filter_enabled param added');
@@ -395,13 +366,12 @@
                 },
                 field: {
                     name: Lampa.Lang.translate('language_filter') || 'Убрать контент на другом языке',
-                    description: Lampa.Lang.translate('language_filter_desc') || 'Скрываем карточки, названия которых не переведены на язык, выбранный по умолчанию'
+                    description: Lampa.Lang.translate('language_filter_desc')
                 },
                 onChange: function(value) {
                     console.log('language_filter_enabled changed to:', value);
                     filterSettings.language_filter_enabled = value;
                     Lampa.Storage.set('language_filter_enabled', value);
-                    Lampa.Settings.update();
                 }
             });
             console.log('language_filter_enabled param added');
@@ -419,13 +389,12 @@
                 },
                 field: {
                     name: Lampa.Lang.translate('rating_filter') || 'Убрать низкорейтинговый контент',
-                    description: Lampa.Lang.translate('rating_filter_desc') || 'Скрываем карточки с рейтингом ниже 6.0'
+                    description: Lampa.Lang.translate('rating_filter_desc')
                 },
                 onChange: function(value) {
                     console.log('rating_filter_enabled changed to:', value);
                     filterSettings.rating_filter_enabled = value;
                     Lampa.Storage.set('rating_filter_enabled', value);
-                    Lampa.Settings.update();
                 }
             });
             console.log('rating_filter_enabled param added');
@@ -443,19 +412,24 @@
                 },
                 field: {
                     name: Lampa.Lang.translate('history_filter') || 'Убрать просмотренный контент',
-                    description: Lampa.Lang.translate('history_filter_desc') || 'Скрываем карточки фильмов и сериалов из истории, которые вы закончили смотреть'
+                    description: Lampa.Lang.translate('history_filter_desc')
                 },
                 onChange: function(value) {
                     console.log('history_filter_enabled changed to:', value);
                     filterSettings.history_filter_enabled = value;
                     Lampa.Storage.set('history_filter_enabled', value);
-                    Lampa.Settings.update();
                 }
             });
             console.log('history_filter_enabled param added');
         } catch (e) {
             console.error('Failed to add history_filter_enabled param:', e);
         }
+
+        // Принудительное отображение компонента
+        $(document).ready(function() {
+            console.log('Ensuring content_filters visibility');
+            $('[data-component="content_filters"]').removeClass('hide').css('display', 'block');
+        });
     }
 
     // Инициализация плагина
@@ -481,12 +455,12 @@
             const moreButton = document.createElement('div');
             moreButton.classList.add('items-line__more');
             moreButton.classList.add('selector');
-            moreButton.innerText = Lampa.Lang.translate('more') || 'Ещё';
+            moreButton.innerText = Lampa.Lang.translate('more');
             moreButton.addEventListener('hover:enter', function() {
                 console.log('More button clicked, opening activity');
                 Lampa.Activity.push({
                     url: event.data.url,
-                    title: event.data.title || Lampa.Lang.translate('title_category') || 'Категория',
+                    title: event.data.title || Lampa.Lang.translate('title_category'),
                     component: 'category_full',
                     page: 1,
                     genres: event.data.genres,
@@ -515,15 +489,7 @@
         });
     }
 
-    // Ждём готовности приложения
-    if (window.appready) {
-        initPlugin();
-    } else {
-        Lampa.Listener.follow('app', function(e) {
-            if (e.type === 'ready') {
-                console.log('App is ready, starting plugin');
-                initPlugin();
-            }
-        });
-    }
+    // Запуск плагина
+    console.log('Starting plugin execution');
+    initPlugin();
 })();
