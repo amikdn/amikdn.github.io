@@ -55,15 +55,16 @@
                     if (!item || !item.original_language) return true;
                     var mediaType = item.media_type || (item.seasons ? 'tv' : 'movie');
                     
-                    // Пропускаем проверку hash, так как метод недоступен
-                    // Можно заменить на альтернативный способ, если известно API Lampa
-                    var isFavorite = false; // Предполагаем, что элемент не в избранном
-                    var isThrown = false;  // Предполагаем, что элемент не помечен как "брошенный"
-
-                    // Если появится информация о новом методе, замените здесь
-                    // Например: var favoriteData = Lampa.Favorite.getStatus(item);
-                    // isFavorite = favoriteData && favoriteData.follow;
-                    // isThrown = favoriteData && favoriteData.thrown;
+                    // Безопасная проверка избранного
+                    var isFavorite = false;
+                    var isThrown = false;
+                    try {
+                        var hash = Lampa.Favorite.hash(item);
+                        isFavorite = hash && hash.follow;
+                        isThrown = hash && hash.thrown;
+                    } catch (err) {
+                        console.warn('Content Filter Plugin', 'Lampa.Favorite.hash not available, skipping favorite check');
+                    }
 
                     if (isThrown) return false;
                     if (!isFavorite) return true;
@@ -168,6 +169,7 @@
 
     // Добавление переводов
     function addTranslations() {
+        console.log('Content Filter Plugin', 'Adding translations');
         Lampa.Lang.translate({
             content_filters: {
                 ru: 'Фильтр контента',
@@ -221,16 +223,26 @@
     function addSettings() {
         Lampa.Listener.follow('app', function (e) {
             if (e.name == 'settings') {
-                if (Lampa.Settings.main().component().find('[data-component="content_filters"]').length ===0) {
-                    Lampa.SettingsApi.addComponent({
-                        component: 'content_filters',
-                        name: Lampa.Lang.translate('content_filters')
-                    });
-                }
-                L
-
-ampa.Settings.main().update();
-                Lampa.Settings.main().component().find('[data-component="content_filters"]').addClass('show');
+                // Ждём завершения возможной очистки IPTV
+                setTimeout(function () {
+                    if (Lampa.Settings.main().component().find('[data-component="content_filters"]').length === 0) {
+                        console.log('Content Filter Plugin', 'Adding content_filters component');
+                        Lampa.SettingsApi.addComponent({
+                            component: 'content_filters',
+                            name: Lampa.Lang.translate('content_filters')
+                        });
+                        Lampa.Settings.main().update();
+                        var component = Lampa.Settings.main().component().find('[data-component="content_filters"]');
+                        if (component.length) {
+                            component.addClass('show');
+                            console.log('Content Filter Plugin', 'content_filters component is now visible');
+                        } else {
+                            console.log('Content Filter Plugin', 'Failed to find content_filters component');
+                        }
+                    } else {
+                        console.log('Content Filter Plugin', 'content_filters component already exists');
+                    }
+                }, 100);
             }
         });
 
@@ -348,7 +360,7 @@ ampa.Settings.main().update();
 
     // Поиск ближайшего элемента по селектору
     function closest(element, selector) {
-        if (element && элемент.closest) return element.closest(selector);
+        if (element && element.closest) return element.closest(selector);
         var current = element;
         while (current && current !== document) {
             if (current.matches) {
@@ -371,6 +383,7 @@ ampa.Settings.main().update();
 
     // Основная функция плагина
     function startPlugin() {
+        console.log('Content Filter Plugin', 'loaded');
         Lampa.Manifest.plugins = Lampa.Manifest.plugins || [];
         Lampa.Manifest.plugins.push({
             name: 'Content Filter',
