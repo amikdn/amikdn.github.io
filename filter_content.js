@@ -428,14 +428,27 @@
             const settingsMenu = Lampa.Settings.main().render();
             const params = settingsMenu.find('[data-component="content_filters"]');
             console.log('Content_filters params found:', params.length);
+
+            // Выводим все элементы настроек для отладки
+            const allSettings = $('.settings-param, .settings-folder').map((i, el) => {
+                return {
+                    name: $(el).attr('data-name'),
+                    title: $(el).attr('title') || $(el).find('.settings-param-title').text() || $(el).text().trim(),
+                    component: $(el).attr('data-component')
+                };
+            }).get();
+            console.log('All settings elements:', allSettings);
+
             $('[data-component="content_filters"]').removeClass('hide').css('display', 'block');
             
             // Перемещение пункта
-            const targetElement = $('div[data-name="content_filters"]');
-            const interfaceSizeElement = $('div[data-name="interface_size"], .settings-param[data-name="interface_size"]');
+            const targetElement = $('div[data-name="content_filters"], .settings-folder[data-name="content_filters"]');
+            const interfaceSizeElement = $('div[data-name="interface_size"], .settings-param[data-name="interface_size"], .settings-param[title*="Размер интерфейса"], .settings-folder[data-name="interface"]');
+            console.log('Target element found:', targetElement.length);
+            console.log('Interface size element found:', interfaceSizeElement.length);
             if (targetElement.length && interfaceSizeElement.length) {
                 console.log('Moving content_filters after interface_size');
-                targetElement.parent().insertAfter(interfaceSizeElement);
+                targetElement.parent().insertAfter(interfaceSizeElement.last());
             } else {
                 console.warn('Failed to move content_filters: target or interface_size not found');
             }
@@ -447,7 +460,7 @@
         } else {
             Lampa.Listener.follow('app', function(e) {
                 if (e.type === 'ready') {
-                    ensureVisibilityAndMove();
+                    setTimeout(ensureVisibilityAndMove, 100); // Небольшая задержка для DOM
                 }
             });
         }
