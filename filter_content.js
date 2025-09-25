@@ -514,6 +514,6 @@ function _0x1ecb(_0xe76eb6, _0x1433dc) {
         });
     }
 
-    window.bylampa = true;
+    window[_0x38fdd0(0x1ac)] = true;
     _0x5110e0();
 }()));
