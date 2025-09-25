@@ -1,22 +1,15 @@
 (function() {
     'use strict';
 
-    if (window.contentFilterInitialized) return;
+    // Проверка на повторную инициализацию
+    if (window.contentFilterInitialized) {
+        console.log('Content Filter plugin already initialized, skipping');
+        return;
+    }
     window.contentFilterInitialized = true;
+    console.log('Starting Content Filter plugin initialization');
 
-    const translations = {
-        content_filters: 'Фильтр контента',
-        content_filters_desc: 'Настройка отображения карточек по фильтрам',
-        asian_filter: 'Убрать азиатский контент',
-        asian_filter_desc: 'Скрываем карточки азиатского происхождения',
-        language_filter: 'Убрать контент на другом языке',
-        language_filter_desc: 'Скрываем карточки, названия которых не переведены на язык, выбранный по умолчанию',
-        rating_filter: 'Убрать низкорейтинговый контент',
-        rating_filter_desc: 'Скрываем карточки с рейтингом ниже 6.0',
-        history_filter: 'Убрать просмотренный контент',
-        history_filter_desc: 'Скрываем карточки фильмов и сериалов из истории, которые вы закончили смотреть'
-    };
-
+    // Конфигурация фильтров
     const filterSettings = {
         asian_filter_enabled: false,
         language_filter_enabled: false,
@@ -24,8 +17,10 @@
         history_filter_enabled: false
     };
 
+    // Функции фильтрации контента
     const contentFilters = {
         filters: [
+            // Фильтр азиатского контента
             function(items) {
                 if (!filterSettings.asian_filter_enabled) return items;
                 return items.filter(item => {
@@ -39,6 +34,7 @@
                     return asianLanguages.indexOf(lang) === -1;
                 });
             },
+            // Фильтр по языку перевода
             function(items) {
                 if (!filterSettings.language_filter_enabled) return items;
                 return items.filter(item => {
@@ -49,6 +45,7 @@
                     return item.original_language === defaultLang || title !== originalTitle;
                 });
             },
+            // Фильтр по рейтингу
             function(items) {
                 if (!filterSettings.rating_filter_enabled) return items;
                 return items.filter(item => {
@@ -61,6 +58,7 @@
                     return item.vote_average && item.vote_average >= 6;
                 });
             },
+            // Фильтр просмотренного контента
             function(items) {
                 if (!filterSettings.history_filter_enabled) return items;
                 const history = Lampa.Storage.get('history', '{}');
@@ -82,14 +80,17 @@
             }
         ],
         apply: function(items) {
-            let filteredItems = Lampa.Arrays.clone(items);
+            console.log('Applying filters to items:', items.length);
+            let filteredItems = [...items];
             for (let i = 0; i < this.filters.length; i++) {
                 filteredItems = this.filters[i](filteredItems);
             }
+            console.log('Filtered items:', filteredItems.length);
             return filteredItems;
         }
     };
 
+    // Получение эпизодов из истории
     function getHistoryEpisodes(id, history) {
         const historyItem = history.filter(item => item.id === id && Array.isArray(item.episodes) && item.episodes.length > 0)[0];
         if (!historyItem) return [];
@@ -110,6 +111,7 @@
         return result;
     }
 
+    // Получение эпизодов из избранного
     function getFavoriteEpisodes(id, favorites) {
         const favoriteItem = favorites.filter(item => item.id === id)[0] || {};
         if (!Array.isArray(favoriteItem.items) || favoriteItem.items.length === 0) return [];
@@ -118,6 +120,7 @@
         );
     }
 
+    // Объединение эпизодов
     function mergeEpisodes(historyEpisodes, favoriteEpisodes) {
         const allEpisodes = historyEpisodes.concat(favoriteEpisodes);
         const uniqueEpisodes = [];
@@ -136,6 +139,7 @@
         return uniqueEpisodes;
     }
 
+    // Проверка, полностью ли просмотрен контент
     function isFullyWatched(title, episodes) {
         if (!episodes || episodes.length === 0) return false;
         for (let i = 0; i < episodes.length; i++) {
@@ -147,10 +151,74 @@
         return true;
     }
 
+    // Добавление переводов
+    function addTranslations() {
+        console.log('Adding translations for content filters');
+        Lampa.Lang.translate({
+            content_filters: {
+                ru: 'Фильтр контента',
+                en: 'Content Filter',
+                uk: 'Фільтр контенту'
+            },
+            asian_filter: {
+                ru: 'Убрать азиатский контент',
+                en: 'Remove Asian Content',
+                uk: 'Прибрати азіатський контент'
+            },
+            asian_filter_desc: {
+                ru: 'Скрываем карточки азиатского происхождения',
+                en: 'Hide cards of Asian origin',
+                uk: 'Сховати картки азіатського походження'
+            },
+            language_filter: {
+                ru: 'Убрать контент на другом языке',
+                en: 'Remove Other Language Content',
+                uk: 'Прибрати контент іншою мовою'
+            },
+            language_filter_desc: {
+                ru: 'Скрываем карточки, названия которых не переведены на язык, выбранный по умолчанию',
+                en: 'Hide cards not translated to the default language',
+                uk: 'Сховати картки, які не перекладені на мову за замовчуванням'
+            },
+            rating_filter: {
+                ru: 'Убрать низкорейтинговый контент',
+                en: 'Remove Low-Rated Content',
+                uk: 'Прибрати низько рейтинговий контент'
+            },
+            rating_filter_desc: {
+                ru: 'Скрываем карточки с рейтингом ниже 6.0',
+                en: 'Hide cards with a rating below 6.0',
+                uk: 'Сховати картки з рейтингом нижче 6.0'
+            },
+            history_filter: {
+                ru: 'Убрать просмотренный контент',
+                en: 'Hide Watched Content',
+                uk: 'Приховувати переглянуте'
+            },
+            history_filter_desc: {
+                ru: 'Скрываем карточки фильмов и сериалов из истории, которые вы закончили смотреть',
+                en: 'Hide cards from your viewing history',
+                uk: 'Сховати картки з вашої історії перегляду'
+            }
+        });
+    }
+
+    // Инициализация настроек фильтров
+    function initFilterSettings() {
+        console.log('Initializing filter settings');
+        filterSettings.asian_filter_enabled = Lampa.Storage.get('asian_filter_enabled', false);
+        filterSettings.language_filter_enabled = Lampa.Storage.get('language_filter_enabled', false);
+        filterSettings.rating_filter_enabled = Lampa.Storage.get('rating_filter_enabled', false);
+        filterSettings.history_filter_enabled = Lampa.Storage.get('history_filter_enabled', false);
+    }
+
+    // Проверка, нужно ли применять фильтры к URL
     function shouldApplyFilters(url) {
+        console.log('Checking URL for filtering:', url);
         return true;
     }
 
+    // Проверка, нужно ли показывать кнопку "Ещё"
     function shouldShowMoreButton(data) {
         return !!data && 
                Array.isArray(data.results) && 
@@ -160,6 +228,7 @@
                data.total_pages > 1;
     }
 
+    // Поиск ближайшего элемента по селектору
     function findClosestElement(element, selector) {
         if (element && element.matches && element.matches(selector)) return element;
         let current = element;
@@ -174,8 +243,13 @@
         return null;
     }
 
+    // Добавление слушателя событий
     function addEventListenerExtension() {
-        if (window.lampa_listener_extensions) return;
+        if (window.lampa_listener_extensions) {
+            console.log('Event listener extension already added, skipping');
+            return;
+        }
+        console.log('Adding event listener extension');
         window.lampa_listener_extensions = true;
         Object.defineProperty(window.Lampa.Manifest.plugins, 'open', {
             get: function() {
@@ -190,100 +264,179 @@
         });
     }
 
-    function initFilterSettings() {
-        filterSettings.asian_filter_enabled = Lampa.Storage.get('asian_filter_enabled', false);
-        filterSettings.language_filter_enabled = Lampa.Storage.get('language_filter_enabled', false);
-        filterSettings.rating_filter_enabled = Lampa.Storage.get('rating_filter_enabled', false);
-        filterSettings.history_filter_enabled = Lampa.Storage.get('history_filter_enabled', false);
-    }
-
+    // Добавление настроек
     function addSettings() {
-        Lampa.SettingsApi.addParam({
-            component: 'interface',
-            param: {
-                name: 'content_filters',
-                type: 'static',
-                default: true
-            },
-            field: {
-                name: translations.content_filters,
-                description: translations.content_filters_desc
-            },
-            onRender: function(element) {
-                setTimeout(function() {
-                    const componentName = translations.content_filters;
-                    const targetElement = $(`.settings-param > div:contains("${componentName}")`);
-                    const interfaceSizeElement = $('div[data-name="interface_size"], .settings-param[data-name="interface_size"], .settings-param[title*="Размер интерфейса"]');
-                    if (targetElement.length && interfaceSizeElement.length) {
-                        targetElement.parent().insertAfter(interfaceSizeElement.last());
-                    } else {
-                        const interfaceMenu = Lampa.Settings.main().render().find('[data-component="interface"] .settings--list');
-                        if (targetElement.length && interfaceMenu.length) {
-                            targetElement.parent().prependTo(interfaceMenu);
-                        }
-                    }
-                }, 0);
+        console.log('Attempting to add content_filters settings');
 
-                element.on('hover:enter', function() {
-                    const submenu = $('<div class="settings-folder selector" data-component="content_filters"><div class="settings-folder__name">' + translations.content_filters + '</div><div class="settings--list"></div></div>');
-                    const submenuList = submenu.find('.settings--list');
+        // Регистрируем компонент для главного меню
+        try {
+            Lampa.SettingsApi.addComponent({
+                component: 'content_filters',
+                name: Lampa.Lang.translate('content_filters') || 'Фильтр контента',
+                icon: '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+                      '<path d="M3 4H21V6H3V4ZM3 11H21V13H3V11ZM3 18H21V20H3V18Z" fill="currentColor"/>' +
+                      '</svg>'
+            });
+            console.log('content_filters component added to main menu');
+        } catch (e) {
+            console.error('Failed to add content_filters component:', e);
+        }
 
-                    const params = [
-                        {
-                            name: 'asian_filter_enabled',
-                            title: translations.asian_filter,
-                            description: translations.asian_filter_desc,
-                            storageKey: 'asian_filter_enabled'
-                        },
-                        {
-                            name: 'language_filter_enabled',
-                            title: translations.language_filter,
-                            description: translations.language_filter_desc,
-                            storageKey: 'language_filter_enabled'
-                        },
-                        {
-                            name: 'rating_filter_enabled',
-                            title: translations.rating_filter,
-                            description: translations.rating_filter_desc,
-                            storageKey: 'rating_filter_enabled'
-                        },
-                        {
-                            name: 'history_filter_enabled',
-                            title: translations.history_filter,
-                            description: translations.history_filter_desc,
-                            storageKey: 'history_filter_enabled'
-                        }
-                    ];
+        // Добавляем параметры фильтров
+        try {
+            Lampa.SettingsApi.addParam({
+                component: 'content_filters',
+                param: {
+                    name: 'asian_filter_enabled',
+                    type: 'trigger',
+                    default: false
+                },
+                field: {
+                    name: Lampa.Lang.translate('asian_filter') || 'Убрать азиатский контент',
+                    description: Lampa.Lang.translate('asian_filter_desc') || 'Скрываем карточки азиатского происхождения'
+                },
+                onChange: function(value) {
+                    console.log('asian_filter_enabled changed to:', value);
+                    filterSettings.asian_filter_enabled = value;
+                    Lampa.Storage.set('asian_filter_enabled', value);
+                    Lampa.Settings.update();
+                }
+            });
+            console.log('asian_filter_enabled param added');
+        } catch (e) {
+            console.error('Failed to add asian_filter_enabled param:', e);
+        }
 
-                    params.forEach(param => {
-                        const isEnabled = Lampa.Storage.get(param.storageKey, false);
-                        const paramElement = $(`
-                            <div class="settings-param selector" data-name="${param.name}" data-type="trigger">
-                                <div class="settings-param__name"><span>${param.title}</span></div>
-                                <div class="settings-param__descr">${param.description}</div>
-                                <div class="settings-param__value">${isEnabled ? 'Вкл' : 'Выкл'}</div>
-                            </div>
-                        `);
-                        paramElement.on('hover:enter', function() {
-                            const newValue = !Lampa.Storage.get(param.storageKey, false);
-                            Lampa.Storage.set(param.storageKey, newValue);
-                            filterSettings[param.name] = newValue;
-                            paramElement.find('.settings-param__value').text(newValue ? 'Вкл' : 'Выкл');
-                            Lampa.Settings.update();
-                        });
-                        submenuList.append(paramElement);
-                    });
+        try {
+            Lampa.SettingsApi.addParam({
+                component: 'content_filters',
+                param: {
+                    name: 'language_filter_enabled',
+                    type: 'trigger',
+                    default: false
+                },
+                field: {
+                    name: Lampa.Lang.translate('language_filter') || 'Убрать контент на другом языке',
+                    description: Lampa.Lang.translate('language_filter_desc') || 'Скрываем карточки, названия которых не переведены на язык, выбранный по умолчанию'
+                },
+                onChange: function(value) {
+                    console.log('language_filter_enabled changed to:', value);
+                    filterSettings.language_filter_enabled = value;
+                    Lampa.Storage.set('language_filter_enabled', value);
+                    Lampa.Settings.update();
+                }
+            });
+            console.log('language_filter_enabled param added');
+        } catch (e) {
+            console.error('Failed to add language_filter_enabled param:', e);
+        }
 
-                    const interfaceMenu = Lampa.Settings.main().render().find('[data-component="interface"] .settings--list');
-                    interfaceMenu.empty().append(submenu);
-                    Lampa.Controller.focus(submenu[0]);
-                    $(submenu[0]).trigger('click');
-                });
+        try {
+            Lampa.SettingsApi.addParam({
+                component: 'content_filters',
+                param: {
+                    name: 'rating_filter_enabled',
+                    type: 'trigger',
+                    default: false
+                },
+                field: {
+                    name: Lampa.Lang.translate('rating_filter') || 'Убрать низкорейтинговый контент',
+                    description: Lampa.Lang.translate('rating_filter_desc') || 'Скрываем карточки с рейтингом ниже 6.0'
+                },
+                onChange: function(value) {
+                    console.log('rating_filter_enabled changed to:', value);
+                    filterSettings.rating_filter_enabled = value;
+                    Lampa.Storage.set('rating_filter_enabled', value);
+                    Lampa.Settings.update();
+                }
+            });
+            console.log('rating_filter_enabled param added');
+        } catch (e) {
+            console.error('Failed to add rating_filter_enabled param:', e);
+        }
+
+        try {
+            Lampa.SettingsApi.addParam({
+                component: 'content_filters',
+                param: {
+                    name: 'history_filter_enabled',
+                    type: 'trigger',
+                    default: false
+                },
+                field: {
+                    name: Lampa.Lang.translate('history_filter') || 'Убрать просмотренный контент',
+                    description: Lampa.Lang.translate('history_filter_desc') || 'Скрываем карточки фильмов и сериалов из истории, которые вы закончили смотреть'
+                },
+                onChange: function(value) {
+                    console.log('history_filter_enabled changed to:', value);
+                    filterSettings.history_filter_enabled = value;
+                    Lampa.Storage.set('history_filter_enabled', value);
+                    Lampa.Settings.update();
+                }
+            });
+            console.log('history_filter_enabled param added');
+        } catch (e) {
+            console.error('Failed to add history_filter_enabled param:', e);
+        }
+
+        // Принудительное отображение и перемещение
+        function ensureVisibilityAndMove() {
+            console.log('Ensuring content_filters visibility and moving');
+            const settingsMenu = Lampa.Settings.main().render();
+            
+            // Вывод всех элементов главного меню для отладки
+            const mainSettings = settingsMenu.find('.settings-param, .settings-folder').map((i, el) => {
+                return {
+                    name: $(el).attr('data-name'),
+                    title: $(el).attr('title') || $(el).find('.settings-param-title').text() || $(el).text().trim(),
+                    component: $(el).attr('data-component')
+                };
+            }).get();
+            console.log('Main settings elements:', mainSettings);
+
+            // Удаление дубликата из подменю "Интерфейс"
+            const interfaceMenu = settingsMenu.find('[data-component="interface"]');
+            const interfaceContentFilters = interfaceMenu.find('[data-name="content_filters"], .settings-param:contains("Фильтр контента")');
+            if (interfaceContentFilters.length) {
+                console.log('Removing content_filters from interface menu');
+                interfaceContentFilters.remove();
             }
-        });
+
+            // Перемещение пункта ниже "Интерфейс"
+            const targetElement = settingsMenu.find('[data-component="content_filters"], .settings-folder:contains("Фильтр контента")');
+            const interfaceElement = settingsMenu.find('[data-component="interface"], .settings-folder:contains("Интерфейс")');
+            console.log('Target element (content_filters) found:', targetElement.length);
+            console.log('Interface element found:', interfaceElement.length);
+            if (targetElement.length && interfaceElement.length) {
+                console.log('Moving content_filters after interface');
+                targetElement.insertAfter(interfaceElement.last());
+            } else {
+                console.warn('Failed to move content_filters: target or interface not found');
+                // Fallback: перемещение в конец главного меню
+                const settingsContainer = settingsMenu.find('.settings--list');
+                if (targetElement.length && settingsContainer.length) {
+                    console.log('Moving content_filters to end of main menu');
+                    targetElement.appendTo(settingsContainer);
+                }
+            }
+        }
+
+        // Выполняем после готовности приложения
+        if (window.appready) {
+            setTimeout(ensureVisibilityAndMove, 100);
+        } else {
+            Lampa.Listener.follow('app', function(e) {
+                if (e.type === 'ready') {
+                    setTimeout(ensureVisibilityAndMove, 100);
+                }
+            });
+        }
     }
 
+    // Инициализация плагина
     function initPlugin() {
+        console.log('Initializing Content Filter plugin');
+        // Регистрируем плагин
         Lampa.Manifest.plugins = Lampa.Manifest.plugins || [];
         Lampa.Manifest.plugins.push({
             name: 'Content Filter',
@@ -292,8 +445,10 @@
 
         addEventListenerExtension();
         initFilterSettings();
+        addTranslations();
         addSettings();
 
+        // Обработчик события для добавления кнопки "Ещё"
         Lampa.Listener.follow('more', function(event) {
             if (event.type !== 'open' || !shouldShowMoreButton(event.data)) return;
             const lineElement = $(findClosestElement(event.body, '.items-line')).find('.items-line__head');
@@ -303,6 +458,7 @@
             moreButton.classList.add('selector');
             moreButton.innerText = Lampa.Lang.translate('more') || 'Ещё';
             moreButton.addEventListener('hover:enter', function() {
+                console.log('More button clicked, opening activity');
                 Lampa.Activity.push({
                     url: event.data.url,
                     title: event.data.title || Lampa.Lang.translate('title_category') || 'Категория',
@@ -316,6 +472,7 @@
             lineElement.append(moreButton);
         });
 
+        // Обработчик события для автоматической загрузки следующей страницы
         Lampa.Listener.follow('more', function(event) {
             if (event.type !== 'append' || !shouldShowMoreButton(event.data)) return;
             if (event.items.length === event.data.results.length) {
@@ -323,19 +480,23 @@
             }
         });
 
+        // Обработчик успешных запросов для применения фильтров
         Lampa.Listener.follow('request_secuses', function(event) {
             if (shouldApplyFilters(event.params.url) && event.data && Array.isArray(event.data.results)) {
+                console.log('Applying filters to URL:', event.params.url, 'Results:', event.data.results);
                 event.data.original_length = event.data.results.length;
                 event.data.results = contentFilters.apply(event.data.results);
             }
         });
     }
 
+    // Ждём готовности приложения
     if (window.appready) {
         initPlugin();
     } else {
         Lampa.Listener.follow('app', function(e) {
             if (e.type === 'ready') {
+                console.log('App is ready, starting plugin');
                 initPlugin();
             }
         });
