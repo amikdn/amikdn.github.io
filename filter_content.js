@@ -9,6 +9,20 @@
     window.contentFilterInitialized = true;
     console.log('Starting Content Filter plugin initialization');
 
+    // Локальный объект переводов
+    const translations = {
+        content_filters: 'Фильтр контента',
+        content_filters_desc: 'Настройка отображения карточек по фильтрам',
+        asian_filter: 'Убрать азиатский контент',
+        asian_filter_desc: 'Скрываем карточки азиатского происхождения',
+        language_filter: 'Убрать контент на другом языке',
+        language_filter_desc: 'Скрываем карточки, названия которых не переведены на язык, выбранный по умолчанию',
+        rating_filter: 'Убрать низкорейтинговый контент',
+        rating_filter_desc: 'Скрываем карточки с рейтингом ниже 6.0',
+        history_filter: 'Убрать просмотренный контент',
+        history_filter_desc: 'Скрываем карточки фильмов и сериалов из истории, которые вы закончили смотреть'
+    };
+
     // Конфигурация фильтров
     const filterSettings = {
         asian_filter_enabled: false,
@@ -143,78 +157,12 @@
     function isFullyWatched(title, episodes) {
         if (!episodes || episodes.length === 0) return false;
         for (let i = 0; i < episodes.length; i++) {
-            const episode = episodes[i];
+            const episode = epochs[i];
             const key = Lampa.Utils.hash([episode.season_number, episode.season_number > 10 ? ':' : '', episode.episode_number, title].join(''));
             const timeline = Lampa.Timeline.view(key);
             if (timeline.percent === 0) return false;
         }
         return true;
-    }
-
-    // Добавление переводов
-    function addTranslations() {
-        console.log('Adding translations for content filters');
-        const translations = {
-            content_filters: {
-                ru: 'Фильтр контента',
-                en: 'Content Filter',
-                uk: 'Фільтр контенту'
-            },
-            asian_filter: {
-                ru: 'Убрать азиатский контент',
-                en: 'Remove Asian Content',
-                uk: 'Прибрати азіатський контент'
-            },
-            asian_filter_desc: {
-                ru: 'Скрываем карточки азиатского происхождения',
-                en: 'Hide cards of Asian origin',
-                uk: 'Сховати картки азіатського походження'
-            },
-            language_filter: {
-                ru: 'Убрать контент на другом языке',
-                en: 'Remove Other Language Content',
-                uk: 'Прибрати контент іншою мовою'
-            },
-            language_filter_desc: {
-                ru: 'Скрываем карточки, названия которых не переведены на язык, выбранный по умолчанию',
-                en: 'Hide cards not translated to the default language',
-                uk: 'Сховати картки, які не перекладені на мову за замовчуванням'
-            },
-            rating_filter: {
-                ru: 'Убрать низкорейтинговый контент',
-                en: 'Remove Low-Rated Content',
-                uk: 'Прибрати низько рейтинговий контент'
-            },
-            rating_filter_desc: {
-                ru: 'Скрываем карточки с рейтингом ниже 6.0',
-                en: 'Hide cards with a rating below 6.0',
-                uk: 'Сховати картки з рейтингом нижче 6.0'
-            },
-            history_filter: {
-                ru: 'Убрать просмотренный контент',
-                en: 'Hide Watched Content',
-                uk: 'Приховувати переглянуте'
-            },
-            history_filter_desc: {
-                ru: 'Скрываем карточки фильмов и сериалов из истории, которые вы закончили смотреть',
-                en: 'Hide cards from your viewing history',
-                uk: 'Сховати картки з вашої історії перегляду'
-            }
-        };
-        Lampa.Lang.translate(translations);
-        // Отладка переводов
-        console.log('Translations loaded:', translations);
-        console.log('Checking translation for content_filters:', Lampa.Lang.translate('content_filters'));
-        console.log('Checking translation for asian_filter:', Lampa.Lang.translate('asian_filter'));
-    }
-
-    // Инициализация настроек фильтров
-    function initFilterSettings() {
-        console.log('Initializing filter settings');
-        filterSettings.asian_filter_enabled = Lampa.Storage.get('asian_filter_enabled', false);
-        filterSettings.language_filter_enabled = Lampa.Storage.get('language_filter_enabled', false);
-        filterSettings.rating_filter_enabled = Lampa.Storage.get('rating_filter_enabled', false);
-        filterSettings.history_filter_enabled = Lampa.Storage.get('history_filter_enabled', false);
     }
 
     // Проверка, нужно ли применять фильтры к URL
@@ -269,33 +217,18 @@
         });
     }
 
+    // Инициализация настроек фильтров
+    function initFilterSettings() {
+        console.log('Initializing filter settings');
+        filterSettings.asian_filter_enabled = Lampa.Storage.get('asian_filter_enabled', false);
+        filterSettings.language_filter_enabled = Lampa.Storage.get('language_filter_enabled', false);
+        filterSettings.rating_filter_enabled = Lampa.Storage.get('rating_filter_enabled', false);
+        filterSettings.history_filter_enabled = Lampa.Storage.get('history_filter_enabled', false);
+    }
+
     // Добавление настроек
     function addSettings() {
         console.log('Attempting to add content_filters settings');
-
-        // Регистрируем компонент content_filters
-        try {
-            Lampa.SettingsApi.addComponent({
-                component: 'content_filters',
-                name: Lampa.Lang.translate('content_filters') || 'Фильтр контента'
-            });
-            console.log('content_filters component added');
-        } catch (e) {
-            console.error('Failed to add content_filters component:', e);
-        }
-
-        // Удаляем content_filters из главного меню
-        try {
-            const mainMenuContentFilters = Lampa.Settings.main().render().find('[data-component="content_filters"], .settings-folder:contains("Фильтр контента"), .settings-folder:contains("Content Filter"), .settings-folder:contains("content_filters")');
-            if (mainMenuContentFilters.length) {
-                console.log('Removing content_filters from main menu');
-                mainMenuContentFilters.remove();
-            } else {
-                console.log('No content_filters found in main menu');
-            }
-        } catch (e) {
-            console.error('Failed to remove content_filters from main menu:', e);
-        }
 
         // Добавляем параметр в подменю "Интерфейс"
         try {
@@ -307,13 +240,13 @@
                     default: true
                 },
                 field: {
-                    name: Lampa.Lang.translate('content_filters') || 'Фильтр контента',
-                    description: Lampa.Lang.translate('settings_component_description') || 'Настройка отображения карточек по фильтрам'
+                    name: translations.content_filters,
+                    description: translations.content_filters_desc
                 },
                 onRender: function(element) {
                     console.log('Rendering content_filters param in interface');
                     setTimeout(function() {
-                        const componentName = Lampa.Lang.translate('content_filters') || 'Фильтр контента';
+                        const componentName = translations.content_filters;
                         const targetElement = $(`.settings-param > div:contains("${componentName}")`);
                         const interfaceSizeElement = $('div[data-name="interface_size"], .settings-param[data-name="interface_size"], .settings-param[title*="Размер интерфейса"]');
                         console.log('Target element (content_filters) found:', targetElement.length);
@@ -323,7 +256,6 @@
                             targetElement.parent().insertAfter(interfaceSizeElement.last());
                         } else {
                             console.warn('Failed to move content_filters: target or interface_size not found');
-                            // Fallback: перемещение в начало подменю "Интерфейс"
                             const interfaceMenu = Lampa.Settings.main().render().find('[data-component="interface"] .settings--list');
                             if (targetElement.length && interfaceMenu.length) {
                                 console.log('Moving content_filters to top of interface menu');
@@ -356,10 +288,103 @@
                     element.on('hover:enter', function() {
                         console.log('Opening content_filters settings');
                         try {
+                            // Регистрируем подменю content_filters динамически
+                            Lampa.SettingsApi.addComponent({
+                                component: 'content_filters',
+                                name: translations.content_filters
+                            });
+
+                            // Добавляем параметры фильтров
+                            Lampa.SettingsApi.addParam({
+                                component: 'content_filters',
+                                param: {
+                                    name: 'asian_filter_enabled',
+                                    type: 'trigger',
+                                    default: false
+                                },
+                                field: {
+                                    name: translations.asian_filter,
+                                    description: translations.asian_filter_desc
+                                },
+                                onChange: function(value) {
+                                    console.log('asian_filter_enabled changed to:', value);
+                                    filterSettings.asian_filter_enabled = value;
+                                    Lampa.Storage.set('asian_filter_enabled', value);
+                                    Lampa.Settings.update();
+                                }
+                            });
+
+                            Lampa.SettingsApi.addParam({
+                                component: 'content_filters',
+                                param: {
+                                    name: 'language_filter_enabled',
+                                    type: 'trigger',
+                                    default: false
+                                },
+                                field: {
+                                    name: translations.language_filter,
+                                    description: translations.language_filter_desc
+                                },
+                                onChange: function(value) {
+                                    console.log('language_filter_enabled changed to:', value);
+                                    filterSettings.language_filter_enabled = value;
+                                    Lampa.Storage.set('language_filter_enabled', value);
+                                    Lampa.Settings.update();
+                                }
+                            });
+
+                            Lampa.SettingsApi.addParam({
+                                component: 'content_filters',
+                                param: {
+                                    name: 'rating_filter_enabled',
+                                    type: 'trigger',
+                                    default: false
+                                },
+                                field: {
+                                    name: translations.rating_filter,
+                                    description: translations.rating_filter_desc
+                                },
+                                onChange: function(value) {
+                                    console.log('rating_filter_enabled changed to:', value);
+                                    filterSettings.rating_filter_enabled = value;
+                                    Lampa.Storage.set('rating_filter_enabled', value);
+                                    Lampa.Settings.update();
+                                }
+                            });
+
+                            Lampa.SettingsApi.addParam({
+                                component: 'content_filters',
+                                param: {
+                                    name: 'history_filter_enabled',
+                                    type: 'trigger',
+                                    default: false
+                                },
+                                field: {
+                                    name: translations.history_filter,
+                                    description: translations.history_filter_desc
+                                },
+                                onChange: function(value) {
+                                    console.log('history_filter_enabled changed to:', value);
+                                    filterSettings.history_filter_enabled = value;
+                                    Lampa.Storage.set('history_filter_enabled', value);
+                                    Lampa.Settings.update();
+                                }
+                            });
+
+                            // Отладка содержимого подменю
+                            const contentFiltersItems = Lampa.Settings.main().render().find('[data-component="content_filters"] .settings-param').map((i, el) => {
+                                return {
+                                    name: $(el).attr('data-name'),
+                                    title: $(el).find('.settings-param-title').text() || $(el).text().trim(),
+                                    description: $(el).find('.settings-param__descr').text() || ''
+                                };
+                            }).get();
+                            console.log('Content filters submenu items:', contentFiltersItems);
+
+                            // Открываем подменю
                             Lampa.Settings.main().render().find('[data-component="content_filters"]').trigger('hover:enter');
                         } catch (e) {
                             console.error('Failed to open content_filters settings:', e);
-                            // Fallback: прямое открытие настроек
                             Lampa.Settings.show('content_filters');
                         }
                     });
@@ -368,103 +393,6 @@
             console.log('content_filters param added to interface');
         } catch (e) {
             console.error('Failed to add content_filters param to interface:', e);
-        }
-
-        // Добавляем параметры фильтров
-        try {
-            Lampa.SettingsApi.addParam({
-                component: 'content_filters',
-                param: {
-                    name: 'asian_filter_enabled',
-                    type: 'trigger',
-                    default: false
-                },
-                field: {
-                    name: Lampa.Lang.translate('asian_filter') || 'Убрать азиатский контент',
-                    description: Lampa.Lang.translate('asian_filter_desc') || 'Скрываем карточки азиатского происхождения'
-                },
-                onChange: function(value) {
-                    console.log('asian_filter_enabled changed to:', value);
-                    filterSettings.asian_filter_enabled = value;
-                    Lampa.Storage.set('asian_filter_enabled', value);
-                    Lampa.Settings.update();
-                }
-            });
-            console.log('asian_filter_enabled param added');
-        } catch (e) {
-            console.error('Failed to add asian_filter_enabled param:', e);
-        }
-
-        try {
-            Lampa.SettingsApi.addParam({
-                component: 'content_filters',
-                param: {
-                    name: 'language_filter_enabled',
-                    type: 'trigger',
-                    default: false
-                },
-                field: {
-                    name: Lampa.Lang.translate('language_filter') || 'Убрать контент на другом языке',
-                    description: Lampa.Lang.translate('language_filter_desc') || 'Скрываем карточки, названия которых не переведены на язык, выбранный по умолчанию'
-                },
-                onChange: function(value) {
-                    console.log('language_filter_enabled changed to:', value);
-                    filterSettings.language_filter_enabled = value;
-                    Lampa.Storage.set('language_filter_enabled', value);
-                    Lampa.Settings.update();
-                }
-            });
-            console.log('language_filter_enabled param added');
-        } catch (e) {
-            console.error('Failed to add language_filter_enabled param:', e);
-        }
-
-        try {
-            Lampa.SettingsApi.addParam({
-                component: 'content_filters',
-                param: {
-                    name: 'rating_filter_enabled',
-                    type: 'trigger',
-                    default: false
-                },
-                field: {
-                    name: Lampa.Lang.translate('rating_filter') || 'Убрать низкорейтинговый контент',
-                    description: Lampa.Lang.translate('rating_filter_desc') || 'Скрываем карточки с рейтингом ниже 6.0'
-                },
-                onChange: function(value) {
-                    console.log('rating_filter_enabled changed to:', value);
-                    filterSettings.rating_filter_enabled = value;
-                    Lampa.Storage.set('rating_filter_enabled', value);
-                    Lampa.Settings.update();
-                }
-            });
-            console.log('rating_filter_enabled param added');
-        } catch (e) {
-            console.error('Failed to add rating_filter_enabled param:', e);
-        }
-
-        try {
-            Lampa.SettingsApi.addParam({
-                component: 'content_filters',
-                param: {
-                    name: 'history_filter_enabled',
-                    type: 'trigger',
-                    default: false
-                },
-                field: {
-                    name: Lampa.Lang.translate('history_filter') || 'Убрать просмотренный контент',
-                    description: Lampa.Lang.translate('history_filter_desc') || 'Скрываем карточки фильмов и сериалов из истории, которые вы закончили смотреть'
-                },
-                onChange: function(value) {
-                    console.log('history_filter_enabled changed to:', value);
-                    filterSettings.history_filter_enabled = value;
-                    Lampa.Storage.set('history_filter_enabled', value);
-                    Lampa.Settings.update();
-                }
-            });
-            console.log('history_filter_enabled param added');
-        } catch (e) {
-            console.error('Failed to add history_filter_enabled param:', e);
         }
     }
 
@@ -479,8 +407,6 @@
             version: '1.0.0'
         });
 
-        // Загружаем переводы в начале
-        addTranslations();
         addEventListenerExtension();
         initFilterSettings();
         addSettings();
