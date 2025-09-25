@@ -275,9 +275,10 @@
                     });
 
                     const interfaceMenu = Lampa.Settings.main().render().find('[data-component="interface"] .settings--list');
-                    interfaceMenu.append(submenu);
-                    Lampa.Controller.focus(submenu);
-                    submenu.trigger('hover:enter');
+                    interfaceMenu.empty().append(submenu);
+                    Lampa.Controller.focus(submenu[0]);
+                    Lampa.Controller.enabled().element = submenu[0];
+                    Lampa.Controller.enabled().controller.trigger('hover:enter');
                 });
             }
         });
