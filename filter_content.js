@@ -203,6 +203,12 @@
             name: translations.content_filters
         });
 
+        Lampa.Listener.follow('settings_component', function(e) {
+            if (e.name === 'content_filters') {
+                $(e.element).hide();
+            }
+        });
+
         Lampa.SettingsApi.addParam({
             component: 'content_filters',
             param: {
@@ -358,16 +364,6 @@
 
     Lampa.Listener.follow('app', function(e) {
         if (e.type === 'ready') {
-            Lampa.SettingsApi.addComponent({
-                component: 'content_filters',
-                name: translations.content_filters
-            });
-
-            Lampa.Listener.follow('settings_component', function(c) {
-                if (c.name === 'content_filters') {
-                    $(c.element).remove();
-                }
-            });
             initPlugin();
         }
     });
