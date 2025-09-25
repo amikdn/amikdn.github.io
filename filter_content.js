@@ -1,6 +1,14 @@
 (function() {
     'use strict';
 
+    // Проверка на повторную инициализацию
+    if (window.contentFilterInitialized) {
+        console.log('Content Filter plugin already initialized, skipping');
+        return;
+    }
+    window.contentFilterInitialized = true;
+    console.log('Starting Content Filter plugin initialization');
+
     // Конфигурация фильтров
     const filterSettings = {
         asian_filter_enabled: false,
@@ -196,7 +204,8 @@
         Lampa.Lang.translate(translations);
         // Отладка переводов
         console.log('Translations loaded:', translations);
-        console.log('content_filters translation:', Lampa.Lang.translate('content_filters'));
+        console.log('Checking translation for content_filters:', Lampa.Lang.translate('content_filters'));
+        console.log('Checking translation for asian_filter:', Lampa.Lang.translate('asian_filter'));
     }
 
     // Инициализация настроек фильтров
@@ -275,6 +284,19 @@
             console.error('Failed to add content_filters component:', e);
         }
 
+        // Удаляем content_filters из главного меню
+        try {
+            const mainMenuContentFilters = Lampa.Settings.main().render().find('[data-component="content_filters"], .settings-folder:contains("Фильтр контента"), .settings-folder:contains("Content Filter"), .settings-folder:contains("content_filters")');
+            if (mainMenuContentFilters.length) {
+                console.log('Removing content_filters from main menu');
+                mainMenuContentFilters.remove();
+            } else {
+                console.log('No content_filters found in main menu');
+            }
+        } catch (e) {
+            console.error('Failed to remove content_filters from main menu:', e);
+        }
+
         // Добавляем параметр в подменю "Интерфейс"
         try {
             Lampa.SettingsApi.addParam({
@@ -286,7 +308,7 @@
                 },
                 field: {
                     name: Lampa.Lang.translate('content_filters') || 'Фильтр контента',
-                    description: 'Настройка отображения карточек по фильтрам'
+                    description: Lampa.Lang.translate('settings_component_description') || 'Настройка отображения карточек по фильтрам'
                 },
                 onRender: function(element) {
                     console.log('Rendering content_filters param in interface');
@@ -319,6 +341,16 @@
                             };
                         }).get();
                         console.log('Interface settings elements:', interfaceSettings);
+
+                        // Вывод всех зарегистрированных компонентов настроек
+                        const allSettings = Lampa.Settings.main().render().find('.settings-folder, .settings-param').map((i, el) => {
+                            return {
+                                name: $(el).attr('data-name'),
+                                title: $(el).attr('title') || $(el).find('.settings-param-title').text() || $(el).text().trim(),
+                                component: $(el).attr('data-component')
+                            };
+                        }).get();
+                        console.log('Registered settings components:', allSettings);
                     }, 0);
 
                     element.on('hover:enter', function() {
@@ -439,6 +471,7 @@
     // Инициализация плагина
     function initPlugin() {
         console.log('Initializing Content Filter plugin');
+
         // Регистрируем плагин
         Lampa.Manifest.plugins = Lampa.Manifest.plugins || [];
         Lampa.Manifest.plugins.push({
@@ -446,9 +479,10 @@
             version: '1.0.0'
         });
 
+        // Загружаем переводы в начале
+        addTranslations();
         addEventListenerExtension();
         initFilterSettings();
-        addTranslations();
         addSettings();
 
         // Обработчик события для добавления кнопки "Ещё"
