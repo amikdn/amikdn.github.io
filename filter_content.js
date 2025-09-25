@@ -63,6 +63,11 @@
         }
     };
 
+    // Проверка TMDB-запросов — всегда true
+    function allowFilter(params) {
+        return true;
+    }
+
     // Переводы
     function initLang() {
         Lampa.Lang.add({
@@ -116,10 +121,11 @@
 
     // Настройки
     function initSettings() {
-        // Раздел
+        // Раздел — ставим order = 3, чтобы было сразу после "Интерфейс"
         Lampa.SettingsApi.addComponent({
             component: 'content_filter_plugin',
-            name: 'filters', // уникальный id
+            name: 'filters',
+            order: 3,
             icon: '<svg width="20" height="20" viewBox="0 0 24 24"><path fill="currentColor" d="M10 18h4v-2h-4v2m-7-6h18v-2H3v2m3-6h12V4H6v2Z"/></svg>',
             field: {
                 name: Lampa.Lang.translate('content_filters'),
@@ -127,7 +133,7 @@
             }
         });
 
-        // Переключатели
+        // Параметры
         Lampa.SettingsApi.addParam({
             component: 'content_filter_plugin',
             param: { name: 'asian_filter_enabled', type: 'trigger', default: false },
@@ -185,8 +191,9 @@
         initLang();
         initSettings();
 
-        // Перехват запросов и применение фильтров
+        // Перехват запросов
         Lampa.Listener.follow('request_secuses', e => {
+            if (!allowFilter(e.params)) return;
             if (e.data && Array.isArray(e.data.results)) {
                 e.data.original_length = e.data.results.length;
                 e.data.results = Filters.apply(e.data.results);
@@ -199,7 +206,7 @@
     Lampa.Manifest.plugins.push({
         name: 'Content Filter',
         description: 'Фильтрация карточек по языку, рейтингу, истории',
-        version: '1.1.0',
+        version: '1.2.0',
         author: 'Custom'
     });
 
