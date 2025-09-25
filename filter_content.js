@@ -49,25 +49,13 @@
             function (items) {
                 if (!filtersState.history) return items;
 
-                let history = Lampa.Storage.get('history', '{}');
-                let timetable = Lampa.Storage.get('timetable', []);
-
                 return items.filter(item => {
                     if (!item) return true;
-
-                    let mediaType = item.media_type;
-                    if (!mediaType) mediaType = item.seasons ? 'tv' : 'movie';
 
                     let viewed = Lampa.Timeline.view(item);
                     if (viewed && viewed.percent === 100) return false;
 
-                    if (mediaType === 'movie') return true;
-
-                    let watchedEpisodes = collectEpisodesFromHistory(item.id, history);
-                    let airedEpisodes = collectEpisodesFromTimetable(item.id, timetable);
-                    let allEpisodes = mergeEpisodes(watchedEpisodes, airedEpisodes);
-
-                    return !allWatched(item.original_title || item.original_name, allEpisodes);
+                    return true;
                 });
             }
         ],
@@ -79,52 +67,6 @@
             return result;
         }
     };
-
-    // собрать эпизоды из истории
-    function collectEpisodesFromHistory(id, history) {
-        let data = history[id];
-        if (!data || !Array.isArray(data.episodes)) return [];
-        return data.episodes.filter(ep =>
-            ep.season_number > 0 &&
-            ep.episode_number > 0 &&
-            ep.air_date &&
-            new Date(ep.air_date) < new Date()
-        );
-    }
-
-    // собрать эпизоды из расписания
-    function collectEpisodesFromTimetable(id, timetable) {
-        let item = timetable.find(el => el.id === id) || {};
-        if (!Array.isArray(item.seasons)) return [];
-        return item.seasons.filter(season =>
-            season.season_number > 0 &&
-            season.air_date &&
-            new Date(season.air_date) < new Date()
-        );
-    }
-
-    // объединение эпизодов
-    function mergeEpisodes(a, b) {
-        let all = a.concat(b);
-        let uniq = [];
-        for (let ep of all) {
-            if (!uniq.find(u => u.season_number === ep.season_number && u.episode_number === ep.episode_number)) {
-                uniq.push(ep);
-            }
-        }
-        return uniq;
-    }
-
-    // проверка — все ли эпизоды просмотрены
-    function allWatched(title, episodes) {
-        if (!episodes || episodes.length === 0) return false;
-        for (let ep of episodes) {
-            let hash = Lampa.Timeline.hash([ep.season_number, ep.season_number > 10 ? ':' : '', ep.episode_number, title].join(''));
-            let viewed = Lampa.Timeline.view(hash);
-            if (viewed.percent === 0) return false;
-        }
-        return true;
-    }
 
     function addLangs() {
         Lampa.Lang.add({
@@ -177,7 +119,7 @@
     }
 
     function addSettings() {
-        // заголовок «Фильтр контента» под «Размер интерфейса»
+        // создаём заголовок группы
         let header = Lampa.SettingsApi.addParam({
             component: 'interface',
             param: { name: 'content_filters_header', type: 'static' },
@@ -187,31 +129,37 @@
             }
         });
 
-        // вставляем после пункта interface_size
+        // сразу после "Размер интерфейса"
         setTimeout(() => {
             let target = document.querySelector('div[data-name="interface_size"]');
             if (target && header && header.render) {
                 target.parentNode.insertBefore(header.render(), target.nextSibling);
+
+                // теперь добавляем фильтры прямо под заголовком
+                [
+                    ['asian', 'asian_filter', 'asian_filter_desc'],
+                    ['language', 'language_filter', 'language_filter_desc'],
+                    ['rating', 'rating_filter', 'rating_filter_desc'],
+                    ['history', 'history_filter', 'history_filter_desc']
+                ].forEach(([key, name, desc]) => {
+                    let param = Lampa.SettingsApi.addParam({
+                        component: 'interface',
+                        param: { name: `${key}_filter_enabled`, type: 'trigger', default: false },
+                        field: {
+                            name: Lampa.Lang.translate(name),
+                            description: Lampa.Lang.translate(desc)
+                        },
+                        onChange: v => {
+                            filtersState[key] = v;
+                            Lampa.Storage.set(`${key}_filter_enabled`, v);
+                        }
+                    });
+                    if (param && param.render) {
+                        target.parentNode.insertBefore(param.render(), header.render().nextSibling);
+                    }
+                });
             }
         }, 10);
-
-        // переключатели
-        [
-            ['asian', 'asian_filter', 'asian_filter_desc'],
-            ['language', 'language_filter', 'language_filter_desc'],
-            ['rating', 'rating_filter', 'rating_filter_desc'],
-            ['history', 'history_filter', 'history_filter_desc']
-        ].forEach(([key, name, desc]) => {
-            Lampa.SettingsApi.addParam({
-                component: 'interface',
-                param: { name: `${key}_filter_enabled`, type: 'trigger', default: false },
-                field: { name: Lampa.Lang.translate(name), description: Lampa.Lang.translate(desc) },
-                onChange: v => {
-                    filtersState[key] = v;
-                    Lampa.Storage.set(`${key}_filter_enabled`, v);
-                }
-            });
-        });
     }
 
     function init() {
