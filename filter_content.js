@@ -1,14 +1,6 @@
 (function() {
     'use strict';
 
-    // Проверка на повторную инициализацию
-    if (window.contentFilterInitialized) {
-        console.log('Content Filter plugin already initialized, skipping');
-        return;
-    }
-    window.contentFilterInitialized = true;
-    console.log('Starting Content Filter plugin initialization');
-
     // Конфигурация фильтров
     const filterSettings = {
         asian_filter_enabled: false,
