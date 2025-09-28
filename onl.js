@@ -60,42 +60,32 @@
 function account(url) {
     url = url + '';
     
-    // Симуляция активной подписки (days_paid > 0)
+    // Симуляция активной подписки и Telegram-авторизации (days_paid > 0 и telegram_id)
     var abAccount = Lampa.Storage.get('ab_account', {});  // Получаем текущий аккаунт
     if (abAccount) {
-      abAccount.days_paid = 999;  // Устанавливаем значение > 0 для имитации подписки
-      Lampa.Storage.set('ab_account', abAccount);  // Сохраняем изменения в хранилище
+      abAccount.days_paid = 999;  // Устанавливаем значение > 0
+      abAccount.telegram_id = 123456789;  // Фейковый telegram_id для обхода бота
+      Lampa.Storage.set('ab_account', abAccount);  // Сохраняем изменения
     } else {
-      // Если аккаунт не существует, создаём фейковый с подпиской
+      // Если аккаунт не существует, создаём фейковый
       Lampa.Storage.set('ab_account', {
         secuses: true,
         email: 'fake@email.com',
         id: 1,
         token: 'fake_token',
         days_paid: 999,  // Здесь устанавливаем days_paid > 0
+        telegram_id: 123456789,  // Здесь добавляем telegram_id
         profile: { id: 1, cid: 0, name: '', main: 1, icon: 'l_1' }
       });
     }
     Lampa.Storage.set('account_use', true);  // Включаем использование аккаунта
     
-    // Оригинальный код функции продолжается ниже
+    // Оригинальный код функции продолжается ниже...
     if (url.indexOf('account_email=') == -1) {
       var email = Lampa.Storage.get('account_email');
       if (email) url = Lampa.Utils.addUrlComponent(url, 'account_email=' + encodeURIComponent(email));
     }
-    if (url.indexOf('uid=') == -1) {
-      var uid = Lampa.Storage.get('lampac_unic_id', '');
-      if (uid) url = Lampa.Utils.addUrlComponent(url, 'uid=' + encodeURIComponent(uid));
-    }
-    if (url.indexOf('token=') == -1) {
-      var token = '';
-      if (token != '') url = Lampa.Utils.addUrlComponent(url, 'token=');
-    }
-
-    url = Lampa.Utils.addUrlComponent(url, 'ab_token=' + Lampa.Storage.get('token'));
-
-    return url;
-  }
+}
   
   var Network = Lampa.Reguest;
 
