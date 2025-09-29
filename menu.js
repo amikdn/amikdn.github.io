@@ -1,345 +1,196 @@
 (function () {
     'use strict';
 
-    // Plugin metadata
-    var plugin = {
-        type: 'menu',
-        version: '1.0.0',
-        name: 'Custom Menu',
-        description: 'Custom menu for Lampa with logo, time, and sports integration'
-    };
+    // Ждем полной инициализации приложения
+    Lampa.Listener.follow('app', function (e) {
+        if (e.type === 'ready') {
+            // Сохраняем оригинальную функцию select для переопределения
+            var original_select = Lampa.Menu.select;
 
-    // Menu HTML structure
-    var menuHTML = `
-        <div class="scroll__body" style="transform: translate3d(0px, 0px, 0px);">
-            <div class="menu">
-                <div class="menu__header">
-                    <div class="menu__header-logo">
-                        <img src="./img/logo_menu.svg" alt="PRISMA">
-                    </div>
-                    <div class="menu__header-time">
-                        <div class="menu__time-now time--clock"></div>
-                        <div class="menu__time-date time--full"></div>
-                        <div class="menu__time-week time--week"></div>
-                    </div>
-                </div>
-                <div class="menu__case">
-                    <ul class="menu__list">
-                        <li class="menu__item selector binded" data-action="main">
-                            <div class="menu__ico">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M10.07 2.82009L3.14002 8.37008C2.36002 8.99008 1.86002 10.3001 2.03002 11.2801L3.36002 19.2401C3.60002 20.6601 4.96002 21.8101 6.40002 21.8101H17.6C19.03 21.8101 20.4 20.6501 20.64 19.2401L21.97 11.2801C22.13 10.3001 21.63 8.99008 20.86 8.37008L13.93 2.8301C12.86 1.9701 11.13 1.97009 10.07 2.82009Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
-                                    <path d="M12 15.5C13.3807 15.5 14.5 14.3807 14.5 13C14.5 11.6193 13.3807 10.5 12 10.5C10.6193 10.5 9.5 11.6193 9.5 13C9.5 14.3807 10.6193 15.5 12 15.5Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
-                                </svg>
-                            </div>
-                            <div class="menu__text">Главная</div>
-                        </li>
-                        <li class="menu__item selector binded" data-action="movie">
-                            <div class="menu__ico">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M9 22H15C20 22 22 20 22 15V9C22 4 20 2 15 2H9C4 2 2 4 2 9V15C2 20 4 22 9 22Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
-                                    <path d="M9.1001 12V10.52C9.1001 8.60999 10.4501 7.83999 12.1001 8.78999L13.3801 9.52999L14.6601 10.27C16.3101 11.22 16.3101 12.78 14.6601 13.73L13.3801 14.47L12.1001 15.21C10.4501 16.16 9.1001 15.38 9.1001 13.48V12Z" stroke="currentColor" stroke-width="1.5" stroke-miterlimit="10" stroke-linecap="round" stroke-linejoin="round"></path>
-                                </svg>
-                            </div>
-                            <div class="menu__text">Фильмы</div>
-                        </li>
-                        <li class="menu__item selector binded" data-action="tv">
-                            <div class="menu__ico">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M7.25998 2H16.73C17.38 2 17.96 2.02003 18.48 2.09003C21.25 2.40003 22 3.70001 22 7.26001V13.58C22 17.14 21.25 18.44 18.48 18.75C17.96 18.82 17.39 18.84 16.73 18.84H7.25998C6.60998 18.84 6.02998 18.82 5.50998 18.75C2.73998 18.44 1.98999 17.14 1.98999 13.58V7.26001C1.98999 3.70001 2.73998 2.40003 5.50998 2.09003C6.02998 2.02003 6.60998 2 7.25998 2Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
-                                    <path d="M13.58 8.32007H17.2599" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
-                                    <path d="M6.73999 14.11H6.75998H17.27" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
-                                    <path d="M7 22H17" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
-                                    <path d="M7.1947 8.30005H7.20368" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
-                                    <path d="M10.4945 8.30005H10.5035" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
-                                </svg>
-                            </div>
-                            <div class="menu__text">Сериалы</div>
-                        </li>
-                        <li class="menu__item selector binded" data-action="cartoons">
-                            <div class="menu__ico">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M9 22H15C20 22 22 20 22 15V9C22 4 20 2 15 2H9C4 2 2 4 2 9V15C2 20 4 22 9 22Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
-                                    <path d="M15.5 9.75C16.3284 9.75 17 9.07843 17 8.25C17 7.42157 16.3284 6.75 15.5 6.75C14.6716 6.75 14 7.42157 14 8.25C14 9.07843 14.6716 9.75 15.5 9.75Z" stroke="currentColor" stroke-width="1.5" stroke-miterlimit="10" stroke-linecap="round" stroke-linejoin="round"></path>
-                                    <path d="M8.5 9.75C9.32843 9.75 10 9.07843 10 8.25C10 7.42157 9.32843 6.75 8.5 6.75C7.67157 6.75 7 7.42157 7 8.25C7 9.07843 7.67157 9.75 8.5 9.75Z" stroke="currentColor" stroke-width="1.5" stroke-miterlimit="10" stroke-linecap="round" stroke-linejoin="round"></path>
-                                    <path d="M8.4 13.3H15.6C16.1 13.3 16.5 13.7 16.5 14.2C16.5 16.69 14.49 18.7 12 18.7C9.51 18.7 7.5 16.69 7.5 14.2C7.5 13.7 7.9 13.3 8.4 13.3Z" stroke="currentColor" stroke-width="1.5" stroke-miterlimit="10" stroke-linecap="round" stroke-linejoin="round"></path>
-                                </svg>
-                            </div>
-                            <div class="menu__text">Детям</div>
-                        </li>
-                        <li class="menu__item selector binded" data-action="anime">
-                            <div class="menu__ico">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M22 20.07V12.18C22 6.57999 17.5 2 12 2C6.5 2 2 6.57999 2 12.18V20.07C2 21.33 2.74998 21.67 3.66998 20.83L4.66998 19.92C5.03998 19.58 5.64001 19.58 6.01001 19.92L8.01001 21.75C8.38001 22.09 8.97998 22.09 9.34998 21.75L11.35 19.92C11.72 19.58 12.32 19.58 12.69 19.92L14.69 21.75C15.06 22.09 15.66 22.09 16.03 21.75L18.03 19.92C18.4 19.58 19 19.58 19.37 19.92L20.37 20.83C21.25 21.67 22 21.33 22 20.07Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
-                                    <path d="M8 14C10.37 15.78 13.63 15.78 16 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
-                                    <path d="M12 11C13.1046 11 14 10.1046 14 9C14 7.89543 13.1046 7 12 7C10.8954 7 10 7.89543 10 9C10 10.1046 10.8954 11 12 11Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
-                                </svg>
-                            </div>
-                            <div class="menu__text">Аниме</div>
-                        </li>
-                        <li class="menu__item selector binded" data-action="collections">
-                            <div class="menu__ico">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M13.01 2.92007L18.91 5.54007C20.61 6.29007 20.61 7.53007 18.91 8.28007L13.01 10.9001C12.34 11.2001 11.24 11.2001 10.57 10.9001L4.67 8.28007C2.97 7.53007 2.97 6.29007 4.67 5.54007L10.57 2.92007C11.24 2.62007 12.34 2.62007 13.01 2.92007Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
-                                    <path d="M3 11C3 11.84 3.63 12.81 4.4 13.15L11.19 16.17C11.71 16.4 12.3 16.4 12.81 16.17L19.6 13.15C20.37 12.81 21 11.84 21 11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
-                                    <path d="M3 16C3 16.93 3.55 17.77 4.4 18.15L11.19 21.17C11.71 21.4 12.3 21.4 12.81 21.17L19.6 18.15C20.45 17.77 21 16.93 21 16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
-                                </svg>
-                            </div>
-                            <div class="menu__text">Подборки</div>
-                        </li>
-                        <li class="menu__item selector binded" data-action="filter">
-                            <div class="menu__ico">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M12.37 8.87988H17.62" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
-                                    <path d="M6.38 8.87988L7.13 9.62988L9.38 7.37988" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
-                                    <path d="M12.37 15.8799H17.62" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
-                                    <path d="M6.38 15.8799L7.13 16.6299L9.38 14.3799" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
-                                    <path d="M9 22H15C20 22 22 20 22 15V9C22 4 20 2 15 2H9C4 2 2 4 2 9V15C2 20 4 22 9 22Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
-                                </svg>
-                            </div>
-                            <div class="menu__text">Фильтр</div>
-                        </li>
-                        <li class="menu__item selector binded" data-action="favorite">
-                            <div class="menu__ico">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M12.62 20.81C12.28 20.93 11.72 20.93 11.38 20.81C8.48 19.82 2 15.69 2 8.68998C2 5.59998 4.49 3.09998 7.56 3.09998C9.38 3.09998 10.99 3.97998 12 5.33998C13.01 3.97998 14.63 3.09998 16.44 3.09998C19.51 3.09998 22 5.59998 22 8.68998C22 15.69 15.52 19.82 12.62 20.81Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
-                                </svg>
-                            </div>
-                            <div class="menu__text">Избранное</div>
-                        </li>
-                        <li class="menu__item selector binded" data-action="history">
-                            <div class="menu__ico">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M10.33 7.51001C10.83 7.36001 11.38 7.26001 12 7.26001C14.76 7.26001 17 9.50001 17 12.26C17 15.02 14.76 17.26 12 17.26C9.24 17.26 7 15.02 7 12.26C7 11.23 7.31 10.28 7.84 9.48001" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
-                                    <path d="M9.62 7.64999L11.28 5.73999" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
-                                    <path d="M9.62 7.6499L11.56 9.0699" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
-                                    <path d="M9 22H15C20 22 22 20 22 15V9C22 4 20 2 15 2H9C4 2 2 4 2 9V15C2 20 4 22 9 22Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
-                                </svg>
-                            </div>
-                            <div class="menu__text">История</div>
-                        </li>
-                        <li class="menu__item selector binded" data-action="sport">
-                            <div class="menu__ico">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <g clip-path="url(#clip0_18071_2606)">
-                                        <path d="M12.0003 12.0004C13.801 12.0004 15.4905 12.4763 16.95 13.3093M12.0003 12.0004C11.1 13.5598 9.84311 14.785 8.39209 15.6325M12.0003 12.0004C11.1 10.441 10.6674 8.73988 10.659 7.05954M16.95 13.3093C16.7629 13.7116 16.5565 14.1091 16.3305 14.5006C16.1045 14.8921 15.8635 15.2694 15.6087 15.6325C13.5655 18.5436 10.6328 20.5323 7.39909 21.441M16.95 13.3093C18.6587 14.2845 20.052 15.7491 20.939 17.5122M8.39209 15.6325C8.13724 15.2693 7.89622 14.8919 7.67019 14.5004C5.63231 10.9707 5.19204 6.957 6.125 3.29666M8.39209 15.6325C6.69301 16.6248 4.72775 17.0992 2.75714 16.9858M10.659 7.05954C10.6502 5.28516 11.1143 3.53393 12.0003 1.99713C12.0964 1.83032 12.1976 1.66605 12.3036 1.50454M10.659 7.05954C11.1009 7.02039 11.5483 7.00039 12.0003 7.00039C16.0757 7.00039 19.7715 8.62565 22.4749 11.2634M6.125 3.29666C3.33463 5.184 1.50037 8.37791 1.50037 12.0002C1.50037 13.8046 1.95547 15.5026 2.75714 16.9858M6.125 3.29666C7.80174 2.16256 9.82371 1.50024 12.0004 1.50024C12.1018 1.50024 12.2029 1.50168 12.3036 1.50454M12.3036 1.50454C17.7163 1.65803 22.1036 5.90786 22.4749 11.2634M22.4749 11.2634C22.4918 11.5068 22.5004 11.7525 22.5004 12.0002C22.5004 14.0219 21.929 15.9101 20.939 17.5122M20.939 17.5122C19.0892 20.5056 15.7777 22.5002 12.0004 22.5002C10.35 22.5002 8.78855 22.1195 7.39909 21.441M7.39909 21.441C5.42541 20.4773 3.79874 18.9128 2.75714 16.9858" stroke="#F2F2F2" stroke-width="1.5" stroke-linecap="round"></path>
-                                    </g>
-                                    <defs>
-                                        <clipPath id="clip0_18071_2606">
-                                            <rect width="24" height="24" fill="currentColor"></rect>
-                                        </clipPath>
-                                    </defs>
-                                </svg>
-                            </div>
-                            <div class="menu__text">Спорт</div>
-                        </li>
-                    </ul>
-                </div>
-                <div class="menu__case nosort">
-                    <ul class="menu__list">
-                        <li class="menu__item selector" data-action="settings">
-                            <div class="menu__ico">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M12 15C13.6569 15 15 13.6569 15 12C15 10.3431 13.6569 9 12 9C10.3431 9 9 10.3431 9 12C9 13.6569 10.3431 15 12 15Z" stroke="currentColor" stroke-width="1.5" stroke-miterlimit="10" stroke-linecap="round" stroke-linejoin="round"></path>
-                                    <path d="M2 12.8799V11.1199C2 10.0799 2.85 9.21994 3.9 9.21994C5.71 9.21994 6.45 7.93994 5.54 6.36994C5.02 5.46994 5.33 4.29994 6.24 3.77994L7.97 2.78994C8.76 2.31994 9.78 2.59994 10.25 3.38994L10.36 3.57994C11.26 5.14994 12.74 5.14994 13.65 3.57994L13.76 3.38994C14.23 2.59994 15.25 2.31994 16.04 2.78994L17.77 3.77994C18.68 4.29994 18.99 5.46994 18.47 6.36994C17.56 7.93994 18.3 9.21994 20.11 9.21994C21.15 9.21994 22.01 10.0699 22.01 11.1199V12.8799C22.01 13.9199 21.16 14.7799 20.11 14.7799C18.3 14.7799 17.56 16.0599 18.47 17.6299C18.99 18.5399 18.68 19.6999 17.77 20.2199L16.04 21.2099C15.25 21.6799 14.23 21.3999 13.76 20.6099L13.65 20.4199C12.75 18.8499 11.27 18.8499 10.36 20.4199L10.25 20.6099C9.78 21.3999 8.76 21.6799 7.97 21.2099L6.24 20.2199C5.33 19.6999 5.02 18.5299 5.54 17.6299C6.45 16.0599 5.71 14.7799 3.9 14.7799C2.85 14.7799 2 13.9199 2 12.8799Z" stroke="currentColor" stroke-width="1.5" stroke-miterlimit="10" stroke-linecap="round" stroke-linejoin="round"></path>
-                                </svg>
-                            </div>
-                            <div class="menu__text">Настройки</div>
-                        </li>
-                        <li class="menu__item selector" data-action="about">
-                            <div class="menu__ico">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M5.06107 20.0451L5.50191 19.4383L5.06107 20.0451ZM3.95491 18.9389L4.56168 18.4981L3.95491 18.9389ZM20.0451 18.9389L19.4383 18.4981L20.0451 18.9389ZM18.9389 20.0451L18.4981 19.4383L18.9389 20.0451ZM18.9389 3.95491L18.4981 4.56168L18.9389 3.95491ZM20.0451 5.06107L19.4383 5.50191L20.0451 5.06107ZM5.06107 3.95491L5.50191 4.56168L5.06107 3.95491ZM3.95491 5.06107L4.56168 5.50191L3.95491 5.06107ZM12.75 11C12.75 10.5858 12.4142 10.25 12 10.25C11.5858 10.25 11.25 10.5858 11.25 11H12.75ZM11.25 17C11.25 17.4142 11.5858 17.75 12 17.75C12.4142 17.75 12.75 17.4142 12.75 17H11.25ZM12 20.25C10.1084 20.25 8.74999 20.249 7.69804 20.135C6.66013 20.0225 6.00992 19.8074 5.50191 19.4383L4.62023 20.6518C5.42656 21.2377 6.37094 21.5 7.53648 21.6263C8.68798 21.751 10.1418 21.75 12 21.75V20.25ZM2.25 12C2.25 13.8582 2.24897 15.312 2.37373 16.4635C2.50001 17.6291 2.76232 18.5734 3.34815 19.3798L4.56168 18.4981C4.19259 17.9901 3.97745 17.3399 3.865 16.302C3.75103 15.25 3.75 13.8916 3.75 12H2.25ZM5.50191 19.4383C5.14111 19.1762 4.82382 18.8589 4.56168 18.4981L3.34815 19.3798C3.70281 19.8679 4.13209 20.2972 4.62023 20.6518L5.50191 19.4383ZM20.25 12C20.25 13.8916 20.249 15.25 20.135 16.302C20.0225 17.3399 19.8074 17.9901 19.4383 18.4981L20.6518 19.3798C21.2377 18.5734 21.5 17.6291 21.6263 16.4635C21.751 15.312 21.75 13.8582 21.75 12H20.25ZM12 21.75C13.8582 21.75 15.312 21.751 16.4635 21.6263C17.6291 21.5 18.5734 21.2377 19.3798 20.6518L18.4981 19.4383C17.9901 19.8074 17.3399 20.0225 16.302 20.135C15.25 20.249 13.8916 20.25 12 20.25V21.75ZM19.4383 18.4981C19.1762 18.8589 18.8589 19.1762 18.4981 19.4383L19.3798 20.6518C19.8679 20.2972 20.2972 19.8679 20.6518 19.3798L19.4383 18.4981ZM12 3.75C13.8916 3.75 15.25 3.75103 16.302 3.865C17.3399 3.97745 17.9901 4.19259 18.4981 4.56168L19.3798 3.34815C18.5734 2.76232 17.6291 2.50001 16.4635 2.37373C15.312 2.24897 13.8582 2.25 12 2.25V3.75ZM21.75 12C21.75 10.1418 21.751 8.68798 21.6263 7.53648C21.5 6.37094 21.2377 5.42656 20.6518 4.62023L19.4383 5.50191C19.8074 6.00992 20.0225 6.66013 20.135 7.69804C20.249 8.74999 20.25 10.1084 20.25 12H21.75ZM18.4981 4.56168C18.8589 4.82382 19.1762 5.14111 19.4383 5.50191L20.6518 4.62023C20.2972 4.13209 19.8679 3.70281 19.3798 3.34815L18.4981 4.56168ZM12 2.25C10.1418 2.25 8.68798 2.24897 7.53648 2.37373C6.37094 2.50001 5.42656 2.76232 4.62023 3.34815L5.50191 4.56168C6.00992 4.19259 6.66013 3.97745 7.69804 3.865C8.74999 3.75103 10.1084 3.75 12 3.75V2.25ZM3.75 12C3.75 10.1084 3.75103 8.74999 3.865 7.69804C3.97745 6.66013 4.19259 6.00992 4.56168 5.50191L3.34815 4.62023C2.76232 5.42656 2.50001 6.37094 2.37373 7.53648C2.24897 8.68798 2.25 10.1418 2.25 12H3.75ZM4.62023 3.34815C4.13209 3.70281 3.70281 4.13209 3.34815 4.62023L4.56168 5.50191C4.82382 5.14111 5.14111 4.82382 5.50191 4.56168L4.62023 3.34815ZM11.25 11V17H12.75V11H11.25Z" fill="currentColor"></path>
-                                    <path d="M13 8C13 8.55228 12.5523 9 12 9C11.4477 9 11 8.55228 11 8C11 7.44772 11.4477 7 12 7C12.5523 7 13 7.44772 13 8Z" fill="currentColor"></path>
-                                </svg>
-                            </div>
-                            <div class="menu__text">Инфо</div>
-                        </li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-    `;
+            // Очищаем стандартное меню
+            Lampa.Menu.items = [];
 
-    // CSS styles for the menu
-    var styles = `
-        .menu {
-            display: flex;
-            flex-direction: column;
-            width: 250px;
-            background: #1a1a1a;
-            color: #fff;
-            font-family: Arial, sans-serif;
-        }
-        .menu__header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px;
-            border-bottom: 1px solid #333;
-        }
-        .menu__header-logo img {
-            height: 40px;
-        }
-        .menu__header-time {
-            text-align: right;
-        }
-        .menu__time-now {
-            font-size: 1.2em;
-            font-weight: bold;
-        }
-        .menu__time-date, .menu__time-week {
-            font-size: 0.9em;
-        }
-        .menu__case {
-            padding: 10px 0;
-        }
-        .menu__list {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-        .menu__item {
-            display: flex;
-            align-items: center;
-            padding: 10px 15px;
-            cursor: pointer;
-        }
-        .menu__item:hover, .menu__item.selector {
-            background: #333;
-        }
-        .menu__ico {
-            margin-right: 10px;
-        }
-        .menu__ico svg {
-            width: 24px;
-            height: 24px;
-        }
-        .menu__text {
-            font-size: 1em;
-        }
-        .menu__case.nosort {
-            border-top: 1px solid #333;
-        }
-    `;
-
-    // Function to update time display
-    function updateTime() {
-        var now = new Date();
-        var hours = now.getHours().toString().padStart(2, '0');
-        var minutes = now.getMinutes().toString().padStart(2, '0');
-        var timeString = `${hours}:${minutes}`;
-        var dateString = now.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
-        var weekString = now.toLocaleDateString('ru-RU', { weekday: 'long' });
-
-        var timeElement = document.querySelector('.menu__time-now');
-        var dateElement = document.querySelector('.menu__time-date');
-        var weekElement = document.querySelector('.menu__time-week');
-
-        if (timeElement) timeElement.innerText = timeString;
-        if (dateElement) dateElement.innerText = dateString;
-        if (weekElement) weekElement.innerText = weekString;
-    }
-
-    // Function to inject styles
-    function injectStyles() {
-        var styleSheet = document.createElement('style');
-        styleSheet.type = 'text/css';
-        styleSheet.innerText = styles;
-        document.head.appendChild(styleSheet);
-    }
-
-    // Function to initialize the menu
-    function initMenu() {
-        // Inject styles
-        injectStyles();
-
-        // Replace Lampa's default menu
-        var menuContainer = document.querySelector('.menu');
-        if (menuContainer) {
-            menuContainer.innerHTML = menuHTML;
-        } else {
-            var newMenu = document.createElement('div');
-            newMenu.innerHTML = menuHTML;
-            document.body.prepend(newMenu);
-        }
-
-        // Update time initially and every minute
-        updateTime();
-        setInterval(updateTime, 60000);
-
-        // Add event listeners for menu items
-        var menuItems = document.querySelectorAll('.menu__item');
-        menuItems.forEach(function (item) {
-            item.addEventListener('click', function () {
-                var action = item.getAttribute('data-action');
-                handleMenuAction(action);
+            // Добавляем верхнюю часть меню (из вашего HTML)
+            Lampa.Menu.add({
+                action: 'main',
+                text: 'Главная',
+                ico: '<svg version="1.1" id="Capa_1" xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 512 512" xml:space="preserve"><path fill="currentColor" d="M475.425,200.225L262.092,4.669c-6.951-6.359-17.641-6.204-24.397,0.35L36.213,200.574 c-3.449,3.348-5.399,7.953-5.399,12.758v280.889c0,9.819,7.958,17.778,17.778,17.778h148.148c9.819,0,17.778-7.959,17.778-17.778 v-130.37h82.963v130.37c0,9.819,7.958,17.778,17.778,17.778h148.148c9.819,0,17.778-7.953,17.778-17.778V213.333 C481.185,208.349,479.099,203.597,475.425,200.225z M445.629,476.444H333.037v-130.37c0-9.819-7.959-17.778-17.778-17.778H196.741 c-9.819,0-17.778,7.959-17.778,17.778v130.37H66.37V220.853L250.424,42.216l195.206,178.939V476.444z"></path></svg>'
             });
-        });
-    }
+            Lampa.Menu.add({
+                action: 'feed',
+                text: 'Лента',
+                ico: '<svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M9 0L11.4308 6.56918L18 9L11.4308 11.4308L9 18L6.56918 11.4308L0 9L6.56918 6.56918L9 0Z" fill="currentColor"></path></svg>',
+                hidden: true // как в вашем HTML
+            });
+            Lampa.Menu.add({
+                action: 'movie',
+                text: 'Фильмы',
+                ico: '<svg version="1.1" xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 512 512" xml:space="preserve"><path fill="currentColor" d="M256,81.077C159.55,81.077,81.077,159.55,81.077,256c0,10.578,8.574,19.152,19.152,19.152s19.152-8.574,19.152-19.158 c0-75.325,61.287-136.612,136.618-136.612c10.572,0,19.152-8.574,19.152-19.152S266.578,81.077,256,81.077z"></path><path fill="currentColor" d="M411.771,236.848c-10.578,0-19.152,8.574-19.152,19.152c0,75.325-61.287,136.618-136.618,136.618 c-10.578,0-19.152,8.574-19.152,19.152c0,10.578,8.574,19.152,19.152,19.152c96.45,0,174.923-78.473,174.923-174.923 C430.923,245.422,422.349,236.848,411.771,236.848z"></path><path fill="currentColor" d="M256,0C114.843,0,0,114.843,0,256s114.843,256,256,256s256-114.842,256-256S397.158,0,256,0z M256,473.696 c-120.039,0-217.696-97.657-217.696-217.696S135.961,38.304,256,38.304s217.696,97.65,217.696,217.689 S376.039,473.696,256,473.696z"></path><path fill="currentColor" d="M256,158.318c-53.856,0-97.676,43.814-97.676,97.676s43.814,97.682,97.676,97.682c53.862,0,97.676-43.82,97.676-97.682 S309.862,158.318,256,158.318z M256,315.378c-32.737,0-59.372-26.634-59.372-59.378c0-32.737,26.634-59.372,59.372-59.372 c32.744,0,59.372,26.634,59.372,59.372C315.372,288.744,288.737,315.378,256,315.378z"></path></svg>'
+            });
+            Lampa.Menu.add({
+                action: 'tv',
+                text: 'Сериалы',
+                ico: '<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 512 512" xml:space="preserve"><path fill="currentColor" d="M503.17,240.148L289.423,107.799c-5.735-3.548-12.98-3.722-18.883-0.435c-5.909,3.293-9.569,9.525-9.569,16.286v264.699 c0,6.76,3.66,12.993,9.569,16.286c2.827,1.572,5.953,2.355,9.072,2.355c3.411,0,6.816-0.932,9.811-2.79L503.17,271.85 c5.493-3.399,8.83-9.395,8.83-15.851C512,249.543,508.663,243.547,503.17,240.148z M298.252,354.888V157.122l159.695,98.877 L298.252,354.888z"></path><path fill="currentColor" d="M242.2,240.148L28.452,107.799c-5.754-3.554-12.98-3.722-18.883-0.435C3.66,110.657,0,116.889,0,123.649v264.699 c0,6.76,3.66,12.993,9.569,16.286c2.827,1.572,5.953,2.355,9.072,2.355c3.405,0,6.81-0.932,9.811-2.79L242.2,271.85 c5.487-3.399,8.83-9.395,8.83-15.851C251.029,249.543,247.686,243.547,242.2,240.148z M37.282,354.888V157.122l159.696,98.877 L37.282,354.888z"></path></svg>'
+            });
+            Lampa.Menu.add({
+                action: 'myperson',
+                text: 'Персоны',
+                ico: '<svg xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" width="512" height="512" x="0" y="0" viewBox="0 0 20 20" style="enable-background:new 0 0 512 512" xml:space="preserve" class=""><g><clipPath id="a"><path d="M0 0h20v20H0z" fill="currentColor" opacity="1" data-original="#000000" class=""></path></clipPath><g clip-path="url(#a)"><path fill="currentColor" fill-rule="evenodd" d="M10 10c-2.216 0-4.019-1.1.794-4.019-4S7.783 2 10 2s4.019 1.794 4.019 4-1.802 4-4.019 4zm3.776.673a5.978 5.978 0 0 0 2.182-5.603C15.561 2.447 13.37.348 10.722.042 7.07-.381 3.972 2.449 3.972 6c0 1.89.88 3.574 2.252 4.673C2.852 11.934.39 14.895.004 18.891A1.012 1.012 0 0 0 1.009 20a.99.99 0 0 0 .993-.891C2.404 14.646 5.837 12 10 12s7.596 2.646 7.999 7.109a.99.99 0 0 0 .993.891c.596 0 1.06-.518 1.003-1.109-.386-3.996-2.847-6.957-6.22-8.218z" clip-rule="evenodd" opacity="1" data-original="#000000" class=""></path></g></g></svg>',
+                hidden: true
+            });
+            Lampa.Menu.add({
+                action: 'catalog',
+                text: 'Каталог',
+                ico: '<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 512 512" xml:space="preserve"><path fill="currentColor" d="M478.354,146.286H33.646c-12.12,0-21.943,9.823-21.943,21.943v321.829c0,12.12,9.823,21.943,21.943,21.943h444.709 c12.12,0,21.943-9.823,21.943-21.943V168.229C500.297,156.109,490.474,146.286,478.354,146.286z M456.411,468.114H55.589V190.171 h400.823V468.114z"></path><path fill="currentColor" d="M441.783,73.143H70.217c-12.12,0-21.943,9.823-21.943,21.943c0,12.12,9.823,21.943,21.943,21.943h371.566 c12.12,0,21.943-9.823,21.943-21.943C463.726,82.966,453.903,73.143,441.783,73.143z"></path><path fill="currentColor" d="M405.211,0H106.789c-12.12,0-21.943,9.823-21.943,21.943c0,12.12,9.823,21.943,21.943,21.943h298.423 c12.12,0,21.943-9.823,21.943-21.943C427.154,9.823,417.331,0,405.211,0z"></path></svg>'
+            });
+            Lampa.Menu.add({
+                action: 'filter',
+                text: 'Фильтр',
+                ico: '<svg height="36" viewBox="0 0 38 36" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1.5" y="1.5" width="35" height="33" rx="1.5" stroke="currentColor" stroke-width="3"></rect><rect x="7" y="8" width="24" height="3" rx="1.5" fill="currentColor"></rect><rect x="7" y="16" width="24" height="3" rx="1.5" fill="currentColor"></rect><rect x="7" y="25" width="24" height="3" rx="1.5" fill="currentColor"></rect><circle cx="13.5" cy="17.5" r="3.5" fill="currentColor"></circle><circle cx="23.5" cy="26.5" r="3.5" fill="currentColor"></circle><circle cx="21.5" cy="9.5" r="3.5" fill="currentColor"></circle></svg>'
+            });
+            Lampa.Menu.add({
+                action: 'relise',
+                text: 'Релизы',
+                ico: '<svg height="30" viewBox="0 0 38 30" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1.5" y="1.5" width="35" height="27" rx="1.5" stroke="currentColor" stroke-width="3"></rect><path d="M18.105 22H15.2936V16H9.8114V22H7V8H9.8114V13.6731H15.2936V8H18.105V22Z" fill="currentColor"></path><path d="M20.5697 22V8H24.7681C25.9676 8 27.039 8.27885 27.9824 8.83654C28.9321 9.38782 29.6724 10.1763 30.2034 11.2019C30.7345 12.2212 31 13.3814 31 14.6827V15.3269C31 16.6282 30.7376 17.7853 30.2128 18.7981C29.6943 19.8109 28.9602 20.5962 28.0105 21.1538C27.0609 21.7115 25.9895 21.9936 24.7962 22H20.5697ZM23.3811 10.3365V19.6827H24.7399C25.8395 19.6827 26.6798 19.3141 27.2608 18.5769C27.8419 17.8397 28.1386 16.7853 28.1511 15.4135V14.6731C28.1511 13.25 27.8637 12.1731 27.289 11.4423C26.7142 10.7051 25.8739 10.3365 24.7681 10.3365H23.3811Z" fill="currentColor"></path></svg>'
+            });
+            Lampa.Menu.add({
+                action: 'anime',
+                text: 'Аниме',
+                ico: '<svg height="173" viewBox="0 0 180 173" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M126 3C126 18.464 109.435 31 89 31C68.5655 31 52 18.464 52 3C52 2.4505 52.0209 1.90466 52.0622 1.36298C21.3146 15.6761 0 46.8489 0 83C0 132.706 40.2944 173 90 173C139.706 173 180 132.706 180 83C180 46.0344 157.714 14.2739 125.845 0.421326C125.948 1.27051 126 2.13062 126 3ZM88.5 169C125.779 169 156 141.466 156 107.5C156 84.6425 142.314 64.6974 122 54.0966C116.6 51.2787 110.733 55.1047 104.529 59.1496C99.3914 62.4998 94.0231 66 88.5 66C82.9769 66 77.6086 62.4998 72.4707 59.1496C66.2673 55.1047 60.3995 51.2787 55 54.0966C34.6864 64.6974 21 84.6425 21 107.5C21 141.466 51.2208 169 88.5 169Z" fill="currentColor"></path><path d="M133 121.5C133 143.315 114.196 161 91 161C67.804 161 49 143.315 49 121.5C49 99.6848 67.804 116.5 91 116.5C114.196 116.5 133 99.6848 133 121.5Z" fill="currentColor"></path><path d="M72 81C72 89.8366 66.1797 97 59 97C51.8203 97 46 89.8366 46 81C46 72.1634 51.8203 65 59 65C66.1797 65 72 72.1634 72 81Z" fill="currentColor"></path><path d="M131 81C131 89.8366 125.18 97 118 97C110.82 97 105 89.8366 105 81C105 72.1634 110.82 65 118 65C125.18 65 131 72.1634 131 81Z" fill="currentColor"></path></svg>'
+            });
+            Lampa.Menu.add({
+                action: 'favorite',
+                text: 'Избранное',
+                ico: '<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 512 512" xml:space="preserve"><path fill="currentColor" d="M391.416,0H120.584c-17.778,0-32.242,14.464-32.242,32.242v460.413c0,7.016,3.798,13.477,9.924,16.895 c2.934,1.638,6.178,2.45,9.421,2.45c3.534,0,7.055-0.961,10.169-2.882l138.182-85.312l138.163,84.693 c5.971,3.669,13.458,3.817,19.564,0.387c6.107-3.418,9.892-9.872,9.892-16.875V32.242C423.657,14.464,409.194,0,391.416,0z M384.967,457.453l-118.85-72.86c-6.229-3.817-14.07-3.798-20.28,0.032l-118.805,73.35V38.69h257.935V457.453z"></path></svg>'
+            });
+            Lampa.Menu.add({
+                action: 'history',
+                text: 'История',
+                ico: '<svg height="34" viewBox="0 0 28 34" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1.5" y="1.5" width="25" height="31" rx="2.5" stroke="currentColor" stroke-width="3"></rect><rect x="6" y="7" width="9" height="9" rx="1" fill="currentColor"></rect><rect x="6" y="19" width="16" height="3" rx="1.5" fill="currentColor"></rect><rect x="6" y="25" width="11" height="3" rx="1.5" fill="currentColor"></rect><rect x="17" y="7" width="5" height="3" rx="1.5" fill="currentColor"></rect></svg>'
+            });
+            Lampa.Menu.add({
+                action: 'subscribes',
+                text: 'Подписки',
+                ico: '<svg xmlns="http://www.w3.org/2000/svg" height="512" viewBox="0 0 59 59.5" xml:space="preserve"><path d="m48.5 20.5h-38a10.51 10.51 0 0 0 -10.5 10.5v18a10.51 10.51 0 0 0 10.5 10.5h38a10.51 10.51 0 0 0 10.5-10.5v-18a10.51 10.51 0 0 0 -10.5-10.5zm-9.23 16.06-10.42 10.44a2.51 2.51 0 0 1 -3.54 0l-5.58-5.6a2.5 2.5 0 1 1 3.54-3.54l3.81 3.82 8.65-8.68a2.5 2.5 0 0 1 3.54 3.53z" fill="currentColor"></path><path d="m49.5 16h-40a3 3 0 0 1 0-6h40a3 3 0 0 1 0 6z" fill="currentColor"></path><path d="m45.5 6h-32a3 3 0 0 1 0-6h32a3 3 0 0 1 0 6z" fill="currentColor"></path></svg>',
+                hidden: true
+            });
+            Lampa.Menu.add({
+                action: 'timetable',
+                text: 'Расписание',
+                ico: '<svg height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1.5" y="3.5" width="25" height="23" rx="2.5" stroke="currentColor" stroke-width="3"></rect><rect x="6" width="3" height="7" rx="1.5" fill="currentColor"></rect><rect x="19" width="3" height="7" rx="1.5" fill="currentColor"></rect><circle cx="7" cy="12" r="2" fill="currentColor"></circle><circle cx="7" cy="19" r="2" fill="currentColor"></circle><circle cx="14" cy="12" r="2" fill="currentColor"></circle><circle cx="14" cy="19" r="2" fill="currentColor"></circle><circle cx="21" cy="12" r="2" fill="currentColor"></circle><circle cx="21" cy="19" r="2" fill="currentColor"></circle></svg>',
+                hidden: true
+            });
+            Lampa.Menu.add({
+                action: 'mytorrents',
+                text: 'Торренты',
+                ico: '<svg height="34" viewBox="0 0 28 34" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1.5" y="1.5" width="25" height="31" rx="2.5" stroke="currentColor" stroke-width="3"></rect><rect x="6" y="7" width="16" height="3" rx="1.5" fill="currentColor"></rect><rect x="6" y="13" width="16" height="3" rx="1.5" fill="currentColor"></rect></svg>',
+                hidden: true
+            });
+            Lampa.Menu.add({
+                action: 'radio',
+                text: 'Радио',
+                ico: '<svg width="38" height="31" viewBox="0 0 38 31" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="17.613" width="3" height="16.3327" rx="1.5" transform="rotate(63.4707 17.613 0)" fill="white"></rect><circle cx="13" cy="19" r="6" fill="white"></circle><path fill-rule="evenodd" clip-rule="evenodd" d="M0 11C0 8.79086 1.79083 7 4 7H34C36.2091 7 38 8.79086 38 11V27C38 29.2091 36.2092 31 34 31H4C1.79083 31 0 29.2091 0 27V11ZM21 19C21 23.4183 17.4183 27 13 27C8.58173 27 5 23.4183 5 19C5 14.5817 8.58173 11 13 11C17.4183 11 21 14.5817 21 19ZM30.5 18C31.8807 18 33 16.8807 33 15.5C33 14.1193 31.8807 13 30.5 13C29.1193 13 28 14.1193 28 15.5C28 16.8807 29.1193 18 30.5 18Z" fill="white"></path></svg>'
+            });
+            Lampa.Menu.add({
+                action: 'hd',
+                text: 'В качестве',
+                ico: '<svg xmlns="http://www.w3.org/2000/svg" shape-rendering="geometricPrecision" text-rendering="geometricPrecision" image-rendering="optimizeQuality" fill-rule="evenodd" clip-rule="evenodd" viewBox="0 0 512 414.89" height="30" fill="CurrentColor"><path fill-rule="nonzero" d="M189.688 279.224V256.79H119.88v-30.267l57.765-90.857h49.345v90.857h16.546v30.267H226.99v22.434h-37.302zM80.058 0h351.889c21.902 0 41.854 9.115 56.353 23.619C502.917 38.236 512 58.373 512 80.226v254.438c0 21.804-9.175 41.898-23.766 56.477-14.574 14.58-34.591 23.749-56.287 23.749H80.058c-21.744 0-41.827-9.076-56.423-23.683C9.121 376.698 0 356.686 0 334.664V80.226c0-22.065 9.028-42.131 23.57-56.672C38.101 9.022 58.101 0 80.058 0zm351.889 33.331H80.058c-13.004 0-24.792 5.286-33.293 13.787-8.496 8.495-13.771 20.218-13.771 33.108v254.438c0 12.809 5.34 24.488 13.836 32.978 8.577 8.583 20.403 13.917 33.228 13.917h351.889c12.744 0 24.515-5.399 33.092-13.982 8.572-8.566 13.967-20.283 13.967-32.913V80.226c0-12.711-5.33-24.471-13.901-33.043-8.501-8.501-20.24-13.852-33.158-13.852zM261.456 279.224V135.666h38.981v58.058h1.972l43.163-58.058H391l-48.519 63.946 49.639 79.612h-46.548l-32.239-53.82-12.896 16.812v37.008h-38.981zm-70.915-52.701v-50.464h-1.119l-31.12 49.345v1.119h32.239z"></path></svg>'
+            });
+            Lampa.Menu.add({
+                action: 'okko',
+                text: 'Okko',
+                ico: '<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M117.294 33.2183H10.7061C9.05531 33.2183 7.47218 33.874 6.30494 35.0413C5.13769 36.2085 4.48193 37.7916 4.48193 39.4424V105.184C4.48193 106.835 5.13769 108.418 6.30494 109.585C7.47218 110.753 9.05531 111.408 10.7061 111.408H117.294C118.944 111.408 120.527 110.753 121.695 109.585C122.862 108.418 123.518 106.835 123.518 105.184V39.4424C123.518 37.7916 122.862 36.2085 121.695 35.0413C120.527 33.874 118.944 33.2183 117.294 33.2183V33.2183ZM26.3207 91.8648C26.3184 93.7967 25.5494 95.6488 24.1825 97.0141C22.8156 98.3793 20.9627 99.1462 19.0307 99.1462C17.0988 99.1462 15.2459 98.3793 13.879 97.0141C12.5121 95.6488 11.7431 93.7967 11.7408 91.8648V52.7619C11.7431 50.8299 12.5121 48.9779 13.879 47.6126C15.2459 46.2473 17.0988 45.4805 19.0307 45.4805C20.9627 45.4805 22.8156 46.2473 24.1825 47.6126C25.5494 48.9779 26.3184 50.8299 26.3207 52.7619V91.8648ZM94.3624 96.434C94.1861 97.6065 93.6341 98.6901 92.7893 99.522C91.9445 100.354 90.8526 100.889 89.6775 101.047C72.6791 103.371 55.4432 103.368 38.4455 101.039C37.2823 100.883 36.1999 100.357 35.3582 99.5391C34.5164 98.7212 33.9597 97.6544 33.7702 96.4961C31.2966 80.4885 31.3147 64.1946 33.824 48.1926C34.0002 47.0201 34.5523 45.9366 35.397 45.1047C36.2418 44.2728 37.3338 43.7375 38.5088 43.5793C55.5073 41.2555 72.7431 41.2584 89.7408 43.5879C90.9041 43.7439 91.9864 44.2697 92.8282 45.0876C93.67 45.9055 94.2267 46.9722 94.4162 48.1305C96.8898 64.1381 96.8716 80.432 94.3624 96.434ZM116.445 91.8648C116.443 93.7967 115.674 95.6488 114.307 97.0141C112.94 98.3793 111.087 99.1462 109.156 99.1462C107.224 99.1462 105.371 98.3793 104.004 97.0141C102.637 95.6488 101.868 93.7967 101.866 91.8648V52.7619C101.868 50.8299 102.637 48.9779 104.004 47.6126C105.371 46.2473 107.224 45.4805 109.156 45.4805C111.087 45.4805 112.94 46.2473 114.307 47.6126C115.674 48.9779 116.443 50.8299 116.445 52.7619V91.8648Z" fill="CurrentColor"></path><path d="M41.6168 51.4161C39.6321 65.2724 39.6033 79.3388 41.5312 93.2031C51.3303 72.6982 66.3718 58.7718 86.6559 51.4239C71.7015 49.5501 56.5719 49.5475 41.6168 51.4161V51.4161Z" fill="CurrentColor"></path><path d="M17.9078 122.941C17.7765 123.294 17.7324 123.674 17.7796 124.047C17.8267 124.421 17.9636 124.778 18.1785 125.087C18.3934 125.397 18.68 125.649 19.0138 125.824C19.3476 125.998 19.7186 126.089 20.0953 126.089H30.5842C30.9612 126.089 31.3327 125.998 31.6667 125.823C32.0008 125.648 32.2875 125.395 32.5023 125.085L37.4 118.021H19.7391L17.9078 122.941Z" fill="CurrentColor"></path><path d="M108.448 118.021H90.7793L95.6771 125.092C95.8919 125.402 96.1787 125.656 96.5128 125.831C96.847 126.006 97.2185 126.097 97.5958 126.097H108.093C108.469 126.097 108.84 126.006 109.174 125.832C109.508 125.657 109.795 125.405 110.009 125.095C110.224 124.786 110.361 124.429 110.409 124.056C110.456 123.682 110.412 123.303 110.281 122.95L108.448 118.021Z" fill="CurrentColor"></path><path d="M26.7978 7.14924L48.8866 16.1234C44.5656 18.7137 41.6351 22.3844 40.9866 26.5278H87.2005C86.552 22.3845 83.6214 18.7138 79.3005 16.1234L101.39 7.14924C102.059 6.87742 102.592 6.35093 102.873 5.6856C103.154 5.02026 103.159 4.27059 102.887 3.60149C102.616 2.93239 102.089 2.39868 101.424 2.11776C100.758 1.83685 100.009 1.83174 99.3397 2.10356L72.0828 13.1772C66.8369 11.87 61.3504 11.87 56.1045 13.1772L28.8476 2.10356C28.5163 1.96897 28.1617 1.90095 27.8041 1.90338C27.4466 1.90582 27.0929 1.97866 26.7635 2.11776C26.4341 2.25685 26.1352 2.45947 25.8841 2.71405C25.633 2.96863 25.4344 3.27018 25.2999 3.60148C25.1653 3.93279 25.0972 4.28736 25.0997 4.64495C25.1021 5.00254 25.175 5.35615 25.314 5.68559C25.4531 6.01503 25.6558 6.31385 25.9103 6.56498C26.1649 6.81612 26.4665 7.01465 26.7978 7.14924V7.14924Z" fill="CurrentColor"></path></svg>'
+            });
+            // Добавляем разделитель (menu__split) как пустой элемент с классом
+            Lampa.Menu.add({
+                text: '', // Пустой текст
+                ico: '', // Без иконки
+                class: 'menu__split' // Добавляем класс для стилизации
+            });
 
-    // Function to handle menu actions
-    function handleMenuAction(action) {
-        switch (action) {
-            case 'main':
-                Lampa.Menu.open('main');
-                break;
-            case 'movie':
-                Lampa.Menu.open('movie');
-                break;
-            case 'tv':
-                Lampa.Menu.open('tv');
-                break;
-            case 'cartoons':
-                Lampa.Menu.open('cartoons');
-                break;
-            case 'anime':
-                Lampa.Menu.open('anime');
-                break;
-            case 'collections':
-                Lampa.Menu.open('collections');
-                break;
-            case 'filter':
-                Lampa.Menu.open('filter');
-                break;
-            case 'favorite':
-                Lampa.Menu.open('favorite');
-                break;
-            case 'history':
-                Lampa.Menu.open('history');
-                break;
-            case 'sport':
-                // Custom action for sports (based on original JS)
-                Lampa.Component.add('sport', {
-                    component: 'sport',
-                    title: 'Спорт',
-                    onRender: function (element, params) {
-                        // Logic for sports content (simplified from original JS)
-                        element.innerHTML = '<div>Спортивные трансляции</div>';
-                        // Add AJAX call or API integration if needed
-                    }
-                });
-                Lampa.Menu.open('sport');
-                break;
-            case 'settings':
-                Lampa.Menu.open('settings');
-                break;
-            case 'about':
-                Lampa.Menu.open('about');
-                break;
-            default:
-                console.warn('Unknown menu action:', action);
+            // Добавляем нижнюю часть (носорт)
+            Lampa.Menu.add({
+                action: 'settings',
+                text: 'Настройки',
+                ico: '<svg width="28" height="29" viewBox="0 0 28 29" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2.35883 18.1883L1.63573 17.4976L2.35883 18.1883L3.00241 17.5146C3.8439 16.6337 4.15314 15.4711 4.15314 14.4013C4.15314 13.3314 3.8439 12.1688 3.00241 11.2879L2.27931 11.9786L3.00241 11.2879L2.35885 10.6142C1.74912 9.9759 1.62995 9.01336 2.0656 8.24564L2.66116 7.19613C3.10765 6.40931 4.02672 6.02019 4.90245 6.24719L5.69281 6.45206C6.87839 6.75939 8.05557 6.45293 8.98901 5.90194C9.8943 5.36758 10.7201 4.51559 11.04 3.36732L11.2919 2.46324C11.5328 1.59833 12.3206 1 13.2185 1H14.3282C15.225 1 16.0121 1.59689 16.2541 2.46037L16.5077 3.36561C16.8298 4.51517 17.6582 5.36897 18.5629 5.90557C19.498 6.4602 20.6725 6.75924 21.8534 6.45313L22.6478 6.2472C23.5236 6.02019 24.4426 6.40932 24.8891 7.19615L25.4834 8.24336C25.9194 9.0118 25.7996 9.97532 25.1885 10.6135L24.5426 11.2882C23.7 12.1684 23.39 13.3312 23.39 14.4013C23.39 15.4711 23.6992 16.6337 24.5407 17.5146L25.1842 18.1883C25.794 18.8266 25.9131 19.7891 25.4775 20.5569L24.8819 21.6064C24.4355 22.3932 23.5164 22.7823 22.6406 22.5553L21.8503 22.3505C20.6647 22.0431 19.4876 22.3496 18.5541 22.9006C17.6488 23.4349 16.8231 24.2869 16.5031 25.4352L16.2513 26.3393C16.0103 27.2042 15.2225 27.8025 14.3246 27.8025H13.2184C12.3206 27.8025 11.5328 27.2042 11.2918 26.3393L11.0413 25.4402C10.7206 24.2889 9.89187 23.4336 8.98627 22.8963C8.05183 22.342 6.87822 22.0432 5.69813 22.3491L4.90241 22.5553C4.02667 22.7823 3.10759 22.3932 2.66111 21.6064L2.06558 20.5569C1.62993 19.7892 1.74911 18.8266 2.35883 18.1883Z" stroke="currentColor" stroke-width="2.4"></path><circle cx="13.7751" cy="14.4013" r="4.1675" stroke="currentColor" stroke-width="2.4"></circle></svg>'
+            });
+            Lampa.Menu.add({
+                action: 'about',
+                text: 'Информация',
+                ico: '<svg height="512" viewBox="0 0 512 512" width="512" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="m392 512h-272c-66.168 0-120-53.832-120-120v-272c0-66.168 53.832-120 120-120h272c66.168 0 120 53.832 120 120v272c0 66.168-53.832 120-120 120zm-272-472c-44.112 0-80 35.888-80 80v272c0 44.112 35.888 80 80 80h272c44.112 0 80-35.888 80-80v-272c0-44.112-35.888-80-80-80zm206 342c0 11.046-8.954 20-20 20h-100c-26.536-1.056-26.516-38.953 0-40h30v-113c0-11.028-8.972-20-20-20h-10c-26.536-1.056-26.516-38.953 0-40h10c33.084 0 60 26.916 60 60v113h30c11.046 0 20 8.954 20 20zm-70-222c13.807 0 25-11.193 25-25-1.317-33.162-48.688-33.153-50 0 0 13.807 11.193 25 25 25z"></path></svg>'
+            });
+            Lampa.Menu.add({
+                action: 'console',
+                text: 'Консоль',
+                ico: '<svg height="30" viewBox="0 0 38 30" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1.5" y="1.5" width="35" height="27" rx="1.5" stroke="currentColor" stroke-width="3"></rect><rect x="6" y="7" width="25" height="3" fill="currentColor"></rect><rect x="6" y="13" width="13" height="3" fill="currentColor"></rect><rect x="6" y="19" width="19" height="3" fill="currentColor"></rect></svg>'
+            });
+
+            // Обновляем меню
+            Lampa.Menu.update();
+
+            // Переопределяем select для новых действий
+            Lampa.Menu.select = function (action) {
+                if (action === 'catalog') {
+                    Lampa.Activity.push({
+                        url: '',
+                        title: 'Каталог',
+                        component: 'catalog',
+                        page: 1
+                    });
+                } else if (action === 'filter') {
+                    Lampa.Filter.open();
+                } else if (action === 'radio') {
+                    Lampa.Activity.push({
+                        url: '',
+                        title: 'Радио',
+                        component: 'radio', // Предполагаю, что плагин радио существует
+                        page: 1
+                    });
+                } else if (action === 'hd') {
+                    Lampa.Activity.push({
+                        url: '',
+                        title: 'В качестве',
+                        component: 'category',
+                        source: Lampa.Storage.field('source'),
+                        quality: 'HD',
+                        page: 1
+                    });
+                } else if (action === 'okko') {
+                    Lampa.Activity.push({
+                        url: '',
+                        title: 'Okko',
+                        component: 'category',
+                        source: 'okko', // Если source 'okko' не поддерживается, fallback на 'tmdb'
+                        page: 1
+                    });
+                } else if (action === 'kp') {
+                    Lampa.Activity.push({
+                        url: '',
+                        title: 'Кинопоиск',
+                        component: 'category',
+                        source: 'kp',
+                        page: 1
+                    });
+                } else if (action === 'mult_cub') {
+                    Lampa.Activity.push({
+                        url: '',
+                        title: 'Мультфильмы',
+                        component: 'category',
+                        source: 'cub',
+                        genre: 16, // Анимация
+                        page: 1
+                    });
+                } else if (action === 'sport') {
+                    Lampa.Activity.push({
+                        url: '',
+                        title: 'Спорт',
+                        component: 'sport', // Плагин sport из кода
+                        page: 1
+                    });
+                } else {
+                    original_select(action); // Оригинальные действия
+                }
+            };
         }
-    }
-
-    // Initialize plugin when Lampa is ready
-    if (window.Lampa) {
-        initMenu();
-        Lampa.Plugin.add(plugin);
-    } else {
-        document.addEventListener('lampa:load', function () {
-            initMenu();
-            Lampa.Plugin.add(plugin);
-        });
-    }
+    });
 })();
