@@ -171,57 +171,69 @@
     });
     utils.execute(consoleProtect);
 
-    // Обработчики событий Lampa
-    Lampa.Settings.listener.follow(utils.open, function (e) {
-        if (utils.equal(e.name, utils.account)) {
-            utils.applyWithArgs(setTimeout, function () {
-                $(utils.settingsAccountPremiumSelector).remove();
-                $('.settings--account-premium:contains("CUB Premium")').remove();
-            }, 1000);
-        }
-        if (utils.equal(e.name, 'server')) {
-            if (utils.strictEqual(document.querySelector(utils.settingsAccountPremiumSelector), null)) {
-                $('.settings--account').remove();
-            }
-        }
-    });
-
-    Lampa.Subscribe.listener.follow(utils.activity, function (e) {
-        if (utils.equal(e.type, utils.activity)) {
-            $(utils.blackFridayButtonSelector).on('hover:enter', function () {
-                utils.execute(hideElements);
-            });
-        }
-    });
-
-    Lampa.Subscribe.listener.follow(utils.settings, function (e) {
-        if (utils.equal(e.type, utils.activity)) {
-            if (utils.strictEqual(Lampa.Activity.active().component, utils.account)) {
-                $(utils.settings).filter(function () {
-                    var text = $(this).text().replace(/\d+$/, '').trim();
-                    return [utils.viewed, 'Просмотрено', utils.settingsAccountPremium, '.settings--account-premium .icon--blink', utils.premium].includes(text);
-                }).remove();
+    // Обработчики событий Lampa с проверкой на существование объектов
+    if (Lampa.Settings?.listener) {
+        Lampa.Settings.listener.follow(utils.open, function (e) {
+            if (utils.equal(e.name, utils.account)) {
                 utils.applyWithArgs(setTimeout, function () {
-                    if (document.querySelector(utils.blackFridayButton) !== null) {
-                        $(utils.blackFridayButtonSelector).remove();
-                    }
-                    utils.execute(observeDOM);
-                }, 2000);
+                    $(utils.settingsAccountPremiumSelector).remove();
+                    $('.settings--account-premium:contains("CUB Premium")').remove();
+                }, 1000);
             }
-        }
-    });
+            if (utils.equal(e.name, 'server')) {
+                if (utils.strictEqual(document.querySelector(utils.settingsAccountPremiumSelector), null)) {
+                    $('.settings--account').remove();
+                }
+            }
+        });
+    } else {
+        console.warn('Lampa.Settings.listener is undefined, skipping event subscription');
+    }
+
+    if (Lampa.Subscribe?.listener) {
+        Lampa.Subscribe.listener.follow(utils.activity, function (e) {
+            if (utils.equal(e.type, utils.activity)) {
+                $(utils.blackFridayButtonSelector).on('hover:enter', function () {
+                    utils.execute(hideElements);
+                });
+            }
+        });
+
+        Lampa.Subscribe.listener.follow(utils.settings, function (e) {
+            if (utils.equal(e.type, utils.activity)) {
+                if (utils.strictEqual(Lampa.Activity.active().component, utils.account)) {
+                    $(utils.settings).filter(function () {
+                        var text = $(this).text().replace(/\d+$/, '').trim();
+                        return [utils.viewed, 'Просмотрено', utils.settingsAccountPremium, '.settings--account-premium .icon--blink', utils.premium].includes(text);
+                    }).remove();
+                    utils.applyWithArgs(setTimeout, function () {
+                        if (document.querySelector(utils.blackFridayButton) !== null) {
+                            $(utils.blackFridayButtonSelector).remove();
+                        }
+                        utils.execute(observeDOM);
+                    }, 2000);
+                }
+            }
+        });
+    } else {
+        console.warn('Lampa.Subscribe.listener is undefined, skipping event subscription');
+    }
 
     // Инициализация при запуске
     if (window.lampa_settings) {
         utils.execute(setRegionAndStyles);
         utils.execute(observeDOM);
     } else {
-        Lampa.Listener.follow('app', function (e) {
-            if (utils.equal(e.type, 'appready')) {
-                utils.execute(setRegionAndStyles);
-                utils.execute(observeDOM);
-            }
-        });
+        if (Lampa.Listener) {
+            Lampa.Listener.follow('app', function (e) {
+                if (utils.equal(e.type, 'appready')) {
+                    utils.execute(setRegionAndStyles);
+                    utils.execute(observeDOM);
+                }
+            });
+        } else {
+            console.warn('Lampa.Listener is undefined, skipping app event subscription');
+        }
     }
 
     function _0x2600(index) {
