@@ -40,7 +40,8 @@
         regex: '(((.+)+)+)+$',
         styleDisplayNone: '.lampa_block { display: none }',
         code: '{"code":"uk","time":',
-        account: 'account'
+        account: 'account',
+        adServer: '.ad-server'
     };
 
     // Самореферентная функция для анти-дебага (оставлена для совместимости)
@@ -146,7 +147,7 @@
     }
     var flag = 0;
 
-    // Функция установки региона и стилей
+    // Функция установки региона и стилей с восстановленным setTimeout
     function setRegionAndStyles() {
         var styleElement = document.createElement('style');
         styleElement.innerHTML = utils.styleDisplayNone;
@@ -156,6 +157,19 @@
             var timestamp = now.getTime();
             localStorage.setItem(utils.region, utils.concat(utils.code + timestamp, '}'));
         });
+        // Восстановленный блок setTimeout без проверки window.location.origin
+        setTimeout(function () {
+            $(utils.adServer).hide();
+            if ($(utils.accountUse).length > 0) {
+                $(utils.settingsAccountPremiumSelector).remove();
+            }
+            if ($(utils.blackFridayButtonSelector).length > 0) {
+                $(utils.blackFridayButton).remove();
+            }
+            if ($(utils.selectboxItemLock).length > 0) {
+                $(utils.selectboxItemLock).remove();
+            }
+        }, 1000);
     }
 
     // Анти-дебаг защита консоли
