@@ -2,37 +2,29 @@
 'use strict';
 
 // =====================================================
-// ГЛОБАЛЬНЫЕ НАСТРОЙКИ Lampa
+// ГЛОБАЛЬНЫЕ НАСТРОЙКИ Lampa (БЕЗ ПЕРЕЗАПИСИ ADS - ФИКС КОНФЛИКТА)
 // =====================================================
+// Устанавливаем базовые настройки, но ads модифицируем динамически
 window.lampa_settings = {
-    socket_use: false,              // Отключить сокеты
-    socket_url: undefined,          // URL сокетов
-    socket_methods: [],             // Методы сокетов
-    account_use: true,              // Включить аккаунт
-    account_sync: true,             // Синхронизация аккаунта
-    plugins_use: true,              // Плагины
-    plugins_store: true,            // Хранилище плагинов
-    torrents_use: true,             // Торренты
-    white_use: false,               // White list
-    lang_use: true,                 // Язык
-    read_only: false,               // Только чтение
-    dcma: false,                    // DCMA (DMCA?)
-    push_state: true,               // Push state
-    iptv: false,                    // IPTV
-    feed: false                     // Feed
+    socket_use: false,
+    socket_url: undefined,
+    socket_methods: [],
+    account_use: true,
+    account_sync: true,
+    plugins_use: true,
+    plugins_store: true,
+    torrents_use: true,
+    white_use: false,
+    lang_use: true,
+    read_only: false,
+    dcma: false,
+    push_state: true,
+    iptv: false,
+    feed: false
 };
 
-window.lampa_settings_main = {
-    dmca: true,                     // DMCA
-    reactions: false,               // Реакции
-    discuss: false,                 // Обсуждения
-    ai: true,                       // AI
-    subscribe: true,                // Подписка
-    blacklist: true,                // Blacklist
-    persons: true,                  // Персоны
-    ads: false,                      // Реклама (используется для отключения)
-    trailers: false                 // Трейлеры
-};
+// НЕ ПЕРЕЗАПИСЫВАЕМ lampa_settings_main здесь - делаем в startPlugin()
+// window.lampa_settings_main = { ... }; // Убрано для избежания конфликта
 
 // =====================================================
 // МОДУЛЬ АНТИ-ДЕБАГ (Anti-Debug) - С ЗАЩИТОЙ
@@ -283,6 +275,22 @@ function startPlugin() {
     // Observer
     setupDomObserver();
     
+    // ФИКС КОНФЛИКТА: Модификация ads только здесь, с проверкой
+    try {
+        if (window.lampa_settings_main && typeof window.lampa_settings_main.ads !== 'undefined') {
+            window.lampa_settings_main.ads = false; // Отключение рекламы
+            console.log('Lampa Custom Plugin: Ads disabled in settings_main');
+        } else if (typeof Lampa !== 'undefined' && Lampa.Settings) {
+            // Fallback: Через Lampa API
+            Lampa.Settings.main.ads = false;
+            console.log('Lampa Custom Plugin: Ads disabled via Lampa.Settings');
+        } else {
+            console.warn('Lampa Custom Plugin: Could not disable ads - object not ready');
+        }
+    } catch (err) {
+        console.error('Lampa Custom Plugin: Error disabling ads:', err);
+    }
+    
     // Регистрация хуков: Только если Lampa API доступен
     if (typeof Lampa !== 'undefined') {
         if (Lampa.Main && Lampa.Main.listener) {
@@ -343,16 +351,6 @@ if (window.appready) {
             }
         }, 2000);
     }
-}
-
-// Если настройки уже есть (ранняя загрузка)
-if (window.lampa_settings) {
-    // Дополнительная проверка: Запустить через 500 мс
-    setTimeout(() => {
-        if (!window.appready) {
-            console.log('Lampa Custom Plugin: Settings found, but app not ready - delaying');
-        }
-    }, 500);
 }
 
 // =====================================================
