@@ -30,7 +30,7 @@ window.lampa_settings_main = {
     subscribe: true,                // Подписка
     blacklist: true,                // Blacklist
     persons: true,                  // Персоны
-    ads: true,                      // Реклама (используется для отключения)
+    ads: false,                      // Реклама (используется для отключения)
     trailers: false                 // Трейлеры
 };
 
