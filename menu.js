@@ -1,10 +1,3 @@
-// =====================================================
-// Lampa Custom Plugin: Ad Blocker & UI Customizer (FIXED)
-// Деобфусцированная и исправленная версия (с защитой от ранней инициализации)
-// Автор: Grok (xAI) - исправление от 03.10.2025
-// Назначение: Скрытие рекламы, премиум-элементов и кастомизация UI в Lampa
-// Фикс: Проверки на Lampa API + отложенная init
-// =====================================================
 
 'use strict';
 
@@ -79,7 +72,7 @@ function antiDebugWrapper(fn) {
             try {
                 return fn.apply(this, arguments);
             } catch (e) {
-                console.warn('Anti-debug fallback:', e); // Лог ошибки
+                console.warn('Anti-debug fallback:', e);
                 return window;
             }
         }
@@ -96,7 +89,7 @@ function antiDebugWrapper(fn) {
  * @param {string} [cssValue='none'] - Значение для display.
  */
 function hideElement(selector, cssValue = 'none') {
-    if (typeof $ === 'undefined') return; // Проверка jQuery
+    if (typeof $ === 'undefined') return;
     $(selector).css('display', cssValue);
     if ($(selector).length) {
         $(selector).parent().remove();
@@ -258,21 +251,21 @@ function settingsUpdateHandler(event) {
 }
 
 // =====================================================
-// МОДУЛЬ ИНИЦИАЛИЗАЦИИ (Initialization) - С ЗАЩИТОЙ И ОТЛОЖКОЙ
+// МОДУЛЬ ИНИЦИАЛИЗАЦИИ (startPlugin = mainInit)
 // =====================================================
 /**
- * Основная инициализация (только если Lampa готов).
+ * Основная функция плагина (startPlugin).
  */
-function mainInit() {
-    console.log('Lampa Custom Plugin: Starting init...');
+function startPlugin() {
+    console.log('Lampa Custom Plugin: Starting plugin...');
     
-    // Анти-дебаг (безопасно)
+    // Анти-дебаг
     createAntiDebugProxy();
     
-    // Уведомление (безопасно)
+    // Уведомление
     createNoticeElement();
     
-    // Ready: Сохранить регион (jQuery check)
+    // Ready: Сохранить регион
     if (typeof $ !== 'undefined') {
         $(document).ready(() => {
             const now = new Date().getTime();
@@ -287,7 +280,7 @@ function mainInit() {
         hideElement('.ad-server');
     }, 1000);
     
-    // Observer (безопасно)
+    // Observer
     setupDomObserver();
     
     // Регистрация хуков: Только если Lampa API доступен
@@ -309,54 +302,60 @@ function mainInit() {
         
         console.log('Lampa Custom Plugin: All hooks registered');
     } else {
-        console.warn('Lampa Custom Plugin: Lampa API not ready, retrying...');
-        // Fallback: Повтор через 1 сек
-        setTimeout(mainInit, 1000);
+        console.warn('Lampa Custom Plugin: Lampa API not ready after startPlugin');
     }
     
-    console.log('Lampa Custom Plugin: Init completed');
-}
-
-/**
- * Обработчик готовности приложения: Безопасный вызов mainInit.
- * @param {Object} event - Событие Lampa.
- */
-function appReadyHandler(event) {
-    if (event.type === 'appready') {
-        console.log('Lampa Custom Plugin: App ready detected');
-        mainInit();
-        $('[data-action=timetable]').hide(); // Скрыть timetable
-    }
+    console.log('Lampa Custom Plugin: Plugin started successfully');
 }
 
 // =====================================================
-// АВТОЗАПУСК - С ОТЛОЖКОЙ И ПРОВЕРКАМИ
+// АВТОЗАПУСК - НА ОСНОВЕ ВАШЕГО ПРЕДЛОЖЕНИЯ
 // =====================================================
 console.log('Lampa Custom Plugin: Script loaded');
 
-// Проверка: Если Lampa уже готов (редкий случай)
-if (typeof Lampa !== 'undefined' && Lampa.Listener && Lampa.Listener.follow) {
-    Lampa.Listener.follow('app', antiDebugWrapper(appReadyHandler));
-    console.log('Lampa Custom Plugin: Listener attached (Lampa ready)');
+// Улучшенная инициализация по вашему стилю
+if (window.appready) {
+    console.log('Lampa Custom Plugin: window.appready detected - starting immediately');
+    startPlugin();
 } else {
-    // Fallback: Ждем через setTimeout
-    setTimeout(() => {
-        if (typeof Lampa !== 'undefined' && Lampa.Listener && Lampa.Listener.follow) {
-            Lampa.Listener.follow('app', antiDebugWrapper(appReadyHandler));
-            console.log('Lampa Custom Plugin: Listener attached (delayed)');
-        } else {
-            console.error('Lampa Custom Plugin: Lampa not found after delay');
-        }
-    }, 2000); // 2 сек задержка
+    console.log('Lampa Custom Plugin: Waiting for app event...');
+    if (typeof Lampa !== 'undefined' && Lampa.Listener && Lampa.Listener.follow) {
+        Lampa.Listener.follow('app', function (e) {
+            try {
+                if (e.type === 'ready') {
+                    console.log('Lampa Custom Plugin: Ready event detected');
+                    startPlugin();
+                }
+            } catch (err) {
+                console.error('Lampa Custom Plugin: Error in listener:', err);
+            }
+        });
+    } else {
+        // Fallback: Если Listener недоступен, ждем 2 сек
+        setTimeout(() => {
+            if (typeof Lampa !== 'undefined' && Lampa.Listener && Lampa.Listener.follow) {
+                Lampa.Listener.follow('app', function (e) {
+                    if (e.type === 'ready') startPlugin();
+                });
+                console.log('Lampa Custom Plugin: Listener attached (fallback)');
+            } else {
+                console.error('Lampa Custom Plugin: Lampa not found - plugin skipped');
+            }
+        }, 2000);
+    }
 }
 
 // Если настройки уже есть (ранняя загрузка)
 if (window.lampa_settings) {
-    setTimeout(mainInit, 500); // Отложенный вызов
-    console.log('Lampa Custom Plugin: Settings found, init delayed');
+    // Дополнительная проверка: Запустить через 500 мс
+    setTimeout(() => {
+        if (!window.appready) {
+            console.log('Lampa Custom Plugin: Settings found, but app not ready - delaying');
+        }
+    }, 500);
 }
 
 // =====================================================
 // КОНЕЦ ФАЙЛА
 // =====================================================
-console.log('Lampa Custom Plugin: Ready for appready event');
+console.log('Lampa Custom Plugin: Initialization setup complete');
