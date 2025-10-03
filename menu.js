@@ -1,10 +1,17 @@
+// =====================================================
+// Lampa Custom Plugin: Ad Blocker & UI Customizer (FINAL - NO CONFLICT)
+// Деобфусцированная версия без глобальных перезаписей (фикс init$P ошибки)
+// Автор: Grok (xAI) - финальная версия от 03.10.2025
+// Назначение: Скрытие рекламы, премиум-элементов и кастомизация UI в Lampa
+// Фикс: Нет перезаписи window.lampa_settings_main - только runtime через API
+// Улучшение: Точная инициализация (window.appready + 'ready' event)
+// =====================================================
 
 'use strict';
 
 // =====================================================
-// ГЛОБАЛЬНЫЕ НАСТРОЙКИ Lampa (БЕЗ ПЕРЕЗАПИСИ ADS - ФИКС КОНФЛИКТА)
+// ГЛОБАЛЬНЫЕ НАСТРОЙКИ (ТОЛЬКО lampa_settings - БЕЗ ads)
 // =====================================================
-// Устанавливаем базовые настройки, но ads модифицируем динамически
 window.lampa_settings = {
     socket_use: false,
     socket_url: undefined,
@@ -23,22 +30,27 @@ window.lampa_settings = {
     feed: false
 };
 
-// НЕ ПЕРЕЗАПИСЫВАЕМ lampa_settings_main здесь - делаем в startPlugin()
-// window.lampa_settings_main = { ... }; // Убрано для избежания конфликта
+// НЕ УСТАНАВЛИВАЕМ lampa_settings_main - модифицируем в runtime!
 
 // =====================================================
-// МОДУЛЬ АНТИ-ДЕБАГ (Anti-Debug) - С ЗАЩИТОЙ
+// ФУНКЦИЯ ОЧИСТКИ КЭША (ДЛЯ ФИКСА ОШИБКИ)
 // =====================================================
-/**
- * Создает прокси для console, маскируя методы (только если console доступен).
- * @returns {Object|null} Прокси или null.
- */
+function clearLampaCache() {
+    localStorage.clear();
+    sessionStorage.clear();
+    if (window.lampa_settings_main) delete window.lampa_settings_main;
+    console.log('Lampa Custom Plugin: Cache cleared');
+    location.reload();
+}
+
+// =====================================================
+// МОДУЛЬ АНТИ-ДЕБАГ
+// =====================================================
 function createAntiDebugProxy() {
     if (typeof window.console === 'undefined') return null;
     const originalConsole = window.console;
     const methods = ['log', 'error', 'info', 'warn', 'debug', 'trace', 'exception'];
     const proxy = {};
-    
     methods.forEach(method => {
         if (originalConsole[method]) {
             const original = originalConsole[method];
@@ -48,16 +60,10 @@ function createAntiDebugProxy() {
             proxy[method].toString = () => `function ${method}() { [native code] }`;
         }
     });
-    
     window.console = proxy;
     return proxy;
 }
 
-/**
- * Обертка для функций: Try-catch с fallback (анти-дебаг).
- * @param {Function} fn - Функция для обертки.
- * @returns {Function} Обернутая функция.
- */
 function antiDebugWrapper(fn) {
     return function() {
         if (typeof fn === 'function') {
@@ -73,13 +79,8 @@ function antiDebugWrapper(fn) {
 }
 
 // =====================================================
-// МОДУЛЬ DOM-УТИЛИТ (DOM Utils) - С ЗАЩИТОЙ
+// МОДУЛЬ DOM-УТИЛИТ
 // =====================================================
-/**
- * Скрывает элемент по селектору (проверка на jQuery).
- * @param {string} selector - CSS-селектор.
- * @param {string} [cssValue='none'] - Значение для display.
- */
 function hideElement(selector, cssValue = 'none') {
     if (typeof $ === 'undefined') return;
     $(selector).css('display', cssValue);
@@ -88,22 +89,17 @@ function hideElement(selector, cssValue = 'none') {
     }
 }
 
-/**
- * Скрывает рекламные и премиум-элементы.
- */
 function hideAdsAndPremium() {
     hideElement('.ad-server');
     hideElement('.settings--account-premium');
     hideElement('div > span:contains("CUB Premium")');
+    hideElement('.black-friday__button');
+    hideElement('.icon--blink');
     if (!$('[data-name="account_use"]').length) {
         hideElement('.selectbox-item__lock');
     }
 }
 
-/**
- * Создает скрытый элемент уведомления (проверка DOM).
- * @returns {HTMLElement|null} Созданный div или null.
- */
 function createNoticeElement() {
     if (typeof document === 'undefined') return null;
     const notice = document.createElement('div');
@@ -114,10 +110,6 @@ function createNoticeElement() {
     return notice;
 }
 
-/**
- * Фильтрует и скрывает элементы по тексту (статусы просмотра).
- * @param {jQuery} $container - Контейнер для фильтрации.
- */
 function filterAndHideStatuses($container) {
     if (typeof $ === 'undefined') return;
     $container.filter(function() {
@@ -128,13 +120,10 @@ function filterAndHideStatuses($container) {
 }
 
 // =====================================================
-// МОДУЛЬ ОБСЕРВЕРОВ (Observers) - С ЗАЩИТОЙ
+// МОДУЛЬ ОБСЕРВЕРОВ
 // =====================================================
 let domChangeFlag = 0;
 
-/**
- * Настраивает MutationObserver для body (проверка DOM).
- */
 function setupDomObserver() {
     if (typeof document === 'undefined' || typeof MutationObserver === 'undefined') return;
     const observer = new MutationObserver(mutations => {
@@ -149,14 +138,10 @@ function setupDomObserver() {
             }
         });
     });
-    
     const config = { childList: true, subtree: true };
     observer.observe(document.body, config);
 }
 
-/**
- * Настраивает Observer для настроек.
- */
 function setupSettingsObserver() {
     if (typeof document === 'undefined' || typeof MutationObserver === 'undefined') return;
     const observer = new MutationObserver(mutations => {
@@ -169,17 +154,12 @@ function setupSettingsObserver() {
             }
         });
     });
-    
     observer.observe(document.body, { childList: true, subtree: true });
 }
 
 // =====================================================
-// МОДУЛЬ ОБРАБОТЧИКОВ СОБЫТИЙ Lampa (Event Handlers) - С ЗАЩИТОЙ
+// МОДУЛЬ ОБРАБОТЧИКОВ СОБЫТИЙ Lampa
 // =====================================================
-/**
- * Обработчик toggle в Main.
- * @param {Object} event - Событие Lampa.
- */
 function followToggleHandler(event) {
     if (event.name === 'toggle') {
         setTimeout(() => {
@@ -196,10 +176,6 @@ function followToggleHandler(event) {
     }
 }
 
-/**
- * Обработчик открытия activity.
- * @param {Object} event - Событие Lampa.
- */
 function activityOpenHandler(event) {
     if (event.name === 'activity') {
         if (typeof Lampa !== 'undefined' && Lampa.Activity && Lampa.Activity.active) {
@@ -212,10 +188,6 @@ function activityOpenHandler(event) {
     }
 }
 
-/**
- * Обработчик toggle контроллера.
- * @param {Object} event - Событие Lampa.
- */
 function controllerToggleHandler(event) {
     if (event.name === 'select') {
         hideAdsAndPremium();
@@ -226,10 +198,6 @@ function controllerToggleHandler(event) {
     }
 }
 
-/**
- * Обработчик обновления настроек.
- * @param {Object} event - Событие Lampa.
- */
 function settingsUpdateHandler(event) {
     if (event.name === 'account') {
         setTimeout(() => {
@@ -243,21 +211,14 @@ function settingsUpdateHandler(event) {
 }
 
 // =====================================================
-// МОДУЛЬ ИНИЦИАЛИЗАЦИИ (startPlugin = mainInit)
+// МОДУЛЬ ИНИЦИАЛИЗАЦИИ
 // =====================================================
-/**
- * Основная функция плагина (startPlugin).
- */
 function startPlugin() {
     console.log('Lampa Custom Plugin: Starting plugin...');
     
-    // Анти-дебаг
     createAntiDebugProxy();
-    
-    // Уведомление
     createNoticeElement();
     
-    // Ready: Сохранить регион
     if (typeof $ !== 'undefined') {
         $(document).ready(() => {
             const now = new Date().getTime();
@@ -265,23 +226,20 @@ function startPlugin() {
         });
     }
     
-    // Таймер: Скрыть элементы через 1 сек
     setTimeout(() => {
         hideElement('.icon--blink');
         hideElement('.black-friday__button');
         hideElement('.ad-server');
     }, 1000);
     
-    // Observer
     setupDomObserver();
     
-    // ФИКС КОНФЛИКТА: Модификация ads только здесь, с проверкой
+    // ФИКС: Модификация ads только здесь, с проверкой
     try {
         if (window.lampa_settings_main && typeof window.lampa_settings_main.ads !== 'undefined') {
-            window.lampa_settings_main.ads = false; // Отключение рекламы
+            window.lampa_settings_main.ads = false;
             console.log('Lampa Custom Plugin: Ads disabled in settings_main');
-        } else if (typeof Lampa !== 'undefined' && Lampa.Settings) {
-            // Fallback: Через Lampa API
+        } else if (typeof Lampa !== 'undefined' && Lampa.Settings && Lampa.Settings.main) {
             Lampa.Settings.main.ads = false;
             console.log('Lampa Custom Plugin: Ads disabled via Lampa.Settings');
         } else {
@@ -291,7 +249,6 @@ function startPlugin() {
         console.error('Lampa Custom Plugin: Error disabling ads:', err);
     }
     
-    // Регистрация хуков: Только если Lampa API доступен
     if (typeof Lampa !== 'undefined') {
         if (Lampa.Main && Lampa.Main.listener) {
             Lampa.Main.listener.follow('toggle', antiDebugWrapper(followToggleHandler));
@@ -307,7 +264,6 @@ function startPlugin() {
             Lampa.Settings.update('server', antiDebugWrapper(settingsUpdateHandler));
         }
         setupSettingsObserver();
-        
         console.log('Lampa Custom Plugin: All hooks registered');
     } else {
         console.warn('Lampa Custom Plugin: Lampa API not ready after startPlugin');
@@ -317,11 +273,10 @@ function startPlugin() {
 }
 
 // =====================================================
-// АВТОЗАПУСК - НА ОСНОВЕ ВАШЕГО ПРЕДЛОЖЕНИЯ
+// АВТОЗАПУСК
 // =====================================================
 console.log('Lampa Custom Plugin: Script loaded');
 
-// Улучшенная инициализация по вашему стилю
 if (window.appready) {
     console.log('Lampa Custom Plugin: window.appready detected - starting immediately');
     startPlugin();
@@ -339,7 +294,6 @@ if (window.appready) {
             }
         });
     } else {
-        // Fallback: Если Listener недоступен, ждем 2 сек
         setTimeout(() => {
             if (typeof Lampa !== 'undefined' && Lampa.Listener && Lampa.Listener.follow) {
                 Lampa.Listener.follow('app', function (e) {
@@ -353,7 +307,8 @@ if (window.appready) {
     }
 }
 
+console.log('Lampa Custom Plugin: Initialization setup complete');
+
 // =====================================================
 // КОНЕЦ ФАЙЛА
 // =====================================================
-console.log('Lampa Custom Plugin: Initialization setup complete');
