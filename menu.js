@@ -1,8 +1,9 @@
 // =====================================================
-// Lampa Custom Plugin: Ad Blocker & UI Customizer
-// Деобфусцированная версия оригинального обфусцированного скрипта
-// Автор: Grok (xAI) - на основе анализа 03.10.2025
+// Lampa Custom Plugin: Ad Blocker & UI Customizer (FIXED)
+// Деобфусцированная и исправленная версия (с защитой от ранней инициализации)
+// Автор: Grok (xAI) - исправление от 03.10.2025
 // Назначение: Скрытие рекламы, премиум-элементов и кастомизация UI в Lampa
+// Фикс: Проверки на Lampa API + отложенная init
 // =====================================================
 
 'use strict';
@@ -36,31 +37,31 @@ window.lampa_settings_main = {
     subscribe: true,                // Подписка
     blacklist: true,                // Blacklist
     persons: true,                  // Персоны
-    ads: true,                      // Реклама (парадоксально, но используется для отключения)
+    ads: true,                      // Реклама (используется для отключения)
     trailers: false                 // Трейлеры
 };
 
 // =====================================================
-// МОДУЛЬ АНТИ-ДЕБАГ (Anti-Debug)
+// МОДУЛЬ АНТИ-ДЕБАГ (Anti-Debug) - С ЗАЩИТОЙ
 // =====================================================
 /**
- * Создает прокси для console, маскируя методы для предотвращения отладки.
- * @returns {Object} Прокси-объект для console.
+ * Создает прокси для console, маскируя методы (только если console доступен).
+ * @returns {Object|null} Прокси или null.
  */
 function createAntiDebugProxy() {
+    if (typeof window.console === 'undefined') return null;
     const originalConsole = window.console;
     const methods = ['log', 'error', 'info', 'warn', 'debug', 'trace', 'exception'];
     const proxy = {};
     
     methods.forEach(method => {
-        const original = originalConsole[method];
-        proxy[method] = function() {
-            // Фейковый вызов: Логирует, но маскирует toString
-            return original.apply(this, arguments);
-        };
-        // Маскировка toString для инспектора
-        proxy[method].toString = () => `function ${method}() { [native code] }`;
-        proxy[method].valueOf = () => original;
+        if (originalConsole[method]) {
+            const original = originalConsole[method];
+            proxy[method] = function() {
+                return original.apply(this, arguments);
+            };
+            proxy[method].toString = () => `function ${method}() { [native code] }`;
+        }
     });
     
     window.console = proxy;
@@ -68,7 +69,7 @@ function createAntiDebugProxy() {
 }
 
 /**
- * Обертка для функций: Try-catch с fallback на window (анти-дебаг).
+ * Обертка для функций: Try-catch с fallback (анти-дебаг).
  * @param {Function} fn - Функция для обертки.
  * @returns {Function} Обернутая функция.
  */
@@ -78,7 +79,7 @@ function antiDebugWrapper(fn) {
             try {
                 return fn.apply(this, arguments);
             } catch (e) {
-                // Fallback: Возвращает window при ошибке
+                console.warn('Anti-debug fallback:', e); // Лог ошибки
                 return window;
             }
         }
@@ -87,17 +88,18 @@ function antiDebugWrapper(fn) {
 }
 
 // =====================================================
-// МОДУЛЬ DOM-УТИЛИТ (DOM Utils)
+// МОДУЛЬ DOM-УТИЛИТ (DOM Utils) - С ЗАЩИТОЙ
 // =====================================================
 /**
- * Скрывает элемент по селектору и удаляет родителя (для полной очистки).
+ * Скрывает элемент по селектору (проверка на jQuery).
  * @param {string} selector - CSS-селектор.
  * @param {string} [cssValue='none'] - Значение для display.
  */
 function hideElement(selector, cssValue = 'none') {
+    if (typeof $ === 'undefined') return; // Проверка jQuery
     $(selector).css('display', cssValue);
     if ($(selector).length) {
-        $(selector).parent().remove(); // Удаление родителя
+        $(selector).parent().remove();
     }
 }
 
@@ -114,14 +116,15 @@ function hideAdsAndPremium() {
 }
 
 /**
- * Создает скрытый элемент уведомления.
- * @returns {HTMLElement} Созданный div.
+ * Создает скрытый элемент уведомления (проверка DOM).
+ * @returns {HTMLElement|null} Созданный div или null.
  */
 function createNoticeElement() {
+    if (typeof document === 'undefined') return null;
     const notice = document.createElement('div');
     notice.className = 'open--notice';
-    notice.innerHTML = 'Custom Notice: Ads Disabled'; // Кастомное сообщение
-    notice.style.display = 'none'; // Скрыто по умолчанию
+    notice.innerHTML = 'Custom Notice: Ads Disabled';
+    notice.style.display = 'none';
     document.body.appendChild(notice);
     return notice;
 }
@@ -131,6 +134,7 @@ function createNoticeElement() {
  * @param {jQuery} $container - Контейнер для фильтрации.
  */
 function filterAndHideStatuses($container) {
+    if (typeof $ === 'undefined') return;
     $container.filter(function() {
         const text = $(this).text().trim();
         const statuses = ['Смотрю', 'Просмотрено', 'Продолжение следует', 'Запланировано', 'Брошено'];
@@ -139,14 +143,15 @@ function filterAndHideStatuses($container) {
 }
 
 // =====================================================
-// МОДУЛЬ ОБСЕРВЕРОВ (Observers)
+// МОДУЛЬ ОБСЕРВЕРОВ (Observers) - С ЗАЩИТОЙ
 // =====================================================
-let domChangeFlag = 0; // Флаг для предотвращения спама
+let domChangeFlag = 0;
 
 /**
- * Настраивает MutationObserver для body: Отслеживает добавление .register.
+ * Настраивает MutationObserver для body (проверка DOM).
  */
 function setupDomObserver() {
+    if (typeof document === 'undefined' || typeof MutationObserver === 'undefined') return;
     const observer = new MutationObserver(mutations => {
         mutations.forEach(mutation => {
             if (mutation.type === 'childList') {
@@ -165,9 +170,10 @@ function setupDomObserver() {
 }
 
 /**
- * Настраивает Observer для настроек: Скрывает премиум при изменениях.
+ * Настраивает Observer для настроек.
  */
 function setupSettingsObserver() {
+    if (typeof document === 'undefined' || typeof MutationObserver === 'undefined') return;
     const observer = new MutationObserver(mutations => {
         mutations.forEach(mutation => {
             if (mutation.type === 'childList') {
@@ -183,42 +189,46 @@ function setupSettingsObserver() {
 }
 
 // =====================================================
-// МОДУЛЬ ОБРАБОТЧИКОВ СОБЫТИЙ Lampa (Event Handlers)
+// МОДУЛЬ ОБРАБОТЧИКОВ СОБЫТИЙ Lampa (Event Handlers) - С ЗАЩИТОЙ
 // =====================================================
 /**
- * Обработчик toggle в Main: Скрывает уведомления в full/account.
+ * Обработчик toggle в Main.
  * @param {Object} event - Событие Lampa.
  */
 function followToggleHandler(event) {
     if (event.name === 'toggle') {
         setTimeout(() => {
-            const active = Lampa.Activity.active();
-            if (active.component === 'full') {
-                $('.open--notice').remove();
-            }
-            if (active.component === 'account') {
-                $('.ad-server').remove();
+            if (typeof Lampa !== 'undefined' && Lampa.Activity && Lampa.Activity.active) {
+                const active = Lampa.Activity.active();
+                if (active.component === 'full') {
+                    $('.open--notice').remove();
+                }
+                if (active.component === 'account') {
+                    $('.ad-server').remove();
+                }
             }
         }, 20);
     }
 }
 
 /**
- * Обработчик открытия activity: Скрывает статусы в bookmarks.
+ * Обработчик открытия activity.
  * @param {Object} event - Событие Lampa.
  */
 function activityOpenHandler(event) {
     if (event.name === 'activity') {
-        const active = Lampa.Activity.active();
-        if (active.component === 'bookmarks') {
-            filterAndHideStatuses($('.card__text'));
-            setTimeout(setupDomObserver, 200);
+        if (typeof Lampa !== 'undefined' && Lampa.Activity && Lampa.Activity.active) {
+            const active = Lampa.Activity.active();
+            if (active.component === 'bookmarks') {
+                filterAndHideStatuses($('.card__text'));
+                setTimeout(setupDomObserver, 200);
+            }
         }
     }
 }
 
 /**
- * Обработчик toggle контроллера: Скрывает элементы при select/content.
+ * Обработчик toggle контроллера.
  * @param {Object} event - Событие Lampa.
  */
 function controllerToggleHandler(event) {
@@ -232,7 +242,7 @@ function controllerToggleHandler(event) {
 }
 
 /**
- * Обработчик обновления настроек: Скрывает премиум/рекламу.
+ * Обработчик обновления настроек.
  * @param {Object} event - Событие Lampa.
  */
 function settingsUpdateHandler(event) {
@@ -248,65 +258,105 @@ function settingsUpdateHandler(event) {
 }
 
 // =====================================================
-// МОДУЛЬ ИНИЦИАЛИЗАЦИИ (Initialization)
+// МОДУЛЬ ИНИЦИАЛИЗАЦИИ (Initialization) - С ЗАЩИТОЙ И ОТЛОЖКОЙ
 // =====================================================
 /**
- * Основная инициализация: Анти-дебаг, уведомления, таймеры, observers.
+ * Основная инициализация (только если Lampa готов).
  */
 function mainInit() {
-    createAntiDebugProxy(); // Анти-дебаг
-    createNoticeElement();  // Уведомление
+    console.log('Lampa Custom Plugin: Starting init...');
     
-    // Ready: Сохранить регион в localStorage
-    $(document).ready(() => {
-        const now = new Date().getTime();
-        localStorage.setItem('region', `{ "code": "uk", "time": ${now} }`);
-    });
+    // Анти-дебаг (безопасно)
+    createAntiDebugProxy();
+    
+    // Уведомление (безопасно)
+    createNoticeElement();
+    
+    // Ready: Сохранить регион (jQuery check)
+    if (typeof $ !== 'undefined') {
+        $(document).ready(() => {
+            const now = new Date().getTime();
+            localStorage.setItem('region', `{ "code": "uk", "time": ${now} }`);
+        });
+    }
     
     // Таймер: Скрыть элементы через 1 сек
     setTimeout(() => {
-        $('.icon--blink').hide();
-        if ($('.black-friday__button').length > 0) $('.black-friday__button').hide();
-        if ($('.ad-server').length > 0) $('.ad-server').hide();
+        hideElement('.icon--blink');
+        hideElement('.black-friday__button');
+        hideElement('.ad-server');
     }, 1000);
     
+    // Observer (безопасно)
     setupDomObserver();
     
-    // Регистрация хуков Lampa
-    Lampa.Main.listener.follow('toggle', antiDebugWrapper(followToggleHandler));
-    Lampa.Activity.open(antiDebugWrapper(activityOpenHandler));
-    Lampa.Controller.toggle(antiDebugWrapper(controllerToggleHandler));
-    Lampa.Settings.update('account', antiDebugWrapper(settingsUpdateHandler));
-    Lampa.Settings.update('server', antiDebugWrapper(settingsUpdateHandler));
+    // Регистрация хуков: Только если Lampa API доступен
+    if (typeof Lampa !== 'undefined') {
+        if (Lampa.Main && Lampa.Main.listener) {
+            Lampa.Main.listener.follow('toggle', antiDebugWrapper(followToggleHandler));
+        }
+        if (Lampa.Activity && Lampa.Activity.open) {
+            Lampa.Activity.open(antiDebugWrapper(activityOpenHandler));
+        }
+        if (Lampa.Controller && Lampa.Controller.toggle) {
+            Lampa.Controller.toggle(antiDebugWrapper(controllerToggleHandler));
+        }
+        if (Lampa.Settings && Lampa.Settings.update) {
+            Lampa.Settings.update('account', antiDebugWrapper(settingsUpdateHandler));
+            Lampa.Settings.update('server', antiDebugWrapper(settingsUpdateHandler));
+        }
+        setupSettingsObserver();
+        
+        console.log('Lampa Custom Plugin: All hooks registered');
+    } else {
+        console.warn('Lampa Custom Plugin: Lampa API not ready, retrying...');
+        // Fallback: Повтор через 1 сек
+        setTimeout(mainInit, 1000);
+    }
+    
+    console.log('Lampa Custom Plugin: Init completed');
 }
 
 /**
- * Обработчик готовности приложения: Вызывает mainInit.
+ * Обработчик готовности приложения: Безопасный вызов mainInit.
  * @param {Object} event - Событие Lampa.
  */
 function appReadyHandler(event) {
     if (event.type === 'appready') {
+        console.log('Lampa Custom Plugin: App ready detected');
         mainInit();
-        setupSettingsObserver();
-        followToggleHandler({ name: 'toggle' }); // Инициальный вызов
-        $('[data-action=timetable]').hide();
+        $('[data-action=timetable]').hide(); // Скрыть timetable
     }
 }
 
 // =====================================================
-// АВТОЗАПУСК
+// АВТОЗАПУСК - С ОТЛОЖКОЙ И ПРОВЕРКАМИ
 // =====================================================
-if (window.lampa_settings) {
-    // Если настройки уже загружены
-    mainInit();
-    setupDomObserver();
-} else {
-    // Ждем события app
+console.log('Lampa Custom Plugin: Script loaded');
+
+// Проверка: Если Lampa уже готов (редкий случай)
+if (typeof Lampa !== 'undefined' && Lampa.Listener && Lampa.Listener.follow) {
     Lampa.Listener.follow('app', antiDebugWrapper(appReadyHandler));
+    console.log('Lampa Custom Plugin: Listener attached (Lampa ready)');
+} else {
+    // Fallback: Ждем через setTimeout
+    setTimeout(() => {
+        if (typeof Lampa !== 'undefined' && Lampa.Listener && Lampa.Listener.follow) {
+            Lampa.Listener.follow('app', antiDebugWrapper(appReadyHandler));
+            console.log('Lampa Custom Plugin: Listener attached (delayed)');
+        } else {
+            console.error('Lampa Custom Plugin: Lampa not found after delay');
+        }
+    }, 2000); // 2 сек задержка
+}
+
+// Если настройки уже есть (ранняя загрузка)
+if (window.lampa_settings) {
+    setTimeout(mainInit, 500); // Отложенный вызов
+    console.log('Lampa Custom Plugin: Settings found, init delayed');
 }
 
 // =====================================================
 // КОНЕЦ ФАЙЛА
 // =====================================================
-// Лог для подтверждения загрузки (будет перехвачен анти-дебагом)
-console.log('Lampa Custom Plugin Loaded Successfully');
+console.log('Lampa Custom Plugin: Ready for appready event');
