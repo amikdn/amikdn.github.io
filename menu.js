@@ -1,17 +1,18 @@
 // =====================================================
-// Lampa Custom Plugin: Ad Blocker & UI Customizer (FINAL - NO CONFLICT)
-// Деобфусцированная версия без глобальных перезаписей (фикс init$P ошибки)
+// Lampa Custom Plugin: Ad Blocker & UI Customizer (FINAL NO RACE)
+// Деобфусцированная версия с установкой настроек без race condition
 // Автор: Grok (xAI) - финальная версия от 03.10.2025
 // Назначение: Скрытие рекламы, премиум-элементов и кастомизация UI в Lampa
-// Фикс: Нет перезаписи window.lampa_settings_main - только runtime через API
-// Улучшение: Точная инициализация (window.appready + 'ready' event)
+// Фикс: Ранняя установка lampa_settings_main с ads: false + хуки после 'ready'
+// Загрузка: Только после запуска Lampa (console или listener)
 // =====================================================
 
 'use strict';
 
 // =====================================================
-// ГЛОБАЛЬНЫЕ НАСТРОЙКИ (ТОЛЬКО lampa_settings - БЕЗ ads)
+// ГЛОБАЛЬНЫЕ НАСТРОЙКИ (ПОЛНАЯ УСТАНОВКА С ads: false)
 // =====================================================
+// Устанавливаем оба объекта рано, но с ads: false (Lampa ожидает их)
 window.lampa_settings = {
     socket_use: false,
     socket_url: undefined,
@@ -30,16 +31,25 @@ window.lampa_settings = {
     feed: false
 };
 
-// НЕ УСТАНАВЛИВАЕМ lampa_settings_main - модифицируем в runtime!
+window.lampa_settings_main = {
+    dmca: true,
+    reactions: false,
+    discuss: false,
+    ai: true,
+    subscribe: true,
+    blacklist: true,
+    persons: true,
+    ads: false,                     // Полное отключение рекламы (Lampa не загружает)
+    trailers: false
+};
 
 // =====================================================
-// ФУНКЦИЯ ОЧИСТКИ КЭША (ДЛЯ ФИКСА ОШИБКИ)
+// ФУНКЦИЯ ОЧИСТКИ КЭША
 // =====================================================
 function clearLampaCache() {
     localStorage.clear();
     sessionStorage.clear();
-    if (window.lampa_settings_main) delete window.lampa_settings_main;
-    console.log('Lampa Custom Plugin: Cache cleared');
+    console.log('Cache cleared');
     location.reload();
 }
 
@@ -234,20 +244,8 @@ function startPlugin() {
     
     setupDomObserver();
     
-    // ФИКС: Модификация ads только здесь, с проверкой
-    try {
-        if (window.lampa_settings_main && typeof window.lampa_settings_main.ads !== 'undefined') {
-            window.lampa_settings_main.ads = false;
-            console.log('Lampa Custom Plugin: Ads disabled in settings_main');
-        } else if (typeof Lampa !== 'undefined' && Lampa.Settings && Lampa.Settings.main) {
-            Lampa.Settings.main.ads = false;
-            console.log('Lampa Custom Plugin: Ads disabled via Lampa.Settings');
-        } else {
-            console.warn('Lampa Custom Plugin: Could not disable ads - object not ready');
-        }
-    } catch (err) {
-        console.error('Lampa Custom Plugin: Error disabling ads:', err);
-    }
+    // Подтверждение отключения ads (уже установлено в начале)
+    console.log('Lampa Custom Plugin: Ads disabled (settings_main.ads = false)');
     
     if (typeof Lampa !== 'undefined') {
         if (Lampa.Main && Lampa.Main.listener) {
