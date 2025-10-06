@@ -41,7 +41,7 @@
     function fetchLampaRating(ratingKey) {
         return new Promise((resolve) => {
             let xhr = new XMLHttpRequest();
-            let url = "http://cub.rip/api/reactions/get/" + ratingKey;
+            let url = "https://cub.rip/api/reactions/get/" + ratingKey;
             xhr.open("GET", url, true);
             xhr.timeout = 10000;
             xhr.onreadystatechange = function() {
@@ -158,4 +158,5 @@
         }
     });
 })();
+
 
