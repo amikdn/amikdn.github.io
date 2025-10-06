@@ -7,14 +7,13 @@
     function calculateLampaRating10(reactions) {
         let weightedSum = 0;
         let totalCount = 0;
-        let reactionCnt = {}; // Счётчики для каждой реакции
+        let reactionCnt = {};
 
-        // Коэффициенты (как в вашем коде)
         const reactionCoef = { fire: 5, nice: 4, think: 3, bore: 2, shit: 1 };
 
         reactions.forEach(item => {
             const count = parseInt(item.counter, 10) || 0;
-            const coef = reactionCoef[item.type] || 0; // Если тип неизвестен, игнорируем
+            const coef = reactionCoef[item.type] || 0;
             weightedSum += count * coef;
             totalCount += count;
             reactionCnt[item.type] = (reactionCnt[item.type] || 0) + count;
@@ -26,20 +25,15 @@
         const rating10 = (avgRating - 1) * 2.5;
         const finalRating = rating10 >= 0 ? parseFloat(rating10.toFixed(1)) : 0;
 
-        // Расчёт медианной реакции (только если голосов >= 20)
-        const minCnt = 20;
         let medianReaction = '';
-        if (totalCount >= minCnt) {
-            const medianIndex = Math.floor(totalCount / 2);
-            // Сортировка реакций по коэффициентам ascending (от низкого к высокому)
-            const sortedReactions = Object.entries(reactionCoef)
-                .sort((a, b) => a[1] - b[1])
-                .map(r => r[0]);
-            let cumulativeCount = 0;
-            while (sortedReactions.length && cumulativeCount < medianIndex) {
-                medianReaction = sortedReactions.pop(); // Начинаем с наивысшего
-                cumulativeCount += (reactionCnt[medianReaction] || 0);
-            }
+        const medianIndex = Math.floor(totalCount / 2);
+        const sortedReactions = Object.entries(reactionCoef)
+            .sort((a, b) => a[1] - b[1])
+            .map(r => r[0]);
+        let cumulativeCount = 0;
+        while (sortedReactions.length && cumulativeCount < medianIndex) {
+            medianReaction = sortedReactions.pop();
+            cumulativeCount += (reactionCnt[medianReaction] || 0);
         }
 
         return { rating: finalRating, medianReaction: medianReaction };
@@ -94,7 +88,7 @@
 
         let lampaBlockHtml = '<div class="full-start__rate rate--lampa">' +
             '<div class="rate-value">0.0</div>' +
-            '<div class="rate-icon"></div>' +  // Новый div для иконки
+            '<div class="rate-icon"></div>' + 
             '<div class="source--name">LAMPA</div>' +
             '</div>';
 
