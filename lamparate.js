@@ -26,7 +26,7 @@
         const finalRating = rating10 >= 0 ? parseFloat(rating10.toFixed(1)) : 0;
 
         let medianReaction = '';
-        const medianIndex = Math.floor(totalCount / 2);
+        const medianIndex = Math.ceil(totalCount / 2.0);
         const sortedReactions = Object.entries(reactionCoef)
             .sort((a, b) => a[1] - b[1])
             .map(r => r[0]);
