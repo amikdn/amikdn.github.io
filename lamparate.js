@@ -39,30 +39,35 @@
         return { rating: finalRating, medianReaction: medianReaction };
     }
 
-    async function fetchLampaRating(ratingKey) {
-        const url = "http://cub.rip/api/reactions/get/" + ratingKey;
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000);
-
-        try {
-            const response = await fetch(url, { signal: controller.signal });
-            clearTimeout(timeoutId);
-
-            if (!response.ok) {
-                return { rating: 0, medianReaction: '' };
-            }
-
-            const data = await response.json();
-
-            if (data && data.result && Array.isArray(data.result)) {
-                return calculateLampaRating10(data.result);
-            } else {
-                return { rating: 0, medianReaction: '' };
-            }
-        } catch (error) {
-            clearTimeout(timeoutId);
-            return { rating: 0, medianReaction: '' };
-        }
+    function fetchLampaRating(ratingKey) {
+        return new Promise((resolve) => {
+            let xhr = new XMLHttpRequest();
+            let url = "http://cub.rip/api/reactions/get/" + ratingKey;
+            xhr.open("GET", url, true);
+            xhr.timeout = 10000;
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === 4) {
+                    if (xhr.status === 200) {
+                        try {
+                            let data = JSON.parse(xhr.responseText);
+                            if (data && data.result && Array.isArray(data.result)) {
+                                let result = calculateLampaRating10(data.result);
+                                resolve(result);
+                            } else {
+                                resolve({ rating: 0, medianReaction: '' });
+                            }
+                        } catch {
+                            resolve({ rating: 0, medianReaction: '' });
+                        }
+                    } else {
+                        resolve({ rating: 0, medianReaction: '' });
+                    }
+                }
+            };
+            xhr.onerror = function() { resolve({ rating: 0, medianReaction: '' }); };
+            xhr.ontimeout = function() { resolve({ rating: 0, medianReaction: '' }); };
+            xhr.send();
+        });
     }
 
     async function getLampaRating(ratingKey) {
