@@ -2,6 +2,33 @@
   'use strict';
   Lampa.Platform.tv();
 
+  // Функция запроса с прокси (из вашего кода)
+  function get(method, oncomplite, onerror) {
+    var total_cnt = 0; // Инициализация счетчиков (сделал локальными для функции, если нужно глобально — вынесите)
+    var good_cnt = 0;
+    var proxy_cnt = 0;
+    var use_proxy = total_cnt >= 10 && good_cnt > total_cnt / 2;
+    if (!use_proxy) total_cnt++;
+    var kp_prox = 'https://cors.kp556.workers.dev:8443/';
+    var url = 'https://kinopoiskapiunofficial.tech/' + String(method);
+    network.timeout(15000);
+    network.silent((use_proxy ? kp_prox : '') + url, function (json) {
+      oncomplite(json);
+    }, function (a, c) {
+      use_proxy = !use_proxy && (proxy_cnt < 10 || good_cnt > proxy_cnt / 2);
+      if (use_proxy && (a.status == 429 || (a.status == 0 && a.statusText !== 'timeout'))) {
+        proxy_cnt++;
+        network.timeout(15000);
+        network.silent(kp_prox + url, function (json) {
+          good_cnt++;
+          oncomplite(json);
+        }, onerror, false, {
+          headers: { 'X-API-KEY': '2a4a0808-81a3-40ae-b0d3-e11335ede616' }  // Замените на ваш личный токен
+        });
+      } else onerror(a, c);
+    }, false, { headers: { 'X-API-KEY': '2a4a0808-81a3-40ae-b0d3-e11335ede616' } });  // Замените на ваш личный токен
+  }
+
   // Функция поиска родительского элемента, содержащего заданный узел
   function findParentContaining(element, target) {
     let parent = element.parentElement;
@@ -102,7 +129,7 @@
     processQueue();
   }
 
-  // Пул запросов
+  // Пул запросов (сохранен, но теперь используется только для Lampa-рейтинга, Kinopoisk через get)
   let requestPool = [];
   function getRequest() {
     return requestPool.pop() || new Lampa.Reguest();
@@ -113,7 +140,7 @@
     if (requestPool.length < 3) requestPool.push(req);
   }
 
-  // Получение рейтинга из Lampa (реакции пользователей)
+  // Получение рейтинга из Lampa (реакции пользователей, без изменений)
   function getLampaRating(movie, callback) {
     let cached = cacheManager.get('lampa_rating', movie.id);
     if (cached && cached.rating !== '0.0') {
@@ -146,7 +173,7 @@
     });
   }
 
-  // Получение рейтинга из Kinopoisk/IMDB (с фиксом на отсутствие названия и некорректный URL)
+  // Получение рейтинга из Kinopoisk/IMDB (интегрирована функция get)
   function getExternalRating(movie, callback) {
     let cached = cacheManager.get('kp_rating', movie.id);
     if (cached) {
@@ -158,10 +185,8 @@
       }
     }
     addToQueue(() => {
-      let req = getRequest();
       let name = movie.name || movie.original_name || ''; // Фикс: fallback на пустую строку
       if (!name) {
-        returnRequest(req);
         callback('0.0'); // Пропускаем поиск, если нет названия
         return;
       }
@@ -169,30 +194,22 @@
       let releaseYear = movie.release_date || movie.first_air_date || movie.last_air_date || '0000';
       let year = parseInt((releaseYear + '').slice(0, 4));
       let origTitle = movie.original_title || movie.orig_title;
-      let api = {
-        url: 'https://kinopoiskapiunofficial.tech/api/v2.1/films/search-by-keyword',
-        rating_url: 'https://kinopoiskapiunofficial.tech/api/v2.2/films/',
-        headers: { 'X-API-KEY': '2a4a0808-81a3-40ae-b0d3-e11335ede616' }
-      };
 
       function searchFilms() {
-        let searchUrl = api.url;
-        searchUrl = Lampa.Utils.addUrlComponent(searchUrl, 'keyword=' + encodeURIComponent(searchQuery));
-        if (movie.imdb_id) searchUrl = Lampa.Utils.addUrlComponent(searchUrl, 'imdbId=' + encodeURIComponent(movie.imdb_id));
-        req.timeout(15000);
-        req.silent(searchUrl, (data) => {
+        let searchMethod = 'api/v2.1/films/search-by-keyword?keyword=' + encodeURIComponent(searchQuery);
+        if (movie.imdb_id) searchMethod += '&imdbId=' + encodeURIComponent(movie.imdb_id);
+        get(searchMethod, (data) => {
           if (data.searchFilms && data.searchFilms.length) processResults(data.searchFilms);
           else if (data.films && data.films.length) processResults(data.films);
           else processResults([]);
-        }, () => {
-          returnRequest(req);
+        }, (a, c) => {
+          console.error('Search error:', a, c); // Диагностика
           callback('0.0');
-        }, false, { headers: api.headers });
+        });
       }
 
       function processResults(results) {
         if (!results || !results.length) {
-          returnRequest(req);
           callback('0.0');
           return;
         }
@@ -220,9 +237,9 @@
         }
         if (filtered.length >= 1) {
           let id = filtered[0].kinopoiskId || filtered[0].kinopoisk_id || filtered[0].kp_id || filtered[0].filmId;
-          if (id && typeof id === 'number' && id > 0) { // Фикс: дополнительная проверка на валидный id
-            req.timeout(15000);
-            req.silent(api.rating_url + id + '/ratings', (ratingData) => { // Фикс: правильная конкатенация URL
+          if (id && typeof id === 'number' && id > 0) {
+            let ratingMethod = 'api/v2.2/films/' + id + '/ratings';
+            get(ratingMethod, (ratingData) => {
               let cachedRating = cacheManager.set('kp_rating', movie.id, {
                 kp: ratingData.ratingKinopoisk || 0,
                 imdb: ratingData.ratingImdb || 0,
@@ -230,18 +247,15 @@
               });
               let source = Lampa.Storage.get('rating_source', 'tmdb');
               let selectedRating = source === 'kp' ? cachedRating.kp : cachedRating.imdb;
-              returnRequest(req);
               callback(selectedRating ? parseFloat(selectedRating).toFixed(1) : '0.0');
-            }, () => {
-              returnRequest(req);
+            }, (a, c) => {
+              console.error('Ratings error for ID ' + id + ':', a, c); // Диагностика
               callback('0.0');
-            }, false, { headers: api.headers });
+            });
           } else {
-            returnRequest(req);
             callback('0.0');
           }
         } else {
-          returnRequest(req);
           callback('0.0');
         }
       }
