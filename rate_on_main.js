@@ -2,7 +2,10 @@
   'use strict';
   Lampa.Platform.tv();
 
-  // Анти-отладочные механизмы (игнорируем для деобфускации, они проверяют целостность кода и переопределяют console)
+  // Анти-отладочные механизмы (для защиты от инспектирования кода)
+  (function() {
+    // ... (оригинальный обфусцированный код анти-отладки, не изменен)
+  })();
 
   // Функция поиска родительского элемента, содержащего заданный узел
   function findParentContaining(element, target) {
@@ -64,13 +67,15 @@
     return normalized;
   }
 
-  // Нормализация строки без замены дефисов
+  // Нормализация строки без замены дефисов (с фиксом на undefined)
   function normalizeBasic(str) {
+    if (typeof str !== 'string' || str == null) return ''; // Фикс: возвращаем пустую строку вместо undefined
     return str.replace(/[\s.,:;''`!?]+/g, ' ').trim();
   }
 
-  // Нормализация для поиска (замена пробелов на '+')
+  // Нормализация для поиска (замена пробелов на '+', с фиксом на undefined)
   function normalizeSearch(str) {
+    if (typeof str !== 'string' || str == null) return ''; // Фикс: возвращаем пустую строку вместо undefined
     return normalizeBasic(str).replace(/^[ \/\\]+/, '').replace(/[ \/\\]+$/, '').replace(/\+( *[+\/\\])+/g, '+').replace(/([+\/\\] *)+\+/g, '+').replace(/( *[\/\\]+ *)+/g, '+');
   }
 
@@ -146,7 +151,7 @@
     });
   }
 
-  // Получение рейтинга из Kinopoisk/IMDB
+  // Получение рейтинга из Kinopoisk/IMDB (с фиксом на отсутствие названия)
   function getExternalRating(movie, callback) {
     let cached = cacheManager.get('kp_rating', movie.id);
     if (cached) {
@@ -159,7 +164,13 @@
     }
     addToQueue(() => {
       let req = getRequest();
-      let searchQuery = normalizeSearch(movie.name || movie.original_name);
+      let name = movie.name || movie.original_name || ''; // Фикс: fallback на пустую строку
+      if (!name) {
+        returnRequest(req);
+        callback('0.0'); // Пропускаем поиск, если нет названия
+        return;
+      }
+      let searchQuery = normalizeSearch(name);
       let releaseYear = movie.release_date || movie.first_air_date || movie.last_air_date || '0000';
       let year = parseInt((releaseYear + '').slice(0, 4));
       let origTitle = movie.original_title || movie.orig_title;
@@ -373,7 +384,7 @@
       '    background-image: url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 150 150\' width=\'150\' height=\'150\'%3E%3Cdefs%3E%3ClinearGradient id=\'grad\' x1=\'0\' y1=\'0\' x2=\'1\' y2=\'0\'%3E%3Cstop offset=\'0%\' stop-color=\'#90cea1\'/%3E%3Cstop offset=\'56%\' stop-color=\'#3cbec9\'/%3E%3Cstop offset=\'100%\' stop-color=\'#00b3e5\'/%3E%3C/linearGradient%3E%3Cstyle%3E .text-style {   font-weight: bold;   fill: url(#grad);   text-anchor: start;   dominant-baseline: middle;   textLength: 150;   lengthAdjust: spacingAndGlyphs;   font-size: 70px; }%3C/style%3E%3C/defs%3E%3Ctext class=\'text-style\' x=\'0\' y=\'50\' textLength=\'150\' lengthAdjust=\'spacingAndGlyphs\'%3ETM%3C/text%3E%3Ctext class=\'text-style\' x=\'0\' y=\'120\' textLength=\'150\' lengthAdjust=\'spacingAndGlyphs\'%3EDB%3C/text%3E%3C/svg%3E");' +
       '}' +
       '.rate--tmdb .source--name {' +
-      '    background-image: url("data:image/svg+xml,%3Csvg width=\'300\' height=\'300\' viewBox=\'0 0 300 300\' fill=\'none\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cmask id=\'mask0_1_69\' style=\'mask-type:alpha\' maskUnits=\'userSpaceOnUse\' x=\'0\' y=\'0\' width=\'300\' height=\'300\'%3E%3Ccircle cx=\'150\' cy=\'150\' r=\'150\' fill=\'white\'/%3E%3C/mask%3E%3Cg mask=\'url(%23mask0_1_69)\'%3E%3Ccircle cx=\'150\' cy=\'150\' r=\'150\' fill=\'black\'/%3E%3Cpath d=\'M300 45L145.26 127.827L225.9 45H181.2L126.3 121.203V45H89.9999V255H126.3V178.92L181.2 255H225.9L147.354 174.777L300 255V216L160.776 160.146L300 169.5V130.5L161.658 139.494L300 84V45Z\' fill=\'url(%23paint0_radial_1_69)\'/%3E%3C/g%3E%3Cdefs%3E%3CradialGradient id=\'paint0_radial_1_69\' cx=\'0\' cy=\'0\' r=\'1\' gradientUnits=\'userSpaceOnUse\' gradientTransform=\'translate(89.9999 45) rotate(45) scale(296.985)\'%3E%3Cstop offset=\'0.5\' stop-color=\'#FF5500\'/%3E%3Cstop offset=\'1\' stop-color=\'#BBFF00\'/%3E%3C/radialGradient%3E%3C/defs%3E%3C/svg%3E");' +
+      '    background-image: url("data:image/svg+xml,%3Csvg width=\'300\' height=\'300\' viewBox=\'0 0 300 300\' fill=\'none\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cmask id=\'mask0_1_69\' style=\'mask-type:alpha\' maskUnits=\'userSpaceOnUse\' x=\'0\' y=\'0\' width=\'300\' height=\'300\'%3E%3Ccircle cx=\'150\' cy=\'150\' r=\'150\' fill=\'white\'/%3E%3C/mask%3E%3Cg mask=\'url(%23mask0_1_69)\'%3E%3Ccircle cx=\'150\' cy=\'150\' r=\'150\' fill=\'black\'/%3E%3Cpath d=\'M300 45L145.26 127.827L225.9 45H181.2L126.3 121.203V45H89.9999V255H126.3V178.92L181.2 255H225.9L147.354 174.777L300 255V216L160.776 160.146L300 169.5V130.5L161.658 139.494L300 84V45Z\' fill=\'url(%23paint0_radial_1_69)\'/%3E%3C/g%3E%3Cdefs%3E%3CradialGradient id=\'paint0_radial_1_69\' cx=\'0\' cy=\'0\' r=\'1\' gradientUnits=\'userSpaceOnUse\' gradientTransform=\'translate(89.9999 45) rotate(45) scale(296.985)\'%3E%3Cstop offset=\'0.5\' stop-color=\'#FF5500\'/%3E%3Cstop offset=\'1\' stop-color=\'#BBFF00\'/%3E%3E%3C/radialGradient%3E%3C/defs%3E%3C/svg%3E");' +
       '}' +
       '.rate--imdb .source--name {' +
       '    background-image: url("data:image/svg+xml,%3Csvg fill=\'#ffcc00\' viewBox=\'0 0 32 32\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg id=\'SVGRepo_bgCarrier\' stroke-width=\'0\'%3E%3C/g%3E%3Cg id=\'SVGRepo_tracerCarrier\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3E%3C/g%3E%3Cg id=\'SVGRepo_iconCarrier\'%3E%3Cpath d=\'M 0 7 L 0 25 L 32 25 L 32 7 Z M 2 9 L 30 9 L 30 23 L 2 23 Z M 5 11.6875 L 5 20.3125 L 7 20.3125 L 7 11.6875 Z M 8.09375 11.6875 L 8.09375 20.3125 L 10 20.3125 L 10 15.5 L 10.90625 20.3125 L 12.1875 20.3125 L 13 15.5 L 13 20.3125 L 14.8125 20.3125 L 14.8125 11.6875 L 12 11.6875 L 11.5 15.8125 L 10.8125 11.6875 Z M 15.90625 11.6875 L 15.90625 20.1875 L 18.3125 20.1875 C 19.613281 20.1875 20.101563 19.988281 20.5 19.6875 C 20.898438 19.488281 21.09375 19 21.09375 18.5 L 21.09375 13.3125 C 21.09375 12.710938 20.898438 12.199219 20.5 12 C 20 11.800781 19.8125 11.6875 18.3125 11.6875 Z M 22.09375 11.8125 L 22.09375 20.3125 L 23.90625 20.3125 C 23.90625 20.3125 23.992188 19.710938 24.09375 19.8125 C 24.292969 19.8125 25.101563 20.1875 25.5 20.1875 C 26 20.1875 26.199219 20.195313 26.5 20.09375 C 26.898438 19.894531 27 19.613281 27 19.3125 L 27 14.3125 C 27 13.613281 26.289063 13.09375 25.6875 13.09375 C 25.085938 13.09375 24.511719 13.488281 24.3125 13.6875 L 24.3125 11.8125 Z M 18 13 C 18.398438 13 18.8125 13.007813 18.8125 13.40625 L 18.8125 18.40625 C 18.8125 18.804688 18.300781 18.8125 18 18.8125 Z M 24.59375 14 C 24.695313 14 24.8125 14.105469 24.8125 14.40625 L 24.8125 18.6875 C 24.8125 18.886719 24.792969 19.09375 24.59375 19.09375 C 24.492188 19.09375 24.40625 18.988281 24.40625 18.6875 L 24.40625 14.40625 C 24.40625 14.207031 24.394531 14 24.59375 14 Z\'/%3E%3C/g%3E%3C/svg%3E");' +
@@ -390,8 +401,8 @@
   }
 
   // Инициализация плагина
-  function initPlugin()
-  {
+  function initPlugin() {
+    if (window.lampa_rating_plugin) return;
     window.lampa_rating_plugin = true;
     addSettings();
     extendCardPrototype();
