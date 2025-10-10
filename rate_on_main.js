@@ -2,33 +2,36 @@
   'use strict';
   Lampa.Platform.tv();
 
-  // Инициализация network для запросов (фикс ошибки "network is not defined")
-  var network = new Lampa.Network();
+  // Глобальные счетчики для функции get (чтобы сохранялись между вызовами)
+  var total_cnt = 0;
+  var good_cnt = 0;
+  var proxy_cnt = 0;
 
-  // Функция запроса с прокси (из вашего кода, с фиксом на network)
+  // Функция запроса с прокси (адаптирована с использованием Lampa.Reguest вместо network)
   function get(method, oncomplite, onerror) {
-    var total_cnt = 0; // Счетчики сделаны локальными; если нужны глобальные, вынесите наружу
-    var good_cnt = 0;
-    var proxy_cnt = 0;
     var use_proxy = total_cnt >= 10 && good_cnt > total_cnt / 2;
     if (!use_proxy) total_cnt++;
     var kp_prox = 'https://cors.kp556.workers.dev:8443/';
     var url = 'https://kinopoiskapiunofficial.tech/' + String(method);
-    network.timeout(15000);
-    network.silent((use_proxy ? kp_prox : '') + url, function (json) {
+    var req = new Lampa.Reguest();  // Фикс: используем Lampa.Reguest вместо network
+    req.timeout(15000);
+    req.silent((use_proxy ? kp_prox : '') + url, function (json) {
       oncomplite(json);
     }, function (a, c) {
       use_proxy = !use_proxy && (proxy_cnt < 10 || good_cnt > proxy_cnt / 2);
       if (use_proxy && (a.status == 429 || (a.status == 0 && a.statusText !== 'timeout'))) {
         proxy_cnt++;
-        network.timeout(15000);
-        network.silent(kp_prox + url, function (json) {
+        var proxy_req = new Lampa.Reguest();  // Новый экземпляр для retry
+        proxy_req.timeout(15000);
+        proxy_req.silent(kp_prox + url, function (json) {
           good_cnt++;
           oncomplite(json);
         }, onerror, false, {
           headers: { 'X-API-KEY': '2a4a0808-81a3-40ae-b0d3-e11335ede616' }  // Замените на ваш личный токен
         });
-      } else onerror(a, c);
+      } else {
+        onerror(a, c);
+      }
     }, false, { headers: { 'X-API-KEY': '2a4a0808-81a3-40ae-b0d3-e11335ede616' } });  // Замените на ваш личный токен
   }
 
