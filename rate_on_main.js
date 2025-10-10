@@ -2,11 +2,6 @@
   'use strict';
   Lampa.Platform.tv();
 
-  // Анти-отладочные механизмы (для защиты от инспектирования кода)
-  (function() {
-    // ... (оригинальный обфусцированный код анти-отладки, не изменен)
-  })();
-
   // Функция поиска родительского элемента, содержащего заданный узел
   function findParentContaining(element, target) {
     let parent = element.parentElement;
