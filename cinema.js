@@ -7,64 +7,208 @@
     apn: ''
   };
 
+  var balansers_with_search;
+  
   var unic_id = Lampa.Storage.get('lampac_unic_id', '');
   if (!unic_id) {
-	unic_id = Lampa.Utils.uid(8).toLowerCase();
-	Lampa.Storage.set('lampac_unic_id', unic_id);
+    unic_id = Lampa.Utils.uid(8).toLowerCase();
+    Lampa.Storage.set('lampac_unic_id', unic_id);
   }
   
-  var uniqueId = Lampa.Storage.get("lampac_unic_id", "");
- if (uniqueId !== "tyusdt") {
-    Lampa.Storage.set("lampac_unic_id", "tyusdt");
-   }
   
-  if (window.rchtype == undefined) {
-    window.rchtype = 'web';
-    var check = function check(good) {
-      window.rchtype = Lampa.Platform.is('android') ? 'apk' : good ? 'cors' : 'web';
-    }
-
-    if (Lampa.Platform.is('android') || Lampa.Platform.is('tizen')) check(true);
-    else {
-      var net = new Lampa.Reguest();
-      net.silent('http://185.87.48.42:2627'.indexOf(location.host) >= 0 ? 'https://github.com/' : 'http://185.87.48.42:2627/cors/check', function() {
-        check(true);
-      }, function() {
-        check(false);
-      }, false, {
-        dataType: 'text'
-      });
+  function getAndroidVersion() {
+    if (Lampa.Platform.is('android')) {
+      try {
+        var current = AndroidJS.appVersion().split('-');
+        return parseInt(current.pop());
+      } catch (e) {
+        return 0;
+      }
+    } else {
+      return 0;
     }
   }
 
-  function BlazorNet() {
-    this.net = new Lampa.Reguest();
-    this.timeout = function(time) {
-      this.net.timeout(time);
+  var hostkey = 'http://185.87.48.42:2627'.replace('http://', '').replace('https://', '');
+
+  if (!window.rch_nws || !window.rch_nws[hostkey]) {
+    if (!window.rch_nws) window.rch_nws = {};
+
+    window.rch_nws[hostkey] = {
+      type: undefined,
+      startTypeInvoke: false,
+      rchRegistry: false,
+      apkVersion: getAndroidVersion()
     };
-    this.req = function(type, url, secuses, error, post) {
-      var params = arguments.length > 5 && arguments[5] !== undefined ? arguments[5] : {};
-      var path = url.split(Defined.localhost).pop().split('?');
-      if (path[0].indexOf('http') >= 0) return this.net[type](url, secuses, error, post, params);
-      DotNet.invokeMethodAsync("JinEnergy", path[0], path[1]).then(function(result) {
-        if (params.dataType == 'text') secuses(result);
-        else secuses(Lampa.Arrays.decodeJson(result, {}));
-      })["catch"](function(e) {
-        console.log('Blazor', 'error:', e);
-        error(e);
+
+    window.rch_nws[hostkey].typeInvoke = function rchtypeInvoke(host, call) {
+      if (window.rch_nws[hostkey].type == undefined) {
+        window.rch_nws[hostkey].startTypeInvoke = true;
+
+        var check = function check(good) {
+          window.rch_nws[hostkey].type = Lampa.Platform.is('android') ? 'apk' : good ? 'cors' : 'web';
+          call();
+        };
+
+        if (Lampa.Platform.is('android') || Lampa.Platform.is('tizen')) check(true);
+        else {
+          var net = new Lampa.Reguest();
+          net.silent('http://185.87.48.42:2627'.indexOf(location.host) >= 0 ? 'https://github.com/' : host + '/cors/check', function () {
+            check(true);
+          }, function () {
+            check(false);
+          }, false, {
+            dataType: 'text'
+          });
+        }
+      } else call();
+    };
+
+    window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection) {
+      window.rch_nws[hostkey].typeInvoke('http://185.87.48.42:2627', function () {
+		  
+        client.invoke("RchRegistry", JSON.stringify({
+          version: 148,
+          host: location.host,
+          rchtype: window.rch_nws[hostkey].type,
+          apkVersion: window.rch_nws[hostkey].apkVersion,
+          player: Lampa.Storage.field('player')
+        }));
+		
+		if (client._shouldReconnect && window.rch_nws[hostkey].rchRegistry){
+			if (startConnection) startConnection();
+			return;
+		}
+		
+		window.rch_nws[hostkey].rchRegistry = true;
+
+		client.on('RchRegistry', function (connectionId) {
+			if (startConnection) startConnection();
+        });
+
+        client.on("RchClient", function (rchId, url, data, headers, returnHeaders) {
+          var network = new Lampa.Reguest();
+
+          function result(html) {
+            if (Lampa.Arrays.isObject(html) || Lampa.Arrays.isArray(html)) {
+              html = JSON.stringify(html);
+            }
+
+            if (typeof CompressionStream !== 'undefined' && html && html.length > 1000) {
+              var compressionStream = new CompressionStream('gzip');
+              var encoder = new TextEncoder();
+              var readable = new ReadableStream({
+                start: function (controller) {
+                  controller.enqueue(encoder.encode(html));
+                  controller.close();
+                }
+              });
+              var compressedStream = readable.pipeThrough(compressionStream);
+              new Response(compressedStream).arrayBuffer()
+                .then(function (compressedBuffer) {
+                  var compressedArray = new Uint8Array(compressedBuffer);
+                  if (compressedArray.length > html.length) {
+                    client.invoke("RchResult", rchId, html);
+                  } else {
+                    $.ajax({
+                      url: 'http://185.87.48.42:2627/rch/gzresult?id=' + rchId,
+                      type: 'POST',
+                      data: compressedArray,
+                      async: true,
+                      cache: false,
+                      contentType: false,
+                      processData: false,
+                      success: function (j) { },
+                      error: function () {
+                        client.invoke("RchResult", rchId, html);
+                      }
+                    });
+                  }
+                })
+                .catch(function () {
+                  client.invoke("RchResult", rchId, html);
+                });
+
+            } else {
+              client.invoke("RchResult", rchId, html);
+            }
+          }
+
+          if (url == 'eval') {
+            console.log('RCH', url, data);
+            result(eval(data));
+          } else if (url == 'ping') {
+            result('pong');
+          } else {
+            console.log('RCH', url);
+            network["native"](url, result, function () {
+              console.log('RCH', 'result empty');
+              result('');
+            }, data, {
+              dataType: 'text',
+              timeout: 1000 * 8,
+              headers: headers,
+              returnHeaders: returnHeaders
+            });
+          }
+        });
+
+        client.on('Connected', function (connectionId) {
+          console.log('RCH', 'ConnectionId: ' + connectionId);
+        });
+        client.on('Closed', function () {
+          console.log('RCH', 'Connection closed');
+        });
+        client.on('Error', function (err) {
+          console.log('RCH', 'error:', err); 
+        });
       });
     };
-    this.silent = function(url, secuses, error, post) {
-      var params = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : {};
-      this.req('silent', url, secuses, error, post, params);
-    };
-    this["native"] = function(url, secuses, error, post) {
-      var params = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : {};
-      this.req('native', url, secuses, error, post, params);
-    };
-    this.clear = function() {
-      this.net.clear();
-    };
+  }
+
+  window.rch_nws[hostkey].typeInvoke('http://185.87.48.42:2627', function() {});
+
+  function rchInvoke(json, call) {
+    if (window.nwsClient && window.nwsClient[hostkey] && window.nwsClient[hostkey]._shouldReconnect) return;	
+    if (!window.nwsClient) window.nwsClient = {};
+    if (window.nwsClient[hostkey] && window.nwsClient[hostkey].socket)
+      window.nwsClient[hostkey].socket.close();
+    window.nwsClient[hostkey] = new NativeWsClient(json.nws, {
+      autoReconnect: false
+    });
+    window.nwsClient[hostkey].on('Connected', function(connectionId) {
+      window.rch_nws[hostkey].Registry(window.nwsClient[hostkey], function() {
+        call();
+      });
+    });
+    window.nwsClient[hostkey].connect();
+  }
+
+  function rchRun(json, call) {
+    if (typeof NativeWsClient == 'undefined') {
+      Lampa.Utils.putScript(["http://185.87.48.42:2627/js/nws-client-es5.js"], function() {}, false, function() {
+        rchInvoke(json, call);
+      }, true);
+    } else {
+      rchInvoke(json, call);
+    }
+  }
+
+  function account(url) {
+    url = url + '';
+    if (url.indexOf('account_email=') == -1) {
+      var email = Lampa.Storage.get('account_email');
+      if (email) url = Lampa.Utils.addUrlComponent(url, 'account_email=' + encodeURIComponent(email));
+    }
+    if (url.indexOf('uid=') == -1) {
+      var uid = Lampa.Storage.get('lampac_unic_id', '');
+      if (uid) url = Lampa.Utils.addUrlComponent(url, 'uid=' + encodeURIComponent(uid));
+    }
+    if (url.indexOf('token=') == -1) {
+      var token = '';
+      if (token != '') url = Lampa.Utils.addUrlComponent(url, 'token=');
+    }
+    return url;
   }
   
   var Network = Lampa.Reguest;
@@ -1616,7 +1760,7 @@
     Lampa.Listener.follow('full', function(e) {
       if (e.type == 'complite') {
         setTimeout(function(){
-                $(".view--online_cinema", Lampa.Activity.active().activity.render()).empty().append('<svg xmlns="http://www.w3.org/2000/svg" width="2048" height="2048" viewBox="0 0 24 24"><path fill="currentColor" d="M11.585.031c-.342.087-.603.22-.94.478c-.354.273-.644.582-1.038 1.11c-.748 1.01-1.475 2.337-2.332 4.265c-.105.236-.198.43-.205.43a10 10 0 0 1-.211-.655c-.442-1.47-.77-2.426-1.095-3.196C5.254 1.25 4.793.638 4.234.43a1.25 1.25 0 0 0-.795.007c-.565.23-.985.838-1.318 1.914c-.522 1.676-.96 4.53-1.472 9.6c-.478 4.69-.675 7.526-.646 9.257c.012.835.045 1.181.15 1.62c.187.792.622 1.206 1.225 1.163c.159-.013.216-.03.392-.134c.173-.102.247-.17.434-.391c.504-.602.976-1.62 1.952-4.22c.364-.967 1.967-5.397 1.967-5.434c0-.026-.703-2.417-.822-2.8l-.04-.123l-.034.076c-.064.143-.72 1.934-1.448 3.952c-1 2.772-1.577 4.32-1.884 5.06l-.097.239l.012-.267c.01-.146.026-.495.038-.773c.086-1.766.33-4.554.703-8.068c.375-3.536.708-5.842 1.043-7.227c.1-.414.26-.959.294-1.004c.024-.027.233.424.404.871c.356.934.636 1.816 1.515 4.774c1.083 3.651 1.627 5.265 2.325 6.901c.61 1.436 1.104 2.305 1.72 3.036c.432.512.84.835 1.294 1.029a2.03 2.03 0 0 0 1.626.017c1.385-.557 2.565-2.553 3.971-6.719c.378-1.122.691-2.122 1.35-4.32c.911-3.045 1.313-4.251 1.7-5.128a7 7 0 0 1 .211-.447l.057-.098l.038.11c.33.916.663 2.636.971 5.02c.333 2.552.81 7.354.988 9.89c.057.818.12 1.976.117 2.192v.155l-.074-.169c-.235-.534-.779-1.999-1.9-5.102c-.869-2.404-1.484-4.076-1.515-4.113c-.011-.013-.029.014-.043.057c-.574 1.9-.836 2.777-.836 2.81c0 .04.976 2.756 1.686 4.69c.606 1.647 1.152 3.041 1.416 3.618c.349.764.605 1.206.888 1.543c.164.194.242.264.413.365c.376.213.704.16.97.007c.84-.495.985-1.903.66-6.39c-.164-2.229-.523-5.94-.834-8.602c-.494-4.228-1.017-6.645-1.66-7.671c-.254-.408-.601-.7-.938-.793a1.44 1.44 0 0 0-.668.017c-.876.298-1.548 1.546-2.557 4.75c-.136.434-.262.836-.276.892c-.016.059-.038.107-.045.107c-.01 0-.073-.13-.145-.29C15.516 3.2 14.494 1.523 13.542.677c-.278-.247-.729-.52-.995-.604c-.245-.076-.739-.098-.962-.04zm.682 2.15c.726.38 1.918 2.452 3.322 5.778l.44 1.04l-.345 1.099c-.639 2.046-1.05 3.227-1.534 4.382c-.672 1.605-1.316 2.657-1.812 2.958a.73.73 0 0 1-.615.042c-.798-.335-1.798-2.198-2.881-5.375a77 77 0 0 1-.805-2.51l-.135-.442l.346-.837c1.344-3.239 2.541-5.417 3.297-6.008c.273-.213.484-.25.722-.126Z"/></svg></svg>&nbsp&nbspCinema');
+                $(".view--online_cinema", Lampa.Activity.active().activity.render()).empty().append('<svg viewBox="0 0 53 56" xmlns="http://www.w3.org/2000/svg"><g id="Page-1" fill="none" fill-rule="evenodd"><g id="039---Copyright-Film" fill="rgb(0,0,0)" fill-rule="nonzero"><path fill="currentColor" id="Shape" d="m45.38 6.89-7.74-3.48-4.83 1.84 7.74 3.47z"></path><path fill="currentColor" id="Shape" d="m37.9 9.73-7.73-3.47-4.84 1.84 7.74 3.47z"></path><path fill="currentColor" id="Shape" d="m30.43 12.58-7.74-3.47-4.83 1.84 7.73 3.47z"></path><path fill="currentColor" id="Shape" d="m49.5 5.32-1.77-4.67c-.0940213-.25043676-.284462-.45276295-.5287553-.56175536s-.5220708-.11556354-.7712447-.01824464l-6.15 2.34 7.74 3.47z"></path><path fill="currentColor" id="Shape" d="m40.59 24h-5.18l-6 6h5.18z"></path><path fill="currentColor" id="Shape" d="m22.95 15.42-7.74-3.47-4.83 1.84 7.74 3.47z"></path><path fill="currentColor" id="Shape" d="m32.59 24h-5.18l-6 6h5.18z"></path><path fill="currentColor" id="Shape" d="m13.41 30h5.18l6-6h-5.18z"></path><path fill="currentColor" id="Shape" d="m48.59 24h-5.18l-6 6h5.18z"></path><path fill="currentColor" id="Shape" d="m27.89 50.99c2.3807334.1177734 4.6677889-.9398029 6.12-2.83l-1.88-.87c-1.0524002 1.1799966-2.58056 1.8228522-4.16 1.75-2.6048482-.1387195-4.7021838-2.1889721-4.9-4.79-.0709738-1.387497.4442903-2.7409724 1.42-3.73 1.9719401-2.0104884 5.185994-2.0858524 7.25-.17l1.94-.93c-1.3694857-1.5111095-3.3040265-2.3870246-5.3431207-2.4192408s-4.0003402.7821484-5.4168793 2.2492408c-1.2663246 1.3101715-1.9565405 3.0720826-1.9171017 4.8937775.0394387 1.8216948.8052611 3.5520834 2.1271017 4.8062225 1.2802401 1.2445781 2.9758296 1.9712593 4.76 2.04z"></path><path fill="currentColor" id="Shape" d="m16.59 24h-4.67c-.4221459 2.8851446-2.58315672 5.2093257-5.43 5.84.15213676.0990379.32855423.1543846.51.16h3.59z"></path><path fill="currentColor" id="Shape" d="m8 54c.0032948 1.1032019.89679813 1.9967052 2 2h36c1.1032019-.0032948 1.9967052-.8967981 2-2v-22h-40zm13.47-16.13c1.8087984-1.8830009 4.3231489-2.9229968 6.9335911-2.8679001 2.6104421.0550966 5.0786722 1.2002562 6.8064089 3.1579001.3988929.4537039.5617933 1.0682829.44 1.66-.1315409.6111461-.5373267 1.1276008-1.1 1.4l-1.91.93c-.7569573.3591117-1.6563651.2204365-2.27-.35-1.289674-1.1209787-3.2226137-1.0688545-4.45.12-.5831789.5921218-.8945959 1.3996332-.86 2.23.113436 1.2622415.9657536 2.336527 2.1691285 2.7340317 1.2033749.3975048 2.5278945.0422827 3.3708715-.9040317.6048007-.6823336 1.5899216-.8785402 2.41-.48l1.86.9c.5394917.2661709.9345048.7562797 1.08 1.34.1332848.5636912.0086669 1.1574591-.34 1.62-1.7599054 2.3059924-4.4991919 3.6534252-7.4 3.64-.14 0-.27 0-.41-.01-4.6929746-.1738142-8.491844-3.8732821-8.79-8.56-.1245325-2.4330901.7663341-4.8087343 2.46-6.56z"></path><path fill="currentColor" id="Shape" d="m11.25 19.87 4.22-1.6-7.73-3.47-3.22 1.22c.16-.01.32-.02.48-.02 2.64755458.0042521 5.0661668 1.5018568 6.25 3.87z"></path><path fill="currentColor" id="Shape" d="m51.41 24-6 6h6.59c.5522847 0 1-.4477153 1-1v-5z"></path><circle id="Oval" cx="5" cy="23" r="1"></circle><path fill="currentColor" id="Shape" d="m10 23c0-2.7614237-2.23857625-5-5-5s-5 2.2385763-5 5 2.23857625 5 5 5c1.32608245 0 2.59785201-.5267842 3.53553391-1.4644661.93768189-.9376819 1.46446609-2.2094515 1.46446609-3.5355339zm-5 3c-1.65685425 0-3-1.3431458-3-3s1.34314575-3 3-3 3 1.3431458 3 3c-.0049422 1.6548028-1.3451972 2.9950578-3 3z"></path></g></g></svg>&nbsp&nbspCinema');
         }, 5);
         if (Lampa.Storage.get('card_interfice_type') === 'new') {
                 addButton({
@@ -1639,8 +1783,7 @@
           movie: Lampa.Activity.active().card
         });
       }
-    } 
-	catch (e) {}
+    } catch (e) {}
     if (Lampa.Manifest.app_digital >= 177) {
       var balansers_sync = ["filmix", "fxapi", "kinobase", "rezka", "voidboost", "videocdn", "videodb", "collaps", "hdvb", "zetflix", "kodik", "ashdi", "eneyida", "kinoukr", "kinokrad", "kinotochka", "kinoprofi", "remux", "iframevideo", "cdnmovies", "anilibria", "animedia", "animego", "animevost", "animebesst", "redheadsound", "alloha", "seasonvar", "kinopub", "vokino"];
       balansers_sync.forEach(function(name) {
