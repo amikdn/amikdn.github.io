@@ -2,9 +2,12 @@
   'use strict';
   Lampa.Platform.tv();
 
-  // Функция запроса с прокси (из вашего кода)
+  // Инициализация network для запросов (фикс ошибки "network is not defined")
+  var network = new Lampa.Network();
+
+  // Функция запроса с прокси (из вашего кода, с фиксом на network)
   function get(method, oncomplite, onerror) {
-    var total_cnt = 0; // Инициализация счетчиков (сделал локальными для функции, если нужно глобально — вынесите)
+    var total_cnt = 0; // Счетчики сделаны локальными; если нужны глобальные, вынесите наружу
     var good_cnt = 0;
     var proxy_cnt = 0;
     var use_proxy = total_cnt >= 10 && good_cnt > total_cnt / 2;
@@ -129,7 +132,7 @@
     processQueue();
   }
 
-  // Пул запросов (сохранен, но теперь используется только для Lampa-рейтинга, Kinopoisk через get)
+  // Пул запросов
   let requestPool = [];
   function getRequest() {
     return requestPool.pop() || new Lampa.Reguest();
@@ -140,7 +143,7 @@
     if (requestPool.length < 3) requestPool.push(req);
   }
 
-  // Получение рейтинга из Lampa (реакции пользователей, без изменений)
+  // Получение рейтинга из Lampa (реакции пользователей)
   function getLampaRating(movie, callback) {
     let cached = cacheManager.get('lampa_rating', movie.id);
     if (cached && cached.rating !== '0.0') {
@@ -173,7 +176,7 @@
     });
   }
 
-  // Получение рейтинга из Kinopoisk/IMDB (интегрирована функция get)
+  // Получение рейтинга из Kinopoisk/IMDB (с использованием get)
   function getExternalRating(movie, callback) {
     let cached = cacheManager.get('kp_rating', movie.id);
     if (cached) {
