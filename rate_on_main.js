@@ -392,7 +392,6 @@
   // Инициализация плагина
   function initPlugin()
   {
-    if (window.lampa_rating_plugin) return;
     window.lampa_rating_plugin = true;
     addSettings();
     extendCardPrototype();
