@@ -1,7 +1,7 @@
 (function() {
     'use strict';
 
-  //  const CACHE_TIME = 24 * 60 * 60 * 1000; // 24 часа
+    const CACHE_TIME = 24 * 60 * 60 * 1000; // 24 часа
     const TMDB_API_KEY = '4ef0d7355d9ffb5151e987764708ce96'; // Публичный ключ TMDb
     const KP_API_KEY = '2a4a0808-81a3-40ae-b0d3-e11335ede616'; // Ключ Kinopoisk из исходного кода
 
@@ -108,6 +108,31 @@
         });
     }
 
+    // Получение рейтинга TMDB
+    function fetchTMDBRating(type, tmdbId) {
+        return new Promise((resolve) => {
+            let xhr = new XMLHttpRequest();
+            let url = `https://api.themoviedb.org/3/${type}/${tmdbId}?api_key=${TMDB_API_KEY}`;
+            xhr.open("GET", url, true);
+            xhr.timeout = 10000;
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === 4 && xhr.status === 200) {
+                    try {
+                        let data = JSON.parse(xhr.responseText);
+                        resolve(data.vote_average ? data.vote_average.toFixed(1) : '0.0');
+                    } catch {
+                        resolve('0.0');
+                    }
+                } else {
+                    resolve('0.0');
+                }
+            };
+            xhr.onerror = () => resolve('0.0');
+            xhr.ontimeout = () => resolve('0.0');
+            xhr.send();
+        });
+    }
+
     // Расчет рейтинга Lampa
     function calculateLampaRating10(reactions) {
         let weightedSum = 0;
@@ -192,6 +217,9 @@
         } else if (source === 'imdb') {
             let rating = await fetchIMDbRating(tmdbId, type);
             result.rating = rating;
+        } else if (source === 'tmdb') {
+            let rating = await fetchTMDBRating(type, tmdbId);
+            result.rating = rating;
         } else if (source === 'lampa') {
             result = await fetchLampaRating(type, tmdbId);
         }
@@ -228,11 +256,15 @@
         let data = card.dataset || {};
         let cardData = event.object.data || {};
         let id = cardData.id || data.id || card.getAttribute('data-id') || (card.getAttribute('data-card-id') || '0').replace('movie_', '') || '0';
+        if (!id || id === '0' || isNaN(parseInt(id))) {
+            voteEl.innerHTML = '';
+            return;
+        }
         let type = 'movie';
         if (cardData.seasons || cardData.first_air_date || cardData.original_name || data.seasons || data.firstAirDate || data.originalName) {
             type = 'tv';
         }
-        let source = Lampa.Storage.get('rating_source', 'tmdb');
+        let source = Lampa.Storage.get('rating_source', 'kp');
         if (voteEl.dataset && voteEl.dataset.source === source && voteEl.dataset.movieId === id.toString()) return;
         voteEl.dataset.source = source;
         voteEl.dataset.movieId = id.toString();
