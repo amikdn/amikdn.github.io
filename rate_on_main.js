@@ -1,7 +1,7 @@
 (function() {
     'use strict';
 
-    const CACHE_TIME = 24 * 60 * 60 * 1000; // 24 часа
+  //  const CACHE_TIME = 24 * 60 * 60 * 1000; // 24 часа
     const TMDB_API_KEY = '4ef0d7355d9ffb5151e987764708ce96'; // Публичный ключ TMDb
     const KP_API_KEY = '2a4a0808-81a3-40ae-b0d3-e11335ede616'; // Ключ Kinopoisk из исходного кода
 
