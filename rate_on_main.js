@@ -333,6 +333,7 @@
         if (window.lampa_listener_extensions) return;
         window.lampa_listener_extensions = true;
         addRatingSourceSetting();
+        Lampa.Settings.update();
         addStyles();
         Object.defineProperty(window.Lampa.Card.prototype, '_build', {
             get: function() {
