@@ -22,7 +22,7 @@
             return entry;
         },
         set: function(key, id, data) {
-            if (data.kp === 0 && data.imdb === 0 || data.rating === '0.0') return data;
+            if (data.value.rating === '0.0' || data.value.rating === 0) return data;
             let cache = this.caches[key] || (this.caches[key] = Lampa.Storage.cache(key, 500, {}));
             data.timestamp = Date.now();
             cache[id] = data;
@@ -59,7 +59,7 @@
     // Получение рейтинга Kinopoisk
     function fetchKPRating(kpId) {
         return new Promise((resolve) => {
-            if (!kpId) return resolve(0.0);
+            if (!kpId) return resolve('0.0');
             let xhr = new XMLHttpRequest();
             let url = `https://kinopoiskapiunofficial.tech/api/v2.2/films/${kpId}`;
             xhr.open("GET", url, true);
@@ -69,16 +69,16 @@
                 if (xhr.readyState === 4 && xhr.status === 200) {
                     try {
                         let data = JSON.parse(xhr.responseText);
-                        resolve(data.ratingKinopoisk || 0.0);
+                        resolve((data.ratingKinopoisk || 0.0).toFixed(1));
                     } catch {
-                        resolve(0.0);
+                        resolve('0.0');
                     }
                 } else {
-                    resolve(0.0);
+                    resolve('0.0');
                 }
             };
-            xhr.onerror = () => resolve(0.0);
-            xhr.ontimeout = () => resolve(0.0);
+            xhr.onerror = () => resolve('0.0');
+            xhr.ontimeout = () => resolve('0.0');
             xhr.send();
         });
     }
@@ -108,37 +108,59 @@
         });
     }
 
+    // Расчет рейтинга Lampa
+    function calculateLampaRating10(reactions) {
+        let weightedSum = 0;
+        let totalCount = 0;
+        let reactionCnt = {};
+
+        const reactionCoef = { fire: 5, nice: 4, think: 3, bore: 2, shit: 1 };
+
+        reactions.forEach(item => {
+            const count = parseInt(item.counter, 10) || 0;
+            const coef = reactionCoef[item.type] || 0;
+            weightedSum += count * coef;
+            totalCount += count;
+            reactionCnt[item.type] = (reactionCnt[item.type] || 0) + count;
+        });
+
+        if (totalCount === 0) return { rating: '0.0', medianReaction: '' };
+
+        const avgRating = weightedSum / totalCount;
+        const rating10 = (avgRating - 1) * 2.5;
+        const finalRating = rating10 >= 0 ? parseFloat(rating10.toFixed(1)) : '0.0';
+
+        let medianReaction = '';
+        const medianIndex = Math.ceil(totalCount / 2.0);
+        const sortedReactions = Object.entries(reactionCoef)
+            .sort((a, b) => a[1] - b[1])
+            .map(r => r[0]);
+        let cumulativeCount = 0;
+        while (sortedReactions.length && cumulativeCount < medianIndex) {
+            medianReaction = sortedReactions.pop();
+            cumulativeCount += (reactionCnt[medianReaction] || 0);
+        }
+
+        return { rating: finalRating, medianReaction: medianReaction };
+    }
+
     // Получение рейтинга Lampa
-    function fetchLampaRating(data) {
+    function fetchLampaRating(type, id) {
         return new Promise((resolve) => {
-            let type = 'movie';
-            if (data.number_of_seasons || data.seasons || data.last_episode_to_air || data.first_air_date || data.original_name) {
-                type = 'tv';
-            }
-            let ratingKey = `${type}_${data.id}`;
-            let url = `http://cub.bylampa.online/api/reactions/get/${ratingKey}`;
+            let ratingKey = `${type}_${id}`;
+            let url = `https://cub.rip/api/reactions/get/${ratingKey}`;
             let xhr = Lampa.Reguest();
             xhr.timeout(15000);
             xhr.silent(url, (response) => {
-                let rating = '0.0';
-                if (response && response.result) {
-                    let total = 0, negative = 0;
-                    response.result.forEach(item => {
-                        if (item.type === 'fire' || item.type === 'nice') {
-                            total += parseInt(item.counter, 10);
-                        }
-                        if (item.type === 'think' || item.type === 'bore' || item.type === 'shit') {
-                            negative += parseInt(item.counter, 10);
-                        }
-                    });
-                    rating = (total + negative > 0 ? (total / (total + negative) * 10) : 0).toFixed(1);
+                let result = { rating: '0.0', medianReaction: '' };
+                if (response && response.result && Array.isArray(response.result)) {
+                    result = calculateLampaRating10(response.result);
                 }
-                RatingCache.set('lampa_rating', data.id, { rating: rating, timestamp: Date.now() });
                 xhr.clear();
-                resolve(rating);
+                resolve(result);
             }, () => {
                 xhr.clear();
-                resolve('0.0');
+                resolve({ rating: '0.0', medianReaction: '' });
             });
         });
     }
@@ -147,20 +169,22 @@
     async function getRating(type, tmdbId, source) {
         let cacheKey = `${type}_${tmdbId}`;
         let cached = RatingCache.get(`${source}_rating`, cacheKey);
-        if (cached && cached[source] !== '0.0') {
-            return cached[source];
+        if (cached && cached.value.rating !== '0.0') {
+            return cached.value;
         }
-        let rating = '0.0';
+        let result = { rating: '0.0', medianReaction: '' };
         if (source === 'kp') {
             let kpId = await fetchExternalIds(type, tmdbId);
-            rating = await fetchKPRating(kpId);
+            let rating = await fetchKPRating(kpId);
+            result.rating = rating;
         } else if (source === 'imdb') {
-            rating = await fetchIMDbRating(tmdbId, type);
+            let rating = await fetchIMDbRating(tmdbId, type);
+            result.rating = rating;
         } else if (source === 'lampa') {
-            rating = await fetchLampaRating({ id: tmdbId });
+            result = await fetchLampaRating(type, tmdbId);
         }
-        RatingCache.set(`${source}_rating`, cacheKey, { [source]: rating, timestamp: Date.now() });
-        return rating;
+        RatingCache.set(`${source}_rating`, cacheKey, { value: result });
+        return result;
     }
 
     // Вставка блока рейтинга в полной информации
@@ -170,7 +194,8 @@
         if (rateLine.length === 0) return false;
         if (rateLine.find(`.rate--${source}`).length > 0) return true;
         let blockHtml = `<div class="full-start__rate rate--${source}" style="color: cornflowerblue;">
-            <div>0.0</div>
+            <div class="rate-value">0.0</div>
+            <div class="rate-icon"></div>
             <div class="source--name">${source.toUpperCase()}</div>
         </div>`;
         rateLine.append(blockHtml);
@@ -187,7 +212,7 @@
             let viewEl = card.querySelector('.card__view') || card;
             viewEl.appendChild(voteEl);
         }
-        voteEl.textContent = '0.0';
+        voteEl.innerHTML = '0.0';
         let data = card.dataset || {};
         let cardData = event.object.data || {};
         let id = cardData.id || data.id || card.getAttribute('data-id') || (card.getAttribute('data-card-id') || '0').replace('movie_', '') || '0';
@@ -200,9 +225,14 @@
         voteEl.dataset.source = source;
         voteEl.dataset.movieId = id.toString();
         voteEl.className = `card__vote rate--${source}`;
-        getRating(type, id, source).then(rating => {
+        getRating(type, id, source).then(result => {
             if (voteEl.dataset.movieId === id.toString()) {
-                voteEl.innerHTML = `${rating} <span class="source--name">${source.toUpperCase()}</span>`;
+                let iconHtml = '';
+                if (result.medianReaction) {
+                    let reactionSrc = 'https://cub.rip/img/reactions/' + result.medianReaction + '.svg';
+                    iconHtml = ' <img style="width:1em;height:1em;margin:0 0.2em;" src="' + reactionSrc + '">';
+                }
+                voteEl.innerHTML = `${result.rating}${iconHtml} <span class="source--name">${source.toUpperCase()}</span>`;
             }
         });
     }
@@ -327,8 +357,12 @@
                 let source = Lampa.Storage.get('rating_source', 'kp');
                 if (render && insertRatingBlock(render, source)) {
                     if (e.object.method && e.object.id) {
-                        getRating(e.object.method, e.object.id, source).then(rating => {
-                            $(render).find(`.rate--${source} div:first-child`).text(rating);
+                        getRating(e.object.method, e.object.id, source).then(result => {
+                            $(render).find(`.rate--${source} .rate-value`).text(result.rating);
+                            if (result.medianReaction) {
+                                let reactionSrc = 'https://cub.rip/img/reactions/' + result.medianReaction + '.svg';
+                                $(render).find(`.rate--${source} .rate-icon`).html('<img style="width:1em;height:1em;margin:0 0.2em;" src="' + reactionSrc + '">');
+                            }
                         });
                     }
                 }
