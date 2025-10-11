@@ -342,7 +342,6 @@
 
     // Инициализация плагина
     function init() {
-        if (window.lampa_listener_extensions) return;
         window.lampa_listener_extensions = true;
         addRatingSourceSetting();
         addStyles();
