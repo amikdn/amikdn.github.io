@@ -5,36 +5,49 @@
 
     let ratingCache = {};
 
-    // Получение imdb_id через TMDb (для парсинга IMDb, так как KP недоступен)
+    // Получение imdb_id через TMDb
     function fetchIMDbId(type, tmdbId) {
         return new Promise((resolve) => {
             let url = `https://api.themoviedb.org/3/${type}/${tmdbId}/external_ids?api_key=${TMDB_API_KEY}`;
-            Lampa.Reguest.silent(url, function(data) {
-                resolve(data.imdb_id || null);
-            }, function() {
-                resolve(null);
+            $.ajax({
+                url: url,
+                type: 'GET',
+                timeout: 10000,
+                success: function(data) {
+                    resolve(data.imdb_id || null);
+                },
+                error: function() {
+                    resolve(null);
+                }
             });
         });
     }
 
-    // Парсинг рейтинга IMDb с страницы (поскольку API KP не работает, используем IMDb)
+    // Парсинг рейтинга IMDb с страницы
     function parseIMDbRating(imdbId) {
         return new Promise((resolve) => {
             if (!imdbId) return resolve(0.0);
             let url = `https://www.imdb.com/title/${imdbId}/`;
-            Lampa.Reguest.get(url, { headers: { 'User-Agent': 'Mozilla/5.0' } }, function(text) {
-                let parser = new DOMParser();
-                let doc = parser.parseFromString(text, 'text/html');
-                let ratingElement = doc.querySelector('[data-testid="hero-rating-bar__aggregate-rating__score"] span:first-child'); // Актуальный селектор
-                let rating = ratingElement ? parseFloat(ratingElement.innerText.trim()) : 0.0;
-                resolve(rating);
-            }, function() {
-                resolve(0.0);
+            $.ajax({
+                url: url,
+                type: 'GET',
+                headers: { 'User-Agent': 'Mozilla/5.0' },
+                timeout: 10000,
+                success: function(text) {
+                    let parser = new DOMParser();
+                    let doc = parser.parseFromString(text, 'text/html');
+                    let ratingElement = doc.querySelector('[data-testid="hero-rating-bar__aggregate-rating__score"] span:first-child');
+                    let rating = ratingElement ? parseFloat(ratingElement.innerText.trim()) : 0.0;
+                    resolve(rating);
+                },
+                error: function() {
+                    resolve(0.0);
+                }
             });
         });
     }
 
-    // Кэширование и получение рейтинга (IMDb, fallback на TMDB если не удалось)
+    // Кэширование и получение рейтинга (IMDb, fallback на TMDB)
     async function getRating(type, tmdbId, cardData) {
         let cacheKey = `${type}_${tmdbId}`;
         let now = Date.now();
@@ -44,13 +57,13 @@
         let imdbId = await fetchIMDbId(type, tmdbId);
         let rating = await parseIMDbRating(imdbId);
         if (rating === 0.0) {
-            rating = cardData.vote_average || 0.0; // Fallback на TMDB, доступный сразу
+            rating = cardData.vote_average || 0.0;
         }
         ratingCache[cacheKey] = { value: rating, timestamp: now };
         return rating;
     }
 
-    // Вставка блока в полной информации (для IMDb, так как KP недоступен)
+    // Вставка блока в полной информации
     function insertRatingBlock(render) {
         if (!render) return false;
         let rateLine = $(render).find('.full-start-new__rate-line');
@@ -64,7 +77,7 @@
         return true;
     }
 
-    // Вставка рейтинга в карточку на главной (адаптировано из вашего кода)
+    // Вставка рейтинга в карточку на главной
     function insertCardRating(card, event) {
         let voteEl = card.querySelector('.card__vote');
         if (!voteEl) {
