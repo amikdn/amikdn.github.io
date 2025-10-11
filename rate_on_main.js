@@ -1,6 +1,8 @@
 (function() {
     'use strict';
 
+    Lampa.Platform.tv();
+
     const CACHE_TIME = 24 * 60 * 60 * 1000; // 24 часа
     const TMDB_API_KEY = '4ef0d7355d9ffb5151e987764708ce96'; // Публичный ключ TMDb
     const KP_API_KEY = '2a4a0808-81a3-40ae-b0d3-e11335ede616'; // Ключ Kinopoisk из исходного кода
@@ -302,6 +304,11 @@
             field: {
                 name: 'Источник рейтинга на карточках',
                 description: 'Выберите какой рейтинг отображать на карточках'
+            },
+            onRender: function(element) {
+                setTimeout(() => {
+                    $('.settings-param > div:contains("Источник рейтинга на карточках")').parent().insertAfter($('div[data-name="interface_size"]'));
+                }, 0);
             },
             onChange: function(value) {
                 Lampa.Storage.set('rating_source', value);
