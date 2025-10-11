@@ -148,20 +148,32 @@
     function fetchLampaRating(type, id) {
         return new Promise((resolve) => {
             let ratingKey = `${type}_${id}`;
+            let xhr = new XMLHttpRequest();
             let url = `https://cub.rip/api/reactions/get/${ratingKey}`;
-            let xhr = Lampa.Reguest();
-            xhr.timeout(15000);
-            xhr.silent(url, (response) => {
-                let result = { rating: '0.0', medianReaction: '' };
-                if (response && response.result && Array.isArray(response.result)) {
-                    result = calculateLampaRating10(response.result);
+            xhr.open("GET", url, true);
+            xhr.timeout = 10000;
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === 4) {
+                    if (xhr.status === 200) {
+                        try {
+                            let data = JSON.parse(xhr.responseText);
+                            if (data && data.result && Array.isArray(data.result)) {
+                                let result = calculateLampaRating10(data.result);
+                                resolve(result);
+                            } else {
+                                resolve({ rating: '0.0', medianReaction: '' });
+                            }
+                        } catch {
+                            resolve({ rating: '0.0', medianReaction: '' });
+                        }
+                    } else {
+                        resolve({ rating: '0.0', medianReaction: '' });
+                    }
                 }
-                xhr.clear();
-                resolve(result);
-            }, () => {
-                xhr.clear();
-                resolve({ rating: '0.0', medianReaction: '' });
-            });
+            };
+            xhr.onerror = function() { resolve({ rating: '0.0', medianReaction: '' }); };
+            xhr.ontimeout = function() { resolve({ rating: '0.0', medianReaction: '' }); };
+            xhr.send();
         });
     }
 
@@ -330,6 +342,7 @@
 
     // Инициализация плагина
     function init() {
+        if (window.lampa_listener_extensions) return;
         window.lampa_listener_extensions = true;
         addRatingSourceSetting();
         addStyles();
