@@ -1,56 +1,70 @@
 (function() {
     'use strict';
     const CACHE_TIME = 24 * 60 * 60 * 1000;
+    const TMDB_API_KEY = '4ef0d7355d9ffb5151e987764708ce96'; // Встроенный ключ TMDb
+
     let ratingCache = {};
 
-    // Извлечение рейтингов из DOM полной карточки и кэширование
-    function cacheRatingsFromFull(render, type, id) {
-        let tmdbRating = parseFloat($(render).find('.rate--tmdb div:first-child').text()) || 0.0;
-        let imdbRating = parseFloat($(render).find('.rate--imdb div:first-child').text()) || 0.0;
-        let kpRating = parseFloat($(render).find('.rate--kp div:first-child').text()) || 0.0;
-
-        let cacheKey = `${type}_${id}`;
-        ratingCache[cacheKey] = {
-            tmdb: tmdbRating,
-            imdb: imdbRating,
-            kp: kpRating,
-            timestamp: Date.now()
-        };
-        Lampa.Storage.set('cached_ratings', ratingCache); // Сохранение в Storage Lampa
+    // Получение imdb_id через TMDb (для парсинга IMDb, так как KP недоступен)
+    function fetchIMDbId(type, tmdbId) {
+        return new Promise((resolve) => {
+            let url = `https://api.themoviedb.org/3/${type}/${tmdbId}/external_ids?api_key=${TMDB_API_KEY}`;
+            Lampa.Reguest.silent(url, function(data) {
+                resolve(data.imdb_id || null);
+            }, function() {
+                resolve(null);
+            });
+        });
     }
 
-    // Загрузка кэша при старте
-    function loadCache() {
-        ratingCache = Lampa.Storage.get('cached_ratings', {});
+    // Парсинг рейтинга IMDb с страницы (поскольку API KP не работает, используем IMDb)
+    function parseIMDbRating(imdbId) {
+        return new Promise((resolve) => {
+            if (!imdbId) return resolve(0.0);
+            let url = `https://www.imdb.com/title/${imdbId}/`;
+            Lampa.Reguest.get(url, { headers: { 'User-Agent': 'Mozilla/5.0' } }, function(text) {
+                let parser = new DOMParser();
+                let doc = parser.parseFromString(text, 'text/html');
+                let ratingElement = doc.querySelector('[data-testid="hero-rating-bar__aggregate-rating__score"] span:first-child'); // Актуальный селектор
+                let rating = ratingElement ? parseFloat(ratingElement.innerText.trim()) : 0.0;
+                resolve(rating);
+            }, function() {
+                resolve(0.0);
+            });
+        });
     }
 
-    // Получение рейтинга из кэша (fallback на TMDB)
-    function getCachedRating(type, id, source = 'kp') {
-        let cacheKey = `${type}_${id}`;
+    // Кэширование и получение рейтинга (IMDb, fallback на TMDB если не удалось)
+    async function getRating(type, tmdbId, cardData) {
+        let cacheKey = `${type}_${tmdbId}`;
         let now = Date.now();
-        let cached = ratingCache[cacheKey];
-        if (cached && (now - cached.timestamp < CACHE_TIME)) {
-            return cached[source] || cached.tmdb || 0.0;
+        if (ratingCache[cacheKey] && (now - ratingCache[cacheKey].timestamp < CACHE_TIME)) {
+            return ratingCache[cacheKey].value;
         }
-        return 0.0; // Если не в кэше, покажем 0.0 или TMDB при следующей загрузке full
+        let imdbId = await fetchIMDbId(type, tmdbId);
+        let rating = await parseIMDbRating(imdbId);
+        if (rating === 0.0) {
+            rating = cardData.vote_average || 0.0; // Fallback на TMDB, доступный сразу
+        }
+        ratingCache[cacheKey] = { value: rating, timestamp: now };
+        return rating;
     }
 
-    // Вставка блока в полной информации (для совместимости, если нужно)
-    function insertRatingBlock(render, source = 'kp') {
+    // Вставка блока в полной информации (для IMDb, так как KP недоступен)
+    function insertRatingBlock(render) {
         if (!render) return false;
         let rateLine = $(render).find('.full-start-new__rate-line');
         if (rateLine.length === 0) return false;
-        let className = source === 'kp' ? 'rate--kp' : 'rate--imdb';
-        if (rateLine.find(`.${className}`).length > 0) return true;
-        let blockHtml = `<div class="full-start__rate ${className}" style="color: cornflowerblue;">
-            <div class="rate-value">0.0</div>
-            <div class="source--name">${source.toUpperCase()}</div>
-        </div>`;
+        if (rateLine.find('.rate--imdb').length > 0) return true;
+        let blockHtml = '<div class="full-start__rate rate--imdb" style="color: cornflowerblue;">' +
+            '<div>0.0</div>' +
+            '<div class="source--name">IMDB</div>' +
+            '</div>';
         rateLine.append(blockHtml);
         return true;
     }
 
-    // Вставка рейтинга в карточку на главной (из вашего кода)
+    // Вставка рейтинга в карточку на главной (адаптировано из вашего кода)
     function insertCardRating(card, event) {
         let voteEl = card.querySelector('.card__vote');
         if (!voteEl) {
@@ -71,15 +85,14 @@
             type = 'tv';
         }
 
-        // Получаем из кэша (источник 'kp' по умолчанию; смените на 'imdb' если нужно)
-        let rating = getCachedRating(type, id, 'kp');
-        voteEl.innerHTML = rating.toFixed(1);
+        getRating(type, id, cardData).then(rating => {
+            voteEl.innerHTML = rating.toFixed(1);
+        });
     }
 
-    // Перехват событий (из вашего кода + кэширование)
+    // Перехват событий
     Lampa.Listener.follow('app', function(e) {
         if (e.type === 'ready') {
-            loadCache(); // Загружаем кэш при старте
             if (!window.Lampa.Card._build_original) {
                 window.Lampa.Card._build_original = window.Lampa.Card._build;
                 window.Lampa.Card._build = function() {
@@ -94,10 +107,11 @@
     Lampa.Listener.follow('full', function(e) {
         if (e.type === 'complite') {
             let render = e.object.activity.render();
-            if (render && insertRatingBlock(render, 'kp')) {
+            if (render && insertRatingBlock(render)) {
                 if (e.object.method && e.object.id) {
-                    // Кэшируем рейтинги из DOM полной карточки
-                    cacheRatingsFromFull(render, e.object.method, e.object.id);
+                    getRating(e.object.method, e.object.id, {}).then(rating => {
+                        $(render).find('.rate--imdb div:first-child').text(rating.toFixed(1));
+                    });
                 }
             }
         }
