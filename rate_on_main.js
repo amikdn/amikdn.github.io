@@ -303,11 +303,6 @@
                 name: 'Источник рейтинга на карточках',
                 description: 'Выберите какой рейтинг отображать на карточках'
             },
-            onRender: function(element) {
-                setTimeout(() => {
-                    $('.settings-param > div:contains("Источник рейтинга на карточках")').parent().insertAfter($('div[data-name="interface_size"]'));
-                }, 0);
-            },
             onChange: function(value) {
                 Lampa.Storage.set('rating_source', value);
                 let votes = document.querySelectorAll('.card__vote');
