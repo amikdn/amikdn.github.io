@@ -1,12 +1,10 @@
 (function() {
     'use strict';
 
-    Lampa.Platform.tv(); // Активация TV-режима для загрузки ID
+    Lampa.Platform.tv(); // Для TV-режима
 
     // Принудительное изменение источника на 'tmdb' для обеспечения ID
-    if (Lampa.Storage.get('source') === 'cub') {
-        Lampa.Storage.set('source', 'tmdb');
-    }
+    Lampa.Storage.set('source', 'tmdb');
 
     const CACHE_TIME = 24 * 60 * 60 * 1000;
     let lampaRatingCache = {};
@@ -31,14 +29,12 @@
     overrideCardBuild();
 
     async function getTmdbId(title, year) {
-        const apiKey = 'YOUR_TMDB_API_KEY'; // Замените на реальный ключ
+        const apiKey = 'YOUR_TMDB_API_KEY'; // Замените на реальный
         const url = `https://api.themoviedb.org/3/search/movie?api_key=${apiKey}&query=${encodeURIComponent(title)}&year=${year}`;
         try {
             const response = await fetch(url);
             const data = await response.json();
-            if (data.results && data.results.length > 0) {
-                return data.results[0].id.toString();
-            }
+            if (data.results && data.results.length > 0) return data.results[0].id.toString();
         } catch (e) {
             console.error('TMDb error:', e);
         }
@@ -168,13 +164,13 @@
             if (poster) {
                 let posterUrl = poster.src || poster.getAttribute('data-src');
                 if (posterUrl) {
-                    let match = posterUrl.match(/\/(\d+)\./);
+                    let match = posterUrl.match(/\/(\d+)\./); // Извлечение ID
                     if (match) id = match[1];
                 }
             }
         }
 
-        // Fallback: запрос к TMDb, если ID всё ещё '0'
+        // Fallback: TMDb по названию/году
         if (id === '0') {
             let title = cardData.title || data.title || card.querySelector('.card__title').textContent.trim();
             let year = cardData.year || data.year || card.querySelector('.card__year').textContent.trim();
