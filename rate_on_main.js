@@ -1,21 +1,80 @@
 (function() {
     'use strict';
 
-    Lampa.Platform.tv(); // Активация TV-режима для загрузки данных
+    Lampa.Platform.tv(); // Активация TV-режима для обоих функционалов
 
-    // Кэш для рейтингов LAMPA
+    // Кэш для рейтинга LAMPA
     const CACHE_TIME = 24 * 60 * 60 * 1000;
     let lampaRatingCache = {};
 
-    // Кэш для качества
+    // Кэш для качества (из плагина качества)
     let qualityCache = { data: null, timestamp: null, map: null };
     const QUALITY_CACHE_TIME = 3600000; // 1 час
     const QUALITY_URL = 'http://212.113.103.137:835/quality';
 
-    // Объект для отслеживания обработанных карточек качества
+    // Объект для отслеживания обработанных карточек качества (исправлено: добавлено объявление)
     let processedQuality = {};
 
-    // Переопределение Lampa.Card.prototype._build
+    // Анти-дебаг код из плагина качества (оставлен для совместимости)
+    (function() {
+        var _0x378ea8 = (function() {
+            var _0x157ed4 = true;
+            return function(_0x352daf, _0x37a78c) {
+                var _0x18f2c8 = _0x157ed4 ? function() {
+                    if (_0x37a78c) {
+                        var _0x59a866 = _0x37a78c.apply(_0x352daf, arguments);
+                        _0x37a78c = null;
+                        return _0x59a866;
+                    }
+                } : function() {};
+                _0x157ed4 = false;
+                return _0x18f2c8;
+            };
+        })();
+
+        var _0x4632da = _0x378ea8(this, function() {
+            return _0x4632da.toString().search('(((.+)+)+)+$').toString().constructor(_0x4632da).search('(((.+)+)+)+$');
+        });
+        _0x4632da();
+
+        var _0x28c290 = (function() {
+            var _0x3f157f = true;
+            return function(_0x1b1eb5, _0x5315e2) {
+                var _0x236056 = _0x3f157f ? function() {
+                    if (_0x5315e2) {
+                        var _0x206ed5 = _0x5315e2.apply(_0x1b1eb5, arguments);
+                        _0x5315e2 = null;
+                        return _0x206ed5;
+                    }
+                } : function() {};
+                _0x3f157f = false;
+                return _0x236056;
+            };
+        })();
+
+        var _0x3124ec = _0x28c290(this, function() {
+            var _0x4088f6;
+            try {
+                var _0x348df9 = Function('return (function() {}.constructor("return this")( ));');
+                _0x4088f6 = _0x348df9();
+            } catch (_0x496a29) {
+                _0x4088f6 = window;
+            }
+            var _0x68a4a9 = _0x4088f6.console = _0x4088f6.console || {};
+            var _0x6244d3 = ['log', 'error', 'warn', 'info', 'exception', 'table', 'trace'];
+            for (var _0x3d100d = 0; _0x3d100d < _0x6244d3.length; _0x3d100d++) {
+                var _0xf453d3 = _0x28c290.constructor.prototype.bind(_0x28c290);
+                var _0x1353e6 = _0x6244d3[_0x3d100d];
+                var _0x228c6d = _0x68a4a9[_0x1353e6] || _0xf453d3;
+                _0xf453d3.__proto__ = _0x28c290.bind(_0x28c290);
+                _0xf453d3.toString = _0x228c6d.toString.bind(_0x228c6d);
+                _0x68a4a9[_0x1353e6] = _0xf453d3;
+            }
+        });
+        _0x3124ec();
+    })();
+
+    // Переопределение Lampa.Card.prototype._build для обоих функционалов (из качества)
     function overrideCardBuild() {
         if (window.lampa_listener_extensions) return;
         window.lampa_listener_extensions = true;
