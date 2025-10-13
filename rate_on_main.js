@@ -48,7 +48,7 @@
     function fetchLampaRating(ratingKey) {
         return new Promise((resolve) => {
             let xhr = new XMLHttpRequest();
-            let url = "http://cub.rip/api/reactions/get/" + ratingKey;
+            let url = "https://cub.rip/api/reactions/get/" + ratingKey;
             xhr.open("GET", url, true);
             xhr.timeout = 10000;
             xhr.onreadystatechange = function() {
@@ -131,7 +131,7 @@
         getLampaRating(ratingKey).then(result => {
             let html = result.rating !== null ? result.rating : '0.0';
             if (result.medianReaction) {
-                let reactionSrc = 'http://cub.rip/img/reactions/' + result.medianReaction + '.svg';
+                let reactionSrc = 'https://cub.rip/img/reactions/' + result.medianReaction + '.svg';
                 html += ' <img style="width:1em;height:1em;margin:0 0.2em;" src="' + reactionSrc + '">';
             }
             voteEl.innerHTML = html;
@@ -161,7 +161,7 @@
                         if (result.rating !== null) {
                             $(render).find('.rate--lampa .rate-value').text(result.rating);
                             if (result.medianReaction) {
-                                let reactionSrc = 'http://cub.rip/img/reactions/' + result.medianReaction + '.svg';
+                                let reactionSrc = 'https://cub.rip/img/reactions/' + result.medianReaction + '.svg';
                                 $(render).find('.rate--lampa .rate-icon').html('<img style="width:1em;height:1em;margin:0 0.2em;" src="' + reactionSrc + '">');
                             }
                         }
