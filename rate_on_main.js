@@ -1,7 +1,11 @@
 (function() {
     'use strict';
 
-    Lampa.Platform.tv(); // Активация TV-режима для обоих функционалов
+    try {
+        Lampa.Platform.tv(); // Активация TV-режима для обоих функционалов
+    } catch (e) {
+        console.error('Error in Lampa.Platform.tv():', e);
+    }
 
     // Кэш для рейтинга LAMPA
     const CACHE_TIME = 24 * 60 * 60 * 1000;
@@ -12,7 +16,7 @@
     const QUALITY_CACHE_TIME = 3600000; // 1 час
     const QUALITY_URL = 'http://212.113.103.137:835/quality';
 
-    // Объект для отслеживания обработанных карточек качества (исправлено: добавлено объявление)
+    // Объект для отслеживания обработанных карточек качества
     let processedQuality = {};
 
     // Анти-дебаг код из плагина качества (оставлен для совместимости)
@@ -91,7 +95,11 @@
         });
     }
 
-    overrideCardBuild();
+    try {
+        overrideCardBuild();
+    } catch (e) {
+        console.error('Error in overrideCardBuild:', e);
+    }
 
     // Функция запроса данных качества
     function fetchQualityData(callback) {
@@ -166,7 +174,11 @@
         }
     }
 
-    initQualityCache();
+    try {
+        initQualityCache();
+    } catch (e) {
+        console.error('Error in initQualityCache:', e);
+    }
 
     // Добавление индикатора качества в карточку
     function addQualityToCard(cardElement, quality) {
