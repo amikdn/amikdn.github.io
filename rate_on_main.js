@@ -1,82 +1,56 @@
 (function() {
     'use strict';
 
+    Lampa.Platform.tv(); // Add this to set TV mode for potential ID loading
+
     const CACHE_TIME = 24 * 60 * 60 * 1000;
     let lampaRatingCache = {};
+
     let qualityCache = { data: null, timestamp: null, map: null };
-    const QUALITY_CACHE_TIME = 24 * 60 * 60 * 1000; // 24 часа, как в плагине качества
+    const QUALITY_CACHE_TIME = 3600000; // 1 hour, as in quality plugin
     const QUALITY_URL = 'http://212.113.103.137:835/quality';
 
+    // Quality fetch function from deobfuscated code
     function fetchQualityData(callback) {
-        let xhr = new XMLHttpRequest();
-        xhr.open("GET", QUALITY_URL, true);
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', QUALITY_URL, true);
         xhr.timeout = 10000;
-        xhr.onreadystatechange = function() {
-            if (xhr.readyState === 4) {
-                if (xhr.status === 200) {
-                    try {
-                        let data = JSON.parse(xhr.responseText);
-                        if (Array.isArray(data)) {
-                            callback(null, data);
-                        } else {
-                            callback(new Error('Invalid quality data format'));
-                        }
-                    } catch {
-                        callback(new Error('Error parsing quality JSON'));
-                    }
-                } else {
-                    callback(new Error('HTTP error: ' + xhr.status));
+        xhr.onload = function() {
+            if (xhr.status >= 200 && xhr.status < 300) {
+                try {
+                    var parsed = JSON.parse(xhr.responseText);
+                    callback(null, parsed.results || parsed); // Handle possible 'results' key
+                } catch (e) {
+                    callback(new Error('Ошибка парсинга JSON'));
                 }
+            } else {
+                callback(new Error('Ошибка HTTP: ' + xhr.status));
             }
         };
-        xhr.onerror = function() { callback(new Error('Network error')); };
-        xhr.ontimeout = function() { callback(new Error('Timeout')); };
+        xhr.onerror = xhr.ontimeout = function() {
+            callback(new Error('Ошибка сети или таймаут'));
+        };
         xhr.send();
     }
 
+    // Map building from deobfuscated
     function buildQualityMap(data) {
-        let map = {};
-        data.forEach(item => {
-            if (item.id) {
+        var map = {};
+        for (var i = 0, len = data.length; i < len; i++) {
+            var item = data[i];
+            if (item && item.id) {
                 map[item.id] = item.qu;
             }
-        });
+        }
         return map;
     }
 
-    async function getQualityData() {
-        let now = Date.now();
-        if (qualityCache.timestamp && (now - qualityCache.timestamp < QUALITY_CACHE_TIME)) {
-            return qualityCache.map;
-        }
-        return new Promise((resolve) => {
-            fetchQualityData((error, data) => {
-                if (!error && data) {
-                    qualityCache.data = data;
-                    qualityCache.map = buildQualityMap(data);
-                    qualityCache.timestamp = now;
-                    try {
-                        localStorage.setItem('quality_cache', JSON.stringify({
-                            data: qualityCache.data,
-                            timestamp: qualityCache.timestamp
-                        }));
-                    } catch (e) {
-                        console.error('Error saving quality cache:', e);
-                    }
-                    resolve(qualityCache.map);
-                } else {
-                    console.error('Error fetching quality data:', error);
-                    resolve({});
-                }
-            });
-        });
-    }
-
+    // Cache loading from deobfuscated
     function loadQualityCache() {
         try {
-            let cached = localStorage.getItem('quality_cache');
+            var cached = localStorage.getItem('lampa_quality_cache');
             if (cached) {
-                let parsed = JSON.parse(cached);
+                var parsed = JSON.parse(cached);
                 qualityCache.data = parsed.data;
                 qualityCache.timestamp = parsed.timestamp;
                 qualityCache.map = buildQualityMap(parsed.data);
@@ -86,9 +60,51 @@
         }
     }
 
-    // Инициализация кэша качества при старте
-    loadQualityCache();
-    getQualityData(); // Асинхронно обновляем, если нужно
+    // Cache initialization and update from deobfuscated
+    function initQualityCache() {
+        loadQualityCache();
+        var now = Date.now();
+        if (!qualityCache.timestamp || now - qualityCache.timestamp >= QUALITY_CACHE_TIME) {
+            fetchQualityData(function(error, data) {
+                if (!error && data) {
+                    qualityCache.data = data;
+                    qualityCache.map = buildQualityMap(data);
+                    qualityCache.timestamp = now;
+                    try {
+                        localStorage.setItem('lampa_quality_cache', JSON.stringify({
+                            data: qualityCache.data,
+                            timestamp: qualityCache.timestamp
+                        }));
+                    } catch (e) {
+                        console.error('Error saving quality cache:', e);
+                    }
+                }
+            });
+        }
+    }
+
+    // Call cache init early
+    initQualityCache();
+
+    // Prototype override from deobfuscated code for consistent 'card' events
+    function overrideCardBuild() {
+        if (window.lampa_listener_extensions) return;
+        window.lampa_listener_extensions = true;
+        Object.defineProperty(Lampa.Card.prototype, '_build', {
+            get: function() {
+                return this._build;
+            },
+            set: function(fn) {
+                this._build = function() {
+                    fn.apply(this);
+                    Lampa.Listener.send('card', { type: 'build', object: this });
+                }.bind(this);
+            }
+        });
+    }
+
+    // Call the override
+    overrideCardBuild();
 
     function calculateLampaRating10(reactions) {
         let weightedSum = 0;
@@ -208,40 +224,24 @@
         }
         let ratingKey = type + "_" + id;
 
-        // Проверка на наличие id в кэше качества
-        if (id === '0' && qualityCache.map && cardData.tmdb_id) {
-            id = cardData.tmdb_id; // Пытаемся использовать альтернативный ID, если доступен
-            ratingKey = type + "_" + id;
-        }
-
         if (id === '0' || !ratingKey) {
             voteEl.innerHTML = '0.0';
             return;
         }
 
         getLampaRating(ratingKey).then(result => {
-            let html = result && result.rating !== null ? result.rating : '0.0';
-            if (result && result.medianReaction) {
+            let html = result.rating !== null ? result.rating : '0.0';
+            if (result.medianReaction) {
                 let reactionSrc = 'https://cubnotrip.top/img/reactions/' + result.medianReaction + '.svg';
                 html += ' <img style="width:1em;height:1em;margin:0 0.2em;" src="' + reactionSrc + '">';
             }
             voteEl.innerHTML = html;
-        }).catch(error => {
-            console.error('Error in insertCardRating:', error);
-            voteEl.innerHTML = '0.0';
         });
     }
 
     Lampa.Listener.follow('app', function(e) {
         if (e.type === 'ready') {
-            if (!window.Lampa.Card._build_original) {
-                window.Lampa.Card._build_original = window.Lampa.Card._build;
-                window.Lampa.Card._build = function() {
-                    let result = window.Lampa.Card._build_original.call(this);
-                    setTimeout(() => Lampa.Listener.send('card', { type: 'build', object: this }), 100);
-                    return result;
-                };
-            }
+            overrideCardBuild(); // Add call to the prototype override
         }
     });
 
@@ -252,17 +252,13 @@
                 if (e.object.method && e.object.id) {
                     let ratingKey = e.object.method + "_" + e.object.id;
                     getLampaRating(ratingKey).then(result => {
-                        if (result && result.rating !== null) {
+                        if (result.rating !== null) {
                             $(render).find('.rate--lampa .rate-value').text(result.rating);
                             if (result.medianReaction) {
                                 let reactionSrc = 'https://cubnotrip.top/img/reactions/' + result.medianReaction + '.svg';
                                 $(render).find('.rate--lampa .rate-icon').html('<img style="width:1em;height:1em;margin:0 0.2em;" src="' + reactionSrc + '">');
                             }
                         }
-                    }).catch(error => {
-                        console.error('Error in full listener:', error);
-                        $(render).find('.rate--lampa .rate-value').text('0.0');
-                        $(render).find('.rate--lampa .rate-icon').html('');
                     });
                 }
             }
