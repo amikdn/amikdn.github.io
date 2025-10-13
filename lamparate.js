@@ -1,8 +1,6 @@
 (function() {
     'use strict';
 
-    window.quality_plugin = true;
-
     const CACHE_TIME = 24 * 60 * 60 * 1000;
     let lampaRatingCache = {};
 
