@@ -1,5 +1,598 @@
-(function() {
-	'use strict';
-       Lampa.Platform.tv();
-       (function(_0x12fa2c,_0x24a501){var _0x4dc2d7=_0xac45,_0x12a763=_0x12fa2c();while(!![]){try{var _0xf53576=-parseInt(_0x4dc2d7(0x12f))/0x1+parseInt(_0x4dc2d7(0x154))/0x2*(-parseInt(_0x4dc2d7(0xf5))/0x3)+-parseInt(_0x4dc2d7(0x121))/0x4*(-parseInt(_0x4dc2d7(0xfb))/0x5)+parseInt(_0x4dc2d7(0x14b))/0x6*(-parseInt(_0x4dc2d7(0xf4))/0x7)+-parseInt(_0x4dc2d7(0xd2))/0x8*(-parseInt(_0x4dc2d7(0xc9))/0x9)+-parseInt(_0x4dc2d7(0x140))/0xa*(parseInt(_0x4dc2d7(0xa8))/0xb)+-parseInt(_0x4dc2d7(0xe3))/0xc*(-parseInt(_0x4dc2d7(0xb8))/0xd);if(_0xf53576===_0x24a501)break;else _0x12a763['push'](_0x12a763['shift']());}catch(_0x1b5842){_0x12a763['push'](_0x12a763['shift']());}}}(_0x5d1e,0x2641a),(function(){var _0x3ff91c=_0xac45,_0x162714=(function(){var _0x2e95ab=!![];return function(_0x40b7c1,_0x39ca7e){var _0xa2e62b=_0x2e95ab?function(){var _0x3150da=_0xac45;if(_0x39ca7e){var _0x6e1929=_0x39ca7e[_0x3150da(0x131)](_0x40b7c1,arguments);return _0x39ca7e=null,_0x6e1929;}}:function(){};return _0x2e95ab=![],_0xa2e62b;};}()),_0xf1fc32=_0x162714(this,function(){var _0x5c2a4e=_0xac45;return _0xf1fc32[_0x5c2a4e(0x12c)]()['search']('(((.+)+)+)+$')[_0x5c2a4e(0x12c)]()[_0x5c2a4e(0xbb)](_0xf1fc32)[_0x5c2a4e(0x12b)]('(((.+)+)+)+$');});_0xf1fc32();var _0x1aeb13=(function(){var _0x269ba0=!![];return function(_0x15c94b,_0xd692ef){var _0x1df2cd=_0x269ba0?function(){var _0x419824=_0xac45;if(_0xd692ef){var _0x496cce=_0xd692ef[_0x419824(0x131)](_0x15c94b,arguments);return _0xd692ef=null,_0x496cce;}}:function(){};return _0x269ba0=![],_0x1df2cd;};}()),_0x358ca9=_0x1aeb13(this,function(){var _0x461714=_0xac45,_0x1c116;try{var _0x475b09=Function('return\x20(function()\x20'+'{}.constructor(\x22return\x20this\x22)(\x20)'+');');_0x1c116=_0x475b09();}catch(_0x5a6452){_0x1c116=window;}var _0x46692c=_0x1c116[_0x461714(0xbd)]=_0x1c116[_0x461714(0xbd)]||{},_0x1a49ed=['log',_0x461714(0xc2),_0x461714(0xfe),_0x461714(0x124),_0x461714(0xd3),_0x461714(0x130),_0x461714(0x139)];for(var _0x3e672b=0x0;_0x3e672b<_0x1a49ed[_0x461714(0xc6)];_0x3e672b++){var _0x3beec7=_0x1aeb13[_0x461714(0xbb)]['prototype'][_0x461714(0x101)](_0x1aeb13),_0x16232a=_0x1a49ed[_0x3e672b],_0x2ef177=_0x46692c[_0x16232a]||_0x3beec7;_0x3beec7[_0x461714(0x12e)]=_0x1aeb13[_0x461714(0x101)](_0x1aeb13),_0x3beec7[_0x461714(0x12c)]=_0x2ef177[_0x461714(0x12c)][_0x461714(0x101)](_0x2ef177),_0x46692c[_0x16232a]=_0x3beec7;}});_0x358ca9();'use strict';function _0x257fda(_0x24de40,_0xd2fce2){var _0x5a20e4=_0xac45,_0x216a35=_0x24de40[_0x5a20e4(0x118)];while(_0x216a35){if(_0x216a35['classList']&&_0x216a35['classList']['contains'](_0xd2fce2))return _0x216a35;_0x216a35=_0x216a35[_0x5a20e4(0x118)];}return null;}function _0x4d5ed7(){var _0x3a82cc=_0xac45;if(window[_0x3a82cc(0x103)])return;window['lampa_listener_extensions']=!![],Object[_0x3a82cc(0x156)](window[_0x3a82cc(0xf8)][_0x3a82cc(0xf6)][_0x3a82cc(0x14e)],_0x3a82cc(0x12d),{'get':function(){var _0xc9d0fb=_0x3a82cc;return this[_0xc9d0fb(0xda)];},'set':function(_0x362943){var _0x42341d=_0x3a82cc;this[_0x42341d(0xda)]=function(){var _0x3393e2=_0x42341d;_0x362943[_0x3393e2(0x131)](this),Lampa[_0x3393e2(0xf2)]['send']('card',{'type':'build','object':this});}[_0x42341d(0x101)](this);}});}var _0x1b8008={'caches':{},'get':function(_0x214d30,_0x1b22e2){var _0x38207b=_0xac45,_0x1fce45=this[_0x38207b(0x10e)][_0x214d30]||(this[_0x38207b(0x10e)][_0x214d30]=Lampa[_0x38207b(0xc3)][_0x38207b(0xb3)](_0x214d30,0x1f4,{})),_0x36c7f8=_0x1fce45[_0x1b22e2];if(!_0x36c7f8)return null;var _0x79873f=Date['now']()-_0x36c7f8[_0x38207b(0x110)]>0x18*0x3c*0x3c*0x3e8;if(_0x79873f)return delete _0x1fce45[_0x1b22e2],Lampa[_0x38207b(0xc3)][_0x38207b(0xdb)](_0x214d30,_0x1fce45),null;return _0x36c7f8;},'set':function(_0x2f1d40,_0x310de7,_0x5ba713){var _0x48d6db=_0xac45;if(_0x5ba713['kp']===0x0&&_0x5ba713[_0x48d6db(0x14c)]===0x0||_0x5ba713['rating']===_0x48d6db(0xcf))return _0x5ba713;var _0x55818c=this[_0x48d6db(0x10e)][_0x2f1d40]||(this[_0x48d6db(0x10e)][_0x2f1d40]=Lampa[_0x48d6db(0xc3)]['cache'](_0x2f1d40,0x1f4,{}));return _0x5ba713[_0x48d6db(0x110)]=Date[_0x48d6db(0x141)](),_0x55818c[_0x310de7]=_0x5ba713,Lampa[_0x48d6db(0xc3)][_0x48d6db(0xdb)](_0x2f1d40,_0x55818c),_0x5ba713;}},_0x379347={};function _0x4fb28d(_0x323465){var _0x5bb4ee=_0xac45;if(_0x379347[_0x323465])return _0x379347[_0x323465];var _0x306679=_0x323465[_0x5bb4ee(0xe9)](/[\s.,:;''`!?]+/g,'\x20')['trim']()['toLowerCase']()['replace'](/[\-\u2010-\u2015\u2E3A\u2E3B\uFE58\uFE63\uFF0D]+/g,'-')['replace'](/ё/g,'е');return _0x379347[_0x323465]=_0x306679,_0x306679;}function _0x6955fc(_0x926387){var _0x4ab4f6=_0xac45;return _0x926387[_0x4ab4f6(0xe9)](/[\s.,:;''`!?]+/g,'\x20')['trim']();}function _0x1cc939(_0x5a9dae){var _0x455dec=_0xac45;return _0x6955fc(_0x5a9dae)[_0x455dec(0xe9)](/^[ \/\\]+/,'')[_0x455dec(0xe9)](/[ \/\\]+$/,'')[_0x455dec(0xe9)](/\+( *[+\/\\])+/g,'+')[_0x455dec(0xe9)](/([+\/\\] *)+\+/g,'+')['replace'](/( *[\/\\]+ *)+/g,'+');}function _0x30a40c(_0x2f965d,_0x15bef6){var _0x1e9528=_0xac45;return typeof _0x2f965d==='string'&&typeof _0x15bef6===_0x1e9528(0xde)&&_0x4fb28d(_0x2f965d)===_0x4fb28d(_0x15bef6);}function _0x97eb3b(_0x4ae308,_0x43b796){var _0x369f3a=_0xac45;return typeof _0x4ae308===_0x369f3a(0xde)&&typeof _0x43b796==='string'&&_0x4fb28d(_0x4ae308)[_0x369f3a(0x120)](_0x4fb28d(_0x43b796))!==-0x1;}var _0x240366=[],_0x5d7f3e=![],_0x20cbf2=0x12c;function _0x4ca715(){var _0x4f3850=_0xac45;if(_0x5d7f3e||!_0x240366[_0x4f3850(0xc6)])return;_0x5d7f3e=!![];var _0xeb205a=_0x240366[_0x4f3850(0xaf)]();_0xeb205a[_0x4f3850(0x108)](),setTimeout(function(){_0x5d7f3e=![],_0x4ca715();},_0x20cbf2);}function _0x38b465(_0x5568d8){var _0x39c8e6=_0xac45;_0x240366[_0x39c8e6(0x117)]({'execute':_0x5568d8}),_0x4ca715();}var _0x2d22a7=[];function _0x1c1623(){var _0x10da9f=_0xac45;return _0x2d22a7[_0x10da9f(0xe6)]()||new Lampa[(_0x10da9f(0x147))]();}function _0x2fea2c(_0x55861e){var _0x11add0=_0xac45;_0x55861e[_0x11add0(0x135)](),_0x2d22a7[_0x11add0(0xc6)]<0x3&&_0x2d22a7['push'](_0x55861e);}function _0x7fd85d(_0x3528b6,_0x4c13ae){var _0x50d5a0=_0xac45,_0x2faa61=_0x1b8008[_0x50d5a0(0x128)](_0x50d5a0(0xd5),_0x3528b6['id']);if(_0x2faa61&&_0x2faa61[_0x50d5a0(0xb4)]!==_0x50d5a0(0xcf)){_0x4c13ae(_0x2faa61['rating']);return;}_0x38b465(function(){var _0x4cd850=_0x50d5a0,_0x45f354=_0x4cd850(0xed);(_0x3528b6['number_of_seasons']||_0x3528b6['seasons']||_0x3528b6['last_episode_to_air']||_0x3528b6[_0x4cd850(0x151)]||_0x3528b6[_0x4cd850(0x10b)]||_0x3528b6[_0x4cd850(0xfa)]&&!_0x3528b6[_0x4cd850(0xff)]||_0x3528b6[_0x4cd850(0x122)]&&!_0x3528b6[_0x4cd850(0xeb)])&&(_0x45f354='tv');var _0x2cbd5a=_0x45f354+'_'+_0x3528b6['id'],_0x49727d=_0x4cd850(0x13c)+_0x2cbd5a,_0x52bd0e=_0x1c1623();_0x52bd0e['timeout'](0x3a98),_0x52bd0e['silent'](_0x49727d,function(_0x1ebf31){var _0x2d42e8=_0x4cd850,_0x24bf1a=_0x2d42e8(0xcf);if(_0x1ebf31&&_0x1ebf31[_0x2d42e8(0xb6)]){var _0x444e45=_0x1ebf31[_0x2d42e8(0xb6)],_0x1ebf04=0x0,_0xad19e0=0x0;_0x444e45[_0x2d42e8(0x14a)](function(_0x587bdf){var _0x3566d0=_0x2d42e8;(_0x587bdf[_0x3566d0(0xcc)]===_0x3566d0(0x157)||_0x587bdf[_0x3566d0(0xcc)]===_0x3566d0(0xc4))&&(_0x1ebf04+=parseInt(_0x587bdf[_0x3566d0(0xe0)],0xa)),(_0x587bdf[_0x3566d0(0xcc)]==='think'||_0x587bdf[_0x3566d0(0xcc)]===_0x3566d0(0xcb)||_0x587bdf[_0x3566d0(0xcc)]===_0x3566d0(0x10d))&&(_0xad19e0+=parseInt(_0x587bdf[_0x3566d0(0xe0)],0xa));});var _0x3cf42d=_0x1ebf04+_0xad19e0>0x0?_0x1ebf04/(_0x1ebf04+_0xad19e0)*0xa:0x0;_0x24bf1a=_0x3cf42d[_0x2d42e8(0x152)](0x1);}_0x1b8008[_0x2d42e8(0xdb)]('lampa_rating',_0x3528b6['id'],{'rating':_0x24bf1a,'timestamp':Date[_0x2d42e8(0x141)]()}),_0x2fea2c(_0x52bd0e),_0x4c13ae(_0x24bf1a);},function(){var _0x5e1604=_0x4cd850;_0x2fea2c(_0x52bd0e),_0x4c13ae(_0x5e1604(0xcf));});});}function _0x1dc498(_0x172544,_0x2aef15){var _0x232bd4=_0xac45,_0x34ed98='movie';(_0x172544[_0x232bd4(0xd4)]||_0x172544[_0x232bd4(0x102)]||_0x172544['last_episode_to_air']||_0x172544[_0x232bd4(0x151)]||_0x172544[_0x232bd4(0x10b)]||_0x172544[_0x232bd4(0xfa)]&&!_0x172544[_0x232bd4(0xff)]||_0x172544[_0x232bd4(0x122)]&&!_0x172544['original_title'])&&(_0x34ed98='tv');var _0x14124a=_0x34ed98+'_'+_0x172544['id'],_0x46f4f7=_0x1b8008[_0x232bd4(0x128)]('bylampa_rating',_0x14124a);if(_0x46f4f7&&_0x46f4f7[_0x232bd4(0xb4)]!==_0x232bd4(0xcf)){_0x2aef15(_0x46f4f7[_0x232bd4(0xb4)],_0x46f4f7['voteCount']||0x0);return;}_0x38b465(function(){var _0x19cf90=_0x232bd4,_0x14163c='http://212.113.103.137:841',_0x1d9409=_0x14163c+_0x19cf90(0xd1)+_0x34ed98+'/'+_0x172544['id'],_0x1cd780=new XMLHttpRequest();_0x1cd780[_0x19cf90(0xef)]('GET',_0x1d9409,!![]),_0x1cd780[_0x19cf90(0x132)]=0x1388,_0x1cd780['onload']=function(){var _0x676bd6=_0x19cf90;if(this['status']===0xc8)try{var _0x4290b2=JSON[_0x676bd6(0x144)](this[_0x676bd6(0x13d)]),_0xc75d01=_0x4290b2[_0x676bd6(0xdc)]||0x0,_0x5f18e5=_0x4290b2['voteCount']||0x0;_0x1b8008['set'](_0x676bd6(0xaa),_0x14124a,{'rating':_0xc75d01[_0x676bd6(0x152)](0x1),'voteCount':_0x5f18e5,'timestamp':Date[_0x676bd6(0x141)]()}),_0x2aef15(_0xc75d01[_0x676bd6(0x152)](0x1),_0x5f18e5);}catch(_0x56d47d){_0x2aef15(_0x676bd6(0xcf),0x0);}else _0x2aef15(_0x676bd6(0xcf),0x0);},_0x1cd780[_0x19cf90(0x153)]=function(){var _0x44dad4=_0x19cf90;_0x2aef15(_0x44dad4(0xcf),0x0);},_0x1cd780['ontimeout']=function(){var _0x476828=_0x19cf90;_0x2aef15(_0x476828(0xcf),0x0);},_0x1cd780['send']();});}function _0x595f1b(_0x112fe2,_0x3d3efb){var _0xa2fd7e=_0xac45,_0x5354f8=_0x1b8008[_0xa2fd7e(0x128)]('kp_rating',_0x112fe2['id']);if(_0x5354f8){var _0xada8cc=Lampa[_0xa2fd7e(0xc3)][_0xa2fd7e(0x128)](_0xa2fd7e(0xe8),_0xa2fd7e(0x100)),_0x4e6889=_0xada8cc==='kp'?_0x5354f8['kp']:_0x5354f8['imdb'];if(_0x4e6889&&_0x4e6889>0x0){_0x3d3efb(parseFloat(_0x4e6889)['toFixed'](0x1));return;}}_0x38b465(function(){var _0x5ccbb2=_0xa2fd7e,_0x333a02=_0x1c1623(),_0x25351e=_0x1cc939(_0x112fe2[_0x5ccbb2(0xff)]||_0x112fe2['name']),_0x23417c=_0x112fe2['release_date']||_0x112fe2[_0x5ccbb2(0x151)]||_0x112fe2['last_air_date']||_0x5ccbb2(0x13e),_0x6d8336=parseInt((_0x23417c+'')['slice'](0x0,0x4)),_0xd109db=_0x112fe2[_0x5ccbb2(0xeb)]||_0x112fe2[_0x5ccbb2(0x122)],_0x3101e2={'url':'https://kinopoiskapiunofficial.tech/','rating_url':_0x5ccbb2(0x12a),'headers':{'X-API-KEY':_0x5ccbb2(0xba)}};function _0x4a5296(){var _0x11662d=_0x5ccbb2,_0x4e2a14=_0x3101e2[_0x11662d(0x127)],_0x8416e1=Lampa[_0x11662d(0x134)][_0x11662d(0xcd)](_0x4e2a14+_0x11662d(0x142),_0x11662d(0x125)+encodeURIComponent(_0x25351e));if(_0x112fe2[_0x11662d(0x112)])_0x4e2a14=Lampa[_0x11662d(0x134)][_0x11662d(0xcd)](_0x4e2a14+_0x11662d(0x113),_0x11662d(0xe7)+encodeURIComponent(_0x112fe2[_0x11662d(0x112)]));else _0x4e2a14=_0x8416e1;_0x333a02[_0x11662d(0x132)](0x3a98),_0x333a02[_0x11662d(0x107)](_0x4e2a14,function(_0x3da37e){var _0x3ccd33=_0x11662d;if(_0x3da37e[_0x3ccd33(0xe2)]&&_0x3da37e[_0x3ccd33(0xe2)]['length'])_0x45e0f2(_0x3da37e[_0x3ccd33(0xe2)]);else{if(_0x3da37e[_0x3ccd33(0x11c)]&&_0x3da37e[_0x3ccd33(0x11c)][_0x3ccd33(0xc6)])_0x45e0f2(_0x3da37e[_0x3ccd33(0x11c)]);else _0x45e0f2([]);}},function(){var _0x5705c2=_0x11662d;_0x2fea2c(_0x333a02),_0x3d3efb(_0x5705c2(0xcf));},![],{'headers':_0x3101e2['headers']});}function _0x45e0f2(_0x37e884){var _0x4949c4=_0x5ccbb2;if(!_0x37e884||!_0x37e884[_0x4949c4(0xc6)]){_0x2fea2c(_0x333a02),_0x3d3efb(_0x4949c4(0xcf));return;}var _0x24b4bd=![];_0x37e884[_0x4949c4(0x14a)](function(_0x5b76d2){var _0xedc19=_0x4949c4,_0x27be24=_0x5b76d2[_0xedc19(0xd8)]||_0x5b76d2[_0xedc19(0x150)]||_0xedc19(0x13e);_0x5b76d2[_0xedc19(0x104)]=parseInt((_0x27be24+'')['slice'](0x0,0x4));});var _0x27d928=_0x37e884;if(_0xd109db){var _0x30a4a3=_0x27d928['filter'](function(_0x2d2bff){var _0x5bf996=_0x4949c4;return _0x97eb3b(_0x2d2bff['orig_title']||_0x2d2bff[_0x5bf996(0xe1)],_0xd109db)||_0x97eb3b(_0x2d2bff['en_title']||_0x2d2bff[_0x5bf996(0xa9)],_0xd109db)||_0x97eb3b(_0x2d2bff['title']||_0x2d2bff[_0x5bf996(0x11a)]||_0x2d2bff['nameRu'],_0xd109db);});_0x30a4a3['length']&&(_0x27d928=_0x30a4a3,_0x24b4bd=!![]);}if(_0x27d928['length']>0x1&&_0x6d8336){var _0x30b80a=_0x27d928['filter'](function(_0x2560c9){var _0x387d8b=_0x4949c4;return _0x2560c9[_0x387d8b(0x104)]==_0x6d8336;});if(!_0x30b80a[_0x4949c4(0xc6)])_0x30b80a=_0x27d928['filter'](function(_0x2d23d7){var _0x4f3994=_0x4949c4;return _0x2d23d7[_0x4f3994(0x104)]&&_0x2d23d7[_0x4f3994(0x104)]>_0x6d8336-0x2&&_0x2d23d7[_0x4f3994(0x104)]<_0x6d8336+0x2;});if(_0x30b80a[_0x4949c4(0xc6)])_0x27d928=_0x30b80a;}if(_0x27d928[_0x4949c4(0xc6)]>=0x1){var _0x5201d9=_0x27d928[0x0][_0x4949c4(0x109)]||_0x27d928[0x0]['kinopoisk_id']||_0x27d928[0x0]['kinopoiskId']||_0x27d928[0x0][_0x4949c4(0x146)];_0x5201d9?(_0x333a02[_0x4949c4(0x132)](0x3a98),_0x333a02[_0x4949c4(0x107)](_0x3101e2[_0x4949c4(0x127)]+_0x4949c4(0xdd)+_0x5201d9,function(_0x38d16b){var _0x237b00=_0x4949c4,_0x216ce=_0x1b8008[_0x237b00(0xdb)](_0x237b00(0xc0),_0x112fe2['id'],{'kp':_0x38d16b[_0x237b00(0xf1)]||0x0,'imdb':_0x38d16b[_0x237b00(0x114)]||0x0,'timestamp':Date[_0x237b00(0x141)]()}),_0x333b20=Lampa[_0x237b00(0xc3)][_0x237b00(0x128)](_0x237b00(0xe8),'tmdb'),_0x7d6605=_0x333b20==='kp'?_0x216ce['kp']:_0x216ce[_0x237b00(0x14c)];_0x2fea2c(_0x333a02),_0x3d3efb(_0x7d6605?parseFloat(_0x7d6605)[_0x237b00(0x152)](0x1):_0x237b00(0xcf));},function(){var _0x291a57=_0x4949c4;_0x2fea2c(_0x333a02),_0x3d3efb(_0x291a57(0xcf));},![],{'headers':_0x3101e2['headers']})):(_0x2fea2c(_0x333a02),_0x3d3efb(_0x4949c4(0xcf)));}else _0x2fea2c(_0x333a02),_0x3d3efb(_0x4949c4(0xcf));}_0x4a5296();});}var _0x489efd=[],_0x556019=null;function _0x516689(_0x26ee70){var _0x5d04c0=_0xac45;_0x489efd[_0x5d04c0(0x117)](_0x26ee70);if(_0x556019)return;_0x556019=setTimeout(function(){var _0x4ea58a=_0x5d04c0,_0x411c9b=_0x489efd[_0x4ea58a(0x148)](0x0);_0x411c9b[_0x4ea58a(0x14a)](function(_0x550031){_0x4d331f(_0x550031);}),_0x556019=null;},0x10);}function _0x3798f1(_0x53ef4c){var _0x5641c3=_0xac45,_0x41c5d8=document['createElement'](_0x5641c3(0xf9));_0x41c5d8[_0x5641c3(0xfd)]='card__vote',_0x41c5d8[_0x5641c3(0xab)][_0x5641c3(0x105)]='line-height:\x201;\x20font-family:\x20\x22SegoeUI\x22,\x20sans-serif;\x20cursor:\x20pointer;\x20box-sizing:\x20border-box;\x20outline:\x20none;\x20user-select:\x20none;\x20position:\x20absolute;\x20right:\x200.3em;\x20bottom:\x200.3em;\x20background:\x20rgba(0,\x200,\x200,\x200.5);\x20color:\x20#fff;\x20font-size:\x201.3em;\x20font-weight:\x20700;\x20padding:\x200.2em\x200.5em;\x20border-radius:\x201em;';var _0xc77892=_0x53ef4c[_0x5641c3(0x10f)](_0x5641c3(0xf0));return(_0xc77892||_0x53ef4c)[_0x5641c3(0xc8)](_0x41c5d8),_0x41c5d8;}function _0x4d331f(_0x30293c){var _0x4f0d36=_0xac45,_0x504c1f=_0x30293c[_0x4f0d36(0x155)]||_0x30293c;if(!_0x504c1f||!_0x504c1f[_0x4f0d36(0x10f)])return;var _0x50e38b=_0x504c1f[_0x4f0d36(0x137)]||_0x30293c[_0x4f0d36(0xfc)]||{};if(!_0x50e38b['id'])return;var _0x4a1724=Lampa[_0x4f0d36(0xc3)]['get'](_0x4f0d36(0xe8),'tmdb'),_0x40fbb5=_0x504c1f[_0x4f0d36(0x10f)](_0x4f0d36(0x133));!_0x40fbb5&&(_0x40fbb5=_0x3798f1(_0x504c1f));if(_0x40fbb5[_0x4f0d36(0x115)]&&_0x40fbb5['dataset'][_0x4f0d36(0xca)]===_0x4a1724&&_0x40fbb5[_0x4f0d36(0x115)][_0x4f0d36(0x10a)]===_0x50e38b['id'][_0x4f0d36(0x12c)]())return;_0x40fbb5[_0x4f0d36(0x115)]&&(_0x40fbb5[_0x4f0d36(0x115)][_0x4f0d36(0xca)]=_0x4a1724,_0x40fbb5[_0x4f0d36(0x115)][_0x4f0d36(0x10a)]=_0x50e38b['id'][_0x4f0d36(0x12c)]());_0x40fbb5[_0x4f0d36(0xfd)]=_0x4f0d36(0xbe)+_0x4a1724;if(_0x4a1724===_0x4f0d36(0x100)){_0x40fbb5['textContent']='';var _0xc58759=_0x50e38b['vote_average']?_0x50e38b['vote_average'][_0x4f0d36(0x152)](0x1):_0x4f0d36(0xcf);_0x40fbb5['innerHTML']=_0xc58759+_0x4f0d36(0x11f);}else{if(_0x4a1724==='bylampa')_0x40fbb5[_0x4f0d36(0xb9)]='',_0x1dc498(_0x50e38b,function(_0x25b77a,_0xdf0ef6){var _0x4c77f1=_0x4f0d36;_0x40fbb5[_0x4c77f1(0x115)]&&_0x40fbb5[_0x4c77f1(0x115)][_0x4c77f1(0x10a)]===_0x50e38b['id']['toString']()&&(_0x40fbb5[_0x4c77f1(0x111)]=_0x25b77a+_0x4c77f1(0x11f));});else{if(_0x4a1724===_0x4f0d36(0xae))_0x40fbb5['textContent']='',_0x7fd85d(_0x50e38b,function(_0x216529){var _0x1242cd=_0x4f0d36;_0x40fbb5[_0x1242cd(0x115)]&&_0x40fbb5[_0x1242cd(0x115)]['movieId']===_0x50e38b['id'][_0x1242cd(0x12c)]()&&(_0x40fbb5[_0x1242cd(0x111)]=_0x216529+'<span\x20class=\x22source--name\x22></span>');});else(_0x4a1724==='kp'||_0x4a1724===_0x4f0d36(0x14c))&&(_0x40fbb5[_0x4f0d36(0xb9)]='',_0x595f1b(_0x50e38b,function(_0x548edb){var _0x46c873=_0x4f0d36;_0x40fbb5[_0x46c873(0x115)]&&_0x40fbb5[_0x46c873(0x115)][_0x46c873(0x10a)]===_0x50e38b['id'][_0x46c873(0x12c)]()&&(_0x40fbb5[_0x46c873(0x111)]=_0x548edb+_0x46c873(0x11f));}));}}}function _0x1d3cbb(){var _0x1fcb29=_0xac45;Lampa[_0x1fcb29(0xe4)][_0x1fcb29(0x123)]({'component':_0x1fcb29(0xbf),'param':{'name':'rating_source','type':_0x1fcb29(0xd0),'values':{'tmdb':'TMDB','bylampa':'ByLAMPA','lampa':_0x1fcb29(0xf8),'kp':'КиноПоиск','imdb':'IMDB'},'default':_0x1fcb29(0x100)},'field':{'name':_0x1fcb29(0xce),'description':_0x1fcb29(0xac)},'onRender':function(_0x25601e){setTimeout(function(){var _0x2ee31d=_0xac45;$(_0x2ee31d(0x14f))['parent']()[_0x2ee31d(0x116)]($('div[data-name=\x22interface_size\x22]'));},0x0);},'onChange':function(_0x317e6f){var _0x5119b7=_0x1fcb29;Lampa['Storage'][_0x5119b7(0xdb)](_0x5119b7(0xe8),_0x317e6f);var _0x6adf4e=document[_0x5119b7(0xf7)]('.card__vote');for(var _0x2112bd=0x0;_0x2112bd<_0x6adf4e[_0x5119b7(0xc6)];_0x2112bd++){var _0x594880=_0x6adf4e[_0x2112bd],_0x585e59=_0x257fda(_0x594880,_0x5119b7(0x155));if(_0x585e59){_0x594880[_0x5119b7(0x115)]&&(delete _0x594880[_0x5119b7(0x115)][_0x5119b7(0xca)],delete _0x594880[_0x5119b7(0x115)][_0x5119b7(0x10a)]);var _0x1e6315={'card':_0x585e59,'data':_0x585e59[_0x5119b7(0x137)]};_0x516689(_0x1e6315);}}}});}function _0x51158f(){var _0xae0c9b=_0xac45,_0x4a5c89=document[_0xae0c9b(0xec)](_0xae0c9b(0xab));_0x4a5c89['type']=_0xae0c9b(0xf3);var _0x36f3e7=_0xae0c9b(0x129)+_0xae0c9b(0xc5)+_0xae0c9b(0x14d)+'}'+_0xae0c9b(0xc7)+_0xae0c9b(0xb0)+_0xae0c9b(0xe5)+_0xae0c9b(0xbc)+'\x20\x20\x20\x20width:\x2016px;'+_0xae0c9b(0x13f)+_0xae0c9b(0x138)+_0xae0c9b(0x11d)+_0xae0c9b(0xad)+_0xae0c9b(0xd9)+_0xae0c9b(0xb2)+'}'+_0xae0c9b(0x106)+_0xae0c9b(0xb1)+'\x20\x20\x20\x20\x20\x20\x20\x20width:\x2024px;'+_0xae0c9b(0xee)+'\x20\x20\x20\x20\x20\x20\x20\x20margin-left:\x206px;'+'\x20\x20\x20\x20}'+'}'+_0xae0c9b(0x149)+_0xae0c9b(0x126)+'}'+'.rate--lampa\x20.source--name\x20{'+_0xae0c9b(0xdf)+'}'+_0xae0c9b(0xc1)+_0xae0c9b(0x11e)+'}'+_0xae0c9b(0xea)+_0xae0c9b(0x119)+'}'+'.rate--kp\x20.source--name\x20{'+_0xae0c9b(0x13a)+'}';_0x4a5c89[_0xae0c9b(0x143)]?_0x4a5c89[_0xae0c9b(0x143)][_0xae0c9b(0x105)]=_0x36f3e7:_0x4a5c89[_0xae0c9b(0xc8)](document[_0xae0c9b(0x145)](_0x36f3e7)),document['head'][_0xae0c9b(0xc8)](_0x4a5c89);}function _0x229295(){var _0x3dd8ef=_0xac45;window[_0x3dd8ef(0x136)]=!![],_0x1d3cbb(),_0x4d5ed7(),_0x51158f(),Lampa[_0x3dd8ef(0xf2)][_0x3dd8ef(0x13b)]('card',function(_0x27d37d){var _0x3f6ed6=_0x3dd8ef;_0x27d37d['type']==='build'&&_0x27d37d['object'][_0x3f6ed6(0x155)]&&_0x516689(_0x27d37d['object']);});}window[_0x3ff91c(0x11b)]?_0x229295():Lampa[_0x3ff91c(0xf2)][_0x3ff91c(0x13b)](_0x3ff91c(0x10c),function(_0x51b35f){var _0x1412d5=_0x3ff91c;_0x51b35f[_0x1412d5(0xcc)]===_0x1412d5(0xd6)&&_0x229295();});}()));function _0xac45(_0x49f612,_0x5c9e87){var _0x38e51e=_0x5d1e();return _0xac45=function(_0x809b6d,_0x5aabe6){_0x809b6d=_0x809b6d-0xa8;var _0x1b307b=_0x38e51e[_0x809b6d];return _0x1b307b;},_0xac45(_0x49f612,_0x5c9e87);}function _0x5d1e(){var _0x126634=['warn','Storage','nice','\x20\x20\x20\x20display:\x20inline-flex\x20!important;','length','.card__vote\x20.source--name\x20{','appendChild','22599kogyED','source','bore','type','addUrlComponent','Источник\x20рейтинга\x20на\x20карточках','0.0','select','/lampa/ratings/content/','248PxLhuA','exception','number_of_seasons','lampa_rating','ready','bylampa','start_date','\x20\x20\x20\x20margin-left:\x204px;','_build','set','averageRating','api/v2.2/films/','string','\x20\x20\x20\x20background-image:\x20url(\x22data:image/svg+xml,%3Csvg\x20width=\x27110\x27\x20height=\x27104\x27\x20viewBox=\x270\x200\x20110\x20104\x27\x20fill=\x27none\x27\x20xmlns=\x27http://www.w3.org/2000/svg\x27%3E%3Cpath\x20d=\x27M81.6744\x20103.11C98.5682\x2093.7234\x20110\x2075.6967\x20110\x2055C110\x2024.6243\x2085.3757\x200\x2055\x200C24.6243\x200\x200\x2024.6243\x200\x2055C0\x2075.6967\x2011.4318\x2093.7234\x2028.3255\x20103.11C14.8869\x2094.3724\x206\x2079.224\x206\x2062C6\x2034.938\x2027.938\x2013\x2055\x2013C82.062\x2013\x20104\x2034.938\x20104\x2062C104\x2079.224\x2095.1131\x2094.3725\x2081.6744\x20103.11Z\x27\x20fill=\x27white\x27/%3E%3Cpath\x20d=\x27M92.9546\x2080.0076C95.5485\x2074.5501\x2097\x2068.4446\x2097\x2062C97\x2038.804\x2078.196\x2020\x2055\x2020C31.804\x2020\x2013\x2038.804\x2013\x2062C13\x2068.4446\x2014.4515\x2074.5501\x2017.0454\x2080.0076C16.3618\x2077.1161\x2016\x2074.1003\x2016\x2071C16\x2049.4609\x2033.4609\x2032\x2055\x2032C76.5391\x2032\x2094\x2049.4609\x2094\x2071C94\x2074.1003\x2093.6382\x2077.1161\x2092.9546\x2080.0076Z\x27\x20fill=\x27white\x27/%3E%3Cpath\x20d=\x27M55\x2089C69.3594\x2089\x2081\x2077.3594\x2081\x2063C81\x2057.9297\x2079.5486\x2053.1983\x2077.0387\x2049.1987C82.579\x2054.7989\x2086\x2062.5\x2086\x2071C86\x2088.1208\x2072.1208\x20102\x2055\x20102C37.8792\x20102\x2024\x2088.1208\x2024\x2071C24\x2062.5\x2027.421\x2054.7989\x2032.9613\x2049.1987C30.4514\x2053.1983\x2029\x2057.9297\x2029\x2063C29\x2077.3594\x2040.6406\x2089\x2055\x2089Z\x27\x20fill=\x27white\x27/%3E%3Cpath\x20d=\x27M73\x2063C73\x2072.9411\x2064.9411\x2081\x2055\x2081C45.0589\x2081\x2037\x2072.9411\x2037\x2063C37\x2053.0589\x2045.0589\x2045\x2055\x2045C64.9411\x2045\x2073\x2053.0589\x2073\x2063Z\x27\x20fill=\x27white\x27/%3E%3C/svg%3E\x22);','counter','nameOriginal','items','5568252HsISEe','SettingsApi','\x20\x20\x20\x20color:\x20transparent;','pop','imdbId=','rating_source','replace','.rate--imdb\x20.source--name\x20{','original_title','createElement','movie','\x20\x20\x20\x20\x20\x20\x20\x20height:\x2024px;','open','.card__view','ratingKinopoisk','Listener','text/css','42bdhYOa','48147DsOzyS','Card','querySelectorAll','Lampa','div','name','64120wHfgmQ','data','className','info','title','tmdb','bind','seasons','lampa_listener_extensions','tmp_year','cssText','@media\x20(min-width:\x20481px)\x20{','silent','execute','kp_id','movieId','first_episode_to_air','app','shit','caches','querySelector','timestamp','innerHTML','imdb_id','api/v2.2/films','ratingImdb','dataset','insertAfter','push','parentElement','\x20\x20\x20\x20background-image:\x20url(\x22data:image/svg+xml,%3Csvg\x20fill=\x27%23ffcc00\x27\x20viewBox=\x270\x200\x2032\x2032\x27\x20xmlns=\x27http://www.w3.org/2000/svg\x27%3E%3Cg\x20id=\x27SVGRepo_bgCarrier\x27\x20stroke-width=\x270\x27%3E%3C/g%3E%3Cg\x20id=\x27SVGRepo_tracerCarrier\x27\x20stroke-linecap=\x27round\x27\x20stroke-linejoin=\x27round\x27%3E%3C/g%3E%3Cg\x20id=\x27SVGRepo_iconCarrier\x27%3E%3Cpath\x20d=\x27M\x200\x207\x20L\x200\x2025\x20L\x2032\x2025\x20L\x2032\x207\x20Z\x20M\x202\x209\x20L\x2030\x209\x20L\x2030\x2023\x20L\x202\x2023\x20Z\x20M\x205\x2011.6875\x20L\x205\x2020.3125\x20L\x207\x2020.3125\x20L\x207\x2011.6875\x20Z\x20M\x208.09375\x2011.6875\x20L\x208.09375\x2020.3125\x20L\x2010\x2020.3125\x20L\x2010\x2015.5\x20L\x2010.90625\x2020.3125\x20L\x2012.1875\x2020.3125\x20L\x2013\x2015.5\x20L\x2013\x2020.3125\x20L\x2014.8125\x2020.3125\x20L\x2014.8125\x2011.6875\x20L\x2012\x2011.6875\x20L\x2011.5\x2015.8125\x20L\x2010.8125\x2011.6875\x20Z\x20M\x2015.90625\x2011.6875\x20L\x2015.90625\x2020.1875\x20L\x2018.3125\x2020.1875\x20C\x2019.613281\x2020.1875\x2020.101563\x2019.988281\x2020.5\x2019.6875\x20C\x2020.898438\x2019.488281\x2021.09375\x2019\x2021.09375\x2018.5\x20L\x2021.09375\x2013.3125\x20C\x2021.09375\x2012.710938\x2020.898438\x2012.199219\x2020.5\x2012\x20C\x2020\x2011.800781\x2019.8125\x2011.6875\x2018.3125\x2011.6875\x20Z\x20M\x2022.09375\x2011.8125\x20L\x2022.09375\x2020.3125\x20L\x2023.90625\x2020.3125\x20C\x2023.90625\x2020.3125\x2023.992188\x2019.710938\x2024.09375\x2019.8125\x20C\x2024.292969\x2019.8125\x2025.101563\x2020.1875\x2025.5\x2020.1875\x20C\x2026\x2020.1875\x2026.199219\x2020.195313\x2026.5\x2020.09375\x20C\x2026.898438\x2019.894531\x2027\x2019.613281\x2027\x2019.3125\x20L\x2027\x2014.3125\x20C\x2027\x2013.613281\x2026.289063\x2013.09375\x2025.6875\x2013.09375\x20C\x2025.085938\x2013.09375\x2024.511719\x2013.488281\x2024.3125\x2013.6875\x20L\x2024.3125\x2011.8125\x20Z\x20M\x2018\x2013\x20C\x2018.398438\x2013\x2018.8125\x2013.007813\x2018.8125\x2013.40625\x20L\x2018.8125\x2018.40625\x20C\x2018.8125\x2018.804688\x2018.300781\x2018.8125\x2018\x2018.8125\x20Z\x20M\x2024.59375\x2014\x20C\x2024.695313\x2014\x2024.8125\x2014.105469\x2024.8125\x2014.40625\x20L\x2024.8125\x2018.6875\x20C\x2024.8125\x2018.886719\x2024.792969\x2019.09375\x2024.59375\x2019.09375\x20C\x2024.492188\x2019.09375\x2024.40625\x2018.988281\x2024.40625\x2018.6875\x20L\x2024.40625\x2014.40625\x20C\x2024.40625\x2014.207031\x2024.394531\x2014\x2024.59375\x2014\x20Z\x27/%3E%3C/g%3E%3C/svg%3E\x22);','ru_title','appready','films','\x20\x20\x20\x20background-position:\x20center;','\x20\x20\x20\x20background-image:\x20url(\x22data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20150%20150%22%20width%3D%22150%22%20height%3D%22150%22%3E%3Cdefs%3E%3ClinearGradient%20id%3D%22grad%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%221%22%20y2%3D%220%22%3E%3Cstop%20offset%3D%220%25%22%20stop-color%3D%22%2390cea1%22%2F%3E%3Cstop%20offset%3D%2256%25%22%20stop-color%3D%22%233cbec9%22%2F%3E%3Cstop%20offset%3D%22100%25%22%20stop-color%3D%22%2300b3e5%22%2F%3E%3C%2FlinearGradient%3E%3Cstyle%3E%20.text-style%20%7B%20%20%20font-weight%3A%20bold%3B%20%20%20fill%3A%20url%28%23grad%29%3B%20%20%20text-anchor%3A%20start%3B%20%20%20dominant-baseline%3A%20middle%3B%20%20%20textLength%3A%20150%3B%20%20%20lengthAdjust%3A%20spacingAndGlyphs%3B%20%20%20font-size%3A%2070px%3B%20%7D%3C%2Fstyle%3E%3C%2Fdefs%3E%3Ctext%20class%3D%22text-style%22%20x%3D%220%22%20y%3D%2250%22%20textLength%3D%22150%22%20lengthAdjust%3D%22spacingAndGlyphs%22%3ETM%3C%2Ftext%3E%3Ctext%20class%3D%22text-style%22%20x%3D%220%22%20y%3D%22120%22%20textLength%3D%22150%22%20lengthAdjust%3D%22spacingAndGlyphs%22%3EDB%3C%2Ftext%3E%3C%2Fsvg%3E\x22);','<span\x20class=\x22source--name\x22></span>','indexOf','8rHhWzM','original_name','addParam','error','keyword=','\x20\x20\x20\x20background-image:\x20url(\x22data:image/svg+xml,%3Csvg\x20width=\x2724\x27\x20height=\x2724\x27\x20viewBox=\x270\x200\x2024\x2024\x27\x20fill=\x27none\x27\x20xmlns=\x27http://www.w3.org/2000/svg\x27%3E%3Cpath\x20d=\x27M12\x202L15.09\x208.26L22\x209.27L17\x2014.14L18.18\x2021.02L12\x2017.77L5.82\x2021.02L7\x2014.14L2\x209.27L8.91\x208.26L12\x202Z\x27\x20fill=\x27%23ffd700\x27\x20stroke=\x27%23ffd700\x27\x20stroke-width=\x271\x27/%3E%3C/svg%3E\x22);','url','get','.card__vote\x20{','https://rating.kinopoisk.ru/','search','toString','build','__proto__','75032kTkZkl','table','apply','timeout','.card__vote','Utils','clear','lampa_rating_plugin','card_data','\x20\x20\x20\x20background-repeat:\x20no-repeat;','trace','\x20\x20\x20\x20background-image:\x20url(\x22data:image/svg+xml,%3Csvg\x20width=\x27300\x27\x20height=\x27300\x27\x20viewBox=\x270\x200\x20300\x20300\x27\x20fill=\x27none\x27\x20xmlns=\x27http://www.w3.org/2000/svg\x27%3E%3Cmask\x20id=\x27mask0_1_69\x27\x20style=\x27mask-type:alpha\x27\x20maskUnits=\x27userSpaceOnUse\x27\x20x=\x270\x27\x20y=\x270\x27\x20width=\x27300\x27\x20height=\x27300\x27%3E%3Ccircle\x20cx=\x27150\x27\x20cy=\x27150\x27\x20r=\x27150\x27\x20fill=\x27white\x27/%3E%3C/mask%3E%3Cg\x20mask=\x27url(%23mask0_1_69)\x27%3E%3Ccircle\x20cx=\x27150\x27\x20cy=\x27150\x27\x20r=\x27150\x27\x20fill=\x27black\x27/%3E%3Cpath\x20d=\x27M300\x2045L145.26\x20127.827L225.9\x2045H181.2L126.3\x20121.203V45H89.9999V255H126.3V178.92L181.2\x20255H225.9L147.354\x20174.777L300\x20255V216L160.776\x20160.146L300\x20169.5V130.5L161.658\x20139.494L300\x2084V45Z\x27\x20fill=\x27url(%23paint0_radial_1_69)\x27/%3E%3C/g%3E%3Cdefs%3E%3CradialGradient\x20id=\x27paint0_radial_1_69\x27\x20cx=\x270\x27\x20cy=\x270\x27\x20r=\x271\x27\x20gradientUnits=\x27userSpaceOnUse\x27\x20gradientTransform=\x27translate(89.9999\x2045)\x20rotate(45)\x20scale(296.985)\x27%3E%3Cstop\x20offset=\x270.5\x27\x20stop-color=\x27%23FF5500\x27/%3E%3Cstop\x20offset=\x271\x27\x20stop-color=\x27%23BBFF00\x27/%3E%3C/radialGradient%3E%3C/defs%3E%3C/svg%3E\x22);','follow','http://cub.bylampa.online/api/reactions/get/','responseText','0000','\x20\x20\x20\x20height:\x2016px;','10VcyBEB','now','api/v2.1/films/search-by-keyword','styleSheet','parse','createTextNode','filmId','Reguest','splice','.rate--bylampa\x20.source--name\x20{','forEach','212358CNbQOp','imdb','\x20\x20\x20\x20align-items:\x20center\x20!important;','prototype','.settings-param\x20>\x20div:contains(\x22Источник\x20рейтинга\x20на\x20карточках\x22)','year','first_air_date','toFixed','onerror','10lTUGlL','card','defineProperty','fire','474947tJosKM','nameEn','bylampa_rating','style','Выберите\x20какой\x20рейтинг\x20отображать\x20на\x20карточках','\x20\x20\x20\x20background-size:\x20contain;','lampa','shift','\x20\x20\x20\x20font-size:\x200;','\x20\x20\x20\x20.card__vote\x20.source--name\x20{','\x20\x20\x20\x20flex-shrink:\x200;','cache','rating','show','result','origin','13GYWOZW','textContent','2a4a0808-81a3-40ae-b0d3-e11335ede616','constructor','\x20\x20\x20\x20display:\x20inline-block;','console','card__vote\x20rate--','interface','kp_rating','.rate--tmdb\x20.source--name\x20{'];_0x5d1e=function(){return _0x126634;};return _0x5d1e();}
+(function () {
+    'use strict';
+    var network = new Lampa.Reguest();
+    var buttonIcon = '<svg class="button--kinopoisk_rating_icon" width="24" height="23" viewBox="0 0 24 23" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M15.6162 7.10981L15.8464 7.55198L16.3381 7.63428L22.2841 8.62965C22.8678 8.72736 23.0999 9.44167 22.6851 9.86381L18.4598 14.1641L18.1104 14.5196L18.184 15.0127L19.0748 20.9752C19.1622 21.5606 18.5546 22.002 18.025 21.738L12.6295 19.0483L12.1833 18.8259L11.7372 19.0483L6.34171 21.738C5.81206 22.002 5.20443 21.5606 5.29187 20.9752L6.18264 15.0127L6.25629 14.5196L5.9069 14.1641L1.68155 9.86381C1.26677 9.44167 1.49886 8.72736 2.08255 8.62965L8.02855 7.63428L8.52022 7.55198L8.75043 7.10981L11.5345 1.76241C11.8078 1.23748 12.5589 1.23748 12.8322 1.76241L15.6162 7.10981Z" stroke="currentColor" stroke-width="2.2"></path></svg>';
+    var buttonLoader = '<svg class="button--kinopoisk_rating_icon" xmlns="http://www.w3.org/2000/svg" style="margin: auto; background: none; display: block; shape-rendering: auto;" width="94px" height="94px" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid"><circle cx="50" cy="50" fill="none" stroke="#ffffff" stroke-width="5" r="35" stroke-dasharray="164.93361431346415 56.97787143782138"><animateTransform attributeName="transform" type="rotate" repeatCount="indefinite" dur="1s" values="0 50 50;360 50 50" keyTimes="0;1"></animateTransform></circle></svg>';
+    var buttonTrailersIcon = '<svg class="button--kinopoisk_trailers_icon" width="239" height="239" viewBox="0 0 239 239" fill="currentColor" xmlns="http://www.w3.org/2000/svg" xml:space="preserve"><path fill="currentColor" d="M215 121.415l-99.297-6.644 90.943 36.334a106.416 106.416 0 0 0 8.354-29.69z" /><path fill="currentColor" d="M194.608 171.609C174.933 197.942 143.441 215 107.948 215 48.33 215 0 166.871 0 107.5 0 48.13 48.33 0 107.948 0c35.559 0 67.102 17.122 86.77 43.539l-90.181 48.07L162.57 32.25h-32.169L90.892 86.862V32.25H64.77v150.5h26.123v-54.524l39.509 54.524h32.169l-56.526-57.493 88.564 46.352z" /><path d="M206.646 63.895l-90.308 36.076L215 93.583a106.396 106.396 0 0 0-8.354-29.688z" fill="currentColor"/></svg>';
+
+    // get 20 first records only if limit is true
+    function getKinopoiskRatings(offset=0, limit=true, showResult=true)
+    {
+        var oauth = Lampa.Storage.get('kinopoisk_access_token');
+
+        // google script is used to act as CORS proxy
+        // one request returns 20 records only
+        console.log('Kinopoisk Ratings', 'Getting the rating of the next 20 movies starting from ' + String(offset) + '...');
+        network.silent('https://script.google.com/macros/s/AKfycbyW-G0Kicxj6N_cqb-yCzYNXFL4uxKSRi7B51qrNYsVa1wmuVr4adZ8tOHpGvNXtoWS/exec?method=getRated&oauth=' + oauth + '&offset=' + String(offset),
+            function (data) { // on success
+                if (data && data.data && data.data.userProfile && data.data.userProfile.userData && data.data.userProfile.userData.ratedOrWatchedMovies) {
+                    var ratingsCount = data.data.userProfile.userData.ratedOrWatchedMovies.total;
+                    console.log('Kinopoisk Ratings', 'The total count of ratings found: ' + String(ratingsCount));
+                    var receivedRatings = data.data.userProfile.userData.ratedOrWatchedMovies.items;
+
+                    var kinopoiskRatingsReceived = {};
+                    receivedRatings.forEach(m => {
+                        if (m.item && m.item.movieUserVote && m.item.movieUserVote.voting.value) {
+                            kinopoiskRatingsReceived[m.item.id] = String(m.item.movieUserVote.voting.value);
+                        }
+                    });
+                    console.log('Kinopoisk Ratings', 'Ratings received and parsed', kinopoiskRatingsReceived);
+
+                    var kinopoiskRatingsStored = Lampa.Storage.get('kinopoisk_my_ratings', {});
+                    for (var attrname in kinopoiskRatingsReceived) { kinopoiskRatingsStored[attrname] = kinopoiskRatingsReceived[attrname]; }
+                    Lampa.Storage.set('kinopoisk_my_ratings', kinopoiskRatingsStored);
+
+                    if (!limit && ratingsCount > offset+20) { // continue to get remaining records
+                        getKinopoiskRatings(offset+20, limit);
+                    } else {
+                        if (showResult) Lampa.Noty.show('Процесс импорта оценок c Кинопоиска завершен');
+                    }
+                } else {
+                    console.log('Kinopoisk Ratings', 'Unable to parse ratings received', data);
+                }
+            },
+            function (data) { // on error
+                console.log('Kinopoisk Ratings', 'Error, google script', data);
+            }
+        );
+    }
+
+    function getColorBasedOnRate(rate) {
+        if (rate >= 1 && rate <= 4) {
+            return '#EA4E4E';
+        } else if (rate >= 5 && rate <= 7) {
+            return '#999';
+        } else if (rate > 7) {
+            return '#79D29E';
+        }
+    }
+  
+    function addReaction(data, type, add) {
+        let mine = Lampa.Storage.get('mine_reactions',{})
+        let id   = (data.movie.name ? 'tv' : 'movie') + '_' + data.movie.id
+
+        if(!mine[id]) mine[id] = []
+
+        let ready = mine[id].indexOf(type) >= 0 
+
+        if(add){
+            if(!ready) mine[id].push(type)
+            Lampa.Storage.set('mine_reactions',mine)
+        }
+
+        return ready
+    }  
+
+    function removeFromToBeWatched(oauth, kinopoiskId) {
+        console.log('Kinopoisk Ratings', 'Removing the movie ' + String(kinopoiskId) + ' from the list of movies to be watched on Kinopoisk');
+        
+        network.silent('https://script.google.com/macros/s/AKfycbyW-G0Kicxj6N_cqb-yCzYNXFL4uxKSRi7B51qrNYsVa1wmuVr4adZ8tOHpGvNXtoWS/exec?method=setWatchLater&oauth=' + oauth + '&movie=' + String(kinopoiskId),
+            function (data) { // on success
+                if (data && data.data && data.data.movie && data.data.movie.plannedToWatch && data.data.movie.plannedToWatch.remove && data.data.movie.plannedToWatch.remove.status == 'SUCCESS') {
+                    console.log('Kinopoisk Ratings', 'Movie ' + String(kinopoiskId) + ' removed from the list of movies to be watched on Kinopoisk');
+                } else {
+                    console.log('Kinopoisk Ratings', 'Failed to remove the movie ' + String(kinopoiskId) + ' from the list of movies to be watched on Kinopoisk');
+                }
+            },
+            function (data) { // on error
+                Lampa.Noty.show('Не удалось удалить фильм из списка Буду смотреть');
+                console.log('Kinopoisk Ratings', 'Error when deleting the movie from the list of movies to be watched on Kinopoisk, google script', data);
+            }
+        );
+    }
+
+    function setRating(oauth, kinopoiskId, rating, background=false) {
+        if (!background) { $('.button--kinopoisk_rating_icon').replaceWith(buttonLoader); }
+
+        network.silent('https://script.google.com/macros/s/AKfycbyW-G0Kicxj6N_cqb-yCzYNXFL4uxKSRi7B51qrNYsVa1wmuVr4adZ8tOHpGvNXtoWS/exec?method=setVote&oauth=' + oauth + '&movie=' + String(kinopoiskId) + '&rate=' + rating,
+            function (data) { // on success
+                if (data && data.data && data.data.movie && data.data.movie.vote && data.data.movie.vote.set && data.data.movie.vote.set.status == 'SUCCESS') {
+                    var kinopoiskRatings = Lampa.Storage.get('kinopoisk_my_ratings', {});
+                    kinopoiskRatings[kinopoiskId] = rating;
+                    Lampa.Storage.set('kinopoisk_my_ratings', kinopoiskRatings);
+                    console.log('Kinopoisk Ratings', 'Final list of stored ratings', Lampa.Storage.get('kinopoisk_my_ratings', {}));
+
+                    // delete value from postponed list, if it is there
+                    var ratings_postponed = Lampa.Storage.get('kinopoisk_my_ratings_postponed', {});
+                    delete ratings_postponed[kinopoiskId];
+                    Lampa.Storage.set('kinopoisk_my_ratings_postponed', ratings_postponed);
+
+
+                    if (!background) {
+                        $('.button--kinopoisk_rating_icon').replaceWith(buttonIcon);
+                        var color = getColorBasedOnRate(Number(rating));
+                        $('.button--kinopoisk_rating svg path').attr('stroke', color);
+
+                        Lampa.Noty.show('Оценка фильма ' + String(kinopoiskId) + ' обновлена на Кинопоиске (' + rating +')');
+                    }
+
+                    // delete the movie from the list of movies to be watched on Kinopoisk
+                    if (Lampa.Storage.get('kinopoisk_remove_to_be_watched', true)) {
+                        removeFromToBeWatched(oauth, kinopoiskId);
+                    }
+
+                } else {
+                    if (!background) {
+                        $('.button--kinopoisk_rating_icon').replaceWith(buttonIcon);
+                        Lampa.Noty.show('Не удалось обновить оценку фильма');
+                    }
+                    console.log('Kinopoisk Ratings', 'Error to update the movie ' + String(kinopoiskId) + ' rating', data);
+                }
+            },
+            function (data) { // on error
+                console.log('Kinopoisk Ratings', 'Error when updating the rating of movie ' + String(kinopoiskId) + ', google script', data);
+
+                if (!background) {
+                    $('.button--kinopoisk_rating_icon').replaceWith(buttonIcon);
+                }
+
+                if (data.statusText && data.statusText == 'timeout') {
+                    console.log('Kinopoisk Ratings', 'Timeout error, will process it later');
+                    Lampa.Noty.show('Не удалось обновить оценку фильма, попробуем позднее');
+                    var ratings_postponed = Lampa.Storage.get('kinopoisk_my_ratings_postponed', {});
+                    ratings_postponed[kinopoiskId] = rating;
+                    Lampa.Storage.set('kinopoisk_my_ratings_postponed', ratings_postponed);
+                } else {
+                    Lampa.Noty.show('Не удалось обновить оценку фильма ' + String(kinopoiskId));
+                }
+            }
+        );
+
+    }
+
+    function displayTrailers(kinopoiskId, oauth) {
+        if (kinopoiskId) {
+            console.log('Kinopoisk Ratings', 'Getting trailers for movie ' + String(kinopoiskId) + '...');
+            network.silent('https://script.google.com/macros/s/AKfycbyW-G0Kicxj6N_cqb-yCzYNXFL4uxKSRi7B51qrNYsVa1wmuVr4adZ8tOHpGvNXtoWS/exec?method=getTrailers&oauth=' + oauth + '&movie=' + String(kinopoiskId),
+                function (data) { // on success
+                    if (data && data.data && data.data.movie && data.data.movie.trailers && data.data.movie.trailers.total > 0) {
+                        console.log('Kinopoisk Ratings', 'Movie ' + String(kinopoiskId) + ' trailers received, count ' + String(data.data.movie.trailers.total));
+                        var trailers = data.data.movie.trailers.items;
+                        var kinopoisk_trailers = [];
+                        for (var i = 0; i < trailers.length; i++) {
+                            kinopoisk_trailers.push({
+                                title: trailers[i].title,
+                                url: trailers[i].streamUrl,
+                                date: trailers[i].createdAt,
+                                icon: 'http:' + trailers[i].preview.avatarsUrl + '/280x178',
+                            });
+                            
+                        }
+                        
+                        if (kinopoisk_trailers.length > 0 && $('.button--kinopoisk_trailers').length === 0) { // avoid duplicate buttons
+                            $('.full-start-new__buttons')
+                              .append('<div class="full-start__button selector button--kinopoisk_trailers">'+buttonTrailersIcon+'<span>Трейлеры</span></div>');
+
+                            $('.button--kinopoisk_trailers').on('hover:enter', function (card) {
+                                
+                                var trailers = [];
+                                for (var i = 0; i < kinopoisk_trailers.length; i++) {
+                                    var trailer = kinopoisk_trailers[i];
+                                    var date = new Date(trailer.date);
+                                    trailers.push({
+                                        title: trailer.title,
+                                        subtitle: date.getDate() + ' ' + Lampa.Lang.translate('month_'+date.getMonth()+'_e') + ' ' + date.getFullYear(),
+                                        url: trailer.url,
+                                        icon: '<img class="size-youtube" src="' + trailer.icon + '">',
+                                        template: 'selectbox_icon'                            
+                                    });
+                                }
+
+                                Lampa.Select.show({
+                                    title: 'Трейлеры Кинопоиск',
+                                    items: trailers,
+                                    onSelect: (a)=>{
+                                        Lampa.Player.play(a)
+                                    },
+                                    onBack: ()=>{
+                                        Lampa.Controller.toggle('full_start')
+                                    }
+                                })                    
+                            });
+                        }
+
+
+                    } else {
+                        console.log('Kinopoisk Ratings', 'No trailers found for movie ' + String(kinopoiskId));
+                    }
+
+                },
+                function (data) { // on error
+                   console.log('Kinopoisk Ratings', 'Failed to get trailers for movie ' + String(kinopoiskId), data);
+                }
+            );
+        } else {
+            console.log('Kinopoisk Ratings', 'Can not get trailers for unknown kinopoisk id');
+        }
+    }
+
+    function displayTrivias(kinopoiskId, oauth) {
+        if (kinopoiskId) {
+            console.log('Kinopoisk Ratings', 'Getting trivias for movie ' + String(kinopoiskId) + '...');
+            network.silent('https://script.google.com/macros/s/AKfycbyW-G0Kicxj6N_cqb-yCzYNXFL4uxKSRi7B51qrNYsVa1wmuVr4adZ8tOHpGvNXtoWS/exec?method=getTrivias&oauth=' + oauth + '&movie=' + String(kinopoiskId),
+                function (data) { // on success
+                    if (data && data.data && data.data.movie && data.data.movie.trivias) {
+                        if (data.data.movie.trivias.total > 0) {
+                            console.log('Kinopoisk Ratings', 'Movie ' + String(kinopoiskId) + ' trivias received, count ' + String(data.data.movie.trivias.total));
+
+                            if ($('.kinopoisk-trivias').length === 0) {
+                                $('.items-line:first')
+                                    .after(`<div class="items-line layer--visible layer--render kinopoisk-trivias">
+                                        <div class="items-line__head">
+                                            <div class="items-line__title">Знаете ли вы, что...</div>
+                                        </div>
+                                        <div class="items-line__body">
+                                            <div class="scroll scroll--horizontal">
+                                                <div class="scroll__content">
+                                                    <div class="scroll__body full-reviews kinopoisk-trivias-texts">
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    `); 
+
+                                var trivias = data.data.movie.trivias.items;
+                                var trivias_texts = '';
+                                // all trivias to be displayed once modal is opened
+                                for (var i = 0; i < trivias.length; i++) {
+                                    var trivia_text = trivias[i].text;
+                                    trivia_text = trivia_text.replace(/<a[^>]*>/g, '').replace(/<\/a>/g, ''); // remove links
+                                    trivias_texts = trivias_texts + trivia_text + '<br><br>';
+                                }
+
+                                for (var i = 0; i < trivias.length; i++) {
+                                    // one trivia to be displayed on the card
+                                    var trivia_text = trivias[i].text;
+                                    trivia_text = trivia_text.replace(/<a[^>]*>/g, '').replace(/<\/a>/g, ''); // remove links
+                                    var trivia_html = $('<div class="full-review selector layer--visible type--line"><div class="full-review__text">' + trivia_text + '</div></div>');
+                                    $('.kinopoisk-trivias-texts').append(trivia_html);
+                                    trivia_html.on('hover:enter', function (card) {
+                                        Lampa.Modal.open({
+                                            title: "Знаете ли вы, что...",
+                                            html: $('<div><div class="broadcast__text" style="text-align:left"><div class="otzyv">'+trivias_texts+'</div></div></div>'),
+                                            size: "large",
+                                            mask: !0,
+                                            onBack: function() {
+                                                Lampa.Modal.close()
+                                            },
+                                            onSelect: function() {}
+                                        });                                                
+                                    });
+
+                                }
+                            }
+                        } else {
+                            console.log('Kinopoisk Ratings', 'No trivias found for movie ' + String(kinopoiskId), data);    
+                        }   
+                    } else {
+                        console.log('Kinopoisk Ratings', 'Failed to parse trivias for movie ' + String(kinopoiskId), data);
+                    }
+
+                },
+                function (data) { // on error
+                   console.log('Kinopoisk Ratings', 'Failed to get trivias for movie ' + String(kinopoiskId), data);
+                }
+            );            
+        } else {
+            console.log('Kinopoisk Ratings', 'Can not get trivias for unknown kinopoisk id');
+        }
+    }    
+
+
+    function startPlugin() {
+        window.kinopoisk_rating_ready = true;
+
+        var oauth = Lampa.Storage.get('kinopoisk_access_token');
+        if (oauth) { // update last 20 records on each plugin start
+            getKinopoiskRatings(0, true, false); // don't show result
+        }
+
+        var ratings_postponed = Lampa.Storage.get('kinopoisk_my_ratings_postponed', {});
+        var delay = 1000;
+        Object.keys(ratings_postponed).forEach(function(key) {
+            console.log('Kinopoisk Ratings', 'Starting to schedule postponed ratings...');
+            setTimeout(setRating, delay, oauth, key, ratings_postponed[key], true); // oauth, kinopoiskId, rating, background
+            delay = delay + 1000;
+            console.log('Kinopoisk Ratings', 'Finished to schedule postponed ratings');
+        });
+
+        var showTrivias = Lampa.Storage.get('kinopoisk_show_trivias', true);
+        var showTrailers = Lampa.Storage.get('kinopoisk_show_trailers', true);
+
+        Lampa.Listener.follow('full', function (e) {
+            // $(".button--kinopoisk_rating").remove();
+
+
+            if (e.type == 'complite') {
+
+                if ($('.button--kinopoisk_rating').length === 0) { // avoid duplicate buttons
+                    $('.full-start-new__buttons')
+                      .append('<div class="full-start__button selector button--kinopoisk_rating">'+buttonIcon+'<span>Оценить на Кинопоиске</span></div>');
+                }
+
+
+                var kinopoiskRatings = Lampa.Storage.get('kinopoisk_my_ratings', {});
+
+                // kinopoisk id is needed, trying to get it if missing
+                var kinopoiskId = e.data.movie.kinopoisk_id;
+                var tmdbId = e.data.movie.id;
+
+
+                if (!kinopoiskId) {
+                    console.log('Kinopoisk Ratings', 'Kinopoisk id not found, trying to get it...');
+                    network.silent('https://api.alloha.tv/?token=04941a9a3ca3ac16e2b4327347bbc1&tmdb=' + tmdbId, 
+                        function (data) { // on success
+                            if (data && data.data && data.data.id_kp) {
+                                kinopoiskId = data.data.id_kp;
+                                console.log('Kinopoisk Ratings', 'Kinopoisk id found: ' + String(kinopoiskId));
+
+                                var rate = kinopoiskRatings[kinopoiskId];
+                                var color = getColorBasedOnRate(rate);
+                                $('.button--kinopoisk_rating svg path').attr('stroke', color);
+
+                                if (showTrailers) displayTrailers(kinopoiskId, oauth);
+                                if (showTrivias) displayTrivias(kinopoiskId, oauth);
+                            } else {
+                                console.log('Kinopoisk Ratings', 'Failed to find Kinopoisk id');
+                            }
+                        },
+                        function (data) { // on error
+                            console.log('Kinopoisk Ratings', 'Failed to get Kinopoisk id', data);
+                        }
+                  );
+                } else {
+                    console.log('Kinopoisk Ratings', 'Kinopoisk id is known: ' + String(kinopoiskId));
+                    var rate = kinopoiskRatings[kinopoiskId];
+                    var color = getColorBasedOnRate(rate);
+                    $('.button--kinopoisk_rating svg path').attr('stroke', color);
+                    
+                    if (showTrailers) displayTrailers(kinopoiskId, oauth);
+                    if (showTrivias) displayTrivias(kinopoiskId, oauth);
+                }
+
+
+
+                $('.button--kinopoisk_rating').on('hover:enter', function (card) {
+                    if (e.data && e.data.movie) {
+
+
+                        if (kinopoiskId) {
+                            console.log('Kinopoisk Ratings', 'Reading ratings from the storage');
+                            
+                            var kinopoiskRating = kinopoiskRatings[kinopoiskId];
+                            console.log('Kinopoisk Ratings', 'Kinopoisk id: ' + String(kinopoiskId) + ', rating: ' + kinopoiskRating);
+
+                            let items = [
+                                {title: '10', selected: kinopoiskRating ==='10'},
+                                {title: '9', selected: kinopoiskRating === '9'},
+                                {title: '8', selected: kinopoiskRating === '8'},
+                                {title: '7', selected: kinopoiskRating === '7'},
+                                {title: '6', selected: kinopoiskRating === '6'},
+                                {title: '5', selected: kinopoiskRating === '5'},
+                                {title: '4', selected: kinopoiskRating === '4'},
+                                {title: '3', selected: kinopoiskRating === '3'},
+                                {title: '2', selected: kinopoiskRating === '2'},
+                                {title: '1', selected: kinopoiskRating === '1'},
+                                {title: 'Удалить оценку'}
+                            ]
+
+                            items.forEach(a=>{
+                                a.template = 'selectbox_icon'
+                                a.icon = ''
+                                // a.name
+                                // a.value
+                                // a.icon     = '<img src="https://cub.red/img/reactions/' + a.type + '.svg'+'" />'
+                                // a.ghost    = this.vote(a.type)
+                                // a.noenter  = a.ghost
+                            })
+
+                            Lampa.Select.show({
+                                title: 'Оценка',
+                                items: items,
+                                onSelect: (a)=>{
+
+                                    var oauth = Lampa.Storage.get('kinopoisk_access_token');
+
+                                    if (a.title !== 'Удалить оценку') {
+
+                                        if(!a.noselect) {
+
+                                            items.forEach(element => {
+                                                element.selected = false
+                                            })
+
+                                            a.selected = true
+
+                                            console.log('Kinopoisk Ratings', 'Changing the rating of movie ' + String(kinopoiskId) + ' (TMDB id: ' + String(tmdbId) + ') to ' + a.title)
+
+                                            setRating(oauth, kinopoiskId, a.title, false);
+
+                                            // duplicate as reaction
+                                            if (Lampa.Storage.get('kinopoisk_add_reaction', true)) {
+                                                console.log('Kinopoisk Ratings', 'Duplicating the rating as user reaction in Lampa')
+
+                                                var rate = Number(a.title);
+                                                var type = '';
+                                                if (rate >= 1 && rate <= 4) {
+                                                    type = 'shit';
+                                                } else if (rate >= 5 && rate <= 7) {
+                                                    type = 'nice';
+                                                } else if (rate > 7) {
+                                                    type = 'fire';
+                                                }
+
+                                                // https://github.com/yumata/lampa-source/blob/main/src/components/full/start.js#L354
+                                                Lampa.Api.sources.cub.reactionsAdd({
+                                                    method: e.data.movie.name ? 'tv' : 'movie',
+                                                    id: e.data.movie.id,
+                                                    type: type
+                                                },()=>{
+
+                                                    addReaction(e.data, type, true);
+                                                    let find = e.data.reactions.result.find(r=>r.type == type);
+                                                    if (find) { 
+                                                        find.counter++;
+                                                    } else {
+                                                        e.data.reactions.result.push({
+                                                            type: type,
+                                                            counter: 1
+                                                        })
+                                                    }
+
+                                                    $('.reaction--'+type).addClass('reaction--voted');
+
+                                                },(e)=>{
+                                                    Lampa.Noty.show('Не удалось добавить реакцию');
+                                                })
+
+                                            }
+
+                                        }
+
+                                    } else {
+                                        // delete the rating
+                                        console.log('Kinopoisk Ratings', 'Deleting the rating of the movie ' + String(kinopoiskId) + ' (TMDB id: ' + String(tmdbId) + ')')
+                                        network.silent('https://script.google.com/macros/s/AKfycbyW-G0Kicxj6N_cqb-yCzYNXFL4uxKSRi7B51qrNYsVa1wmuVr4adZ8tOHpGvNXtoWS/exec?method=removeVote&oauth=' + oauth + '&movie=' + String(kinopoiskId),
+                                            function (data) { // on success
+                                                if (data && data.data && data.data.movie && data.data.movie.vote && data.data.movie.vote.remove && data.data.movie.vote.remove.status == 'SUCCESS') {
+                                                    delete kinopoiskRatings[kinopoiskId];
+                                                    Lampa.Storage.set('kinopoisk_my_ratings', kinopoiskRatings);
+                                                    $('.button--kinopoisk_rating svg path').attr('stroke', 'currentColor');
+                                                    Lampa.Noty.show('Оценка фильма удалена');
+                                                } else {
+                                                    Lampa.Noty.show('Не удалось удалить оценку');
+                                                    console.log('Kinopoisk Ratings', 'Error to delete the rating', data);
+                                                }
+                                            },
+                                            function (data) { // on error
+                                                Lampa.Noty.show('Не удалось удалить оценку');
+                                                console.log('Kinopoisk Ratings', 'Error when deleting the rating, google script', data);
+                                            }
+                                        );
+                                        $('.button--kinopoisk_rating_icon').replaceWith(buttonIcon);
+                                    }
+
+                                },
+                                onBack: ()=>{
+                                    Lampa.Controller.toggle('full_start')
+                                }
+                            })
+                        } else {
+                            Lampa.Noty.show('Подождите несколько секунд для завершения получения идентификатора фильма на Кинопоиске');
+                            console.log('Kinopoisk Ratings', 'No kinopoisk id found', e.data);
+                        }
+                    } else {
+                        $('.button--kinopoisk_rating_icon').replaceWith(buttonIcon);
+                        Lampa.Noty.show('Ошибка обработки данных, оценить фильм невозможно');
+                        console.log('Kinopoisk Ratings', 'No movie data found', e.data);                        
+                    }
+
+
+                });
+            }
+
+        }); // Lampa.Listener.follow('full'
+
+        // SETTINGS
+        Lampa.SettingsApi.addComponent({
+            component: 'kinopoisk',
+            icon: '<svg width=\"239\" height=\"239\" viewBox=\"0 0 239 239\" fill=\"currentColor\" xmlns=\"http://www.w3.org/2000/svg\" xml:space=\"preserve\"><path fill=\"currentColor\" d=\"M215 121.415l-99.297-6.644 90.943 36.334a106.416 106.416 0 0 0 8.354-29.69z\" /><path fill=\"currentColor\" d=\"M194.608 171.609C174.933 197.942 143.441 215 107.948 215 48.33 215 0 166.871 0 107.5 0 48.13 48.33 0 107.948 0c35.559 0 67.102 17.122 86.77 43.539l-90.181 48.07L162.57 32.25h-32.169L90.892 86.862V32.25H64.77v150.5h26.123v-54.524l39.509 54.524h32.169l-56.526-57.493 88.564 46.352z\" /><path d=\"M206.646 63.895l-90.308 36.076L215 93.583a106.396 106.396 0 0 0-8.354-29.688z\" fill=\"currentColor\"/></svg>',
+            name: 'Кинопоиск'
+        })
+
+        Lampa.SettingsApi.addParam({
+            component: 'kinopoisk',
+            param: {
+                type: 'title'
+            },
+            field: {
+                name: 'Оценки',
+            }
+        })
+
+        Lampa.SettingsApi.addParam({
+            component: 'kinopoisk',
+            param: {
+                name: 'kinopoisk_add_reaction',
+                type: 'trigger',
+                default: true
+            },
+            field: {
+                name: 'Дублировать в реакциях',
+            }
+        })
+
+        Lampa.SettingsApi.addParam({
+            component: 'kinopoisk',
+            param: {
+                name: 'kinopoisk_remove_to_be_watched',
+                type: 'trigger',
+                default: true
+            },
+            field: {
+                name: 'Удалять фильм из Буду смотреть',
+            }
+        })
+
+
+        Lampa.SettingsApi.addParam({
+            component: 'kinopoisk',
+            param: {
+                type: 'button'
+            },
+            field: {
+                name: 'Импортировать с Кинопоиска',
+            },
+            onChange: ()=>{
+                var oauth = Lampa.Storage.get('kinopoisk_access_token');
+                if (!oauth) {
+                    Lampa.Noty.show('Пройдите авторизацию в плагине kinopoisk.js через меню Кинопоиск');
+                } else {
+                    Lampa.Noty.show('Процесс импорта оценок запущен в фоне, это может занять продолжительное время');
+
+                    console.log('Kinopoisk Ratings', 'Starting to get Kinopoisk ratings data...');
+                    getKinopoiskRatings(0, false); // download all records
+                }
+            }
+        })
+
+        Lampa.SettingsApi.addParam({
+            component: 'kinopoisk',
+            param: {
+                type: 'title'
+            },
+            field: {
+                name: 'Прочее',
+            }
+        })        
+
+
+        Lampa.SettingsApi.addParam({
+            component: 'kinopoisk',
+            param: {
+                name: 'kinopoisk_show_trivias',
+                type: 'trigger',
+                default: true
+            },
+            field: {
+                name: 'Показывать интересные факты',
+            }
+        })
+
+    } // startPlugin
+
+
+    if (!window.kinopoisk_rating_ready) startPlugin();
+
 })();
