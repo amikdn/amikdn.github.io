@@ -1,14 +1,17 @@
 (function() {
     'use strict';
 
-    Lampa.Platform.tv(); // Для TV-режима
+    Lampa.Platform.tv(); // Активация TV-режима для загрузки ID
 
-    // Изменение источника на 'tmdb' для обеспечения ID
-    Lampa.Storage.set('source', 'tmdb');
+    // Принудительное изменение источника на 'tmdb' для обеспечения ID
+    if (Lampa.Storage.get('source') === 'cub') {
+        Lampa.Storage.set('source', 'tmdb');
+    }
 
     const CACHE_TIME = 24 * 60 * 60 * 1000;
     let lampaRatingCache = {};
 
+    // Переопределение Lampa.Card.prototype._build
     function overrideCardBuild() {
         if (window.lampa_listener_extensions) return;
         window.lampa_listener_extensions = true;
@@ -28,12 +31,14 @@
     overrideCardBuild();
 
     async function getTmdbId(title, year) {
-        const apiKey = 'YOUR_TMDB_API_KEY';
+        const apiKey = 'YOUR_TMDB_API_KEY'; // Замените на реальный ключ
         const url = `https://api.themoviedb.org/3/search/movie?api_key=${apiKey}&query=${encodeURIComponent(title)}&year=${year}`;
         try {
             const response = await fetch(url);
             const data = await response.json();
-            if (data.results && data.results[0]) return data.results[0].id.toString();
+            if (data.results && data.results.length > 0) {
+                return data.results[0].id.toString();
+            }
         } catch (e) {
             console.error('TMDb error:', e);
         }
@@ -163,13 +168,13 @@
             if (poster) {
                 let posterUrl = poster.src || poster.getAttribute('data-src');
                 if (posterUrl) {
-                    let match = posterUrl.match(/\/(\d+)\./); // Извлечение ID из URL, e.g., /12345.jpg
+                    let match = posterUrl.match(/\/(\d+)\./);
                     if (match) id = match[1];
                 }
             }
         }
 
-        // Fallback: запрос к TMDb по названию и году, если ID всё ещё '0'
+        // Fallback: запрос к TMDb, если ID всё ещё '0'
         if (id === '0') {
             let title = cardData.title || data.title || card.querySelector('.card__title').textContent.trim();
             let year = cardData.year || data.year || card.querySelector('.card__year').textContent.trim();
