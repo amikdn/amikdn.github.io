@@ -1,8 +1,8 @@
 (function() {
     'use strict';
 
-   // const CACHE_TIME = 0 * 60 * 60 * 1000;
-   // let lampaRatingCache = {};
+  //  const CACHE_TIME = 0 * 60 * 60 * 1000;
+    let lampaRatingCache = {};
 
     function calculateLampaRating10(reactions) {
         let weightedSum = 0;
