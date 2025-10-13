@@ -39,6 +39,38 @@
         return { rating: finalRating, medianReaction: medianReaction };
     }
 
+    function fetchQualityData() {
+    return new Promise((resolve) => {
+        let xhr = new XMLHttpRequest();
+        xhr.open("GET", "http://212.113.103.137:835/quality", true);
+        xhr.timeout = 10000;
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState === 4 && xhr.status === 200) {
+                try {
+                    let data = JSON.parse(xhr.responseText);
+                    resolve(data || []);
+                } catch {
+                    resolve([]);
+                }
+            } else {
+                resolve([]);
+            }
+        };
+        xhr.onerror = () => resolve([]);
+        xhr.ontimeout = () => resolve([]);
+        xhr.send();
+    });
+}
+
+async function getCardIds() {
+    let qualityData = await fetchQualityData();
+    let idMap = {};
+    qualityData.forEach(item => {
+        if (item.id) idMap[item.id] = item;
+    });
+    return idMap;
+}
+    
     function fetchLampaRating(ratingKey) {
         return new Promise((resolve) => {
             let xhr = new XMLHttpRequest();
@@ -122,24 +154,13 @@
         }
         let ratingKey = type + "_" + id;
 
-        // Временный лог для диагностики (удалить после тестирования)
-        console.log('Card ID:', id, 'Type:', type, 'RatingKey:', ratingKey, 'Event data:', event.object.data);
-
-        if (id === '0' || !ratingKey) {
-            voteEl.innerHTML = '0.0';
-            return;
-        }
-
         getLampaRating(ratingKey).then(result => {
-            let html = result && result.rating !== null ? result.rating : '0.0';
-            if (result && result.medianReaction) {
+            let html = result.rating !== null ? result.rating : '0.0';
+            if (result.medianReaction) {
                 let reactionSrc = 'https://cubnotrip.top/img/reactions/' + result.medianReaction + '.svg';
                 html += ' <img style="width:1em;height:1em;margin:0 0.2em;" src="' + reactionSrc + '">';
             }
             voteEl.innerHTML = html;
-        }).catch(error => {
-            console.error('Error in insertCardRating:', error);
-            voteEl.innerHTML = '0.0';
         });
     }
 
@@ -163,17 +184,13 @@
                 if (e.object.method && e.object.id) {
                     let ratingKey = e.object.method + "_" + e.object.id;
                     getLampaRating(ratingKey).then(result => {
-                        if (result && result.rating !== null) {
+                        if (result.rating !== null) {
                             $(render).find('.rate--lampa .rate-value').text(result.rating);
                             if (result.medianReaction) {
                                 let reactionSrc = 'https://cubnotrip.top/img/reactions/' + result.medianReaction + '.svg';
                                 $(render).find('.rate--lampa .rate-icon').html('<img style="width:1em;height:1em;margin:0 0.2em;" src="' + reactionSrc + '">');
                             }
                         }
-                    }).catch(error => {
-                        console.error('Error in full listener:', error);
-                        $(render).find('.rate--lampa .rate-value').text('0.0');
-                        $(render).find('.rate--lampa .rate-icon').html('');
                     });
                 }
             }
