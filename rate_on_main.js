@@ -26,54 +26,49 @@
         const rating10 = (avgRating - 1) * 2.5;
         const finalRating = rating10 >= 0 ? parseFloat(rating10.toFixed(1)) : 0;
 
-        // Расчёт медианной реакции (только если голосов >= 20)
-        const minCnt = 20;
+        // Расчёт медианной реакции
         let medianReaction = '';
-        if (totalCount >= minCnt) {
-            const medianIndex = Math.floor(totalCount / 2);
-            // Сортировка реакций по коэффициентам ascending (от низкого к высокому)
-            const sortedReactions = Object.entries(reactionCoef)
-                .sort((a, b) => a[1] - b[1])
-                .map(r => r[0]);
-            let cumulativeCount = 0;
-            while (sortedReactions.length && cumulativeCount < medianIndex) {
-                medianReaction = sortedReactions.pop(); // Начинаем с наивысшего
-                cumulativeCount += (reactionCnt[medianReaction] || 0);
-            }
+        const medianIndex = Math.ceil(totalCount / 2.0);
+        // Сортировка реакций по коэффициентам ascending (от низкого к высокому)
+        const sortedReactions = Object.entries(reactionCoef)
+            .sort((a, b) => a[1] - b[1])
+            .map(r => r[0]);
+        let cumulativeCount = 0;
+        while (sortedReactions.length && cumulativeCount < medianIndex) {
+            medianReaction = sortedReactions.pop(); // Начинаем с наивысшего
+            cumulativeCount += (reactionCnt[medianReaction] || 0);
         }
 
         return { rating: finalRating, medianReaction: medianReaction };
     }
 
-    function fetchLampaRating(ratingKey) {
-        return new Promise((resolve) => {
-            let xhr = new XMLHttpRequest();
-            let url = "https://cub.rip/api/reactions/get/" + ratingKey;
-            xhr.open("GET", url, true);
-            xhr.timeout = 10000;
-            xhr.onreadystatechange = function() {
-                if (xhr.readyState === 4) {
-                    if (xhr.status === 200) {
-                        try {
-                            let data = JSON.parse(xhr.responseText);
-                            if (data && data.result && Array.isArray(data.result)) {
-                                let result = calculateLampaRating10(data.result);
-                                resolve(result);
-                            } else {
-                                resolve({ rating: 0, medianReaction: '' });
-                            }
-                        } catch {
-                            resolve({ rating: 0, medianReaction: '' });
-                        }
-                    } else {
-                        resolve({ rating: 0, medianReaction: '' });
-                    }
-                }
-            };
-            xhr.onerror = function() { resolve({ rating: 0, medianReaction: '' }); };
-            xhr.ontimeout = function() { resolve({ rating: 0, medianReaction: '' }); };
-            xhr.send();
-        });
+    async function fetchLampaRating(ratingKey) {
+        const url = "https://cub.rip/api/reactions/get/" + ratingKey;
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+        try {
+            const response = await fetch(url, { signal: controller.signal });
+            clearTimeout(timeoutId);
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+
+            const data = await response.json();
+
+            if (data && data.result && Array.isArray(data.result)) {
+                return calculateLampaRating10(data.result);
+            } else {
+                return { rating: 0, medianReaction: '' };
+            }
+        } catch (error) {
+            clearTimeout(timeoutId);
+            if (error.name !== 'AbortError') {
+                console.error('Error fetching Lampa rating:', error);
+            }
+            return { rating: 0, medianReaction: '' };
+        }
     }
 
     async function getLampaRating(ratingKey) {
@@ -81,9 +76,14 @@
         if (lampaRatingCache[ratingKey] && (now - lampaRatingCache[ratingKey].timestamp < CACHE_TIME)) {
             return lampaRatingCache[ratingKey].value;
         }
-        let result = await fetchLampaRating(ratingKey);
-        lampaRatingCache[ratingKey] = { value: result, timestamp: now };
-        return result;
+        try {
+            let result = await fetchLampaRating(ratingKey);
+            lampaRatingCache[ratingKey] = { value: result, timestamp: now };
+            return result;
+        } catch (error) {
+            console.error('Error in getLampaRating:', error);
+            return { rating: 0, medianReaction: '' };
+        }
     }
 
     function insertLampaBlock(render) {
@@ -128,13 +128,21 @@
         }
         let ratingKey = type + "_" + id;
 
+        if (id === '0' || !ratingKey) {
+            voteEl.innerHTML = '0.0';
+            return;
+        }
+
         getLampaRating(ratingKey).then(result => {
-            let html = result.rating !== null ? result.rating : '0.0';
-            if (result.medianReaction) {
+            let html = result && result.rating !== null ? result.rating : '0.0';
+            if (result && result.medianReaction) {
                 let reactionSrc = 'https://cub.rip/img/reactions/' + result.medianReaction + '.svg';
                 html += ' <img style="width:1em;height:1em;margin:0 0.2em;" src="' + reactionSrc + '">';
             }
             voteEl.innerHTML = html;
+        }).catch(error => {
+            console.error('Error in insertCardRating:', error);
+            voteEl.innerHTML = '0.0';
         });
     }
 
@@ -158,13 +166,17 @@
                 if (e.object.method && e.object.id) {
                     let ratingKey = e.object.method + "_" + e.object.id;
                     getLampaRating(ratingKey).then(result => {
-                        if (result.rating !== null) {
+                        if (result && result.rating !== null) {
                             $(render).find('.rate--lampa .rate-value').text(result.rating);
                             if (result.medianReaction) {
                                 let reactionSrc = 'https://cub.rip/img/reactions/' + result.medianReaction + '.svg';
                                 $(render).find('.rate--lampa .rate-icon').html('<img style="width:1em;height:1em;margin:0 0.2em;" src="' + reactionSrc + '">');
                             }
                         }
+                    }).catch(error => {
+                        console.error('Error in full listener:', error);
+                        $(render).find('.rate--lampa .rate-value').text('0.0');
+                        $(render).find('.rate--lampa .rate-icon').html('');
                     });
                 }
             }
