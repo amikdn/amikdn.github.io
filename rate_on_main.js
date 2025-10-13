@@ -1,92 +1,12 @@
 (function() {
     'use strict';
 
-    Lampa.Platform.tv(); // Add this to set TV mode for potential ID loading
+    Lampa.Platform.tv(); // Добавлено для активации TV-режима, что может обеспечить наличие ID в карточках на главной
 
     const CACHE_TIME = 24 * 60 * 60 * 1000;
     let lampaRatingCache = {};
 
-    let qualityCache = { data: null, timestamp: null, map: null };
-    const QUALITY_CACHE_TIME = 3600000; // 1 hour, as in quality plugin
-    const QUALITY_URL = 'http://212.113.103.137:835/quality';
-
-    // Quality fetch function from deobfuscated code
-    function fetchQualityData(callback) {
-        var xhr = new XMLHttpRequest();
-        xhr.open('GET', QUALITY_URL, true);
-        xhr.timeout = 10000;
-        xhr.onload = function() {
-            if (xhr.status >= 200 && xhr.status < 300) {
-                try {
-                    var parsed = JSON.parse(xhr.responseText);
-                    callback(null, parsed.results || parsed); // Handle possible 'results' key
-                } catch (e) {
-                    callback(new Error('Ошибка парсинга JSON'));
-                }
-            } else {
-                callback(new Error('Ошибка HTTP: ' + xhr.status));
-            }
-        };
-        xhr.onerror = xhr.ontimeout = function() {
-            callback(new Error('Ошибка сети или таймаут'));
-        };
-        xhr.send();
-    }
-
-    // Map building from deobfuscated
-    function buildQualityMap(data) {
-        var map = {};
-        for (var i = 0, len = data.length; i < len; i++) {
-            var item = data[i];
-            if (item && item.id) {
-                map[item.id] = item.qu;
-            }
-        }
-        return map;
-    }
-
-    // Cache loading from deobfuscated
-    function loadQualityCache() {
-        try {
-            var cached = localStorage.getItem('lampa_quality_cache');
-            if (cached) {
-                var parsed = JSON.parse(cached);
-                qualityCache.data = parsed.data;
-                qualityCache.timestamp = parsed.timestamp;
-                qualityCache.map = buildQualityMap(parsed.data);
-            }
-        } catch (e) {
-            console.error('Error loading quality cache:', e);
-        }
-    }
-
-    // Cache initialization and update from deobfuscated
-    function initQualityCache() {
-        loadQualityCache();
-        var now = Date.now();
-        if (!qualityCache.timestamp || now - qualityCache.timestamp >= QUALITY_CACHE_TIME) {
-            fetchQualityData(function(error, data) {
-                if (!error && data) {
-                    qualityCache.data = data;
-                    qualityCache.map = buildQualityMap(data);
-                    qualityCache.timestamp = now;
-                    try {
-                        localStorage.setItem('lampa_quality_cache', JSON.stringify({
-                            data: qualityCache.data,
-                            timestamp: qualityCache.timestamp
-                        }));
-                    } catch (e) {
-                        console.error('Error saving quality cache:', e);
-                    }
-                }
-            });
-        }
-    }
-
-    // Call cache init early
-    initQualityCache();
-
-    // Prototype override from deobfuscated code for consistent 'card' events
+    // Переопределение Lampa.Card.prototype._build с использованием defineProperty для гарантированного события 'card' с данными
     function overrideCardBuild() {
         if (window.lampa_listener_extensions) return;
         window.lampa_listener_extensions = true;
@@ -103,8 +23,7 @@
         });
     }
 
-    // Call the override
-    overrideCardBuild();
+    overrideCardBuild(); // Вызов переопределения сразу для инициализации
 
     function calculateLampaRating10(reactions) {
         let weightedSum = 0;
@@ -241,7 +160,14 @@
 
     Lampa.Listener.follow('app', function(e) {
         if (e.type === 'ready') {
-            overrideCardBuild(); // Add call to the prototype override
+            if (!window.Lampa.Card._build_original) {
+                window.Lampa.Card._build_original = window.Lampa.Card._build;
+                window.Lampa.Card._build = function() {
+                    let result = window.Lampa.Card._build_original.call(this);
+                    setTimeout(() => Lampa.Listener.send('card', { type: 'build', object: this }), 100);
+                    return result;
+                };
+            }
         }
     });
 
