@@ -1,12 +1,14 @@
 (function() {
     'use strict';
 
-    Lampa.Platform.tv(); // Добавлено для активации TV-режима, что может обеспечить наличие ID в карточках на главной
+    Lampa.Platform.tv(); // Для TV-режима
+
+    // Изменение источника на 'tmdb' для обеспечения ID
+    Lampa.Storage.set('source', 'tmdb');
 
     const CACHE_TIME = 24 * 60 * 60 * 1000;
     let lampaRatingCache = {};
 
-    // Переопределение Lampa.Card.prototype._build с использованием defineProperty для гарантированного события 'card' с данными
     function overrideCardBuild() {
         if (window.lampa_listener_extensions) return;
         window.lampa_listener_extensions = true;
@@ -23,7 +25,20 @@
         });
     }
 
-    overrideCardBuild(); // Вызов переопределения сразу для инициализации
+    overrideCardBuild();
+
+    async function getTmdbId(title, year) {
+        const apiKey = 'YOUR_TMDB_API_KEY';
+        const url = `https://api.themoviedb.org/3/search/movie?api_key=${apiKey}&query=${encodeURIComponent(title)}&year=${year}`;
+        try {
+            const response = await fetch(url);
+            const data = await response.json();
+            if (data.results && data.results[0]) return data.results[0].id.toString();
+        } catch (e) {
+            console.error('TMDb error:', e);
+        }
+        return '0';
+    }
 
     function calculateLampaRating10(reactions) {
         let weightedSum = 0;
@@ -122,7 +137,7 @@
         return true;
     }
 
-    function insertCardRating(card, event) {
+    async function insertCardRating(card, event) {
         let voteEl = card.querySelector('.card__vote');
         if (!voteEl) {
             voteEl = document.createElement('div');
@@ -141,6 +156,26 @@
         if (cardData.seasons || cardData.first_air_date || cardData.original_name || data.seasons || data.firstAirDate || data.originalName) {
             type = 'tv';
         }
+
+        // Fallback: парсинг ID из URL постера
+        if (id === '0') {
+            let poster = card.querySelector('.card__image img');
+            if (poster) {
+                let posterUrl = poster.src || poster.getAttribute('data-src');
+                if (posterUrl) {
+                    let match = posterUrl.match(/\/(\d+)\./); // Извлечение ID из URL, e.g., /12345.jpg
+                    if (match) id = match[1];
+                }
+            }
+        }
+
+        // Fallback: запрос к TMDb по названию и году, если ID всё ещё '0'
+        if (id === '0') {
+            let title = cardData.title || data.title || card.querySelector('.card__title').textContent.trim();
+            let year = cardData.year || data.year || card.querySelector('.card__year').textContent.trim();
+            id = await getTmdbId(title, year);
+        }
+
         let ratingKey = type + "_" + id;
 
         if (id === '0' || !ratingKey) {
