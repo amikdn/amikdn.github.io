@@ -246,15 +246,6 @@
         }
     });
     
-    // Скрытие полей при определенных условиях
-    Lampa.Settings.main_context({
-        'url': 'torrents',
-        html: function(html) {
-            html.find('[data-name="jackett_url2"]').remove();
-            html.find('[data-name="jackett_key"]').remove();
-        }
-    });
-    
     // Отслеживание активности
     Lampa.Storage.follow('parser', function(e) {
         if (Lampa.Storage.field('parser_torrent_type') !== 'jackett') {
