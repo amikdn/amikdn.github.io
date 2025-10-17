@@ -1,5 +1,378 @@
 (function() {
-'use strict';
-Lampa.Platform.tv();
-var _0x1d3543=location['protocol']==='https:'?'https://':'http://',_0x5e1e8d=['jacred.ru','jr.maxvol.pro','jac-red.ru','jacred.viewbox.dev','jacred.pro','jacblack.ru:9117'],_0x56a111=['Jacred.xyz','Jacred Maxvol Pro','Jacred RU','Viewbox','Jacred Pro','Jac Black'];function _0x792fcb(_0x558e43){setTimeout(function(){var _0x4261d5=_0x17ce,_0x522237='';if(_0x5e1e8d[_0x558e43]==_0x4261d5(0x15c))var _0x522237=_0x4261d5(0x160);var _0x2e842a=_0x558e43+0x2;if(_0x5e1e8d[_0x558e43]=='jr.maxvol.pro')_0x1d3543='https://';else _0x1d3543=_0x4261d5(0x15f);var _0x89274d='body\x20>\x20div.selectbox\x20>\x20div.selectbox__content.layer--height\x20>\x20div.selectbox__body.layer--wheight\x20>\x20div\x20>\x20div\x20>\x20div\x20>\x20div:nth-child('+_0x2e842a+')\x20>\x20div';if($('body\x20>\x20div.selectbox\x20>\x20div.selectbox__content.layer--height\x20>\x20div.selectbox__body.layer--wheight\x20>\x20div\x20>\x20div\x20>\x20div\x20>\x20div:nth-child(1)\x20>\x20div')_0x4261d5(0x190)!=='Свой\x20вариант')return;var _0x5ce41f=_0x1d3543+_0x5e1e8d[_0x558e43]+'/api/v2.0/indexers/status:healthy/results?apikey='+_0x522237,_0x18fc95=new XMLHttpRequest();_0x18fc95[_0x4261d5(0x15b)]=0xbb8,_0x18fc95_0x4261d5(0x19e),_0x18fc95_0x4261d5(0x1b5),_0x18fc95[_0x4261d5(0x1db)]=function(){var _0x3501c7=_0x4261d5;if($(_0x89274d)_0x3501c7(0x190)==_0x56a111[_0x558e43])$(_0x89274d)_0x3501c7(0x1c7)_0x3501c7(0x15e);},_0x18fc95[_0x4261d5(0x1cc)]=function(){var _0xc46bd6=_0x4261d5;if($(_0x89274d)_0xc46bd6(0x190)==_0x56a111[_0x558e43])$(_0x89274d)'html''css';},_0x18fc95['onload']=function(){var _0x6696d0=_0x4261d5;if(_0x18fc95[_0x6696d0(0x168)]==0xc8){if($(_0x89274d)_0x6696d0(0x190)==_0x56a111[_0x558e43])$(_0x89274d)'html'_0x6696d0(0x15e);}else{if($(_0x89274d)_0x6696d0(0x190)==_0x56a111[_0x558e43])$(_0x89274d)_0x6696d0(0x1c7)'css';}if(_0x18fc95[_0x6696d0(0x168)]==0x191){if($(_0x89274d)_0x6696d0(0x190)==_0x56a111[_0x558e43])$(_0x89274d)'html'_0x6696d0(0x15e);}};},0x3e8);}function _0x188075(){var _0x3c2abc=_0x583357;for(var _0x5db083=0x0;_0x5db083<=_0x5e1e8d[_0x3c2abc(0x169)]-0x1;_0x5db083++){_0x792fcb(_0x5db083);}}Lampa[_0x583357(0x1d4)][_0x583357(0x1b3)][_0x583357(0x1b1)](_0x583357(0x149),function(_0x516ded){var _0x3c0ad7=_0x583357;_0x516ded['name']==_0x3c0ad7(0x1ae)&&setTimeout(function(){var _0x4efcde=_0x188075();},0xa);});function _0x4d128a(){var _0x54f634=_0x583357;if(Lampa[_0x54f634(0x1be)]_0x54f634(0x17b)=='no_parser')Lampa[_0x54f634(0x1be)]_0x54f634(0x1d7)&Lampa['Storage']'set'&Lampa[_0x54f634(0x1be)]_0x54f634(0x1d7)&Lampa[_0x54f634(0x1be)]_0x54f634(0x1d7)&Lampa[_0x54f634(0x1be)]_0x54f634(0x1d7);if(Lampa[_0x54f634(0x1be)]_0x54f634(0x17b)==_0x54f634(0x195))Lampa[_0x54f634(0x1be)]'set'&Lampa[_0x54f634(0x1be)]_0x54f634(0x1d7)&Lampa[_0x54f634(0x1be)]_0x54f634(0x1d7)&Lampa[_0x54f634(0x1be)]_0x54f634(0x1d7)&Lampa[_0x54f634(0x1be)]_0x54f634(0x1d7);if(Lampa['Storage']_0x54f634(0x17b)=='jr_maxvol_pro')Lampa[_0x54f634(0x1be)]_0x54f634(0x1d7)&Lampa[_0x54f634(0x1be)]_0x54f634(0x1d7)&Lampa[_0x54f634(0x1be)]_0x54f634(0x1d7)&Lampa['Storage']_0x54f634(0x1d7)&Lampa['Storage']_0x54f634(0x1d7);if(Lampa[_0x54f634(0x1be)]_0x54f634(0x17b)==_0x54f634(0x1a3))Lampa['Storage']_0x54f634(0x1d7)&Lampa[_0x54f634(0x1be)]'set'&Lampa[_0x54f634(0x1be)]_0x54f634(0x1d7)&Lampa[_0x54f634(0x1be)]'set'&Lampa[_0x54f634(0x1be)]'set';if(Lampa[_0x54f634(0x1be)]_0x54f634(0x17b)==_0x54f634(0x1d8))Lampa[_0x54f634(0x1be)]_0x54f634(0x1d7)&Lampa[_0x54f634(0x1be)]_0x54f634(0x1d7)&Lampa[_0x54f634(0x1be)]_0x54f634(0x1d7)&Lampa[_0x54f634(0x1be)]'set'&Lampa[_0x54f634(0x1be)]'set';if(Lampa['Storage']'get'=='jacred_viewbox_dev')Lampa[_0x54f634(0x1be)]_0x54f634(0x1d7)&Lampa[_0x54f634(0x1be)]_0x54f634(0x1d7)&Lampa[_0x54f634(0x1be)]_0x54f634(0x1d7)&Lampa[_0x54f634(0x1be)]_0x54f634(0x1d7)&Lampa['Storage']_0x54f634(0x1d7);return;}Lampa[_0x583357(0x18d)][_0x583357(0x1c1)]({'component':'parser','param':{'name':'jackett_urltwo','type':_0x583357(0x1ae),'values':{'no_parser':_0x583357(0x1a7),'jacred_xyz':_0x583357(0x164),'jr_maxvol_pro':_0x583357(0x18b),'jacred_ru':_0x583357(0x1bd),'jacred_viewbox_dev':_0x583357(0x1c9),'jacred_pro':_0x583357(0x1af),'jac_black':_0x583357(0x16f)},'default':_0x583357(0x195)},'field':{'name':_0x583357(0x1a2),'description':_0x583357(0x17e)},'onChange':function(_0xf1af96){var _0x576d12=_0x583357;_0x4d128a(),Lampa[_0x576d12(0x173)]_0x576d12(0x17f);},'onRender':function(_0xdaa4b7){setTimeout(function(){var _0x36c866=_0x17ce;$(_0x36c866(0x198))['on']('hover:enter',function(){var _0x5632f5=_0x36c866;Lampa['Settings']_0x5632f5(0x17f);});localStorage_0x36c866(0x1d3)!==_0x36c866(0x19b)&&($(_0x36c866(0x153))_0x36c866(0x1c5),$(_0x36c866(0x183))'hide',Lampa['Controller']_0x36c866(0x149));if(Lampa[_0x36c866(0x1be)]_0x36c866(0x1b6)&&Lampa['Storage']_0x36c866(0x1b6)=='jackett')_0xdaa4b7_0x36c866(0x189)&$(_0x36c866(0x1c0),_0xdaa4b7)_0x36c866(0x15e)&$(_0x36c866(0x1ba))_0x36c866(0x151);else _0xdaa4b7_0x36c866(0x1c5);},0x5);}}),Lampa['Settings'][_0x583357(0x1b3)][_0x583357(0x1b1)](_0x583357(0x19e),function(_0x1f3f36){var _0x21498d=_0x583357;_0x1f3f36[_0x21498d(0x182)]==_0x21498d(0x1c2)&&(_0x1f3f36[_0x21498d(0x1cd)]_0x21498d(0x14e)_0x21498d(0x143),_0x1f3f36[_0x21498d(0x1cd)]_0x21498d(0x14e)_0x21498d(0x143));}),Lampa[_0x583357(0x1be)][_0x583357(0x1b3)]['follow'](_0x583357(0x158),function(_0x2c5ce1){var _0x535157=_0x583357;Lampa[_0x535157(0x1be)]_0x535157(0x1b6)!=='jackett'?$(_0x535157(0x1ba))_0x535157(0x1c5):($(_0x535157(0x1ba))_0x535157(0x189),$('div[data-name=\x22jackett_urltwo\x22]')'insertAfter');});var _0x4927a4=setInterval(function(){var _0x2dfea6=_0x583357;if(typeof Lampa!=='undefined'){clearInterval(_0x4927a4);if(!Lampa[_0x2dfea6(0x1be)]'get')_0x3478f0();}},0x64);function _0x3478f0(){var _0x11a03e=_0x583357;Lampa[_0x11a03e(0x1be)]_0x11a03e(0x1d7),Lampa['Storage']'set',Lampa[_0x11a03e(0x1be)]_0x11a03e(0x1d7),Lampa[_0x11a03e(0x1be)]_0x11a03e(0x1d7),Lampa[_0x11a03e(0x1be)]'set',Lampa[_0x11a03e(0x1be)]'set',Lampa[_0x11a03e(0x1be)]_0x11a03e(0x1d7);}function _0x23ae4e(){var _0x307a12=_0x583357,_0x185e72=Lampa[_0x307a12(0x1d4)]_0x307a12(0x16c)[_0x307a12(0x182)],_0x271dc0=[];_0x271dc0_0x307a12(0x187),_0x271dc0_0x307a12(0x187),_0x271dc0_0x307a12(0x187),_0x271dc0'push',_0x271dc0'push',_0x271dc0_0x307a12(0x187),_0x46e2e3(_0x271dc0)[_0x307a12(0x1b8)](function(_0x31eea6){var _0x27ec51=_0x307a12;Lampa[_0x27ec51(0x181)][_0x27ec51(0x189)]({'title':_0x27ec51(0x146),'items':_0x31eea6[_0x27ec51(0x188)](function(_0x47384c){var _0xbe7b13=_0x27ec51;return{'title':_0x47384c[_0xbe7b13(0x19f)],'url':_0x47384c['url'],'url_two':_0x47384c[_0xbe7b13(0x17d)],'jac_key':_0x47384c[_0xbe7b13(0x1d6)],'jac_int':_0x47384c[_0xbe7b13(0x162)],'jac_lang':_0x47384c['jac_lang']};}),'onBack':function _0x5d896a(){var _0x2e8fa2=_0x27ec51;Lampa['Controller']_0x2e8fa2(0x149);},'onSelect':function _0x162375(_0x297bf6){var _0x47484a=_0x27ec51;Lampa[_0x47484a(0x1be)]_0x47484a(0x1d7)&Lampa['Storage']_0x47484a(0x1d7)&Lampa['Storage']_0x47484a(0x1d7)&Lampa[_0x47484a(0x1be)]'set'&Lampa[_0x47484a(0x1be)]_0x47484a(0x1d7)&Lampa['Storage']_0x47484a(0x1d7),Lampa[_0x47484a(0x1d4)]_0x47484a(0x149);var _0x306842=Lampa[_0x47484a(0x1be)]_0x47484a(0x17b);setTimeout(function(){var _0x589ce1=_0x47484a;window[_0x589ce1(0x18a)]_0x589ce1(0x1c3);},0x3e8),setTimeout(function(){var _0x5a5332=_0x47484a;Lampa[_0x5a5332(0x157)]_0x5a5332(0x187);},0x7d0);}});})['catch'](function(_0x119ef5){var _0x54f7e8=_0x307a12;console'error';});}function _0x46e2e3(_0x2d7167){var _0x12078a=_0x583357,_0x32668f=[];for(var _0x2f0b05=0x0;_0x2f0b05<_0x2d7167['length'];_0x2f0b05++){var _0x226f1a=_0x2d7167[_0x2f0b05]['url'];_0x32668f_0x12078a(0x187);}return Promise_0x12078a(0x17c);}function _0xe33742(_0x11262f,_0x312714,_0x7df149){return new Promise(function(_0x49b1f3,_0x46d8c9){var _0x2844f4=_0x17ce,_0x454e4f=location[_0x2844f4(0x174)]==='https:'?'https://':_0x2844f4(0x15f),_0x199390='';if(_0x11262f==_0x2844f4(0x15c))var _0x199390=_0x2844f4(0x160);if(_0x11262f=='jr.maxvol.pro')_0x454e4f=_0x2844f4(0x1d5);else _0x454e4f=_0x2844f4(0x15f);var _0x4ef804=_0x454e4f+_0x11262f+_0x2844f4(0x14d)+_0x199390,_0x44cc5c=new XMLHttpRequest();_0x44cc5c_0x2844f4(0x19e),_0x44cc5c[_0x2844f4(0x15b)]=0xbb8,_0x44cc5c[_0x2844f4(0x1ad)]=function(){var _0x4366f2=_0x2844f4;_0x44cc5c['status']===0xc8?(_0x7df149[_0x4366f2(0x19f)]='<span\x20style=\x22color:\x20#64e364;\x22>✔  '+_0x312714+_0x4366f2(0x176),_0x49b1f3(_0x7df149)):(_0x7df149[_0x4366f2(0x19f)]=_0x4366f2(0x167)+_0x312714+'',_0x49b1f3(_0x7df149));},_0x44cc5c['onerror']=function(){var _0x1b1456=_0x2844f4;_0x7df149['title']=_0x1b1456(0x167)+_0x312714+_0x1b1456(0x176),_0x49b1f3(_0x7df149);},_0x44cc5c[_0x2844f4(0x1db)]=function(){var _0x51823c=_0x2844f4;_0x7df149['title']=_0x51823c(0x167)+_0x312714+_0x51823c(0x176),_0x49b1f3(_0x7df149);},_0x44cc5c_0x2844f4(0x1b5);});}var _0x58edf9;Lampa[_0x583357(0x1be)][_0x583357(0x1b3)]['follow'](_0x583357(0x158),function(_0x4c2133){var _0x41829f=_0x583357;_0x4c2133[_0x41829f(0x182)]==_0x41829f(0x144)&&(Lampa[_0x41829f(0x157)]_0x41829f(0x14c)[_0x41829f(0x19d)]==_0x41829f(0x14f)?_0x327ecb():_0x1377a1());});function _0x327ecb(){var _0x5e184d=_0x583357;_0x1377a1();var _0x24f060=document['body'],_0x3425d8={'childList':!![],'subtree':!![]};_0x58edf9=new MutationObserver(function(_0x215fb8){_0x215fb8['forEach'](function(_0x1f980c){var _0x166927=_0x17ce;$(_0x166927(0x179))[_0x166927(0x169)]&&Lampa[_0x166927(0x1be)]'field'==_0x166927(0x1bc)&&(_0x23ae4e(),_0x1377a1());});}),_0x58edf9_0x5e184d(0x1c4);}function _0x1377a1(){var _0x1f0d34=_0x583357;_0x58edf9&&(_0x58edf9_0x1f0d34(0x1b0),_0x58edf9=null);}}());
+    'use strict';
+
+    Lampa.Platform.tv();
+
+    var protocol = location.protocol === 'https:' ? 'https://' : 'http://';
+    var urls = ['jacred.ru', 'jr.maxvol.pro', 'jac-red.ru', 'jacred.viewbox.dev', 'jacred.pro', 'jacblack.ru:9117'];
+    var titles = ['Jacred RU', 'Jacred Maxvol Pro', 'Jacred RU', 'Viewbox', 'Jacred Pro', 'Jac Black'];
+
+    function checkParser(index) {
+        setTimeout(function() {
+            var apiKey = '';
+            var position = index + 2;
+            var selector = 'body > div.selectbox > div.selectbox__content.layer--height > div.selectbox__body.layer--wheight > div > div > div > div:nth-child(' + position + ') > div';
+            
+            if ($('body > div.selectbox > div.selectbox__content.layer--height > div.selectbox__body.layer--wheight > div > div > div > div:nth-child(1) > div').text() !== 'Свой вариант') return;
+            
+            var useProtocol = urls[index] == 'jr.maxvol.pro' ? 'https://' : protocol;
+            var requestUrl = useProtocol + urls[index] + '/api/v2.0/indexers/status:healthy/results?apikey=' + apiKey;
+            
+            var xhr = new XMLHttpRequest();
+            xhr.timeout = 3000;
+            xhr.open('GET', requestUrl, true);
+            xhr.send();
+            
+            xhr.ontimeout = function() {
+                if ($(selector).text() == titles[index]) {
+                    $(selector).html('<span style="color:#ff2121;">✘&nbsp;&nbsp;' + $(selector).text() + '</span>').css('color', '#ff2121');
+                }
+            };
+            
+            xhr.onerror = function() {
+                if ($(selector).text() == titles[index]) {
+                    $(selector).html('<span style="color:#ff2121;">✘&nbsp;&nbsp;' + $(selector).text() + '</span>').css('color', '#ff2121');
+                }
+            };
+            
+            xhr.onload = function() {
+                if (xhr.status == 200) {
+                    if ($(selector).text() == titles[index]) {
+                        $(selector).html('<span style="color:#64e364;">✔&nbsp;&nbsp;' + $(selector).text() + '</span>').css('color', '#ffffff');
+                    }
+                } else {
+                    if ($(selector).text() == titles[index]) {
+                        $(selector).html('<span style="color:#ff2121;">✘&nbsp;&nbsp;' + $(selector).text() + '</span>').css('color', '#ff2121');
+                    }
+                }
+                if (xhr.status == 401) {
+                    if ($(selector).text() == titles[index]) {
+                        $(selector).html('<span style="color:#ff2121;">✘&nbsp;&nbsp;' + $(selector).text() + '</span>').css('color', '#ff2121');
+                    }
+                }
+            };
+        }, 1000);
+    }
+
+    function checkAllParsers() {
+        for (var i = 0; i <= urls.length - 1; i++) {
+            checkParser(i);
+        }
+    }
+
+    Lampa.Listener.follow('app', function(e) {
+        if (e.type == 'select') {
+            setTimeout(function() {
+                checkAllParsers();
+            }, 10);
+        }
+    });
+
+    function setParserConfig() {
+        if (Lampa.Storage.get('jackett_urltwo') == 'no_parser') {
+            Lampa.Storage.set('jackett_url', '');
+            Lampa.Storage.set('jackett_key', '');
+            Lampa.Storage.set('jackett_interview', 'false');
+            Lampa.Storage.set('parse_in_search', false);
+            Lampa.Storage.set('parse_lang', 'lg');
+        }
+        
+        if (Lampa.Storage.get('jackett_urltwo') == 'jacred_xyz') {
+            Lampa.Storage.set('jackett_url', 'jacred.xyz');
+            Lampa.Storage.set('jackett_key', '');
+            Lampa.Storage.set('jackett_interview', 'healthy');
+            Lampa.Storage.set('parse_in_search', true);
+            Lampa.Storage.set('parse_lang', 'lg');
+        }
+        
+        if (Lampa.Storage.get('jackett_urltwo') == 'jr_maxvol_pro') {
+            Lampa.Storage.set('jackett_url', 'jr.maxvol.pro');
+            Lampa.Storage.set('jackett_key', '');
+            Lampa.Storage.set('jackett_interview', 'all');
+            Lampa.Storage.set('parse_in_search', true);
+            Lampa.Storage.set('parse_lang', 'df');
+        }
+        
+        if (Lampa.Storage.get('jackett_urltwo') == 'jacred_ru') {
+            Lampa.Storage.set('jackett_url', 'jac-red.ru');
+            Lampa.Storage.set('jackett_key', '');
+            Lampa.Storage.set('jackett_interview', 'false');
+            Lampa.Storage.set('parse_in_search', true);
+            Lampa.Storage.set('parse_lang', 'lg');
+        }
+        
+        if (Lampa.Storage.get('jackett_urltwo') == 'jacred_pro') {
+            Lampa.Storage.set('jackett_url', 'jacred.pro');
+            Lampa.Storage.set('jackett_key', '');
+            Lampa.Storage.set('jackett_interview', 'all');
+            Lampa.Storage.set('parse_in_search', true);
+            Lampa.Storage.set('parse_lang', 'lg');
+        }
+        
+        if (Lampa.Storage.get('jackett_urltwo') == 'jac_black') {
+            Lampa.Storage.set('jackett_url', 'jacblack.ru:9117');
+            Lampa.Storage.set('jackett_key', '');
+            Lampa.Storage.set('jackett_interview', 'false');
+            Lampa.Storage.set('parse_in_search', true);
+            Lampa.Storage.set('parse_lang', 'lg');
+        }
+        
+        if (Lampa.Storage.get('jackett_urltwo') == 'jacred_viewbox_dev') {
+            Lampa.Storage.set('jackett_url', 'jacred.viewbox.dev');
+            Lampa.Storage.set('jackett_key', '777');
+            Lampa.Storage.set('jackett_interview', 'false');
+            Lampa.Storage.set('parse_in_search', true);
+            Lampa.Storage.set('parse_lang', 'lg');
+        }
+    }
+
+    Lampa.Settings.main({
+        component: 'parser',
+        param: {
+            name: 'jackett_urltwo',
+            type: 'select',
+            values: {
+                'no_parser': 'no_parser',
+                'jacred_xyz': 'Jacred.xyz',
+                'jr_maxvol_pro': 'Jacred Maxvol Pro',
+                'jacred_ru': 'Jacred RU',
+                'jacred_viewbox_dev': 'Viewbox',
+                'jacred_pro': 'Jacred Pro',
+                'jac_black': 'Jac Black'
+            },
+            'default': 'jacred_xyz'
+        },
+        field: {
+            name: 'Меню смены парсера',
+            description: 'Нажмите для выбора парсера из списка'
+        },
+        onChange: function(value) {
+            setParserConfig();
+            Lampa.Settings.update();
+        },
+        onRender: function(html) {
+            setTimeout(function() {
+                $('.settings-param__name').on('hover:enter', function() {
+                    Lampa.Settings.main();
+                });
+                
+                if (localStorage.removeItem('jackett_urltwo') !== 'undefined') {
+                    $('.empty__title').hide();
+                    $('[data-name="jackett_key"]').hide();
+                    Lampa.Controller.toggle('settings_component');
+                }
+                
+                if (Lampa.Storage.field('parser') && Lampa.Storage.field('parser_use') == 'jackett') {
+                    html.show();
+                    $(html.find('.selector'), html).css('color', '#ffffff');
+                    $('div[data-name="jackett_url"]').after('<div class="settings-param selector" data-name="jackett_urltwo" data-static="true">Выбрать парсер</div>');
+                } else {
+                    html.hide();
+                }
+            }, 5);
+        }
+    });
+
+    Lampa.Settings.main_context({
+        'component': 'torrents',
+        'name': 'parser_torrent_type',
+        'before': '[data-name="jackett_url2"]',
+        'html': '<div class="settings-folder selector" data-name="jackett_urltwo"><div>Выбрать парсер</div></div>',
+        'onBack': false,
+        'onSelect': false
+    });
+
+    Lampa.Storage.listener.follow('parser_use', function(e) {
+        if (Lampa.Storage.field('parser_use') !== 'jackett') {
+            $('[data-name="jackett_key"]').hide();
+        } else {
+            $('[data-name="jackett_key"]').show();
+            $('div[data-name="jackett_urltwo"]').insertAfter('<div class="settings-param selector" data-name="jackett_urltwo" data-static="true">Выбрать парсер</div>');
+        }
+    });
+
+    var initInterval = setInterval(function() {
+        if (typeof Lampa !== 'undefined') {
+            clearInterval(initInterval);
+            if (!Lampa.Storage.get('jack', false)) initDefault();
+        }
+    }, 100);
+
+    function initDefault() {
+        Lampa.Storage.set('jack', 'true');
+        Lampa.Storage.set('jackett_url', 'jacred.xyz');
+        Lampa.Storage.set('jackett_urltwo', 'jacred_xyz');
+        Lampa.Storage.set('parse_in_search', true);
+        Lampa.Storage.set('jackett_key', '');
+        Lampa.Storage.set('jackett_interview', 'healthy');
+        Lampa.Storage.set('parse_lang', 'lg');
+    }
+
+    function showParserMenu() {
+        var active = Lampa.Activity.active();
+        var html = [];
+        
+        html.push({
+            'title': 'Jacred.xyz',
+            'url': 'jacred.xyz',
+            'url_two': 'jacred_xyz',
+            'jac_key': '',
+            'jac_int': 'healthy',
+            'jac_lang': 'lg'
+        });
+        
+        html.push({
+            'title': 'Jacred Maxvol Pro',
+            'url': 'jr.maxvol.pro',
+            'url_two': 'jr_maxvol_pro',
+            'jac_key': '',
+            'jac_int': 'all',
+            'jac_lang': 'lg'
+        });
+        
+        html.push({
+            'title': 'Jacred RU',
+            'url': 'jac-red.ru',
+            'url_two': 'jacred_ru',
+            'jac_key': '',
+            'jac_int': 'false',
+            'jac_lang': 'lg'
+        });
+        
+        html.push({
+            'title': 'Viewbox',
+            'url': 'jacred.viewbox.dev',
+            'url_two': 'jacred_viewbox_dev',
+            'jac_key': '777',
+            'jac_int': 'false',
+            'jac_lang': 'lg'
+        });
+        
+        html.push({
+            'title': 'Jacred Pro',
+            'url': 'jacred.pro',
+            'url_two': 'jacred_pro',
+            'jac_key': '',
+            'jac_int': 'all',
+            'jac_lang': 'lg'
+        });
+        
+        html.push({
+            'title': 'Jac Black',
+            'url': 'jacblack.ru:9117',
+            'url_two': 'jac_black',
+            'jac_key': '',
+            'jac_int': 'false',
+            'jac_lang': 'lg'
+        });
+
+        checkStatus(html).then(function(items) {
+            Lampa.Select.show({
+                'title': 'Выбрать парсер',
+                'items': items.map(function(item) {
+                    return {
+                        'title': item.title,
+                        'url': item.url,
+                        'url_two': item.url_two,
+                        'jac_key': item.jac_key,
+                        'jac_int': item.jac_int,
+                        'jac_lang': item.jac_lang
+                    };
+                }),
+                'onBack': function() {
+                    Lampa.Controller.toggle(active.render());
+                },
+                'onSelect': function(a) {
+                    Lampa.Storage.set('jackett_url', a.url);
+                    Lampa.Storage.set('jackett_urltwo', a.url_two);
+                    Lampa.Storage.set('jackett_key', a.jac_key);
+                    Lampa.Storage.set('jackett_interview', a.jac_int);
+                    Lampa.Storage.set('parse_lang', a.jac_lang);
+                    Lampa.Storage.set('parse_in_search', true);
+                    Lampa.Activity.back(active.render());
+                    
+                    var url = Lampa.Storage.field('url');
+                    setTimeout(function() {
+                        window.location.reload();
+                    }, 1000);
+                    setTimeout(function() {
+                        Lampa.Noty.show(url);
+                    }, 2000);
+                }
+            });
+        }).catch(function(e) {
+            console.error('Error:', e);
+        });
+    }
+
+    function checkStatus(items) {
+        var promises = [];
+        for (var i = 0; i < items.length; i++) {
+            var url = items[i].url;
+            promises.push(checkSingleStatus(url, items[i].title, items[i]));
+        }
+        return Promise.all(promises);
+    }
+
+    function checkSingleStatus(url, title, item) {
+        return new Promise(function(resolve) {
+            var useProtocol = location.protocol === 'https:' ? 'https://' : 'http://';
+            var apiKey = '';
+            
+            if (url == 'jr.maxvol.pro') useProtocol = 'https://';
+            
+            var requestUrl = useProtocol + url + '/api/v2.0/indexers/status:healthy/results?apikey=' + apiKey;
+            var xhr = new XMLHttpRequest();
+            
+            xhr.open('GET', requestUrl, true);
+            xhr.timeout = 3000;
+            
+            xhr.ontimeout = function() {
+                item.title = '<span style="color:#ff2121;">✘&nbsp;&nbsp;' + title + '</span>';
+                resolve(item);
+            };
+            
+            xhr.onerror = function() {
+                item.title = '<span style="color:#ff2121;">✘&nbsp;&nbsp;' + title + '</span>';
+                resolve(item);
+            };
+            
+            xhr.onload = function() {
+                item.title = '<span style="color:#ff2121;">✘&nbsp;&nbsp;' + title + '</span>';
+                resolve(item);
+            };
+            
+            xhr.send();
+        });
+    }
+
+    var observer;
+    Lampa.Storage.listener.follow('parser_use', function(e) {
+        if (e.value == 'url') {
+            if (Lampa.Activity.active().activity_type == 'settings') initObserver();
+            else stopObserver();
+        }
+    });
+
+    function initObserver() {
+        stopObserver();
+        var body = document.body;
+        var config = { childList: true, subtree: true };
+        observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if ($('div[data-children="parser"]').length && Lampa.Storage.field('parser_use') == 'url') {
+                    showParserMenu();
+                    stopObserver();
+                }
+            });
+        });
+        observer.observe(body, config);
+    }
+
+    function stopObserver() {
+        if (observer) {
+            observer.disconnect();
+            observer = null;
+        }
+    }
 })();
