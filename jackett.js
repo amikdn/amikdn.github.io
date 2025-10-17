@@ -2,12 +2,6 @@
     'use strict';
     Lampa.Platform.tv();
     
-    // Проверка версии
-    if (Lampa.Manifest.version !== 'Lampa32') {
-        Lampa.Storage.set('no_parser', true);
-        return;
-    }
-    
     Lampa.Storage.set('parser_use', true);
     
     var protocol = location.protocol === 'https:' ? 'https://' : 'http://';
