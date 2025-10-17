@@ -3,13 +3,6 @@
     
     Lampa.Platform.tv();
     
-    // Проверка версии Lampa
-    if (Lampa.Manifest.version !== 'Lampa32') {
-        Lampa.Storage.set('no_parser', true);
-        console.log('Lampa version not supported');
-        return;
-    }
-    
     Lampa.Storage.set('parser_use', true);
     
     // Определяем протокол
