@@ -6,12 +6,6 @@
         Lampa.Platform.tv();
     }
 
-    // Check Lampa version and set no_parser if not matching
-    if (Lampa.Manifest && Lampa.Manifest.version !== 'Lampa32') {
-        Lampa.Storage.set('no_parser', true);
-        return;
-    }
-
     // Enable parser use
     Lampa.Storage.set('parser_use', true);
 
