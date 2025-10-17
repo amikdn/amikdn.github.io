@@ -846,61 +846,58 @@ var unicId = Lampa.Storage.get('lampac_unic_id', '');
             return v.similar;
           });
           if (videos.length) {
-if (buttons.length) {
-    filter_find.voice = buttons.map(function(b) {
-        return {
-            title: b.text,
-            url: b.url
-        };
-    });
-    
-    var select_voice_url = this.getChoice(balanser).voice_url;
-    var select_voice_name = this.getChoice(balanser).voice_name;
-    var find_voice_url = buttons.find(function(v) {
-        return v.url == select_voice_url;
-    });
-    var find_voice_name = buttons.find(function(v) {
-        return v.text == select_voice_name;
-    });
-    var find_voice_active = buttons.find(function(v) {
-        return v.active;
-    });
-
-    //  Исправленная логика с правильными блоками if-else
-    if (find_voice_url && !find_voice_url.active) {
-        console.log('Lampac', 'go to voice', find_voice_url);
-        this.replaceChoice({
-            voice: buttons.indexOf(find_voice_url),
-            voice_name: find_voice_url.text,
-            voice_url: find_voice_url.url
-        });
-        this.request(find_voice_url.url);
-    } else if (find_voice_name && !find_voice_name.active) {
-        console.log('Lampac', 'go to voice', find_voice_name);
-        this.replaceChoice({
-            voice: buttons.indexOf(find_voice_name),
-            voice_name: find_voice_name.text,
-            voice_url: find_voice_name.url
-        });
-        this.request(find_voice_name.url);
-    } else {
-        if (find_voice_active) {
-            this.replaceChoice({
-                voice: buttons.indexOf(find_voice_active),
-                voice_name: find_voice_active.text,
-                voice_url: find_voice_active.url
-            });
-        }
-        this.display(videos);
-    }
-} else {
-    this.replaceChoice({
-        voice: 0,
-        voice_url: '',
-        voice_name: ''
-    });
-    this.display(videos);
-}
+            if (buttons.length) {
+              filter_find.voice = buttons.map(function(b) {
+                return {
+                  title: b.text,
+                  url: b.url
+                };
+              });
+              var select_voice_url = this.getChoice(balanser).voice_url;
+              var select_voice_name = this.getChoice(balanser).voice_name;
+              var find_voice_url = buttons.find(function(v) {
+                return v.url == select_voice_url;
+              });
+              var find_voice_name = buttons.find(function(v) {
+                return v.text == select_voice_name;
+              });
+              var find_voice_active = buttons.find(function(v) {
+                return v.active;
+              }); //console.log('b',buttons)
+              //console.log('u',find_voice_url)
+              //console.log('n',find_voice_name)
+              //console.log('a',find_voice_active)
+              if (find_voice_url && !find_voice_url.active) {
+                console.log('Lampac', 'go to voice', find_voice_url);
+                this.replaceChoice({
+                  voice: buttons.indexOf(find_voice_url),
+                  voice_name: find_voice_url.text
+                });
+                this.request(find_voice_url.url);
+              } else if (find_voice_name && !find_voice_name.active) {
+                console.log('Lampac', 'go to voice', find_voice_name);
+                this.replaceChoice({
+                  voice: buttons.indexOf(find_voice_name),
+                  voice_name: find_voice_name.text
+                });
+                this.request(find_voice_name.url);
+              } else {
+                if (find_voice_active) {
+                  this.replaceChoice({
+                    voice: buttons.indexOf(find_voice_active),
+                    voice_name: find_voice_active.text
+                  });
+                }
+                this.display(videos);
+              }
+            } else {
+              this.replaceChoice({
+                voice: 0,
+                voice_url: '',
+                voice_name: ''
+              });
+              this.display(videos);
+            }
           } else if (items.length) {
             if (similar.length) {
               this.similars(similar);
