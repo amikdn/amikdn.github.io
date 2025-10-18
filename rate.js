@@ -3,8 +3,8 @@
 
     Lampa.Platform.tv();
 
-    if (window.lampa_rating_plugin) return;
-    window.lampa_rating_plugin = true;
+  //  if (window.lampa_rating_plugin) return;
+  //  window.lampa_rating_plugin = true;
 
     const ratingCache = {
         caches: {},
