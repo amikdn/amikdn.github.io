@@ -1,23 +1,18 @@
 (function () {
     'use strict';
 
-    // Инициализация платформы Lampa для телевизионной версии
     Lampa.Platform.tv();
 
-
-    // Проверка, не инициализирован ли плагин ранее
     if (window.lampa_rating_plugin) return;
     window.lampa_rating_plugin = true;
 
-    // Объект для кэширования рейтингов
     const ratingCache = {
         caches: {},
         get(source, key) {
             const cache = this.caches[source] || (this.caches[source] = Lampa.Storage.cache(source, 500, {}));
             const data = cache[key];
             if (!data) return null;
-            // Проверка устаревания данных (18 часов)
-            if (Date.now() - data.timestamp > 18 * 60 * 60 * 1000) {
+            if (Date.now() - data.timestamp > 24 * 60 * 60 * 1000) {
                 delete cache[key];
                 Lampa.Storage.set(source, cache);
                 return null;
@@ -34,11 +29,9 @@
         }
     };
 
-    // Кэш для рейтинга Lampa (24 часа)
     const CACHE_TIME = 24 * 60 * 60 * 1000;
     let lampaRatingCache = {};
 
-    // Расчёт рейтинга Lampa (0-10)
     function calculateLampaRating10(reactions) {
         let weightedSum = 0;
         let totalCount = 0;
@@ -68,7 +61,6 @@
         return { rating: finalRating, medianReaction: medianReaction };
     }
 
-    // Получение рейтинга Lampa через API
     function fetchLampaRating(ratingKey) {
         return new Promise((resolve) => {
             let xhr = new XMLHttpRequest();
@@ -100,7 +92,6 @@
         });
     }
 
-    // Получение кэшированного рейтинга Lampa
     async function getLampaRating(ratingKey) {
         let now = Date.now();
         if (lampaRatingCache[ratingKey] && (now - lampaRatingCache[ratingKey].timestamp < CACHE_TIME)) {
@@ -111,7 +102,6 @@
         return result;
     }
 
-    // Очередь для асинхронных задач
     let taskQueue = [];
     let isProcessing = false;
     const taskInterval = 300;
@@ -132,7 +122,6 @@
         processQueue();
     }
 
-    // Пул запросов
     let requestPool = [];
     function getRequest() {
         return requestPool.pop() || new Lampa.Reguest();
@@ -143,7 +132,6 @@
         if (requestPool.length < 3) requestPool.push(request);
     }
 
-    // Нормализация строк для сравнения
     const stringCache = {};
     function normalizeString(str) {
         if (stringCache[str]) return stringCache[str];
@@ -157,7 +145,6 @@
         return normalized;
     }
 
-    // Очистка строки от лишних пробелов и символов
     function cleanString(str) {
         return normalizeString(str)
             .replace(/^[ \/\\]+/, '')
@@ -167,17 +154,14 @@
             .replace(/( *[\/\\]+ *)+/g, '+');
     }
 
-    // Сравнение строк на точное совпадение
     function matchStrings(str1, str2) {
         return typeof str1 === 'string' && typeof str2 === 'string' && normalizeString(str1) === normalizeString(str2);
     }
 
-    // Проверка, содержит ли одна строка другую
     function containsString(str1, str2) {
         return typeof str1 === 'string' && typeof str2 === 'string' && normalizeString(str1).indexOf(normalizeString(str2)) !== -1;
     }
 
-    // Получение рейтинга с Kinopoisk
     function getKinopoiskRating(item, callback) {
         const cached = ratingCache.get('kp_rating', item.id);
         if (cached) {
@@ -277,7 +261,6 @@
         });
     }
 
-    // Обработка карточек контента
     let pendingCards = [];
     let cardTimer = null;
 
@@ -295,7 +278,6 @@
         processCards();
     }
 
-    // Создание элемента для отображения рейтинга
     function createRatingElement(card) {
         const ratingElement = document.createElement('div');
         ratingElement.className = 'card__vote';
@@ -321,7 +303,6 @@
         return ratingElement;
     }
 
-    // Обновление рейтинга на карточке
     function updateCardRating(item) {
         const card = item.card || item;
         if (!card || !card.querySelector) return;
@@ -384,7 +365,6 @@
         }
     }
 
-    // Добавление рейтинга Lampa на странице фильма
     function insertLampaBlock(render) {
         if (!render) return false;
         let rateLine = $(render).find('.full-start-new__rate-line');
@@ -404,7 +384,6 @@
         return true;
     }
 
-    // Добавление настроек в интерфейс
     function addSettings() {
         Lampa.SettingsApi.addParam({
             component: 'interface',
@@ -444,7 +423,6 @@
         });
     }
 
-    // Поиск родительского элемента с указанным классом
     function findParentWithClass(element, className) {
         let current = element.parentElement;
         while (current) {
@@ -454,7 +432,6 @@
         return null;
     }
 
-    // Добавление слушателя событий для карточек
     function setupCardListener() {
         if (window.lampa_listener_extensions) return;
         window.lampa_listener_extensions = true;
@@ -470,7 +447,6 @@
         });
     }
 
-    // Инициализация плагина
     function initPlugin() {
         addSettings();
         setupCardListener();
@@ -479,7 +455,7 @@
                 addCard(event.object);
             }
         });
-        // Обработчик для страницы фильма
+
         Lampa.Listener.follow('full', (event) => {
             if (event.type === 'complite') {
                 let render = event.object.activity.render();
@@ -494,7 +470,7 @@
                                     $(render).find('.rate--lampa .rate-icon').html('<img style="width:1em;height:1em;margin:0 0.2em;" src="' + reactionSrc + '">');
                                 }
                             } else {
-                                $(render).find('.rate--lampa').hide(); // Скрыть, если рейтинг 0
+                                $(render).find('.rate--lampa').hide();
                             }
                         });
                     }
@@ -503,7 +479,6 @@
         });
     }
 
-    // Запуск плагина при готовности приложения
     if (window.appready) {
         initPlugin();
     } else {
