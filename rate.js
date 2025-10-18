@@ -383,26 +383,6 @@
         }
     }
 
-    // Добавление рейтинга Lampa на детальную страницу
-    function insertLampaBlock(render) {
-        if (!render) return false;
-        let rateLine = $(render).find('.full-start-new__rate-line');
-        if (rateLine.length === 0) return false;
-        if (rateLine.find('.rate--lampa').length > 0) return true;
-        let lampaBlockHtml = '<div class="full-start__rate rate--lampa">' +
-            '<div class="rate-value">0.0</div>' +
-            '<div class="rate-icon"></div>' +
-            '<div class="source--name">LAMPA</div>' +
-            '</div>';
-        let kpBlock = rateLine.find('.rate--kp');
-        if (kpBlock.length > 0) {
-            kpBlock.after(lampaBlockHtml);
-        } else {
-            rateLine.append(lampaBlockHtml);
-        }
-        return true;
-    }
-
     // Добавление настроек в интерфейс
     function addSettings() {
         Lampa.SettingsApi.addParam({
@@ -469,33 +449,6 @@
         });
     }
 
-    // Обработка полной карточки фильма
-    function setupFullListener() {
-        Lampa.Listener.follow('full', function(e) {
-            if (e.type === 'complite') {
-                let render = e.object.activity.render();
-                if (render && insertLampaBlock(render)) {
-                    if (e.object.method && e.object.id) {
-                        let type = e.object.method === 'tv' ? 'tv' : 'movie';
-                        let ratingKey = `${type}_${e.object.id}`;
-                        getLampaRating(ratingKey).then(result => {
-                            let lampaBlock = $(render).find('.rate--lampa');
-                            if (result.rating > 0) {
-                                lampaBlock.find('.rate-value').text(result.rating);
-                                if (result.medianReaction) {
-                                    let reactionSrc = 'https://cubnotrip.top/img/reactions/' + result.medianReaction + '.svg';
-                                    lampaBlock.find('.rate-icon').html('<img style="width:1em;height:1em;margin:0 0.2em;" src="' + reactionSrc + '">');
-                                }
-                            } else {
-                                lampaBlock.hide();
-                            }
-                        });
-                    }
-                }
-            }
-        });
-    }
-
     // Добавление CSS-стилей
     function addStyles() {
         const style = document.createElement('style');
@@ -511,43 +464,6 @@
                 height: 1em;
                 margin: 0 0.2em;
             }
-            .full-start__rate {
-                display: inline-flex;
-                align-items: center;
-                margin-left: 1em;
-            }
-            .full-start__rate .rate-value {
-                font-size: 1.5em;
-                font-weight: 700;
-                color: #fff;
-                margin-right: 0.5em;
-            }
-            .full-start__rate .rate-icon img {
-                width: 1em;
-                height: 1em;
-                margin: 0 0.2em;
-            }
-            .full-start__rate .source--name {
-                margin-left: 0.5em;
-                font-size: 1em;
-                color: #ccc;
-            }
-            .rate--lampa .rate-value,
-            .rate--kp .rate-value,
-            .rate--tmdb .rate-value,
-            .rate--imdb .rate-value {
-                font-size: 1.5em !important;
-                font-weight: 700 !important;
-                color: #fff !important;
-                margin-right: 0.5em !important;
-            }
-            .rate--lampa .source--name,
-            .rate--kp .source--name,
-            .rate--tmdb .source--name,
-            .rate--imdb .source--name {
-                font-size: 1em !important;
-                color: #ccc !important;
-            }
         `;
         if (style.styleSheet) {
             style.styleSheet.cssText = css;
@@ -561,7 +477,6 @@
     function initPlugin() {
         addSettings();
         setupCardListener();
-        setupFullListener();
         addStyles();
         Lampa.Listener.follow('card', (event) => {
             if (event.type === 'build' && event.object.card) {
