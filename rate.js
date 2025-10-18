@@ -3,6 +3,7 @@
 
     // Инициализация платформы Lampa для телевизионной версии
     Lampa.Platform.tv();
+
     // Проверка, не инициализирован ли плагин ранее
     if (window.lampa_rating_plugin) return;
     window.lampa_rating_plugin = true;
@@ -198,86 +199,80 @@
                 headers: { 'X-API-KEY': '2a4a0808-81a3-40ae-b0d3-e11335ede616' }
             };
 
-            function fetchFilmData(url) {
-                request.timeout(15000);
-                request.silent(url, (data) => {
-                    if (data && data.ratingKinopoisk && data.ratingImdb) {
-                        const cachedData = ratingCache.set('kp_rating', item.id, {
-                            kp: data.ratingKinopoisk || 0,
-                            imdb: data.ratingImdb || 0,
-                            timestamp: Date.now()
-                        });
-                        const source = Lampa.Storage.get('rating_source', 'tmdb');
-                        const rating = source === 'kp' ? cachedData.kp : cachedData.imdb;
-                        releaseRequest(request);
-                        callback(rating ? parseFloat(rating).toFixed(1) : '0.0');
-                    } else {
-                        releaseRequest(request);
-                        callback('0.0');
-                    }
-                }, () => {
-                    releaseRequest(request);
-                    callback('0.0');
-                }, false, { headers: api.headers });
-            }
-
-            if (item.imdb_id) {
-                // Прямой запрос по imdbId
-                const imdbUrl = `${api.url}${api.rating_url}?imdbId=${encodeURIComponent(item.imdb_id)}`;
-                fetchFilmData(imdbUrl);
-            } else {
-                // Поиск по ключевому слову, если imdbId отсутствует
-                const searchUrl = Lampa.Utils.addUrlComponent(api.url + 'api/v2.1/films/search-by-keyword', `keyword=${encodeURIComponent(title)}`);
+            function searchMovies() {
+                let searchUrl = Lampa.Utils.addUrlComponent(api.url + 'api/v2.1/films/search-by-keyword', `keyword=${encodeURIComponent(title)}`);
+                if (item.imdb_id) {
+                    searchUrl = Lampa.Utils.addUrlComponent(api.url + 'api/v2.2/films', `imdbId=${encodeURIComponent(item.imdb_id)}`);
+                }
 
                 request.timeout(15000);
                 request.silent(searchUrl, (data) => {
                     const results = data.films || data.items || [];
-                    if (!results || !results.length) {
-                        releaseRequest(request);
-                        callback('0.0');
-                        return;
-                    }
-
-                    results.forEach(result => {
-                        result.tmp_year = parseInt(String(result.year || result.start_date || "0000").slice(0, 4));
-                    });
-
-                    let filteredResults = results;
-                    if (originalTitle) {
-                        const matched = results.filter(result =>
-                            containsString(result.orig_title || result.nameEn, originalTitle) ||
-                            containsString(result.en_title || result.nameOriginal, originalTitle) ||
-                            containsString(result.title || result.nameRu || result.name, originalTitle)
-                        );
-                        if (matched.length) filteredResults = matched;
-                    }
-
-                    if (filteredResults.length > 1 && releaseYear) {
-                        let yearMatched = filteredResults.filter(result => result.tmp_year == releaseYear);
-                        if (!yearMatched.length) {
-                            yearMatched = filteredResults.filter(result => result.tmp_year && result.tmp_year > releaseYear - 2 && result.tmp_year < releaseYear + 2);
-                        }
-                        if (yearMatched.length) filteredResults = yearMatched;
-                    }
-
-                    if (filteredResults.length >= 1) {
-                        const movieId = filteredResults[0].kp_id || filteredResults[0].kinopoisk_id || filteredResults[0].kinopoiskId || filteredResults[0].filmId;
-                        if (movieId) {
-                            const filmUrl = `${api.url}${api.rating_url}${movieId}`;
-                            fetchFilmData(filmUrl);
-                        } else {
-                            releaseRequest(request);
-                            callback('0.0');
-                        }
-                    } else {
-                        releaseRequest(request);
-                        callback('0.0');
-                    }
+                    processSearchResults(results);
                 }, () => {
                     releaseRequest(request);
                     callback('0.0');
                 }, false, { headers: api.headers });
             }
+
+            function processSearchResults(results) {
+                if (!results || !results.length) {
+                    releaseRequest(request);
+                    callback('0.0');
+                    return;
+                }
+
+                results.forEach(result => {
+                    result.tmp_year = parseInt(String(result.year || result.start_date || "0000").slice(0, 4));
+                });
+
+                let filteredResults = results;
+                if (originalTitle) {
+                    const matched = results.filter(result =>
+                        containsString(result.orig_title || result.nameEn, originalTitle) ||
+                        containsString(result.en_title || result.nameOriginal, originalTitle) ||
+                        containsString(result.title || result.nameRu || result.name, originalTitle)
+                    );
+                    if (matched.length) filteredResults = matched;
+                }
+
+                if (filteredResults.length > 1 && releaseYear) {
+                    let yearMatched = filteredResults.filter(result => result.tmp_year == releaseYear);
+                    if (!yearMatched.length) {
+                        yearMatched = filteredResults.filter(result => result.tmp_year && result.tmp_year > releaseYear - 2 && result.tmp_year < releaseYear + 2);
+                    }
+                    if (yearMatched.length) filteredResults = yearMatched;
+                }
+
+                if (filteredResults.length >= 1) {
+                    const movieId = filteredResults[0].kp_id || filteredResults[0].kinopoisk_id || filteredResults[0].kinopoiskId || filteredResults[0].filmId;
+                    if (movieId) {
+                        request.timeout(15000);
+                        request.silent(`${api.url}${api.rating_url}${movieId}`, (data) => {
+                            const cachedData = ratingCache.set('kp_rating', item.id, {
+                                kp: data.ratingKinopoisk || 0,
+                                imdb: data.ratingImdb || 0,
+                                timestamp: Date.now()
+                            });
+                            const source = Lampa.Storage.get('rating_source', 'tmdb');
+                            const rating = source === 'kp' ? cachedData.kp : cachedData.imdb;
+                            releaseRequest(request);
+                            callback(rating ? parseFloat(rating).toFixed(1) : '0.0');
+                        }, () => {
+                            releaseRequest(request);
+                            callback('0.0');
+                        }, false, { headers: api.headers });
+                    } else {
+                        releaseRequest(request);
+                        callback('0.0');
+                    }
+                } else {
+                    releaseRequest(request);
+                    callback('0.0');
+                }
+            }
+
+            searchMovies();
         });
     }
 
@@ -315,8 +310,8 @@
             bottom: 0.3em;
             background: rgba(0, 0, 0, 0.5);
             color: #fff;
-            font-size: 1em;
-            font-weight: 500;
+            font-size: 1em; /* Уменьшен базовый размер шрифта */
+            font-weight: 500; /* Менее жирный шрифт */
             padding: 0.2em 0.5em;
             border-radius: 1em;
             display: flex;
@@ -472,13 +467,13 @@
                 margin: 0 0.2em;
             }
             .card__vote .rating-value {
-                font-size: 1em;
-                font-weight: 500;
+                font-size: 1em; /* Уменьшен размер шрифта для рейтинга */
+                font-weight: 700; /* Менее жирный шрифт для рейтинга */
             }
             .card__vote .rating-label {
-                font-size: 0.9em;
-                font-weight: 400;
-                margin-left: 0.2em;
+                font-size: 0.9em; /* Уменьшен размер шрифта для метки */
+                font-weight: 500; /* Менее жирный шрифт для метки */
+                margin-left: 0.2em; /* Небольшой отступ от рейтинга */
             }
         `;
         if (style.styleSheet) {
