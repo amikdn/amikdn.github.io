@@ -4,12 +4,6 @@
     // Инициализация платформы Lampa для телевизионной версии
     Lampa.Platform.tv();
 
-    // Проверка доступа к плагину
-    if (Lampa.Manifest.author !== 'lampa') {
-        Lampa.Noty.show('Ошибка доступа');
-        return;
-    }
-
     // Проверка, не инициализирован ли плагин ранее
     if (window.lampa_rating_plugin) return;
     window.lampa_rating_plugin = true;
