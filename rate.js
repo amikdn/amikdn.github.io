@@ -4,6 +4,12 @@
     // Инициализация платформы Lampa для телевизионной версии
     Lampa.Platform.tv();
 
+    // Проверка доступа к плагину
+    if (Lampa.Manifest.author !== 'lampa') {
+        Lampa.Noty.show('Ошибка доступа');
+        return;
+    }
+
     // Проверка, не инициализирован ли плагин ранее
     if (window.lampa_rating_plugin) return;
     window.lampa_rating_plugin = true;
@@ -132,42 +138,6 @@
                 releaseRequest(request);
                 callback('0.0');
             });
-        });
-    }
-
-    // Получение рейтинга с ByLAMPA
-    function getByLampaRating(item, callback) {
-        const type = (item.number_of_seasons || item.seasons || item.last_episode_to_air || item.first_air_date ||
-            item.first_episode_to_air || (item.name && !item.title) || (item.original_name && !item.original_title)) ? 'tv' : 'movie';
-        const key = `${type}_${item.id}`;
-        const cached = ratingCache.get('bylampa_rating', key);
-        if (cached && cached.rating !== '0.0') {
-            callback(cached.rating, cached.voteCount || 0);
-            return;
-        }
-
-        addToQueue(() => {
-            const url = `http://212.113.103.137:841/lampa/ratings/content/${type}/${item.id}`;
-            const xhr = new XMLHttpRequest();
-            xhr.open('GET', url, true);
-            xhr.timeout = 5000;
-            xhr.onload = function () {
-                if (this.status === 200) {
-                    try {
-                        const data = JSON.parse(this.responseText);
-                        const rating = data.averageRating || 0;
-                        const voteCount = data.voteCount || 0;
-                        ratingCache.set('bylampa_rating', key, { rating: rating.toFixed(1), voteCount, timestamp: Date.now() });
-                        callback(rating.toFixed(1), voteCount);
-                    } catch (e) {
-                        callback('0.0', 0);
-                    }
-                } else {
-                    callback('0.0', 0);
-                }
-            };
-            xhr.onerror = xhr.ontimeout = () => callback('0.0', 0);
-            xhr.send();
         });
     }
 
@@ -334,30 +304,40 @@
         ratingElement.dataset.source = source;
         ratingElement.dataset.movieId = data.id.toString();
         ratingElement.className = `card__vote rate--${source}`;
+        ratingElement.innerHTML = '';
+        ratingElement.style.display = '';
+
+        let label = '';
+        if (source === 'tmdb') label = 'TMDB';
+        else if (source === 'lampa') label = 'LAMPA';
+        else if (source === 'kp') label = 'KP';
+        else if (source === 'imdb') label = 'IMDB';
 
         if (source === 'tmdb') {
-            ratingElement.textContent = '';
             const rating = data.vote_average ? data.vote_average.toFixed(1) : '0.0';
-            ratingElement.innerHTML = `${rating}<span class="source--name"></span>`;
-        } else if (source === 'bylampa') {
-            ratingElement.textContent = '';
-            getByLampaRating(data, (rating, voteCount) => {
-                if (ratingElement.dataset && ratingElement.dataset.movieId === data.id.toString()) {
-                    ratingElement.innerHTML = `${rating}<span class="source--name"></span>`;
-                }
-            });
+            if (rating !== '0.0') {
+                ratingElement.innerHTML = `${rating} ${label}`;
+            } else {
+                ratingElement.style.display = 'none';
+            }
         } else if (source === 'lampa') {
-            ratingElement.textContent = '';
             getLampaRating(data, (rating) => {
                 if (ratingElement.dataset && ratingElement.dataset.movieId === data.id.toString()) {
-                    ratingElement.innerHTML = `${rating}<span class="source--name"></span>`;
+                    if (rating !== '0.0') {
+                        ratingElement.innerHTML = `${rating} ${label}`;
+                    } else {
+                        ratingElement.style.display = 'none';
+                    }
                 }
             });
         } else if (source === 'kp' || source === 'imdb') {
-            ratingElement.textContent = '';
             getKinopoiskRating(data, (rating) => {
                 if (ratingElement.dataset && ratingElement.dataset.movieId === data.id.toString()) {
-                    ratingElement.innerHTML = `${rating}<span class="source--name"></span>`;
+                    if (rating !== '0.0') {
+                        ratingElement.innerHTML = `${rating} ${label}`;
+                    } else {
+                        ratingElement.style.display = 'none';
+                    }
                 }
             });
         }
@@ -372,7 +352,6 @@
                 type: 'select',
                 values: {
                     tmdb: 'TMDB',
-                    bylampa: 'ByLAMPA',
                     lampa: 'Lampa',
                     kp: 'КиноПоиск',
                     imdb: 'IMDB'
@@ -430,7 +409,7 @@
         });
     }
 
-    // Добавление CSS-стилей
+    // Добавление CSS-стилей (упрощено, без иконок)
     function addStyles() {
         const style = document.createElement('style');
         style.type = 'text/css';
@@ -439,36 +418,6 @@
                 display: inline-flex !important;
                 align-items: center !important;
                 flex-shrink: 0;
-            }
-            @media (min-width: 481px) {
-                .card__vote .source--name {
-                    width: 24px;
-                    height: 24px;
-                    margin-left: 6px;
-                }
-            }
-            .card__vote .source--name {
-                width: 16px;
-                height: 16px;
-                margin-left: 4px;
-                background-repeat: no-repeat;
-                background-position: center;
-                background-size: contain;
-            }
-            .rate--lampa .source--name {
-                background-image: url("data:image/svg+xml,..."); /* SVG для Lampa */
-            }
-            .rate--tmdb .source--name {
-                background-image: url("data:image/svg+xml,..."); /* SVG для TMDB */
-            }
-            .rate--bylampa .source--name {
-                background-image: url("data:image/svg+xml,..."); /* SVG для ByLAMPA */
-            }
-            .rate--kp .source--name {
-                background-image: url("data:image/svg+xml,..."); /* SVG для Kinopoisk */
-            }
-            .rate--imdb .source--name {
-                background-image: url("data:image/svg+xml,..."); /* SVG для IMDB */
             }
         `;
         if (style.styleSheet) {
