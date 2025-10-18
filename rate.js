@@ -310,8 +310,6 @@
             bottom: 0.3em;
             background: rgba(0, 0, 0, 0.5);
             color: #fff;
-            font-size: 1em; /* Уменьшен базовый размер шрифта */
-            font-weight: 500; /* Менее жирный шрифт */
             padding: 0.2em 0.5em;
             border-radius: 1em;
             display: flex;
@@ -351,7 +349,7 @@
         if (source === 'tmdb') {
             const rating = data.vote_average ? data.vote_average.toFixed(1) : '0.0';
             if (rating !== '0.0') {
-                ratingElement.innerHTML = `<span class="rating-value">${rating}</span> <span class="rating-label">${label}</span>`;
+                ratingElement.innerHTML = `${rating} ${label}`;
             } else {
                 ratingElement.style.display = 'none';
             }
@@ -361,7 +359,7 @@
             getLampaRating(ratingKey).then(result => {
                 if (ratingElement.dataset && ratingElement.dataset.movieId === data.id.toString()) {
                     if (result.rating > 0) {
-                        let html = `<span class="rating-value">${result.rating}</span> <span class="rating-label">${label}</span>`;
+                        let html = `${result.rating} ${label}`;
                         if (result.medianReaction) {
                             let reactionSrc = 'https://cubnotrip.top/img/reactions/' + result.medianReaction + '.svg';
                             html += ' <img style="width:1em;height:1em;margin:0 0.2em;" src="' + reactionSrc + '">';
@@ -376,7 +374,7 @@
             getKinopoiskRating(data, (rating) => {
                 if (ratingElement.dataset && ratingElement.dataset.movieId === data.id.toString()) {
                     if (rating !== '0.0') {
-                        ratingElement.innerHTML = `<span class="rating-value">${rating}</span> <span class="rating-label">${label}</span>`;
+                        ratingElement.innerHTML = `${rating} ${label}`;
                     } else {
                         ratingElement.style.display = 'none';
                     }
@@ -451,13 +449,10 @@
         });
     }
 
-
-
     // Инициализация плагина
     function initPlugin() {
         addSettings();
         setupCardListener();
-        addStyles();
         Lampa.Listener.follow('card', (event) => {
             if (event.type === 'build' && event.object.card) {
                 addCard(event.object);
