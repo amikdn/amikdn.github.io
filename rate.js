@@ -1,5 +1,6 @@
 (function () {
     'use strict';
+
     Lampa.Platform.tv();
 
     if (window.lampa_rating_plugin) return;
@@ -60,6 +61,7 @@
         return { rating: finalRating, medianReaction: medianReaction };
     }
 
+    // Получение рейтинга Lampa через API
     function fetchLampaRating(ratingKey) {
         return new Promise((resolve) => {
             let xhr = new XMLHttpRequest();
@@ -455,14 +457,15 @@
                         let type = e.object.method === 'tv' ? 'tv' : 'movie';
                         let ratingKey = `${type}_${e.object.id}`;
                         getLampaRating(ratingKey).then(result => {
+                            let lampaBlock = $(render).find('.rate--lampa');
                             if (result.rating > 0) {
-                                $(render).find('.rate--lampa .rate-value').text(result.rating);
+                                lampaBlock.find('.rate-value').text(result.rating);
                                 if (result.medianReaction) {
                                     let reactionSrc = 'https://cubnotrip.top/img/reactions/' + result.medianReaction + '.svg';
-                                    $(render).find('.rate--lampa .rate-icon').html('<img style="width:1em;height:1em;margin:0 0.2em;" src="' + reactionSrc + '">');
+                                    lampaBlock.find('.rate-icon').html('<img style="width:1em;height:1em;margin:0 0.2em;" src="' + reactionSrc + '">');
                                 }
                             } else {
-                                $(render).find('.rate--lampa').hide();
+                                lampaBlock.hide();
                             }
                         });
                     }
@@ -485,25 +488,42 @@
                 height: 1em;
                 margin: 0 0.2em;
             }
-            .full-start__rate.rate--lampa {
+            .full-start__rate {
                 display: inline-flex;
                 align-items: center;
                 margin-left: 1em;
             }
-            .full-start__rate.rate--lampa .rate-value {
+            .full-start__rate .rate-value {
                 font-size: 1.5em;
                 font-weight: 700;
                 color: #fff;
+                margin-right: 0.5em;
             }
-            .full-start__rate.rate--lampa .rate-icon img {
+            .full-start__rate .rate-icon img {
                 width: 1em;
                 height: 1em;
                 margin: 0 0.2em;
             }
-            .full-start__rate.rate--lampa .source--name {
+            .full-start__rate .source--name {
                 margin-left: 0.5em;
                 font-size: 1em;
                 color: #ccc;
+            }
+            .rate--lampa .rate-value,
+            .rate--kp .rate-value,
+            .rate--tmdb .rate-value,
+            .rate--imdb .rate-value {
+                font-size: 1.5em !important;
+                font-weight: 700 !important;
+                color: #fff !important;
+                margin-right: 0.5em !important;
+            }
+            .rate--lampa .source--name,
+            .rate--kp .source--name,
+            .rate--tmdb .source--name,
+            .rate--imdb .source--name {
+                font-size: 1em !important;
+                color: #ccc !important;
             }
         `;
         if (style.styleSheet) {
