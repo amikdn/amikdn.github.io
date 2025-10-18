@@ -186,7 +186,8 @@
         addToQueue(() => {
             const request = getRequest();
             const title = cleanString(item.title || item.name);
-            const releaseYear = parseInt((item.release_date || item.first_air_date || item.last_air_date || '0000').slice(0, 4));
+            // Исправление: преобразование в строку перед slice
+            const releaseYear = parseInt(String(item.release_date || item.first_air_date || item.last_air_date || "0000").slice(0, 4));
             const originalTitle = item.original_title || item.original_name;
             const api = {
                 url: 'https://kinopoiskapiunofficial.tech/',
@@ -218,7 +219,8 @@
                 }
 
                 results.forEach(result => {
-                    result.tmp_year = parseInt((result.year || result.start_date || '0000').slice(0, 4));
+                    // Исправление: преобразование в строку перед slice
+                    result.tmp_year = parseInt(String(result.year || result.start_date || "0000").slice(0, 4));
                 });
 
                 let filteredResults = results;
