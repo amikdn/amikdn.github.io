@@ -314,6 +314,8 @@
             font-weight: 700;
             padding: 0.2em 0.5em;
             border-radius: 1em;
+            display: flex;
+            align-items: center;
         `;
         const parent = card.querySelector('.card__view') || card;
         parent.appendChild(ratingElement);
@@ -349,7 +351,7 @@
         if (source === 'tmdb') {
             const rating = data.vote_average ? data.vote_average.toFixed(1) : '0.0';
             if (rating !== '0.0') {
-                ratingElement.innerHTML = `${rating} ${label}`;
+                ratingElement.innerHTML = `<span class="rating-value">${rating}</span> <span class="rating-label">${label}</span>`;
             } else {
                 ratingElement.style.display = 'none';
             }
@@ -359,7 +361,7 @@
             getLampaRating(ratingKey).then(result => {
                 if (ratingElement.dataset && ratingElement.dataset.movieId === data.id.toString()) {
                     if (result.rating > 0) {
-                        let html = `${result.rating} ${label}`;
+                        let html = `<span class="rating-value">${result.rating}</span> <span class="rating-label">${label}</span>`;
                         if (result.medianReaction) {
                             let reactionSrc = 'https://cubnotrip.top/img/reactions/' + result.medianReaction + '.svg';
                             html += ' <img style="width:1em;height:1em;margin:0 0.2em;" src="' + reactionSrc + '">';
@@ -374,7 +376,7 @@
             getKinopoiskRating(data, (rating) => {
                 if (ratingElement.dataset && ratingElement.dataset.movieId === data.id.toString()) {
                     if (rating !== '0.0') {
-                        ratingElement.innerHTML = `${rating} ${label}`;
+                        ratingElement.innerHTML = `<span class="rating-value">${rating}</span> <span class="rating-label">${label}</span>`;
                     } else {
                         ratingElement.style.display = 'none';
                     }
@@ -463,6 +465,15 @@
                 width: 1em;
                 height: 1em;
                 margin: 0 0.2em;
+            }
+            .card__vote .rating-value {
+                font-size: 1.3em;
+                font-weight: 700;
+            }
+            .card__vote .rating-label {
+                font-size: 0.9em; /* Уменьшен размер шрифта */
+                font-weight: 400; /* Менее жирный шрифт */
+                margin-left: 0.2em; /* Небольшой отступ от рейтинга */
             }
         `;
         if (style.styleSheet) {
