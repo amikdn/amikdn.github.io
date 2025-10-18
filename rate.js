@@ -451,38 +451,7 @@
         });
     }
 
-    // Добавление CSS-стилей
-    function addStyles() {
-        const style = document.createElement('style');
-        style.type = 'text/css';
-        const css = `
-            .card__vote {
-                display: inline-flex !important;
-                align-items: center !important;
-                flex-shrink: 0;
-            }
-            .card__vote img {
-                width: 1em;
-                height: 1em;
-                margin: 0 0.2em;
-            }
-            .card__vote .rating-value {
-                font-size: 1em; /* Уменьшен размер шрифта для рейтинга */
-                font-weight: 400; /* Менее жирный шрифт для рейтинга */
-            }
-            .card__vote .rating-label {
-                font-size: 0.9em; /* Уменьшен размер шрифта для метки */
-                font-weight: 300; /* Менее жирный шрифт для метки */
-                margin-left: 0.2em; /* Небольшой отступ от рейтинга */
-            }
-        `;
-        if (style.styleSheet) {
-            style.styleSheet.cssText = css;
-        } else {
-            style.appendChild(document.createTextNode(css));
-        }
-        document.head.appendChild(style);
-    }
+
 
     // Инициализация плагина
     function initPlugin() {
