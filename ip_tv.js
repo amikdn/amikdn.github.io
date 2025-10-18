@@ -1476,7 +1476,7 @@ addSettings(
 
 var activity = {
     id: 0,
-    url: 'https://u.to/PpMrIg',
+    url: 'https://vtesle.ru/tesla.m3u',
     title: plugin.name,
     groups: [],
     currentGroup: getStorage('last_catalog0', 'Other'),
