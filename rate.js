@@ -449,35 +449,10 @@
         });
     }
 
-    // Добавление CSS-стилей для рейтинга Lampa
-    function addStyles() {
-        const style = document.createElement('style');
-        style.type = 'text/css';
-        const css = `
-            .card__vote {
-                display: inline-flex !important;
-                align-items: center !important;
-                flex-shrink: 0;
-            }
-            .card__vote img {
-                width: 1em;
-                height: 1em;
-                margin: 0 0.2em;
-            }
-        `;
-        if (style.styleSheet) {
-            style.styleSheet.cssText = css;
-        } else {
-            style.appendChild(document.createTextNode(css));
-        }
-        document.head.appendChild(style);
-    }
-
     // Инициализация плагина
     function initPlugin() {
         addSettings();
         setupCardListener();
-        addStyles(); // Добавлено обратно для поддержки отображения рейтинга Lampa
         Lampa.Listener.follow('card', (event) => {
             if (event.type === 'build' && event.object.card) {
                 addCard(event.object);
@@ -485,6 +460,7 @@
         });
     }
 
+    // Запуск плагина при готовности приложения
     if (window.appready) {
         initPlugin();
     } else {
