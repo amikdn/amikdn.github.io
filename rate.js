@@ -310,8 +310,8 @@
             bottom: 0.3em;
             background: rgba(0, 0, 0, 0.5);
             color: #fff;
-            font-size: 1.3em;
-            font-weight: 700;
+            font-size: 1em; /* Уменьшен базовый размер шрифта */
+            font-weight: 500; /* Менее жирный шрифт */
             padding: 0.2em 0.5em;
             border-radius: 1em;
             display: flex;
@@ -467,12 +467,12 @@
                 margin: 0 0.2em;
             }
             .card__vote .rating-value {
-                font-size: 1.3em;
-                font-weight: 700;
+                font-size: 1em; /* Уменьшен размер шрифта для рейтинга */
+                font-weight: 500; /* Менее жирный шрифт для рейтинга */
             }
             .card__vote .rating-label {
-                font-size: 0.9em; /* Уменьшен размер шрифта */
-                font-weight: 400; /* Менее жирный шрифт */
+                font-size: 0.9em; /* Уменьшен размер шрифта для метки */
+                font-weight: 400; /* Менее жирный шрифт для метки */
                 margin-left: 0.2em; /* Небольшой отступ от рейтинга */
             }
         `;
