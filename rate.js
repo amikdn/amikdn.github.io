@@ -4,6 +4,7 @@
     // Инициализация платформы Lampa для телевизионной версии
     Lampa.Platform.tv();
 
+
     // Проверка, не инициализирован ли плагин ранее
     if (window.lampa_rating_plugin) return;
     window.lampa_rating_plugin = true;
@@ -383,6 +384,26 @@
         }
     }
 
+    // Добавление рейтинга Lampa на странице фильма
+    function insertLampaBlock(render) {
+        if (!render) return false;
+        let rateLine = $(render).find('.full-start-new__rate-line');
+        if (rateLine.length === 0) return false;
+        if (rateLine.find('.rate--lampa').length > 0) return true;
+        let lampaBlockHtml = '<div class="full-start__rate rate--lampa">' +
+            '<div class="rate-value">0.0</div>' +
+            '<div class="rate-icon"></div>' +
+            '<div class="source--name">LAMPA</div>' +
+            '</div>';
+        let kpBlock = rateLine.find('.rate--kp');
+        if (kpBlock.length > 0) {
+            kpBlock.after(lampaBlockHtml);
+        } else {
+            rateLine.append(lampaBlockHtml);
+        }
+        return true;
+    }
+
     // Добавление настроек в интерфейс
     function addSettings() {
         Lampa.SettingsApi.addParam({
@@ -456,6 +477,28 @@
         Lampa.Listener.follow('card', (event) => {
             if (event.type === 'build' && event.object.card) {
                 addCard(event.object);
+            }
+        });
+        // Обработчик для страницы фильма
+        Lampa.Listener.follow('full', (event) => {
+            if (event.type === 'complite') {
+                let render = event.object.activity.render();
+                if (render && insertLampaBlock(render)) {
+                    if (event.object.method && event.object.id) {
+                        let ratingKey = event.object.method + "_" + event.object.id;
+                        getLampaRating(ratingKey).then(result => {
+                            if (result.rating !== null && result.rating > 0) {
+                                $(render).find('.rate--lampa .rate-value').text(result.rating);
+                                if (result.medianReaction) {
+                                    let reactionSrc = 'https://cubnotrip.top/img/reactions/' + result.medianReaction + '.svg';
+                                    $(render).find('.rate--lampa .rate-icon').html('<img style="width:1em;height:1em;margin:0 0.2em;" src="' + reactionSrc + '">');
+                                }
+                            } else {
+                                $(render).find('.rate--lampa').hide(); // Скрыть, если рейтинг 0
+                            }
+                        });
+                    }
+                }
             }
         });
     }
