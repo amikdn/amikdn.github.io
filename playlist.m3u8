@@ -1,5 +1,4 @@
 #EXTM3U url-tvg="https://iptvx.one/epg/epg_lite.xml.gz; http://gabbarit.drm-play.com/epg_1.xml.gz"
-#EXTM3U url-tvg="https://epgshare01.online/epgshare01/epg_ripper_ALL_SOURCES1.xml.gz"
 #EXTM3U generation-date="2025.09.04 20:17:45 MSK"
 #EXTINF:0 tvg-id="Первый HD"  tvg-logo="http://team.ga/images/chIcons/1.png"  timeshift="6", Первый HD
 #EXTGRP:1. Federal/Федеральные
