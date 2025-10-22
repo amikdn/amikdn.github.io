@@ -2672,10 +2672,10 @@ https://apn9.akter-black.com/http://16.team.ga:80/ch3375/index.m3u8?token=dugong
 https://apn9.akter-black.com/http://16.team.ga:80/ch3419/index.m3u8?token=dugong8273.8YlHvc_pVQGjef8qM6TOTEWtEYIJWDdzEjI9qW3ToHSxmwC9VD0UI_xpRmADmA6B
 #EXTINF:0 tvg-id="Матч! SD"  tvg-logo="http://team.ga/images/chIcons/2126.png"  timeshift="3", Матч! SD
 #EXTGRP:8. Sport/Спорт
-http://188.190.222.53/Match_Futbol_1/index.m3u8
+http://193.111.244.35:7474/matchfut1hd/index.m3u8
 #EXTINF:0 tvg-id="Матч! Футбол 1"  tvg-logo="http://team.ga/images/chIcons/2123.png"  timeshift="3", Матч! Футбол 1
 #EXTGRP:8. Sport/Спорт
-http://193.111.244.35:7474/matchfut1hd/index.m3u8
+http://188.190.222.53/Match_Futbol_1/index.m3u8
 #EXTINF:0 tvg-id="Матч! Футбол 1 HD"  tvg-logo="http://team.ga/images/chIcons/2123.png"  timeshift="3", Матч! Футбол 1 HD
 #EXTGRP:8. Sport/Спорт
 https://apn9.akter-black.com/http://16.team.ga:80/ch2123/index.m3u8?token=dugong8273.8YlHvc_pVQGjef8qM6TOTIxXNwcTX-D6YPa94Dvxr2UxFnhVKFL9dT43iHgCuYaW
