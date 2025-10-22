@@ -2691,6 +2691,12 @@ https://apn9.akter-black.com/http://16.team.ga:80/ch2005/index.m3u8?token=dugong
 #EXTINF:0 tvg-id="Матч! Игра SD"  tvg-logo="http://team.ga/images/chIcons/3304.png"  timeshift="3", Матч! Игра SD
 #EXTGRP:8. Sport/Спорт
 https://apn9.akter-black.com/http://16.team.ga:80/ch3304/index.m3u8?token=dugong8273.8YlHvc_pVQGjef8qM6TOTBdKelDJP-qcqAU3WMFiwQ_9lyWOKpif1wLCakJ81_07
+#EXTINF:0 tvg-id="Eurosport 1"  tvg-logo="http://team.ga/images/chIcons/2125.png"  timeshift="3", Eurosport 1
+#EXTGRP:8. Sport/Спорт
+http://192.162.64.99:5000/play/a01j/index.m3u8
+#EXTINF:0 tvg-id="Eurosport 2"  tvg-logo="http://team.ga/images/chIcons/2125.png"  timeshift="3", Eurosport 2
+#EXTGRP:8. Sport/Спорт
+http://192.162.64.99:5000/play/a035/index.m3u8
 #EXTINF:0 tvg-id="Мяч HD"  tvg-logo="http://team.ga/images/chIcons/708.png"  timeshift="3", Мяч HD
 #EXTGRP:8. Sport/Спорт
 https://apn9.akter-black.com/http://16.team.ga:80/ch708/index.m3u8?token=dugong8273.8YlHvc_pVQGjef8qM6TOTPQ74vIE45HUPzgj5OFPvT-J46EdmshCl_wSTJ8XcCmq
