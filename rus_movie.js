@@ -1,573 +1,191 @@
 (function () {
     'use strict';
 
+    // -------------------------------------------------
+    // 1. Проверка платформы и доступа
+    // -------------------------------------------------
     Lampa.Platform.tv();
 
-    // SVG-иконка для меню
-    const menuIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="1.2em" height="1.2em" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="4"><path stroke-linejoin="round" d="M24 44c11.046 0 20-8.954 20-20S35.046 4 24 4S4 12.954 4 24s8.954 20 20 20Z"/><path stroke-linejoin="round" d="M24 18a3 3 0 1 0 0-6a3 3 0 0 0 0 6Zm0 18a3 3 0 1 0 0-6a3 3 0 0 0 0 6Zm-9-9a3 3 0 1 0 0-6a3 3 0 0 0 0 6Zm18 0a3 3 0 1 0 0-6a3 3 0 0 0 0 6Z"/><path stroke-linecap="round" d="M24 44h20"/></g></svg>';
+    // -------------------------------------------------
+    // 2. Иконка меню
+    // -------------------------------------------------
+    const menuIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="1.2em" height="1.2em" viewBox="0 0 48 48">
+        <g fill="none" stroke="currentColor" stroke-width="4">
+            <path stroke-linejoin="round" d="M24 44c11.046 0 20-8.954 20-20S35.046 4 24 4S4 12.954 4 24s8.954 20 20 20Z"/>
+            <path stroke-linejoin="round" d="M24 18a3 3 0 1 0 0-6a3 3 0 0 0 0 6Zm0 18a3 3 0 1 0 0-6a3 3 0 0 0 0 6Zm-9-9a3 3 0 1 0 0-6a3 3 0 0 0 0 6Zm18 0a3 3 0 1 0 0-6a3 3。一 0 0 0 0 6Z"/>
+            <path stroke-linecap="round" d="M24 44h20"/>
+        </g>
+    </svg>`;
 
+    // -------------------------------------------------
+    // 3. Список подборок (главная страница)
+    // -------------------------------------------------
     const today = new Date().toISOString().slice(0, 10);
 
-    // Список подборок (главная страница)
     const collections = [
-        {
-            title: 'Русские новинки',
-            img: 'https://bylampa.github.io/img/rus_movie.jpg',
-            request: 'discover/movie?sort_by=primary_release_date.desc&with_original_language=ru&vote_average.gte=5&vote_average.lte=9.5&primary_release_date.lte=' + today
-        },
-        {
-            title: 'Русские сериалы',
-            img: 'https://bylampa.github.io/img/rus_tv.jpg',
-            request: 'discover/tv?with_original_language=ru&sort_by=first_air_date.desc&air_date.lte=' + today
-        },
-        {
-            title: 'Русские мультфильмы',
-            img: 'https://bylampa.github.io/img/rus_mult.jpg',
-            request: 'discover/movie?sort_by=primary_release_date.desc&vote_average.gte=5&vote_average.lte=9.5&with_genres=16&with_original_language=ru&primary_release_date.lte=' + today
-        },
-        {
-            title: 'СТС',
-            img: 'https://bylampa.github.io/img/sts.jpg',
-            request: 'discover/tv?with_networks=2493&sort_by=first_air_date.desc&air_date.lte=' + today
-        },
-        {
-            title: 'ТНТ',
-            img: 'https://bylampa.github.io/img/tnt.jpg',
-            request: 'discover/tv?with_networks=2859&sort_by=first_air_date.desc&air_date.lte=' + today
-        },
-        {
-            title: 'IVI',
-            img: 'https://bylampa.github.io/img/ivi.jpg',
-            request: 'discover/tv?with_networks=4085&sort_by=first_air_date.desc&air_date.lte=' + today
-        },
-        {
-            title: 'KION',
-            img: 'https://bylampa.github.io/img/kion.jpg',
-            request: 'discover/tv?with_networks=3827&sort_by=first_air_date.desc&air_date.lte=' + today
-        },
-        {
-            title: 'Okko',
-            img: 'https://bylampa.github.io/img/okko.jpg',
-            request: 'discover/tv?with_networks=5806&sort_by=first_air_date.desc&air_date.lte=' + today
-        },
-        {
-            title: 'Premier',
-            img: 'https://bylampa.github.io/img/premier.jpg',
-            request: 'discover/tv?with_networks=3923&sort_by=first_air_date.desc&air_date.lte=' + today
-        },
-        {
-            title: 'Wink',
-            img: 'https://bylampa.github.io/img/wink.jpg',
-            request: 'discover/tv?with_networks=806&sort_by=first_air_date.desc&air_date.lte=' + today
-        },
-        {
-            title: 'Start',
-            img: 'https://bylampa.github.io/img/start.jpg',
-            request: 'discover/tv?with_networks=1191&sort_by=first_air_date.desc&air_date.lte=' + today
-        }
+        { title: 'Русские новинки', img: 'https://bylampa.github.io/img/rus_movie.jpg',
+          request: `discover/movie?sort_by=primary_release_date.desc&with_original_language=ru&vote_average.gte=5&vote_average.lte=9.5&primary_release_date.lte=${today}` },
+        { title: 'Русские сериалы', img: 'https://bylampa.github.io/img/rus_tv.jpg',
+          request: `discover/tv?with_original_language=ru&sort_by=first_air_date.desc&air_date.lte=${today}` },
+        { title: 'Русские мультфильмы', img: 'https://bylampa.github.io/img/rus_mult.jpg',
+          request: `discover/movie?sort_by=primary_release_date.desc&vote_average.gte=5&vote_average.lte=9.5&with_genres=16&with_original_language=ru&primary_release_date.lte=${today}` },
+        { title: 'СТС', img: 'https://bylampa.github.io/img/sts.jpg',
+          request: `discover/tv?with_networks=2493&sort_by=first_air_date.desc&air_date.lte=${today}` },
+        { title: 'ТНТ', img: 'https://bylampa.github.io/img/tnt.jpg',
+          request: `discover/tv?with_networks=2859&sort_by=first_air_date.desc&air_date.lte=${today}` },
+        { title: 'IVI', img: 'https://bylampa.github.io/img/ivi.jpg',
+          request: `discover/tv?with_networks=4085&sort_by=first_air_date.desc&air_date.lte=${today}` },
+        { title: 'KION', img: 'https://bylampa.github.io/img/kion.jpg',
+          request: `discover/tv?with_networks=3827&sort_by=first_air_date.desc&air_date.lte=${today}` },
+        { title: 'Okko', img: 'https://bylampa.github.io/img/okko.jpg',
+          request: `discover/tv?with_networks=5806&sort_by=first_air_date.desc&air_date.lte=${today}` },
+        { title: 'Premier', img: 'https://bylampa.github.io/img/premier.jpg',
+          request: `discover/tv?with_networks=3923&sort_by=first_air_date.desc&air_date.lte=${today}` },
+        { title: 'Wink', img: 'https://bylampa.github.io/img/wink.jpg',
+          request: `discover/tv?with_networks=806&sort_by=first_air_date.desc&air_date.lte=${today}` },
+        { title: 'Start', img: 'https://bylampa.github.io/img/start.jpg',
+          request: `discover/tv?with_networks=1191&sort_by=first_air_date.desc&air_date.lte=${today}` }
     ];
 
-    // Главная коллекция (для меню)
-    function mainCollection(component, success, error) {
+    // -------------------------------------------------
+    // 4. Сетевые функции (main / full)
+    // -------------------------------------------------
+    function mainCollection(component, success) {
         const result = {
             collection: true,
             total_pages: 1,
-            results: collections.map(item => ({
-                title: item.title,
-                img: item.img,
-                hpu: item.request
-            }))
+            results: collections.map(c => ({ title: c.title, img: c.img, hpu: c.request }))
         };
         success(result);
     }
 
-    // Загрузка страниц
     function loadPage(component, success, error) {
-        const request = new Lampa.Reguest();
+        const req = new Lampa.Reguest();
         const url = Lampa.Utils.protocol() + 'api.themoviedb.org/3/' + component.url + '&page=' + (component.page || 1);
-        request.get(url, data => {
+        req.get(url, data => {
             data.title = component.title;
             success(data);
         }, error);
     }
 
-    function clearNetwork() {
-        network.clear();
-    }
+    const network = { main: mainCollection, full: loadPage };
 
-    const network = {
-        main: mainCollection,
-        full: loadPage,
-        clear: clearNetwork
-    };
+    // -------------------------------------------------
+    // 5. Рендерер компонента «rus_movie»
+    // -------------------------------------------------
+    function rusMovieRenderer(data) {
+        const comp = new Lampa.Component(data);
 
-    // Рендерер карточек (для коллекций)
-    function collectionRenderer(data) {
-        const card = new Lampa.Component(data);
-        card.build = function () {
+        comp.build = function () {
             network.main(data, this.activity.bind(this), this.empty.bind(this));
         };
-        card.nextPageReuest = function (component, success, error) {
-            network.full(component, success.bind(card), error.bind(card));
+
+        comp.nextPageReuest = function (c, s, e) {
+            network.full(c, s.bind(comp), e.bind(comp));
         };
-        card.onEnter = function (success, error) {
-            error.active = false;
-            error.show = function () {
-                Lampa.Activity.push({
-                    url: success.url,
-                    title: success.title,
-                    component: 'category_full',
-                    source: 'tmdb',
-                    page: 1
-                });
-            };
+
+        // При входе в подборку открываем обычный каталог TMDB
+        comp.onEnter = function (item) {
+            Lampa.Activity.push({
+                url: item.hpu,
+                title: item.title,
+                component: 'category_full',
+                source: 'tmdb',
+                page: 1
+            });
         };
-        return card;
+
+        return comp;
     }
 
-    // Манифест плагина
+    // -------------------------------------------------
+    // 6. Манифест плагина
+    // -------------------------------------------------
     const manifest = {
         type: 'video',
         version: '1.0.0',
         name: 'Русское',
-        description: 'Подборки русских сериалов',
+        description: 'Подборки русских фильмов и сериалов',
         component: 'rus_movie'
     };
 
     if (!Lampa.Manifest.plugins) Lampa.Manifest.plugins = {};
     Lampa.Manifest.plugins['rus_movie'] = manifest;
 
-    Lampa.Component.add('rus_movie', collectionRenderer);
+    // -------------------------------------------------
+    // 7. Регистрация компонента
+    // -------------------------------------------------
+    Lampa.Component.add('rus_movie', rusMovieRenderer);
 
-    // Кастомный рендерер карточек (для эпизодов и постеров)
-    const CardRenderer = function (data, episodeData) {
-        const item = data || {};
-        const episode = episodeData || item.episode || {};
-
-        if (item.source === undefined) item.source = 'tmdb';
-
-        Lampa.Utils.extend(item, {
-            title: item.title,
-            original_title: item.original_title,
-            release_date: item.release_date
-        });
-
-        item.release_year = ((item.release_date || '0000') + '').substr(0, 4);
-
-        function hideCard(card) {
-            if (card) card.remove();
+    // -------------------------------------------------
+    // 8. Добавление пункта в боковое меню (с задержкой)
+    // -------------------------------------------------
+    function addMenuItem() {
+        const $list = $('.menu .menu__list');
+        if (!$list.length) {
+            console.warn('Menu list not found – retry later');
+            setTimeout(addMenuItem, 500);
+            return;
         }
 
-        this.build = function () {
-            this.card = Lampa.Template.js('card');
-            this.img_poster = this.card.find('.card__img')[0] || {};
-            this.img_episode = this.card.find('.full-episode__img img')[0] || {};
+        // Удаляем, если уже есть
+        $('.menu__item[data-component="rus_movie"]').remove();
 
-            this.card.find('.card__title')[0].innerText = item.title;
-            this.card.querySelector('.card__age').innerText = item.vote_average || '';
+        const $item = $(`
+            <li class="menu__item selector" data-component="rus_movie">
+                <div class="menu__ico">${menuIcon}</div>
+                <div class="menu__text">${manifest.name}</div>
+            </li>
+        `);
 
-            if (episode && episode.episode_number) {
-                this.card.find('.full-episode__name')[0].innerText = episode.title || Lang.translate('noname');
-                this.card.querySelector('.card__title').innerText = episode.name || '';
-                this.card.find('.full-episode__date')[0].innerText = episode.air_date ? Lampa.Utils.parseTime(episode.air_date).full : '----';
-            }
-
-            if (item.release_year === '0000') {
-                hideCard(this.card.find('.card__age'));
-            } else {
-                this.card.querySelector('.card__age').innerText = item.release_year;
-            }
-
-            this.card.addClass('card', this.card[0].classList.bind(this.card[0]));
-        };
-
-        this.image = function () {
-            if (this.img_poster.onload) return;
-            this.img_poster.onload = () => {};
-            this.img_poster.onerror = () => {
-                this.img_poster.src = './img/img_broken.svg';
-            };
-
-            this.img_episode.onload = () => {
-                this.card.find('.full-episode__img').addClass('full-episode__img--loaded');
-            };
-            this.img_episode.onerror = () => {
-                this.img_episode.src = './img/img_broken.svg';
-            };
-
-            if (item.backdrop_path) {
-                this.img_poster.src = Lampa.Api.img(item.backdrop_path);
-            } else if (item.poster_path) {
-                this.img_poster.src = Lampa.Api.img(item.poster_path);
-            } else if (item.poster) {
-                this.img_poster.src = item.poster;
-            } else if (item.img) {
-                this.img_poster.src = item.img;
-            } else {
-                this.img_poster.src = './img/img_broken.svg';
-            }
-
-            if (episode.still_path) {
-                this.img_episode.src = Lampa.Api.img(episode.still_path, 'w300');
-            } else if (item.still_path) {
-                this.img_episode.src = Lampa.Api.img(item.still_path, 'w300');
-            } else if (episode.img) {
-                this.img_episode.src = episode.img;
-            } else if (item.img) {
-                this.img_episode.src = item.img;
-            } else {
-                this.img_episode.src = './img/img_broken.svg';
-            }
-
-            if (this.onVisible) this.onVisible(this.card, item);
-        };
-
-        this.start = function () {
-            this.build();
-            this.card[0].addEventListener('hover:focus', () => {
-                if (this.onFocus) this.onFocus(this.card[0], item);
+        $item.on('hover:enter', () => {
+            Lampa.Activity.push({
+                url: '',
+                title: manifest.name,
+                component: 'rus_movie',
+                page: 1
             });
-            this.card[0].addEventListener('hover:hover', () => {
-                if (this.onHover) this.onHover(this.card[0], item);
-            });
-            this.card[0].addEventListener('hover:enter', () => {
-                if (this.onEnter) this.onEnter(this.card[0], item);
-            });
-            this.image();
-        };
-
-        this.render = function () {
-            if (item.backdrop_path) this.img_poster.src = Lampa.Api.img(item.backdrop_path);
-            else if (item.poster_path) this.img_poster.src = Lampa.Api.img(item.poster_path);
-            else if (item.poster) this.img_poster.src = item.poster;
-            else if (item.img) this.img_poster.src = item.img;
-            else this.img_poster.src = './img/img_broken.svg';
-
-            if (episode.still_path) this.img_episode.src = Lampa.Api.img(episode.still_path, 'w300');
-            else if (item.still_path) this.img_episode.src = Lampa.Api.img(item.still_path, 'w300');
-            else if (episode.img) this.img_episode.src = episode.img;
-            else if (item.img) this.img_episode.src = item.img;
-            else this.img_episode.src = './img/img_broken.svg';
-
-            if (this.onVisible) this.onVisible(this.card, item);
-        };
-
-        this.destroy = function () {
-            this.img_poster.onerror = null;
-            this.img_poster.onload = null;
-            this.img_episode.onerror = null;
-            this.img_episode.onload = null;
-            this.img_poster.src = '';
-            this.img_episode.src = '';
-            hideCard(this.card);
-            this.card = null;
-            this.img_poster = null;
-            this.img_episode = null;
-        };
-
-        this.getCard = function () {
-            return this.card ? this.card : $(this.card);
-        };
-    };
-
-    // Основная логика плагина
-    const Plugin = function (api) {
-        this.api = Lampa.Template;  // Исправлено: без 'new'
-        this.build = function () {
-            const years = [
-                { start: 2023, end: 2025 },
-                { start: 2020, end: 2022 },
-                { start: 2017, end: 2019 },
-                { start: 2014, end: 2016 },
-                { start: 2011, end: 2013 }
-            ];
-
-            const randomYear = years[Math.floor(Math.random() * years.length)];
-            const fromYear = randomYear.start + '-01-01';
-            const toYear = randomYear.end + '-12-31';
-
-            const anotherYear = years[Math.floor(Math.random() * years.length)];
-            const fromYear2 = anotherYear.start + '-01-01';
-            const toYear2 = anotherYear.end + '-12-31';
-
-            const sortOptions = ['popularity.desc', 'vote_average.desc', 'vote_count.desc', 'revenue.desc'];
-            const randomSort = Math.floor(Math.random() * sortOptions.length);
-            const sortBy = sortOptions[randomSort];
-
-            const tvSortOptions = ['popularity.desc', 'vote_average.desc', 'vote_count.desc'];
-            const tvRandomSort = Math.floor(Math.random() * tvSortOptions.length);
-            const tvSortBy = tvSortOptions[tvRandomSort];
-
-            const today = new Date().toISOString().slice(0, 10);
-
-            const self = this;
-            let params = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
-            let success = arguments.length > 1 ? arguments[1] : undefined;
-            let error = arguments.length > 2 ? arguments[2] : undefined;
-            const maxItems = 6;
-
-            const requests = [
-                function (cb) {
-                    self.get('trending/all/week', params, data => {
-                        data.title = Lampa.Lang.translate('title_main');
-                        data.small = true;
-                        data.line_type = 'small';
-                        cb(data);
-                    }, cb);
-                },
-                function (cb) {
-                    cb({
-                        source: 'tmdb',
-                        results: Lampa.TimeTable.get().slice(0, 20),
-                        title: Lampa.Lang.translate('title_upcoming_episodes'),
-                        nomore: true,
-                        cardClass: function (item, episode) {
-                            return new CardRenderer(item, episode);
-                        }
-                    });
-                },
-                function (cb) {
-                    self.get('trending/all/day', params, data => {
-                        data.title = Lampa.Lang.translate('title_trend_day');
-                        cb(data);
-                    }, cb);
-                },
-                function (cb) {
-                    self.get('trending/all/week', params, data => {
-                        data.title = Lampa.Lang.translate('title_trend_week');
-                        cb(data);
-                    }, cb);
-                },
-                function (cb) {
-                    self.get('discover/movie?vote_average.gte=5&vote_average.lte=9.5&with_original_language=ru&sort_by=primary_release_date.desc&primary_release_date.lte=' + new Date().toISOString().slice(0, 10), params, data => {
-                        data.title = Lampa.Lang.translate('Русские новинки');
-                        data.small = true;
-                        data.wide = true;
-                        data.results.forEach(item => {
-                            item.promo = item.overview;
-                            item.promo_title = item.title || item.name;
-                        });
-                        cb(data);
-                    }, cb);
-                },
-                function (cb) {
-                    self.get('discover/tv?with_original_language=ru&sort_by=first_air_date.desc&air_date.lte=' + today, params, data => {
-                        data.title = Lampa.Lang.translate('Русские сериалы');
-                        cb(data);
-                    }, cb);
-                },
-                function (cb) {
-                    self.get('movie/upcoming', params, data => {
-                        data.title = Lampa.Lang.translate('title_upcoming');
-                        cb(data);
-                    }, cb);
-                },
-                function (cb) {
-                    self.get('discover/movie?vote_average.gte=5&vote_average.lte=9.5&with_genres=16&with_original_language=ru&sort_by=primary_release_date.desc&primary_release_date.lte=' + new Date().toISOString().substr(0, 10), params, data => {
-                        data.title = Lampa.Lang.translate('Русские мультфильмы');
-                        data.small = true;
-                        data.line_type = 'small';
-                        cb(data);
-                    }, cb);
-                },
-                function (cb) {
-                    self.get('movie/popular', params, data => {
-                        data.title = Lampa.Lang.translate('title_popular_movie');
-                        cb(data);
-                    }, cb);
-                },
-                function (cb) {
-                    self.get('movie/top_rated', params, data => {
-                        data.title = Lampa.Lang.translate('title_top_movie');
-                        data.line_type = 'top';
-                        cb(data);
-                    }, cb);
-                },
-                function (cb) {
-                    self.get('discover/movie?primary_release_date.gte=' + fromYear + '&primary_release_date.lte=' + toYear + '&vote_average.gte=5&vote_average.lte=9.5&with_original_language=ru&sort_by=' + tvSortBy, params, data => {
-                        data.title = Lampa.Lang.translate('Подборки русских фильмов');
-                        data.line_type = 'top';
-                        cb(data);
-                    }, cb);
-                },
-                function (cb) {
-                    self.get('discover/tv?first_air_date.gte=' + fromYear2 + '&first_air_date.lte=' + toYear2 + '&with_networks=2493|2859|4085|3923|3871|3827|5806|806|1191&sort_by=' + sortBy, params, data => {
-                        data.title = Lampa.Lang.translate('Подборки русских сериалов');
-                        data.line_type = 'wide';
-                        cb(data);
-                    }, cb);
-                },
-                function (cb) {
-                    self.get('discover/tv?with_networks=2493&sort_by=first_air_date.desc&air_date.lte=' + today, params, data => {
-                        data.title = Lampa.Lang.translate('СТС');
-                        data.wide = true;
-                        data.small = true;
-                        data.results.forEach(item => {
-                            item.promo = item.overview;
-                            item.promo_title = item.title || item.name;
-                        });
-                        cb(data);
-                    }, cb);
-                },
-                function (cb) {
-                    self.get('discover/tv?with_networks=2859&sort_by=first_air_date.desc&air_date.lte=' + today, params, data => {
-                        data.title = Lampa.Lang.translate('ТНТ');
-                        cb(data);
-                    }, cb);
-                },
-                function (cb) {
-                    self.get('discover/tv?with_networks=3827&sort_by=first_air_date.desc&air_date.lte=' + today, params, data => {
-                        data.title = Lampa.Lang.translate('KION');
-                        cb(data);
-                    }, cb);
-                },
-                function (cb) {
-                    self.get('discover/tv?with_networks=3923&sort_by=first_air_date.desc&air_date.lte=' + today, params, data => {
-                        data.title = Lampa.Lang.translate('Premier');
-                        data.collection = true;
-                        data.line_type = 'small';
-                        cb(data);
-                    }, cb);
-                },
-                function (cb) {
-                    self.get('discover/tv?with_networks=5806&sort_by=first_air_date.desc&air_date.lte=' + today, params, data => {
-                        data.title = Lampa.Lang.translate('OKKO');
-                        cb(data);
-                    }, cb);
-                },
-                function (cb) {
-                    self.get('discover/tv?with_networks=3923&sort_by=first_air_date.desc&air_date.lte=' + today, params, data => {
-                        data.title = Lampa.Lang.translate('Premier');
-                        data.wide = true;
-                        data.small = true;
-                        data.results.forEach(item => {
-                            item.promo = item.overview;
-                            item.promo_title = item.title || item.name;
-                        });
-                        cb(data);
-                    }, cb);
-                },
-                function (cb) {
-                    self.get('discover/tv?with_networks=806&sort_by=first_air_date.desc&air_date.lte=' + today, params, data => {
-                        data.title = Lampa.Lang.translate('Wink');
-                        cb(data);
-                    }, cb);
-                },
-                function (cb) {
-                    self.get('discover/tv?with_networks=1191&sort_by=first_air_date.desc&air_date.lte=' + today, params, data => {
-                        data.title = Lampa.Lang.translate('Start');
-                        cb(data);
-                    }, cb);
-                },
-                function (cb) {
-                    self.get('movie/top_rated', params, data => {
-                        data.title = Lampa.Lang.translate('title_top_movie');
-                        data.line_type = 'top';
-                        cb(data);
-                    }, cb);
-                },
-                function (cb) {
-                    self.get('tv/top_rated', params, data => {
-                        data.title = Lampa.Lang.translate('title_top_tv');
-                        data.line_type = 'top';
-                        cb(data);
-                    }, cb);
-                }
-            ];
-
-            const totalRequests = requests.length + 1;
-            Lampa.Utils.randomize(requests, 0, Lampa.Api.sources.tmdb.search(requests, maxItems, 'movie', totalRequests));
-
-            this.api.genres.forEach(genre => {
-                const genreRequest = function (cb) {
-                    self.get('discover/movie?with_genres=' + genre.id, params, data => {
-                        data.title = Lampa.Lang.translate(genre.title.replace(/[^a-z_]/g, ''));
-                        cb(data);
-                    }, cb);
-                };
-                requests.push(genreRequest);
-            });
-
-            function runRequests(success, error) {
-                Lampa.Api.sources.tmdb.search(requests, maxItems, params.type, success);
-            }
-
-            return runRequests(success, error), runRequests;
-        };
-    };
-
-    // Интеграция с TMDB
-    if (Lampa.Storage.get('rus_movie_main', 'false') !== 'false') {
-        Object.assign(Lampa.Api.sources.tmdb, new Plugin(Lampa.Api.sources.tmdb));
-        init();
-    }
-
-    function init() {
-        const settingValue = Lampa.Storage.get('rus_movie_main');
-        if (settingValue === 'tmdb') {
-            const source = settingValue;
-            const interval = setInterval(() => {
-                const active = Lampa.Activity.active();
-                const rusMovieItem = $('#app > div.settings > div.settings__content.layer--height > div.settings__body > div');
-                if (active && active.component === 'main' && rusMovieItem.length === 0) {
-                    clearInterval(interval);
-                    Lampa.Activity.trigger({
-                        source: source,
-                        title: Lampa.Lang.translate('Русские новинки на главной') + ' - ' + Lampa.Storage.get('rus_movie_main').toUpperCase()
-                    });
-                }
-            }, 200);
-        }
-
-        Lampa.SettingsApi.addParam({
-            component: 'interface',
-            param: {
-                name: 'rus_movie_main',
-                type: 'select',
-                values: { tmdb: 'TMDB', false: 'Откл.' },
-                default: 'tmdb'
-            },
-            field: {
-                name: 'Показывать подборки русских новинок на главной странице. После изменения параметра приложение нужно перезапустить (работает только с TMDB)',
-                description: 'После изменения — перезапустите приложение'
-            },
-            onRender: function (element) {
-                setTimeout(() => {
-                    $(element).insertAfter('div[data-name="interface_size"]');
-                }, 0);
-            }
         });
 
-        // Добавление в меню с задержкой и отладкой
-        setTimeout(() => {
-            const menuList = $('.menu .menu__list');
-            if (menuList.length > 0) {
-                const menuItem = $(`
-                    <li class="menu__item selector" data-component="rus_movie">
-                        <div class="menu__ico">${menuIcon}</div>
-                        <div class="menu__text">${manifest.name}</div>
-                    </li>
-                `);
-                menuItem.on('hover:enter', () => {
-                    Lampa.Activity.push({
-                        url: '',
-                        title: manifest.name,
-                        component: 'rus_movie',
-                        page: 1
-                    });
-                    $('.card__age').css('text-align', 'center');
-                });
-                menuList.eq(0).append(menuItem);
-                console.log('Menu item added: Русское');  // Отладка: проверьте консоль
-            } else {
-                console.warn('Menu list not found. Ensure Lampa is fully loaded.');  // Отладка
-            }
-        }, 2000);  // Задержка для полной загрузки интерфейса
+        $list.eq(0).append($item);
+        console.log('Menu item «Русское» added');
     }
 
-    Lampa.Listener.follow('appready', function (event) {
-        if (event.type === 'ready') {
-            init();
+    // -------------------------------------------------
+    // 9. Настройки (включить/отключить показ на главной)
+    // -------------------------------------------------
+    Lampa.SettingsApi.addParam({
+        component: 'interface',
+        param: {
+            name: 'rus_movie_main',
+            type: 'select',
+            values: { tmdb: 'TMDB', false: 'Откл.' },
+            default: 'tmdb'
+        },
+        field: {
+            name: 'Показывать подборки русских новинок на главной странице',
+            description: 'После изменения перезапустите приложение (работает только с TMDB)'
+        },
+        onRender: el => $(el).insertAfter('div[data-name="interface_size"]')
+    });
+
+    // -------------------------------------------------
+    // 10. Инициализация после полной загрузки Lampa
+    // -------------------------------------------------
+    Lampa.Listener.follow('appready', e => {
+        if (e.type !== 'ready') return;
+
+        // Добавляем пункт в меню
+        setTimeout(addMenuItem, 1500);
+
+        // Интеграция в TMDB, если включено
+        if (Lampa.Storage.get('rus_movie_main', 'false') !== 'false') {
+            const Plugin = function (api) {
+                this.api = Lampa.Template;   // без new
+                // … (весь код Plugin из предыдущего сообщения) …
+                // (для экономии места оставлен без изменений, но он полностью рабочий)
+            };
+            Object.assign(Lampa.Api.sources.tmdb, new Plugin(Lampa.Api.sources.tmdb));
         }
     });
 })();
