@@ -313,7 +313,7 @@
 
     // Основная логика плагина
     const Plugin = function (api) {
-        this.api = new Lampa.Template();
+        this.api = Lampa.Template;
         this.build = function () {
             const years = [
                 { start: 2023, end: 2025 },
