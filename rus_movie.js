@@ -560,39 +560,43 @@
         };
     };
 
-    // Интеграция с TMDB
-    if (Lampa.Controller.get('rus_movie_main') !== false) {
-        Object.assign(Lampa.Api.sources.tmdb, new Plugin(Lampa.Api.sources.tmdb));
-        init();
-    }
+// Интеграция с TMDB
+if (Lampa.Storage.get('rus_movie_main', 'false') !== 'false') {
+    Object.assign(Lampa.Api.sources.tmdb, new Plugin(Lampa.Api.sources.tmdb));
+    init();
+}
 
-    function init() {
-        if (Lampa.Storage.get('rus_movie_main') == 'tmdb') {
-            const source = Lampa.Storage.get('rus_movie_main');
-            const interval = setInterval(() => {
-                const active = Lampa.Activity.active();
-                const rusMovieItem = $('#app > div.settings > div.settings__content.layer--height > div.settings__body > div');
-                if (active && active.component === 'main' && !rusMovieItem.length > 0) {
-                    clearInterval(interval);
-                    Lampa.Activity.trigger({
-                        source: source,
-                        title: Lampa.Lang.translate('Русские новинки на главной') + ' - ' + Lampa.Controller.field('rus_movie_main').toUpperCase()
-                    });
-                }
-            }, 200);
-        }
-
-        Lampa.SettingsApi.addParam({
-            component: 'interface',
-            param: { name: 'rus_movie_main', type: 'select', default: true },
-            field: { name: 'Показывать подборки русских новинок на главной странице. После изменения параметра приложение нужно перезапустить (работает только с TMDB)', description: '...' },
-            onRender: function (element) {
-                setTimeout(() => {
-                    $('#app > div.settings > div.settings__content.layer--height > div.settings__body > div').insertAfter('div[data-name="interface_size"]');
-                }, 0);
+function init() {
+    const settingValue = Lampa.Storage.get('rus_movie_main');
+    if (settingValue === 'tmdb') {
+        const source = settingValue;
+        const interval = setInterval(() => {
+            const active = Lampa.Activity.active();
+            const rusMovieItem = $('#app > div.settings > div.settings__content.layer--height > div.settings__body > div');
+            if (active && active.component === 'main' && rusMovieItem.length === 0) {
+                clearInterval(interval);
+                Lampa.Activity.trigger({
+                    source: source,
+                    title: Lampa.Lang.translate('Русские новинки на главной') + ' - ' + Lampa.Storage.get('rus_movie_main').toUpperCase()
+                });
             }
-        });
+        }, 200);
     }
+
+    Lampa.SettingsApi.addParam({
+        component: 'interface',
+        param: { name: 'rus_movie_main', type: 'select', default: true },
+        field: { 
+            name: 'Показывать подборки русских новинок на главной странице. После изменения параметра приложение нужно перезапустить (работает только с TMDB)', 
+            description: 'После изменения — перезапустите приложение'
+        },
+        onRender: function (element) {
+            setTimeout(() => {
+                $(element).insertAfter('div[data-name="interface_size"]');
+            }, 0);
+        }
+    });
+}
 
     if (window.appready) init();
     else Lampa.Listener.follow('appready', event => {
