@@ -3,9 +3,6 @@
 #EXTINF:0 tvg-id="Первый HD"  tvg-logo="http://team.ga/images/chIcons/1.png"  timeshift="6", Первый HD
 #EXTGRP:1. Federal/Федеральные
 https://apn9.akter-black.com/http://16.team.ga:80/ch001/index.m3u8?token=dugong8273.8YlHvc_pVQGjef8qM6TOTLpHlNnGNgX2PxNSzjHSsZy3hU-B03euLzM4itxj_PkE
-#EXTINF:0 tvg-id="Первый HD Double"  tvg-logo="http://team.ga/images/chIcons/1089.png"  timeshift="6", Первый HD Double
-#EXTGRP:1. Federal/Федеральные
-https://apn9.akter-black.com/http://16.team.ga:80/ch1089/index.m3u8?token=dugong8273.8YlHvc_pVQGjef8qM6TOTBfg6gveV3p4kmVrXxOibjFssyy03_QcYVmYctqRGY6H
 #EXTINF:0 tvg-id="Первый"  tvg-logo="http://team.ga/images/chIcons/1643.png"  timeshift="6", Первый
 #EXTGRP:1. Federal/Федеральные
 https://apn9.akter-black.com/http://16.team.ga:80/ch1643/index.m3u8?token=dugong8273.8YlHvc_pVQGjef8qM6TOTIFydJ5FaX6JDLvk7aAHrlWxiwABaEGvUkG15WhmtDTL
@@ -27,9 +24,6 @@ https://apn9.akter-black.com/http://16.team.ga:80/ch649/index.m3u8?token=dugong8
 #EXTINF:0 tvg-id="Россия 1 HD"  tvg-logo="http://team.ga/images/chIcons/2.png"  timeshift="6", Россия 1 HD
 #EXTGRP:1. Federal/Федеральные
 https://apn9.akter-black.com/http://16.team.ga:80/ch002/index.m3u8?token=dugong8273.8YlHvc_pVQGjef8qM6TOTNdvwC7MxfDA9WFhDieFHmSVG7XdHAzT7KDC2m9I1Os8
-#EXTINF:0 tvg-id="Россия 1 HD Double"  tvg-logo="http://team.ga/images/chIcons/853.png"  timeshift="6", Россия 1 HD Double
-#EXTGRP:1. Federal/Федеральные
-https://apn9.akter-black.com/http://16.team.ga:80/ch853/index.m3u8?token=dugong8273.8YlHvc_pVQGjef8qM6TOTEmq0ef2dtkurvqtnZeukcpjraCWvFIktYCzzhWOaymP
 #EXTINF:0 tvg-id="Россия 1"  tvg-logo="http://team.ga/images/chIcons/1644.png"  timeshift="6", Россия 1
 #EXTGRP:1. Federal/Федеральные
 https://apn9.akter-black.com/http://16.team.ga:80/ch1644/index.m3u8?token=dugong8273.8YlHvc_pVQGjef8qM6TOTCkki9g-8BktSkWSd3fqt3n_yZcjqTGmyA3dDV8Q7sSn
@@ -69,9 +63,6 @@ https://apn9.akter-black.com/http://16.team.ga:80/ch1059/index.m3u8?token=dugong
 #EXTINF:0 tvg-id="НТВ HD"  tvg-logo="http://team.ga/images/chIcons/3.png"  timeshift="6", НТВ HD
 #EXTGRP:1. Federal/Федеральные
 https://apn9.akter-black.com/http://16.team.ga:80/ch003/index.m3u8?token=dugong8273.8YlHvc_pVQGjef8qM6TOTAuK5WBo1gcEIA6GLa82LFMKoNC2cK7arCSF-3G90rC4
-#EXTINF:0 tvg-id="НТВ HD Double"  tvg-logo="http://team.ga/images/chIcons/396.png"  timeshift="6", НТВ HD Double
-#EXTGRP:1. Federal/Федеральные
-https://apn9.akter-black.com/http://16.team.ga:80/ch396/index.m3u8?token=dugong8273.8YlHvc_pVQGjef8qM6TOTF5Oi9NQIwJw0d_X3n5H_5DoZTmMbyINvutjZcRklJYm
 #EXTINF:0 tvg-id="НТВ"  tvg-logo="http://team.ga/images/chIcons/2453.png"  timeshift="6", НТВ
 #EXTGRP:1. Federal/Федеральные
 https://apn9.akter-black.com/http://16.team.ga:80/ch2453/index.m3u8?token=dugong8273.8YlHvc_pVQGjef8qM6TOTJ6Y2tyvGOd6PJUMbltHINvHNK2MRyxfcCBJMV3BwBNd
@@ -87,9 +78,6 @@ https://apn9.akter-black.com/http://16.team.ga:80/ch390/index.m3u8?token=dugong8
 #EXTINF:0 tvg-id="СТС HD"  tvg-logo="http://team.ga/images/chIcons/21.png"  timeshift="6", СТС HD
 #EXTGRP:1. Federal/Федеральные
 https://apn9.akter-black.com/http://16.team.ga:80/ch021/index.m3u8?token=dugong8273.8YlHvc_pVQGjef8qM6TOTLqM69vo-6o_4xkYxXi0I4zQqNM8738UGX3mg15hpSfQ
-#EXTINF:0 tvg-id="СТС HD Double"  tvg-logo="http://team.ga/images/chIcons/391.png"  timeshift="6", СТС HD Double
-#EXTGRP:1. Federal/Федеральные
-https://apn9.akter-black.com/http://16.team.ga:80/ch391/index.m3u8?token=dugong8273.8YlHvc_pVQGjef8qM6TOTJEAcg0Q2yQ2xstBxkTptTZFVAzy0-F8RdMmVLwtJuEv
 #EXTINF:0 tvg-id="СТС +2"  tvg-logo="http://team.ga/images/chIcons/398.png"  timeshift="6", СТС +2
 #EXTGRP:1. Federal/Федеральные
 https://apn9.akter-black.com/http://16.team.ga:80/ch398/index.m3u8?token=dugong8273.8YlHvc_pVQGjef8qM6TOTPGEbAmsarlJqDKmOz9PWALG3mE9oSnsfRhEMH9oQ2w9
@@ -102,9 +90,6 @@ https://apn9.akter-black.com/http://16.team.ga:80/ch400/index.m3u8?token=dugong8
 #EXTINF:0 tvg-id="ТНТ HD"  tvg-logo="http://team.ga/images/chIcons/5.png"  timeshift="6", ТНТ HD
 #EXTGRP:1. Federal/Федеральные
 https://apn9.akter-black.com/http://16.team.ga:80/ch005/index.m3u8?token=dugong8273.8YlHvc_pVQGjef8qM6TOTPTUH2oSKYGvcVbK6fhvaYs9CoUBeN36N87R-DKioSHp
-#EXTINF:0 tvg-id="ТНТ HD Double"  tvg-logo="http://team.ga/images/chIcons/1950.png"  timeshift="6", ТНТ HD Double
-#EXTGRP:1. Federal/Федеральные
-https://apn9.akter-black.com/http://16.team.ga:80/ch1950/index.m3u8?token=dugong8273.8YlHvc_pVQGjef8qM6TOTGEyvJvkM9nrXuEzLfwbDFixqWEv4X0oV5LTEdqi9XXg
 #EXTINF:0 tvg-id="ТНТ +2"  tvg-logo="http://team.ga/images/chIcons/369.png"  timeshift="6", ТНТ +2
 #EXTGRP:1. Federal/Федеральные
 https://apn9.akter-black.com/http://16.team.ga:80/ch369/index.m3u8?token=dugong8273.8YlHvc_pVQGjef8qM6TOTFDft9-xTKO0b_CFedQgV0ovmML8zpYGqGCIcag7bxaZ
