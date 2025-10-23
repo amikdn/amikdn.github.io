@@ -3,11 +3,13 @@
 Lampa.Platform.tv();
 
 function initBackMenu() {
-
-    const exitTitle       = 'Закрыть приложение';
-    const rebootTitle     = 'Перезагрузить';
-    const clearCacheTitle = 'Очистить кэш';
-    const clearCacheHTML  = `
+    // -------------------------------------------------------------------------
+    // Константы (заглавия и HTML-элементы)
+    // -------------------------------------------------------------------------
+    const exitTitle         = 'Закрыть приложение';
+    const rebootTitle       = 'Перезагрузить';
+    const clearCacheTitle   = 'Очистить кэш';
+    const clearCacheHTML    = `
         <div class="settings-folder" style="padding:0!important">
             <div style="width:2.2em;height:1.7em;padding-right:.5em">
                 <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
@@ -28,7 +30,7 @@ function initBackMenu() {
                     <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
                     <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
                     <g id="SVGRepo_iconCarrier">
-                        <path id="24.TV" data-name="24.TV" d="M46,37H2a1,1,0,0,1-1-1V8A1,1,0,0,1,2,7H46a1,1,0,0,1,1,1V36A1,1,0,0,1,46,37ZM45,9H3V35H45ZM21,16a.975.975,0,0,1,.563.2l7.771,4.872a.974.974,0,0,1,.261,1.715l-7.974,4.981A.982.982,0,0,1,21,28a1,1,0,0,1-1-1V17A1,1,0,0,1,21,16ZM15,39H33a1,1,0,0,1,0,2H15a1,1,0,0,1,0-2Z" transform="translate(-1 -7)" fill-rule="evenodd"></path>
+                        <path id="24.TV" data-name="24.TV" d="M46,37H2a1,1,0,0,1-1-1V8A1,1,0,0,1,2,7H46a1,1,0,0,1,1,1V36A1,1,0,0,1,46,37ZM45,9H3V35H45ZM21,16a.975.975,0,0,1,.563.2l7.771,4.872a.974.974,0,0,1,.261,1.715l-7.974,4.981A.982.982,0,0,1,21,28a1,1,0,0,1- мероприятия1-1V17A1,1,0,0,1,21,16ZM15,39H33a1,1,0,0,1,0,2H15a1,1,0,0,1,0-2Z" transform="translate(-1 -7)" fill-rule="evenodd"></path>
                     </g>
                 </svg>
             </div>
@@ -60,7 +62,7 @@ function initBackMenu() {
     const speedTestTitle = 'Speed Test';
 
     // -------------------------------------------------------------------------
-    // Listener placeholders
+    // Плейсхолдеры слушателей
     // -------------------------------------------------------------------------
     Lampa.Listener.follow('main', () => {});
 
@@ -72,7 +74,7 @@ function initBackMenu() {
     });
 
     // -------------------------------------------------------------------------
-    // Settings parameters
+    // Параметры настроек
     // -------------------------------------------------------------------------
     Lampa.Settings.addParam({
         component: 'back_menu',
@@ -147,9 +149,9 @@ function initBackMenu() {
     });
 
     // -------------------------------------------------------------------------
-    // Apply default settings once
+    // Применение дефолтных настроек один раз
     // -------------------------------------------------------------------------
-    const initInterval = setInterval(() Hoisted => {
+    const initInterval = setInterval(() => {
         if (typeof Lampa !== 'undefined') {
             clearInterval(initInterval);
             if (!Lampa.Storage.get('lampa', 'false')) applyDefaults();
@@ -171,7 +173,7 @@ function initBackMenu() {
     }
 
     // -------------------------------------------------------------------------
-    // Helper functions
+    // Вспомогательные функции
     // -------------------------------------------------------------------------
     function openSpeedTest() {
         const html = $(`
@@ -235,12 +237,11 @@ function initBackMenu() {
 
         if (localStorage.getItem('exit')          !== '1') items.push({ title: exitTitle });
         if (localStorage.getItem('reboot')        !== '1') items.push({ title: rebootTitle });
-        if (localStorage.getItem('clear_cache')   !== '1') items.push({ title: clearCacheTitle });
-        if (localStorage.getItem('switch_server') !== '1') items.push({ title: clearCacheHTML });
+        if (localStorage.getItem('clear_cache')   !== '1') items.push({ title: clearCacheHTML });
+        if (localStorage.getItem('switch_server') !== '1') items.push({ title: switchServerTitle });
         if (localStorage.getItem('youtube')       !== '1') items.push({ title: youtubeTitle });
         if (localStorage.getItem('rutube')        !== '1') items.push({ title: rutubeTitle });
         if (localStorage.getItem('drm_play')      !== '1') items.push({ title: drmPlayHTML });
-        if (localStorage.getItem('switch_server') !== '1') items.push({ title: switchServerTitle });
         if (localStorage.getItem('fork_player')   !== '1') items.push({ title: forkPlayerHTML });
         if (localStorage.getItem('speedtest')     !== '1') items.push({ title: speedTestTitle });
 
@@ -249,22 +250,21 @@ function initBackMenu() {
             items,
             onBack: () => Lampa.Controller.toggle('main'),
             onSelect: (item) => {
-                if (item.title === exitTitle)        exitApp();
-                if (item.title === rebootTitle)      location.reload();
-                if (item.title === clearCacheTitle)  clearCache();
-                if (item.title === clearCacheHTML)   clearCache();
-                if (item.title === youtubeTitle)     window.location.href = 'https://youtube.com/tv';
-                if (item.title === rutubeTitle)      window.location.href = 'https://rutube.ru/tv-release/rutube.server-22.0.0/webos/';
-                if (item.title === drmPlayHTML)      window.location.href = 'https://ott.drm-play.com';
-                if (item.title === switchServerTitle)changeServer();
-                if (item.title === forkPlayerHTML)   window.location.href = 'http://browser.appfxml.com';
-                if (item.title === speedTestTitle)   openSpeedTest();
+                if (item.title === exitTitle)                  exitApp();
+                if (item.title === rebootTitle)                location.reload();
+                if (item.title.includes('Очистить кэш'))       clearCache();
+                if (item.title === switchServerTitle)          changeServer();
+                if (item.title === youtubeTitle)               window.location.href = 'https://youtube.com/tv';
+                if (item.title === rutubeTitle)                window.location.href = 'https://rutube.ru/tv-release/rutube.server-22.0.0/webos/';
+                if (item.title === 'DRM Play')                 window.location.href = 'https://ott.drm-play.com';
+                if (item.title === 'ForkPlayer')               window.location.href = 'http://browser.appfxml.com';
+                if (item.title === speedTestTitle)             openSpeedTest();
             }
         });
     }
 
     // -------------------------------------------------------------------------
-    // Open menu when “Выход” is selected in the main select
+    // Открытие меню при выборе пункта «Выход» в главном селекте
     // -------------------------------------------------------------------------
     Lampa.Controller.listener.follow('select', (e) => {
         if (e.name === 'select' && $('.selectbox__title').text() === Lampa.Lang.translate('title_out')) {
@@ -275,7 +275,7 @@ function initBackMenu() {
 }
 
 // -------------------------------------------------------------------------
-// Run when the application is ready
+// Запуск при готовности приложения
 // -------------------------------------------------------------------------
 if (window.appready) {
     initBackMenu();
