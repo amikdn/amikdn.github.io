@@ -4,10 +4,15 @@
     // --- Регистрация настроек в разделе "Интерфейс" ---
     if (window.Lampa && Lampa.SettingsApi) {
         // Добавление заголовка "Логотип вместо названия"
-        Lampa.SettingsApi.addNode({
+        Lampa.SettingsApi.addParam({
             component: 'interface',
-            name: 'logo_settings_title',
-            html: '<div class="settings-param__name">Логотип вместо названия</div>',
+            param: {
+                name: 'logo_settings_title',
+                type: 'title'
+            },
+            field: {
+                name: "Логотип вместо названия"
+            },
             onRender: function () {
                 setTimeout(() => {
                     $('.settings-param > div:contains("Логотип вместо названия")').parent().insertAfter($('div[data-name="interface_size"]'));
