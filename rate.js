@@ -1,8 +1,8 @@
 (function () {
     'use strict';
-
     Lampa.Platform.tv();
-
+    
+    // Объединенный кэш для всех источников
     const ratingCache = {
         caches: {},
         get(source, key) {
@@ -25,10 +25,10 @@
             return value;
         }
     };
-
+    
     const CACHE_TIME = 24 * 60 * 60 * 1000;
-    let lampaRatingCache = {};
-
+    let unifiedCache = {}; // Объединенный кэш для Lampa-рейтингов
+    
     function calculateLampaRating10(reactions) {
         let weightedSum = 0;
         let totalCount = 0;
@@ -57,7 +57,7 @@
         }
         return { rating: finalRating, medianReaction: medianReaction };
     }
-
+    
     function fetchLampaRating(ratingKey) {
         return new Promise((resolve) => {
             let xhr = new XMLHttpRequest();
@@ -88,21 +88,26 @@
             xhr.send();
         });
     }
-
+    
     async function getLampaRating(ratingKey) {
         let now = Date.now();
-        if (lampaRatingCache[ratingKey] && (now - lampaRatingCache[ratingKey].timestamp < CACHE_TIME)) {
-            return lampaRatingCache[ratingKey].value;
+        if (unifiedCache[ratingKey] && (now - unifiedCache[ratingKey].timestamp < CACHE_TIME)) {
+            return unifiedCache[ratingKey].value;
         }
-        let result = await fetchLampaRating(ratingKey);
-        lampaRatingCache[ratingKey] = { value: result, timestamp: now };
-        return result;
+        try {
+            let result = await fetchLampaRating(ratingKey);
+            unifiedCache[ratingKey] = { value: result, timestamp: now };
+            return result;
+        } catch (e) {
+            console.error('Lampa Rating Error:', e);
+            return { rating: 0, medianReaction: '' };
+        }
     }
-
+    
     let taskQueue = [];
     let isProcessing = false;
     const taskInterval = 300;
-
+    
     function processQueue() {
         if (isProcessing || !taskQueue.length) return;
         isProcessing = true;
@@ -113,22 +118,21 @@
             processQueue();
         }, taskInterval);
     }
-
+    
     function addToQueue(task) {
         taskQueue.push({ execute: task });
         processQueue();
     }
-
+    
     let requestPool = [];
     function getRequest() {
         return requestPool.pop() || new Lampa.Reguest();
     }
-
     function releaseRequest(request) {
         request.clear();
         if (requestPool.length < 3) requestPool.push(request);
     }
-
+    
     const stringCache = {};
     function normalizeString(str) {
         if (stringCache[str]) return stringCache[str];
@@ -141,7 +145,7 @@
         stringCache[str] = normalized;
         return normalized;
     }
-
+    
     function cleanString(str) {
         return normalizeString(str)
             .replace(/^[ \/\\]+/, '')
@@ -150,15 +154,15 @@
             .replace(/([+\/\\] *)+\+/g, '+')
             .replace(/( *[\/\\]+ *)+/g, '+');
     }
-
+    
     function matchStrings(str1, str2) {
         return typeof str1 === 'string' && typeof str2 === 'string' && normalizeString(str1) === normalizeString(str2);
     }
-
+    
     function containsString(str1, str2) {
         return typeof str1 === 'string' && typeof str2 === 'string' && normalizeString(str1).indexOf(normalizeString(str2)) !== -1;
     }
-
+    
     function getKinopoiskRating(item, callback) {
         const cached = ratingCache.get('kp_rating', item.id);
         if (cached) {
@@ -169,7 +173,6 @@
                 return;
             }
         }
-
         addToQueue(() => {
             const request = getRequest();
             const title = cleanString(item.title || item.name);
@@ -180,13 +183,11 @@
                 rating_url: 'api/v2.2/films/',
                 headers: { 'X-API-KEY': '2a4a0808-81a3-40ae-b0d3-e11335ede616' }
             };
-
             function searchMovies() {
                 let searchUrl = Lampa.Utils.addUrlComponent(api.url + 'api/v2.1/films/search-by-keyword', `keyword=${encodeURIComponent(title)}`);
                 if (item.imdb_id) {
                     searchUrl = Lampa.Utils.addUrlComponent(api.url + 'api/v2.2/films', `imdbId=${encodeURIComponent(item.imdb_id)}`);
                 }
-
                 request.timeout(15000);
                 request.silent(searchUrl, (data) => {
                     const results = data.films || data.items || [];
@@ -196,18 +197,15 @@
                     callback('0.0');
                 }, false, { headers: api.headers });
             }
-
             function processSearchResults(results) {
                 if (!results || !results.length) {
                     releaseRequest(request);
                     callback('0.0');
                     return;
                 }
-
                 results.forEach(result => {
                     result.tmp_year = parseInt(String(result.year || result.start_date || "0000").slice(0, 4));
                 });
-
                 let filteredResults = results;
                 if (originalTitle) {
                     const matched = results.filter(result =>
@@ -217,7 +215,6 @@
                     );
                     if (matched.length) filteredResults = matched;
                 }
-
                 if (filteredResults.length > 1 && releaseYear) {
                     let yearMatched = filteredResults.filter(result => result.tmp_year == releaseYear);
                     if (!yearMatched.length) {
@@ -225,7 +222,6 @@
                     }
                     if (yearMatched.length) filteredResults = yearMatched;
                 }
-
                 if (filteredResults.length >= 1) {
                     const movieId = filteredResults[0].kp_id || filteredResults[0].kinopoisk_id || filteredResults[0].kinopoiskId || filteredResults[0].filmId;
                     if (movieId) {
@@ -253,28 +249,38 @@
                     callback('0.0');
                 }
             }
-
             searchMovies();
         });
     }
-
+    
     let pendingCards = [];
     let cardTimer = null;
-
     function processCards() {
         if (cardTimer) return;
         cardTimer = setTimeout(() => {
             const cards = pendingCards.splice(0);
             cards.forEach(card => updateCardRating(card));
             cardTimer = null;
-        }, 16);
+        }, 50); // Увеличена задержка для стабильности
     }
-
+    
     function addCard(card) {
+        // Проверка, существует ли карточка в DOM
+        if (card && card.querySelector && !document.body.contains(card)) {
+            // Если не в DOM, отложить до появления
+            const observer = new MutationObserver(() => {
+                if (document.body.contains(card)) {
+                    updateCardRating(card);
+                    observer.disconnect();
+                }
+            });
+            observer.observe(document.body, { childList: true, subtree: true });
+            return;
+        }
         pendingCards.push(card);
         processCards();
     }
-
+    
     function createRatingElement(card) {
         const ratingElement = document.createElement('div');
         ratingElement.className = 'card__vote';
@@ -299,32 +305,36 @@
         parent.appendChild(ratingElement);
         return ratingElement;
     }
-
+    
     function updateCardRating(item) {
         const card = item.card || item;
         if (!card || !card.querySelector) return;
-
         const data = card.card_data || item.data || {};
         if (!data.id) return;
-
         const source = Lampa.Storage.get('rating_source', 'tmdb');
         let ratingElement = card.querySelector('.card__vote');
         if (!ratingElement) ratingElement = createRatingElement(card);
-
-        if (ratingElement.dataset && ratingElement.dataset.source === source && ratingElement.dataset.movieId === data.id.toString()) return;
-
+        
+        // Принудительная проверка и очистка dataset для избежания сбросов
+        if (ratingElement.dataset.movieId !== data.id.toString()) {
+            delete ratingElement.dataset.source;
+            delete ratingElement.dataset.movieId;
+        }
+        
+        if (ratingElement.dataset.source === source && ratingElement.dataset.movieId === data.id.toString()) return;
+        
         ratingElement.dataset.source = source;
         ratingElement.dataset.movieId = data.id.toString();
         ratingElement.className = `card__vote rate--${source}`;
         ratingElement.innerHTML = '';
         ratingElement.style.display = '';
-
+        
         let label = '';
         if (source === 'tmdb') label = 'TMDB';
         else if (source === 'lampa') label = 'LAMPA';
         else if (source === 'kp') label = 'KP';
         else if (source === 'imdb') label = 'IMDB';
-
+        
         if (source === 'tmdb') {
             const rating = data.vote_average ? data.vote_average.toFixed(1) : '0.0';
             if (rating !== '0.0') {
@@ -336,7 +346,7 @@
             let type = (data.seasons || data.first_air_date || data.original_name) ? 'tv' : 'movie';
             let ratingKey = `${type}_${data.id}`;
             getLampaRating(ratingKey).then(result => {
-                if (ratingElement.dataset && ratingElement.dataset.movieId === data.id.toString()) {
+                if (ratingElement.parentNode && ratingElement.dataset.movieId === data.id.toString()) { // Проверка на существование
                     if (result.rating > 0) {
                         let html = `${result.rating} ${label}`;
                         if (result.medianReaction) {
@@ -348,10 +358,10 @@
                         ratingElement.style.display = 'none';
                     }
                 }
-            });
+            }).catch(e => console.error('Lampa Update Error:', e));
         } else if (source === 'kp' || source === 'imdb') {
             getKinopoiskRating(data, (rating) => {
-                if (ratingElement.dataset && ratingElement.dataset.movieId === data.id.toString()) {
+                if (ratingElement.parentNode && ratingElement.dataset.movieId === data.id.toString()) {
                     if (rating !== '0.0') {
                         ratingElement.innerHTML = `${rating} ${label}`;
                     } else {
@@ -361,7 +371,26 @@
             });
         }
     }
-
+    
+    // Глобальная функция для принудительного обновления всех рейтингов
+    window.refreshAllRatings = function() {
+        const allCards = document.querySelectorAll('.card');
+        allCards.forEach(card => {
+            const data = card.card_data;
+            if (data && data.id) {
+                delete card.querySelector('.card__vote')?.dataset.source;
+                delete card.querySelector('.card__vote')?.dataset.movieId;
+                addCard({ card, data });
+            }
+        });
+        // Триггер события для новых карточек
+        if (Lampa.Listener) {
+            document.querySelectorAll('.selector, .full-start').forEach(container => {
+                Lampa.Listener.send('card', { type: 'build', object: { card: container } });
+            });
+        }
+    };
+    
     function insertLampaBlock(render) {
         if (!render) return false;
         let rateLine = $(render).find('.full-start-new__rate-line');
@@ -380,7 +409,7 @@
         }
         return true;
     }
-
+    
     function addSettings() {
         Lampa.SettingsApi.addParam({
             component: 'interface',
@@ -406,20 +435,14 @@
             },
             onChange: (value) => {
                 Lampa.Storage.set('rating_source', value);
-                const ratingElements = document.querySelectorAll('.card__vote');
-                for (let i = 0; i < ratingElements.length; i++) {
-                    const element = ratingElements[i];
-                    const card = findParentWithClass(element, 'card');
-                    if (card) {
-                        delete element.dataset.source;
-                        delete element.dataset.movieId;
-                        addCard({ card, data: card.card_data });
-                    }
-                }
+                // Принудительное обновление всех существующих и будущих карточек
+                setTimeout(() => {
+                    window.refreshAllRatings();
+                }, 100);
             }
         });
     }
-
+    
     function findParentWithClass(element, className) {
         let current = element.parentElement;
         while (current) {
@@ -428,11 +451,10 @@
         }
         return null;
     }
-
+    
     function setupCardListener() {
         if (window.lampa_listener_extensions) return;
         window.lampa_listener_extensions = true;
-
         Object.defineProperty(window.Lampa.Card.prototype, 'build', {
             get() { return this._build; },
             set(func) {
@@ -443,16 +465,38 @@
             }
         });
     }
-
+    
+    // MutationObserver для динамических изменений (скролл, виртуализация)
+    function setupObserver() {
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.type === 'childList') {
+                    mutation.addedNodes.forEach((node) => {
+                        if (node.nodeType === 1) { // Element
+                            const newCards = node.querySelectorAll ? node.querySelectorAll('.card') : (node.classList && node.classList.contains('card') ? [node] : []);
+                            newCards.forEach(card => {
+                                const data = card.card_data;
+                                if (data && data.id) {
+                                    addCard({ card, data });
+                                }
+                            });
+                        }
+                    });
+                }
+            });
+        });
+        observer.observe(document.body, { childList: true, subtree: true });
+    }
+    
     function initPlugin() {
         addSettings();
         setupCardListener();
+        setupObserver(); // Добавляем observer для динамики
         Lampa.Listener.follow('card', (event) => {
             if (event.type === 'build' && event.object.card) {
                 addCard(event.object);
             }
         });
-
         Lampa.Listener.follow('full', (event) => {
             if (event.type === 'complite') {
                 let render = event.object.activity.render();
@@ -475,7 +519,7 @@
             }
         });
     }
-
+    
     if (window.appready) {
         initPlugin();
     } else {
