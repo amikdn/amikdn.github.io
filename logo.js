@@ -14,11 +14,9 @@
                 title: "Логотип вместо заголовка",
                 subtitle: "Заменяет текстовый заголовок фильма логотипом",
                 name: 'show_logo_instead_of_title',
-                values: {
-                    'true': "Показать",
-                    'false': "Скрыть"
-                },
-                value: Lampa.Storage.get('show_logo_instead_of_title', 'false')
+                checkbox: true,
+                checked: Lampa.Storage.get('show_logo_instead_of_title', 'false') === 'true',
+                default: false
             },
             {
                 title: "Размер логотипа",
@@ -54,31 +52,48 @@
             onBack: function () {
                 Lampa.Controller.toggle(currentController || 'settings_component');
             },
-            onSelect: function (item) {
-                // Сохранение выбранного значения
-                if (item.name && item.values[item.selected]) {
-                    Lampa.Storage.set(item.name, item.selected);
+            onCheck: function (item) {
+                // Обработка переключателя "Логотип вместо заголовка"
+                if (item.name === 'show_logo_instead_of_title') {
+                    var newValue = !Lampa.Storage.get('show_logo_instead_of_title', 'false') === 'true';
+                    Lampa.Storage.set('show_logo_instead_of_title', newValue);
+                    item.checked = newValue;
 
                     // Обновление текущей карточки или панели
-                    if (Lampa.Activity.active().activity) {
-                        var currentActivity = Lampa.Activity.active().activity;
-                        var render = currentActivity.render();
-                        var movie = currentActivity.movie || {};
-                        if (render && movie.id && movie.title) {
-                            var titleElement = $(render).find(".full-start-new__title, .new-interface-info__title");
-                            if (titleElement.length) {
-                                var showLogos = Lampa.Storage.get('show_logo_instead_of_title', 'false') === 'true';
-                                if (showLogos && movie.method) {
-                                    updateLogoDisplay(movie, titleElement);
-                                } else {
-                                    titleElement.text(movie.title);
-                                }
-                            }
-                        }
-                    }
+                    updateInterface();
+                }
+            },
+            onSelect: function (item) {
+                // Обработка выбора "Размер логотипа"
+                if (item.name === 'info_panel_logo_max_height' && item.selected) {
+                    Lampa.Storage.set('info_panel_logo_max_height', item.selected);
+                    item.value = item.selected;
+
+                    // Обновление текущей карточки или панели
+                    updateInterface();
                 }
             }
         });
+    }
+
+    // --- Вспомогательная функция для обновления интерфейса ---
+    function updateInterface() {
+        if (Lampa.Activity.active().activity) {
+            var currentActivity = Lampa.Activity.active().activity;
+            var render = currentActivity.render();
+            var movie = currentActivity.movie || {};
+            if (render && movie.id && movie.title) {
+                var titleElement = $(render).find(".full-start-new__title, .new-interface-info__title");
+                if (titleElement.length) {
+                    var showLogos = Lampa.Storage.get('show_logo_instead_of_title', 'false') === 'true';
+                    if (showLogos && movie.method) {
+                        updateLogoDisplay(movie, titleElement);
+                    } else {
+                        titleElement.text(movie.title);
+                    }
+                }
+            }
+        }
     }
 
     // --- Вспомогательная функция для обновления отображения логотипа ---
