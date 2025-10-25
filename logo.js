@@ -1,34 +1,25 @@
 (function () {
     'use strict';
 
-    // --- Регистрация настроек в разделе "Интерфейс" ---
-    if (window.Lampa && Lampa.SettingsApi) {
-        // Добавление переключателя для отображения логотипа вместо заголовка
-        Lampa.SettingsApi.addParam({
-            component: 'interface',
-            param: {
-                name: 'show_logo_instead_of_title',
+    // --- Функция для отображения подменю настроек логотипа ---
+    function showLogoSettings() {
+        // Определение элементов для диалога
+        var items = [
+            {
+                title: "Логотип вместо заголовка",
+                subtitle: "Заменяет текстовый заголовок фильма логотипом",
+                id: 'show_logo_instead_of_title',
                 type: 'select',
                 values: {
                     'true': "Показать",
                     'false': "Скрыть"
                 },
-                'default': 'false'
+                selected: Lampa.Storage.get('show_logo_instead_of_title', 'false')
             },
-            field: {
-                name: "Логотип вместо заголовка",
-                description: "Заменяет текстовый заголовок фильма логотипом"
-            },
-            onChange: function(value) {
-                Lampa.Storage.set('show_logo_instead_of_title', value);
-            }
-        });
-
-        // Добавление настройки высоты логотипа
-        Lampa.SettingsApi.addParam({
-            component: 'interface',
-            param: {
-                name: 'info_panel_logo_max_height',
+            {
+                title: "Размер логотипа",
+                subtitle: "Максимальная высота логотипа",
+                id: 'info_panel_logo_max_height',
                 type: 'select',
                 values: {
                     '50': '50px',
@@ -46,14 +37,49 @@
                     '450': '450px',
                     '500': '500px'
                 },
-                'default': '100'
+                selected: Lampa.Storage.get('info_panel_logo_max_height', '100')
+            }
+        ];
+
+        // Получение текущего контекста контроллера для корректного возврата
+        var currentController = Lampa.Controller.enabled().name;
+
+        // Отображение диалога с настройками
+        Lampa.Select.show({
+            title: "Логотип вместо названия",
+            items: items,
+            onBack: function () {
+                Lampa.Controller.toggle(currentController || 'settings');
+            },
+            onSelect: function (item) {
+                // Обработка выбора настройки
+                if (item.type === 'select') {
+                    var currentValue = Lampa.Storage.get(item.id, item.values[item.selected]);
+                    var keys = Object.keys(item.values);
+                    var currentIndex = keys.indexOf(currentValue);
+                    var nextIndex = (currentIndex + 1) % keys.length;
+                    var newValue = keys[nextIndex];
+                    Lampa.Storage.set(item.id, newValue);
+                    item.selected = newValue;
+                }
+            }
+        });
+    }
+
+    // --- Регистрация кнопки в разделе "Интерфейс" ---
+    if (window.Lampa && Lampa.SettingsApi) {
+        Lampa.SettingsApi.addParam({
+            component: 'interface',
+            param: {
+                name: 'logo_settings_button',
+                type: 'button'
             },
             field: {
-                name: "Размер логотипа",
-                description: "Максимальная высота логотипа"
+                name: "Логотип вместо названия",
+                description: "Настройки отображения логотипа вместо заголовка"
             },
-            onChange: function(value) {
-                Lampa.Storage.set('info_panel_logo_max_height', value);
+            onChange: function () {
+                showLogoSettings();
             }
         });
     }
@@ -205,8 +231,8 @@
                                         logoPath = pngLogo ? pngLogo.file_path : response.logos[0].file_path;
                                     }
 
-                                    var currentTargetElement = $(eventData.object.activity.render()).find(".full-start-new__title");
-                                    if (currentTargetElement.length > 0) {
+                                    var currentTitleElement = $(eventData.object.activity.render()).find(".full-start-new__title");
+                                    if (currentTitleElement && currentTitleElement.length) {
                                         if (logoPath) {
                                             var selectedHeight = Lampa.Storage.get('info_panel_logo_max_height', '60');
                                             if (!/^\d+$/.test(selectedHeight)) {
@@ -216,15 +242,15 @@
                                             var styleAttr = `margin-top: 5px; max-height: ${selectedHeight}px; max-width: 100%; vertical-align: middle;`;
                                             var imgUrl = Lampa.TMDB.image('/t/p/' + imageSize + logoPath);
                                             var imgTagHtml = `<img src="${imgUrl}" style="${styleAttr}" alt="${movie.title} Logo" />`;
-                                            currentTargetElement.empty().html(imgTagHtml);
+                                            currentTitleElement.empty().html(imgTagHtml);
                                         } else {
-                                            currentTargetElement.text(movie.title);
+                                            currentTitleElement.text(movie.title);
                                         }
                                     }
                                 }, function(xhr, status) {
-                                    var currentTargetElement = $(eventData.object.activity.render()).find(".full-start-new__title");
-                                    if (currentTargetElement && currentTitleElement.length) {
-                                        currentTargetElement.text(movie.title);
+                                    var currentTitleElement = $(eventData.object.activity.render()).find(".full-start-new__title");
+                                    if (currentTitleElement && currentTitleElement.length) {
+                                        currentTitleElement.text(movie.title);
                                     }
                                 });
                             }
