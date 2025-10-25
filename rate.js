@@ -301,7 +301,7 @@
         if (source === 'tmdb') {
             const rating = data.vote_average ? data.vote_average.toFixed(1) : '0.0';
             if (rating !== '0.0') {
-                ratingElement.innerHTML = `${rating}`; // Без иконки TMDB
+                ratingElement.innerHTML = `${rating} <span class="source--name"></span>`;
             } else {
                 ratingElement.style.display = 'none';
             }
@@ -488,6 +488,9 @@
                     width: 28px;
                     height: 28px;
                 }
+            }
+            .full-start__rate.rate--tmdb .source--name {
+                display: none;
             }
         `;
         document.head.appendChild(style);
