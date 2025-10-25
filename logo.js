@@ -3,6 +3,11 @@
 
     // --- Функция для отображения подменю настроек логотипа ---
     function showLogoSettings() {
+        // Проверка наличия необходимых компонентов
+        if (!Lampa.Select || !Lampa.Controller) {
+            return;
+        }
+
         // Определение элементов для диалога
         var items = [
             {
@@ -47,25 +52,27 @@
             title: "Логотип вместо названия",
             items: items,
             onBack: function () {
-                Lampa.Controller.toggle(currentController || 'settings');
+                Lampa.Controller.toggle(currentController || 'settings_component');
             },
-            onChange: function (item, value) {
+            onSelect: function (item) {
                 // Сохранение выбранного значения
-                Lampa.Storage.set(item.name, value);
+                if (item.name && item.values[item.selected]) {
+                    Lampa.Storage.set(item.name, item.selected);
 
-                // Обновление текущей карточки или панели
-                if (Lampa.Activity.active().activity) {
-                    var currentActivity = Lampa.Activity.active().activity;
-                    var render = currentActivity.render();
-                    var movie = currentActivity.movie || {};
-                    if (render && movie.id && movie.title) {
-                        var titleElement = $(render).find(".full-start-new__title, .new-interface-info__title");
-                        if (titleElement.length) {
-                            var showLogos = Lampa.Storage.get('show_logo_instead_of_title', 'false') === 'true';
-                            if (showLogos && movie.method) {
-                                updateLogoDisplay(movie, titleElement);
-                            } else {
-                                titleElement.text(movie.title);
+                    // Обновление текущей карточки или панели
+                    if (Lampa.Activity.active().activity) {
+                        var currentActivity = Lampa.Activity.active().activity;
+                        var render = currentActivity.render();
+                        var movie = currentActivity.movie || {};
+                        if (render && movie.id && movie.title) {
+                            var titleElement = $(render).find(".full-start-new__title, .new-interface-info__title");
+                            if (titleElement.length) {
+                                var showLogos = Lampa.Storage.get('show_logo_instead_of_title', 'false') === 'true';
+                                if (showLogos && movie.method) {
+                                    updateLogoDisplay(movie, titleElement);
+                                } else {
+                                    titleElement.text(movie.title);
+                                }
                             }
                         }
                     }
