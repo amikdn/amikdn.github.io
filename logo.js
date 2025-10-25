@@ -3,11 +3,11 @@
 
     // --- Регистрация настроек в интерфейсе ---
     if (window.Lampa && Lampa.SettingsApi) {
-        // Добавление категории настроек с названием на русском
+        // Добавление категории настроек с названием на русском и новой иконкой
         Lampa.SettingsApi.addComponent({
             component: 'logo_instead_of_title',
             name: "Логотип вместо названия",
-            icon: '<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 24 24" xml:space="preserve" width="32" height="32" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"></path></svg>'
+            icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="32" height="32" fill="currentColor"><path d="M4 3h16a2 2 0 012 2v14a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2zm2 4v10h12V7H6zm2 2h8v2H8V9zm0 4h8v2H8v-2z"/></svg>'
         });
 
         // Добавление переключателя для отображения логотипа вместо заголовка
@@ -63,8 +63,6 @@
                 Lampa.Storage.set('info_panel_logo_max_height', value);
             }
         });
-    } else {
-        console.error("Логотип: Lampa.SettingsApi недоступен. Настройки не могут быть созданы.");
     }
 
     // --- Экземпляр сети ---
@@ -80,11 +78,9 @@
 
         this.update = function(data) {
             if (!html) {
-                console.error("create.update: Элемент 'html' не готов.");
                 return;
             }
             if (!data || !data.id || !data.title) {
-                console.warn("create.update: Получены неполные данные.", data);
                 return;
             }
 
@@ -112,7 +108,6 @@
             if (!titleElement.length) return;
 
             if (!movieData || !movieData.id || !movieData.method || !movieData.title) {
-                console.warn("displayLogoOrTitle: Получены невалидные данные.");
                 titleElement.empty();
                 return;
             }
@@ -121,7 +116,6 @@
             titleElement.text(movieData.title);
 
             if (!network) {
-                console.error("displayLogoOrTitle: Глобальная сеть недоступна.");
                 return;
             }
 
@@ -144,7 +138,6 @@
                     if (logoPath) {
                         var selectedHeight = Lampa.Storage.get('info_panel_logo_max_height', '100');
                         if (!/^\d+$/.test(selectedHeight)) {
-                            console.warn(`Недопустимая высота логотипа '${selectedHeight}' в хранилище, используется значение по умолчанию '100'.`);
                             selectedHeight = '100';
                         }
 
@@ -158,7 +151,6 @@
                     }
                 }
             }, function(xhr, status) {
-                console.error(`displayLogoOrTitle (ID ${id}): Ошибка API ${status}. Устанавливается текстовый заголовок.`);
                 var currentTitleElement = html ? html.find('.new-interface-info__title') : null;
                 if (currentTitleElement && currentTitleElement.length) {
                     if (movieData && movieData.title) {
@@ -183,7 +175,6 @@
     // --- Инициализация плагина ---
     function startPlugin() {
         if (!window.Lampa || !Lampa.Utils || !Lampa.Storage || !Lampa.TMDB || !Lampa.Reguest || !Lampa.Api) {
-            console.error("Логотип: Отсутствуют необходимые компоненты Lampa.");
             return;
         }
 
@@ -205,7 +196,6 @@
                             if (initialTargetElement.length > 0) {
                                 initialTargetElement.text(movie.title);
                                 if (!network) {
-                                    console.error("Listener (Full): Глобальная сеть недоступна.");
                                     return;
                                 }
 
@@ -239,7 +229,6 @@
                                         }
                                     }
                                 }, function(xhr, status) {
-                                    console.error(`Listener (Full ID: ${id}): Ошибка API ${status}. Устанавливается текстовый заголовок.`);
                                     var currentTargetElement = $(eventData.object.activity.render()).find(".full-start-new__title");
                                     if (currentTargetElement && currentTargetElement.length) {
                                         currentTargetElement.text(movie.title);
@@ -248,12 +237,8 @@
                             }
                         }
                     }
-                } catch (e) {
-                    console.error("Логотип (Full): Ошибка в обработчике:", e);
-                }
+                } catch (e) {}
             });
-        } else {
-            console.error("Логотип: Lampa.Listener или глобальная сеть недоступны. Замена логотипа на карточке отключена.");
         }
     }
 
