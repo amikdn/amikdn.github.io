@@ -1,14 +1,11 @@
 (function () {
     'use strict';
-
     // Установка платформы на ТВ-режим
     Lampa.Platform.tv();
-
     // Класс для отображения информации о фильме/сериале
     function InterfaceInfo() {
         let $container, timeout, cache = {};
         const request = new Lampa.Reguest();
-
         // Инициализация контейнера
         this.create = function () {
             $container = $(`
@@ -22,9 +19,16 @@
                 </div>
             `);
         };
-
         // Обновление информации о фильме/сериале
         this.update = function (data) {
+            if (!$container) {
+                console.error('$container is not initialized. Ensure create() is called before update().');
+                return;
+            }
+            if (typeof $ === 'undefined') {
+                console.error('jQuery is not defined. Ensure jQuery is loaded before executing this script.');
+                return;
+            }
             $container.find('.new-interface-info__head').html(data.overview || Lampa.Utils.full_notext());
             if (Lampa.Storage.get('logo_card_style') !== false) {
                 const type = data.name ? 'tv' : 'movie';
@@ -45,20 +49,21 @@
                                 );
                             }
                         } else {
-                            $container.find('.new-interface-info__title').html(data.title);
+                            const titleText = typeof data.title === 'string' && data.title ? data.title : 'Без названия';
+                            $container.find('.new-interface-info__title').html(titleText);
                         }
                     } else {
-                        $container.find('.new-interface-info__title').html(data.title);
+                        const titleText = typeof data.title === 'string' && data.title ? data.title : 'Без названия';
+                        $container.find('.new-interface-info__title').html(titleText);
                     }
                 });
             } else {
-                $container.find('.new-interface-info__title').html(data.title);
+                const titleText = typeof data.title === 'string' && data.title ? data.title : 'Без названия';
+                $container.find('.new-interface-info__title').html(titleText);
             }
-
             Lampa.Layer.update(data.backdrop_path, 'w200');
             this.draw(data);
         };
-
         // Отрисовка деталей (год, рейтинг, жанры, продолжительность и т.д.)
         this.draw = function (data) {
             const year = ((data.release_date || data.first_air_date || '0000') + '').slice(0, 4);
@@ -67,7 +72,6 @@
             const countries = Lampa.Api.genres.parseCountries(data);
             const details = [];
             const meta = [];
-
             if (year !== '0000') details.push(`<span class="full-start__pg" style="font-size: 0.9em">${year}</span>`);
             if (genres.length > 0) details.push(genres.join(', '));
             if (Lampa.Storage.get('rat') !== false && rating > 0) {
@@ -102,11 +106,9 @@
                 }
                 if (statusText) meta.push(`<span class="full-start__status" style="font-size: 0.9em">${statusText}</span>`);
             }
-
             $container.find('.new-interface-info__details').empty().append(details.join(', '));
             $container.find('.new-interface-info__description').html(meta.join('<span class="new-interface-info__split">&#9679;</span>'));
         };
-
         // Загрузка дополнительных данных
         this.load = function (data) {
             clearTimeout(timeout);
@@ -122,7 +124,6 @@
                 });
             }, 300);
         };
-
         this.render = () => $container;
         this.clear = () => {};
         this.destroy = function () {
@@ -131,7 +132,6 @@
             $container = null;
         };
     }
-
     // Класс для управления интерфейсом карточек
     function InterfaceMain(params) {
         const activity = new Lampa.Activity();
@@ -142,10 +142,8 @@
         const isModern = Lampa.Manifest.app_digital >= 166;
         const $background = $container.find('.full-start__background');
         let interfaceInfo;
-
         this.create = () => {};
         this.render = () => $container;
-
         this.load = function (results) {
             interfaceInfo = new InterfaceInfo(params);
             interfaceInfo.create();
@@ -166,7 +164,6 @@
             this.activity.toggle(false);
             this.activity.start();
         };
-
         this.loadNext = function () {
             if (this.next && !this.next_wait && items.length) {
                 this.next_wait = true;
@@ -177,7 +174,6 @@
                 }, () => { this.next_wait = false; });
             }
         };
-
         this.append = function (item) {
             if (item.ready) return;
             item.ready = true;
@@ -207,7 +203,6 @@
             scroll.append(card.render());
             items.push(card);
         };
-
         this.background = function (data) {
             const path = Lampa.Api.backdrop_path(data.backdrop_path, 'w1280');
             if (path === backgroundCache) return;
@@ -220,7 +215,6 @@
                 setTimeout(() => { $background[0].src = path; }, 50);
             }, 100);
         };
-
         this.start = function () {
             Lampa.Activity.listener('menu', {
                 link: this,
@@ -243,7 +237,6 @@
             });
             Lampa.Controller.toggle('menu');
         };
-
         this.up = function () {
             index--;
             if (index < 0) {
@@ -254,7 +247,6 @@
                 scroll.update(items[index].render());
             }
         };
-
         this.down = function () {
             index++;
             index = Math.min(index, items.length - 1);
@@ -262,7 +254,6 @@
             items[index].toggle();
             scroll.update(items[index].render());
         };
-
         this.onBack = () => { Lampa.Activity.backward(); };
         this.refresh = () => { this.activity.toggle(true); this.activity.need_refresh = true; };
         this.pause = () => {};
@@ -277,7 +268,6 @@
             activity = null;
         };
     }
-
     // Определение, какой класс использовать для интерфейса
     const defaultInteraction = Lampa.InteractionMain;
     Lampa.InteractionMain = function (params) {
@@ -287,7 +277,6 @@
         }
         return new interaction(params);
     };
-
     // Добавление стилей для нового интерфейса
     if (Lampa.Storage.get('wide_post') === true) {
         Lampa.Template.add('new_interface_style', `
@@ -340,7 +329,6 @@
         `);
         $('[data-component="style_interface"]').append(Lampa.Template.get('new_interface_style', {}, true));
     }
-
     // Настройки интерфейса
     Lampa.Settings.listener.follow('open', (e) => {
         if (e.name === 'main') {
@@ -354,74 +342,62 @@
             Lampa.Settings.main().render().find('.selector').removeClass('hide');
         }
     });
-
     // Добавление параметров настроек
     Lampa.SettingsApi.addParam({
         component: 'style_interface',
         param: { name: 'new_interface_style', type: 'trigger', default: true },
         field: { name: 'Стильный интерфейс', description: 'Стильный интерфейс' }
     });
-
     Lampa.SettingsApi.addParam({
         component: 'style_interface',
         param: { name: 'wide_post', type: 'trigger', default: true },
         field: { name: 'Широкие постеры' }
     });
-
     Lampa.SettingsApi.addParam({
         component: 'style_interface',
         param: { name: 'logo_card_style', type: 'trigger', default: true },
         field: { name: 'Логотип вместо названия' }
     });
-
     Lampa.SettingsApi.addParam({
         component: 'style_interface',
         param: { name: 'desc', type: 'trigger', default: true },
         field: { name: 'Показывать описание' }
     });
-
     Lampa.SettingsApi.addParam({
         component: 'style_interface',
         param: { name: 'status', type: 'trigger', default: true },
         field: { name: 'Показывать статус фильма/сериала' }
     });
-
     Lampa.SettingsApi.addParam({
         component: 'style_interface',
         param: { name: 'seas', type: 'trigger', default: false },
         field: { name: 'Показывать количество сезонов' }
     });
-
     Lampa.SettingsApi.addParam({
         component: 'style_interface',
         param: { name: 'eps', type: 'trigger', default: false },
         field: { name: 'Показывать количество эпизодов' }
     });
-
     Lampa.SettingsApi.addParam({
         component: 'style_interface',
         param: { name: 'year_ogr', type: 'trigger', default: true },
         field: { name: 'Показывать возрастное ограничение' }
     });
-
     Lampa.SettingsApi.addParam({
         component: 'style_interface',
         param: { name: 'vremya', type: 'trigger', default: true },
         field: { name: 'Показывать время фильма' }
     });
-
     Lampa.SettingsApi.addParam({
         component: 'style_interface',
         param: { name: 'ganr', type: 'trigger', default: true },
         field: { name: 'Показывать жанр фильма' }
     });
-
     Lampa.SettingsApi.addParam({
         component: 'style_interface',
         param: { name: 'rat', type: 'trigger', default: true },
         field: { name: 'Показывать рейтинг фильма' }
     });
-
     // Инициализация настроек по умолчанию
     const initSettings = () => {
         Lampa.Storage.set('int_plug', 'true');
@@ -436,7 +412,6 @@
         Lampa.Storage.set('ganr', 'true');
         Lampa.Storage.set('rat', 'true');
     };
-
     // Проверка готовности платформы Lampa и запуск настроек
     const interval = setInterval(() => {
         if (typeof Lampa !== 'undefined') {
@@ -446,7 +421,6 @@
             }
         }
     }, 200);
-
     // Установка флага плагина
     if (!window.plugin_interface_ready) {
         window.plugin_interface_ready = true;
