@@ -1,5 +1,10 @@
 (function () {
     'use strict';
+    // Проверка наличия Lampa
+    if (typeof Lampa === 'undefined') {
+        console.error('Lampa is not defined. Ensure Lampa library is loaded.');
+        return;
+    }
     // Установка платформы на ТВ-режим
     Lampa.Platform.tv();
     // Класс для отображения информации о фильме/сериале
@@ -29,6 +34,10 @@
                 console.error('jQuery is not defined. Ensure jQuery is loaded before executing this script.');
                 return;
             }
+            if (!data || typeof data !== 'object') {
+                console.error('Invalid data object provided to update:', data);
+                return;
+            }
             $container.find('.new-interface-info__head').html(data.overview || Lampa.Utils.full_notext());
             if (Lampa.Storage.get('logo_card_style') !== false) {
                 const type = data.name ? 'tv' : 'movie';
@@ -36,7 +45,7 @@
                 const url = Lampa.TMDB.api(`${type}/${data.id}?api_key=${apiKey}&language=${Lampa.Storage.get('language')}`);
                 
                 $.get(url, (response) => {
-                    if (response.logos && response.logos[0]) {
+                    if (response && response.logos && response.logos[0]) {
                         const logoPath = response.logos[0].file_path;
                         if (logoPath) {
                             if (Lampa.Storage.get('desc') !== false) {
@@ -49,15 +58,22 @@
                                 );
                             }
                         } else {
+                            console.log('No logo found, using title:', data.title);
                             const titleText = typeof data.title === 'string' && data.title ? data.title : 'Без названия';
                             $container.find('.new-interface-info__title').html(titleText);
                         }
                     } else {
+                        console.log('No logos in response, using title:', data.title);
                         const titleText = typeof data.title === 'string' && data.title ? data.title : 'Без названия';
                         $container.find('.new-interface-info__title').html(titleText);
                     }
+                }).fail((jqXHR, textStatus, errorThrown) => {
+                    console.error('Failed to fetch TMDB data:', textStatus, errorThrown);
+                    const titleText = typeof data.title === 'string' && data.title ? data.title : 'Без названия';
+                    $container.find('.new-interface-info__title').html(titleText);
                 });
             } else {
+                console.log('logo_card_style is disabled, using title:', data.title);
                 const titleText = typeof data.title === 'string' && data.title ? data.title : 'Без названия';
                 $container.find('.new-interface-info__title').html(titleText);
             }
