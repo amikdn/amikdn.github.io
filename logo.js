@@ -8,19 +8,17 @@
             {
                 title: "Логотип вместо заголовка",
                 subtitle: "Заменяет текстовый заголовок фильма логотипом",
-                id: 'show_logo_instead_of_title',
-                type: 'select',
+                name: 'show_logo_instead_of_title',
                 values: {
                     'true': "Показать",
                     'false': "Скрыть"
                 },
-                selected: Lampa.Storage.get('show_logo_instead_of_title', 'false')
+                value: Lampa.Storage.get('show_logo_instead_of_title', 'false')
             },
             {
                 title: "Размер логотипа",
                 subtitle: "Максимальная высота логотипа",
-                id: 'info_panel_logo_max_height',
-                type: 'select',
+                name: 'info_panel_logo_max_height',
                 values: {
                     '50': '50px',
                     '75': '75px',
@@ -37,7 +35,7 @@
                     '450': '450px',
                     '500': '500px'
                 },
-                selected: Lampa.Storage.get('info_panel_logo_max_height', '100')
+                value: Lampa.Storage.get('info_panel_logo_max_height', '100')
             }
         ];
 
@@ -51,26 +49,23 @@
             onBack: function () {
                 Lampa.Controller.toggle(currentController || 'settings');
             },
-            onSelect: function (item, selectedValue) {
-                // Обработка выбора настройки
-                if (item.type === 'select' && selectedValue) {
-                    Lampa.Storage.set(item.id, selectedValue);
-                    item.selected = selectedValue;
+            onChange: function (item, value) {
+                // Сохранение выбранного значения
+                Lampa.Storage.set(item.name, value);
 
-                    // Обновление текущей карточки или панели
-                    if (Lampa.Activity.active().activity) {
-                        var currentActivity = Lampa.Activity.active().activity;
-                        var render = currentActivity.render();
-                        var movie = currentActivity.movie || {};
-                        if (render && movie.id && movie.title) {
-                            var titleElement = $(render).find(".full-start-new__title, .new-interface-info__title");
-                            if (titleElement.length) {
-                                var showLogos = Lampa.Storage.get('show_logo_instead_of_title', 'false') === 'true';
-                                if (showLogos && movie.method) {
-                                    updateLogoDisplay(movie, titleElement);
-                                } else {
-                                    titleElement.text(movie.title);
-                                }
+                // Обновление текущей карточки или панели
+                if (Lampa.Activity.active().activity) {
+                    var currentActivity = Lampa.Activity.active().activity;
+                    var render = currentActivity.render();
+                    var movie = currentActivity.movie || {};
+                    if (render && movie.id && movie.title) {
+                        var titleElement = $(render).find(".full-start-new__title, .new-interface-info__title");
+                        if (titleElement.length) {
+                            var showLogos = Lampa.Storage.get('show_logo_instead_of_title', 'false') === 'true';
+                            if (showLogos && movie.method) {
+                                updateLogoDisplay(movie, titleElement);
+                            } else {
+                                titleElement.text(movie.title);
                             }
                         }
                     }
