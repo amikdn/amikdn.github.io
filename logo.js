@@ -52,9 +52,9 @@
             }
 
             var method = movieData.method;
-            var apiKey = Lampa.TMDB.key();
-            var language = Lampa.Storage.get('language');
-            var apiUrl = Lampa.TMDB.api((method === 'tv' ? 'tv/' : 'movie/') + id + '/images?api_key=' + apiKey + '&language=' + language);
+            var apiKey = '4ef0d7355d9ffb5151e987764708ce96'; // API-ключ из предоставленного кода
+            var language = Lampa.Storage.get('language', 'ru');
+            var apiUrl = `http://tmdbapi.bylampa.online/3/${method === 'tv' ? 'tv' : 'movie'}/${id}/images?api_key=${apiKey}&language=${language}`;
 
             network.clear();
             network.timeout(7000);
@@ -70,7 +70,7 @@
                     if (logoPath) {
                         var imageSize = 'w500';
                         var styleAttr = `margin-top: 0.3em; margin-bottom: 0.1em; max-height: 2.8em; max-width: 100%; vertical-align: middle;`;
-                        var imgUrl = Lampa.TMDB.image('/t/p/' + imageSize + logoPath);
+                        var imgUrl = `http://tmdbimg.bylampa.online/t/p/${imageSize}${logoPath}`;
                         var imgTagHtml = `<img src="${imgUrl}" style="${styleAttr}" alt="${movieData.title} Логотип" />`;
                         currentTitleElement.empty().html(imgTagHtml);
                     } else {
@@ -79,12 +79,8 @@
                 }
             }, function(xhr, status) {
                 var currentTitleElement = html ? html.find('.new-interface-info__title') : null;
-                if (currentTitleElement && currentTitleElement.length) {
-                    if (movieData && movieData.title) {
-                        currentTitleElement.text(movieData.title);
-                    } else {
-                        currentTitleElement.empty();
-                    }
+                if (currentTitleElement && currentTitleElement.length && movieData.title) {
+                    currentTitleElement.text(movieData.title);
                 }
             });
         };
@@ -119,15 +115,18 @@
                             var render = eventData.object.activity.render();
                             var titleElements = $(['.full-start-new__title', '.full-start__title'], render);
 
+                            // Скрытие дополнительных элементов, как в предоставленном коде
+                            $('.full-start-new__tagline, .full-start__title-original', render).hide();
+
                             if (titleElements.length > 0) {
                                 titleElements.text(movie.title);
                                 if (!network) {
                                     return;
                                 }
 
-                                var apiKey = Lampa.TMDB.key();
-                                var language = Lampa.Storage.get('language');
-                                var apiUrl = Lampa.TMDB.api((movie.method === 'tv' ? 'tv/' : 'movie/') + id + '/images?api_key=' + apiKey + '&language=' + language);
+                                var apiKey = '4ef0d7355d9ffb5151e987764708ce96'; // API-ключ из предоставленного кода
+                                var language = Lampa.Storage.get('language', 'ru');
+                                var apiUrl = `http://tmdbapi.bylampa.online/3/${movie.method}/${id}/images?api_key=${apiKey}&language=${language}`;
 
                                 network.clear();
                                 network.timeout(7000);
@@ -145,7 +144,7 @@
                                             var styleAttr = window.innerWidth > 585
                                                 ? `margin-top: 0.3em; margin-bottom: 0.1em; max-height: 2.8em; max-width: 100%; vertical-align: middle;`
                                                 : `margin-top: 0.3em; margin-bottom: 0.4em; max-height: 1.8em; max-width: 100%; vertical-align: middle;`;
-                                            var imgUrl = Lampa.TMDB.image('/t/p/' + imageSize + logoPath);
+                                            var imgUrl = `http://tmdbimg.bylampa.online/t/p/${imageSize}${logoPath}`;
                                             var imgTagHtml = `<img src="${imgUrl}" style="${styleAttr}" alt="${movie.title} Логотип" />`;
                                             currentTitleElements.empty().html(imgTagHtml);
                                         } else {
