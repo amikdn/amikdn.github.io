@@ -15,11 +15,7 @@
             },
             onRender: function () {
                 setTimeout(() => {
-                    var $title = $('.settings-param > div:contains("Логотип вместо названия")').parent();
-                    var $interfaceSize = $('div[data-name="interface_size"]').parent();
-                    if ($interfaceSize.length && $title.length && !$title.is($interfaceSize.next())) {
-                        $title.insertAfter($interfaceSize);
-                    }
+                    $('.settings-param > div:contains("Логотип вместо названия")').parent().insertAfter($('div[data-name="interface_size"]'));
                 }, 0);
             }
         });
@@ -37,16 +33,12 @@
                 'default': 'true'
             },
             field: {
-                name: "Логотип вместо названия",
+                name: "Логотип вместо заголовка",
                 description: "Заменяет текстовый заголовок фильма логотипом"
             },
             onRender: function () {
                 setTimeout(() => {
-                    var $setting = $('.settings-param > div:contains("Логотип вместо заголовка")').parent();
-                    var $title = $('div[data-name="logo_settings_title"]').parent();
-                    if ($title.length && $setting.length && !$setting.is($title.next())) {
-                        $setting.insertAfter($title);
-                    }
+                    $('.settings-param > div:contains("Логотип вместо заголовка")').parent().insertAfter($('div[data-name="logo_settings_title"]'));
                 }, 0);
             },
             onChange: function(value) {
@@ -84,11 +76,7 @@
             },
             onRender: function () {
                 setTimeout(() => {
-                    var $setting = $('.settings-param > div:contains("Размер логотипа")').parent();
-                    var $prevSetting = $('div[data-name="show_logo_instead_of_title"]').parent();
-                    if ($prevSetting.length && $setting.length && !$setting.is($prevSetting.next())) {
-                        $setting.insertAfter($prevSetting);
-                    }
+                    $('.settings-param > div:contains("Размер логотипа")').parent().insertAfter($('div[data-name="show_logo_instead_of_title"]'));
                 }, 0);
             },
             onChange: function(value) {
@@ -105,7 +93,7 @@
         var html;
 
         this.create = function () {
-            html = $("<div class=\"new-interface-info\">\n <div class=\"new-interface-info__body\">\n <div class=\"new-interface-info__head\"></div>\n <div class=\"new-interface-info__title\"></div>\n <div class=\"new-interface-info__details\"></div>\n <div class=\"new-interface-info__description\"></div>\n </div>\n </div>");
+            html = $("<div class=\"new-interface-info\">\n            <div class=\"new-interface-info__body\">\n                <div class=\"new-interface-info__head\"></div>\n                <div class=\"new-interface-info__title\"></div>\n                <div class=\"new-interface-info__details\"></div>\n                <div class=\"new-interface-info__description\"></div>\n            </div>\n        </div>");
         };
 
         this.update = function(data) {
@@ -121,7 +109,7 @@
 
             // Определение настройки отображения логотипа
             var storageKey = 'show_logo_instead_of_title';
-            var showLogos = (Lampa.Storage.get(storageKey, 'true') === 'true' || Lampa.Storage.get(storageKey, false) === true);
+            var showLogos = (Lampa.Storage.get(storageKey, 'false') === 'true' || Lampa.Storage.get(storageKey, false) === true);
 
             // Установка заголовка или логотипа
             if (showLogos && data.method && data.title) {
@@ -217,7 +205,7 @@
             Lampa.Listener.follow("full", function(eventData) {
                 var storageKey = 'show_logo_instead_of_title';
                 try {
-                    var showLogos = (Lampa.Storage.get(storageKey, 'true') === 'true' || Lampa.Storage.get(storageKey, false) === true);
+                    var showLogos = (Lampa.Storage.get(storageKey, 'false') === 'true' || Lampa.Storage.get(storageKey, false) === true);
                     if (eventData.type === 'complite' && showLogos) {
                         var movie = eventData.data.movie;
                         if (movie && movie.id && movie.title) {
@@ -233,7 +221,7 @@
 
                                 var apiKey = Lampa.TMDB.key();
                                 var language = Lampa.Storage.get('language');
-                                var apiUrl = Lampa.TMDB.api((method === 'tv' ? 'tv/' : 'movie/') + id + '/images?api_key=' + apiKey + '&language=' + language);
+                                var apiUrl = Lampa.TMDB.api((movie.method === 'tv' ? 'tv/' : 'movie/') + id + '/images?api_key=' + apiKey + '&language=' + language);
 
                                 network.clear();
                                 network.timeout(7000);
