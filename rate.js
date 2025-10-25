@@ -1,8 +1,8 @@
 (function () {
     'use strict';
     Lampa.Platform.tv();
-    
-    // Объединенный кэш для всех источников
+
+    // Объединенный кэш
     const ratingCache = {
         caches: {},
         get(source, key) {
@@ -25,10 +25,10 @@
             return value;
         }
     };
-    
+
     const CACHE_TIME = 24 * 60 * 60 * 1000;
-    let unifiedCache = {}; // Объединенный кэш для Lampa-рейтингов
-    
+    let unifiedCache = {};
+
     function calculateLampaRating10(reactions) {
         let weightedSum = 0;
         let totalCount = 0;
@@ -57,7 +57,7 @@
         }
         return { rating: finalRating, medianReaction: medianReaction };
     }
-    
+
     function fetchLampaRating(ratingKey) {
         return new Promise((resolve) => {
             let xhr = new XMLHttpRequest();
@@ -88,7 +88,7 @@
             xhr.send();
         });
     }
-    
+
     async function getLampaRating(ratingKey) {
         let now = Date.now();
         if (unifiedCache[ratingKey] && (now - unifiedCache[ratingKey].timestamp < CACHE_TIME)) {
@@ -103,11 +103,11 @@
             return { rating: 0, medianReaction: '' };
         }
     }
-    
+
     let taskQueue = [];
     let isProcessing = false;
     const taskInterval = 300;
-    
+
     function processQueue() {
         if (isProcessing || !taskQueue.length) return;
         isProcessing = true;
@@ -118,21 +118,22 @@
             processQueue();
         }, taskInterval);
     }
-    
+
     function addToQueue(task) {
         taskQueue.push({ execute: task });
         processQueue();
     }
-    
+
     let requestPool = [];
     function getRequest() {
         return requestPool.pop() || new Lampa.Reguest();
     }
+
     function releaseRequest(request) {
         request.clear();
         if (requestPool.length < 3) requestPool.push(request);
     }
-    
+
     const stringCache = {};
     function normalizeString(str) {
         if (stringCache[str]) return stringCache[str];
@@ -145,7 +146,7 @@
         stringCache[str] = normalized;
         return normalized;
     }
-    
+
     function cleanString(str) {
         return normalizeString(str)
             .replace(/^[ \/\\]+/, '')
@@ -154,15 +155,15 @@
             .replace(/([+\/\\] *)+\+/g, '+')
             .replace(/( *[\/\\]+ *)+/g, '+');
     }
-    
+
     function matchStrings(str1, str2) {
         return typeof str1 === 'string' && typeof str2 === 'string' && normalizeString(str1) === normalizeString(str2);
     }
-    
+
     function containsString(str1, str2) {
         return typeof str1 === 'string' && typeof str2 === 'string' && normalizeString(str1).indexOf(normalizeString(str2)) !== -1;
     }
-    
+
     function getKinopoiskRating(item, callback) {
         const cached = ratingCache.get('kp_rating', item.id);
         if (cached) {
@@ -252,7 +253,7 @@
             searchMovies();
         });
     }
-    
+
     let pendingCards = [];
     let cardTimer = null;
     function processCards() {
@@ -261,13 +262,11 @@
             const cards = pendingCards.splice(0);
             cards.forEach(card => updateCardRating(card));
             cardTimer = null;
-        }, 50); // Увеличена задержка для стабильности
+        }, 50);
     }
-    
+
     function addCard(card) {
-        // Проверка, существует ли карточка в DOM
         if (card && card.querySelector && !document.body.contains(card)) {
-            // Если не в DOM, отложить до появления
             const observer = new MutationObserver(() => {
                 if (document.body.contains(card)) {
                     updateCardRating(card);
@@ -280,7 +279,7 @@
         pendingCards.push(card);
         processCards();
     }
-    
+
     function createRatingElement(card) {
         const ratingElement = document.createElement('div');
         ratingElement.className = 'card__vote';
@@ -305,7 +304,7 @@
         parent.appendChild(ratingElement);
         return ratingElement;
     }
-    
+
     function updateCardRating(item) {
         const card = item.card || item;
         if (!card || !card.querySelector) return;
@@ -314,27 +313,20 @@
         const source = Lampa.Storage.get('rating_source', 'tmdb');
         let ratingElement = card.querySelector('.card__vote');
         if (!ratingElement) ratingElement = createRatingElement(card);
-        
-        // Принудительная проверка и очистка dataset для избежания сбросов
-        if (ratingElement.dataset.movieId !== data.id.toString()) {
-            delete ratingElement.dataset.source;
-            delete ratingElement.dataset.movieId;
-        }
-        
-        if (ratingElement.dataset.source === source && ratingElement.dataset.movieId === data.id.toString()) return;
-        
+
+        // Упрощенная проверка dataset
         ratingElement.dataset.source = source;
         ratingElement.dataset.movieId = data.id.toString();
         ratingElement.className = `card__vote rate--${source}`;
         ratingElement.innerHTML = '';
         ratingElement.style.display = '';
-        
+
         let label = '';
         if (source === 'tmdb') label = 'TMDB';
         else if (source === 'lampa') label = 'LAMPA';
         else if (source === 'kp') label = 'KP';
         else if (source === 'imdb') label = 'IMDB';
-        
+
         if (source === 'tmdb') {
             const rating = data.vote_average ? data.vote_average.toFixed(1) : '0.0';
             if (rating !== '0.0') {
@@ -346,7 +338,7 @@
             let type = (data.seasons || data.first_air_date || data.original_name) ? 'tv' : 'movie';
             let ratingKey = `${type}_${data.id}`;
             getLampaRating(ratingKey).then(result => {
-                if (ratingElement.parentNode && ratingElement.dataset.movieId === data.id.toString()) { // Проверка на существование
+                if (ratingElement.parentNode && ratingElement.dataset.movieId === data.id.toString()) {
                     if (result.rating > 0) {
                         let html = `${result.rating} ${label}`;
                         if (result.medianReaction) {
@@ -371,26 +363,47 @@
             });
         }
     }
-    
-    // Глобальная функция для принудительного обновления всех рейтингов
+
+    // Debounce функция для оптимизации скролла
+    function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+
+    // Обновление видимых карточек при скролле
+    const refreshVisibleCards = debounce(() => {
+        const visibleCards = document.querySelectorAll('.card');
+        visibleCards.forEach(card => {
+            const data = card.card_data;
+            if (data && data.id) {
+                addCard({ card, data });
+            }
+        });
+    }, 100);
+
+    // Глобальное обновление всех карточек
     window.refreshAllRatings = function() {
         const allCards = document.querySelectorAll('.card');
         allCards.forEach(card => {
             const data = card.card_data;
             if (data && data.id) {
-                delete card.querySelector('.card__vote')?.dataset.source;
-                delete card.querySelector('.card__vote')?.dataset.movieId;
+                const ratingElement = card.querySelector('.card__vote');
+                if (ratingElement) {
+                    delete ratingElement.dataset.source;
+                    delete ratingElement.dataset.movieId;
+                }
                 addCard({ card, data });
             }
         });
-        // Триггер события для новых карточек
-        if (Lampa.Listener) {
-            document.querySelectorAll('.selector, .full-start').forEach(container => {
-                Lampa.Listener.send('card', { type: 'build', object: { card: container } });
-            });
-        }
     };
-    
+
     function insertLampaBlock(render) {
         if (!render) return false;
         let rateLine = $(render).find('.full-start-new__rate-line');
@@ -409,7 +422,7 @@
         }
         return true;
     }
-    
+
     function addSettings() {
         Lampa.SettingsApi.addParam({
             component: 'interface',
@@ -435,14 +448,13 @@
             },
             onChange: (value) => {
                 Lampa.Storage.set('rating_source', value);
-                // Принудительное обновление всех существующих и будущих карточек
                 setTimeout(() => {
                     window.refreshAllRatings();
                 }, 100);
             }
         });
     }
-    
+
     function findParentWithClass(element, className) {
         let current = element.parentElement;
         while (current) {
@@ -451,7 +463,7 @@
         }
         return null;
     }
-    
+
     function setupCardListener() {
         if (window.lampa_listener_extensions) return;
         window.lampa_listener_extensions = true;
@@ -465,14 +477,14 @@
             }
         });
     }
-    
-    // MutationObserver для динамических изменений (скролл, виртуализация)
+
+    // Улучшенный MutationObserver
     function setupObserver() {
         const observer = new MutationObserver((mutations) => {
             mutations.forEach((mutation) => {
                 if (mutation.type === 'childList') {
                     mutation.addedNodes.forEach((node) => {
-                        if (node.nodeType === 1) { // Element
+                        if (node.nodeType === 1) {
                             const newCards = node.querySelectorAll ? node.querySelectorAll('.card') : (node.classList && node.classList.contains('card') ? [node] : []);
                             newCards.forEach(card => {
                                 const data = card.card_data;
@@ -487,11 +499,20 @@
         });
         observer.observe(document.body, { childList: true, subtree: true });
     }
-    
+
+    // Обработчик прокрутки
+    function setupScrollListener() {
+        const containers = document.querySelectorAll('.selector, .card-box, .full-start');
+        containers.forEach(container => {
+            container.addEventListener('scroll', refreshVisibleCards);
+        });
+    }
+
     function initPlugin() {
         addSettings();
         setupCardListener();
-        setupObserver(); // Добавляем observer для динамики
+        setupObserver();
+        setupScrollListener();
         Lampa.Listener.follow('card', (event) => {
             if (event.type === 'build' && event.object.card) {
                 addCard(event.object);
@@ -519,7 +540,7 @@
             }
         });
     }
-    
+
     if (window.appready) {
         initPlugin();
     } else {
