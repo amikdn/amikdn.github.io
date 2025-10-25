@@ -2,7 +2,7 @@
     'use strict';
     Lampa.Platform.tv();
 
-    // Объединенный кэш (без изменений)
+    // Объединенный кэш
     const ratingCache = {
         caches: {},
         get(source, key) {
@@ -29,7 +29,6 @@
     const CACHE_TIME = 24 * 60 * 60 * 1000;
     let unifiedCache = {};
 
-    // Функции calculateLampaRating10, fetchLampaRating, getLampaRating (без изменений)
     function calculateLampaRating10(reactions) {
         let weightedSum = 0;
         let totalCount = 0;
@@ -100,12 +99,11 @@
             unifiedCache[ratingKey] = { value: result, timestamp: now };
             return result;
         } catch (e) {
-            console.error('Lampa Rating Error:', e);
+            console.error('Rating Plugin: Lampa Rating Error:', e);
             return { rating: 0, medianReaction: '' };
         }
     }
 
-    // taskQueue, processQueue, addToQueue, getRequest, releaseRequest (без изменений)
     let taskQueue = [];
     let isProcessing = false;
     const taskInterval = 300;
@@ -136,7 +134,6 @@
         if (requestPool.length < 3) requestPool.push(request);
     }
 
-    // stringCache, normalizeString, cleanString, matchStrings, containsString (без изменений)
     const stringCache = {};
     function normalizeString(str) {
         if (stringCache[str]) return stringCache[str];
@@ -167,7 +164,6 @@
         return typeof str1 === 'string' && typeof str2 === 'string' && normalizeString(str1).indexOf(normalizeString(str2)) !== -1;
     }
 
-    // getKinopoiskRating (без изменений)
     function getKinopoiskRating(item, callback) {
         const cached = ratingCache.get('kp_rating', item.id);
         if (cached) {
@@ -258,7 +254,6 @@
         });
     }
 
-    // createRatingElement (без изменений)
     function createRatingElement(card) {
         const ratingElement = document.createElement('div');
         ratingElement.className = 'card__vote';
@@ -284,11 +279,10 @@
         return ratingElement;
     }
 
-    // updateCardRating с добавлением логирования
     function updateCardRating(item) {
         const card = item.card || item;
         if (!card || !card.querySelector || !document.body.contains(card)) {
-            console.log('Rating Plugin: Card not in DOM, skipping update');
+            console.log('Rating Plugin: Card not in DOM, ID:', item.data?.id || 'unknown');
             return;
         }
         const data = card.card_data || item.data || {};
@@ -319,6 +313,7 @@
             } else {
                 ratingElement.style.display = 'none';
             }
+            console.log('Rating Plugin: Updated TMDB card ID:', data.id, 'Rating:', rating);
         } else if (source === 'lampa') {
             let type = (data.seasons || data.first_air_date || data.original_name) ? 'tv' : 'movie';
             let ratingKey = `${type}_${data.id}`;
@@ -334,8 +329,9 @@
                     } else {
                         ratingElement.style.display = 'none';
                     }
+                    console.log('Rating Plugin: Updated Lampa card ID:', data.id, 'Rating:', result.rating);
                 }
-            }).catch(e => console.error('Lampa Update Error:', e));
+            }).catch(e => console.error('Rating Plugin: Lampa Update Error for ID:', data.id, e));
         } else if (source === 'kp' || source === 'imdb') {
             getKinopoiskRating(data, (rating) => {
                 if (ratingElement.parentNode && ratingElement.dataset.movieId === data.id.toString()) {
@@ -344,13 +340,12 @@
                     } else {
                         ratingElement.style.display = 'none';
                     }
+                    console.log('Rating Plugin: Updated KP/IMDB card ID:', data.id, 'Rating:', rating);
                 }
             });
         }
-        console.log('Rating Plugin: Updated card ID', data.id, 'with source', source);
     }
 
-    // Глобальное обновление (принудительное для всех карточек)
     window.refreshAllRatings = function() {
         const allCards = document.querySelectorAll('.card');
         allCards.forEach(card => {
@@ -364,10 +359,25 @@
                 updateCardRating({ card, data });
             }
         });
-        console.log('Rating Plugin: Refreshed all ratings');
+        console.log('Rating Plugin: Refreshed all cards, count:', allCards.length);
     };
 
-    // insertLampaBlock, addSettings, findParentWithClass, setupCardListener (без изменений)
+    // Периодический опрос новых карточек
+    function pollCards() {
+        const allCards = document.querySelectorAll('.card');
+        allCards.forEach(card => {
+            const data = card.card_data;
+            if (data && data.id) {
+                const ratingElement = card.querySelector('.card__vote');
+                const source = Lampa.Storage.get('rating_source', 'tmdb');
+                if (!ratingElement || ratingElement.dataset.source !== source || ratingElement.dataset.movieId !== data.id.toString()) {
+                    updateCardRating({ card, data });
+                }
+            }
+        });
+        setTimeout(pollCards, 500); // Периодический вызов каждые 500 мс
+    }
+
     function insertLampaBlock(render) {
         if (!render) return false;
         let rateLine = $(render).find('.full-start-new__rate-line');
@@ -419,15 +429,6 @@
         });
     }
 
-    function findParentWithClass(element, className) {
-        let current = element.parentElement;
-        while (current) {
-            if (current.classList && current.classList.contains(className)) return current;
-            current = current.parentElement;
-        }
-        return null;
-    }
-
     function setupCardListener() {
         if (window.lampa_listener_extensions) return;
         window.lampa_listener_extensions = true;
@@ -442,55 +443,16 @@
         });
     }
 
-    // Новый observer: IntersectionObserver для видимости + MutationObserver для новых карточек
-    let intersectionObserver;
-    function setupObservers() {
-        intersectionObserver = new IntersectionObserver((entries) => {
-            entries.forEach((entry) => {
-                if (entry.isIntersecting) {
-                    const card = entry.target;
-                    const data = card.card_data;
-                    if (data && data.id) {
-                        updateCardRating({ card, data });
-                        // Отключаем наблюдение после обновления, чтобы избежать повторных вызовов
-                        intersectionObserver.unobserve(card);
-                    }
-                }
-            });
-        }, { threshold: 0.1 }); // 10% видимости для триггера
-
-        const mutationObserver = new MutationObserver((mutations) => {
-            mutations.forEach((mutation) => {
-                if (mutation.type === 'childList') {
-                    mutation.addedNodes.forEach((node) => {
-                        if (node.nodeType === 1) {
-                            const newCards = node.querySelectorAll ? node.querySelectorAll('.card') : (node.classList && node.classList.contains('card') ? [node] : []);
-                            newCards.forEach(card => {
-                                const data = card.card_data;
-                                if (data && data.id) {
-                                    intersectionObserver.observe(card);
-                                }
-                            });
-                        }
-                    });
-                }
-            });
-        });
-        mutationObserver.observe(document.body, { childList: true, subtree: true });
-
-        // Инициализация существующих карточек
-        document.querySelectorAll('.card').forEach(card => {
-            intersectionObserver.observe(card);
-        });
-    }
-
     function initPlugin() {
         addSettings();
         setupCardListener();
-        setupObservers();
+        pollCards(); // Запускаем периодический опрос
         Lampa.Listener.follow('card', (event) => {
             if (event.type === 'build' && event.object.card) {
-                intersectionObserver.observe(event.object.card);
+                const data = event.object.card.card_data;
+                if (data && data.id) {
+                    updateCardRating({ card: event.object.card, data });
+                }
             }
         });
         Lampa.Listener.follow('full', (event) => {
