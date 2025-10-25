@@ -385,6 +385,11 @@
         } else {
             rateLine.append(lampaBlockHtml);
         }
+        // Добавляем надпись TMDB для .full-start__rate.rate--tmdb
+        let tmdbBlock = rateLine.find('.rate--tmdb');
+        if (tmdbBlock.length > 0) {
+            tmdbBlock.find('.source--name').text('TMDB');
+        }
         return true;
     }
 
@@ -490,7 +495,18 @@
                 }
             }
             .full-start__rate.rate--tmdb .source--name {
-                display: none;
+                font-size: 0.8em;
+                color: #fff;
+                background-image: none;
+                width: auto;
+                height: auto;
+                margin-left: 4px;
+            }
+            @media (min-width: 481px) {
+                .full-start__rate.rate--tmdb .source--name {
+                    font-size: 1em;
+                    margin-left: 6px;
+                }
             }
         `;
         document.head.appendChild(style);
