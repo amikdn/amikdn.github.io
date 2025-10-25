@@ -302,7 +302,7 @@
 
         let label = '';
         if (source === 'tmdb') label = 'TMDB';
-        else if (source === 'lampa') label = 'LAMPA';
+        else if (source === 'lampa') label = '';
         else if (source === 'kp') label = 'KP';
         else if (source === 'imdb') label = 'IMDB';
 
