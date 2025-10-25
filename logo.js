@@ -78,6 +78,11 @@
                 name: "Логотип вместо названия",
                 description: "Настройки отображения логотипа вместо заголовка"
             },
+            onRender: function () {
+                setTimeout(() => {
+                    $('.settings-param > div:contains("Логотип вместо названия")').parent().insertAfter($('div[data-name="interface_size"]'));
+                }, 0);
+            },
             onChange: function () {
                 showLogoSettings();
             }
@@ -261,6 +266,12 @@
         }
     }
 
-    // Запуск плагина, если он еще не инициализирован
-    if (!window.plugin_interface_ready) startPlugin();
+    // Запуск плагина при готовности приложения
+    if (window.appready) {
+        startPlugin();
+    } else {
+        Lampa.Listener.follow('app', (event) => {
+            if (event.type === 'ready') startPlugin();
+        });
+    }
 })();
