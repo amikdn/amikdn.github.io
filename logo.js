@@ -1,18 +1,11 @@
 (function () {
     'use strict';
 
-    // --- Регистрация настроек в интерфейсе ---
+    // --- Регистрация настроек в разделе "Интерфейс" ---
     if (window.Lampa && Lampa.SettingsApi) {
-        // Добавление категории настроек с названием на русском и новой иконкой
-        Lampa.SettingsApi.addComponent({
-            component: 'logo_instead_of_title',
-            name: "Логотип вместо названия",
-            icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="32" height="32" fill="currentColor"><path d="M4 3h16a2 2 0 012 2v14a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2zm2 4v10h12V7H6zm2 2h8v2H8V9zm0 4h8v2H8v-2z"/></svg>'
-        });
-
         // Добавление переключателя для отображения логотипа вместо заголовка
         Lampa.SettingsApi.addParam({
-            component: 'logo_instead_of_title',
+            component: 'interface',
             param: {
                 name: 'show_logo_instead_of_title',
                 type: 'select',
@@ -33,7 +26,7 @@
 
         // Добавление настройки высоты логотипа
         Lampa.SettingsApi.addParam({
-            component: 'logo_instead_of_title',
+            component: 'interface',
             param: {
                 name: 'info_panel_logo_max_height',
                 type: 'select',
@@ -230,7 +223,7 @@
                                     }
                                 }, function(xhr, status) {
                                     var currentTargetElement = $(eventData.object.activity.render()).find(".full-start-new__title");
-                                    if (currentTargetElement && currentTargetElement.length) {
+                                    if (currentTargetElement && currentTitleElement.length) {
                                         currentTargetElement.text(movie.title);
                                     }
                                 });
