@@ -2,7 +2,7 @@
     'use strict';
     Lampa.Platform.tv();
 
-    // Объединенный кэш
+    // Объединенный кэш (без изменений)
     const ratingCache = {
         caches: {},
         get(source, key) {
@@ -29,6 +29,7 @@
     const CACHE_TIME = 24 * 60 * 60 * 1000;
     let unifiedCache = {};
 
+    // Функции calculateLampaRating10, fetchLampaRating, getLampaRating (без изменений)
     function calculateLampaRating10(reactions) {
         let weightedSum = 0;
         let totalCount = 0;
@@ -104,6 +105,7 @@
         }
     }
 
+    // taskQueue, processQueue, addToQueue, getRequest, releaseRequest (без изменений)
     let taskQueue = [];
     let isProcessing = false;
     const taskInterval = 300;
@@ -134,6 +136,7 @@
         if (requestPool.length < 3) requestPool.push(request);
     }
 
+    // stringCache, normalizeString, cleanString, matchStrings, containsString (без изменений)
     const stringCache = {};
     function normalizeString(str) {
         if (stringCache[str]) return stringCache[str];
@@ -164,6 +167,7 @@
         return typeof str1 === 'string' && typeof str2 === 'string' && normalizeString(str1).indexOf(normalizeString(str2)) !== -1;
     }
 
+    // getKinopoiskRating (без изменений)
     function getKinopoiskRating(item, callback) {
         const cached = ratingCache.get('kp_rating', item.id);
         if (cached) {
@@ -254,32 +258,7 @@
         });
     }
 
-    let pendingCards = [];
-    let cardTimer = null;
-    function processCards() {
-        if (cardTimer) return;
-        cardTimer = setTimeout(() => {
-            const cards = pendingCards.splice(0);
-            cards.forEach(card => updateCardRating(card));
-            cardTimer = null;
-        }, 50);
-    }
-
-    function addCard(card) {
-        if (card && card.querySelector && !document.body.contains(card)) {
-            const observer = new MutationObserver(() => {
-                if (document.body.contains(card)) {
-                    updateCardRating(card);
-                    observer.disconnect();
-                }
-            });
-            observer.observe(document.body, { childList: true, subtree: true });
-            return;
-        }
-        pendingCards.push(card);
-        processCards();
-    }
-
+    // createRatingElement (без изменений)
     function createRatingElement(card) {
         const ratingElement = document.createElement('div');
         ratingElement.className = 'card__vote';
@@ -305,16 +284,22 @@
         return ratingElement;
     }
 
+    // updateCardRating с добавлением логирования
     function updateCardRating(item) {
         const card = item.card || item;
-        if (!card || !card.querySelector) return;
+        if (!card || !card.querySelector || !document.body.contains(card)) {
+            console.log('Rating Plugin: Card not in DOM, skipping update');
+            return;
+        }
         const data = card.card_data || item.data || {};
-        if (!data.id) return;
+        if (!data.id) {
+            console.log('Rating Plugin: No ID in card data');
+            return;
+        }
         const source = Lampa.Storage.get('rating_source', 'tmdb');
         let ratingElement = card.querySelector('.card__vote');
         if (!ratingElement) ratingElement = createRatingElement(card);
 
-        // Упрощенная проверка dataset
         ratingElement.dataset.source = source;
         ratingElement.dataset.movieId = data.id.toString();
         ratingElement.className = `card__vote rate--${source}`;
@@ -362,33 +347,10 @@
                 }
             });
         }
+        console.log('Rating Plugin: Updated card ID', data.id, 'with source', source);
     }
 
-    // Debounce функция для оптимизации скролла
-    function debounce(func, wait) {
-        let timeout;
-        return function executedFunction(...args) {
-            const later = () => {
-                clearTimeout(timeout);
-                func(...args);
-            };
-            clearTimeout(timeout);
-            timeout = setTimeout(later, wait);
-        };
-    }
-
-    // Обновление видимых карточек при скролле
-    const refreshVisibleCards = debounce(() => {
-        const visibleCards = document.querySelectorAll('.card');
-        visibleCards.forEach(card => {
-            const data = card.card_data;
-            if (data && data.id) {
-                addCard({ card, data });
-            }
-        });
-    }, 100);
-
-    // Глобальное обновление всех карточек
+    // Глобальное обновление (принудительное для всех карточек)
     window.refreshAllRatings = function() {
         const allCards = document.querySelectorAll('.card');
         allCards.forEach(card => {
@@ -399,11 +361,13 @@
                     delete ratingElement.dataset.source;
                     delete ratingElement.dataset.movieId;
                 }
-                addCard({ card, data });
+                updateCardRating({ card, data });
             }
         });
+        console.log('Rating Plugin: Refreshed all ratings');
     };
 
+    // insertLampaBlock, addSettings, findParentWithClass, setupCardListener (без изменений)
     function insertLampaBlock(render) {
         if (!render) return false;
         let rateLine = $(render).find('.full-start-new__rate-line');
@@ -478,9 +442,24 @@
         });
     }
 
-    // Улучшенный MutationObserver
-    function setupObserver() {
-        const observer = new MutationObserver((mutations) => {
+    // Новый observer: IntersectionObserver для видимости + MutationObserver для новых карточек
+    let intersectionObserver;
+    function setupObservers() {
+        intersectionObserver = new IntersectionObserver((entries) => {
+            entries.forEach((entry) => {
+                if (entry.isIntersecting) {
+                    const card = entry.target;
+                    const data = card.card_data;
+                    if (data && data.id) {
+                        updateCardRating({ card, data });
+                        // Отключаем наблюдение после обновления, чтобы избежать повторных вызовов
+                        intersectionObserver.unobserve(card);
+                    }
+                }
+            });
+        }, { threshold: 0.1 }); // 10% видимости для триггера
+
+        const mutationObserver = new MutationObserver((mutations) => {
             mutations.forEach((mutation) => {
                 if (mutation.type === 'childList') {
                     mutation.addedNodes.forEach((node) => {
@@ -489,7 +468,7 @@
                             newCards.forEach(card => {
                                 const data = card.card_data;
                                 if (data && data.id) {
-                                    addCard({ card, data });
+                                    intersectionObserver.observe(card);
                                 }
                             });
                         }
@@ -497,25 +476,21 @@
                 }
             });
         });
-        observer.observe(document.body, { childList: true, subtree: true });
-    }
+        mutationObserver.observe(document.body, { childList: true, subtree: true });
 
-    // Обработчик прокрутки
-    function setupScrollListener() {
-        const containers = document.querySelectorAll('.selector, .card-box, .full-start');
-        containers.forEach(container => {
-            container.addEventListener('scroll', refreshVisibleCards);
+        // Инициализация существующих карточек
+        document.querySelectorAll('.card').forEach(card => {
+            intersectionObserver.observe(card);
         });
     }
 
     function initPlugin() {
         addSettings();
         setupCardListener();
-        setupObserver();
-        setupScrollListener();
+        setupObservers();
         Lampa.Listener.follow('card', (event) => {
             if (event.type === 'build' && event.object.card) {
-                addCard(event.object);
+                intersectionObserver.observe(event.object.card);
             }
         });
         Lampa.Listener.follow('full', (event) => {
