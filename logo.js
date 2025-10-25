@@ -1,39 +1,25 @@
 (function () {
     'use strict';
 
-    // --- Регистрация настроек в разделе "Интерфейс" ---
-    if (window.Lampa && Lampa.SettingsApi) {
-        // Добавление переключателя для отображения логотипа вместо заголовка
-        Lampa.SettingsApi.addParam({
-            component: 'interface',
-            param: {
-                name: 'show_logo_instead_of_title',
+    // --- Функция для отображения подменю настроек логотипа ---
+    function showLogoSettings() {
+        // Определение элементов для диалога
+        var items = [
+            {
+                title: "Логотип вместо заголовка",
+                subtitle: "Заменяет текстовый заголовок фильма логотипом",
+                id: 'show_logo_instead_of_title',
                 type: 'select',
                 values: {
                     'true': "Показать",
                     'false': "Скрыть"
                 },
-                'default': 'false'
+                selected: Lampa.Storage.get('show_logo_instead_of_title', 'false')
             },
-            field: {
-                name: "Логотип вместо заголовка",
-                description: "Заменяет текстовый заголовок фильма логотипом"
-            },
-            onRender: function () {
-                setTimeout(() => {
-                    $('.settings-param > div:contains("Логотип вместо заголовка")').parent().insertAfter($('div[data-name="interface_size"]'));
-                }, 0);
-            },
-            onChange: function(value) {
-                Lampa.Storage.set('show_logo_instead_of_title', value);
-            }
-        });
-
-        // Добавление настройки высоты логотипа
-        Lampa.SettingsApi.addParam({
-            component: 'interface',
-            param: {
-                name: 'info_panel_logo_max_height',
+            {
+                title: "Размер логотипа",
+                subtitle: "Максимальная высота логотипа",
+                id: 'info_panel_logo_max_height',
                 type: 'select',
                 values: {
                     '50': '50px',
@@ -51,19 +37,118 @@
                     '450': '450px',
                     '500': '500px'
                 },
-                'default': '100'
+                selected: Lampa.Storage.get('info_panel_logo_max_height', '100')
+            }
+        ];
+
+        // Получение текущего контекста контроллера для корректного возврата
+        var currentController = Lampa.Controller.enabled().name;
+
+        // Отображение диалога с настройками
+        Lampa.Select.show({
+            title: "Логотип вместо названия",
+            items: items,
+            onBack: function () {
+                Lampa.Controller.toggle(currentController || 'settings');
+            },
+            onSelect: function (item, selectedValue) {
+                // Обработка выбора настройки
+                if (item.type === 'select' && selectedValue) {
+                    Lampa.Storage.set(item.id, selectedValue);
+                    item.selected = selectedValue;
+
+                    // Обновление текущей карточки или панели
+                    if (Lampa.Activity.active().activity) {
+                        var currentActivity = Lampa.Activity.active().activity;
+                        var render = currentActivity.render();
+                        var movie = currentActivity.movie || {};
+                        if (render && movie.id && movie.title) {
+                            var titleElement = $(render).find(".full-start-new__title, .new-interface-info__title");
+                            if (titleElement.length) {
+                                var showLogos = Lampa.Storage.get('show_logo_instead_of_title', 'false') === 'true';
+                                if (showLogos && movie.method) {
+                                    updateLogoDisplay(movie, titleElement);
+                                } else {
+                                    titleElement.text(movie.title);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // --- Вспомогательная функция для обновления отображения логотипа ---
+    function updateLogoDisplay(movieData, titleElement) {
+        if (!movieData || !movieData.id || !movieData.method || !movieData.title || !titleElement.length) {
+            titleElement.empty();
+            return;
+        }
+
+        var id = movieData.id;
+        titleElement.text(movieData.title);
+
+        if (!network) {
+            return;
+        }
+
+        var method = movieData.method;
+        var apiKey = Lampa.TMDB.key();
+        var language = Lampa.Storage.get('language');
+        var apiUrl = Lampa.TMDB.api((method === 'tv' ? 'tv/' : 'movie/') + id + '/images?api_key=' + apiKey + '&language=' + language);
+
+        network.clear();
+        network.timeout(7000);
+        network.silent(apiUrl, function (response) {
+            var logoPath = null;
+            if (response && response.logos && response.logos.length > 0) {
+                var pngLogo = response.logos.find(logo => logo.file_path && !logo.file_path.endsWith('.svg'));
+                logoPath = pngLogo ? pngLogo.file_path : response.logos[0].file_path;
+            }
+
+            if (titleElement.length) {
+                if (logoPath) {
+                    var selectedHeight = Lampa.Storage.get('info_panel_logo_max_height', '100');
+                    if (!/^\d+$/.test(selectedHeight)) {
+                        selectedHeight = '100';
+                    }
+
+                    var imageSize = 'original';
+                    var styleAttr = `max-height: ${selectedHeight}px; max-width: 100%; vertical-align: middle; margin-bottom: 0.1em;`;
+                    var imgUrl = Lampa.TMDB.image('/t/p/' + imageSize + logoPath);
+                    var imgTagHtml = `<img src="${imgUrl}" style="${styleAttr}" alt="${movieData.title} Logo" />`;
+                    titleElement.empty().html(imgTagHtml);
+                } else {
+                    titleElement.text(movieData.title);
+                }
+            }
+        }, function(xhr, status) {
+            if (titleElement.length && movieData.title) {
+                titleElement.text(movieData.title);
+            }
+        });
+    }
+
+    // --- Регистрация кнопки в разделе "Интерфейс" ---
+    if (window.Lampa && Lampa.SettingsApi) {
+        Lampa.SettingsApi.addParam({
+            component: 'interface',
+            param: {
+                name: 'logo_settings_button',
+                type: 'button'
             },
             field: {
-                name: "Размер логотипа",
-                description: "Максимальная высота логотипа"
+                name: "Логотип вместо названия",
+                description: "Настройки отображения логотипа вместо заголовка"
             },
             onRender: function () {
                 setTimeout(() => {
-                    $('.settings-param > div:contains("Размер логотипа")').parent().insertAfter($('div[data-name="interface_size"]'));
+                    $('.settings-param > div:contains("Логотип вместо названия")').parent().insertAfter($('div[data-name="interface_size"]'));
                 }, 0);
             },
-            onChange: function(value) {
-                Lampa.Storage.set('info_panel_logo_max_height', value);
+            onChange: function () {
+                showLogoSettings();
             }
         });
     }
@@ -96,73 +181,12 @@
 
             // Установка заголовка или логотипа
             if (showLogos && data.method && data.title) {
-                this.displayLogoOrTitle(data);
+                updateLogoDisplay(data, html.find('.new-interface-info__title'));
             } else if (data.title) {
                 html.find('.new-interface-info__title').text(data.title);
             } else {
                 html.find('.new-interface-info__title').empty();
             }
-        };
-
-        // Метод для отображения логотипа или заголовка
-        this.displayLogoOrTitle = function(movieData) {
-            if (!html) return;
-            var titleElement = html.find('.new-interface-info__title');
-            if (!titleElement.length) return;
-
-            if (!movieData || !movieData.id || !movieData.method || !movieData.title) {
-                titleElement.empty();
-                return;
-            }
-
-            var id = movieData.id;
-            titleElement.text(movieData.title);
-
-            if (!network) {
-                return;
-            }
-
-            var method = movieData.method;
-            var apiKey = Lampa.TMDB.key();
-            var language = Lampa.Storage.get('language');
-            var apiUrl = Lampa.TMDB.api((method === 'tv' ? 'tv/' : 'movie/') + id + '/images?api_key=' + apiKey + '&language=' + language);
-
-            network.clear();
-            network.timeout(7000);
-            network.silent(apiUrl, function (response) {
-                var logoPath = null;
-                if (response && response.logos && response.logos.length > 0) {
-                    var pngLogo = response.logos.find(logo => logo.file_path && !logo.file_path.endsWith('.svg'));
-                    logoPath = pngLogo ? pngLogo.file_path : response.logos[0].file_path;
-                }
-
-                var currentTitleElement = html ? html.find('.new-interface-info__title') : null;
-                if (currentTitleElement && currentTitleElement.length) {
-                    if (logoPath) {
-                        var selectedHeight = Lampa.Storage.get('info_panel_logo_max_height', '100');
-                        if (!/^\d+$/.test(selectedHeight)) {
-                            selectedHeight = '100';
-                        }
-
-                        var imageSize = 'original';
-                        var styleAttr = `max-height: ${selectedHeight}px; max-width: 100%; vertical-align: middle; margin-bottom: 0.1em;`;
-                        var imgUrl = Lampa.TMDB.image('/t/p/' + imageSize + logoPath);
-                        var imgTagHtml = `<img src="${imgUrl}" style="${styleAttr}" alt="${movieData.title} Logo" />`;
-                        currentTitleElement.empty().html(imgTagHtml);
-                    } else {
-                        currentTitleElement.text(movieData.title);
-                    }
-                }
-            }, function(xhr, status) {
-                var currentTitleElement = html ? html.find('.new-interface-info__title') : null;
-                if (currentTitleElement && currentTitleElement.length) {
-                    if (movieData && movieData.title) {
-                        currentTitleElement.text(movieData.title);
-                    } else {
-                        currentTitleElement.empty();
-                    }
-                }
-            });
         };
 
         this.render = function () {
@@ -193,50 +217,10 @@
                         var movie = eventData.data.movie;
                         if (movie && movie.id && movie.title) {
                             movie.method = movie.name ? 'tv' : 'movie';
-                            var id = movie.id;
                             var initialTargetElement = $(eventData.object.activity.render()).find(".full-start-new__title");
 
                             if (initialTargetElement.length > 0) {
-                                initialTargetElement.text(movie.title);
-                                if (!network) {
-                                    return;
-                                }
-
-                                var apiKey = Lampa.TMDB.key();
-                                var language = Lampa.Storage.get('language');
-                                var apiUrl = Lampa.TMDB.api((movie.method === 'tv' ? 'tv/' : 'movie/') + id + '/images?api_key=' + apiKey + '&language=' + language);
-
-                                network.clear();
-                                network.timeout(7000);
-                                network.silent(apiUrl, function (response) {
-                                    var logoPath = null;
-                                    if (response && response.logos && response.logos.length > 0) {
-                                        var pngLogo = response.logos.find(logo => logo.file_path && !logo.file_path.endsWith('.svg'));
-                                        logoPath = pngLogo ? pngLogo.file_path : response.logos[0].file_path;
-                                    }
-
-                                    var currentTitleElement = $(eventData.object.activity.render()).find(".full-start-new__title");
-                                    if (currentTitleElement && currentTitleElement.length) {
-                                        if (logoPath) {
-                                            var selectedHeight = Lampa.Storage.get('info_panel_logo_max_height', '60');
-                                            if (!/^\d+$/.test(selectedHeight)) {
-                                                selectedHeight = '75';
-                                            }
-                                            var imageSize = 'original';
-                                            var styleAttr = `margin-top: 5px; max-height: ${selectedHeight}px; max-width: 100%; vertical-align: middle;`;
-                                            var imgUrl = Lampa.TMDB.image('/t/p/' + imageSize + logoPath);
-                                            var imgTagHtml = `<img src="${imgUrl}" style="${styleAttr}" alt="${movie.title} Logo" />`;
-                                            currentTitleElement.empty().html(imgTagHtml);
-                                        } else {
-                                            currentTitleElement.text(movie.title);
-                                        }
-                                    }
-                                }, function(xhr, status) {
-                                    var currentTitleElement = $(eventData.object.activity.render()).find(".full-start-new__title");
-                                    if (currentTitleElement && currentTitleElement.length) {
-                                        currentTitleElement.text(movie.title);
-                                    }
-                                });
+                                updateLogoDisplay(movie, initialTargetElement);
                             }
                         }
                     }
