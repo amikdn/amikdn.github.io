@@ -1,66 +1,30 @@
 (function () {
     'use strict';
 
-    // --- Переводы для интерфейса ---
-    if (window.Lampa && Lampa.Lang) {
-        Lampa.Lang.add({
-            logo_toggle_name: {
-                ru: "Логотип вместо заголовка",
-                en: "Logo Instead of Title",
-                uk: "Логотип замість заголовка"
-            },
-            logo_toggle_desc: {
-                ru: "Заменяет текстовый заголовок фильма логотипом",
-                en: "Replaces movie text title with a logo",
-                uk: "Замінює текстовий заголовок логотипом"
-            },
-            settings_show: {
-                ru: "Показать",
-                en: "Show",
-                uk: "Показати"
-            },
-            settings_hide: {
-                ru: "Скрыть",
-                en: "Hide",
-                uk: "Приховати"
-            },
-            info_panel_logo_height_name: {
-                ru: "Размер логотипа",
-                en: "Logo Size",
-                uk: "Висота логотипу"
-            },
-            info_panel_logo_height_desc: {
-                ru: "Максимальная высота логотипа",
-                en: "Maximum logo height",
-                uk: "Максимальна висота логотипу"
-            }
-        });
-    }
-
     // --- Регистрация настроек в интерфейсе ---
     if (window.Lampa && Lampa.SettingsApi) {
-        // Добавление категории настроек
+        // Добавление категории настроек с названием на русском
         Lampa.SettingsApi.addComponent({
-            component: 'additional_ratings',
-            name: Lampa.Lang.translate('additional_ratings_title'),
+            component: 'logo_instead_of_title',
+            name: "Логотип вместо названия",
             icon: '<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 24 24" xml:space="preserve" width="32" height="32" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"></path></svg>'
         });
 
         // Добавление переключателя для отображения логотипа вместо заголовка
         Lampa.SettingsApi.addParam({
-            component: 'additional_ratings',
+            component: 'logo_instead_of_title',
             param: {
                 name: 'show_logo_instead_of_title',
                 type: 'select',
                 values: {
-                    'true': Lampa.Lang.translate('settings_show'),
-                    'false': Lampa.Lang.translate('settings_hide')
+                    'true': "Показать",
+                    'false': "Скрыть"
                 },
                 'default': 'false'
             },
             field: {
-                name: Lampa.Lang.translate('logo_toggle_name'),
-                description: Lampa.Lang.translate('logo_toggle_desc')
+                name: "Логотип вместо заголовка",
+                description: "Заменяет текстовый заголовок фильма логотипом"
             },
             onChange: function(value) {
                 Lampa.Storage.set('show_logo_instead_of_title', value);
@@ -69,7 +33,7 @@
 
         // Добавление настройки высоты логотипа
         Lampa.SettingsApi.addParam({
-            component: 'additional_ratings',
+            component: 'logo_instead_of_title',
             param: {
                 name: 'info_panel_logo_max_height',
                 type: 'select',
@@ -92,8 +56,8 @@
                 'default': '100'
             },
             field: {
-                name: Lampa.Lang.translate('info_panel_logo_height_name'),
-                description: Lampa.Lang.translate('info_panel_logo_height_desc')
+                name: "Размер логотипа",
+                description: "Максимальная высота логотипа"
             },
             onChange: function(value) {
                 Lampa.Storage.set('info_panel_logo_max_height', value);
@@ -218,7 +182,7 @@
 
     // --- Инициализация плагина ---
     function startPlugin() {
-        if (!window.Lampa || !Lampa.Utils || !Lampa.Lang || !Lampa.Storage || !Lampa.TMDB || !Lampa.Reguest || !Lampa.Api) {
+        if (!window.Lampa || !Lampa.Utils || !Lampa.Storage || !Lampa.TMDB || !Lampa.Reguest || !Lampa.Api) {
             console.error("Логотип: Отсутствуют необходимые компоненты Lampa.");
             return;
         }
