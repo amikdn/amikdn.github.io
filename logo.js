@@ -13,15 +13,15 @@
                     'true': "Показать",
                     'false': "Скрыть"
                 },
-                'default': 'false'
+                'default': 'true'
             },
             field: {
-                name: "Логотип вместо заголовка",
+                name: "Логотип вместо названия",
                 description: "Заменяет текстовый заголовок фильма логотипом"
             },
             onRender: function () {
                 setTimeout(() => {
-                    $('.settings-param > div:contains("Логотип вместо заголовка")').parent().insertAfter($('div[data-name="interface_size"]'));
+                    $('.settings-param > div:contains("Логотип вместо названия")').parent().insertAfter($('div[data-name="interface_size"]'));
                 }, 0);
             },
             onChange: function(value) {
