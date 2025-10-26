@@ -1,16 +1,67 @@
-(function() {
+(function () {
     'use strict';
 
-    const CACHE_TIME = 24 * 60 * 60 * 1000;
-    let lampaRatingCache = {};
+    // Unified cache for Lampa ratings
+    const ratingCache = {
+        caches: {},
+        get(source, key) {
+            const cache = this.caches[source] || (this.caches[source] = Lampa.Storage.cache(source, 500, {}));
+            const data = cache[key];
+            if (!data) return null;
+            if (Date.now() - data.timestamp > 24 * 60 * 60 * 1000) {
+                delete cache[key];
+                Lampa.Storage.set(source, cache);
+                return null;
+            }
+            return data;
+        },
+        set(source, key, value) {
+            if (value.rating === 0 || value.rating === '0.0') return value;
+            const cache = this.caches[source] || (this.caches[source] = Lampa.Storage.cache(source, 500, {}));
+            value.timestamp = Date.now();
+            cache[key] = value;
+            Lampa.Storage.set(source, cache);
+            return value;
+        }
+    };
 
+    const CACHE_TIME = 24 * 60 * 60 * 1000;
+    let taskQueue = [];
+    let isProcessing = false;
+    const taskInterval = 300;
+
+    // Request pooling
+    let requestPool = [];
+    function getRequest() {
+        return requestPool.pop() || new Lampa.Reguest();
+    }
+    function releaseRequest(request) {
+        request.clear();
+        if (requestPool.length < 3) requestPool.push(request);
+    }
+
+    // Queue processing
+    function processQueue() {
+        if (isProcessing || !taskQueue.length) return;
+        isProcessing = true;
+        const task = taskQueue.shift();
+        task.execute();
+        setTimeout(() => {
+            isProcessing = false;
+            processQueue();
+        }, taskInterval);
+    }
+    function addToQueue(task) {
+        taskQueue.push({ execute: task });
+        processQueue();
+    }
+
+    // Rating calculation
     function calculateLampaRating10(reactions) {
         let weightedSum = 0;
         let totalCount = 0;
         let reactionCnt = {};
-
         const reactionCoef = { fire: 5, nice: 4, think: 3, bore: 2, shit: 1 };
-
         reactions.forEach(item => {
             const count = parseInt(item.counter, 10) || 0;
             const coef = reactionCoef[item.type] || 0;
@@ -18,13 +69,10 @@
             totalCount += count;
             reactionCnt[item.type] = (reactionCnt[item.type] || 0) + count;
         });
-
         if (totalCount === 0) return { rating: 0, medianReaction: '' };
-
         const avgRating = weightedSum / totalCount;
         const rating10 = (avgRating - 1) * 2.5;
         const finalRating = rating10 >= 0 ? parseFloat(rating10.toFixed(1)) : 0;
-
         let medianReaction = '';
         const medianIndex = Math.ceil(totalCount / 2.0);
         const sortedReactions = Object.entries(reactionCoef)
@@ -35,63 +83,59 @@
             medianReaction = sortedReactions.pop();
             cumulativeCount += (reactionCnt[medianReaction] || 0);
         }
-
         return { rating: finalRating, medianReaction: medianReaction };
     }
 
+    // Fetch Lampa rating
     function fetchLampaRating(ratingKey) {
         return new Promise((resolve) => {
-            let xhr = new XMLHttpRequest();
+            const request = getRequest();
             let url = "https://cubnotrip.top/api/reactions/get/" + ratingKey;
-            xhr.open("GET", url, true);
-            xhr.timeout = 10000;
-            xhr.onreadystatechange = function() {
-                if (xhr.readyState === 4) {
-                    if (xhr.status === 200) {
-                        try {
-                            let data = JSON.parse(xhr.responseText);
-                            if (data && data.result && Array.isArray(data.result)) {
-                                let result = calculateLampaRating10(data.result);
-                                resolve(result);
-                            } else {
-                                resolve({ rating: 0, medianReaction: '' });
-                            }
-                        } catch {
-                            resolve({ rating: 0, medianReaction: '' });
-                        }
+            request.timeout(10000);
+            request.silent(url, (data) => {
+                try {
+                    if (data && data.result && Array.isArray(data.result)) {
+                        let result = calculateLampaRating10(data.result);
+                        resolve(result);
                     } else {
                         resolve({ rating: 0, medianReaction: '' });
                     }
+                } catch {
+                    resolve({ rating: 0, medianReaction: '' });
+                } finally {
+                    releaseRequest(request);
                 }
-            };
-            xhr.onerror = function() { resolve({ rating: 0, medianReaction: '' }); };
-            xhr.ontimeout = function() { resolve({ rating: 0, medianReaction: '' }); };
-            xhr.send();
+            }, () => {
+                releaseRequest(request);
+                resolve({ rating: 0, medianReaction: '' });
+            }, false);
         });
     }
 
+    // Get Lampa rating with caching
     async function getLampaRating(ratingKey) {
-        let now = Date.now();
-        if (lampaRatingCache[ratingKey] && (now - lampaRatingCache[ratingKey].timestamp < CACHE_TIME)) {
-            return lampaRatingCache[ratingKey].value;
+        const cached = ratingCache.get('lampa_rating', ratingKey);
+        if (cached) return cached;
+        try {
+            let result = await fetchLampaRating(ratingKey);
+            return ratingCache.set('lampa_rating', ratingKey, result);
+        } catch (e) {
+            console.error('Rating Plugin: Lampa Rating Error:', e);
+            return { rating: 0, medianReaction: '' };
         }
-        let result = await fetchLampaRating(ratingKey);
-        lampaRatingCache[ratingKey] = { value: result, timestamp: now };
-        return result;
     }
 
+    // Insert Lampa block in full view
     function insertLampaBlock(render) {
         if (!render) return false;
         let rateLine = $(render).find('.full-start-new__rate-line');
         if (rateLine.length === 0) return false;
         if (rateLine.find('.rate--lampa').length > 0) return true;
-
         let lampaBlockHtml = '<div class="full-start__rate rate--lampa">' +
             '<div class="rate-value">0.0</div>' +
             '<div class="rate-icon"></div>' +
             '<div class="source--name">LAMPA</div>' +
             '</div>';
-
         let kpBlock = rateLine.find('.rate--kp');
         if (kpBlock.length > 0) {
             kpBlock.after(lampaBlockHtml);
@@ -101,18 +145,35 @@
         return true;
     }
 
+    // Insert rating in card
     function insertCardRating(card, event) {
         let voteEl = card.querySelector('.card__vote');
         if (!voteEl) {
             voteEl = document.createElement('div');
-            voteEl.className = 'card__vote';
-            let viewEl = card.querySelector('.card__view') || card;
-            viewEl.appendChild(voteEl);
+            voteEl.className = 'card__vote rate--lampa';
+            voteEl.style.cssText = `
+                line-height: 1;
+                font-family: "SegoeUI", sans-serif;
+                cursor: pointer;
+                box-sizing: border-box;
+                outline: none;
+                user-select: none;
+                position: absolute;
+                right: 0.3em;
+                bottom: 0.3em;
+                background: rgba(0, 0, 0, 0.5);
+                color: #fff;
+                padding: 0.2em 0.5em;
+                border-radius: 1em;
+                display: flex;
+                align-items: center;
+            `;
+            const parent = card.querySelector('.card__view') || card;
+            parent.appendChild(voteEl);
             voteEl.innerHTML = '0.0';
         } else {
             voteEl.innerHTML = '';
         }
-
         let data = card.dataset || {};
         let cardData = event.object.data || {};
         let id = cardData.id || data.id || card.getAttribute('data-id') || (card.getAttribute('data-card-id') || '0').replace('movie_', '') || '0';
@@ -121,54 +182,103 @@
             type = 'tv';
         }
         let ratingKey = type + "_" + id;
-
-        getLampaRating(ratingKey).then(result => {
-            let html = result.rating !== null ? result.rating : '0.0';
-            if (result.medianReaction) {
-                let reactionSrc = 'https://cubnotrip.top/img/reactions/' + result.medianReaction + '.svg';
-                html += ' <img style="width:1em;height:1em;margin:0 0.2em;" src="' + reactionSrc + '">';
-            }
-            voteEl.innerHTML = html;
+        voteEl.dataset.movieId = id.toString();
+        addToQueue(() => {
+            getLampaRating(ratingKey).then(result => {
+                if (voteEl.parentNode && voteEl.dataset.movieId === id.toString()) {
+                    let html = result.rating !== null ? result.rating : '0.0';
+                    if (result.medianReaction) {
+                        let reactionSrc = 'https://cubnotrip.top/img/reactions/' + result.medianReaction + '.svg';
+                        html += ` <img style="width:1em;height:1em;margin:0 0.2em;" src="${reactionSrc}">`;
+                    }
+                    voteEl.innerHTML = html;
+                    if (result.rating === 0 || result.rating === '0.0') {
+                        voteEl.style.display = 'none';
+                    }
+                    console.log('Rating Plugin: Updated Lampa card ID:', id, 'Rating:', result.rating);
+                }
+            }).catch(e => console.error('Rating Plugin: Lampa Update Error for ID:', id, e));
         });
     }
 
-    Lampa.Listener.follow('app', function(e) {
-        if (e.type === 'ready') {
-            if (!window.Lampa.Card._build_original) {
-                window.Lampa.Card._build_original = window.Lampa.Card._build;
-                window.Lampa.Card._build = function() {
-                    let result = window.Lampa.Card._build_original.call(this);
-                    setTimeout(() => Lampa.Listener.send('card', { type: 'build', object: this }), 100);
-                    return result;
-                };
-            }
-        }
-    });
-
-    Lampa.Listener.follow('full', function(e) {
-        if (e.type === 'complite') {
-            let render = e.object.activity.render();
-            if (render && insertLampaBlock(render)) {
-                if (e.object.method && e.object.id) {
-                    let ratingKey = e.object.method + "_" + e.object.id;
-                    getLampaRating(ratingKey).then(result => {
-                        if (result.rating !== null) {
-                            $(render).find('.rate--lampa .rate-value').text(result.rating);
-                            if (result.medianReaction) {
-                                let reactionSrc = 'https://cubnotrip.top/img/reactions/' + result.medianReaction + '.svg';
-                                $(render).find('.rate--lampa .rate-icon').html('<img style="width:1em;height:1em;margin:0 0.2em;" src="' + reactionSrc + '">');
-                            }
-                        }
-                    });
+    // Poll cards for updates
+    function pollCards() {
+        const allCards = document.querySelectorAll('.card');
+        allCards.forEach(card => {
+            const data = card.card_data;
+            if (data && data.id) {
+                const ratingElement = card.querySelector('.card__vote');
+                if (!ratingElement || ratingElement.dataset.movieId !== data.id.toString()) {
+                    insertCardRating(card, { object: { data } });
                 }
             }
-        }
-    });
+        });
+        setTimeout(pollCards, 500);
+    }
 
-    Lampa.Listener.follow('card', function(e) {
-        if (e.type === 'build' && e.object.card) {
-            let card = e.object.card;
-            insertCardRating(card, e);
-        }
-    });
+    // Setup card listener
+    function setupCardListener() {
+        if (window.lampa_listener_extensions) return;
+        window.lampa_listener_extensions = true;
+        Object.defineProperty(window.Lampa.Card.prototype, 'build', {
+            get() { return this._build; },
+            set(func) {
+                this._build = () => {
+                    func.apply(this);
+                    Lampa.Listener.send('card', { type: 'build', object: this });
+                };
+            }
+        });
+    }
+
+    // Initialize plugin
+    function initPlugin() {
+        const style = document.createElement('style');
+        style.type = 'text/css';
+        style.textContent = `
+            .card__vote {
+                display: flex;
+                align-items: center !important;
+            }
+        `;
+        document.head.appendChild(style);
+        setupCardListener();
+        pollCards();
+        Lampa.Listener.follow('card', (e) => {
+            if (e.type === 'build' && e.object.card) {
+                insertCardRating(e.object.card, e);
+            }
+        });
+        Lampa.Listener.follow('full', (e) => {
+            if (e.type === 'complite') {
+                let render = e.object.activity.render();
+                if (render && insertLampaBlock(render)) {
+                    if (e.object.method && e.object.id) {
+                        let ratingKey = e.object.method + "_" + e.object.id;
+                        addToQueue(() => {
+                            getLampaRating(ratingKey).then(result => {
+                                if (result.rating !== null && result.rating > 0) {
+                                    $(render).find('.rate--lampa .rate-value').text(result.rating);
+                                    if (result.medianReaction) {
+                                        let reactionSrc = 'https://cubnotrip.top/img/reactions/' + result.medianReaction + '.svg';
+                                        $(render).find('.rate--lampa .rate-icon').html('<img style="width:1em;height:1em;margin:0 0.2em;" src="' + reactionSrc + '">');
+                                    }
+                                } else {
+                                    $(render).find('.rate--lampa').hide();
+                                }
+                            });
+                        });
+                    }
+                }
+            }
+        });
+    }
+
+    if (window.appready) {
+        initPlugin();
+    } else {
+        Lampa.Listener.follow('app', (e) => {
+            if (e.type === 'ready') initPlugin();
+        });
+    }
 })();
