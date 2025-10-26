@@ -119,8 +119,7 @@
         try {
             let result = await fetchLampaRating(ratingKey);
             return ratingCache.set('lampa_rating', ratingKey, result);
-        } catch (e) {
-            console.error('Rating Plugin: Lampa Rating Error:', e);
+        } catch {
             return { rating: 0, medianReaction: '' };
         }
     }
@@ -183,6 +182,17 @@
         }
         let ratingKey = type + "_" + id;
         voteEl.dataset.movieId = id.toString();
+        // Check if rating is already cached and displayed
+        const cached = ratingCache.get('lampa_rating', ratingKey);
+        if (cached && cached.rating !== 0 && cached.rating !== '0.0') {
+            let html = cached.rating;
+            if (cached.medianReaction) {
+                let reactionSrc = 'https://cubnotrip.top/img/reactions/' + cached.medianReaction + '.svg';
+                html += ` <img style="width:1em;height:1em;margin:0 0.2em;" src="${reactionSrc}">`;
+            }
+            voteEl.innerHTML = html;
+            return;
+        }
         addToQueue(() => {
             getLampaRating(ratingKey).then(result => {
                 if (voteEl.parentNode && voteEl.dataset.movieId === id.toString()) {
@@ -195,9 +205,8 @@
                     if (result.rating === 0 || result.rating === '0.0') {
                         voteEl.style.display = 'none';
                     }
-                    console.log('Rating Plugin: Updated Lampa card ID:', id, 'Rating:', result.rating);
                 }
-            }).catch(e => console.error('Rating Plugin: Lampa Update Error for ID:', id, e));
+            });
         });
     }
 
@@ -210,6 +219,18 @@
                 const ratingElement = card.querySelector('.card__vote');
                 if (!ratingElement || ratingElement.dataset.movieId !== data.id.toString()) {
                     insertCardRating(card, { object: { data } });
+                } else {
+                    // Check if cached rating can be applied
+                    const ratingKey = (data.seasons || data.first_air_date || data.original_name) ? `tv_${data.id}` : `movie_${data.id}`;
+                    const cached = ratingCache.get('lampa_rating', ratingKey);
+                    if (cached && cached.rating !== 0 && cached.rating !== '0.0' && ratingElement.innerHTML === '') {
+                        let html = cached.rating;
+                        if (cached.medianReaction) {
+                            let reactionSrc = 'https://cubnotrip.top/img/reactions/' + cached.medianReaction + '.svg';
+                            html += ` <img style="width:1em;height:1em;margin:0 0.2em;" src="${reactionSrc}">`;
+                        }
+                        ratingElement.innerHTML = html;
+                    }
                 }
             }
         });
