@@ -276,13 +276,28 @@
                 if (render && insertLampaBlock(render)) {
                     if (e.object.method && e.object.id) {
                         let ratingKey = e.object.method + "_" + e.object.id;
+                        // Check if rating is already cached
+                        const cached = ratingCache.get('lampa_rating', ratingKey);
+                        if (cached && cached.rating !== 0 && cached.rating !== '0.0') {
+                            let rateValue = $(render).find('.rate--lampa .rate-value');
+                            let rateIcon = $(render).find('.rate--lampa .rate-icon');
+                            rateValue.text(cached.rating);
+                            if (cached.medianReaction) {
+                                let reactionSrc = 'https://cubnotrip.top/img/reactions/' + cached.medianReaction + '.svg';
+                                rateIcon.html('<img style="width:1em;height:1em;margin:0 0.2em;" src="' + reactionSrc + '">');
+                            }
+                            return;
+                        }
+                        // Fetch rating if not cached
                         addToQueue(() => {
                             getLampaRating(ratingKey).then(result => {
+                                let rateValue = $(render).find('.rate--lampa .rate-value');
+                                let rateIcon = $(render).find('.rate--lampa .rate-icon');
                                 if (result.rating !== null && result.rating > 0) {
-                                    $(render).find('.rate--lampa .rate-value').text(result.rating);
+                                    rateValue.text(result.rating);
                                     if (result.medianReaction) {
                                         let reactionSrc = 'https://cubnotrip.top/img/reactions/' + result.medianReaction + '.svg';
-                                        $(render).find('.rate--lampa .rate-icon').html('<img style="width:1em;height:1em;margin:0 0.2em;" src="' + reactionSrc + '">');
+                                        rateIcon.html('<img style="width:1em;height:1em;margin:0 0.2em;" src="' + reactionSrc + '">');
                                     }
                                 } else {
                                     $(render).find('.rate--lampa').hide();
