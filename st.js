@@ -8,10 +8,10 @@
         function init() {
             // Подписка на событие для обработки заблокированных запросов
             Lampa.Listener.follow('request_secuses', function (event) {
-                if (event.data.origin) {
+                if (event.data.blocked) {
                     var activeActivity = Lampa.Activity.active();
-                    activeActivity.source = 'dcma';
-                    Lampa.Storage.set('source', 'dcma', true);
+                    activeActivity.source = 'tmdb';
+                    Lampa.Storage.set('source', 'tmdb', true);
                     Lampa.Activity.replace(activeActivity);
                     Lampa.Storage.set('source', 'cub', true);
 
