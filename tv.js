@@ -1,9 +1,5 @@
-/*
-// https://ss-iptv.com/ru/operators/catchup
-// niklabs.com/catchup-settings/
-// http://plwxk8hl.russtv.net/iptv/00000000000000/9201/index.m3u8?utc=1666796400&lutc=1666826200
-*/
-;(function () {
+
+ (function () {
 'use strict';
 var plugin = {
     component: 'my_iptv',
@@ -1371,10 +1367,8 @@ function langGet(name) {
 
 function searchRandom(){
     var options = [
-        // "http://troya.info/pl/3/z68u8wi548hj8/playlist.m3u8",
-        // "http://troya.info/pl/3/zfs3tjv0x88rz/playlist.m3u8",
-        // "http://troya.info/pl/3/tbfc2c3ixuuth/playlist.m3u8",
-        // "http://troya.info/pl/3/66fda7c2d710d/playlist.m3u8"
+        "https://raw.githubusercontent.com/Free-TV/IPTV/master/playlist.m3u8"
+
     ];
     var randomIndex = Math.floor(Math.random() * options.length);
     var randomOption = options[randomIndex];
@@ -1437,7 +1431,7 @@ langAdd('settings_list_url',
 );
 langAdd('settings_list_url_desc0',
     {
-	ru: 'По умолчанию используется плейлист из проекта. Вы можете заменить его на свой.',
+	ru: 'По умолчанию используется плейлист из проекта <i>https://github.com/Free-TV/IPTV</i><br> Вы можете заменить его на свой.',
 	uk: 'За замовчуванням використовується плейлист із проекту <i>https://github.com/Free-TV/IPTV</i><br>Ви можете замінити його на свій.',
 	be: 'Па змаўчанні выкарыстоўваецца плэйліст з праекта <i>https://github.com/Free-TV/IPTV</i><br> Вы можаце замяніць яго на свой.',
 	en: 'The default playlist is from the project <i>https://github.com/Free-TV/IPTV</i><br>You can replace it with your own.',
