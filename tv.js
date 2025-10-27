@@ -1367,7 +1367,7 @@ function langGet(name) {
 
 function searchRandom(){
     var options = [
-        "https://raw.githubusercontent.com/Free-TV/IPTV/master/playlist.m3u8"
+        "https://amikdn.github.io/tv.m3u"
 
     ];
     var randomIndex = Math.floor(Math.random() * options.length);
@@ -1378,10 +1378,10 @@ function searchRandom(){
 langAdd('default_playlist',
     {
     ru: searchRandom(),
-	uk: 'https://raw.githubusercontent.com/Free-TV/IPTV/master/playlist.m3u8',
-	be: 'https://raw.githubusercontent.com/Free-TV/IPTV/master/playlist.m3u8',
-	en: 'https://raw.githubusercontent.com/Free-TV/IPTV/master/playlist.m3u8',
-	zh: 'https://raw.iqiq.io/Free-TV/IPTV/master/playlist.m3u8'
+	uk: 'https://amikdn.github.io/tv.m3u',
+	be: 'https://amikdn.github.io/tv.m3u',
+	en: 'https://amikdn.github.io/tv.m3u',
+	zh: 'https://amikdn.github.io/tv.m3u'
     }
 );
 langAdd('default_playlist_cat',
@@ -1431,11 +1431,11 @@ langAdd('settings_list_url',
 );
 langAdd('settings_list_url_desc0',
     {
-	ru: 'По умолчанию используется плейлист из проекта <i>https://github.com/Free-TV/IPTV</i><br> Вы можете заменить его на свой.',
-	uk: 'За замовчуванням використовується плейлист із проекту <i>https://github.com/Free-TV/IPTV</i><br>Ви можете замінити його на свій.',
-	be: 'Па змаўчанні выкарыстоўваецца плэйліст з праекта <i>https://github.com/Free-TV/IPTV</i><br> Вы можаце замяніць яго на свой.',
-	en: 'The default playlist is from the project <i>https://github.com/Free-TV/IPTV</i><br>You can replace it with your own.',
-	zh: '默认播放列表来自项目 <i>https://github.com/Free-TV/IPTV</i><br>您可以将其替换为您自己的。'
+	ru: 'По умолчанию используется плейлист из проекта <i>amidn</i><br> Вы можете заменить его на свой.',
+	uk: 'За замовчуванням використовується плейлист із проекту <i>amidn</i><br>Ви можете замінити його на свій.',
+	be: 'Па змаўчанні выкарыстоўваецца плэйліст з праекта <i>amidn<br> Вы можаце замяніць яго на свой.',
+	en: 'The default playlist is from the project <i>amidn</i><br>You can replace it with your own.',
+	zh: '默认播放列表来自项目 <i>amidn</i><br>您可以将其替换为您自己的。'
     }
 );
 langAdd('settings_list_url_desc1',
