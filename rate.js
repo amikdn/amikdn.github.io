@@ -3,7 +3,6 @@
 
     Lampa.Platform.tv();
 
-    // Unified cache for all ratings
     const ratingCache = {
         caches: {},
         get(source, key) {
@@ -32,7 +31,6 @@
     let isProcessing = false;
     const taskInterval = 300;
 
-    // Request pooling
     let requestPool = [];
     function getRequest() {
         return requestPool.pop() || new Lampa.Reguest();
@@ -43,7 +41,6 @@
         if (requestPool.length < 3) requestPool.push(request);
     }
 
-    // Queue processing
     function processQueue() {
         if (isProcessing || !taskQueue.length) return;
         isProcessing = true;
@@ -60,7 +57,6 @@
         processQueue();
     }
 
-    // String normalization
     const stringCache = {};
     function normalizeString(str) {
         if (stringCache[str]) return stringCache[str];
@@ -91,7 +87,6 @@
         return typeof str1 === 'string' && typeof str2 === 'string' && normalizeString(str1).indexOf(normalizeString(str2)) !== -1;
     }
 
-    // Kinopoisk rating
     function getKinopoiskRating(item, callback) {
         const cached = ratingCache.get('kp_rating', item.id);
         if (cached) {
@@ -184,7 +179,6 @@
         });
     }
 
-    // Lampa rating
     function calculateLampaRating10(reactions) {
         let weightedSum = 0;
         let totalCount = 0;
@@ -250,7 +244,6 @@
         }
     }
 
-    // TMDB rating
     function getTMDBRating(data) {
         const ratingKey = data.id;
         const cached = ratingCache.get('tmdb_rating', ratingKey);
