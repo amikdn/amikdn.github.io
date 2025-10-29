@@ -499,11 +499,15 @@
             /* Fix for clipped icon on mobile portrait */
             @media (max-width: 480px) {
                 .full-start-new__rate-line {
-                    flex-wrap: wrap !important;
-                    justify-content: center;
+                    overflow: visible !important;
                 }
                 .full-start__rate {
-                    margin: 0.2em;
+                    padding: 0.1em 0.3em;
+                    font-size: 0.8em;
+                }
+                .rate-icon img {
+                    width: 0.8em;
+                    height: 0.8em;
                 }
             }
         `;
