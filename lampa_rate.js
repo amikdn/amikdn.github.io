@@ -1,7 +1,6 @@
 (function () {
     'use strict';
 
-    // Unified cache for Lampa ratings
     const ratingCache = {
         caches: {},
         get(source, key) {
@@ -30,7 +29,6 @@
     let isProcessing = false;
     const taskInterval = 300;
 
-    // Request pooling
     let requestPool = [];
     function getRequest() {
         return requestPool.pop() || new Lampa.Reguest();
@@ -40,7 +38,6 @@
         if (requestPool.length < 3) requestPool.push(request);
     }
 
-    // Queue processing
     function processQueue() {
         if (isProcessing || !taskQueue.length) return;
         isProcessing = true;
@@ -56,7 +53,6 @@
         processQueue();
     }
 
-    // Rating calculation
     function calculateLampaRating10(reactions) {
         let weightedSum = 0;
         let totalCount = 0;
@@ -86,7 +82,6 @@
         return { rating: finalRating, medianReaction: medianReaction };
     }
 
-    // Fetch Lampa rating
     function fetchLampaRating(ratingKey) {
         return new Promise((resolve) => {
             const request = getRequest();
@@ -112,7 +107,6 @@
         });
     }
 
-    // Get Lampa rating with caching
     async function getLampaRating(ratingKey) {
         const cached = ratingCache.get('lampa_rating', ratingKey);
         if (cached) return cached;
@@ -124,7 +118,6 @@
         }
     }
 
-    // Insert Lampa block in full view
     function insertLampaBlock(render) {
         if (!render) return false;
         let rateLine = $(render).find('.full-start-new__rate-line');
@@ -144,7 +137,6 @@
         return true;
     }
 
-    // Insert rating in card
     function insertCardRating(card, event) {
         let voteEl = card.querySelector('.card__vote');
         if (!voteEl) {
@@ -182,7 +174,6 @@
         }
         let ratingKey = type + "_" + id;
         voteEl.dataset.movieId = id.toString();
-        // Check if rating is already cached and displayed
         const cached = ratingCache.get('lampa_rating', ratingKey);
         if (cached && cached.rating !== 0 && cached.rating !== '0.0') {
             let html = cached.rating;
@@ -210,7 +201,6 @@
         });
     }
 
-    // Poll cards for updates
     function pollCards() {
         const allCards = document.querySelectorAll('.card');
         allCards.forEach(card => {
@@ -220,7 +210,6 @@
                 if (!ratingElement || ratingElement.dataset.movieId !== data.id.toString()) {
                     insertCardRating(card, { object: { data } });
                 } else {
-                    // Check if cached rating can be applied
                     const ratingKey = (data.seasons || data.first_air_date || data.original_name) ? `tv_${data.id}` : `movie_${data.id}`;
                     const cached = ratingCache.get('lampa_rating', ratingKey);
                     if (cached && cached.rating !== 0 && cached.rating !== '0.0' && ratingElement.innerHTML === '') {
@@ -237,7 +226,6 @@
         setTimeout(pollCards, 500);
     }
 
-    // Setup card listener
     function setupCardListener() {
         if (window.lampa_listener_extensions) return;
         window.lampa_listener_extensions = true;
@@ -252,7 +240,6 @@
         });
     }
 
-    // Initialize plugin
     function initPlugin() {
         const style = document.createElement('style');
         style.type = 'text/css';
@@ -288,7 +275,6 @@
                             }
                             return;
                         }
-                        // Fetch rating if not cached
                         addToQueue(() => {
                             getLampaRating(ratingKey).then(result => {
                                 let rateValue = $(render).find('.rate--lampa .rate-value');
@@ -318,3 +304,4 @@
         });
     }
 })();
+
