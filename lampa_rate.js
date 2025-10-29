@@ -503,11 +503,11 @@
                 }
                 .full-start__rate {
                     padding: 0.1em 0.3em;
-                    font-size: 1em;
+                    font-size: 1.2em;
                 }
                 .rate-icon img {
-                    width: 1em;
-                    height: 1em;
+                    width: 1.2em;
+                    height: 1.2em;
                 }
             }
         `;
@@ -571,5 +571,6 @@
         });
     }
 })();
+
 
 
