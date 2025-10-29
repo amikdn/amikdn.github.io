@@ -174,7 +174,6 @@
         }
         let ratingKey = type + "_" + id;
         voteEl.dataset.movieId = id.toString();
-        // Check if rating is already cached and displayed
         const cached = ratingCache.get('lampa_rating', ratingKey);
         if (cached && cached.rating !== 0 && cached.rating !== '0.0') {
             let html = cached.rating;
