@@ -5,7 +5,7 @@
     type: 'other',
     version: '1.4',
     name: 'Скрыть блок истории просмотра',
-    description: 'Полностью скрывает блок .watched-history (история просмотра в торрентах), но оставляет его в DOM, чтобы фокус оставался на нём.'
+    description: 'Скрывает содержимое блока истории просмотра'
   };
   Lampa.Manifest.plugins = manifest;
 
