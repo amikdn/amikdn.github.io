@@ -1,125 +1,366 @@
-(function() {
+(function () {
     'use strict';
 
-    console.log('[Русское] Плагин запущен');
+    // Объект плагина
+    const TorrentQuality = {
+        name: 'torrent_quality',
+        version: '1.1.27',
+        debug: false,
+        settings: {
+            enabled: true,
+            quality_filter: 'any'
+        }
+    };
 
-    Lampa.Platform.tv();
+    // Хранилище данных
+    let originalTorrents = [];
+    let allTorrents = [];
+    let currentMovieTitle = null;
+    let lastUrl = window.location.search;
 
-    // Иконка
-    function getIcon() {
-        return '<svg xmlns="http://www.w3.org/2000/svg" width="1.2em" height="1.2em" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="4"><path stroke-linejoin="round" d="M24 44c11.046 0 20-8.954 20-20S35.046 4 24 4S4 12.954 4 24s8.954 20 20 20Z"/><path stroke-linejoin="round" d="M24 18a3 3 0 1 0 0-6a3 3 0 0 0 0 6Zm0 18a3 3 0 1 0 0-6a3 3 0 0 0 0 6Zm-9-9a3 3 0 1 0 0-6a3 3 0 0 0 0 6Zm18 0a3 3 0 1 0 0-6a3 3 0 0 0 0 6Z"/><path stroke-linecap="round" d="M24 44h20"/></g></svg>';
-    }
-
-    const API_KEY = '4ef0d7355d9ffb5151e987764708ce96';
-    const BASE_URL = 'https://api.themoviedb.org/3';
-    const currentDate = new Date().toISOString().split('T')[0];
-
-    // === ПОДБОРКИ ===
-    const collections = [
-        { title: 'Русские фильмы', img: 'https://bylampa.github.io/img/rus_movie.jpg', url: `discover/movie?sort_by=primary_release_date.desc&with_original_language=ru&vote_average.gte=5&vote_average.lte=9.5&primary_release_date.lte=${currentDate}` },
-        { title: 'Русские сериалы', img: 'https://bylampa.github.io/img/rus_tv.jpg', url: `discover/tv?with_original_language=ru&sort_by=first_air_date.desc&air_date.lte=${currentDate}` },
-        { title: 'СТС', img: 'https://bylampa.github.io/img/sts.jpg', url: 'discover/tv?with_networks=2493&sort_by=first_air_date.desc' },
-        { title: 'ТНТ', img: 'https://bylampa.github.io/img/tnt.jpg', url: 'discover/tv?with_networks=2859&sort_by=first_air_date.desc' },
-        { title: 'KION', img: 'https://bylampa.github.io/img/kion.jpg', url: 'discover/tv?with_networks=4085&sort_by=first_air_date.desc' },
-        { title: 'IVI', img: 'https://bylampa.github.io/img/ivi.jpg', url: 'discover/tv?with_networks=3871&sort_by=first_air_date.desc' },
-        { title: 'Okko', img: 'https://bylampa.github.io/img/okko.jpg', url: 'discover/tv?with_networks=3827&sort_by=first_air_date.desc' },
-        { title: 'КиноПоиск', img: 'https://bylampa.github.io/img/kinopoisk.jpg', url: 'discover/tv?with_networks=5806&sort_by=first_air_date.desc' },
-        { title: 'Wink', img: 'https://bylampa.github.io/img/wink.jpg', url: 'discover/tv?with_networks=3923&sort_by=first_air_date.desc' },
-        { title: 'Start', img: 'https://bylampa.github.io/img/start.jpg', url: 'discover/tv?with_networks=806&sort_by=first_air_date.desc' },
-        { title: 'Premier', img: 'https://bylampa.github.io/img/premier.jpg', url: 'discover/tv?with_networks=1191&sort_by=first_air_date.desc' }
-    ];
-
-    // === КОМПОНЕНТ rus_movie ===
-    function rusComponent(params) {
-        const component = new Lampa.Component(params);
-
-        // Главная — список подборок
-        component.create = function() {
-            const data = {
-                collection: true,  // ВАЖНО: ВКЛЮЧАЕМ
-                total_pages: 1,
-                results: collections.map(c => ({
-                    title: c.title,
-                    img: c.img,
-                    url: c.url,
-                    source: 'tmdb'
-                }))
+    // Функция получения данных торрентов из DOM
+    function getTorrentsData() {
+        const torrentItems = document.querySelectorAll('.torrent-item');
+        const results = Array.from(torrentItems).map(item => {
+            const title = item.querySelector('.torrent-item__title')?.textContent.trim() || 'Без названия';
+            const ffprobe = {
+                video: {
+                    width: parseInt(item.querySelector('.m-video')?.textContent?.split('x')[0]) || 0,
+                    height: parseInt(item.querySelector('.m-video')?.textContent?.split('x')[1]) || 0
+                },
+                audio: {
+                    channel_layout: item.querySelector('.m-channels')?.textContent?.trim() || 'Неизвестно'
+                }
             };
-            this.build(data);
-        };
-
-        // Загрузка TMDB
-        component.nextPageReuest = function(p, onSuccess, onError) {
-            const url = `${BASE_URL}/${p.url}&api_key=${API_KEY}&language=ru&page=${p.page || 1}`;
-            console.log('[Русское] Загружаю:', url);
-
-            const network = new Lampa.Reguest();
-            network.native(url, res => {
-                res.title = p.title || 'Подборка';
-                onSuccess(res);
-            }, onError);
-        };
-
-        // КЛИК ПО КАРТОЧКЕ — РАБОТАЕТ ТОЛЬКО С collection: true
-        component.render = function(data, card) {
-            card.onEnter = () => {
-                console.log('[Русское] Клик по:', card.title);
-                Lampa.Activity.push({
-                    url: card.url,
-                    title: card.title,
-                    component: 'full',
-                    source: 'tmdb',
-                    page: 1
-                });
+            const voices = Array.from(item.querySelectorAll('.m-audio')).map(el => el.textContent.trim());
+            const subtitles = Array.from(item.querySelectorAll('.m-subtitle')).map(el => el.textContent.trim());
+            return {
+                Title: title,
+                PublishDate: item.querySelector('.torrent-item__date')?.textContent?.trim() || 'Неизвестно',
+                Tracker: item.querySelector('.torrent-item__tracker')?.textContent?.trim() || 'Неизвестно',
+                Size: parseFloat(item.querySelector('.torrent-item__size')?.textContent) * 1024 * 1024 * 1024 || 0,
+                Seeders: parseInt(item.querySelector('.torrent-item__seeds span')?.textContent) || 0,
+                Peers: parseInt(item.querySelector('.torrent-item__grabs span')?.textContent) || 0,
+                ffprobe: ffprobe,
+                languages: voices,
+                subtitles: subtitles,
+                MagnetUri: item.querySelector('a[href*="magnet:"]')?.href || ''
             };
-        };
-
-        return component;
-    }
-
-    Lampa.Component.add('rus_movie', rusComponent);
-
-    // === МЕНЮ ===
-    function addMenu() {
-        $('.menu__item[data-rus]').remove();
-
-        const $item = $(`
-            <li class="menu__item selector" data-rus="true">
-                <div class="menu__ico">${getIcon()}</div>
-                <div class="menu__text">Русское</div>
-            </li>
-        `);
-
-        $item.on('hover:enter', () => {
-            Lampa.Activity.push({
-                url: '',
-                title: 'Русское',
-                component: 'rus_movie',
-                page: 1
-            });
         });
+        return results;
+    }
 
-        const $menu = $('.menu .menu__list').first();
-        if ($menu.length) {
-            $menu.append($item);
-            $item.find('.menu__text').css('text-align', 'center');
+    // Функция сброса фильтра
+    function resetFilter() {
+        allTorrents = [...originalTorrents];
+        if (!allTorrents.length) {
+            allTorrents = getTorrentsData();
+            originalTorrents = [...allTorrents];
+            if (!allTorrents.length) {
+                return false;
+            }
+        }
+        TorrentQuality.settings.quality_filter = 'any';
+        Lampa.Storage.set('torrent_quality_filter', 'any');
+        return true;
+    }
+
+    // Функция очистки списков и DOM
+    function clearTorrents() {
+        originalTorrents = [];
+        allTorrents = [];
+        const container = document.querySelector('.torrent-list');
+        if (container) container.innerHTML = '';
+    }
+
+    // Функция фильтрации торрентов
+    async function filterTorrents(filterValue) {
+        try {
+            if (!originalTorrents.length) {
+                originalTorrents = getTorrentsData();
+                allTorrents = [...originalTorrents];
+                if (!originalTorrents.length) {
+                    return;
+                }
+            }
+
+            if (filterValue !== 'any') {
+                resetFilter();
+            }
+
+            if (!allTorrents.length) {
+                resetFilter();
+                if (!allTorrents.length) {
+                    return;
+                }
+            }
+
+            let filteredResults = allTorrents;
+            if (filterValue && filterValue !== 'any') {
+                const filterLower = filterValue.toLowerCase();
+                filteredResults = allTorrents.filter(result => {
+                    const title = result.Title?.toLowerCase().replace(/[- ]/g, '') || '';
+                    if (!title) {
+                        return false;
+                    }
+                    if (filterLower === 'web-dl') {
+                        return (title.includes('webdl') || title.includes('web-dl')) && !title.includes('webdlrip') && !title.includes('web-dlrip');
+                    } else if (filterLower === 'web-dlrip') {
+                        return title.includes('webdlrip') || title.includes('web-dlrip');
+                    } else if (filterLower === 'openmatte') {
+                        return title.includes('openmatte') || title.includes('open-matte');
+                    }
+                    return false;
+                });
+            }
+
+            if (!filteredResults.length) {
+                Lampa.Utils.message?.(`Не найдено торрентов для фильтра: ${filterValue}`) || alert(`Не найдено торрентов для фильтра: ${filterValue}`);
+                return;
+            }
+
+            renderResults(filteredResults);
+        } catch (error) {
+            Lampa.Utils.message?.('Ошибка при фильтрации торрентов') || alert('Ошибка при фильтрации торрентов');
         }
     }
 
-    // Гарантия загрузки
-    $(document).ready(() => setTimeout(addMenu, 1000));
-    setTimeout(addMenu, 3000);
-    setInterval(addMenu, 10000);
+    // Функция рендеринга
+    function renderResults(results) {
+        const torrentItems = document.querySelectorAll('.torrent-item');
+        if (!torrentItems.length) {
+            return;
+        }
 
-    // === МЕТАДАННЫЕ ===
-    if (!Lampa.Manifest.plugins) Lampa.Manifest.plugins = {};
-    Lampa.Manifest.plugins.rus_movie = {
-        type: 'movie',
-        version: '2.1.0',
-        name: 'Русское',
-        description: 'Рабочие русские подборки через TMDB',
-        component: 'rus_movie'
-    };
+        const resultTitles = results.map(r => r.Title.toLowerCase());
+        torrentItems.forEach(item => {
+            const title = item.querySelector('.torrent-item__title')?.textContent.toLowerCase() || '';
+            item.style.display = resultTitles.includes(title) ? 'block' : 'none';
+        });
+    }
 
-    console.log('[Русское] Плагин готов');
+    // Отслеживание изменений URL с помощью history API
+    function setupUrlChangeObserver() {
+        const originalPushState = history.pushState;
+        const originalReplaceState = history.replaceState;
+
+        history.pushState = function (...args) {
+            originalPushState.apply(this, args);
+            handleUrlChange();
+        };
+        history.replaceState = function (...args) {
+            originalReplaceState.apply(this, args);
+            handleUrlChange();
+        };
+
+        window.addEventListener('popstate', handleUrlChange);
+
+        function handleUrlChange() {
+            const currentUrl = window.location.search;
+            if (currentUrl !== lastUrl) {
+                const newTitle = document.querySelector('.full-start-new__title')?.textContent?.trim() || currentUrl;
+                if (newTitle && newTitle !== currentMovieTitle) {
+                    clearTorrents();
+                    currentMovieTitle = newTitle;
+                    lastUrl = currentUrl;
+                    applyFilterOnTorrentsLoad();
+                }
+            }
+        }
+    }
+
+    // Применение фильтра при загрузке торрентов
+    function applyFilterOnTorrentsLoad() {
+        if (!TorrentQuality.settings.enabled) return;
+        clearTorrents();
+        resetFilter();
+        const torrents = getTorrentsData();
+        if (torrents.length) {
+            filterTorrents(TorrentQuality.settings.quality_filter);
+        } else {
+            const container = document.querySelector('.torrent-list');
+            if (container) {
+                const observer = new MutationObserver((mutations, obs) => {
+                    if (document.querySelectorAll('.torrent-item').length) {
+                        obs.disconnect();
+                        resetFilter();
+                        filterTorrents(TorrentQuality.settings.quality_filter);
+                    }
+                });
+                observer.observe(container, { childList: true, subtree: true });
+                setTimeout(() => observer.disconnect(), 5000); // Остановить через 5 секунд
+            }
+        }
+    }
+
+    // Инициализация плагина
+    function startPlugin() {
+        Lampa.SettingsApi.addComponent({
+            component: 'torrent_quality',
+            name: 'Фильтр WEB-DL',
+            icon: '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" fill="currentColor"/><path d="M12 6c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79-4-4-4z" fill="currentColor"/></svg>'
+        });
+
+        Lampa.SettingsApi.addParam({
+            component: 'torrent_quality',
+            param: {
+                name: 'quality_filter',
+                type: 'select',
+                values: {
+                    any: 'Все',
+                    'web-dl': 'WEB-DL',
+                    'web-dlrip': 'WEB-DLRip',
+                    openmatte: 'Open Matte'
+                },
+                default: 'any'
+            },
+            field: {
+                name: 'Фильтр WEB-DL',
+                description: 'Выберите параметры для фильтрации торрентов'
+            },
+            onRender: function (element) {
+    if (!(element instanceof HTMLElement)) return;
+
+    // Находим существующее меню фильтров (вкладка "Торренты" → фильтры)
+    const container = document.querySelector('.torrents-filter .scroll__content .scroll__body');
+    if (!container) return;
+
+    // Удаляем старые пункты WEB-DL, если были
+    container.querySelectorAll('.selectbox-item[data-quality-filter]').forEach(el => el.remove());
+
+    // Добавляем наши пункты под "Качество"
+    const qualityItem = container.querySelector('.selectbox-item .selectbox-item__title')?.textContent === 'Качество' 
+        ? container.querySelector('.selectbox-item') 
+        : null;
+
+    if (!qualityItem) return;
+
+    const insertAfter = qualityItem;
+
+    // Функция создания пункта
+    function createQualityOption(title, value) {
+        const item = document.createElement('div');
+        item.className = 'selectbox-item selector selectbox-item--checkbox';
+        item.dataset.qualityFilter = value;
+        item.dataset.value = value;
+        item.innerHTML = `
+            <div class="selectbox-item__title">${title}</div>
+            <div class="selectbox-item__checkbox"></div>
+        `;
+        return item;
+    }
+
+    // Создаём и вставляем пункты
+    const webdl = createQualityOption('WEB-DL', 'web-dl');
+    const webdlrip = createQualityOption('WEB-DLRip', 'web-dlrip');
+    const openmatte = createQualityOption('Open Matte', 'openmatte');
+
+    // Вставляем после пункта "Качество"
+    insertAfter.parentNode.insertBefore(webdl, insertAfter.nextSibling);
+    insertAfter.parentNode.insertBefore(webdlrip, webdl.nextSibling);
+    insertAfter.parentNode.insertBefore(openmatte, webdlrip.nextSibling);
+
+    // Обновляем подзаголовок "Качество"
+    const qualitySubtitle = insertAfter.querySelector('.selectbox-item__subtitle');
+    if (qualitySubtitle) {
+        const updateQualitySubtitle = () => {
+            const active = container.querySelector('.selectbox-item--checkbox.selected[data-quality-filter]')?.querySelector('.selectbox-item__title')?.textContent || 'Любое';
+            qualitySubtitle.textContent = active;
+        };
+
+        // Изначально обновляем
+        updateQualitySubtitle();
+    }
+
+    // Обработчик кликов
+    container.querySelectorAll('.selectbox-item--checkbox[data-quality-filter]').forEach(item => {
+        item.addEventListener('click', function () {
+            const value = this.dataset.value;
+
+            // Снимаем выделение с других
+            container.querySelectorAll('.selectbox-item--checkbox[data-quality-filter]').forEach(el => {
+                el.classList.toggle('selected', el === this);
+            });
+
+            // Сохраняем и применяем
+            TorrentQuality.settings.quality_filter = value;
+            Lampa.Storage.set('torrent_quality_filter', value);
+            filterTorrents(value);
+
+            // Обновляем подзаголовок
+            if (qualitySubtitle) {
+                qualitySubtitle.textContent = this.querySelector('.selectbox-item__title').textContent;
+            }
+
+            // Закрываем меню, если оно открыто
+            const menu = container.closest('.selectbox__content');
+            if (menu) menu.style.display = 'none';
+        });
+    });
+
+    // Обработчик "Сбросить фильтр"
+    const resetItem = container.querySelector('.selectbox-item .selectbox-item__title')?.textContent === 'Сбросить фильтр'
+        ? container.querySelector('.selectbox-item') : null;
+
+    if (resetItem) {
+        const originalClick = resetItem.onclick;
+        resetItem.onclick = function () {
+            if (originalClick) originalClick.call(this);
+
+            // Сбрасываем наш фильтр
+            container.querySelectorAll('.selectbox-item--checkbox[data-quality-filter]').forEach(el => {
+                el.classList.remove('selected');
+            });
+
+            if (qualitySubtitle) qualitySubtitle.textContent = 'Любое';
+
+            resetFilter();
+            filterTorrents('any');
+        };
+    }
+
+    // Устанавливаем текущее значение
+    const currentFilter = TorrentQuality.settings.quality_filter;
+    if (currentFilter && currentFilter !== 'any') {
+        const activeItem = container.querySelector(`.selectbox-item--checkbox[data-value="${currentFilter}"]`);
+        if (activeItem) {
+            activeItem.classList.add('selected');
+            if (qualitySubtitle) qualitySubtitle.textContent = activeItem.querySelector('.selectbox-item__title').textContent;
+        }
+    }
+},
+
+
+            onChange: function (value) {
+    TorrentQuality.settings.quality_filter = value;
+    Lampa.Storage.set('torrent_quality_filter', value);
+
+    // Применяем фильтр сразу
+    if (window.appready) {
+        filterTorrents(value);
+    }
+}
+
+        TorrentQuality.settings.quality_filter = Lampa.Storage.get('torrent_quality_filter', 'any');
+        if (window.appready) {
+            setupUrlChangeObserver();
+            applyFilterOnTorrentsLoad();
+        } else {
+            Lampa.Listener.follow('app', e => {
+                if (e.type === 'ready') {
+                    setupUrlChangeObserver();
+                    applyFilterOnTorrentsLoad();
+                }
+            });
+        }
+    }
+
+    // Запуск плагина
+    if (window.appready) {
+        startPlugin();
+    } else {
+        Lampa.Listener.follow('app', e => {
+            if (e.type === 'ready') startPlugin();
+        });
+    }
 })();
