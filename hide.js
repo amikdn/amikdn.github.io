@@ -3,88 +3,76 @@
 
   var manifest = {
     type: 'other',
-    version: '1.5',
+    version: '1.6',
     name: 'Скрыть блок истории просмотра',
     description: 'Скрывает блок с информацией о предыдущем просмотре.'
   };
   Lampa.Manifest.plugins = manifest;
 
-  Lampa.Template.add('hide_watched_no_gap_css', `
+  Lampa.Template.add('hide_watched_with_focus_css', `
     <style>
-      /* Полностью убираем блок из потока, но оставляем в DOM */
-      .watched-history {
-        position: absolute !important;
-        left: 0 !important;
-        top: 0 !important;
-        width: 0 !important;
-        height: 0 !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        overflow: hidden !important;
-        visibility: hidden !important;
-        pointer-events: none !important;
-        z-index: -1 !important;
+      /* Скрываем только содержимое */
+      .watched-history__icon,
+      .watched-history__body {
+        display: none !important;
       }
 
-      /* При фокусе — показываем только ободок */
+      /* Контейнер: прозрачный, но с размерами и в потоке */
+      .watched-history {
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        margin: 0 !important;
+        padding: 0.5em 0 !important; /* минимальный padding, чтобы фокус не "слипся" */
+        min-height: 3em !important; /* чтобы ободок был виден */
+        opacity: 0.01 !important; /* почти невидим, но в DOM */
+        pointer-events: none !important; /* не мешает кликам */
+      }
+
+      /* При фокусе — ободок от Lampa работает сам */
       .watched-history.selector.focus {
-        visibility: visible !important;
-        z-index: 1 !important;
+        opacity: 0.05 !important; /* чуть видим, чтобы было понятно, где фокус */
         pointer-events: auto !important;
       }
 
-      /* Рисуем ободок вручную */
-      .watched-history.selector.focus::after {
-        content: '';
-        position: absolute;
-        inset: -0.6em;
-        border: 0.3em solid #fff;
-        border-radius: 0.7em;
-        pointer-events: none;
-        z-index: 2;
+      /* Убираем любые внутренние отступы */
+      .watched-history > * {
+        display: none !important;
       }
     </style>
   `);
 
   function startPlugin() {
-    $('body').append(Lampa.Template.get('hide_watched_no_gap_css', {}, true));
+    $('body').append(Lampa.Template.get('hide_watched_with_focus_css', {}, true));
 
     $('.watched-history').css({
-      'position': 'absolute',
-      'left': '0',
-      'top': '0',
-      'width': '0',
-      'height': '0',
+      'background': 'transparent',
+      'border': 'none',
+      'box-shadow': 'none',
       'margin': '0',
-      'padding': '0',
-      'overflow': 'hidden',
-      'visibility': 'hidden',
-      'pointer-events': 'none',
-      'z-index': '-1'
-    });
+      'padding': '0.5em 0',
+      'min-height': '3em',
+      'opacity': '0.01',
+      'pointer-events': 'none'
+    }).find('.watched-history__icon, .watched-history__body').hide();
 
-    $(document).on('DOMNodeInserted', function (e) {
-      var $el = $(e.target);
-      if ($el.hasClass('watched-history') || $el.find('.watched-history').length) {
-        $el.find('.watched-history').css({
-          'position': 'absolute',
-          'left': '0',
-          'top': '0',
-          'width': '0',
-          'height': '0',
-          'margin': '0',
-          'padding': '0',
-          'overflow': 'hidden',
-          'visibility': 'hidden',
-          'pointer-events': 'none',
-          'z-index': '-1'
-        });
-      }
+    $(document).on('DOMNodeInserted', '.watched-history', function () {
+      var $el = $(this);
+      $el.css({
+        'background': 'transparent',
+        'border': 'none',
+        'box-shadow': 'none',
+        'margin': '0',
+        'padding': '0.5em 0',
+        'min-height': '3em',
+        'opacity': '0.01',
+        'pointer-events': 'none'
+      }).find('.watched-history__icon, .watched-history__body').hide();
     });
   }
 
-  if (!window.hide_watched_no_gap) {
-    window.hide_watched_no_gap = true;
+  if (!window.hide_watched_with_focus) {
+    window.hide_watched_with_focus = true;
     startPlugin();
   }
 })();
