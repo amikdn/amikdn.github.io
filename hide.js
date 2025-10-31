@@ -4,8 +4,8 @@
   var manifst = {
     type: 'other',
     version: '1.2',
-    name: 'Скрыть историю в Lampac и Торрентах',
-    description: 'Скрывает блок с информацией о предыдущем просмотре в плагине Lampac (онлайн) и в торрент-просмотре в Lampa'
+    name: 'Скрыть блок историю',
+    description: 'Скрывает блок с информацией о предыдущем просмотре'
   };
 
   Lampa.Manifest.plugins = manifst;
