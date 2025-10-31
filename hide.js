@@ -1,68 +1,62 @@
-(function() {
+(function () {
   'use strict';
 
-  var manifst = {
+  var manifest = {
     type: 'other',
-    version: '1.3',
-    name: 'Скрыть содержимое истории просмотра',
-    description: 'Скрывает блок с информацией о предыдущем просмотре'
+    version: '1.4',
+    name: 'Скрыть блок истории просмотра',
+    description: 'Полностью скрывает блок .watched-history (история просмотра в торрентах), но оставляет его в DOM, чтобы фокус оставался на нём.'
   };
+  Lampa.Manifest.plugins = manifest;
 
-  Lampa.Manifest.plugins = manifst;
+  // ---------- CSS ----------
+  Lampa.Template.add('hide_watched_block_css', `
+    <style>
+      /* Сам блок полностью скрыт, но остаётся в DOM */
+      .watched-history {
+        position: absolute !important;
+        left: -9999px !important;
+        top: -9999px !important;
+        width: 1px !important;
+        height: 1px !important;
+        overflow: hidden !important;
+        clip: rect(0 0 0 0) !important;
+        pointer-events: none !important;
+        opacity: 0 !important;
+      }
+
+      /* При фокусе — показываем только ободок (как у .selector.focus) */
+      .watched-history.selector.focus {
+        position: static !important;
+        left: auto !important;
+        top: auto !important;
+        width: auto !important;
+        height: auto !important;
+        overflow: visible !important;
+        clip: auto !important;
+        pointer-events: auto !important;
+        opacity: 1;
+      }
+
+      .watched-history.selector.focus::after {
+        content: '';
+        position: absolute;
+        inset: -0.6em;
+        border: 0.3em solid #fff;
+        border-radius: 0.7em;
+        pointer-events: none;
+        z-index: 1;
+      }
+    </style>
+  `);
 
   function startPlugin() {
-    Lampa.Template.add('hide_watched_content_css', `
-      <style>
-        /* Скрываем иконку и текст */
-        .watched-history__icon,
-        .watched-history__body {
-          display: none !important;
-        }
+    $('body').append(Lampa.Template.get('hide_watched_block_css', {}, true));
+    $('.watched-history').attr('style', 'position:absolute;left:-9999px;top:-9999px;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);pointer-events:none;opacity:0;');
+  }
 
-        /* Оставляем сам контейнер, но делаем его "прозрачным" по высоте */
-        .watched-history {
-          min-height: 0 !important;
-          height: 0 !important;
-          padding: 0 !important;
-          margin: 0 0 1.5em 0 !important; /* оставляем отступ снизу, чтобы не слипалось с контентом */
-          overflow: hidden;
-          opacity: 0;
-          pointer-events: none; /* чтобы не мешал кликам, но фокус остаётся */
-        }
-
-        /* Восстанавливаем фокус (ободок) */
-        .watched-history.selector.focus {
-          opacity: 1;
-          pointer-events: auto;
-        }
-
-        /* При фокусе — показываем ободок, но без содержимого */
-        .watched-history.selector.focus::after {
-          content: '';
-          position: absolute;
-          top: -0.6em;
-          left: -0.6em;
-          right: -0.6em;
-          bottom: -0.6em;
-          border: solid 0.3em #fff;
-          border-radius: 0.7em;
-          pointer-events: none;
-          z-index: 1;
-        }
-      </style>
-    `);
-
-    $('body').append(Lampa.Template.get('hide_watched_content_css', {}, true));
-
-    $(document).on('DOMNodeInserted', function(e) {
-      var $el = $(e.target);
-      if ($el.hasClass('watched-history') || $el.find('.watched-history').length) {
-        $el.find('.watched-history__icon, .watched-history__body').hide();
-      }
-    });
-
-  if (!window.hide_watched_content) {
-    window.hide_watched_content = true;
+  if (!window.hide_watched_block) {
+    window.hide_watched_block = true;
     startPlugin();
   }
 })();
