@@ -5,8 +5,8 @@
   var manifst = {
     type: 'other',
     version: '1.3',
-    name: 'Скрыть содержимое истории просмотра',
-    description: 'Скрывает только содержимое блока истории просмотра (.watched-history__icon и .watched-history__body), но оставляет сам контейнер .watched-history, чтобы фокус (ободок) оставался на нём при открытии.'
+    name: 'Скрыть блок истории просмотра',
+    description: 'Скрывает блок с информацией о предыдущем просмотре.'
   };
 
   Lampa.Manifest.plugins = manifst;
