@@ -43,7 +43,7 @@
 
     // Функция для получения полной страницы (запрос к TMDB)
     function getFullPage(params, onSuccess, onError) {
-        const network = new Lampa.Reguest();
+        const network = new Lampa.Reguest(); // Если Reguest устарел, замените на Lampa.Request
         const url = Lampa.Utils.protocol() + 'api.themoviedb.org/3/' + params.url + '&page=' + (params.page || 1);
         network.native(url, (response) => {
             response.title = params.title;
@@ -51,9 +51,9 @@
         }, onError);
     }
 
-    // Функция для очистки сети
+    // Функция для очистки сети (упрощена)
     function clearNetwork() {
-        network.clear();
+        // В новых версиях network может не иметь clear, так что просто игнорируем
     }
 
     // Методы для компонента
@@ -142,7 +142,7 @@
     });
     $('.menu .menu__list').eq(0).append(menuItem);
 
-    // Класс для рендеринга карточек
+    // Класс для рендеринга карточек (без изменений, так как он не зависит от Arrays)
     class CardRenderer {
         constructor(item, episode = {}) {
             this.item = item || {};
@@ -244,247 +244,264 @@
         }
     }
 
-    // Класс для главной страницы (полная логика с запросами)
-    function MainPageRenderer() {
-        this.sources = new Lampa.Arrays();
+    // Адаптированный класс для главной страницы (без Lampa.Arrays)
+    class MainPageRenderer {
+        constructor() {
+            this.sources = []; // Замена на обычный массив
+        }
 
-        this.main = function() {
-            const ranges1 = [{start: 2023, end: 2025}, {start: 2020, end: 2022}, {start: 2017, end: 2019}, {start: 2014, end: 2016}, {start: 2011, end: 2013}];
-            const range1 = ranges1[Math.floor(Math.random() * ranges1.length)];
+        // Метод get для запросов (упрощённый)
+        get(url, params, onSuccess, onError) {
+            const network = new Lampa.Reguest();
+            const fullUrl = Lampa.Utils.protocol() + 'api.themoviedb.org/3/' + url;
+            network.native(fullUrl, onSuccess, onError);
+        }
+
+        main(params = {}, onSuccess, onError) {
+            // Диапазоны годов для случайных подборок
+            const ranges = [{start: 2023, end: 2025}, {start: 2020, end: 2022}, {start: 2017, end: 2019}, {start: 2014, end: 2016}, {start: 2011, end: 2013}];
+            const range1 = ranges[Math.floor(Math.random() * ranges.length)];
             const startYear1 = range1.start + '-01-01';
             const endYear1 = range1.end + '-12-31';
-            const range2 = ranges1[Math.floor(Math.random() * ranges1.length)];
+            const range2 = ranges[Math.floor(Math.random() * ranges.length)];
             const startYear2 = range2.start + '-01-01';
             const endYear2 = range2.end + '-12-31';
 
+            // Опции сортировки
             const sortOptions1 = ['popularity.desc', 'vote_count.desc', 'vote_average.desc', 'revenue.desc'];
-            const sortIndex1 = Math.floor(Math.random() * sortOptions1.length);
-            const sortBy1 = sortOptions1[sortIndex1];
-
+            const sortBy1 = sortOptions1[Math.floor(Math.random() * sortOptions1.length)];
             const sortOptions2 = ['popularity.desc', 'vote_average.desc', 'revenue.desc'];
-            const sortIndex2 = Math.floor(Math.random() * sortOptions2.length);
-            const sortBy2 = sortOptions2[sortIndex2];
-
-            const currentDate = new Date().toISOString().substr(0, 10);
+            const sortBy2 = sortOptions2[Math.floor(Math.random() * sortOptions2.length)];
 
             const self = this;
-            const params = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
-            const onSuccess = arguments.length > 1 ? arguments[1] : undefined;
-            const onError = arguments.length > 2 ? arguments[2] : undefined;
-
             const linesCount = 6;
+            const lines = []; // Обычный массив вместо Arrays
 
-            const lines = [
-                function(onLineSuccess) {
-                    self.get('trending/all/day', params, function(data) {
-                        data.title = Lampa.Lang.translate('title_trend_day');
-                        data.small = true;
-                        data.line_type = 'small';
-                        onLineSuccess(data);
-                    }, onLineSuccess);
-                },
-                function(onLineSuccess) {
-                    onLineSuccess({
-                        source: 'main',
-                        results: Lampa.TimeTable.get().slice(0, 20),
-                        title: Lampa.Lang.translate('title_lately'),
-                        nomore: true,
-                        cardClass: function(item, episode) {
-                            return new CardRenderer(item, episode);
-                        }
-                    });
-                },
-                function(onLineSuccess) {
-                    self.get('trending/all/week', params, function(data) {
-                        data.title = Lampa.Lang.translate('title_trend_week');
-                        onLineSuccess(data);
-                    }, onLineSuccess);
-                },
-                function(onLineSuccess) {
-                    self.get('trending/tv/week', params, function(data) {
-                        data.title = Lampa.Lang.translate('title_popular_tv');
-                        onLineSuccess(data);
-                    }, onLineSuccess);
-                },
-                function(onLineSuccess) {
-                    self.get('discover/movie?vote_average.gte=5&vote_average.lte=9.5&with_original_language=ru&sort_by=primary_release_date.desc&primary_release_date.lte=' + currentDate, params, function(data) {
-                        data.title = Lampa.Lang.translate('Русские фильмы');
-                        data.small = true;
-                        data.wide = true;
-                        data.results.forEach(function(item) {
-                            item.promo = item.overview;
-                            item.promo_title = item.title || item.name;
-                        });
-                        onLineSuccess(data);
-                    }, onLineSuccess);
-                },
-                function(onLineSuccess) {
-                    self.get('discover/tv?with_original_language=ru&sort_by=first_air_date.desc&air_date.lte=' + currentDate, params, function(data) {
-                        data.title = Lampa.Lang.translate('Русские сериалы');
-                        onLineSuccess(data);
-                    }, onLineSuccess);
-                },
-                function(onLineSuccess) {
-                    self.get('movie/popular', params, function(data) {
-                        data.title = Lampa.Lang.translate('title_popular_movie');
-                        onLineSuccess(data);
-                    }, onLineSuccess);
-                },
-                function(onLineSuccess) {
-                    self.get('discover/movie?vote_average.gte=5&vote_average.lte=9.5&with_genres=16&with_original_language=ru&sort_by=primary_release_date.desc&primary_release_date.lte=' + currentDate, params, function(data) {
-                        data.title = Lampa.Lang.translate('Русские мультфильмы');
-                        data.small = true;
-                        data.line_type = 'small';
-                        onLineSuccess(data);
-                    }, onLineSuccess);
-                },
-                function(onLineSuccess) {
-                    self.get('movie/now_playing', params, function(data) {
-                        data.title = Lampa.Lang.translate('title_now_watch');
-                        onLineSuccess(data);
-                    }, onLineSuccess);
-                },
-                function(onLineSuccess) {
-                    self.get('movie/upcoming', params, function(data) {
-                        data.title = Lampa.Lang.translate('title_upcoming');
-                        onLineSuccess(data);
-                    }, onLineSuccess);
-                },
-                function(onLineSuccess) {
-                    self.get('discover/movie?primary_release_date.gte=' + startYear2 + '&primary_release_date.lte=' + endYear2 + '&vote_average.gte=5&vote_average.lte=9.5&with_original_language=ru&sort_by=' + sortBy2, params, function(data) {
-                        data.title = Lampa.Lang.translate('Подборки русских фильмов');
-                        data.line_type = 'top';
-                        onLineSuccess(data);
-                    }, onLineSuccess);
-                },
-                function(onLineSuccess) {
-                    self.get('discover/tv?first_air_date.gte=' + startYear1 + '&first_air_date.lte=' + endYear1 + '&with_networks=2493|2859|4085|3923|3871|3827|5806|806|1191&sort_by=' + sortBy1, params, function(data) {
-                        data.title = Lampa.Lang.translate('Подборки русских сериалов');
-                        data.line_type = 'wide';
-                        onLineSuccess(data);
-                    }, onLineSuccess);
-                },
-                function(onLineSuccess) {
-                    self.get('discover/tv?sort_by=first_air_date.desc&with_original_language=ru&air_date.lte=' + currentDate, params, function(data) {
-                        data.title = Lampa.Lang.translate('Русские новинки');
-                        data.collection = true;
-                        data.wide = true;
-                        data.results.forEach(function(item) {
-                            item.promo = item.overview;
-                            item.promo_title = item.title || item.name;
-                        });
-                        onLineSuccess(data);
-                    }, onLineSuccess);
-                },
-                function(onLineSuccess) {
-                    self.get('discover/tv?with_networks=2859&sort_by=first_air_date.desc&air_date.lte=' + currentDate, params, function(data) {
-                        data.title = Lampa.Lang.translate('ТНТ');
-                        onLineSuccess(data);
-                    }, onLineSuccess);
-                },
-                function(onLineSuccess) {
-                    self.get('discover/tv?with_networks=4085&sort_by=first_air_date.desc&air_date.lte=' + currentDate, params, function(data) {
-                        data.title = Lampa.Lang.translate('KION');
-                        onLineSuccess(data);
-                    }, onLineSuccess);
-                },
-                function(onLineSuccess) {
-                    self.get('discover/tv?with_networks=3923&sort_by=first_air_date.desc&air_date.lte=' + currentDate, params, function(data) {
-                        data.title = Lampa.Lang.translate('Wink');
-                        data.collection = true;
-                        data.line_type = 'small';
-                        onLineSuccess(data);
-                    }, onLineSuccess);
-                },
-                function(onLineSuccess) {
-                    self.get('discover/tv?with_networks=3827&sort_by=first_air_date.desc&air_date.lte=' + currentDate, params, function(data) {
-                        data.title = Lampa.Lang.translate('OKKO');
-                        onLineSuccess(data);
-                    }, onLineSuccess);
-                },
-                function(onLineSuccess) {
-                    self.get('discover/tv?with_networks=5806&sort_by=first_air_date.desc&air_date.lte=' + currentDate, params, function(data) {
-                        data.title = Lampa.Lang.translate('КиноПоиск');
-                        onLineSuccess(data);
-                    }, onLineSuccess);
-                },
-                function(onLineSuccess) {
-                    self.get('discover/tv?with_networks=3923&sort_by=first_air_date.desc&air_date.lte=' + currentDate, params, function(data) {
-                        data.title = Lampa.Lang.translate('Wink');
-                        data.collection = true;
-                        data.wide = true;
-                        data.results.forEach(function(item) {
-                            item.promo = item.overview;
-                            item.promo_title = item.title || item.name;
-                        });
-                        onLineSuccess(data);
-                    }, onLineSuccess);
-                },
-                function(onLineSuccess) {
-                    self.get('discover/tv?with_networks=806&sort_by=first_air_date.desc&air_date.lte=' + currentDate, params, function(data) {
-                        data.title = Lampa.Lang.translate('Start');
-                        onLineSuccess(data);
-                    }, onLineSuccess);
-                },
-                function(onLineSuccess) {
-                    self.get('discover/tv?with_networks=1191&sort_by=first_air_date.desc&air_date.lte=' + currentDate, params, function(data) {
-                        data.title = Lampa.Lang.translate('Premier');
-                        onLineSuccess(data);
-                    }, onLineSuccess);
-                },
-                function(onLineSuccess) {
-                    self.get('movie/top_rated', params, function(data) {
-                        data.title = Lampa.Lang.translate('title_top_movie');
-                        data.line_type = 'wide';
-                        onLineSuccess(data);
-                    }, onLineSuccess);
-                },
-                function(onLineSuccess) {
-                    self.get('tv/top_rated', params, function(data) {
-                        data.title = Lampa.Lang.translate('title_top_tv');
-                        data.line_type = 'wide';
-                        onLineSuccess(data);
-                    }, onLineSuccess);
-                }
-            ];
-
-            const totalLines = lines.length + 1;
-            Lampa.Component.add(lines, 0, Lampa.Api.show(lines, linesCount, 'movie', totalLines));
-
-            params.genres.forEach(function(genre) {
-                const genreFunction = function(onGenreSuccess) {
-                    self.get('discover/movie?with_genres=' + genre.id, params, function(data) {
-                        data.title = Lampa.Lang.translate(genre.title.replace(/[^a-z_]/g, ''));
-                        onGenreSuccess(data);
-                    }, onGenreSuccess);
-                };
-                lines.push(genreFunction);
+            // Добавляем базовые линии (запросы)
+            lines.push(function(onLineSuccess) {
+                self.get('trending/all/day', params, function(data) {
+                    data.title = Lampa.Lang.translate('title_trend_day');
+                    data.small = true;
+                    data.line_type = 'small';
+                    onLineSuccess(data);
+                }, onLineSuccess);
             });
 
-            function processLines(onProcessSuccess, onProcessError) {
-                Lampa.Api.show(lines, linesCount, onProcessSuccess, onProcessError);
+            lines.push(function(onLineSuccess) {
+                onLineSuccess({
+                    source: 'main',
+                    results: Lampa.TimeTable.get().slice(0, 20),
+                    title: Lampa.Lang.translate('title_lately'),
+                    nomore: true,
+                    cardClass: function(item, episode) { return new CardRenderer(item, episode); }
+                });
+            });
+
+            lines.push(function(onLineSuccess) {
+                self.get('trending/all/week', params, function(data) {
+                    data.title = Lampa.Lang.translate('title_trend_week');
+                    onLineSuccess(data);
+                }, onLineSuccess);
+            });
+
+            lines.push(function(onLineSuccess) {
+                self.get('trending/tv/week', params, function(data) {
+                    data.title = Lampa.Lang.translate('title_popular_tv');
+                    onLineSuccess(data);
+                }, onLineSuccess);
+            });
+
+            lines.push(function(onLineSuccess) {
+                self.get('discover/movie?vote_average.gte=5&vote_average.lte=9.5&with_original_language=ru&sort_by=primary_release_date.desc&primary_release_date.lte=' + currentDate, params, function(data) {
+                    data.title = Lampa.Lang.translate('Русские фильмы');
+                    data.small = true;
+                    data.wide = true;
+                    data.results.forEach(function(item) {
+                        item.promo = item.overview;
+                        item.promo_title = item.title || item.name;
+                    });
+                    onLineSuccess(data);
+                }, onLineSuccess);
+            });
+
+            lines.push(function(onLineSuccess) {
+                self.get('discover/tv?with_original_language=ru&sort_by=first_air_date.desc&air_date.lte=' + currentDate, params, function(data) {
+                    data.title = Lampa.Lang.translate('Русские сериалы');
+                    onLineSuccess(data);
+                }, onLineSuccess);
+            });
+
+            lines.push(function(onLineSuccess) {
+                self.get('movie/popular', params, function(data) {
+                    data.title = Lampa.Lang.translate('title_popular_movie');
+                    onLineSuccess(data);
+                }, onLineSuccess);
+            });
+
+            lines.push(function(onLineSuccess) {
+                self.get('discover/movie?vote_average.gte=5&vote_average.lte=9.5&with_genres=16&with_original_language=ru&sort_by=primary_release_date.desc&primary_release_date.lte=' + currentDate, params, function(data) {
+                    data.title = Lampa.Lang.translate('Русские мультфильмы');
+                    data.small = true;
+                    data.line_type = 'small';
+                    onLineSuccess(data);
+                }, onLineSuccess);
+            });
+
+            lines.push(function(onLineSuccess) {
+                self.get('movie/now_playing', params, function(data) {
+                    data.title = Lampa.Lang.translate('title_now_watch');
+                    onLineSuccess(data);
+                }, onLineSuccess);
+            });
+
+            lines.push(function(onLineSuccess) {
+                self.get('movie/upcoming', params, function(data) {
+                    data.title = Lampa.Lang.translate('title_upcoming');
+                    onLineSuccess(data);
+                }, onLineSuccess);
+            });
+
+            lines.push(function(onLineSuccess) {
+                self.get('discover/movie?primary_release_date.gte=' + startYear2 + '&primary_release_date.lte=' + endYear2 + '&vote_average.gte=5&vote_average.lte=9.5&with_original_language=ru&sort_by=' + sortBy2, params, function(data) {
+                    data.title = Lampa.Lang.translate('Подборки русских фильмов');
+                    data.line_type = 'top';
+                    onLineSuccess(data);
+                }, onLineSuccess);
+            });
+
+            lines.push(function(onLineSuccess) {
+                self.get('discover/tv?first_air_date.gte=' + startYear1 + '&first_air_date.lte=' + endYear1 + '&with_networks=2493|2859|4085|3923|3871|3827|5806|806|1191&sort_by=' + sortBy1, params, function(data) {
+                    data.title = Lampa.Lang.translate('Подборки русских сериалов');
+                    data.line_type = 'wide';
+                    onLineSuccess(data);
+                }, onLineSuccess);
+            });
+
+            lines.push(function(onLineSuccess) {
+                self.get('discover/tv?sort_by=first_air_date.desc&with_original_language=ru&air_date.lte=' + currentDate, params, function(data) {
+                    data.title = Lampa.Lang.translate('Русские новинки');
+                    data.collection = true;
+                    data.wide = true;
+                    data.results.forEach(function(item) {
+                        item.promo = item.overview;
+                        item.promo_title = item.title || item.name;
+                    });
+                    onLineSuccess(data);
+                }, onLineSuccess);
+            });
+
+            lines.push(function(onLineSuccess) {
+                self.get('discover/tv?with_networks=2859&sort_by=first_air_date.desc&air_date.lte=' + currentDate, params, function(data) {
+                    data.title = Lampa.Lang.translate('ТНТ');
+                    onLineSuccess(data);
+                }, onLineSuccess);
+            });
+
+            lines.push(function(onLineSuccess) {
+                self.get('discover/tv?with_networks=4085&sort_by=first_air_date.desc&air_date.lte=' + currentDate, params, function(data) {
+                    data.title = Lampa.Lang.translate('KION');
+                    onLineSuccess(data);
+                }, onLineSuccess);
+            });
+
+            lines.push(function(onLineSuccess) {
+                self.get('discover/tv?with_networks=3923&sort_by=first_air_date.desc&air_date.lte=' + currentDate, params, function(data) {
+                    data.title = Lampa.Lang.translate('Wink');
+                    data.collection = true;
+                    data.line_type = 'small';
+                    onLineSuccess(data);
+                }, onLineSuccess);
+            });
+
+            lines.push(function(onLineSuccess) {
+                self.get('discover/tv?with_networks=3827&sort_by=first_air_date.desc&air_date.lte=' + currentDate, params, function(data) {
+                    data.title = Lampa.Lang.translate('OKKO');
+                    onLineSuccess(data);
+                }, onLineSuccess);
+            });
+
+            lines.push(function(onLineSuccess) {
+                self.get('discover/tv?with_networks=5806&sort_by=first_air_date.desc&air_date.lte=' + currentDate, params, function(data) {
+                    data.title = Lampa.Lang.translate('КиноПоиск');
+                    onLineSuccess(data);
+                }, onLineSuccess);
+            });
+
+            lines.push(function(onLineSuccess) {
+                self.get('discover/tv?with_networks=3923&sort_by=first_air_date.desc&air_date.lte=' + currentDate, params, function(data) {
+                    data.title = Lampa.Lang.translate('Wink');
+                    data.collection = true;
+                    data.wide = true;
+                    data.results.forEach(function(item) {
+                        item.promo = item.overview;
+                        item.promo_title = item.title || item.name;
+                    });
+                    onLineSuccess(data);
+                }, onLineSuccess);
+            });
+
+            lines.push(function(onLineSuccess) {
+                self.get('discover/tv?with_networks=806&sort_by=first_air_date.desc&air_date.lte=' + currentDate, params, function(data) {
+                    data.title = Lampa.Lang.translate('Start');
+                    onLineSuccess(data);
+                }, onLineSuccess);
+            });
+
+            lines.push(function(onLineSuccess) {
+                self.get('discover/tv?with_networks=1191&sort_by=first_air_date.desc&air_date.lte=' + currentDate, params, function(data) {
+                    data.title = Lampa.Lang.translate('Premier');
+                    onLineSuccess(data);
+                }, onLineSuccess);
+            });
+
+            lines.push(function(onLineSuccess) {
+                self.get('movie/top_rated', params, function(data) {
+                    data.title = Lampa.Lang.translate('title_top_movie');
+                    data.line_type = 'wide';
+                    onLineSuccess(data);
+                }, onLineSuccess);
+            });
+
+            lines.push(function(onLineSuccess) {
+                self.get('tv/top_rated', params, function(data) {
+                    data.title = Lampa.Lang.translate('title_top_tv');
+                    data.line_type = 'wide';
+                    onLineSuccess(data);
+                }, onLineSuccess);
+            });
+
+            // Добавление жанров, если они есть (опционально)
+            if (params.genres) {
+                params.genres.forEach(function(genre) {
+                    lines.push(function(onGenreSuccess) {
+                        self.get('discover/movie?with_genres=' + genre.id, params, function(data) {
+                            data.title = Lampa.Lang.translate(genre.title.replace(/[^a-z_]/g, ''));
+                            onGenreSuccess(data);
+                        }, onGenreSuccess);
+                    });
+                });
             }
 
-            return processLines(onSuccess, onError);
-        };
+            // В новых версиях используем прямой вызов Lampa.Api.show (без add и totalLines)
+            Lampa.Api.show(lines, linesCount, onSuccess, onError, 'movie');
+        }
     }
 
     // Добавление в источники TMDB, если опция включена
     if (Lampa.Storage.get('rus_movie_main') !== false) {
-        Object.assign(Lampa.Api.sources.tmdb, new MainPageRenderer(Lampa.Api.sources.tmdb));
+        // Расширение sources.tmdb новым рендерером
+        Object.assign(Lampa.Api.sources.tmdb, new MainPageRenderer());
         setupMainPage();
     }
 
-    // Функция настройки главной страницы (с вызовом console и т.д., но в оригинале это замыкания, которые ничего не делают)
+    // Функция настройки главной страницы
     function setupMainPage() {
-        // Оригинальные замыкания _0x41c159 и _0x47977e — это просто вызовы toString и search для проверки, но они не влияют на логику.
-        // Здесь можно оставить пустым, так как они используются для анти-деобфускации.
         if (Lampa.Storage.get('rus_movie_main') === 'main') {
             const activeSource = Lampa.Storage.get('rus_movie_main');
             const interval = setInterval(function() {
                 const active = Lampa.Activity.active();
                 const div = $('div[data-name="rus_movie_main"]');
-                if (active && active.component === 'main' && !div.length > 0) {
+                if (active && active.component === 'main' && div.length === 0) {
                     clearInterval(interval);
                     Lampa.Activity.trigger({
                         source: activeSource,
@@ -496,11 +513,15 @@
     }
 
     // Слушатель для готовности приложения
-    Lampa.Listener.follow('app', function(event) {
-        if (event.type === 'appready') {
-            setupMainPage();
-        }
-    });
+    if (window.appready) {
+        setupMainPage();
+    } else {
+        Lampa.Listener.follow('app', function(event) {
+            if (event.type === 'appready') {
+                setupMainPage();
+            }
+        });
+    }
 
     // Добавление параметра в настройки
     Lampa.SettingsApi.addParam({
