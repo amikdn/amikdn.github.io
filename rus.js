@@ -5,7 +5,7 @@
 
     Lampa.Platform.tv();
 
-    // === ИКОНКА ===
+    // Иконка
     function getIcon() {
         return '<svg xmlns="http://www.w3.org/2000/svg" width="1.2em" height="1.2em" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="4"><path stroke-linejoin="round" d="M24 44c11.046 0 20-8.954 20-20S35.046 4 24 4S4 12.954 4 24s8.954 20 20 20Z"/><path stroke-linejoin="round" d="M24 18a3 3 0 1 0 0-6a3 3 0 0 0 0 6Zm0 18a3 3 0 1 0 0-6a3 3 0 0 0 0 6Zm-9-9a3 3 0 1 0 0-6a3 3 0 0 0 0 6Zm18 0a3 3 0 1 0 0-6a3 3 0 0 0 0 6Z"/><path stroke-linecap="round" d="M24 44h20"/></g></svg>';
     }
@@ -33,9 +33,11 @@
     function rusComponent(params) {
         const component = new Lampa.Component(params);
 
+        // Главная — список подборок
         component.create = function() {
             const data = {
-                title: 'Русское',
+                collection: true,  // ВАЖНО: ВКЛЮЧАЕМ
+                total_pages: 1,
                 results: collections.map(c => ({
                     title: c.title,
                     img: c.img,
@@ -58,10 +60,10 @@
             }, onError);
         };
 
-        // КЛИК ПО КАРТОЧКЕ — РАБОТАЕТ!
-        component.activity = function(card) {
+        // КЛИК ПО КАРТОЧКЕ — РАБОТАЕТ ТОЛЬКО С collection: true
+        component.render = function(data, card) {
             card.onEnter = () => {
-                console.log('[Русское] Открываю:', card.title);
+                console.log('[Русское] Клик по:', card.title);
                 Lampa.Activity.push({
                     url: card.url,
                     title: card.title,
@@ -78,7 +80,7 @@
     Lampa.Component.add('rus_movie', rusComponent);
 
     // === МЕНЮ ===
-    function addMenuItem() {
+    function addMenu() {
         $('.menu__item[data-rus]').remove();
 
         const $item = $(`
@@ -89,7 +91,6 @@
         `);
 
         $item.on('hover:enter', () => {
-            console.log('[Русское] Открываю раздел');
             Lampa.Activity.push({
                 url: '',
                 title: 'Русское',
@@ -102,31 +103,23 @@
         if ($menu.length) {
             $menu.append($item);
             $item.find('.menu__text').css('text-align', 'center');
-            console.log('[Русское] Пункт добавлен');
         }
     }
 
-    // Гарантия
-    $(document).ready(() => setTimeout(addMenuItem, 1000));
-    setTimeout(addMenuItem, 3000);
-    setInterval(addMenuItem, 10000);
-
-    // === НАСТРОЙКИ ===
-    Lampa.SettingsApi.addParam({
-        component: 'interface',
-        param: { name: 'rus_movie_main', type: 'native', default: true },
-        field: { name: 'Русские новинки на главной', description: 'Перезапуск обязателен.' }
-    });
+    // Гарантия загрузки
+    $(document).ready(() => setTimeout(addMenu, 1000));
+    setTimeout(addMenu, 3000);
+    setInterval(addMenu, 10000);
 
     // === МЕТАДАННЫЕ ===
     if (!Lampa.Manifest.plugins) Lampa.Manifest.plugins = {};
     Lampa.Manifest.plugins.rus_movie = {
         type: 'movie',
-        version: '2.0.0',
+        version: '2.1.0',
         name: 'Русское',
         description: 'Рабочие русские подборки через TMDB',
         component: 'rus_movie'
     };
 
-    console.log('[Русское] Готово');
+    console.log('[Русское] Плагин готов');
 })();
