@@ -3,15 +3,14 @@
 
   var manifst = {
     type: 'other',
-    version: '1.6',
-    name: 'Скрыть историю + фокус на первый эпизод',
-    description: 'Скрывает содержимое истории просмотра, но оставляет фокус на первом эпизоде с видимым ободком.'
+    version: '1.3',
+    name: 'Скрыть содержимое истории просмотра',
+    description: 'Скрывает блок с информацией о предыдущем просмотре'
   };
 
   Lampa.Manifest.plugins = manifst;
 
   function startPlugin() {
-    // === 1. Скрываем только содержимое ===
     Lampa.Template.add('hide_watched_content_css', `
       <style>
         /* Скрываем иконку и текст */
@@ -20,91 +19,50 @@
           display: none !important;
         }
 
-        /* Схлопываем контейнер, но оставляем в DOM */
+        /* Оставляем сам контейнер, но делаем его "прозрачным" по высоте */
         .watched-history {
           min-height: 0 !important;
           height: 0 !important;
           padding: 0 !important;
-          margin: 0 0 0.5em 0 !important;
+          margin: 0 0 1.5em 0 !important; /* оставляем отступ снизу, чтобы не слипалось с контентом */
           overflow: hidden;
           opacity: 0;
-          pointer-events: none;
+          pointer-events: none; /* чтобы не мешал кликам, но фокус остаётся */
         }
 
-        /* При фокусе — показываем ободок */
-        .watched-history.focus {
-          opacity: 0 !important;
+        /* Восстанавливаем фокус (ободок) */
+        .watched-history.selector.focus {
+          opacity: 1;
+          pointer-events: auto;
+        }
+
+        /* При фокусе — показываем ободок, но без содержимого */
+        .watched-history.selector.focus::after {
+          content: '';
+          position: absolute;
+          top: -0.6em;
+          left: -0.6em;
+          right: -0.6em;
+          bottom: -0.6em;
+          border: solid 0.3em #fff;
+          border-radius: 0.7em;
+          pointer-events: none;
+          z-index: 1;
         }
       </style>
     `);
+
     $('body').append(Lampa.Template.get('hide_watched_content_css', {}, true));
 
-    // === 2. Перехват открытия торрентов ===
-    Lampa.Listener.follow('full', function(e) {
-      if (e.type !== 'complite' || e.component !== 'torrent') return;
-
-      setTimeout(function() {
-        var $watched = $('.watched-history');
-        var $container = Lampa.Controller.enabled().scroll || $('.scroll__content');
-        var $first = $container.find('.torrent-item, .online-prestige, .files__item').first();
-
-        if (!$first.length) return;
-
-        // Убираем фокус с .watched-history
-        $watched.removeClass('focus');
-
-        // Ставим фокус на первый элемент
-        $first.addClass('focus');
-
-        // Пересобираем коллекцию без .watched-history
-        var allItems = $container.find('.selector').toArray();
-        var visibleItems = allItems.filter(function(el) {
-          return !$(el).hasClass('watched-history');
-        });
-
-        // Обновляем коллекцию
-        Lampa.Controller.collectionSet($container);
-        Lampa.Controller.collectionSet(visibleItems);
-
-        // Устанавливаем фокус
-        Lampa.Controller.collectionFocus($first[0], $container);
-
-        // Прокрутка к элементу
-        setTimeout(function() {
-          var offset = $first.offset().top - $container.offset().top;
-          $container.scrollTop(offset - 50);
-        }, 50);
-
-      }, 200);
+    $(document).on('DOMNodeInserted', function(e) {
+      var $el = $(e.target);
+      if ($el.hasClass('watched-history') || $el.find('.watched-history').length) {
+        $el.find('.watched-history__icon, .watched-history__body').hide();
+      }
     });
 
-    // === 3. Если уже открыто (перезагрузка) ===
-    $(document).ready(function() {
-      setTimeout(function() {
-        if (Lampa.Activity.active().component === 'torrent') {
-          var $watched = $('.watched-history');
-          var $container = Lampa.Controller.enabled().scroll || $('.scroll__content');
-          var $first = $container.find('.torrent-item, .online-prestige, .files__item').first();
-
-          if ($watched.length && $first.length) {
-            $watched.removeClass('focus');
-            $first.addClass('focus');
-
-            var items = $container.find('.selector').toArray().filter(function(el) {
-              return !$(el).hasClass('watched-history');
-            });
-
-            Lampa.Controller.collectionSet($container);
-            Lampa.Controller.collectionSet(items);
-            Lampa.Controller.collectionFocus($first[0], $container);
-          }
-        }
-      }, 600);
-    });
-  }
-
-  if (!window.hide_watched_final) {
-    window.hide_watched_final = true;
+  if (!window.hide_watched_content) {
+    window.hide_watched_content = true;
     startPlugin();
   }
 })();
