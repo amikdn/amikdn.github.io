@@ -1,16 +1,14 @@
 (function () {
   'use strict';
 
-  // ---------- Манифест ----------
   var manifest = {
     type: 'other',
     version: '1.5',
-    name: 'Скрыть блок истории просмотра (без отступа)',
-    description: 'Полностью убирает блок .watched-history из потока, не оставляя отступов, но сохраняет его в DOM для фокуса.'
+    name: 'Скрыть блок истории просмотра',
+    description: 'Скрывает блок с информацией о предыдущем просмотре.'
   };
   Lampa.Manifest.plugins = manifest;
 
-  // ---------- CSS ----------
   Lampa.Template.add('hide_watched_no_gap_css', `
     <style>
       /* Полностью убираем блок из потока, но оставляем в DOM */
@@ -48,12 +46,9 @@
     </style>
   `);
 
-  // ---------- Запуск ----------
   function startPlugin() {
-    // Вставляем CSS
     $('body').append(Lampa.Template.get('hide_watched_no_gap_css', {}, true));
 
-    // Немедленно применяем стили к существующим блокам
     $('.watched-history').css({
       'position': 'absolute',
       'left': '0',
@@ -68,7 +63,6 @@
       'z-index': '-1'
     });
 
-    // Отслеживаем появление новых блоков
     $(document).on('DOMNodeInserted', function (e) {
       var $el = $(e.target);
       if ($el.hasClass('watched-history') || $el.find('.watched-history').length) {
