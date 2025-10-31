@@ -14,6 +14,7 @@
     Lampa.Template.add('hide_lampa_history_css', `
       <style>
         .watched-history__icon,
+        .watched-history selector,
         .watched-history__body {
           display: none !important;
         }
