@@ -1,15 +1,14 @@
 (function() {
   'use strict';
 
-  // Манифест плагина
   var manifst = {
     type: 'other',
-    version: '1.4',
-    name: 'Скрыть содержимое истории просмотра',
-    description: 'Скрывает блок с информацией о предыдущем просмотре.'
+    version: '1.6',
+    name: 'Скрыть историю + фокус на первый эпизод',
+    description: 'Скрывает содержимое истории просмотра, но оставляет фокус на первом эпизоде с видимым ободком.'
   };
 
-Lampa.Manifest.plugins = manifst;
+  Lampa.Manifest.plugins = manifst;
 
   function startPlugin() {
     // === 1. Скрываем только содержимое ===
