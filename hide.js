@@ -13,6 +13,7 @@
   function startPlugin() {
     Lampa.Template.add('hide_lampa_history_css', `
       <style>
+        .online-prestige-watched,
         .watched-history {
           display: none !important;
         }
