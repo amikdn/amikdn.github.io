@@ -5,7 +5,7 @@
     type: 'other',
     version: '1.2',
     name: 'Скрыть историю в Lampac и Торрентах',
-    description: 'Скрывает блок с информацией о предыдущем просмотре в плагине Lampac (онлайн) и в торрент-просмотре в Lampa, включая класс .watched-history.'
+    description: 'Скрывает блок с информацией о предыдущем просмотре в плагине Lampac (онлайн) и в торрент-просмотре в Lampa'
   };
 
   Lampa.Manifest.plugins = manifst;
