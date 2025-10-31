@@ -1,6 +1,8 @@
 (function() {
     'use strict';
 
+    console.log('[Русское] Плагин загружен');
+
     Lampa.Platform.tv();
 
     // SVG-иконка для меню
@@ -27,7 +29,7 @@
     ];
 
     // Основная коллекция (список подборок)
-    function getMainCollection(params, onSuccess) {
+    function getMainCollection(params, onSuccess, onError) {
         const data = {
             collection: true,
             total_pages: 1,
@@ -50,18 +52,19 @@
         }, onError);
     }
 
-    // Компонент для коллекции
-    function createCollectionComponent() {
-        const component = new Lampa.Component();
+    // Компонент для коллекции (исправлен: добавлены params)
+    function createCollectionComponent(params) {
+        console.log('[Русское] Создаю компонент с params:', params);
+        const component = new Lampa.Component(params);
         component.create = function() {
-            getMainCollection(this.params, this.build.bind(this));
+            getMainCollection(params, this.build.bind(this), this.empty.bind(this));
         };
         component.nextPageReuest = function(params, onSuccess, onError) {
-            getFullPage(params, onSuccess, onError);
+            getFullPage(params, onSuccess.bind(this), onError.bind(this));
         };
         component.render = function(data, card, empty) {
             empty.visible = false;
-            empty.onEnter = () => {
+            card.onEnter = function() {
                 Lampa.Activity.push({
                     url: card.hpu,
                     title: card.title,
@@ -77,120 +80,71 @@
     // Регистрация компонента
     Lampa.Component.add('rus_movie', createCollectionComponent);
 
-    // === ДОБАВЛЕНИЕ В МЕНЮ (РАБОТАЕТ В 1.11+) ===
+    // === ДОБАВЛЕНИЕ В МЕНЮ (DOM-вставка в appready, как в примерах плагинов) ===
     Lampa.Listener.follow('app', function(e) {
-        if (e.type === 'ready') {
-            // Удаляем старый пункт
-            if (Lampa.Menu.get('rus_movie')) {
-                Lampa.Menu.remove('rus_movie');
-            }
-
-            // Добавляем новый
-            Lampa.Menu.add({
-                title: 'Русское',
-                icon: getMenuIcon(),
-                page: {
-                    component: 'rus_movie',
-                    url: '',
-                    title: 'Русское',
-                    source: 'main',
-                    page: 1
-                }
-            }, 'rus_movie');
-
-            // Центрируем текст (опционально)
+        if (e.type === 'appready') {
+            console.log('[Русское] appready сработал, добавляю меню');
             setTimeout(() => {
-                const $text = $('.menu__item[data-name="rus_movie"] .menu__text');
-                if ($text.length) $text.css('text-align', 'center');
-            }, 200);
+                // Удаляем старый элемент, если есть
+                const oldItem = $('.menu__item[data-plugin="rus_movie"]');
+                if (oldItem.length) {
+                    oldItem.remove();
+                    console.log('[Русское] Удалил старый элемент меню');
+                }
+
+                // Создаём новый элемент
+                const menuIcon = getMenuIcon();
+                const menuItem = $(`
+                    <li class="menu__item selector" data-plugin="rus_movie">
+                        <div class="menu__ico">${menuIcon}</div>
+                        <div class="menu__text">Русское</div>
+                    </li>
+                `);
+
+                // Обработчик клика
+                menuItem.on('hover:enter', function() {
+                    console.log('[Русское] Клик по меню');
+                    Lampa.Activity.push({
+                        url: '',
+                        title: 'Русское',
+                        component: 'rus_movie',
+                        source: 'main',
+                        page: 1
+                    });
+                });
+
+                // Вставляем в меню (перед последним элементом или в конец)
+                const menuList = $('.menu .menu__list').eq(0);
+                if (menuList.length) {
+                    menuList.append(menuItem);
+                    console.log('[Русское] Добавил элемент в меню');
+                    // Центрируем текст
+                    menuItem.find('.menu__text').css('text-align', 'center');
+                } else {
+                    console.error('[Русское] Меню не найдено!');
+                }
+            }, 500); // Задержка для полной загрузки DOM
         }
     });
 
-    // === ГЛАВНАЯ СТРАНИЦА (адаптировано под новое API) ===
-    class MainPageRenderer {
-        constructor() {
-            this.sources = [];
-        }
-
-        get(url, params, onSuccess, onError) {
-            const network = new Lampa.Reguest();
-            const fullUrl = Lampa.Utils.protocol() + 'api.themoviedb.org/3/' + url;
-            network.native(fullUrl, onSuccess, onError);
-        }
-
-        main(params = {}, onSuccess, onError) {
-            const ranges = [
-                {start: 2023, end: 2025}, {start: 2020, end: 2022},
-                {start: 2017, end: 2019}, {start: 2014, end: 2016},
-                {start: 2011, end: 2013}
-            ];
-            const r1 = ranges[Math.floor(Math.random() * ranges.length)];
-            const r2 = ranges[Math.floor(Math.random() * ranges.length)];
-            const sort1 = ['popularity.desc', 'vote_count.desc', 'vote_average.desc', 'revenue.desc'][Math.floor(Math.random() * 4)];
-            const sort2 = ['popularity.desc', 'vote_average.desc', 'revenue.desc'][Math.floor(Math.random() * 3)];
-
-            const self = this;
-            const lines = [];
-
-            const addLine = (url, title, options = {}) => {
-                lines.push(cb => {
-                    self.get(url, params, data => {
-                        Object.assign(data, { title }, options);
-                        cb(data);
-                    }, cb);
-                });
-            };
-
-            // Основные линии
-            addLine('trending/all/day', 'В тренде (день)', { small: true, line_type: 'small' });
-            lines.push(cb => cb({
-                source: 'main',
-                results: Lampa.TimeTable.get().slice(0, 20),
-                title: 'Недавно просмотренное',
-                nomore: true
-            }));
-            addLine('trending/all/week', 'В тренде (неделя)');
-            addLine('trending/tv/week', 'Популярные сериалы');
-            addLine(`discover/movie?vote_average.gte=5&vote_average.lte=9.5&with_original_language=ru&sort_by=primary_release_date.desc&primary_release_date.lte=${currentDate}`, 'Русские фильмы', { small: true, wide: true });
-            addLine(`discover/tv?with_original_language=ru&sort_by=first_air_date.desc&air_date.lte=${currentDate}`, 'Русские сериалы');
-            addLine('movie/popular', 'Популярные фильмы');
-            addLine(`discover/movie?vote_average.gte=5&vote_average.lte=9.5&with_genres=16&with_original_language=ru&sort_by=primary_release_date.desc&primary_release_date.lte=${currentDate}`, 'Русские мультфильмы', { small: true, line_type: 'small' });
-            addLine('movie/now_playing', 'Сейчас в кино');
-            addLine('movie/upcoming', 'Скоро в кино');
-            addLine(`discover/movie?primary_release_date.gte=${r2.start}-01-01&primary_release_date.lte=${r2.end}-12-31&vote_average.gte=5&vote_average.lte=9.5&with_original_language=ru&sort_by=${sort2}`, 'Подборки русских фильмов', { line_type: 'top' });
-            addLine(`discover/tv?first_air_date.gte=${r1.start}-01-01&first_air_date.lte=${r1.end}-12-31&with_networks=2493|2859|4085|3923|3871|3827|5806|806|1191&sort_by=${sort1}`, 'Подборки русских сериалов', { line_type: 'wide' });
-            addLine(`discover/tv?sort_by=first_air_date.desc&with_original_language=ru&air_date.lte=${currentDate}`, 'Русские новинки', { collection: true, wide: true });
-            addLine(`discover/tv?with_networks=2859&sort_by=first_air_date.desc&air_date.lte=${currentDate}`, 'ТНТ');
-            addLine(`discover/tv?with_networks=4085&sort_by=first_air_date.desc&air_date.lte=${currentDate}`, 'KION');
-            addLine(`discover/tv?with_networks=3923&sort_by=first_air_date.desc&air_date.lte=${currentDate}`, 'Wink', { collection: true, line_type: 'small' });
-            addLine(`discover/tv?with_networks=3827&sort_by=first_air_date.desc&air_date.lte=${currentDate}`, 'OKKO');
-            addLine(`discover/tv?with_networks=5806&sort_by=first_air_date.desc&air_date.lte=${currentDate}`, 'КиноПоиск');
-            addLine(`discover/tv?with_networks=806&sort_by=first_air_date.desc&air_date.lte=${currentDate}`, 'Start');
-            addLine(`discover/tv?with_networks=1191&sort_by=first_air_date.desc&air_date.lte=${currentDate}`, 'Premier');
-            addLine('movie/top_rated', 'Топ фильмы', { line_type: 'wide' });
-            addLine('tv/top_rated', 'Топ сериалы', { line_type: 'wide' });
-
-            // Жанры (если есть)
-            if (params.genres) {
-                params.genres.forEach(g => {
-                    lines.push(cb => {
-                        self.get('discover/movie?with_genres=' + g.id, params, data => {
-                            data.title = Lampa.Lang.translate(g.title.replace(/[^a-z_]/g, ''));
-                            cb(data);
-                        }, cb);
-                    });
-                });
-            }
-
-            Lampa.Api.show(lines, 6, onSuccess, onError, 'movie');
-        }
-    }
-
-    // === ИНТЕГРАЦИЯ В ГЛАВНУЮ СТРАНИЦУ ===
+    // === ГЛАВНАЯ СТРАНИЦА (упрощённо, без Object.assign, чтобы не ломать) ===
     if (Lampa.Storage.get('rus_movie_main', true)) {
-        const renderer = new MainPageRenderer();
-        if (Lampa.Api.sources.tmdb) {
-            Object.assign(Lampa.Api.sources.tmdb, renderer);
+        console.log('[Русское] Включаю на главной');
+        // Добавляем метод main в Api.sources.tmdb, если существует
+        if (Lampa.Api && Lampa.Api.sources && Lampa.Api.sources.tmdb) {
+            const originalMain = Lampa.Api.sources.tmdb.main;
+            Lampa.Api.sources.tmdb.main = function(params, onSuccess, onError) {
+                // Вызываем оригинал, если есть
+                if (originalMain) originalMain.call(this, params, onSuccess, onError);
+                // Добавляем русские подборки как линию
+                const line = {
+                    title: 'Русские новинки',
+                    url: 'discover/movie?with_original_language=ru&sort_by=primary_release_date.desc&primary_release_date.lte=' + currentDate,
+                    component: 'full',
+                    cardClass: createCollectionComponent
+                };
+                onSuccess(line);
+            };
         }
     }
 
@@ -202,14 +156,12 @@
             name: 'Русские новинки на главной',
             description: 'Показывать подборки русских новинок. Перезапустите приложение после изменения.'
         },
-        onRender: () => {
+        onRender: function() {
             setTimeout(() => {
                 const $target = $('div[data-name="interface_size"]');
-                if ($target.length) {
-                    const $param = $('div[data-name="rus_movie_main"]');
-                    if ($param.length && !$param.parent().is($target.parent())) {
-                        $param.insertAfter($target);
-                    }
+                const $param = $('div[data-name="rus_movie_main"]');
+                if ($target.length && $param.length && !$param.parent().is($target.parent())) {
+                    $param.insertAfter($target);
                 }
             }, 100);
         }
@@ -219,10 +171,11 @@
     if (!Lampa.Manifest.plugins) Lampa.Manifest.plugins = {};
     Lampa.Manifest.plugins.rus_movie = {
         type: 'movie',
-        version: '1.2.0',
+        version: '1.2.1',
         name: 'Русское',
         description: 'Русские фильмы, сериалы и новинки на главной странице и в меню.',
         component: 'rus_movie_main'
     };
 
+    console.log('[Русское] Плагин инициализирован');
 })();
