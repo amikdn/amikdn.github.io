@@ -1,7 +1,6 @@
 (function() {
   'use strict';
 
-  // Манифест плагина
   var manifst = {
     type: 'other',
     version: '1.3',
@@ -11,9 +10,7 @@
 
   Lampa.Manifest.plugins = manifst;
 
-  // Функция запуска плагина
   function startPlugin() {
-    // Добавляем CSS, который скрывает только содержимое
     Lampa.Template.add('hide_watched_content_css', `
       <style>
         /* Скрываем иконку и текст */
@@ -55,10 +52,8 @@
       </style>
     `);
 
-    // Вставляем CSS
     $('body').append(Lampa.Template.get('hide_watched_content_css', {}, true));
 
-    // Дополнительно: если элемент уже есть в DOM — принудительно скрываем содержимое
     $(document).on('DOMNodeInserted', function(e) {
       var $el = $(e.target);
       if ($el.hasClass('watched-history') || $el.find('.watched-history').length) {
@@ -66,13 +61,11 @@
       }
     });
 
-    // На всякий случай — скрываем при загрузке
     setTimeout(function() {
       $('.watched-history__icon, .watched-history__body').hide();
     }, 100);
   }
 
-  // Запускаем, если ещё не запущен
   if (!window.hide_watched_content) {
     window.hide_watched_content = true;
     startPlugin();
