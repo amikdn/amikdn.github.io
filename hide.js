@@ -60,10 +60,6 @@
         $el.find('.watched-history__icon, .watched-history__body').hide();
       }
     });
-
-//    setTimeout(function() {
-//      $('.watched-history__icon, .watched-history__body').hide();
-//    }, 100);
   }
 
   if (!window.hide_watched_content) {
