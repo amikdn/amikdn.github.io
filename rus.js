@@ -56,7 +56,7 @@ return false;
 });
 }
 if (!filtered.length && value !== 'any') {
-if (Lampa.Utils.message) {
+if (Lampa.Utils && Lampa.Utils.message) {
 Lampa.Utils.message(Не найдено торрентов для фильтра: ${value});
 } else {
 alert(Не найдено торрентов для фильтра: ${value});
@@ -64,7 +64,7 @@ alert(Не найдено торрентов для фильтра: ${value});
 }
 renderResults(filtered);
 } catch (error) {
-if (Lampa.Utils.message) {
+if (Lampa.Utils && Lampa.Utils.message) {
 Lampa.Utils.message('Ошибка при фильтрации торрентов');
 } else {
 alert('Ошибка при фильтрации торрентов');
@@ -112,7 +112,7 @@ function tryInjectWebDLFilter() {
 const titleEl = document.querySelector('.selectbox__title');
 if (!titleEl || titleEl.textContent !== 'Фильтр') return;
 const scrollBody = titleEl.closest('.selectbox__content')?.querySelector('.scroll__body');
-if (!scrollBody || scrollBody.querySelector('.tq-webdl-main')) return;
+if (!scrollBody || scrollBody.querySelector('.tq-webdl-main') ) return;
 const insertBefore = Array.from(scrollBody.children).find(el =>
 el.querySelector('.selectbox-item__title')?.textContent === 'Субтитры'
 ) || null;
