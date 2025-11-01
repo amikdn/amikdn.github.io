@@ -2,7 +2,7 @@
     'use strict';
 
     const PLUGIN_NAME = 'torrent_quality';
-    const VERSION = '2.4.0';
+    const VERSION = '2.5.0';
 
     let originalTorrents = [];
     let allTorrents = [];
@@ -109,7 +109,7 @@
         });
     }
 
-    // === Вставка в меню (ПУЛЬТ РАБОТАЕТ) ===
+    // === Вставка в меню (100% ПУЛЬТ) ===
     function injectWebDLFilter() {
         const titleEl = document.querySelector('.selectbox__title');
         if (!titleEl || titleEl.textContent !== 'Фильтр') return;
@@ -126,31 +126,19 @@
         // === Главный пункт ===
         const mainItem = document.createElement('div');
         mainItem.className = 'selectbox-item selector tq-webdl-main';
-        mainItem.setAttribute('tabindex', '0'); // ← КЛЮЧЕВОЕ ДЛЯ ПУЛЬТА
+        mainItem.dataset.name = 'webdl';           // ← LAMPA ТРЕБУЕТ
+        mainItem.dataset.type = 'selectbox';       // ← LAMPA ТРЕБУЕТ
+        mainItem.setAttribute('onclick', 'return false'); // ← НЕ ЗАКРЫВАЕТ МЕНЮ
         mainItem.innerHTML = `
             <div class="selectbox-item__title">WEB-DL</div>
             <div class="selectbox-item__subtitle">Любое</div>
         `;
 
-        // === ПУЛЬТ: Enter открывает модалку ===
-        mainItem.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                e.stopPropagation();
-                openWebDLModal(mainItem);
-            }
-        });
-
-        // === Клик мышью (опционально) ===
+        // === Клик — открываем модалку ===
         mainItem.addEventListener('click', (e) => {
             e.stopPropagation();
             openWebDLModal(mainItem);
         });
-
-        // === Фокус при вставке ===
-        setTimeout(() => {
-            mainItem.focus();
-        }, 100);
 
         scrollBody.insertBefore(mainItem, insertBefore || null);
 
@@ -173,6 +161,13 @@
             };
             resetBtn.dataset.tqHooked = '1';
         }
+
+        // === Принудительный фокус (на всякий) ===
+        setTimeout(() => {
+            if (mainItem.isConnected) {
+                mainItem.focus();
+            }
+        }, 150);
     }
 
     // === Наблюдатель ===
