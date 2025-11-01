@@ -2,7 +2,7 @@
     'use strict';
 
     const PLUGIN_NAME = 'torrent_quality';
-    const VERSION = '1.9.0';
+    const VERSION = '2.0.0';
 
     let originalTorrents = [];
     let allTorrents = [];
@@ -78,89 +78,41 @@
         const items = document.querySelectorAll('.torrent-item');
         const titles = results.map(r => r.Title.toLowerCase());
         items.forEach(item => {
-            const title = item.querySelector('.selectbox-item__title')?.textContent.toLowerCase() || '';
+            const title = item.querySelector('.torrent-item__title')?.textContent.toLowerCase() || '';
             item.style.display = titles.includes(title) ? 'block' : 'none';
         });
     }
 
-    // === Открытие модального окна WEB-DL ===
+    // === Модальное окно через Lampa API ===
     function openWebDLModal(mainItem) {
-        const modalHtml = `
-            <div class="selectbox__content layer--height">
-                <div class="selectbox__head">
-                    <div class="selector selectbox__back">Назад</div>
-                    <div class="selectbox__title">WEB-DL</div>
-                </div>
-                <div class="selectbox__body layer--wheight">
-                    <div class="scroll scroll--mask scroll--over">
-                        <div class="scroll__content">
-                            <div class="scroll__body">
-                                <div class="selectbox-item selector selectbox-item--checkbox" data-value="web-dl">
-                                    <div class="selectbox-item__title">WEB-DL</div>
-                                    <div class="selectbox-item__checkbox"></div>
-                                </div>
-                                <div class="selectbox-item selector selectbox-item--checkbox" data-value="web-dlrip">
-                                    <div class="selectbox-item__title">WEB-DLRip</div>
-                                    <div class="selectbox-item__checkbox"></div>
-                                </div>
-                                <div class="selectbox-item selector selectbox-item--checkbox" data-value="openmatte">
-                                    <div class="selectbox-item__title">Open Matte</div>
-                                    <div class="selectbox-item__checkbox"></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
+        const options = [
+            { title: 'WEB-DL', value: 'web-dl' },
+            { title: 'WEB-DLRip', value: 'web-dlrip' },
+            { title: 'Open Matte', value: 'openmatte' }
+        ];
 
-        // Создаём модалку
-        const modal = document.createElement('div');
-        modal.className = 'layer layer--active';
-        modal.innerHTML = modalHtml;
-        document.body.appendChild(modal);
+        const saved = Lampa.Storage.get('tq_webdl_filter', 'any');
 
-        // Обновляем подзаголовок
-        const updateSubtitle = (value) => {
-            const titles = { 'web-dl': 'WEB-DL', 'web-dlrip': 'WEB-DLRip', 'openmatte': 'Open Matte' };
-            mainItem.querySelector('.selectbox-item__subtitle').textContent = titles[value] || 'Любое';
-        };
+        Lampa.Select.show({
+            title: 'WEB-DL',
+            items: options,
+            onSelect: (item) => {
+                Lampa.Storage.set('tq_webdl_filter', item.value);
+                filterTorrents(item.value);
+                mainItem.querySelector('.selectbox-item__subtitle').textContent = item.title;
+            },
+            onBack: () => {
+                Lampa.Modal.close();
+            }
+        });
 
         // Восстанавливаем выбор
-        const saved = Lampa.Storage.get('tq_webdl_filter', 'any');
         if (saved !== 'any') {
-            const active = modal.querySelector(`[data-value="${saved}"]`);
-            if (active) active.classList.add('selected');
-            updateSubtitle(saved);
+            const selected = options.find(o => o.value === saved);
+            if (selected) {
+                mainItem.querySelector('.selectbox-item__subtitle').textContent = selected.title;
+            }
         }
-
-        // Обработчики
-        modal.querySelectorAll('.selectbox-item--checkbox').forEach(item => {
-            item.addEventListener('click', () => {
-                const value = item.dataset.value;
-
-                modal.querySelectorAll('.selectbox-item--checkbox').forEach(el => {
-                    el.classList.toggle('selected', el === item);
-                });
-
-                Lampa.Storage.set('tq_webdl_filter', value);
-                filterTorrents(value);
-                updateSubtitle(value);
-
-                // Закрываем модалку
-                modal.remove();
-            });
-        });
-
-        // Кнопка "Назад"
-        modal.querySelector('.selectbox__back').addEventListener('click', () => {
-            modal.remove();
-        });
-
-        // Закрытие по клику вне
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) modal.remove();
-        });
     }
 
     // === Вставка в меню ===
@@ -182,11 +134,10 @@
         mainItem.className = 'selectbox-item selector tq-webdl-main';
         mainItem.innerHTML = `<div class="selectbox-item__title">WEB-DL</div><div class="selectbox-item__subtitle">Любое</div>`;
 
-        // Клик — открываем модалку
-        mainItem.addEventListener('click', (e) => {
-            e.stopPropagation();
-            e.preventDefault();
-            openWebDLModal(mainItem);
+        // Клик — открываем через Lampa.Select
+        mainItem.addEventListener('click', () => {
+            Lampa.Modal.close(); // Закрываем родное меню
+            setTimeout(() => openWebDLModal(mainItem), 100); // Открываем своё
         });
 
         scrollBody.insertBefore(mainItem, insertBefore || null);
@@ -204,8 +155,8 @@
         );
         if (resetBtn && !resetBtn.dataset.tqHooked) {
             const old = resetBtn.onclick;
-            resetBtn.onclick = function (e) {
-                if (old) old.call(this, e);
+            resetBtn.onclick = function () {
+                if (old) old.apply(this, arguments);
                 mainItem.querySelector('.selectbox-item__subtitle').textContent = 'Любое';
                 Lampa.Storage.set('tq_webdl_filter', 'any');
                 filterTorrents('any');
