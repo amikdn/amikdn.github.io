@@ -102,7 +102,7 @@
 
             Lampa.Select.show({
                 title: 'Качество',
-                items items: allItems,
+                items: allItems,
                 onSelect: function (item) {
                     // Если выбрана наша опция
                     if (webdlItems.find(i => i.value === item.value)) {
