@@ -2,7 +2,7 @@
     'use strict';
 
     const PLUGIN_NAME = 'torrent_quality';
-    const VERSION = '3.3.0';
+    const VERSION = '1.8.0';
 
     let originalTorrents = [];
     let allTorrents = [];
@@ -83,70 +83,74 @@
         });
     }
 
-    // === Модальное окно БЕЗ ГАЛОЧКИ ===
-    function openWebDLModal(mainItem) {
-        const options = [
-            { title: 'Любое', value: 'any' },
-            { title: 'WEB-DL', value: 'web-dl' },
-            { title: 'WEB-DLRip', value: 'web-dlrip' },
-            { title: 'Open Matte', value: 'openmatte' }
-        ];
-
-        const saved = Lampa.Storage.get('tq_webdl_filter', 'any');
-
-        Lampa.Select.show({
-            title: 'WEB-DL',
-            items: options,
-            onSelect: (item) => {
-                Lampa.Storage.set('tq_webdl_filter', item.value);
-                filterTorrents(item.value);
-                mainItem.querySelector('.selectbox-item__subtitle').textContent = item.title;
-            },
-            onBack: () => {
-                Lampa.Modal.close();
-            }
-        });
-
-        const current = options.find(o => o.value === saved);
-        if (current) {
-            mainItem.querySelector('.selectbox-item__subtitle').textContent = current.title;
-        }
-    }
-
-    // === Вставка в меню (ПУЛЬТ 100%) ===
+    // === Вставка в меню (КАЖДЫЙ РАЗ) ===
     function injectWebDLFilter() {
         const titleEl = document.querySelector('.selectbox__title');
         if (!titleEl || titleEl.textContent !== 'Фильтр') return;
 
         const scrollBody = titleEl.closest('.selectbox__content')?.querySelector('.scroll__body');
-        if (!scrollBody || scrollBody.querySelector('.tq-webdl-main')) return;
+        if (!scrollBody) return;
 
+        // Проверяем, уже вставлено ли
+        if (scrollBody.querySelector('.tq-webdl-group')) return;
+
+        // Ищем "Субтитры"
         const insertBefore = Array.from(scrollBody.children).find(el =>
             el.querySelector('.selectbox-item__title')?.textContent === 'Субтитры'
         );
 
-        // === Главный пункт (как в Lampa) ===
+        // === ГЛАВНЫЙ ПУНКТ ===
         const mainItem = document.createElement('div');
-        mainItem.className = 'selectbox-item selector tq-webdl-main';
-        mainItem.dataset.action = 'select';  // ← КЛЮЧЕВОЕ ДЛЯ ПУЛЬТА
-        mainItem.dataset.name = 'webdl';
-        mainItem.innerHTML = `
-            <div class="selectbox-item__title">WEB-DL</div>
-            <div class="selectbox-item__subtitle">Любое</div>
-        `;
+        mainItem.className = 'selectbox-item selector tq-webdl-group';
+        mainItem.innerHTML = `<div class="selectbox-item__title">WEB-DL</div><div class="selectbox-item__subtitle">Любое</div>`;
 
-        // Клик → модалка (Lampa сама обработает Enter)
-        mainItem.addEventListener('click', (e) => {
-            e.stopPropagation();
-            openWebDLModal(mainItem);
+        // === ПОДПУНКТЫ ===
+        const filters = [
+            { title: 'WEB-DL', value: 'web-dl' },
+            { title: 'WEB-DLRip', value: 'web-dlrip' },
+            { title: 'Open Matte', value: 'openmatte' }
+        ];
+
+        const subItems = [];
+        filters.forEach(f => {
+            const sub = document.createElement('div');
+            sub.className = 'selectbox-item selector selectbox-item--checkbox tq-webdl-group';
+            sub.dataset.value = f.value;
+            sub.innerHTML = `<div class="selectbox-item__title">${f.title}</div><div class="selectbox-item__checkbox"></div>`;
+            sub.style.marginLeft = '20px';
+
+            sub.addEventListener('click', (e) => {
+                e.stopPropagation();
+                e.preventDefault();
+
+                subItems.forEach(el => el.classList.toggle('selected', el === sub));
+                Lampa.Storage.set('tq_webdl_filter', sub.dataset.value);
+                filterTorrents(sub.dataset.value);
+                mainItem.querySelector('.selectbox-item__subtitle').textContent = sub.querySelector('.selectbox-item__title').textContent;
+
+                const backBtn = document.querySelector('.selectbox__head .selector');
+                if (backBtn && backBtn.onclick) {
+                    backBtn.onclick();
+                } else if (backBtn) {
+                    backBtn.click();
+                }
+            });
+
+            subItems.push(sub);
+            scrollBody.insertBefore(sub, insertBefore);
         });
 
         scrollBody.insertBefore(mainItem, insertBefore || null);
 
-        // === Восстановление выбора ===
+        // === Восстановление ===
         const saved = Lampa.Storage.get('tq_webdl_filter', 'any');
-        const titles = { 'any': 'Любое', 'web-dl': 'WEB-DL', 'web-dlrip': 'WEB-DLRip', 'openmatte': 'Open Matte' };
-        mainItem.querySelector('.selectbox-item__subtitle').textContent = titles[saved];
+        if (saved !== 'any') {
+            const active = subItems.find(el => el.dataset.value === saved);
+            if (active) {
+                active.classList.add('selected');
+                mainItem.querySelector('.selectbox-item__subtitle').textContent = active.querySelector('.selectbox-item__title').textContent;
+            }
+        }
 
         // === Сброс ===
         const resetBtn = Array.from(scrollBody.children).find(el =>
@@ -154,8 +158,9 @@
         );
         if (resetBtn && !resetBtn.dataset.tqHooked) {
             const old = resetBtn.onclick;
-            resetBtn.onclick = function () {
-                if (old) old.apply(this, arguments);
+            resetBtn.onclick = function (e) {
+                if (old) old.call(this, e);
+                subItems.forEach(el => el.classList.remove('selected'));
                 mainItem.querySelector('.selectbox-item__subtitle').textContent = 'Любое';
                 Lampa.Storage.set('tq_webdl_filter', 'any');
                 filterTorrents('any');
@@ -245,5 +250,12 @@
         }
     }
 
-    start();
+    // Автозапуск
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', start);
+    } else {
+        start();
+    }
+
+    window[PLUGIN_NAME] = { version: VERSION };
 })();
