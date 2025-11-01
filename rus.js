@@ -2,7 +2,7 @@
     'use strict';
 
     const PLUGIN_NAME = 'torrent_quality';
-    const VERSION = '1.3.0';
+    const VERSION = '1.3.1';
 
     let originalTorrents = [];
     let allTorrents = [];
@@ -93,12 +93,12 @@
         // Удаляем старое
         scrollBody.querySelectorAll('.tq-webdl-group').forEach(el => el.remove());
 
-        // Ищем, куда вставить — после "Dolby Vision" или перед "Субтитры"
+        // Ищем, куда вставить — перед "Субтитры"
         const insertBeforeItem = Array.from(scrollBody.children).find(el =>
             el.querySelector('.selectbox-item__title')?.textContent === 'Субтитры'
         ) || null;
 
-        // === Создаём главный пункт "WEB-DL" ===
+        // === Главный пункт ===
         const mainItem = document.createElement('div');
         mainItem.className = 'selectbox-item selector tq-webdl-group';
         mainItem.innerHTML = `
@@ -106,7 +106,7 @@
             <div class="selectbox-item__subtitle">Любое</div>
         `;
 
-        // === Создаём подменю ===
+        // === Подпункты ===
         const subItems = [
             { title: 'WEB-DL', value: 'web-dl' },
             { title: 'WEB-DLRip', value: 'web-dlrip' },
@@ -122,23 +122,18 @@
                 <div class="selectbox-item__checkbox"></div>
             `;
 
-            // Клик
             sub.addEventListener('click', () => {
                 const value = sub.dataset.value;
 
-                // Снимаем выделение
                 scrollBody.querySelectorAll('.tq-webdl-group.selectbox-item--checkbox').forEach(el => {
                     el.classList.toggle('selected', el === sub);
                 });
 
-                // Сохраняем
                 Lampa.Storage.set('tq_webdl_filter', value);
                 filterTorrents(value);
 
-                // Обновляем подзаголовок
                 mainItem.querySelector('.selectbox-item__subtitle').textContent = filter.title;
 
-                // Закрываем меню
                 const menu = scrollBody.closest('.selectbox__content');
                 if (menu) menu.style.display = 'none';
             });
@@ -146,10 +141,9 @@
             scrollBody.insertBefore(sub, insertBeforeItem);
         });
 
-        // Вставляем главный пункт
         scrollBody.insertBefore(mainItem, insertBeforeItem);
 
-        // === Восстановление выбора ===
+        // === Восстановление ===
         const saved = Lampa.Storage.get('tq_webdl_filter', 'any');
         if (saved !== 'any') {
             const active = scrollBody.querySelector(`.tq-webdl-group[data-value="${saved}"]`);
@@ -160,7 +154,7 @@
             }
         }
 
-        // === Перехват "Сбросить фильтр" ===
+        // === Сброс ===
         const resetBtn = Array.from(scrollBody.children).find(el =>
             el.querySelector('.selectbox-item__title')?.textContent === 'Сбросить фильтр'
         );
@@ -201,12 +195,21 @@
         });
     }
 
-    // === URL смена ===
+    // === URL смена (ИСПРАВЛЕНО!) ===
     function setupUrlChange() {
-        const push = history.pushState;
-        const replace = history.replaceState;
-        history.pushState = (...args) => { push.apply(this, args); handleUrlChange(); };
-        history.replaceState = (...args) => { replace.apply(this, args); handleUrlChange(); };
+        const originalPush = history.pushState;
+        const originalReplace = history.replaceState;
+
+        history.pushState = function (...args) {
+            originalPush.apply(history, args); // ← this = history
+            handleUrlChange();
+        };
+
+        history.replaceState = function (...args) {
+            originalReplace.apply(history, args); // ← this = history
+            handleUrlChange();
+        };
+
         window.addEventListener('popstate', handleUrlChange);
 
         function handleUrlChange() {
