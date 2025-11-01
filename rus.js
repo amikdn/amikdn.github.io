@@ -2,14 +2,17 @@
     'use strict';
 
     const PLUGIN_NAME = 'torrent_quality';
-    const VERSION = '1.3.1';
+    const VERSION = '1.4.0';
 
     let originalTorrents = [];
     let allTorrents = [];
     let currentMovieTitle = null;
     let lastUrl = window.location.search;
     let menuObserver = null;
-    let isInjected = false;
+    let intervalId = null;
+
+    // === Логи (удалить в продакшене) ===
+    const log = (...args) => console.log('[TQ]', ...args);
 
     // === Получение торрентов ===
     function getTorrentsData() {
@@ -66,12 +69,12 @@
                 return false;
             });
 
+            renderResults(filtered);
             if (!filtered.length) {
                 Lampa.Utils.message?.(`Нет: ${value.toUpperCase()}`) || alert('Ничего не найдено');
             }
-            renderResults(filtered);
         } catch (e) {
-            console.error('[TQ] Error:', e);
+            log('Filter error:', e);
         }
     }
 
@@ -86,62 +89,55 @@
     }
 
     // === Вставка в меню ===
-    function injectWebDLFilter() {
-        const scrollBody = document.querySelector('.selectbox__content .scroll__body');
-        if (!scrollBody || isInjected) return;
+    function tryInject() {
+        const titleEl = document.querySelector('.selectbox__title');
+        if (!titleEl || titleEl.textContent !== 'Фильтр') return false;
+
+        const scrollBody = titleEl.closest('.selectbox__content')?.querySelector('.scroll__body');
+        if (!scrollBody) return false;
 
         // Удаляем старое
         scrollBody.querySelectorAll('.tq-webdl-group').forEach(el => el.remove());
 
-        // Ищем, куда вставить — перед "Субтитры"
-        const insertBeforeItem = Array.from(scrollBody.children).find(el =>
+        // Ищем "Субтитры"
+        const insertBefore = Array.from(scrollBody.children).find(el =>
             el.querySelector('.selectbox-item__title')?.textContent === 'Субтитры'
-        ) || null;
+        );
 
         // === Главный пункт ===
         const mainItem = document.createElement('div');
         mainItem.className = 'selectbox-item selector tq-webdl-group';
-        mainItem.innerHTML = `
-            <div class="selectbox-item__title">WEB-DL</div>
-            <div class="selectbox-item__subtitle">Любое</div>
-        `;
+        mainItem.innerHTML = `<div class="selectbox-item__title">WEB-DL</div><div class="selectbox-item__subtitle">Любое</div>`;
 
         // === Подпункты ===
-        const subItems = [
+        const filters = [
             { title: 'WEB-DL', value: 'web-dl' },
             { title: 'WEB-DLRip', value: 'web-dlrip' },
             { title: 'Open Matte', value: 'openmatte' }
         ];
 
-        subItems.forEach(filter => {
+        filters.forEach(f => {
             const sub = document.createElement('div');
             sub.className = 'selectbox-item selector selectbox-item--checkbox tq-webdl-group';
-            sub.dataset.value = filter.value;
-            sub.innerHTML = `
-                <div class="selectbox-item__title">${filter.title}</div>
-                <div class="selectbox-item__checkbox"></div>
-            `;
+            sub.dataset.value = f.value;
+            sub.innerHTML = `<div class="selectbox-item__title">${f.title}</div><div class="selectbox-item__checkbox"></div>`;
+            sub.style.marginLeft = '20px';
 
             sub.addEventListener('click', () => {
-                const value = sub.dataset.value;
-
                 scrollBody.querySelectorAll('.tq-webdl-group.selectbox-item--checkbox').forEach(el => {
                     el.classList.toggle('selected', el === sub);
                 });
-
-                Lampa.Storage.set('tq_webdl_filter', value);
-                filterTorrents(value);
-
-                mainItem.querySelector('.selectbox-item__subtitle').textContent = filter.title;
-
+                Lampa.Storage.set('tq_webdl_filter', f.value);
+                filterTorrents(f.value);
+                mainItem.querySelector('.selectbox-item__subtitle').textContent = f.title;
                 const menu = scrollBody.closest('.selectbox__content');
                 if (menu) menu.style.display = 'none';
             });
 
-            scrollBody.insertBefore(sub, insertBeforeItem);
+            scrollBody.insertBefore(sub, insertBefore);
         });
 
-        scrollBody.insertBefore(mainItem, insertBeforeItem);
+        scrollBody.insertBefore(mainItem, insertBefore);
 
         // === Восстановление ===
         const saved = Lampa.Storage.get('tq_webdl_filter', 'any');
@@ -159,13 +155,10 @@
             el.querySelector('.selectbox-item__title')?.textContent === 'Сбросить фильтр'
         );
         if (resetBtn && !resetBtn.dataset.tqHooked) {
-            const oldClick = resetBtn.onclick;
+            const old = resetBtn.onclick;
             resetBtn.onclick = function () {
-                if (oldClick) oldClick.apply(this, arguments);
-
-                scrollBody.querySelectorAll('.tq-webdl-group.selectbox-item--checkbox').forEach(el => {
-                    el.classList.remove('selected');
-                });
+                if (old) old.apply(this, arguments);
+                scrollBody.querySelectorAll('.tq-webdl-group.selectbox-item--checkbox').forEach(el => el.classList.remove('selected'));
                 mainItem.querySelector('.selectbox-item__subtitle').textContent = 'Любое';
                 Lampa.Storage.set('tq_webdl_filter', 'any');
                 filterTorrents('any');
@@ -173,43 +166,46 @@
             resetBtn.dataset.tqHooked = '1';
         }
 
-        isInjected = true;
+        log('WEB-DL filter injected!');
+        return true;
     }
 
-    // === Наблюдение за меню ===
-    function startMenuObserver() {
+    // === Наблюдатель ===
+    function startObserver() {
         if (menuObserver) return;
 
         menuObserver = new MutationObserver(() => {
-            const menu = document.querySelector('.selectbox__content');
-            if (menu && menu.style.display !== 'none' && !isInjected) {
-                injectWebDLFilter();
+            if (tryInject()) {
+                // Можно остановить, но оставим — на всякий
             }
         });
 
         menuObserver.observe(document.body, {
             childList: true,
-            subtree: true,
-            attributes: true,
-            attributeFilter: ['style']
+            subtree: true
         });
+
+        // Fallback: проверяем каждые 500мс
+        intervalId = setInterval(() => {
+            if (tryInject()) {
+                // clearInterval(intervalId); // раскомментировать, если не нужно повторно
+            }
+        }, 500);
     }
 
-    // === URL смена (ИСПРАВЛЕНО!) ===
+    // === URL смена (БЕЗ ОШИБОК) ===
     function setupUrlChange() {
-        const originalPush = history.pushState;
-        const originalReplace = history.replaceState;
+        const origPush = history.pushState;
+        const origReplace = history.replaceState;
 
         history.pushState = function (...args) {
-            originalPush.apply(history, args); // ← this = history
+            origPush.apply(history, args);
             handleUrlChange();
         };
-
         history.replaceState = function (...args) {
-            originalReplace.apply(history, args); // ← this = history
+            origReplace.apply(history, args);
             handleUrlChange();
         };
-
         window.addEventListener('popstate', handleUrlChange);
 
         function handleUrlChange() {
@@ -226,7 +222,7 @@
         }
     }
 
-    // === Применение при загрузке ===
+    // === Применение ===
     function applyFilterOnLoad() {
         clearTorrents();
         const torrents = getTorrentsData();
@@ -249,15 +245,16 @@
 
     // === Запуск ===
     function start() {
+        log('Plugin starting...');
         if (window.appready) {
             setupUrlChange();
-            startMenuObserver();
+            startObserver();
             applyFilterOnLoad();
         } else {
             Lampa.Listener.follow('app', e => {
                 if (e.type === 'ready') {
                     setupUrlChange();
-                    startMenuObserver();
+                    startObserver();
                     applyFilterOnLoad();
                 }
             });
