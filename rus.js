@@ -2,7 +2,7 @@
     'use strict';
 
     const PLUGIN_NAME = 'torrent_quality';
-    const VERSION = '15.0.0';
+    const VERSION = '16.0.0';
 
     let originalTorrents = [];
     let allTorrents = [];
@@ -88,7 +88,6 @@
                     { title: 'Open Matte', value: 'openmatte', selected: currentValue === 'openmatte' }
                 ];
 
-                // Добавляем в конец
                 if (Array.isArray(params.items)) {
                     params.items = params.items.concat(webdlItems);
                 }
@@ -117,11 +116,9 @@
                             }
                         });
 
-                        // КЛЮЧЕВОЕ: НЕ ЗАКРЫВАЕМ! Возвращаем false
-                        return false;
+                        return false; // ← НЕ ЗАКРЫВАЕМ МОДАЛКУ
                     }
 
-                    // Для стандартных опций — закрываем как обычно
                     return originalOnSelect(item);
                 };
             }
@@ -130,7 +127,7 @@
         };
     }
 
-    // === Сброс фильтра ===
+    // === Сброс фильтра (полный, включая WEB-DL) ===
     function hookResetButton() {
         const observer = new MutationObserver(() => {
             const resetBtn = Array.from(document.querySelectorAll('.selectbox-item__title'))
@@ -139,14 +136,29 @@
                 const old = resetBtn.onclick;
                 resetBtn.onclick = function () {
                     if (old) old.apply(this, arguments);
+
+                    // СБРАСЫВАЕМ НАШ ФИЛЬТР
                     Lampa.Storage.set('tq_webdl_filter', 'any');
                     filterTorrents('any');
 
+                    // Обновляем подзаголовок
                     setTimeout(() => {
                         const qualityItem = document.querySelector('[data-name="quality"]');
                         const subtitle = qualityItem?.querySelector('.selectbox-item__subtitle');
                         if (subtitle) subtitle.textContent = 'Любое';
                     }, 100);
+
+                    // Убираем галочки в модалке (если открыта)
+                    setTimeout(() => {
+                        const modalItems = document.querySelectorAll('.select__item');
+                        modalItems.forEach(item => {
+                            const text = item.querySelector('.select__text')?.textContent;
+                            if (text && ['WEB-DL', 'WEB-DLRip', 'Open Matte'].includes(text)) {
+                                const check = item.querySelector('.select__check');
+                                if (check) check.style.display = 'none';
+                            }
+                        });
+                    }, 150);
                 };
                 resetBtn.dataset.tqHooked = '1';
             }
@@ -172,7 +184,7 @@
         function handleUrlChange() {
             const url = window.location.search;
             if (url !== lastUrl) {
-                const new PROCESSING_INSTRUCTION_NODE = document.querySelector('.full-start-new__title')?.textContent.trim() || url;
+                const newTitle = document.querySelector('.full-start-new__title')?.textContent.trim() || url;
                 if (newTitle && newTitle !== currentMovieTitle) {
                     clearTorrents();
                     currentMovieTitle = newTitle;
