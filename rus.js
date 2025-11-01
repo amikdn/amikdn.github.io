@@ -2,7 +2,7 @@
     'use strict';
 
     const PLUGIN_NAME = 'torrent_quality';
-    const VERSION = '13.0.0';
+    const VERSION = '14.0.0';
 
     let originalTorrents = [];
     let allTorrents = [];
@@ -76,19 +76,32 @@
         });
     }
 
-    // === Добавление опций в "Качество" ===
+    // === Добавление опций с иконкой и галочкой ===
     function injectWebdlIntoQuality() {
         if (isHooked) return;
         isHooked = true;
 
         const originalShow = Lampa.Select.show;
         Lampa.Select.show = function (params) {
-            // Определяем, что это модалка "Качество"
             if (params.title === 'Качество' || (params.items && params.items[0]?.title?.match(/1080p|720p|4K/i))) {
+                const currentValue = Lampa.Storage.get('tq_webdl_filter', 'any');
+
                 const webdlItems = [
-                    { title: 'WEB-DL', value: 'web-dl' },
-                    { title: 'WEB-DLRip', value: 'web-dlrip' },
-                    { title: 'Open Matte', value: 'openmatte' }
+                    {
+                        title: 'WEB-DL',
+                        value: 'web-dl',
+                        selected: currentValue === 'web-dl'
+                    },
+                    {
+                        title: 'WEB-DLRip',
+                        value: 'web-dlrip',
+                        selected: currentValue === 'web-dlrip'
+                    },
+                    {
+                        title: 'Open Matte',
+                        value: 'openmatte',
+                        selected: currentValue === 'openmatte'
+                    }
                 ];
 
                 // Добавляем в конец
@@ -96,27 +109,32 @@
                     params.items = params.items.concat(webdlItems);
                 }
 
-                // Сохраняем оригинальный onSelect
                 const originalOnSelect = params.onSelect || function() {};
 
                 params.onSelect = function (item) {
-                    const isWebdl = webdlItems.some(i => i.value === item.value);
+                    const isWebdl = ['web-dl', 'web-dlrip', 'openmatte'].includes(item.value);
                     if (isWebdl) {
-                        Lampa.Storage.set('tq_webdl_filter', item.value);
-                        filterTorrents(item.value);
+                        const newValue = item.value;
+                        Lampa.Storage.set('tq_webdl_filter', newValue);
+                        filterTorrents(newValue);
 
                         // Обновляем подзаголовок
                         setTimeout(() => {
                             const qualityItem = document.querySelector('[data-name="quality"]');
                             const subtitle = qualityItem?.querySelector('.selectbox-item__subtitle');
                             if (subtitle) subtitle.textContent = item.title;
-                        }, 100);
+                        }, 50);
 
-                        // НЕ ЗАКРЫВАЕМ ВРУЧНУЮ — Lampa сама закроет!
+                        // Обновляем галочки в модалке
+                        webdlItems.forEach(w => w.selected = w.value === newValue);
+                        params.items.forEach(i => {
+                            if (webdlItems.includes(i)) i.selected = i.value === newValue;
+                        });
+
+                        // НЕ ЗАКРЫВАЕМ МОДАЛКУ — ОСТАЁТСЯ ОТКРЫТОЙ!
                         return;
                     }
 
-                    // Для оригинальных опций — вызываем оригинал
                     originalOnSelect(item);
                 };
             }
