@@ -2,13 +2,12 @@
     'use strict';
 
     const PLUGIN_NAME = 'torrent_quality';
-    const VERSION = '1.7.0';
+    const VERSION = '1.8.0';
 
     let originalTorrents = [];
     let allTorrents = [];
     let currentMovieTitle = null;
     let lastUrl = window.location.search;
-    let isInjected = false;
     let menuObserver = null;
 
     // === Получение торрентов ===
@@ -84,30 +83,28 @@
         });
     }
 
-    // === Вставка в меню ===
+    // === Вставка в меню (КАЖДЫЙ РАЗ) ===
     function injectWebDLFilter() {
-        if (isInjected) return;
-
         const titleEl = document.querySelector('.selectbox__title');
         if (!titleEl || titleEl.textContent !== 'Фильтр') return;
 
         const scrollBody = titleEl.closest('.selectbox__content')?.querySelector('.scroll__body');
         if (!scrollBody) return;
 
-        // Удаляем старое
-        scrollBody.querySelectorAll('.tq-webdl-group').forEach(el => el.remove());
+        // Проверяем, уже вставлено ли
+        if (scrollBody.querySelector('.tq-webdl-group')) return;
 
         // Ищем "Субтитры"
         const insertBefore = Array.from(scrollBody.children).find(el =>
             el.querySelector('.selectbox-item__title')?.textContent === 'Субтитры'
         );
 
-        // === ГЛАВНЫЙ ПУНКТ (НАД ПОДПУНКТАМИ) ===
+        // === ГЛАВНЫЙ ПУНКТ ===
         const mainItem = document.createElement('div');
         mainItem.className = 'selectbox-item selector tq-webdl-group';
         mainItem.innerHTML = `<div class="selectbox-item__title">WEB-DL</div><div class="selectbox-item__subtitle">Любое</div>`;
 
-        // === ПОДПУНКТЫ (НИЖЕ) ===
+        // === ПОДПУНКТЫ ===
         const filters = [
             { title: 'WEB-DL', value: 'web-dl' },
             { title: 'WEB-DLRip', value: 'web-dlrip' },
@@ -121,48 +118,37 @@
             sub.dataset.value = f.value;
             sub.innerHTML = `<div class="selectbox-item__title">${f.title}</div><div class="selectbox-item__checkbox"></div>`;
             sub.style.marginLeft = '20px';
-            subItems.push(sub);
-        });
 
-        // === ВСТАВКА: ГЛАВНЫЙ → ПОДПУНКТЫ → ПЕРЕД "Субтитры" ===
-        let current = insertBefore;
-        scrollBody.insertBefore(mainItem, current);
-        subItems.forEach(sub => {
             sub.addEventListener('click', (e) => {
                 e.stopPropagation();
                 e.preventDefault();
 
-                // Снимаем выделение
                 subItems.forEach(el => el.classList.toggle('selected', el === sub));
-
-                // Сохраняем и фильтруем
                 Lampa.Storage.set('tq_webdl_filter', sub.dataset.value);
                 filterTorrents(sub.dataset.value);
+                mainItem.querySelector('.selectbox-item__subtitle').textContent = sub.querySelector('.selectbox-item__title').textContent;
 
-                // Обновляем подзаголовок
-                mainItem.querySelector('.selectbox-item__subtitle').textContent =
-                    sub.querySelector('.selectbox-item__title').textContent;
-
-                // ЗАКРЫВАЕМ МЕНЮ ЧЕРЕЗ КНОПКУ "НАЗАД"
-                const backBtn = document.querySelector('.selectbox__head .selector[onclick*="back"]') ||
-                                document.querySelector('.selectbox__head .selector');
+                const backBtn = document.querySelector('.selectbox__head .selector');
                 if (backBtn && backBtn.onclick) {
                     backBtn.onclick();
                 } else if (backBtn) {
                     backBtn.click();
                 }
             });
-            scrollBody.insertBefore(sub, current);
+
+            subItems.push(sub);
+            scrollBody.insertBefore(sub, insertBefore);
         });
 
-        // === Восстановление выбора ===
+        scrollBody.insertBefore(mainItem, insertBefore || null);
+
+        // === Восстановление ===
         const saved = Lampa.Storage.get('tq_webdl_filter', 'any');
         if (saved !== 'any') {
             const active = subItems.find(el => el.dataset.value === saved);
             if (active) {
                 active.classList.add('selected');
-                mainItem.querySelector('.selectbox-item__subtitle').textContent =
-                    active.querySelector('.selectbox-item__title').textContent;
+                mainItem.querySelector('.selectbox-item__subtitle').textContent = active.querySelector('.selectbox-item__title').textContent;
             }
         }
 
@@ -181,8 +167,6 @@
             };
             resetBtn.dataset.tqHooked = '1';
         }
-
-        isInjected = true;
     }
 
     // === Наблюдатель ===
@@ -222,7 +206,6 @@
                     clearTorrents();
                     currentMovieTitle = title;
                     lastUrl = url;
-                    isInjected = false;
                     applyFilterOnLoad();
                 }
             }
