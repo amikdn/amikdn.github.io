@@ -2,7 +2,7 @@
     'use strict';
 
     const PLUGIN_NAME = 'torrent_quality';
-    const VERSION = '22.0.0';
+    const VERSION = '23.0.0';
 
     let originalTorrents = [];
     let allTorrents = [];
@@ -72,7 +72,7 @@
         });
     }
 
-    // === ТОГГЛ + МОДАЛКА ОСТАЁТСЯ ОТКРЫТОЙ (БЕЗ ПРОЗРАЧНОСТИ) ===
+    // === ТОГГЛ + МОДАЛКА ОСТАЁТСЯ ОТКРЫТОЙ (БЕЗ event) ===
     function injectWebdlIntoQuality() {
         if (isHooked) return;
         isHooked = true;
@@ -94,15 +94,9 @@
 
                 const originalOnSelect = params.onSelect || function() {};
 
-                params.onSelect = function (item, event) {
+                params.onSelect = function (item) {
                     const isWebdl = ['web-dl', 'web-dlrip', 'openmatte'].includes(item.value);
                     if (isWebdl) {
-                        // БЛОКИРУЕМ ЗАКРЫТИЕ
-                        if (event) {
-                            event.stopPropagation();
-                            event.preventDefault();
-                        }
-
                         const current = Lampa.Storage.get('tq_webdl_filter', 'any');
                         const newValue = current === item.value ? 'any' : item.value;
 
@@ -135,10 +129,10 @@
                             }
                         }, 10);
 
-                        return false; // ← КРИТИЧНО: НЕ ЗАКРЫВАЕМ
+                        return false; // ← МОДАЛКА НЕ ЗАКРЫВАЕТСЯ
                     }
 
-                    return originalOnSelect(item, event);
+                    return originalOnSelect(item);
                 };
             }
 
@@ -153,8 +147,8 @@
                 .find(el => el.textContent === 'Сбросить фильтр');
             if (resetBtn && !resetBtn.dataset.tqHooked) {
                 const old = resetBtn.onclick;
-                resetBtn.onclick = function (e) {
-                    if (old) old.call(this, e);
+                resetBtn.onclick = function () {
+                    if (old) old.apply(this, arguments);
 
                     Lampa.Storage.set('tq_webdl_filter', 'any');
                     filterTorrents('any');
