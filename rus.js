@@ -2,7 +2,7 @@
     'use strict';
 
     const PLUGIN_NAME = 'torrent_quality';
-    const VERSION = '17.0.0';
+    const VERSION = '18.0.0';
 
     let originalTorrents = [];
     let allTorrents = [];
@@ -72,7 +72,7 @@
         });
     }
 
-    // === ТОГГЛ ФИЛЬТРОВ ===
+    // === ТОГГЛ + МОДАЛКА ОСТАЁТСЯ ОТКРЫТОЙ ===
     function injectWebdlIntoQuality() {
         if (isHooked) return;
         isHooked = true;
@@ -120,18 +120,28 @@
                             }
                         });
 
-                        return false; // ← МОДАЛКА ОСТАЁТСЯ ОТКРЫТОЙ
+                        // КЛЮЧЕВОЕ: МОДАЛКА НЕ ЗАКРЫВАЕТСЯ
+                        return false;
                     }
 
+                    // Для стандартных опций — закрываем как обычно
                     return originalOnSelect(item);
                 };
+
+                // Отключаем автоматическое закрытие при выборе
+                if (params.onBack) {
+                    const origBack = params.onBack;
+                    params.onBack = function () {
+                        origBack();
+                    };
+                }
             }
 
             return originalShow.call(this, params);
         };
     }
 
-    // === Сброс фильтра (полный) ===
+    // === Сброс фильтра ===
     function hookResetButton() {
         const observer = new MutationObserver(() => {
             const resetBtn = Array.from(document.querySelectorAll('.selectbox-item__title'))
