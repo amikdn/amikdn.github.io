@@ -2,7 +2,7 @@
     'use strict';
 
     const PLUGIN_NAME = 'torrent_quality';
-    const VERSION = '2.2.0';
+    const VERSION = '2.3.0';
 
     let originalTorrents = [];
     let allTorrents = [];
@@ -83,7 +83,7 @@
         });
     }
 
-    // === Модальное окно: ВЫБОР ПОДСВЕЧЕН ===
+    // === Модальное окно: ГАЛОЧКА + ПУЛЬТ ===
     function openWebDLModal(mainItem) {
         const options = [
             { title: 'Любое', value: 'any' },
@@ -97,14 +97,14 @@
         Lampa.Select.show({
             title: 'WEB-DL',
             items: options,
-            selected: options.findIndex(o => o.value === saved), // ← ПОДСВЕТКА ВЫБОРА!
+            selected: options.findIndex(o => o.value === saved), // ← ГАЛОЧКА ВИДНА
             onSelect: (item) => {
                 Lampa.Storage.set('tq_webdl_filter', item.value);
                 filterTorrents(item.value);
                 mainItem.querySelector('.selectbox-item__subtitle').textContent = item.title;
             },
             onBack: () => {
-                // Lampa сама закроет
+                Lampa.Modal.close();
             }
         });
     }
@@ -126,11 +126,24 @@
         // === Главный пункт ===
         const mainItem = document.createElement('div');
         mainItem.className = 'selectbox-item selector tq-webdl-main';
-        mainItem.innerHTML = `<div class="selectbox-item__title">WEB-DL</div><div class="selectbox-item__subtitle">Любое</div>`;
+        mainItem.setAttribute('tabindex', '-1'); // ← ВАЖНО: ДЛЯ ПУЛЬТА
+        mainItem.innerHTML = `
+            <div class="selectbox-item__title">WEB-DL</div>
+            <div class="selectbox-item__subtitle">Любое</div>
+        `;
 
+        // Клик + ПУЛЬТ
         mainItem.addEventListener('click', (e) => {
             e.stopPropagation();
             openWebDLModal(mainItem);
+        });
+
+        // Поддержка пульта (Enter)
+        mainItem.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.stopPropagation();
+                openWebDLModal(mainItem);
+            }
         });
 
         scrollBody.insertBefore(mainItem, insertBefore || null);
@@ -237,5 +250,5 @@
         }
     }
 
-    start(); // ← Прямой запуск — без DOMContentLoaded
+    start();
 })();
