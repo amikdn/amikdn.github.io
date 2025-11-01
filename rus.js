@@ -150,11 +150,11 @@ function setupUrlChange() {
 const origPush = history.pushState;
 const origReplace = history.replaceState;
 history.pushState = function (...args) {
-origPush.apply(this, args);
+origPush.apply(history, args);
 handleUrlChange();
 };
 history.replaceState = function (...args) {
-origReplace.apply(this, args);
+origReplace.apply(history, args);
 handleUrlChange();
 };
 window.addEventListener('popstate', handleUrlChange);
