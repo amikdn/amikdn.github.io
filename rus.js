@@ -2,17 +2,14 @@
     'use strict';
 
     const PLUGIN_NAME = 'torrent_quality';
-    const VERSION = '1.4.0';
+    const VERSION = '1.5.0';
 
     let originalTorrents = [];
     let allTorrents = [];
     let currentMovieTitle = null;
     let lastUrl = window.location.search;
+    let isInjected = false;
     let menuObserver = null;
-    let intervalId = null;
-
-    // === Логи (удалить в продакшене) ===
-    const log = (...args) => console.log('[TQ]', ...args);
 
     // === Получение торрентов ===
     function getTorrentsData() {
@@ -31,7 +28,6 @@
             originalTorrents = [...allTorrents];
         }
         Lampa.Storage.set('tq_webdl_filter', 'any');
-        return true;
     }
 
     // === Очистка ===
@@ -74,7 +70,7 @@
                 Lampa.Utils.message?.(`Нет: ${value.toUpperCase()}`) || alert('Ничего не найдено');
             }
         } catch (e) {
-            log('Filter error:', e);
+            console.error('[TQ] Filter error:', e);
         }
     }
 
@@ -88,18 +84,20 @@
         });
     }
 
-    // === Вставка в меню ===
-    function tryInject() {
+    // === Вставка в меню (ОДИН РАЗ) ===
+    function injectWebDLFilter() {
+        if (isInjected) return;
+
         const titleEl = document.querySelector('.selectbox__title');
-        if (!titleEl || titleEl.textContent !== 'Фильтр') return false;
+        if (!titleEl || titleEl.textContent !== 'Фильтр') return;
 
         const scrollBody = titleEl.closest('.selectbox__content')?.querySelector('.scroll__body');
-        if (!scrollBody) return false;
+        if (!scrollBody) return;
 
-        // Удаляем старое
+        // Удаляем старое (на всякий)
         scrollBody.querySelectorAll('.tq-webdl-group').forEach(el => el.remove());
 
-        // Ищем "Субтитры"
+        // Ищем "Субтитры" или вставляем в конец
         const insertBefore = Array.from(scrollBody.children).find(el =>
             el.querySelector('.selectbox-item__title')?.textContent === 'Субтитры'
         );
@@ -123,13 +121,15 @@
             sub.innerHTML = `<div class="selectbox-item__title">${f.title}</div><div class="selectbox-item__checkbox"></div>`;
             sub.style.marginLeft = '20px';
 
-            sub.addEventListener('click', () => {
+            sub.addEventListener('click', (e) => {
+                e.stopPropagation();
                 scrollBody.querySelectorAll('.tq-webdl-group.selectbox-item--checkbox').forEach(el => {
                     el.classList.toggle('selected', el === sub);
                 });
                 Lampa.Storage.set('tq_webdl_filter', f.value);
                 filterTorrents(f.value);
                 mainItem.querySelector('.selectbox-item__subtitle').textContent = f.title;
+
                 const menu = scrollBody.closest('.selectbox__content');
                 if (menu) menu.style.display = 'none';
             });
@@ -137,7 +137,7 @@
             scrollBody.insertBefore(sub, insertBefore);
         });
 
-        scrollBody.insertBefore(mainItem, insertBefore);
+        scrollBody.insertBefore(mainItem, insertBefore || null);
 
         // === Восстановление ===
         const saved = Lampa.Storage.get('tq_webdl_filter', 'any');
@@ -156,9 +156,11 @@
         );
         if (resetBtn && !resetBtn.dataset.tqHooked) {
             const old = resetBtn.onclick;
-            resetBtn.onclick = function () {
-                if (old) old.apply(this, arguments);
-                scrollBody.querySelectorAll('.tq-webdl-group.selectbox-item--checkbox').forEach(el => el.classList.remove('selected'));
+            resetBtn.onclick = function (e) {
+                if (old) old.call(this, e);
+                scrollBody.querySelectorAll('.tq-webdl-group.selectbox-item--checkbox').forEach(el => {
+                    el.classList.remove('selected');
+                });
                 mainItem.querySelector('.selectbox-item__subtitle').textContent = 'Любое';
                 Lampa.Storage.set('tq_webdl_filter', 'any');
                 filterTorrents('any');
@@ -166,31 +168,21 @@
             resetBtn.dataset.tqHooked = '1';
         }
 
-        log('WEB-DL filter injected!');
-        return true;
+        isInjected = true;
     }
 
-    // === Наблюдатель ===
+    // === Наблюдатель (один раз) ===
     function startObserver() {
         if (menuObserver) return;
 
         menuObserver = new MutationObserver(() => {
-            if (tryInject()) {
-                // Можно остановить, но оставим — на всякий
-            }
+            injectWebDLFilter();
         });
 
         menuObserver.observe(document.body, {
             childList: true,
             subtree: true
         });
-
-        // Fallback: проверяем каждые 500мс
-        intervalId = setInterval(() => {
-            if (tryInject()) {
-                // clearInterval(intervalId); // раскомментировать, если не нужно повторно
-            }
-        }, 500);
     }
 
     // === URL смена (БЕЗ ОШИБОК) ===
@@ -216,6 +208,7 @@
                     clearTorrents();
                     currentMovieTitle = title;
                     lastUrl = url;
+                    isInjected = false; // Сброс, чтобы вставить заново
                     applyFilterOnLoad();
                 }
             }
@@ -245,7 +238,6 @@
 
     // === Запуск ===
     function start() {
-        log('Plugin starting...');
         if (window.appready) {
             setupUrlChange();
             startObserver();
