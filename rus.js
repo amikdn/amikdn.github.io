@@ -2,12 +2,13 @@
     'use strict';
 
     const PLUGIN_NAME = 'torrent_quality';
-    const VERSION = '3.0.0';
+    const VERSION = '3.1.0';
 
     let originalTorrents = [];
     let allTorrents = [];
     let currentMovieTitle = null;
     let lastUrl = window.location.search;
+    let filterAdded = false;
 
     // === Получение торрентов ===
     function getTorrentsData() {
@@ -82,10 +83,10 @@
         });
     }
 
-    // === Добавление фильтра через Lampa.Filter ===
+    // === Добавление фильтра ===
     function addWebDLFilter() {
-        if (window.tq_webdl_added) return;
-        window.tq_webdl_added = true;
+        if (filterAdded) return;
+        filterAdded = true;
 
         Lampa.Filter.add('webdl', {
             title: 'WEB-DL',
@@ -109,6 +110,32 @@
         const saved = Lampa.Storage.get('tq_webdl_filter', 'any');
         if (saved !== 'any') {
             Lampa.Filter.set('webdl', saved);
+        }
+
+        // Принудительное обновление меню
+        if (typeof Lampa.Filter !== 'undefined' && Lampa.Filter.update) {
+            Lampa.Filter.update();
+        }
+    }
+
+    // === Применение при загрузке ===
+    function applyFilterOnLoad() {
+        clearTorrents();
+        const torrents = getTorrentsData();
+        if (torrents.length) {
+            filterTorrents(Lampa.Storage.get('tq_webdl_filter', 'any'));
+        } else {
+            const container = document.querySelector('.torrent-list');
+            if (container) {
+                const obs = new MutationObserver(() => {
+                    if (document.querySelectorAll('.torrent-item').length) {
+                        obs.disconnect();
+                        filterTorrents(Lampa.Storage.get('tq_webdl_filter', 'any'));
+                    }
+                });
+                obs.observe(container, { childList: true, subtree: true });
+                setTimeout(() => obs.disconnect(), 5000);
+            }
         }
     }
 
@@ -141,39 +168,23 @@
         }
     }
 
-    // === Применение ===
-    function applyFilterOnLoad() {
-        clearTorrents();
-        const torrents = getTorrentsData();
-        if (torrents.length) {
-            filterTorrents(Lampa.Storage.get('tq_webdl_filter', 'any'));
-        } else {
-            const container = document.querySelector('.torrent-list');
-            if (container) {
-                const obs = new MutationObserver(() => {
-                    if (document.querySelectorAll('.torrent-item').length) {
-                        obs.disconnect();
-                        filterTorrents(Lampa.Storage.get('tq_webdl_filter', 'any'));
-                    }
-                });
-                obs.observe(container, { childList: true, subtree: true });
-                setTimeout(() => obs.disconnect(), 5000);
-            }
-        }
-    }
-
     // === Запуск ===
     function start() {
         if (window.appready) {
             addWebDLFilter();
             setupUrlChange();
             applyFilterOnLoad();
+
+            // Добавляем при открытии фильтра
+            Lampa.Listener.follow('filter', (e) => {
+                if (e.type === 'open') {
+                    addWebDLFilter();
+                }
+            });
         } else {
             Lampa.Listener.follow('app', e => {
                 if (e.type === 'ready') {
-                    addWebDLFilter();
-                    setupUrlChange();
-                    applyFilterOnLoad();
+                    start();
                 }
             });
         }
