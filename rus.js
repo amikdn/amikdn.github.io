@@ -2,7 +2,7 @@
     'use strict';
 
     const PLUGIN_NAME = 'torrent_quality';
-    const VERSION = '16.0.0';
+    const VERSION = '17.0.0';
 
     let originalTorrents = [];
     let allTorrents = [];
@@ -72,7 +72,7 @@
         });
     }
 
-    // === Добавление опций с галочкой и без закрытия ===
+    // === ТОГГЛ ФИЛЬТРОВ ===
     function injectWebdlIntoQuality() {
         if (isHooked) return;
         isHooked = true;
@@ -97,7 +97,9 @@
                 params.onSelect = function (item) {
                     const isWebdl = ['web-dl', 'web-dlrip', 'openmatte'].includes(item.value);
                     if (isWebdl) {
-                        const newValue = item.value;
+                        const current = Lampa.Storage.get('tq_webdl_filter', 'any');
+                        const newValue = current === item.value ? 'any' : item.value;
+
                         Lampa.Storage.set('tq_webdl_filter', newValue);
                         filterTorrents(newValue);
 
@@ -105,7 +107,9 @@
                         setTimeout(() => {
                             const qualityItem = document.querySelector('[data-name="quality"]');
                             const subtitle = qualityItem?.querySelector('.selectbox-item__subtitle');
-                            if (subtitle) subtitle.textContent = item.title;
+                            if (subtitle) {
+                                subtitle.textContent = newValue === 'any' ? 'Любое' : item.title;
+                            }
                         }, 50);
 
                         // Обновляем галочки
@@ -116,7 +120,7 @@
                             }
                         });
 
-                        return false; // ← НЕ ЗАКРЫВАЕМ МОДАЛКУ
+                        return false; // ← МОДАЛКА ОСТАЁТСЯ ОТКРЫТОЙ
                     }
 
                     return originalOnSelect(item);
@@ -127,7 +131,7 @@
         };
     }
 
-    // === Сброс фильтра (полный, включая WEB-DL) ===
+    // === Сброс фильтра (полный) ===
     function hookResetButton() {
         const observer = new MutationObserver(() => {
             const resetBtn = Array.from(document.querySelectorAll('.selectbox-item__title'))
@@ -137,28 +141,14 @@
                 resetBtn.onclick = function () {
                     if (old) old.apply(this, arguments);
 
-                    // СБРАСЫВАЕМ НАШ ФИЛЬТР
                     Lampa.Storage.set('tq_webdl_filter', 'any');
                     filterTorrents('any');
 
-                    // Обновляем подзаголовок
                     setTimeout(() => {
                         const qualityItem = document.querySelector('[data-name="quality"]');
                         const subtitle = qualityItem?.querySelector('.selectbox-item__subtitle');
                         if (subtitle) subtitle.textContent = 'Любое';
                     }, 100);
-
-                    // Убираем галочки в модалке (если открыта)
-                    setTimeout(() => {
-                        const modalItems = document.querySelectorAll('.select__item');
-                        modalItems.forEach(item => {
-                            const text = item.querySelector('.select__text')?.textContent;
-                            if (text && ['WEB-DL', 'WEB-DLRip', 'Open Matte'].includes(text)) {
-                                const check = item.querySelector('.select__check');
-                                if (check) check.style.display = 'none';
-                            }
-                        });
-                    }, 150);
                 };
                 resetBtn.dataset.tqHooked = '1';
             }
@@ -230,7 +220,6 @@
         setupUrlChange();
         applyFilterOnLoad();
 
-        // Восстановление подзаголовка
         setTimeout(() => {
             const saved = Lampa.Storage.get('tq_webdl_filter', 'any');
             const titles = { 'any': 'Любое', 'web-dl': 'WEB-DL', 'web-dlrip': 'WEB-DLRip', 'openmatte': 'Open Matte' };
