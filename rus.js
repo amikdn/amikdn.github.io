@@ -2,12 +2,13 @@
     'use strict';
 
     const PLUGIN_NAME = 'torrent_quality';
-    const VERSION = '10.0.0';
+    const VERSION = '12.0.0';
 
     let originalTorrents = [];
     let allTorrents = [];
     let currentMovieTitle = null;
     let lastUrl = window.location.search;
+    let isHooked = false;
 
     // === Получение торрентов ===
     function getTorrentsData() {
@@ -75,74 +76,70 @@
         });
     }
 
-    // === Добавление опций в пункт "Качество" ===
-    function enhanceQualityModal() {
-        const qualityItem = document.querySelector('[data-name="quality"]');
-        if (!qualityItem || qualityItem.dataset.tqHooked) return;
+    // === Добавление опций в модальное окно "Качество" ===
+    function injectWebdlIntoQuality() {
+        if (isHooked) return;
+        isHooked = true;
 
-        const originalClick = qualityItem.onclick;
-        qualityItem.onclick = function (e) {
-            e.stopPropagation();
+        const originalShow = Lampa.Select.show;
+        Lampa.Select.show = function (params) {
+            // Проверяем, что это модалка "Качество"
+            if (params.title === 'Качество' || (params.items && params.items[0]?.title?.includes('1080p'))) {
+                const webdlItems = [
+                    { title: 'WEB-DL', value: 'web-dl' },
+                    { title: 'WEB-DLRip', value: 'web-dlrip' },
+                    { title: 'Open Matte', value: 'openmatte' }
+                ];
 
-            // Оригинальные опции качества
-            const originalItems = Lampa.Select.data.items || [];
+                // Добавляем в конец
+                if (params.items) {
+                    params.items = params.items.concat(webdlItems);
+                }
 
-            // Наши опции
-            const webdlItems = [
-                { title: 'WEB-DL', value: 'web-dl' },
-                { title: 'WEB-DLRip', value: 'web-dlrip' },
-                { title: 'Open Matte', value: 'openmatte' }
-            ];
-
-            // Объединяем
-            const allItems = [
-                ...originalItems,
-                ...webdlItems
-            ];
-
-            Lampa.Select.show({
-                title: 'Качество',
-                items: allItems,
-                onSelect: function (item) {
-                    // Если выбрана наша опция
-                    if (webdlItems.find(i => i.value === item.value)) {
+                // Переопределяем onSelect
+                const originalOnSelect = params.onSelect;
+                params.onSelect = function (item) {
+                    const isWebdl = webdlItems.some(i => i.value === item.value);
+                    if (isWebdl) {
                         Lampa.Storage.set('tq_webdl_filter', item.value);
                         filterTorrents(item.value);
-                        // Обновляем подзаголовок "Качество"
-                        const subtitle = qualityItem.querySelector('.selectbox-item__subtitle');
-                        if (subtitle) subtitle.textContent = item.title;
-                    } else {
-                        // Оригинальная логика Lampa
-                        if (originalClick) {
-                            const fakeEvent = { target: qualityItem };
-                            originalClick.call(qualityItem, fakeEvent);
-                        }
-                    }
-                },
-                onBack: function () {
-                    Lampa.Modal.close();
-                }
-            });
-        };
 
-        qualityItem.dataset.tqHooked = '1';
+                        // Обновляем подзаголовок
+                        const qualityItem = document.querySelector('[data-name="quality"]');
+                        const subtitle = qualityItem?.querySelector('.selectbox-item__subtitle');
+                        if (subtitle) subtitle.textContent = item.title;
+
+                        Lampa.Modal.close();
+                    } else if (originalOnSelect) {
+                        originalOnSelect(item);
+                    }
+                };
+            }
+
+            // Вызываем оригинал
+            return originalShow.call(this, params);
+        };
     }
 
-    // === Мониторинг открытия меню фильтров ===
-    function startMonitoring() {
+    // === Сброс при нажатии "Сбросить фильтр" ===
+    function hookResetButton() {
         const observer = new MutationObserver(() => {
-            if (document.querySelector('.selectbox__title')?.textContent === 'Фильтр') {
-                enhanceQualityModal();
+            const resetBtn = document.querySelector('.selectbox-item__title');
+            if (resetBtn && resetBtn.textContent === 'Сбросить фильтр' && !resetBtn.dataset.tqHooked) {
+                const old = resetBtn.onclick;
+                resetBtn.onclick = function () {
+                    if (old) old.apply(this, arguments);
+                    Lampa.Storage.set('tq_webdl_filter', 'any');
+                    filterTorrents('any');
+
+                    const qualityItem = document.querySelector('[data-name="quality"]');
+                    const subtitle = qualityItem?.querySelector('.selectbox-item__subtitle');
+                    if (subtitle) subtitle.textContent = 'Любое';
+                };
+                resetBtn.dataset.tqHooked = '1';
             }
         });
         observer.observe(document.body, { childList: true, subtree: true });
-
-        // Также при смене URL
-        setInterval(() => {
-            if (document.querySelector('.selectbox__title')?.textContent === 'Фильтр') {
-                enhanceQualityModal();
-            }
-        }, 1000);
     }
 
     // === URL смена ===
@@ -204,9 +201,19 @@
             return;
         }
 
+        injectWebdlIntoQuality();
+        hookResetButton();
         setupUrlChange();
-        startMonitoring();
         applyFilterOnLoad();
+
+        // Принудительное обновление подзаголовка
+        setTimeout(() => {
+            const saved = Lampa.Storage.get('tq_webdl_filter', 'any');
+            const titles = { 'any': 'Любое', 'web-dl': 'WEB-DL', 'web-dlrip': 'WEB-DLRip', 'openmatte': 'Open Matte' };
+            const qualityItem = document.querySelector('[data-name="quality"]');
+            const subtitle = qualityItem?.querySelector('.selectbox-item__subtitle');
+            if (subtitle) subtitle.textContent = titles[saved];
+        }, 1000);
     }
 
     start();
