@@ -2,7 +2,7 @@
     'use strict';
 
     const PLUGIN_NAME = 'torrent_quality';
-    const VERSION = '2.1.0';
+    const VERSION = '2.2.0';
 
     let originalTorrents = [];
     let allTorrents = [];
@@ -83,7 +83,7 @@
         });
     }
 
-    // === Модальное окно через Lampa.Select (БЕЗ ЗАКРЫТИЯ) ===
+    // === Модальное окно: ВЫБОР ПОДСВЕЧЕН ===
     function openWebDLModal(mainItem) {
         const options = [
             { title: 'Любое', value: 'any' },
@@ -97,19 +97,16 @@
         Lampa.Select.show({
             title: 'WEB-DL',
             items: options,
+            selected: options.findIndex(o => o.value === saved), // ← ПОДСВЕТКА ВЫБОРА!
             onSelect: (item) => {
                 Lampa.Storage.set('tq_webdl_filter', item.value);
                 filterTorrents(item.value);
                 mainItem.querySelector('.selectbox-item__subtitle').textContent = item.title;
             },
             onBack: () => {
-                // Ничего не делаем — Lampa сама закроет
+                // Lampa сама закроет
             }
         });
-
-        // Восстанавливаем выбор
-        const selected = options.find(o => o.value === saved) || options[0];
-        mainItem.querySelector('.selectbox-item__subtitle').textContent = selected.title;
     }
 
     // === Вставка в меню ===
@@ -131,9 +128,8 @@
         mainItem.className = 'selectbox-item selector tq-webdl-main';
         mainItem.innerHTML = `<div class="selectbox-item__title">WEB-DL</div><div class="selectbox-item__subtitle">Любое</div>`;
 
-        // Клик — открываем через Lampa.Select (БЕЗ Lampa.Modal.close!)
         mainItem.addEventListener('click', (e) => {
-            e.stopPropagation(); // Только это — не ломаем Lampa
+            e.stopPropagation();
             openWebDLModal(mainItem);
         });
 
@@ -241,12 +237,5 @@
         }
     }
 
-    // Автозапуск
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', start);
-    } else {
-        start();
-    }
-
-    window[PLUGIN_NAME] = { version: VERSION };
+    start(); // ← Прямой запуск — без DOMContentLoaded
 })();
