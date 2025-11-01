@@ -2,7 +2,7 @@
     'use strict';
 
     const PLUGIN_NAME = 'torrent_quality';
-    const VERSION = '1.5.0';
+    const VERSION = '1.6.0';
 
     let originalTorrents = [];
     let allTorrents = [];
@@ -84,7 +84,7 @@
         });
     }
 
-    // === Вставка в меню (ОДИН РАЗ) ===
+    // === Вставка в меню ===
     function injectWebDLFilter() {
         if (isInjected) return;
 
@@ -94,10 +94,10 @@
         const scrollBody = titleEl.closest('.selectbox__content')?.querySelector('.scroll__body');
         if (!scrollBody) return;
 
-        // Удаляем старое (на всякий)
+        // Удаляем старое
         scrollBody.querySelectorAll('.tq-webdl-group').forEach(el => el.remove());
 
-        // Ищем "Субтитры" или вставляем в конец
+        // Ищем "Субтитры" или конец
         const insertBefore = Array.from(scrollBody.children).find(el =>
             el.querySelector('.selectbox-item__title')?.textContent === 'Субтитры'
         );
@@ -122,16 +122,25 @@
             sub.style.marginLeft = '20px';
 
             sub.addEventListener('click', (e) => {
-                e.stopPropagation();
+                e.stopPropagation(); // ← КРИТИЧНО
+                e.preventDefault();
+
+                // Снимаем выделение
                 scrollBody.querySelectorAll('.tq-webdl-group.selectbox-item--checkbox').forEach(el => {
                     el.classList.toggle('selected', el === sub);
                 });
+
+                // Сохраняем и фильтруем
                 Lampa.Storage.set('tq_webdl_filter', f.value);
                 filterTorrents(f.value);
+
+                // Обновляем подзаголовок
                 mainItem.querySelector('.selectbox-item__subtitle').textContent = f.title;
 
-                const menu = scrollBody.closest('.selectbox__content');
-                if (menu) menu.style.display = 'none';
+                // ЗАКРЫВАЕМ МЕНЮ ПРАВИЛЬНО
+                if (typeof Lampa !== 'undefined' && Lampa.Modal && Lampa.Modal.close) {
+                    Lampa.Modal.close();
+                }
             });
 
             scrollBody.insertBefore(sub, insertBefore);
@@ -171,7 +180,7 @@
         isInjected = true;
     }
 
-    // === Наблюдатель (один раз) ===
+    // === Наблюдатель ===
     function startObserver() {
         if (menuObserver) return;
 
@@ -185,7 +194,7 @@
         });
     }
 
-    // === URL смена (БЕЗ ОШИБОК) ===
+    // === URL смена ===
     function setupUrlChange() {
         const origPush = history.pushState;
         const origReplace = history.replaceState;
@@ -208,7 +217,7 @@
                     clearTorrents();
                     currentMovieTitle = title;
                     lastUrl = url;
-                    isInjected = false; // Сброс, чтобы вставить заново
+                    isInjected = false; // ← Разрешаем вставить заново
                     applyFilterOnLoad();
                 }
             }
