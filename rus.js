@@ -2,7 +2,7 @@
     'use strict';
 
     const PLUGIN_NAME = 'torrent_quality';
-    const VERSION = '1.6.0';
+    const VERSION = '1.7.0';
 
     let originalTorrents = [];
     let allTorrents = [];
@@ -97,61 +97,68 @@
         // Удаляем старое
         scrollBody.querySelectorAll('.tq-webdl-group').forEach(el => el.remove());
 
-        // Ищем "Субтитры" или конец
+        // Ищем "Субтитры"
         const insertBefore = Array.from(scrollBody.children).find(el =>
             el.querySelector('.selectbox-item__title')?.textContent === 'Субтитры'
         );
 
-        // === Главный пункт ===
+        // === ГЛАВНЫЙ ПУНКТ (НАД ПОДПУНКТАМИ) ===
         const mainItem = document.createElement('div');
         mainItem.className = 'selectbox-item selector tq-webdl-group';
         mainItem.innerHTML = `<div class="selectbox-item__title">WEB-DL</div><div class="selectbox-item__subtitle">Любое</div>`;
 
-        // === Подпункты ===
+        // === ПОДПУНКТЫ (НИЖЕ) ===
         const filters = [
             { title: 'WEB-DL', value: 'web-dl' },
             { title: 'WEB-DLRip', value: 'web-dlrip' },
             { title: 'Open Matte', value: 'openmatte' }
         ];
 
+        const subItems = [];
         filters.forEach(f => {
             const sub = document.createElement('div');
             sub.className = 'selectbox-item selector selectbox-item--checkbox tq-webdl-group';
             sub.dataset.value = f.value;
             sub.innerHTML = `<div class="selectbox-item__title">${f.title}</div><div class="selectbox-item__checkbox"></div>`;
             sub.style.marginLeft = '20px';
+            subItems.push(sub);
+        });
 
+        // === ВСТАВКА: ГЛАВНЫЙ → ПОДПУНКТЫ → ПЕРЕД "Субтитры" ===
+        let current = insertBefore;
+        scrollBody.insertBefore(mainItem, current);
+        subItems.forEach(sub => {
             sub.addEventListener('click', (e) => {
-                e.stopPropagation(); // ← КРИТИЧНО
+                e.stopPropagation();
                 e.preventDefault();
 
                 // Снимаем выделение
-                scrollBody.querySelectorAll('.tq-webdl-group.selectbox-item--checkbox').forEach(el => {
-                    el.classList.toggle('selected', el === sub);
-                });
+                subItems.forEach(el => el.classList.toggle('selected', el === sub));
 
                 // Сохраняем и фильтруем
-                Lampa.Storage.set('tq_webdl_filter', f.value);
-                filterTorrents(f.value);
+                Lampa.Storage.set('tq_webdl_filter', sub.dataset.value);
+                filterTorrents(sub.dataset.value);
 
                 // Обновляем подзаголовок
-                mainItem.querySelector('.selectbox-item__subtitle').textContent = f.title;
+                mainItem.querySelector('.selectbox-item__subtitle').textContent =
+                    sub.querySelector('.selectbox-item__title').textContent;
 
-                // ЗАКРЫВАЕМ МЕНЮ ПРАВИЛЬНО
-                if (typeof Lampa !== 'undefined' && Lampa.Modal && Lampa.Modal.close) {
-                    Lampa.Modal.close();
+                // ЗАКРЫВАЕМ МЕНЮ ЧЕРЕЗ КНОПКУ "НАЗАД"
+                const backBtn = document.querySelector('.selectbox__head .selector[onclick*="back"]') ||
+                                document.querySelector('.selectbox__head .selector');
+                if (backBtn && backBtn.onclick) {
+                    backBtn.onclick();
+                } else if (backBtn) {
+                    backBtn.click();
                 }
             });
-
-            scrollBody.insertBefore(sub, insertBefore);
+            scrollBody.insertBefore(sub, current);
         });
 
-        scrollBody.insertBefore(mainItem, insertBefore || null);
-
-        // === Восстановление ===
+        // === Восстановление выбора ===
         const saved = Lampa.Storage.get('tq_webdl_filter', 'any');
         if (saved !== 'any') {
-            const active = scrollBody.querySelector(`.tq-webdl-group[data-value="${saved}"]`);
+            const active = subItems.find(el => el.dataset.value === saved);
             if (active) {
                 active.classList.add('selected');
                 mainItem.querySelector('.selectbox-item__subtitle').textContent =
@@ -167,9 +174,7 @@
             const old = resetBtn.onclick;
             resetBtn.onclick = function (e) {
                 if (old) old.call(this, e);
-                scrollBody.querySelectorAll('.tq-webdl-group.selectbox-item--checkbox').forEach(el => {
-                    el.classList.remove('selected');
-                });
+                subItems.forEach(el => el.classList.remove('selected'));
                 mainItem.querySelector('.selectbox-item__subtitle').textContent = 'Любое';
                 Lampa.Storage.set('tq_webdl_filter', 'any');
                 filterTorrents('any');
@@ -217,7 +222,7 @@
                     clearTorrents();
                     currentMovieTitle = title;
                     lastUrl = url;
-                    isInjected = false; // ← Разрешаем вставить заново
+                    isInjected = false;
                     applyFilterOnLoad();
                 }
             }
