@@ -2,13 +2,14 @@
     'use strict';
 
     const PLUGIN_NAME = 'torrent_quality';
-    const VERSION = '18.0.0';
+    const VERSION = '19.0.0';
 
     let originalTorrents = [];
     let allTorrents = [];
     let currentMovieTitle = null;
     let lastUrl = window.location.search;
     let isHooked = false;
+    let preventClose = false; // ← ФЛАГ: НЕ ЗАКРЫВАТЬ МОДАЛКУ
 
     // === Получение торрентов ===
     function getTorrentsData() {
@@ -72,7 +73,7 @@
         });
     }
 
-    // === ТОГГЛ + МОДАЛКА ОСТАЁТСЯ ОТКРЫТОЙ ===
+    // === ТОГГЛ + БЛОКИРОВКА ЗАКРЫТИЯ ===
     function injectWebdlIntoQuality() {
         if (isHooked) return;
         isHooked = true;
@@ -97,6 +98,8 @@
                 params.onSelect = function (item) {
                     const isWebdl = ['web-dl', 'web-dlrip', 'openmatte'].includes(item.value);
                     if (isWebdl) {
+                        preventClose = true; // ← ВКЛЮЧАЕМ ФЛАГ
+
                         const current = Lampa.Storage.get('tq_webdl_filter', 'any');
                         const newValue = current === item.value ? 'any' : item.value;
 
@@ -120,24 +123,25 @@
                             }
                         });
 
-                        // КЛЮЧЕВОЕ: МОДАЛКА НЕ ЗАКРЫВАЕТСЯ
-                        return false;
+                        setTimeout(() => { preventClose = false; }, 100); // ← СБРАСЫВАЕМ ЧЕРЕЗ 100мс
+                        return;
                     }
 
-                    // Для стандартных опций — закрываем как обычно
+                    preventClose = false;
                     return originalOnSelect(item);
                 };
-
-                // Отключаем автоматическое закрытие при выборе
-                if (params.onBack) {
-                    const origBack = params.onBack;
-                    params.onBack = function () {
-                        origBack();
-                    };
-                }
             }
 
             return originalShow.call(this, params);
+        };
+
+        // === ПЕРЕХВАТ Lampa.Modal.close() ===
+        const originalClose = Lampa.Modal.close;
+        Lampa.Modal.close = function () {
+            if (preventClose) {
+                return; // ← НЕ ЗАКРЫВАЕМ!
+            }
+            return originalClose.apply(this, arguments);
         };
     }
 
