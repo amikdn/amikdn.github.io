@@ -2,14 +2,13 @@
     'use strict';
 
     const PLUGIN_NAME = 'torrent_quality';
-    const VERSION = '19.0.0';
+    const VERSION = '20.0.0';
 
     let originalTorrents = [];
     let allTorrents = [];
     let currentMovieTitle = null;
     let lastUrl = window.location.search;
     let isHooked = false;
-    let preventClose = false; // ← ФЛАГ: НЕ ЗАКРЫВАТЬ МОДАЛКУ
 
     // === Получение торрентов ===
     function getTorrentsData() {
@@ -73,7 +72,7 @@
         });
     }
 
-    // === ТОГГЛ + БЛОКИРОВКА ЗАКРЫТИЯ ===
+    // === ТОЧНО КАК У СТАНДАРТНЫХ ФИЛЬТРОВ КАЧЕСТВА ===
     function injectWebdlIntoQuality() {
         if (isHooked) return;
         isHooked = true;
@@ -98,8 +97,6 @@
                 params.onSelect = function (item) {
                     const isWebdl = ['web-dl', 'web-dlrip', 'openmatte'].includes(item.value);
                     if (isWebdl) {
-                        preventClose = true; // ← ВКЛЮЧАЕМ ФЛАГ
-
                         const current = Lampa.Storage.get('tq_webdl_filter', 'any');
                         const newValue = current === item.value ? 'any' : item.value;
 
@@ -115,33 +112,21 @@
                             }
                         }, 50);
 
-                        // Обновляем галочки
-                        webdlItems.forEach(w => w.selected = w.value === newValue);
+                        // Обновляем selected для всех наших пунктов
                         params.items.forEach(i => {
                             if (webdlItems.find(w => w.value === i.value)) {
                                 i.selected = i.value === newValue;
                             }
                         });
 
-                        setTimeout(() => { preventClose = false; }, 100); // ← СБРАСЫВАЕМ ЧЕРЕЗ 100мс
-                        return;
+                        return false; // ← ТОЧНО КАК У 1080p — ОКНО НЕ ЗАКРЫВАЕТСЯ
                     }
 
-                    preventClose = false;
                     return originalOnSelect(item);
                 };
             }
 
             return originalShow.call(this, params);
-        };
-
-        // === ПЕРЕХВАТ Lampa.Modal.close() ===
-        const originalClose = Lampa.Modal.close;
-        Lampa.Modal.close = function () {
-            if (preventClose) {
-                return; // ← НЕ ЗАКРЫВАЕМ!
-            }
-            return originalClose.apply(this, arguments);
         };
     }
 
