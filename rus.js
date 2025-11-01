@@ -2,13 +2,14 @@
     'use strict';
 
     const PLUGIN_NAME = 'torrent_quality';
-    const VERSION = '20.0.0';
+    const VERSION = '21.0.0';
 
     let originalTorrents = [];
     let allTorrents = [];
     let currentMovieTitle = null;
     let lastUrl = window.location.search;
     let isHooked = false;
+    let qualityModalActive = false; // ← ОТСЛЕЖИВАЕМ ОТКРЫТИЕ МОДАЛКИ
 
     // === Получение торрентов ===
     function getTorrentsData() {
@@ -72,14 +73,18 @@
         });
     }
 
-    // === ТОЧНО КАК У СТАНДАРТНЫХ ФИЛЬТРОВ КАЧЕСТВА ===
+    // === ПЕРЕХВАТ Lampa.Select.show() ===
     function injectWebdlIntoQuality() {
         if (isHooked) return;
         isHooked = true;
 
         const originalShow = Lampa.Select.show;
         Lampa.Select.show = function (params) {
-            if (params.title === 'Качество' || (params.items && params.items[0]?.title?.match(/1080p|720p|4K/i))) {
+            const isQuality = params.title === 'Качество' || (params.items && params.items[0]?.title?.match(/1080p|720p|4K/i));
+
+            if (isQuality) {
+                qualityModalActive = true;
+
                 const currentValue = Lampa.Storage.get('tq_webdl_filter', 'any');
 
                 const webdlItems = [
@@ -112,22 +117,61 @@
                             }
                         }, 50);
 
-                        // Обновляем selected для всех наших пунктов
+                        // Обновляем галочки
                         params.items.forEach(i => {
                             if (webdlItems.find(w => w.value === i.value)) {
                                 i.selected = i.value === newValue;
                             }
                         });
 
-                        return false; // ← ТОЧНО КАК У 1080p — ОКНО НЕ ЗАКРЫВАЕТСЯ
+                        // ПЕРЕОТКРЫВАЕМ МОДАЛКУ СРАЗУ ПОСЛЕ ЗАКРЫТИЯ
+                        setTimeout(() => {
+                            if (qualityModalActive) {
+                                Lampa.Select.show(params);
+                            }
+                        }, 50);
+
+                        return false;
                     }
 
+                    qualityModalActive = false;
                     return originalOnSelect(item);
                 };
+
+                // ОТСЛЕЖИВАЕМ ЗАКРЫТИЕ ЧЕРЕЗ BACK
+                if (params.onBack) {
+                    const origBack = params.onBack;
+                    params.onBack = function () {
+                        qualityModalActive = false;
+                        origBack();
+                    };
+                }
             }
 
             return originalShow.call(this, params);
         };
+
+        // === БЛОКИРУЕМ ЗАКРЫТИЕ ПО ENTER НА СКРЫТЫХ ПУНКТАХ ===
+        const observer = new MutationObserver(() => {
+            const modal = document.querySelector('.select-modal');
+            if (modal && !modal.dataset.tqPatched) {
+                modal.dataset.tqPatched = '1';
+
+                modal.addEventListener('keydown', function (e) {
+                    if (e.key === 'Enter' || e.keyCode === 13) {
+                        const focused = document.querySelector('.select__item.focus');
+                        if (focused) {
+                            const text = focused.querySelector('.select__text')?.textContent;
+                            if (text && ['WEB-DL', 'WEB-DLRip', 'Open Matte'].includes(text)) {
+                                e.stopPropagation();
+                                e.preventDefault();
+                            }
+                        }
+                    }
+                }, true);
+            }
+        });
+        observer.observe(document.body, { childList: true, subtree: true });
     }
 
     // === Сброс фильтра ===
