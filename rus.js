@@ -2,7 +2,7 @@
     'use strict';
 
     const PLUGIN_NAME = 'torrent_quality';
-    const VERSION = '2.0.0';
+    const VERSION = '2.1.0';
 
     let originalTorrents = [];
     let allTorrents = [];
@@ -83,9 +83,10 @@
         });
     }
 
-    // === Модальное окно через Lampa API ===
+    // === Модальное окно через Lampa.Select (БЕЗ ЗАКРЫТИЯ) ===
     function openWebDLModal(mainItem) {
         const options = [
+            { title: 'Любое', value: 'any' },
             { title: 'WEB-DL', value: 'web-dl' },
             { title: 'WEB-DLRip', value: 'web-dlrip' },
             { title: 'Open Matte', value: 'openmatte' }
@@ -102,17 +103,13 @@
                 mainItem.querySelector('.selectbox-item__subtitle').textContent = item.title;
             },
             onBack: () => {
-                Lampa.Modal.close();
+                // Ничего не делаем — Lampa сама закроет
             }
         });
 
         // Восстанавливаем выбор
-        if (saved !== 'any') {
-            const selected = options.find(o => o.value === saved);
-            if (selected) {
-                mainItem.querySelector('.selectbox-item__subtitle').textContent = selected.title;
-            }
-        }
+        const selected = options.find(o => o.value === saved) || options[0];
+        mainItem.querySelector('.selectbox-item__subtitle').textContent = selected.title;
     }
 
     // === Вставка в меню ===
@@ -134,20 +131,18 @@
         mainItem.className = 'selectbox-item selector tq-webdl-main';
         mainItem.innerHTML = `<div class="selectbox-item__title">WEB-DL</div><div class="selectbox-item__subtitle">Любое</div>`;
 
-        // Клик — открываем через Lampa.Select
-        mainItem.addEventListener('click', () => {
-            Lampa.Modal.close(); // Закрываем родное меню
-            setTimeout(() => openWebDLModal(mainItem), 100); // Открываем своё
+        // Клик — открываем через Lampa.Select (БЕЗ Lampa.Modal.close!)
+        mainItem.addEventListener('click', (e) => {
+            e.stopPropagation(); // Только это — не ломаем Lampa
+            openWebDLModal(mainItem);
         });
 
         scrollBody.insertBefore(mainItem, insertBefore || null);
 
         // === Восстановление подзаголовка ===
         const saved = Lampa.Storage.get('tq_webdl_filter', 'any');
-        if (saved !== 'any') {
-            const titles = { 'web-dl': 'WEB-DL', 'web-dlrip': 'WEB-DLRip', 'openmatte': 'Open Matte' };
-            mainItem.querySelector('.selectbox-item__subtitle').textContent = titles[saved];
-        }
+        const titles = { 'any': 'Любое', 'web-dl': 'WEB-DL', 'web-dlrip': 'WEB-DLRip', 'openmatte': 'Open Matte' };
+        mainItem.querySelector('.selectbox-item__subtitle').textContent = titles[saved];
 
         // === Сброс ===
         const resetBtn = Array.from(scrollBody.children).find(el =>
