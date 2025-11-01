@@ -2,7 +2,7 @@
     'use strict';
 
     const PLUGIN_NAME = 'torrent_quality';
-    const VERSION = '14.0.0';
+    const VERSION = '15.0.0';
 
     let originalTorrents = [];
     let allTorrents = [];
@@ -56,10 +56,6 @@
             }
 
             renderResults(filtered);
-
-            if (!filtered.length && value !== 'any') {
-                Lampa.Utils?.message?.('Нет: ' + value.toUpperCase());
-            }
         } catch (e) {
             Lampa.Utils?.message?.('Ошибка фильтрации');
         }
@@ -76,7 +72,7 @@
         });
     }
 
-    // === Добавление опций с иконкой и галочкой ===
+    // === Добавление опций с галочкой и без закрытия ===
     function injectWebdlIntoQuality() {
         if (isHooked) return;
         isHooked = true;
@@ -87,21 +83,9 @@
                 const currentValue = Lampa.Storage.get('tq_webdl_filter', 'any');
 
                 const webdlItems = [
-                    {
-                        title: 'WEB-DL',
-                        value: 'web-dl',
-                        selected: currentValue === 'web-dl'
-                    },
-                    {
-                        title: 'WEB-DLRip',
-                        value: 'web-dlrip',
-                        selected: currentValue === 'web-dlrip'
-                    },
-                    {
-                        title: 'Open Matte',
-                        value: 'openmatte',
-                        selected: currentValue === 'openmatte'
-                    }
+                    { title: 'WEB-DL', value: 'web-dl', selected: currentValue === 'web-dl' },
+                    { title: 'WEB-DLRip', value: 'web-dlrip', selected: currentValue === 'web-dlrip' },
+                    { title: 'Open Matte', value: 'openmatte', selected: currentValue === 'openmatte' }
                 ];
 
                 // Добавляем в конец
@@ -125,17 +109,20 @@
                             if (subtitle) subtitle.textContent = item.title;
                         }, 50);
 
-                        // Обновляем галочки в модалке
+                        // Обновляем галочки
                         webdlItems.forEach(w => w.selected = w.value === newValue);
                         params.items.forEach(i => {
-                            if (webdlItems.includes(i)) i.selected = i.value === newValue;
+                            if (webdlItems.find(w => w.value === i.value)) {
+                                i.selected = i.value === newValue;
+                            }
                         });
 
-                        // НЕ ЗАКРЫВАЕМ МОДАЛКУ — ОСТАЁТСЯ ОТКРЫТОЙ!
-                        return;
+                        // КЛЮЧЕВОЕ: НЕ ЗАКРЫВАЕМ! Возвращаем false
+                        return false;
                     }
 
-                    originalOnSelect(item);
+                    // Для стандартных опций — закрываем как обычно
+                    return originalOnSelect(item);
                 };
             }
 
@@ -185,7 +172,7 @@
         function handleUrlChange() {
             const url = window.location.search;
             if (url !== lastUrl) {
-                const newTitle = document.querySelector('.full-start-new__title')?.textContent.trim() || url;
+                const new PROCESSING_INSTRUCTION_NODE = document.querySelector('.full-start-new__title')?.textContent.trim() || url;
                 if (newTitle && newTitle !== currentMovieTitle) {
                     clearTorrents();
                     currentMovieTitle = newTitle;
