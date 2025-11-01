@@ -11,9 +11,11 @@ let intervalId = null;
 function getTorrentsData() {
 const items = document.querySelectorAll('.torrent-item');
 return Array.from(items).map(item => {
+const titleEl = item.querySelector('.torrent-item__title');
+const magnetEl = item.querySelector('a[href*="magnet:"]');
 return {
-Title: item.querySelector('.torrent-item__title')?.textContent.trim() || 'Без названия',
-MagnetUri: item.querySelector('a[href*="magnet:"]')?.href || ''
+Title: (titleEl ? titleEl.textContent.trim() : 'Без названия'),
+MagnetUri: (magnetEl ? magnetEl.href : '')
 };
 });
 }
@@ -42,7 +44,7 @@ let filtered = allTorrents;
 if (value && value !== 'any') {
 const lower = value.toLowerCase();
 filtered = allTorrents.filter(result => {
-const title = result.Title?.toLowerCase().replace(/[- ]/g, '') || '';
+const title = (result.Title ? result.Title.toLowerCase().replace(/[- ]/g, '') : '');
 if (lower === 'web-dl') {
 return (title.includes('webdl') || title.includes('web-dl')) && !title.includes('webdlrip') && !title.includes('web-dlrip');
 } else if (lower === 'web-dlrip') {
@@ -54,11 +56,19 @@ return false;
 });
 }
 if (!filtered.length && value !== 'any') {
-Lampa.Utils.message?.(Не найдено торрентов для фильтра: ${value}) || alert(Не найдено торрентов для фильтра: ${value});
+if (Lampa.Utils.message) {
+Lampa.Utils.message(Не найдено торрентов для фильтра: ${value});
+} else {
+alert(Не найдено торрентов для фильтра: ${value});
+}
 }
 renderResults(filtered);
 } catch (error) {
-Lampa.Utils.message?.('Ошибка при фильтрации торрентов') || alert('Ошибка при фильтрации торрентов');
+if (Lampa.Utils.message) {
+Lampa.Utils.message('Ошибка при фильтрации торрентов');
+} else {
+alert('Ошибка при фильтрации торрентов');
+}
 }
 }
 // === Рендер ===
@@ -66,7 +76,8 @@ function renderResults(results) {
 const items = document.querySelectorAll('.torrent-item');
 const titles = results.map(r => r.Title.toLowerCase());
 items.forEach(item => {
-const title = item.querySelector('.torrent-item__title')?.textContent.toLowerCase() || '';
+const titleEl = item.querySelector('.torrent-item__title');
+const title = (titleEl ? titleEl.textContent.toLowerCase() : '');
 item.style.display = titles.includes(title) ? 'block' : 'none';
 });
 }
@@ -150,11 +161,11 @@ function setupUrlChange() {
 const origPush = history.pushState;
 const origReplace = history.replaceState;
 history.pushState = function (...args) {
-origPush.apply(history, args);
+origPush.apply(this, args);
 handleUrlChange();
 };
 history.replaceState = function (...args) {
-origReplace.apply(history, args);
+origReplace.apply(this, args);
 handleUrlChange();
 };
 window.addEventListener('popstate', handleUrlChange);
