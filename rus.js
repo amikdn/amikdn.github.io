@@ -136,7 +136,7 @@
             openWebDLModal();
         });
 
-        scrollBody.insertBefore(mainItem, insert orefore);
+        scrollBody.insertBefore(mainItem, insertBefore);
 
         const saved = Lampa.Storage.get('tq_webdl_filter', 'any');
         const titles = { 'any': 'Любое', 'web-dl': 'WEB-DL', 'web-dlrip': 'WEB-DLRip', 'openmatte': 'Open Matte' };
