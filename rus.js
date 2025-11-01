@@ -2,7 +2,7 @@
     'use strict';
 
     const PLUGIN_NAME = 'torrent_quality';
-    const VERSION = '2.3.0';
+    const VERSION = '2.4.0';
 
     let originalTorrents = [];
     let allTorrents = [];
@@ -83,7 +83,7 @@
         });
     }
 
-    // === Модальное окно: ГАЛОЧКА + ПУЛЬТ ===
+    // === Модальное окно ===
     function openWebDLModal(mainItem) {
         const options = [
             { title: 'Любое', value: 'any' },
@@ -97,7 +97,7 @@
         Lampa.Select.show({
             title: 'WEB-DL',
             items: options,
-            selected: options.findIndex(o => o.value === saved), // ← ГАЛОЧКА ВИДНА
+            selected: options.findIndex(o => o.value === saved),
             onSelect: (item) => {
                 Lampa.Storage.set('tq_webdl_filter', item.value);
                 filterTorrents(item.value);
@@ -109,7 +109,7 @@
         });
     }
 
-    // === Вставка в меню ===
+    // === Вставка в меню (ПУЛЬТ РАБОТАЕТ) ===
     function injectWebDLFilter() {
         const titleEl = document.querySelector('.selectbox__title');
         if (!titleEl || titleEl.textContent !== 'Фильтр') return;
@@ -126,25 +126,31 @@
         // === Главный пункт ===
         const mainItem = document.createElement('div');
         mainItem.className = 'selectbox-item selector tq-webdl-main';
-        mainItem.setAttribute('tabindex', '-1'); // ← ВАЖНО: ДЛЯ ПУЛЬТА
+        mainItem.setAttribute('tabindex', '0'); // ← КЛЮЧЕВОЕ ДЛЯ ПУЛЬТА
         mainItem.innerHTML = `
             <div class="selectbox-item__title">WEB-DL</div>
             <div class="selectbox-item__subtitle">Любое</div>
         `;
 
-        // Клик + ПУЛЬТ
+        // === ПУЛЬТ: Enter открывает модалку ===
+        mainItem.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                e.stopPropagation();
+                openWebDLModal(mainItem);
+            }
+        });
+
+        // === Клик мышью (опционально) ===
         mainItem.addEventListener('click', (e) => {
             e.stopPropagation();
             openWebDLModal(mainItem);
         });
 
-        // Поддержка пульта (Enter)
-        mainItem.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                e.stopPropagation();
-                openWebDLModal(mainItem);
-            }
-        });
+        // === Фокус при вставке ===
+        setTimeout(() => {
+            mainItem.focus();
+        }, 100);
 
         scrollBody.insertBefore(mainItem, insertBefore || null);
 
