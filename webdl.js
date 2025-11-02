@@ -1,7 +1,7 @@
 (function () {
     'use strict';
     const PLUGIN_NAME = 'torrent_quality';
-    const VERSION = '23.0.0';
+    const VERSION = '3.0.0';
     let originalTorrents = [];
     let allTorrents = [];
     let currentMovieTitle = null;
@@ -181,3 +181,4 @@
     }
     start();
 })();
+
