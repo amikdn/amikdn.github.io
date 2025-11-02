@@ -83,9 +83,8 @@
         historyDiv.dataset.name = 'webdl';
         // Перемещение в контейнер фильтров
         const qualityItem = document.querySelector('[data-name="quality"]');
-        let container = null;
         if (qualityItem) {
-            container = qualityItem.parentNode;
+            const container = qualityItem.parentNode;
             container.insertBefore(historyDiv, qualityItem.nextSibling);
             setTimeout(() => {
                 Lampa.Controller.collectionAppend(historyDiv);
@@ -101,7 +100,6 @@
         updateFilterText();
         // Установка hover:enter
         $(historyDiv).on('hover:enter', () => {
-            const previousController = Lampa.Controller.enabled().name;
             const currentValue = Lampa.Storage.get('tq_webdl_filter', 'any');
             const params = {
                 title: 'Фильтр WEB DL',
@@ -117,11 +115,7 @@
                         filterTorrents('any');
                         updateFilterText();
                         Lampa.Select.hide();
-                        Lampa.Controller.toggle(previousController);
-                        setTimeout(() => {
-                            Lampa.Controller.collectionSet(container);
-                            Lampa.Controller.collectionFocus(historyDiv, container);
-                        }, 100);
+                        Lampa.Controller.enable('full_params');
                         return true;
                     }
                     const isWebdl = ['web-dl', 'web-dlrip', 'openmatte'].includes(item.value);
@@ -132,21 +126,13 @@
                         filterTorrents(newValue);
                         updateFilterText();
                         Lampa.Select.hide();
-                        Lampa.Controller.toggle(previousController);
-                        setTimeout(() => {
-                            Lampa.Controller.collectionSet(container);
-                            Lampa.Controller.collectionFocus(historyDiv, container);
-                        }, 100);
+                        Lampa.Controller.enable('full_params');
                         return true; // Модалка закрывается
                     }
                 },
                 onBack: () => {
                     Lampa.Select.hide();
-                    Lampa.Controller.toggle(previousController);
-                    setTimeout(() => {
-                        Lampa.Controller.collectionSet(container);
-                        Lampa.Controller.collectionFocus(historyDiv, container);
-                    }, 100);
+                    Lampa.Controller.enable('full_params');
                 }
             };
             Lampa.Select.show(params);
