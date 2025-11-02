@@ -51,7 +51,7 @@
                         return (title.includes('webdl') || title.includes('web-dl')) && !title.includes('webdlrip') && !title.includes('web-dlrip');
                     }
                     if (lower === 'web-dlrip') {
-                        return title.includes('webdlrip') || title.includes('web-dlrip');
+                        return title.includes('webdlrip') || title.includes('web-dlrip') || title.includes('webrip') || title.includes('web-rip');
                     }
                     if (lower === 'openmatte') {
                         return title.includes('openmatte') || title.includes('open-matte');
@@ -135,7 +135,7 @@
                 clearTorrents();
                 filterTorrents(Lampa.Storage.get('tq_webdl_filter', 'any'));
             }
-        }, 300));
+        }, 500));
         observer.observe(container, { childList: true, subtree: true });
         // Применить сразу, если торренты уже есть
         if (document.querySelectorAll('.torrent-item').length > 0) {
@@ -157,7 +157,6 @@
                         const filterSpan = document.querySelector('.watched-history__body span');
                         const titles = { 'any': 'Любое', 'web-dl': 'WEB-DL', 'web-dlrip': 'WEB-DLRip', 'openmatte': 'Open Matte' };
                         if (filterSpan) filterSpan.textContent = `Фильтр WEB DL: ${titles['any']}`;
-                        filterTorrents('any');
                     });
                 }
             }
