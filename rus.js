@@ -67,31 +67,6 @@
             item.style.display = titlesLower.includes(title) ? 'block' : 'none';
         });
     }
-    // === Добавление стиля checkbox ===
-    function addCheckboxStyle() {
-        const observer = new MutationObserver(mutations => {
-            mutations.forEach(mutation => {
-                if (mutation.addedNodes) {
-                    Array.from(mutation.addedNodes).forEach(node => {
-                        if (node.querySelectorAll) {
-                            node.querySelectorAll('.selectbox-item').forEach(el => {
-                                const text = el.querySelector('.selectbox-item__title')?.textContent.trim();
-                                if (text && ['WEB-DL', 'WEB-DLRip', 'Open Matte'].includes(text)) {
-                                    el.classList.add('selectbox-item--checkbox');
-                                    if (!el.querySelector('.selectbox-item__checkbox')) {
-                                        const checkbox = document.createElement('div');
-                                        checkbox.className = 'selectbox-item__checkbox';
-                                        el.appendChild(checkbox);
-                                    }
-                                }
-                            });
-                        }
-                    });
-                }
-            });
-        });
-        observer.observe(document.body, { childList: true, subtree: true });
-    }
     // === ТОГГЛ + МОДАЛКА ОСТАЁТСЯ ОТКРЫТОЙ ===
     function injectWebdlIntoQuality() {
         if (isHooked) return;
@@ -101,9 +76,9 @@
             if (params.title === 'Качество' || (params.items && params.items[0]?.title?.match(/1080p|720p|4K/i))) {
                 const currentValues = Lampa.Storage.get('tq_webdl_filters', []);
                 const webdlItems = [
-                    { title: 'WEB-DL', value: 'web-dl', selected: currentValues.includes('web-dl'), checkbox: true },
-                    { title: 'WEB-DLRip', value: 'web-dlrip', selected: currentValues.includes('web-dlrip'), checkbox: true },
-                    { title: 'Open Matte', value: 'openmatte', selected: currentValues.includes('openmatte'), checkbox: true }
+                    { title: 'WEB-DL', value: 'web-dl', selected: currentValues.includes('web-dl') },
+                    { title: 'WEB-DLRip', value: 'web-dlrip', selected: currentValues.includes('web-dlrip') },
+                    { title: 'Open Matte', value: 'openmatte', selected: currentValues.includes('openmatte') }
                 ];
                 if (Array.isArray(params.items)) {
                     params.items = params.items.concat(webdlItems);
@@ -144,21 +119,36 @@
                                 });
                             }
                         }, 10);
-                        // Делаем модалку видимой снова, если она скрыта
-                        setTimeout(() => {
-                            const modal = document.querySelector('.selectbox');
-                            if (modal) {
-                                modal.style.display = 'block';
-                                modal.style.opacity = '1';
-                                modal.style.visibility = 'visible';
-                            }
-                        }, 50);
-                        return false;
+                        return false; // Не закрываем модалку
                     }
                     return originalOnSelect(item);
                 };
             }
-            return originalShow.call(this, params);
+            const result = originalShow.call(this, params);
+            // Добавляем стиль checkbox после рендера
+            setTimeout(() => {
+                const modal = document.querySelector('.selectbox');
+                if (modal) {
+                    modal.querySelectorAll('.selectbox-item').forEach(el => {
+                        const text = el.querySelector('.selectbox-item__title')?.textContent.trim();
+                        if (text && ['WEB-DL', 'WEB-DLRip', 'Open Matte'].includes(text)) {
+                            el.classList.add('selectbox-item--checkbox');
+                            if (!el.querySelector('.selectbox-item__checkbox')) {
+                                const checkbox = document.createElement('div');
+                                checkbox.className = 'selectbox-item__checkbox';
+                                el.appendChild(checkbox);
+                            }
+                            const filters = Lampa.Storage.get('tq_webdl_filters', []);
+                            if (filters.includes(titlesReverse[text])) {
+                                el.classList.add('selectbox-item--checked');
+                            } else {
+                                el.classList.remove('selectbox-item--checked');
+                            }
+                        }
+                    });
+                }
+            }, 50);
+            return result;
         };
     }
     // === Сброс фильтра ===
@@ -247,7 +237,6 @@
             return;
         }
         injectWebdlIntoQuality();
-        addCheckboxStyle();
         hookResetButton();
         setupUrlChange();
         applyFilterOnLoad();
