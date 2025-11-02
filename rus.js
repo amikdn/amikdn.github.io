@@ -68,14 +68,16 @@
         });
     }
 
-    // === Создание нового окна фильтра ===
+    // === Перемещение фильтра в div watched-history ===
     function hookHistoryDiv() {
         if (isHooked) return;
         const historyDiv = document.querySelector('.watched-history.selector');
         if (!historyDiv) return;
         isHooked = true;
         // Удаляем оригинальное окно
-        historyDiv.parentNode.removeChild(historyDiv);
+        if (historyDiv.parentNode) {
+            historyDiv.parentNode.removeChild(historyDiv);
+        }
         // Создаем новое окно с такой же структурой
         const filterDiv = document.createElement('div');
         filterDiv.classList.add('watched-history', 'selector');
@@ -109,6 +111,7 @@
         updateFilterText();
         // Установка hover:enter
         $(filterDiv).on('hover:enter', () => {
+            const previousController = Lampa.Controller.enabled().name;
             const currentValue = Lampa.Storage.get('tq_webdl_filter', 'any');
             const params = {
                 title: 'Фильтр WEB DL',
@@ -123,8 +126,20 @@
                         Lampa.Storage.set('tq_webdl_filter', 'any');
                         filterTorrents('any');
                         updateFilterText();
+                        // Убираем класс selected
+                        setTimeout(() => {
+                            const modal = document.querySelector('.selectbox');
+                            if (modal) {
+                                modal.querySelectorAll('.selectbox-item').forEach(el => {
+                                    const text = el.querySelector('.selectbox-item__title')?.textContent;
+                                    if (text && ['WEB-DL', 'WEB-DLRip', 'Open Matte'].includes(text)) {
+                                        el.classList.remove('selected');
+                                    }
+                                });
+                            }
+                        }, 10);
                         Lampa.Select.hide();
-                        Lampa.Controller.enable('full_params');
+                        Lampa.Controller.toggle(previousController);
                         return true;
                     }
                     const isWebdl = ['web-dl', 'web-dlrip', 'openmatte'].includes(item.value);
@@ -134,14 +149,30 @@
                         Lampa.Storage.set('tq_webdl_filter', newValue);
                         filterTorrents(newValue);
                         updateFilterText();
+                        // Обновление selected в DOM
+                        setTimeout(() => {
+                            const modal = document.querySelector('.selectbox');
+                            if (modal) {
+                                modal.querySelectorAll('.selectbox-item').forEach(el => {
+                                    const text = el.querySelector('.selectbox-item__title')?.textContent;
+                                    if (text && ['WEB-DL', 'WEB-DLRip', 'Open Matte'].includes(text)) {
+                                        if (text === item.title && newValue !== 'any') {
+                                            el.classList.add('selected');
+                                        } else {
+                                            el.classList.remove('selected');
+                                        }
+                                    }
+                                });
+                            }
+                        }, 10);
                         Lampa.Select.hide();
-                        Lampa.Controller.enable('full_params');
+                        Lampa.Controller.toggle(previousController);
                         return true; // Модалка закрывается
                     }
                 },
                 onBack: () => {
                     Lampa.Select.hide();
-                    Lampa.Controller.enable('full_params');
+                    Lampa.Controller.toggle(previousController);
                 }
             };
             Lampa.Select.show(params);
