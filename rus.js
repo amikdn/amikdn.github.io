@@ -103,23 +103,14 @@
                                 subtitle.textContent = filters.length ? filters.map(v => titles[v]).join(', ') : 'Любое';
                             }
                         }, 50);
-                        // Закрываем и сразу открываем заново
-                        setTimeout(() => {
-                            if (Lampa.Select.hide) Lampa.Select.hide();
-                        }, 10);
-                        setTimeout(() => {
-                            const qualityItem = document.querySelector('[data-name="quality"]');
-                            if (qualityItem) {
-                                qualityItem.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-                            }
-                        }, 50);
-                        // Обновляем checked в новом модальном окне
+                        // Обновляем checked в DOM и удаляем selected
                         setTimeout(() => {
                             const modal = document.querySelector('.selectbox');
                             if (modal) {
                                 modal.querySelectorAll('.selectbox-item').forEach(el => {
                                     const text = el.querySelector('.selectbox-item__title')?.textContent;
                                     if (text && titlesReverse[text]) {
+                                        el.classList.remove('selected');
                                         if (filters.includes(titlesReverse[text])) {
                                             el.classList.add('selectbox-item--checked');
                                         } else {
@@ -127,15 +118,19 @@
                                         }
                                     }
                                 });
+                                // Делаем модалку видимой
+                                modal.style.display = 'block';
+                                modal.style.opacity = '1';
+                                modal.style.visibility = 'visible';
                             }
-                        }, 100);
+                        }, 10);
                         return false;
                     }
                     return originalOnSelect(item);
                 };
             }
             const result = originalShow.call(this, params);
-            // Добавляем стиль checkbox после рендера
+            // Добавляем стиль checkbox после рендера и удаляем selected
             setTimeout(() => {
                 const modal = document.querySelector('.selectbox');
                 if (modal) {
@@ -143,6 +138,7 @@
                         const text = el.querySelector('.selectbox-item__title')?.textContent.trim();
                         if (text && ['WEB-DL', 'WEB-DLRip', 'Open Matte'].includes(text)) {
                             el.classList.add('selectbox-item--checkbox');
+                            el.classList.remove('selected');
                             if (!el.querySelector('.selectbox-item__checkbox')) {
                                 const checkbox = document.createElement('div');
                                 checkbox.className = 'selectbox-item__checkbox';
@@ -157,7 +153,7 @@
                         }
                     });
                 }
-            }, 100);
+            }, 50);
             return result;
         };
     }
@@ -177,12 +173,13 @@
                         const subtitle = qualityItem?.querySelector('.selectbox-item__subtitle');
                         if (subtitle) subtitle.textContent = 'Любое';
                     }, 100);
-                    // Убираем класс checked
+                    // Убираем класс checked и selected
                     setTimeout(() => {
                         document.querySelectorAll('.selectbox-item').forEach(el => {
                             const text = el.querySelector('.selectbox-item__title')?.textContent;
                             if (text && ['WEB-DL', 'WEB-DLRip', 'Open Matte'].includes(text)) {
                                 el.classList.remove('selectbox-item--checked');
+                                el.classList.remove('selected');
                             }
                         });
                     }, 50);
