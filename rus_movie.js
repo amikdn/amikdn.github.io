@@ -72,7 +72,7 @@
     const menuItem = $('<li class="menu__item selector"><div class="menu__ico">' + svg + '</div><div class="menu__text">' + plugin.name + '</div></li>');
     menuItem.on('hover:enter', () => {
       Lampa.Activity.push({ url: '', title: plugin.name, component: 'rus_movie', page: 1 });
-      $('.menu .menu__list').addClass('bylampa', 'noname');
+      $('.menu .menu__list').addClass('lampa', 'noname');
     });
     $('.menu .menu__list').eq(0).append(menuItem);
 
