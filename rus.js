@@ -83,12 +83,13 @@
         historyDiv.dataset.name = 'webdl';
         // Перемещение в контейнер фильтров
         const qualityItem = document.querySelector('[data-name="quality"]');
+        let container = null;
         if (qualityItem) {
-            const container = qualityItem.parentNode;
+            container = qualityItem.parentNode;
             container.insertBefore(historyDiv, qualityItem.nextSibling);
             setTimeout(() => {
                 Lampa.Controller.collectionAppend(historyDiv);
-                Lampa.Controller.collectionSet(container);
+                if (container) Lampa.Controller.collectionSet(container);
             }, 100);
         }
         // Обновление текста
@@ -100,7 +101,6 @@
         updateFilterText();
         // Установка hover:enter
         $(historyDiv).on('hover:enter', () => {
-            const previousController = Lampa.Controller.enabled().name;
             const currentValue = Lampa.Storage.get('tq_webdl_filter', 'any');
             const params = {
                 title: 'Фильтр WEB DL',
@@ -109,14 +109,14 @@
                     { title: 'WEB-DLRip', value: 'web-dlrip', selected: currentValue === 'web-dlrip' },
                     { title: 'Open Matte', value: 'openmatte', selected: currentValue === 'openmatte' },
                     { title: 'Сбросить фильтр', value: 'reset' }
-                },
+                ],
                 onSelect: (item) => {
                     if (item.value === 'reset') {
                         Lampa.Storage.set('tq_webdl_filter', 'any');
                         filterTorrents('any');
                         updateFilterText();
                         Lampa.Select.hide();
-                        Lampa.Controller.toggle(previousController);
+                        Lampa.Controller.enable('full_params');
                         return true;
                     }
                     const isWebdl = ['web-dl', 'web-dlrip', 'openmatte'].includes(item.value);
@@ -127,13 +127,13 @@
                         filterTorrents(newValue);
                         updateFilterText();
                         Lampa.Select.hide();
-                        Lampa.Controller.toggle(previousController);
+                        Lampa.Controller.enable('full_params');
                         return true; // Модалка закрывается
                     }
                 },
                 onBack: () => {
                     Lampa.Select.hide();
-                    Lampa.Controller.toggle(previousController);
+                    Lampa.Controller.enable('full_params');
                 }
             };
             Lampa.Select.show(params);
