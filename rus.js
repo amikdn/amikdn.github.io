@@ -75,7 +75,7 @@
         if (!historyDiv) return;
         isHooked = true;
         // Сохраняем структуру, меняем содержимое body
-        const bodyDiv = document.querySelector('.watched-history__body');
+        const bodyDiv = historyDiv.querySelector('.watched-history__body');
         if (bodyDiv) {
             bodyDiv.innerHTML = '<span></span>';
         }
@@ -100,6 +100,7 @@
         updateFilterText();
         // Установка hover:enter
         $(historyDiv).on('hover:enter', () => {
+            const previousController = Lampa.Controller.enabled().name;
             const currentValue = Lampa.Storage.get('tq_webdl_filter', 'any');
             const params = {
                 title: 'Фильтр WEB DL',
@@ -115,7 +116,7 @@
                         filterTorrents('any');
                         updateFilterText();
                         Lampa.Select.hide();
-                        Lampa.Controller.enable('full_params');
+                        Lampa.Controller.toggle(previousController);
                         setTimeout(() => {
                             Lampa.Controller.collectionSet(historyDiv.parentNode);
                             Lampa.Controller.collectionFocus(historyDiv, historyDiv.parentNode);
@@ -130,7 +131,7 @@
                         filterTorrents(newValue);
                         updateFilterText();
                         Lampa.Select.hide();
-                        Lampa.Controller.enable('full_params');
+                        Lampa.Controller.toggle(previousController);
                         setTimeout(() => {
                             Lampa.Controller.collectionSet(historyDiv.parentNode);
                             Lampa.Controller.collectionFocus(historyDiv, historyDiv.parentNode);
@@ -140,7 +141,7 @@
                 },
                 onBack: () => {
                     Lampa.Select.hide();
-                    Lampa.Controller.enable('full_params');
+                    Lampa.Controller.toggle(previousController);
                     setTimeout(() => {
                         Lampa.Controller.collectionSet(historyDiv.parentNode);
                         Lampa.Controller.collectionFocus(historyDiv, historyDiv.parentNode);
