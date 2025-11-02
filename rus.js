@@ -68,26 +68,35 @@
         });
     }
 
-    // === Перемещение фильтра в div watched-history ===
+    // === Создание нового окна фильтра ===
     function hookHistoryDiv() {
         if (isHooked) return;
         const historyDiv = document.querySelector('.watched-history.selector');
         if (!historyDiv) return;
         isHooked = true;
-        // Сохраняем структуру, меняем содержимое body
-        const bodyDiv = historyDiv.querySelector('.watched-history__body');
-        if (bodyDiv) {
-            bodyDiv.innerHTML = '<span></span>';
-        }
+        // Удаляем оригинальное окно
+        historyDiv.parentNode.removeChild(historyDiv);
+        // Создаем новое окно с такой же структурой
+        const filterDiv = document.createElement('div');
+        filterDiv.classList.add('watched-history', 'selector');
+        filterDiv.dataset.name = 'webdl';
+        const iconDiv = document.createElement('div');
+        iconDiv.className = 'watched-history__icon';
+        iconDiv.innerHTML = '<svg><use xlink:href="#sprite-viewed"></use></svg>';
+        filterDiv.appendChild(iconDiv);
+        const bodyDiv = document.createElement('div');
+        bodyDiv.className = 'watched-history__body';
+        bodyDiv.innerHTML = '<span></span>';
+        filterDiv.appendChild(bodyDiv);
         const filterSpan = bodyDiv.querySelector('span');
-        historyDiv.dataset.name = 'webdl';
         // Перемещение в контейнер фильтров
         const qualityItem = document.querySelector('[data-name="quality"]');
+        let container = null;
         if (qualityItem) {
-            const container = qualityItem.parentNode;
-            container.insertBefore(historyDiv, qualityItem.nextSibling);
+            container = qualityItem.parentNode;
+            container.insertBefore(filterDiv, qualityItem.nextSibling);
             setTimeout(() => {
-                Lampa.Controller.collectionAppend(historyDiv);
+                Lampa.Controller.collectionAppend(filterDiv);
                 Lampa.Controller.collectionSet(container);
             }, 100);
         }
@@ -99,8 +108,7 @@
         };
         updateFilterText();
         // Установка hover:enter
-        $(historyDiv).on('hover:enter', () => {
-            const previousController = Lampa.Controller.enabled().name;
+        $(filterDiv).on('hover:enter', () => {
             const currentValue = Lampa.Storage.get('tq_webdl_filter', 'any');
             const params = {
                 title: 'Фильтр WEB DL',
@@ -116,11 +124,7 @@
                         filterTorrents('any');
                         updateFilterText();
                         Lampa.Select.hide();
-                        Lampa.Controller.toggle(previousController);
-                        setTimeout(() => {
-                            Lampa.Controller.collectionSet(historyDiv.parentNode);
-                            Lampa.Controller.collectionFocus(historyDiv, historyDiv.parentNode);
-                        }, 300);
+                        Lampa.Controller.enable('full_params');
                         return true;
                     }
                     const isWebdl = ['web-dl', 'web-dlrip', 'openmatte'].includes(item.value);
@@ -131,21 +135,13 @@
                         filterTorrents(newValue);
                         updateFilterText();
                         Lampa.Select.hide();
-                        Lampa.Controller.toggle(previousController);
-                        setTimeout(() => {
-                            Lampa.Controller.collectionSet(historyDiv.parentNode);
-                            Lampa.Controller.collectionFocus(historyDiv, historyDiv.parentNode);
-                        }, 300);
+                        Lampa.Controller.enable('full_params');
                         return true; // Модалка закрывается
                     }
                 },
                 onBack: () => {
                     Lampa.Select.hide();
-                    Lampa.Controller.toggle(previousController);
-                    setTimeout(() => {
-                        Lampa.Controller.collectionSet(historyDiv.parentNode);
-                        Lampa.Controller.collectionFocus(historyDiv, historyDiv.parentNode);
-                    }, 300);
+                    Lampa.Controller.enable('full_params');
                 }
             };
             Lampa.Select.show(params);
