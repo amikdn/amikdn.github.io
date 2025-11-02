@@ -84,8 +84,9 @@
         historyDiv.classList.add('selectbox-item');
         // Перемещение в контейнер фильтров
         const qualityItem = document.querySelector('[data-name="quality"]');
+        let container = null;
         if (qualityItem) {
-            const container = qualityItem.parentNode;
+            container = qualityItem.parentNode;
             container.insertBefore(historyDiv, qualityItem.nextSibling);
             setTimeout(() => {
                 Lampa.Controller.collectionAppend(historyDiv);
@@ -115,7 +116,6 @@
                     if (item.value === 'reset') {
                         Lampa.Storage.set('tq_webdl_filter', 'any');
                         filterTorrents('any');
-                        updateFilterText();
                         // Убираем класс selected
                         setTimeout(() => {
                             const modal = document.querySelector('.selectbox');
@@ -130,15 +130,20 @@
                         }, 10);
                         Lampa.Select.hide();
                         Lampa.Controller.toggle(previousController);
+                        if (container) {
+                            setTimeout(() => {
+                                updateFilterText();
+                                Lampa.Controller.collectionSet(container);
+                                Lampa.Controller.collectionFocus(historyDiv, container);
+                            }, 100);
+                        }
                         return true;
                     }
                     const isWebdl = ['web-dl', 'web-dlrip', 'openmatte'].includes(item.value);
                     if (isWebdl) {
-                        const current = Lampa.Storage.get('tq_webdl_filter', 'any');
-                        const newValue = current === item.value ? 'any' : item.value;
+                        const newValue = item.value;
                         Lampa.Storage.set('tq_webdl_filter', newValue);
                         filterTorrents(newValue);
-                        updateFilterText();
                         // Обновление selected в DOM
                         setTimeout(() => {
                             const modal = document.querySelector('.selectbox');
@@ -157,12 +162,25 @@
                         }, 10);
                         Lampa.Select.hide();
                         Lampa.Controller.toggle(previousController);
+                        if (container) {
+                            setTimeout(() => {
+                                updateFilterText();
+                                Lampa.Controller.collectionSet(container);
+                                Lampa.Controller.collectionFocus(historyDiv, container);
+                            }, 100);
+                        }
                         return true; // Модалка закрывается
                     }
                 },
                 onBack: () => {
                     Lampa.Select.hide();
                     Lampa.Controller.toggle(previousController);
+                    if (container) {
+                        setTimeout(() => {
+                            Lampa.Controller.collectionSet(container);
+                            Lampa.Controller.collectionFocus(historyDiv, container);
+                        }, 100);
+                    }
                 }
             };
             Lampa.Select.show(params);
