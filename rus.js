@@ -1,12 +1,20 @@
 (function () {
     'use strict';
     const PLUGIN_NAME = 'torrent_quality';
-    const VERSION = '23.0.0';
+    const VERSION = '3.0.0';
     let originalTorrents = [];
     let allTorrents = [];
     let currentMovieTitle = null;
     let lastUrl = window.location.search;
     let isHooked = false;
+
+    function debounce(func, delay) {
+        let timeout;
+        return (...args) => {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func(...args), delay);
+        };
+    }
 
     // === Получение торрентов ===
     function getTorrentsData() {
@@ -83,9 +91,8 @@
         historyDiv.dataset.name = 'webdl';
         // Перемещение в контейнер фильтров
         const qualityItem = document.querySelector('[data-name="quality"]');
-        let container = null;
         if (qualityItem) {
-            container = qualityItem.parentNode;
+            const container = qualityItem.parentNode;
             container.insertBefore(historyDiv, qualityItem.nextSibling);
             setTimeout(() => {
                 Lampa.Controller.collectionAppend(historyDiv);
@@ -96,47 +103,18 @@
         const updateFilterText = () => {
             const saved = Lampa.Storage.get('tq_webdl_filter', 'any');
             const titles = { 'any': 'Любое', 'web-dl': 'WEB-DL', 'web-dlrip': 'WEB-DLRip', 'openmatte': 'Open Matte' };
-            filterSpan.textContent = `Фильтр WEB DL: ${titles[saved]}`;
+            if (filterSpan) filterSpan.textContent = `Фильтр WEB DL: ${titles[saved]}`;
         };
         updateFilterText();
-        // Установка hover:enter
+        // Установка hover:enter для цикличного переключения
         $(historyDiv).on('hover:enter', () => {
-            const currentValue = Lampa.Storage.get('tq_webdl_filter', 'any');
-            const params = {
-                title: 'Фильтр WEB DL',
-                items: [
-                    { title: 'WEB-DL', value: 'web-dl', selected: currentValue === 'web-dl' },
-                    { title: 'WEB-DLRip', value: 'web-dlrip', selected: currentValue === 'web-dlrip' },
-                    { title: 'Open Matte', value: 'openmatte', selected: currentValue === 'openmatte' },
-                    { title: 'Сбросить фильтр', value: 'reset' }
-                ],
-                onSelect: (item) => {
-                    if (item.value === 'reset') {
-                        Lampa.Storage.set('tq_webdl_filter', 'any');
-                        filterTorrents('any');
-                        updateFilterText();
-                        Lampa.Select.hide();
-                        Lampa.Controller.enable('full_params');
-                        return true;
-                    }
-                    const isWebdl = ['web-dl', 'web-dlrip', 'openmatte'].includes(item.value);
-                    if (isWebdl) {
-                        const current = Lampa.Storage.get('tq_webdl_filter', 'any');
-                        const newValue = current === item.value ? 'any' : item.value;
-                        Lampa.Storage.set('tq_webdl_filter', newValue);
-                        filterTorrents(newValue);
-                        updateFilterText();
-                        Lampa.Select.hide();
-                        Lampa.Controller.enable('full_params');
-                        return true; // Модалка закрывается
-                    }
-                },
-                onBack: () => {
-                    Lampa.Select.hide();
-                    Lampa.Controller.enable('full_params');
-                }
-            };
-            Lampa.Select.show(params);
+            const filters = ['any', 'web-dl', 'web-dlrip', 'openmatte'];
+            let current = Lampa.Storage.get('tq_webdl_filter', 'any');
+            let index = filters.indexOf(current);
+            let newValue = filters[(index + 1) % filters.length];
+            Lampa.Storage.set('tq_webdl_filter', newValue);
+            filterTorrents(newValue);
+            updateFilterText();
         });
     }
 
@@ -146,6 +124,24 @@
             hookHistoryDiv();
         });
         observer.observe(document.body, { childList: true, subtree: true });
+    }
+
+    // === Observer для изменений в списке торрентов ===
+    function setupTorrentsObserver() {
+        const container = document.querySelector('.torrent-list');
+        if (!container) return;
+        const observer = new MutationObserver(debounce(() => {
+            if (document.querySelectorAll('.torrent-item').length > 0) {
+                clearTorrents();
+                filterTorrents(Lampa.Storage.get('tq_webdl_filter', 'any'));
+            }
+        }, 300));
+        observer.observe(container, { childList: true, subtree: true });
+        // Применить сразу, если торренты уже есть
+        if (document.querySelectorAll('.torrent-item').length > 0) {
+            clearTorrents();
+            filterTorrents(Lampa.Storage.get('tq_webdl_filter', 'any'));
+        }
     }
 
     // === URL смена ===
@@ -169,30 +165,8 @@
                     clearTorrents();
                     currentMovieTitle = newTitle;
                     lastUrl = url;
-                    applyFilterOnLoad();
                     isHooked = false;
                 }
-            }
-        }
-    }
-
-    // === Применение фильтра ===
-    function applyFilterOnLoad() {
-        clearTorrents();
-        const torrents = getTorrentsData();
-        if (torrents.length) {
-            filterTorrents(Lampa.Storage.get('tq_webdl_filter', 'any'));
-        } else {
-            const container = document.querySelector('.torrent-list');
-            if (container) {
-                const obs = new MutationObserver(() => {
-                    if (document.querySelectorAll('.torrent-item').length) {
-                        obs.disconnect();
-                        filterTorrents(Lampa.Storage.get('tq_webdl_filter', 'any'));
-                    }
-                });
-                obs.observe(container, { childList: true, subtree: true });
-                setTimeout(() => obs.disconnect(), 5000);
             }
         }
     }
@@ -206,8 +180,8 @@
             return;
         }
         setupHistoryObserver();
+        setupTorrentsObserver();
         setupUrlChange();
-        applyFilterOnLoad();
     }
     start();
 })();
