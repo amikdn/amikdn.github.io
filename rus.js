@@ -103,7 +103,17 @@
                                 subtitle.textContent = filters.length ? filters.map(v => titles[v]).join(', ') : 'Любое';
                             }
                         }, 50);
-                        // Обновляем checked в DOM
+                        // Закрываем и сразу открываем заново
+                        setTimeout(() => {
+                            if (Lampa.Select.hide) Lampa.Select.hide();
+                        }, 10);
+                        setTimeout(() => {
+                            const qualityItem = document.querySelector('[data-name="quality"]');
+                            if (qualityItem) {
+                                qualityItem.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+                            }
+                        }, 50);
+                        // Обновляем checked в новом модальном окне
                         setTimeout(() => {
                             const modal = document.querySelector('.selectbox');
                             if (modal) {
@@ -118,8 +128,8 @@
                                     }
                                 });
                             }
-                        }, 10);
-                        return false; // Не закрываем модалку
+                        }, 100);
+                        return false;
                     }
                     return originalOnSelect(item);
                 };
@@ -147,7 +157,7 @@
                         }
                     });
                 }
-            }, 50);
+            }, 100);
             return result;
         };
     }
