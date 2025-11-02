@@ -144,6 +144,27 @@
         }
     }
 
+    // === Handler для сброса фильтра ===
+    function setupResetHandler() {
+        const observer = new MutationObserver(() => {
+            const resetTitle = document.querySelector('.selectbox-item__title');
+            if (resetTitle && resetTitle.textContent.trim() === 'Сбросить фильтр') {
+                const resetItem = resetTitle.parentNode;
+                if (resetItem && !resetItem.dataset.hooked) {
+                    resetItem.dataset.hooked = 'true';
+                    $(resetItem).on('hover:enter', () => {
+                        Lampa.Storage.set('tq_webdl_filter', 'any');
+                        const filterSpan = document.querySelector('.watched-history__body span');
+                        const titles = { 'any': 'Любое', 'web-dl': 'WEB-DL', 'web-dlrip': 'WEB-DLRip', 'openmatte': 'Open Matte' };
+                        if (filterSpan) filterSpan.textContent = `Фильтр WEB DL: ${titles['any']}`;
+                        filterTorrents('any');
+                    });
+                }
+            }
+        });
+        observer.observe(document.body, { childList: true, subtree: true });
+    }
+
     // === URL смена ===
     function setupUrlChange() {
         const origPush = history.pushState;
@@ -181,6 +202,7 @@
         }
         setupHistoryObserver();
         setupTorrentsObserver();
+        setupResetHandler();
         setupUrlChange();
     }
     start();
