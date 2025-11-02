@@ -74,19 +74,14 @@
         const historyDiv = document.querySelector('.watched-history.selector');
         if (!historyDiv) return;
         isHooked = true;
-        // Очистка
-        historyDiv.innerHTML = '';
-        historyDiv.classList.remove('watched-history');
-        historyDiv.classList.add('selectbox-item', 'selector');
+        // Сохраняем структуру, меняем содержимое body
+        const bodyDiv = historyDiv.querySelector('.watched-history__body');
+        if (bodyDiv) {
+            bodyDiv.innerHTML = '<span></span>';
+        }
+        const filterSpan = bodyDiv.querySelector('span');
         historyDiv.dataset.name = 'webdl';
-        // Добавление title и subtitle
-        const titleDiv = document.createElement('div');
-        titleDiv.className = 'selectbox-item__title';
-        titleDiv.textContent = 'Фильтр WEB DL';
-        historyDiv.appendChild(titleDiv);
-        const subtitleDiv = document.createElement('div');
-        subtitleDiv.className = 'selectbox-item__subtitle';
-        historyDiv.appendChild(subtitleDiv);
+        historyDiv.classList.add('selectbox-item');
         // Перемещение в контейнер фильтров
         const qualityItem = document.querySelector('[data-name="quality"]');
         if (qualityItem) {
@@ -97,13 +92,13 @@
                 Lampa.Controller.collectionSet(container);
             }, 100);
         }
-        // Обновление subtitle
-        const updateSubtitle = () => {
+        // Обновление текста
+        const updateFilterText = () => {
             const saved = Lampa.Storage.get('tq_webdl_filter', 'any');
             const titles = { 'any': 'Любое', 'web-dl': 'WEB-DL', 'web-dlrip': 'WEB-DLRip', 'openmatte': 'Open Matte' };
-            subtitleDiv.textContent = titles[saved];
+            filterSpan.textContent = `Фильтр WEB DL: ${titles[saved]}`;
         };
-        updateSubtitle();
+        updateFilterText();
         // Установка hover:enter
         $(historyDiv).on('hover:enter', () => {
             const previousController = Lampa.Controller.enabled().name;
@@ -120,7 +115,7 @@
                     if (item.value === 'reset') {
                         Lampa.Storage.set('tq_webdl_filter', 'any');
                         filterTorrents('any');
-                        updateSubtitle();
+                        updateFilterText();
                         // Убираем класс selected
                         setTimeout(() => {
                             const modal = document.querySelector('.selectbox');
@@ -143,7 +138,7 @@
                         const newValue = current === item.value ? 'any' : item.value;
                         Lampa.Storage.set('tq_webdl_filter', newValue);
                         filterTorrents(newValue);
-                        updateSubtitle();
+                        updateFilterText();
                         // Обновление selected в DOM
                         setTimeout(() => {
                             const modal = document.querySelector('.selectbox');
