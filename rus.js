@@ -76,10 +76,7 @@
         isHooked = true;
         // Сохраняем структуру, меняем содержимое body
         const bodyDiv = historyDiv.querySelector('.watched-history__body');
-        if (bodyDiv) {
-            bodyDiv.innerHTML = '<span></span>';
-        }
-        const filterSpan = bodyDiv.querySelector('span');
+        const filterSpan = bodyDiv ? bodyDiv.querySelector('span') : null;
         historyDiv.dataset.name = 'webdl';
         historyDiv.classList.add('selectbox-item');
         // Перемещение в контейнер фильтров
@@ -96,9 +93,18 @@
         const updateFilterText = () => {
             const saved = Lampa.Storage.get('tq_webdl_filter', 'any');
             const titles = { 'any': 'Любое', 'web-dl': 'WEB-DL', 'web-dlrip': 'WEB-DLRip', 'openmatte': 'Open Matte' };
-            filterSpan.textContent = `Фильтр WEB DL: ${titles[saved]}`;
+            if (filterSpan) {
+                filterSpan.textContent = `Фильтр WEB DL: ${titles[saved]}`;
+            }
         };
         updateFilterText();
+        // Observer для перехвата изменений в span
+        if (bodyDiv) {
+            const spanObserver = new MutationObserver(() => {
+                updateFilterText();
+            });
+            spanObserver.observe(bodyDiv, { childList: true, subtree: true, characterData: true });
+        }
         // Установка hover:enter
         $(historyDiv).on('hover:enter', () => {
             const previousController = Lampa.Controller.enabled().name;
