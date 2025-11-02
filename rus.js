@@ -81,7 +81,8 @@
         }
         const filterSpan = bodyDiv.querySelector('span');
         historyDiv.dataset.name = 'webdl';
-        historyDiv.classList.add('selectbox-item');
+        // Удаляем добавление 'selectbox-item'
+        // historyDiv.classList.add('selectbox-item');
         // Перемещение в контейнер фильтров
         const qualityItem = document.querySelector('[data-name="quality"]');
         let container = null;
@@ -116,14 +117,14 @@
                     if (item.value === 'reset') {
                         Lampa.Storage.set('tq_webdl_filter', 'any');
                         filterTorrents('any');
+                        updateFilterText();
                         Lampa.Select.hide();
                         Lampa.Controller.toggle(previousController);
                         if (container) {
                             setTimeout(() => {
-                                updateFilterText();
                                 Lampa.Controller.collectionSet(container);
                                 Lampa.Controller.collectionFocus(historyDiv, container);
-                            }, 200);
+                            }, 300);
                         }
                         return true;
                     }
@@ -133,16 +134,16 @@
                         const newValue = current === item.value ? 'any' : item.value;
                         Lampa.Storage.set('tq_webdl_filter', newValue);
                         filterTorrents(newValue);
+                        updateFilterText();
                         Lampa.Select.hide();
                         Lampa.Controller.toggle(previousController);
                         if (container) {
                             setTimeout(() => {
-                                updateFilterText();
                                 Lampa.Controller.collectionSet(container);
                                 Lampa.Controller.collectionFocus(historyDiv, container);
-                            }, 200);
+                            }, 300);
                         }
-                        return true;
+                        return true; // Модалка закрывается
                     }
                 },
                 onBack: () => {
@@ -152,7 +153,7 @@
                         setTimeout(() => {
                             Lampa.Controller.collectionSet(container);
                             Lampa.Controller.collectionFocus(historyDiv, container);
-                        }, 200);
+                        }, 300);
                     }
                 }
             };
