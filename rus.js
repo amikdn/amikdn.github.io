@@ -5,7 +5,7 @@
     const TorrentQuality = {
         name: 'torrent_quality',
         version: '1.1.27',
-        debug: false,
+        debug: true,  // Включили debug для логов
         settings: {
             enabled: true,
             quality_filter: 'any'
@@ -205,7 +205,8 @@
                                     const title = node.querySelector('.selectbox__title');
                                     if (title && title.textContent.trim() === 'Качество') {
                                         const body = node.querySelector('.scroll__body');
-                                        if (body && !body.querySelector('[data-value="web-dl"]')) {  // Чтобы не добавлять повторно
+                                        if (body && !body.querySelector('[data-value="web-dl"]')) {
+                                            console.log('Adding quality filters to menu');  // Лог для отладки
                                             const newFilters = [
                                                 { label: 'WEB-DL', value: 'web-dl' },
                                                 { label: 'WEB-DLRip', value: 'web-dlrip' },
@@ -222,7 +223,6 @@
                                                 body.appendChild(item);
 
                                                 item.addEventListener('click', function() {
-                                                    // Снимаем выделение с других чекбоксов (делаем single select)
                                                     body.querySelectorAll('.selectbox-item--checkbox').forEach(el => {
                                                         if (el !== item) el.classList.remove('selectbox-item--checked');
                                                     });
@@ -233,6 +233,8 @@
                                                     filterTorrents(value);
                                                 });
                                             });
+                                            // Не отключаем observer, чтобы добавлять при каждом открытии, если нужно
+                                            // observer.disconnect();
                                         }
                                     }
                                 }
