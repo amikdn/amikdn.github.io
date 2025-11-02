@@ -1,7 +1,7 @@
 (function () {
     'use strict';
     const PLUGIN_NAME = 'torrent_quality';
-    const VERSION = '23.0.0';
+    const VERSION = '3.0.0';
     let originalTorrents = [];
     let allTorrents = [];
     let currentMovieTitle = null;
@@ -83,60 +83,30 @@
         historyDiv.dataset.name = 'webdl';
         // Перемещение в контейнер фильтров
         const qualityItem = document.querySelector('[data-name="quality"]');
-        let container = null;
         if (qualityItem) {
-            container = qualityItem.parentNode;
+            const container = qualityItem.parentNode;
             container.insertBefore(historyDiv, qualityItem.nextSibling);
             setTimeout(() => {
                 Lampa.Controller.collectionAppend(historyDiv);
                 Lampa.Controller.collectionSet(container);
             }, 100);
         }
-        // Обновление текста
-        const updateFilterText = () => {
+        // Обновление subtitle
+        const updateSubtitle = () => {
             const saved = Lampa.Storage.get('tq_webdl_filter', 'any');
             const titles = { 'any': 'Любое', 'web-dl': 'WEB-DL', 'web-dlrip': 'WEB-DLRip', 'openmatte': 'Open Matte' };
-            filterSpan.textContent = `Фильтр WEB DL: ${titles[saved]}`;
+            filterSpan.textContent = titles[saved];
         };
-        updateFilterText();
-        // Установка hover:enter
+        updateSubtitle();
+        // Установка hover:enter для цикличного переключения
         $(historyDiv).on('hover:enter', () => {
-            const currentValue = Lampa.Storage.get('tq_webdl_filter', 'any');
-            const params = {
-                title: 'Фильтр WEB DL',
-                items: [
-                    { title: 'WEB-DL', value: 'web-dl', selected: currentValue === 'web-dl' },
-                    { title: 'WEB-DLRip', value: 'web-dlrip', selected: currentValue === 'web-dlrip' },
-                    { title: 'Open Matte', value: 'openmatte', selected: currentValue === 'openmatte' },
-                    { title: 'Сбросить фильтр', value: 'reset' }
-                ],
-                onSelect: (item) => {
-                    if (item.value === 'reset') {
-                        Lampa.Storage.set('tq_webdl_filter', 'any');
-                        filterTorrents('any');
-                        updateFilterText();
-                        Lampa.Select.hide();
-                        Lampa.Controller.enable('full_params');
-                        return true;
-                    }
-                    const isWebdl = ['web-dl', 'web-dlrip', 'openmatte'].includes(item.value);
-                    if (isWebdl) {
-                        const current = Lampa.Storage.get('tq_webdl_filter', 'any');
-                        const newValue = current === item.value ? 'any' : item.value;
-                        Lampa.Storage.set('tq_webdl_filter', newValue);
-                        filterTorrents(newValue);
-                        updateFilterText();
-                        Lampa.Select.hide();
-                        Lampa.Controller.enable('full_params');
-                        return true; // Модалка закрывается
-                    }
-                },
-                onBack: () => {
-                    Lampa.Select.hide();
-                    Lampa.Controller.enable('full_params');
-                }
-            };
-            Lampa.Select.show(params);
+            const filters = ['any', 'web-dl', 'web-dlrip', 'openmatte'];
+            let current = Lampa.Storage.get('tq_webdl_filter', 'any');
+            let index = filters.indexOf(current);
+            let newValue = filters[(index + 1) % filters.length];
+            Lampa.Storage.set('tq_webdl_filter', newValue);
+            filterTorrents(newValue);
+            updateSubtitle();
         });
     }
 
@@ -167,6 +137,7 @@
                 const newTitle = document.querySelector('.full-start-new__title')?.textContent.trim() || url;
                 if (newTitle && newTitle !== currentMovieTitle) {
                     clearTorrents();
+                    Lampa.Storage.set('tq_webdl_filter', 'any');
                     currentMovieTitle = newTitle;
                     lastUrl = url;
                     applyFilterOnLoad();
