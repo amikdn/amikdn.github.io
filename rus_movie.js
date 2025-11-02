@@ -19,7 +19,7 @@
       { title: 'Premier', img: 'https://bylampa.github.io/img/premier.jpg', request: 'discover/tv?with_networks=3923&sort_by=first_air_date.desc&air_date.lte=' + today }
     ];
     function collectionMain(params, oncompl, onerr) {
-      const data = { collection: true, total_pages: 1, results: categories.map(cat => ({ title: cat.title, poster_path: cat.img, hpu: cat.request })) };
+      const data = { collection: true, total_pages: 1, results: categories.map(cat => ({ title: cat.title, img: cat.img, hpu: cat.request })) };
       oncompl(data);
     }
     function collectionFull(params, oncompl, onerr) {
@@ -28,7 +28,6 @@
       network.get(url, (data) => { data.title = params.title; oncompl(data); }, onerr);
     }
     function clearNetwork() {
-      // Removed since network is local
     }
     const apiMethods = { main: collectionMain, full: collectionFull, clear: clearNetwork };
     function RusMovieComponent(params) {
@@ -40,11 +39,10 @@
         apiMethods.full(elem, oncompl.bind(component), onerr.bind(component));
       };
       component.render = function(elem, data, card) {
-        if (data.hpu) {
-          card.onEnter = function() {
-            Lampa.Activity.push({ url: data.hpu, title: data.title, component: 'rus_movie', source: 'main', page: 1 });
-          };
-        }
+        card.onEnter = false;
+        card.onVisible = function() {
+          Lampa.Activity.push({ url: data.hpu, title: data.title, component: 'rus_movie', source: 'main', page: 1 });
+        };
       };
       return component;
     }
