@@ -106,13 +106,13 @@
                         // Закрываем и сразу открываем заново
                         setTimeout(() => {
                             if (Lampa.Select.hide) Lampa.Select.hide();
-                        }, 10);
+                        }, 0);
                         setTimeout(() => {
                             const qualityItem = document.querySelector('[data-name="quality"]');
                             if (qualityItem) {
                                 qualityItem.dispatchEvent(new MouseEvent('click', { bubbles: true }));
                             }
-                        }, 100);
+                        }, 20);
                         // Обновляем checked в новом модальном окне
                         setTimeout(() => {
                             const modal = document.querySelector('.selectbox');
@@ -129,7 +129,7 @@
                                     }
                                 });
                             }
-                        }, 150);
+                        }, 50);
                         return false;
                     }
                     return originalOnSelect(item);
@@ -159,9 +159,24 @@
                         }
                     });
                 }
-            }, 100);
+            }, 50);
             return result;
         };
+        // Observer to remove 'selected' class from our items
+        const observer = new MutationObserver(mutations => {
+            mutations.forEach(mutation => {
+                if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+                    const el = mutation.target;
+                    if (el.classList.contains('selectbox-item')) {
+                        const text = el.querySelector('.selectbox-item__title')?.textContent.trim();
+                        if (text && ['WEB-DL', 'WEB-DLRip', 'Open Matte'].includes(text) && el.classList.contains('selected')) {
+                            el.classList.remove('selected');
+                        }
+                    }
+                }
+            });
+        });
+        observer.observe(document.body, { attributes: true, attributeFilter: ['class'], childList: true, subtree: true });
     }
     // === Сброс фильтра ===
     function hookResetButton() {
