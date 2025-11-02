@@ -61,11 +61,6 @@
 
     Lampa.Activity.listener('push', (act) => {
       if (act.name == 'main') {
-        if (Lampa.Activity.active().component !== 'rus_movie') {
-        //  setTimeout(() => { $('.menu .menu__list').hide(); }, 2000);
-        } else {
-          $('.menu .menu__list').show();
-        }
       }
     });
 
