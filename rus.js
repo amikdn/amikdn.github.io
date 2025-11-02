@@ -157,6 +157,7 @@
                         const filterSpan = document.querySelector('.watched-history__body span');
                         const titles = { 'any': 'Любое', 'web-dl': 'WEB-DL', 'web-dlrip': 'WEB-DLRip', 'openmatte': 'Open Matte' };
                         if (filterSpan) filterSpan.textContent = `Фильтр WEB DL: ${titles['any']}`;
+                        filterTorrents('any');
                     });
                 }
             }
