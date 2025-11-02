@@ -133,6 +133,7 @@
                             }
                         }, 10);
                         Lampa.Select.hide();
+                        Lampa.Controller.enable('full_params');
                         return true;
                     }
                     const isWebdl = ['web-dl', 'web-dlrip', 'openmatte'].includes(item.value);
@@ -159,14 +160,24 @@
                             }
                         }, 10);
                         Lampa.Select.hide();
+                        Lampa.Controller.enable('full_params');
                         return true; // Модалка закрывается
                     }
                 },
                 onBack: () => {
                     Lampa.Select.hide();
+                    Lampa.Controller.enable('full_params');
                 }
             };
             Lampa.Select.show(params);
+            setTimeout(() => {
+                Lampa.Controller.enable('selectbox');
+                const modal = document.querySelector('.selectbox');
+                if (modal) {
+                    Lampa.Controller.collectionSet(modal);
+                    Lampa.Controller.collectionFocus(false, modal);
+                }
+            }, 100);
         });
     }
 
