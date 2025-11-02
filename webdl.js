@@ -1,374 +1,225 @@
 (function () {
     'use strict';
-
-    // Объект плагина
-    const TorrentQuality = {
-        name: 'torrent_quality',
-        version: '1.1.27',
-        debug: false,
-        settings: {
-            enabled: true,
-            quality_filter: 'any'
-        }
-    };
-
-    // Хранилище данных
+    const PLUGIN_NAME = 'torrent_quality';
+    const VERSION = '3.0.0';
     let originalTorrents = [];
     let allTorrents = [];
     let currentMovieTitle = null;
     let lastUrl = window.location.search;
+    let isHooked = false;
 
-    // Функция получения данных торрентов из DOM
+    // === Получение торрентов ===
     function getTorrentsData() {
-        const torrentItems = document.querySelectorAll('.torrent-item');
-        const results = Array.from(torrentItems).map(item => {
-            const title = item.querySelector('.torrent-item__title')?.textContent.trim() || 'Без названия';
-            const ffprobe = {
-                video: {
-                    width: parseInt(item.querySelector('.m-video')?.textContent?.split('x')[0]) || 0,
-                    height: parseInt(item.querySelector('.m-video')?.textContent?.split('x')[1]) || 0
-                },
-                audio: {
-                    channel_layout: item.querySelector('.m-channels')?.textContent?.trim() || 'Неизвестно'
-                }
-            };
-            const voices = Array.from(item.querySelectorAll('.m-audio')).map(el => el.textContent.trim());
-            const subtitles = Array.from(item.querySelectorAll('.m-subtitle')).map(el => el.textContent.trim());
+        const items = document.querySelectorAll('.torrent-item');
+        return Array.from(items).map(item => {
+            const titleEl = item.querySelector('.torrent-item__title');
+            const magnetEl = item.querySelector('a[href*="magnet:"]');
             return {
-                Title: title,
-                PublishDate: item.querySelector('.torrent-item__date')?.textContent?.trim() || 'Неизвестно',
-                Tracker: item.querySelector('.torrent-item__tracker')?.textContent?.trim() || 'Неизвестно',
-                Size: parseFloat(item.querySelector('.torrent-item__size')?.textContent) * 1024 * 1024 * 1024 || 0,
-                Seeders: parseInt(item.querySelector('.torrent-item__seeds span')?.textContent) || 0,
-                Peers: parseInt(item.querySelector('.torrent-item__grabs span')?.textContent) || 0,
-                ffprobe: ffprobe,
-                languages: voices,
-                subtitles: subtitles,
-                MagnetUri: item.querySelector('a[href*="magnet:"]')?.href || ''
+                Title: titleEl ? titleEl.textContent.trim() : 'Без названия',
+                MagnetUri: magnetEl ? magnetEl.href : ''
             };
         });
-        return results;
     }
 
-    // Функция сброса фильтра
-    function resetFilter() {
-        allTorrents = [...originalTorrents];
-        if (!allTorrents.length) {
-            allTorrents = getTorrentsData();
-            originalTorrents = [...allTorrents];
-            if (!allTorrents.length) {
-                return false;
-            }
-        }
-        TorrentQuality.settings.quality_filter = 'any';
-        Lampa.Storage.set('torrent_quality_filter', 'any');
-        return true;
-    }
-
-    // Функция очистки списков и DOM
+    // === Очистка ===
     function clearTorrents() {
         originalTorrents = [];
         allTorrents = [];
-        const container = document.querySelector('.torrent-list');
-        if (container) container.innerHTML = '';
     }
 
-    // Функция фильтрации торрентов
-    async function filterTorrents(filterValue) {
+    // === Фильтрация ===
+    function filterTorrents(value) {
         try {
             if (!originalTorrents.length) {
                 originalTorrents = getTorrentsData();
                 allTorrents = [...originalTorrents];
-                if (!originalTorrents.length) {
-                    return;
-                }
             }
-
-            if (filterValue !== 'any') {
-                resetFilter();
-            }
-
-            if (!allTorrents.length) {
-                resetFilter();
-                if (!allTorrents.length) {
-                    return;
-                }
-            }
-
-            let filteredResults = allTorrents;
-            if (filterValue && filterValue !== 'any') {
-                const filterLower = filterValue.toLowerCase();
-                filteredResults = allTorrents.filter(result => {
-                    const title = result.Title?.toLowerCase().replace(/[- ]/g, '') || '';
-                    if (!title) {
-                        return false;
-                    }
-                    if (filterLower === 'web-dl') {
+            let filtered = allTorrents;
+            if (value && value !== 'any') {
+                const lower = value.toLowerCase();
+                filtered = allTorrents.filter(result => {
+                    const title = result.Title ? result.Title.toLowerCase().replace(/[- ]/g, '') : '';
+                    if (lower === 'web-dl') {
                         return (title.includes('webdl') || title.includes('web-dl')) && !title.includes('webdlrip') && !title.includes('web-dlrip');
-                    } else if (filterLower === 'web-dlrip') {
+                    }
+                    if (lower === 'web-dlrip') {
                         return title.includes('webdlrip') || title.includes('web-dlrip');
-                    } else if (filterLower === 'openmatte') {
+                    }
+                    if (lower === 'openmatte') {
                         return title.includes('openmatte') || title.includes('open-matte');
                     }
                     return false;
                 });
             }
-
-            if (!filteredResults.length) {
-                Lampa.Utils.message?.(`Не найдено торрентов для фильтра: ${filterValue}`) || alert(`Не найдено торрентов для фильтра: ${filterValue}`);
-                return;
-            }
-
-            renderResults(filteredResults);
-        } catch (error) {
-            Lampa.Utils.message?.('Ошибка при фильтрации торрентов') || alert('Ошибка при фильтрации торрентов');
+            renderResults(filtered);
+        } catch (e) {
+            Lampa.Utils?.message?.('Ошибка фильтрации');
         }
     }
 
-    // Функция рендеринга
+    // === Рендер ===
     function renderResults(results) {
-        const torrentItems = document.querySelectorAll('.torrent-item');
-        if (!torrentItems.length) {
-            return;
-        }
-
-        const resultTitles = results.map(r => r.Title.toLowerCase());
-        torrentItems.forEach(item => {
-            const title = item.querySelector('.torrent-item__title')?.textContent.toLowerCase() || '';
-            item.style.display = resultTitles.includes(title) ? 'block' : 'none';
+        const items = document.querySelectorAll('.torrent-item');
+        const titles = results.map(r => r.Title.toLowerCase());
+        items.forEach(item => {
+            const titleEl = item.querySelector('.torrent-item__title');
+            const title = titleEl ? titleEl.textContent.toLowerCase() : '';
+            item.style.display = titles.includes(title) ? 'block' : 'none';
         });
     }
 
-    // Отслеживание изменений URL с помощью history API
-    function setupUrlChangeObserver() {
-        const originalPushState = history.pushState;
-        const originalReplaceState = history.replaceState;
+    // === Перемещение фильтра в div watched-history ===
+    function hookHistoryDiv() {
+        if (isHooked) return;
+        const historyDiv = document.querySelector('.watched-history.selector');
+        if (!historyDiv) return;
+        isHooked = true;
+        // Сохраняем структуру, меняем содержимое body
+        const bodyDiv = historyDiv.querySelector('.watched-history__body');
+        if (bodyDiv) {
+            bodyDiv.innerHTML = '<span></span>';
+        }
+        const filterSpan = bodyDiv.querySelector('span');
+        historyDiv.dataset.name = 'webdl';
+        // Перемещение в контейнер фильтров
+        const qualityItem = document.querySelector('[data-name="quality"]');
+        if (qualityItem) {
+            const container = qualityItem.parentNode;
+            container.insertBefore(historyDiv, qualityItem.nextSibling);
+            setTimeout(() => {
+                Lampa.Controller.collectionAppend(historyDiv);
+                Lampa.Controller.collectionSet(container);
+            }, 100);
+        }
+        // Обновление текста
+        const updateFilterText = () => {
+            const saved = Lampa.Storage.get('tq_webdl_filter', 'any');
+            const titles = { 'any': 'Любое', 'web-dl': 'WEB-DL', 'web-dlrip': 'WEB-DLRip', 'openmatte': 'Open Matte' };
+            if (filterSpan) filterSpan.textContent = `Фильтр WEB DL: ${titles[saved]}`;
+        };
+        updateFilterText();
+        // Установка hover:enter
+        $(historyDiv).on('hover:enter', () => {
+            const previousController = Lampa.Controller.enabled().name;
+            const currentValue = Lampa.Storage.get('tq_webdl_filter', 'any');
+            const params = {
+                title: 'Фильтр WEB DL',
+                items: [
+                    { title: 'WEB-DL', value: 'web-dl', selected: currentValue === 'web-dl' },
+                    { title: 'WEB-DLRip', value: 'web-dlrip', selected: currentValue === 'web-dlrip' },
+                    { title: 'Open Matte', value: 'openmatte', selected: currentValue === 'openmatte' },
+                    { title: 'Сбросить фильтр', value: 'reset' }
+                ],
+                onSelect: (item) => {
+                    if (item.value === 'reset') {
+                        Lampa.Storage.set('tq_webdl_filter', 'any');
+                        filterTorrents('any');
+                        Lampa.Select.hide();
+                        Lampa.Controller.toggle(previousController);
+                        setTimeout(() => {
+                            updateFilterText();
+                            Lampa.Controller.collectionSet(historyDiv.parentNode);
+                            Lampa.Controller.collectionFocus(historyDiv, historyDiv.parentNode);
+                        }, 300);
+                        return true;
+                    }
+                    const isWebdl = ['web-dl', 'web-dlrip', 'openmatte'].includes(item.value);
+                    if (isWebdl) {
+                        const current = Lampa.Storage.get('tq_webdl_filter', 'any');
+                        const newValue = current === item.value ? 'any' : item.value;
+                        Lampa.Storage.set('tq_webdl_filter', newValue);
+                        filterTorrents(newValue);
+                        Lampa.Select.hide();
+                        Lampa.Controller.toggle(previousController);
+                        setTimeout(() => {
+                            updateFilterText();
+                            Lampa.Controller.collectionSet(historyDiv.parentNode);
+                            Lampa.Controller.collectionFocus(historyDiv, historyDiv.parentNode);
+                        }, 300);
+                        return true; // Модалка закрывается
+                    }
+                },
+                onBack: () => {
+                    Lampa.Select.hide();
+                    Lampa.Controller.toggle(previousController);
+                    setTimeout(() => {
+                        Lampa.Controller.collectionSet(historyDiv.parentNode);
+                        Lampa.Controller.collectionFocus(historyDiv, historyDiv.parentNode);
+                    }, 300);
+                }
+            };
+            Lampa.Select.show(params);
+        });
+    }
 
+    // === Observer для обнаружения div ===
+    function setupHistoryObserver() {
+        const observer = new MutationObserver(() => {
+            hookHistoryDiv();
+        });
+        observer.observe(document.body, { childList: true, subtree: true });
+    }
+
+    // === URL смена ===
+    function setupUrlChange() {
+        const origPush = history.pushState;
+        const origReplace = history.replaceState;
         history.pushState = function (...args) {
-            originalPushState.apply(this, args);
+            origPush.apply(this, args);
             handleUrlChange();
         };
         history.replaceState = function (...args) {
-            originalReplaceState.apply(this, args);
+            origReplace.apply(this, args);
             handleUrlChange();
         };
-
         window.addEventListener('popstate', handleUrlChange);
-
         function handleUrlChange() {
-            const currentUrl = window.location.search;
-            if (currentUrl !== lastUrl) {
-                const newTitle = document.querySelector('.full-start-new__title')?.textContent?.trim() || currentUrl;
+            const url = window.location.search;
+            if (url !== lastUrl) {
+                const newTitle = document.querySelector('.full-start-new__title')?.textContent.trim() || url;
                 if (newTitle && newTitle !== currentMovieTitle) {
                     clearTorrents();
                     currentMovieTitle = newTitle;
-                    lastUrl = currentUrl;
-                    applyFilterOnTorrentsLoad();
+                    lastUrl = url;
+                    applyFilterOnLoad();
+                    isHooked = false;
                 }
             }
         }
     }
 
-    // Применение фильтра при загрузке торрентов
-    function applyFilterOnTorrentsLoad() {
-        if (!TorrentQuality.settings.enabled) return;
+    // === Применение фильтра ===
+    function applyFilterOnLoad() {
         clearTorrents();
-        resetFilter();
         const torrents = getTorrentsData();
         if (torrents.length) {
-            filterTorrents(TorrentQuality.settings.quality_filter);
+            filterTorrents(Lampa.Storage.get('tq_webdl_filter', 'any'));
         } else {
             const container = document.querySelector('.torrent-list');
             if (container) {
-                const observer = new MutationObserver((mutations, obs) => {
+                const obs = new MutationObserver(() => {
                     if (document.querySelectorAll('.torrent-item').length) {
                         obs.disconnect();
-                        resetFilter();
-                        filterTorrents(TorrentQuality.settings.quality_filter);
+                        filterTorrents(Lampa.Storage.get('tq_webdl_filter', 'any'));
                     }
                 });
-                observer.observe(container, { childList: true, subtree: true });
-                setTimeout(() => observer.disconnect(), 5000); // Остановить через 5 секунд
+                obs.observe(container, { childList: true, subtree: true });
+                setTimeout(() => obs.disconnect(), 5000);
             }
         }
     }
 
-    // Инициализация плагина
-    function startPlugin() {
-        Lampa.SettingsApi.addComponent({
-            component: 'torrent_quality',
-            name: 'Фильтр WEB-DL',
-            icon: '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" fill="currentColor"/><path d="M12 6c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79-4-4-4z" fill="currentColor"/></svg>'
-        });
-
-        Lampa.SettingsApi.addParam({
-            component: 'torrent_quality',
-            param: {
-                name: 'quality_filter',
-                type: 'select',
-                values: {
-                    any: 'Все',
-                    'web-dl': 'WEB-DL',
-                    'web-dlrip': 'WEB-DLRip',
-                    openmatte: 'Open Matte'
-                },
-                default: 'any'
-            },
-            field: {
-                name: 'Фильтр WEB-DL',
-                description: 'Выберите параметры для фильтрации торрентов'
-            },
-            onRender: function (element) {
-                if (!(element instanceof HTMLElement)) return;
-
-                const container = element.closest('.settings-param') || element.closest('.settings__content') || element.parentElement;
-                if (!container || container.querySelector('.selectbox__content')) return;
-
-                const submenu = document.createElement('div');
-                submenu.className = 'selectbox__content layer--height';
-                submenu.style.height = '945px';
-                submenu.style.display = 'none';
-                submenu.innerHTML = `
-                    <div class="selectbox__head">
-                        <div class="selectbox__title">Фильтр</div>
-                    </div>
-                    <div class="selectbox__body layer--wheight" style="max-height: unset; height: 894.016px;">
-                        <div class="scroll scroll--mask scroll--over">
-                            <div class="scroll__content">
-                                <div class="scroll__body" style="transform: translate3d(0px, 0px, 0px);">
-                                    <div class="selectbox-item selector">
-                                        <div class="selectbox-item__title">Сбросить фильтр</div>
-                                    </div>
-                                    <div class="selectbox-item selector">
-                                        <div class="selectbox-item__title">Качество</div>
-                                        <div class="selectbox-item__subtitle">Все</div>
-                                    </div>
-                                    <div class="selectbox-item selector selectbox-item--checkbox" data-value="web-dl">
-                                        <div class="selectbox-item__title">WEB-DL</div>
-                                        <div class="selectbox-item__checkbox"></div>
-                                    </div>
-                                    <div class="selectbox-item selector selectbox-item--checkbox" data-value="web-dlrip">
-                                        <div class="selectbox-item__title">WEB-DLRip</div>
-                                        <div class="selectbox-item__checkbox"></div>
-                                    </div>
-                                    <div class="selectbox-item selector selectbox-item--checkbox" data-value="openmatte">
-                                        <div class="selectbox-item__title">Open Matte</div>
-                                        <div class="selectbox-item__checkbox"></div>
-                                    </div>
-                                    <div class="selectbox-item selector">
-                                        <div class="selectbox-item__title">HDR</div>
-                                        <div class="selectbox-item__subtitle">Не выбрано</div>
-                                    </div>
-                                    <div class="selectbox-item selector">
-                                        <div class="selectbox-item__title">Dolby Vision</div>
-                                        <div class="selectbox-item__subtitle">Не выбрано</div>
-                                    </div>
-                                    <div class="selectbox-item selector">
-                                        <div class="selectbox-item__title">Субтитры</div>
-                                        <div class="selectbox-item__subtitle">Не выбрано</div>
-                                    </div>
-                                    <div class="selectbox-item selector">
-                                        <div class="selectbox-item__title">Перевод</div>
-                                        <div class="selectbox-item__subtitle">Все</div>
-                                    </div>
-                                    <div class="selectbox-item selector">
-                                        <div class="selectbox-item__title">Язык</div>
-                                        <div class="selectbox-item__subtitle">Все</div>
-                                    </div>
-                                    <div class="selectbox-item selector">
-                                        <div class="selectbox-item__title">Сезон</div>
-                                        <div class="selectbox-item__subtitle">Все</div>
-                                    </div>
-                                    <div class="selectbox-item selector">
-                                        <div class="selectbox-item__title">Трекер</div>
-                                        <div class="selectbox-item__subtitle">Все</div>
-                                    </div>
-                                    <div class="selectbox-item selector">
-                                        <div class="selectbox-item__title">Год</div>
-                                        <div class="selectbox-item__subtitle">Все</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-
-                container.appendChild(submenu);
-
-                const title = container.querySelector('.settings-param__name') || element.querySelector('.settings-param__name') || element.querySelector('span') || element;
-                if (title) {
-                    title.addEventListener('click', () => {
-                        submenu.style.display = submenu.style.display === 'none' ? 'block' : 'none';
-                        document.querySelectorAll('.selectbox__content').forEach(content => {
-                            if (content !== submenu) content.style.display = 'none';
-                        });
-                    });
-                }
-
-                submenu.querySelectorAll('.selectbox-item').forEach(item => {
-                    item.addEventListener('click', () => {
-                        const titleText = item.querySelector('.selectbox-item__title').textContent.trim();
-                        let value = item.dataset.value || titleText;
-                        const subtitle = item.querySelector('.selectbox-item__subtitle');
-
-                        if (titleText === 'Сбросить фильтр') {
-                            resetFilter();
-                            if (subtitle) subtitle.textContent = 'Все';
-                            submenu.querySelectorAll('.selectbox-item--checkbox').forEach(el => el.classList.remove('selected'));
-                            submenu.querySelectorAll('.selectbox-item__subtitle').forEach(sub => {
-                                const parentTitle = sub.parentElement.querySelector('.selectbox-item__title').textContent;
-                                sub.textContent = parentTitle === 'Качество' || parentTitle === 'Перевод' || parentTitle === 'Язык' || parentTitle === 'Сезон' || parentTitle === 'Трекер' || parentTitle === 'Год' ? 'Все' : 'Не выбрано';
-                            });
-                            filterTorrents('any');
-                        } else if (titleText === 'Качество') {
-                            value = 'any';
-                            if (subtitle) subtitle.textContent = 'Все';
-                            submenu.querySelectorAll('.selectbox-item--checkbox').forEach(el => el.classList.remove('selected'));
-                            TorrentQuality.settings.quality_filter = value;
-                            Lampa.Storage.set('torrent_quality_filter', value);
-                            filterTorrents(value);
-                        } else if (item.dataset.value) {
-                            value = item.dataset.value.toLowerCase();
-                            if (subtitle) subtitle.textContent = value === 'web-dl' ? 'WEB-DL' : value === 'web-dlrip' ? 'WEB-DLRip' : 'Open Matte';
-                            submenu.querySelectorAll('.selectbox-item--checkbox').forEach(el => {
-                                el.classList.toggle('selected', el.dataset.value === value);
-                            });
-                            TorrentQuality.settings.quality_filter = value;
-                            Lampa.Storage.set('torrent_quality_filter', value);
-                            filterTorrents(value);
-                        }
-
-                        submenu.style.display = 'none';
-                    });
-                });
-            },
-            onChange: function (value) {
-                TorrentQuality.settings.quality_filter = value;
-                Lampa.Storage.set('torrent_quality_filter', value);
-                filterTorrents(value);
-            }
-        });
-
-        TorrentQuality.settings.quality_filter = Lampa.Storage.get('torrent_quality_filter', 'any');
-        if (window.appready) {
-            setupUrlChangeObserver();
-            applyFilterOnTorrentsLoad();
-        } else {
+    // === Запуск ===
+    function start() {
+        if (!window.appready) {
             Lampa.Listener.follow('app', e => {
-                if (e.type === 'ready') {
-                    setupUrlChangeObserver();
-                    applyFilterOnTorrentsLoad();
-                }
+                if (e.type === 'ready') start();
             });
+            return;
         }
+        setupHistoryObserver();
+        setupUrlChange();
+        applyFilterOnLoad();
     }
-
-    // Запуск плагина
-    if (window.appready) {
-        startPlugin();
-    } else {
-        Lampa.Listener.follow('app', e => {
-            if (e.type === 'ready') startPlugin();
-        });
-    }
+    start();
 })();
