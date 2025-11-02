@@ -83,12 +83,13 @@
         historyDiv.dataset.name = 'webdl';
         // Перемещение в контейнер фильтров
         const qualityItem = document.querySelector('[data-name="quality"]');
+        let container = null;
         if (qualityItem) {
-            const container = qualityItem.parentNode;
+            container = qualityItem.parentNode;
             container.insertBefore(historyDiv, qualityItem.nextSibling);
             setTimeout(() => {
                 Lampa.Controller.collectionAppend(historyDiv);
-                Lampa.Controller.collectionSet(container);
+                if (container) Lampa.Controller.collectionSet(container);
             }, 100);
         }
         // Обновление текста
