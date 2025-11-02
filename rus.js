@@ -69,6 +69,14 @@
         if (isHooked) return;
         isHooked = true;
         const originalShow = Lampa.Select.show;
+        const originalHide = Lampa.Select.hide || function() {};
+        Lampa.Select.hide = function () {
+            if (keepOpen) {
+                keepOpen = false;
+                return;
+            }
+            return originalHide.apply(this, arguments);
+        };
         Lampa.Select.show = function (params) {
             if (params.title === 'Качество' || (params.items && params.items[0]?.title?.match(/1080p|720p|4K/i))) {
                 const currentValue = Lampa.Storage.get('tq_webdl_filter', 'any');
@@ -120,48 +128,6 @@
             }
             return originalShow.call(this, params);
         };
-
-        // Observer to detect modal close and reopen if needed
-        const observer = new MutationObserver(mutations => {
-            mutations.forEach(mutation => {
-                if (mutation.removedNodes) {
-                    Array.from(mutation.removedNodes).forEach(node => {
-                        if (node.classList && node.classList.contains('selectbox') && keepOpen) {
-                            keepOpen = false;
-                            setTimeout(() => {
-                                const qualityItem = document.querySelector('[data-name="quality"]');
-                                if (qualityItem) {
-                                    qualityItem.click();
-                                }
-                                // Update selected again after reopen
-                                setTimeout(() => {
-                                    const modal = document.querySelector('.selectbox');
-                                    if (modal) {
-                                        const current = Lampa.Storage.get('tq_webdl_filter', 'any');
-                                        const valueMap = {
-                                            'web-dl': 'WEB-DL',
-                                            'web-dlrip': 'WEB-DLRip',
-                                            'openmatte': 'Open Matte'
-                                        };
-                                        modal.querySelectorAll('.selectbox-item').forEach(el => {
-                                            const text = el.querySelector('.selectbox-item__title')?.textContent;
-                                            if (text && ['WEB-DL', 'WEB-DLRip', 'Open Matte'].includes(text)) {
-                                                if (text === valueMap[current] && current !== 'any') {
-                                                    el.classList.add('selected');
-                                                } else {
-                                                    el.classList.remove('selected');
-                                                }
-                                            }
-                                        });
-                                    }
-                                }, 50);
-                            }, 50);
-                        }
-                    });
-                }
-            });
-        });
-        observer.observe(document.body, { childList: true, subtree: true });
     }
     // === Сброс фильтра ===
     function hookResetButton() {
