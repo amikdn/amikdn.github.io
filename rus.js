@@ -82,7 +82,7 @@
         // Добавление title и subtitle
         const titleDiv = document.createElement('div');
         titleDiv.className = 'selectbox-item__title';
-        titleDiv.textContent = 'WebDL';
+        titleDiv.textContent = 'Фильтр WEB DL';
         historyDiv.appendChild(titleDiv);
         const subtitleDiv = document.createElement('div');
         subtitleDiv.className = 'selectbox-item__subtitle';
@@ -109,7 +109,7 @@
             const previousController = Lampa.Controller.enabled().name;
             const currentValue = Lampa.Storage.get('tq_webdl_filter', 'any');
             const params = {
-                title: 'WebDL',
+                title: 'Фильтр WEB DL',
                 items: [
                     { title: 'WEB-DL', value: 'web-dl', selected: currentValue === 'web-dl' },
                     { title: 'WEB-DLRip', value: 'web-dlrip', selected: currentValue === 'web-dlrip' },
