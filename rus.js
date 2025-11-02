@@ -158,7 +158,8 @@
                                 });
                             }
                         }, 10);
-                        return false; // Модалка не закрывается
+                        Lampa.Select.hide();
+                        return true; // Модалка закрывается
                     }
                 },
                 onBack: () => {
