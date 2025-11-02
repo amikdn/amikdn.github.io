@@ -81,13 +81,10 @@
         }
         const filterSpan = bodyDiv.querySelector('span');
         historyDiv.dataset.name = 'webdl';
-        // Удаляем добавление 'selectbox-item'
-        // historyDiv.classList.add('selectbox-item');
         // Перемещение в контейнер фильтров
         const qualityItem = document.querySelector('[data-name="quality"]');
-        let container = null;
         if (qualityItem) {
-            container = qualityItem.parentNode;
+            const container = qualityItem.parentNode;
             container.insertBefore(historyDiv, qualityItem.nextSibling);
             setTimeout(() => {
                 Lampa.Controller.collectionAppend(historyDiv);
@@ -117,15 +114,13 @@
                     if (item.value === 'reset') {
                         Lampa.Storage.set('tq_webdl_filter', 'any');
                         filterTorrents('any');
-                        updateFilterText();
                         Lampa.Select.hide();
                         Lampa.Controller.toggle(previousController);
-                        if (container) {
-                            setTimeout(() => {
-                                Lampa.Controller.collectionSet(container);
-                                Lampa.Controller.collectionFocus(historyDiv, container);
-                            }, 300);
-                        }
+                        setTimeout(() => {
+                            updateFilterText();
+                            Lampa.Controller.collectionSet(historyDiv.parentNode);
+                            Lampa.Controller.collectionFocus(historyDiv, historyDiv.parentNode);
+                        }, 300);
                         return true;
                     }
                     const isWebdl = ['web-dl', 'web-dlrip', 'openmatte'].includes(item.value);
@@ -134,27 +129,23 @@
                         const newValue = current === item.value ? 'any' : item.value;
                         Lampa.Storage.set('tq_webdl_filter', newValue);
                         filterTorrents(newValue);
-                        updateFilterText();
                         Lampa.Select.hide();
                         Lampa.Controller.toggle(previousController);
-                        if (container) {
-                            setTimeout(() => {
-                                Lampa.Controller.collectionSet(container);
-                                Lampa.Controller.collectionFocus(historyDiv, container);
-                            }, 300);
-                        }
+                        setTimeout(() => {
+                            updateFilterText();
+                            Lampa.Controller.collectionSet(historyDiv.parentNode);
+                            Lampa.Controller.collectionFocus(historyDiv, historyDiv.parentNode);
+                        }, 300);
                         return true; // Модалка закрывается
                     }
                 },
                 onBack: () => {
                     Lampa.Select.hide();
                     Lampa.Controller.toggle(previousController);
-                    if (container) {
-                        setTimeout(() => {
-                            Lampa.Controller.collectionSet(container);
-                            Lampa.Controller.collectionFocus(historyDiv, container);
-                        }, 300);
-                    }
+                    setTimeout(() => {
+                        Lampa.Controller.collectionSet(historyDiv.parentNode);
+                        Lampa.Controller.collectionFocus(historyDiv, historyDiv.parentNode);
+                    }, 300);
                 }
             };
             Lampa.Select.show(params);
