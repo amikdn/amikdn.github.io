@@ -76,9 +76,9 @@
             if (params.title === 'Качество' || (params.items && params.items[0]?.title?.match(/1080p|720p|4K/i))) {
                 const currentValues = Lampa.Storage.get('tq_webdl_filters', []);
                 const webdlItems = [
-                    { title: 'WEB-DL', value: 'web-dl', selected: currentValues.includes('web-dl') },
-                    { title: 'WEB-DLRip', value: 'web-dlrip', selected: currentValues.includes('web-dlrip') },
-                    { title: 'Open Matte', value: 'openmatte', selected: currentValues.includes('openmatte') }
+                    { title: 'WEB-DL', value: 'web-dl', selected: false },
+                    { title: 'WEB-DLRip', value: 'web-dlrip', selected: false },
+                    { title: 'Open Matte', value: 'openmatte', selected: false }
                 ];
                 if (Array.isArray(params.items)) {
                     params.items = params.items.concat(webdlItems);
@@ -103,7 +103,17 @@
                                 subtitle.textContent = filters.length ? filters.map(v => titles[v]).join(', ') : 'Любое';
                             }
                         }, 50);
-                        // Обновляем checked в DOM и удаляем selected
+                        // Закрываем и сразу открываем заново
+                        setTimeout(() => {
+                            if (Lampa.Select.hide) Lampa.Select.hide();
+                        }, 10);
+                        setTimeout(() => {
+                            const qualityItem = document.querySelector('[data-name="quality"]');
+                            if (qualityItem) {
+                                qualityItem.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+                            }
+                        }, 100);
+                        // Обновляем checked в новом модальном окне
                         setTimeout(() => {
                             const modal = document.querySelector('.selectbox');
                             if (modal) {
@@ -118,19 +128,15 @@
                                         }
                                     }
                                 });
-                                // Делаем модалку видимой
-                                modal.style.display = 'block';
-                                modal.style.opacity = '1';
-                                modal.style.visibility = 'visible';
                             }
-                        }, 10);
+                        }, 150);
                         return false;
                     }
                     return originalOnSelect(item);
                 };
             }
             const result = originalShow.call(this, params);
-            // Добавляем стиль checkbox после рендера и удаляем selected
+            // Добавляем стиль checkbox после рендера
             setTimeout(() => {
                 const modal = document.querySelector('.selectbox');
                 if (modal) {
@@ -153,7 +159,7 @@
                         }
                     });
                 }
-            }, 50);
+            }, 100);
             return result;
         };
     }
@@ -173,7 +179,7 @@
                         const subtitle = qualityItem?.querySelector('.selectbox-item__subtitle');
                         if (subtitle) subtitle.textContent = 'Любое';
                     }, 100);
-                    // Убираем класс checked и selected
+                    // Убираем класс checked
                     setTimeout(() => {
                         document.querySelectorAll('.selectbox-item').forEach(el => {
                             const text = el.querySelector('.selectbox-item__title')?.textContent;
