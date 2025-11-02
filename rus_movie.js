@@ -1,7 +1,6 @@
 (function() {
   'use strict';
   Lampa.Platform.tv();
-
   function main() {
     const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="1.2em" height="1.2em" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="4"><path stroke-linejoin="round" d="M24 44c11.046 0 20-8.954 20-20S35.046 4 24 4S4 12.954 4 24s8.954 20 20 20Z"/><path stroke-linejoin="round" d="M24 18a3 3 0 1 0 0-6a3 3 0 0 0 0 6Zm0 18a3 3 0 1 0 0-6a3 3 0 0 0 0 6Zm-9-9a3 3 0 1 0 0-6a3 3 0 0 0 0 6Zm18 0a3 3 0 1 0 0-6a3 3 0 0 0 0 6Z"/><path stroke-linecap="round" d="M24 44h20"/></g></svg>';
     const today = new Date().toISOString().substr(0, 10);
@@ -19,24 +18,19 @@
       { title: 'Start', img: 'https://bylampa.github.io/img/start.jpg', request: 'discover/tv?with_networks=806&sort_by=first_air_date.desc&air_date.lte=' + today },
       { title: 'Premier', img: 'https://bylampa.github.io/img/premier.jpg', request: 'discover/tv?with_networks=3923&sort_by=first_air_date.desc&air_date.lte=' + today }
     ];
-
     function collectionMain(params, oncompl, onerr) {
       const data = { collection: true, total_pages: 1, results: categories.map(cat => ({ title: cat.title, img: cat.img, hpu: cat.request })) };
       oncompl(data);
     }
-
     function collectionFull(params, oncompl, onerr) {
       const network = new Lampa.Reguest();
       const url = Lampa.Utils.protocol() + 'api.themoviedb.org/3/' + params.url + '&page=' + (params.page || 1);
       network.get(url, (data) => { data.title = params.title; oncompl(data); }, onerr);
     }
-
     function clearNetwork() {
       network.clear();
     }
-
     const apiMethods = { main: collectionMain, full: collectionFull, clear: clearNetwork };
-
     function RusMovieComponent(params) {
       const component = new Lampa.Component(params);
       component.start = function() {
@@ -46,37 +40,28 @@
         apiMethods.full(elem, oncompl.bind(component), onerr.bind(component));
       };
       component.render = function(elem, data, card) {
-        card.onEnter = false;
         card.onVisible = function() {
           Lampa.Activity.push({ url: data.hpu, title: data.title, component: 'rus_movie', source: 'main', page: 1 });
         };
       };
       return component;
     }
-
     const plugin = { type: 'movie', version: '1.0.0', name: 'Русское', description: 'Показывать подборки русских новинок на главной странице. После изменения параметра приложение нужно перезапустить (работает только с TMDB)', component: 'rus_movie' };
     if (!Lampa.Manifest.plugins) Lampa.Manifest.plugins = {};
     Lampa.Manifest.plugins.rus_movie = plugin;
     Lampa.Component.add('rus_movie', RusMovieComponent);
-
-    Lampa.Activity.listener('push', (act) => {
-      if (act.name == 'main') {
-      }
-    });
-
     const menuItem = $('<li class="menu__item selector"><div class="menu__ico">' + svg + '</div><div class="menu__text">' + plugin.name + '</div></li>');
     menuItem.on('hover:enter', () => {
       Lampa.Activity.push({ url: '', title: plugin.name, component: 'rus_movie', page: 1 });
-      $('.menu .menu__list').addClass('lampa noname');
     });
-    $('.menu .menu__list').eq(0).append(menuItem);
-
+    setTimeout(() => {
+      $('.menu .menu__list').eq(0).append(menuItem);
+    }, 1000);
     function Card(item) {
       const data = item.episode || item;
       const episode = item.next_episode_to_air || item;
       Lampa.Arrays.extend(data, { title: data.name, original_title: data.original_name, release_date: data.first_air_date });
       data.release_year = ((data.release_date || '0000') + '').substr(0, 4);
-
       this.build = function() {
         this.card = Lampa.Template.js('card_episode');
         this.img_poster = this.card.querySelector('.full-episode__img img');
@@ -88,14 +73,12 @@
         else this.card.querySelector('.card__age').innerText = data.release_year;
         this.card.addEventListener('hover:enter', this.onEnter.bind(this));
       };
-
       this.image = function() {
         this.img_poster.onload = () => {};
         this.img_poster.onerror = () => { this.img_poster.src = './img/img_broken.svg'; };
         this.img_episode.onload = () => { this.card.querySelector('.full-episode__img').classList.add('full-episode__img--loaded'); };
         this.img_episode.onerror = () => { this.img_episode.src = './img/img_broken.svg'; };
       };
-
       this.ready = function() {
         this.build();
         this.card.addEventListener('hover:focus', () => { if (this.onFocus) this.onFocus(this.card, data); });
@@ -103,7 +86,6 @@
         this.card.addEventListener('hover:enter', () => { if (this.onEnter) this.onEnter(this.card, data); });
         this.image();
       };
-
       this.visible = function() {
         if (data.backdrop_path) this.img_poster.src = Lampa.Api.img(data.backdrop_path);
         else if (data.poster_path) this.img_poster.src = Lampa.Api.img(data.poster_path);
@@ -117,7 +99,6 @@
         else this.img_episode.src = './img/img_broken.svg';
         if (this.onVisible) this.onVisible(this.card, data);
       };
-
       this.destroy = function() {
         this.img_poster.onerror = () => {};
         this.img_poster.onload = () => {};
@@ -130,10 +111,8 @@
         this.img_poster = null;
         this.img_episode = null;
       };
-
       this.render = function(full) { return full ? this.card : $(this.card); };
     }
-
     function RusTmdb(api) {
       this.network = new Lampa.Reguest();
       this.main = function() {
@@ -188,30 +167,26 @@
             }, cb);
           });
         });
-
         function loadParallel(oncompl, onerr) {
           Lampa.Api.arraysLoad(loaders, parallelCount, oncompl, onerr);
         }
         return loadParallel(oncompl, onerr);
       };
     }
-
     if (Lampa.Storage.get('rus_movie_main') !== false) {
       Object.assign(Lampa.Api.sources.tmdb, new RusTmdb(Lampa.Api.sources.tmdb));
     }
-
     if (Lampa.Storage.get('rus_movie_main') == 'main') {
       const source = Lampa.Storage.get('rus_movie_main');
       const interval = setInterval(() => {
         const act = Lampa.Activity.active();
         const menuList = $('.menu .menu__list');
-        if (act && act.component === 'main' && !(menuList.length > 0)) {
+        if (act && act.component === 'main') {
           clearInterval(interval);
           Lampa.Activity.push({ source, title: Lampa.Lang.translate('Русские новинки') + ' - ' + Lampa.Storage.field('rus_movie_main').toUpperCase() });
         }
       }, 200);
     }
-
     Lampa.SettingsApi.addParam({
       component: 'interface',
       param: { name: 'rus_movie_main', type: 'select', default: true },
@@ -219,7 +194,6 @@
       onRender: (item) => { setTimeout(() => { $('div[data-name="interface_size"]').insertAfter(item); }, 0); }
     });
   }
-
   if (window.appready) main();
   else Lampa.Listener.follow('app', (e) => { if (e.type == 'ready') main(); });
 })();
