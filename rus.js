@@ -205,7 +205,7 @@
                                     const title = node.querySelector('.selectbox__title');
                                     if (title && title.textContent.trim() === 'Качество') {
                                         const body = node.querySelector('.scroll__body');
-                                        if (body) {
+                                        if (body && !body.querySelector('[data-value="web-dl"]')) {  // Чтобы не добавлять повторно
                                             const newFilters = [
                                                 { label: 'WEB-DL', value: 'web-dl' },
                                                 { label: 'WEB-DLRip', value: 'web-dlrip' },
@@ -222,7 +222,7 @@
                                                 body.appendChild(item);
 
                                                 item.addEventListener('click', function() {
-                                                    // Снимаем выделение с других чекбоксов
+                                                    // Снимаем выделение с других чекбоксов (делаем single select)
                                                     body.querySelectorAll('.selectbox-item--checkbox').forEach(el => {
                                                         if (el !== item) el.classList.remove('selectbox-item--checked');
                                                     });
@@ -233,7 +233,6 @@
                                                     filterTorrents(value);
                                                 });
                                             });
-                                            observer.disconnect();
                                         }
                                     }
                                 }
