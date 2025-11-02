@@ -97,7 +97,7 @@
         const updateFilterText = () => {
             const saved = Lampa.Storage.get('tq_webdl_filter', 'any');
             const titles = { 'any': 'Любое', 'web-dl': 'WEB-DL', 'web-dlrip': 'WEB-DLRip', 'openmatte': 'Open Matte' };
-            filterSpan.textContent = `Фильтр WEB DL: ${titles[saved]}`;
+            if (filterSpan) filterSpan.textContent = `Фильтр WEB DL: ${titles[saved]}`;
         };
         updateFilterText();
         // Установка hover:enter
@@ -116,18 +116,6 @@
                     if (item.value === 'reset') {
                         Lampa.Storage.set('tq_webdl_filter', 'any');
                         filterTorrents('any');
-                        // Убираем класс selected
-                        setTimeout(() => {
-                            const modal = document.querySelector('.selectbox');
-                            if (modal) {
-                                modal.querySelectorAll('.selectbox-item').forEach(el => {
-                                    const text = el.querySelector('.selectbox-item__title')?.textContent;
-                                    if (text && ['WEB-DL', 'WEB-DLRip', 'Open Matte'].includes(text)) {
-                                        el.classList.remove('selected');
-                                    }
-                                });
-                            }
-                        }, 10);
                         Lampa.Select.hide();
                         Lampa.Controller.toggle(previousController);
                         if (container) {
@@ -135,31 +123,16 @@
                                 updateFilterText();
                                 Lampa.Controller.collectionSet(container);
                                 Lampa.Controller.collectionFocus(historyDiv, container);
-                            }, 100);
+                            }, 200);
                         }
                         return true;
                     }
                     const isWebdl = ['web-dl', 'web-dlrip', 'openmatte'].includes(item.value);
                     if (isWebdl) {
-                        const newValue = item.value;
+                        const current = Lampa.Storage.get('tq_webdl_filter', 'any');
+                        const newValue = current === item.value ? 'any' : item.value;
                         Lampa.Storage.set('tq_webdl_filter', newValue);
                         filterTorrents(newValue);
-                        // Обновление selected в DOM
-                        setTimeout(() => {
-                            const modal = document.querySelector('.selectbox');
-                            if (modal) {
-                                modal.querySelectorAll('.selectbox-item').forEach(el => {
-                                    const text = el.querySelector('.selectbox-item__title')?.textContent;
-                                    if (text && ['WEB-DL', 'WEB-DLRip', 'Open Matte'].includes(text)) {
-                                        if (text === item.title && newValue !== 'any') {
-                                            el.classList.add('selected');
-                                        } else {
-                                            el.classList.remove('selected');
-                                        }
-                                    }
-                                });
-                            }
-                        }, 10);
                         Lampa.Select.hide();
                         Lampa.Controller.toggle(previousController);
                         if (container) {
@@ -167,9 +140,9 @@
                                 updateFilterText();
                                 Lampa.Controller.collectionSet(container);
                                 Lampa.Controller.collectionFocus(historyDiv, container);
-                            }, 100);
+                            }, 200);
                         }
-                        return true; // Модалка закрывается
+                        return true;
                     }
                 },
                 onBack: () => {
@@ -179,7 +152,7 @@
                         setTimeout(() => {
                             Lampa.Controller.collectionSet(container);
                             Lampa.Controller.collectionFocus(historyDiv, container);
-                        }, 100);
+                        }, 200);
                     }
                 }
             };
