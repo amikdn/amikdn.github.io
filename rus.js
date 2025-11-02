@@ -106,6 +106,7 @@
         updateSubtitle();
         // Установка hover:enter
         $(historyDiv).on('hover:enter', () => {
+            const previousController = Lampa.Controller.enabled().name;
             const currentValue = Lampa.Storage.get('tq_webdl_filter', 'any');
             const params = {
                 title: 'WebDL',
@@ -133,7 +134,7 @@
                             }
                         }, 10);
                         Lampa.Select.hide();
-                        Lampa.Controller.enable('full_params');
+                        Lampa.Controller.toggle(previousController);
                         return true;
                     }
                     const isWebdl = ['web-dl', 'web-dlrip', 'openmatte'].includes(item.value);
@@ -160,24 +161,16 @@
                             }
                         }, 10);
                         Lampa.Select.hide();
-                        Lampa.Controller.enable('full_params');
+                        Lampa.Controller.toggle(previousController);
                         return true; // Модалка закрывается
                     }
                 },
                 onBack: () => {
                     Lampa.Select.hide();
-                    Lampa.Controller.enable('full_params');
+                    Lampa.Controller.toggle(previousController);
                 }
             };
             Lampa.Select.show(params);
-            setTimeout(() => {
-                Lampa.Controller.enable('selectbox');
-                const modal = document.querySelector('.selectbox');
-                if (modal) {
-                    Lampa.Controller.collectionSet(modal);
-                    Lampa.Controller.collectionFocus(false, modal);
-                }
-            }, 100);
         });
     }
 
