@@ -76,9 +76,9 @@
             if (params.title === 'Качество' || (params.items && params.items[0]?.title?.match(/1080p|720p|4K/i))) {
                 const currentValues = Lampa.Storage.get('tq_webdl_filters', []);
                 const webdlItems = [
-                    { title: 'WEB-DL', value: 'web-dl', checkbox: true, selected: currentValues.includes('web-dl') },
-                    { title: 'WEB-DLRip', value: 'web-dlrip', checkbox: true, selected: currentValues.includes('web-dlrip') },
-                    { title: 'Open Matte', value: 'openmatte', checkbox: true, selected: currentValues.includes('openmatte') }
+                    { title: 'WEB-DL', value: 'web-dl', selected: currentValues.includes('web-dl') },
+                    { title: 'WEB-DLRip', value: 'web-dlrip', selected: currentValues.includes('web-dlrip') },
+                    { title: 'Open Matte', value: 'openmatte', selected: currentValues.includes('openmatte') }
                 ];
                 if (Array.isArray(params.items)) {
                     params.items = params.items.concat(webdlItems);
@@ -87,8 +87,12 @@
                 params.onSelect = function (item) {
                     const isWebdl = ['web-dl', 'web-dlrip', 'openmatte'].includes(item.value);
                     if (isWebdl) {
-                        item.selected = !item.selected;
-                        const filters = params.items.filter(i => ['web-dl', 'web-dlrip', 'openmatte'].includes(i.value) && i.selected).map(i => i.value);
+                        let filters = Lampa.Storage.get('tq_webdl_filters', []);
+                        if (filters.includes(item.value)) {
+                            filters = filters.filter(v => v !== item.value);
+                        } else {
+                            filters.push(item.value);
+                        }
                         Lampa.Storage.set('tq_webdl_filters', filters);
                         filterTorrents(filters);
                         // Обновляем подзаголовок
@@ -106,29 +110,45 @@
                                 modal.querySelectorAll('.selectbox-item').forEach(el => {
                                     const text = el.querySelector('.selectbox-item__title')?.textContent;
                                     if (text && titlesReverse[text]) {
-                                        const correspondingItem = params.items.find(i => i.title === text);
-                                        if (correspondingItem) {
-                                            el.classList.toggle('selectbox-item--checked', correspondingItem.selected);
+                                        if (filters.includes(titlesReverse[text])) {
+                                            el.classList.add('selectbox-item--checked');
+                                        } else {
+                                            el.classList.remove('selectbox-item--checked');
                                         }
                                     }
                                 });
                             }
                         }, 10);
-                        // Делаем модалку видимой
-                        setTimeout(() => {
-                            const modal = document.querySelector('.selectbox');
-                            if (modal) {
-                                modal.style.display = 'block';
-                                modal.style.opacity = '1';
-                                modal.style.visibility = 'visible';
-                            }
-                        }, 20);
-                        return false;
+                        return false; // Не закрываем модалку
                     }
                     return originalOnSelect(item);
                 };
             }
-            return originalShow.call(this, params);
+            const result = originalShow.call(this, params);
+            // Добавляем стиль checkbox после рендера
+            setTimeout(() => {
+                const modal = document.querySelector('.selectbox');
+                if (modal) {
+                    modal.querySelectorAll('.selectbox-item').forEach(el => {
+                        const text = el.querySelector('.selectbox-item__title')?.textContent.trim();
+                        if (text && ['WEB-DL', 'WEB-DLRip', 'Open Matte'].includes(text)) {
+                            el.classList.add('selectbox-item--checkbox');
+                            if (!el.querySelector('.selectbox-item__checkbox')) {
+                                const checkbox = document.createElement('div');
+                                checkbox.className = 'selectbox-item__checkbox';
+                                el.appendChild(checkbox);
+                            }
+                            const filters = Lampa.Storage.get('tq_webdl_filters', []);
+                            if (filters.includes(titlesReverse[text])) {
+                                el.classList.add('selectbox-item--checked');
+                            } else {
+                                el.classList.remove('selectbox-item--checked');
+                            }
+                        }
+                    });
+                }
+            }, 50);
+            return result;
         };
     }
     // === Сброс фильтра ===
