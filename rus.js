@@ -74,31 +74,21 @@
         const historyDiv = document.querySelector('.watched-history.selector');
         if (!historyDiv) return;
         isHooked = true;
-        // Удаляем оригинальное окно
-        if (historyDiv.parentNode) {
-            historyDiv.parentNode.removeChild(historyDiv);
+        // Сохраняем структуру, меняем содержимое body
+        const bodyDiv = historyDiv.querySelector('.watched-history__body');
+        if (bodyDiv) {
+            bodyDiv.innerHTML = '<span></span>';
         }
-        // Создаем новое окно с такой же структурой
-        const filterDiv = document.createElement('div');
-        filterDiv.classList.add('watched-history', 'selector');
-        filterDiv.dataset.name = 'webdl';
-        const iconDiv = document.createElement('div');
-        iconDiv.className = 'watched-history__icon';
-        iconDiv.innerHTML = '<svg><use xlink:href="#sprite-viewed"></use></svg>';
-        filterDiv.appendChild(iconDiv);
-        const bodyDiv = document.createElement('div');
-        bodyDiv.className = 'watched-history__body';
-        bodyDiv.innerHTML = '<span></span>';
-        filterDiv.appendChild(bodyDiv);
         const filterSpan = bodyDiv.querySelector('span');
+        historyDiv.dataset.name = 'webdl';
         // Перемещение в контейнер фильтров
         const qualityItem = document.querySelector('[data-name="quality"]');
         let container = null;
         if (qualityItem) {
             container = qualityItem.parentNode;
-            container.insertBefore(filterDiv, qualityItem.nextSibling);
+            container.insertBefore(historyDiv, qualityItem.nextSibling);
             setTimeout(() => {
-                Lampa.Controller.collectionAppend(filterDiv);
+                Lampa.Controller.collectionAppend(historyDiv);
                 Lampa.Controller.collectionSet(container);
             }, 100);
         }
@@ -110,7 +100,7 @@
         };
         updateFilterText();
         // Установка hover:enter
-        $(filterDiv).on('hover:enter', () => {
+        $(historyDiv).on('hover:enter', () => {
             const previousController = Lampa.Controller.enabled().name;
             const currentValue = Lampa.Storage.get('tq_webdl_filter', 'any');
             const params = {
@@ -126,20 +116,12 @@
                         Lampa.Storage.set('tq_webdl_filter', 'any');
                         filterTorrents('any');
                         updateFilterText();
-                        // Убираем класс selected
-                        setTimeout(() => {
-                            const modal = document.querySelector('.selectbox');
-                            if (modal) {
-                                modal.querySelectorAll('.selectbox-item').forEach(el => {
-                                    const text = el.querySelector('.selectbox-item__title')?.textContent;
-                                    if (text && ['WEB-DL', 'WEB-DLRip', 'Open Matte'].includes(text)) {
-                                        el.classList.remove('selected');
-                                    }
-                                });
-                            }
-                        }, 10);
                         Lampa.Select.hide();
                         Lampa.Controller.toggle(previousController);
+                        setTimeout(() => {
+                            Lampa.Controller.collectionSet(container);
+                            Lampa.Controller.collectionFocus(historyDiv, container);
+                        }, 100);
                         return true;
                     }
                     const isWebdl = ['web-dl', 'web-dlrip', 'openmatte'].includes(item.value);
@@ -149,30 +131,22 @@
                         Lampa.Storage.set('tq_webdl_filter', newValue);
                         filterTorrents(newValue);
                         updateFilterText();
-                        // Обновление selected в DOM
-                        setTimeout(() => {
-                            const modal = document.querySelector('.selectbox');
-                            if (modal) {
-                                modal.querySelectorAll('.selectbox-item').forEach(el => {
-                                    const text = el.querySelector('.selectbox-item__title')?.textContent;
-                                    if (text && ['WEB-DL', 'WEB-DLRip', 'Open Matte'].includes(text)) {
-                                        if (text === item.title && newValue !== 'any') {
-                                            el.classList.add('selected');
-                                        } else {
-                                            el.classList.remove('selected');
-                                        }
-                                    }
-                                });
-                            }
-                        }, 10);
                         Lampa.Select.hide();
                         Lampa.Controller.toggle(previousController);
+                        setTimeout(() => {
+                            Lampa.Controller.collectionSet(container);
+                            Lampa.Controller.collectionFocus(historyDiv, container);
+                        }, 100);
                         return true; // Модалка закрывается
                     }
                 },
                 onBack: () => {
                     Lampa.Select.hide();
                     Lampa.Controller.toggle(previousController);
+                    setTimeout(() => {
+                        Lampa.Controller.collectionSet(container);
+                        Lampa.Controller.collectionFocus(historyDiv, container);
+                    }, 100);
                 }
             };
             Lampa.Select.show(params);
