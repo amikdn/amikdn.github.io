@@ -6,6 +6,7 @@
     let allTorrents = [];
     let currentMovieTitle = null;
     let lastUrl = window.location.search;
+    let isHooked = false;
     // === Получение торрентов ===
     function getTorrentsData() {
         const items = document.querySelectorAll('.torrent-item');
@@ -64,8 +65,10 @@
     }
     // === Перемещение фильтра в div watched-history ===
     function hookHistoryDiv() {
+        if (isHooked) return;
         const historyDiv = document.querySelector('.watched-history.selector');
         if (!historyDiv) return;
+        isHooked = true;
         // Очистка
         historyDiv.innerHTML = '';
         historyDiv.classList.remove('watched-history');
@@ -123,6 +126,13 @@
             Lampa.Select.show(params);
         });
     }
+    // === Observer для обнаружения div ===
+    function setupHistoryObserver() {
+        const observer = new MutationObserver(() => {
+            hookHistoryDiv();
+        });
+        observer.observe(document.body, { childList: true, subtree: true });
+    }
     // === URL смена ===
     function setupUrlChange() {
         const origPush = history.pushState;
@@ -145,6 +155,7 @@
                     currentMovieTitle = newTitle;
                     lastUrl = url;
                     applyFilterOnLoad();
+                    isHooked = false; // Reset hook for new page
                 }
             }
         }
@@ -177,7 +188,7 @@
             });
             return;
         }
-        hookHistoryDiv();
+        setupHistoryObserver();
         setupUrlChange();
         applyFilterOnLoad();
     }
