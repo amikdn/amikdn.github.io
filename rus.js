@@ -74,6 +74,7 @@
         const historyDiv = document.querySelector('.watched-history.selector');
         if (!historyDiv) return;
         isHooked = true;
+        historyDiv.classList.remove('watched-history');
         // Сохраняем структуру, меняем содержимое body
         const bodyDiv = historyDiv.querySelector('.watched-history__body');
         const filterSpan = bodyDiv ? bodyDiv.querySelector('span') : null;
