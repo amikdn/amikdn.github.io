@@ -51,11 +51,9 @@
                 // Подписываемся на событие загрузки карточки фильма/сериала
                 Lampa.Listener.follow("full", function (event) {
                     if (Lampa.Activity.active().component == "full") {
-                        if (event.type == "complite") {
+                        if (event.type == "complete") {
                             let movieData = Lampa.Activity.active().card;
                             if (
-                                movieData.source &&
-                                movieData.source == "tmdb" &&
                                 movieData.seasons &&
                                 movieData.last_episode_to_air &&
                                 movieData.last_episode_to_air.season_number
