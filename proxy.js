@@ -2,7 +2,7 @@
     'use strict';
     Lampa.Platform.tv();
 
-    // TMDB Proxy definition
+    // Определение прокси TMDB
     var tmdb_proxy = {
         name: 'TMDB Proxy with Fixes',
         version: '1.0.3',
@@ -11,28 +11,28 @@
         path_api: 'apitmdb.' + (Lampa.Manifest && Lampa.Manifest.cub_domain ? Lampa.Manifest.cub_domain : 'cub.red') + '/3/'
     };
 
-    // Override TMDB image URL
+    // Переопределение URL изображения TMDB
     Lampa.TMDB.image = function (url) {
         var base = Lampa.Utils.protocol() + 'image.tmdb.org/' + url;
         return Lampa.Storage.field('proxy_tmdb') ? Lampa.Utils.protocol() + tmdb_proxy.path_image + url : base;
     };
 
-    // Override TMDB API URL
+    // Переопределение URL API TMDB
     Lampa.TMDB.api = function (url) {
         var base = Lampa.Utils.protocol() + 'api.themoviedb.org/3/' + url;
         return Lampa.Storage.field('proxy_tmdb') ? '//tmdb.abmsx.tech/3/' + url : base;
     };
 
-    // Remove proxy settings element in TMDB settings
+    // Удаление элемента настроек прокси в настройках TMDB
     Lampa.Settings.listener.follow('open', function (e) {
         if (e.name == 'tmdb') {
             e.body.find('[data-parent="proxy"]').remove();
         }
     });
 
-    // Initialization for handling blocked requests and settings modifications
+    // Инициализация для обработки заблокированных запросов и модификаций настроек
     function init() {
-        // Subscribe to event for handling blocked requests
+        // Подписка на событие для обработки заблокированных запросов
         Lampa.Listener.follow('request_secuses', function (event) {
             if (event.data.blocked) {
                 var activeActivity = Lampa.Activity.active();
@@ -43,7 +43,7 @@
             }
         });
 
-        // Interval for checking and modifying settings
+        // Интервал для проверки и модификации настроек
         var interval = setInterval(function () {
             if (typeof window.lampa_settings !== 'undefined' && (window.lampa_settings.fixdcma || window.lampa_settings.dcma)) {
                 clearInterval(interval);
@@ -54,7 +54,7 @@
         }, 100);
     }
 
-    // Run init if app is ready, otherwise listen for ready event
+    // Запуск init, если приложение готово, иначе прослушивание события ready
     if (window.appready) {
         init();
     } else {
