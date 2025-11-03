@@ -236,13 +236,9 @@
                 display: flex;
                 align-items: center !important;
             }
-            @media (max-width: 767px) and (orientation: portrait) {
-                .rate--lampa {
+            @media (max-width: 480px) and (orientation: portrait) {
+                .full-start__rate.rate--lampa {
                     min-width: 80px;
-                    padding: 0 5px;
-                }
-                .rate--lampa .rate-icon img {
-                    margin: 0 0.1em;
                 }
             }
         `;
