@@ -1,6 +1,5 @@
 (function () {
     'use strict';
-
     const ratingCache = {
         caches: {},
         get(source, key) {
@@ -23,12 +22,10 @@
             return value;
         }
     };
-
     const CACHE_TIME = 24 * 60 * 60 * 1000;
     let taskQueue = [];
     let isProcessing = false;
     const taskInterval = 300;
-
     let requestPool = [];
     function getRequest() {
         return requestPool.pop() || new Lampa.Reguest();
@@ -37,7 +34,6 @@
         request.clear();
         if (requestPool.length < 3) requestPool.push(request);
     }
-
     function processQueue() {
         if (isProcessing || !taskQueue.length) return;
         isProcessing = true;
@@ -52,7 +48,6 @@
         taskQueue.push({ execute: task });
         processQueue();
     }
-
     function calculateLampaRating10(reactions) {
         let weightedSum = 0;
         let totalCount = 0;
@@ -81,7 +76,6 @@
         }
         return { rating: finalRating, medianReaction: medianReaction };
     }
-
     function fetchLampaRating(ratingKey) {
         return new Promise((resolve) => {
             const request = getRequest();
@@ -106,7 +100,6 @@
             }, false);
         });
     }
-
     async function getLampaRating(ratingKey) {
         const cached = ratingCache.get('lampa_rating', ratingKey);
         if (cached) return cached;
@@ -117,7 +110,6 @@
             return { rating: 0, medianReaction: '' };
         }
     }
-
     function insertLampaBlock(render) {
         if (!render) return false;
         let rateLine = $(render).find('.full-start-new__rate-line');
@@ -136,7 +128,6 @@
         }
         return true;
     }
-
     function insertCardRating(card, event) {
         let voteEl = card.querySelector('.card__vote');
         if (!voteEl) {
@@ -200,7 +191,6 @@
             });
         });
     }
-
     function pollCards() {
         const allCards = document.querySelectorAll('.card');
         allCards.forEach(card => {
@@ -225,7 +215,6 @@
         });
         setTimeout(pollCards, 500);
     }
-
     function setupCardListener() {
         if (window.lampa_listener_extensions) return;
         window.lampa_listener_extensions = true;
@@ -239,7 +228,6 @@
             }
         });
     }
-
     function initPlugin() {
         const style = document.createElement('style');
         style.type = 'text/css';
@@ -247,6 +235,15 @@
             .card__vote {
                 display: flex;
                 align-items: center !important;
+            }
+            @media (max-width: 767px) and (orientation: portrait) {
+                .rate--lampa {
+                    min-width: 80px;
+                    padding: 0 5px;
+                }
+                .rate--lampa .rate-icon img {
+                    margin: 0 0.1em;
+                }
             }
         `;
         document.head.appendChild(style);
@@ -294,7 +291,6 @@
             }
         });
     }
-
     if (window.appready) {
         initPlugin();
     } else {
