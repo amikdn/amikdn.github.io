@@ -48,9 +48,10 @@
             });
 
             if (Lampa.Storage.get("season_and_episode") !== false) {
+                // Подписываемся на событие загрузки карточки фильма/сериала
                 Lampa.Listener.follow("full", function (event) {
                     if (Lampa.Activity.active().component == "full") {
-                        if (event.type == "complete") {
+                        if (event.type == "complite") {
                             let movieData = Lampa.Activity.active().card;
                             if (
                                 movieData.source &&
