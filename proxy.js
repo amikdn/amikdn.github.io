@@ -2,30 +2,30 @@
     'use strict';
     Lampa.Platform.tv();
 
-    // Plugin definition for TMDB proxy
-    var plugin = {
-        name: 'TMDB My Proxy with Fixes',
-        version: '1.0.1',
+    // TMDB Proxy definition
+    var tmdb_proxy = {
+        name: 'TMDB Proxy with Fixes',
+        version: '1.0.3',
         description: 'Проксирование постеров и API сайта TMDB с дополнительными исправлениями',
-        path_image: Lampa.Utils.protocol() + 'tmdbimg.bylampa.online/',
-        path_api: Lampa.Utils.protocol() + 'tmdbapi.bylampa.online/3/'
+        path_image: 'tmdbimage.abmsx.tech/',
+        path_api: 'apitmdb.' + (Lampa.Manifest && Lampa.Manifest.cub_domain ? Lampa.Manifest.cub_domain : 'cub.red') + '/3/'
     };
 
     // Override TMDB image URL
     Lampa.TMDB.image = function (url) {
         var base = Lampa.Utils.protocol() + 'image.tmdb.org/' + url;
-        return Lampa.Storage.field('proxy_tmdb') ? plugin.path_image + url : base;
+        return Lampa.Storage.field('proxy_tmdb') ? Lampa.Utils.protocol() + tmdb_proxy.path_image + url : base;
     };
 
     // Override TMDB API URL
     Lampa.TMDB.api = function (url) {
         var base = Lampa.Utils.protocol() + 'api.themoviedb.org/3/' + url;
-        return Lampa.Storage.field('proxy_tmdb') ? plugin.path_api + url : base;
+        return Lampa.Storage.field('proxy_tmdb') ? '//tmdb.abmsx.tech/3/' + url : base;
     };
 
     // Remove proxy settings element in TMDB settings
     Lampa.Settings.listener.follow('open', function (e) {
-        if (e.name === 'tmdb') {
+        if (e.name == 'tmdb') {
             e.body.find('[data-parent="proxy"]').remove();
         }
     });
