@@ -48,7 +48,6 @@
             });
 
             if (Lampa.Storage.get("season_and_episode") !== false) {
-                // Подписываемся на событие загрузки карточки фильма/сериала
                 Lampa.Listener.follow("full", function (event) {
                     if (Lampa.Activity.active().component == "full") {
                         if (event.type == "complete") {
@@ -75,16 +74,16 @@
                                 if (!$(".card--new_seria", Lampa.Activity.active().activity.render()).length) {
                                     if (window.innerWidth > 585) {
                                         $(".full-start__poster,.full-start-new__poster", Lampa.Activity.active().activity.render()).append(
-                                            `<div class='card--new_seria' style=' right: -0.6em!important; position: absolute; background: #df1616; color: #fff; bottom: .6em!important; padding: 0.4em 0.4em; font-size: 1.2em; border-radius: 0.3em;'> ${Lampa.Lang.translate(seasonInfo)} </div>`
+                                            `<div class='card--new_seria' style=' right: -0.6em!important; position: absolute; background: #df1616; color: #fff; bottom: .6em!important; padding: 0.4em 0.4em; font-size: 1.2em; border-radius: 0.3em;'> ${seasonInfo} </div>`
                                         );
                                     } else {
                                         if ($(".card--new_seria", Lampa.Activity.active().activity.render()).length) {
                                             $(".full-start__tags", Lampa.Activity.active().activity.render()).append(
-                                                `<div class="full-start__tag card--new_seria"> <img src="./img/icons/menu/movie.svg" /> <div>${Lampa.Lang.translate(seasonInfo)}</div> </div>`
+                                                `<div class="full-start__tag card--new_seria"> <img src="./img/icons/menu/movie.svg" /> <div>${seasonInfo}</div> </div>`
                                             );
                                         } else {
                                             $(".full-start-new__details", Lampa.Activity.active().activity.render()).append(
-                                                `<span class="full-start-new__split">●</span> <div class="card--new_seria"> <div>${Lampa.Lang.translate(seasonInfo)}</div> </div>`
+                                                `<span class="full-start-new__split">●</span> <div class="card--new_seria"> <div>${seasonInfo}</div> </div>`
                                             );
                                         }
                                     }
