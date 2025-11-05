@@ -1,349 +1,294 @@
 (function() {
     'use strict';
 
-    // Константы и настройки
-    var Q_LOGGING = false; // Логирование качества
-    var Q_CACHE_TIME = 24 * 60 * 60 * 1000; // Время кэша качества (24 часа)
-    var QUALITY_CACHE = 'qualview_quality_cache';
-    var JACRED_PROTOCOL = 'https://';
-    var JACRED_URL = 'jacred.xyz';
-    var JACRED_API_KEY = ''; // Укажите ключ, если требуется
+    // Определение констант
+    var CACHE_DURATION = 24 * 60 * 60 * 1000; // Срок хранения кэша качества
+    var CACHE_STORAGE_KEY = 'qualview_quality_cache';
+    var PROTOCOL_JACRED = 'https://';
+    var DOMAIN_JACRED = 'jacred.xyz';
+    var API_KEY_JACRED = ''; // Введите ключ при необходимости
 
-    // Перевод качества
-    function translateQuality(quality) {
-        switch(quality) {
+    // Функция преобразования качества
+    function convertQuality(resolution) {
+        switch(resolution) {
             case 2160: return '4K';
             case 1080: return 'FHD';
             case 720: return 'HD';
             case 'TS': return 'TS';
-            default: return quality >= 720 ? 'HD' : 'SD';
+            default: return resolution >= 720 ? 'HD' : 'SD';
         }
     }
 
-    // Проверка на экранку
-    var stopWords = ['camrip', 'камрип', 'ts', 'telecine', 'telesync', 'telesynch', 'upscale', 'tc', 'тс'];
-    var stopWordsPatterns = stopWords.map(word => new RegExp('\\b' + word + '\\b', 'i'));
+    // Проверка на низкокачественные копии
+    var forbiddenTerms = ['camrip', 'камрип', 'ts', 'telecine', 'telesync', 'telesynch', 'upscale', 'tc', 'тс'];
+    var forbiddenPatterns = forbiddenTerms.map(term => new RegExp('\\b' + term + '\\b', 'i'));
 
-    function isScreenCopy(title) {
+    function detectLowQuality(title) {
         if (!title) return false;
-        var lower = title.toLowerCase();
-        return stopWordsPatterns.some(pattern => pattern.test(lower));
+        var lowercaseTitle = title.toLowerCase();
+        return forbiddenPatterns.some(pattern => pattern.test(lowercaseTitle));
     }
 
-    // Получение типа карточки
-    function getCardType(card) {
-        var type = card.media_type || card.type;
-        if (type === 'movie' || type === 'tv') return type;
-        return card.name || card.original_name ? 'tv' : 'movie';
+    // Определение типа контента
+    function determineType(item) {
+        var contentType = item.media_type || item.type;
+        if (contentType === 'movie' || contentType === 'tv') return contentType;
+        return item.name || item.original_name ? 'tv' : 'movie';
     }
 
-    // Получение качества из JacRed
-    function getBestReleaseFromJacred(normalizedCard, localCurrentCard, callback) {
-        if (Q_LOGGING) console.log("QUALVIEW", "card: " + localCurrentCard + ", JacRed: Optimized search");
+    // Запрос лучшего релиза из JacRed
+    function fetchOptimalRelease(normalizedItem, itemId, onComplete) {
+        var HIGHEST_RES = 2160;
+        var detectedForbidden = false;
 
-        var MAX_QUALITY = 2160;
-        var findStopWords = false;
+        function containsText(input) { return /[a-zа-яё]/i.test(input || ''); }
+        function isNumericOnly(input) { return /^\d+$/.test(input); }
 
-        function hasLetters(str) { return /[a-zа-яё]/i.test(str || ''); }
-        function onlyDigits(str) { return /^\d+$/.test(str); }
-
-        // Извлечение года
-        var year = '';
-        var dateStr = normalizedCard.release_date || '';
-        if (dateStr.length >= 4) year = dateStr.substring(0, 4);
-        if (!year || isNaN(year)) {
-            if (Q_LOGGING) console.log("QUALVIEW", "card: " + localCurrentCard + ", JacRed: Missing/invalid year");
-            callback(null);
+        // Получение года выпуска
+        var releaseYear = '';
+        var dateString = normalizedItem.release_date || '';
+        if (dateString.length >= 4) releaseYear = dateString.substring(0, 4);
+        if (!releaseYear || isNaN(releaseYear)) {
+            onComplete(null);
             return;
         }
 
-        var uid = Lampa.Storage.get('lampac_unic_id', '');
-        var apiUrl = JACRED_PROTOCOL + JACRED_URL + '/api/v2.0/indexers/all/results?' +
-            'apikey=' + JACRED_API_KEY + '&uid=' + uid + '&year=' + year;
+        var uniqueId = Lampa.Storage.get('lampac_unic_id', '');
+        var requestUrl = PROTOCOL_JACRED + DOMAIN_JACRED + '/api/v2.0/indexers/all/results?' +
+            'apikey=' + API_KEY_JACRED + '&uid=' + uniqueId + '&year=' + releaseYear;
 
-        var hasTitle = false;
-        if (normalizedCard.title && (hasLetters(normalizedCard.title) || onlyDigits(normalizedCard.title))) {
-            apiUrl += '&title=' + encodeURIComponent(normalizedCard.title.trim());
-            hasTitle = true;
+        var titlePresent = false;
+        if (normalizedItem.title && (containsText(normalizedItem.title) || isNumericOnly(normalizedItem.title))) {
+            requestUrl += '&title=' + encodeURIComponent(normalizedItem.title.trim());
+            titlePresent = true;
         }
-        if (normalizedCard.original_title && (hasLetters(normalizedCard.original_title) || onlyDigits(normalizedCard.original_title))) {
-            apiUrl += '&title_original=' + encodeURIComponent(normalizedCard.original_title.trim());
-            hasTitle = true;
+        if (normalizedItem.original_title && (containsText(normalizedItem.original_title) || isNumericOnly(normalizedItem.original_title))) {
+            requestUrl += '&title_original=' + encodeURIComponent(normalizedItem.original_title.trim());
+            titlePresent = true;
         }
-        if (!hasTitle) {
-            if (Q_LOGGING) console.log("QUALVIEW", "card: " + localCurrentCard + ", JacRed: No valid titles");
-            callback(null);
+        if (!titlePresent) {
+            onComplete(null);
             return;
         }
 
-        if (Q_LOGGING) console.log("QUALVIEW", "card: " + localCurrentCard + ", JacRed: Unified Request URL: " + apiUrl);
-
-        new Lampa.Reguest().silent(apiUrl, function(response) {
-            if (!response) {
-                if (Q_LOGGING) console.log("QUALVIEW", "card: " + localCurrentCard + ", JacRed: Request failed");
-                callback(null);
+        new Lampa.Reguest().silent(requestUrl, function(responseData) {
+            if (!responseData) {
+                onComplete(null);
                 return;
             }
             try {
-                var data = typeof response === 'string' ? JSON.parse(response) : response;
-                var torrents = data.Results || [];
-                if (!Array.isArray(torrents)) torrents = [];
-                if (torrents.length === 0) {
-                    if (Q_LOGGING) console.log("QUALVIEW", "card: " + localCurrentCard + ", JacRed: Empty response");
-                    callback(null);
+                var parsedData = typeof responseData === 'string' ? JSON.parse(responseData) : responseData;
+                var releases = parsedData.Results || [];
+                if (!Array.isArray(releases)) releases = [];
+                if (releases.length === 0) {
+                    onComplete(null);
                     return;
                 }
 
-                var bestQuality = -1;
-                var bestTorrent = null;
-                var searchYearNum = parseInt(year, 10);
-                var prevYear = searchYearNum - 1;
+                var optimalRes = -1;
+                var optimalRelease = null;
+                var targetYear = parseInt(releaseYear, 10);
+                var priorYear = targetYear - 1;
 
-                for (var i = 0; i < torrents.length; i++) {
-                    var t = torrents[i];
-                    var info = t.info || t.Info || {};
-                    var usedQuality = info.quality;
-                    var usedYear = info.relased;
-                    var titleForCheck = t.Title || '';
+                for (var index = 0; index < releases.length; index++) {
+                    var release = releases[index];
+                    var details = release.info || release.Info || {};
+                    var resValue = details.quality;
+                    var yearValue = details.relased;
+                    var checkTitle = release.Title || '';
 
-                    if (typeof usedQuality !== 'number' || usedQuality === 0) continue;
+                    if (typeof resValue !== 'number' || resValue === 0) continue;
 
-                    var yearValid = false;
-                    var parsedYear = 0;
-                    if (usedYear && !isNaN(usedYear)) {
-                        parsedYear = parseInt(usedYear, 10);
-                        if (parsedYear > 1900) yearValid = true;
+                    var validYear = false;
+                    var extractedYear = 0;
+                    if (yearValue && !isNaN(yearValue)) {
+                        extractedYear = parseInt(yearValue, 10);
+                        if (extractedYear > 1900) validYear = true;
                     }
-                    if (!yearValid) continue;
+                    if (!validYear) continue;
 
-                    if (parsedYear !== searchYearNum && parsedYear !== prevYear) continue;
+                    if (extractedYear !== targetYear && extractedYear !== priorYear) continue;
 
-                    if (isScreenCopy(titleForCheck)) {
-                        findStopWords = true;
+                    if (detectLowQuality(checkTitle)) {
+                        detectedForbidden = true;
                         continue;
                     }
 
-                    if (usedQuality === MAX_QUALITY) {
-                        if (Q_LOGGING) console.log("QUALVIEW", "card: " + localCurrentCard + ", JacRed: Found MAX quality: " + usedQuality);
-                        callback({ quality: translateQuality(usedQuality), title: titleForCheck });
+                    if (resValue === HIGHEST_RES) {
+                        onComplete({ quality: convertQuality(resValue), title: checkTitle });
                         return;
                     }
 
-                    if (usedQuality > bestQuality) {
-                        bestQuality = usedQuality;
-                        bestTorrent = { title: titleForCheck, quality: usedQuality, year: parsedYear };
+                    if (resValue > optimalRes) {
+                        optimalRes = resValue;
+                        optimalRelease = { title: checkTitle, quality: resValue, year: extractedYear };
                     }
                 }
 
-                if (bestTorrent) {
-                    var translatedQuality = translateQuality(bestTorrent.quality);
-                    if (Q_LOGGING) console.log("QUALVIEW", "card: " + localCurrentCard + ", JacRed: Found torrent: " + bestTorrent.title + " quality: " + translatedQuality);
-                    callback({ quality: translatedQuality, title: bestTorrent.title });
-                } else if (findStopWords) {
-                    if (Q_LOGGING) console.log("QUALVIEW", "card: " + localCurrentCard + ", JacRed: Screen copy detected");
-                    callback({ quality: translateQuality('TS'), title: "NOT SAVED" });
+                if (optimalRelease) {
+                    var convertedRes = convertQuality(optimalRelease.quality);
+                    onComplete({ quality: convertedRes, title: optimalRelease.title });
+                } else if (detectedForbidden) {
+                    onComplete({ quality: convertQuality('TS'), title: "NOT SAVED" });
                 } else {
-                    if (Q_LOGGING) console.log("QUALVIEW", "card: " + localCurrentCard + ", JacRed: No suitable torrents found");
-                    callback(null);
+                    onComplete(null);
                 }
-            } catch (e) {
-                if (Q_LOGGING) console.log("QUALVIEW", "card: " + localCurrentCard + ", JacRed: Processing error: " + e.message);
-                callback(null);
+            } catch (error) {
+                onComplete(null);
             }
         });
     }
 
-    // Кэширование качества
-    function getQualityCache(key) {
-        var cache = Lampa.Storage.get(QUALITY_CACHE) || {};
-        var item = cache[key];
-        return item && (Date.now() - item.timestamp < Q_CACHE_TIME) ? item : null;
+    // Управление кэшем качества
+    function retrieveQualityCache(entryKey) {
+        var storedCache = Lampa.Storage.get(CACHE_STORAGE_KEY) || {};
+        var cacheEntry = storedCache[entryKey];
+        return cacheEntry && (Date.now() - cacheEntry.timestamp < CACHE_DURATION) ? cacheEntry : null;
     }
 
-    function saveQualityCache(key, data) {
-        var cache = Lampa.Storage.get(QUALITY_CACHE) || {};
-        cache[key] = { quality: data.quality || null, timestamp: Date.now() };
-        Lampa.Storage.set(QUALITY_CACHE, cache);
+    function storeQualityCache(entryKey, entryData) {
+        var storedCache = Lampa.Storage.get(CACHE_STORAGE_KEY) || {};
+        storedCache[entryKey] = { quality: entryData.quality || null, timestamp: Date.now() };
+        Lampa.Storage.set(CACHE_STORAGE_KEY, storedCache);
     }
 
-    // Отображение качества внутри карточки
-    function fetchQualityForCard(card, render) {
-        var normalizedCard = {
-            id: card.id,
-            title: card.title || card.name || '',
-            original_title: card.original_title || card.original_name || '',
-            release_date: card.release_date || card.first_air_date || '',
-            type: getCardType(card)
+    // Загрузка качества для детальной карточки
+    function loadQualityForDetail(item, viewRenderer) {
+        var standardizedItem = {
+            id: item.id,
+            title: item.title || item.name || '',
+            original_title: item.original_title || item.original_name || '',
+            release_date: item.release_date || item.first_air_date || '',
+            type: determineType(item)
         };
-        var localCurrentCard = normalizedCard.id;
-        var qCacheKey = normalizedCard.type + '_' + normalizedCard.id;
+        var itemIdentifier = standardizedItem.id;
+        var cacheEntryKey = standardizedItem.type + '_' + standardizedItem.id;
 
-        if (localStorage.getItem('qualview_quality') !== 'true') return;
-        if (localStorage.getItem('qualview_quality_tv') === 'false' && normalizedCard.type === 'tv') return;
-
-        var cacheQualityData = getQualityCache(qCacheKey);
-        if (cacheQualityData) {
-            updateQualityElement(cacheQualityData.quality, render);
+        var cachedQuality = retrieveQualityCache(cacheEntryKey);
+        if (cachedQuality) {
+            refreshQualityDisplay(cachedQuality.quality, viewRenderer);
         } else {
-            showQualityPlaceholder(render);
-            getBestReleaseFromJacred(normalizedCard, localCurrentCard, function(jrResult) {
-                var quality = (jrResult && jrResult.quality) || null;
-                if (quality && quality !== 'NO') {
-                    saveQualityCache(qCacheKey, { quality: quality });
-                    updateQualityElement(quality, render);
+            displayQualityLoader(viewRenderer);
+            fetchOptimalRelease(standardizedItem, itemIdentifier, function(releaseResult) {
+                var resQuality = (releaseResult && releaseResult.quality) || null;
+                if (resQuality && resQuality !== 'NO') {
+                    storeQualityCache(cacheEntryKey, { quality: resQuality });
+                    refreshQualityDisplay(resQuality, viewRenderer);
                 } else {
-                    clearQualityElements(render);
+                    removeQualityElements(viewRenderer);
                 }
             });
         }
     }
 
-    function updateQualityElement(quality, render) {
-        if (!render) return;
-        var rateLine = $('.full-start-new__rate-line', render);
-        if (!rateLine.length) return;
-        var element = $('.full-start__status.qualview-quality', render);
-        if (element.length) {
-            element.text(quality).css('opacity', '1');
+    function refreshQualityDisplay(resQuality, viewRenderer) {
+        if (!viewRenderer) return;
+        var ratingSection = $('.full-start-new__rate-line', viewRenderer);
+        if (!ratingSection.length) return;
+        var qualityDisplay = $('.full-start__status.qualview-quality', viewRenderer);
+        if (qualityDisplay.length) {
+            qualityDisplay.text(resQuality).css('opacity', '1');
         } else {
-            var div = $('<div class="full-start__status qualview-quality">' + quality + '</div>');
-            rateLine.append(div);
+            var newDisplay = $('<div class="full-start__status qualview-quality">' + resQuality + '</div>');
+            ratingSection.append(newDisplay);
         }
     }
 
-    function showQualityPlaceholder(render) {
-        if (!render) return;
-        var rateLine = $('.full-start-new__rate-line', render);
-        if (rateLine.length && !$('.full-start__status.qualview-quality', render).length) {
-            var placeholder = $('<div class="full-start__status qualview-quality">...</div>');
-            placeholder.css('opacity', '0.7');
-            rateLine.append(placeholder);
+    function displayQualityLoader(viewRenderer) {
+        if (!viewRenderer) return;
+        var ratingSection = $('.full-start-new__rate-line', viewRenderer);
+        if (ratingSection.length && !$('.full-start__status.qualview-quality', viewRenderer).length) {
+            var loaderElement = $('<div class="full-start__status qualview-quality">...</div>');
+            loaderElement.css('opacity', '0.7');
+            ratingSection.append(loaderElement);
         }
     }
 
-    function clearQualityElements(render) {
-        if (render) $('.full-start__status.qualview-quality', render).remove();
+    function removeQualityElements(viewRenderer) {
+        if (viewRenderer) $('.full-start__status.qualview-quality', viewRenderer).remove();
     }
 
-    // Отображение качества на карточках в списке
-    function updateListCards(cards) {
-        for (var i = 0; i < cards.length; i++) {
-            var card = cards[i];
-            if (card.hasAttribute('data-quality-added')) continue;
+    // Обновление качества на карточках списка
+    function refreshListItems(itemsList) {
+        for (var idx = 0; idx < itemsList.length; idx++) {
+            var itemElement = itemsList[idx];
+            if (itemElement.hasAttribute('data-quality-added')) continue;
 
-            var data = card.card_data;
-            if (!data) continue;
+            var itemInfo = itemElement.card_data;
+            if (!itemInfo) continue;
 
-            var normalizedCard = {
-                id: data.id || '',
-                title: data.title || data.name || '',
-                original_title: data.original_title || data.original_name || '',
-                release_date: data.release_date || data.first_air_date || '',
-                type: getCardType(data)
+            var standardizedInfo = {
+                id: itemInfo.id || '',
+                title: itemInfo.title || itemInfo.name || '',
+                original_title: itemInfo.original_title || itemInfo.original_name || '',
+                release_date: itemInfo.release_date || itemInfo.first_air_date || '',
+                type: determineType(itemInfo)
             };
 
-            var isTvSeries = card.querySelector('.card__type') !== null;
-            if (isTvSeries && localStorage.getItem('qualview_quality_tv') === 'false') continue;
-
-            (function(currentCard, normCard, qKey) {
-                var cacheData = getQualityCache(qKey);
-                if (cacheData) {
-                    applyQualityToListCard(currentCard, cacheData.quality);
+            (function(currElement, stdInfo, entryKey) {
+                var cachedEntry = retrieveQualityCache(entryKey);
+                if (cachedEntry) {
+                    applyQualityToItem(currElement, cachedEntry.quality);
                 } else {
-                    applyQualityToListCard(currentCard, '...');
-                    getBestReleaseFromJacred(normCard, normCard.id, function(result) {
-                        var quality = (result && result.quality) || null;
-                        applyQualityToListCard(currentCard, quality);
-                        if (quality && quality !== 'NO') saveQualityCache(qKey, { quality: quality });
+                    applyQualityToItem(currElement, '...');
+                    fetchOptimalRelease(stdInfo, stdInfo.id, function(releaseData) {
+                        var resQuality = (releaseData && releaseData.quality) || null;
+                        applyQualityToItem(currElement, resQuality);
+                        if (resQuality && resQuality !== 'NO') storeQualityCache(entryKey, { quality: resQuality });
                     });
                 }
-            })(card, normalizedCard, normalizedCard.type + '_' + normalizedCard.id);
+            })(itemElement, standardizedInfo, standardizedInfo.type + '_' + standardizedInfo.id);
         }
     }
 
-    function applyQualityToListCard(card, quality) {
-        if (!document.body.contains(card)) return;
-        card.setAttribute('data-quality-added', 'true');
-        var cardView = card.querySelector('.card__view');
-        if (!cardView) return;
+    function applyQualityToItem(itemElement, resQuality) {
+        if (!document.body.contains(itemElement)) return;
+        itemElement.setAttribute('data-quality-added', 'true');
+        var viewSection = itemElement.querySelector('.card__view');
+        if (!viewSection) return;
 
-        var qualityElements = cardView.querySelectorAll('.card__quality');
-        Array.from(qualityElements).forEach(el => el.remove());
+        var existingQuality = viewSection.querySelectorAll('.card__quality');
+        Array.from(existingQuality).forEach(el => el.remove());
 
-        if (quality && quality !== 'NO') {
-            var qualityDiv = document.createElement('div');
-            qualityDiv.className = 'card__quality';
-            var inner = document.createElement('div');
-            inner.textContent = quality;
-            qualityDiv.appendChild(inner);
-            cardView.appendChild(qualityDiv);
+        if (resQuality && resQuality !== 'NO') {
+            var qualityContainer = document.createElement('div');
+            qualityContainer.className = 'card__quality';
+            var innerContainer = document.createElement('div');
+            innerContainer.textContent = resQuality;
+            qualityContainer.appendChild(innerContainer);
+            viewSection.appendChild(qualityContainer);
         }
     }
 
-    // Наблюдатель за DOM
-    var observer = new MutationObserver(function(mutations) {
-        var newCards = [];
-        mutations.forEach(function(mutation) {
-            if (mutation.addedNodes) {
-                mutation.addedNodes.forEach(function(node) {
-                    if (node.nodeType === 1) {
-                        if (node.classList.contains('card')) newCards.push(node);
-                        node.querySelectorAll('.card').forEach(c => newCards.push(c));
+    // Наблюдатель изменений DOM
+    var domWatcher = new MutationObserver(function(changes) {
+        var addedItems = [];
+        changes.forEach(function(change) {
+            if (change.addedNodes) {
+                change.addedNodes.forEach(function(nodeElem) {
+                    if (nodeElem.nodeType === 1) {
+                        if (nodeElem.classList.contains('card')) addedItems.push(nodeElem);
+                        nodeElem.querySelectorAll('.card').forEach(c => addedItems.push(c));
                     }
                 });
             }
         });
-        if (newCards.length) updateListCards(newCards);
+        if (addedItems.length) refreshListItems(addedItems);
     });
 
-    // Инициализация плагина
-    function startQualityPlugin() {
+    // Запуск плагина
+    function initializePlugin() {
         window.qualviewQualityPlugin = true;
 
-        if (!localStorage.getItem('qualview_quality')) localStorage.setItem('qualview_quality', 'true');
-        if (!localStorage.getItem('qualview_quality_inlist')) localStorage.setItem('qualview_quality_inlist', 'true');
-        if (!localStorage.getItem('qualview_quality_tv')) localStorage.setItem('qualview_quality_tv', 'true');
+        domWatcher.observe(document.body, { childList: true, subtree: true });
 
-        Lampa.SettingsApi.addComponent({ component: "qualview_quality", name: "Качество видео", icon: '<svg>...</svg>' }); // Укажите иконку
-
-        Lampa.SettingsApi.addParam({
-            component: "qualview_quality",
-            param: { name: "qualview_quality", type: "trigger", default: true },
-            field: { name: "Качество внутри карточек", description: '' },
-            onChange: function(value) {}
-        });
-
-        Lampa.SettingsApi.addParam({
-            component: "qualview_quality",
-            param: { name: "qualview_quality_inlist", type: "trigger", default: true },
-            field: { name: "Качество на карточках в списке", description: '' },
-            onChange: function(value) {
-                if (value === 'true') {
-                    observer.observe(document.body, { childList: true, subtree: true });
-                } else {
-                    observer.disconnect();
-                }
-            }
-        });
-
-        Lampa.SettingsApi.addParam({
-            component: "qualview_quality",
-            param: { name: "qualview_quality_tv", type: "trigger", default: true },
-            field: { name: "Качество для сериалов", description: '' },
-            onChange: function(value) {}
-        });
-
-        if (localStorage.getItem('qualview_quality_inlist') === 'true') {
-            observer.observe(document.body, { childList: true, subtree: true });
-        }
-
-        Lampa.Listener.follow('full', function(e) {
-            if (e.type === 'complite') {
-                var render = e.object.activity.render();
-                fetchQualityForCard(e.data.movie, render);
+        Lampa.Listener.follow('full', function(event) {
+            if (event.type === 'complite') {
+                var activeRender = event.object.activity.render();
+                loadQualityForDetail(event.data.movie, activeRender);
             }
         });
     }
 
-    if (!window.qualviewQualityPlugin) startQualityPlugin();
+    if (!window.qualviewQualityPlugin) initializePlugin();
 })();
