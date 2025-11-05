@@ -2,8 +2,8 @@
     'use strict';
     Lampa.Platform.tv();
 
-   // (function() {
-    //    'use strict';
+    (function() {
+        'use strict';
 
         function CardEpisode(data) {
             var object = data.item || data,
@@ -780,7 +780,7 @@
                             if (Lampa.Storage.get('rus_movie_display') == '4') {
                                 data.line_type = 'top';
                             }
-                            if (Lampa.Storage.get('rus_movi_shuffle') == true) shuffle(data.results);
+                            if (Lampa.Storage.get('rus_movie_shuffle') == true) shuffle(data.results);
                             callback(data);
                         }, callback);
                     },
@@ -956,7 +956,7 @@
                             if (Lampa.Storage.get('kinopoisk_display') == '4') {
                                 data.line_type = 'top';
                             }
-                            if (Lampa.Storage.get('kinopois_shuffle') == true) shuffle(data.results);
+                            if (Lampa.Storage.get('kinopoisk_shuffle') == true) shuffle(data.results);
                             callback(data);
                         }, callback);
                     },
