@@ -192,6 +192,14 @@
             var newDisplay = $('<div class="full-start__status qualview-quality">' + resQuality + '</div>');
             ratingSection.append(newDisplay);
         }
+
+        var detailsSection = $('.full-start-new__details', viewRenderer);
+        if (detailsSection.length) {
+            var qualitySpan = detailsSection.find('span:contains("Качество:")');
+            if (qualitySpan.length) {
+                qualitySpan.text('Качество: ' + resQuality);
+            }
+        }
     }
 
     function displayQualityLoader(viewRenderer) {
