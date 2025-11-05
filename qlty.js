@@ -1,7 +1,392 @@
-(function() {
-	'use strict';
+(function () {
+    'use strict';
+    
+    var Q_LOGGING = true; // Логгинг качества
+    var Q_CACHE_TIME = 24 * 60 * 60 * 1000; // Время кеширования качества
+    var QUALITY_CACHE = 'maxsm_ratings_quality_cache';
+    var JACRED_PROTOCOL = 'http://'; // Протокол JacRed
+    var JACRED_URL = Lampa.Storage.get('jacred.xyz') || 'jacred.xyz'; // Адрес JacRed
+    var JACRED_API_KEY = Lampa.Storage.get(''); // api ключ JacRed
+    var PROXY_TIMEOUT = 5000; // Таймаут прокси
+    var PROXY_LIST = [
+        'http://api.allorigins.win/raw?url=',
+        'http://cors.bwa.workers.dev/'
+    ];
 
-         Lampa.Platform.tv();
+    // Стили для отображения качества - ЧЕРНАЯ подложка, БЕЛЫЙ текст
+    var style = "<style id=\"maxsm_ratings_quality\">" +
+        ".card__view {position: relative !important;}" +
+        ".card__quality { " +
+        "   position: absolute !important; " +
+        "   bottom: 0.5em !important; " +
+        "   left: -0.8em !important; " +
+        "   background-color: transparent !important; " +
+        "   z-index: 10; " +
+        "   width: fit-content !important; " +
+        "   max-width: calc(100% - 1em) !important; " +
+        "}" +
+        ".card__quality div { " +
+        "   text-transform: none !important; " +
+        "   border: 1px solid #FFFFFF !important; " +
+        "   background-color: rgba(0, 0, 0, 0.7) !important; " + // Черная полупрозрачная подложка
+        "   color: #FFFFFF !important; " + // Белый текст
+        "   font-weight: bold !important; " + // Жирный шрифт
+        "   font-style: normal !important; " + // Не курсив
+        "   font-size: 1.2em !important; " +
+        "   border-radius: 3px !important; " +
+        "   padding: 0.2em 0.4em !important; " +
+        "}" +
+        "</style>";
 
-        function _0x31a9(){var _0x34cf4a=['complite','cub','6282496QHmofZ','14iVBgtu','.card__view','bylampa','808874YJTyqi','createElement','method','<span\x20class=\x22full-start-new__split\x22>●</span><div\x20class=\x22card--quality\x22><div>','30675BTtdoV','log','quality_plugin','appready','innerHTML','className','toString','.full-start__tags','table','440dSjkHl','28435RsafmI','setItem','map','prototype','appendChild','type','__proto__','setAttribute','68bSeTqs','return\x20(function()\x20','data','render','constructor','ontimeout','onload','qualityCache','http://212.113.103.137:835/quality','</div>','lampa_listener_extensions','results','show','parse','Ошибка\x20парсинга\x20JSON','Lampa','status','search','build','length','ready','apply','</div></div>','append','card','GET','<div\x20class=\x22full-start__tag\x20card--quality\x22><img\x20src=\x22./img/icons/menu/quality.svg\x22\x20style=\x22width:16px;height:16px;margin-right:4px;vertical-align:middle;\x22/>\x20<div>','source','error','console','864510MjoPvc','card__quality','Storage','object','Listener','Ошибка\x20загрузки\x20кэша\x20качества:','now','bind','3978288cLqeVe','card_','div','querySelector','getItem','trace','<div\x20class=\x27card--quality\x27\x20style=\x27right:\x20-0.6em!important;position:\x20absolute;background:\x20#ffe216;color:\x20#000;bottom:20.6em!important;padding:\x200.4em\x200.6em;font-size:\x201em;border-radius:\x200.3em;\x27>','168120hfFVry','timeout','8oSYuPf','(((.+)+)+)+$','info','.full-start-new__details','get','follow','.full-start-new.cardify','Качество:\x20','send','<div>','getAttribute','warn','Card','_build','stringify','responseText','timestamp','Ошибка\x20сохранения\x20кэша:'];_0x31a9=function(){return _0x34cf4a;};return _0x31a9();}function _0x5398(_0x45da45,_0x258105){var _0x3b700f=_0x31a9();return _0x5398=function(_0xbca793,_0x27f9e2){_0xbca793=_0xbca793-0xfb;var _0x1f655c=_0x3b700f[_0xbca793];return _0x1f655c;},_0x5398(_0x45da45,_0x258105);}(function(_0x3d46ca,_0x5e4378){var _0x14c560=_0x5398,_0x3b731e=_0x3d46ca();while(!![]){try{var _0x534667=parseInt(_0x14c560(0xfb))/0x1+parseInt(_0x14c560(0x111))/0x2*(parseInt(_0x14c560(0xff))/0x3)+-parseInt(_0x14c560(0x140))/0x4*(parseInt(_0x14c560(0x109))/0x5)+-parseInt(_0x14c560(0x12f))/0x6*(-parseInt(_0x14c560(0x155))/0x7)+-parseInt(_0x14c560(0x154))/0x8+parseInt(_0x14c560(0x137))/0x9+-parseInt(_0x14c560(0x13e))/0xa*(parseInt(_0x14c560(0x108))/0xb);if(_0x534667===_0x5e4378)break;else _0x3b731e['push'](_0x3b731e['shift']());}catch(_0x3b53c7){_0x3b731e['push'](_0x3b731e['shift']());}}}(_0x31a9,0x65f18),(function(){var _0x415e26=_0x5398,_0x378ea8=(function(){var _0x157ed4=!![];return function(_0x352daf,_0x37a78c){var _0x18f2c8=_0x157ed4?function(){var _0x385ac9=_0x5398;if(_0x37a78c){var _0x59a866=_0x37a78c[_0x385ac9(0x126)](_0x352daf,arguments);return _0x37a78c=null,_0x59a866;}}:function(){};return _0x157ed4=![],_0x18f2c8;};}()),_0x28c290=(function(){var _0x3f157f=!![];return function(_0x1b1eb5,_0x5315e2){var _0x236056=_0x3f157f?function(){var _0x1814db=_0x5398;if(_0x5315e2){var _0x206ed5=_0x5315e2[_0x1814db(0x126)](_0x1b1eb5,arguments);return _0x5315e2=null,_0x206ed5;}}:function(){};return _0x3f157f=![],_0x236056;};}());'use strict';function _0xcecc86(){var _0x2792d7=_0x5398;if(Lampa['Manifest']['origin']!==_0x2792d7(0x157))var _0x2ab490=_0x2792d7(0x119),_0x2b9538={'data':null,'timestamp':null,'map':null},_0x5e7de9=0x36ee80,_0x18da3b={},_0x2f80b1=0x0,_0x307f98=![];function _0x7c996c(){var _0x42957b=_0x2792d7;if(window[_0x42957b(0x11b)])return;window[_0x42957b(0x11b)]=!![],Object['defineProperty'](window[_0x42957b(0x120)][_0x42957b(0x14c)][_0x42957b(0x10c)],_0x42957b(0x123),{'get':function(){var _0x574857=_0x42957b;return this[_0x574857(0x14d)];},'set':function(_0x27a94b){var _0x36fbf5=_0x42957b;this[_0x36fbf5(0x14d)]=function(){var _0x4c9197=_0x36fbf5;_0x27a94b[_0x4c9197(0x126)](this),Lampa[_0x4c9197(0x133)][_0x4c9197(0x148)]('card',{'type':_0x4c9197(0x123),'object':this});}[_0x36fbf5(0x136)](this);}});}function _0x25c7ec(_0x940d6c){var _0x38b107=_0x2792d7,_0x295a36=new XMLHttpRequest();_0x295a36['open'](_0x38b107(0x12a),_0x2ab490,!![]),_0x295a36[_0x38b107(0x13f)]=0x2710,_0x295a36[_0x38b107(0x117)]=function(){var _0x424370=_0x38b107;if(_0x295a36[_0x424370(0x121)]>=0xc8&&_0x295a36[_0x424370(0x121)]<0x12c)try{var _0x7bfbdd=JSON[_0x424370(0x11e)](_0x295a36[_0x424370(0x14f)]);_0x940d6c(null,_0x7bfbdd[_0x424370(0x11c)]);}catch(_0x1c62d3){_0x940d6c(new Error(_0x424370(0x11f)));}else _0x940d6c(new Error('Ошибка\x20HTTP:\x20'+_0x295a36[_0x424370(0x121)]));},_0x295a36['onerror']=_0x295a36[_0x38b107(0x116)]=function(){_0x940d6c(new Error('Ошибка\x20сети\x20или\x20таймаут'));},_0x295a36['send']();}function _0xd573c0(_0x202e48){var _0x1825f2=_0x2792d7;if(!_0x202e48)return{};var _0x199c9d={};for(var _0x11528c=0x0,_0x5ea1f2=_0x202e48[_0x1825f2(0x124)];_0x11528c<_0x5ea1f2;_0x11528c++){var _0x312880=_0x202e48[_0x11528c];_0x312880&&_0x312880['id']&&(_0x199c9d[_0x312880['id']]=_0x312880);}return _0x199c9d;}function _0x6c4050(_0x5a278d,_0x341436){var _0xaece6e=_0x2792d7,_0x21799a=_0x5a278d[_0xaece6e(0x14a)]('data-quality-id');!_0x21799a&&(_0x21799a=_0xaece6e(0x138)+ ++_0x2f80b1,_0x5a278d[_0xaece6e(0x110)]('data-quality-id',_0x21799a));if(_0x18da3b[_0x21799a])return;var _0x4f7a18=_0x5a278d[_0xaece6e(0x13a)](_0xaece6e(0x156));if(!_0x4f7a18||_0x4f7a18[_0xaece6e(0x13a)]('.card__quality'))return;var _0x24fdfe=document[_0xaece6e(0xfc)](_0xaece6e(0x139));_0x24fdfe[_0xaece6e(0x104)]=_0xaece6e(0x130),_0x24fdfe[_0xaece6e(0x103)]=_0xaece6e(0x149)+_0x341436+_0xaece6e(0x11a),_0x4f7a18[_0xaece6e(0x10d)](_0x24fdfe),_0x18da3b[_0x21799a]=!![];}function _0x593034(_0x2cbc23){var _0x54a6c6=_0x2792d7;if(!_0x2b9538[_0x54a6c6(0x10b)]||!_0x2cbc23[_0x54a6c6(0x113)]||!_0x2cbc23[_0x54a6c6(0x129)])return;if(Lampa[_0x54a6c6(0x131)][_0x54a6c6(0x144)]('source')==_0x54a6c6(0x153))return;var _0x32ab20=_0x2cbc23[_0x54a6c6(0x113)];if(!_0x32ab20['id']||_0x32ab20['first_air_date'])return;var _0x4db183=_0x2b9538[_0x54a6c6(0x10b)][_0x32ab20['id']];_0x4db183&&_0x4db183['qu']&&_0x6c4050(_0x2cbc23[_0x54a6c6(0x129)],_0x4db183['qu']);}function _0x557719(){var _0x7a319a=_0x2792d7;if(_0x307f98)return;_0x307f98=!![];try{var _0x8c756b=localStorage[_0x7a319a(0x13b)](_0x7a319a(0x118));if(_0x8c756b){_0x2b9538=JSON[_0x7a319a(0x11e)](_0x8c756b);_0x2b9538[_0x7a319a(0x113)]&&!_0x2b9538[_0x7a319a(0x10b)]&&(_0x2b9538[_0x7a319a(0x10b)]=_0xd573c0(_0x2b9538[_0x7a319a(0x113)]));var _0x4fba2d=Date[_0x7a319a(0x135)]();(!_0x2b9538[_0x7a319a(0x150)]||_0x4fba2d-_0x2b9538[_0x7a319a(0x150)]>=_0x5e7de9)&&_0x10bef4();}else _0x10bef4();}catch(_0x4c4921){console[_0x7a319a(0x14b)](_0x7a319a(0x134),_0x4c4921),_0x2b9538={'data':null,'timestamp':null,'map':null},_0x10bef4();}}function _0x10bef4(){_0x25c7ec(function(_0x15be32,_0x1917dc){var _0x510692=_0x5398;if(!_0x15be32&&_0x1917dc){_0x2b9538['data']=_0x1917dc,_0x2b9538[_0x510692(0x10b)]=_0xd573c0(_0x1917dc),_0x2b9538['timestamp']=Date['now']();try{localStorage[_0x510692(0x10a)](_0x510692(0x118),JSON[_0x510692(0x14e)]({'data':_0x2b9538['data'],'timestamp':_0x2b9538['timestamp']}));}catch(_0x3d9a5b){console[_0x510692(0x14b)](_0x510692(0x151),_0x3d9a5b);}}});}function _0x39f21e(){var _0x11ba42=_0x2792d7,_0x4632da=_0x378ea8(this,function(){var _0x668645=_0x5398;return _0x4632da[_0x668645(0x105)]()[_0x668645(0x122)](_0x668645(0x141))[_0x668645(0x105)]()[_0x668645(0x115)](_0x4632da)[_0x668645(0x122)]('(((.+)+)+)+$');});_0x4632da();var _0x3124ec=_0x28c290(this,function(){var _0x1a983a=_0x5398,_0x4088f6;try{var _0x348df9=Function(_0x1a983a(0x112)+'{}.constructor(\x22return\x20this\x22)(\x20)'+');');_0x4088f6=_0x348df9();}catch(_0x496a29){_0x4088f6=window;}var _0x68a4a9=_0x4088f6['console']=_0x4088f6[_0x1a983a(0x12e)]||{},_0x6244d3=[_0x1a983a(0x100),_0x1a983a(0x14b),_0x1a983a(0x142),_0x1a983a(0x12d),'exception',_0x1a983a(0x107),_0x1a983a(0x13c)];for(var _0x3d100d=0x0;_0x3d100d<_0x6244d3[_0x1a983a(0x124)];_0x3d100d++){var _0xf453d3=_0x28c290['constructor'][_0x1a983a(0x10c)][_0x1a983a(0x136)](_0x28c290),_0x1353e6=_0x6244d3[_0x3d100d],_0x228c6d=_0x68a4a9[_0x1353e6]||_0xf453d3;_0xf453d3[_0x1a983a(0x10f)]=_0x28c290['bind'](_0x28c290),_0xf453d3['toString']=_0x228c6d['toString'][_0x1a983a(0x136)](_0x228c6d),_0x68a4a9[_0x1353e6]=_0xf453d3;}});_0x3124ec();if(window[_0x11ba42(0x101)])return;window['quality_plugin']=!![],_0x7c996c(),Lampa[_0x11ba42(0x133)]['follow'](_0x11ba42(0x129),function(_0x32c3a3){var _0x206ac8=_0x11ba42;_0x32c3a3[_0x206ac8(0x10e)]==='build'&&_0x593034(_0x32c3a3['object']);}),Lampa[_0x11ba42(0x133)][_0x11ba42(0x145)]('full',function(_0x582aaf){var _0x333cfb=_0x11ba42;if(_0x582aaf[_0x333cfb(0x10e)]===_0x333cfb(0x152)){var _0x327993=_0x582aaf[_0x333cfb(0x132)]['activity'][_0x333cfb(0x114)]();if(_0x582aaf[_0x333cfb(0x132)][_0x333cfb(0xfd)]=='tv')return;if(Lampa[_0x333cfb(0x131)][_0x333cfb(0x144)](_0x333cfb(0x12c))==_0x333cfb(0x153))return;var _0x3e6668=_0x582aaf[_0x333cfb(0x132)][_0x333cfb(0x129)]['id'];if(_0x2b9538[_0x333cfb(0x113)]){var _0x2fb0b8=_0xd573c0(_0x2b9538[_0x333cfb(0x113)]),_0x604e39=_0x2fb0b8[_0x3e6668];if(_0x604e39){var _0x390fab=_0x604e39['qu'];window['innerWidth']>0x249&&!$(_0x333cfb(0x146))[_0x333cfb(0x124)]?$('.full-start__poster,.full-start-new__poster',_0x327993)[_0x333cfb(0x128)](_0x333cfb(0x13d)+_0x390fab+'</div>'):$('.card--quality',_0x327993)[_0x333cfb(0x124)]?$(_0x333cfb(0x106),_0x327993)[_0x333cfb(0x128)](_0x333cfb(0x12b)+_0x390fab+_0x333cfb(0x127)):$(_0x333cfb(0x143),_0x327993)[_0x333cfb(0x128)](_0x333cfb(0xfe)+_0x333cfb(0x147)+_0x390fab+_0x333cfb(0x127));}}}}),_0x557719();}_0x39f21e();}window[_0x415e26(0x102)]?_0xcecc86():Lampa[_0x415e26(0x133)][_0x415e26(0x145)]('app',function(_0xb48ce7){var _0x59fb3d=_0x415e26;_0xb48ce7[_0x59fb3d(0x10e)]===_0x59fb3d(0x125)&&_0xcecc86();});}()));
-  })();
+    Lampa.Template.add('maxsm_ratings_quality_css', style);
+    $('body').append(Lampa.Template.get('maxsm_ratings_quality_css', {}, true));
+
+    // Функция для получения типа карточки
+    function getCardType(card) {
+        var type = card.media_type || card.type;
+        if (type === 'movie' || type === 'tv') return type;
+        return card.name || card.original_name ? 'tv' : 'movie';
+    }
+
+    // Функция для работы с прокси
+    function fetchWithProxy(url, cardId, callback) {
+        var currentProxyIndex = 0;
+        var callbackCalled = false;
+
+        function tryNextProxy() {
+            if (currentProxyIndex >= PROXY_LIST.length) {
+                if (!callbackCalled) {
+                    callbackCalled = true;
+                    callback(new Error('All proxies failed for ' + url));
+                }
+                return;
+            }
+            var proxyUrl = PROXY_LIST[currentProxyIndex] + encodeURIComponent(url);
+            if (Q_LOGGING) console.log("MAXSM-RATINGS", "card: " + cardId + ", Fetch with proxy: " + proxyUrl);
+            var timeoutId = setTimeout(function() {
+                if (!callbackCalled) {
+                    currentProxyIndex++;
+                    tryNextProxy();
+                }
+            }, PROXY_TIMEOUT);
+            fetch(proxyUrl)
+                .then(function(response) {
+                    clearTimeout(timeoutId);
+                    if (!response.ok) throw new Error('Proxy error: ' + response.status);
+                    return response.text();
+                })
+                .then(function(data) {
+                    if (!callbackCalled) {
+                        callbackCalled = true;
+                        clearTimeout(timeoutId);
+                        callback(null, data);
+                    }
+                })
+                .catch(function(error) {
+                    console.error("MAXSM-RATINGS", "card: " + cardId + ", Proxy fetch error for " + proxyUrl + ":", error);
+                    clearTimeout(timeoutId);
+                    if (!callbackCalled) {
+                        currentProxyIndex++;
+                        tryNextProxy();
+                    }
+                });
+        }
+        tryNextProxy();
+    }
+
+    // Функция получения качества из JacRed
+    function getBestReleaseFromJacred(normalizedCard, cardId, callback) {
+        if (!JACRED_URL) {
+            if (Q_LOGGING) console.log("MAXSM-RATINGS", "card: " + cardId + ", quality: JacRed: JACRED_URL is not set.");
+            callback(null);
+            return;
+        }
+
+        function translateQuality(quality) {
+            if (typeof quality !== 'number') return quality;
+            if (quality >= 2160) return '4K';
+            if (quality >= 1080) return 'FHD';
+            if (quality >= 720) return 'HD';
+            if (quality > 0) return 'SD';
+            return null;
+        }
+
+        if (Q_LOGGING) console.log("MAXSM-RATINGS", "card: " + cardId + ", quality: JacRed: Search initiated.");
+        var year = '';
+        var dateStr = normalizedCard.release_date || '';
+        if (dateStr.length >= 4) {
+            year = dateStr.substring(0, 4);
+        }
+        if (!year || isNaN(year)) {
+            if (Q_LOGGING) console.log("MAXSM-RATINGS", "card: " + cardId + ", quality: JacRed: Missing/invalid year.");
+            callback(null);
+            return;
+        }
+
+        function searchJacredApi(searchTitle, searchYear, exactMatch, strategyName, apiCallback) {
+            var userId = Lampa.Storage.get('lampac_unic_id', '');
+            var apiUrl = JACRED_PROTOCOL + JACRED_URL + '/api/v1.0/torrents?search=' +
+                encodeURIComponent(searchTitle) +
+                '&year=' + searchYear +
+                (exactMatch ? '&exact=true' : '') +
+                '&uid=' + userId;
+
+            if (Q_LOGGING) console.log("MAXSM-RATINGS", "card: " + cardId + ", quality: JacRed: " + strategyName + " URL: " + apiUrl);
+
+            var timeoutId = setTimeout(function() {
+                if (Q_LOGGING) console.log("MAXSM-RATINGS", "card: " + cardId + ", quality: JacRed: " + strategyName + " request timed out.");
+                apiCallback(null);
+            }, PROXY_TIMEOUT * PROXY_LIST.length + 1000);
+
+            fetchWithProxy(apiUrl, cardId, function(error, responseText) {
+                clearTimeout(timeoutId);
+                if (error) {
+                    console.error("MAXSM-RATINGS", "card: " + cardId + ", quality: JacRed: " + strategyName + " request failed:", error);
+                    apiCallback(null);
+                    return;
+                }
+                if (!responseText) {
+                    if (Q_LOGGING) console.log("MAXSM-RATINGS", "card: " + cardId + ", quality: JacRed: " + strategyName + " failed or empty response.");
+                    apiCallback(null);
+                    return;
+                }
+                try {
+                    var torrents = JSON.parse(responseText);
+                    if (!Array.isArray(torrents) || torrents.length === 0) {
+                        if (Q_LOGGING) console.log("MAXSM-RATINGS", "card: " + cardId + ", quality: JacRed: " + strategyName + " received no torrents.");
+                        apiCallback(null);
+                        return;
+                    }
+                    var bestNumericQuality = -1;
+                    var bestFoundTorrent = null;
+
+                    for (var i = 0; i < torrents.length; i++) {
+                        var currentTorrent = torrents[i];
+                        var currentNumericQuality = currentTorrent.quality;
+                        
+                        var lowerTitle = (currentTorrent.title || '').toLowerCase();
+                        if (/\b(ts|telesync|camrip|cam)\b/i.test(lowerTitle)) {
+                           if (currentNumericQuality < 720) continue;
+                        }
+
+                        if (typeof currentNumericQuality !== 'number' || currentNumericQuality === 0) {
+                           continue;
+                        }
+
+                        if (Q_LOGGING) {
+                            console.log("MAXSM-RATINGS", "card: " + cardId + ", Torrent: " + currentTorrent.title + " | Quality: " + currentNumericQuality + "p");
+                        }
+                        if (currentNumericQuality > bestNumericQuality) {
+                            bestNumericQuality = currentNumericQuality;
+                            bestFoundTorrent = currentTorrent;
+                        }
+                    }
+                    if (bestFoundTorrent) {
+                        if (Q_LOGGING) console.log("MAXSM-RATINGS", "card: " + cardId + ", quality: JacRed: Found best torrent: \"" + bestFoundTorrent.title + "\" with quality: " + bestNumericQuality + "p");
+                        apiCallback({
+                            quality: translateQuality(bestFoundTorrent.quality || bestNumericQuality),
+                            title: bestFoundTorrent.title
+                        });
+                    } else {
+                        if (Q_LOGGING) console.log("MAXSM-RATINGS", "card: " + cardId + ", quality: JacRed: No suitable torrents found.");
+                        apiCallback(null);
+                    }
+                } catch (e) {
+                    console.error("MAXSM-RATINGS", "card: " + cardId + ", quality: JacRed: " + strategyName + " error parsing response:", e);
+                    apiCallback(null);
+                }
+            });
+        }
+
+        var searchStrategies = [];
+        if (normalizedCard.original_title && /[a-zа-яё0-9]/i.test(normalizedCard.original_title)) {
+            searchStrategies.push({
+                title: normalizedCard.original_title.trim(),
+                year: year,
+                exact: true,
+                name: "OriginalTitle Exact Year"
+            });
+        }
+        if (normalizedCard.title && /[a-zа-яё0-9]/i.test(normalizedCard.title)) {
+            searchStrategies.push({
+                title: normalizedCard.title.trim(),
+                year: year,
+                exact: true,
+                name: "Title Exact Year"
+            });
+        }
+
+        function executeNextStrategy(index) {
+            if (index >= searchStrategies.length) {
+                if (Q_LOGGING) console.log("MAXSM-RATINGS", "card: " + cardId + ", quality: JacRed: All strategies failed.");
+                callback(null);
+                return;
+            }
+            var strategy = searchStrategies[index];
+            if (Q_LOGGING) console.log("MAXSM-RATINGS", "card: " + cardId + ", quality: JacRed: Trying strategy: " + strategy.name);
+            searchJacredApi(strategy.title, strategy.year, strategy.exact, strategy.name, function(result) {
+                if (result !== null) {
+                    if (Q_LOGGING) console.log("MAXSM-RATINGS", "card: " + cardId + ", quality: JacRed: Successfully found quality: " + result.quality);
+                    callback(result);
+                } else {
+                    executeNextStrategy(index + 1);
+                }
+            });
+        }
+
+        if (searchStrategies.length > 0) {
+            executeNextStrategy(0);
+        } else {
+            if (Q_LOGGING) console.log("MAXSM-RATINGS", "card: " + cardId + ", quality: JacRed: No valid search titles.");
+            callback(null);
+        }
+    }
+
+    // Функции для работы с кешем качества
+    function getQualityCache(key) {
+        var cache = Lampa.Storage.get(QUALITY_CACHE) || {};
+        var item = cache[key];
+        return item && (Date.now() - item.timestamp < Q_CACHE_TIME) ? item : null;
+    }
+
+    function saveQualityCache(key, data, localCurrentCard) {
+        if (Q_LOGGING) console.log("MAXSM-RATINGS", "card: " + localCurrentCard + ", quality: Save quality cache");
+        var cache = Lampa.Storage.get(QUALITY_CACHE) || {};
+        cache[key] = {
+            quality: data.quality || null,
+            timestamp: Date.now()
+        };
+        Lampa.Storage.set(QUALITY_CACHE, cache);
+    }
+
+    // Функция применения качества к карточке
+    function applyQualityToCard(card, quality, source, qCacheKey) {
+        if (!document.body.contains(card)) return;
+        
+        card.setAttribute('data-quality-added', 'true');
+        var cardView = card.querySelector('.card__view');
+        if (!cardView) return;
+
+        // Удаляем существующие элементы качества
+        var existingQualityElements = cardView.getElementsByClassName('card__quality');
+        while(existingQualityElements.length > 0){
+            existingQualityElements[0].parentNode.removeChild(existingQualityElements[0]);
+        }
+
+        // Сохраняем в кеш если данные от JacRed
+        if (source === 'JacRed' && quality && quality !== 'NO') {
+            var cardId = card.card_data ? card.card_data.id : 'unknown';
+            saveQualityCache(qCacheKey, { quality: quality }, cardId);
+        }
+
+        if (quality && quality !== 'NO') {
+            var qualityDiv = document.createElement('div');
+            qualityDiv.className = 'card__quality';
+            var qualityInner = document.createElement('div');
+            qualityInner.textContent = quality;
+            qualityDiv.appendChild(qualityInner);
+            cardView.appendChild(qualityDiv);
+        }
+    }
+
+    // Основная функция обновления карточек
+    function updateCards(cards) {
+        for (var i = 0; i < cards.length; i++) {
+            var card = cards[i];
+            if (card.hasAttribute('data-quality-added')) continue;
+            
+            var cardView = card.querySelector('.card__view');
+            if (localStorage.getItem('maxsm_ratings_quality_tv') === 'false') {
+                if (cardView) {
+                    var typeElements = cardView.getElementsByClassName('card__type');
+                    if (typeElements.length > 0) continue;
+                }
+            }
+
+            (function (currentCard) {
+                var data = currentCard.card_data;
+                if (!data) return;
+                
+                var normalizedCard = {
+                    id: data.id || '',
+                    title: data.title || data.name || '',
+                    original_title: data.original_title || data.original_name || '',
+                    release_date: data.release_date || data.first_air_date || '',
+                    type: getCardType(data)
+                };
+                
+                var localCurrentCard = normalizedCard.id;
+                var qCacheKey = normalizedCard.type + '_' + normalizedCard.id;
+                var cacheQualityData = getQualityCache(qCacheKey);
+                
+                // Если есть кеш - сразу применяем
+                if (cacheQualityData) {
+                    if (Q_LOGGING) console.log("MAXSM-RATINGS", "card: " + localCurrentCard + ", quality: Get Quality data from cache");
+                    applyQualityToCard(currentCard, cacheQualityData.quality, 'Cache', qCacheKey);
+                }
+                // Если нет кеша - запрашиваем у JacRed
+                else {
+                    getBestReleaseFromJacred(normalizedCard, localCurrentCard, function (jrResult) {
+                        var quality = (jrResult && jrResult.quality) || null;
+                        applyQualityToCard(currentCard, quality, 'JacRed', qCacheKey);
+                    });
+                }
+            })(card);
+        }
+    }
+
+    // Observer для отслеживания новых карточек
+    var observer = new MutationObserver(function (mutations) {
+        var newCards = [];
+        for (var m = 0; m < mutations.length; m++) {
+            var mutation = mutations[m];
+            if (mutation.addedNodes) {
+                for (var j = 0; j < mutation.addedNodes.length; j++) {
+                    var node = mutation.addedNodes[j];
+                    if (node.nodeType !== 1) continue;
+                    
+                    if (node.classList && node.classList.contains('card')) {
+                        newCards.push(node);
+                    }
+                    
+                    var nestedCards = node.querySelectorAll('.card');
+                    for (var k = 0; k < nestedCards.length; k++) {
+                        newCards.push(nestedCards[k]);
+                    }
+                }
+            }
+        }
+        if (newCards.length) updateCards(newCards);
+    });
+
+    // Инициализация плагина
+    function startPlugin() {
+        console.log("MAXSM-RATINGS-QUALITY", "Plugin started!");
+        
+        // Настройки по умолчанию
+        if (!localStorage.getItem('maxsm_ratings_quality')) {
+            localStorage.setItem('maxsm_ratings_quality', 'true');
+        }
+        if (!localStorage.getItem('maxsm_ratings_quality_inlist')) {
+            localStorage.setItem('maxsm_ratings_quality_inlist', 'true');
+        }
+        if (!localStorage.getItem('maxsm_ratings_quality_tv')) {
+            localStorage.setItem('maxsm_ratings_quality_tv', 'false');
+        }
+
+        // Запуск observer если включено отображение качества в списках
+        if (localStorage.getItem('maxsm_ratings_quality_inlist') === 'true') {
+            observer.observe(document.body, { childList: true, subtree: true });
+            console.log('MAXSM-RATINGS: observer Start');
+            
+            // Обработка уже существующих карточек
+            var existingCards = document.querySelectorAll('.card');
+            if (existingCards.length) updateCards(existingCards);
+        }
+    }
+
+    if (!window.maxsmRatingsQualityPlugin) {
+        window.maxsmRatingsQualityPlugin = true;
+        startPlugin();
+    }
+})();
