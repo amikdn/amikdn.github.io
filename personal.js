@@ -1420,12 +1420,12 @@
             }
         });
 
-        var check = setInterval(function() {
-            if (typeof Lampa !== 'undefined') {
-                clearInterval(check);
-                if (!Lampa.Storage.get('bylampa_source_params', true)) initSettings();
-            }
-        }, 200);
+   //     var check = setInterval(function() {
+  //          if (typeof Lampa !== 'undefined') {
+  //              clearInterval(check);
+  //              if (!Lampa.Storage.get('bylampa_source_params', true)) initSettings();
+  //          }
+  //      }, 200);
 
         function initSettings() {
             Lampa.Storage.set('bylampa_source_params', true);
