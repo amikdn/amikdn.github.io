@@ -2,8 +2,8 @@
     'use strict';
     Lampa.Platform.tv();
 
-    (function() {
-        'use strict';
+   // (function() {
+    //    'use strict';
 
         function CardEpisode(data) {
             var object = data.item || data,
