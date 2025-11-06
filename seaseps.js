@@ -292,7 +292,7 @@
                             );
                         } else {
                             if ($(".card--new_seria", Lampa.Activity.active().activity.render()).length) {
-                                $(".full-start__tags", Lampa.Activity.active().render()).append(
+                                $(".full-start__tags", Lampa.Activity.active().activity.render()).append(
                                     `<div class="full-start__tag card--new_seria"> <img src="./img/icons/menu/movie.svg" /> <div>${seasonInfo}</div> </div>`
                                 );
                             } else {
@@ -329,28 +329,33 @@
         });
     });
     function initPlugin() {
-        if (!CONFIG.enabled) return;
-        Lampa.Listener.follow("full", addSeasonBadgeToFull);
-        var containers = document.querySelectorAll('.cards, .card-list, .content, .main, .cards-list, .preview__list');
-        if (containers.length > 0) {
-            containers.forEach(container => {
-                try {
-                    observer.observe(container, {
-                        childList: true,
-                        subtree: true
-                    });
-                } catch (e) {
-                }
+        Lampa.SettingsApi.addParam({ component: "interface", param: { name: "season_and_episode", type: "trigger", default: true, }, field: { name: "Отображение состояния сериала (сезон/серия)", }, onRender: function (element) { setTimeout(function () { $("div[data-name='season_and_episode']").insertAfter("div[data-name='card_interface_reactions']"); }, 0); }, });
+        if (Lampa.Storage.get("season_and_episode") !== false) {
+            Lampa.Listener.follow("full", addSeasonBadgeToFull);
+            var containers = document.querySelectorAll('.cards, .card-list, .content, .main, .cards-list, .preview__list');
+            if (containers.length > 0) {
+                containers.forEach(container => {
+                    try {
+                        observer.observe(container, {
+                            childList: true,
+                            subtree: true
+                        });
+                    } catch (e) {
+                    }
+                });
+            } else {
+                observer.observe(document.body, {
+                    childList: true,
+                    subtree: true
+                });
+            }
+            document.querySelectorAll('.card:not([data-season-processed])').forEach((card, index) => {
+                setTimeout(() => addSeasonBadgeToCard(card), index * 300);
             });
-        } else {
-            observer.observe(document.body, {
-                childList: true,
-                subtree: true
-            });
+            setInterval(function() {
+                document.querySelectorAll('.card:not([data-season-processed])').forEach(addSeasonBadgeToCard);
+            }, 1000);
         }
-        document.querySelectorAll('.card:not([data-season-processed])').forEach((card, index) => {
-            setTimeout(() => addSeasonBadgeToCard(card), index * 300);
-        });
     }
     if (window.appready) {
         initPlugin();
@@ -361,6 +366,6 @@
         });
     }
     else {
-        setTimeout(initPlugin, 2000);
+        setTimeout(initPlugin, 5000);
     }
 })();
