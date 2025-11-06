@@ -202,26 +202,28 @@
         return badge;
     }
     function adjustBadgePosition(cardEl, badge) {
-        let quality = cardEl.querySelector('.card__quality');
         let typeLabel = cardEl.querySelector('.content-label.serial-label');
+        let quality = cardEl.querySelector('.card__quality');
         if (typeLabel && badge) {
-            let tlStyle = getComputedStyle(typeLabel);
-            let tlTop = parseFloat(tlStyle.top);
-            let tlBottom = parseFloat(tlStyle.bottom);
-            let tlLeft = parseFloat(tlStyle.left);
-            let tlRight = parseFloat(tlStyle.right);
             let tlHeight = typeLabel.offsetHeight;
-            if (!isNaN(tlTop)) {
+            let tlStyle = getComputedStyle(typeLabel);
+            let tlTop = parseFloat(tlStyle.top) || 0;
+            let tlBottom = parseFloat(tlStyle.bottom) || 0;
+            let tlLeft = parseFloat(tlStyle.left) || 0;
+            let tlRight = parseFloat(tlStyle.right) || 0;
+            badge.style.width = typeLabel.offsetWidth + 'px';
+            badge.style.whiteSpace = 'normal';
+            if (tlTop > 0) {
                 badge.style.top = (tlTop + tlHeight) + 'px';
                 badge.style.bottom = '';
-            } else if (!isNaN(tlBottom)) {
+            } else if (tlBottom > 0) {
                 badge.style.bottom = (tlBottom + tlHeight) + 'px';
                 badge.style.top = '';
             }
-            if (!isNaN(tlLeft)) {
+            if (tlLeft > 0) {
                 badge.style.left = tlLeft + 'px';
                 badge.style.right = '';
-            } else if (!isNaN(tlRight)) {
+            } else if (tlRight > 0) {
                 badge.style.right = tlRight + 'px';
                 badge.style.left = '';
             }
@@ -301,7 +303,7 @@
                     var content = '';
                     var isComplete = progressInfo.isCompleted;
                     if (isComplete) {
-                        content = `<div>${displaySeasons} ${seasonsText} ${displayEpisodes} ${episodesText}</div><div>${getStatusText(progressInfo.status)}</div>`;
+                        content = `<div>${displaySeasons} ${seasonsText} ${displayEpisodes} ${episodesText} ${getStatusText(progressInfo.status)}</div>`;
                     } else {
                         var txt = `${displaySeasons} ${seasonsText} ${displayEpisodes} ${episodesText}`;
                         if (progressInfo.totalEpisodes > 0 && progressInfo.airedEpisodes < progressInfo.totalEpisodes && progressInfo.airedEpisodes > 0) {
@@ -342,13 +344,13 @@
                         let isCompleted = progressInfo.isCompleted;
                         let bgColor = isCompleted ? 'rgba(33,150,243,0.8)' : 'rgba(244,67,54,0.8)';
                         if (isCompleted) {
-                            seasonInfo = `${displaySeasons} ${seasonsText} ${displayEpisodes} ${episodesText} ${getStatusText(progressInfo.status)}`;
+                            seasonInfo = `<div>${displaySeasons} ${seasonsText} ${displayEpisodes} ${episodesText}</div><div>${getStatusText(progressInfo.status)}</div>`;
                         } else {
                             let txt = `${displaySeasons} ${seasonsText} ${displayEpisodes} ${episodesText}`;
                             if (progressInfo.totalEpisodes > 0 && progressInfo.airedEpisodes < progressInfo.totalEpisodes && progressInfo.airedEpisodes > 0) {
                                 txt = `${displaySeasons} ${seasonsText} ${progressInfo.airedEpisodes} ${episodesText} из ${progressInfo.totalEpisodes}`;
                             }
-                            seasonInfo = txt;
+                            seasonInfo = `<div>${txt}</div>`;
                         }
                         if (!$(".card--new_seria", Lampa.Activity.active().activity.render()).length) {
                             if (window.innerWidth > 585) {
