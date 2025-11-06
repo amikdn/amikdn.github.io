@@ -14,7 +14,7 @@
     .card--season-complete {
         position: absolute;
         right: -0.8em;
-        bottom: 0.50em;
+        bottom: 1.4em;
         background-color: rgba(52,152,219,0.8);
         z-index: 12;
         width: fit-content;
@@ -31,7 +31,7 @@
     .card--season-progress {
         position: absolute;
         right: -0.8em;
-        bottom: 0.50em;
+        bottom: 1.4em;
         background-color: rgba(244,67,54,0.8);
         z-index: 12;
         width: fit-content;
@@ -153,7 +153,7 @@
             let qBottom = parseFloat(getComputedStyle(quality).bottom) || 0;
             badge.style.bottom = (qHeight + qBottom) + 'px';
         } else if (badge) {
-            badge.style.bottom = '0.50em';
+            badge.style.bottom = '1.4em';
         }
     }
     function updateBadgePositions(cardEl) {
