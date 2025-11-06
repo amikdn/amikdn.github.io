@@ -24,7 +24,6 @@
         opacity: 0;
         transition: opacity 0.22s ease-in-out;
         text-align: center;
-        white-space: nowrap;
         backdrop-filter: blur(2px);
         box-shadow: 0 2px 5px rgba(0,0,0,0.2);
     }
@@ -41,7 +40,6 @@
         opacity: 0;
         transition: opacity 0.22s ease-in-out;
         text-align: center;
-        white-space: nowrap;
         backdrop-filter: blur(2px);
         box-shadow: 0 2px 5px rgba(0,0,0,0.2);
     }
@@ -52,7 +50,6 @@
         font-weight: normal;
         font-size: 0.8em;
         padding: 0.4em 0.6em;
-        white-space: nowrap;
         display: block;
         line-height: 1.2em;
     }
@@ -122,83 +119,27 @@
                 .catch(reject);
         });
     }
-    function plural(n, one, two, five) {
-        var m = Math.abs(n) % 100;
-        if (m >= 5 && m <= 20) return five;
-        m %= 10;
-        if (m === 1) return one;
-        if (m >= 2 && m <= 4) return two;
-        return five;
-    }
-    function getStatusText(st) {
-        if (st === 'Ended') return 'Завершён';
-        if (st === 'Canceled') return 'Отменён';
-        if (st === 'Returning Series') return 'Выходит';
-        if (st === 'In Production') return 'В производстве';
-        return st || 'Неизвестно';
-    }
-    function getSeriesProgress(tmdbData) {
-        if (!tmdbData) return false;
-        var status = tmdbData.status;
-        var totalSeasons = tmdbData.number_of_seasons || 0;
-        var totalEpisodes = tmdbData.number_of_episodes || 0;
-        var airedSeasons = 0, airedEpisodes = 0;
-        var now = new Date();
-        if (tmdbData.seasons) {
-            tmdbData.seasons.forEach(function (s) {
-                if (s.season_number === 0) return;
-                var seasonAired = s.air_date && new Date(s.air_date) <= now;
-                if (seasonAired) airedSeasons++;
-                if (s.episodes) {
-                    s.episodes.forEach(function (ep) {
-                        if (ep.air_date && new Date(ep.air_date) <= now) airedEpisodes++;
-                    });
-                } else if (seasonAired && s.episode_count) {
-                    airedEpisodes += s.episode_count;
-                }
-            });
-        } else if (tmdbData.last_episode_to_air) {
-            airedSeasons = tmdbData.last_episode_to_air.season_number || 0;
-            airedEpisodes = tmdbData.last_episode_to_air.episode_number || 0;
-            if (tmdbData.seasons) {
-                tmdbData.seasons.forEach(function (s) {
-                    if (s.season_number === 0) return;
-                    if (s.season_number < airedSeasons) airedEpisodes += s.episode_count || 0;
-                });
-            }
-        }
-        if (tmdbData.next_episode_to_air && totalEpisodes > 0) {
-            var ne = tmdbData.next_episode_to_air;
-            var rem = 0;
-            if (tmdbData.seasons) {
-                tmdbData.seasons.forEach(function (s) {
-                    if (s.season_number === ne.season_number) {
-                        rem += (s.episode_count || 0) - ne.episode_number + 1;
-                    } else if (s.season_number > ne.season_number) {
-                        rem += s.episode_count || 0;
-                    }
-                });
-            }
-            if (rem > 0) airedEpisodes = totalEpisodes - rem;
-        }
-        if (!airedSeasons) airedSeasons = totalSeasons;
-        if (!airedEpisodes) airedEpisodes = totalEpisodes;
-        if (totalEpisodes > 0 && airedEpisodes > totalEpisodes) airedEpisodes = totalEpisodes;
-        var isCompleted = (status === 'Ended' || status === 'Canceled');
+    function getSeasonProgress(tmdbData) {
+        if (!tmdbData || !tmdbData.seasons || !tmdbData.last_episode_to_air) return false;
+        var lastEpisode = tmdbData.last_episode_to_air;
+        var currentSeason = tmdbData.seasons.find(s =>
+            s.season_number === lastEpisode.season_number && s.season_number > 0
+        );
+        if (!currentSeason) return false;
+        var totalEpisodes = currentSeason.episode_count || 0;
+        var airedEpisodes = lastEpisode.episode_number || 0;
         return {
-            airedSeasons,
-            airedEpisodes,
-            totalSeasons,
-            totalEpisodes,
-            isCompleted,
-            status
+            seasonNumber: lastEpisode.season_number,
+            airedEpisodes: airedEpisodes,
+            totalEpisodes: totalEpisodes,
+            isComplete: airedEpisodes >= totalEpisodes
         };
     }
     function createBadge(content, isComplete, loading) {
         var badge = document.createElement('div');
         var badgeClass = isComplete ? 'card--season-complete' : 'card--season-progress';
         badge.className = badgeClass + (loading ? ' loading' : '');
-        badge.innerHTML = content;
+        badge.innerHTML = `<div>${content}</div>`;
         return badge;
     }
     function adjustBadgePosition(cardEl, badge) {
@@ -212,7 +153,6 @@
             let tlLeft = parseFloat(tlStyle.left) || 0;
             let tlRight = parseFloat(tlStyle.right) || 0;
             badge.style.width = typeLabel.offsetWidth + 'px';
-            badge.style.whiteSpace = 'normal';
             if (tlTop > 0) {
                 badge.style.top = (tlTop + tlHeight) + 'px';
                 badge.style.bottom = '';
@@ -294,25 +234,17 @@
         cardEl.setAttribute('data-season-processed', 'loading');
         fetchSeriesData(data.id)
             .then(function(tmdbData) {
-                var progressInfo = getSeriesProgress(tmdbData);
+                var progressInfo = getSeasonProgress(tmdbData);
                 if (progressInfo) {
-                    var displaySeasons = progressInfo.airedSeasons;
-                    var displayEpisodes = progressInfo.airedEpisodes;
-                    var seasonsText = plural(displaySeasons, 'сезон', 'сезона', 'сезонов');
-                    var episodesText = plural(displayEpisodes, 'серия', 'серии', 'серий');
                     var content = '';
-                    var isComplete = progressInfo.isCompleted;
+                    var isComplete = progressInfo.isComplete;
                     if (isComplete) {
-                        content = `<div>${displaySeasons} ${seasonsText} ${displayEpisodes} ${episodesText} ${getStatusText(progressInfo.status)}</div>`;
+                        content = `${progressInfo.seasonNumber} сезон завершён`;
                     } else {
-                        var txt = `${displaySeasons} ${seasonsText} ${displayEpisodes} ${episodesText}`;
-                        if (progressInfo.totalEpisodes > 0 && progressInfo.airedEpisodes < progressInfo.totalEpisodes && progressInfo.airedEpisodes > 0) {
-                            txt = `${displaySeasons} ${seasonsText} ${progressInfo.airedEpisodes} ${episodesText} из ${progressInfo.totalEpisodes}`;
-                        }
-                        content = `<div>${txt}</div>`;
+                        content = `Сезон ${progressInfo.seasonNumber} Серия ${progressInfo.airedEpisodes} из ${progressInfo.totalEpisodes}`;
                     }
                     badge.className = isComplete ? 'card--season-complete' : 'card--season-progress';
-                    badge.innerHTML = content;
+                    badge.innerHTML = `<div>${content}</div>`;
                     adjustBadgePosition(cardEl, badge);
                     setTimeout(() => {
                         badge.classList.add('show');
@@ -333,33 +265,34 @@
         if (Lampa.Activity.active().component == "full") {
             if (event.type == "complite") {
                 let movieData = event.data.movie;
-                if (movieData.number_of_seasons) {
-                    let progressInfo = getSeriesProgress(movieData);
-                    if (progressInfo) {
-                        let displaySeasons = progressInfo.airedSeasons;
-                        let displayEpisodes = progressInfo.airedEpisodes;
-                        let seasonsText = plural(displaySeasons, 'сезон', 'сезона', 'сезонов');
-                        let episodesText = plural(displayEpisodes, 'серия', 'серии', 'серий');
-                        let seasonInfo = '';
-                        let isCompleted = progressInfo.isCompleted;
-                        let bgColor = isCompleted ? 'rgba(33,150,243,0.8)' : 'rgba(244,67,54,0.8)';
-                        if (isCompleted) {
-                            seasonInfo = `<div>${displaySeasons} ${seasonsText} ${displayEpisodes} ${episodesText}</div><div>${getStatusText(progressInfo.status)}</div>`;
+                if (movieData.seasons && movieData.last_episode_to_air && movieData.last_episode_to_air.season_number) {
+                    let currentSeason = movieData.last_episode_to_air.season_number;
+                    let nextEpisode = movieData.next_episode_to_air;
+                    let lastEpisode = nextEpisode && new Date(nextEpisode.air_date) <= Date.now() ? nextEpisode.episode_number : movieData.last_episode_to_air.episode_number;
+                    let seasonInfo;
+                    let totalEpisodes = movieData.seasons.find((season) => season.season_number == currentSeason).episode_count;
+                    let bgColor;
+                    let isComplete = !movieData.next_episode_to_air;
+                    if (isComplete) {
+                        seasonInfo = `${currentSeason} сезон завершён`;
+                        bgColor = 'rgba(33,150,243,0.8)';
+                    } else {
+                        seasonInfo = `Сезон ${currentSeason} Серия ${lastEpisode} из ${totalEpisodes}`;
+                        bgColor = 'rgba(244,67,54,0.8)';
+                    }
+                    if (!$(".card--new_seria", Lampa.Activity.active().activity.render()).length) {
+                        if (window.innerWidth > 585) {
+                            $(".full-start__poster,.full-start-new__poster", Lampa.Activity.active().activity.render()).append(
+                                `<div class='card--new_seria' style=' right: -0.6em!important; position: absolute; background: ${bgColor}; color: #fff; bottom: .6em!important; padding: 0.4em 0.6em; font-size: 0.8em; border-radius: 0.3em;'> ${seasonInfo} </div>`
+                            );
                         } else {
-                            let txt = `${displaySeasons} ${seasonsText} ${displayEpisodes} ${episodesText}`;
-                            if (progressInfo.totalEpisodes > 0 && progressInfo.airedEpisodes < progressInfo.totalEpisodes && progressInfo.airedEpisodes > 0) {
-                                txt = `${displaySeasons} ${seasonsText} ${progressInfo.airedEpisodes} ${episodesText} из ${progressInfo.totalEpisodes}`;
-                            }
-                            seasonInfo = `<div>${txt}</div>`;
-                        }
-                        if (!$(".card--new_seria", Lampa.Activity.active().activity.render()).length) {
-                            if (window.innerWidth > 585) {
-                                $(".full-start__poster,.full-start-new__poster", Lampa.Activity.active().activity.render()).append(
-                                    `<div class='card--new_seria' style=' right: -0.6em!important; position: absolute; background: ${bgColor}; color: #fff; bottom: .6em!important; padding: 0.4em 0.6em; font-size: 0.8em; border-radius: 0.3em;'> ${seasonInfo} </div>`
+                            if ($(".card--new_seria", Lampa.Activity.active().activity.render()).length) {
+                                $(".full-start__tags", Lampa.Activity.active().activity.render()).append(
+                                    `<div class="full-start__tag card--new_seria"> <img src="./img/icons/menu/movie.svg" /> <div>${seasonInfo}</div> </div>`
                                 );
                             } else {
                                 $(".full-start-new__details", Lampa.Activity.active().activity.render()).append(
-                                    `<span class="full-start-new__split">●</span> <div class="card--new_seria" style='background: ${bgColor};'> ${seasonInfo} </div>`
+                                    `<span class="full-start-new__split">●</span> <div class="card--new_seria"> <div>${seasonInfo}</div> </div>`
                                 );
                             }
                         }
