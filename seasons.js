@@ -13,8 +13,9 @@
     style.textContent = `
     .card--season-complete {
         position: absolute;
-        right: -0.8em;
-        bottom: 1.4em;
+        top: auto;
+        bottom: auto;
+        left: -0.8em;
         background-color: rgba(52,152,219,0.8);
         z-index: 12;
         width: fit-content;
@@ -30,8 +31,9 @@
     }
     .card--season-progress {
         position: absolute;
-        right: -0.8em;
-        bottom: 1.4em;
+        top: auto;
+        bottom: auto;
+        left: -0.8em;
         background-color: rgba(244,67,54,0.8);
         z-index: 12;
         width: fit-content;
@@ -75,6 +77,7 @@
         }
     }
     .card--new_seria {
+        position: absolute;
         background: #df1616;
         color: #fff;
         padding: 0.4em 0.6em;
@@ -82,6 +85,12 @@
         border-radius: 0.3em;
         text-transform: none;
         font-weight: normal;
+        z-index: 999;
+        text-align: center;
+        white-space: nowrap;
+        line-height: 1.2em;
+        backdrop-filter: blur(2px);
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
     }
     .full-start__tag.card--new_seria {
         display: flex;
@@ -147,13 +156,37 @@
         return badge;
     }
     function adjustBadgePosition(cardEl, badge) {
+        let typeLabel = cardEl.querySelector('.content-label.serial-label');
         let quality = cardEl.querySelector('.card__quality');
-        if (quality && badge) {
+        if (typeLabel && badge) {
+            let tlHeight = typeLabel.offsetHeight;
+            let tlStyle = getComputedStyle(typeLabel);
+            let tlTop = parseFloat(tlStyle.top) || 0;
+            let tlBottom = parseFloat(tlStyle.bottom) || 0;
+            let tlLeft = parseFloat(tlStyle.left) || 0;
+            let tlRight = parseFloat(tlStyle.right) || 0;
+            if (tlTop > 0) {
+                badge.style.top = (tlTop + tlHeight + 2) + 'px';
+                badge.style.bottom = '';
+            } else if (tlBottom > 0) {
+                badge.style.bottom = (tlBottom + tlHeight + 2) + 'px';
+                badge.style.top = '';
+            }
+            if (tlLeft > 0) {
+                badge.style.left = tlLeft + 'px';
+                badge.style.right = '';
+            } else if (tlRight > 0) {
+                badge.style.right = tlRight + 'px';
+                badge.style.left = '';
+            }
+        } else if (quality && badge) {
             let qHeight = quality.offsetHeight;
             let qBottom = parseFloat(getComputedStyle(quality).bottom) || 0;
             badge.style.bottom = (qHeight + qBottom) + 'px';
+            badge.style.top = '';
         } else if (badge) {
-            badge.style.bottom = '1.4em';
+            badge.style.bottom = '0.50em';
+            badge.style.top = '';
         }
     }
     function updateBadgePositions(cardEl) {
@@ -165,7 +198,7 @@
     var qualityObserver = new MutationObserver(function(mutations) {
         mutations.forEach(function(mutation) {
             mutation.addedNodes?.forEach(function(node) {
-                if (node.classList && node.classList.contains('card__quality')) {
+                if (node.classList && (node.classList.contains('card__quality') || node.classList.contains('content-label'))) {
                     var cardEl = node.closest('.card');
                     if (cardEl) {
                         setTimeout(() => {
@@ -175,7 +208,7 @@
                 }
             });
             mutation.removedNodes?.forEach(function(node) {
-                if (node.classList && node.classList.contains('card__quality')) {
+                if (node.classList && (node.classList.contains('card__quality') || node.classList.contains('content-label'))) {
                     var cardEl = node.closest('.card');
                     if (cardEl) {
                         setTimeout(() => {
@@ -260,11 +293,26 @@
                         bgColor = 'rgba(244,67,54,0.8)';
                     }
                     if (!$(".card--new_seria", Lampa.Activity.active().activity.render()).length) {
-                        if (window.innerWidth > 585) {
-                            $(".full-start__poster,.full-start-new__poster", Lampa.Activity.active().activity.render()).append(
-                                `<div class='card--new_seria' style=' right: -0.8em!important; position: absolute; background: ${bgColor}; color: #fff; bottom: 1.4em!important; padding: 0.4em 0.6em; font-size: 0.8em; border-radius: 0.3em;'> ${seasonInfo} </div>`
-                            );
-                        } else {
+                        var poster = $(".full-start__poster, .full-start-new__poster", Lampa.Activity.active().activity.render());
+                        if (poster.length) {
+                            var newSeria = $(`<div class='card--new_seria' style='background: ${bgColor};'>${seasonInfo}</div>`);
+                            poster.append(newSeria);
+                            var contentLabel = poster.find('.content-label.serial-label');
+                            if (contentLabel.length) {
+                                var clHeight = contentLabel.outerHeight();
+                                var clTop = parseFloat(contentLabel.css('top')) || 0;
+                                newSeria.css({
+                                    top: (clTop + clHeight + 2) + 'px',
+                                    left: contentLabel.css('left'),
+                                    right: contentLabel.css('right')
+                                });
+                            } else {
+                                newSeria.css({
+                                    top: '1.4em',
+                                    left: '-0.8em'
+                                });
+                            }
+                        } else if (window.innerWidth <= 585) {
                             if ($(".card--new_seria", Lampa.Activity.active().activity.render()).length) {
                                 $(".full-start__tags", Lampa.Activity.active().activity.render()).append(
                                     `<div class="full-start__tag card--new_seria"> <img src="./img/icons/menu/movie.svg" /> <div>${seasonInfo}</div> </div>`
