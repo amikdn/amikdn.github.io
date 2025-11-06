@@ -159,10 +159,10 @@
             let tlLeft = parseFloat(tlStyle.left) || 0;
             let tlRight = parseFloat(tlStyle.right) || 0;
             if (tlTop > 0) {
-                badge.style.top = (tlTop + tlHeight + 4) + 'px';
+                badge.style.top = (tlTop + tlHeight + 2) + 'px';
                 badge.style.bottom = '';
             } else if (tlBottom > 0) {
-                badge.style.bottom = (tlBottom + tlHeight + 4) + 'px';
+                badge.style.bottom = (tlBottom + tlHeight + 2) + 'px';
                 badge.style.top = '';
             }
             if (tlLeft > 0) {
@@ -292,7 +292,7 @@
                             );
                         } else {
                             if ($(".card--new_seria", Lampa.Activity.active().activity.render()).length) {
-                                $(".full-start__tags", Lampa.Activity.active().render()).append(
+                                $(".full-start__tags", Lampa.Activity.active().activity.render()).append(
                                     `<div class="full-start__tag card--new_seria"> <img src="./img/icons/menu/movie.svg" /> <div>${seasonInfo}</div> </div>`
                                 );
                             } else {
