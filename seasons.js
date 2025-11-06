@@ -16,7 +16,7 @@
         top: auto;
         bottom: auto;
         left: -0.8em;
-        background-color: rgba(33,150,243,0.8);
+        background-color: rgba(52,152,219,0.8);
         z-index: 12;
         width: fit-content;
         max-width: calc(100% - 1em);
@@ -159,10 +159,10 @@
             let tlLeft = parseFloat(tlStyle.left) || 0;
             let tlRight = parseFloat(tlStyle.right) || 0;
             if (tlTop > 0) {
-                badge.style.top = (tlTop + tlHeight) + 'px';
+                badge.style.top = (tlTop + tlHeight + 4) + 'px';
                 badge.style.bottom = '';
             } else if (tlBottom > 0) {
-                badge.style.bottom = (tlBottom + tlHeight) + 'px';
+                badge.style.bottom = (tlBottom + tlHeight + 4) + 'px';
                 badge.style.top = '';
             }
             if (tlLeft > 0) {
@@ -280,7 +280,7 @@
                     let isComplete = !movieData.next_episode_to_air;
                     if (isComplete) {
                         seasonInfo = `${currentSeason} сезон завершён`;
-                        bgColor = 'rgba(33,150,243,0.8)';
+                        bgColor = 'rgba(52,152,219,0.8)';
                     } else {
                         seasonInfo = `Сезон ${currentSeason} Серия ${lastEpisode} из ${totalEpisodes}`;
                         bgColor = 'rgba(244,67,54,0.8)';
@@ -292,7 +292,7 @@
                             );
                         } else {
                             if ($(".card--new_seria", Lampa.Activity.active().activity.render()).length) {
-                                $(".full-start__tags", Lampa.Activity.active().activity.render()).append(
+                                $(".full-start__tags", Lampa.Activity.active().render()).append(
                                     `<div class="full-start__tag card--new_seria"> <img src="./img/icons/menu/movie.svg" /> <div>${seasonInfo}</div> </div>`
                                 );
                             } else {
