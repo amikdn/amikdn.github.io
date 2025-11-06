@@ -288,7 +288,7 @@
                     if (!$(".card--new_seria", Lampa.Activity.active().activity.render()).length) {
                         if (window.innerWidth > 585) {
                             $(".full-start__poster,.full-start-new__poster", Lampa.Activity.active().activity.render()).append(
-                                `<div class='card--new_seria' style=' right: -0.6em!important; position: absolute; background: ${bgColor}; color: #fff; bottom: .6em!important; padding: 0.4em 0.6em; font-size: 0.8em; border-radius: 0.3em;'> ${seasonInfo} </div>`
+                                `<div class='card--new_seria' style='position: absolute; top: 3em; left: -0.8em; background: ${bgColor}; color: #fff; padding: 0.4em 0.6em; font-size: 0.8em; border-radius: 0.3em;'> ${seasonInfo} </div>`
                             );
                         } else {
                             if ($(".card--new_seria", Lampa.Activity.active().activity.render()).length) {
