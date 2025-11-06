@@ -13,8 +13,9 @@
     style.textContent = `
     .card--season-complete {
         position: absolute;
-        left: 0;
-        bottom: 0.50em;
+        top: auto;
+        bottom: auto;
+        left: -0.8em;
         background-color: rgba(33,150,243,0.8);
         z-index: 12;
         width: fit-content;
@@ -24,13 +25,15 @@
         opacity: 0;
         transition: opacity 0.22s ease-in-out;
         text-align: center;
+        white-space: nowrap;
         backdrop-filter: blur(2px);
         box-shadow: 0 2px 5px rgba(0,0,0,0.2);
     }
     .card--season-progress {
         position: absolute;
-        left: 0;
-        bottom: 0.50em;
+        top: auto;
+        bottom: auto;
+        left: -0.8em;
         background-color: rgba(244,67,54,0.8);
         z-index: 12;
         width: fit-content;
@@ -40,6 +43,7 @@
         opacity: 0;
         transition: opacity 0.22s ease-in-out;
         text-align: center;
+        white-space: nowrap;
         backdrop-filter: blur(2px);
         box-shadow: 0 2px 5px rgba(0,0,0,0.2);
     }
@@ -50,7 +54,9 @@
         font-weight: normal;
         font-size: 0.8em;
         padding: 0.4em 0.6em;
-        display: block;
+        white-space: nowrap;
+        display: flex;
+        align-items: center;
         line-height: 1.2em;
     }
     .card--season-complete div {
@@ -152,7 +158,6 @@
             let tlBottom = parseFloat(tlStyle.bottom) || 0;
             let tlLeft = parseFloat(tlStyle.left) || 0;
             let tlRight = parseFloat(tlStyle.right) || 0;
-            badge.style.width = typeLabel.offsetWidth + 'px';
             if (tlTop > 0) {
                 badge.style.top = (tlTop + tlHeight) + 'px';
                 badge.style.bottom = '';
