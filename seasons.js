@@ -329,7 +329,7 @@
         });
     });
     function initPlugin() {
-        Lampa.SettingsApi.addParam({ component: "interface", param: { name: "season_and_episode", type: "trigger", default: true, }, field: { name: "Отображение состояния сериала (сезон/серия)", }, onRender: function (element) { setTimeout(function () { $("div[data-name='season_and_episode']").insertAfter("div[data-name='card_interface_reactions']"); }, 0); }, });
+        Lampa.SettingsApi.addParam({ component: "interface", param: { name: "season_and_episode", type: "trigger", default: true, }, field: { name: "Отображение состояния сериала (сезон/серия)", }, onRender: function (element) { setTimeout(function () { $("div[data-name='season_and_episode']").insertAfter("div[data-name='card_interface_reactions']"); }, 0); }, onChange: function (v) { if (!v) { document.querySelectorAll('.card--season-complete, .card--season-progress, .card--new_seria').forEach(el => el.remove()); } else { document.querySelectorAll('.card:not([data-season-processed])').forEach(addSeasonBadgeToCard); } } });
         if (Lampa.Storage.get("season_and_episode") !== false) {
             Lampa.Listener.follow("full", addSeasonBadgeToFull);
             var containers = document.querySelectorAll('.cards, .card-list, .content, .main, .cards-list, .preview__list');
