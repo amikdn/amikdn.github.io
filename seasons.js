@@ -77,7 +77,6 @@
         }
     }
     .card--new_seria {
-        position: absolute;
         background: #df1616;
         color: #fff;
         padding: 0.4em 0.6em;
@@ -85,12 +84,6 @@
         border-radius: 0.3em;
         text-transform: none;
         font-weight: normal;
-        z-index: 999;
-        text-align: center;
-        white-space: nowrap;
-        line-height: 1.2em;
-        backdrop-filter: blur(2px);
-        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
     }
     .full-start__tag.card--new_seria {
         display: flex;
@@ -297,21 +290,11 @@
                         if (poster.length) {
                             var newSeria = $(`<div class='card--new_seria' style='background: ${bgColor};'>${seasonInfo}</div>`);
                             poster.append(newSeria);
-                            var contentLabel = poster.find('.content-label.serial-label');
-                            if (contentLabel.length) {
-                                var clHeight = contentLabel.outerHeight();
-                                var clTop = parseFloat(contentLabel.css('top')) || 0;
-                                newSeria.css({
-                                    top: (clTop + clHeight + 2) + 'px',
-                                    left: contentLabel.css('left'),
-                                    right: contentLabel.css('right')
-                                });
-                            } else {
-                                newSeria.css({
-                                    top: '1.4em',
-                                    left: '-0.8em'
-                                });
-                            }
+                            newSeria.css({
+                                right: '-0.8em',
+                                bottom: '1.4em',
+                                position: 'absolute'
+                            });
                         } else if (window.innerWidth <= 585) {
                             if ($(".card--new_seria", Lampa.Activity.active().activity.render()).length) {
                                 $(".full-start__tags", Lampa.Activity.active().activity.render()).append(
