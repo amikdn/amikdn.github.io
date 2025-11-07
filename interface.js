@@ -257,9 +257,6 @@
         .new-interface {
             position: relative;
         }
-        .new-interface .card.card--wide {
-            width: 18.3em;
-        }
         .new-interface-info {
             position: relative;
             padding: 1.5em;
@@ -623,7 +620,7 @@
           cardClass: element.cardClass,
           genres: object.genres,
           object: object,
-          card_wide: true,
+          card_wide: false,
           nomore: element.nomore
         });
         item.create();
