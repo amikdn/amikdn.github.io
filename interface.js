@@ -126,42 +126,21 @@
     function prepareLineData(element) {
         if (!element) return;
         if (Array.isArray(element.results)) {
+            Lampa.Utils.extendItemsParams(element.results, {
+                style: {
+                    name: ''
+                }
+            });
         }
-    }
-    function updateCardTitle(card) {
-        if (!card || typeof card.render !== 'function') return;
-        const element = card.render(true);
-        if (!element) return;
-        if (!element.isConnected) {
-            clearTimeout(card.__newInterfaceLabelTimer);
-            card.__newInterfaceLabelTimer = setTimeout(() => updateCardTitle(card), 50);
-            return;
-        }
-        clearTimeout(card.__newInterfaceLabelTimer);
-        const text = (card.data && (card.data.title || card.data.name || card.data.original_title || card.data.original_name)) ? (card.data.title || card.data.name || card.data.original_title || card.data.original_name).trim() : '';
-        const seek = element.querySelector('.new-interface-card-title');
-        if (!text) {
-            if (seek && seek.parentNode) seek.parentNode.removeChild(seek);
-            card.__newInterfaceLabel = null;
-            return;
-        }
-        let label = seek || card.__newInterfaceLabel;
-        if (!label) {
-            label = document.createElement('div');
-            label.className = 'new-interface-card-title';
-        }
-        label.textContent = text;
-        if (!label.parentNode || label.parentNode !== element) {
-            if (label.parentNode) label.parentNode.removeChild(label);
-            element.appendChild(label);
-        }
-        card.__newInterfaceLabel = label;
     }
     function decorateCard(state, card) {
         if (!card || card.__newInterfaceCard || typeof card.use !== 'function' || !card.data) return;
         card.__newInterfaceCard = true;
         card.params = card.params || {};
         card.params.style = card.params.style || {};
+        if (card.params.style.name === 'wide') card.params.style.name = '';
+        const renderElement = card.render(true);
+        if (renderElement) renderElement.classList.remove('card--wide');
         card.use({
             onFocus() {
                 state.update(card.data);
@@ -172,22 +151,10 @@
             onTouch() {
                 state.update(card.data);
             },
-            onVisible() {
-                updateCardTitle(card);
-            },
-            onUpdate() {
-                updateCardTitle(card);
-            },
             onDestroy() {
-                clearTimeout(card.__newInterfaceLabelTimer);
-                if (card.__newInterfaceLabel && card.__newInterfaceLabel.parentNode) {
-                    card.__newInterfaceLabel.parentNode.removeChild(card.__newInterfaceLabel);
-                }
-                card.__newInterfaceLabel = null;
                 delete card.__newInterfaceCard;
             }
         });
-        updateCardTitle(card);
     }
     function getCardData(card, element, index = 0) {
         if (card && card.data) return card.data;
@@ -315,7 +282,7 @@
             width: 70%;
         }
         .new-interface .card-more__box {
-            padding-bottom: 95%;
+            padding-bottom: 150%;
         }
         .new-interface .full-start__background {
             height: 108%;
@@ -329,26 +296,10 @@
             display: none;
         }
         .new-interface .card.card--wide + .card-more .card-more__box {
-            padding-bottom: 95%;
+            padding-bottom: 150%;
         }
         .new-interface .card.card--wide .card-watched {
             display: none !important;
-        }
-        .new-interface-card-title {
-            margin-top: 0.6em;
-            font-size: 1.05em;
-            font-weight: 500;
-            color: #fff;
-            display: block;
-            text-align: left;
-            max-width: 100%;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            pointer-events: none;
-        }
-        body.light--version .new-interface-card-title {
-            color: #111;
         }
         body.light--version .new-interface-info__body {
             width: 69%;
@@ -363,9 +314,8 @@
         body.advanced--animation:not(.no--animation) .new-interface .card.card--wide.animate-trigger-enter .card__view {
             animation: animation-trigger-enter 0.2s forwards;
         }
-        .new-interface .card__title,
-        .new-interface .card__age {
-            display: none;
+        .new-interface .card__view {
+            padding-bottom: 150% !important;
         }
         </style>`);
         $('body').append(Lampa.Template.get('new_interface_style_v3', {}, true));
@@ -616,7 +566,7 @@
         element.ready = true;
         var item = new Lampa.InteractionLine(element, {
           url: element.url,
-          card_small: true,
+          card_small: false,
           cardClass: element.cardClass,
           genres: object.genres,
           object: object,
@@ -720,7 +670,7 @@
         if (Lampa.Manifest.app_digital < 153) use = old_interface;
         return new use(object);
       };
-      Lampa.Template.add('new_interface_style', "\n <style>\n .new-interface .card--small.card--wide {\n width: 18.3em;\n }\n \n .new-interface-info {\n position: relative;\n padding: 1.5em;\n height: 24em;\n }\n \n .new-interface-info__body {\n width: 80%;\n padding-top: 1.1em;\n }\n \n .new-interface-info__head {\n color: rgba(255, 255, 255, 0.6);\n margin-bottom: 1em;\n font-size: 1.3em;\n min-height: 1em;\n }\n \n .new-interface-info__head span {\n color: #fff;\n }\n \n .new-interface-info__title {\n font-size: 4em;\n font-weight: 600;\n margin-bottom: 0.3em;\n overflow: hidden;\n -o-text-overflow: \".\";\n text-overflow: \".\";\n display: -webkit-box;\n -webkit-line-clamp: 1;\n line-clamp: 1;\n -webkit-box-orient: vertical;\n margin-left: -0.03em;\n line-height: 1.3;\n }\n \n .new-interface-info__details {\n margin-bottom: 1.6em;\n display: -webkit-box;\n display: -webkit-flex;\n display: -moz-box;\n display: -ms-flexbox;\n display: flex;\n -webkit-box-align: center;\n -webkit-align-items: center;\n -moz-box-align: center;\n -ms-flex-align: center;\n align-items: center;\n -webkit-flex-wrap: wrap;\n -ms-flex-wrap: wrap;\n flex-wrap: wrap;\n min-height: 1.9em;\n font-size: 1.1em;\n }\n \n .new-interface-info__split {\n margin: 0 1em;\n font-size: 0.7em;\n }\n \n .new-interface-info__description {\n font-size: 1.2em;\n font-weight: 300;\n line-height: 1.5;\n overflow: hidden;\n -o-text-overflow: \".\";\n text-overflow: \".\";\n display: -webkit-box;\n -webkit-line-clamp: 4;\n line-clamp: 4;\n -webkit-box-orient: vertical;\n width: 70%;\n }\n \n .new-interface .card-more__box {\n padding-bottom: 95%;\n }\n \n .new-interface .full-start__background {\n height: 108%;\n top: -6em;\n }\n \n .new-interface .full-start__rate {\n font-size: 1.3em;\n margin-right: 0;\n }\n \n .new-interface .card__promo {\n display: none;\n }\n \n .new-interface .card.card--wide+.card-more .card-more__box {\n padding-bottom: 95%;\n }\n \n .new-interface .card.card--wide .card-watched {\n display: none !important;\n }\n \n body.light--version .new-interface-info__body {\n width: 69%;\n padding-top: 1.5em;\n }\n \n body.light--version .new-interface-info {\n height: 25.3em;\n }\n\n body.advanced--animation:not(.no--animation) .new-interface .card--small.card--wide.focus .card__view{\n animation: animation-card-focus 0.2s\n }\n body.advanced--animation:not(.no--animation) .new-interface .card--small.card--wide.animate-trigger-enter .card__view{\n animation: animation-trigger-enter 0.2s forwards\n }\n .new-interface .card__title,\n .new-interface .card__age {\n display: none;\n }\n </style>\n ");
+      Lampa.Template.add('new_interface_style', "\n <style>\n .new-interface .card--small.card--wide {\n width: 18.3em;\n }\n \n .new-interface-info {\n position: relative;\n padding: 1.5em;\n height: 24em;\n }\n \n .new-interface-info__body {\n width: 80%;\n padding-top: 1.1em;\n }\n \n .new-interface-info__head {\n color: rgba(255, 255, 255, 0.6);\n margin-bottom: 1em;\n font-size: 1.3em;\n min-height: 1em;\n }\n \n .new-interface-info__head span {\n color: #fff;\n }\n \n .new-interface-info__title {\n font-size: 4em;\n font-weight: 600;\n margin-bottom: 0.3em;\n overflow: hidden;\n -o-text-overflow: \".\";\n text-overflow: \".\";\n display: -webkit-box;\n -webkit-line-clamp: 1;\n line-clamp: 1;\n -webkit-box-orient: vertical;\n margin-left: -0.03em;\n line-height: 1.3;\n }\n \n .new-interface-info__details {\n margin-bottom: 1.6em;\n display: -webkit-box;\n display: -webkit-flex;\n display: -moz-box;\n display: -ms-flexbox;\n display: flex;\n -webkit-box-align: center;\n -webkit-align-items: center;\n -moz-box-align: center;\n -ms-flex-align: center;\n align-items: center;\n -webkit-flex-wrap: wrap;\n -ms-flex-wrap: wrap;\n flex-wrap: wrap;\n min-height: 1.9em;\n font-size: 1.1em;\n }\n \n .new-interface-info__split {\n margin: 0 1em;\n font-size: 0.7em;\n }\n \n .new-interface-info__description {\n font-size: 1.2em;\n font-weight: 300;\n line-height: 1.5;\n overflow: hidden;\n -o-text-overflow: \".\";\n text-overflow: \".\";\n display: -webkit-box;\n -webkit-line-clamp: 4;\n line-clamp: 4;\n -webkit-box-orient: vertical;\n width: 70%;\n }\n \n .new-interface .card-more__box {\n padding-bottom: 150%;\n }\n \n .new-interface .full-start__background {\n height: 108%;\n top: -6em;\n }\n \n .new-interface .full-start__rate {\n font-size: 1.3em;\n margin-right: 0;\n }\n \n .new-interface .card__promo {\n display: none;\n }\n \n .new-interface .card.card--wide+.card-more .card-more__box {\n padding-bottom: 150%;\n }\n \n .new-interface .card.card--wide .card-watched {\n display: none !important;\n }\n \n body.light--version .new-interface-info__body {\n width: 69%;\n padding-top: 1.5em;\n }\n \n body.light--version .new-interface-info {\n height: 25.3em;\n }\n\n body.advanced--animation:not(.no--animation) .new-interface .card--small.card--wide.focus .card__view{\n animation: animation-card-focus 0.2s\n }\n body.advanced--animation:not(.no--animation) .new-interface .card--small.card--wide.animate-trigger-enter .card__view{\n animation: animation-trigger-enter 0.2s forwards\n }\n </style>\n ");
       $('body').append(Lampa.Template.get('new_interface_style', {}, true));
     }
     if (!window.plugin_interface_ready) startPlugin();
