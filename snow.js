@@ -1,110 +1,116 @@
-(function() {
+(function($) {
   'use strict';
+
   Lampa.Platform.tv();
 
-  Date.now = Date.now || function() {
-    return new Date().getTime();
+  $.fn.confetti = function(options) {
+    // Настройки по умолчанию
+    options = $.extend({
+      count: 35,          // Количество частиц
+      size: 1,            // Размер частиц
+      speed: 2,           // Скорость
+      life: 5,            // Время жизни
+      shape: 'rectangle', // Форма (прямоугольник)
+      color: 'random',    // Цвет (случайный)
+      gravity: 1,         // Гравитация
+      wind: 0,            // Ветер
+      fade: true,         // Затухание
+      rotate: true        // Вращение
+    }, options);
+
+    return this.each(function() {
+      var $element = $(this);
+      var particles = [];
+
+      // Создаем частицы
+      for (var i = 0; i < options.count; i++) {
+        particles.push(new Particle($element, options));
+      }
+
+      // Анимация
+      function animate() {
+        particles.forEach(function(particle) {
+          particle.update();
+        });
+        requestAnimationFrame(animate);
+      }
+
+      animate();
+    });
   };
 
-  (function() {
-    var self = this;
+  // Класс частицы
+  function Particle($container, options) {
+    this.$container = $container;
+    this.options = options;
 
-    var bubblesPlugin = function(options) {
-      options = $.extend({
-        color: '#fff',
-        minSize: 5,
-        maxSize: 20,
-        num: 30,
-        speed: 5,
-        bounce: true,
-        canvas: true
-      }, options);
+    // Инициализация позиции и скорости
+    this.x = Math.random() * $container.width();
+    this.y = Math.random() * -$container.height();
+    this.vx = (Math.random() - 0.5) * options.wind;
+    this.vy = Math.random() * options.gravity + 1;
+    this.size = Math.random() * options.size + 1;
+    this.life = Math.random() * options.life + 1;
+    this.color = '#' + Math.floor(Math.random() * 16777215).toString(16);
+    this.angle = Math.random() * 360;
 
-      return this.each(function() {
-        var $this = $(this);
-        var container = $this;
+    // Создаем canvas для частицы
+    this.$canvas = $('<canvas>').appendTo($container);
+    this.$canvas.css({
+      position: options.position || 'absolute',
+      left: this.x + 'px',
+      top: this.y + 'px',
+      width: this.size + 'px',
+      height: this.size + 'px',
+      zIndex: options.zIndex || 999999
+    });
 
-        if (options.canvas) {
-          var canvas = $('<canvas>').appendTo(container);
-          canvas.attr('width', container.width());
-          canvas.attr('height', container.height());
-          var ctx = canvas[0].getContext('2d');
-        } else {
-          // Use divs for bubbles
-        }
+    // Если включено затухание или вращение
+    if (options.fade) {
+      this.opacity = 1;
+    }
+    if (options.rotate) {
+      this.rotationSpeed = (Math.random() - 0.5) * 10;
+    }
 
-        var bubbles = [];
+    this.update = function() {
+      // Обновляем позицию
+      this.y += this.vy;
+      this.x += this.vx;
 
-        for (var i = 0; i < options.num; i++) {
-          var bubble = {
-            x: Math.random() * container.width(),
-            y: container.height() + Math.random() * 50,
-            size: Math.random() * (options.maxSize - options.minSize) + options.minSize,
-            speed: Math.random() * options.speed + 1,
-            color: options.color
-          };
-          bubbles.push(bubble);
-        }
+      if (options.rotate) {
+        this.angle += this.rotationSpeed;
+      }
 
-        function animate() {
-          if (options.canvas) {
-            ctx.clearRect(0, 0, canvas.width(), canvas.height());
-          }
+      // Проверяем границы
+      if (this.y > $container.height() || this.life <= 0) {
+        this.y = Math.random() * -$container.height();
+        this.life = Math.random() * options.life + 1;
+        if (options.fade) this.opacity = 1;
+      }
 
-          for (var j = 0; j < bubbles.length; j++) {
-            var b = bubbles[j];
-            b.y -= b.speed;
+      // Уменьшаем жизнь
+      this.life -= 0.01;
+      if (options.fade) {
+        this.opacity = this.life / options.life;
+      }
 
-            if (b.y < -b.size) {
-              b.y = container.height() + b.size;
-              b.x = Math.random() * container.width();
-            }
+      // Рисуем на canvas
+      var ctx = this.$canvas[0].getContext('2d');
+      ctx.clearRect(0, 0, this.size, this.size);
+      ctx.fillStyle = this.color;
+      if (options.fade) {
+        ctx.globalAlpha = this.opacity;
+      }
+      if (options.shape === 'rectangle') {
+        ctx.fillRect(0, 0, this.size, this.size);
+      } // Можно добавить другие формы, например круг
 
-            if (options.bounce) {
-              // Simple bounce logic
-              if (b.x < 0 || b.x > container.width()) {
-                b.speed = -b.speed * 0.8;
-              }
-            }
-
-            if (options.canvas) {
-              ctx.beginPath();
-              ctx.arc(b.x, b.y, b.size, 0, Math.PI * 2);
-              ctx.fillStyle = b.color;
-              ctx.fill();
-            } else {
-              // Animate div
-            }
-          }
-
-          requestAnimationFrame(animate);
-        }
-
-        animate();
+      // Обновляем позицию canvas
+      this.$canvas.css({
+        left: this.x + 'px',
+        top: this.y + 'px'
       });
     };
-
-    $.fn.bubbles = bubblesPlugin;
-  })();
-
-  // Remove some event listeners if needed
-  for (var events = ['resize', 'load'], i = 0; i < events.length; i++) {
-    window['on' + events[i]] = window['on' + events[i]];
   }
-
-  if (/iP(ad|hone|od).*OS 6/.test(window.navigator.userAgent) || !window.requestAnimationFrame || !window.cancelAnimationFrame) {
-    // Fallback for old iOS
-  }
-
-  Lampa.Settings.listener.follow('toggle', function(e) {
-    if (e.name === 'bubbles') {
-      // Toggle the effect on or off
-      if (e.value) {
-        $('body').bubbles();
-      } else {
-        // Stop animation
-      }
-    }
-  });
-
-})();
+})(jQuery);
