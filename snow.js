@@ -1,168 +1,110 @@
-// Polyfill for requestAnimationFrame and cancelAnimationFrame for older browsers or specific platforms
-if (/iP(ad|hone|od).*OS 6/.test(window.navigator.userAgent) || !window.requestAnimationFrame) {
-  window.requestAnimationFrame = function(callback) {
-    return setTimeout(callback, 1000 / 60);
+(function() {
+  'use strict';
+  Lampa.Platform.tv();
+
+  Date.now = Date.now || function() {
+    return new Date().getTime();
   };
-  window.cancelAnimationFrame = clearTimeout;
-}
 
-// jQuery plugin for particles effect
-(function($) {
-  $.fn.particles = function(options) {
-    var defaults = {
-      selector: '.background',
-      color: '#DEDCDC',
-      maxParticles: 100,
-      sizeVariations: 3,
-      minSize: 1,
-      speed: 0.5,
-      connectParticles: false,
-      responsive: false,
-      duration: 0,
-      easing: 'easeInOutQuad'
-    };
+  (function() {
+    var self = this;
 
-    options = $.extend({}, defaults, options);
+    var bubblesPlugin = function(options) {
+      options = $.extend({
+        color: '#fff',
+        minSize: 5,
+        maxSize: 20,
+        num: 30,
+        speed: 5,
+        bounce: true,
+        canvas: true
+      }, options);
 
-    return this.each(function() {
-      var $this = $(this);
-      var wrapper = $(options.selector, $this);
-      if (!wrapper.length) return;
+      return this.each(function() {
+        var $this = $(this);
+        var container = $this;
 
-      var canvas;
-      if (options.responsive) {
-        canvas = $('<canvas></canvas>').prependTo(wrapper)[0];
-        canvas.width = wrapper.width();
-        canvas.height = wrapper.height();
-        canvas.style.width = '100%';
-        canvas.style.height = '100%';
-      } else {
-        canvas = $('<canvas></canvas>').prependTo($this)[0];
-        canvas.width = $this.width();
-        canvas.height = $this.height();
-      }
-
-      canvas.style.display = 'block';
-      canvas.style.position = options.responsive ? 'absolute' : 'fixed';
-      canvas.style.top = '0';
-      canvas.style.left = '0';
-      canvas.style.zIndex = options.responsive ? '1' : '-1';
-      if (options.color) canvas.style.background = options.color;
-
-      var ctx = canvas.getContext('2d');
-      var particles = [];
-      var raf;
-      var mouseX, mouseY;
-
-      function Particle() {
-        this.x = Math.random() * canvas.width;
-        this.y = Math.random() * canvas.height;
-        this.vx = (Math.random() - 0.5) * options.speed;
-        this.vy = (Math.random() - 0.5) * options.speed;
-        this.size = Math.random() * options.sizeVariations + options.minSize;
-        this.color = options.color;
-      }
-
-      Particle.prototype.update = function() {
-        this.x += this.vx;
-        this.y += this.vy;
-
-        if (this.x > canvas.width || this.x < 0) this.vx = -this.vx;
-        if (this.y > canvas.height || this.y < 0) this.vy = -this.vy;
-      };
-
-      Particle.prototype.draw = function() {
-        ctx.beginPath();
-        ctx.fillStyle = this.color;
-        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-        ctx.fill();
-      };
-
-      function init() {
-        for (var i = 0; i < options.maxParticles; i++) {
-          particles.push(new Particle());
-        }
-      }
-
-      function animate() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        for (var i = 0; i < particles.length; i++) {
-          particles[i].update();
-          particles[i].draw();
+        if (options.canvas) {
+          var canvas = $('<canvas>').appendTo(container);
+          canvas.attr('width', container.width());
+          canvas.attr('height', container.height());
+          var ctx = canvas[0].getContext('2d');
+        } else {
+          // Use divs for bubbles
         }
 
-        if (options.connectParticles) {
-          for (var i = 0; i < particles.length; i++) {
-            for (var j = i + 1; j < particles.length; j++) {
-              var dx = particles[i].x - particles[j].x;
-              var dy = particles[i].y - particles[j].y;
-              var dist = Math.sqrt(dx * dx + dy * dy);
-              if (dist < 120) {
-                ctx.beginPath();
-                ctx.strokeStyle = options.color;
-                ctx.lineWidth = 0.5;
-                ctx.moveTo(particles[i].x, particles[i].y);
-                ctx.lineTo(particles[j].x, particles[j].y);
-                ctx.stroke();
+        var bubbles = [];
+
+        for (var i = 0; i < options.num; i++) {
+          var bubble = {
+            x: Math.random() * container.width(),
+            y: container.height() + Math.random() * 50,
+            size: Math.random() * (options.maxSize - options.minSize) + options.minSize,
+            speed: Math.random() * options.speed + 1,
+            color: options.color
+          };
+          bubbles.push(bubble);
+        }
+
+        function animate() {
+          if (options.canvas) {
+            ctx.clearRect(0, 0, canvas.width(), canvas.height());
+          }
+
+          for (var j = 0; j < bubbles.length; j++) {
+            var b = bubbles[j];
+            b.y -= b.speed;
+
+            if (b.y < -b.size) {
+              b.y = container.height() + b.size;
+              b.x = Math.random() * container.width();
+            }
+
+            if (options.bounce) {
+              // Simple bounce logic
+              if (b.x < 0 || b.x > container.width()) {
+                b.speed = -b.speed * 0.8;
               }
             }
+
+            if (options.canvas) {
+              ctx.beginPath();
+              ctx.arc(b.x, b.y, b.size, 0, Math.PI * 2);
+              ctx.fillStyle = b.color;
+              ctx.fill();
+            } else {
+              // Animate div
+            }
           }
+
+          requestAnimationFrame(animate);
         }
 
-        raf = requestAnimationFrame(animate);
-      }
-
-      init();
-      animate();
-
-      if (options.duration) {
-        setTimeout(function() {
-          wrapper.fadeOut(options.duration, function() {
-            $(this).remove();
-            cancelAnimationFrame(raf);
-          });
-        }, options.duration);
-      }
-
-      if (options.connectParticles) {
-        $(window).on('mousemove', function(e) {
-          mouseX = e.clientX;
-          mouseY = e.clientY;
-          // Possibly update particles based on mouse position, but not evident in obfuscated code
-        });
-      }
-    });
-  };
-})(jQuery);
-
-// Add setting to Lampa interface
-Lampa.Settings.component('interface')
-  .group({
-    name: 'Particles', // Likely the name, based on context
-    type: 'toggle',
-    default: true
-  })
-  .field({
-    name: 'Enable particles'
-  })
-  .onChange(function(value) {
-    if (value) {
-      $('.interface').particles({
-        // Default options as above
+        animate();
       });
-    } else {
-      // Remove particles
-      var particlesWrapper = $('.background', $('.interface'));
-      if (particlesWrapper.length) particlesWrapper.remove();
-    }
-    Lampa.Storage.set('particles_enabled', value); // Assuming storage key
-  })
-  .onRender(function() {
-    if (Lampa.Storage.get('particles_enabled', true)) {
-      // Apply if enabled
-      setTimeout(function() {
-        $('.interface').particles({});
-      }, 100);
+    };
+
+    $.fn.bubbles = bubblesPlugin;
+  })();
+
+  // Remove some event listeners if needed
+  for (var events = ['resize', 'load'], i = 0; i < events.length; i++) {
+    window['on' + events[i]] = window['on' + events[i]];
+  }
+
+  if (/iP(ad|hone|od).*OS 6/.test(window.navigator.userAgent) || !window.requestAnimationFrame || !window.cancelAnimationFrame) {
+    // Fallback for old iOS
+  }
+
+  Lampa.Settings.listener.follow('toggle', function(e) {
+    if (e.name === 'bubbles') {
+      // Toggle the effect on or off
+      if (e.value) {
+        $('body').bubbles();
+      } else {
+        // Stop animation
+      }
     }
   });
+
+})();
