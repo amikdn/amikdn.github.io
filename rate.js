@@ -393,13 +393,12 @@
         const activity = Lampa.Activity.active();
         if (activity && activity.component === 'full' && activity.object && activity.object.id) {
             const data = activity.object;
-            const type = (data.seasons || data.first_air_date || data.original_name) ? 'tv' : 'movie';
+            let type = (data.seasons || data.first_air_date || data.original_name) ? 'tv' : 'movie';
             const ratingKey = type + '_' + data.id;
             const cached = ratingCache.get('lampa_rating', ratingKey);
-            const currentRender = activity.render();
             if (cached && cached.rating > 0) {
-                let rateValue = $(currentRender).find('.rate--lampa .rate-value');
-                let rateIcon = $(currentRender).find('.rate--lampa .rate-icon');
+                let rateValue = $('.rate--lampa .rate-value');
+                let rateIcon = $('.rate--lampa .rate-icon');
                 rateValue.text(cached.rating);
                 if (cached.medianReaction) {
                     let reactionSrc = 'https://cubnotrip.top/img/reactions/' + cached.medianReaction + '.svg';
@@ -411,9 +410,8 @@
                 getLampaRating(ratingKey).then(result => {
                     const updatedActivity = Lampa.Activity.active();
                     if (updatedActivity && updatedActivity.component === 'full') {
-                        const updatedRender = updatedActivity.render();
-                        let rateValue = $(updatedRender).find('.rate--lampa .rate-value');
-                        let rateIcon = $(updatedRender).find('.rate--lampa .rate-icon');
+                        let rateValue = $('.rate--lampa .rate-value');
+                        let rateIcon = $('.rate--lampa .rate-icon');
                         if (result.rating > 0) {
                             rateValue.text(result.rating);
                             if (result.medianReaction) {
@@ -421,7 +419,7 @@
                                 rateIcon.html('<img style="width:1em;height:1em;margin:0 0.2em;" src="' + reactionSrc + '">');
                             }
                         } else {
-                            $(updatedRender).find('.rate--lampa').hide();
+                            $('.rate--lampa').hide();
                         }
                     }
                 });
