@@ -490,38 +490,40 @@
         });
         Lampa.Listener.follow('full', (event) => {
             if (event.type === 'complete') {
-                let render = event.object.activity.render();
-                if (render && insertLampaBlock(render)) {
-                    if (event.object.method && event.object.id) {
-                        let ratingKey = event.object.method + "_" + event.object.id;
-                        const cached = ratingCache.get('lampa_rating', ratingKey);
-                        if (cached && cached.rating > 0) {
-                            let rateValue = $(render).find('.rate--lampa .rate-value');
-                            let rateIcon = $(render).find('.rate--lampa .rate-icon');
-                            rateValue.text(cached.rating);
-                            if (cached.medianReaction) {
-                                let reactionSrc = 'https://cubnotrip.top/img/reactions/' + cached.medianReaction + '.svg';
-                                rateIcon.html('<img style="width:1em;height:1em;margin:0 0.2em;" src="' + reactionSrc + '">');
-                            }
-                            return;
-                        }
-                        addToQueue(() => {
-                            getLampaRating(ratingKey).then(result => {
+                setTimeout(() => {
+                    let render = event.object.activity.render();
+                    if (render && insertLampaBlock(render)) {
+                        if (event.object.method && event.object.id) {
+                            let ratingKey = event.object.method + "_" + event.object.id;
+                            const cached = ratingCache.get('lampa_rating', ratingKey);
+                            if (cached && cached.rating > 0) {
                                 let rateValue = $(render).find('.rate--lampa .rate-value');
                                 let rateIcon = $(render).find('.rate--lampa .rate-icon');
-                                if (result.rating !== null && result.rating > 0) {
-                                    rateValue.text(result.rating);
-                                    if (result.medianReaction) {
-                                        let reactionSrc = 'https://cubnotrip.top/img/reactions/' + result.medianReaction + '.svg';
-                                        rateIcon.html('<img style="width:1em;height:1em;margin:0 0.2em;" src="' + reactionSrc + '">');
-                                    }
-                                } else {
-                                    $(render).find('.rate--lampa').hide();
+                                rateValue.text(cached.rating);
+                                if (cached.medianReaction) {
+                                    let reactionSrc = 'https://cubnotrip.top/img/reactions/' + cached.medianReaction + '.svg';
+                                    rateIcon.html('<img style="width:1em;height:1em;margin:0 0.2em;" src="' + reactionSrc + '">');
                                 }
+                                return;
+                            }
+                            addToQueue(() => {
+                                getLampaRating(ratingKey).then(result => {
+                                    let rateValue = $(render).find('.rate--lampa .rate-value');
+                                    let rateIcon = $(render).find('.rate--lampa .rate-icon');
+                                    if (result.rating !== null && result.rating > 0) {
+                                        rateValue.text(result.rating);
+                                        if (result.medianReaction) {
+                                            let reactionSrc = 'https://cubnotrip.top/img/reactions/' + result.medianReaction + '.svg';
+                                            rateIcon.html('<img style="width:1em;height:1em;margin:0 0.2em;" src="' + reactionSrc + '">');
+                                        }
+                                    } else {
+                                        $(render).find('.rate--lampa').hide();
+                                    }
+                                });
                             });
-                        });
+                        }
                     }
-                }
+                }, 100);
             }
         });
     }
