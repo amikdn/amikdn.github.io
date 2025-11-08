@@ -389,16 +389,17 @@
         }
         return true;
     }
-    function updateLampaRatingInFull(render) {
+    function updateLampaRatingInFull() {
         const activity = Lampa.Activity.active();
         if (activity && activity.component === 'full' && activity.object && activity.object.id) {
             const data = activity.object;
             const type = (data.seasons || data.first_air_date || data.original_name) ? 'tv' : 'movie';
             const ratingKey = type + '_' + data.id;
             const cached = ratingCache.get('lampa_rating', ratingKey);
+            const currentRender = activity.render();
             if (cached && cached.rating > 0) {
-                let rateValue = $(render).find('.rate--lampa .rate-value');
-                let rateIcon = $(render).find('.rate--lampa .rate-icon');
+                let rateValue = $(currentRender).find('.rate--lampa .rate-value');
+                let rateIcon = $(currentRender).find('.rate--lampa .rate-icon');
                 rateValue.text(cached.rating);
                 if (cached.medianReaction) {
                     let reactionSrc = 'https://cubnotrip.top/img/reactions/' + cached.medianReaction + '.svg';
@@ -408,16 +409,20 @@
             }
             addToQueue(() => {
                 getLampaRating(ratingKey).then(result => {
-                    let rateValue = $(render).find('.rate--lampa .rate-value');
-                    let rateIcon = $(render).find('.rate--lampa .rate-icon');
-                    if (result.rating !== null && result.rating > 0) {
-                        rateValue.text(result.rating);
-                        if (result.medianReaction) {
-                            let reactionSrc = 'https://cubnotrip.top/img/reactions/' + result.medianReaction + '.svg';
-                            rateIcon.html('<img style="width:1em;height:1em;margin:0 0.2em;" src="' + reactionSrc + '">');
+                    const updatedActivity = Lampa.Activity.active();
+                    if (updatedActivity && updatedActivity.component === 'full') {
+                        const updatedRender = updatedActivity.render();
+                        let rateValue = $(updatedRender).find('.rate--lampa .rate-value');
+                        let rateIcon = $(updatedRender).find('.rate--lampa .rate-icon');
+                        if (result.rating > 0) {
+                            rateValue.text(result.rating);
+                            if (result.medianReaction) {
+                                let reactionSrc = 'https://cubnotrip.top/img/reactions/' + result.medianReaction + '.svg';
+                                rateIcon.html('<img style="width:1em;height:1em;margin:0 0.2em;" src="' + reactionSrc + '">');
+                            }
+                        } else {
+                            $(updatedRender).find('.rate--lampa').hide();
                         }
-                    } else {
-                        $(render).find('.rate--lampa').hide();
                     }
                 });
             });
@@ -527,7 +532,7 @@
                 setTimeout(() => {
                     let render = event.object.activity.render();
                     if (render && insertLampaBlock(render)) {
-                        updateLampaRatingInFull(render);
+                        updateLampaRatingInFull();
                     }
                 }, 500);
             }
@@ -542,7 +547,7 @@
                             if (rateLine) {
                                 const render = node;
                                 if (insertLampaBlock(render)) {
-                                    updateLampaRatingInFull(render);
+                                    updateLampaRatingInFull();
                                 }
                             }
                         }
