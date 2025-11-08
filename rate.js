@@ -1,6 +1,8 @@
 (function () {
     'use strict';
+
     Lampa.Platform.tv();
+
     const ratingCache = {
         caches: {},
         get(source, key) {
@@ -23,18 +25,22 @@
             return value;
         }
     };
+
     const CACHE_TIME = 24 * 60 * 60 * 1000;
     let taskQueue = [];
     let isProcessing = false;
     const taskInterval = 300;
+
     let requestPool = [];
     function getRequest() {
         return requestPool.pop() || new Lampa.Reguest();
     }
+
     function releaseRequest(request) {
         request.clear();
         if (requestPool.length < 3) requestPool.push(request);
     }
+
     function processQueue() {
         if (isProcessing || !taskQueue.length) return;
         isProcessing = true;
@@ -45,10 +51,12 @@
             processQueue();
         }, taskInterval);
     }
+
     function addToQueue(task) {
         taskQueue.push({ execute: task });
         processQueue();
     }
+
     const stringCache = {};
     function normalizeString(str) {
         if (stringCache[str]) return stringCache[str];
@@ -61,6 +69,7 @@
         stringCache[str] = normalized;
         return normalized;
     }
+
     function cleanString(str) {
         return normalizeString(str)
             .replace(/^[ \/\\]+/, '')
@@ -69,12 +78,15 @@
             .replace(/([+\/\\] *)+\+/g, '+')
             .replace(/( *[\/\\]+ *)+/g, '+');
     }
+
     function matchStrings(str1, str2) {
         return typeof str1 === 'string' && typeof str2 === 'string' && normalizeString(str1) === normalizeString(str2);
     }
+
     function containsString(str1, str2) {
         return typeof str1 === 'string' && typeof str2 === 'string' && normalizeString(str1).indexOf(normalizeString(str2)) !== -1;
     }
+
     function getKinopoiskRating(item, callback) {
         const cached = ratingCache.get('kp_rating', item.id);
         if (cached) {
@@ -93,10 +105,9 @@
             const api = {
                 url: 'https://kinopoiskapiunofficial.tech/',
                 rating_url: 'api/v2.2/films/',
-                headers: {
-                    'X-API-KEY': '2a4a0808-81a3-40ae-b0d3-e11335ede616'
-                }
+                headers: { 'X-API-KEY': '2a4a0808-81a3-40ae-b0d3-e11335ede616' }
             };
+
             function searchMovies() {
                 let searchUrl = Lampa.Utils.addUrlComponent(api.url + 'api/v2.1/films/search-by-keyword', `keyword=${encodeURIComponent(title)}`);
                 if (item.imdb_id) {
@@ -111,6 +122,7 @@
                     callback('0.0');
                 }, false, { headers: api.headers });
             }
+
             function processSearchResults(results) {
                 if (!results || !results.length) {
                     releaseRequest(request);
@@ -122,7 +134,11 @@
                 });
                 let filteredResults = results;
                 if (originalTitle) {
-                    const matched = results.filter(result => containsString(result.orig_title || result.nameEn, originalTitle) || containsString(result.en_title || result.nameOriginal, originalTitle) || containsString(result.title || result.nameRu || result.name, originalTitle));
+                    const matched = results.filter(result =>
+                        containsString(result.orig_title || result.nameEn, originalTitle) ||
+                        containsString(result.en_title || result.nameOriginal, originalTitle) ||
+                        containsString(result.title || result.nameRu || result.name, originalTitle)
+                    );
                     if (matched.length) filteredResults = matched;
                 }
                 if (filteredResults.length > 1 && releaseYear) {
@@ -162,6 +178,7 @@
             searchMovies();
         });
     }
+
     function calculateLampaRating10(reactions) {
         let weightedSum = 0;
         let totalCount = 0;
@@ -190,6 +207,7 @@
         }
         return { rating: finalRating, medianReaction: medianReaction };
     }
+
     function fetchLampaRating(ratingKey) {
         return new Promise((resolve) => {
             const request = getRequest();
@@ -214,6 +232,7 @@
             }, false);
         });
     }
+
     async function getLampaRating(ratingKey) {
         const cached = ratingCache.get('lampa_rating', ratingKey);
         if (cached) return cached;
@@ -224,6 +243,7 @@
             return { rating: 0, medianReaction: '' };
         }
     }
+
     function getTMDBRating(data) {
         const ratingKey = data.id;
         const cached = ratingCache.get('tmdb_rating', ratingKey);
@@ -232,6 +252,7 @@
         ratingCache.set('tmdb_rating', ratingKey, { vote_average: parseFloat(rating) });
         return rating;
     }
+
     function createRatingElement(card) {
         const ratingElement = document.createElement('div');
         ratingElement.className = 'card__vote';
@@ -256,6 +277,7 @@
         parent.appendChild(ratingElement);
         return ratingElement;
     }
+
     function updateCardRating(item) {
         const card = item.card || item;
         if (!card || !card.querySelector || !document.body.contains(card)) return;
@@ -317,6 +339,7 @@
             });
         }
     }
+
     window.refreshAllRatings = function() {
         const allCards = document.querySelectorAll('.card');
         allCards.forEach(card => {
@@ -331,6 +354,7 @@
             }
         });
     };
+
     function pollCards() {
         const allCards = document.querySelectorAll('.card');
         allCards.forEach(card => {
@@ -370,6 +394,7 @@
         });
         setTimeout(pollCards, 500);
     }
+
     function insertLampaBlock(render) {
         if (!render) return false;
         let rateLine = $(render).find('.full-start-new__rate-line');
@@ -389,43 +414,7 @@
         }
         return true;
     }
-    function updateLampaRatingInFull() {
-        const activity = Lampa.Activity.active();
-        if (activity && activity.component === 'full' && activity.object && activity.object.id) {
-            const data = activity.object;
-            let type = (data.seasons || data.first_air_date || data.original_name) ? 'tv' : 'movie';
-            const ratingKey = type + '_' + data.id;
-            const cached = ratingCache.get('lampa_rating', ratingKey);
-            if (cached && cached.rating > 0) {
-                let rateValue = $('.rate--lampa .rate-value');
-                let rateIcon = $('.rate--lampa .rate-icon');
-                rateValue.text(cached.rating);
-                if (cached.medianReaction) {
-                    let reactionSrc = 'https://cubnotrip.top/img/reactions/' + cached.medianReaction + '.svg';
-                    rateIcon.html('<img style="width:1em;height:1em;margin:0 0.2em;" src="' + reactionSrc + '">');
-                }
-                return;
-            }
-            addToQueue(() => {
-                getLampaRating(ratingKey).then(result => {
-                    const updatedActivity = Lampa.Activity.active();
-                    if (updatedActivity && updatedActivity.component === 'full') {
-                        let rateValue = $('.rate--lampa .rate-value');
-                        let rateIcon = $('.rate--lampa .rate-icon');
-                        if (result.rating > 0) {
-                            rateValue.text(result.rating);
-                            if (result.medianReaction) {
-                                let reactionSrc = 'https://cubnotrip.top/img/reactions/' + result.medianReaction + '.svg';
-                                rateIcon.html('<img style="width:1em;height:1em;margin:0 0.2em;" src="' + reactionSrc + '">');
-                            }
-                        } else {
-                            $('.rate--lampa').hide();
-                        }
-                    }
-                });
-            });
-        }
-    }
+
     function addSettings() {
         Lampa.SettingsApi.addParam({
             component: 'interface',
@@ -457,13 +446,12 @@
             }
         });
     }
+
     function setupCardListener() {
         if (window.lampa_listener_extensions) return;
         window.lampa_listener_extensions = true;
         Object.defineProperty(window.Lampa.Card.prototype, 'build', {
-            get() {
-                return this._build;
-            },
+            get() { return this._build; },
             set(func) {
                 this._build = () => {
                     func.apply(this);
@@ -472,6 +460,7 @@
             }
         });
     }
+
     function initPlugin() {
         const style = document.createElement('style');
         style.type = 'text/css';
@@ -517,6 +506,7 @@
         addSettings();
         setupCardListener();
         pollCards();
+
         Lampa.Listener.follow('card', (event) => {
             if (event.type === 'build' && event.object.card) {
                 const data = event.object.card.card_data;
@@ -525,36 +515,45 @@
                 }
             }
         });
+
         Lampa.Listener.follow('full', (event) => {
-            if (event.type === 'complete') {
-                setTimeout(() => {
-                    let render = event.object.activity.render();
-                    if (render && insertLampaBlock(render)) {
-                        updateLampaRatingInFull();
+            if (event.type === 'complite') {
+                let render = event.object.activity.render();
+                if (render && insertLampaBlock(render)) {
+                    if (event.object.method && event.object.id) {
+                        let ratingKey = event.object.method + "_" + event.object.id;
+                        const cached = ratingCache.get('lampa_rating', ratingKey);
+                        if (cached && cached.rating > 0) {
+                            let rateValue = $(render).find('.rate--lampa .rate-value');
+                            let rateIcon = $(render).find('.rate--lampa .rate-icon');
+                            rateValue.text(cached.rating);
+                            if (cached.medianReaction) {
+                                let reactionSrc = 'https://cubnotrip.top/img/reactions/' + cached.medianReaction + '.svg';
+                                rateIcon.html('<img style="width:1em;height:1em;margin:0 0.2em;" src="' + reactionSrc + '">');
+                            }
+                            return;
+                        }
+                        addToQueue(() => {
+                            getLampaRating(ratingKey).then(result => {
+                                let rateValue = $(render).find('.rate--lampa .rate-value');
+                                let rateIcon = $(render).find('.rate--lampa .rate-icon');
+                                if (result.rating !== null && result.rating > 0) {
+                                    rateValue.text(result.rating);
+                                    if (result.medianReaction) {
+                                        let reactionSrc = 'https://cubnotrip.top/img/reactions/' + result.medianReaction + '.svg';
+                                        rateIcon.html('<img style="width:1em;height:1em;margin:0 0.2em;" src="' + reactionSrc + '">');
+                                    }
+                                } else {
+                                    $(render).find('.rate--lampa').hide();
+                                }
+                            });
+                        });
                     }
-                }, 500);
+                }
             }
         });
-        // Добавляем MutationObserver как fallback
-        const observer = new MutationObserver((mutations) => {
-            mutations.forEach((mutation) => {
-                if (mutation.type === 'childList') {
-                    mutation.addedNodes.forEach((node) => {
-                        if (node.nodeType === 1) {
-                            const rateLine = node.querySelector('.full-start-new__rate-line');
-                            if (rateLine) {
-                                const render = node;
-                                if (insertLampaBlock(render)) {
-                                    updateLampaRatingInFull();
-                                }
-                            }
-                        }
-                    });
-                }
-            });
-        });
-        observer.observe(document.body, { childList: true, subtree: true });
     }
+
     if (window.appready) {
         initPlugin();
     } else {
