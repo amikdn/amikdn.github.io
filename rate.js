@@ -1,8 +1,6 @@
 (function () {
     'use strict';
-
     Lampa.Platform.tv();
-
     const ratingCache = {
         caches: {},
         get(source, key) {
@@ -25,22 +23,18 @@
             return value;
         }
     };
-
     const CACHE_TIME = 24 * 60 * 60 * 1000;
     let taskQueue = [];
     let isProcessing = false;
     const taskInterval = 300;
-
     let requestPool = [];
     function getRequest() {
         return requestPool.pop() || new Lampa.Reguest();
     }
-
     function releaseRequest(request) {
         request.clear();
         if (requestPool.length < 3) requestPool.push(request);
     }
-
     function processQueue() {
         if (isProcessing || !taskQueue.length) return;
         isProcessing = true;
@@ -51,12 +45,10 @@
             processQueue();
         }, taskInterval);
     }
-
     function addToQueue(task) {
         taskQueue.push({ execute: task });
         processQueue();
     }
-
     const stringCache = {};
     function normalizeString(str) {
         if (stringCache[str]) return stringCache[str];
@@ -69,7 +61,6 @@
         stringCache[str] = normalized;
         return normalized;
     }
-
     function cleanString(str) {
         return normalizeString(str)
             .replace(/^[ \/\\]+/, '')
@@ -78,15 +69,12 @@
             .replace(/([+\/\\] *)+\+/g, '+')
             .replace(/( *[\/\\]+ *)+/g, '+');
     }
-
     function matchStrings(str1, str2) {
         return typeof str1 === 'string' && typeof str2 === 'string' && normalizeString(str1) === normalizeString(str2);
     }
-
     function containsString(str1, str2) {
         return typeof str1 === 'string' && typeof str2 === 'string' && normalizeString(str1).indexOf(normalizeString(str2)) !== -1;
     }
-
     function getKinopoiskRating(item, callback) {
         const cached = ratingCache.get('kp_rating', item.id);
         if (cached) {
@@ -105,9 +93,10 @@
             const api = {
                 url: 'https://kinopoiskapiunofficial.tech/',
                 rating_url: 'api/v2.2/films/',
-                headers: { 'X-API-KEY': '2a4a0808-81a3-40ae-b0d3-e11335ede616' }
+                headers: {
+                    'X-API-KEY': '2a4a0808-81a3-40ae-b0d3-e11335ede616'
+                }
             };
-
             function searchMovies() {
                 let searchUrl = Lampa.Utils.addUrlComponent(api.url + 'api/v2.1/films/search-by-keyword', `keyword=${encodeURIComponent(title)}`);
                 if (item.imdb_id) {
@@ -122,7 +111,6 @@
                     callback('0.0');
                 }, false, { headers: api.headers });
             }
-
             function processSearchResults(results) {
                 if (!results || !results.length) {
                     releaseRequest(request);
@@ -134,11 +122,7 @@
                 });
                 let filteredResults = results;
                 if (originalTitle) {
-                    const matched = results.filter(result =>
-                        containsString(result.orig_title || result.nameEn, originalTitle) ||
-                        containsString(result.en_title || result.nameOriginal, originalTitle) ||
-                        containsString(result.title || result.nameRu || result.name, originalTitle)
-                    );
+                    const matched = results.filter(result => containsString(result.orig_title || result.nameEn, originalTitle) || containsString(result.en_title || result.nameOriginal, originalTitle) || containsString(result.title || result.nameRu || result.name, originalTitle));
                     if (matched.length) filteredResults = matched;
                 }
                 if (filteredResults.length > 1 && releaseYear) {
@@ -178,7 +162,6 @@
             searchMovies();
         });
     }
-
     function calculateLampaRating10(reactions) {
         let weightedSum = 0;
         let totalCount = 0;
@@ -207,7 +190,6 @@
         }
         return { rating: finalRating, medianReaction: medianReaction };
     }
-
     function fetchLampaRating(ratingKey) {
         return new Promise((resolve) => {
             const request = getRequest();
@@ -232,7 +214,6 @@
             }, false);
         });
     }
-
     async function getLampaRating(ratingKey) {
         const cached = ratingCache.get('lampa_rating', ratingKey);
         if (cached) return cached;
@@ -243,7 +224,6 @@
             return { rating: 0, medianReaction: '' };
         }
     }
-
     function getTMDBRating(data) {
         const ratingKey = data.id;
         const cached = ratingCache.get('tmdb_rating', ratingKey);
@@ -252,7 +232,6 @@
         ratingCache.set('tmdb_rating', ratingKey, { vote_average: parseFloat(rating) });
         return rating;
     }
-
     function createRatingElement(card) {
         const ratingElement = document.createElement('div');
         ratingElement.className = 'card__vote';
@@ -277,7 +256,6 @@
         parent.appendChild(ratingElement);
         return ratingElement;
     }
-
     function updateCardRating(item) {
         const card = item.card || item;
         if (!card || !card.querySelector || !document.body.contains(card)) return;
@@ -339,7 +317,6 @@
             });
         }
     }
-
     window.refreshAllRatings = function() {
         const allCards = document.querySelectorAll('.card');
         allCards.forEach(card => {
@@ -354,7 +331,6 @@
             }
         });
     };
-
     function pollCards() {
         const allCards = document.querySelectorAll('.card');
         allCards.forEach(card => {
@@ -394,7 +370,6 @@
         });
         setTimeout(pollCards, 500);
     }
-
     function insertLampaBlock(render) {
         if (!render) return false;
         let rateLine = $(render).find('.full-start-new__rate-line');
@@ -414,7 +389,6 @@
         }
         return true;
     }
-
     function addSettings() {
         Lampa.SettingsApi.addParam({
             component: 'interface',
@@ -446,12 +420,13 @@
             }
         });
     }
-
     function setupCardListener() {
         if (window.lampa_listener_extensions) return;
         window.lampa_listener_extensions = true;
         Object.defineProperty(window.Lampa.Card.prototype, 'build', {
-            get() { return this._build; },
+            get() {
+                return this._build;
+            },
             set(func) {
                 this._build = () => {
                     func.apply(this);
@@ -460,7 +435,6 @@
             }
         });
     }
-
     function initPlugin() {
         const style = document.createElement('style');
         style.type = 'text/css';
@@ -506,7 +480,6 @@
         addSettings();
         setupCardListener();
         pollCards();
-
         Lampa.Listener.follow('card', (event) => {
             if (event.type === 'build' && event.object.card) {
                 const data = event.object.card.card_data;
@@ -515,9 +488,8 @@
                 }
             }
         });
-
         Lampa.Listener.follow('full', (event) => {
-            if (event.type === 'complite') {
+            if (event.type === 'complete') {
                 let render = event.object.activity.render();
                 if (render && insertLampaBlock(render)) {
                     if (event.object.method && event.object.id) {
@@ -553,7 +525,6 @@
             }
         });
     }
-
     if (window.appready) {
         initPlugin();
     } else {
