@@ -2193,7 +2193,7 @@ https://apn9.akter-black.com/http://16.team.ga:80/ch3375/index.m3u8?token=dugong
 #EXTINF:0 tvg-id="Play-x Альф HD"  tvg-logo="http://team.ga/images/chIcons/3419.png"  timeshift="3", Play-x Альф HD
 #EXTGRP:7. Kids/Детские
 https://apn9.akter-black.com/http://16.team.ga:80/ch3419/index.m3u8?token=dugong8273.8YlHvc_pVQGjef8qM6TOTEWtEYIJWDdzEjI9qW3ToHSxmwC9VD0UI_xpRmADmA6B
-#EXTINF:0 tvg-id=" SD"  tvg-logo="http://team.ga/images/chIcons/2126.png"  timeshift="3",  SD
+#EXTINF:0 tvg-id="Матч! SD"  tvg-logo="http://team.ga/images/chIcons/2126.png"  timeshift="3", Матч! SD
 #EXTGRP:8. Sport/Спорт
 https://apn9.akter-black.com/http://16.team.ga:80/ch2126/index.m3u8?token=dugong8273.8YlHvc_pVQGjef8qM6TOTAKVX3kV5rJPvbKLdXmaEw8BXRrDV0IXUZeXVXEy4EPl
 #EXTINF:0 tvg-id="Матч! Футбол 1"  tvg-logo="http://team.ga/images/chIcons/2123.png"  timeshift="0", Матч! Футбол 1
