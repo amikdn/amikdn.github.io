@@ -2216,10 +2216,10 @@ https://apn9.akter-black.com/http://16.team.ga:80/ch2005/index.m3u8?token=dugong
 https://apn9.akter-black.com/http://16.team.ga:80/ch3304/index.m3u8?token=dugong8273.8YlHvc_pVQGjef8qM6TOTBdKelDJP-qcqAU3WMFiwQ_9lyWOKpif1wLCakJ81_07
 #EXTINF:0 tvg-id="Eurosport 1"  tvg-logo="http://team.ga/images/chIcons/2125.png"  timeshift="0", Eurosport 1
 #EXTGRP:8. Sport/Спорт
-http://stream.skaz.tv/s/ch039/index.m3u8?dmail=c0iUqfEhjEe6sie30aDWCAJ3wHR3xPMApePVfvrKCFM%3D&cdn=2
+http://ru.byskaz.ru:14000/ch039/mono.m3u8?token=lampastream.q5PNovd7aB4uKIUa11YDMlR9SqIIJ5Xd_uIP-N3_g3R363pQiVjuGcLbDVNHcsaB
 #EXTINF:0 tvg-id="Eurosport 2"  tvg-logo="http://team.ga/images/chIcons/2125.png"  timeshift="0", Eurosport 2
 #EXTGRP:8. Sport/Спорт
-http://stream.skaz.tv/s/ch071/index.m3u8?dmail=c0iUqfEhjEe6sie30aDWCAJ3wHR3xPMApePVfvrKCFM%3D&cdn=2
+http://ru.byskaz.ru:14000/ch071/mono.m3u8?token=lampastream.q5PNovd7aB4uKIUa11YDMlR9SqIIJ5Xd_uIP-N3_g3R363pQiVjuGcLbDVNHcsaB
 #EXTINF:0 tvg-id="Мяч HD"  tvg-logo="http://team.ga/images/chIcons/708.png"  timeshift="3", Мяч HD
 #EXTGRP:8. Sport/Спорт
 https://apn9.akter-black.com/http://16.team.ga:80/ch708/index.m3u8?token=dugong8273.8YlHvc_pVQGjef8qM6TOTPQ74vIE45HUPzgj5OFPvT-J46EdmshCl_wSTJ8XcCmq
