@@ -2211,6 +2211,9 @@ http://188.190.222.53/Match_Futbol_3/index.m3u8
 #EXTINF:0 tvg-id="Матч! Премьер SD"  tvg-logo="http://team.ga/images/chIcons/2005.png"  timeshift="3", Матч! Премьер SD
 #EXTGRP:8. Sport/Спорт
 https://apn9.akter-black.com/http://16.team.ga:80/ch2005/index.m3u8?token=dugong8273.8YlHvc_pVQGjef8qM6TOTAFZmoyD7-QDCC9xJj4K6w4uSlm8fk8ztPbIBUhH6MYN
+#EXTINF:0 tvg-id="Матч! Премьер FHD"  tvg-logo="http://team.ga/images/chIcons/2005.png"  timeshift="0", Матч! Премьер FHD
+#EXTGRP:8. Sport/Спорт
+http://ru.byskaz.ru:14000/ch135/mono.m3u8?token=lampastream.q5PNovd7aB4uKIUa11YDMtoqO1vwHsAJryN8cHg6LpO9iCpslmoO_Nck999XfLf8
 #EXTINF:0 tvg-id="Матч! Игра SD"  tvg-logo="http://team.ga/images/chIcons/3304.png"  timeshift="3", Матч! Игра SD
 #EXTGRP:8. Sport/Спорт
 https://apn9.akter-black.com/http://16.team.ga:80/ch3304/index.m3u8?token=dugong8273.8YlHvc_pVQGjef8qM6TOTBdKelDJP-qcqAU3WMFiwQ_9lyWOKpif1wLCakJ81_07
