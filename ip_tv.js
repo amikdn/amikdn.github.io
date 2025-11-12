@@ -1476,7 +1476,7 @@ addSettings(
 
 var activity = {
     id: 0,
-    url: 'http://amikdn.github.io/playlist.m3u8',
+    url: 'http://amikdn.github.io/tv.m3u',
     title: plugin.name,
     groups: [],
     currentGroup: getStorage('last_catalog0', 'Other'),
