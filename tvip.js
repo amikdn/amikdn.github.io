@@ -169,7 +169,7 @@
         // Загрузка плейлиста
         console.log('Hack TV', 'Initializing pluginPage for activity:', object);
         _this.activity.loader(true);
-        var playlistUrl = Lampa.Storage.get(plugin.component + '_playlist_url', 'http://amikdn.github.io/playlist.m3u8');
+        var playlistUrl = Lampa.Storage.get(plugin.component + '_playlist_url', 'http://amikdn.github.io/tv.m3u');
         console.log('Hack TV', 'Starting playlist load for URL:', playlistUrl);
         loadPlaylist(playlistUrl, function(channels) {
             console.log('Hack TV', 'Successfully loaded', channels.length, 'channels');
@@ -471,3 +471,4 @@
         }
     });
 })();
+
