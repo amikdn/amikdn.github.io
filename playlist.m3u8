@@ -1,39 +1,54 @@
 #EXTM3U url-tvg="https://iptvx.one/epg/epg.xml.gz; http://skaztv.top/epg.xml.gz"
-#EXTM3U generation-date="2025.09.04 20:17:45 MSK"
-#EXTINF:0 tvg-id="Первый HD"  tvg-logo="http://team.ga/images/chIcons/1.png"  timeshift="6", Первый HD
-#EXTGRP:1. Federal/Федеральные
-https://apn9.akter-black.com/http://16.team.ga:80/ch001/index.m3u8?token=dugong8273.8YlHvc_pVQGjef8qM6TOTLpHlNnGNgX2PxNSzjHSsZy3hU-B03euLzM4itxj_PkE
-#EXTINF:0 tvg-id="Первый"  tvg-logo="http://team.ga/images/chIcons/1643.png"  timeshift="6", Первый
-#EXTGRP:1. Federal/Федеральные
-https://apn9.akter-black.com/http://16.team.ga:80/ch1643/index.m3u8?token=dugong8273.8YlHvc_pVQGjef8qM6TOTIFydJ5FaX6JDLvk7aAHrlWxiwABaEGvUkG15WhmtDTL
-#EXTINF:0 tvg-id="Первый +2"  tvg-logo="http://team.ga/images/chIcons/363.png"  timeshift="6", Первый +2
-#EXTGRP:1. Federal/Федеральные
-https://apn9.akter-black.com/http://16.team.ga:80/ch363/index.m3u8?token=dugong8273.8YlHvc_pVQGjef8qM6TOTEoS7pt9Dji_Y7Kn6k63i3LMIKQJW-YTTS3KzvHg5odi
-#EXTINF:0 tvg-id="Первый +4"  tvg-logo="http://team.ga/images/chIcons/364.png"  timeshift="6", Первый +4
-#EXTGRP:1. Federal/Федеральные
-https://apn9.akter-black.com/http://16.team.ga:80/ch364/index.m3u8?token=dugong8273.8YlHvc_pVQGjef8qM6TOTHbkpoLewwk8p3PyreUoNccVkbIdZQhGmX2Z6z59tpkP
-#EXTINF:0 tvg-id="Первый +6"  tvg-logo="http://team.ga/images/chIcons/386.png"  timeshift="6", Первый +6
-#EXTGRP:1. Federal/Федеральные
-https://apn9.akter-black.com/http://16.team.ga:80/ch386/index.m3u8?token=dugong8273.8YlHvc_pVQGjef8qM6TOTBBqVc5gWZ_NldIqKYph7RNG_AhYQu3IFFY2AvTjFqsS
-#EXTINF:0 tvg-id="Первый HD +4"  tvg-logo="http://team.ga/images/chIcons/635.png"  timeshift="6", Первый HD +4
-#EXTGRP:1. Federal/Федеральные
-https://apn9.akter-black.com/http://16.team.ga:80/ch635/index.m3u8?token=dugong8273.8YlHvc_pVQGjef8qM6TOTKQhYwRJBCBZM6wZuwxeMTnleoIvMZV7K-zpj6ZlybHk
-#EXTINF:0 tvg-id="Первый Евpопa"  tvg-logo="http://team.ga/images/chIcons/649.png"  timeshift="6", Первый Евpопa
-#EXTGRP:1. Federal/Федеральные
-https://apn9.akter-black.com/http://16.team.ga:80/ch649/index.m3u8?token=dugong8273.8YlHvc_pVQGjef8qM6TOTHSme0y-sRD8HPmSZ6bse-ghZRvnyOuD72C8HnPTfjCi
-#EXTINF:0 tvg-id="Россия 1 HD"  tvg-logo="http://team.ga/images/chIcons/2.png"  timeshift="6", Россия 1 HD
-#EXTGRP:1. Federal/Федеральные
-https://apn9.akter-black.com/http://16.team.ga:80/ch002/index.m3u8?token=dugong8273.8YlHvc_pVQGjef8qM6TOTNdvwC7MxfDA9WFhDieFHmSVG7XdHAzT7KDC2m9I1Os8
-#EXTINF:0 tvg-id="Россия 1"  tvg-logo="http://team.ga/images/chIcons/1644.png"  timeshift="6", Россия 1
-#EXTGRP:1. Federal/Федеральные
-https://apn9.akter-black.com/http://16.team.ga:80/ch1644/index.m3u8?token=dugong8273.8YlHvc_pVQGjef8qM6TOTCkki9g-8BktSkWSd3fqt3n_yZcjqTGmyA3dDV8Q7sSn
-#EXTINF:0 tvg-id="Россия 1 +2"  tvg-logo="http://team.ga/images/chIcons/365.png"  timeshift="6", Россия 1 +2
-#EXTGRP:1. Federal/Федеральные
-https://apn9.akter-black.com/http://16.team.ga:80/ch365/index.m3u8?token=dugong8273.8YlHvc_pVQGjef8qM6TOTOsOSphtYAmTHCd1UFMZZUfnnstJz2xugrshhttjhi0N
-#EXTINF:0 tvg-id="Россия 1 +4"  tvg-logo="http://team.ga/images/chIcons/366.png"  timeshift="6", Россия 1 +4
-#EXTGRP:1. Federal/Федеральные
-https://apn9.akter-black.com/http://16.team.ga:80/ch366/index.m3u8?token=dugong8273.8YlHvc_pVQGjef8qM6TOTGbphsFy_4CGEpi3Ki-MmajrNj1OX0pT8BZqdNc0C-zl
-#EXTINF:0 tvg-id="Россия 1 +6"  tvg-logo="http://team.ga/images/chIcons/388.png"  timeshift="6", Россия 1 +6
+#EXTINF:-1 tvg-id="Первый HD" tvg-name="Первый HD" tvg-logo="http://s.skaz.tv/tvicon/1.png" group-title="Федеральные",Первый HD
+http://ru.byskaz.ru:14000/ch001/mono.m3u8?token=lampastream.q5PNovd7aB4uKIUa11YDMpadSdgr9Z-i-a8pZx_-s80cgB1vhiHikfGTnCBn_YHO
+#EXTINF:-1 tvg-id="Первый HD orig" tvg-name="Первый HD orig" tvg-logo="http://s.skaz.tv/tvicon/1089.png" group-title="Федеральные",Первый HD orig
+http://ru.byskaz.ru:14000/ch1089/mono.m3u8?token=lampastream.q5PNovd7aB4uKIUa11YDMpadSdgr9Z-i-a8pZx_-s80cgB1vhiHikfGTnCBn_YHO
+#EXTINF:-1 tvg-id="Первый" tvg-name="Первый" tvg-logo="http://s.skaz.tv/tvicon/1643.png" group-title="Федеральные",Первый
+http://ru.byskaz.ru:14000/ch1643/mono.m3u8?token=lampastream.q5PNovd7aB4uKIUa11YDMpadSdgr9Z-i-a8pZx_-s80cgB1vhiHikfGTnCBn_YHO
+#EXTINF:-1 tvg-id="Первый +2" tvg-name="Первый +2" tvg-logo="http://s.skaz.tv/tvicon/363.png" group-title="Плюсовые",Первый +2
+http://ru.byskaz.ru:14000/ch363/mono.m3u8?token=lampastream.q5PNovd7aB4uKIUa11YDMpadSdgr9Z-i-a8pZx_-s80cgB1vhiHikfGTnCBn_YHO
+#EXTINF:-1 tvg-id="Первый +4" tvg-name="Первый +4" tvg-logo="http://s.skaz.tv/tvicon/364.png" group-title="Плюсовые",Первый +4
+http://ru.byskaz.ru:14000/ch364/mono.m3u8?token=lampastream.q5PNovd7aB4uKIUa11YDMpadSdgr9Z-i-a8pZx_-s80cgB1vhiHikfGTnCBn_YHO
+#EXTINF:-1 tvg-id="Первый +6" tvg-name="Первый +6" tvg-logo="http://s.skaz.tv/tvicon/386.png" group-title="Плюсовые",Первый +6
+http://ru.byskaz.ru:14000/ch386/mono.m3u8?token=lampastream.q5PNovd7aB4uKIUa11YDMpadSdgr9Z-i-a8pZx_-s80cgB1vhiHikfGTnCBn_YHO
+#EXTINF:-1 tvg-id="Первый HD +4" tvg-name="Первый HD +4" tvg-logo="http://s.skaz.tv/tvicon/635.png" group-title="Плюсовые",Первый HD +4
+http://ru.byskaz.ru:14000/ch635/mono.m3u8?token=lampastream.q5PNovd7aB4uKIUa11YDMpadSdgr9Z-i-a8pZx_-s80cgB1vhiHikfGTnCBn_YHO
+#EXTINF:-1 tvg-id="Первый Евpопa" tvg-name="Первый Евpопa" tvg-logo="http://s.skaz.tv/tvicon/649.png" group-title="Федеральные",Первый Евpопa
+http://ru.byskaz.ru:14000/ch649/mono.m3u8?token=lampastream.q5PNovd7aB4uKIUa11YDMpadSdgr9Z-i-a8pZx_-s80cgB1vhiHikfGTnCBn_YHO
+#EXTINF:-1 tvg-id="Россия 1 HD" tvg-name="Россия 1 HD" tvg-logo="http://s.skaz.tv/tvicon/2.png" group-title="Федеральные",Россия 1 HD
+http://ru.byskaz.ru:14000/ch002/mono.m3u8?token=lampastream.q5PNovd7aB4uKIUa11YDMpadSdgr9Z-i-a8pZx_-s80cgB1vhiHikfGTnCBn_YHO
+#EXTINF:-1 tvg-id="Россия 1 HD orig" tvg-name="Россия 1 HD orig" tvg-logo="http://s.skaz.tv/tvicon/853.png" group-title="Федеральные",Россия 1 HD orig
+http://ru.byskaz.ru:14000/ch853/mono.m3u8?token=lampastream.q5PNovd7aB4uKIUa11YDMpadSdgr9Z-i-a8pZx_-s80cgB1vhiHikfGTnCBn_YHO
+#EXTINF:-1 tvg-id="Россия 1" tvg-name="Россия 1" tvg-logo="http://s.skaz.tv/tvicon/1644.png" group-title="Федеральные",Россия 1
+http://ru.byskaz.ru:14000/ch1644/mono.m3u8?token=lampastream.q5PNovd7aB4uKIUa11YDMpadSdgr9Z-i-a8pZx_-s80cgB1vhiHikfGTnCBn_YHO
+#EXTINF:-1 tvg-id="Россия 1 +2" tvg-name="Россия 1 +2" tvg-logo="http://s.skaz.tv/tvicon/365.png" group-title="Плюсовые",Россия 1 +2
+http://ru.byskaz.ru:14000/ch365/mono.m3u8?token=lampastream.q5PNovd7aB4uKIUa11YDMpadSdgr9Z-i-a8pZx_-s80cgB1vhiHikfGTnCBn_YHO
+#EXTINF:-1 tvg-id="Россия 1 +4" tvg-name="Россия 1 +4" tvg-logo="http://s.skaz.tv/tvicon/366.png" group-title="Плюсовые",Россия 1 +4
+http://ru.byskaz.ru:14000/ch366/mono.m3u8?token=lampastream.q5PNovd7aB4uKIUa11YDMpadSdgr9Z-i-a8pZx_-s80cgB1vhiHikfGTnCBn_YHO
+#EXTINF:-1 tvg-id="Россия 1 +6" tvg-name="Россия 1 +6" tvg-logo="http://s.skaz.tv/tvicon/388.png" group-title="Плюсовые",Россия 1 +6
+http://ru.byskaz.ru:14000/ch388/mono.m3u8?token=lampastream.q5PNovd7aB4uKIUa11YDMpadSdgr9Z-i-a8pZx_-s80cgB1vhiHikfGTnCBn_YHO
+#EXTINF:-1 tvg-id="Россия-Культуpa" tvg-name="Россия-Культуpa" tvg-logo="http://s.skaz.tv/tvicon/102.png" group-title="Федеральные",Россия-Культуpa
+http://ru.byskaz.ru:14000/ch102/mono.m3u8?token=lampastream.q5PNovd7aB4uKIUa11YDMpadSdgr9Z-i-a8pZx_-s80cgB1vhiHikfGTnCBn_YHO
+#EXTINF:-1 tvg-id="РТР Планета" tvg-name="РТР Планета" tvg-logo="http://s.skaz.tv/tvicon/337.png" group-title="Федеральные",РТР Планета
+http://ru.byskaz.ru:14000/ch337/mono.m3u8?token=lampastream.q5PNovd7aB4uKIUa11YDMpadSdgr9Z-i-a8pZx_-s80cgB1vhiHikfGTnCBn_YHO
+#EXTINF:-1 tvg-id="Пятница! HD" tvg-name="Пятница! HD" tvg-logo="http://s.skaz.tv/tvicon/25.png" group-title="Федеральные",Пятница! HD
+http://ru.byskaz.ru:14000/ch025/mono.m3u8?token=lampastream.q5PNovd7aB4uKIUa11YDMpadSdgr9Z-i-a8pZx_-s80cgB1vhiHikfGTnCBn_YHO
+#EXTINF:-1 tvg-id="Пятница +2" tvg-name="Пятница +2" tvg-logo="http://s.skaz.tv/tvicon/412.png" group-title="Плюсовые",Пятница +2
+http://ru.byskaz.ru:14000/ch412/mono.m3u8?token=lampastream.q5PNovd7aB4uKIUa11YDMpadSdgr9Z-i-a8pZx_-s80cgB1vhiHikfGTnCBn_YHO
+#EXTINF:-1 tvg-id="Пятница +6" tvg-name="Пятница +6" tvg-logo="http://s.skaz.tv/tvicon/413.png" group-title="Плюсовые",Пятница +6
+http://ru.byskaz.ru:14000/ch413/mono.m3u8?token=lampastream.q5PNovd7aB4uKIUa11YDMpadSdgr9Z-i-a8pZx_-s80cgB1vhiHikfGTnCBn_YHO
+#EXTINF:-1 tvg-id="Рен ТВ HD" tvg-name="Рен ТВ HD" tvg-logo="http://s.skaz.tv/tvicon/4.png" group-title="Федеральные",Рен ТВ HD
+http://ru.byskaz.ru:14000/ch004/mono.m3u8?token=lampastream.q5PNovd7aB4uKIUa11YDMpadSdgr9Z-i-a8pZx_-s80cgB1vhiHikfGTnCBn_YHO
+#EXTINF:-1 tvg-id="Рен ТВ +2" tvg-name="Рен ТВ +2" tvg-logo="http://s.skaz.tv/tvicon/371.png" group-title="Плюсовые",Рен ТВ +2
+http://ru.byskaz.ru:14000/ch371/mono.m3u8?token=lampastream.q5PNovd7aB4uKIUa11YDMpadSdgr9Z-i-a8pZx_-s80cgB1vhiHikfGTnCBn_YHO
+#EXTINF:-1 tvg-id="Рен ТВ +4" tvg-name="Рен ТВ +4" tvg-logo="http://s.skaz.tv/tvicon/1059.png" group-title="Плюсовые",Рен ТВ +4
+http://ru.byskaz.ru:14000/ch1059/mono.m3u8?token=lampastream.q5PNovd7aB4uKIUa11YDMpadSdgr9Z-i-a8pZx_-s80cgB1vhiHikfGTnCBn_YHO
+#EXTINF:-1 tvg-id="НТВ HD" tvg-name="НТВ HD" tvg-logo="http://s.skaz.tv/tvicon/3.png" group-title="Федеральные",НТВ HD
+http://ru.byskaz.ru:14000/ch003/mono.m3u8?token=lampastream.q5PNovd7aB4uKIUa11YDMpadSdgr9Z-i-a8pZx_-s80cgB1vhiHikfGTnCBn_YHO
+#EXTINF:-1 tvg-id="НТВ HD orig" tvg-name="НТВ HD orig" tvg-logo="http://s.skaz.tv/tvicon/396.png" group-title="Федеральные",НТВ HD orig
+http://ru.byskaz.ru:14000/ch396/mono.m3u8?token=lampastream.q5PNovd7aB4uKIUa11YDMpadSdgr9Z-i-a8pZx_-s80cgB1vhiHikfGTnCBn_YHO
+#EXTINF:-1 tvg-id="НТВ" tvg-name="НТВ" tvg-logo="http://s.skaz.tv/tvicon/2453.png" group-title="Федеральные",НТВ
+http://ru.byskaz.ru:14000/ch2453/mono.m3u8?token=lampastream.q5PNovd7aB4uKIUa11YDMpadSdgr9Z-i-a8pZx_-s80cgB1vhiHikfGTnCBn_YHO
 #EXTGRP:1. Federal/Федеральные
 https://apn9.akter-black.com/http://16.team.ga:80/ch388/index.m3u8?token=dugong8273.8YlHvc_pVQGjef8qM6TOTMtFIIoEYfx8wOGey6kXxSFBYR7_mbXYufR5sOd79zdY
 #EXTINF:0 tvg-id="Россия-Культуpa"  tvg-logo="http://team.ga/images/chIcons/102.png"  timeshift="6", Россия-Культуpa
