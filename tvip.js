@@ -381,7 +381,7 @@
     // Инициализация меню
     var activity = {
         id: 0,
-        url: getStorage('playlist_url', 'http://amikdn.github.io/playlist.m3u8'),
+        url: getStorage('playlist_url', 'http://amikdn.github.io/tv.m3u'),
         title: plugin.name,
         component: plugin.component,
         page: 1
@@ -471,4 +471,5 @@
         }
     });
 })();
+
 
