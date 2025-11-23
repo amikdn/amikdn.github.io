@@ -1678,30 +1678,14 @@ http://91.207.115.228:5000/c154
 http://boxviptv.net:25461/Mhmn0028/3U3smSKML8/216
 #EXTINF:-1 group-title="Спорт", Eurosport 2 HD
 http://vod.splay.uz/live_splay/original/Eurosport2HD/tracks-v1a1/mono.m3u8
-#EXTINF:-1 group-title="Спорт", Fox Sports 502 🛡️
-https://7pal.short.gy/fox502au
-#EXTINF:-1 group-title="Спорт", Fox Sports 501 🛡️
-https://7pal.short.gy/fox501au
-#EXTINF:-1 group-title="Спорт", Fox Sports 503 🛡️
-https://7pal.short.gy/fox503au
 #EXTINF:-1 group-title="Спорт" tvg-id="kxl", KHL
 http://194.32.242.245/khl/index.m3u8
-#EXTINF:-1 group-title="Спорт", Fox Sports 504 🛡️
-https://7pal.short.gy/fox504au
-#EXTINF:-1 group-title="Спорт", Fox Sports 505 🛡️
-https://7pal.short.gy/fox505au
 #EXTINF:-1 group-title="Спорт" tvg-id="kxl", KHL HD
 http://84.245.224.71/KHLHD/mono.m3u8
 #EXTINF:-1 group-title="Спорт", Okko Спорт. Прайм HD
 http://185.221.213.254:8080/Okko/tracks-v1a1/index.m3u8
-#EXTINF:-1 group-title="Спорт", Fox Sports 506 🛡️
-https://7pal.short.gy/fox506au
-#EXTINF:-1 group-title="Спорт", Fox Sports 507 🛡️
-https://7pal.short.gy/fox507au
 #EXTINF:-1 group-title="Спорт", Russian Extreme
 http://85.208.223.249:8888/play/a004
-#EXTINF:-1 group-title="Спорт", Sky Sport 1 NZ 🛡️
-https://7pal.short.gy/skyspt1nz
 #EXTINF:-1 group-title="Спорт", Setanta Sports 1 HD
 http://vod.splay.uz/live_splay/original/Setanta1HD/tracks-v1a1/mono.m3u8
 #EXTINF:-1 group-title="Спорт", Setanta Sports 1 HD
@@ -1714,16 +1698,8 @@ http://boxviptv.net:25461/Mhmn0028/3U3smSKML8/1113
 https://7pal.short.gy/prsport1
 #EXTINF:-1 group-title="Спорт", Premier Sport 2 🛡️
 https://7pal.short.gy/prsport2
-#EXTINF:-1 group-title="Спорт", Sky Sport 3 NZ 🛡️
-https://7pal.short.gy/skyspt3nz
-#EXTINF:-1 group-title="Спорт", Sky Sport Football 🛡️
-https://7pal.short.gy/ssportsfb
-#EXTINF:-1 group-title="Спорт", Sky Sport F1 UHD 🛡️
-https://7pal.short.gy/SSF1uhd
 #EXTINF:-1 group-title="Спорт", TNT Sport 1 🛡️
 https://7pal.short.gy/tntspts1
-#EXTINF:-1 group-title="Спорт", Sky Sport News 🛡️
-https://7pal.short.gy/ssportsnw
 #EXTINF:-1 group-title="Музыка", 1HD Music
 http://91.247.68.229:8000/play/eee/index.m3u8
 #EXTINF:-1 group-title="Спорт", TNT Sport 2 🛡️
