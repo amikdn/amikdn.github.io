@@ -273,12 +273,8 @@ http://94.232.127.28:8080/mtvhits/index.m3u8
 http://i114.fastpic.ru/big/2021/0209/e3/411906b8ef8f41c95f5ead2c793a02e3.png"
 #EXTINF:-1 tvg-id="no_epg_music" tvg-logo=" group-title="Музыкальные"
 https://is3-ssl.mzstatic.com/image/thumb/Purple125/v4/4a/d1/92/4ad1928c-6e40-9506-df33-b37ad8343752/source/512x512bb.jpg"
-#EXTINF:-1 group-title="Музыкальные", Первый музыкальный HD
-http://hz1.teleport.cc/HLS/HD.m3u8
 #EXTINF:-1 tvg-id="tnt-music" group-title="Музыкальные", ТНТ Music HD
 http://tntmsmotr.mediacdn.ru/cdn/smotr/playlist_hdhigh.m3u8
-#EXTINF:-1 group-title="Музыкальные", Первый музыкальный
-http://hz1.teleport.cc/HLS/SD.m3u8
 #EXTINF:-1 tvg-id="bridge-hd" group-title="Музыкальные", Bridge TV Deluxe
 http://tvip.btk.teleos.ru:8081/chid519/index.m3u8
 #EXTINF:-1 tvg-id="bridge-tv-etno" group-title="Музыкальные", Bridge TV Этно
