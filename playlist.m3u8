@@ -1526,8 +1526,6 @@ http://95.66.188.74/O2TV/index.m3u8
 http://tvip.btk.teleos.ru:8081/chid435/tracks-v1a1/mono.m3u8
 #EXTINF:-1 group-title="Музыка", Музыка Первого
 http://91.194.191.241:8081/chid94/tracks-v1a1/mono.m3u8
-#EXTINF:-1 group-title="Музыка", Первый музыкальный
-http://hz1.teleport.cc/HLS/SD.m3u8
 #EXTINF:-1 group-title="Музыка", Страна FM
 http://live.stranafm.cdnvideo.ru/stranafm/stranafm_hd.sdp/playlist.m3u8
 #EXTINF:-1 group-title="Музыка", ТНТ Music
