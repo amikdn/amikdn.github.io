@@ -1562,10 +1562,6 @@ http://178.212.71.253:8000/play/142/index.m3u8
 http://91.194.191.241:8081/chid475/tracks-v1a1/mono.m3u8
 #EXTINF:-1 group-title="Музыка" tvg-id="bridge-tv-ruxit", Bridge Русский хит
 http://91.194.191.241:8081/chid468/tracks-v1a1/mono.m3u8
-#EXTINF:-1 group-title="Музыка", CHD Rock HD
-http://194.26.229.213/chdtv_rock/index.m3u8
-#EXTINF:-1 group-title="Музыка", CHD RU Rock HD
-http://194.26.229.213/chdtv_ru_rock/index.m3u8
 #EXTINF:-1 group-title="Музыка", Deluxe Music
 https://sdn-global-live-streaming-packager-cache.3qsdn.com/13456/13456_264_live.m3u8
 #EXTINF:-1 group-title="Музыка", Europa Plus TV
@@ -1576,18 +1572,12 @@ http://sdn-global-live-streaming-packager-cache.3qsdn.com/65183/65183_264_live.m
 http://46.8.46.14/evropa/index.m3u8
 #EXTINF:-1 group-title="Музыка", Kronehit
 http://bitcdn-kronehit.bitmovin.com/v2/hls/chunklist_b3128000.m3u8
-#EXTINF:-1 group-title="Музыка", Maidan
-http://live-maidantv.cdnvideo.ru/maidantv/maidantv.smil/playlist.m3u8
-#EXTINF:-1 group-title="Музыка", Kiss Kiss
-https://kk.fluid.stream/KKMulti/smil:KissKissTV.smil/chunklist.m3u8
 #EXTINF:-1 group-title="Музыка", MTV 00s
 http://85.11.144.6:6060/play/a07g/index.m3u8
 #EXTINF:-1 group-title="Музыка", MTV 90s
 http://45.88.92.3:80/tr3_MTVRocks_SD/index.m3u8?token=test
 #EXTINF:-1 group-title="Музыка", MTV 80s
 http://213.169.39.30:5137
-#EXTINF:-1 group-title="Музыка", MTV Hits
-http://213.169.39.30:5257
 #EXTINF:-1 group-title="Музыка", Mezzo
 http://158.101.222.193:88/georgia_play.php?id=mezzo
 #EXTINF:-1 group-title="Музыка", Russian MusicBox HD
@@ -1606,8 +1596,6 @@ https://streamcdnm5-4c4b867c89244861ac216426883d1ad0.msvdn.net/live/S62628868/uh
 https://autopilot.catcast.tv/content/47400/index.m3u8?password=loganet
 #EXTINF:-1 group-title="Релакс", Релакс
 http://185.57.68.33/232/mpegts
-#EXTINF:-1 group-title="Музыка", Zerouno TV Music
-https://5f22d76e220e1.streamlock.net/zerounotvmusic/zerounotvmusic/playlist.m3u8
 #EXTINF:-1 group-title="Релакс", BetterLife Nature
 http://tgn.bozztv.com/betterlife/betternature/betternature/index.m3u8
 #EXTINF:-1 group-title="Музыка", Сити Эдем — Meditation Music
