@@ -448,16 +448,24 @@ https://zabava-htlive.cdn.ngenix.net/hls/CH_STSLOVE_7/variant.m3u8
 http://zabava-htlive.cdn.ngenix.net/hls/CH_TV3_7/variant.m3u8
 #EXTINF:-1 group-title="Развлечение", ТНТ
 http://185.46.16.239:8000/TNT
+#EXTINF:-1 group-title="Развлечение", ТНТ HD
+http://95.66.188.74/TNT_HD/mono.m3u8
+#EXTINF:-1 group-title="Развлечение", ТНТ HD
+http://195.191.208.11:8087/udp/238.9.64.86:1234
+#EXTINF:-1 group-title="Развлечение", ТНТ HD
+http://91.207.115.228:5000/c157
 #EXTINF:-1 group-title="Развлечение", ТНТ4
 http://188.190.222.53/TNT4/index.m3u8
+#EXTINF:-1 group-title="Развлечение", ТНТ4
+http://195.191.208.11:8087/udp/238.9.64.41:1234
+#EXTINF:-1 group-title="Развлечение", ТНТ4
+http://91.207.115.228:5000/c142
 #EXTINF:-1 group-title="Развлечение", ЦТВ
 http://178.212.71.253:8000/play/41/index.m3u8
 #EXTINF:-1 group-title="Развлечение", Т24
 http://158.101.222.193:88/georgia_play.php?id=24techno
 #EXTINF:-1 group-title="Развлечение", Успех
 http://188.190.222.53/Uspeh/index.m3u8
-#EXTINF:-1 group-title="Развлечение", ТНТ HD
-http://95.66.188.74/TNT_HD/mono.m3u8
 #EXTINF:-1 group-title="Развлечение" tvg-id="tv3-ru" catchup="append" catchup-days="7" catchup-source="?offset=-${offset}&utcstart=${timestamp}", ТВ3 (Архив)
 #EXTVLCOPT:http-user-agent=WINK/1.40.1 (AndroidTV/9) HlsWinkPlayer
 https://zabava-htlive.cdn.ngenix.net/hls/CH_TV3/variant.m3u8
@@ -769,7 +777,7 @@ http://158.101.222.193:88/georgia_play.php?id=boxtv
 http://87.120.142.11:18000/Match!
 #EXTINF:-1 group-title="Спорт", Матч! Футбол 1
 http://188.190.222.53/Match_Futbol_1/index.m3u8
-#EXTINF:-1 group-title="Спорт", Матч! Футбол 1
+#EXTINF:-1 group-title="Спорт", Матч! Футбол 2
 http://193.25.8.59:8000/fut
 #EXTINF:-1 group-title="Спорт", Матч! Футбол 2
 http://195.191.208.11:8087/udp/238.9.64.205:1234
