@@ -751,8 +751,6 @@ http://31.148.48.15/Fan/index.m3u8
 http://141.95.55.143/CH295/index.m3u8
 #EXTINF:-1 group-title="Кино и сериалы", FX HD
 http://95.85.109.219:7000/play/a062
-#EXTINF:-1 group-title="Кино и сериалы", FX Life HD
-http://95.85.109.219:7000/play/a065
 #EXTINF:-1 group-title="Кино и сериалы", KinoLiving HD
 http://95.85.109.219:7000/play/a05x
 #EXTINF:-1 group-title="Кино и сериалы", viju TV1000
