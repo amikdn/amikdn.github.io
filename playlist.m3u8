@@ -332,40 +332,6 @@ http://stream-msk-10.ott.tricolor.tv/dtv/id360_MSKSG-PVR-1--Vremya/03/plst.m3u8?
 http://vod.splay.uz/live_splay/original/CinemaHD/index.m3u8
 #EXTINF:-1 group-title="Кино и сериалы", Беларусь 3 HD
 https://edge50.dc.beltelecom.by/ngtrk/smil:belarus3.smil/chunklist_b5160000_sleng.m3u8
-#EXTINF:-0 tvg-id="vhs-ka" tvg-logo=" group-title="Кинозалы"
-https://epg.iptvx.one/picons/vhs-ka.png",
-#EXTINF:-0 tvg-id="no_epg_cinema" tvg-logo=" group-title="Кинозалы"
-https://pic.rutubelist.ru/video/2025-03-30/d6/d3/d6d381a180a66c51e6433d36a0296781.jpg",
-#EXTINF:-0 tvg-id="no_epg_cinema" tvg-logo=" group-title="Кинозалы"
-https://cdn2-static.ntv.ru/home/schedule/2018/20180703/sledstvie_veli.jpg",
-#EXTINF:-1 tvg-id="no_epg_cinema" tvg-logo=" group-title="Кинозалы"
-https://img.catcast.tv/uploads/04092021/logos/40672-61329195ca44d.jpg"
-#EXTINF:-0 tvg-id="no_epg_cinema" tvg-logo=" group-title="Кинозалы"
-https://pic.rutubelist.ru/video/2024-11-20/12/3e/123e13e18bc324a7cf4937f9f3c2dc95.jpg",
-#EXTINF:-0 tvg-id="no_epg_cinema" tvg-logo=" group-title="Кинозалы"
-https://images-s.kinorium.com/movie/logo/1627224/h280_51189342.png",
-#EXTINF:-1 tvg-logo=" group-title="Кинозалы"
-https://adindex.ru/files2/photogallery/2020_11/photo2_286493_smotrim2.jpg.jpg"
-#EXTINF:-1 tvg-logo=" group-title="Кинозалы"
-https://i.pinimg.com/736x/9a/54/c4/9a54c45f5c9de64ccd95909f8e08a401.jpg"
-#EXTINF:-1 tvg-id="no_epg" tvg-logo=" group-title="Кинозалы"
-https://www.codester.com/static/uploads/items/000/010/10952/preview.jpg",
-#EXTINF:-1 tvg-logo=" group-title="Кинозалы"
-https://upload.wikimedia.org/wikipedia/ru/8/8d/The_Benny_Hill_Show.jpg"
-#EXTINF:-1 tvg-id="no_epg" tvg-logo=" group-title="Кинозалы"
-https://cdn.vox-cdn.com/thumbor/cKmWp_uKpELnAmMk4BEIdJShlrk=/0x0:960x540/1600x900/cdn.vox-cdn.com/uploads/chorus_image/image/34106623/gametrailers-logo_960.0.jpg",
-#EXTINF:-1 tvg-logo=" group-title="Кинозалы"
-https://u2.9111s.ru/uploads/202304/04/d220b6253ee45c20bbebc416f4c3468c.jpg"
-#EXTINF:-1 tvg-id="no_epg" tvg-logo=" group-title="Кинозалы"
-https://cinemaplex.ru/wp-content/uploads/2018/03/unnamed-optimized.jpg",
-#EXTINF:-1 tvg-id="no_epg" tvg-logo=" group-title="Кинозалы"
-http://www.magcity74.ru/uploads/postphoto/5/6/4/56437-758.jpg",
-#EXTINF:-1 tvg-id="no_epg" tvg-logo=" group-title="Кинозалы"
-https://cf2.ppt-online.org/files2/slide/q/QawGdDELZ6zF4AUJkR9iCylu1jvxHKWM50NoSYtsc/slide-0.jpg",
-#EXTINF:-1 tvg-logo=" group-title="Кинозалы"
-https://static.tildacdn.com/stor6561-3739-4839-b866-653865323964/89862824.png"
-#EXTINF:-1 tvg-id="no_epg_cinema" tvg-logo=" group-title="Кинозалы"
-https://static.tildacdn.com/stor6561-3739-4839-b866-653865323964/89862824.png",Кинозалы
 #EXTINF:-1 group-title="Кинозалы 3", CPS Action HD
 http://128.140.55.5:80/play/hhvFRY1oVT36QbH4zdqDvzEj2x0XEeMI6rA045IV93A/m3u8
 #EXTINF:-1 tvg-name="CPS Investigation" group-title="Кинозалы 3", CPS Investigation
