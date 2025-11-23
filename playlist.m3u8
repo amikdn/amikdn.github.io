@@ -622,12 +622,8 @@ http://193.25.8.59:8000/interaz
 http://188.190.222.53/ComedyHD/tracks-v1a1/mono.ts.m3u8
 #EXTINF:-1 group-title="Кино и сериалы", viju+ Premiere HD
 http://188.190.222.53/PremiereHD/tracks-v1a1/mono.ts.m3u8
-#EXTINF:-1 group-title="Кино и сериалы", Timeless Dizi
-http://193.25.8.59:8000/tlc
 #EXTINF:-1 group-title="Кино и сериалы", viju+ Serial HD
 http://tvip.btk.teleos.ru:8081/chid40/mono.m3u8
-#EXTINF:-1 group-title="Кино и сериалы", Viasat Kino Comedy HD 🛡
-http://ukr.ukrainske.tv/493/tvainua/video.m3u8
 #EXTINF:-1 group-title="Кино и сериалы", viju TV1000 HD
 http://vod.splay.uz/live_splay/original/TV1000/tracks-v1a1/mono.m3u8
 #EXTINF:-1 group-title="Кино и сериалы", viju TV1000 русское
