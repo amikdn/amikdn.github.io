@@ -8,9 +8,8 @@ http://185.46.16.239:8000/REN_TV
 #EXTINF:-1 group-title="Общие" tvg-id="pervy", Первый канал
 http://194.8.128.38:8080/ort/playlist.m3u8
 #EXTINF:-1 group-title="Общие" tvg-id="tvcentr", ТВ Центр
-http://5.188.221.43:8080/play/tv-centr
-#EXTINF:-1 group-title="Общие" tvg-id="rtr-belarus", Беларусь РТР
-http://194.158.222.36:6105
+http://zabava-htlive.cdn.ngenix.net/hls/CH_TVC/variant.m3u8
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36 OPR/98.0.0.0
 #EXTINF:-1 group-title="Общие" tvg-id="rossia1", Россия 1 HD
 https://vgtrkregion-reg.cdnvideo.ru/vgtrk/0/russia1-hd/1080p.m3u8
 #EXTINF:-1 group-title="Общие" tvg-id="ntv-belarus", НТВ-Беларусь
