@@ -88,8 +88,6 @@ http://peqk71plnjy.a.trbcdn.net/livemaster/w4kz7pki62_nts_tv/playlist.m3u8
 http://live1.1tvcrimea.ru/1tvcrimea.m3u8
 #EXTINF:-1 group-title="Кино и сериалы", VIJU+ PREMIERE
 http://194.32.242.245/vippremiere/index.m3u8
-#EXTINF:-1 tvg-id="silkway" group-title="Познавательные", Silk Way
-https://ikomg-kazakh.akamaized.net/kazakh/kazakh.m3u8
 #EXTINF:-1 "tvg-id="Всё ТВ" tvg-logo=" group-title="Кино и сериалы"
 https://images.iptv.rt.ru/images/ch4dk93mhk079s3jpo50.png"
 #EXTINF:-1 tvg-id="no_epg" tvg-logo=" group-title="Познавательные"
@@ -348,10 +346,6 @@ https://pic.rutubelist.ru/video/2024-11-20/12/3e/123e13e18bc324a7cf4937f9f3c2dc9
 https://images-s.kinorium.com/movie/logo/1627224/h280_51189342.png",
 #EXTINF:-1 tvg-logo=" group-title="Кинозалы"
 https://adindex.ru/files2/photogallery/2020_11/photo2_286493_smotrim2.jpg.jpg"
-#EXTINF:-1 tvg-id="strk" group-title="Кинозалы", СТРК HD
-http://sochinskayatrk.ru/hdtv/hls/CTPK_400/playlist.m3u8
-#EXTINF:-1 tvg-id="43-tuapse" group-title="Кинозалы", 43 канал
-http://sochinskayatrk.ru/hdtv/hls/43K_HD/playlist.m3u8
 #EXTINF:-1 tvg-logo=" group-title="Кинозалы"
 https://i.pinimg.com/736x/9a/54/c4/9a54c45f5c9de64ccd95909f8e08a401.jpg"
 #EXTINF:-1 tvg-id="no_epg" tvg-logo=" group-title="Кинозалы"
@@ -372,58 +366,8 @@ https://cf2.ppt-online.org/files2/slide/q/QawGdDELZ6zF4AUJkR9iCylu1jvxHKWM50NoSY
 https://static.tildacdn.com/stor6561-3739-4839-b866-653865323964/89862824.png"
 #EXTINF:-1 tvg-id="no_epg_cinema" tvg-logo=" group-title="Кинозалы"
 https://static.tildacdn.com/stor6561-3739-4839-b866-653865323964/89862824.png",Кинозалы
-#EXTINF:-1 tvg-logo=" group-title="Кинозалы 2"
-https://xn--b1apmbmg.xn----dtbqifrblfni.xn--p1ai/assets/img/tricolor_channels_new/istoricheskiy-hd.webp"
-#EXTINF:-1 tvg-logo=" group-title="Кинозалы 2"
-https://kino-static.tricolor.ru/media/v2/33c343b1-b3d5-4c1d-8733-58787540d615"
-#EXTINF:-1 tvg-logo=" group-title="Кинозалы 2"
-https://kino-static.tricolor.ru/media/v2/23dbe088-a083-41d9-a514-0349b02fb006"
-#EXTINF:-1 tvg-logo=" group-title="Кинозалы 2"
-https://xn--b1apmbmg.xn----dtbqifrblfni.xn--p1ai/assets/img/tricolor_channels_new/boeviki-hd.webp"
-#EXTINF:-1 tvg-logo=" group-title="Кинозалы 2"
-https://kino-static.tricolor.ru/media/v2/edbcd58f-6b7d-44b4-b980-e7d021023835"
-#EXTINF:-1 tvg-logo=" group-title="Кинозалы 2"
-https://xn--b1apmbmg.xn----dtbqifrblfni.xn--p1ai/assets/img/tricolor_channels_new/sovetskie-filmy.webp"
-#EXTINF:-1 tvg-logo=" group-title="Кинозалы 2"
-https://xn--b1apmbmg.xn----dtbqifrblfni.xn--p1ai/assets/img/tricolor_channels_new/tri-bogaturya.webp"
-#EXTINF:-1 tvg-logo=" group-title="Кинозалы 2"
-https://xn--b1apmbmg.xn----dtbqifrblfni.xn--p1ai/assets/img/tricolor_channels_new/komedii.webp"
-#EXTINF:-1 tvg-logo=" group-title="Кинозалы 2"
-https://kino-static.tricolor.ru/media/v2/ec34674e-bcad-49ce-9f21-c680b66850a1"
-#EXTINF:-1 tvg-logo=" group-title="Кинозалы 2"
-https://kino-static.tricolor.ru/media/v2/4b7d379e-7f5d-4d55-b281-ea358d1a8490"
-#EXTINF:-1 tvg-logo=" group-title="Кинозалы 2"
-https://kino-static.tricolor.ru/media/v2/6ac31def-48c9-45c7-8393-171cac5f7901"
-#EXTINF:-1 tvg-logo=" group-title="Кинозалы 2"
-https://kino-static.tricolor.ru/media/v2/6287b58a-ee93-4505-b501-bc16b0ae48f6"
-#EXTINF:-1 tvg-logo=" group-title="Кинозалы 2"
-https://xn--b1apmbmg.xn----dtbqifrblfni.xn--p1ai/assets/img/tricolor_channels_new/mentovskie-voyny.webp"
-#EXTINF:-1 tvg-logo=" group-title="Кинозалы 2"
-https://xn--b1apmbmg.xn----dtbqifrblfni.xn--p1ai/assets/img/tricolor_channels_new/bodo-borodo.webp"
-#EXTINF:-1 tvg-logo=" group-title="Кинозалы 2"
-https://xn--b1apmbmg.xn----dtbqifrblfni.xn--p1ai/assets/img/tricolor_channels_new/uzhasy-hd.webp"
-#EXTINF:-1 tvg-logo=" group-title="Кинозалы 2"
-https://xn--b1apmbmg.xn----dtbqifrblfni.xn--p1ai/assets/img/tricolor_channels_new/sherlok-holms.webp"
-#EXTINF:-1 tvg-logo=" group-title="Кинозалы 2"
-https://kino-static.tricolor.ru/media/v2/4b466397-5d62-4574-9223-83f9f5f775a4"
-#EXTINF:-1 group-title="Кинозалы 3", CPS Comedy HD
-http://128.140.55.5:80/play/hhvFRY1oVT36QbH4zdqDv5i3KKRDEFclwXgMvoGvE-4/m3u8
-#EXTINF:-1 tvg-logo=" group-title="Кинозалы 2"
-https://kino-static.tricolor.ru/media/v2/50c4e7b3-7995-4198-8dbe-69db51be0a8e"
 #EXTINF:-1 group-title="Кинозалы 3", CPS Action HD
 http://128.140.55.5:80/play/hhvFRY1oVT36QbH4zdqDvzEj2x0XEeMI6rA045IV93A/m3u8
-#EXTINF:-1 tvg-logo=" group-title="Кинозалы 2"
-https://kino-static.tricolor.ru/media/v2/1437b815-1865-40b5-977b-61256828c82a"
-#EXTINF:-1 tvg-logo=" group-title="Кинозалы 2"
-https://kino-static.tricolor.ru/media/v2/d527b212-214c-41e1-abd0-ab30e31e13cf"
-#EXTINF:-1 tvg-logo=" group-title="Кинозалы 2"
-https://kino-static.tricolor.ru/media/v2/2522c8f0-8a52-4183-8ab4-67375256eb8c"
-#EXTINF:-1 tvg-logo=" group-title="Кинозалы 2"
-https://kino-static.tricolor.ru/media/v2/34f9d683-64eb-4b4e-920c-1e4d03f3e00a"
-#EXTINF:-1 tvg-logo=" group-title="Кинозалы 2"
-https://xn--b1apmbmg.xn----dtbqifrblfni.xn--p1ai/assets/img/tricolor_channels_new/smeshariki.webp"
-#EXTINF:-1 tvg-logo=" group-title="Кинозалы 2"
-https://kino-static.tricolor.ru/media/v2/76287287-53ce-443d-a14a-9582f8c74815"
 #EXTINF:-1 tvg-name="CPS Investigation" group-title="Кинозалы 3", CPS Investigation
 http://128.140.55.5:80/play/hhvFRY1oVT36QbH4zdqDv7iBjd1FcvqzGdB3i5BKWl8/m3u8
 #EXTINF:-1 tvg-name="CPS Drama HD" group-title="Кинозалы 3", CPS Drama HD
@@ -432,14 +376,6 @@ http://128.140.55.5:80/play/hhvFRY1oVT36QbH4zdqDv3e-t54Tj6uyfr4aP26ytbo/m3u8
 http://128.140.55.5:80/play/hhvFRY1oVT36QbH4zdqDv_9pVu8efkn4HIQtrjD45q8/m3u8
 #EXTINF:-1 tvg-name="MM Скорость HD" group-title="Кинозалы 3", MM Скорость HD
 http://128.140.55.5:80/play/hhvFRY1oVT36QbH4zdqDv4QZFqoSHwsiXQK62f-XB84/m3u8
-#EXTINF:-1 tvg-logo=" group-title="Кинозалы 2"
-https://kino-static.tricolor.ru/media/v2/882d5675-063c-49f7-911d-ad8799b56907"
-#EXTINF:-1 tvg-logo=" group-title="Кинозалы 2"
-https://kino-static.tricolor.ru/media/v2/5bd90869-7eee-4619-a15a-578a6cb9e37d"
-#EXTINF:-1 tvg-logo=" group-title="Кинозалы 2"
-https://kino-static.tricolor.ru/media/v2/8e839863-898b-49a7-a6dc-ca27b5dba240"
-#EXTINF:-1 tvg-logo=" group-title="Кинозалы 2"
-https://kino-static.tricolor.ru/media/v2/c9b210d5-34b1-4b10-80c1-935a5495e86b"
 #EXTINF:-1 tvg-name="CPS Jackie Chan HD" group-title="Кинозалы 3", CPS Jackie Chan HD
 http://128.140.55.5:80/play/hhvFRY1oVT36QbH4zdqDv-A1Vmz5q9x_RISxlXByrhs/m3u8
 #EXTINF:-1 tvg-name="CPS Cartoon HD" group-title="Кинозалы 3", CPS Cartoon HD
@@ -474,28 +410,10 @@ http://128.140.55.5:80/play/hhvFRY1oVT36QbH4zdqDv49INV_Q3fmz3vc6KLVMLiY/m3u8
 http://128.140.55.5:80/play/hhvFRY1oVT36QbH4zdqDv9ilh616q4OXW1P_wmg5R_c/m3u8
 #EXTINF:-1 group-title="Кинозалы 3", Clarity4K Семейный
 http://128.140.55.5:80/play/hhvFRY1oVT36QbH4zdqDv2rbJdyAm9SQytYhL4-XGdI/m3u8
-#EXTINF:-1 tvg-logo=" group-title="Кинозалы IPTVPLAY"
-https://i123.fastpic.org/big/2024/0826/ac/f4f87b57a79f0fbc6381996811439dac.png",
-#EXTINF:-1 tvg-name="Clarity4K Драмы" group-title="Кинозалы 3", Clarity4K Драмы
-http://128.140.55.5:80/play/hhvFRY1oVT36QbH4zdqDv3cw3AYcpykIevuuHuTNLHo/m3u8
-#EXTINF:-1 tvg-logo=" group-title="Кинозалы IPTVPLAY"
-https://i123.fastpic.org/big/2024/0826/01/adbb4692281cf3cc6540f47f4460c701.png",
-#EXTINF:-1 tvg-logo=" group-title="Кинозалы IPTVPLAY"
-https://i122.fastpic.org/big/2024/0112/65/b20ebb09af08ef55dbdffa919a047c65.png",
-#EXTINF:-1  tvg-logo=" group-title="Кинозалы IPTVPLAY"
-https://i123.fastpic.org/big/2024/0826/ee/6d269a3701fd505b42ad593a52cd9eee.png",
 #EXTINF:-1 tvg-name="Clarity4K КиноФраншизы" group-title="Кинозалы 3", Clarity4K КиноФраншизы
 http://128.140.55.5:80/play/hhvFRY1oVT36QbH4zdqDvwTy_xynfL02EvcZe17vsIM/m3u8
 #EXTINF:-1 tvg-name="Clarity4K Русские сериалы" group-title="Кинозалы 3", Clarity4K Русские сериалы
 http://128.140.55.5:80/play/hhvFRY1oVT36QbH4zdqDv1FuqOHg8H8BrXSp5tXXeds/m3u8
-#EXTINF:-1 tvg-logo=" group-title="Кинозалы IPTVPLAY"
-https://i.ibb.co/7gj4dQM/Pamyat.png"
-#EXTINF:-1 tvg-logo=" group-title="Кинозалы IPTVPLAY"
-https://i.ibb.co/LZkQq0x/Uzhastik.png"
-#EXTINF:-1 tvg-logo=" group-title="Кинозалы IPTVPLAY"
-https://img.catcast.tv/uploads/21102022/logos/39161-6352c0c04b9bd.png"
-#EXTINF:-1 tvg-logo=" group-title="Кинозалы IPTVPLAY"
-https://i.ibb.co/pbxx3Sd/Fantastika.png"
 #EXTINF:-1 tvg-name="Clarity4K Concert" group-title="Кинозалы 3", Clarity4K Asia
 http://128.140.55.5:80/play/hhvFRY1oVT36QbH4zdqDv6nnBpBDCvrcw2Wti3VqPhA/m3u8
 #EXTINF:-1 tvg-name="Clarity4K Фэнтези" group-title="Кинозалы 3", Clarity4K Фэнтези
