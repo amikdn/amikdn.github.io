@@ -811,14 +811,26 @@ http://45.11.139.43:8555/extsport/index.m3u8
 http://188.190.222.53/FightBOX/index.m3u8
 #EXTINF:-1 group-title="Спорт", Extreme Sports HD
 http://vod.stb.tvime.ru/Extreme_Sports/video.m3u8
-#EXTINF:-1 group-title="Спорт", Eurosport 4K 🛡️
-https://7pal.short.gy/eusport4k
+#EXTINF:-1 group-title="Спорт", EUROSPORT 1 HD
+http://195.191.208.11:8087/udp/238.2.48.145:1234
+#EXTINF:-1 group-title="Спорт", EUROSPORT 1 HD
+http://87.76.32.36:8001/eurosport1hd
+#EXTINF:-1 group-title="Спорт", EUROSPORT 1 HD
+http://146.120.14.239:3001/play/a07b
+#EXTINF:-1 group-title="Спорт", EUROSPORT 1 HD
+http://91.207.115.228:5000/c153
+#EXTINF:-1 group-title="Спорт", EUROSPORT 2 HD
+http://146.120.14.239:3001/play/a07c
+#EXTINF:-1 group-title="Спорт", EUROSPORT 2 HD
+http://91.207.115.228:5000/c154
+#EXTINF:-1 group-title="Спорт", EUROSPORT 2 HD
+http://boxviptv.net:25461/Mhmn0028/3U3smSKML8/216
+#EXTINF:-1 group-title="Спорт", Eurosport 2 HD
+http://vod.splay.uz/live_splay/original/Eurosport2HD/tracks-v1a1/mono.m3u8
 #EXTINF:-1 group-title="Спорт", Fox Sports 502 🛡️
 https://7pal.short.gy/fox502au
 #EXTINF:-1 group-title="Спорт", Fox Sports 501 🛡️
 https://7pal.short.gy/fox501au
-#EXTINF:-1 group-title="Спорт", Eurosport 2 HD
-http://vod.splay.uz/live_splay/original/Eurosport2HD/tracks-v1a1/mono.m3u8
 #EXTINF:-1 group-title="Спорт", Fox Sports 503 🛡️
 https://7pal.short.gy/fox503au
 #EXTINF:-1 group-title="Спорт" tvg-id="kxl", KHL
