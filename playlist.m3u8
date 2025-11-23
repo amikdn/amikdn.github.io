@@ -913,8 +913,6 @@ http://188.237.47.212:6008
 http://sirius.greenhosting.ru/Kino24Ru/video.m3u8
 #EXTINF:-1 group-title="Кино", Hollywood HD
 http://194.32.242.245/hollywoodhd/index.m3u8
-#EXTINF:-1 group-title="Кино", Saga TV ~
-http://178.212.71.253:8001/play/144/index.m3u8
 #EXTINF:-1 group-title="Кино" tvg-id="star-cinema-eu" audio-track="rus", Star Cinema EU HD
 http://84.245.224.71/StarCinemaHD/mono.m3u8
 #EXTINF:-1 group-title="Кино", Сити Эдем — Христианский
