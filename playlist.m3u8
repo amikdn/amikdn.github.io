@@ -1654,18 +1654,8 @@ http://91.194.191.241:8081/chid231/tracks-v1a1/mono.m3u8
 http://158.101.222.193:88/georgia_play.php?id=matchplaneta
 #EXTINF:-1 group-title="Спорт" tvg-id="start", Старт Баскет
 https://bl.webcaster.pro/media/playlist/free_621d169e5c631c638136df3cb136c5c9/33_68881676/1080p/b32eaae5fbf1d2b8211543566a1d9a78/4914392769.m3u8?live=15&ref=https://tvstart.ru/channels/start-basket-test/
-#EXTINF:-1 group-title="Спорт", Arena Sport 1
-https://176.116.105.82/Arena_Sport1_HD/index.m3u8
 #EXTINF:-1 group-title="Спорт", Astrakhan.RU Sport HD
 http://streaming.astrakhan.ru/astrakhanrusporthd/playlist.m3u8
-#EXTINF:-1 group-title="Спорт", Diema Sport
-http://213.169.39.30:5134
-#EXTINF:-1 group-title="Спорт", Diema Sport 2
-http://213.169.39.30:5136
-#EXTINF:-1 group-title="Спорт", Diema Sport 3
-http://213.169.39.30:5216
-#EXTINF:-1 group-title="Спорт", Arena Sport 2
-https://176.116.105.82/Arena_Sport2_HD/index.m3u8
 #EXTINF:-1 group-title="Спорт", Extreme Sports
 http://45.11.139.43:8555/extsport/index.m3u8
 #EXTINF:-1 group-title="Спорт", FightBox
