@@ -384,80 +384,8 @@ http://128.140.55.5:80/play/hhvFRY1oVT36QbH4zdqDv1FuqOHg8H8BrXSp5tXXeds/m3u8
 http://128.140.55.5:80/play/hhvFRY1oVT36QbH4zdqDv6nnBpBDCvrcw2Wti3VqPhA/m3u8
 #EXTINF:-1 tvg-name="Clarity4K Фэнтези" group-title="Кинозалы 3", Clarity4K Фэнтези
 http://128.140.55.5:80/play/hhvFRY1oVT36QbH4zdqDvykLh0twtzi_g6SbofMifbQ/m3u8
-#EXTINF:-1 group-title="Детские", Солнце
-http://stream-msk-08.ott.tricolor.tv/dtv/id253_MSKSG-PVR-1--Disney/03/plst.m3u8?drmreq=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcHBfdHlwZSI6ImFwdHBfb3R0IiwiY2xhc3MiOiJCUk9XU0VSIiwiZHJlaWQiOiI0NTAyNTUwMDM1ODM5NSIsImV4cCI6MTc2MTUzMDQyOCwiaHdpZCI6IjI4YzUzMGRkNTE5NmIwZjQ0ZjkyY2ZhN2RhODVkZDU2ZDE2ZTQ4YjRhZjU2MTA5NTk1YmExNmZkMjYyYzRmNTAiLCJsYXN0X3JlcV9kYXRlIjoxNzYwOTI1NjI4LCJzZXNzaW9uX2lkIjoiY2UzZDlhZTA3NTJlYmJhYWYyNDU4NDI1MjJjZjhkY2EiLCJ0b2tlbl90eXBlIjoiQ29udGVudEFjY2Vzc1Rva2VuIiwidHlwZSI6Ik1PWklMTEEifQ.nQarfxv2-Q1EvSL_fuJxWZA2GV6Z1C4vwkTUVIHJUXA
-#EXTINF:-1 tvg-id="mama" group-title="Детские", Мама
-http://stream-msk-11.ott.tricolor.tv/dtv/id519_MSKSG-PVR-1--Mama/03/plst.m3u8?drmreq=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcHBfdHlwZSI6ImFwdHBfb3R0IiwiY2xhc3MiOiJCUk9XU0VSIiwiZHJlaWQiOiI0NTAyNTUwMDM1ODM5NSIsImV4cCI6MTc2MTUzMDQyOCwiaHdpZCI6IjI4YzUzMGRkNTE5NmIwZjQ0ZjkyY2ZhN2RhODVkZDU2ZDE2ZTQ4YjRhZjU2MTA5NTk1YmExNmZkMjYyYzRmNTAiLCJsYXN0X3JlcV9kYXRlIjoxNzYwOTI1NjI4LCJzZXNzaW9uX2lkIjoiY2UzZDlhZTA3NTJlYmJhYWYyNDU4NDI1MjJjZjhkY2EiLCJ0b2tlbl90eXBlIjoiQ29udGVudEFjY2Vzc1Rva2VuIiwidHlwZSI6Ik1PWklMTEEifQ.nQarfxv2-Q1EvSL_fuJxWZA2GV6Z1C4vwkTUVIHJUXA
-#EXTINF:-1 tvg-id="karusel" tvg-logo=" group-title="Детские"
-http://only4.tv/ch/822.png"
-#EXTINF:-1 tvg-id="smaylik-tv" group-title="Детские", Смайлик ТВ
-https://5f05e059699ae.streamlock.net/WEB_Smilik/ngrp:Smilik.stream-adaptive/playlist.m3u8
-#EXTINF:-1 group-title="Детские", 2x2#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36 OPR/98.0.0.0
-http://zabava-htlive.cdn.ngenix.net/hls/CH_2X2/variant.m3u8
-#EXTINF:-1 group-title="Детские", 2x2 HD
-https://stream-msk-20.ott.tricolor.tv/dtv/id975_MSKSG-PVR-1--2x2/02/plst.m3u8?drmreq=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcHBfdHlwZSI6ImFwdHBfb3R0IiwiY2xhc3MiOiJCUk9XU0VSIiwiZHJlaWQiOiI0NTAyNTUwMDM1ODM5NSIsImV4cCI6MTc2MTUzMDQyOCwiaHdpZCI6IjI4YzUzMGRkNTE5NmIwZjQ0ZjkyY2ZhN2RhODVkZDU2ZDE2ZTQ4YjRhZjU2MTA5NTk1YmExNmZkMjYyYzRmNTAiLCJsYXN0X3JlcV9kYXRlIjoxNzYwOTI1NjI4LCJzZXNzaW9uX2lkIjoiY2UzZDlhZTA3NTJlYmJhYWYyNDU4NDI1MjJjZjhkY2EiLCJ0b2tlbl90eXBlIjoiQ29udGVudEFjY2Vzc1Rva2VuIiwidHlwZSI6Ik1PWklMTEEifQ.nQarfxv2-Q1EvSL_fuJxWZA2GV6Z1C4vwkTUVIHJUXA
-#EXTINF:-1 group-title="Детские", Мультиландия
-http://91.194.191.241:8081/chid62/tracks-v1a1/mono.m3u8
-#EXTINF:-1 tvg-id="da-vinci" group-title="Детские", Да Винчи
-http://91.194.191.241:8081/chid426/tracks-v1a1/mono.m3u8
-#EXTINF:-1 group-title="Детские", О!
-http://sgw.ott.tricolor.tv/streamingGateway/GetLivePlayList?source=O.m3u8&serviceArea=MSK-SA-1&drmreq=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcHBfdHlwZSI6ImFwdHBfb3R0IiwiY2xhc3MiOiJCUk9XU0VSIiwiZHJlaWQiOiI0NTAyNTUwMDM1ODM5NSIsImV4cCI6MTc2MTUzMDQyOCwiaHdpZCI6IjI4YzUzMGRkNTE5NmIwZjQ0ZjkyY2ZhN2RhODVkZDU2ZDE2ZTQ4YjRhZjU2MTA5NTk1YmExNmZkMjYyYzRmNTAiLCJsYXN0X3JlcV9kYXRlIjoxNzYwOTI1NjI4LCJzZXNzaW9uX2lkIjoiY2UzZDlhZTA3NTJlYmJhYWYyNDU4NDI1MjJjZjhkY2EiLCJ0b2tlbl90eXBlIjoiQ29udGVudEFjY2Vzc1Rva2VuIiwidHlwZSI6Ik1PWklMTEEifQ.nQarfxv2-Q1EvSL_fuJxWZA2GV6Z1C4vwkTUVIHJUXA
-#EXTINF:-1 tvg-id="baby-time" group-title="Детские", BabyTIME
-http://91.194.191.241:8081/chid273/tracks-v1a1/mono.m3u8
-#EXTINF:-1 group-title="Детские", Уникум
-http://46.8.46.14/detskiy/index.m3u8
-#EXTINF:-1 tvg-id="v-gostiax-u-skazki" group-title="Детские", В Гостях у Сказки
-http://91.194.191.241:8081/chid61/tracks-v1a1/mono.m3u8
-#EXTINF:-1 group-title="Детские", Мульт
-http://stv.mediacdn.ru/live/cdn/mult/tracks-v2a1/mono.ts.m3u8
-#EXTINF:-1 group-title="Детские", Детский Мир
-http://46.8.46.14/detmir/index.m3u8
-#EXTINF:-1 group-title="Детские", Мульт HD
-http://stv.mediacdn.ru/live/cdn/mult/playlist.m3u8
-#EXTINF:-1 group-title="Детские", Gulli Girl
-http://46.8.46.14/Gulli/index.m3u8
-#EXTINF:-1 group-title="Детские", Cartoon Network
-http://46.8.46.14/Cartoon_Network/index.m3u8
-#EXTINF:-1 group-title="Детские", СуперГерои
-http://109.94.1.3:8080/132/index.m3u8
-#EXTINF:-1 tvg-id="nickelodeon-ru" group-title="Детские", Nickelodeon
-http://46.8.46.14/Nickelodeon/index.m3u8
-#EXTINF:-1 tvg-id="nicktoons" group-title="Детские", Nicktoons
-http://94.232.127.28:8080/nicktoons/index.m3u8
-#EXTINF:-1 tvg-id="boomerang" group-title="Детские", Cartoonito
-http://88.216.112.114/Cartoonito/index.m3u8
-#EXTINF:-1 tvg-id="nick-jr" group-title="Детские", Nick Jr
-http://46.8.46.14/nickjr/index.m3u8
-#EXTINF:-1 group-title="Детские", Ani
-http://stv.mediacdn.ru/live/cdn/ani/playlist.m3u8
-#EXTINF:-1 tvg-id="ryzhy" group-title="Детские", Рыжий
-http://46.8.46.14/Ryzhiy/index.m3u8
-#EXTINF:-1 group-title="Детские", TiJi
-http://193.27.209.122/tiji/index.m3u8
-#EXTINF:-1 group-title="Детские", Капитан Фантастика
-http://91.194.191.241:8081/chid292/tracks-v1a1/mono.m3u8
-#EXTINF:-1 group-title="Детские", Cartoon Classics
-http://95.66.188.74/Cartoon_Classics/index.m3u8
-#EXTINF:-1 group-title="Детские", Мульт и музыка
-http://stv.mediacdn.ru/live/cdn/multimuzika/playlist.m3u8
-#EXTINF:-1 tvg-logo=" group-title="Детские"
-https://avatars.mds.yandex.net/get-ott/239697/2a00000173b9e6c0ae818f3aba1aaa8891ca/960x540"
-#EXTINF:-1 tvg-id="no_epg_mult" tvg-logo=" group-title="Детские"
-https://www.cableman.ru/sites/default/files/pingvin_lolo_obychnyy_0_0.png"
-#EXTINF:-1 tvg-id="multimania-lv" tvg-logo=" group-title="Детские"
-https://iptvx.one/picons/multimania-lv.png"
-#EXTINF:-1 tvg-id="no_epg_mult" tvg-logo=" group-title="Детские"
-https://grizly.club/uploads/posts/2023-01/1674668760_grizly-club-p-mamontenok-klipart-7.png"
-#EXTINF:-1 tvg-id="no_epg_music" tvg-logo=" group-title="Детские"
-https://radiokids.fm/wp-content/themes/sanfirst/images/logo.png"
-#EXTINF:-1 catchup="append" catchup-days="7" catchup-source="&offset=${offset}" tvg-logo=" group-title="Детские"
-https://epg.iptvx.one/picons/ducktv.png"
-#EXTINF:-1 catchup="append" catchup-days="7" catchup-source="&offset=${offset}" group-title="Детские", МультСезон
-http://hls.peers.tv/streaming/cartoon_season/16/vh1w/playlist.m3u8?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJhY2Nlc3MiLCJleHAiOjE3NjEwMzI3ODAsImlhdCI6MTc2MDk0NjM4MCwiY2lkIjo2LCJ1aWQiOjk1NjIxNzI2OSwicmVnIjpmYWxzZSwiaXAiOjE1NTE3MDQzNTYsImFkdWx0IjpmYWxzZX0.xutc13Ciyuh1LU-WPb4uWtycBQ26HN-S1PUwTQ9A8X0&offset=3
 #EXTINF:-1 tvg-id="aiva" group-title="Музыкальные", AIVA
 https://stream-msk-11.ott.tricolor.tv/dtv/id935_MSKSG-PVR-1--AIVA_HD/04/plst.m3u8?drmreq=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcHBfdHlwZSI6ImFwdHBfb3R0IiwiY2xhc3MiOiJCUk9XU0VSIiwiZHJlaWQiOiI0NTAyNTUwMDM1ODM5NSIsImV4cCI6MTc2MTUzMDQyOCwiaHdpZCI6IjI4YzUzMGRkNTE5NmIwZjQ0ZjkyY2ZhN2RhODVkZDU2ZDE2ZTQ4YjRhZjU2MTA5NTk1YmExNmZkMjYyYzRmNTAiLCJsYXN0X3JlcV9kYXRlIjoxNzYwOTI1NjI4LCJzZXNzaW9uX2lkIjoiY2UzZDlhZTA3NTJlYmJhYWYyNDU4NDI1MjJjZjhkY2EiLCJ0b2tlbl90eXBlIjoiQ29udGVudEFjY2Vzc1Rva2VuIiwidHlwZSI6Ik1PWklMTEEifQ.nQarfxv2-Q1EvSL_fuJxWZA2GV6Z1C4vwkTUVIHJUXA
-#EXTINF:-1 tvg-id="shayantv" catchup="append" catchup-days="3" catchup-source="?offset=-${offset}&utcstart=${timestamp}" group-title="Детские", Шаян ТВ#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36 OPR/98.0.0.0
-http://s45177.cdn.ngenix.net/hls/CH_R03_SHAYNTV/variant.m3u8
 #EXTINF:-1 tvg-id="no_epg_radio" tvg-logo=" group-title="Музыкальные"
 https://sun9-54.userapi.com/impf/c845019/v845019621/11757b/mt-fwMNK4oQ.jpg?size=604x604&quality=96&sign=0543b819a2583293561b2cd832ff1970&c_uniq_tag=fzVdTvh77oR7s9aF3VezNct6g4SODybtO7Ij75osuwQ&type=album"
 #EXTINF:-1 tvg-id="no_epg_music" tvg-logo=" group-title="Музыкальные"
@@ -466,8 +394,6 @@ https://tvradioo.ru/wp-content/uploads/2021/01/2023-01-17_21-45-17.png"
 https://content.foto.my.mail.ru/mail/maxraykov/_musicplaylistcover/i-14.jpg"
 #EXTINF:-1 tvg-id="zhara" group-title="Музыкальные", Жара
 https://stream-msk-14.ott.tricolor.tv/dtv/id389_MSKSG-PVR-1--Zhara/04/plst.m3u8?drmreq=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcHBfdHlwZSI6ImFwdHBfb3R0IiwiY2xhc3MiOiJCUk9XU0VSIiwiZHJlaWQiOiI0NTAyNTUwMDM1ODM5NSIsImV4cCI6MTc2MTUzMDQyOCwiaHdpZCI6IjI4YzUzMGRkNTE5NmIwZjQ0ZjkyY2ZhN2RhODVkZDU2ZDE2ZTQ4YjRhZjU2MTA5NTk1YmExNmZkMjYyYzRmNTAiLCJsYXN0X3JlcV9kYXRlIjoxNzYwOTI1NjI4LCJzZXNzaW9uX2lkIjoiY2UzZDlhZTA3NTJlYmJhYWYyNDU4NDI1MjJjZjhkY2EiLCJ0b2tlbl90eXBlIjoiQ29udGVudEFjY2Vzc1Rva2VuIiwidHlwZSI6Ik1PWklMTEEifQ.nQarfxv2-Q1EvSL_fuJxWZA2GV6Z1C4vwkTUVIHJUXA
-#EXTINF:-1 tvg-id="no_epg_cinema" tvg-logo=" group-title="Детские"
-https://www.russkiymir.ru/upload/medialibrary/fac/fac0c725fda3ecab8df3bfe5f03f81f6.png",
 #EXTINF:-1 tvg-id="no_epg_music" tvg-logo=" group-title="Музыкальные"
 https://i.postimg.cc/MHNdgRXj/photo-2024-01-14-15-42-03.jpg",
 #EXTINF:-1 tvg-id="muzyka-pervogo" group-title="Музыкальные", Музыка Первого
