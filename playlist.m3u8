@@ -621,12 +621,8 @@ http://188.190.222.53/Den_pobedy_hd/index.m3u8
 #EXTINF:-1 catchup="append" catchup-days="3" catchup-source="?offset=-${offset}&utcstart=${timestamp}" group-title="Федеральные плюс", Ю (+4)
 #EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36 OPR/98.0.0.0
 http://zabava-htlive.cdn.ngenix.net/hls/CH_U_4/variant.m3u8
-#EXTINF:-1 group-title="Общие", loganettv movie
-https://t.me/loganettv_support
 #EXTINF:-1 tvg-id="sony-scifi" group-title="Кино и сериалы", .Sci-Fi
 http://94.232.127.28:8080/sony-scifi/index.m3u8
-#EXTINF:-1 group-title="Общие", telegram - t.me/loganettv_original
-https://t.me/loganettv_original
 #EXTINF:-1 tvg-id="illuzion-plus" group-title="Кино и сериалы", Иллюзион+
 http://188.190.222.53/Illuzion+/index.m3u8
 #EXTINF:-1 tvg-id="domkino-premium" group-title="Кино и сериалы", Дом кино Премиум HD
@@ -800,8 +796,6 @@ http://vod.splay.uz/live_splay/original/TV1000/tracks-v1a1/mono.m3u8
 http://158.101.222.193:88/georgia_play.php?id=tv1000rukino
 #EXTINF:-1 group-title="Общие", Первый канал
 http://194.8.128.38:8080/ort/playlist.m3u8
-#EXTINF:-1 group-title="Общие", Ссылка на плейлист устарела
-https://loganettv.vercel.app/all.m3u
 #EXTINF:-1 group-title="Общие", Россия 1
 http://vgtrkregion-reg.cdnvideo.ru/vgtrk/HO3gcQAHbok/russia1-sd/index.m3u8
 #EXTINF:-1 catchup="append" catchup-days="7" catchup-source="?offset=-${offset}&utcstart=${timestamp}" tvg-id="pervy" group-title="Общие", Первый канал (Архив)
