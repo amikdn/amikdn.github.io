@@ -300,19 +300,12 @@ http://91.194.191.241:8081/chid98/tracks-v1a1/mono.m3u8
 http://91.194.191.241:8081/chid467/tracks-v1a1/mono.m3u8
 #EXTINF:-1 tvg-id="zhar-ptica" group-title="Музыкальные", Жар-Птица
 http://streamer.rtcommufa.ru:1935/ptica/ptica1/playlist.m3u8
-#EXTINF:-1 tvg-id="kuraj" group-title="Музыкальные", Курай
-http://bsttv.bonus-tv.ru/cdn/kurai/playlist.m3u8
-#EXTINF:-1 tvg-id="now80s" group-title="Музыкальные", Now 80's
-http://lightning-now80s-samsungnz.amagi.tv/playlist720p.m3u8
 #EXTINF:-1 tvg-logo=" group-title="Музыкальные"
 https://i.pinimg.com/originals/19/91/d7/1991d7b82952f57c6a3231235d367a69.jpg"
 #EXTINF:-1 tvg-logo=" group-title="Музыкальные"
 https://i.pinimg.com/originals/3d/b0/4f/3db04f7e5cf79872e7db59ab1cb3a50b.jpg"
 #EXTINF:-1 tvg-logo=" group-title="Музыкальные"
 https://okteve.com/wp-content/uploads/media/8bf98c11f4eaffce90c07cc0455f865a.jpeg"
-#EXTINF:-1 tvg-id="maydan" catchup="append" catchup-days="3" catchup-source="?offset=-${offset}&utcstart=${timestamp}" group-title="Музыкальные", Майдан
-#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36 OPR/98.0.0.0
-http://rt-vlg-kzn-htlive.cdn.ngenix.net/hls/CH_R05_MAIDAN/variant.m3u8
 #EXTINF:-1 catchup="append" tvg-logo=" group-title="Федеральные плюс"
 https://iptvx.one/picons/2na2-pl7.png"
 #EXTINF:-1 tvg-id="no_epg_music" tvg-logo=" group-title="Музыкальные"
@@ -322,10 +315,6 @@ https://oklivetv.com/wp-content/uploads/media/2bbab18fa09352f91d2ecb59d6e17fdb.j
 #EXTINF:-1 catchup="append" catchup-days="3" catchup-source="?offset=-${offset}&utcstart=${timestamp}" group-title="Федеральные плюс", Домашний +4
 #EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36 OPR/98.0.0.0
 http://zabava-htlive.cdn.ngenix.net/hls/CH_DOMASHNIY_4/variant.m3u8
-#EXTINF:-1 tvg-id="now70s" group-title="Музыкальные", Now 70's
-https://lightning-now70s-samsungnz.amagi.tv/playlist.m3u8
-#EXTINF:-1 tvg-id="now-rock" group-title="Музыкальные", Now Rock
-https://lightning-now90s-samsungnz.amagi.tv/playlist.m3u8
 #EXTINF:-1 catchup="append" tvg-logo=" group-title="Федеральные плюс"
 http://kusa.k-itv.ru/wp-content/uploads/2016/08/zvezda_telekanal2.jpeg"
 #EXTINF:-1 catchup="append" catchup-days="3" catchup-source="?offset=-${offset}&utcstart=${timestamp}" group-title="Федеральные плюс", Домашний +7
@@ -1533,14 +1522,8 @@ http://boxviptv.net:25461/Mhmn0028/3U3smSKML8/1113
 http://91.247.68.229:8000/play/eee/index.m3u8
 #EXTINF:-1 group-title="Музыка", Жар Птица
 http://streamer.rtcommufa.ru:1935/ptica/ptica1/playlist.m3u8
-#EXTINF:-1 group-title="Музыка", Курай-ТВ
-http://bsttv.bonus-tv.ru/cdn/kurai/playlist.m3u8
-#EXTINF:-1 group-title="Музыка", Матур ТВ
-http://providers.streaming.matur-tv.ru/hls/h264_aac/stream.m3u8
 #EXTINF:-1 group-title="Музыка", Жара
 http://46.8.46.14/Zhara/index.m3u8
-#EXTINF:-1 group-title="Музыка", Матур ТВ HD
-http://public.streaming.matur-tv.ru/hls/h264_aac/stream.m3u8
 #EXTINF:-1 group-title="Музыка" tvg-id="muzykamodatv", ММТВ HD
 http://95.47.156.60:8000/play/a014/index.m3u8
 #EXTINF:-1 group-title="Музыка", Муз-ТВ
