@@ -558,8 +558,6 @@ http://zabava-htlive.cdn.ngenix.net/hls/CH_TNT_2/variant.m3u8
 http://158.101.222.193:88/georgia_play.php?id=kinoujas
 #EXTINF:-1 group-title="Кино и сериалы", Родное кино
 http://84.54.128.52:9090/play/a009/index.m3u8
-#EXTINF:-1 group-title="Кино и сериалы", Русский иллюзион HD
-http://195.64.140.147:10093/93
 #EXTINF:-1 group-title="Кино и сериалы", Русский роман
 http://85.208.223.249:8888/play/a007
 #EXTINF:-1 group-title="Кино и сериалы", Русский роман HD
