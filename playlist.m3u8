@@ -90,8 +90,6 @@ http://live1.1tvcrimea.ru/1tvcrimea.m3u8
 http://194.32.242.245/vippremiere/index.m3u8
 #EXTINF:-1 "tvg-id="Всё ТВ" tvg-logo=" group-title="Кино и сериалы"
 https://images.iptv.rt.ru/images/ch4dk93mhk079s3jpo50.png"
-#EXTINF:-1 tvg-id="no_epg" tvg-logo=" group-title="Познавательные"
-https://www.rsl.ru/photo/!_ORS/documents/dostoevsky-banner.jpeg"
 #EXTINF:-1 group-title="Кино и сериалы", VIJU+ MEGAHIT
 http://194.32.242.245/vipmegahit/index.m3u8
 #EXTINF:-1 group-title="Кино и сериалы", VIJU+ MEGAHIT HD
