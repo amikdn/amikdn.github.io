@@ -133,8 +133,6 @@ http://tvip.btk.teleos.ru:8081/chid77/tracks-v1a1/mono.m3u8
 http://46.8.46.14/TV21/index.m3u8
 #EXTINF:-1 tvg-id="tv1000-worldkino" group-title="Кино и сериалы", Viasat Kino World
 http://5.188.159.128:8070/TV1000_World_Kino/index.m3u8
-#EXTINF:-1 tvg-id="312-kino" group-title="Кино и сериалы", 312 Кино
-http://176.126.166.43:1935/live/312kino/playlist.m3u8
 #EXTINF:-1 tvg-id="start-world" group-title="Кино и сериалы", Start World
 http://109.248.236.51/start_world_hd/tracks-v1a1/mono.m3u8
 #EXTINF:-1 tvg-id="star-family" group-title="Кино и сериалы", Star Family HD
