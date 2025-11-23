@@ -742,102 +742,16 @@ http://213.169.39.30:5006
 http://193.25.8.59:8000/tlc
 #EXTINF:-1 group-title="Кино и сериалы", viju+ Serial HD
 http://tvip.btk.teleos.ru:8081/chid40/mono.m3u8
-#EXTINF:-1 group-title="Спортивные", Беларусь 5 Интернет
-https://ngtrk.dc.beltelecom.by/ngtrk/smil:belarus5int/playlist.m3u8
-#EXTINF:-1 group-title="Спортивные", Матч!
-http://catchup.videoline.ru/match/tracks-v1a1/mono.m3u8
 #EXTINF:-1 group-title="Кино и сериалы", Viasat Kino Comedy HD 🛡
 http://ukr.ukrainske.tv/493/tvainua/video.m3u8
-#EXTINF:-1 group-title="Спортивные", Бокс ТВ HD
-https://a3285272783-s80718.cdn.ngenix.net/hls/CH_BOKS_TVHD/video_1920x1080_avc1/playlist.m3u8?useseq=t
-#EXTINF:-1 group-title="Спортивные", Беларусь 5 Интернет HD
-https://ngtrk.dc.beltelecom.by/ngtrk/smil:belarus5/playlist.m3u8
-#EXTINF:-1 group-title="Спортивные", Конный мир
-http://cdn-01.bonus-tv.ru/kmir/tracks-v1a1/mono.m3u8
-#EXTINF:-1 group-title="Спортивные", Матч! Арена
-http://tv.streams.baikal-telecom.net:8080/MatchArena/mpegts
 #EXTINF:-1 group-title="Кино и сериалы", viju TV1000 HD
 http://vod.splay.uz/live_splay/original/TV1000/tracks-v1a1/mono.m3u8
-#EXTINF:-1 group-title="Спортивные", Матч! Страна
-http://195.64.140.147:10099/99
-#EXTINF:-1 group-title="Спортивные", Матч! HD
-http://bl.video.matchtv.ru/media/playlist/free_d46d0cf1712c0542ec7fd4f0808f600a_hd/17_89756005/1080/e6bef86de8a133cd7b27deb040758a00/4796141934.m3u8
-#EXTINF:-1 group-title="Спортивные", Матч! Футбол 1
-http://188.190.222.53/Match_Futbol_1/index.m3u8
-#EXTINF:-1 tvg-id="match-tv" catchup="append" catchup-days="7" catchup-source="?offset=-${offset}&utcstart=${timestamp}" group-title="Спортивные", Матч! +7 (Архив)#EXTVLCOPT:http-user-agent=WINK/1.40.1 (AndroidTV/9) HlsWinkPlayer
-https://zabava-htlive.cdn.ngenix.net/hls/CH_MATCHTV_7/variant.m3u8
-#EXTINF:-1 group-title="Спортивные", Матч! Футбол 2
-http://188.190.222.53/Match_Futbol_2/index.m3u8
-#EXTINF:-1 tvg-id="match-tv" catchup="append" catchup-days="7" catchup-source="?offset=-${offset}&utcstart=${timestamp}" group-title="Спортивные", Матч! (Архив)#EXTVLCOPT:http-user-agent=WINK/1.40.1 (AndroidTV/9) HlsWinkPlayer
-https://zabava-htlive.cdn.ngenix.net/hls/CH_MATCHTV/variant.m3u8
-#EXTINF:-1 group-title="Спортивные", Матч! Футбол 3
-http://188.190.222.53/Match_Futbol_3/index.m3u8
-#EXTINF:-1 group-title="Спортивные", Мир баскетбола
-http://195.64.140.147:10111/111
-#EXTINF:-1 group-title="Спортивные", Футбол
-http://188.190.222.53/Football/index.m3u8
-#EXTINF:-1 tvg-id="start" group-title="Спортивные", Старт Баскет
-https://bl.webcaster.pro/media/playlist/free_621d169e5c631c638136df3cb136c5c9/33_68881676/1080p/b32eaae5fbf1d2b8211543566a1d9a78/4914392769.m3u8?live=15&ref=https://tvstart.ru/channels/start-basket-test/
-#EXTINF:-1 group-title="Спортивные", Arena Sport 1
-https://176.116.105.82/Arena_Sport1_HD/index.m3u8
-#EXTINF:-1 group-title="Спортивные", Arena Sport 2
-https://176.116.105.82/Arena_Sport2_HD/index.m3u8
-#EXTINF:-1 group-title="Спортивные", Eurosport 1 HD
-http://87.76.32.36:8001/eurosport1hd
-#EXTINF:-1 group-title="Спортивные", Eurosport 4K 🛡️
-https://7pal.short.gy/eusport4k
-#EXTINF:-1 group-title="Спортивные", Extreme Sports
-http://45.11.139.43:8555/extsport/index.m3u8
-#EXTINF:-1 group-title="Спортивные", Fox Sports 501 🛡️
-https://7pal.short.gy/fox501au
 #EXTINF:-1 group-title="Кино и сериалы", viju TV1000 русское
 http://158.101.222.193:88/georgia_play.php?id=tv1000rukino
-#EXTINF:-1 group-title="Спортивные", Fox Sports 502 🛡️
-https://7pal.short.gy/fox502au
-#EXTINF:-1 group-title="Спортивные", Fox Sports 504 🛡️
-https://7pal.short.gy/fox504au
-#EXTINF:-1 group-title="Спортивные", Fox Sports 503 🛡️
-https://7pal.short.gy/fox503au
-#EXTINF:-1 group-title="Спортивные", Fox Sports 506 🛡️
-https://7pal.short.gy/fox506au
-#EXTINF:-1 group-title="Спортивные", Fox Sports 505 🛡️
-https://7pal.short.gy/fox505au
-#EXTINF:-1 tvg-id="kxl" group-title="Спортивные", KHL
-http://194.32.242.245/khl/index.m3u8
-#EXTINF:-1 group-title="Спортивные", Fox Sports 507 🛡️
-https://7pal.short.gy/fox507au
-#EXTINF:-1 group-title="Спортивные", Premier Sport 2 🛡️
-https://7pal.short.gy/prsport2
-#EXTINF:-1 group-title="Спортивные", QazSport
-http://87.76.32.36:8001/qazsport
-#EXTINF:-1 group-title="Спортивные", Russian Extreme
-http://85.208.223.249:8888/play/a004
-#EXTINF:-1 group-title="Спортивные", Sky Sport 1 NZ 🛡️
-https://7pal.short.gy/skyspt1nz
-#EXTINF:-1 group-title="Спортивные", Sky Sport 3 NZ 🛡️
-https://7pal.short.gy/skyspt3nz
-#EXTINF:-1 group-title="Спортивные", Sky Sport F1 UHD 🛡️
-https://7pal.short.gy/SSF1uhd
-#EXTINF:-1 group-title="Спортивные", Sky Sport Football 🛡️
-https://7pal.short.gy/ssportsfb
-#EXTINF:-1 group-title="Спортивные", Sky Sport Main Event 🛡️
-https://7pal.short.gy/skspmaine
-#EXTINF:-1 group-title="Спортивные", Sky Sport News 🛡️
-https://7pal.short.gy/ssportsnw
-#EXTINF:-1 group-title="Спортивные", TNT Sport 1 🛡️
-https://7pal.short.gy/tntspts1
-#EXTINF:-1 group-title="Спортивные", TNT Sport 2 🛡️
-https://7pal.short.gy/tntspts2
-#EXTINF:-1 group-title="Спортивные", TNT Sport 3 🛡️
-https://7pal.short.gy/tntspts3
 #EXTINF:-1 group-title="Общие", Первый канал
 http://194.8.128.38:8080/ort/playlist.m3u8
 #EXTINF:-1 group-title="Общие", Ссылка на плейлист устарела
 https://loganettv.vercel.app/all.m3u
-#EXTINF:-1 group-title="Спортивные", TNT Sport 4 🛡️
-https://7pal.short.gy/tntspts4
-#EXTINF:-1 group-title="Общие", Telegram-резерв
-https://t.me/iptvbackup
 #EXTINF:-1 group-title="Общие", Россия 1
 http://vgtrkregion-reg.cdnvideo.ru/vgtrk/HO3gcQAHbok/russia1-sd/index.m3u8
 #EXTINF:-1 catchup="append" catchup-days="7" catchup-source="?offset=-${offset}&utcstart=${timestamp}" tvg-id="pervy" group-title="Общие", Первый канал (Архив)#EXTVLCOPT:http-user-agent=WINK/1.40.1 (AndroidTV/9) HlsWinkPlayer
