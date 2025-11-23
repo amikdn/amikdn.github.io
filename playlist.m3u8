@@ -769,6 +769,12 @@ http://158.101.222.193:88/georgia_play.php?id=boxtv
 http://87.120.142.11:18000/Match!
 #EXTINF:-1 group-title="Спорт", Матч! Футбол 1
 http://188.190.222.53/Match_Futbol_1/index.m3u8
+#EXTINF:-1 group-title="Спорт", Матч! Футбол 2
+http://193.25.8.59:8000/fut
+#EXTINF:-1 group-title="Спорт", Матч! Футбол 2
+http://195.191.208.11:8087/udp/238.9.64.205:1234
+#EXTINF:-1 group-title="Спорт", Матч! Футбол 2 HD
+http://91.207.115.228:5000/c115
 #EXTINF:-1 group-title="Спорт" tvg-id="match-tv" catchup="append" catchup-days="7" catchup-source="?offset=-${offset}&utcstart=${timestamp}", Матч! (Архив)
 #EXTVLCOPT:http-user-agent=WINK/1.40.1 (AndroidTV/9) HlsWinkPlayer
 https://zabava-htlive.cdn.ngenix.net/hls/CH_MATCHTV/variant.m3u8
@@ -781,6 +787,10 @@ http://195.64.140.147:10099/99
 http://87.120.142.11:18000/Match!Igra
 #EXTINF:-1 group-title="Спорт", Матч! Премьер
 http://46.8.46.14/premier/index.m3u8
+#EXTINF:-1 group-title="Спорт", Матч! Премьер
+http://195.191.208.11:8087/udp/238.9.64.37:1234
+#EXTINF:-1 group-title="Спорт", Матч! Премьер
+http://91.207.115.228:5000/c105
 #EXTINF:-1 group-title="Спорт", Матч! Футбол 3
 http://188.190.222.53/Match_Futbol_3/index.m3u8
 #EXTINF:-1 group-title="Спорт", Мир баскетбола
