@@ -115,7 +115,7 @@
     function PersonalHub(params) {
         this.controller = new Lampa.Controller();
         this.discovery = [];
-        this.main = function(params, onComplete, onError) {
+        this.main = function(pl, onComplete, onError) {
             var _this = this;
             var pl = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
             var onComplete = arguments.length > 1 ? arguments[1] : undefined;
@@ -161,6 +161,8 @@
                 {id: 'collections_rus_movie', order: parseInt(Lampa.Storage.get('number_collections_rus_movie'), 10) || 37, active: !Lampa.Storage.get('collections_rus_movie_remove')}
             ];
             var loadedIds = [];
+            var loaded = [];
+
             function shuffleArray(array) {
                 for (var i = array.length - 1; i > 0; i--) {
                     var j = Math.floor(Math.random() * (i + 1));
@@ -169,6 +171,7 @@
                     array[j] = temp;
                 }
             }
+
             var yearRanges = [
                 {start: 2019, end: 2021},
                 {start: 2022, end: 2024},
@@ -193,7 +196,7 @@
             function loadCategory(id, onSuccess) {
                 var handlers = {
                     'now_watch': function(callback) {
-                        _this.get('personalhub/now_watch', pl, function(result) {
+                        Lampa.Api.get('personalhub/now_watch', pl, function(result) {
                             result.title = Lampa.Lang.translate('title_now_watch');
                             if (Lampa.Storage.get('now_watch_display') == '2') {
                                 result.collection = true;
@@ -222,13 +225,13 @@
                             results: Lampa.Activity.active().slice(0, 20),
                             title: Lampa.Lang.translate('title_upcoming_episodes'),
                             nomore: true,
-                            cardCategory: function(params, item) {
+                            cardClass: function(params, item) {
                                 return new CardBuilder(params, item);
                             }
                         });
                     },
                     'trend_day': function(callback) {
-                        _this.get('trending/all/day', pl, function(result) {
+                        Lampa.Api.get('trending/all/day', pl, function(result) {
                             result.title = Lampa.Lang.translate('title_trend_day');
                             if (Lampa.Storage.get('trend_day_display') == '2') {
                                 result.collection = true;
@@ -252,7 +255,7 @@
                         }, callback);
                     },
                     'trend_day_tv': function(callback) {
-                        _this.get('trending/tv/day', pl, function(result) {
+                        Lampa.Api.get('trending/tv/day', pl, function(result) {
                             result.title = Lampa.Lang.translate('title_trend_day_tv');
                             if (Lampa.Storage.get('trend_day_tv_display') == '2') {
                                 result.collection = true;
@@ -276,7 +279,7 @@
                         }, callback);
                     },
                     'trend_day_film': function(callback) {
-                        _this.get('trending/movie/day', pl, function(result) {
+                        Lampa.Api.get('trending/movie/day', pl, function(result) {
                             result.title = Lampa.Lang.translate('title_trend_day_film');
                             if (Lampa.Storage.get('trend_day_film_display') == '2') {
                                 result.collection = true;
@@ -300,7 +303,7 @@
                         }, callback);
                     },
                     'trend_week': function(callback) {
-                        _this.get('trending/all/week', pl, function(result) {
+                        Lampa.Api.get('trending/all/week', pl, function(result) {
                             result.title = Lampa.Lang.translate('title_trend_week');
                             if (Lampa.Storage.get('trend_week_display') == '2') {
                                 result.collection = true;
@@ -324,7 +327,7 @@
                         }, callback);
                     },
                     'trend_week_tv': function(callback) {
-                        _this.get('trending/tv/week', pl, function(result) {
+                        Lampa.Api.get('trending/tv/week', pl, function(result) {
                             result.title = Lampa.Lang.translate('title_trend_week_tv');
                             if (Lampa.Storage.get('trend_week_tv_display') == '2') {
                                 result.collection = true;
@@ -348,7 +351,7 @@
                         }, callback);
                     },
                     'trend_week_film': function(callback) {
-                        _this.get('trending/movie/week', pl, function(result) {
+                        Lampa.Api.get('trending/movie/week', pl, function(result) {
                             result.title = Lampa.Lang.translate('В тренде за неделю (фильмы)');
                             if (Lampa.Storage.get('trend_week_film_display') == '2') {
                                 result.collection = true;
@@ -372,7 +375,7 @@
                         }, callback);
                     },
                     'upcoming': function(callback) {
-                        _this.get('movie/upcoming', pl, function(result) {
+                        Lampa.Api.get('movie/upcoming', pl, function(result) {
                             result.title = Lampa.Lang.translate('title_upcoming');
                             if (Lampa.Storage.get('upcoming_display') == '2') {
                                 result.collection = true;
@@ -396,7 +399,7 @@
                         }, callback);
                     },
                     'popular_movie': function(callback) {
-                        _this.get('movie/popular', pl, function(result) {
+                        Lampa.Api.get('movie/popular', pl, function(result) {
                             result.title = Lampa.Lang.translate('title_popular_movie');
                             if (Lampa.Storage.get('popular_movie_display') == '2') {
                                 result.collection = true;
@@ -420,7 +423,7 @@
                         }, callback);
                     },
                     'popular_tv': function(callback) {
-                        _this.get('tv/popular', pl, function(result) {
+                        Lampa.Api.get('tv/popular', pl, function(result) {
                             result.title = Lampa.Lang.translate('title_popular_tv');
                             if (Lampa.Storage.get('popular_tv_display') == '2') {
                                 result.collection = true;
@@ -444,7 +447,7 @@
                         }, callback);
                     },
                     'top_movie': function(callback) {
-                        _this.get('movie/top_rated', pl, function(result) {
+                        Lampa.Api.get('movie/top_rated', pl, function(result) {
                             result.title = Lampa.Lang.translate('title_top_movie');
                             if (Lampa.Storage.get('top_movie_display') == '2') {
                                 result.collection = true;
@@ -468,7 +471,7 @@
                         }, callback);
                     },
                     'top_tv': function(callback) {
-                        _this.get('tv/top_rated', pl, function(result) {
+                        Lampa.Api.get('tv/top_rated', pl, function(result) {
                             result.title = Lampa.Lang.translate('title_top_tv');
                             if (Lampa.Storage.get('top_tv_display') == '2') {
                                 result.collection = true;
@@ -492,7 +495,7 @@
                         }, callback);
                     },
                     'netflix': function(callback) {
-                        _this.get('discover/movie?with_networks=8&sort_by=' + randomMovieSort + '&primary_release_date.gte=' + startYear + '&primary_release_date.lte=' + endYear, pl, function(result) {
+                        Lampa.Api.get('discover/movie?with_networks=8&sort_by=' + randomMovieSort + '&primary_release_date.gte=' + startYear + '&primary_release_date.lte=' + endYear, pl, function(result) {
                             result.title = Lampa.Lang.translate('Netflix');
                             if (Lampa.Storage.get('netflix_display') == '2') {
                                 result.collection = true;
@@ -516,7 +519,7 @@
                         }, callback);
                     },
                     'apple_tv': function(callback) {
-                        _this.get('discover/movie?with_networks=355&sort_by=' + randomMovieSort + '&primary_release_date.gte=' + startYear + '&primary_release_date.lte=' + endYear, pl, function(result) {
+                        Lampa.Api.get('discover/movie?with_networks=355&sort_by=' + randomMovieSort + '&primary_release_date.gte=' + startYear + '&primary_release_date.lte=' + endYear, pl, function(result) {
                             result.title = Lampa.Lang.translate('Apple TV+');
                             if (Lampa.Storage.get('apple_tv_display') == '2') {
                                 result.collection = true;
@@ -540,7 +543,7 @@
                         }, callback);
                     },
                     'prime_video': function(callback) {
-                        _this.get('discover/movie?with_networks=9&sort_by=' + randomMovieSort + '&primary_release_date.gte=' + startYear + '&primary_release_date.lte=' + endYear, pl, function(result) {
+                        Lampa.Api.get('discover/movie?with_networks=9&sort_by=' + randomMovieSort + '&primary_release_date.gte=' + startYear + '&primary_release_date.lte=' + endYear, pl, function(result) {
                             result.title = Lampa.Lang.translate('Prime Video');
                             if (Lampa.Storage.get('prime_video_display') == '2') {
                                 result.collection = true;
@@ -564,7 +567,7 @@
                         }, callback);
                     },
                     'mgm': function(callback) {
-                        _this.get('discover/movie?with_networks=2496&sort_by=' + randomMovieSort + '&primary_release_date.gte=' + startYear + '&primary_release_date.lte=' + endYear, pl, function(result) {
+                        Lampa.Api.get('discover/movie?with_networks=2496&sort_by=' + randomMovieSort + '&primary_release_date.gte=' + startYear + '&primary_release_date.lte=' + endYear, pl, function(result) {
                             result.title = Lampa.Lang.translate('MGM+');
                             if (Lampa.Storage.get('mgm_display') == '2') {
                                 result.collection = true;
@@ -588,7 +591,7 @@
                         }, callback);
                     },
                     'hbo': function(callback) {
-                        _this.get('discover/tv?with_networks=49&first_air_date.gte=2020-01-01&vote_average.gte=6&vote_average.lte=10&first_air_date.lte=' + currentDate, pl, function(result) {
+                        Lampa.Api.get('discover/tv?with_networks=49&first_air_date.gte=2020-01-01&vote_average.gte=6&vote_average.lte=10&first_air_date.lte=' + currentDate, pl, function(result) {
                             result.title = Lampa.Lang.translate('HBO');
                             if (Lampa.Storage.get('hbo_display') == '2') {
                                 result.collection = true;
@@ -612,7 +615,7 @@
                         }, callback);
                     },
                     'dorams': function(callback) {
-                        _this.get('discover/tv?first_air_date.gte=2020-01-01&without_genres=16&with_original_language=ko&vote_average.gte=6&vote_average.lte=10&first_air_date.lte=' + currentDate, pl, function(result) {
+                        Lampa.Api.get('discover/tv?first_air_date.gte=2020-01-01&without_genres=16&with_original_language=ko&vote_average.gte=6&vote_average.lte=10&first_air_date.lte=' + currentDate, pl, function(result) {
                             result.title = Lampa.Lang.translate('Дорамы');
                             if (Lampa.Storage.get('dorams_display') == '2') {
                                 result.collection = true;
@@ -636,7 +639,7 @@
                         }, callback);
                     },
                     'tur_serials': function(callback) {
-                        _this.get('discover/tv?first_air_date.gte=2020-01-01&without_genres=16&with_original_language=tr&vote_average.gte=6&vote_average.lte=10&first_air_date.lte=' + currentDate, pl, function(result) {
+                        Lampa.Api.get('discover/tv?first_air_date.gte=2020-01-01&without_genres=16&with_original_language=tr&vote_average.gte=6&vote_average.lte=10&first_air_date.lte=' + currentDate, pl, function(result) {
                             result.title = Lampa.Lang.translate('Турецкие сериалы');
                             if (Lampa.Storage.get('tur_serials_display') == '2') {
                                 result.collection = true;
@@ -660,7 +663,7 @@
                         }, callback);
                     },
                     'ind_films': function(callback) {
-                        _this.get('discover/movie?primary_release_date.gte=2020-01-01&without_genres=16&with_original_language=hi&vote_average.gte=6&vote_average.lte=10&primary_release_date.lte=' + currentDate, pl, function(result) {
+                        Lampa.Api.get('discover/movie?primary_release_date.gte=2020-01-01&without_genres=16&with_original_language=hi&vote_average.gte=6&vote_average.lte=10&primary_release_date.lte=' + currentDate, pl, function(result) {
                             result.title = Lampa.Lang.translate('Индийские фильмы');
                             if (Lampa.Storage.get('ind_films_display') == '2') {
                                 result.collection = true;
@@ -684,7 +687,7 @@
                         }, callback);
                     },
                     'rus_movie': function(callback) {
-                        _this.get('discover/movie?vote_average.gte=5&vote_average.lte=9.5&with_original_language=ru&sort_by=' + randomMovieSort + '&primary_release_date.lte=' + currentDate, pl, function(result) {
+                        Lampa.Api.get('discover/movie?vote_average.gte=5&vote_average.lte=9.5&with_original_language=ru&sort_by=' + randomMovieSort + '&primary_release_date.lte=' + currentDate, pl, function(result) {
                             result.title = Lampa.Lang.translate('Русские фильмы');
                             if (Lampa.Storage.get('rus_movie_display') == '2') {
                                 result.collection = true;
@@ -708,7 +711,7 @@
                         }, callback);
                     },
                     'rus_tv': function(callback) {
-                        _this.get('discover/tv?with_original_language=ru&sort_by=first_air_date.desc&air_date.lte=' + currentDate, pl, function(result) {
+                        Lampa.Api.get('discover/tv?with_original_language=ru&sort_by=first_air_date.desc&air_date.lte=' + currentDate, pl, function(result) {
                             result.title = Lampa.Lang.translate('Русские сериалы');
                             if (Lampa.Storage.get('rus_tv_display') == '2') {
                                 result.collection = true;
@@ -732,7 +735,7 @@
                         }, callback);
                     },
                     'rus_mult': function(callback) {
-                        _this.get('discover/movie?vote_average.gte=5&vote_average.lte=9.5&with_genres=16&with_original_language=ru&sort_by=primary_release_date.desc&primary_release_date.lte=' + currentDate, pl, function(result) {
+                        Lampa.Api.get('discover/movie?vote_average.gte=5&vote_average.lte=9.5&with_genres=16&with_original_language=ru&sort_by=primary_release_date.desc&primary_release_date.lte=' + currentDate, pl, function(result) {
                             result.title = Lampa.Lang.translate('Русские мультфильмы');
                             if (Lampa.Storage.get('rus_mult_display') == '2') {
                                 result.collection = true;
@@ -756,7 +759,7 @@
                         }, callback);
                     },
                     'start': function(callback) {
-                        _this.get('discover/tv?with_networks=2493&sort_by=first_air_date.desc&air_date.lte=' + currentDate, pl, function(result) {
+                        Lampa.Api.get('discover/tv?with_networks=2493&sort_by=first_air_date.desc&air_date.lte=' + currentDate, pl, function(result) {
                             result.title = Lampa.Lang.translate('Start');
                             if (Lampa.Storage.get('start_display') == '2') {
                                 result.collection = true;
@@ -780,7 +783,7 @@
                         }, callback);
                     },
                     'premier': function(callback) {
-                        _this.get('discover/tv?with_networks=2859&sort_by=first_air_date.desc&air_date.lte=' + currentDate, pl, function(result) {
+                        Lampa.Api.get('discover/tv?with_networks=2859&sort_by=first_air_date.desc&air_date.lte=' + currentDate, pl, function(result) {
                             result.title = Lampa.Lang.translate('Premier');
                             if (Lampa.Storage.get('premier_display') == '2') {
                                 result.collection = true;
@@ -804,7 +807,7 @@
                         }, callback);
                     },
                     'kion': function(callback) {
-                        _this.get('discover/tv?with_networks=3871&sort_by=first_air_date.desc&air_date.lte=' + currentDate, pl, function(result) {
+                        Lampa.Api.get('discover/tv?with_networks=3871&sort_by=first_air_date.desc&air_date.lte=' + currentDate, pl, function(result) {
                             result.title = Lampa.Lang.translate('KION');
                             if (Lampa.Storage.get('kion_display') == '2') {
                                 result.collection = true;
@@ -828,7 +831,7 @@
                         }, callback);
                     },
                     'ivi': function(callback) {
-                        _this.get('discover/tv?with_networks=3923&sort_by=first_air_date.desc&air_date.lte=' + currentDate, pl, function(result) {
+                        Lampa.Api.get('discover/tv?with_networks=3923&sort_by=first_air_date.desc&air_date.lte=' + currentDate, pl, function(result) {
                             result.title = Lampa.Lang.translate('ИВИ');
                             if (Lampa.Storage.get('ivi_display') == '2') {
                                 result.collection = true;
@@ -852,7 +855,7 @@
                         }, callback);
                     },
                     'okko': function(callback) {
-                        _this.get('discover/tv?with_networks=4085&sort_by=first_air_date.desc&air_date.lte=' + currentDate, pl, function(result) {
+                        Lampa.Api.get('discover/tv?with_networks=4085&sort_by=first_air_date.desc&air_date.lte=' + currentDate, pl, function(result) {
                             result.title = Lampa.Lang.translate('OKKO');
                             if (Lampa.Storage.get('okko_display') == '2') {
                                 result.collection = true;
@@ -876,7 +879,7 @@
                         }, callback);
                     },
                     'kinopoisk': function(callback) {
-                        _this.get('discover/tv?with_networks=1191&sort_by=first_air_date.desc&air_date.lte=' + currentDate, pl, function(result) {
+                        Lampa.Api.get('discover/tv?with_networks=1191&sort_by=first_air_date.desc&air_date.lte=' + currentDate, pl, function(result) {
                             result.title = Lampa.Lang.translate('КиноПоиск');
                             if (Lampa.Storage.get('kinopoisk_display') == '2') {
                                 result.collection = true;
@@ -900,7 +903,7 @@
                         }, callback);
                     },
                     'wink': function(callback) {
-                        _this.get('discover/tv?with_networks=5806&sort_by=first_air_date.desc&air_date.lte=' + currentDate, pl, function(result) {
+                        Lampa.Api.get('discover/tv?with_networks=5806&sort_by=first_air_date.desc&air_date.lte=' + currentDate, pl, function(result) {
                             result.title = 'Wink';
                             if (Lampa.Storage.get('wink_display') == '2') {
                                 result.collection = true;
@@ -924,7 +927,7 @@
                         }, callback);
                     },
                     'sts': function(callback) {
-                        _this.get('discover/tv?with_networks=806&sort_by=first_air_date.desc&air_date.lte=' + currentDate, pl, function(result) {
+                        Lampa.Api.get('discover/tv?with_networks=806&sort_by=first_air_date.desc&air_date.lte=' + currentDate, pl, function(result) {
                             result.title = Lampa.Lang.translate('СТС');
                             if (Lampa.Storage.get('sts_display') == '2') {
                                 result.collection = true;
@@ -948,7 +951,7 @@
                         }, callback);
                     },
                     'tnt': function(callback) {
-                        _this.get('discover/tv?with_networks=1191&sort_by=first_air_date.desc&air_date.lte=' + currentDate, pl, function(result) {
+                        Lampa.Api.get('discover/tv?with_networks=1191&sort_by=first_air_date.desc&air_date.lte=' + currentDate, pl, function(result) {
                             result.title = Lampa.Lang.translate('ТНТ');
                             if (Lampa.Storage.get('tnt_display') == '2') {
                                 result.collection = true;
@@ -972,7 +975,7 @@
                         }, callback);
                     },
                     'collections_inter_tv': function(callback) {
-                        _this.get('discover/tv?with_networks=213|2552|1024|6219|49&sort_by=' + randomSort + '&first_air_date.gte=' + startYear + '&first_air_date.lte=' + endYear, pl, function(result) {
+                        Lampa.Api.get('discover/tv?with_networks=213|2552|1024|6219|49&sort_by=' + randomSort + '&first_air_date.gte=' + startYear + '&first_air_date.lte=' + endYear, pl, function(result) {
                             result.title = Lampa.Lang.translate('Подборки зарубежных сериалов');
                             if (Lampa.Storage.get('collections_inter_tv_display') == '2') {
                                 result.collection = true;
@@ -996,7 +999,7 @@
                         }, callback);
                     },
                     'collections_rus_tv': function(callback) {
-                        _this.get('discover/tv?with_networks=2493|2859|4085|3923|3871|3827|5806|806|1191&sort_by=' + randomSort + '&air_date.lte=' + endYear + '&first_air_date.gte=' + startYear, pl, function(result) {
+                        Lampa.Api.get('discover/tv?with_networks=2493|2859|4085|3923|3871|3827|5806|806|1191&sort_by=' + randomSort + '&air_date.lte=' + endYear + '&first_air_date.gte=' + startYear, pl, function(result) {
                             result.title = Lampa.Lang.translate('Подборки русских сериалов');
                             if (Lampa.Storage.get('collections_rus_tv_display') == '2') {
                                 result.collection = true;
@@ -1020,7 +1023,7 @@
                         }, callback);
                     },
                     'collections_inter_movie': function(callback) {
-                        _this.get('discover/movie?with_genres=&sort_by=' + randomMovieSort + '&primary_release_date.gte=' + startYear2 + '&primary_release_date.lte=' + endYear2, pl, function(result) {
+                        Lampa.Api.get('discover/movie?with_genres=&sort_by=' + randomMovieSort + '&primary_release_date.gte=' + startYear2 + '&primary_release_date.lte=' + endYear2, pl, function(result) {
                             result.title = Lampa.Lang.translate('Подборки зарубежных фильмов');
                             if (Lampa.Storage.get('collections_inter_movie_display') == '2') {
                                 result.collection = true;
@@ -1044,7 +1047,7 @@
                         }, callback);
                     },
                     'collections_rus_movie': function(callback) {
-                        _this.get('discover/movie?primary_release_date.gte=' + startYear2 + '&vote_average.gte=5&vote_average.lte=9.5&with_original_language=ru&sort_by=' + randomMovieSort + '&primary_release_date.lte=' + endYear2, pl, function(result) {
+                        Lampa.Api.get('discover/movie?primary_release_date.gte=' + startYear2 + '&vote_average.gte=5&vote_average.lte=9.5&with_original_language=ru&sort_by=' + randomMovieSort + '&primary_release_date.lte=' + endYear2, pl, function(result) {
                             result.title = Lampa.Lang.translate('Подборки русских фильмов');
                             if (Lampa.Storage.get('collections_rus_movie_display') == '2') {
                                 result.collection = true;
@@ -1068,10 +1071,10 @@
                         }, callback);
                     }
                 };
+
                 var activeCategories = categories.filter(function(cat) { return cat.active; }).sort(function(a, b) { return a.order - b.order; });
                 if (activeCategories.length === 0) return onSuccess();
                 var loaders = [];
-                var loaded = [];
                 activeCategories.forEach(function(cat) {
                     if (!loadedIds.includes(cat.id) && handlers[cat.id]) {
                         loaders.push(handlers[cat.id](function(data) {
@@ -1080,11 +1083,11 @@
                         loadedIds.push(cat.id);
                     }
                 });
-                if (!Lampa.Storage.get('change_order_cards_main')) {
-                    params.genres_cat.forEach(function(cat) {
+                if (!Lampa.Storage.get('change_order_cards_main') && pl.genres_cat && pl.genres_cat.length > 0) {
+                    pl.genres_cat.forEach(function(cat) {
                         if (!loadedIds.includes(cat.id)) {
                             var loader = function(callback) {
-                                _this.get('discover/tv?with_genres=' + cat.id, pl, function(result) {
+                                Lampa.Api.get('discover/tv?with_genres=' + cat.id, pl, function(result) {
                                     result.title = Lampa.Lang.translate(cat.title.replace(/[^a-z_]/g, ''));
                                     shuffleArray(result.results);
                                     callback(result);
@@ -1109,7 +1112,6 @@
         };
     }
 
-    // Инициализация источника
     var personalHub = Object.assign({}, Lampa.Api.sources.tmdb, new PersonalHub(Lampa.Api.sources.tmdb));
     Lampa.Api.sources.tmdb.personalHub = personalHub;
     Object.defineProperty(Lampa.Api.sources, 'personalHub', {
@@ -1118,7 +1120,6 @@
         }
     });
 
-    // Добавление в настройки источника
     Lampa.Settings.main('source', Object.assign({}, Lampa.Settings.mainContext().source, {'PersonalHub': 'PersonalHub'}), 'tmdb');
     if (Lampa.Storage.get('source') == 'personalHub') {
         var source = Lampa.Storage.get('source');
@@ -1131,7 +1132,6 @@
         }, 300);
     }
 
-    // Слушатели событий
     Lampa.Listener.follow('app', function(e) {
         if (e.type == 'ready') {
             if ($('[data-component="bylampa_source"]').length == 0) Lampa.Settings.addComponent({component: 'bylampa_source', name: 'Настройки PersonalHub'});
@@ -1149,7 +1149,6 @@
         }
     });
 
-    // Функция для добавления настроек категории
     function addCategorySettings(component, name, description, shuffleDefault, displayDefault, orderDefault, removeDefault) {
         Lampa.Settings.listener.follow('open', function(e) {
             if (e.name === 'main') {
@@ -1249,7 +1248,7 @@
         });
     }
 
-    // Добавление настроек для категорий
+    // Добавление настроек для всех категорий
     addCategorySettings('now_watch', 'Сейчас смотрят', 'Нажми для настройки', false, '1', '1', false);
     addCategorySettings('trend_day', 'Сегодня в тренде', 'Нажми для настройки', false, '1', '3', false);
     addCategorySettings('trend_day_tv', 'Сегодня в тренде (сериалы)', 'Нажми для настройки', true, '1', '4', false);
@@ -1287,7 +1286,6 @@
     addCategorySettings('collections_inter_movie', 'Подборки зарубежных фильмов', 'Нажми для настройки', true, '1', '36', false);
     addCategorySettings('collections_rus_movie', 'Подборки русских фильмов', 'Нажми для настройки', true, '1', '37', false);
 
-    // Дополнительные настройки
     Lampa.Settings.addParam({
         component: 'bylampa_source',
         param: {
@@ -1313,7 +1311,18 @@
         }
     });
 
-    // Инициализация по умолчанию
+    Lampa.Settings.listener.follow('change', function(e) {
+        if (e.name == 'source') {
+            setTimeout(function() {
+                if (Lampa.Storage.get('source') !== 'personalHub') {
+                    $('.settings-param > div:contains("Источник PersonalHub")').parent().hide();
+                } else {
+                    $('div[data-name="source"]').parent().show();
+                }
+            }, 50);
+        }
+    });
+
     var initInterval = setInterval(function() {
         if (typeof Lampa !== 'undefined') {
             clearInterval(initInterval);
@@ -1352,6 +1361,7 @@
         Lampa.Storage.set('collections_inter_movie_remove', false);
         Lampa.Storage.set('collections_rus_movie_remove', false);
         Lampa.Storage.set('change_order_cards_main', false);
+        Lampa.Storage.set('bylampa_source_params', true);
     }
 
     if (window.appready) initPersonalHub();
@@ -1360,6 +1370,6 @@
     });
 
     function initPersonalHub() {
-        // Основная инициализация уже выполнена выше
+        // Инициализация завершена
     }
 })();
