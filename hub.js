@@ -1355,7 +1355,7 @@
         };
     }
 
-    // Добавление источника (прямое назначение, без Manifest)
+    // Добавление источника (прямое назначение, без Manifest, исправлено)
     if (!Lampa.Api.sources['personalhub']) {
         Lampa.Api.sources['personalhub'] = {
             main: function(params) {
@@ -1373,8 +1373,25 @@
         console.log('PersonalHub source added');
     }
 
-    // Добавление в настройки источника
-    Lampa.Settings.main('source', Object.assign({}, Lampa.Settings.mainContext().source, {'PersonalHub': 'PersonalHub'}), 'tmdb');
+    // Добавление в настройки источника (удалена проблемная строка mainContext)
+    // Вместо этого используем прямое добавление через Settings.addParam для совместимости
+    Lampa.Settings.addParam({
+        component: 'source',
+        param: {
+            name: 'personalhub',
+            type: 'toggle',
+            default: false
+        },
+        field: {
+            name: 'PersonalHub',
+            description: 'Персонализированный хаб контента'
+        },
+        onChange: function(value) {
+            if (value) {
+                Lampa.Storage.set('source', 'personalhub');
+            }
+        }
+    });
 
     // Функция добавления настроек категории (полная)
     function addCategorySettings(component, name, description, shuffleDefault, displayDefault, orderDefault, removeDefault) {
@@ -1659,17 +1676,22 @@
         console.log('PersonalHub source added');
     }
 
-    // Добавление в настройки источника (полное)
-    Lampa.Settings.main('source', Object.assign({}, Lampa.Settings.mainContext().source, {'PersonalHub': 'PersonalHub'}), 'tmdb');
-
-    if (Lampa.Storage.get('source') == 'personalhub') {
-        var source = Lampa.Storage.get('source');
-        var interval = setInterval(function() {
-            var ready = Lampa.Activity.active();
-            if (ready) {
-                clearInterval(interval);
-                Lampa.Activity.active().replace({'source': source, 'title': Lampa.Lang.translate('Top Line') + ' - ' + Lampa.Storage.field('source').toUpperCase()});
+    // Добавление в настройки источника (удалена проблемная строка mainContext, заменена на addParam)
+    Lampa.Settings.addParam({
+        component: 'source',
+        param: {
+            name: 'personalhub',
+            type: 'toggle',
+            default: false
+        },
+        field: {
+            name: 'PersonalHub',
+            description: 'Персонализированный хаб контента'
+        },
+        onChange: function(value) {
+            if (value) {
+                Lampa.Storage.set('source', 'personalhub');
             }
-        }, 300);
-    }
+        }
+    });
 })();
