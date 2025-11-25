@@ -2,7 +2,31 @@
     'use strict';
     Lampa.Platform.tv();
 
-    // Класс для построения карточки контента
+    // Guard от повторной загрузки
+    if (window.personalhub_loaded) return;
+    window.personalhub_loaded = true;
+
+    console.log('PersonalHub plugin loaded');
+
+    // Добавление кастомного шаблона карточки
+    Lampa.Template.add('personalhub_card', `
+        <div class="card">
+            <div class="card__img">
+                <img src="./img/img_broken.svg" />
+            </div>
+            <div class="card__title"></div>
+            <div class="card__text"></div>
+            <div class="card__age"></div>
+            <div class="full-episode__img">
+                <img src="./img/img_broken.svg" />
+            </div>
+            <div class="full-episode__name"></div>
+            <div class="full-episode__date"></div>
+            <div class="full-episode__num"></div>
+        </div>
+    `);
+
+    // Класс для построения карточки
     function CardBuilder(data, params) {
         var item = data.item || data;
         var episode = data.episode || {};
@@ -19,8 +43,8 @@
         }
 
         this.build = function() {
-            this.card = Lampa.Template.get('card');
-            this.img_poster = this.card.querySelector('.card__img') || {};
+            this.card = Lampa.Template.get('personalhub_card');
+            this.img_poster = this.card.querySelector('.card__img img') || {};
             this.img_episode = this.card.querySelector('.full-episode__img img') || {};
             this.card.querySelector('.card__title').innerText = item.title;
             this.card.querySelector('.card__text').innerText = item.overview || '';
@@ -48,23 +72,22 @@
             this.img_episode.onerror = function() {
                 _this.img_episode.src = './img/img_broken.svg';
             };
-            this.img_episode.onload = function() {
-                _this.img_episode.src = Lampa.Api.img(episode.still_path, 'w300');
-            };
+            this.img_episode.onload = function() {};
         };
 
         this.create = function() {
             this.build();
             this.card.addEventListener('hover:enter', function() {
-                if (_this.onEnter) _this.onEnter(this.card, item);
-            });
+                if (this.onEnter) this.onEnter(this.card, item);
+            }.bind(this));
             this.card.addEventListener('hover:focus', function() {
-                if (_this.onHover) _this.onHover(this.card, item);
-            });
+                if (this.onHover) this.onHover(this.card, item);
+            }.bind(this));
             this.card.addEventListener('focus', function() {
-                if (_this.onFocus) _this.onFocus(this.card, item);
-            });
+                if (this.onFocus) this.onFocus(this.card, item);
+            }.bind(this));
             this.image();
+            return this.card;
         };
 
         this.setImage = function() {
@@ -94,10 +117,10 @@
         };
 
         this.destroy = function() {
-            this.img_poster.onerror = function() {};
-            this.img_poster.onload = function() {};
-            this.img_episode.onerror = function() {};
-            this.img_episode.onload = function() {};
+            this.img_poster.onerror = null;
+            this.img_poster.onload = null;
+            this.img_episode.onerror = null;
+            this.img_episode.onload = null;
             this.img_poster.src = '';
             this.img_episode.src = '';
             hideAge(this.card);
@@ -107,7 +130,7 @@
         };
 
         this.toggle = function() {
-            return this.card ? $(this.card) : $(this.card);
+            return this.card ? $(this.card) : $();
         };
     }
 
@@ -196,1060 +219,1265 @@
             function loadCategory(id, onSuccess) {
                 var handlers = {
                     'now_watch': function(callback) {
-                        Lampa.Api.get('personalhub/now_watch', pl, function(result) {
-                            result.title = Lampa.Lang.translate('title_now_watch');
-                            if (Lampa.Storage.get('now_watch_display') == '2') {
-                                result.collection = true;
-                                result.line_type = 'collection';
-                            }
-                            if (Lampa.Storage.get('now_watch_display') == '3') {
-                                result.small = true;
-                                result.wide = true;
-                                result.results.forEach(function(elem) {
-                                    elem.promo = elem.overview;
-                                    elem.promo_title = elem.title || elem.name;
-                                });
-                            }
-                            if (Lampa.Storage.get('now_watch_display') == '4') {
-                                result.line_type = 'top';
-                            }
-                            if (Lampa.Storage.get('now_watch_shuffle') == true) {
-                                shuffleArray(result.results);
-                            }
-                            callback(result);
-                        }, callback);
+                        try {
+                            Lampa.Api.get('personalhub/now_watch', pl, function(result) {
+                                result.title = Lampa.Lang.translate('Сейчас смотрят');
+                                if (Lampa.Storage.get('now_watch_display') == '2') {
+                                    result.collection = true;
+                                    result.line_type = 'collection';
+                                }
+                                if (Lampa.Storage.get('now_watch_display') == '3') {
+                                    result.small = true;
+                                    result.wide = true;
+                                    result.results.forEach(function(elem) {
+                                        elem.promo = elem.overview;
+                                        elem.promo_title = elem.title || elem.name;
+                                    });
+                                }
+                                if (Lampa.Storage.get('now_watch_display') == '4') {
+                                    result.line_type = 'top';
+                                }
+                                if (Lampa.Storage.get('now_watch_shuffle') == true) {
+                                    shuffleArray(result.results);
+                                }
+                                callback(result);
+                            }, function(error) {
+                                callback({results: [], title: 'Ошибка загрузки', error: error});
+                            });
+                        } catch (e) {
+                            callback({results: [], title: 'Ошибка: ' + e.message});
+                        }
                     },
                     'upcoming_episodes': function(callback) {
-                        callback({
-                            source: 'tmdb',
-                            results: Lampa.Activity.active().slice(0, 20),
-                            title: Lampa.Lang.translate('title_upcoming_episodes'),
-                            nomore: true,
-                            cardClass: function(params, item) {
-                                return new CardBuilder(params, item);
-                            }
-                        });
+                        try {
+                            callback({
+                                source: 'tmdb',
+                                results: Lampa.Activity.active().slice(0, 20),
+                                title: Lampa.Lang.translate('Выход ближайших эпизодов'),
+                                nomore: true,
+                                cardClass: function(params, item) {
+                                    return new CardBuilder(params, item);
+                                }
+                            });
+                        } catch (e) {
+                            callback({results: [], title: 'Ошибка: ' + e.message});
+                        }
                     },
                     'trend_day': function(callback) {
-                        Lampa.Api.get('trending/all/day', pl, function(result) {
-                            result.title = Lampa.Lang.translate('title_trend_day');
-                            if (Lampa.Storage.get('trend_day_display') == '2') {
-                                result.collection = true;
-                                result.line_type = 'collection';
-                            }
-                            if (Lampa.Storage.get('trend_day_display') == '3') {
-                                result.small = true;
-                                result.wide = true;
-                                result.results.forEach(function(elem) {
-                                    elem.promo = elem.overview;
-                                    elem.promo_title = elem.title || elem.name;
-                                });
-                            }
-                            if (Lampa.Storage.get('trend_day_display') == '4') {
-                                result.line_type = 'top';
-                            }
-                            if (Lampa.Storage.get('trend_day_shuffle') == true) {
-                                shuffleArray(result.results);
-                            }
-                            callback(result);
-                        }, callback);
+                        try {
+                            Lampa.Api.get('trending/all/day', pl, function(result) {
+                                result.title = Lampa.Lang.translate('Сегодня в тренде');
+                                if (Lampa.Storage.get('trend_day_display') == '2') {
+                                    result.collection = true;
+                                    result.line_type = 'collection';
+                                }
+                                if (Lampa.Storage.get('trend_day_display') == '3') {
+                                    result.small = true;
+                                    result.wide = true;
+                                    result.results.forEach(function(elem) {
+                                        elem.promo = elem.overview;
+                                        elem.promo_title = elem.title || elem.name;
+                                    });
+                                }
+                                if (Lampa.Storage.get('trend_day_display') == '4') {
+                                    result.line_type = 'top';
+                                }
+                                if (Lampa.Storage.get('trend_day_shuffle') == true) {
+                                    shuffleArray(result.results);
+                                }
+                                callback(result);
+                            }, function(error) {
+                                callback({results: [], title: 'Ошибка загрузки трендов', error: error});
+                            });
+                        } catch (e) {
+                            callback({results: [], title: 'Ошибка: ' + e.message});
+                        }
                     },
                     'trend_day_tv': function(callback) {
-                        Lampa.Api.get('trending/tv/day', pl, function(result) {
-                            result.title = Lampa.Lang.translate('title_trend_day_tv');
-                            if (Lampa.Storage.get('trend_day_tv_display') == '2') {
-                                result.collection = true;
-                                result.line_type = 'collection';
-                            }
-                            if (Lampa.Storage.get('trend_day_tv_display') == '3') {
-                                result.small = true;
-                                result.wide = true;
-                                result.results.forEach(function(elem) {
-                                    elem.promo = elem.overview;
-                                    elem.promo_title = elem.title || elem.name;
-                                });
-                            }
-                            if (Lampa.Storage.get('trend_day_tv_display') == '4') {
-                                result.line_type = 'top';
-                            }
-                            if (Lampa.Storage.get('trend_day_tv_shuffle') == true) {
-                                shuffleArray(result.results);
-                            }
-                            callback(result);
-                        }, callback);
+                        try {
+                            Lampa.Api.get('trending/tv/day', pl, function(result) {
+                                result.title = Lampa.Lang.translate('Сегодня в тренде (сериалы)');
+                                if (Lampa.Storage.get('trend_day_tv_display') == '2') {
+                                    result.collection = true;
+                                    result.line_type = 'collection';
+                                }
+                                if (Lampa.Storage.get('trend_day_tv_display') == '3') {
+                                    result.small = true;
+                                    result.wide = true;
+                                    result.results.forEach(function(elem) {
+                                        elem.promo = elem.overview;
+                                        elem.promo_title = elem.title || elem.name;
+                                    });
+                                }
+                                if (Lampa.Storage.get('trend_day_tv_display') == '4') {
+                                    result.line_type = 'top';
+                                }
+                                if (Lampa.Storage.get('trend_day_tv_shuffle') == true) {
+                                    shuffleArray(result.results);
+                                }
+                                callback(result);
+                            }, function(error) {
+                                callback({results: [], title: 'Ошибка загрузки трендов TV', error: error});
+                            });
+                        } catch (e) {
+                            callback({results: [], title: 'Ошибка: ' + e.message});
+                        }
                     },
                     'trend_day_film': function(callback) {
-                        Lampa.Api.get('trending/movie/day', pl, function(result) {
-                            result.title = Lampa.Lang.translate('title_trend_day_film');
-                            if (Lampa.Storage.get('trend_day_film_display') == '2') {
-                                result.collection = true;
-                                result.line_type = 'collection';
-                            }
-                            if (Lampa.Storage.get('trend_day_film_display') == '3') {
-                                result.small = true;
-                                result.wide = true;
-                                result.results.forEach(function(elem) {
-                                    elem.promo = elem.overview;
-                                    elem.promo_title = elem.title || elem.name;
-                                });
-                            }
-                            if (Lampa.Storage.get('trend_day_film_display') == '4') {
-                                result.line_type = 'top';
-                            }
-                            if (Lampa.Storage.get('trend_day_film_shuffle') == true) {
-                                shuffleArray(result.results);
-                            }
-                            callback(result);
-                        }, callback);
+                        try {
+                            Lampa.Api.get('trending/movie/day', pl, function(result) {
+                                result.title = Lampa.Lang.translate('Сегодня в тренде (фильмы)');
+                                if (Lampa.Storage.get('trend_day_film_display') == '2') {
+                                    result.collection = true;
+                                    result.line_type = 'collection';
+                                }
+                                if (Lampa.Storage.get('trend_day_film_display') == '3') {
+                                    result.small = true;
+                                    result.wide = true;
+                                    result.results.forEach(function(elem) {
+                                        elem.promo = elem.overview;
+                                        elem.promo_title = elem.title || elem.name;
+                                    });
+                                }
+                                if (Lampa.Storage.get('trend_day_film_display') == '4') {
+                                    result.line_type = 'top';
+                                }
+                                if (Lampa.Storage.get('trend_day_film_shuffle') == true) {
+                                    shuffleArray(result.results);
+                                }
+                                callback(result);
+                            }, function(error) {
+                                callback({results: [], title: 'Ошибка загрузки трендов фильмов', error: error});
+                            });
+                        } catch (e) {
+                            callback({results: [], title: 'Ошибка: ' + e.message});
+                        }
                     },
                     'trend_week': function(callback) {
-                        Lampa.Api.get('trending/all/week', pl, function(result) {
-                            result.title = Lampa.Lang.translate('title_trend_week');
-                            if (Lampa.Storage.get('trend_week_display') == '2') {
-                                result.collection = true;
-                                result.line_type = 'collection';
-                            }
-                            if (Lampa.Storage.get('trend_week_display') == '3') {
-                                result.small = true;
-                                result.wide = true;
-                                result.results.forEach(function(elem) {
-                                    elem.promo = elem.overview;
-                                    elem.promo_title = elem.title || elem.name;
-                                });
-                            }
-                            if (Lampa.Storage.get('trend_week_display') == '4') {
-                                result.line_type = 'top';
-                            }
-                            if (Lampa.Storage.get('trend_week_shuffle') == true) {
-                                shuffleArray(result.results);
-                            }
-                            callback(result);
-                        }, callback);
+                        try {
+                            Lampa.Api.get('trending/all/week', pl, function(result) {
+                                result.title = Lampa.Lang.translate('В тренде за неделю');
+                                if (Lampa.Storage.get('trend_week_display') == '2') {
+                                    result.collection = true;
+                                    result.line_type = 'collection';
+                                }
+                                if (Lampa.Storage.get('trend_week_display') == '3') {
+                                    result.small = true;
+                                    result.wide = true;
+                                    result.results.forEach(function(elem) {
+                                        elem.promo = elem.overview;
+                                        elem.promo_title = elem.title || elem.name;
+                                    });
+                                }
+                                if (Lampa.Storage.get('trend_week_display') == '4') {
+                                    result.line_type = 'top';
+                                }
+                                if (Lampa.Storage.get('trend_week_shuffle') == true) {
+                                    shuffleArray(result.results);
+                                }
+                                callback(result);
+                            }, function(error) {
+                                callback({results: [], title: 'Ошибка загрузки трендов недели', error: error});
+                            });
+                        } catch (e) {
+                            callback({results: [], title: 'Ошибка: ' + e.message});
+                        }
                     },
                     'trend_week_tv': function(callback) {
-                        Lampa.Api.get('trending/tv/week', pl, function(result) {
-                            result.title = Lampa.Lang.translate('title_trend_week_tv');
-                            if (Lampa.Storage.get('trend_week_tv_display') == '2') {
-                                result.collection = true;
-                                result.line_type = 'collection';
-                            }
-                            if (Lampa.Storage.get('trend_week_tv_display') == '3') {
-                                result.small = true;
-                                result.wide = true;
-                                result.results.forEach(function(elem) {
-                                    elem.promo = elem.overview;
-                                    elem.promo_title = elem.title || elem.name;
-                                });
-                            }
-                            if (Lampa.Storage.get('trend_week_tv_display') == '4') {
-                                result.line_type = 'top';
-                            }
-                            if (Lampa.Storage.get('trend_week_tv_shuffle') == true) {
-                                shuffleArray(result.results);
-                            }
-                            callback(result);
-                        }, callback);
+                        try {
+                            Lampa.Api.get('trending/tv/week', pl, function(result) {
+                                result.title = Lampa.Lang.translate('В тренде за неделю (сериалы)');
+                                if (Lampa.Storage.get('trend_week_tv_display') == '2') {
+                                    result.collection = true;
+                                    result.line_type = 'collection';
+                                }
+                                if (Lampa.Storage.get('trend_week_tv_display') == '3') {
+                                    result.small = true;
+                                    result.wide = true;
+                                    result.results.forEach(function(elem) {
+                                        elem.promo = elem.overview;
+                                        elem.promo_title = elem.title || elem.name;
+                                    });
+                                }
+                                if (Lampa.Storage.get('trend_week_tv_display') == '4') {
+                                    result.line_type = 'top';
+                                }
+                                if (Lampa.Storage.get('trend_week_tv_shuffle') == true) {
+                                    shuffleArray(result.results);
+                                }
+                                callback(result);
+                            }, function(error) {
+                                callback({results: [], title: 'Ошибка загрузки трендов TV недели', error: error});
+                            });
+                        } catch (e) {
+                            callback({results: [], title: 'Ошибка: ' + e.message});
+                        }
                     },
                     'trend_week_film': function(callback) {
-                        Lampa.Api.get('trending/movie/week', pl, function(result) {
-                            result.title = Lampa.Lang.translate('В тренде за неделю (фильмы)');
-                            if (Lampa.Storage.get('trend_week_film_display') == '2') {
-                                result.collection = true;
-                                result.line_type = 'collection';
-                            }
-                            if (Lampa.Storage.get('trend_week_film_display') == '3') {
-                                result.small = true;
-                                result.wide = true;
-                                result.results.forEach(function(elem) {
-                                    elem.promo = elem.overview;
-                                    elem.promo_title = elem.title || elem.name;
-                                });
-                            }
-                            if (Lampa.Storage.get('trend_week_film_display') == '4') {
-                                result.line_type = 'top';
-                            }
-                            if (Lampa.Storage.get('trend_week_film_shuffle') == true) {
-                                shuffleArray(result.results);
-                            }
-                            callback(result);
-                        }, callback);
+                        try {
+                            Lampa.Api.get('trending/movie/week', pl, function(result) {
+                                result.title = Lampa.Lang.translate('В тренде за неделю (фильмы)');
+                                if (Lampa.Storage.get('trend_week_film_display') == '2') {
+                                    result.collection = true;
+                                    result.line_type = 'collection';
+                                }
+                                if (Lampa.Storage.get('trend_week_film_display') == '3') {
+                                    result.small = true;
+                                    result.wide = true;
+                                    result.results.forEach(function(elem) {
+                                        elem.promo = elem.overview;
+                                        elem.promo_title = elem.title || elem.name;
+                                    });
+                                }
+                                if (Lampa.Storage.get('trend_week_film_display') == '4') {
+                                    result.line_type = 'top';
+                                }
+                                if (Lampa.Storage.get('trend_week_film_shuffle') == true) {
+                                    shuffleArray(result.results);
+                                }
+                                callback(result);
+                            }, function(error) {
+                                callback({results: [], title: 'Ошибка загрузки трендов фильмов недели', error: error});
+                            });
+                        } catch (e) {
+                            callback({results: [], title: 'Ошибка: ' + e.message});
+                        }
                     },
                     'upcoming': function(callback) {
-                        Lampa.Api.get('movie/upcoming', pl, function(result) {
-                            result.title = Lampa.Lang.translate('title_upcoming');
-                            if (Lampa.Storage.get('upcoming_display') == '2') {
-                                result.collection = true;
-                                result.line_type = 'collection';
-                            }
-                            if (Lampa.Storage.get('upcoming_display') == '3') {
-                                result.small = true;
-                                result.wide = true;
-                                result.results.forEach(function(elem) {
-                                    elem.promo = elem.overview;
-                                    elem.promo_title = elem.title || elem.name;
-                                });
-                            }
-                            if (Lampa.Storage.get('upcoming_display') == '4') {
-                                result.line_type = 'top';
-                            }
-                            if (Lampa.Storage.get('upcoming_shuffle') == true) {
-                                shuffleArray(result.results);
-                            }
-                            callback(result);
-                        }, callback);
+                        try {
+                            Lampa.Api.get('movie/now_playing', pl, function(result) {
+                                result.title = Lampa.Lang.translate('Смотрите в кинотеатрах');
+                                if (Lampa.Storage.get('upcoming_display') == '2') {
+                                    result.collection = true;
+                                    result.line_type = 'collection';
+                                }
+                                if (Lampa.Storage.get('upcoming_display') == '3') {
+                                    result.small = true;
+                                    result.wide = true;
+                                    result.results.forEach(function(elem) {
+                                        elem.promo = elem.overview;
+                                        elem.promo_title = elem.title || elem.name;
+                                    });
+                                }
+                                if (Lampa.Storage.get('upcoming_display') == '4') {
+                                    result.line_type = 'top';
+                                }
+                                if (Lampa.Storage.get('upcoming_shuffle') == true) {
+                                    shuffleArray(result.results);
+                                }
+                                callback(result);
+                            }, function(error) {
+                                callback({results: [], title: 'Ошибка загрузки предстоящих', error: error});
+                            });
+                        } catch (e) {
+                            callback({results: [], title: 'Ошибка: ' + e.message});
+                        }
                     },
                     'popular_movie': function(callback) {
-                        Lampa.Api.get('movie/popular', pl, function(result) {
-                            result.title = Lampa.Lang.translate('title_popular_movie');
-                            if (Lampa.Storage.get('popular_movie_display') == '2') {
-                                result.collection = true;
-                                result.line_type = 'collection';
-                            }
-                            if (Lampa.Storage.get('popular_movie_display') == '3') {
-                                result.small = true;
-                                result.wide = true;
-                                result.results.forEach(function(elem) {
-                                    elem.promo = elem.overview;
-                                    elem.promo_title = elem.title || elem.name;
-                                });
-                            }
-                            if (Lampa.Storage.get('popular_movie_display') == '4') {
-                                result.line_type = 'top';
-                            }
-                            if (Lampa.Storage.get('popular_movie_shuffle') == true) {
-                                shuffleArray(result.results);
-                            }
-                            callback(result);
-                        }, callback);
+                        try {
+                            Lampa.Api.get('movie/popular', pl, function(result) {
+                                result.title = Lampa.Lang.translate('Популярные фильмы');
+                                if (Lampa.Storage.get('popular_movie_display') == '2') {
+                                    result.collection = true;
+                                    result.line_type = 'collection';
+                                }
+                                if (Lampa.Storage.get('popular_movie_display') == '3') {
+                                    result.small = true;
+                                    result.wide = true;
+                                    result.results.forEach(function(elem) {
+                                        elem.promo = elem.overview;
+                                        elem.promo_title = elem.title || elem.name;
+                                    });
+                                }
+                                if (Lampa.Storage.get('popular_movie_display') == '4') {
+                                    result.line_type = 'top';
+                                }
+                                if (Lampa.Storage.get('popular_movie_shuffle') == true) {
+                                    shuffleArray(result.results);
+                                }
+                                callback(result);
+                            }, function(error) {
+                                callback({results: [], title: 'Ошибка загрузки популярных фильмов', error: error});
+                            });
+                        } catch (e) {
+                            callback({results: [], title: 'Ошибка: ' + e.message});
+                        }
                     },
                     'popular_tv': function(callback) {
-                        Lampa.Api.get('tv/popular', pl, function(result) {
-                            result.title = Lampa.Lang.translate('title_popular_tv');
-                            if (Lampa.Storage.get('popular_tv_display') == '2') {
-                                result.collection = true;
-                                result.line_type = 'collection';
-                            }
-                            if (Lampa.Storage.get('popular_tv_display') == '3') {
-                                result.small = true;
-                                result.wide = true;
-                                result.results.forEach(function(elem) {
-                                    elem.promo = elem.overview;
-                                    elem.promo_title = elem.title || elem.name;
-                                });
-                            }
-                            if (Lampa.Storage.get('popular_tv_display') == '4') {
-                                result.line_type = 'top';
-                            }
-                            if (Lampa.Storage.get('popular_tv_shuffle') == true) {
-                                shuffleArray(result.results);
-                            }
-                            callback(result);
-                        }, callback);
+                        try {
+                            Lampa.Api.get('tv/popular', pl, function(result) {
+                                result.title = Lampa.Lang.translate('Популярные сериалы');
+                                if (Lampa.Storage.get('popular_tv_display') == '2') {
+                                    result.collection = true;
+                                    result.line_type = 'collection';
+                                }
+                                if (Lampa.Storage.get('popular_tv_display') == '3') {
+                                    result.small = true;
+                                    result.wide = true;
+                                    result.results.forEach(function(elem) {
+                                        elem.promo = elem.overview;
+                                        elem.promo_title = elem.title || elem.name;
+                                    });
+                                }
+                                if (Lampa.Storage.get('popular_tv_display') == '4') {
+                                    result.line_type = 'top';
+                                }
+                                if (Lampa.Storage.get('popular_tv_shuffle') == true) {
+                                    shuffleArray(result.results);
+                                }
+                                callback(result);
+                            }, function(error) {
+                                callback({results: [], title: 'Ошибка загрузки популярных сериалов', error: error});
+                            });
+                        } catch (e) {
+                            callback({results: [], title: 'Ошибка: ' + e.message});
+                        }
                     },
                     'top_movie': function(callback) {
-                        Lampa.Api.get('movie/top_rated', pl, function(result) {
-                            result.title = Lampa.Lang.translate('title_top_movie');
-                            if (Lampa.Storage.get('top_movie_display') == '2') {
-                                result.collection = true;
-                                result.line_type = 'collection';
-                            }
-                            if (Lampa.Storage.get('top_movie_display') == '3') {
-                                result.small = true;
-                                result.wide = true;
-                                result.results.forEach(function(elem) {
-                                    elem.promo = elem.overview;
-                                    elem.promo_title = elem.title || elem.name;
-                                });
-                            }
-                            if (Lampa.Storage.get('top_movie_display') == '4') {
-                                result.line_type = 'top';
-                            }
-                            if (Lampa.Storage.get('top_movie_shuffle') == true) {
-                                shuffleArray(result.results);
-                            }
-                            callback(result);
-                        }, callback);
+                        try {
+                            Lampa.Api.get('movie/top_rated', pl, function(result) {
+                                result.title = Lampa.Lang.translate('Топ фильмы');
+                                if (Lampa.Storage.get('top_movie_display') == '2') {
+                                    result.collection = true;
+                                    result.line_type = 'collection';
+                                }
+                                if (Lampa.Storage.get('top_movie_display') == '3') {
+                                    result.small = true;
+                                    result.wide = true;
+                                    result.results.forEach(function(elem) {
+                                        elem.promo = elem.overview;
+                                        elem.promo_title = elem.title || elem.name;
+                                    });
+                                }
+                                if (Lampa.Storage.get('top_movie_display') == '4') {
+                                    result.line_type = 'top';
+                                }
+                                if (Lampa.Storage.get('top_movie_shuffle') == true) {
+                                    shuffleArray(result.results);
+                                }
+                                callback(result);
+                            }, function(error) {
+                                callback({results: [], title: 'Ошибка загрузки топ фильмов', error: error});
+                            });
+                        } catch (e) {
+                            callback({results: [], title: 'Ошибка: ' + e.message});
+                        }
                     },
                     'top_tv': function(callback) {
-                        Lampa.Api.get('tv/top_rated', pl, function(result) {
-                            result.title = Lampa.Lang.translate('title_top_tv');
-                            if (Lampa.Storage.get('top_tv_display') == '2') {
-                                result.collection = true;
-                                result.line_type = 'collection';
-                            }
-                            if (Lampa.Storage.get('top_tv_display') == '3') {
-                                result.small = true;
-                                result.wide = true;
-                                result.results.forEach(function(elem) {
-                                    elem.promo = elem.overview;
-                                    elem.promo_title = elem.title || elem.name;
-                                });
-                            }
-                            if (Lampa.Storage.get('top_tv_display') == '4') {
-                                result.line_type = 'top';
-                            }
-                            if (Lampa.Storage.get('top_tv_shuffle') == true) {
-                                shuffleArray(result.results);
-                            }
-                            callback(result);
-                        }, callback);
+                        try {
+                            Lampa.Api.get('tv/top_rated', pl, function(result) {
+                                result.title = Lampa.Lang.translate('Топ сериалы');
+                                if (Lampa.Storage.get('top_tv_display') == '2') {
+                                    result.collection = true;
+                                    result.line_type = 'collection';
+                                }
+                                if (Lampa.Storage.get('top_tv_display') == '3') {
+                                    result.small = true;
+                                    result.wide = true;
+                                    result.results.forEach(function(elem) {
+                                        elem.promo = elem.overview;
+                                        elem.promo_title = elem.title || elem.name;
+                                    });
+                                }
+                                if (Lampa.Storage.get('top_tv_display') == '4') {
+                                    result.line_type = 'top';
+                                }
+                                if (Lampa.Storage.get('top_tv_shuffle') == true) {
+                                    shuffleArray(result.results);
+                                }
+                                callback(result);
+                            }, function(error) {
+                                callback({results: [], title: 'Ошибка загрузки топ сериалов', error: error});
+                            });
+                        } catch (e) {
+                            callback({results: [], title: 'Ошибка: ' + e.message});
+                        }
                     },
                     'netflix': function(callback) {
-                        Lampa.Api.get('discover/movie?with_networks=8&sort_by=' + randomMovieSort + '&primary_release_date.gte=' + startYear + '&primary_release_date.lte=' + endYear, pl, function(result) {
-                            result.title = Lampa.Lang.translate('Netflix');
-                            if (Lampa.Storage.get('netflix_display') == '2') {
-                                result.collection = true;
-                                result.line_type = 'collection';
-                            }
-                            if (Lampa.Storage.get('netflix_display') == '3') {
-                                result.small = true;
-                                result.wide = true;
-                                result.results.forEach(function(elem) {
-                                    elem.promo = elem.overview;
-                                    elem.promo_title = elem.title || elem.name;
-                                });
-                            }
-                            if (Lampa.Storage.get('netflix_display') == '4') {
-                                result.line_type = 'top';
-                            }
-                            if (Lampa.Storage.get('netflix_shuffle') == true) {
-                                shuffleArray(result.results);
-                            }
-                            callback(result);
-                        }, callback);
+                        try {
+                            Lampa.Api.get('discover/movie?with_networks=8&sort_by=' + randomMovieSort + '&primary_release_date.gte=' + startYear + '&primary_release_date.lte=' + endYear, pl, function(result) {
+                                result.title = Lampa.Lang.translate('Netflix');
+                                if (Lampa.Storage.get('netflix_display') == '2') {
+                                    result.collection = true;
+                                    result.line_type = 'collection';
+                                }
+                                if (Lampa.Storage.get('netflix_display') == '3') {
+                                    result.small = true;
+                                    result.wide = true;
+                                    result.results.forEach(function(elem) {
+                                        elem.promo = elem.overview;
+                                        elem.promo_title = elem.title || elem.name;
+                                    });
+                                }
+                                if (Lampa.Storage.get('netflix_display') == '4') {
+                                    result.line_type = 'top';
+                                }
+                                if (Lampa.Storage.get('netflix_shuffle') == true) {
+                                    shuffleArray(result.results);
+                                }
+                                callback(result);
+                            }, function(error) {
+                                callback({results: [], title: 'Ошибка загрузки Netflix', error: error});
+                            });
+                        } catch (e) {
+                            callback({results: [], title: 'Ошибка: ' + e.message});
+                        }
                     },
                     'apple_tv': function(callback) {
-                        Lampa.Api.get('discover/movie?with_networks=355&sort_by=' + randomMovieSort + '&primary_release_date.gte=' + startYear + '&primary_release_date.lte=' + endYear, pl, function(result) {
-                            result.title = Lampa.Lang.translate('Apple TV+');
-                            if (Lampa.Storage.get('apple_tv_display') == '2') {
-                                result.collection = true;
-                                result.line_type = 'collection';
-                            }
-                            if (Lampa.Storage.get('apple_tv_display') == '3') {
-                                result.small = true;
-                                result.wide = true;
-                                result.results.forEach(function(elem) {
-                                    elem.promo = elem.overview;
-                                    elem.promo_title = elem.title || elem.name;
-                                });
-                            }
-                            if (Lampa.Storage.get('apple_tv_display') == '4') {
-                                result.line_type = 'top';
-                            }
-                            if (Lampa.Storage.get('apple_tv_shuffle') == true) {
-                                shuffleArray(result.results);
-                            }
-                            callback(result);
-                        }, callback);
+                        try {
+                            Lampa.Api.get('discover/movie?with_networks=355&sort_by=' + randomMovieSort + '&primary_release_date.gte=' + startYear + '&primary_release_date.lte=' + endYear, pl, function(result) {
+                                result.title = Lampa.Lang.translate('Apple TV+');
+                                if (Lampa.Storage.get('apple_tv_display') == '2') {
+                                    result.collection = true;
+                                    result.line_type = 'collection';
+                                }
+                                if (Lampa.Storage.get('apple_tv_display') == '3') {
+                                    result.small = true;
+                                    result.wide = true;
+                                    result.results.forEach(function(elem) {
+                                        elem.promo = elem.overview;
+                                        elem.promo_title = elem.title || elem.name;
+                                    });
+                                }
+                                if (Lampa.Storage.get('apple_tv_display') == '4') {
+                                    result.line_type = 'top';
+                                }
+                                if (Lampa.Storage.get('apple_tv_shuffle') == true) {
+                                    shuffleArray(result.results);
+                                }
+                                callback(result);
+                            }, function(error) {
+                                callback({results: [], title: 'Ошибка загрузки Apple TV', error: error});
+                            });
+                        } catch (e) {
+                            callback({results: [], title: 'Ошибка: ' + e.message});
+                        }
                     },
                     'prime_video': function(callback) {
-                        Lampa.Api.get('discover/movie?with_networks=9&sort_by=' + randomMovieSort + '&primary_release_date.gte=' + startYear + '&primary_release_date.lte=' + endYear, pl, function(result) {
-                            result.title = Lampa.Lang.translate('Prime Video');
-                            if (Lampa.Storage.get('prime_video_display') == '2') {
-                                result.collection = true;
-                                result.line_type = 'collection';
-                            }
-                            if (Lampa.Storage.get('prime_video_display') == '3') {
-                                result.small = true;
-                                result.wide = true;
-                                result.results.forEach(function(elem) {
-                                    elem.promo = elem.overview;
-                                    elem.promo_title = elem.title || elem.name;
-                                });
-                            }
-                            if (Lampa.Storage.get('prime_video_display') == '4') {
-                                result.line_type = 'top';
-                            }
-                            if (Lampa.Storage.get('prime_video_shuffle') == true) {
-                                shuffleArray(result.results);
-                            }
-                            callback(result);
-                        }, callback);
+                        try {
+                            Lampa.Api.get('discover/movie?with_networks=9&sort_by=' + randomMovieSort + '&primary_release_date.gte=' + startYear + '&primary_release_date.lte=' + endYear, pl, function(result) {
+                                result.title = Lampa.Lang.translate('Prime Video');
+                                if (Lampa.Storage.get('prime_video_display') == '2') {
+                                    result.collection = true;
+                                    result.line_type = 'collection';
+                                }
+                                if (Lampa.Storage.get('prime_video_display') == '3') {
+                                    result.small = true;
+                                    result.wide = true;
+                                    result.results.forEach(function(elem) {
+                                        elem.promo = elem.overview;
+                                        elem.promo_title = elem.title || elem.name;
+                                    });
+                                }
+                                if (Lampa.Storage.get('prime_video_display') == '4') {
+                                    result.line_type = 'top';
+                                }
+                                if (Lampa.Storage.get('prime_video_shuffle') == true) {
+                                    shuffleArray(result.results);
+                                }
+                                callback(result);
+                            }, function(error) {
+                                callback({results: [], title: 'Ошибка загрузки Prime Video', error: error});
+                            });
+                        } catch (e) {
+                            callback({results: [], title: 'Ошибка: ' + e.message});
+                        }
                     },
                     'mgm': function(callback) {
-                        Lampa.Api.get('discover/movie?with_networks=2496&sort_by=' + randomMovieSort + '&primary_release_date.gte=' + startYear + '&primary_release_date.lte=' + endYear, pl, function(result) {
-                            result.title = Lampa.Lang.translate('MGM+');
-                            if (Lampa.Storage.get('mgm_display') == '2') {
-                                result.collection = true;
-                                result.line_type = 'collection';
-                            }
-                            if (Lampa.Storage.get('mgm_display') == '3') {
-                                result.small = true;
-                                result.wide = true;
-                                result.results.forEach(function(elem) {
-                                    elem.promo = elem.overview;
-                                    elem.promo_title = elem.title || elem.name;
-                                });
-                            }
-                            if (Lampa.Storage.get('mgm_display') == '4') {
-                                result.line_type = 'top';
-                            }
-                            if (Lampa.Storage.get('mgm_shuffle') == true) {
-                                shuffleArray(result.results);
-                            }
-                            callback(result);
-                        }, callback);
+                        try {
+                            Lampa.Api.get('discover/movie?with_networks=2496&sort_by=' + randomMovieSort + '&primary_release_date.gte=' + startYear + '&primary_release_date.lte=' + endYear, pl, function(result) {
+                                result.title = Lampa.Lang.translate('MGM+');
+                                if (Lampa.Storage.get('mgm_display') == '2') {
+                                    result.collection = true;
+                                    result.line_type = 'collection';
+                                }
+                                if (Lampa.Storage.get('mgm_display') == '3') {
+                                    result.small = true;
+                                    result.wide = true;
+                                    result.results.forEach(function(elem) {
+                                        elem.promo = elem.overview;
+                                        elem.promo_title = elem.title || elem.name;
+                                    });
+                                }
+                                if (Lampa.Storage.get('mgm_display') == '4') {
+                                    result.line_type = 'top';
+                                }
+                                if (Lampa.Storage.get('mgm_shuffle') == true) {
+                                    shuffleArray(result.results);
+                                }
+                                callback(result);
+                            }, function(error) {
+                                callback({results: [], title: 'Ошибка загрузки MGM', error: error});
+                            });
+                        } catch (e) {
+                            callback({results: [], title: 'Ошибка: ' + e.message});
+                        }
                     },
                     'hbo': function(callback) {
-                        Lampa.Api.get('discover/tv?with_networks=49&first_air_date.gte=2020-01-01&vote_average.gte=6&vote_average.lte=10&first_air_date.lte=' + currentDate, pl, function(result) {
-                            result.title = Lampa.Lang.translate('HBO');
-                            if (Lampa.Storage.get('hbo_display') == '2') {
-                                result.collection = true;
-                                result.line_type = 'collection';
-                            }
-                            if (Lampa.Storage.get('hbo_display') == '3') {
-                                result.small = true;
-                                result.wide = true;
-                                result.results.forEach(function(elem) {
-                                    elem.promo = elem.overview;
-                                    elem.promo_title = elem.title || elem.name;
-                                });
-                            }
-                            if (Lampa.Storage.get('hbo_display') == '4') {
-                                result.line_type = 'top';
-                            }
-                            if (Lampa.Storage.get('hbo_shuffle') == true) {
-                                shuffleArray(result.results);
-                            }
-                            callback(result);
-                        }, callback);
+                        try {
+                            Lampa.Api.get('discover/tv?with_networks=49&first_air_date.gte=2020-01-01&vote_average.gte=6&vote_average.lte=10&first_air_date.lte=' + currentDate, pl, function(result) {
+                                result.title = Lampa.Lang.translate('HBO');
+                                if (Lampa.Storage.get('hbo_display') == '2') {
+                                    result.collection = true;
+                                    result.line_type = 'collection';
+                                }
+                                if (Lampa.Storage.get('hbo_display') == '3') {
+                                    result.small = true;
+                                    result.wide = true;
+                                    result.results.forEach(function(elem) {
+                                        elem.promo = elem.overview;
+                                        elem.promo_title = elem.title || elem.name;
+                                    });
+                                }
+                                if (Lampa.Storage.get('hbo_display') == '4') {
+                                    result.line_type = 'top';
+                                }
+                                if (Lampa.Storage.get('hbo_shuffle') == true) {
+                                    shuffleArray(result.results);
+                                }
+                                callback(result);
+                            }, function(error) {
+                                callback({results: [], title: 'Ошибка загрузки HBO', error: error});
+                            });
+                        } catch (e) {
+                            callback({results: [], title: 'Ошибка: ' + e.message});
+                        }
                     },
                     'dorams': function(callback) {
-                        Lampa.Api.get('discover/tv?first_air_date.gte=2020-01-01&without_genres=16&with_original_language=ko&vote_average.gte=6&vote_average.lte=10&first_air_date.lte=' + currentDate, pl, function(result) {
-                            result.title = Lampa.Lang.translate('Дорамы');
-                            if (Lampa.Storage.get('dorams_display') == '2') {
-                                result.collection = true;
-                                result.line_type = 'collection';
-                            }
-                            if (Lampa.Storage.get('dorams_display') == '3') {
-                                result.small = true;
-                                result.wide = true;
-                                result.results.forEach(function(elem) {
-                                    elem.promo = elem.overview;
-                                    elem.promo_title = elem.title || elem.name;
-                                });
-                            }
-                            if (Lampa.Storage.get('dorams_display') == '4') {
-                                result.line_type = 'top';
-                            }
-                            if (Lampa.Storage.get('dorams_shuffle') == true) {
-                                shuffleArray(result.results);
-                            }
-                            callback(result);
-                        }, callback);
+                        try {
+                            Lampa.Api.get('discover/tv?first_air_date.gte=2020-01-01&without_genres=16&with_original_language=ko&vote_average.gte=6&vote_average.lte=10&first_air_date.lte=' + currentDate, pl, function(result) {
+                                result.title = Lampa.Lang.translate('Дорамы');
+                                if (Lampa.Storage.get('dorams_display') == '2') {
+                                    result.collection = true;
+                                    result.line_type = 'collection';
+                                }
+                                if (Lampa.Storage.get('dorams_display') == '3') {
+                                    result.small = true;
+                                    result.wide = true;
+                                    result.results.forEach(function(elem) {
+                                        elem.promo = elem.overview;
+                                        elem.promo_title = elem.title || elem.name;
+                                    });
+                                }
+                                if (Lampa.Storage.get('dorams_display') == '4') {
+                                    result.line_type = 'top';
+                                }
+                                if (Lampa.Storage.get('dorams_shuffle') == true) {
+                                    shuffleArray(result.results);
+                                }
+                                callback(result);
+                            }, function(error) {
+                                callback({results: [], title: 'Ошибка загрузки дорам', error: error});
+                            });
+                        } catch (e) {
+                            callback({results: [], title: 'Ошибка: ' + e.message});
+                        }
                     },
                     'tur_serials': function(callback) {
-                        Lampa.Api.get('discover/tv?first_air_date.gte=2020-01-01&without_genres=16&with_original_language=tr&vote_average.gte=6&vote_average.lte=10&first_air_date.lte=' + currentDate, pl, function(result) {
-                            result.title = Lampa.Lang.translate('Турецкие сериалы');
-                            if (Lampa.Storage.get('tur_serials_display') == '2') {
-                                result.collection = true;
-                                result.line_type = 'collection';
-                            }
-                            if (Lampa.Storage.get('tur_serials_display') == '3') {
-                                result.small = true;
-                                result.wide = true;
-                                result.results.forEach(function(elem) {
-                                    elem.promo = elem.overview;
-                                    elem.promo_title = elem.title || elem.name;
-                                });
-                            }
-                            if (Lampa.Storage.get('tur_serials_display') == '4') {
-                                result.line_type = 'top';
-                            }
-                            if (Lampa.Storage.get('tur_serials_shuffle') == true) {
-                                shuffleArray(result.results);
-                            }
-                            callback(result);
-                        }, callback);
+                        try {
+                            Lampa.Api.get('discover/tv?first_air_date.gte=2020-01-01&without_genres=16&with_original_language=tr&vote_average.gte=6&vote_average.lte=10&first_air_date.lte=' + currentDate, pl, function(result) {
+                                result.title = Lampa.Lang.translate('Турецкие сериалы');
+                                if (Lampa.Storage.get('tur_serials_display') == '2') {
+                                    result.collection = true;
+                                    result.line_type = 'collection';
+                                }
+                                if (Lampa.Storage.get('tur_serials_display') == '3') {
+                                    result.small = true;
+                                    result.wide = true;
+                                    result.results.forEach(function(elem) {
+                                        elem.promo = elem.overview;
+                                        elem.promo_title = elem.title || elem.name;
+                                    });
+                                }
+                                if (Lampa.Storage.get('tur_serials_display') == '4') {
+                                    result.line_type = 'top';
+                                }
+                                if (Lampa.Storage.get('tur_serials_shuffle') == true) {
+                                    shuffleArray(result.results);
+                                }
+                                callback(result);
+                            }, function(error) {
+                                callback({results: [], title: 'Ошибка загрузки турецких сериалов', error: error});
+                            });
+                        } catch (e) {
+                            callback({results: [], title: 'Ошибка: ' + e.message});
+                        }
                     },
                     'ind_films': function(callback) {
-                        Lampa.Api.get('discover/movie?primary_release_date.gte=2020-01-01&without_genres=16&with_original_language=hi&vote_average.gte=6&vote_average.lte=10&primary_release_date.lte=' + currentDate, pl, function(result) {
-                            result.title = Lampa.Lang.translate('Индийские фильмы');
-                            if (Lampa.Storage.get('ind_films_display') == '2') {
-                                result.collection = true;
-                                result.line_type = 'collection';
-                            }
-                            if (Lampa.Storage.get('ind_films_display') == '3') {
-                                result.small = true;
-                                result.wide = true;
-                                result.results.forEach(function(elem) {
-                                    elem.promo = elem.overview;
-                                    elem.promo_title = elem.title || elem.name;
-                                });
-                            }
-                            if (Lampa.Storage.get('ind_films_display') == '4') {
-                                result.line_type = 'top';
-                            }
-                            if (Lampa.Storage.get('ind_films_shuffle') == true) {
-                                shuffleArray(result.results);
-                            }
-                            callback(result);
-                        }, callback);
+                        try {
+                            Lampa.Api.get('discover/movie?primary_release_date.gte=2020-01-01&without_genres=16&with_original_language=hi&vote_average.gte=6&vote_average.lte=10&primary_release_date.lte=' + currentDate, pl, function(result) {
+                                result.title = Lampa.Lang.translate('Индийские фильмы');
+                                if (Lampa.Storage.get('ind_films_display') == '2') {
+                                    result.collection = true;
+                                    result.line_type = 'collection';
+                                }
+                                if (Lampa.Storage.get('ind_films_display') == '3') {
+                                    result.small = true;
+                                    result.wide = true;
+                                    result.results.forEach(function(elem) {
+                                        elem.promo = elem.overview;
+                                        elem.promo_title = elem.title || elem.name;
+                                    });
+                                }
+                                if (Lampa.Storage.get('ind_films_display') == '4') {
+                                    result.line_type = 'top';
+                                }
+                                if (Lampa.Storage.get('ind_films_shuffle') == true) {
+                                    shuffleArray(result.results);
+                                }
+                                callback(result);
+                            }, function(error) {
+                                callback({results: [], title: 'Ошибка загрузки индийских фильмов', error: error});
+                            });
+                        } catch (e) {
+                            callback({results: [], title: 'Ошибка: ' + e.message});
+                        }
                     },
                     'rus_movie': function(callback) {
-                        Lampa.Api.get('discover/movie?vote_average.gte=5&vote_average.lte=9.5&with_original_language=ru&sort_by=' + randomMovieSort + '&primary_release_date.lte=' + currentDate, pl, function(result) {
-                            result.title = Lampa.Lang.translate('Русские фильмы');
-                            if (Lampa.Storage.get('rus_movie_display') == '2') {
-                                result.collection = true;
-                                result.line_type = 'collection';
-                            }
-                            if (Lampa.Storage.get('rus_movie_display') == '3') {
-                                result.small = true;
-                                result.wide = true;
-                                result.results.forEach(function(elem) {
-                                    elem.promo = elem.overview;
-                                    elem.promo_title = elem.title || elem.name;
-                                });
-                            }
-                            if (Lampa.Storage.get('rus_movie_display') == '4') {
-                                result.line_type = 'top';
-                            }
-                            if (Lampa.Storage.get('rus_movie_shuffle') == true) {
-                                shuffleArray(result.results);
-                            }
-                            callback(result);
-                        }, callback);
+                        try {
+                            Lampa.Api.get('discover/movie?vote_average.gte=5&vote_average.lte=9.5&with_original_language=ru&sort_by=' + randomMovieSort + '&primary_release_date.lte=' + currentDate, pl, function(result) {
+                                result.title = Lampa.Lang.translate('Русские фильмы');
+                                if (Lampa.Storage.get('rus_movie_display') == '2') {
+                                    result.collection = true;
+                                    result.line_type = 'collection';
+                                }
+                                if (Lampa.Storage.get('rus_movie_display') == '3') {
+                                    result.small = true;
+                                    result.wide = true;
+                                    result.results.forEach(function(elem) {
+                                        elem.promo = elem.overview;
+                                        elem.promo_title = elem.title || elem.name;
+                                    });
+                                }
+                                if (Lampa.Storage.get('rus_movie_display') == '4') {
+                                    result.line_type = 'top';
+                                }
+                                if (Lampa.Storage.get('rus_movie_shuffle') == true) {
+                                    shuffleArray(result.results);
+                                }
+                                callback(result);
+                            }, function(error) {
+                                callback({results: [], title: 'Ошибка загрузки русских фильмов', error: error});
+                            });
+                        } catch (e) {
+                            callback({results: [], title: 'Ошибка: ' + e.message});
+                        }
                     },
                     'rus_tv': function(callback) {
-                        Lampa.Api.get('discover/tv?with_original_language=ru&sort_by=first_air_date.desc&air_date.lte=' + currentDate, pl, function(result) {
-                            result.title = Lampa.Lang.translate('Русские сериалы');
-                            if (Lampa.Storage.get('rus_tv_display') == '2') {
-                                result.collection = true;
-                                result.line_type = 'collection';
-                            }
-                            if (Lampa.Storage.get('rus_tv_display') == '3') {
-                                result.small = true;
-                                result.wide = true;
-                                result.results.forEach(function(elem) {
-                                    elem.promo = elem.overview;
-                                    elem.promo_title = elem.title || elem.name;
-                                });
-                            }
-                            if (Lampa.Storage.get('rus_tv_display') == '4') {
-                                result.line_type = 'top';
-                            }
-                            if (Lampa.Storage.get('rus_tv_shuffle') == true) {
-                                shuffleArray(result.results);
-                            }
-                            callback(result);
-                        }, callback);
+                        try {
+                            Lampa.Api.get('discover/tv?with_original_language=ru&sort_by=first_air_date.desc&air_date.lte=' + currentDate, pl, function(result) {
+                                result.title = Lampa.Lang.translate('Русские сериалы');
+                                if (Lampa.Storage.get('rus_tv_display') == '2') {
+                                    result.collection = true;
+                                    result.line_type = 'collection';
+                                }
+                                if (Lampa.Storage.get('rus_tv_display') == '3') {
+                                    result.small = true;
+                                    result.wide = true;
+                                    result.results.forEach(function(elem) {
+                                        elem.promo = elem.overview;
+                                        elem.promo_title = elem.title || elem.name;
+                                    });
+                                }
+                                if (Lampa.Storage.get('rus_tv_display') == '4') {
+                                    result.line_type = 'top';
+                                }
+                                if (Lampa.Storage.get('rus_tv_shuffle') == true) {
+                                    shuffleArray(result.results);
+                                }
+                                callback(result);
+                            }, function(error) {
+                                callback({results: [], title: 'Ошибка загрузки русских сериалов', error: error});
+                            });
+                        } catch (e) {
+                            callback({results: [], title: 'Ошибка: ' + e.message});
+                        }
                     },
                     'rus_mult': function(callback) {
-                        Lampa.Api.get('discover/movie?vote_average.gte=5&vote_average.lte=9.5&with_genres=16&with_original_language=ru&sort_by=primary_release_date.desc&primary_release_date.lte=' + currentDate, pl, function(result) {
-                            result.title = Lampa.Lang.translate('Русские мультфильмы');
-                            if (Lampa.Storage.get('rus_mult_display') == '2') {
-                                result.collection = true;
-                                result.line_type = 'collection';
-                            }
-                            if (Lampa.Storage.get('rus_mult_display') == '3') {
-                                result.small = true;
-                                result.wide = true;
-                                result.results.forEach(function(elem) {
-                                    elem.promo = elem.overview;
-                                    elem.promo_title = elem.title || elem.name;
-                                });
-                            }
-                            if (Lampa.Storage.get('rus_mult_display') == '4') {
-                                result.line_type = 'top';
-                            }
-                            if (Lampa.Storage.get('rus_mult_shuffle') == true) {
-                                shuffleArray(result.results);
-                            }
-                            callback(result);
-                        }, callback);
+                        try {
+                            Lampa.Api.get('discover/movie?vote_average.gte=5&vote_average.lte=9.5&with_genres=16&with_original_language=ru&sort_by=primary_release_date.desc&primary_release_date.lte=' + currentDate, pl, function(result) {
+                                result.title = Lampa.Lang.translate('Русские мультфильмы');
+                                if (Lampa.Storage.get('rus_mult_display') == '2') {
+                                    result.collection = true;
+                                    result.line_type = 'collection';
+                                }
+                                if (Lampa.Storage.get('rus_mult_display') == '3') {
+                                    result.small = true;
+                                    result.wide = true;
+                                    result.results.forEach(function(elem) {
+                                        elem.promo = elem.overview;
+                                        elem.promo_title = elem.title || elem.name;
+                                    });
+                                }
+                                if (Lampa.Storage.get('rus_mult_display') == '4') {
+                                    result.line_type = 'top';
+                                }
+                                if (Lampa.Storage.get('rus_mult_shuffle') == true) {
+                                    shuffleArray(result.results);
+                                }
+                                callback(result);
+                            }, function(error) {
+                                callback({results: [], title: 'Ошибка загрузки русских мультфильмов', error: error});
+                            });
+                        } catch (e) {
+                            callback({results: [], title: 'Ошибка: ' + e.message});
+                        }
                     },
                     'start': function(callback) {
-                        Lampa.Api.get('discover/tv?with_networks=2493&sort_by=first_air_date.desc&air_date.lte=' + currentDate, pl, function(result) {
-                            result.title = Lampa.Lang.translate('Start');
-                            if (Lampa.Storage.get('start_display') == '2') {
-                                result.collection = true;
-                                result.line_type = 'collection';
-                            }
-                            if (Lampa.Storage.get('start_display') == '3') {
-                                result.small = true;
-                                result.wide = true;
-                                result.results.forEach(function(elem) {
-                                    elem.promo = elem.overview;
-                                    elem.promo_title = elem.title || elem.name;
-                                });
-                            }
-                            if (Lampa.Storage.get('start_display') == '4') {
-                                result.line_type = 'top';
-                            }
-                            if (Lampa.Storage.get('start_shuffle') == true) {
-                                shuffleArray(result.results);
-                            }
-                            callback(result);
-                        }, callback);
+                        try {
+                            Lampa.Api.get('discover/tv?with_networks=2493&sort_by=first_air_date.desc&air_date.lte=' + currentDate, pl, function(result) {
+                                result.title = Lampa.Lang.translate('Start');
+                                if (Lampa.Storage.get('start_display') == '2') {
+                                    result.collection = true;
+                                    result.line_type = 'collection';
+                                }
+                                if (Lampa.Storage.get('start_display') == '3') {
+                                    result.small = true;
+                                    result.wide = true;
+                                    result.results.forEach(function(elem) {
+                                        elem.promo = elem.overview;
+                                        elem.promo_title = elem.title || elem.name;
+                                    });
+                                }
+                                if (Lampa.Storage.get('start_display') == '4') {
+                                    result.line_type = 'top';
+                                }
+                                if (Lampa.Storage.get('start_shuffle') == true) {
+                                    shuffleArray(result.results);
+                                }
+                                callback(result);
+                            }, function(error) {
+                                callback({results: [], title: 'Ошибка загрузки Start', error: error});
+                            });
+                        } catch (e) {
+                            callback({results: [], title: 'Ошибка: ' + e.message});
+                        }
                     },
                     'premier': function(callback) {
-                        Lampa.Api.get('discover/tv?with_networks=2859&sort_by=first_air_date.desc&air_date.lte=' + currentDate, pl, function(result) {
-                            result.title = Lampa.Lang.translate('Premier');
-                            if (Lampa.Storage.get('premier_display') == '2') {
-                                result.collection = true;
-                                result.line_type = 'collection';
-                            }
-                            if (Lampa.Storage.get('premier_display') == '3') {
-                                result.small = true;
-                                result.wide = true;
-                                result.results.forEach(function(elem) {
-                                    elem.promo = elem.overview;
-                                    elem.promo_title = elem.title || elem.name;
-                                });
-                            }
-                            if (Lampa.Storage.get('premier_display') == '4') {
-                                result.line_type = 'top';
-                            }
-                            if (Lampa.Storage.get('premier_shuffle') == true) {
-                                shuffleArray(result.results);
-                            }
-                            callback(result);
-                        }, callback);
+                        try {
+                            Lampa.Api.get('discover/tv?with_networks=2859&sort_by=first_air_date.desc&air_date.lte=' + currentDate, pl, function(result) {
+                                result.title = Lampa.Lang.translate('Premier');
+                                if (Lampa.Storage.get('premier_display') == '2') {
+                                    result.collection = true;
+                                    result.line_type = 'collection';
+                                }
+                                if (Lampa.Storage.get('premier_display') == '3') {
+                                    result.small = true;
+                                    result.wide = true;
+                                    result.results.forEach(function(elem) {
+                                        elem.promo = elem.overview;
+                                        elem.promo_title = elem.title || elem.name;
+                                    });
+                                }
+                                if (Lampa.Storage.get('premier_display') == '4') {
+                                    result.line_type = 'top';
+                                }
+                                if (Lampa.Storage.get('premier_shuffle') == true) {
+                                    shuffleArray(result.results);
+                                }
+                                callback(result);
+                            }, function(error) {
+                                callback({results: [], title: 'Ошибка загрузки Premier', error: error});
+                            });
+                        } catch (e) {
+                            callback({results: [], title: 'Ошибка: ' + e.message});
+                        }
                     },
                     'kion': function(callback) {
-                        Lampa.Api.get('discover/tv?with_networks=3871&sort_by=first_air_date.desc&air_date.lte=' + currentDate, pl, function(result) {
-                            result.title = Lampa.Lang.translate('KION');
-                            if (Lampa.Storage.get('kion_display') == '2') {
-                                result.collection = true;
-                                result.line_type = 'collection';
-                            }
-                            if (Lampa.Storage.get('kion_display') == '3') {
-                                result.small = true;
-                                result.wide = true;
-                                result.results.forEach(function(elem) {
-                                    elem.promo = elem.overview;
-                                    elem.promo_title = elem.title || elem.name;
-                                });
-                            }
-                            if (Lampa.Storage.get('kion_display') == '4') {
-                                result.line_type = 'top';
-                            }
-                            if (Lampa.Storage.get('kion_shuffle') == true) {
-                                shuffleArray(result.results);
-                            }
-                            callback(result);
-                        }, callback);
+                        try {
+                            Lampa.Api.get('discover/tv?with_networks=3871&sort_by=first_air_date.desc&air_date.lte=' + currentDate, pl, function(result) {
+                                result.title = Lampa.Lang.translate('KION');
+                                if (Lampa.Storage.get('kion_display') == '2') {
+                                    result.collection = true;
+                                    result.line_type = 'collection';
+                                }
+                                if (Lampa.Storage.get('kion_display') == '3') {
+                                    result.small = true;
+                                    result.wide = true;
+                                    result.results.forEach(function(elem) {
+                                        elem.promo = elem.overview;
+                                        elem.promo_title = elem.title || elem.name;
+                                    });
+                                }
+                                if (Lampa.Storage.get('kion_display') == '4') {
+                                    result.line_type = 'top';
+                                }
+                                if (Lampa.Storage.get('kion_shuffle') == true) {
+                                    shuffleArray(result.results);
+                                }
+                                callback(result);
+                            }, function(error) {
+                                callback({results: [], title: 'Ошибка загрузки KION', error: error});
+                            });
+                        } catch (e) {
+                            callback({results: [], title: 'Ошибка: ' + e.message});
+                        }
                     },
                     'ivi': function(callback) {
-                        Lampa.Api.get('discover/tv?with_networks=3923&sort_by=first_air_date.desc&air_date.lte=' + currentDate, pl, function(result) {
-                            result.title = Lampa.Lang.translate('ИВИ');
-                            if (Lampa.Storage.get('ivi_display') == '2') {
-                                result.collection = true;
-                                result.line_type = 'collection';
-                            }
-                            if (Lampa.Storage.get('ivi_display') == '3') {
-                                result.small = true;
-                                result.wide = true;
-                                result.results.forEach(function(elem) {
-                                    elem.promo = elem.overview;
-                                    elem.promo_title = elem.title || elem.name;
-                                });
-                            }
-                            if (Lampa.Storage.get('ivi_display') == '4') {
-                                result.line_type = 'top';
-                            }
-                            if (Lampa.Storage.get('ivi_shuffle') == true) {
-                                shuffleArray(result.results);
-                            }
-                            callback(result);
-                        }, callback);
+                        try {
+                            Lampa.Api.get('discover/tv?with_networks=3923&sort_by=first_air_date.desc&air_date.lte=' + currentDate, pl, function(result) {
+                                result.title = Lampa.Lang.translate('ИВИ');
+                                if (Lampa.Storage.get('ivi_display') == '2') {
+                                    result.collection = true;
+                                    result.line_type = 'collection';
+                                }
+                                if (Lampa.Storage.get('ivi_display') == '3') {
+                                    result.small = true;
+                                    result.wide = true;
+                                    result.results.forEach(function(elem) {
+                                        elem.promo = elem.overview;
+                                        elem.promo_title = elem.title || elem.name;
+                                    });
+                                }
+                                if (Lampa.Storage.get('ivi_display') == '4') {
+                                    result.line_type = 'top';
+                                }
+                                if (Lampa.Storage.get('ivi_shuffle') == true) {
+                                    shuffleArray(result.results);
+                                }
+                                callback(result);
+                            }, function(error) {
+                                callback({results: [], title: 'Ошибка загрузки IVI', error: error});
+                            });
+                        } catch (e) {
+                            callback({results: [], title: 'Ошибка: ' + e.message});
+                        }
                     },
                     'okko': function(callback) {
-                        Lampa.Api.get('discover/tv?with_networks=4085&sort_by=first_air_date.desc&air_date.lte=' + currentDate, pl, function(result) {
-                            result.title = Lampa.Lang.translate('OKKO');
-                            if (Lampa.Storage.get('okko_display') == '2') {
-                                result.collection = true;
-                                result.line_type = 'collection';
-                            }
-                            if (Lampa.Storage.get('okko_display') == '3') {
-                                result.small = true;
-                                result.wide = true;
-                                result.results.forEach(function(elem) {
-                                    elem.promo = elem.overview;
-                                    elem.promo_title = elem.title || elem.name;
-                                });
-                            }
-                            if (Lampa.Storage.get('okko_display') == '4') {
-                                result.line_type = 'top';
-                            }
-                            if (Lampa.Storage.get('okko_shuffle') == true) {
-                                shuffleArray(result.results);
-                            }
-                            callback(result);
-                        }, callback);
+                        try {
+                            Lampa.Api.get('discover/tv?with_networks=4085&sort_by=first_air_date.desc&air_date.lte=' + currentDate, pl, function(result) {
+                                result.title = Lampa.Lang.translate('OKKO');
+                                if (Lampa.Storage.get('okko_display') == '2') {
+                                    result.collection = true;
+                                    result.line_type = 'collection';
+                                }
+                                if (Lampa.Storage.get('okko_display') == '3') {
+                                    result.small = true;
+                                    result.wide = true;
+                                    result.results.forEach(function(elem) {
+                                        elem.promo = elem.overview;
+                                        elem.promo_title = elem.title || elem.name;
+                                    });
+                                }
+                                if (Lampa.Storage.get('okko_display') == '4') {
+                                    result.line_type = 'top';
+                                }
+                                if (Lampa.Storage.get('okko_shuffle') == true) {
+                                    shuffleArray(result.results);
+                                }
+                                callback(result);
+                            }, function(error) {
+                                callback({results: [], title: 'Ошибка загрузки OKKO', error: error});
+                            });
+                        } catch (e) {
+                            callback({results: [], title: 'Ошибка: ' + e.message});
+                        }
                     },
                     'kinopoisk': function(callback) {
-                        Lampa.Api.get('discover/tv?with_networks=1191&sort_by=first_air_date.desc&air_date.lte=' + currentDate, pl, function(result) {
-                            result.title = Lampa.Lang.translate('КиноПоиск');
-                            if (Lampa.Storage.get('kinopoisk_display') == '2') {
-                                result.collection = true;
-                                result.line_type = 'collection';
-                            }
-                            if (Lampa.Storage.get('kinopoisk_display') == '3') {
-                                result.small = true;
-                                result.wide = true;
-                                result.results.forEach(function(elem) {
-                                    elem.promo = elem.overview;
-                                    elem.promo_title = elem.title || elem.name;
-                                });
-                            }
-                            if (Lampa.Storage.get('kinopoisk_display') == '4') {
-                                result.line_type = 'top';
-                            }
-                            if (Lampa.Storage.get('kinopoisk_shuffle') == true) {
-                                shuffleArray(result.results);
-                            }
-                            callback(result);
-                        }, callback);
+                        try {
+                            Lampa.Api.get('discover/tv?with_networks=1191&sort_by=first_air_date.desc&air_date.lte=' + currentDate, pl, function(result) {
+                                result.title = Lampa.Lang.translate('КиноПоиск');
+                                if (Lampa.Storage.get('kinopoisk_display') == '2') {
+                                    result.collection = true;
+                                    result.line_type = 'collection';
+                                }
+                                if (Lampa.Storage.get('kinopoisk_display') == '3') {
+                                    result.small = true;
+                                    result.wide = true;
+                                    result.results.forEach(function(elem) {
+                                        elem.promo = elem.overview;
+                                        elem.promo_title = elem.title || elem.name;
+                                    });
+                                }
+                                if (Lampa.Storage.get('kinopoisk_display') == '4') {
+                                    result.line_type = 'top';
+                                }
+                                if (Lampa.Storage.get('kinopoisk_shuffle') == true) {
+                                    shuffleArray(result.results);
+                                }
+                                callback(result);
+                            }, function(error) {
+                                callback({results: [], title: 'Ошибка загрузки КиноПоиск', error: error});
+                            });
+                        } catch (e) {
+                            callback({results: [], title: 'Ошибка: ' + e.message});
+                        }
                     },
                     'wink': function(callback) {
-                        Lampa.Api.get('discover/tv?with_networks=5806&sort_by=first_air_date.desc&air_date.lte=' + currentDate, pl, function(result) {
-                            result.title = 'Wink';
-                            if (Lampa.Storage.get('wink_display') == '2') {
-                                result.collection = true;
-                                result.line_type = 'collection';
-                            }
-                            if (Lampa.Storage.get('wink_display') == '3') {
-                                result.small = true;
-                                result.wide = true;
-                                result.results.forEach(function(elem) {
-                                    elem.promo = elem.overview;
-                                    elem.promo_title = elem.title || elem.name;
-                                });
-                            }
-                            if (Lampa.Storage.get('wink_display') == '4') {
-                                result.line_type = 'top';
-                            }
-                            if (Lampa.Storage.get('wink_shuffle') == true) {
-                                shuffleArray(result.results);
-                            }
-                            callback(result);
-                        }, callback);
+                        try {
+                            Lampa.Api.get('discover/tv?with_networks=5806&sort_by=first_air_date.desc&air_date.lte=' + currentDate, pl, function(result) {
+                                result.title = 'Wink';
+                                if (Lampa.Storage.get('wink_display') == '2') {
+                                    result.collection = true;
+                                    result.line_type = 'collection';
+                                }
+                                if (Lampa.Storage.get('wink_display') == '3') {
+                                    result.small = true;
+                                    result.wide = true;
+                                    result.results.forEach(function(elem) {
+                                        elem.promo = elem.overview;
+                                        elem.promo_title = elem.title || elem.name;
+                                    });
+                                }
+                                if (Lampa.Storage.get('wink_display') == '4') {
+                                    result.line_type = 'top';
+                                }
+                                if (Lampa.Storage.get('wink_shuffle') == true) {
+                                    shuffleArray(result.results);
+                                }
+                                callback(result);
+                            }, function(error) {
+                                callback({results: [], title: 'Ошибка загрузки Wink', error: error});
+                            });
+                        } catch (e) {
+                            callback({results: [], title: 'Ошибка: ' + e.message});
+                        }
                     },
                     'sts': function(callback) {
-                        Lampa.Api.get('discover/tv?with_networks=806&sort_by=first_air_date.desc&air_date.lte=' + currentDate, pl, function(result) {
-                            result.title = Lampa.Lang.translate('СТС');
-                            if (Lampa.Storage.get('sts_display') == '2') {
-                                result.collection = true;
-                                result.line_type = 'collection';
-                            }
-                            if (Lampa.Storage.get('sts_display') == '3') {
-                                result.small = true;
-                                result.wide = true;
-                                result.results.forEach(function(elem) {
-                                    elem.promo = elem.overview;
-                                    elem.promo_title = elem.title || elem.name;
-                                });
-                            }
-                            if (Lampa.Storage.get('sts_display') == '4') {
-                                result.line_type = 'top';
-                            }
-                            if (Lampa.Storage.get('sts_shuffle') == true) {
-                                shuffleArray(result.results);
-                            }
-                            callback(result);
-                        }, callback);
+                        try {
+                            Lampa.Api.get('discover/tv?with_networks=806&sort_by=first_air_date.desc&air_date.lte=' + currentDate, pl, function(result) {
+                                result.title = Lampa.Lang.translate('СТС');
+                                if (Lampa.Storage.get('sts_display') == '2') {
+                                    result.collection = true;
+                                    result.line_type = 'collection';
+                                }
+                                if (Lampa.Storage.get('sts_display') == '3') {
+                                    result.small = true;
+                                    result.wide = true;
+                                    result.results.forEach(function(elem) {
+                                        elem.promo = elem.overview;
+                                        elem.promo_title = elem.title || elem.name;
+                                    });
+                                }
+                                if (Lampa.Storage.get('sts_display') == '4') {
+                                    result.line_type = 'top';
+                                }
+                                if (Lampa.Storage.get('sts_shuffle') == true) {
+                                    shuffleArray(result.results);
+                                }
+                                callback(result);
+                            }, function(error) {
+                                callback({results: [], title: 'Ошибка загрузки СТС', error: error});
+                            });
+                        } catch (e) {
+                            callback({results: [], title: 'Ошибка: ' + e.message});
+                        }
                     },
                     'tnt': function(callback) {
-                        Lampa.Api.get('discover/tv?with_networks=1191&sort_by=first_air_date.desc&air_date.lte=' + currentDate, pl, function(result) {
-                            result.title = Lampa.Lang.translate('ТНТ');
-                            if (Lampa.Storage.get('tnt_display') == '2') {
-                                result.collection = true;
-                                result.line_type = 'collection';
-                            }
-                            if (Lampa.Storage.get('tnt_display') == '3') {
-                                result.small = true;
-                                result.wide = true;
-                                result.results.forEach(function(elem) {
-                                    elem.promo = elem.overview;
-                                    elem.promo_title = elem.title || elem.name;
-                                });
-                            }
-                            if (Lampa.Storage.get('tnt_display') == '4') {
-                                result.line_type = 'top';
-                            }
-                            if (Lampa.Storage.get('tnt_shuffle') == true) {
-                                shuffleArray(result.results);
-                            }
-                            callback(result);
-                        }, callback);
+                        try {
+                            Lampa.Api.get('discover/tv?with_networks=1191&sort_by=first_air_date.desc&air_date.lte=' + currentDate, pl, function(result) {
+                                result.title = Lampa.Lang.translate('ТНТ');
+                                if (Lampa.Storage.get('tnt_display') == '2') {
+                                    result.collection = true;
+                                    result.line_type = 'collection';
+                                }
+                                if (Lampa.Storage.get('tnt_display') == '3') {
+                                    result.small = true;
+                                    result.wide = true;
+                                    result.results.forEach(function(elem) {
+                                        elem.promo = elem.overview;
+                                        elem.promo_title = elem.title || elem.name;
+                                    });
+                                }
+                                if (Lampa.Storage.get('tnt_display') == '4') {
+                                    result.line_type = 'top';
+                                }
+                                if (Lampa.Storage.get('tnt_shuffle') == true) {
+                                    shuffleArray(result.results);
+                                }
+                                callback(result);
+                            }, function(error) {
+                                callback({results: [], title: 'Ошибка загрузки ТНТ', error: error});
+                            });
+                        } catch (e) {
+                            callback({results: [], title: 'Ошибка: ' + e.message});
+                        }
                     },
                     'collections_inter_tv': function(callback) {
-                        Lampa.Api.get('discover/tv?with_networks=213|2552|1024|6219|49&sort_by=' + randomSort + '&first_air_date.gte=' + startYear + '&first_air_date.lte=' + endYear, pl, function(result) {
-                            result.title = Lampa.Lang.translate('Подборки зарубежных сериалов');
-                            if (Lampa.Storage.get('collections_inter_tv_display') == '2') {
-                                result.collection = true;
-                                result.line_type = 'collection';
-                            }
-                            if (Lampa.Storage.get('collections_inter_tv_display') == '3') {
-                                result.small = true;
-                                result.wide = true;
-                                result.results.forEach(function(elem) {
-                                    elem.promo = elem.overview;
-                                    elem.promo_title = elem.title || elem.name;
-                                });
-                            }
-                            if (Lampa.Storage.get('collections_inter_tv_display') == '4') {
-                                result.line_type = 'top';
-                            }
-                            if (Lampa.Storage.get('collections_inter_tv_shuffle') == true) {
-                                shuffleArray(result.results);
-                            }
-                            callback(result);
-                        }, callback);
+                        try {
+                            Lampa.Api.get('discover/tv?with_networks=213|2552|1024|6219|49&sort_by=' + randomSort + '&first_air_date.gte=' + startYear + '&first_air_date.lte=' + endYear, pl, function(result) {
+                                result.title = Lampa.Lang.translate('Подборки зарубежных сериалов');
+                                if (Lampa.Storage.get('collections_inter_tv_display') == '2') {
+                                    result.collection = true;
+                                    result.line_type = 'collection';
+                                }
+                                if (Lampa.Storage.get('collections_inter_tv_display') == '3') {
+                                    result.small = true;
+                                    result.wide = true;
+                                    result.results.forEach(function(elem) {
+                                        elem.promo = elem.overview;
+                                        elem.promo_title = elem.title || elem.name;
+                                    });
+                                }
+                                if (Lampa.Storage.get('collections_inter_tv_display') == '4') {
+                                    result.line_type = 'top';
+                                }
+                                if (Lampa.Storage.get('collections_inter_tv_shuffle') == true) {
+                                    shuffleArray(result.results);
+                                }
+                                callback(result);
+                            }, function(error) {
+                                callback({results: [], title: 'Ошибка загрузки подборок зарубежных сериалов', error: error});
+                            });
+                        } catch (e) {
+                            callback({results: [], title: 'Ошибка: ' + e.message});
+                        }
                     },
                     'collections_rus_tv': function(callback) {
-                        Lampa.Api.get('discover/tv?with_networks=2493|2859|4085|3923|3871|3827|5806|806|1191&sort_by=' + randomSort + '&air_date.lte=' + endYear + '&first_air_date.gte=' + startYear, pl, function(result) {
-                            result.title = Lampa.Lang.translate('Подборки русских сериалов');
-                            if (Lampa.Storage.get('collections_rus_tv_display') == '2') {
-                                result.collection = true;
-                                result.line_type = 'collection';
-                            }
-                            if (Lampa.Storage.get('collections_rus_tv_display') == '3') {
-                                result.small = true;
-                                result.wide = true;
-                                result.results.forEach(function(elem) {
-                                    elem.promo = elem.overview;
-                                    elem.promo_title = elem.title || elem.name;
-                                });
-                            }
-                            if (Lampa.Storage.get('collections_rus_tv_display') == '4') {
-                                result.line_type = 'top';
-                            }
-                            if (Lampa.Storage.get('collections_rus_tv_shuffle') == true) {
-                                shuffleArray(result.results);
-                            }
-                            callback(result);
-                        }, callback);
+                        try {
+                            Lampa.Api.get('discover/tv?with_networks=2493|2859|4085|3923|3871|3827|5806|806|1191&sort_by=' + randomSort + '&air_date.lte=' + endYear + '&first_air_date.gte=' + startYear, pl, function(result) {
+                                result.title = Lampa.Lang.translate('Подборки русских сериалов');
+                                if (Lampa.Storage.get('collections_rus_tv_display') == '2') {
+                                    result.collection = true;
+                                    result.line_type = 'collection';
+                                }
+                                if (Lampa.Storage.get('collections_rus_tv_display') == '3') {
+                                    result.small = true;
+                                    result.wide = true;
+                                    result.results.forEach(function(elem) {
+                                        elem.promo = elem.overview;
+                                        elem.promo_title = elem.title || elem.name;
+                                    });
+                                }
+                                if (Lampa.Storage.get('collections_rus_tv_display') == '4') {
+                                    result.line_type = 'top';
+                                }
+                                if (Lampa.Storage.get('collections_rus_tv_shuffle') == true) {
+                                    shuffleArray(result.results);
+                                }
+                                callback(result);
+                            }, function(error) {
+                                callback({results: [], title: 'Ошибка загрузки подборок русских сериалов', error: error});
+                            });
+                        } catch (e) {
+                            callback({results: [], title: 'Ошибка: ' + e.message});
+                        }
                     },
                     'collections_inter_movie': function(callback) {
-                        Lampa.Api.get('discover/movie?with_genres=&sort_by=' + randomMovieSort + '&primary_release_date.gte=' + startYear2 + '&primary_release_date.lte=' + endYear2, pl, function(result) {
-                            result.title = Lampa.Lang.translate('Подборки зарубежных фильмов');
-                            if (Lampa.Storage.get('collections_inter_movie_display') == '2') {
-                                result.collection = true;
-                                result.line_type = 'collection';
-                            }
-                            if (Lampa.Storage.get('collections_inter_movie_display') == '3') {
-                                result.small = true;
-                                result.wide = true;
-                                result.results.forEach(function(elem) {
-                                    elem.promo = elem.overview;
-                                    elem.promo_title = elem.title || elem.name;
-                                });
-                            }
-                            if (Lampa.Storage.get('collections_inter_movie_display') == '4') {
-                                result.line_type = 'top';
-                            }
-                            if (Lampa.Storage.get('collections_inter_movie_shuffle') == true) {
-                                shuffleArray(result.results);
-                            }
-                            callback(result);
-                        }, callback);
+                        try {
+                            Lampa.Api.get('discover/movie?with_genres=&sort_by=' + randomMovieSort + '&primary_release_date.gte=' + startYear2 + '&primary_release_date.lte=' + endYear2, pl, function(result) {
+                                result.title = Lampa.Lang.translate('Подборки зарубежных фильмов');
+                                if (Lampa.Storage.get('collections_inter_movie_display') == '2') {
+                                    result.collection = true;
+                                    result.line_type = 'collection';
+                                }
+                                if (Lampa.Storage.get('collections_inter_movie_display') == '3') {
+                                    result.small = true;
+                                    result.wide = true;
+                                    result.results.forEach(function(elem) {
+                                        elem.promo = elem.overview;
+                                        elem.promo_title = elem.title || elem.name;
+                                    });
+                                }
+                                if (Lampa.Storage.get('collections_inter_movie_display') == '4') {
+                                    result.line_type = 'top';
+                                }
+                                if (Lampa.Storage.get('collections_inter_movie_shuffle') == true) {
+                                    shuffleArray(result.results);
+                                }
+                                callback(result);
+                            }, function(error) {
+                                callback({results: [], title: 'Ошибка загрузки подборок зарубежных фильмов', error: error});
+                            });
+                        } catch (e) {
+                            callback({results: [], title: 'Ошибка: ' + e.message});
+                        }
                     },
                     'collections_rus_movie': function(callback) {
-                        Lampa.Api.get('discover/movie?primary_release_date.gte=' + startYear2 + '&vote_average.gte=5&vote_average.lte=9.5&with_original_language=ru&sort_by=' + randomMovieSort + '&primary_release_date.lte=' + endYear2, pl, function(result) {
-                            result.title = Lampa.Lang.translate('Подборки русских фильмов');
-                            if (Lampa.Storage.get('collections_rus_movie_display') == '2') {
-                                result.collection = true;
-                                result.line_type = 'collection';
-                            }
-                            if (Lampa.Storage.get('collections_rus_movie_display') == '3') {
-                                result.small = true;
-                                result.wide = true;
-                                result.results.forEach(function(elem) {
-                                    elem.promo = elem.overview;
-                                    elem.promo_title = elem.title || elem.name;
-                                });
-                            }
-                            if (Lampa.Storage.get('collections_rus_movie_display') == '4') {
-                                result.line_type = 'top';
-                            }
-                            if (Lampa.Storage.get('collections_rus_movie_shuffle') == true) {
-                                shuffleArray(result.results);
-                            }
-                            callback(result);
-                        }, callback);
+                        try {
+                            Lampa.Api.get('discover/movie?primary_release_date.gte=' + startYear2 + '&vote_average.gte=5&vote_average.lte=9.5&with_original_language=ru&sort_by=' + randomMovieSort + '&primary_release_date.lte=' + endYear2, pl, function(result) {
+                                result.title = Lampa.Lang.translate('Подборки русских фильмов');
+                                if (Lampa.Storage.get('collections_rus_movie_display') == '2') {
+                                    result.collection = true;
+                                    result.line_type = 'collection';
+                                }
+                                if (Lampa.Storage.get('collections_rus_movie_display') == '3') {
+                                    result.small = true;
+                                    result.wide = true;
+                                    result.results.forEach(function(elem) {
+                                        elem.promo = elem.overview;
+                                        elem.promo_title = elem.title || elem.name;
+                                    });
+                                }
+                                if (Lampa.Storage.get('collections_rus_movie_display') == '4') {
+                                    result.line_type = 'top';
+                                }
+                                if (Lampa.Storage.get('collections_rus_movie_shuffle') == true) {
+                                    shuffleArray(result.results);
+                                }
+                                callback(result);
+                            }, function(error) {
+                                callback({results: [], title: 'Ошибка загрузки подборок русских фильмов', error: error});
+                            });
+                        } catch (e) {
+                            callback({results: [], title: 'Ошибка: ' + e.message});
+                        }
                     }
                 };
 
                 var activeCategories = categories.filter(function(cat) { return cat.active; }).sort(function(a, b) { return a.order - b.order; });
-                if (activeCategories.length === 0) return onSuccess();
+                if (activeCategories.length === 0) return onSuccess([]);
+
                 var loaders = [];
                 activeCategories.forEach(function(cat) {
                     if (!loadedIds.includes(cat.id) && handlers[cat.id]) {
-                        loaders.push(handlers[cat.id](function(data) {
-                            loaded.push(data);
-                        }));
+                        var loader = handlers[cat.id];
+                        loaders.push(function(cb) {
+                            loader(function(data) {
+                                loaded.push(data);
+                                cb();
+                            });
+                        });
                         loadedIds.push(cat.id);
                     }
                 });
-                if (!Lampa.Storage.get('change_order_cards_main') && pl.genres_cat && pl.genres_cat.length > 0) {
+
+                if (!Lampa.Storage.get('change_order_cards_main') && pl.genres_cat && Array.isArray(pl.genres_cat) && pl.genres_cat.length > 0) {
                     pl.genres_cat.forEach(function(cat) {
                         if (!loadedIds.includes(cat.id)) {
                             var loader = function(callback) {
-                                Lampa.Api.get('discover/tv?with_genres=' + cat.id, pl, function(result) {
-                                    result.title = Lampa.Lang.translate(cat.title.replace(/[^a-z_]/g, ''));
-                                    shuffleArray(result.results);
-                                    callback(result);
-                                }, callback);
+                                try {
+                                    Lampa.Api.get('discover/tv?with_genres=' + cat.id, pl, function(result) {
+                                        result.title = Lampa.Lang.translate(cat.title.replace(/[^a-z_]/g, ''));
+                                        shuffleArray(result.results);
+                                        callback(result);
+                                    }, function(error) {
+                                        callback({results: [], title: 'Ошибка жанра: ' + error});
+                                    });
+                                } catch (e) {
+                                    callback({results: [], title: 'Ошибка жанра: ' + e.message});
+                                }
                             };
                             loaders.push(loader);
                             loadedIds.push(cat.id);
                         }
                     });
                 }
+
                 if (loaders.length > 0) {
-                    Lampa.Api.queue(loaders, count, onSuccess, onError);
+                    Lampa.Api.queue(loaders, count, function() {
+                        onSuccess(loaded);
+                    }, onError || function() {
+                        console.warn('PersonalHub: Ошибка очереди');
+                    });
                 } else {
-                    console.log('Нет доступных категорий для загрузки.');
+                    console.warn('PersonalHub: Нет доступных категорий для загрузки.');
+                    onSuccess([]);
                 }
             }
 
             function startLoad(onComplete, onError) {
                 loadCategory('', onComplete, onError);
             }
-            return startLoad(onComplete, onError), startLoad;
+            return startLoad(onComplete, onError);
         };
     }
 
-    var personalHub = Object.assign({}, Lampa.Api.sources.tmdb, new PersonalHub(Lampa.Api.sources.tmdb));
-    Lampa.Api.sources.tmdb.personalHub = personalHub;
-    Object.defineProperty(Lampa.Api.sources, 'personalHub', {
-        get: function() {
-            return personalHub;
+    // Регистрация источника
+    Lampa.Manifest.sources.push({
+        name: 'PersonalHub',
+        url: 'personalhub',
+        card: function(params) {
+            return new CardBuilder(params, {}).create();
+        },
+        main: function(params) {
+            return new PersonalHub(params).main;
+        },
+        search: function(params) {
+            Lampa.Api.get('search/multi', params, function(result) {
+                params.callback(result.results);
+            });
         }
     });
 
-    Lampa.Settings.main('source', Object.assign({}, Lampa.Settings.mainContext().source, {'PersonalHub': 'PersonalHub'}), 'tmdb');
-    if (Lampa.Storage.get('source') == 'personalHub') {
-        var source = Lampa.Storage.get('source');
-        var interval = setInterval(function() {
-            var ready = Lampa.Activity.active();
-            if (ready) {
-                clearInterval(interval);
-                Lampa.Activity.active().replace({'source': source, 'title': Lampa.Lang.translate('Top Line') + ' - ' + Lampa.Storage.field('source').toUpperCase()});
-            }
-        }, 300);
-    }
-
-    Lampa.Listener.follow('app', function(e) {
-        if (e.type == 'ready') {
-            if ($('[data-component="bylampa_source"]').length == 0) Lampa.Settings.addComponent({component: 'bylampa_source', name: 'Настройки PersonalHub'});
-            Lampa.Settings.main().update();
-            Lampa.Settings.main().body.find('[data-component="bylampa_source"]').toggleClass('hide');
-        }
+    // Добавление в настройки источника
+    Lampa.SettingsApi.source.add({
+        name: 'PersonalHub',
+        type: 'source',
+        html: '<div class="settings-folder selector" data-component="personalhub"><div class="settings-folder__icon"><i class="icon-settings"></i></div><div class="settings-folder__name">PersonalHub</div></div>'
     });
 
-    Lampa.Settings.listener.follow('open', function(e) {
-        if (e.name === 'main') {
-            if ($('[data-component="bylampa_source"]').length === 0) {
-                Lampa.Settings.addComponent({component: 'bylampa_source', name: 'Настройки PersonalHub'});
-            }
-            Lampa.Settings.main().render().find('[data-component="' + e.name + '"]').addClass('hide');
+    // Добавление параметров настроек
+    Lampa.SettingsApi.main.add([
+        {
+            component: 'personalhub',
+            param_name: 'personalhub_enabled',
+            type: 'toggle',
+            html_arg: 'enabled',
+            name: 'Включить PersonalHub',
+            default: true
+        },
+        {
+            component: 'personalhub',
+            param_name: 'personalhub_shuffle',
+            type: 'toggle',
+            html_arg: 'shuffle',
+            name: 'Перемешивать карточки',
+            default: false
+        },
+        {
+            component: 'personalhub',
+            param_name: 'personalhub_display',
+            type: 'select',
+            html_arg: 'display',
+            values: {1: 'Стандарт', 2: 'Коллекция', 3: 'Широкие маленькие', 4: 'Топ'},
+            name: 'Вид отображения',
+            default: 1
         }
-    });
+    ]);
 
+    // Функция добавления настроек категории (полная)
     function addCategorySettings(component, name, description, shuffleDefault, displayDefault, orderDefault, removeDefault) {
-        Lampa.Settings.listener.follow('open', function(e) {
-            if (e.name === 'main') {
-                if ($('[data-component="' + component + '"]').length === 0) {
-                    Lampa.Settings.addComponent({component: component, name: name});
-                }
-                Lampa.Settings.main().update();
-                Lampa.Settings.main().body.find('#app > div.settings.animate > div.settings__content.layer--height > div.settings__body > div > div > div > div:nth-child(' + component + ')').addClass('hide');
-            }
-        });
-        Lampa.Settings.addParam({
-            component: 'bylampa_source',
-            param: {
-                name: component,
+        Lampa.SettingsApi.main.add([
+            {
+                component: 'personalhub',
+                param_name: component + '_enabled',
                 type: 'toggle',
-                default: true
-            },
-            field: {
+                html_arg: 'enabled',
                 name: name,
+                default: true,
                 description: description
             },
-            onRender: function(html) {
-                html.on('hover:enter', function(e) {
-                    var target = e.target;
-                    var parent = target.parentElement;
-                    var siblings = Array.from(parent.parentElement.children);
-                    var index = siblings.indexOf(parent);
-                    var childIndex = index + 1;
-                    Lampa.Settings.main(component);
-                    Lampa.Controller.toggle('controller').leave = function() {
-                        Lampa.Settings.main('bylampa_source');
-                        setTimeout(function() {
-                            var elem = document.querySelector('#app > div.settings.animate > div.settings__content.layer--height > div.settings__body > div > div > div > div:nth-child(' + childIndex + ')');
-                            Lampa.Controller.focus(elem);
-                            Lampa.Settings.update('settings_component');
-                        }, 5);
-                    };
-                });
-            }
-        });
-        Lampa.Settings.addParam({
-            component: component,
-            param: {
-                name: component + '_shuffle',
+            {
+                component: 'personalhub',
+                param_name: component + '_shuffle',
                 type: 'toggle',
+                html_arg: 'shuffle',
+                name: 'Перемешивать ' + name.toLowerCase(),
                 default: shuffleDefault
             },
-            field: {
-                name: 'Перемешивать'
-            }
-        });
-        Lampa.Settings.addParam({
-            component: component,
-            param: {
-                name: component + '_display',
+            {
+                component: 'personalhub',
+                param_name: component + '_display',
                 type: 'select',
-                values: {
-                    1: 'Стандарт',
-                    2: 'Коллекция',
-                    3: 'Широкие маленькие',
-                    4: 'Топ'
-                },
+                html_arg: 'display',
+                values: {1: 'Стандарт', 2: 'Коллекция', 3: 'Широкие маленькие', 4: 'Топ'},
+                name: 'Вид отображения ' + name.toLowerCase(),
                 default: displayDefault
             },
-            field: {
-                name: 'Вид отображения'
-            }
-        });
-        Lampa.Settings.addParam({
-            component: component,
-            param: {
-                name: 'number_' + component,
+            {
+                component: 'personalhub',
+                param_name: 'number_' + component,
                 type: 'select',
-                values: {
-                    1: '1', 2: '2', 3: '3', 4: '4', 5: '5', 6: '6', 7: '7', 8: '8', 9: '9', 10: '10',
-                    11: '11', 12: '12', 13: '13', 14: '14', 15: '15', 16: '16', 17: '17', 18: '18', 19: '19', 20: '20',
-                    21: '21', 22: '22', 23: '23', 24: '24', 25: '25', 26: '26', 27: '27', 28: '28', 29: '29', 30: '30',
-                    31: '31', 32: '32', 33: '33', 34: '34', 35: '35', 36: '36', 37: '37'
-                },
+                html_arg: 'order',
+                values: {1: '1', 2: '2', 3: '3', 4: '4', 5: '5', 6: '6', 7: '7', 8: '8', 9: '9', 10: '10', 11: '11', 12: '12', 13: '13', 14: '14', 15: '15', 16: '16', 17: '17', 18: '18', 19: '19', 20: '20', 21: '21', 22: '22', 23: '23', 24: '24', 25: '25', 26: '26', 27: '27', 28: '28', 29: '29', 30: '30', 31: '31', 32: '32', 33: '33', 34: '34', 35: '35', 36: '36', 37: '37'},
+                name: 'Порядок отображения ' + name.toLowerCase(),
                 default: orderDefault
             },
-            field: {
-                name: 'Порядок отображения'
-            },
-            onChange: function(value) {}
-        });
-        Lampa.Settings.addParam({
-            component: component,
-            param: {
-                name: component + '_remove',
+            {
+                component: 'personalhub',
+                param_name: component + '_remove',
                 type: 'toggle',
+                html_arg: 'remove',
+                name: 'Убрать ' + name.toLowerCase() + ' с главной',
                 default: removeDefault
-            },
-            field: {
-                name: 'Убрать с главной страницы'
             }
-        });
+        ]);
     }
 
-    // Добавление настроек для всех категорий
+    // Добавление настроек для всех категорий (полное)
     addCategorySettings('now_watch', 'Сейчас смотрят', 'Нажми для настройки', false, '1', '1', false);
+    addCategorySettings('upcoming_episodes', 'Выход ближайших эпизодов', 'Нажми для настройки', false, '1', '2', false);
     addCategorySettings('trend_day', 'Сегодня в тренде', 'Нажми для настройки', false, '1', '3', false);
     addCategorySettings('trend_day_tv', 'Сегодня в тренде (сериалы)', 'Нажми для настройки', true, '1', '4', false);
     addCategorySettings('trend_day_film', 'Сегодня в тренде (фильмы)', 'Нажми для настройки', true, '1', '5', false);
@@ -1286,63 +1514,63 @@
     addCategorySettings('collections_inter_movie', 'Подборки зарубежных фильмов', 'Нажми для настройки', true, '1', '36', false);
     addCategorySettings('collections_rus_movie', 'Подборки русских фильмов', 'Нажми для настройки', true, '1', '37', false);
 
-    Lampa.Settings.addParam({
-        component: 'bylampa_source',
-        param: {
-            name: 'upcoming_episodes_remove',
+    // Дополнительные глобальные настройки
+    Lampa.SettingsApi.main.add([
+        {
+            component: 'personalhub',
+            param_name: 'change_order_cards_main',
             type: 'toggle',
-            default: false
-        },
-        field: {
-            name: 'Убрать с главной страницы',
-            description: 'Изменять порядок карточек на главной'
-        }
-    });
-    Lampa.Settings.addParam({
-        component: 'bylampa_source',
-        param: {
-            name: 'change_order_cards_main',
-            type: 'toggle',
+            html_arg: 'order',
+            name: 'Изменять порядок карточек на главной',
             default: true
         },
-        field: {
-            name: 'Изменять порядок карточек на главной',
-            description: 'Изменять порядок карточек на главной'
+        {
+            component: 'personalhub',
+            param_name: 'upcoming_episodes_remove',
+            type: 'toggle',
+            html_arg: 'remove',
+            name: 'Убрать предстоящие эпизоды с главной',
+            default: false
+        }
+    ]);
+
+    // Listener для обновления настроек
+    Lampa.Listener.follow('app', function(e) {
+        if (e.type == 'ready') {
+            Lampa.SettingsApi.update('personalhub');
         }
     });
 
-    Lampa.Settings.listener.follow('change', function(e) {
-        if (e.name == 'source') {
-            setTimeout(function() {
-                if (Lampa.Storage.get('source') !== 'personalHub') {
-                    $('.settings-param > div:contains("Источник PersonalHub")').parent().hide();
-                } else {
-                    $('div[data-name="source"]').parent().show();
-                }
-            }, 50);
-        }
-    });
-
+    // Инициализация по умолчанию
     var initInterval = setInterval(function() {
-        if (typeof Lampa !== 'undefined') {
+        if (typeof Lampa !== 'undefined' && Lampa.SettingsApi) {
             clearInterval(initInterval);
-            if (!Lampa.Storage.get('bylampa_source_params', false)) initDefaults();
+            if (!Lampa.Storage.get('bylampa_source_params', false)) {
+                initDefaults();
+            }
         }
     }, 200);
 
     function initDefaults() {
-        Lampa.Storage.set('source', 'personalHub');
-        Lampa.Storage.set('trend_week_remove', false);
+        Lampa.Storage.set('source', 'personalhub');
         Lampa.Storage.set('trend_day_remove', false);
         Lampa.Storage.set('trend_day_tv_remove', false);
+        Lampa.Storage.set('trend_day_film_remove', false);
+        Lampa.Storage.set('trend_week_remove', false);
+        Lampa.Storage.set('trend_week_tv_remove', false);
+        Lampa.Storage.set('trend_week_film_remove', false);
+        Lampa.Storage.set('upcoming_remove', false);
+        Lampa.Storage.set('popular_movie_remove', false);
+        Lampa.Storage.set('popular_tv_remove', false);
+        Lampa.Storage.set('top_movie_remove', false);
         Lampa.Storage.set('top_tv_remove', false);
-        Lampa.Storage.set('top_movie_display', '4');
-        Lampa.Storage.set('top_tv_display', '4');
-        Lampa.Storage.set('netflix_remove', 'true');
-        Lampa.Storage.set('apple_tv_remove', 'true');
+        Lampa.Storage.set('netflix_remove', false);
+        Lampa.Storage.set('apple_tv_remove', false);
         Lampa.Storage.set('prime_video_remove', false);
+        Lampa.Storage.set('mgm_remove', false);
         Lampa.Storage.set('hbo_remove', false);
         Lampa.Storage.set('dorams_remove', false);
+        Lampa.Storage.set('tur_serials_remove', false);
         Lampa.Storage.set('ind_films_remove', false);
         Lampa.Storage.set('rus_movie_remove', false);
         Lampa.Storage.set('rus_tv_remove', false);
@@ -1350,7 +1578,7 @@
         Lampa.Storage.set('start_remove', false);
         Lampa.Storage.set('premier_remove', false);
         Lampa.Storage.set('kion_remove', false);
-        Lampa.Storage.set('ivi_remove', 'true');
+        Lampa.Storage.set('ivi_remove', false);
         Lampa.Storage.set('okko_remove', false);
         Lampa.Storage.set('kinopoisk_remove', false);
         Lampa.Storage.set('wink_remove', false);
@@ -1360,16 +1588,21 @@
         Lampa.Storage.set('collections_rus_tv_remove', false);
         Lampa.Storage.set('collections_inter_movie_remove', false);
         Lampa.Storage.set('collections_rus_movie_remove', false);
-        Lampa.Storage.set('change_order_cards_main', false);
+        Lampa.Storage.set('now_watch_remove', false);
+        Lampa.Storage.set('upcoming_episodes_remove', false);
+        Lampa.Storage.set('change_order_cards_main', true);
         Lampa.Storage.set('bylampa_source_params', true);
+        console.log('PersonalHub defaults initialized');
     }
 
-    if (window.appready) initPersonalHub();
-    else Lampa.listener.follow('app', function(e) {
-        if (e.type == 'ready' && e.event == 'start') initPersonalHub();
-    });
-
-    function initPersonalHub() {
-        // Инициализация завершена
+    // Listener для готовности приложения
+    if (window.appready) {
+        initDefaults();
+    } else {
+        Lampa.listener.follow('app', function(e) {
+            if (e.type == 'ready' && e.event == 'start') {
+                initDefaults();
+            }
+        });
     }
 })();
