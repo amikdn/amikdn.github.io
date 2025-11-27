@@ -229,23 +229,11 @@ http://94.232.127.28:8080/mtvhits/index.m3u8
 http://i114.fastpic.ru/big/2021/0209/e3/411906b8ef8f41c95f5ead2c793a02e3.png"
 #EXTINF:-1 tvg-id="no_epg_music" tvg-logo=" group-title="Музыкальные"
 https://is3-ssl.mzstatic.com/image/thumb/Purple125/v4/4a/d1/92/4ad1928c-6e40-9506-df33-b37ad8343752/source/512x512bb.jpg"
-#EXTINF:-1 tvg-id="tnt-music" group-title="Музыкальные", ТНТ Music HD
-http://tntmsmotr.mediacdn.ru/cdn/smotr/playlist_hdhigh.m3u8
-#EXTINF:-1 tvg-id="bridge-hd" group-title="Музыкальные", Bridge TV Deluxe
-http://tvip.btk.teleos.ru:8081/chid519/index.m3u8
-#EXTINF:-1 tvg-id="bridge-tv-etno" group-title="Музыкальные", Bridge TV Этно
-http://tvip.btk.teleos.ru:8081/chid520/index.m3u8
 #EXTINF:-1 tvg-logo=" group-title="Музыкальные"
 https://tvradioo.ru/wp-content/uploads/2021/01/o2tv.png"
 #EXTINF:-1 tvg-id="muztv" group-title="Музыкальные", Муз ТВ
 #EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36 OPR/98.0.0.0
 http://zabava-htlive.cdn.ngenix.net/hls/CH_MUZTV/variant.m3u8
-#EXTINF:-1 tvg-id="bridge-tv-rock" group-title="Музыкальные", Bridge TV Rock
-http://91.194.191.241:8081/chid475/tracks-v1a1/mono.m3u8
-#EXTINF:-1 tvg-id="bridge-tv-shlager" group-title="Музыкальные", Bridge TV Шлягер
-http://91.194.191.241:8081/chid98/tracks-v1a1/mono.m3u8
-#EXTINF:-1 tvg-id="bridge-tv-fresh" group-title="Музыкальные", Bridge TV Фрэш
-http://91.194.191.241:8081/chid467/tracks-v1a1/mono.m3u8
 #EXTINF:-1 tvg-id="zhar-ptica" group-title="Музыкальные", Жар-Птица
 http://streamer.rtcommufa.ru:1935/ptica/ptica1/playlist.m3u8
 #EXTINF:-1 tvg-logo=" group-title="Музыкальные"
@@ -645,12 +633,8 @@ https://autopilot.catcast.tv/content/38128/index.m3u8?password=promolive
 http://31.148.48.15/Fan/index.m3u8
 #EXTINF:-1 group-title="Кино и сериалы", viju TV1000
 http://178.134.1.158:8081/tv1000/index.m3u8
-#EXTINF:-1 group-title="Кино" tvg-id="sony-scifi", .Sci-Fi
-http://194.32.242.245/a2/index.m3u8
 #EXTINF:-1 group-title="Кино" tvg-id="domkino", Дом кино
 http://46.8.46.14/domkino/index.m3u8
-#EXTINF:-1 group-title="Кино" tvg-id="sony-tv", .Red
-http://tvip.btk.teleos.ru:8081/chid85/tracks-v1a1/mono.m3u8
 #EXTINF:-1 group-title="Общие" tvg-id="zvezda" catchup="append" catchup-days="7" catchup-source="?offset=-${offset}&utcstart=${timestamp}", Звезда (Архив)
 #EXTVLCOPT:http-user-agent=WINK/1.40.1 (AndroidTV/9) HlsWinkPlayer
 https://zabava-htlive.cdn.ngenix.net/hls/CH_ZVEZDA/variant.m3u8
@@ -717,8 +701,6 @@ http://195.64.140.147:10046/46
 http://194.32.242.245/kinosemyahd/index.m3u8
 #EXTINF:-1 group-title="Кино" tvg-id="russkaya-komedia", Комедия
 http://194.32.242.245/Komediya/index.m3u8
-#EXTINF:-1 group-title="Кино", Мосфильм. Золотая коллекция
-http://188.190.222.53/Mosfilm/index.m3u8
 #EXTINF:-1 group-title="Кино" tvg-id="lubimoe-kino", Любимое кино
 http://46.8.46.14/Nashe_Lubimoe_Kino/index.m3u8
 #EXTINF:-1 group-title="Кино", Наше новое кино
@@ -803,8 +785,6 @@ http://195.64.140.147:10063/63
 https://livetv.mylifeisgood.net.ru/channels/strwc.m3u8
 #EXTINF:-1 group-title="Кино", Start World HD
 https://livetv.mylifeisgood.net.ru/channels/strvf.m3u8
-#EXTINF:-1 group-title="Кино" tvg-id="tv1000-globalkino", TV1000 Русское кино Global
-http://213.169.39.30:5006
 #EXTINF:-1 group-title="Кино", Viasat Kino World
 http://5.188.159.128:8070/TV1000_World_Kino/index.m3u8
 #EXTINF:-1 group-title="Кино", viju TV1000
@@ -815,10 +795,6 @@ http://46.8.46.14/actiontv/index.m3u8
 http://46.8.46.14/vipmegahit/index.m3u8
 #EXTINF:-1 group-title="Кино", viju+ Comedy
 http://46.8.46.14/vipcomedy/index.m3u8
-#EXTINF:-1 group-title="Кино", viju+ Megahit HD
-http://194.32.242.245/vipmegahit/index.m3u8
-#EXTINF:-1 group-title="Кино", Viasat Kino Comedy HD 🛡
-http://ukr.ukrainske.tv/493/tvainua/video.m3u8
 #EXTINF:-1 group-title="Детям", Детский мир
 http://195.26.83.96:7007/play/14/index.m3u8
 #EXTINF:-1 group-title="Детям", В гостях у сказки
