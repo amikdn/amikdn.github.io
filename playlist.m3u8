@@ -1372,16 +1372,8 @@ http://95.47.156.60:8000/play/a014/index.m3u8
 http://45.11.139.43:8555/muz/index.m3u8
 #EXTINF:-1 group-title="Музыка", О!2
 http://95.66.188.74/O2TV/index.m3u8
-#EXTINF:-1 group-title="Музыка" tvg-id="la-minor", Музыка Live
-http://tvip.btk.teleos.ru:8081/chid435/tracks-v1a1/mono.m3u8
-#EXTINF:-1 group-title="Музыка", Музыка Первого
-http://91.194.191.241:8081/chid94/tracks-v1a1/mono.m3u8
 #EXTINF:-1 group-title="Музыка", Страна FM
 http://live.stranafm.cdnvideo.ru/stranafm/stranafm_hd.sdp/playlist.m3u8
-#EXTINF:-1 group-title="Музыка", ТНТ Music
-http://tntmsmotr.mediacdn.ru/cdn/smotr/playlist_sdhigh.m3u8
-#EXTINF:-1 group-title="Музыка", Bridge
-http://188.190.222.53/BridgeTV/index.m3u8
 #EXTINF:-1 group-title="Музыка" tvg-id="shanson-tv", Шансон-ТВ
 http://hls-shansontv.cdnvideo.ru/shansontv/shansontv.sdp/playlist.m3u8
 #EXTINF:-1 group-title="Музыка" tvg-id="muztv" catchup="append" catchup-days="7" catchup-source="?offset=-${offset}&utcstart=${timestamp}", Муз-ТВ (Архив)
@@ -1392,16 +1384,10 @@ https://zabava-htlive.cdn.ngenix.net/hls/CH_MUZTV/variant.m3u8
 https://zabava-htlive.cdn.ngenix.net/hls/CH_MUZTV_7/variant.m3u8
 #EXTINF:-1 group-title="Музыка", Bridge Hits
 http://46.8.46.14/BridgeDance/index.m3u8
-#EXTINF:-1 group-title="Музыка", ТНТ Music HD
-http://tntmsmotr.mediacdn.ru/cdn/smotr/playlist_hdhigh.m3u8
 #EXTINF:-1 group-title="Музыка" tvg-id="bridge-hd", Bridge Deluxe HD ~
 http://31.148.48.15/Bridge_TV_HD/index.m3u8
 #EXTINF:-1 group-title="Музыка" tvg-id="bridge-tv-shlager", Bridge Шлягер
 http://178.212.71.253:8000/play/142/index.m3u8
-#EXTINF:-1 group-title="Музыка", Bridge Rock
-http://91.194.191.241:8081/chid475/tracks-v1a1/mono.m3u8
-#EXTINF:-1 group-title="Музыка" tvg-id="bridge-tv-ruxit", Bridge Русский хит
-http://91.194.191.241:8081/chid468/tracks-v1a1/mono.m3u8
 #EXTINF:-1 group-title="Музыка", Deluxe Music
 https://sdn-global-live-streaming-packager-cache.3qsdn.com/13456/13456_264_live.m3u8
 #EXTINF:-1 group-title="Музыка", Europa Plus TV
@@ -1438,5 +1424,3 @@ http://185.57.68.33/232/mpegts
 http://tgn.bozztv.com/betterlife/betternature/betternature/index.m3u8
 #EXTINF:-1 group-title="Музыка", Сити Эдем — Meditation Music
 https://autopilot.catcast.tv/content/47410/index.m3u8?password=loganet
-#EXTINF:-1 group-title="Музыка", Сити Эдем — БирмаПлей
-https://autopilot.catcast.tv/content/34364/index.m3u8?password=loganet
