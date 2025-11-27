@@ -1184,16 +1184,10 @@ https://player.smotrim.ru/iframe/stream/live_id/985d5c7b-9727-4942-a4ba-a6e852ca
 https://tass-hls.servicecdn.ru/httpstreamer/tass-loop-main.stream/playlist.m3u8
 #EXTINF:-1 group-title="Хобби", Дикий
 http://195.64.140.147:10139/139
-#EXTINF:-1 group-title="Хобби", Дикая охота
-http://217.21.34.160:38007/dikayaohotahd/index.m3u8
-#EXTINF:-1 group-title="Хобби", Дикая рыбалка
-http://217.21.34.160:38007/dikayarybalkahd/index.m3u8
 #EXTINF:-1 group-title="Хобби", Авто Плюс
 http://158.101.222.193:88/georgia_play.php?id=autoplus
 #EXTINF:-1 group-title="Хобби", Авто 24
 http://158.101.222.193:88/georgia_play.php?id=auto24
-#EXTINF:-1 group-title="Хобби", Дикая рыбалка HD
-http://194.32.242.245/DikayarybalkaHD/index.m3u8
 #EXTINF:-1 group-title="Хобби", Драйв
 http://46.8.46.14/Drive/index.m3u8
 #EXTINF:-1 group-title="Хобби" tvg-id="zagorodnaya-zhizn", Загородная жизнь
