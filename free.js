@@ -3,7 +3,7 @@
 
     Lampa.Platform.tv();
     var plugin = {
-        name: 'TMDB My Proxy with DMCA Disable',
+        name: 'TMDB Proxy with DMCA Disable',
         version: '1.0.2',
         description: 'Проксирование постеров и API сайта TMDB с отключением DMCA-фич'
     };
