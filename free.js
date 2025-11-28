@@ -7,6 +7,7 @@
         version: '1.0.2',
         description: 'Проксирование постеров и API сайта TMDB с отключением DMCA-фич'
     };
+    
     plugin.path_image = Lampa.Utils.protocol() + 'tmdbimg.bylampa.online/';
     plugin.path_api = Lampa.Utils.protocol() + 'tmdbapi.bylampa.online/3/';
 
