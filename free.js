@@ -1,7 +1,6 @@
 (function () {
     'use strict';
 
-    // TMDB Proxy Plugin Configuration
     Lampa.Platform.tv();
     var plugin = {
         name: 'TMDB My Proxy with DMCA Disable',
@@ -11,26 +10,22 @@
     plugin.path_image = Lampa.Utils.protocol() + 'tmdbimg.bylampa.online/';
     plugin.path_api = Lampa.Utils.protocol() + 'tmdbapi.bylampa.online/3/';
 
-    // TMDB Image Proxy Function
     Lampa.TMDB.image = function (url) {
         var base = Lampa.Utils.protocol() + 'image.tmdb.org/' + url;
         return Lampa.Storage.field('proxy_tmdb') ? plugin.path_image + url : base;
     };
 
-    // TMDB API Proxy Function
     Lampa.TMDB.api = function (url) {
         var base = Lampa.Utils.protocol() + 'api.themoviedb.org/3/' + url;
         return Lampa.Storage.field('proxy_tmdb') ? plugin.path_api + url : base;
     };
 
-    // Settings Listener for TMDB Proxy
     Lampa.Settings.listener.follow('open', function (e) {
         if (e.name === 'tmdb') {
             e.body.find('[data-parent="proxy"]').remove();
         }
     });
 
-    // DMCA Disable Configuration for Lampa
     window.lampa_settings = window.lampa_settings || {};
     window.lampa_settings.dcma = false;
     window.lampa_settings.disable_features = window.lampa_settings.disable_features || {};
