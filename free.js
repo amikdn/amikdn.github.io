@@ -1,6 +1,6 @@
 (function () {
     'use strict';
-
+    
     Lampa.Platform.tv();
     var plugin = {
         name: 'TMDB Proxy with DMCA Disable',
