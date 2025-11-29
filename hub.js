@@ -1,13 +1,6 @@
 (function() {
   'use strict';
   Lampa.Platform.tv();
-  var manifest = {
-    type: 'other',
-    version: '1.0',
-    name: 'Скрыть CUB',
-    description: 'Скрывает источник поиска CUB.'
-  };
-  Lampa.Manifest.plugins = manifest;
   function startPlugin() {
     function hideCUB() {
       var sources = document.querySelectorAll('.search-source');
