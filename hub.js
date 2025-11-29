@@ -1,5 +1,6 @@
 (function() {
   'use strict';
+  Lampa.Platform.tv();
   var manifest = {
     type: 'other',
     version: '1.0',
