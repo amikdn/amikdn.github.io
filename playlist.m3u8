@@ -1322,8 +1322,8 @@ http://45.11.139.43:8555/extsport/index.m3u8
 http://188.190.222.53/FightBOX/index.m3u8
 #EXTINF:-1 group-title="Спорт", Extreme Sports HD
 http://vod.stb.tvime.ru/Extreme_Sports/video.m3u8
-#EXTINF:-1 group-title="Спорт", EUROSPORT 1 HD
-http://195.191.208.11:8087/udp/238.2.48.145:1234
+#EXTINF:-1 group-title="Спорт", EUROSPORT 1
+http://178.134.1.158:8081/eurosport/index.m3u8
 #EXTINF:-1 group-title="Спорт", EUROSPORT 1 HD
 http://87.76.32.36:8001/eurosport1hd
 #EXTINF:-1 group-title="Спорт", EUROSPORT 1 HD
