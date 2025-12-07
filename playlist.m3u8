@@ -1331,7 +1331,7 @@ http://146.120.14.239:3001/play/a07b
 #EXTINF:-1 group-title="Спорт", EUROSPORT 1 HD
 http://91.207.115.228:5000/c153
 #EXTINF:-1 group-title="Спорт", EUROSPORT 2 HD
-http://146.120.14.239:3001/play/a07c
+http://5.188.159.128:8070/eurosport2/index.m3u8
 #EXTINF:-1 group-title="Спорт", EUROSPORT 2 HD
 http://91.207.115.228:5000/c154
 #EXTINF:-1 group-title="Спорт", EUROSPORT 2 HD
