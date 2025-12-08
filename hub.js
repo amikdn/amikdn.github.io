@@ -1,5 +1,5 @@
 (function () {
-    'use strict';
+  //  'use strict';
     Lampa.Platform.tv();
     window.Account = window.Account || {};
     window.Account.hasPremium = () => true;
