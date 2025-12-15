@@ -1,4 +1,3 @@
-
 (function() {
     'use strict';
 
@@ -27,48 +26,46 @@
         "Аниме": "#sprite-anime",
     };
 
+    function replaceIcons() {
+        try {
+            document.querySelectorAll('.items-line__head .full-person').forEach(block => {
+                const nameEl = block.querySelector('.full-person__name');
+                if (!nameEl) return;
+
+                const name = nameEl.textContent.trim();
+                const sprite = customIcons[name];
+                if (!sprite) return;
+
+                const photoDiv = block.querySelector('.full-person__photo');
+                if (!photoDiv) return;
+
+                block.classList.add('full-person--svg');
+                photoDiv.innerHTML = `<svg><use xlink:href="${sprite}"></use></svg>`;
+                photoDiv.style.backgroundImage = '';
+
+                // Цвета
+                if (name.includes("Гонки") || name.includes("футбол")) {
+                    photoDiv.style.backgroundColor = 'rgb(220, 20, 20)';
+                } else if (name === "Огонь!") {
+                    photoDiv.style.backgroundColor = 'rgb(253, 69, 24)';
+                } else {
+                    photoDiv.style.backgroundColor = 'rgba(255, 255, 255, 0.15)';
+                }
+            });
+        } catch (e) {}
+    }
+
     function startPlugin() {
-        console.log('Плагин иконок запущен — без лишних таймеров');
+        console.log('Плагин иконок запущен — без observer');
 
-        function replaceIcons() {
-            try {
-                document.querySelectorAll('.items-line__head .full-person').forEach(block => {
-                    try {
-                        const nameEl = block.querySelector('.full-person__name');
-                        if (!nameEl) return;
-
-                        const name = nameEl.textContent.trim();
-                        const sprite = customIcons[name];
-                        if (!sprite) return;
-
-                        const photoDiv = block.querySelector('.full-person__photo');
-                        if (!photoDiv) return;
-
-                        block.classList.add('full-person--svg');
-                        photoDiv.innerHTML = `<svg><use xlink:href="${sprite}"></use></svg>`;
-                        photoDiv.style.backgroundImage = '';
-
-                        // Цвета (по вкусу)
-                        if (name.includes("Гонки") || name.includes("футбол")) {
-                            photoDiv.style.backgroundColor = 'rgb(220, 20, 20)';
-                        } else if (name === "Огонь!") {
-                            photoDiv.style.backgroundColor = 'rgb(253, 69, 24)';
-                        } else {
-                            photoDiv.style.backgroundColor = 'rgba(255, 255, 255, 0.15)';
-                        }
-                    } catch (e) {}
-                });
-            } catch (e) {}
-        }
-
-        // Один начальный вызов (с небольшой задержкой на всякий)
+        // Замена сразу и с задержками
         setTimeout(replaceIcons, 3000);
+        setTimeout(replaceIcons, 8000);
 
-        // Observer — основной механизм, лёгкий и эффективный
-        if (document.body) {
-            const observer = new MutationObserver(replaceIcons);  // Прямой вызов, без лишнего таймера
-            observer.observe(document.body, { childList: true, subtree: true });
-        }
+        // На основные события Lampa (главная, каталог и т.д.)
+        Lampa.Listener.follow('full', () => setTimeout(replaceIcons, 1000));
+        Lampa.Listener.follow('view', () => setTimeout(replaceIcons, 1000));
+        Lampa.Listener.follow('activity', () => setTimeout(replaceIcons, 1000));
     }
 
     if (window.appready) {
