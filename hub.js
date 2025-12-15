@@ -1,5 +1,6 @@
 (function() {
     'use strict';
+    Lampa.Platform.tv();
 
     // Только безопасные замены: встроенные спрайты Lampa или URL на фото
     const customIcons = {
