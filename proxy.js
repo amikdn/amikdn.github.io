@@ -1,67 +1,63 @@
 (function () {
     'use strict';
+
     Lampa.Platform.tv();
 
-    // Определение прокси TMDB
-    var tmdb_proxy = {
-        name: 'TMDB Proxy with Fixes',
+    var plugin = {
+        name: 'TMDB Proxy with Anti-DMCA',
         version: '1.0.3',
-        description: 'Проксирование постеров и API сайта TMDB с дополнительными исправлениями',
-        path_image: 'tmdbimage.abmsx.tech/',
-        path_api: 'apitmdb.' + (Lampa.Manifest && Lampa.Manifest.cub_domain ? Lampa.Manifest.cub_domain : 'cub.red') + '/3/'
+        description: 'Проксирование постеров и API сайта TMDB с отключением DMCA-фич и обходом блокировок'
     };
 
-    // Переопределение URL изображения TMDB
+    plugin.path_image = Lampa.Utils.protocol() + 'tmdbimage.abmsx.tech/'; //tmdbimg.bylampa.online/  tmdbimage.abmsx.tech/
+    plugin.path_api = Lampa.Utils.protocol() + 'tmdb.abmsx.tech/3/'; //tmdbapi.bylampa.online/3/   tmdb.abmsx.tech/3/
+
     Lampa.TMDB.image = function (url) {
         var base = Lampa.Utils.protocol() + 'image.tmdb.org/' + url;
-        return Lampa.Storage.field('proxy_tmdb') ? Lampa.Utils.protocol() + tmdb_proxy.path_image + url : base;
+        return Lampa.Storage.field('proxy_tmdb') ? plugin.path_image + url : base;
     };
 
-    // Переопределение URL API TMDB
     Lampa.TMDB.api = function (url) {
         var base = Lampa.Utils.protocol() + 'api.themoviedb.org/3/' + url;
-        return Lampa.Storage.field('proxy_tmdb') ? '//tmdb.abmsx.tech/3/' + url : base;
+        return Lampa.Storage.field('proxy_tmdb') ? plugin.path_api + url : base;
     };
 
-    // Удаление элемента настроек прокси в настройках TMDB
-    Lampa.Settings.listener.follow('open', function (e) {
-        if (e.name == 'tmdb') {
-            e.body.find('[data-parent="proxy"]').remove();
+    function start() {
+        if (window.anti_dmca_plugin) {
+            return;
         }
-    });
+        window.anti_dmca_plugin = true;
 
-    // Инициализация для обработки заблокированных запросов и модификаций настроек
-    function init() {
-        // Подписка на событие для обработки заблокированных запросов
+        Lampa.Utils.dcma = function () { return undefined; };
+
+        var defaultSource = Lampa.Storage.get('source', 'cub');
+
         Lampa.Listener.follow('request_secuses', function (event) {
             if (event.data.blocked) {
-                var activeActivity = Lampa.Activity.active();
-                activeActivity.source = 'tmdb';
+                window.lampa_settings.dcma = [];
+                var active = Lampa.Activity.active();
+                active.source = 'tmdb';
                 Lampa.Storage.set('source', 'tmdb', true);
-                Lampa.Activity.replace(activeActivity);
-                Lampa.Storage.set('source', 'cub', true);
+                Lampa.Activity.replace(active);
+                Lampa.Storage.set('source', defaultSource, true);
             }
         });
 
-        // Интервал для проверки и модификации настроек
-        var interval = setInterval(function () {
-            if (typeof window.lampa_settings !== 'undefined' && (window.lampa_settings.fixdcma || window.lampa_settings.dcma)) {
-                clearInterval(interval);
-                if (window.lampa_settings.dcma) {
-                    window.lampa_settings.dcma = false;
-                }
+        Lampa.Settings.listener.follow('open', function (e) {
+            if (e.name === 'tmdb') {
+                e.body.find('[data-parent="proxy"]').remove();
             }
-        }, 100);
+        });
     }
 
-    // Запуск init, если приложение готово, иначе прослушивание события ready
     if (window.appready) {
-        init();
+        start();
     } else {
         Lampa.Listener.follow('app', function (event) {
             if (event.type === 'ready') {
-                init();
+                start();
             }
         });
     }
+
 })();
