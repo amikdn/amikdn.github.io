@@ -32,6 +32,5 @@
     window.lampa_settings.disable_features = window.lampa_settings.disable_features || {};
     window.lampa_settings.disable_features.dmca = true;
     window.lampa_settings.disable_features.ads = true;
-    window.lampa_settings.disable_features.blacklist = true;
 
 })();
