@@ -5,8 +5,8 @@
     window.__snowfx_loaded__ = true;
 
     const KEY_ENABLED = 'snowfx_enabled';
-    const KEY_DENSITY = 'snowfx_density';   // 0=авто, 1=мало, 2=средне, 3=много
-    const KEY_SETTLE  = 'snowfx_settle';    // оседание
+    const KEY_DENSITY = 'snowfx_density';
+    const KEY_SETTLE  = 'snowfx_settle';
 
     const SNOW_ICON = `
     <svg class="snowfx-menu-icon" width="88" height="83" viewBox="0 0 88 83" xmlns="http://www.w3.org/2000/svg">
@@ -100,22 +100,24 @@
         fallCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
         accCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-        resetAccumulationHard();
-        createSnowflakes(); // пересоздаём снежинки под новый размер
+        // При ресайзе очищаем накопленный снег
+        if (accCtx) accCtx.clearRect(0, 0, W, H);
+        createSnowflakes();
     }
 
-    // === Снежинки — точно из snow_bl.js ===
+    // === Снежинки из snow_bl.js ===
     let snowflakes = [];
     let cfg_flakeCount = 120;
     let cfg_settle = 1;
     let cfg_tizen = false;
+    let prev_settle = 1; // для отслеживания изменения
 
     function createSnowflakes() {
         snowflakes.length = 0;
         for (let i = 0; i < cfg_flakeCount; i++) {
             snowflakes.push({
                 x: Math.random() * W,
-                y: Math.random() * H, // стартуют по всей высоте, как в оригинале
+                y: Math.random() * H,
                 radius: Math.random() * 3 + 1,
                 speed: Math.random() * 1.5 + 0.5,
                 opacity: Math.random() * 0.5 + 0.5,
@@ -171,37 +173,10 @@
         accCtx.globalAlpha = 1;
     }
 
-    function resetAccumulationHard() {
-        if (!accCtx || cfg_tizen || !cfg_settle) return;
+    function clearAccumulation() {
+        if (!accCtx) return;
         accCtx.clearRect(0, 0, W, H);
         surfaces = [];
-        setTimeout(buildSurfaces, 300);
-    }
-
-    let fadeRaf = 0;
-    function resetAccumulationSoft() {
-        if (!accCtx || cfg_tizen || !cfg_settle || fadeRaf) return;
-
-        const start = performance.now();
-        const duration = 320;
-
-        function step() {
-            accCtx.save();
-            accCtx.globalCompositeOperation = 'destination-out';
-            accCtx.fillStyle = 'rgba(0,0,0,0.22)';
-            accCtx.fillRect(0, 0, W, H);
-            accCtx.restore();
-
-            if (performance.now() - start < duration) {
-                fadeRaf = requestAnimationFrame(step);
-            } else {
-                fadeRaf = 0;
-                accCtx.clearRect(0, 0, W, H);
-                surfaces = [];
-                setTimeout(buildSurfaces, 160);
-            }
-        }
-        fadeRaf = requestAnimationFrame(step);
     }
 
     // === Анимация ===
@@ -216,27 +191,23 @@
         if (cfg_settle && !cfg_tizen) buildSurfaces();
 
         snowflakes.forEach(flake => {
-            // Рисование
             fallCtx.beginPath();
             fallCtx.arc(flake.x, flake.y, flake.radius, 0, Math.PI * 2);
             fallCtx.fillStyle = `rgba(255, 255, 255, ${flake.opacity})`;
             fallCtx.fill();
 
-            // Движение — точно как в snow_bl.js
             flake.y += flake.speed;
             flake.x += flake.drift + Math.sin(flake.angle) * 0.5;
             flake.angle += 0.01;
 
-            // Оседание
+            // Оседание только если включено
             if (cfg_settle && !cfg_tizen) {
                 let settled = false;
 
-                // На дне экрана
                 if (flake.y > H - 10) {
                     drawAccDot(flake.x, H - 10, flake.radius, Math.min(0.9, flake.opacity + 0.1));
                     settled = true;
                 } else {
-                    // На карточках
                     for (const s of surfaces) {
                         if (flake.x >= s.x1 && flake.x <= s.x2 && flake.y >= s.y - 3 && flake.y <= s.y + 3) {
                             drawAccDot(flake.x, s.y - 1, flake.radius, Math.min(0.9, flake.opacity + 0.15));
@@ -250,11 +221,9 @@
                 if (settled) {
                     flake.y = -flake.radius;
                     flake.x = Math.random() * W;
-                    return;
                 }
             }
 
-            // Вылет за низ — возврат сверху
             if (flake.y > H + flake.radius) {
                 flake.y = -flake.radius;
                 flake.x = Math.random() * W;
@@ -283,11 +252,18 @@
     // === Прокрутка ===
     let scrollDebounce = 0;
     function onScroll() {
-        if (scrollDebounce) return;
+        if (scrollDebounce || !cfg_settle) return;
         scrollDebounce = setTimeout(() => {
             scrollDebounce = 0;
-            resetAccumulationSoft();
-        }, 120);
+            // Плавное исчезновение при прокрутке (только если оседание включено)
+            if (cfg_settle && accCtx) {
+                accCtx.save();
+                accCtx.globalCompositeOperation = 'destination-out';
+                accCtx.fillStyle = 'rgba(0,0,0,0.4)';
+                accCtx.fillRect(0, 0, W, H);
+                accCtx.restore();
+            }
+        }, 100);
     }
     document.addEventListener('scroll', onScroll, true);
     document.addEventListener('wheel', onScroll, {passive:true});
@@ -304,19 +280,29 @@
         else if (density === 2) count = 180;
         else if (density === 3) count = 240;
 
+        const settle = tizen ? 0 : parseInt(storageGet(KEY_SETTLE, '1'), 10);
+
         return {
             enabled: !!parseInt(storageGet(KEY_ENABLED, '1'), 10),
             flakeCount: count,
-            settle: tizen ? 0 : parseInt(storageGet(KEY_SETTLE, '1'), 10),
+            settle: settle,
             tizen: tizen
         };
     }
 
     function applyConfig() {
         const cfg = computeConfig();
+        const settleChanged = cfg.settle !== prev_settle;
+
         cfg_flakeCount = cfg.flakeCount;
         cfg_settle = cfg.settle;
         cfg_tizen = cfg.tizen;
+        prev_settle = cfg.settle;
+
+        // Если оседание только что выключили — стряхиваем весь накопленный снег
+        if (settleChanged && !cfg.settle && accCtx) {
+            clearAccumulation();
+        }
 
         const shouldRun = cfg.enabled && !inPlayer && ALLOWED_COMPONENTS[currentActivity];
 
@@ -352,7 +338,7 @@
         Lampa.SettingsApi.addParam({
             component: 'snowfx',
             param: { name: KEY_SETTLE, type: 'select', values: {0:'Выкл',1:'Вкл'}, default:1 },
-            field: { name: 'Оседание на карточках', description: 'Снег накапливается сверху постеров' }
+            field: { name: 'Оседание на карточках', description: 'Снег накапливается сверху постеров. При выключении — стряхивается.' }
         });
     }
 
