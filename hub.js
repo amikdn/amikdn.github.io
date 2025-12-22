@@ -35,9 +35,11 @@
         try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; }
     }
 
+    // Разрешённые экраны — добавлены full и movie (карточка фильма)
     const ALLOWED_COMPONENTS = {
         main:1, home:1, start:1, cub:1,
-        movies:1, movie:1, tv:1, series:1, serial:1, serials:1,
+        movies:1, movie:1, full:1,                     // <-- добавлено full и movie
+        tv:1, series:1, serial:1, serials:1,
         tvshow:1, tvshows:1, category:1, categories:1,
         catalog:1, genre:1, genres:1
     };
@@ -100,7 +102,7 @@
         fallCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
         accCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-        clearAccumulation(); // полная очистка при ресайзе
+        clearAccumulation();
         createSnowflakes();
     }
 
@@ -130,7 +132,7 @@
     let surfaces = [];
 
     function getCardElements() {
-        const sels = ['.card__view', '.card', '[data-card]'];
+        const sels = ['.card__view', '.card', '[data-card]', '.full-start__poster']; // добавлен постер в карточке
         const list = [];
         sels.forEach(sel => {
             try { document.querySelectorAll(sel).forEach(el => list.push(el)); } catch (e) {}
@@ -178,22 +180,20 @@
         surfaces = [];
     }
 
-    // Плавное полное затухание при стряхивании
     let fadeRaf = 0;
     function shakeOffAccumulation() {
         if (!accCtx || cfg_tizen || !cfg_settle || fadeRaf) return;
 
         const start = performance.now();
-        const duration = 300; // 300 мс плавного исчезновения
+        const duration = 300;
 
         function step() {
             const elapsed = performance.now() - start;
             const progress = Math.min(elapsed / duration, 1);
-            const alpha = 1 - progress; // от 1 до 0
 
             accCtx.save();
             accCtx.globalCompositeOperation = 'destination-out';
-            accCtx.fillStyle = `rgba(0,0,0,${0.8})`; // сильное затухание за проход
+            accCtx.fillStyle = `rgba(0,0,0,0.9)`;
             accCtx.fillRect(0, 0, W, H);
             accCtx.restore();
 
@@ -202,10 +202,22 @@
             } else {
                 fadeRaf = 0;
                 clearAccumulation();
-                setTimeout(buildSurfaces, 100); // начинаем заново собирать поверхности
+                setTimeout(buildSurfaces, 100);
             }
         }
         fadeRaf = requestAnimationFrame(step);
+    }
+
+    function resetFallingFlakesInBottom() {
+        if (!cfg_settle) return;
+
+        snowflakes.forEach(flake => {
+            if (flake.y > H * 0.6) {
+                flake.y = -flake.radius;
+                flake.x = Math.random() * W;
+                flake.angle = Math.random() * Math.PI * 2;
+            }
+        });
     }
 
     // === Анимация ===
@@ -249,12 +261,14 @@
                 if (settled) {
                     flake.y = -flake.radius;
                     flake.x = Math.random() * W;
+                    flake.angle = Math.random() * Math.PI * 2;
                 }
             }
 
             if (flake.y > H + flake.radius) {
                 flake.y = -flake.radius;
                 flake.x = Math.random() * W;
+                flake.angle = Math.random() * Math.PI * 2;
             }
         });
 
@@ -280,10 +294,13 @@
     // === Стряхивание при прокрутке ===
     let scrollDebounce = 0;
     function onScroll() {
-        if (!cfg_settle || scrollDebounce) return;
+        if (scrollDebounce) return;
         scrollDebounce = setTimeout(() => {
             scrollDebounce = 0;
-            shakeOffAccumulation(); // полное стряхивание с анимацией
+            if (cfg_settle) {
+                shakeOffAccumulation();
+                resetFallingFlakesInBottom();
+            }
         }, 80);
     }
     document.addEventListener('scroll', onScroll, true);
@@ -320,7 +337,6 @@
         cfg_tizen = cfg.tizen;
         prev_settle = cfg.settle;
 
-        // При выключении оседания — стряхиваем
         if (settleChanged && !cfg.settle) {
             clearAccumulation();
         }
@@ -347,7 +363,7 @@
         Lampa.SettingsApi.addParam({
             component: 'snowfx',
             param: { name: KEY_ENABLED, type: 'select', values: {0:'Выкл',1:'Вкл'}, default:1 },
-            field: { name: 'Снег', description: 'На главных экранах и каталогах' }
+            field: { name: 'Снег', description: 'На всех экранах, включая карточки фильмов' }
         });
 
         Lampa.SettingsApi.addParam({
@@ -359,7 +375,7 @@
         Lampa.SettingsApi.addParam({
             component: 'snowfx',
             param: { name: KEY_SETTLE, type: 'select', values: {0:'Выкл',1:'Вкл'}, default:1 },
-            field: { name: 'Оседание на карточках', description: 'Снег накапливается сверху постеров. При прокрутке — стряхивается.' }
+            field: { name: 'Оседание на карточках', description: 'Снег накапливается. При прокрутке — стряхивается.' }
         });
     }
 
