@@ -34,7 +34,6 @@
         try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; }
     }
 
-    // Снег везде, кроме плеера
     let inPlayer = false;
 
     let fallCanvas = null, fallCtx = null;
@@ -100,7 +99,6 @@
     let cfg_settle = 1;
     let cfg_tizen = false;
     let prev_settle = 1;
-    let prev_activity = null;
 
     function createSnowflakes() {
         snowflakes = [];
@@ -135,7 +133,7 @@
         for (let i = 0; i < cards.length && i < max; i++) {
             const r = cards[i].getBoundingClientRect();
             if (r.bottom < 0 || r.top > H) continue;
-            if (r.width > W * 0.9) continue; // исключаем слишком большие элементы
+            if (r.width > W * 0.9) continue;
             const y = r.top + 2;
             if (y < 0 || y > H) continue;
             const x1 = r.left + 10;
@@ -182,14 +180,6 @@
             }
         }
         fadeRaf = requestAnimationFrame(step);
-    }
-
-    function resetFallingFlakes() {
-        snowflakes.forEach(flake => {
-            flake.y = -flake.radius - Math.random() * H * 0.5;
-            flake.x = Math.random() * W;
-            flake.angle = Math.random() * Math.PI * 2;
-        });
     }
 
     let running = false;
@@ -258,13 +248,10 @@
 
     let scrollDebounce = 0;
     function onScroll() {
-        if (scrollDebounce) return;
+        if (scrollDebounce || !cfg_settle) return;
         scrollDebounce = setTimeout(() => {
             scrollDebounce = 0;
-            if (cfg_settle) {
-                shakeOffAccumulation();
-                resetFallingFlakes();
-            }
+            shakeOffAccumulation(); // только накопленный снег
         }, 100);
     }
     document.addEventListener('scroll', onScroll, true);
@@ -300,7 +287,6 @@
         cfg_tizen = cfg.tizen;
         prev_settle = cfg.settle;
 
-        // При смене активности или включении оседания — очищаем старый снег
         if (forceClear || settleChanged) {
             clearAccumulation();
         }
@@ -345,16 +331,14 @@
     function init() {
         addSettings();
 
-        // Очищаем при смене активности
         try {
             Lampa.Listener.follow('activity', e => {
                 if (e.type === 'start') {
-                    applyConfig(true); // forceClear = true при переходе
+                    applyConfig(true); // полная очистка при смене экрана
                 }
             });
         } catch (e) {}
 
-        // Плеер
         try {
             if (Lampa.Player && Lampa.Player.listener) {
                 Lampa.Player.listener.follow('start', () => { inPlayer = true; stop(); });
@@ -363,7 +347,7 @@
         } catch (e) {}
 
         setInterval(() => applyConfig(), 800);
-        applyConfig(true); // начальная очистка
+        applyConfig(true);
     }
 
     if (window.Lampa) init();
