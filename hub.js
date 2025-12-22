@@ -34,16 +34,7 @@
         try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; }
     }
 
-    const ALLOWED_COMPONENTS = {
-        main:1, home:1, start:1, cub:1,
-        movies:1, movie:1, full:1,
-        tv:1, series:1, serial:1, serials:1,
-        tvshow:1, tvshows:1, category:1, categories:1,
-        catalog:1, genre:1, genres:1
-    };
-
-    let currentActivity = 'main';
-    let prevActivity = '';
+    // Снег везде, кроме плеера
     let inPlayer = false;
 
     let fallCanvas = null, fallCtx = null;
@@ -109,13 +100,14 @@
     let cfg_settle = 1;
     let cfg_tizen = false;
     let prev_settle = 1;
+    let prev_activity = null;
 
     function createSnowflakes() {
         snowflakes = [];
         for (let i = 0; i < cfg_flakeCount; i++) {
             snowflakes.push({
                 x: Math.random() * W,
-                y: Math.random() * H - H * 0.5, // стартуют сверху или вверху экрана
+                y: Math.random() * H - H * 0.5,
                 radius: Math.random() * 3 + 1,
                 speed: Math.random() * 1.5 + 0.5,
                 opacity: Math.random() * 0.5 + 0.5,
@@ -132,7 +124,7 @@
             surfaces = [];
             return;
         }
-        const sels = ['.card__view', '.card', '[data-card]', '.full-start__poster'];
+        const sels = ['.card__view', '.card', '[data-card]', '.full-start__poster', '.poster'];
         const cards = [];
         sels.forEach(sel => {
             try { document.querySelectorAll(sel).forEach(el => cards.push(el)); } catch (e) {}
@@ -143,7 +135,7 @@
         for (let i = 0; i < cards.length && i < max; i++) {
             const r = cards[i].getBoundingClientRect();
             if (r.bottom < 0 || r.top > H) continue;
-            if (r.width > W * 0.85) continue;
+            if (r.width > W * 0.9) continue; // исключаем слишком большие элементы
             const y = r.top + 2;
             if (y < 0 || y > H) continue;
             const x1 = r.left + 10;
@@ -178,7 +170,7 @@
             const progress = Math.min((performance.now() - start) / duration, 1);
             accCtx.save();
             accCtx.globalCompositeOperation = 'destination-out';
-            accCtx.fillStyle = `rgba(0,0,0,${0.9})`;
+            accCtx.fillStyle = 'rgba(0,0,0,0.9)';
             accCtx.fillRect(0, 0, W, H);
             accCtx.restore();
 
@@ -208,7 +200,6 @@
 
         fallCtx.clearRect(0, 0, W, H);
 
-        // Всегда актуальные поверхности — каждый кадр
         if (cfg_settle && !cfg_tizen) buildSurfaces();
 
         snowflakes.forEach(flake => {
@@ -272,7 +263,7 @@
             scrollDebounce = 0;
             if (cfg_settle) {
                 shakeOffAccumulation();
-                resetFallingFlakes(); // все снежинки перезапускаются сверху — нет зависаний!
+                resetFallingFlakes();
             }
         }, 100);
     }
@@ -300,9 +291,8 @@
         };
     }
 
-    function applyConfig() {
+    function applyConfig(forceClear = false) {
         const cfg = computeConfig();
-        const activityChanged = currentActivity !== prevActivity;
         const settleChanged = cfg.settle !== prev_settle;
 
         cfg_flakeCount = cfg.flakeCount;
@@ -310,18 +300,12 @@
         cfg_tizen = cfg.tizen;
         prev_settle = cfg.settle;
 
-        // При смене экрана — полная очистка накопленного снега
-        if (activityChanged && cfg_settle) {
+        // При смене активности или включении оседания — очищаем старый снег
+        if (forceClear || settleChanged) {
             clearAccumulation();
         }
 
-        if (settleChanged && !cfg.settle) {
-            clearAccumulation();
-        }
-
-        prevActivity = currentActivity;
-
-        const shouldRun = cfg.enabled && !inPlayer && ALLOWED_COMPONENTS[currentActivity];
+        const shouldRun = cfg.enabled && !inPlayer;
 
         if (shouldRun) {
             start();
@@ -342,7 +326,7 @@
         Lampa.SettingsApi.addParam({
             component: 'snowfx',
             param: { name: KEY_ENABLED, type: 'select', values: {0:'Выкл',1:'Вкл'}, default:1 },
-            field: { name: 'Снег', description: 'На всех экранах, включая карточки фильмов' }
+            field: { name: 'Снег', description: 'На всех экранах кроме плеера' }
         });
 
         Lampa.SettingsApi.addParam({
@@ -354,22 +338,23 @@
         Lampa.SettingsApi.addParam({
             component: 'snowfx',
             param: { name: KEY_SETTLE, type: 'select', values: {0:'Выкл',1:'Вкл'}, default:1 },
-            field: { name: 'Оседание на карточках', description: 'Снег накапливается на постерах' }
+            field: { name: 'Оседание на постерах', description: 'Снег накапливается на карточках и большом постере' }
         });
     }
 
     function init() {
         addSettings();
 
+        // Очищаем при смене активности
         try {
             Lampa.Listener.follow('activity', e => {
                 if (e.type === 'start') {
-                    currentActivity = e.component || 'main';
-                    applyConfig();
+                    applyConfig(true); // forceClear = true при переходе
                 }
             });
         } catch (e) {}
 
+        // Плеер
         try {
             if (Lampa.Player && Lampa.Player.listener) {
                 Lampa.Player.listener.follow('start', () => { inPlayer = true; stop(); });
@@ -377,8 +362,8 @@
             }
         } catch (e) {}
 
-        setInterval(applyConfig, 800);
-        applyConfig();
+        setInterval(() => applyConfig(), 800);
+        applyConfig(true); // начальная очистка
     }
 
     if (window.Lampa) init();
