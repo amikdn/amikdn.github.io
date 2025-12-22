@@ -115,34 +115,6 @@
         }
     }
 
-    let surfaces = [];
-
-    function buildSurfaces() {
-        if (cfg_tizen || !cfg_settle) {
-            surfaces = [];
-            return;
-        }
-        const sels = ['.card__view', '.card', '[data-card]', '.full-start__poster', '.poster'];
-        const cards = [];
-        sels.forEach(sel => {
-            try { document.querySelectorAll(sel).forEach(el => cards.push(el)); } catch (e) {}
-        });
-
-        surfaces = [];
-        const max = 60;
-        for (let i = 0; i < cards.length && i < max; i++) {
-            const r = cards[i].getBoundingClientRect();
-            if (r.bottom < 0 || r.top > H) continue;
-            if (r.width > W * 0.9) continue;
-            const y = r.top + 2;
-            if (y < 0 || y > H) continue;
-            const x1 = r.left + 10;
-            const x2 = r.right - 10;
-            if (x2 - x1 < 60) continue;
-            surfaces.push({ x1, x2, y });
-        }
-    }
-
     function drawAccDot(x, y, radius, opacity) {
         if (!accCtx || !sprite) return;
         accCtx.globalAlpha = opacity;
@@ -154,7 +126,6 @@
     function clearAccumulation() {
         if (!accCtx) return;
         accCtx.clearRect(0, 0, W, H);
-        surfaces = [];
     }
 
     let fadeRaf = 0;
@@ -190,42 +161,81 @@
 
         fallCtx.clearRect(0, 0, W, H);
 
-        if (cfg_settle && !cfg_tizen) buildSurfaces();
+        // Перестраиваем поверхности каждый кадр — только актуальные элементы
+        if (cfg_settle && !cfg_tizen) {
+            const sels = ['.card__view', '.card', '[data-card]', '.full-start__poster', '.poster'];
+            const cards = [];
+            sels.forEach(sel => {
+                try { document.querySelectorAll(sel).forEach(el => cards.push(el)); } catch (e) {}
+            });
 
-        snowflakes.forEach(flake => {
-            fallCtx.beginPath();
-            fallCtx.arc(flake.x, flake.y, flake.radius, 0, Math.PI * 2);
-            fallCtx.fillStyle = `rgba(255, 255, 255, ${flake.opacity})`;
-            fallCtx.fill();
+            const surfaces = [];
+            const max = 60;
+            for (let i = 0; i < cards.length && i < max; i++) {
+                const r = cards[i].getBoundingClientRect();
+                if (r.bottom < 0 || r.top > H) continue;
+                if (r.width > W * 0.9) continue;
+                const y = r.top + 2;
+                if (y < 0 || y > H) continue;
+                const x1 = r.left + 10;
+                const x2 = r.right - 10;
+                if (x2 - x1 < 60) continue;
+                surfaces.push({ x1, x2, y });
+            }
 
-            flake.y += flake.speed;
-            flake.x += flake.drift + Math.sin(flake.angle) * 0.5;
-            flake.angle += 0.01;
+            snowflakes.forEach(flake => {
+                fallCtx.beginPath();
+                fallCtx.arc(flake.x, flake.y, flake.radius, 0, Math.PI * 2);
+                fallCtx.fillStyle = `rgba(255, 255, 255, ${flake.opacity})`;
+                fallCtx.fill();
 
-            let settled = false;
+                flake.y += flake.speed;
+                flake.x += flake.drift + Math.sin(flake.angle) * 0.5;
+                flake.angle += 0.01;
 
-            if (cfg_settle && !cfg_tizen) {
-                if (flake.y > H - 10) {
-                    drawAccDot(flake.x, H - 10, flake.radius, Math.min(0.9, flake.opacity + 0.1));
-                    settled = true;
-                } else {
-                    for (const s of surfaces) {
-                        if (flake.x >= s.x1 && flake.x <= s.x2 && flake.y >= s.y - 5 && flake.y <= s.y + 5) {
-                            drawAccDot(flake.x, s.y - 1, flake.radius, Math.min(0.9, flake.opacity + 0.15));
-                            if (Math.random() < 0.5) drawAccDot(flake.x + Math.random()*10-5, s.y - 1, flake.radius*0.85, Math.min(0.8, flake.opacity));
-                            settled = true;
-                            break;
+                let settled = false;
+
+                if (cfg_settle && !cfg_tizen) {
+                    if (flake.y > H - 10) {
+                        drawAccDot(flake.x, H - 10, flake.radius, Math.min(0.9, flake.opacity + 0.1));
+                        settled = true;
+                    } else {
+                        for (const s of surfaces) {
+                            if (flake.x >= s.x1 && flake.x <= s.x2 && flake.y >= s.y - 5 && flake.y <= s.y + 5) {
+                                drawAccDot(flake.x, s.y - 1, flake.radius, Math.min(0.9, flake.opacity + 0.15));
+                                if (Math.random() < 0.5) drawAccDot(flake.x + Math.random()*10-5, s.y - 1, flake.radius*0.85, Math.min(0.8, flake.opacity));
+                                settled = true;
+                                break;
+                            }
                         }
                     }
                 }
-            }
 
-            if (settled || flake.y > H + flake.radius) {
-                flake.y = -flake.radius - Math.random() * H * 0.3;
-                flake.x = Math.random() * W;
-                flake.angle = Math.random() * Math.PI * 2;
-            }
-        });
+                if (settled || flake.y > H + flake.radius) {
+                    flake.y = -flake.radius - Math.random() * H * 0.3;
+                    flake.x = Math.random() * W;
+                    flake.angle = Math.random() * Math.PI * 2;
+                }
+            });
+        } else {
+            // Если оседание выключено — обычное падение
+            snowflakes.forEach(flake => {
+                fallCtx.beginPath();
+                fallCtx.arc(flake.x, flake.y, flake.radius, 0, Math.PI * 2);
+                fallCtx.fillStyle = `rgba(255, 255, 255, ${flake.opacity})`;
+                fallCtx.fill();
+
+                flake.y += flake.speed;
+                flake.x += flake.drift + Math.sin(flake.angle) * 0.5;
+                flake.angle += 0.01;
+
+                if (flake.y > H + flake.radius) {
+                    flake.y = -flake.radius - Math.random() * H * 0.3;
+                    flake.x = Math.random() * W;
+                    flake.angle = Math.random() * Math.PI * 2;
+                }
+            });
+        }
 
         rafId = requestAnimationFrame(animate);
     }
@@ -251,7 +261,7 @@
         if (scrollDebounce || !cfg_settle) return;
         scrollDebounce = setTimeout(() => {
             scrollDebounce = 0;
-            shakeOffAccumulation(); // только накопленный снег
+            shakeOffAccumulation(); // только накопленный
         }, 100);
     }
     document.addEventListener('scroll', onScroll, true);
@@ -334,7 +344,8 @@
         try {
             Lampa.Listener.follow('activity', e => {
                 if (e.type === 'start') {
-                    applyConfig(true); // полная очистка при смене экрана
+                    clearAccumulation(); // ключевой фикс — очистка при смене экрана
+                    applyConfig();
                 }
             });
         } catch (e) {}
