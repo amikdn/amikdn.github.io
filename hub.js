@@ -1,17 +1,14 @@
 (function () {
-  'use strict';
+    'use strict';
 
-  // Защита от повторной загрузки
-  if (window.__snowfx_loaded__) return;
-  window.__snowfx_loaded__ = true;
+    if (window.__snowfx_loaded__) return;
+    window.__snowfx_loaded__ = true;
 
-  // Ключи настроек
-  const KEY_ENABLED = 'snowfx_enabled';
-  const KEY_DENSITY = 'snowfx_density';   // 0=авто, 1=мало, 2=средне, 3=много
-  const KEY_SETTLE  = 'snowfx_settle';    // оседание на карточках
+    const KEY_ENABLED = 'snowfx_enabled';
+    const KEY_DENSITY = 'snowfx_density';   // 0=авто, 1=мало, 2=средне, 3=много
+    const KEY_SETTLE  = 'snowfx_settle';    // оседание
 
-  // Иконка снежинки для меню
-  const SNOW_ICON = `
+    const SNOW_ICON = `
     <svg class="snowfx-menu-icon" width="88" height="83" viewBox="0 0 88 83" xmlns="http://www.w3.org/2000/svg">
       <g fill="currentColor" fill-rule="evenodd" clip-rule="evenodd">
         <path d="M40 7H48V76H40Z"/>
@@ -25,331 +22,368 @@
       </g>
     </svg>`;
 
-  // === Утилиты ===
-  function storageGet(key, def) {
-    try {
-      if (Lampa && Lampa.Storage && Lampa.Storage.get) return Lampa.Storage.get(key, def);
-    } catch (e) {}
-    return def;
-  }
-
-  function isTizen() {
-    try { return Lampa.Platform.is('tizen'); } catch (e) { return false; }
-  }
-
-  function prefersReduceMotion() {
-    try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; }
-  }
-
-  // Разрешённые экраны
-  const ALLOWED_COMPONENTS = {
-    main:1, home:1, start:1, cub:1,
-    movies:1, movie:1, tv:1, series:1, serial:1, serials:1,
-    tvshow:1, tvshows:1, category:1, categories:1,
-    catalog:1, genre:1, genres:1
-  };
-
-  let currentActivity = 'main'; // по умолчанию считаем разрешённым
-  let inPlayer = false;
-
-  // === Canvas и спрайт ===
-  let fallCanvas = null, fallCtx = null;
-  let accCanvas = null, accCtx = null;
-  let sprite = null;
-  let W = 0, H = 0, dpr = 1;
-
-  function makeSprite() {
-    if (sprite) return;
-    const c = document.createElement('canvas');
-    c.width = c.height = 12;
-    const ctx = c.getContext('2d');
-    ctx.fillStyle = '#ffffff';
-    ctx.beginPath();
-    ctx.arc(6, 6, 5, 0, Math.PI * 2);
-    ctx.fill();
-    sprite = c;
-  }
-
-  function ensureCanvases() {
-    if (fallCanvas) return;
-
-    makeSprite();
-
-    fallCanvas = document.createElement('canvas');
-    fallCanvas.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:999999;';
-    document.body.appendChild(fallCanvas);
-    fallCtx = fallCanvas.getContext('2d');
-
-    accCanvas = document.createElement('canvas');
-    accCanvas.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:999998;';
-    document.body.appendChild(accCanvas);
-    accCtx = accCanvas.getContext('2d');
-
-    window.addEventListener('resize', resize);
-    resize();
-  }
-
-  function removeCanvases() {
-    if (fallCanvas && fallCanvas.parentNode) fallCanvas.parentNode.removeChild(fallCanvas);
-    if (accCanvas && accCanvas.parentNode) accCanvas.parentNode.removeChild(accCanvas);
-    fallCanvas = fallCtx = accCanvas = accCtx = null;
-  }
-
-  function resize() {
-    if (!fallCanvas) return;
-    dpr = isTizen() ? 1 : Math.min(window.devicePixelRatio || 1, 2);
-    W = window.innerWidth || 1;
-    H = window.innerHeight || 1;
-
-    fallCanvas.width = accCanvas.width = W * dpr;
-    fallCanvas.height = accCanvas.height = H * dpr;
-
-    fallCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    accCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
-
-    resetAccumulation();
-  }
-
-  // === Снежинки ===
-  let flakes = [];
-  let cfg_flakes = 120;
-  let cfg_settle = 1;
-  let cfg_tizen = false;
-
-  function spawnFlake() {
-    return {
-      x: Math.random() * W,
-      y: Math.random() * H - H,
-      r: Math.random() * 2 + 1,
-      vy: Math.random() * 0.8 + 0.7,
-      vx: Math.random() * 0.6 - 0.3,
-      a: Math.random() * 0.5 + 0.5
-    };
-  }
-
-  function applyFlakeCount(n) {
-    n = Math.max(20, n | 0);
-    while (flakes.length < n) flakes.push(spawnFlake());
-    if (flakes.length > n) flakes.length = n;
-  }
-
-  // === Оседание ===
-  let surfaces = [];
-
-  function getCardElements() {
-    const selectors = ['.card__view', '.card', '[data-card]'];
-    const list = [];
-    selectors.forEach(s => {
-      try { document.querySelectorAll(s).forEach(el => list.push(el)); } catch (e) {}
-    });
-    return list.filter(el => {
-      try {
-        const r = el.getBoundingClientRect();
-        return r.width > 80 && r.height > 80;
-      } catch (e) { return false; }
-    });
-  }
-
-  function buildSurfaces() {
-    if (cfg_tizen || !cfg_settle) {
-      surfaces = [];
-      return;
+    // === Утилиты ===
+    function storageGet(key, def) {
+        try { return Lampa.Storage.get(key, def); } catch (e) { return def; }
     }
-    const cards = getCardElements();
-    surfaces = [];
-    const max = 50;
-    cards.slice(0, max).forEach(el => {
-      const r = el.getBoundingClientRect();
-      if (r.top > H || r.bottom < 0) return;
-      if (r.width > W * 0.9) return;
-      surfaces.push({
-        x1: r.left + 10,
-        x2: r.right - 10,
-        y: r.top + 2
-      });
-    });
-  }
 
-  function drawAccumulated(x, y, r, a) {
-    if (!accCtx || !sprite) return;
-    accCtx.globalAlpha = a;
-    const s = (r * 2) | 0;
-    accCtx.drawImage(sprite, x - s/2, y - s/2, s, s);
-    accCtx.globalAlpha = 1;
-  }
+    function isTizen() {
+        try { return Lampa.Platform.is('tizen'); } catch (e) { return false; }
+    }
 
-  function resetAccumulation() {
-    if (!accCtx) return;
-    accCtx.clearRect(0, 0, W, H);
-    setTimeout(buildSurfaces, 300);
-  }
+    function prefersReduceMotion() {
+        try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; }
+    }
 
-  // === Анимация ===
-  let running = false;
-  let rafId = 0;
+    const ALLOWED_COMPONENTS = {
+        main:1, home:1, start:1, cub:1,
+        movies:1, movie:1, tv:1, series:1, serial:1, serials:1,
+        tvshow:1, tvshows:1, category:1, categories:1,
+        catalog:1, genre:1, genres:1
+    };
 
-  function loop() {
-    if (!running) return;
-    fallCtx.clearRect(0, 0, W, H);
+    let currentActivity = 'main';
+    let inPlayer = false;
 
-    flakes.forEach(f => {
-      f.y += f.vy;
-      f.x += f.vx + (cfg_tizen ? 0 : Math.sin(f.y * 0.01) * 0.3);
+    // === Canvas ===
+    let fallCanvas = null, fallCtx = null;
+    let accCanvas = null, accCtx = null;
+    let sprite = null;
+    let W = 0, H = 0, dpr = 1;
 
-      if (cfg_settle && !cfg_tizen) {
-        if (f.y >= H - 10) {
-          drawAccumulated(f.x, H - 10, f.r, f.a);
-          f.y = -10; f.x = Math.random() * W;
-        } else {
-          for (const s of surfaces) {
-            if (f.x > s.x1 && f.x < s.x2 && Math.abs(f.y - s.y) < 5) {
-              drawAccumulated(f.x, s.y, f.r, f.a + 0.1);
-              if (Math.random() < 0.4) drawAccumulated(f.x + Math.random()*8-4, s.y-1, f.r*0.8, f.a);
-              f.y = -10; f.x = Math.random() * W;
-              break;
+    function makeSprite() {
+        if (sprite) return;
+        const c = document.createElement('canvas');
+        c.width = c.height = 12;
+        const ctx = c.getContext('2d');
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(6, 6, 5, 0, Math.PI * 2);
+        ctx.fill();
+        sprite = c;
+    }
+
+    function ensureCanvases() {
+        if (fallCanvas) return;
+
+        makeSprite();
+
+        fallCanvas = document.createElement('canvas');
+        fallCanvas.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:999999;';
+        document.body.appendChild(fallCanvas);
+        fallCtx = fallCanvas.getContext('2d');
+
+        accCanvas = document.createElement('canvas');
+        accCanvas.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:999998;';
+        document.body.appendChild(accCanvas);
+        accCtx = accCanvas.getContext('2d');
+
+        window.addEventListener('resize', resize);
+        resize();
+    }
+
+    function removeCanvases() {
+        if (fallCanvas && fallCanvas.parentNode) fallCanvas.parentNode.removeChild(fallCanvas);
+        if (accCanvas && accCanvas.parentNode) accCanvas.parentNode.removeChild(accCanvas);
+        fallCanvas = fallCtx = accCanvas = accCtx = null;
+    }
+
+    function resize() {
+        if (!fallCanvas) return;
+        dpr = isTizen() ? 1 : Math.min(window.devicePixelRatio || 1, 2);
+        W = window.innerWidth || 1;
+        H = window.innerHeight || 1;
+
+        fallCanvas.width = accCanvas.width = W * dpr;
+        fallCanvas.height = accCanvas.height = H * dpr;
+
+        fallCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        accCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+        resetAccumulationHard();
+        createSnowflakes(); // пересоздаём снежинки под новый размер
+    }
+
+    // === Снежинки — точно из snow_bl.js ===
+    let snowflakes = [];
+    let cfg_flakeCount = 120;
+    let cfg_settle = 1;
+    let cfg_tizen = false;
+
+    function createSnowflakes() {
+        snowflakes.length = 0;
+        for (let i = 0; i < cfg_flakeCount; i++) {
+            snowflakes.push({
+                x: Math.random() * W,
+                y: Math.random() * H, // стартуют по всей высоте, как в оригинале
+                radius: Math.random() * 3 + 1,
+                speed: Math.random() * 1.5 + 0.5,
+                opacity: Math.random() * 0.5 + 0.5,
+                drift: Math.random() * 2 - 1,
+                angle: Math.random() * Math.PI * 2
+            });
+        }
+    }
+
+    // === Оседание ===
+    let surfaces = [];
+
+    function getCardElements() {
+        const sels = ['.card__view', '.card', '[data-card]'];
+        const list = [];
+        sels.forEach(sel => {
+            try { document.querySelectorAll(sel).forEach(el => list.push(el)); } catch (e) {}
+        });
+        return list.filter(el => {
+            try {
+                const r = el.getBoundingClientRect();
+                return r.width > 90 && r.height > 90;
+            } catch (e) { return false; }
+        });
+    }
+
+    function buildSurfaces() {
+        if (cfg_tizen || !cfg_settle) {
+            surfaces = [];
+            return;
+        }
+        const cards = getCardElements();
+        surfaces = [];
+        const max = 50;
+        for (let i = 0; i < cards.length && i < max; i++) {
+            const r = cards[i].getBoundingClientRect();
+            if (r.bottom < 0 || r.top > H) continue;
+            if (r.width > W * 0.82) continue;
+            const y = r.top + 2;
+            if (y < 0 || y > H) continue;
+            const x1 = r.left + 10;
+            const x2 = r.right - 10;
+            if (x2 - x1 < 60) continue;
+            surfaces.push({ x1, x2, y });
+        }
+    }
+
+    function drawAccDot(x, y, radius, opacity) {
+        if (!accCtx || !sprite) return;
+        accCtx.globalAlpha = opacity;
+        const size = (radius * 2) | 0;
+        accCtx.drawImage(sprite, x - size/2, y - size/2, size, size);
+        accCtx.globalAlpha = 1;
+    }
+
+    function resetAccumulationHard() {
+        if (!accCtx || cfg_tizen || !cfg_settle) return;
+        accCtx.clearRect(0, 0, W, H);
+        surfaces = [];
+        setTimeout(buildSurfaces, 300);
+    }
+
+    let fadeRaf = 0;
+    function resetAccumulationSoft() {
+        if (!accCtx || cfg_tizen || !cfg_settle || fadeRaf) return;
+
+        const start = performance.now();
+        const duration = 320;
+
+        function step() {
+            accCtx.save();
+            accCtx.globalCompositeOperation = 'destination-out';
+            accCtx.fillStyle = 'rgba(0,0,0,0.22)';
+            accCtx.fillRect(0, 0, W, H);
+            accCtx.restore();
+
+            if (performance.now() - start < duration) {
+                fadeRaf = requestAnimationFrame(step);
+            } else {
+                fadeRaf = 0;
+                accCtx.clearRect(0, 0, W, H);
+                surfaces = [];
+                setTimeout(buildSurfaces, 160);
             }
-          }
         }
-      }
-
-      if (f.y > H + 10) { f.y = -10; f.x = Math.random() * W; }
-
-      fallCtx.globalAlpha = f.a;
-      const s = (f.r * 2) | 0;
-      fallCtx.drawImage(sprite, f.x - s/2, f.y - s/2, s, s);
-    });
-    fallCtx.globalAlpha = 1;
-
-    rafId = requestAnimationFrame(loop);
-  }
-
-  function start() {
-    if (running || prefersReduceMotion()) return;
-    ensureCanvases();
-    applyFlakeCount(cfg_flakes);
-    buildSurfaces();
-    running = true;
-    rafId = requestAnimationFrame(loop);
-  }
-
-  function stop() {
-    if (rafId) cancelAnimationFrame(rafId);
-    rafId = 0;
-    running = false;
-    removeCanvases();
-    flakes = [];
-  }
-
-  // === Прокрутка ===
-  let scrollTimer = 0;
-  function onScroll() {
-    clearTimeout(scrollTimer);
-    scrollTimer = setTimeout(resetAccumulation, 150);
-  }
-  document.addEventListener('scroll', onScroll, true);
-  document.addEventListener('wheel', onScroll, {passive:true});
-  document.addEventListener('touchmove', onScroll, {passive:true});
-
-  // === Конфиг ===
-  function computeConfig() {
-    const tizen = isTizen();
-    const density = parseInt(storageGet(KEY_DENSITY, '0')) || 0;
-
-    let flakes = 120;
-    if (tizen) flakes = 45;
-    else if (density === 1) flakes = 90;
-    else if (density === 2) flakes = 160;
-    else if (density === 3) flakes = 240;
-
-    return {
-      enabled: !!parseInt(storageGet(KEY_ENABLED, '1')),
-      flakes: flakes,
-      settle: tizen ? 0 : parseInt(storageGet(KEY_SETTLE, '1')),
-      tizen: tizen
-    };
-  }
-
-  function applyConfig() {
-    const cfg = computeConfig();
-    cfg_flakes = cfg.flakes;
-    cfg_settle = cfg.settle;
-    cfg_tizen = cfg.tizen;
-
-    const shouldRun = cfg.enabled && !inPlayer && ALLOWED_COMPONENTS[currentActivity];
-
-    if (shouldRun) {
-      start();
-      applyFlakeCount(cfg.flakes);
-    } else {
-      stop();
+        fadeRaf = requestAnimationFrame(step);
     }
-  }
 
-  // === Настройки в меню ===
-  function addSettings() {
-    if (!Lampa.SettingsApi) return;
+    // === Анимация ===
+    let running = false;
+    let rafId = 0;
 
-    Lampa.SettingsApi.addComponent({
-      component: 'snowfx',
-      name: 'Снег',
-      icon: SNOW_ICON
-    });
+    function animate() {
+        if (!running) return;
 
-    Lampa.SettingsApi.addParam({
-      component: 'snowfx',
-      param: { name: KEY_ENABLED, type: 'select', values: {0:'Выкл',1:'Вкл'}, default:1 },
-      field: { name: 'Снег', description: 'На главных экранах и в каталогах' }
-    });
+        fallCtx.clearRect(0, 0, W, H);
 
-    Lampa.SettingsApi.addParam({
-      component: 'snowfx',
-      param: { name: KEY_DENSITY, type: 'select', values: {0:'Авто',1:'Мало',2:'Средне',3:'Много'}, default:0 },
-      field: { name: 'Плотность снега', description: 'На Tizen всегда низкая' }
-    });
+        if (cfg_settle && !cfg_tizen) buildSurfaces();
 
-    Lampa.SettingsApi.addParam({
-      component: 'snowfx',
-      param: { name: KEY_SETTLE, type: 'select', values: {0:'Выкл',1:'Вкл'}, default:1 },
-      field: { name: 'Оседание на карточках', description: 'Снег накапливается сверху постеров' }
-    });
-  }
+        snowflakes.forEach(flake => {
+            // Рисование
+            fallCtx.beginPath();
+            fallCtx.arc(flake.x, flake.y, flake.radius, 0, Math.PI * 2);
+            fallCtx.fillStyle = `rgba(255, 255, 255, ${flake.opacity})`;
+            fallCtx.fill();
 
-  // === Запуск ===
-  function init() {
-    addSettings();
+            // Движение — точно как в snow_bl.js
+            flake.y += flake.speed;
+            flake.x += flake.drift + Math.sin(flake.angle) * 0.5;
+            flake.angle += 0.01;
 
-    // Слушаем смену экрана
-    try {
-      Lampa.Listener.follow('activity', e => {
-        if (e.type === 'start' && e.component) {
-          currentActivity = e.component;
-          applyConfig();
+            // Оседание
+            if (cfg_settle && !cfg_tizen) {
+                let settled = false;
+
+                // На дне экрана
+                if (flake.y > H - 10) {
+                    drawAccDot(flake.x, H - 10, flake.radius, Math.min(0.9, flake.opacity + 0.1));
+                    settled = true;
+                } else {
+                    // На карточках
+                    for (const s of surfaces) {
+                        if (flake.x >= s.x1 && flake.x <= s.x2 && flake.y >= s.y - 3 && flake.y <= s.y + 3) {
+                            drawAccDot(flake.x, s.y - 1, flake.radius, Math.min(0.9, flake.opacity + 0.15));
+                            if (Math.random() < 0.5) drawAccDot(flake.x + Math.random()*8-4, s.y - 1, flake.radius*0.85, Math.min(0.8, flake.opacity));
+                            settled = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (settled) {
+                    flake.y = -flake.radius;
+                    flake.x = Math.random() * W;
+                    return;
+                }
+            }
+
+            // Вылет за низ — возврат сверху
+            if (flake.y > H + flake.radius) {
+                flake.y = -flake.radius;
+                flake.x = Math.random() * W;
+            }
+        });
+
+        rafId = requestAnimationFrame(animate);
+    }
+
+    function start() {
+        if (running || prefersReduceMotion()) return;
+        ensureCanvases();
+        createSnowflakes();
+        running = true;
+        rafId = requestAnimationFrame(animate);
+    }
+
+    function stop() {
+        if (rafId) cancelAnimationFrame(rafId);
+        rafId = 0;
+        running = false;
+        removeCanvases();
+        snowflakes = [];
+    }
+
+    // === Прокрутка ===
+    let scrollDebounce = 0;
+    function onScroll() {
+        if (scrollDebounce) return;
+        scrollDebounce = setTimeout(() => {
+            scrollDebounce = 0;
+            resetAccumulationSoft();
+        }, 120);
+    }
+    document.addEventListener('scroll', onScroll, true);
+    document.addEventListener('wheel', onScroll, {passive:true});
+    document.addEventListener('touchmove', onScroll, {passive:true});
+
+    // === Конфиг ===
+    function computeConfig() {
+        const tizen = isTizen();
+        const density = parseInt(storageGet(KEY_DENSITY, '0'), 10) || 0;
+
+        let count = 120;
+        if (tizen) count = 45;
+        else if (density === 1) count = 90;
+        else if (density === 2) count = 180;
+        else if (density === 3) count = 240;
+
+        return {
+            enabled: !!parseInt(storageGet(KEY_ENABLED, '1'), 10),
+            flakeCount: count,
+            settle: tizen ? 0 : parseInt(storageGet(KEY_SETTLE, '1'), 10),
+            tizen: tizen
+        };
+    }
+
+    function applyConfig() {
+        const cfg = computeConfig();
+        cfg_flakeCount = cfg.flakeCount;
+        cfg_settle = cfg.settle;
+        cfg_tizen = cfg.tizen;
+
+        const shouldRun = cfg.enabled && !inPlayer && ALLOWED_COMPONENTS[currentActivity];
+
+        if (shouldRun) {
+            start();
+        } else {
+            stop();
         }
-      });
-    } catch (e) {}
+    }
 
-    // Слушаем плеер
-    try {
-      if (Lampa.Player && Lampa.Player.listener) {
-        Lampa.Player.listener.follow('start', () => { inPlayer = true; stop(); });
-        Lampa.Player.listener.follow('destroy', () => { inPlayer = false; applyConfig(); });
-      }
-    } catch (e) {}
+    // === Настройки ===
+    function addSettings() {
+        if (!Lampa.SettingsApi) return;
 
-    // Реагируем на изменение настроек
-    setInterval(applyConfig, 1000);
+        Lampa.SettingsApi.addComponent({
+            component: 'snowfx',
+            name: 'Снег',
+            icon: SNOW_ICON
+        });
 
-    applyConfig();
-  }
+        Lampa.SettingsApi.addParam({
+            component: 'snowfx',
+            param: { name: KEY_ENABLED, type: 'select', values: {0:'Выкл',1:'Вкл'}, default:1 },
+            field: { name: 'Снег', description: 'На главных экранах и каталогах' }
+        });
 
-  // Ждём Lampa
-  if (window.Lampa) init();
-  else {
-    const timer = setInterval(() => {
-      if (window.Lampa) {
-        clearInterval(timer);
-        init();
-      }
-    }, 300);
-  }
+        Lampa.SettingsApi.addParam({
+            component: 'snowfx',
+            param: { name: KEY_DENSITY, type: 'select', values: {0:'Авто',1:'Мало',2:'Средне',3:'Много'}, default:0 },
+            field: { name: 'Плотность снега', description: 'На Tizen ограничена' }
+        });
+
+        Lampa.SettingsApi.addParam({
+            component: 'snowfx',
+            param: { name: KEY_SETTLE, type: 'select', values: {0:'Выкл',1:'Вкл'}, default:1 },
+            field: { name: 'Оседание на карточках', description: 'Снег накапливается сверху постеров' }
+        });
+    }
+
+    // === Запуск ===
+    function init() {
+        addSettings();
+
+        try {
+            Lampa.Listener.follow('activity', e => {
+                if (e.type === 'start') {
+                    currentActivity = e.component || 'main';
+                    applyConfig();
+                }
+            });
+        } catch (e) {}
+
+        try {
+            if (Lampa.Player && Lampa.Player.listener) {
+                Lampa.Player.listener.follow('start', () => { inPlayer = true; stop(); });
+                Lampa.Player.listener.follow('destroy', () => { inPlayer = false; applyConfig(); });
+            }
+        } catch (e) {}
+
+        setInterval(applyConfig, 800);
+        applyConfig();
+    }
+
+    if (window.Lampa) init();
+    else {
+        const timer = setInterval(() => {
+            if (window.Lampa) { clearInterval(timer); init(); }
+        }, 300);
+    }
 })();
