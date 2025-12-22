@@ -22,7 +22,6 @@
       </g>
     </svg>`;
 
-    // === Утилиты ===
     function storageGet(key, def) {
         try { return Lampa.Storage.get(key, def); } catch (e) { return def; }
     }
@@ -47,7 +46,6 @@
     let prevActivity = '';
     let inPlayer = false;
 
-    // === Canvas ===
     let fallCanvas = null, fallCtx = null;
     let accCanvas = null, accCtx = null;
     let sprite = null;
@@ -106,7 +104,6 @@
         createSnowflakes();
     }
 
-    // === Снежинки ===
     let snowflakes = [];
     let cfg_flakeCount = 120;
     let cfg_settle = 1;
@@ -114,11 +111,11 @@
     let prev_settle = 1;
 
     function createSnowflakes() {
-        snowflakes.length = 0;
+        snowflakes = [];
         for (let i = 0; i < cfg_flakeCount; i++) {
             snowflakes.push({
                 x: Math.random() * W,
-                y: Math.random() * H,
+                y: Math.random() * H - H * 0.5, // стартуют сверху или вверху экрана
                 radius: Math.random() * 3 + 1,
                 speed: Math.random() * 1.5 + 0.5,
                 opacity: Math.random() * 0.5 + 0.5,
@@ -128,35 +125,25 @@
         }
     }
 
-    // === Оседание ===
     let surfaces = [];
-
-    function getCardElements() {
-        const sels = ['.card__view', '.card', '[data-card]', '.full-start__poster'];
-        const list = [];
-        sels.forEach(sel => {
-            try { document.querySelectorAll(sel).forEach(el => list.push(el)); } catch (e) {}
-        });
-        return list.filter(el => {
-            try {
-                const r = el.getBoundingClientRect();
-                return r.width > 90 && r.height > 90;
-            } catch (e) { return false; }
-        });
-    }
 
     function buildSurfaces() {
         if (cfg_tizen || !cfg_settle) {
             surfaces = [];
             return;
         }
-        const cards = getCardElements();
+        const sels = ['.card__view', '.card', '[data-card]', '.full-start__poster'];
+        const cards = [];
+        sels.forEach(sel => {
+            try { document.querySelectorAll(sel).forEach(el => cards.push(el)); } catch (e) {}
+        });
+
         surfaces = [];
-        const max = 50;
+        const max = 60;
         for (let i = 0; i < cards.length && i < max; i++) {
             const r = cards[i].getBoundingClientRect();
             if (r.bottom < 0 || r.top > H) continue;
-            if (r.width > W * 0.82) continue;
+            if (r.width > W * 0.85) continue;
             const y = r.top + 2;
             if (y < 0 || y > H) continue;
             const x1 = r.left + 10;
@@ -188,12 +175,10 @@
         const duration = 300;
 
         function step() {
-            const elapsed = performance.now() - start;
-            const progress = Math.min(elapsed / duration, 1);
-
+            const progress = Math.min((performance.now() - start) / duration, 1);
             accCtx.save();
             accCtx.globalCompositeOperation = 'destination-out';
-            accCtx.fillStyle = `rgba(0,0,0,0.9)`;
+            accCtx.fillStyle = `rgba(0,0,0,${0.9})`;
             accCtx.fillRect(0, 0, W, H);
             accCtx.restore();
 
@@ -202,25 +187,19 @@
             } else {
                 fadeRaf = 0;
                 clearAccumulation();
-                setTimeout(buildSurfaces, 100);
             }
         }
         fadeRaf = requestAnimationFrame(step);
     }
 
-    function resetFallingFlakesInBottom() {
-        if (!cfg_settle) return;
-
+    function resetFallingFlakes() {
         snowflakes.forEach(flake => {
-            if (flake.y > H * 0.6) {
-                flake.y = -flake.radius;
-                flake.x = Math.random() * W;
-                flake.angle = Math.random() * Math.PI * 2;
-            }
+            flake.y = -flake.radius - Math.random() * H * 0.5;
+            flake.x = Math.random() * W;
+            flake.angle = Math.random() * Math.PI * 2;
         });
     }
 
-    // === Анимация ===
     let running = false;
     let rafId = 0;
 
@@ -229,6 +208,7 @@
 
         fallCtx.clearRect(0, 0, W, H);
 
+        // Всегда актуальные поверхности — каждый кадр
         if (cfg_settle && !cfg_tizen) buildSurfaces();
 
         snowflakes.forEach(flake => {
@@ -241,32 +221,26 @@
             flake.x += flake.drift + Math.sin(flake.angle) * 0.5;
             flake.angle += 0.01;
 
-            if (cfg_settle && !cfg_tizen) {
-                let settled = false;
+            let settled = false;
 
+            if (cfg_settle && !cfg_tizen) {
                 if (flake.y > H - 10) {
                     drawAccDot(flake.x, H - 10, flake.radius, Math.min(0.9, flake.opacity + 0.1));
                     settled = true;
                 } else {
                     for (const s of surfaces) {
-                        if (flake.x >= s.x1 && flake.x <= s.x2 && flake.y >= s.y - 3 && flake.y <= s.y + 3) {
+                        if (flake.x >= s.x1 && flake.x <= s.x2 && flake.y >= s.y - 5 && flake.y <= s.y + 5) {
                             drawAccDot(flake.x, s.y - 1, flake.radius, Math.min(0.9, flake.opacity + 0.15));
-                            if (Math.random() < 0.5) drawAccDot(flake.x + Math.random()*8-4, s.y - 1, flake.radius*0.85, Math.min(0.8, flake.opacity));
+                            if (Math.random() < 0.5) drawAccDot(flake.x + Math.random()*10-5, s.y - 1, flake.radius*0.85, Math.min(0.8, flake.opacity));
                             settled = true;
                             break;
                         }
                     }
                 }
-
-                if (settled) {
-                    flake.y = -flake.radius;
-                    flake.x = Math.random() * W;
-                    flake.angle = Math.random() * Math.PI * 2;
-                }
             }
 
-            if (flake.y > H + flake.radius) {
-                flake.y = -flake.radius;
+            if (settled || flake.y > H + flake.radius) {
+                flake.y = -flake.radius - Math.random() * H * 0.3;
                 flake.x = Math.random() * W;
                 flake.angle = Math.random() * Math.PI * 2;
             }
@@ -291,7 +265,6 @@
         snowflakes = [];
     }
 
-    // === Стряхивание при прокрутке ===
     let scrollDebounce = 0;
     function onScroll() {
         if (scrollDebounce) return;
@@ -299,15 +272,14 @@
             scrollDebounce = 0;
             if (cfg_settle) {
                 shakeOffAccumulation();
-                resetFallingFlakesInBottom();
+                resetFallingFlakes(); // все снежинки перезапускаются сверху — нет зависаний!
             }
-        }, 80);
+        }, 100);
     }
     document.addEventListener('scroll', onScroll, true);
     document.addEventListener('wheel', onScroll, {passive:true});
     document.addEventListener('touchmove', onScroll, {passive:true});
 
-    // === Конфиг ===
     function computeConfig() {
         const tizen = isTizen();
         const density = parseInt(storageGet(KEY_DENSITY, '0'), 10) || 0;
@@ -330,15 +302,15 @@
 
     function applyConfig() {
         const cfg = computeConfig();
-        const settleChanged = cfg.settle !== prev_settle;
         const activityChanged = currentActivity !== prevActivity;
+        const settleChanged = cfg.settle !== prev_settle;
 
         cfg_flakeCount = cfg.flakeCount;
         cfg_settle = cfg.settle;
         cfg_tizen = cfg.tizen;
         prev_settle = cfg.settle;
 
-        // При смене экрана (например, вход в карточку фильма) — полностью очищаем накопленный снег
+        // При смене экрана — полная очистка накопленного снега
         if (activityChanged && cfg_settle) {
             clearAccumulation();
         }
@@ -358,7 +330,6 @@
         }
     }
 
-    // === Настройки ===
     function addSettings() {
         if (!Lampa.SettingsApi) return;
 
@@ -383,11 +354,10 @@
         Lampa.SettingsApi.addParam({
             component: 'snowfx',
             param: { name: KEY_SETTLE, type: 'select', values: {0:'Выкл',1:'Вкл'}, default:1 },
-            field: { name: 'Оседание на карточках', description: 'Снег накапливается. При переходах — очищается.' }
+            field: { name: 'Оседание на карточках', description: 'Снег накапливается на постерах' }
         });
     }
 
-    // === Запуск ===
     function init() {
         addSettings();
 
