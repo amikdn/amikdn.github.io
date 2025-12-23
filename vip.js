@@ -203,27 +203,23 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
     }
   }
 
-  function account(url) {
-    url = url + '';
-    if (url.indexOf('account_email=') == -1) {
-      var email = Lampa.Storage.get('account_email');
-      if (email) url = Lampa.Utils.addUrlComponent(url, 'account_email=' + encodeURIComponent(email));
-    }
-   // if (url.indexOf('uid=') == -1) {
-	//  url = Lampa.Utils.addUrlComponent(url, 'uid=guest');
-    //  var uid = Lampa.Storage.get('lampac_unic_id', '');
-    //  if (uid) url = Lampa.Utils.addUrlComponent(url, 'uid=' + encodeURIComponent(uid));
-    }
-    if (url.indexOf('token=') == -1) {
-      var token = '';
-      if (token != '') url = Lampa.Utils.addUrlComponent(url, 'token=');
-    }
-    if (url.indexOf('nws_id=') == -1 && window.rch_nws && window.rch_nws[hostkey]) {
-      var nws_id = window.rch_nws[hostkey].connectionId || Lampa.Storage.get('lampac_nws_id', '');
-      if (nws_id) url = Lampa.Utils.addUrlComponent(url, 'nws_id=' + encodeURIComponent(nws_id));
-    }
-    return url;
+function account(url) {
+  url = url + '';
+  if (url.indexOf('account_email=') == -1) {
+    var email = Lampa.Storage.get('account_email');
+    if (email) url = Lampa.Utils.addUrlComponent(url, 'account_email=' + encodeURIComponent(email));
   }
+  // Блок с uid полностью удалён — запросы идут без &uid=...
+  if (url.indexOf('token=') == -1) {
+    var token = '';
+    if (token != '') url = Lampa.Utils.addUrlComponent(url, 'token=');
+  }
+  if (url.indexOf('nws_id=') == -1 && window.rch_nws && window.rch_nws[hostkey]) {
+    var nws_id = window.rch_nws[hostkey].connectionId || Lampa.Storage.get('lampac_nws_id', '');
+    if (nws_id) url = Lampa.Utils.addUrlComponent(url, 'nws_id=' + encodeURIComponent(nws_id));
+  }
+  return url;
+}
   
   var Network = Lampa.Reguest;
 
@@ -1924,6 +1920,7 @@ else if (element.url) {
   if (!window.lampavip_plugin) startPlugin();
 
 })();
+
 
 
 
