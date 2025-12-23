@@ -210,8 +210,9 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
       if (email) url = Lampa.Utils.addUrlComponent(url, 'account_email=' + encodeURIComponent(email));
     }
     if (url.indexOf('uid=') == -1) {
-      var uid = Lampa.Storage.get('lampac_unic_id', '');
-      if (uid) url = Lampa.Utils.addUrlComponent(url, 'uid=' + encodeURIComponent(uid));
+	  url = Lampa.Utils.addUrlComponent(url, 'uid=guest');
+    //  var uid = Lampa.Storage.get('lampac_unic_id', '');
+    //  if (uid) url = Lampa.Utils.addUrlComponent(url, 'uid=' + encodeURIComponent(uid));
     }
     if (url.indexOf('token=') == -1) {
       var token = '';
@@ -801,6 +802,7 @@ else if (element.url) {
       Noty.show('Внешний плеер можно указать в init.conf (playerInner)', {time: 3000});
     Player.play(element);
   }
+
 }
                 Lampa.Player.play(element);
                 Lampa.Player.playlist(playlist);
