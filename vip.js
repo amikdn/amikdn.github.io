@@ -433,6 +433,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
       Lampa.Activity.replace();
     };
     this.requestParams = function(url) {
+	  query.push('uid=guest');
       var query = [];
       var card_source = object.movie.source || 'tmdb'; //Lampa.Storage.field('source')
       query.push('id=' + encodeURIComponent(object.movie.id));
@@ -1923,3 +1924,4 @@ else if (element.url) {
   if (!window.lampavip_plugin) startPlugin();
 
 })();
+
