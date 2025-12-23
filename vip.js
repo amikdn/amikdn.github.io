@@ -1,46 +1,63 @@
 (function () {
     'use strict';
 
-    var unic_id = Lampa.Storage.get('lampac_unic_id', '');
-    if (!unic_id) {
-      unic_id = Lampa.Utils.uid(8).toLowerCase();
-      Lampa.Storage.set('lampac_unic_id', unic_id);
-    }
-	
-    function account(url){
-      if (url.indexOf('account_email=') == -1) {
-        var email = Lampa.Storage.get('account_email');
-        if (email) url = Lampa.Utils.addUrlComponent(url, 'account_email=' + encodeURIComponent(email));
-      }
+    Lampa.Platform.tv();
 
-      if (url.indexOf('uid=') == -1) {
-        var uid = Lampa.Storage.get('lampac_unic_id', '');
-        if (uid) url = Lampa.Utils.addUrlComponent(url, 'uid=' + encodeURIComponent(uid));
-      }
-	  
-      if (url.indexOf('token=') == -1) {
-        var token = '';
-        if (token != '') url = Lampa.Utils.addUrlComponent(url, 'token=');
-      }
-	  
-      return url;
-    }
+    var plugin = {
+        name: 'TMDB Proxy with Anti-DMCA',
+        version: '1.0.3',
+        description: 'Проксирование постеров и API сайта TMDB с отключением DMCA-фич и обходом блокировок'
+    };
+
+    plugin.path_image = Lampa.Utils.protocol() + 'lampa.vip/tmdb/img/';
+    plugin.path_api = Lampa.Utils.protocol() + 'lampa.vip/tmdb/api/3/'; 
 
     Lampa.TMDB.image = function (url) {
-      var base = Lampa.Utils.protocol() + 'image.tmdb.org/' + url;
-      return Lampa.Storage.field('proxy_tmdb') ? 'http://lampa.vip/tmdb/img/' + account(url) : base;
+        var base = Lampa.Utils.protocol() + 'image.tmdb.org/' + url;
+        return Lampa.Storage.field('proxy_tmdb') ? plugin.path_image + url : base;
     };
 
     Lampa.TMDB.api = function (url) {
-      var base = Lampa.Utils.protocol() + 'api.themoviedb.org/3/' + url;
-      return Lampa.Storage.field('proxy_tmdb') ? 'http://lampa.vip/tmdb/api/3/' + account(url) : base;
+        var base = Lampa.Utils.protocol() + 'api.themoviedb.org/3/' + url;
+        return Lampa.Storage.field('proxy_tmdb') ? plugin.path_api + url : base;
     };
 
-    Lampa.Settings.listener.follow('open', function (e) {
-      if (e.name == 'tmdb') {
-        e.body.find('[data-parent="proxy"]').remove();
-      }
-    });
+    function start() {
+        if (window.anti_dmca_plugin) {
+            return;
+        }
+        window.anti_dmca_plugin = true;
+
+        Lampa.Utils.dcma = function () { return undefined; };
+
+        var defaultSource = Lampa.Storage.get('source', 'cub');
+
+        Lampa.Listener.follow('request_secuses', function (event) {
+            if (event.data.blocked) {
+                window.lampa_settings.dcma = [];
+                var active = Lampa.Activity.active();
+                active.source = 'tmdb';
+                Lampa.Storage.set('source', 'tmdb', true);
+                Lampa.Activity.replace(active);
+                Lampa.Storage.set('source', defaultSource, true);
+            }
+        });
+
+        Lampa.Settings.listener.follow('open', function (e) {
+            if (e.name === 'tmdb') {
+                e.body.find('[data-parent="proxy"]').remove();
+            }
+        });
+    }
+
+    if (window.appready) {
+        start();
+    } else {
+        Lampa.Listener.follow('app', function (event) {
+            if (event.type === 'ready') {
+                start();
+            }
+        });
+    }
 
 })();
-
