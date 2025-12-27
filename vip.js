@@ -19,12 +19,12 @@
     }
 
     function hideLockedItems() {
+      // Скрываем только замки на источниках (не трогаем статус в синхронизации)
       $('.selectbox-item__lock, [class*="lock"], [class*="locked"]').closest('.selectbox-item').hide();
-      $('div > span:contains("Статус"), div > span:contains("Premium"), div > span:contains("CUB Premium")').parent().parent().remove();
     }
 
     function clearAdTimers() {
-      // Безопасная очистка таймеров (до 5000 — хватает для адблока, но не тормозит)
+      // Безопасная очистка (до 5000 — хватает для рекламы)
       for (let i = 1; i < 5000; i++) {
         clearTimeout(i);
         clearInterval(i);
@@ -36,7 +36,7 @@
       window.Account = window.Account || {};
       window.Account.hasPremium = () => true;
 
-      // Пропуск рекламного видео (pre-roll) через фейковый play
+      // Пропуск рекламного pre-roll видео
       const origCreateElement = document.createElement;
       document.createElement = function(tag) {
         if (tag.toLowerCase() === 'video') {
@@ -49,24 +49,25 @@
               video.currentTime = video.duration || 99999;
               video.dispatchEvent(new Event('ended'));
               video.dispatchEvent(new Event('timeupdate'));
-            }, 300); // Короткая задержка для надёжного пропуска
+            }, 300);
           };
           return video;
         }
         return origCreateElement.apply(this, arguments);
       };
 
-      // Очистка таймеров рекламы при загрузке
+      // Очистка таймеров рекламы
       document.addEventListener("DOMContentLoaded", clearAdTimers);
-      setTimeout(clearAdTimers, 1000); // Дополнительно
+      setTimeout(clearAdTimers, 1000);
 
-      // Глобальные стили для скрытия элементов
+      // Глобальные стили: скрываем только баннеры/кнопки подписки, рекламу, но НЕ элементы в синхронизации
       const style = document.createElement('style');
       style.innerHTML = `
-        .button--subscribe, [class*="subscribe"], [class*="premium"]:not(.premium-quality),
+        .button--subscribe, [class*="subscribe"]:not([class*="sync"]),
+        [class*="premium"]:not(.premium-quality):not([class*="sync"]),
         .open--premium, .open--feed, .open--notice, .icon--blink,
         [class*="black-friday"], [class*="christmas"], [class*="ad-"],
-        .ad-server, .ad-bot, .card__textbox, .settings--account-premium,
+        .ad-server, .ad-bot, .card__textbox,
         .full-reviews ~ div { display: none !important; }
       `;
       document.head.appendChild(style);
@@ -81,7 +82,7 @@
       // Регион UK
       localStorage.setItem('region', JSON.stringify({code: "uk", time: Date.now()}));
 
-      // Очистка в TV-разделе (интервалы только здесь)
+      // Очистка в TV-разделе
       $('[data-action="tv"]').on('hover:enter hover:click hover:touch', function () {
         const adBotInt = setInterval(() => {
           if ($('.ad-bot').length) {
@@ -106,20 +107,15 @@
         $('.open--feed, .open--premium, .open--notice, .icon--blink, [class*="friday"], [class*="christmas"]').remove();
       }, 1000);
 
-      // Очистка в настройках
-      Lampa.Settings.listener.follow('open', function (event) {
-        setTimeout(() => {
-          $('.settings--account-premium, [class*="premium"]').remove();
-          hideLockedItems();
-        }, 150);
+      // Очистка только замков (не трогаем синхронизацию)
+      Lampa.Settings.listener.follow('open', function () {
+        setTimeout(hideLockedItems, 150);
       });
 
-      // При смене активности
       Lampa.Storage.listener.follow('change', function () {
         setTimeout(hideLockedItems, 300);
       });
 
-      // Первоначальная очистка
       setTimeout(hideLockedItems, 500);
     }
 
