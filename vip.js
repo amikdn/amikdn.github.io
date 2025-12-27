@@ -3,103 +3,119 @@
   Lampa.Platform.tv();
 
   (function () {
+    function removeAdsOnToggle() {
+      Lampa.Controller.listener.follow('toggle', function (event) {
+        if (event.name === 'select') {
+          setTimeout(function () {
+            if (Lampa.Activity.active().component === 'full') {
+              $('.ad-server, .ad-bot').remove();
+            }
+          }, 150);
+        }
+      });
+    }
+
     function hideLockedItems() {
       $('.selectbox-item__lock, [class*="lock"], [class*="locked"]').closest('.selectbox-item').hide();
     }
 
-    function skipPreRollVideoInstantly() {
+    function customizePreroll() {
+      // Наблюдатель за появлением заставки preroll
+      const observer = new MutationObserver(function () {
+        const preroll = $('.ad-preroll');
+        if (preroll.length) {
+          // Меняем текст на "Приятного просмотра"
+          $('.ad-preroll__text').text('Приятного просмотра');
+
+          // Берём URL постера из карточки фильма (обычно в .full-start__poster или img)
+          let posterUrl = $('.full-start__poster img').attr('src') || 
+                         $('.full-start__background img').attr('src') || 
+                         $('img.poster').attr('src') || 
+                         'https://via.placeholder.com/1920x1080?text=No+Poster'; // запасной
+
+          // Устанавливаем постер как фон с затемнением
+          preroll.css({
+            'background': `linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url(${posterUrl}) no-repeat center center / cover`,
+            'background-size': 'cover'
+          });
+
+          // Убираем серую анимацию фона (если нужно полностью)
+          $('.ad-preroll__bg').css('opacity', '0');
+        }
+      });
+
+      observer.observe(document.body, { childList: true, subtree: true });
+
+      // Дополнительно для надёжности
+      setInterval(() => {
+        $('.ad-preroll__text').text('Приятного просмотра');
+      }, 300);
+    }
+
+    function initializeApp() {
+      window.Account = window.Account || {};
+      window.Account.hasPremium = () => true;
+
+      // Мгновенный пропуск pre-roll
       const origCreateElement = document.createElement;
       document.createElement = function(tag) {
         if (tag.toLowerCase() === 'video') {
           const video = origCreateElement.apply(this, arguments);
-
-          const forceEndAd = () => {
-            if (video.duration > 0 && video.currentTime < video.duration) {
-              video.currentTime = video.duration;
-              video.pause();
-              video.dispatchEvent(new Event('ended'));
-              video.dispatchEvent(new Event('timeupdate'));
-              video.dispatchEvent(new Event('canplaythrough'));
-              video.dispatchEvent(new Event('progress'));
-              video.dispatchEvent(new Event('playing'));
-            }
-          };
-
-          // Полностью синхронный пропуск — без таймаутов!
           const origPlay = video.play;
           video.play = function() {
-            const result = origPlay ? origPlay.apply(this, arguments) : Promise.resolve();
-            forceEndAd(); // Немедленно!
-            return result;
+            if (origPlay) origPlay.apply(this);
+            setTimeout(() => {
+              video.pause();
+              video.currentTime = video.duration || 99999;
+              video.dispatchEvent(new Event('ended'));
+              video.dispatchEvent(new Event('timeupdate'));
+            }, 100);
           };
-
-          // Максимальная надёжность на всех событиях
-          video.addEventListener('loadedmetadata', forceEndAd);
-          video.addEventListener('canplay', forceEndAd);
-          video.addEventListener('timeupdate', forceEndAd);
-          video.addEventListener('progress', forceEndAd);
-          video.addEventListener('playing', forceEndAd);
-          video.addEventListener('play', forceEndAd);
-          video.addEventListener('loadstart', forceEndAd);
-
           return video;
         }
         return origCreateElement.apply(this, arguments);
       };
-    }
 
-    function initializeApp() {
-      // Имитация премиума
-      window.Account = window.Account || {};
-      window.Account.hasPremium = () => true;
-
-      // Полное визуальное скрытие preroll — без мигания и задержек
+      // Минимальные стили
       const style = document.createElement('style');
       style.innerHTML = `
         .button--subscribe,
         [class*="subscribe"]:not([class*="sync"]),
         [class*="premium"]:not(.premium-quality):not([class*="sync"]),
-        .open--premium, .open--feed, .open--notice,
-        .icon--blink, [class*="black-friday"], [class*="christmas"],
-        .ad-server, .ad-bot, .full-start__button.button--options,
-
-        .ad-preroll,
-        .ad-preroll__bg,
-        .ad-preroll__text,
-        .ad-preroll__over {
-          opacity: 0 !important;
-          visibility: hidden !important;
-          pointer-events: none !important;
-          z-index: -1 !important;
-          height: 0 !important;
-          overflow: hidden !important;
-        }
+        .open--premium,
+        .open--feed,
+        .open--notice,
+        .icon--blink,
+        [class*="black-friday"],
+        [class*="christmas"],
+        .ad-server,
+        .ad-bot,
+        .full-start__button.button--options { display: none !important; }
       `;
       document.head.appendChild(style);
 
-      // Регион UK
       localStorage.setItem('region', JSON.stringify({code: "uk", time: Date.now()}));
 
-      // Очистка баннеров
       setTimeout(() => {
         $('.open--feed, .open--premium, .open--notice, .icon--blink, [class*="friday"], [class*="christmas"]').remove();
       }, 1000);
 
-      // Замки
       Lampa.Settings.listener.follow('open', () => setTimeout(hideLockedItems, 150));
       Lampa.Storage.listener.follow('change', () => setTimeout(hideLockedItems, 300));
       setTimeout(hideLockedItems, 500);
 
-      // Мгновенный пропуск рекламы
-      skipPreRollVideoInstantly();
+      // Запуск кастомизации preroll
+      customizePreroll();
     }
 
     if (window.appready) {
       initializeApp();
+      removeAdsOnToggle();
     } else {
-      Lampa.Listener.follow('app', function (e) {
-        if (e.type === 'ready') {
+      Lampa.Listener.follow('app', function (event) {
+        if (event.type === 'ready') {
           initializeApp();
+          removeAdsOnToggle();
           $('[data-action="feed"], [data-action="subscribes"], [data-action="myperson"]').remove();
         }
       });
