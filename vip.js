@@ -19,44 +19,46 @@
       $('.selectbox-item__lock, [class*="lock"], [class*="locked"]').closest('.selectbox-item').hide();
     }
 
-    function customizePreroll() {
-      // Наблюдатель за появлением заставки preroll
-      const observer = new MutationObserver(function () {
-        const preroll = $('.ad-preroll');
-        if (preroll.length) {
-          // Меняем текст на "Приятного просмотра"
-          $('.ad-preroll__text').text('Приятного просмотра');
+    function customizePrerollOnce() {
+      // Срабатывает один раз при появлении .ad-preroll
+      const observer = new MutationObserver(function (mutations) {
+        const preroll = document.querySelector('.ad-preroll');
+        if (preroll && !preroll.dataset.customized) {  // чтобы не срабатывать повторно
+          preroll.dataset.customized = 'true';
 
-          // Берём URL постера из карточки фильма (обычно в .full-start__poster или img)
-          let posterUrl = $('.full-start__poster img').attr('src') || 
-                         $('.full-start__background img').attr('src') || 
-                         $('img.poster').attr('src') || 
-                         'https://via.placeholder.com/1920x1080?text=No+Poster'; // запасной
+          // Меняем текст
+          const textEl = preroll.querySelector('.ad-preroll__text');
+          if (textEl) textEl.textContent = 'Приятного просмотра';
+
+          // Берём постер из карточки фильма
+          let posterUrl = '';
+          const posterImg = document.querySelector('.full-start__poster img, .full-start__background img, img.poster');
+          if (posterImg && posterImg.src) {
+            posterUrl = posterImg.src;
+          }
 
           // Устанавливаем постер как фон с затемнением
-          preroll.css({
-            'background': `linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url(${posterUrl}) no-repeat center center / cover`,
-            'background-size': 'cover'
-          });
+          if (posterUrl) {
+            preroll.style.background = `linear-gradient(rgba(0,0,0,0.65), rgba(0,0,0,0.65)), url(${posterUrl}) center/cover no-repeat`;
+          }
 
-          // Убираем серую анимацию фона (если нужно полностью)
-          $('.ad-preroll__bg').css('opacity', '0');
+          // Скрываем серую анимацию фона
+          const bgEl = preroll.querySelector('.ad-preroll__bg');
+          if (bgEl) bgEl.style.opacity = '0';
+
+          // Отключаем observer после первого срабатывания — чтобы не нагружать
+          observer.disconnect();
         }
       });
 
       observer.observe(document.body, { childList: true, subtree: true });
-
-      // Дополнительно для надёжности
-      setInterval(() => {
-        $('.ad-preroll__text').text('Приятного просмотра');
-      }, 300);
     }
 
     function initializeApp() {
       window.Account = window.Account || {};
       window.Account.hasPremium = () => true;
 
-      // Мгновенный пропуск pre-roll
+      // Мгновенный пропуск pre-roll рекламы
       const origCreateElement = document.createElement;
       document.createElement = function(tag) {
         if (tag.toLowerCase() === 'video') {
@@ -76,7 +78,6 @@
         return origCreateElement.apply(this, arguments);
       };
 
-      // Минимальные стили
       const style = document.createElement('style');
       style.innerHTML = `
         .button--subscribe,
@@ -104,8 +105,8 @@
       Lampa.Storage.listener.follow('change', () => setTimeout(hideLockedItems, 300));
       setTimeout(hideLockedItems, 500);
 
-      // Запуск кастомизации preroll
-      customizePreroll();
+      // Кастомизация preroll — безопасно и один раз
+      customizePrerollOnce();
     }
 
     if (window.appready) {
