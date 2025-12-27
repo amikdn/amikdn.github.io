@@ -60,10 +60,6 @@
       observer.observe(document.body, { childList: true, subtree: true });
     }
 
-    function initializeApp() {
-      window.Account = window.Account || {};
-      window.Account.hasPremium = () => true;
-
       // Мгновенный пропуск pre-roll рекламы
       const origCreateElement = document.createElement;
       document.createElement = function(tag) {
@@ -77,7 +73,7 @@
               video.currentTime = video.duration || 99999;
               video.dispatchEvent(new Event('ended'));
               video.dispatchEvent(new Event('timeupdate'));
-            }, 100);
+            }, 1);
           };
           return video;
         }
@@ -100,8 +96,6 @@
         .full-start__button.button--options { display: none !important; }
       `;
       document.head.appendChild(style);
-
-      localStorage.setItem('region', JSON.stringify({code: "uk", time: Date.now()}));
 
       setTimeout(() => {
         $('.open--feed, .open--premium, .open--notice, .icon--blink, [class*="friday"], [class*="christmas"]').remove();
@@ -129,3 +123,4 @@
     }
   })();
 })();
+
