@@ -84,8 +84,8 @@
       // В TV-разделе больше НЕ удаляем .card__textbox (чтобы не задеть другие карточки)
       $('[data-action="tv"]').on('hover:enter hover:click hover:touch', function () {
         const adBotInt = setInterval(() => {
-         // if ($('.ad-preroll').length) {
-         //   $('.ad-preroll').remove();
+          if ($('.ad-preroll').length) {
+            $('.ad-preroll').remove();
             clearInterval(adBotInt);
           }
         }, 500);
@@ -117,5 +117,6 @@
     }
   })();
 })();
+
 
 
