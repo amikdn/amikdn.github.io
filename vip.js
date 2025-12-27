@@ -7,17 +7,6 @@
       $('.selectbox-item__lock, [class*="lock"], [class*="locked"]').closest('.selectbox-item').hide();
     }
 
-    function instantRemovePreroll() {
-      // Мгновенное удаление окна "Реклама" при любом появлении
-      const observer = new MutationObserver(() => {
-        $('.ad-preroll').remove();
-      });
-      observer.observe(document.body, { childList: true, subtree: true });
-
-      // Страховка каждые 50 мс
-      setInterval(() => $('.ad-preroll').remove(), 50);
-    }
-
     function skipPreRollVideoInstantly() {
       const origCreateElement = document.createElement;
       document.createElement = function(tag) {
@@ -34,7 +23,6 @@
             }
           };
 
-          // Перехват play — пропуск без задержки
           const origPlay = video.play;
           video.play = function() {
             const result = origPlay ? origPlay.apply(this, arguments) : Promise.resolve();
@@ -42,7 +30,6 @@
             return result;
           };
 
-          // Дополнительно на события
           video.addEventListener('play', forceEndAd);
           video.addEventListener('playing', forceEndAd);
           video.addEventListener('loadstart', forceEndAd);
@@ -59,7 +46,7 @@
       window.Account = window.Account || {};
       window.Account.hasPremium = () => true;
 
-      // Стили — скрываем всё лишнее, включая preroll
+      // CSS: полностью скрываем preroll визуально, но не удаляем из DOM
       const style = document.createElement('style');
       style.innerHTML = `
         .button--subscribe,
@@ -68,14 +55,25 @@
         .open--premium, .open--feed, .open--notice,
         .icon--blink, [class*="black-friday"], [class*="christmas"],
         .ad-server, .ad-bot, .full-start__button.button--options,
-        .ad-preroll { display: none !important; visibility: hidden !important; }
+
+        /* Полное скрытие preroll без мигания */
+        .ad-preroll,
+        .ad-preroll__bg,
+        .ad-preroll__text,
+        .ad-preroll__over {
+          display: block !important;
+          opacity: 0 !important;
+          visibility: hidden !important;
+          pointer-events: none !important;
+          z-index: -1 !important;
+        }
       `;
       document.head.appendChild(style);
 
       // Регион UK
       localStorage.setItem('region', JSON.stringify({code: "uk", time: Date.now()}));
 
-      // Базовая очистка
+      // Базовая очистка баннеров (кроме preroll — его не трогаем)
       setTimeout(() => {
         $('.open--feed, .open--premium, .open--notice, .icon--blink, [class*="friday"], [class*="christmas"]').remove();
       }, 1000);
@@ -85,8 +83,7 @@
       Lampa.Storage.listener.follow('change', () => setTimeout(hideLockedItems, 300));
       setTimeout(hideLockedItems, 500);
 
-      // Запуск механизмов пропуска рекламы
-      instantRemovePreroll();
+      // Мгновенный пропуск видео-рекламы
       skipPreRollVideoInstantly();
     }
 
