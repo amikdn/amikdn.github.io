@@ -31,16 +31,6 @@
       });
       prerollObserver.observe(document.body, { childList: true, subtree: true });
 
-      // Дополнительная очистка на всякий случай
-      setInterval(() => {
-        $('.ad-preroll').remove();
-      }, 500);
-    }
-
-    function initializeApp() {
-      window.Account = window.Account || {};
-      window.Account.hasPremium = () => true;
-
       // Пропуск pre-roll рекламы в видео
       const origCreateElement = document.createElement;
       document.createElement = function(tag) {
@@ -81,27 +71,6 @@
       `;
       document.head.appendChild(style);
 
-      localStorage.setItem('region', JSON.stringify({code: "uk", time: Date.now()}));
-
-      $('[data-action="tv"]').on('hover:enter hover:click hover:touch', function () {
-        const adBotInt = setInterval(() => {
-          if ($('.ad-bot').length) {
-            $('.ad-bot').remove();
-            clearInterval(adBotInt);
-          }
-        }, 500);
-        const textInt = setInterval(() => {
-          if ($('.card__textbox').length) {
-            $('.card__textbox').parent().parent().remove();
-            clearInterval(textInt);
-          }
-        }, 500);
-        setTimeout(() => {
-          clearInterval(adBotInt);
-          clearInterval(textInt);
-        }, 12000);
-      });
-
       setTimeout(() => {
         $('.open--feed, .open--premium, .open--notice, .icon--blink, [class*="friday"], [class*="christmas"], .ad-preroll').remove();
       }, 1000);
@@ -128,4 +97,5 @@
     }
   })();
 })();
+
 
