@@ -8,7 +8,7 @@
         if (event.name === 'select') {
           setTimeout(function () {
             if (Lampa.Activity.active().component === 'full') {
-              $('.ad-server, .ad-bot, .ad-preroll').remove();
+              $('.ad-server, .ad-bot').remove();
             }
             if (Lampa.Activity.active().component === 'modss_online') {
               $('.selectbox-item--icon').remove();
@@ -22,23 +22,11 @@
       $('.selectbox-item__lock, [class*="lock"], [class*="locked"]').closest('.selectbox-item').hide();
     }
 
-    function skipPrerollAd() {
-      const prerollObserver = new MutationObserver(function () {
-        if ($('.ad-preroll').length) {
-          $('.ad-preroll').remove();
-        }
-      });
-      prerollObserver.observe(document.body, { childList: true, subtree: true });
-
-      setInterval(() => {
-        $('.ad-preroll').remove();
-      }, 500);
-    }
-
     function initializeApp() {
       window.Account = window.Account || {};
       window.Account.hasPremium = () => true;
 
+      // Мгновенный пропуск pre-roll рекламы (без скрытия заставки — фильм запускается сразу)
       const origCreateElement = document.createElement;
       document.createElement = function(tag) {
         if (tag.toLowerCase() === 'video') {
@@ -51,13 +39,14 @@
               video.currentTime = video.duration || 99999;
               video.dispatchEvent(new Event('ended'));
               video.dispatchEvent(new Event('timeupdate'));
-            }, 300);
+            }, 200); // Минимальная задержка для мгновенного пропуска
           };
           return video;
         }
         return origCreateElement.apply(this, arguments);
       };
 
+      // CSS: скрываем только баннеры/кнопки/замки — НЕ трогаем .ad-preroll и карточки
       const style = document.createElement('style');
       style.innerHTML = `
         .button--subscribe,
@@ -69,25 +58,25 @@
         .icon--blink,
         [class*="black-friday"],
         [class*="christmas"],
-        [class*="ad-"],
+        [class*="ad-"]:not(.ad-preroll),
         .ad-server,
         .ad-bot,
-        .full-start__button.button--options,
-        .ad-preroll { display: none !important; }
+        .full-start__button.button--options { display: none !important; }
       `;
       document.head.appendChild(style);
 
       localStorage.setItem('region', JSON.stringify({code: "uk", time: Date.now()}));
 
+      // В TV-разделе ничего не очищаем (кроме возможных ad-server/bot, если нужно)
+      // Убрано всё, чтобы не задеть карточки
+
       setTimeout(() => {
-        $('.open--premium, [class*="friday"], [class*="christmas"], .ad-preroll').remove();
+        $('.open--feed, .open--premium, .open--notice, .icon--blink, [class*="friday"], [class*="christmas"]').remove();
       }, 1000);
 
       Lampa.Settings.listener.follow('open', () => setTimeout(hideLockedItems, 150));
       Lampa.Storage.listener.follow('change', () => setTimeout(hideLockedItems, 300));
       setTimeout(hideLockedItems, 500);
-
-      skipPrerollAd();
     }
 
     if (window.appready) {
@@ -104,5 +93,3 @@
     }
   })();
 })();
-
-
