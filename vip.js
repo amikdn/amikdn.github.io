@@ -19,16 +19,12 @@
     }
 
     function hideLockedItems() {
+      // Скрываем только замки на источниках (не трогаем статус в синхронизации)
       $('.selectbox-item__lock, [class*="lock"], [class*="locked"]').closest('.selectbox-item').hide();
     }
 
-    function hideQrAds() {
-      // Скрываем рекламные QR-блоки в Синхронизации и TorrServer
-      $('[class*="qr"], [class*="qrcode"], img[src*="qr"], .account-sync__qr, .qr-code, .sync-premium').closest('div, .settings-param, .settings-folder').hide();
-      $('div:contains("Премиум"), div:contains("CUB Premium"), div:contains("подписка"), span:contains("QR")').closest('.settings-param, .settings-folder__item').hide();
-    }
-
     function clearAdTimers() {
+      // Безопасная очистка (до 5000 — хватает для рекламы)
       for (let i = 1; i < 5000; i++) {
         clearTimeout(i);
         clearInterval(i);
@@ -36,10 +32,11 @@
     }
 
     function initializeApp() {
+      // Имитация премиума
       window.Account = window.Account || {};
       window.Account.hasPremium = () => true;
 
-      // Пропуск pre-roll рекламы
+      // Пропуск рекламного pre-roll видео
       const origCreateElement = document.createElement;
       document.createElement = function(tag) {
         if (tag.toLowerCase() === 'video') {
@@ -59,10 +56,11 @@
         return origCreateElement.apply(this, arguments);
       };
 
+      // Очистка таймеров рекламы
       document.addEventListener("DOMContentLoaded", clearAdTimers);
       setTimeout(clearAdTimers, 1000);
 
-      // Глобальные стили (без затрагивания синхронизации полностью)
+      // Глобальные стили: скрываем только баннеры/кнопки подписки, рекламу, но НЕ элементы в синхронизации
       const style = document.createElement('style');
       style.innerHTML = `
         .button--subscribe, [class*="subscribe"]:not([class*="sync"]),
@@ -70,20 +68,21 @@
         .open--premium, .open--feed, .open--notice, .icon--blink,
         [class*="black-friday"], [class*="christmas"], [class*="ad-"],
         .ad-server, .ad-bot, .card__textbox,
-        .full-reviews ~ div,
-        /* QR-реклама */
-        [class*="qr"], [class*="qrcode"], .account-sync__qr, .qr-code { display: none !important; }
+        .full-reviews ~ div { display: none !important; }
       `;
       document.head.appendChild(style);
 
+      // Скрытие отзывов с напоминалкой
       Lampa.Listener.follow('full', function (event) {
         if (event.type === 'build' && event.name === 'discuss') {
           setTimeout(() => $('.full-reviews').closest('[class*="premium"], div').remove(), 150);
         }
       });
 
+      // Регион UK
       localStorage.setItem('region', JSON.stringify({code: "uk", time: Date.now()}));
 
+      // Очистка в TV-разделе
       $('[data-action="tv"]').on('hover:enter hover:click hover:touch', function () {
         const adBotInt = setInterval(() => {
           if ($('.ad-bot').length) {
@@ -103,29 +102,21 @@
         }, 12000);
       });
 
+      // Базовая очистка баннеров
       setTimeout(() => {
         $('.open--feed, .open--premium, .open--notice, .icon--blink, [class*="friday"], [class*="christmas"]').remove();
       }, 1000);
 
-      // Очистка при открытии настроек (включая QR-рекламу)
+      // Очистка только замков (не трогаем синхронизацию)
       Lampa.Settings.listener.follow('open', function () {
-        setTimeout(() => {
-          hideLockedItems();
-          hideQrAds();
-        }, 200);
+        setTimeout(hideLockedItems, 150);
       });
 
       Lampa.Storage.listener.follow('change', function () {
-        setTimeout(() => {
-          hideLockedItems();
-          hideQrAds();
-        }, 300);
+        setTimeout(hideLockedItems, 300);
       });
 
-      setTimeout(() => {
-        hideLockedItems();
-        hideQrAds();
-      }, 500);
+      setTimeout(hideLockedItems, 500);
     }
 
     if (window.appready) {
