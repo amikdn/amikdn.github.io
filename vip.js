@@ -19,7 +19,7 @@
     }
 
     function hideLockedItems() {
-      // Только замки на источниках
+      // Только замки на источниках (не трогаем карточки и постеры)
       $('.selectbox-item__lock, [class*="lock"], [class*="locked"]').closest('.selectbox-item').hide();
     }
 
@@ -48,7 +48,7 @@
         return origCreateElement.apply(this, arguments);
       };
 
-      // Глобальные стили: скрываем рекламу, баннеры, кнопку три точки и т.д.
+      // Точные стили: скрываем ТОЛЬКО рекламу, баннеры, кнопку три точки
       const style = document.createElement('style');
       style.innerHTML = `
         .button--subscribe,
@@ -63,6 +63,7 @@
         [class*="ad-"],
         .ad-server,
         .ad-bot,
+        .card__textbox,
         .full-start__button.button--options { display: none !important; }
       `;
       document.head.appendChild(style);
@@ -95,7 +96,7 @@
         $('.open--feed, .open--premium, .open--notice, .icon--blink, [class*="friday"], [class*="christmas"]').remove();
       }, 1000);
 
-      // Очистка замков при событиях
+      // Очистка замков
       Lampa.Settings.listener.follow('open', () => setTimeout(hideLockedItems, 150));
       Lampa.Storage.listener.follow('change', () => setTimeout(hideLockedItems, 300));
       setTimeout(hideLockedItems, 500);
@@ -115,4 +116,3 @@
     }
   })();
 })();
-
