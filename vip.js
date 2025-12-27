@@ -20,10 +20,11 @@
     }
 
     function initializeApp() {
+      // Имитация премиума
       window.Account = window.Account || {};
       window.Account.hasPremium = () => true;
 
-      // Мгновенный пропуск pre-roll (без задержек и скрытия заставки)
+      // Мгновенный пропуск pre-roll рекламы (включая .ad-preroll) — без задержек
       const origCreateElement = document.createElement;
       document.createElement = function(tag) {
         if (tag.toLowerCase() === 'video') {
@@ -36,14 +37,14 @@
               video.currentTime = video.duration || 99999;
               video.dispatchEvent(new Event('ended'));
               video.dispatchEvent(new Event('timeupdate'));
-            }, 150); // Минимальная задержка для мгновенного завершения
+            }, 100); // Минимальная задержка для мгновенного пропуска
           };
           return video;
         }
         return origCreateElement.apply(this, arguments);
       };
 
-      // Минимальные стили: только баннеры/кнопки/замки
+      // Минимальные стили: только баннеры/кнопки
       const style = document.createElement('style');
       style.innerHTML = `
         .button--subscribe,
@@ -61,12 +62,15 @@
       `;
       document.head.appendChild(style);
 
+      // Регион UK
       localStorage.setItem('region', JSON.stringify({code: "uk", time: Date.now()}));
 
+      // Базовая очистка баннеров
       setTimeout(() => {
         $('.open--feed, .open--premium, .open--notice, .icon--blink, [class*="friday"], [class*="christmas"]').remove();
       }, 1000);
 
+      // Очистка замков
       Lampa.Settings.listener.follow('open', () => setTimeout(hideLockedItems, 150));
       Lampa.Storage.listener.follow('change', () => setTimeout(hideLockedItems, 300));
       setTimeout(hideLockedItems, 500);
