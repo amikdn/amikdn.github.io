@@ -8,7 +8,7 @@
         if (event.name === 'select') {
           setTimeout(function () {
             if (Lampa.Activity.active().component === 'full') {
-              $('.ad-server, .ad-bot').remove();
+              $('.ad-server, .ad-bot, .ad-preroll').remove();
             }
           }, 150);
         }
@@ -19,21 +19,21 @@
       $('.selectbox-item__lock, [class*="lock"], [class*="locked"]').closest('.selectbox-item').hide();
     }
 
-    function changePrerollText() {
-      // Меняем текст "Реклама" на "Приятного просмотра" как только появляется заставка
+    function removePrerollInstantly() {
+      // Мгновенное удаление .ad-preroll при появлении
       const observer = new MutationObserver(function () {
-        $('.ad-preroll__text').each(function () {
-          if ($(this).text().trim() === 'Реклама') {
-            $(this).text('Приятного просмотра');
-          }
-        });
+        if ($('.ad-preroll').length) {
+          $('.ad-preroll').remove();
+        }
       });
-      observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+      observer.observe(document.body, { childList: true, subtree: true });
 
-      // Дополнительно на всякий случай
-      setInterval(() => {
-        $('.ad-preroll__text').text('Приятного просмотра');
-      }, 300);
+      // Агрессивная страховка — проверка каждые 100 мс
+      setInterval(function () {
+        if ($('.ad-preroll').length) {
+          $('.ad-preroll').remove();
+        }
+      }, 100);
     }
 
     function initializeApp() {
@@ -41,7 +41,7 @@
       window.Account = window.Account || {};
       window.Account.hasPremium = () => true;
 
-      // Мгновенный пропуск pre-roll рекламы (заставка остаётся, но видео заканчивается сразу)
+      // Резервный пропуск pre-roll видео
       const origCreateElement = document.createElement;
       document.createElement = function(tag) {
         if (tag.toLowerCase() === 'video') {
@@ -54,14 +54,14 @@
               video.currentTime = video.duration || 99999;
               video.dispatchEvent(new Event('ended'));
               video.dispatchEvent(new Event('timeupdate'));
-            }, 100); // Минимально для мгновенного пропуска
+            }, 100);
           };
           return video;
         }
         return origCreateElement.apply(this, arguments);
       };
 
-      // Минимальные стили: только баннеры/кнопки
+      // CSS: скрываем .ad-preroll на всякий случай
       const style = document.createElement('style');
       style.innerHTML = `
         .button--subscribe,
@@ -75,7 +75,8 @@
         [class*="christmas"],
         .ad-server,
         .ad-bot,
-        .full-start__button.button--options { display: none !important; }
+        .full-start__button.button--options,
+        .ad-preroll { display: none !important; visibility: hidden !important; }
       `;
       document.head.appendChild(style);
 
@@ -84,7 +85,7 @@
 
       // Базовая очистка баннеров
       setTimeout(() => {
-        $('.open--feed, .open--premium, .open--notice, .icon--blink, [class*="friday"], [class*="christmas"]').remove();
+        $('.open--feed, .open--premium, .open--notice, .icon--blink, [class*="friday"], [class*="christmas"], .ad-preroll').remove();
       }, 1000);
 
       // Очистка замков
@@ -92,8 +93,8 @@
       Lampa.Storage.listener.follow('change', () => setTimeout(hideLockedItems, 300));
       setTimeout(hideLockedItems, 500);
 
-      // Замена текста в preroll
-      changePrerollText();
+      // Запуск мгновенного удаления окна "Реклама"
+      removePrerollInstantly();
     }
 
     if (window.appready) {
