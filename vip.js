@@ -79,17 +79,6 @@
 
       localStorage.setItem('region', JSON.stringify({code: "uk", time: Date.now()}));
 
-      // В TV-разделе удаляем ТОЛЬКО .ad-preroll (заставка "Реклама")
-      $('[data-action="tv"]').on('hover:enter hover:click hover:touch', function () {
-        const prerollInt = setInterval(() => {
-          if ($('.ad-preroll').length) {
-            $('.ad-preroll').remove();
-            clearInterval(prerollInt);
-          }
-        }, 500);
-        setTimeout(() => clearInterval(prerollInt), 12000);
-      });
-
       setTimeout(() => {
         $('.open--feed, .open--premium, .open--notice, .icon--blink, [class*="friday"], [class*="christmas"], .ad-preroll').remove();
       }, 1000);
@@ -115,3 +104,4 @@
     }
   })();
 })();
+
