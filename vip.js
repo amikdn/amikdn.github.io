@@ -19,16 +19,13 @@
     }
 
     function hideLockedItems() {
-      // Только замки на источниках (не трогаем карточки и постеры)
       $('.selectbox-item__lock, [class*="lock"], [class*="locked"]').closest('.selectbox-item').hide();
     }
 
     function initializeApp() {
-      // Имитация премиума
       window.Account = window.Account || {};
       window.Account.hasPremium = () => true;
 
-      // Пропуск pre-roll рекламы
       const origCreateElement = document.createElement;
       document.createElement = function(tag) {
         if (tag.toLowerCase() === 'video') {
@@ -48,7 +45,6 @@
         return origCreateElement.apply(this, arguments);
       };
 
-      // Точные стили: скрываем ТОЛЬКО рекламу, баннеры, кнопку три точки
       const style = document.createElement('style');
       style.innerHTML = `
         .button--subscribe,
@@ -68,10 +64,8 @@
       `;
       document.head.appendChild(style);
 
-      // Регион UK
       localStorage.setItem('region', JSON.stringify({code: "uk", time: Date.now()}));
 
-      // Очистка в TV-разделе
       $('[data-action="tv"]').on('hover:enter hover:click hover:touch', function () {
         const adBotInt = setInterval(() => {
           if ($('.ad-bot').length) {
@@ -91,12 +85,10 @@
         }, 12000);
       });
 
-      // Базовая очистка баннеров
       setTimeout(() => {
         $('.open--feed, .open--premium, .open--notice, .icon--blink, [class*="friday"], [class*="christmas"]').remove();
       }, 1000);
 
-      // Очистка замков
       Lampa.Settings.listener.follow('open', () => setTimeout(hideLockedItems, 150));
       Lampa.Storage.listener.follow('change', () => setTimeout(hideLockedItems, 300));
       setTimeout(hideLockedItems, 500);
