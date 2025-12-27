@@ -63,7 +63,6 @@
         [class*="ad-"],
         .ad-server,
         .ad-bot,
-        .card__textbox,
         .full-start__button.button--options { display: none !important; }
       `;
       document.head.appendChild(style);
@@ -116,3 +115,4 @@
     }
   })();
 })();
+
