@@ -14,15 +14,17 @@
           const video = origCreateElement.apply(this, arguments);
 
           const forceEndAd = () => {
-            if (video.duration && video.currentTime < video.duration) {
+            if (video.duration > 0 && video.currentTime < video.duration) {
               video.currentTime = video.duration;
               video.pause();
               video.dispatchEvent(new Event('ended'));
               video.dispatchEvent(new Event('timeupdate'));
               video.dispatchEvent(new Event('canplaythrough'));
+              video.dispatchEvent(new Event('progress'));
             }
           };
 
+          // Синхронный пропуск — без setTimeout!
           const origPlay = video.play;
           video.play = function() {
             const result = origPlay ? origPlay.apply(this, arguments) : Promise.resolve();
@@ -30,10 +32,12 @@
             return result;
           };
 
-          video.addEventListener('play', forceEndAd);
-          video.addEventListener('playing', forceEndAd);
-          video.addEventListener('loadstart', forceEndAd);
+          // Дополнительные события для 100% надёжности
+          video.addEventListener('loadedmetadata', forceEndAd);
           video.addEventListener('canplay', forceEndAd);
+          video.addEventListener('timeupdate', forceEndAd);
+          video.addEventListener('progress', forceEndAd);
+          video.addEventListener('playing', forceEndAd);
 
           return video;
         }
@@ -46,7 +50,7 @@
       window.Account = window.Account || {};
       window.Account.hasPremium = () => true;
 
-      // CSS: полностью скрываем preroll визуально, но не удаляем из DOM
+      // Полное визуальное скрытие preroll — без мигания
       const style = document.createElement('style');
       style.innerHTML = `
         .button--subscribe,
@@ -56,12 +60,10 @@
         .icon--blink, [class*="black-friday"], [class*="christmas"],
         .ad-server, .ad-bot, .full-start__button.button--options,
 
-        /* Полное скрытие preroll без мигания */
         .ad-preroll,
         .ad-preroll__bg,
         .ad-preroll__text,
         .ad-preroll__over {
-          display: block !important;
           opacity: 0 !important;
           visibility: hidden !important;
           pointer-events: none !important;
@@ -73,7 +75,7 @@
       // Регион UK
       localStorage.setItem('region', JSON.stringify({code: "uk", time: Date.now()}));
 
-      // Базовая очистка баннеров (кроме preroll — его не трогаем)
+      // Очистка баннеров
       setTimeout(() => {
         $('.open--feed, .open--premium, .open--notice, .icon--blink, [class*="friday"], [class*="christmas"]').remove();
       }, 1000);
@@ -83,7 +85,7 @@
       Lampa.Storage.listener.follow('change', () => setTimeout(hideLockedItems, 300));
       setTimeout(hideLockedItems, 500);
 
-      // Мгновенный пропуск видео-рекламы
+      // Мгновенный пропуск рекламы без таймаутов
       skipPreRollVideoInstantly();
     }
 
