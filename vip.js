@@ -19,7 +19,7 @@
     }
 
     function hideLockedItems() {
-      // Только замки на заблокированных источниках
+      // Только замки на источниках
       $('.selectbox-item__lock, [class*="lock"], [class*="locked"]').closest('.selectbox-item').hide();
     }
 
@@ -48,7 +48,7 @@
         return origCreateElement.apply(this, arguments);
       };
 
-      // Точные стили: скрываем только рекламу/баннеры/кнопки подписки, НЕ трогаем карточки и постеры
+      // Глобальные стили: скрываем рекламу, баннеры, кнопку три точки и т.д.
       const style = document.createElement('style');
       style.innerHTML = `
         .button--subscribe,
@@ -63,14 +63,15 @@
         [class*="ad-"],
         .ad-server,
         .ad-bot,
-        .card__textbox { display: none !important; }
+        .card__textbox,
+        .full-start__button.button--options { display: none !important; }
       `;
       document.head.appendChild(style);
 
       // Регион UK
       localStorage.setItem('region', JSON.stringify({code: "uk", time: Date.now()}));
 
-      // Очистка в TV-разделе (ad-bot и textbox)
+      // Очистка в TV-разделе
       $('[data-action="tv"]').on('hover:enter hover:click hover:touch', function () {
         const adBotInt = setInterval(() => {
           if ($('.ad-bot').length) {
