@@ -19,7 +19,7 @@
     }
 
     function hideLockedItems() {
-      // Только замки на источниках, синхронизация не трогается
+      // Только замки на источниках
       $('.selectbox-item__lock, [class*="lock"], [class*="locked"]').closest('.selectbox-item').hide();
     }
 
@@ -28,7 +28,7 @@
       window.Account = window.Account || {};
       window.Account.hasPremium = () => true;
 
-      // Пропуск pre-roll рекламы (основной механизм, работает отлично без таймеров)
+      // Пропуск pre-roll рекламы
       const origCreateElement = document.createElement;
       document.createElement = function(tag) {
         if (tag.toLowerCase() === 'video') {
@@ -41,36 +41,37 @@
               video.currentTime = video.duration || 99999;
               video.dispatchEvent(new Event('ended'));
               video.dispatchEvent(new Event('timeupdate'));
-            }, 300); // Достаточно для пропуска
+            }, 300);
           };
           return video;
         }
         return origCreateElement.apply(this, arguments);
       };
 
-      // Глобальные стили (скрываем рекламу/баннеры, но не синхронизацию)
+      // Глобальные стили (убрали проблемное правило с ~ div)
       const style = document.createElement('style');
       style.innerHTML = `
         .button--subscribe, [class*="subscribe"]:not([class*="sync"]),
         [class*="premium"]:not(.premium-quality):not([class*="sync"]),
         .open--premium, .open--feed, .open--notice, .icon--blink,
         [class*="black-friday"], [class*="christmas"], [class*="ad-"],
-        .ad-server, .ad-bot, .card__textbox,
-        .full-reviews ~ div { display: none !important; }
+        .ad-server, .ad-bot, .card__textbox { display: none !important; }
       `;
       document.head.appendChild(style);
 
-      // Скрытие отзывов с напоминалкой
+      // Точное скрытие блока отзывов (если есть премиум-напоминалка)
       Lampa.Listener.follow('full', function (event) {
         if (event.type === 'build' && event.name === 'discuss') {
-          setTimeout(() => $('.full-reviews').closest('[class*="premium"], div').remove(), 150);
+          setTimeout(() => {
+            $('.full-reviews').parent().closest('div').remove(); // Точнее, без ~ div
+          }, 200);
         }
       });
 
       // Регион UK
       localStorage.setItem('region', JSON.stringify({code: "uk", time: Date.now()}));
 
-      // Лёгкая очистка в TV-разделе
+      // Очистка в TV-разделе
       $('[data-action="tv"]').on('hover:enter hover:click hover:touch', function () {
         const adBotInt = setInterval(() => {
           if ($('.ad-bot').length) {
@@ -95,7 +96,7 @@
         $('.open--feed, .open--premium, .open--notice, .icon--blink, [class*="friday"], [class*="christmas"]').remove();
       }, 1000);
 
-      // Очистка замков при событиях
+      // Очистка замков
       Lampa.Settings.listener.follow('open', () => setTimeout(hideLockedItems, 150));
       Lampa.Storage.listener.follow('change', () => setTimeout(hideLockedItems, 300));
       setTimeout(hideLockedItems, 500);
