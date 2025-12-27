@@ -80,7 +80,7 @@
       localStorage.setItem('region', JSON.stringify({code: "uk", time: Date.now()}));
 
       setTimeout(() => {
-        $('.open--feed, .open--premium, .open--notice, .icon--blink, [class*="friday"], [class*="christmas"], .ad-preroll').remove();
+        $('.open--premium, [class*="friday"], [class*="christmas"], .ad-preroll').remove();
       }, 1000);
 
       Lampa.Settings.listener.follow('open', () => setTimeout(hideLockedItems, 150));
@@ -104,4 +104,5 @@
     }
   })();
 })();
+
 
