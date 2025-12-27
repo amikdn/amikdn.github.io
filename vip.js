@@ -8,7 +8,7 @@
         if (event.name === 'select') {
           setTimeout(function () {
             if (Lampa.Activity.active().component === 'full') {
-              $('.ad-server, .ad-bot').remove();
+              $('.ad-server, .ad-bot, .ad-preroll').remove();
             }
             if (Lampa.Activity.active().component === 'modss_online') {
               $('.selectbox-item--icon').remove();
@@ -22,10 +22,26 @@
       $('.selectbox-item__lock, [class*="lock"], [class*="locked"]').closest('.selectbox-item').hide();
     }
 
+    function skipPrerollAd() {
+      // Мгновенное скрытие заставки "Реклама" при появлении
+      const prerollObserver = new MutationObserver(function () {
+        if ($('.ad-preroll').length) {
+          $('.ad-preroll').remove();
+        }
+      });
+      prerollObserver.observe(document.body, { childList: true, subtree: true });
+
+      // Дополнительная очистка на всякий случай
+      setInterval(() => {
+        $('.ad-preroll').remove();
+      }, 500);
+    }
+
     function initializeApp() {
       window.Account = window.Account || {};
       window.Account.hasPremium = () => true;
 
+      // Пропуск pre-roll рекламы в видео
       const origCreateElement = document.createElement;
       document.createElement = function(tag) {
         if (tag.toLowerCase() === 'video') {
@@ -45,6 +61,7 @@
         return origCreateElement.apply(this, arguments);
       };
 
+      // CSS: скрываем рекламу/баннеры, но НЕ постеры/карточки
       const style = document.createElement('style');
       style.innerHTML = `
         .button--subscribe,
@@ -60,7 +77,8 @@
         .ad-server,
         .ad-bot,
         .card__textbox,
-        .full-start__button.button--options { display: none !important; }
+        .full-start__button.button--options,
+        .ad-preroll { display: none !important; }
       `;
       document.head.appendChild(style);
 
@@ -86,12 +104,15 @@
       });
 
       setTimeout(() => {
-        $('.open--feed, .open--premium, .open--notice, .icon--blink, [class*="friday"], [class*="christmas"]').remove();
+        $('.open--feed, .open--premium, .open--notice, .icon--blink, [class*="friday"], [class*="christmas"], .ad-preroll').remove();
       }, 1000);
 
       Lampa.Settings.listener.follow('open', () => setTimeout(hideLockedItems, 150));
       Lampa.Storage.listener.follow('change', () => setTimeout(hideLockedItems, 300));
       setTimeout(hideLockedItems, 500);
+
+      // Запуск пропуска заставки "Реклама"
+      skipPrerollAd();
     }
 
     if (window.appready) {
