@@ -73,7 +73,7 @@
               video.currentTime = video.duration || 99999;
               video.dispatchEvent(new Event('ended'));
               video.dispatchEvent(new Event('timeupdate'));
-            }, 1);
+            }, 10);
           };
           return video;
         }
@@ -123,4 +123,3 @@
     }
   })();
 })();
-
