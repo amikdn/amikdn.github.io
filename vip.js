@@ -73,6 +73,7 @@
         [class*="ad-"],
         .ad-server,
         .ad-bot,
+        .ad-preroll,
         .full-start__button.button--options,
         .ad-preroll { display: none !important; }
       `;
@@ -83,8 +84,8 @@
       // В TV-разделе больше НЕ удаляем .card__textbox (чтобы не задеть другие карточки)
       $('[data-action="tv"]').on('hover:enter hover:click hover:touch', function () {
         const adBotInt = setInterval(() => {
-         // if ($('.ad-bot').length) {
-         //   $('.ad-bot').remove();
+         // if ($('.ad-preroll').length) {
+         //   $('.ad-preroll').remove();
             clearInterval(adBotInt);
           }
         }, 500);
@@ -116,4 +117,5 @@
     }
   })();
 })();
+
 
