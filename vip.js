@@ -23,7 +23,6 @@
     }
 
     function skipPrerollAd() {
-      // Мгновенное скрытие заставки "Реклама" при появлении
       const prerollObserver = new MutationObserver(function () {
         if ($('.ad-preroll').length) {
           $('.ad-preroll').remove();
@@ -31,7 +30,15 @@
       });
       prerollObserver.observe(document.body, { childList: true, subtree: true });
 
-      // Пропуск pre-roll рекламы в видео
+      setInterval(() => {
+        $('.ad-preroll').remove();
+      }, 500);
+    }
+
+    function initializeApp() {
+      window.Account = window.Account || {};
+      window.Account.hasPremium = () => true;
+
       const origCreateElement = document.createElement;
       document.createElement = function(tag) {
         if (tag.toLowerCase() === 'video') {
@@ -51,7 +58,7 @@
         return origCreateElement.apply(this, arguments);
       };
 
-      // CSS: скрываем рекламу/баннеры, но НЕ постеры/карточки
+      // CSS без .card__textbox — ничего не трогаем в карточках контента
       const style = document.createElement('style');
       style.innerHTML = `
         .button--subscribe,
@@ -71,6 +78,19 @@
       `;
       document.head.appendChild(style);
 
+      localStorage.setItem('region', JSON.stringify({code: "uk", time: Date.now()}));
+
+      // В TV-разделе больше НЕ удаляем .card__textbox (чтобы не задеть другие карточки)
+      $('[data-action="tv"]').on('hover:enter hover:click hover:touch', function () {
+        const adBotInt = setInterval(() => {
+          if ($('.ad-bot').length) {
+            $('.ad-bot').remove();
+            clearInterval(adBotInt);
+          }
+        }, 500);
+        setTimeout(() => clearInterval(adBotInt), 12000);
+      });
+
       setTimeout(() => {
         $('.open--feed, .open--premium, .open--notice, .icon--blink, [class*="friday"], [class*="christmas"], .ad-preroll').remove();
       }, 1000);
@@ -79,7 +99,6 @@
       Lampa.Storage.listener.follow('change', () => setTimeout(hideLockedItems, 300));
       setTimeout(hideLockedItems, 500);
 
-      // Запуск пропуска заставки "Реклама"
       skipPrerollAd();
     }
 
@@ -97,5 +116,3 @@
     }
   })();
 })();
-
-
