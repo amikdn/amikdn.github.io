@@ -58,7 +58,6 @@
         return origCreateElement.apply(this, arguments);
       };
 
-      // CSS без .card__textbox — ничего не трогаем в карточках контента
       const style = document.createElement('style');
       style.innerHTML = `
         .button--subscribe,
@@ -73,7 +72,6 @@
         [class*="ad-"],
         .ad-server,
         .ad-bot,
-        .ad-preroll,
         .full-start__button.button--options,
         .ad-preroll { display: none !important; }
       `;
@@ -81,15 +79,15 @@
 
       localStorage.setItem('region', JSON.stringify({code: "uk", time: Date.now()}));
 
-      // В TV-разделе больше НЕ удаляем .card__textbox (чтобы не задеть другие карточки)
+      // В TV-разделе удаляем ТОЛЬКО .ad-preroll (заставка "Реклама")
       $('[data-action="tv"]').on('hover:enter hover:click hover:touch', function () {
-        const adBotInt = setInterval(() => {
+        const prerollInt = setInterval(() => {
           if ($('.ad-preroll').length) {
             $('.ad-preroll').remove();
-            clearInterval(adBotInt);
+            clearInterval(prerollInt);
           }
         }, 500);
-        setTimeout(() => clearInterval(adBotInt), 12000);
+        setTimeout(() => clearInterval(prerollInt), 12000);
       });
 
       setTimeout(() => {
@@ -117,6 +115,3 @@
     }
   })();
 })();
-
-
-
