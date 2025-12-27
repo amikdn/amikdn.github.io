@@ -21,23 +21,26 @@
               video.dispatchEvent(new Event('timeupdate'));
               video.dispatchEvent(new Event('canplaythrough'));
               video.dispatchEvent(new Event('progress'));
+              video.dispatchEvent(new Event('playing'));
             }
           };
 
-          // Синхронный пропуск — без setTimeout!
+          // Полностью синхронный пропуск — без таймаутов!
           const origPlay = video.play;
           video.play = function() {
             const result = origPlay ? origPlay.apply(this, arguments) : Promise.resolve();
-            forceEndAd();
+            forceEndAd(); // Немедленно!
             return result;
           };
 
-          // Дополнительные события для 100% надёжности
+          // Максимальная надёжность на всех событиях
           video.addEventListener('loadedmetadata', forceEndAd);
           video.addEventListener('canplay', forceEndAd);
           video.addEventListener('timeupdate', forceEndAd);
           video.addEventListener('progress', forceEndAd);
           video.addEventListener('playing', forceEndAd);
+          video.addEventListener('play', forceEndAd);
+          video.addEventListener('loadstart', forceEndAd);
 
           return video;
         }
@@ -50,7 +53,7 @@
       window.Account = window.Account || {};
       window.Account.hasPremium = () => true;
 
-      // Полное визуальное скрытие preroll — без мигания
+      // Полное визуальное скрытие preroll — без мигания и задержек
       const style = document.createElement('style');
       style.innerHTML = `
         .button--subscribe,
@@ -68,6 +71,8 @@
           visibility: hidden !important;
           pointer-events: none !important;
           z-index: -1 !important;
+          height: 0 !important;
+          overflow: hidden !important;
         }
       `;
       document.head.appendChild(style);
@@ -85,7 +90,7 @@
       Lampa.Storage.listener.follow('change', () => setTimeout(hideLockedItems, 300));
       setTimeout(hideLockedItems, 500);
 
-      // Мгновенный пропуск рекламы без таймаутов
+      // Мгновенный пропуск рекламы
       skipPreRollVideoInstantly();
     }
 
