@@ -19,40 +19,71 @@
       $('.selectbox-item__lock, [class*="lock"], [class*="locked"]').closest('.selectbox-item').hide();
     }
 
-    function customizePreroll() {
+    function customizePrerollWithLogo() {
       const observer = new MutationObserver(function () {
         const preroll = document.querySelector('.ad-preroll');
         if (preroll && !preroll.dataset.customized) {
           preroll.dataset.customized = 'true';
 
-          // Текст → "Приятного просмотра"
+          // Скрываем стандартный текст и серый фон
           const textEl = preroll.querySelector('.ad-preroll__text');
-          if (textEl) textEl.textContent = 'Приятного Просмотра';
+          if (textEl) textEl.style.display = 'none';
 
-          // Постер из карточки
-          let posterUrl = '';
-          const posterImg = document.querySelector('.full-start__poster img, .full-start__background img, img.poster, .full-start__img img');
-          if (posterImg && posterImg.src && posterImg.src.includes('imagetmdb.com')) {
-            posterUrl = posterImg.src;
-          }
-
-          // Фон с постером и затемнением
-          if (posterUrl) {
-            preroll.style.background = `linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url(${posterUrl}) center/cover no-repeat`;
-            preroll.style.backgroundSize = 'cover';
-          } else {
-            preroll.style.background = 'linear-gradient(rgba(0,0,0,0.8), rgba(0,0,0,0.8))';
-          }
-
-          // Скрываем серую анимацию
           const bgEl = preroll.querySelector('.ad-preroll__bg');
           if (bgEl) bgEl.style.opacity = '0';
 
-          // Стиль текста (по желанию)
-          if (textEl) {
-            textEl.style.fontSize = '2em';
-            textEl.style.fontWeight = 'bold';
+          // Создаём контейнер для логотипа и названия
+          const container = document.createElement('div');
+          container.style.cssText = `
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            width: 90%;
+            pointer-events: none;
+          `;
+
+          const logoImg = document.createElement('img');
+          logoImg.style.cssText = 'max-width: 80%; max-height: 150px; margin-bottom: 20px;';
+          container.appendChild(logoImg);
+
+          const titleSpan = document.createElement('div');
+          titleSpan.style.cssText = 'color: white; font-size: 2em; font-weight: bold; text-shadow: 2px 2px 8px black;';
+          container.appendChild(titleSpan);
+
+          preroll.appendChild(container);
+
+          // Получаем данные текущего фильма из активности Lampa
+          const activity = Lampa.Activity.active();
+          if (!activity || !activity.movie) return;
+
+          const data = activity.movie;
+          const type = data.name ? 'tv' : 'movie'; // сериал или фильм
+          const tmdbId = data.id;
+
+          if (!tmdbId) {
+            titleSpan.textContent = data.title || data.name || 'Приятного просмотра';
+            return;
           }
+
+          // Запрос к TMDB за логотипами (как в твоём плагине)
+          const url = Lampa.TMDB.api(type + '/' + tmdbId + '/images?api_key=' + Lampa.TMDB.key() + '&language=' + Lampa.Storage.get('language'));
+
+          $.get(url, function (response) {
+            if (response.logos && response.logos.length > 0) {
+              let logoPath = response.logos[0].file_path;
+              let logoUrl = Lampa.TMDB.image('/t/p/w500' + logoPath.replace('.svg', '.png'));
+
+              logoImg.src = logoUrl;
+              logoImg.style.display = 'block';
+            }
+
+            // Оригинальное название (на английском)
+            titleSpan.textContent = data.original_title || data.original_name || data.title || data.name;
+          }).fail(function () {
+            titleSpan.textContent = data.title || data.name || 'Приятного просмотра';
+          });
         }
       });
 
@@ -73,14 +104,13 @@
               video.currentTime = video.duration || 99999;
               video.dispatchEvent(new Event('ended'));
               video.dispatchEvent(new Event('timeupdate'));
-            }, 1);
+            }, 0.0001);
           };
           return video;
         }
         return origCreateElement.apply(this, arguments);
       };
 
-      // Расширенные стили: скрываем баннеры, кнопки, новогоднюю ёлку и колокольчик уведомлений
       const style = document.createElement('style');
       style.innerHTML = `
         .button--subscribe,
@@ -100,13 +130,13 @@
       `;
       document.head.appendChild(style);
 
-      // Базовая очистка баннеров
       setTimeout(() => {
         $('.open--feed, .open--premium, .open--notice, .icon--blink, [class*="friday"], [class*="christmas"]').remove();
       }, 1000);
 
-      // Кастомизация preroll-заставки
-      customizePreroll();
+
+      // Кастомизация preroll с логотипом и названием
+      customizePrerollWithLogo();
     }
 
     if (window.appready) {
@@ -123,5 +153,3 @@
     }
   })();
 })();
-
-
