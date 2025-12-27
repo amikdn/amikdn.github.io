@@ -22,10 +22,11 @@
       $('.selectbox-item__lock, [class*="lock"], [class*="locked"]').closest('.selectbox-item').hide();
     }
 
-    function hideQrAds() {
-      // Скрываем рекламные QR-блоки в Синхронизации и TorrServer
-      $('[class*="qr"], [class*="qrcode"], img[src*="qr"], .account-sync__qr, .qr-code, .sync-premium').closest('div, .settings-param, .settings-folder').hide();
-      $('div:contains("Премиум"), div:contains("CUB Premium"), div:contains("подписка"), span:contains("QR")').closest('.settings-param, .settings-folder__item').hide();
+    function hidePremiumQrAds() {
+      // Универсальное скрытие QR и премиум-баннеров в Синхронизации и TorrServer
+      $('img[src*="qr"], canvas, [class*="qr"], [class*="qrcode"], [class*="premium-qr"], .account-sync__qr, .qr-code, .sync-premium, .torrserver-premium').hide();
+      $('div:contains("Премиум"), div:contains("CUB Premium"), div:contains("подписка"), div:contains("QR"), span:contains("QR"), span:contains("Премиум")').closest('.settings-param, .settings-folder, .settings-folder__item, .settings__block, div[class*="premium"]').hide();
+      $('[class*="premium"] > img, [class*="premium"] > canvas').closest('[class*="premium"]').hide();
     }
 
     function clearAdTimers() {
@@ -62,17 +63,16 @@
       document.addEventListener("DOMContentLoaded", clearAdTimers);
       setTimeout(clearAdTimers, 1000);
 
-      // Глобальные стили (без затрагивания синхронизации полностью)
+      // Глобальные стили
       const style = document.createElement('style');
       style.innerHTML = `
         .button--subscribe, [class*="subscribe"]:not([class*="sync"]),
-        [class*="premium"]:not(.premium-quality):not([class*="sync"]),
+        [class*="premium"]:not(.premium-quality):not([class*="sync"]):not([class*="torrserver"]),
         .open--premium, .open--feed, .open--notice, .icon--blink,
         [class*="black-friday"], [class*="christmas"], [class*="ad-"],
         .ad-server, .ad-bot, .card__textbox,
         .full-reviews ~ div,
-        /* QR-реклама */
-        [class*="qr"], [class*="qrcode"], .account-sync__qr, .qr-code { display: none !important; }
+        img[src*="qr"], [class*="qr"], [class*="qrcode"], canvas { display: none !important; }
       `;
       document.head.appendChild(style);
 
@@ -107,25 +107,25 @@
         $('.open--feed, .open--premium, .open--notice, .icon--blink, [class*="friday"], [class*="christmas"]').remove();
       }, 1000);
 
-      // Очистка при открытии настроек (включая QR-рекламу)
+      // Очистка при открытии настроек и смене активности
       Lampa.Settings.listener.follow('open', function () {
         setTimeout(() => {
           hideLockedItems();
-          hideQrAds();
-        }, 200);
+          hidePremiumQrAds();
+        }, 250);
       });
 
       Lampa.Storage.listener.follow('change', function () {
         setTimeout(() => {
           hideLockedItems();
-          hideQrAds();
-        }, 300);
+          hidePremiumQrAds();
+        }, 350);
       });
 
       setTimeout(() => {
         hideLockedItems();
-        hideQrAds();
-      }, 500);
+        hidePremiumQrAds();
+      }, 600);
     }
 
     if (window.appready) {
