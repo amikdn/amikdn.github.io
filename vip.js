@@ -105,11 +105,6 @@
         $('.open--feed, .open--premium, .open--notice, .icon--blink, [class*="friday"], [class*="christmas"]').remove();
       }, 1000);
 
-      // Очистка замков на источниках
-      Lampa.Settings.listener.follow('open', () => setTimeout(hideLockedItems, 150));
-      Lampa.Storage.listener.follow('change', () => setTimeout(hideLockedItems, 300));
-      setTimeout(hideLockedItems, 500);
-
       // Кастомизация preroll-заставки
       customizePreroll();
     }
@@ -128,3 +123,4 @@
     }
   })();
 })();
+
