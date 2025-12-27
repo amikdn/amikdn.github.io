@@ -19,12 +19,29 @@
       $('.selectbox-item__lock, [class*="lock"], [class*="locked"]').closest('.selectbox-item').hide();
     }
 
+    function changePrerollText() {
+      // Меняем текст "Реклама" на "Приятного просмотра" как только появляется заставка
+      const observer = new MutationObserver(function () {
+        $('.ad-preroll__text').each(function () {
+          if ($(this).text().trim() === 'Реклама') {
+            $(this).text('Приятного просмотра');
+          }
+        });
+      });
+      observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+
+      // Дополнительно на всякий случай
+      setInterval(() => {
+        $('.ad-preroll__text').text('Приятного просмотра');
+      }, 300);
+    }
+
     function initializeApp() {
       // Имитация премиума
       window.Account = window.Account || {};
       window.Account.hasPremium = () => true;
 
-      // Мгновенный пропуск pre-roll рекламы (включая .ad-preroll) — без задержек
+      // Мгновенный пропуск pre-roll рекламы (заставка остаётся, но видео заканчивается сразу)
       const origCreateElement = document.createElement;
       document.createElement = function(tag) {
         if (tag.toLowerCase() === 'video') {
@@ -37,7 +54,7 @@
               video.currentTime = video.duration || 99999;
               video.dispatchEvent(new Event('ended'));
               video.dispatchEvent(new Event('timeupdate'));
-            }, 100); // Минимальная задержка для мгновенного пропуска
+            }, 100); // Минимально для мгновенного пропуска
           };
           return video;
         }
@@ -74,6 +91,9 @@
       Lampa.Settings.listener.follow('open', () => setTimeout(hideLockedItems, 150));
       Lampa.Storage.listener.follow('change', () => setTimeout(hideLockedItems, 300));
       setTimeout(hideLockedItems, 500);
+
+      // Замена текста в preroll
+      changePrerollText();
     }
 
     if (window.appready) {
