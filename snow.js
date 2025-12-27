@@ -3,7 +3,7 @@
 
     Lampa.Platform.tv();
 
-    // Создаём canvas для снега
+    // Создаём canvas
     const canvas = document.createElement('canvas');
     canvas.style.position = 'fixed';
     canvas.style.top = '0';
@@ -16,66 +16,91 @@
 
     // Массив снежинок
     const snowflakes = [];
-    const flakeCount = 120; // Количество снежинок (можно менять)
+    const flakeCount = 120; // Можно менять количество
 
-    // Функция инициализации размеров canvas
+    let animationId = null;
+    let isPlayerActive = false; // Флаг: открыт ли плеер
+
+    // Размеры canvas
     function resizeCanvas() {
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
     }
     resizeCanvas();
 
-    // Создаём снежинки
+    // Создание снежинок
     function createSnowflakes() {
         snowflakes.length = 0;
         for (let i = 0; i < flakeCount; i++) {
             snowflakes.push({
                 x: Math.random() * canvas.width,
                 y: Math.random() * canvas.height,
-                radius: Math.random() * 3 + 1,        // Размер от 1 до 4px
-                speed: Math.random() * 1.5 + 0.5,     // Скорость падения
-                opacity: Math.random() * 0.5 + 0.5,   // Прозрачность
-                drift: Math.random() * 2 - 1,         // Горизонтальное смещение (ветер)
-                angle: Math.random() * Math.PI * 2    // Для лёгкого вращения/колебания
+                radius: Math.random() * 3 + 1,
+                speed: Math.random() * 1.5 + 0.5,
+                opacity: Math.random() * 0.5 + 0.5,
+                drift: Math.random() * 2 - 1,
+                angle: Math.random() * Math.PI * 2
             });
         }
     }
     createSnowflakes();
 
-    // Анимация
+    // Проверка, открыт ли плеер (по классам body)
+    function checkPlayerStatus() {
+        const active = document.body.classList.contains('fullscreen') || 
+                       document.body.classList.contains('player-active');
+        
+        if (active && !isPlayerActive) {
+            // Плеер открылся — останавливаем анимацию
+            isPlayerActive = true;
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+                animationId = null;
+            }
+            ctx.clearRect(0, 0, canvas.width, canvas.height); // Очищаем снег
+        } else if (!active && isPlayerActive) {
+            // Плеер закрылся — возобновляем
+            isPlayerActive = false;
+            animate();
+        }
+    }
+
+    // Анимация снега
     function animate() {
+        if (isPlayerActive) return;
+
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
         snowflakes.forEach(flake => {
-            // Рисуем снежинку
             ctx.beginPath();
             ctx.arc(flake.x, flake.y, flake.radius, 0, Math.PI * 2);
             ctx.fillStyle = `rgba(255, 255, 255, ${flake.opacity})`;
             ctx.fill();
 
-            // Обновляем позицию
             flake.y += flake.speed;
-            flake.x += flake.drift + Math.sin(flake.angle) * 0.5; // Лёгкое покачивание
+            flake.x += flake.drift + Math.sin(flake.angle) * 0.5;
             flake.angle += 0.01;
 
-            // Если снежинка улетела вниз — возвращаем сверху
             if (flake.y > canvas.height + flake.radius) {
                 flake.y = -flake.radius;
                 flake.x = Math.random() * canvas.width;
             }
         });
 
-        requestAnimationFrame(animate);
+        animationId = requestAnimationFrame(animate);
     }
 
+    // Запуск анимации
     animate();
 
-    // При изменении размера окна — пересоздаём снежинки и меняем canvas
+    // Обработчики событий
     window.addEventListener('resize', () => {
         resizeCanvas();
         createSnowflakes();
     });
 
-    // Опционально: можно убрать снег по клику или через какое-то время
-    // canvas.addEventListener('click', () => canvas.remove());
+    // Наблюдатель за изменениями классов body (для отслеживания открытия/закрытия плеера)
+    const observer = new MutationObserver(checkPlayerStatus);
+    observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+
 })();
