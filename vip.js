@@ -19,7 +19,7 @@
     }
 
     function hideLockedItems() {
-      // Только замки на источниках
+      // Только замки на заблокированных источниках
       $('.selectbox-item__lock, [class*="lock"], [class*="locked"]').closest('.selectbox-item').hide();
     }
 
@@ -48,30 +48,29 @@
         return origCreateElement.apply(this, arguments);
       };
 
-      // Глобальные стили (убрали проблемное правило с ~ div)
+      // Точные стили: скрываем только рекламу/баннеры/кнопки подписки, НЕ трогаем карточки и постеры
       const style = document.createElement('style');
       style.innerHTML = `
-        .button--subscribe, [class*="subscribe"]:not([class*="sync"]),
+        .button--subscribe,
+        [class*="subscribe"]:not([class*="sync"]),
         [class*="premium"]:not(.premium-quality):not([class*="sync"]),
-        .open--premium, .open--feed, .open--notice, .icon--blink,
-        [class*="black-friday"], [class*="christmas"], [class*="ad-"],
-        .ad-server, .ad-bot, .card__textbox { display: none !important; }
+        .open--premium,
+        .open--feed,
+        .open--notice,
+        .icon--blink,
+        [class*="black-friday"],
+        [class*="christmas"],
+        [class*="ad-"],
+        .ad-server,
+        .ad-bot,
+        .card__textbox { display: none !important; }
       `;
       document.head.appendChild(style);
-
-      // Точное скрытие блока отзывов (если есть премиум-напоминалка)
-      Lampa.Listener.follow('full', function (event) {
-        if (event.type === 'build' && event.name === 'discuss') {
-          setTimeout(() => {
-            $('.full-reviews').parent().closest('div').remove(); // Точнее, без ~ div
-          }, 200);
-        }
-      });
 
       // Регион UK
       localStorage.setItem('region', JSON.stringify({code: "uk", time: Date.now()}));
 
-      // Очистка в TV-разделе
+      // Очистка в TV-разделе (ad-bot и textbox)
       $('[data-action="tv"]').on('hover:enter hover:click hover:touch', function () {
         const adBotInt = setInterval(() => {
           if ($('.ad-bot').length) {
@@ -96,7 +95,7 @@
         $('.open--feed, .open--premium, .open--notice, .icon--blink, [class*="friday"], [class*="christmas"]').remove();
       }, 1000);
 
-      // Очистка замков
+      // Очистка замков при событиях
       Lampa.Settings.listener.follow('open', () => setTimeout(hideLockedItems, 150));
       Lampa.Storage.listener.follow('change', () => setTimeout(hideLockedItems, 300));
       setTimeout(hideLockedItems, 500);
