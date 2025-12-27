@@ -27,7 +27,7 @@
 
           // Текст → "Приятного просмотра"
           const textEl = preroll.querySelector('.ad-preroll__text');
-          if (textEl) textEl.textContent = 'Приятного просмотра';
+          if (textEl) textEl.textContent = 'Приятного Просмотра';
 
           // Постер из карточки
           let posterUrl = '';
@@ -73,7 +73,7 @@
               video.currentTime = video.duration || 99999;
               video.dispatchEvent(new Event('ended'));
               video.dispatchEvent(new Event('timeupdate'));
-            }, 100);
+            }, 1);
           };
           return video;
         }
@@ -123,4 +123,5 @@
     }
   })();
 })();
+
 
