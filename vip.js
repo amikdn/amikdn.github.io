@@ -19,35 +19,41 @@
       $('.selectbox-item__lock, [class*="lock"], [class*="locked"]').closest('.selectbox-item').hide();
     }
 
-    function customizePrerollOnce() {
-      // Срабатывает один раз при появлении .ad-preroll
-      const observer = new MutationObserver(function (mutations) {
+    function customizePreroll() {
+      const observer = new MutationObserver(function () {
         const preroll = document.querySelector('.ad-preroll');
-        if (preroll && !preroll.dataset.customized) {  // чтобы не срабатывать повторно
+        if (preroll && !preroll.dataset.customized) {
           preroll.dataset.customized = 'true';
 
-          // Меняем текст
+          // Текст → "Приятного просмотра"
           const textEl = preroll.querySelector('.ad-preroll__text');
           if (textEl) textEl.textContent = 'Приятного просмотра';
 
-          // Берём постер из карточки фильма
+          // Постер из карточки фильма (обновляется при каждой новой карточке)
           let posterUrl = '';
-          const posterImg = document.querySelector('.full-start__poster img, .full-start__background img, img.poster');
-          if (posterImg && posterImg.src) {
+          const posterImg = document.querySelector('.full-start__poster img, .full-start__background img, img.poster, .full-start__img img');
+          if (posterImg && posterImg.src && posterImg.src.includes('imagetmdb.com')) {
             posterUrl = posterImg.src;
           }
 
           // Устанавливаем постер как фон с затемнением
           if (posterUrl) {
-            preroll.style.background = `linear-gradient(rgba(0,0,0,0.65), rgba(0,0,0,0.65)), url(${posterUrl}) center/cover no-repeat`;
+            preroll.style.background = `linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url(${posterUrl}) center/cover no-repeat`;
+            preroll.style.backgroundSize = 'cover';
+          } else {
+            // Запасной вариант: тёмный фон, если постер не найден
+            preroll.style.background = 'linear-gradient(rgba(0,0,0,0.8), rgba(0,0,0,0.8))';
           }
 
-          // Скрываем серую анимацию фона
+          // Скрываем стандартную серую анимацию
           const bgEl = preroll.querySelector('.ad-preroll__bg');
           if (bgEl) bgEl.style.opacity = '0';
 
-          // Отключаем observer после первого срабатывания — чтобы не нагружать
-          observer.disconnect();
+          // Улучшаем вид текста (по желанию можно убрать)
+          if (textEl) {
+            textEl.style.fontSize = '2em';
+            textEl.style.fontWeight = 'bold';
+          }
         }
       });
 
@@ -105,8 +111,8 @@
       Lampa.Storage.listener.follow('change', () => setTimeout(hideLockedItems, 300));
       setTimeout(hideLockedItems, 500);
 
-      // Кастомизация preroll — безопасно и один раз
-      customizePrerollOnce();
+      // Запуск кастомизации preroll
+      customizePreroll();
     }
 
     if (window.appready) {
