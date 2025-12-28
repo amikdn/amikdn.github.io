@@ -1284,7 +1284,13 @@ body.advanced--animation:not(.no--animation) .new-interface .card--small.animate
             const headNode = this.html.find('.new-interface-info__head');
             const titleText = movie.title || movie.name || '';
 
-            titleNode.text(titleText);
+            // Не устанавливаем текст, если логотипы включены — оставляем пусто до подгрузки изображения
+            if (Logo.enabled()) {
+                titleNode.empty();
+            } else {
+                titleNode.text(titleText);
+            }
+
             applyInfoTitleLogo(this.html, titleNode, headNode, movie, titleText);
         }
 
