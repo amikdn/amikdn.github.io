@@ -1284,7 +1284,7 @@ body.advanced--animation:not(.no--animation) .new-interface .card--small.animate
             const headNode = this.html.find('.new-interface-info__head');
             const titleText = movie.title || movie.name || '';
 
-            // Не устанавливаем текст, если логотипы включены — оставляем пусто до подгрузки изображения
+            // Устанавливаем текст ТОЛЬКО если логотипы выключены
             if (Logo.enabled()) {
                 titleNode.empty();
             } else {
