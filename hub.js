@@ -1180,7 +1180,7 @@ body.advanced--animation:not(.no--animation) .new-interface .card--small.animate
             this.html.find('.new-interface-info__head,.new-interface-info__genres,.new-interface-info__runtime').text('---');
             this.html.find('.new-interface-info__rate').empty();
             this.html.find('.new-interface-info__pg').empty();
-            this.html.find('.new-interface-info__title').text(data.title || data.name || '');
+            this.html.find('.new-interface-info__title').empty();
             this.html.find('.new-interface-info__description').text(data.overview || Lampa.Lang.translate('full_notext'));
 
             Lampa.Background.change(Lampa.Utils.cardImgBackground(data));
