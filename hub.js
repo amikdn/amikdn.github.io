@@ -1,370 +1,358 @@
 (function () {
     'use strict';
 
-    if (window.__snowfx_loaded__) return;
-    window.__snowfx_loaded__ = true;
+    Lampa.Platform.tv();
 
-    const KEY_ENABLED = 'snowfx_enabled';
-    const KEY_DENSITY = 'snowfx_density';
-    const KEY_SETTLE  = 'snowfx_settle';
+    // Определяем протокол (http или https)
+    const protocol = location.protocol === 'https:' ? 'https://' : 'http://';
 
-    const SNOW_ICON = `
-    <svg class="snowfx-menu-icon" width="88" height="83" viewBox="0 0 88 83" xmlns="http://www.w3.org/2000/svg">
-      <g fill="currentColor" fill-rule="evenodd" clip-rule="evenodd">
-        <path d="M40 7H48V76H40Z"/>
-        <path d="M10 37H78V45H10Z"/>
-        <path d="M19.8 22.2L26.2 15.8L68.2 57.8L61.8 64.2Z"/>
-        <path d="M61.8 15.8L68.2 22.2L26.2 64.2L19.8 57.8Z"/>
-        <path d="M34 10H54V18H34Z"/>
-        <path d="M34 65H54V73H34Z"/>
-        <path d="M12 31H20V51H12Z"/>
-        <path d="M68 31H76V51H68Z"/>
-      </g>
-    </svg>`;
+    // Список доменов серверов
+    const servers = [
+        'lampa.app',
+        'bylampa.cc',           // bylampa_jackett
+        'jac-red.ru',           // jacred_ru
+        'jr.maxvol.pro',        // jr_maxvol_pro
+        'jacred.viewbox.dev',   // jacred_viewbox_dev
+        'ru.jacred.pro',        // jacred_pro
+        'jacblack.ru:9117',     // jac_black
+        'jacred.xyz'            // jacred_xyz (основной)
+    ];
 
-    function storageGet(key, def) {
-        try { return Lampa.Storage.get(key, def); } catch (e) { return def; }
-    }
+    // Названия пунктов в меню выбора
+    const serverTitles = [
+        'LampaApp',
+        'Lampa Jackett',
+        'Jacred.xyz',
+        'Jacred Maxvol Pro',
+        'Jacred RU',
+        'Viewbox',
+        'Jacred Pro',
+        'Jac Black'
+    ];
 
-    function isTizen() {
-        try { return Lampa.Platform.is('tizen'); } catch (e) { return false; }
-    }
+    // Проверка доступности сервера и окрашивание пункта в зелёный/красный
+    function checkServer(index) {
+        setTimeout(() => {
+            let apikey = '';
+            if (servers[index] === 'bylampa.cc') apikey = '5178915kmzeLa';
 
-    function prefersReduceMotion() {
-        try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; }
-    }
+            let fullProtocol = servers[index] === 'jr.maxvol.pro' ? 'https://' : 'http://';
+            const checkUrl = `${fullProtocol}${servers[index]}/api/v2.0/indexers/status:healthy/results?apikey=${apikey}`;
 
-    let inPlayer = false;
+            const xhr = new XMLHttpRequest();
+            xhr.timeout = 3000;
+            xhr.open('GET', checkUrl, true);
+            xhr.send();
 
-    let fallCanvas = null, fallCtx = null;
-    let accCanvas = null, accCtx = null;
-    let sprite = null;
-    let W = 0, H = 0, dpr = 1;
+            const selector = `body > div.selectbox > div.selectbox__content.layer--height > div.selectbox__body.layer--wheight > div > div > div > div:nth-child(${index + 2}) > div`;
 
-    function makeSprite() {
-        if (sprite) return;
-        const c = document.createElement('canvas');
-        c.width = c.height = 12;
-        const ctx = c.getContext('2d');
-        ctx.fillStyle = '#ffffff';
-        ctx.beginPath();
-        ctx.arc(6, 6, 5, 0, Math.PI * 2);
-        ctx.fill();
-        sprite = c;
-    }
+            xhr.ontimeout = xhr.onerror = () => {
+                if ($(selector).text() === serverTitles[index]) {
+                    $(selector).html('✘&nbsp;&nbsp;' + $(selector).text()).css('color', '#ff2121');
+                }
+            };
 
-    function ensureCanvases() {
-        if (fallCanvas) return;
-
-        makeSprite();
-
-        fallCanvas = document.createElement('canvas');
-        fallCanvas.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:999999;';
-        document.body.appendChild(fallCanvas);
-        fallCtx = fallCanvas.getContext('2d');
-
-        accCanvas = document.createElement('canvas');
-        accCanvas.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:999998;';
-        document.body.appendChild(accCanvas);
-        accCtx = accCanvas.getContext('2d');
-
-        window.addEventListener('resize', resize);
-        resize();
-    }
-
-    function removeCanvases() {
-        if (fallCanvas && fallCanvas.parentNode) fallCanvas.parentNode.removeChild(fallCanvas);
-        if (accCanvas && accCanvas.parentNode) accCanvas.parentNode.removeChild(accCanvas);
-        fallCanvas = fallCtx = accCanvas = accCtx = null;
-    }
-
-    function resize() {
-        if (!fallCanvas) return;
-        dpr = isTizen() ? 1 : Math.min(window.devicePixelRatio || 1, 2);
-        W = window.innerWidth || 1;
-        H = window.innerHeight || 1;
-
-        fallCanvas.width = accCanvas.width = W * dpr;
-        fallCanvas.height = accCanvas.height = H * dpr;
-
-        fallCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        accCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
-
-        clearAccumulation();
-        createSnowflakes();
-    }
-
-    let snowflakes = [];
-    let cfg_flakeCount = 120;
-    let cfg_settle = 1;
-    let cfg_tizen = false;
-    let prev_settle = 1;
-
-    function createSnowflakes() {
-        snowflakes = [];
-        for (let i = 0; i < cfg_flakeCount; i++) {
-            snowflakes.push({
-                x: Math.random() * W,
-                y: Math.random() * H - H * 0.5,
-                radius: Math.random() * 3 + 1,
-                speed: Math.random() * 1.5 + 0.5,
-                opacity: Math.random() * 0.5 + 0.5,
-                drift: Math.random() * 2 - 1,
-                angle: Math.random() * Math.PI * 2
-            });
-        }
-    }
-
-    function drawAccDot(x, y, radius, opacity) {
-        if (!accCtx || !sprite) return;
-        accCtx.globalAlpha = opacity;
-        const size = (radius * 2) | 0;
-        accCtx.drawImage(sprite, x - size/2, y - size/2, size, size);
-        accCtx.globalAlpha = 1;
-    }
-
-    function clearAccumulation() {
-        if (!accCtx) return;
-        accCtx.clearRect(0, 0, W, H);
-    }
-
-    let fadeRaf = 0;
-    function shakeOffAccumulation() {
-        if (!accCtx || cfg_tizen || !cfg_settle || fadeRaf) return;
-
-        const start = performance.now();
-        const duration = 300;
-
-        function step() {
-            const progress = Math.min((performance.now() - start) / duration, 1);
-            accCtx.save();
-            accCtx.globalCompositeOperation = 'destination-out';
-            accCtx.fillStyle = 'rgba(0,0,0,0.9)';
-            accCtx.fillRect(0, 0, W, H);
-            accCtx.restore();
-
-            if (progress < 1) {
-                fadeRaf = requestAnimationFrame(step);
-            } else {
-                fadeRaf = 0;
-                clearAccumulation();
-            }
-        }
-        fadeRaf = requestAnimationFrame(step);
-    }
-
-    let running = false;
-    let rafId = 0;
-
-    function animate() {
-        if (!running) return;
-
-        fallCtx.clearRect(0, 0, W, H);
-
-        // Перестраиваем поверхности каждый кадр — только актуальные элементы
-        if (cfg_settle && !cfg_tizen) {
-            const sels = ['.card__view', '.card', '[data-card]', '.full-start__poster', '.poster'];
-            const cards = [];
-            sels.forEach(sel => {
-                try { document.querySelectorAll(sel).forEach(el => cards.push(el)); } catch (e) {}
-            });
-
-            const surfaces = [];
-            const max = 60;
-            for (let i = 0; i < cards.length && i < max; i++) {
-                const r = cards[i].getBoundingClientRect();
-                if (r.bottom < 0 || r.top > H) continue;
-                if (r.width > W * 0.9) continue;
-                const y = r.top + 2;
-                if (y < 0 || y > H) continue;
-                const x1 = r.left + 10;
-                const x2 = r.right - 10;
-                if (x2 - x1 < 60) continue;
-                surfaces.push({ x1, x2, y });
-            }
-
-            snowflakes.forEach(flake => {
-                fallCtx.beginPath();
-                fallCtx.arc(flake.x, flake.y, flake.radius, 0, Math.PI * 2);
-                fallCtx.fillStyle = `rgba(255, 255, 255, ${flake.opacity})`;
-                fallCtx.fill();
-
-                flake.y += flake.speed;
-                flake.x += flake.drift + Math.sin(flake.angle) * 0.5;
-                flake.angle += 0.01;
-
-                let settled = false;
-
-                if (cfg_settle && !cfg_tizen) {
-                    if (flake.y > H - 10) {
-                        drawAccDot(flake.x, H - 10, flake.radius, Math.min(0.9, flake.opacity + 0.1));
-                        settled = true;
-                    } else {
-                        for (const s of surfaces) {
-                            if (flake.x >= s.x1 && flake.x <= s.x2 && flake.y >= s.y - 5 && flake.y <= s.y + 5) {
-                                drawAccDot(flake.x, s.y - 1, flake.radius, Math.min(0.9, flake.opacity + 0.15));
-                                if (Math.random() < 0.5) drawAccDot(flake.x + Math.random()*10-5, s.y - 1, flake.radius*0.85, Math.min(0.8, flake.opacity));
-                                settled = true;
-                                break;
-                            }
-                        }
+            xhr.onload = () => {
+                if (xhr.status === 200) {
+                    if ($(selector).text() === serverTitles[index]) {
+                        $(selector).html('✔&nbsp;&nbsp;' + $(selector).text()).css('color', '#64e364');
+                    }
+                } else if (xhr.status === 401) {
+                    if ($(selector).text() === serverTitles[index]) {
+                        $(selector).html('✘&nbsp;&nbsp;' + $(selector).text()).css('color', '#ffffff');
+                    }
+                } else {
+                    if ($(selector).text() === serverTitles[index]) {
+                        $(selector).html('✘&nbsp;&nbsp;' + $(selector).text()).css('color', '#ff2121');
                     }
                 }
+            };
+        }, 1000);
+    }
 
-                if (settled || flake.y > H + flake.radius) {
-                    flake.y = -flake.radius - Math.random() * H * 0.3;
-                    flake.x = Math.random() * W;
-                    flake.angle = Math.random() * Math.PI * 2;
+    function checkAllServers() {
+        for (let i = 0; i < servers.length; i++) {
+            checkServer(i);
+        }
+    }
+
+    // При открытии настроек парсера — проверяем доступность серверов
+    Lampa.Settings.listen('settings_component', function (e) {
+        if (e.name === 'parser') {
+            setTimeout(checkAllServers, 10);
+        }
+    });
+
+    // Автоматическая настройка параметров в зависимости от выбранного сервера
+    function applyServerSettings() {
+        const selected = Lampa.Storage.get('parser_torrent_type');
+
+        if (selected === 'no_parser') {
+            Lampa.Storage.set('jackett_url', '');
+            Lampa.Storage.set('jackett_key', '');
+            Lampa.Storage.set('jackett_interview', 'all');
+            Lampa.Storage.set('parse_in_search', false);
+            Lampa.Storage.set('parse_lang', 'lg');
+        }
+
+        if (selected === 'jac_lampa32_ru') {
+            Lampa.Storage.set('jackett_url', '62.60.149.237:8443');
+            Lampa.Storage.set('jackett_key', '');
+            Lampa.Storage.set('jackett_interview', 'all');
+            Lampa.Storage.set('parse_in_search', true);
+            Lampa.Storage.set('parse_lang', 'lg');
+        }
+
+        if (Lampa.Storage.get('jackett_urltwo') === 'jacred_ru') {
+            Lampa.Storage.set('jackett_url', 'jac-red.ru');
+            Lampa.Storage.set('jackett_key', '');
+            Lampa.Storage.set('jackett_interview', 'all');
+            Lampa.Storage.set('parse_in_search', true);
+            Lampa.Storage.set('parse_lang', 'lg');
+        }
+
+        if (selected === 'jacred_xyz') {
+            Lampa.Storage.set('jackett_url', 'jacred.xyz');
+            Lampa.Storage.set('jackett_key', '');
+            Lampa.Storage.set('jackett_interview', 'healthy');
+            Lampa.Storage.set('parse_in_search', true);
+            Lampa.Storage.set('parse_lang', 'lg');
+        }
+
+        if (selected === 'jr_maxvol_pro') {
+            Lampa.Storage.set('jackett_url', 'jr.maxvol.pro');
+            Lampa.Storage.set('jackett_key', '');
+            Lampa.Storage.set('jackett_interview', 'healthy');
+            Lampa.Storage.set('parse_in_search', true);
+            Lampa.Storage.set('parse_lang', 'df');
+        }
+
+        if (selected === 'jac_black') {
+            Lampa.Storage.set('jackett_url', 'jacblack.ru:9117');
+            Lampa.Storage.set('jackett_key', '');
+            Lampa.Storage.set('jackett_interview', 'all');
+            Lampa.Storage.set('parse_in_search', true);
+            Lampa.Storage.set('parse_lang', 'lg');
+        }
+
+        if (selected === 'jacred_ru') {
+            Lampa.Storage.set('jackett_url', 'jac-red.ru');
+            Lampa.Storage.set('jackett_key', '');
+            Lampa.Storage.set('jackett_interview', 'all');
+            Lampa.Storage.set('parse_in_search', true);
+            Lampa.Storage.set('parse_lang', 'lg');
+        }
+
+        if (selected === 'jacred_viewbox_dev') {
+            Lampa.Storage.set('jackett_url', 'jacred.viewbox.dev');
+            Lampa.Storage.set('jackett_key', '777');
+            Lampa.Storage.set('jackett_interview', 'all');
+            Lampa.Storage.set('parse_in_search', true);
+            Lampa.Storage.set('parse_lang', 'lg');
+        }
+
+        if (Lampa.Storage.get('jackett_urltwo') === 'bylampa_jackett') {
+            Lampa.Storage.set('jackett_url', 'bylampa.cc');
+            Lampa.Storage.set('jackett_key', '5178915kmzeLa');
+            Lampa.Storage.set('jackett_interview', 'all');
+            Lampa.Storage.set('parse_in_search', true);
+            Lampa.Storage.set('parse_lang', 'df');
+        }
+    }
+
+    // Добавляем в настройки новый пункт "Выбрать парсер"
+    Lampa.SettingsApi.addParam({
+        component: 'parser',
+        param: {
+            name: 'jackett_urltwo',
+            type: 'select',
+            values: {
+                no_parser: 'Нет парсера',
+                jac_lampa32_ru: 'Jacred Lampa32 RU',
+                bylampa_jackett: 'Lampa Jackett',
+                jacred_xyz: 'Jacred.xyz',
+                jr_maxvol_pro: 'Jacred Maxvol Pro',
+                jacred_ru: 'Jacred RU',
+                jacred_viewbox_dev: 'Jacred Viewbox Dev',
+                jacred_pro: 'Jacred Pro',
+                jac_black: 'Jac Black'
+            },
+            default: 'jacred_xyz'
+        },
+        field: {
+            name: 'Меню смены парсера',
+            description: 'Нажмите для выбора парсера из списка'
+        },
+        onChange: () => {
+            applyServerSettings();
+            Lampa.Settings.update();
+        },
+        onRender: () => {
+            setTimeout(() => {
+                // По нажатию Enter на пункте — открываем меню выбора
+                $('div[data-name="jackett_urltwo"]').on('hover:enter', () => {
+                    Lampa.Settings.update();
+                });
+
+                // Если уже выбран не "Свой вариант" — скрываем стандартные поля
+                if (localStorage.getItem('parser_torrent_type') !== 'custom') {
+                    $('div[data-name="jackett_url"]').hide();
+                    $('div[data-name="jackett_key"]').hide();
+                    Lampa.Controller.toggle('settings_component');
                 }
-            });
+
+                // Если включён Jackett — показываем наш пункт
+                if (Lampa.Storage.get('parser') && Lampa.Storage.get('torrents') === 'jackett') {
+                    _0xdaa4b7.show();
+                    $('.settings-param__name', _0xdaa4b7).css('color', '#ffffff');
+                    $('div[data-children="parser"]').insertAfter(
+                        '<div class="settings-folder" style="padding:0!important">...' // SVG-иконка и стили (в оригинале здесь длинный SVG)
+                    );
+                } else {
+                    _0xdaa4b7.hide();
+                }
+            }, 5);
+        }
+    });
+
+    // Скрытие/показ других полей при смене типа парсера
+    Lampa.Settings.listen('timeout', function (e) {
+        if (e.name === 'settings_component') {
+            e.activity.find('[data-name="jackett_url2"]').hide();
+            e.activity.find('div[data-name="parser_torrent_type"]').hide();
+        }
+    });
+
+    Lampa.Storage.follow('parser', function (e) {
+        if (Lampa.Storage.get('torrents') !== 'jackett') {
+            $('div[data-children="parser"]').hide();
         } else {
-            // Если оседание выключено — обычное падение
-            snowflakes.forEach(flake => {
-                fallCtx.beginPath();
-                fallCtx.arc(flake.x, flake.y, flake.radius, 0, Math.PI * 2);
-                fallCtx.fillStyle = `rgba(255, 255, 255, ${flake.opacity})`;
-                fallCtx.fill();
-
-                flake.y += flake.speed;
-                flake.x += flake.drift + Math.sin(flake.angle) * 0.5;
-                flake.angle += 0.01;
-
-                if (flake.y > H + flake.radius) {
-                    flake.y = -flake.radius - Math.random() * H * 0.3;
-                    flake.x = Math.random() * W;
-                    flake.angle = Math.random() * Math.PI * 2;
-                }
-            });
+            $('div[data-children="parser"]').show();
+            $('div[data-name="jackett_urltwo"]').insertAfter('<div class="settings-folder">...');
         }
+    });
 
-        rafId = requestAnimationFrame(animate);
-    }
-
-    function start() {
-        if (running || prefersReduceMotion()) return;
-        ensureCanvases();
-        createSnowflakes();
-        running = true;
-        rafId = requestAnimationFrame(animate);
-    }
-
-    function stop() {
-        if (rafId) cancelAnimationFrame(rafId);
-        rafId = 0;
-        running = false;
-        removeCanvases();
-        snowflakes = [];
-    }
-
-    let scrollDebounce = 0;
-    function onScroll() {
-        if (scrollDebounce || !cfg_settle) return;
-        scrollDebounce = setTimeout(() => {
-            scrollDebounce = 0;
-            shakeOffAccumulation(); // только накопленный
-        }, 100);
-    }
-    document.addEventListener('scroll', onScroll, true);
-    document.addEventListener('wheel', onScroll, {passive:true});
-    document.addEventListener('touchmove', onScroll, {passive:true});
-
-    function computeConfig() {
-        const tizen = isTizen();
-        const density = parseInt(storageGet(KEY_DENSITY, '0'), 10) || 0;
-
-        let count = 120;
-        if (tizen) count = 45;
-        else if (density === 1) count = 90;
-        else if (density === 2) count = 180;
-        else if (density === 3) count = 240;
-
-        const settle = tizen ? 0 : parseInt(storageGet(KEY_SETTLE, '1'), 10);
-
-        return {
-            enabled: !!parseInt(storageGet(KEY_ENABLED, '1'), 10),
-            flakeCount: count,
-            settle: settle,
-            tizen: tizen
-        };
-    }
-
-    function applyConfig(forceClear = false) {
-        const cfg = computeConfig();
-        const settleChanged = cfg.settle !== prev_settle;
-
-        cfg_flakeCount = cfg.flakeCount;
-        cfg_settle = cfg.settle;
-        cfg_tizen = cfg.tizen;
-        prev_settle = cfg.settle;
-
-        if (forceClear || settleChanged) {
-            clearAccumulation();
-        }
-
-        const shouldRun = cfg.enabled && !inPlayer;
-
-        if (shouldRun) {
-            start();
-        } else {
-            stop();
-        }
-    }
-
-    function addSettings() {
-        if (!Lampa.SettingsApi) return;
-
-        Lampa.SettingsApi.addComponent({
-            component: 'snowfx',
-            name: 'Снег',
-            icon: SNOW_ICON
-        });
-
-        Lampa.SettingsApi.addParam({
-            component: 'snowfx',
-            param: { name: KEY_ENABLED, type: 'select', values: {0:'Выкл',1:'Вкл'}, default:1 },
-            field: { name: 'Снег', description: 'На всех экранах кроме плеера' }
-        });
-
-        Lampa.SettingsApi.addParam({
-            component: 'snowfx',
-            param: { name: KEY_DENSITY, type: 'select', values: {0:'Авто',1:'Мало',2:'Средне',3:'Много'}, default:0 },
-            field: { name: 'Плотность снега', description: 'На Tizen ограничена' }
-        });
-
-        Lampa.SettingsApi.addParam({
-            component: 'snowfx',
-            param: { name: KEY_SETTLE, type: 'select', values: {0:'Выкл',1:'Вкл'}, default:1 },
-            field: { name: 'Оседание на постерах', description: 'Снег накапливается на карточках и большом постере' }
-        });
-    }
-
-    function init() {
-        addSettings();
-
-        try {
-            Lampa.Listener.follow('activity', e => {
-                if (e.type === 'start') {
-                    clearAccumulation(); // ключевой фикс — очистка при смене экрана
-                    applyConfig();
-                }
-            });
-        } catch (e) {}
-
-        try {
-            if (Lampa.Player && Lampa.Player.listener) {
-                Lampa.Player.listener.follow('start', () => { inPlayer = true; stop(); });
-                Lampa.Player.listener.follow('destroy', () => { inPlayer = false; applyConfig(); });
+    // При первом запуске — устанавливаем дефолтные значения
+    let initInterval = setInterval(() => {
+        if (typeof Lampa !== 'undefined') {
+            clearInterval(initInterval);
+            if (!Lampa.Storage.get('jack', 'false')) {
+                firstRunSetup();
             }
-        } catch (e) {}
+        }
+    }, 100);
 
-        setInterval(() => applyConfig(), 800);
-        applyConfig(true);
+    function firstRunSetup() {
+        Lampa.Storage.set('jack', 'true');
+        Lampa.Storage.set('jackett_url', 'jacred.xyz');
+        Lampa.Storage.set('parser_torrent_type', 'jacred_xyz');
+        Lampa.Storage.set('parse_in_search', true);
+        Lampa.Storage.set('jackett_key', '');
+        Lampa.Storage.set('jackett_interview', 'healthy');
+        Lampa.Storage.set('parse_lang', 'lg');
     }
 
-    if (window.Lampa) init();
-    else {
-        const timer = setInterval(() => {
-            if (window.Lampa) { clearInterval(timer); init(); }
-        }, 300);
+    // === Меню выбора парсера (альтернативное красивое меню) ===
+    function buildParserMenu() {
+        const currentActivity = Lampa.Activity.active().name;
+        const serversList = [
+            { title: 'Jacred Lampa32 RU', url: '62.60.149.237:8443', url_two: 'jac_lampa32_ru', jac_key: '', jac_int: 'all', jac_lang: 'lg' },
+            { title: 'Lampa Jackett',      url: 'bylampa.cc',          url_two: 'bylampa_jackett', jac_key: '5178915kmzeLa', jac_int: 'all', jac_lang: 'df' },
+            { title: 'Jacred.xyz',         url: 'jacred.xyz',          url_two: 'jacred_xyz',      jac_key: '', jac_int: 'healthy', jac_lang: 'lg' },
+            { title: 'Jacred Maxvol Pro',  url: 'jr.maxvol.pro',       url_two: 'jr_maxvol_pro',   jac_key: '', jac_int: 'healthy', jac_lang: 'lg' },
+            { title: 'Jacred RU',          url: 'jac-red.ru',          url_two: 'jacred_ru',       jac_key: '', jac_int: 'all', jac_lang: 'lg' },
+            { title: 'Jacred Viewbox Dev', url: 'jacred.viewbox.dev',  url_two: 'jacred_viewbox_dev', jac_key: '777', jac_int: 'all', jac_lang: 'lg' },
+            { title: 'Jacred Pro',         url: 'ru.jacred.pro',       url_two: 'jacred_pro',      jac_key: '', jac_int: 'all', jac_lang: 'lg' },
+            { title: 'Jac Black',          url: 'jacblack.ru:9117',    url_two: 'jac_black',       jac_key: '', jac_int: 'all', jac_lang: 'lg' }
+        ];
+
+        checkServersAvailability(serversList).then(items => {
+            Lampa.Modal.show({
+                title: 'Выбрать парсер',
+                items: items.map(item => ({ title: item.title, ...item })),
+                onBack: () => Lampa.Controller.toggle(currentActivity),
+                onSelect: selected => {
+                    Lampa.Storage.set('jackett_url', selected.url);
+                    Lampa.Storage.set('jackett_urltwo', selected.url_two);
+                    Lampa.Storage.set('jackett_key', selected.jac_key);
+                    Lampa.Storage.set('jackett_interview', selected.jac_int);
+                    Lampa.Storage.set('parse_lang', selected.jac_lang);
+                    Lampa.Storage.set('parse_in_search', true);
+                    Lampa.Controller.toggle(currentActivity);
+
+                    const component = Lampa.Storage.get('settings_component');
+                    setTimeout(() => window.location.reload(), 1000);
+                    setTimeout(() => Lampa.Activity.push(component), 2000);
+                }
+            });
+        }).catch(err => console.error('Error:', err));
+    }
+
+    // Проверка доступности каждого сервера для отображения галочки/крестиков в модальном меню
+    function checkServersAvailability(list) {
+        const checks = [];
+
+        for (const server of list) {
+            checks.push(checkSingleServer(server.url, server.title, server));
+        }
+
+        return Promise.all(checks);
+    }
+
+    function checkSingleServer(domain, title, data) {
+        return new Promise((resolve) => {
+            let proto = location.protocol === 'https:' ? 'https://' : 'http://';
+            let apikey = domain === 'bylampa.cc' ? '5178915kmzeLa' : '';
+            if (domain === 'jr.maxvol.pro') proto = 'https://';
+
+            const url = `${proto}${domain}/api/v2.0/indexers/status:healthy/results?apikey=${apikey}`;
+            const xhr = new XMLHttpRequest();
+            xhr.open('GET', url, true);
+            xhr.timeout = 3000;
+            xhr.onload = () => {
+                if (xhr.status === 200) {
+                    data.title = '<span style="color:#64e364;">✔&nbsp;&nbsp;' + title + '</span>';
+                } else {
+                    data.title = '<span style="color:#ff2121;">✘&nbsp;&nbsp;' + title + '</span>';
+                }
+                resolve(data);
+            };
+            xhr.onerror = xhr.ontimeout = () => {
+                data.title = '<span style="color:#ff2121;">✘&nbsp;&nbsp;' + title + '</span>';
+                resolve(data);
+            };
+            xhr.send();
+        });
+    }
+
+    // Отслеживание открытия настроек и добавление альтернативного меню
+    let observer;
+    Lampa.Storage.follow('parser', function (e) {
+        if (e.name === 'settings_component' && Lampa.Activity.active().name === 'settings') {
+            buildParserMenuIfNeeded();
+        }
+    });
+
+    function buildParserMenuIfNeeded() {
+        buildParserMenu();
+        stopObserver();
+        const body = document.body;
+        const config = { childList: true, subtree: true };
+        observer = new MutationObserver(mutations => {
+            mutations.forEach(() => {
+                if ($('.empty__title').length && Lampa.Storage.field('torrents') === 'jackett') {
+                    buildParserMenu();
+                    stopObserver();
+                }
+            });
+        });
+        observer.observe(body, config);
+    }
+
+    function stopObserver() {
+        if (observer) {
+            observer.disconnect();
+            observer = null;
+        }
     }
 })();
