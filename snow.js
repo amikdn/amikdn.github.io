@@ -10,18 +10,18 @@
     canvas.style.left = '0';
     canvas.style.pointerEvents = 'none';
     canvas.style.zIndex = '999999';
-    canvas.style.transition = 'opacity 0.5s ease'; // Плавное исчезновение/появление
+    canvas.style.transition = 'opacity 0.7s ease'; // Плавное исчезновение
+    canvas.style.opacity = '1';
     document.body.appendChild(canvas);
 
     const ctx = canvas.getContext('2d');
 
-    // Массив снежинок
     const snowflakes = [];
-    const flakeCount = 120; // Количество снежинок — можно изменить
+    const flakeCount = 120; // Количество снежинок
 
-    let animationId = null; // Для управления анимацией
+    let animationId = null;
 
-    // Установка размеров canvas
+    // Размеры canvas
     function resizeCanvas() {
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
@@ -45,7 +45,7 @@
     }
     createSnowflakes();
 
-    // Функция анимации
+    // Анимация снега
     function animate() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -68,7 +68,7 @@
         animationId = requestAnimationFrame(animate);
     }
 
-    // Функция включения снега
+    // Включить снег
     function startSnow() {
         if (animationId === null) {
             canvas.style.opacity = '1';
@@ -76,30 +76,36 @@
         }
     }
 
-    // Функция выключения снега
+    // Выключить снег
     function stopSnow() {
         if (animationId !== null) {
             cancelAnimationFrame(animationId);
             animationId = null;
-            canvas.style.opacity = '0'; // Плавно скрываем
         }
+        canvas.style.opacity = '0';
     }
 
-    // Запуск снега сразу
-    startSnow();
+    // Проверка: открыт ли сейчас плеер
+    function isPlayerActive() {
+        const active = Lampa.Activity.active();
+        return active && active.name === 'player';
+    }
 
-    // Отслеживаем события плеера
-    Lampa.Listener.follow('player', function (e) {
-        if (e.type === 'start' || e.type === 'play') {
-            // Плеер открылся или началось воспроизведение — скрываем снег
+    // Основная логика: каждые 500 мс проверяем состояние
+    setInterval(() => {
+        if (isPlayerActive()) {
             stopSnow();
-        } else if (e.type === 'stop' || e.type === 'end' || e.type === 'close') {
-            // Плеер закрылся — возвращаем снег
+        } else {
             startSnow();
         }
-    });
+    }, 500);
 
-    // Обработка изменения размера окна
+    // Запуск снега сразу (если не в плеере)
+    if (!isPlayerActive()) {
+        startSnow();
+    }
+
+    // При ресайзе окна
     window.addEventListener('resize', () => {
         resizeCanvas();
         createSnowflakes();
