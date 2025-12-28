@@ -3,15 +3,14 @@
 
     Lampa.Platform.tv();
 
-    // Создаём canvas для снега
+    // Создаём canvas
     const canvas = document.createElement('canvas');
     canvas.style.position = 'fixed';
     canvas.style.top = '0';
     canvas.style.left = '0';
     canvas.style.pointerEvents = 'none';
     canvas.style.zIndex = '999999';
-    canvas.style.transition = 'opacity 0.7s ease'; // Плавное исчезновение
-    canvas.style.opacity = '1';
+    canvas.style.transition = 'opacity 0.5s ease'; // Плавность на всякий случай
     document.body.appendChild(canvas);
 
     const ctx = canvas.getContext('2d');
@@ -21,7 +20,7 @@
 
     let animationId = null;
 
-    // Размеры canvas
+    // Размеры
     function resizeCanvas() {
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
@@ -45,7 +44,7 @@
     }
     createSnowflakes();
 
-    // Анимация снега
+    // Анимация
     function animate() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -71,6 +70,7 @@
     // Включить снег
     function startSnow() {
         if (animationId === null) {
+            canvas.style.display = 'block';
             canvas.style.opacity = '1';
             animate();
         }
@@ -82,30 +82,33 @@
             cancelAnimationFrame(animationId);
             animationId = null;
         }
-        canvas.style.opacity = '0';
+        canvas.style.display = 'none'; // Полностью убираем из DOM-потока
     }
 
-    // Проверка: открыт ли сейчас плеер
+    // Проверка: открыт ли плеер
     function isPlayerActive() {
         const active = Lampa.Activity.active();
-        return active && active.name === 'player';
+        if (!active) return false;
+        // В Lampa плеер имеет component или name === 'player' / 'fullstart' / 'viewer'
+        const name = active.component || active.name || '';
+        return name.indexOf('player') !== -1 || name === 'fullstart' || name === 'viewer';
     }
 
-    // Основная логика: каждые 500 мс проверяем состояние
+    // Проверка каждые 300 мс — быстро и без нагрузки
     setInterval(() => {
         if (isPlayerActive()) {
             stopSnow();
         } else {
             startSnow();
         }
-    }, 500);
+    }, 300);
 
-    // Запуск снега сразу (если не в плеере)
+    // Запуск при загрузке (если не в плеере)
     if (!isPlayerActive()) {
         startSnow();
     }
 
-    // При ресайзе окна
+    // Ресайз
     window.addEventListener('resize', () => {
         resizeCanvas();
         createSnowflakes();
