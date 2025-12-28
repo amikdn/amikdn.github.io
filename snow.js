@@ -6,12 +6,11 @@
     let canvas = null;
     let ctx = null;
     let snowflakes = [];
-    const flakeCount = 120;
     let animationId = null;
+    const flakeCount = 120;
 
-    // Создаём canvas и запускаем снег
     function createSnow() {
-        if (canvas) return; // Уже создан
+        if (canvas) return;
 
         canvas = document.createElement('canvas');
         canvas.style.position = 'fixed';
@@ -23,18 +22,17 @@
 
         ctx = canvas.getContext('2d');
         resizeCanvas();
-        createSnowflakes();
+        createFlakes();
         animate();
     }
 
-    // Удаляем canvas полностью
-    function removeSnow() {
-        if (animationId !== null) {
+    function destroySnow() {
+        if (animationId) {
             cancelAnimationFrame(animationId);
             animationId = null;
         }
-        if (canvas && canvas.parentNode) {
-            canvas.parentNode.removeChild(canvas);
+        if (canvas) {
+            canvas.remove();
             canvas = null;
             ctx = null;
             snowflakes = [];
@@ -42,17 +40,20 @@
     }
 
     function resizeCanvas() {
-        if (!canvas) return;
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
+        if (canvas) {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
     }
 
-    function createSnowflakes() {
+    function createFlakes() {
         snowflakes = [];
+        const width = canvas ? canvas.width : window.innerWidth;
+        const height = canvas ? canvas.height : window.innerHeight;
         for (let i = 0; i < flakeCount; i++) {
             snowflakes.push({
-                x: Math.random() * (canvas ? canvas.width : window.innerWidth),
-                y: Math.random() * (canvas ? canvas.height : window.innerHeight),
+                x: Math.random() * width,
+                y: Math.random() * height,
                 radius: Math.random() * 3 + 1,
                 speed: Math.random() * 1.5 + 0.5,
                 opacity: Math.random() * 0.5 + 0.5,
@@ -63,9 +64,7 @@
     }
 
     function animate() {
-        if (!ctx || !canvas) return;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-
         snowflakes.forEach(flake => {
             ctx.beginPath();
             ctx.arc(flake.x, flake.y, flake.radius, 0, Math.PI * 2);
@@ -81,35 +80,27 @@
                 flake.x = Math.random() * canvas.width;
             }
         });
-
         animationId = requestAnimationFrame(animate);
     }
 
-    // Проверка активности плеера
-    function isPlayerActive() {
-        const active = Lampa.Activity.active();
-        if (!active) return false;
-        const name = active.component || active.name || '';
-        return name.includes('player') || name === 'fullstart' || name === 'viewer' || name.includes('video');
-    }
-
-    // Основной цикл проверки
-    setInterval(() => {
-        if (isPlayerActive()) {
-            removeSnow();
-        } else {
-            createSnow();
+    // Ключевой Listener — реагирует на смену активности
+    Lampa.Listener.follow('activity', function (e) {
+        if (e.type === 'show') {
+            const active = Lampa.Activity.active();
+            if (active && (active.name === 'player' || active.component === 'player' || active.component === 'fullstart' || active.component === 'viewer')) {
+                destroySnow();
+            } else {
+                createSnow();
+            }
         }
-    }, 300);
+    });
 
-    // Инициализация при загрузке
-    if (!isPlayerActive()) {
-        createSnow();
-    }
+    // Инициализация
+    createSnow();
 
     // Ресайз
     window.addEventListener('resize', () => {
         resizeCanvas();
-        if (canvas) createSnowflakes();
+        if (canvas) createFlakes();
     });
 })();
