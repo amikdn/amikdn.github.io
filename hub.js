@@ -785,8 +785,6 @@
         if (!object) return false;
         if (!(object.source === 'tmdb' || object.source === 'cub')) return false;
         if (window.innerWidth < 767) return false;
-        if (typeof Lampa.Account !== 'undefined' && typeof Lampa.Account.hasPremium === 'function') {
-            if (!Lampa.Account.hasPremium()) return false;
         }
 
         return true;
