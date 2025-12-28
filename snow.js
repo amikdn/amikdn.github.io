@@ -19,8 +19,6 @@
     const snowflakes = [];
     const flakeCount = 120; // Количество снежинок (можно менять)
 
-    let animationId = null;
-
     // Функция инициализации размеров canvas
     function resizeCanvas() {
         canvas.width = window.innerWidth;
@@ -50,54 +48,28 @@
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
         snowflakes.forEach(flake => {
+            // Рисуем снежинку
             ctx.beginPath();
             ctx.arc(flake.x, flake.y, flake.radius, 0, Math.PI * 2);
             ctx.fillStyle = `rgba(255, 255, 255, ${flake.opacity})`;
             ctx.fill();
 
+            // Обновляем позицию
             flake.y += flake.speed;
             flake.x += flake.drift + Math.sin(flake.angle) * 0.5; // Лёгкое покачивание
             flake.angle += 0.01;
 
+            // Если снежинка улетела вниз — возвращаем сверху
             if (flake.y > canvas.height + flake.radius) {
                 flake.y = -flake.radius;
                 flake.x = Math.random() * canvas.width;
             }
         });
 
-        animationId = requestAnimationFrame(animate);
+        requestAnimationFrame(animate);
     }
 
-    // Запуск анимации
     animate();
-
-    // Проверка: в плеере ли мы
-    function isInPlayer() {
-        try {
-            const active = Lampa.Activity.active();
-            if (active) {
-                const name = active.component || active.name || '';
-                return name.includes('player') || name === 'fullstart' || name === 'viewer';
-            }
-        } catch (e) {}
-        return false;
-    }
-
-    // Listener на смену экранов
-    Lampa.Listener.follow('activity', function (e) {
-        if (e.type === 'show') {
-            if (isInPlayer()) {
-                canvas.style.display = 'none'; // Скрываем полностью
-                if (animationId) {
-                    cancelAnimationFrame(animationId);
-                    animationId = null;
-                }
-            } else {
-                canvas.style.display = 'block'; // Показываем
-                if (!animationId) animate(); // Возобновляем анимацию
-            }
-        }
-    });
 
     // При изменении размера окна — пересоздаём снежинки и меняем canvas
     window.addEventListener('resize', () => {
