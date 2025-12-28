@@ -495,6 +495,12 @@ function markSmartTV(){
                     this.syncFullHead(container, true);
 
                     this.swapContent(titleEl, img);
+
+              // === НОВОЕ: скрываем слоган (tagline) под логотипом ===
+                    const taglineNode = container.find('.full-start-new__tagline, .full--tagline');
+                    if (taglineNode && taglineNode.length) {
+                        taglineNode.css('display', 'none');
+                    }
                 });
             } catch (e) { }
         }
