@@ -781,14 +781,14 @@
         });
     }
  // Premium users
-    function shouldUseNewInterface(object) {
-        if (!object) return false;
-        if (!(object.source === 'tmdb' || object.source === 'cub')) return false;
-        if (window.innerWidth < 767) return false;
-        }
+function shouldUseNewInterface(object) {
+    if (!object) return false;
+    if (!(object.source === 'tmdb' || object.source === 'cub')) return false;
+    if (window.innerWidth < 767) return false;
 
-        return true;
-    }
+    // Проверка на премиум удалена — интерфейс доступен всем
+    return true;
+}
 
     function ensureState(main) {
         if (main.__newInterfaceState) return main.__newInterfaceState;
