@@ -514,6 +514,10 @@ function markSmartTV(){
             if (!titleNode || !titleNode.length) return;
             const titleEl = titleNode[0];
             if (!titleEl) return;
+            // Принудительно очищаем текст перед началом загрузки логотипа
+            if (Logo.enabled()) {
+                titleNode.empty();
+            }
 
             const reqId = (titleEl.__ni_logo_req_id || 0) + 1;
             titleEl.__ni_logo_req_id = reqId;
