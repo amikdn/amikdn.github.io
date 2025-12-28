@@ -5,7 +5,7 @@
     Lampa.Platform.tv();
 
     // Создаём canvas для снега
-    let canvas = document.createElement('canvas');
+    const canvas = document.createElement('canvas');
     canvas.style.position = 'fixed';
     canvas.style.top = '0';
     canvas.style.left = '0';
@@ -19,7 +19,7 @@
     const snowflakes = [];
     const flakeCount = 120; // Количество снежинок (можно менять)
 
-    let animationId = null; // Для остановки анимации
+    let animationId = null;
 
     // Функция инициализации размеров canvas
     function resizeCanvas() {
@@ -69,84 +69,35 @@
     }
 
     // Запуск анимации
-    function startSnow() {
-        if (!animationId) {
-            animate();
-        }
-    }
+    animate();
 
-    // Полная остановка и удаление canvas
-    function stopSnow() {
-        if (animationId) {
-            cancelAnimationFrame(animationId);
-            animationId = null;
-        }
-        if (canvas && canvas.parentNode) {
-            canvas.parentNode.removeChild(canvas);
-            canvas = null; // Чтобы при возврате создать заново
-        }
-    }
-
-    // Создание canvas заново (при возврате из плеера)
-    function recreateCanvas() {
-        if (!canvas) {
-            canvas = document.createElement('canvas');
-            canvas.style.position = 'fixed';
-            canvas.style.top = '0';
-            canvas.style.left = '0';
-            canvas.style.pointerEvents = 'none';
-            canvas.style.zIndex = '999999';
-            document.body.appendChild(canvas);
-            ctx = canvas.getContext('2d'); // ctx нужно пересоздать
-            resizeCanvas();
-            createSnowflakes();
-            startSnow();
-        }
-    }
-
-    // Проверка: в плеере ли мы сейчас
+    // Проверка: в плеере ли мы
     function isInPlayer() {
-        // 1. Через Lampa.Activity (самый точный способ)
         try {
             const active = Lampa.Activity.active();
             if (active) {
                 const name = active.component || active.name || '';
-                if (name.includes('player') || name === 'fullstart' || name === 'viewer') {
-                    return true;
-                }
+                return name.includes('player') || name === 'fullstart' || name === 'viewer';
             }
         } catch (e) {}
-
-        // 2. Фолбэк: проверка воспроизводимого видео
-        try {
-            const videos = document.getElementsByTagName('video');
-            for (let v of videos) {
-                if (v && !v.paused && !v.ended && v.currentTime > 0) {
-                    return true;
-                }
-            }
-        } catch (e) {}
-
         return false;
     }
 
-    // Listener на смену экранов в Lampa
+    // Listener на смену экранов
     Lampa.Listener.follow('activity', function (e) {
         if (e.type === 'show') {
             if (isInPlayer()) {
-                stopSnow();
+                canvas.style.display = 'none'; // Скрываем полностью
+                if (animationId) {
+                    cancelAnimationFrame(animationId);
+                    animationId = null;
+                }
             } else {
-                recreateCanvas();
+                canvas.style.display = 'block'; // Показываем
+                if (!animationId) animate(); // Возобновляем анимацию
             }
         }
     });
-
-    // Инициализация: запускаем снег, если не в плеере
-    if (!isInPlayer()) {
-        startSnow();
-    } else {
-        stopSnow();
-    }
 
     // При изменении размера окна — пересоздаём снежинки и меняем canvas
     window.addEventListener('resize', () => {
