@@ -3,37 +3,56 @@
 
     Lampa.Platform.tv();
 
-    // Создаём canvas
-    const canvas = document.createElement('canvas');
-    canvas.style.position = 'fixed';
-    canvas.style.top = '0';
-    canvas.style.left = '0';
-    canvas.style.pointerEvents = 'none';
-    canvas.style.zIndex = '999999';
-    canvas.style.transition = 'opacity 0.5s ease'; // Плавность на всякий случай
-    document.body.appendChild(canvas);
-
-    const ctx = canvas.getContext('2d');
-
-    const snowflakes = [];
-    const flakeCount = 120; // Количество снежинок
-
+    let canvas = null;
+    let ctx = null;
+    let snowflakes = [];
+    const flakeCount = 120;
     let animationId = null;
 
-    // Размеры
+    // Создаём canvas и запускаем снег
+    function createSnow() {
+        if (canvas) return; // Уже создан
+
+        canvas = document.createElement('canvas');
+        canvas.style.position = 'fixed';
+        canvas.style.top = '0';
+        canvas.style.left = '0';
+        canvas.style.pointerEvents = 'none';
+        canvas.style.zIndex = '999999';
+        document.body.appendChild(canvas);
+
+        ctx = canvas.getContext('2d');
+        resizeCanvas();
+        createSnowflakes();
+        animate();
+    }
+
+    // Удаляем canvas полностью
+    function removeSnow() {
+        if (animationId !== null) {
+            cancelAnimationFrame(animationId);
+            animationId = null;
+        }
+        if (canvas && canvas.parentNode) {
+            canvas.parentNode.removeChild(canvas);
+            canvas = null;
+            ctx = null;
+            snowflakes = [];
+        }
+    }
+
     function resizeCanvas() {
+        if (!canvas) return;
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
     }
-    resizeCanvas();
 
-    // Создание снежинок
     function createSnowflakes() {
-        snowflakes.length = 0;
+        snowflakes = [];
         for (let i = 0; i < flakeCount; i++) {
             snowflakes.push({
-                x: Math.random() * canvas.width,
-                y: Math.random() * canvas.height,
+                x: Math.random() * (canvas ? canvas.width : window.innerWidth),
+                y: Math.random() * (canvas ? canvas.height : window.innerHeight),
                 radius: Math.random() * 3 + 1,
                 speed: Math.random() * 1.5 + 0.5,
                 opacity: Math.random() * 0.5 + 0.5,
@@ -42,10 +61,9 @@
             });
         }
     }
-    createSnowflakes();
 
-    // Анимация
     function animate() {
+        if (!ctx || !canvas) return;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
         snowflakes.forEach(flake => {
@@ -67,50 +85,31 @@
         animationId = requestAnimationFrame(animate);
     }
 
-    // Включить снег
-    function startSnow() {
-        if (animationId === null) {
-            canvas.style.display = 'block';
-            canvas.style.opacity = '1';
-            animate();
-        }
-    }
-
-    // Выключить снег
-    function stopSnow() {
-        if (animationId !== null) {
-            cancelAnimationFrame(animationId);
-            animationId = null;
-        }
-        canvas.style.display = 'none'; // Полностью убираем из DOM-потока
-    }
-
-    // Проверка: открыт ли плеер
+    // Проверка активности плеера
     function isPlayerActive() {
         const active = Lampa.Activity.active();
         if (!active) return false;
-        // В Lampa плеер имеет component или name === 'player' / 'fullstart' / 'viewer'
         const name = active.component || active.name || '';
-        return name.indexOf('player') !== -1 || name === 'fullstart' || name === 'viewer';
+        return name.includes('player') || name === 'fullstart' || name === 'viewer' || name.includes('video');
     }
 
-    // Проверка каждые 300 мс — быстро и без нагрузки
+    // Основной цикл проверки
     setInterval(() => {
         if (isPlayerActive()) {
-            stopSnow();
+            removeSnow();
         } else {
-            startSnow();
+            createSnow();
         }
     }, 300);
 
-    // Запуск при загрузке (если не в плеере)
+    // Инициализация при загрузке
     if (!isPlayerActive()) {
-        startSnow();
+        createSnow();
     }
 
     // Ресайз
     window.addEventListener('resize', () => {
         resizeCanvas();
-        createSnowflakes();
+        if (canvas) createSnowflakes();
     });
 })();
