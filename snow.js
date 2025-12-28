@@ -3,25 +3,25 @@
 
     Lampa.Platform.tv();
 
-    // Создаём canvas
+    // Создаём canvas для снега
     const canvas = document.createElement('canvas');
     canvas.style.position = 'fixed';
     canvas.style.top = '0';
     canvas.style.left = '0';
     canvas.style.pointerEvents = 'none';
     canvas.style.zIndex = '999999';
+    canvas.style.transition = 'opacity 0.5s ease'; // Плавное исчезновение/появление
     document.body.appendChild(canvas);
 
     const ctx = canvas.getContext('2d');
 
     // Массив снежинок
     const snowflakes = [];
-    const flakeCount = 120; // Можно менять количество
+    const flakeCount = 120; // Количество снежинок — можно изменить
 
-    let animationId = null;
-    let isPlayerActive = false; // Флаг: открыт ли плеер
+    let animationId = null; // Для управления анимацией
 
-    // Размеры canvas
+    // Установка размеров canvas
     function resizeCanvas() {
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
@@ -45,30 +45,8 @@
     }
     createSnowflakes();
 
-    // Проверка, открыт ли плеер (по классам body)
-    function checkPlayerStatus() {
-        const active = document.body.classList.contains('fullscreen') || 
-                       document.body.classList.contains('player-active');
-        
-        if (active && !isPlayerActive) {
-            // Плеер открылся — останавливаем анимацию
-            isPlayerActive = true;
-            if (animationId) {
-                cancelAnimationFrame(animationId);
-                animationId = null;
-            }
-            ctx.clearRect(0, 0, canvas.width, canvas.height); // Очищаем снег
-        } else if (!active && isPlayerActive) {
-            // Плеер закрылся — возобновляем
-            isPlayerActive = false;
-            animate();
-        }
-    }
-
-    // Анимация снега
+    // Функция анимации
     function animate() {
-        if (isPlayerActive) return;
-
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
         snowflakes.forEach(flake => {
@@ -90,17 +68,40 @@
         animationId = requestAnimationFrame(animate);
     }
 
-    // Запуск анимации
-    animate();
+    // Функция включения снега
+    function startSnow() {
+        if (animationId === null) {
+            canvas.style.opacity = '1';
+            animate();
+        }
+    }
 
-    // Обработчики событий
+    // Функция выключения снега
+    function stopSnow() {
+        if (animationId !== null) {
+            cancelAnimationFrame(animationId);
+            animationId = null;
+            canvas.style.opacity = '0'; // Плавно скрываем
+        }
+    }
+
+    // Запуск снега сразу
+    startSnow();
+
+    // Отслеживаем события плеера
+    Lampa.Listener.follow('player', function (e) {
+        if (e.type === 'start' || e.type === 'play') {
+            // Плеер открылся или началось воспроизведение — скрываем снег
+            stopSnow();
+        } else if (e.type === 'stop' || e.type === 'end' || e.type === 'close') {
+            // Плеер закрылся — возвращаем снег
+            startSnow();
+        }
+    });
+
+    // Обработка изменения размера окна
     window.addEventListener('resize', () => {
         resizeCanvas();
         createSnowflakes();
     });
-
-    // Наблюдатель за изменениями классов body (для отслеживания открытия/закрытия плеера)
-    const observer = new MutationObserver(checkPlayerStatus);
-    observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
-
 })();
