@@ -5,9 +5,38 @@
 
     if (typeof Lampa === 'undefined') return;
 
-    
 
-    // === Logo settings + loader (ported from 1_readable.js) ===
+markSmartTV();
+
+function markSmartTV(){
+    try{
+        var ua = (navigator && navigator.userAgent) ? navigator.userAgent : '';
+        var isTv = false;
+
+        if (typeof Lampa !== 'undefined' && Lampa.Platform) {
+            try{
+                if (typeof Lampa.Platform.is === 'function') {
+                    isTv = isTv || Lampa.Platform.is('tv') || Lampa.Platform.is('smarttv') || Lampa.Platform.is('tizen') || Lampa.Platform.is('webos') || Lampa.Platform.is('netcast');
+                }
+                if (typeof Lampa.Platform.tv === 'function') {
+                    isTv = isTv || !!Lampa.Platform.tv();
+                }
+                if (typeof Lampa.Platform.device === 'string') {
+                    isTv = isTv || /tv|tizen|webos|netcast|smart/i.test(Lampa.Platform.device);
+                }
+            }catch(e){}
+        }
+
+        if (!isTv) {
+            isTv = /(SMART-TV|SmartTV|HbbTV|NetCast|Tizen|Web0S|WebOS|Viera|BRAVIA|Android TV|AFTB|AFTT|AFTM|Fire TV)/i.test(ua);
+        }
+
+        if (isTv && document && document.documentElement) {
+            document.documentElement.classList.add('is-smarttv');
+        }
+    }catch(e){}
+}
+   
     const LOGO_CACHE_PREFIX = 'logo_cache_width_based_v1_';
 
     function applyLogoCssVars() {
@@ -15,38 +44,38 @@
             const h = (Lampa.Storage && typeof Lampa.Storage.get === 'function') ? (Lampa.Storage.get('logo_height', '') || '') : '';
             const root = document.documentElement;
 
-            if (h) {
-                root.style.setProperty('--ni-logo-max-h', h);
-                root.style.setProperty('--ni-card-logo-h', h);
-            } else {
-                root.style.removeProperty('--ni-logo-max-h');
-                root.style.removeProperty('--ni-card-logo-h');
-            }
-        } catch (e) {}
+            if (h) root.style.setProperty('--ni-logo-max-h', h);
+            else root.style.removeProperty('--ni-logo-max-h');
+        } catch (e) { }
     }
 
-    function initLogoSettings() {
-        if (window.__ni_logo_settings_ready) return;
-        window.__ni_logo_settings_ready = true;
+    function applyCaptionsClass(container) {
+        try {
+            if (!container) return;
+            const show = !!Lampa.Storage.get('ni_card_captions', true);
+            container.classList.toggle('ni-hide-captions', !show);
+        } catch (e) { }
+    }
+
+    function applyCaptionsToAll() {
+        try {
+            document.querySelectorAll('.new-interface').forEach((el) => applyCaptionsClass(el));
+        } catch (e) { }
+    }
+
+    function initInterface2Settings() {
+        if (window.__ni_interface2_settings_ready) return;
+        window.__ni_interface2_settings_ready = true;
 
         if (!Lampa.SettingsApi || typeof Lampa.SettingsApi.addParam !== 'function') return;
 
-        const add = (cfg) => {
-            try { Lampa.SettingsApi.addParam(cfg); } catch (e) {}
-        };
+        const add = (cfg) => { try { Lampa.SettingsApi.addParam(cfg); } catch (e) { } };
 
+        // from 1_readable.js (safe to re-add; duplicates are ignored by try/catch)
         add({
             component: 'interface',
-            param: {
-                name: 'logo_glav',
-                type: 'select',
-                values: { 1: 'Скрыть', 0: 'Отображать' },
-                default: '0'
-            },
-            field: {
-                name: 'Логотипы вместо названий',
-                description: 'Отображает логотипы фильмов вместо текста'
-            },
+            param: { name: 'logo_glav', type: 'select', values: { 1: 'Скрыть', 0: 'Отображать' }, default: '0' },
+            field: { name: 'Логотипы вместо названий', description: 'Отображает логотипы фильмов вместо текста' },
             onChange: applyLogoCssVars
         });
 
@@ -70,26 +99,16 @@
                 },
                 default: ''
             },
-            field: {
-                name: 'Язык логотипа',
-                description: 'Приоритетный язык для поиска логотипа'
-            }
+            field: { name: 'Язык логотипа', description: 'Приоритетный язык для поиска логотипа' }
         });
 
         add({
             component: 'interface',
-            param: {
-                name: 'logo_size',
-                type: 'select',
-                values: { w300: 'w300', w500: 'w500', w780: 'w780', original: 'Оригинал' },
-                default: 'original'
-            },
-            field: {
-                name: 'Размер логотипа',
-                description: 'Разрешение загружаемого изображения'
-            }
+            param: { name: 'logo_size', type: 'select', values: { w300: 'w300', w500: 'w500', w780: 'w780', original: 'Оригинал' }, default: 'original' },
+            field: { name: 'Размер логотипа', description: 'Разрешение загружаемого изображения' }
         });
 
+        // real visual height control (added ранее)
         add({
             component: 'interface',
             param: {
@@ -109,52 +128,32 @@
                 },
                 default: ''
             },
-            field: {
-                name: 'Высота логотипов',
-                description: 'Максимальная высота логотипов (в инфо-блоке и в карточках)'
-            },
+            field: { name: 'Высота логотипов', description: 'Максимальная высота логотипов (в инфо-блоке и в полной карточке)' },
             onChange: applyLogoCssVars
         });
 
         add({
             component: 'interface',
-            param: {
-                name: 'logo_animation_type',
-                type: 'select',
-                values: { js: 'JavaScript', css: 'CSS' },
-                default: 'css'
-            },
-            field: {
-                name: 'Тип анимации логотипов',
-                description: 'Способ анимации логотипов'
-            }
+            param: { name: 'logo_animation_type', type: 'select', values: { js: 'JavaScript', css: 'CSS' }, default: 'css' },
+            field: { name: 'Тип анимации логотипов', description: 'Способ анимации логотипов' }
         });
 
         add({
             component: 'interface',
             param: { name: 'logo_hide_year', type: 'trigger', default: !0 },
-            field: {
-                name: 'Скрывать год и страну',
-                description: 'Скрывать информацию над логотипом (переносит в строку деталей)'
-            }
+            field: { name: 'Скрывать год и страну', description: 'Скрывать информацию над логотипом' }
         });
 
         add({
             component: 'interface',
             param: { name: 'logo_use_text_height', type: 'trigger', default: !1 },
-            field: {
-                name: 'Логотип по высоте текста',
-                description: 'Размер логотипа равен высоте текста'
-            }
+            field: { name: 'Логотип по высоте текста', description: 'Размер логотипа равен высоте текста' }
         });
 
         add({
             component: 'interface',
             param: { name: 'logo_clear_cache', type: 'button' },
-            field: {
-                name: 'Сбросить кеш логотипов',
-                description: 'Нажмите для очистки кеша изображений'
-            },
+            field: { name: 'Сбросить кеш логотипов', description: 'Нажмите для очистки кеша изображений' },
             onChange: function () {
                 Lampa.Select.show({
                     title: 'Сбросить кеш?',
@@ -179,7 +178,18 @@
             }
         });
 
+        // NEW: captions under cards (bottom labels)
+        add({
+            component: 'interface',
+            param: { name: 'ni_card_captions', type: 'trigger', default: true },
+            field: { name: 'Подписи под карточками', description: 'Показывать / скрывать названия (и год) под постерами в линиях' },
+            onChange: function () {
+                applyCaptionsToAll();
+            }
+        });
+
         applyLogoCssVars();
+        applyCaptionsToAll();
     }
 
     function animateOpacity(el, from, to, duration, done) {
@@ -223,19 +233,37 @@
             return !!Lampa.Storage.get('logo_use_text_height', !1);
         }
 
-        fixedHeight() {
-            return (Lampa.Storage.get('logo_height', '') || '') + '';
-        }
-
         cacheKey(type, id, lang) {
             return `${LOGO_CACHE_PREFIX}${type}_${id}_${lang}`;
         }
 
-        preload(item) {
-            this.getLogoUrl(item, () => { }, { preload: true });
+        flush(key, value) {
+            const list = this.pending[key] || [];
+            delete this.pending[key];
+            list.forEach((fn) => { try { if (fn) fn(value); } catch (e) { } });
         }
 
-        getLogoUrl(item, cb, options) {
+        // resolve logo from already loaded movie.details (append_to_response=images)
+        resolveFromImages(item, lang) {
+            try {
+                if (!item || !item.images || !Array.isArray(item.images.logos) || !item.images.logos.length) return null;
+
+                const logos = item.images.logos.slice();
+                const pick = (iso) => {
+                    for (let i = 0; i < logos.length; i++) {
+                        if (logos[i] && logos[i].iso_639_1 === iso) return logos[i].file_path;
+                    }
+                    return null;
+                };
+
+                return pick(lang) || pick('en') || (logos[0] && logos[0].file_path) || null;
+            } catch (e) {
+                return null;
+            }
+        }
+
+        // main logo url getter with caching; if item has images.logos -> no extra request
+        getLogoUrl(item, cb) {
             try {
                 if (!item || !item.id) return cb && cb(null);
 
@@ -249,10 +277,18 @@
                 const key = this.cacheKey(type, item.id, lang);
 
                 const cached = localStorage.getItem(key);
-
                 if (cached) {
                     if (cached === 'none') return cb && cb(null);
                     return cb && cb(cached);
+                }
+
+                const fromDetails = this.resolveFromImages(item, lang);
+                if (fromDetails) {
+                    const size = this.size();
+                    const normalized = (fromDetails + '').replace('.svg', '.png');
+                    const logoUrl = Lampa.TMDB.image('/t/p/' + size + normalized);
+                    localStorage.setItem(key, logoUrl);
+                    return cb && cb(logoUrl);
                 }
 
                 if (this.pending[key]) {
@@ -262,12 +298,19 @@
 
                 this.pending[key] = [cb];
 
+                if (typeof $ === 'undefined' || !$.get) {
+                    localStorage.setItem(key, 'none');
+                    this.flush(key, null);
+                    return;
+                }
+
                 const url = Lampa.TMDB.api(`${type}/${item.id}/images?api_key=${Lampa.TMDB.key()}&include_image_language=${lang},en,null`);
 
                 $.get(url, (res) => {
                     let filePath = null;
 
                     if (res && Array.isArray(res.logos) && res.logos.length) {
+                        // приоритет: выбранный язык -> en -> первый доступный
                         for (let i = 0; i < res.logos.length; i++) {
                             if (res.logos[i] && res.logos[i].iso_639_1 === lang) { filePath = res.logos[i].file_path; break; }
                         }
@@ -298,16 +341,9 @@
             }
         }
 
-        flush(key, value) {
-            const list = this.pending[key] || [];
-            delete this.pending[key];
-            list.forEach((fn) => { try { if (fn) fn(value); } catch (e) { } });
-        }
-
         setImageSizing(img, heightPx) {
             if (!img) return;
 
-            // Сбрасываем к дефолту, управляемому CSS
             img.style.height = '';
             img.style.width = '';
             img.style.maxHeight = '';
@@ -315,10 +351,7 @@
             img.style.objectFit = 'contain';
             img.style.objectPosition = 'left bottom';
 
-            const fixed = this.fixedHeight();
-            const useText = this.useTextHeight();
-
-            if (!fixed && useText && heightPx && heightPx > 0) {
+            if (this.useTextHeight() && heightPx && heightPx > 0 && !(Lampa.Storage.get('logo_height', '') || '')) {
                 img.style.height = `${heightPx}px`;
                 img.style.width = 'auto';
                 img.style.maxWidth = '100%';
@@ -330,7 +363,6 @@
             if (!container) return;
             const type = this.animationType();
 
-            // очищаем прошлые таймеры
             if (container.__ni_logo_timer) {
                 clearTimeout(container.__ni_logo_timer);
                 container.__ni_logo_timer = null;
@@ -359,216 +391,7 @@
             }
         }
 
-        applyToInfo(ctx, item, titleText) {
-            if (!ctx || !ctx.title || !item) return;
-
-            const titleEl = ctx.title[0] || ctx.title;
-            if (!titleEl) return;
-
-            // id для защиты от гонок
-            const requestId = (titleEl.__ni_logo_req_id || 0) + 1;
-            titleEl.__ni_logo_req_id = requestId;
-
-            const headNode = ctx.head && (ctx.head[0] || ctx.head);
-            const movedHeadNode = ctx.moved_head && (ctx.moved_head[0] || ctx.moved_head);
-            const dotRateHead = ctx.dot_rate_head && (ctx.dot_rate_head[0] || ctx.dot_rate_head);
-            const dotHeadGenre = ctx.dot_head_genre && (ctx.dot_head_genre[0] || ctx.dot_head_genre);
-            const dotRateGenre = ctx.dot_rate_genre && (ctx.dot_rate_genre[0] || ctx.dot_rate_genre);
-
-            const hasRate = !!ctx.has_rate;
-            const hasGenres = !!ctx.has_genre;
-
-            const setDotsNoMoved = () => {
-                if (dotRateHead) dotRateHead.style.display = 'none';
-                if (dotHeadGenre) dotHeadGenre.style.display = 'none';
-                if (dotRateGenre) dotRateGenre.style.display = (hasRate && hasGenres) ? '' : 'none';
-            };
-
-            const setDotsMoved = (hasMoved) => {
-                if (!hasMoved) return setDotsNoMoved();
-                if (dotRateGenre) dotRateGenre.style.display = 'none';
-                if (dotRateHead) dotRateHead.style.display = (hasRate && hasMoved) ? '' : 'none';
-                if (dotHeadGenre) dotHeadGenre.style.display = (hasMoved && hasGenres) ? '' : 'none';
-            };
-
-            // дефолтное состояние
-            if (!this.enabled()) {
-                if (ctx.wrapper && ctx.wrapper.removeClass) ctx.wrapper.removeClass('ni-hide-head');
-                if (headNode) headNode.style.display = '';
-                if (movedHeadNode) { movedHeadNode.textContent = ''; movedHeadNode.style.display = 'none'; }
-                setDotsNoMoved();
-                if (titleEl.textContent !== titleText) titleEl.textContent = titleText;
-                return;
-            }
-
-            // нужен текст для измерений (logo_use_text_height)
-            if (titleEl.textContent !== titleText) titleEl.textContent = titleText;
-            const textHeightPx = titleEl.getBoundingClientRect ? Math.round(titleEl.getBoundingClientRect().height) : 0;
-
-            setDotsNoMoved();
-
-            this.getLogoUrl(item, (url) => {
-                if (titleEl.__ni_logo_req_id !== requestId) return;
-                if (!titleEl.isConnected) return;
-
-                if (!url) {
-                    // нет логотипа — текст
-                    if (ctx.wrapper && ctx.wrapper.removeClass) ctx.wrapper.removeClass('ni-hide-head');
-                    if (headNode) headNode.style.display = '';
-                    if (movedHeadNode) { movedHeadNode.textContent = ''; movedHeadNode.style.display = 'none'; }
-                    setDotsNoMoved();
-                    if (titleEl.querySelector && titleEl.querySelector('img')) this.swapContent(titleEl, titleText);
-                    else titleEl.textContent = titleText;
-                    return;
-                }
-
-                const img = new Image();
-                img.className = 'new-interface-info__title-logo';
-                img.alt = titleText;
-                img.src = url;
-
-                this.setImageSizing(img, textHeightPx);
-
-                const hideHead = !!Lampa.Storage.get('logo_hide_year', !0);
-                const headText = (ctx.head_text || '') + '';
-
-                if (hideHead && headText) {
-                    if (ctx.wrapper && ctx.wrapper.addClass) ctx.wrapper.addClass('ni-hide-head');
-                    if (headNode) headNode.style.display = 'none';
-                    if (movedHeadNode) { movedHeadNode.textContent = headText; movedHeadNode.style.display = ''; }
-                    setDotsMoved(!!headText);
-                } else {
-                    if (ctx.wrapper && ctx.wrapper.removeClass) ctx.wrapper.removeClass('ni-hide-head');
-                    if (headNode) headNode.style.display = '';
-                    if (movedHeadNode) { movedHeadNode.textContent = ''; movedHeadNode.style.display = 'none'; }
-                    setDotsNoMoved();
-                }
-
-                this.swapContent(titleEl, img);
-            });
-        }
-
-        applyToCard(card) {
-            if (!card || !card.data || typeof card.render !== 'function') return;
-
-            const jq = card.render(true);
-            const root = (jq && jq[0]) ? jq[0] : jq;
-            if (!root) return;
-
-            const view = root.querySelector('.card__view') || root;
-            const label = root.querySelector('.new-interface-card-title');
-            const titleText = ((card.data.title || card.data.name || card.data.original_title || card.data.original_name || '') + '').trim();
-
-            // защита от гонок
-            const reqId = (card.__ni_logo_req_id || 0) + 1;
-            card.__ni_logo_req_id = reqId;
-
-            const removeLogo = () => {
-                const exist = view.querySelector('.new-interface-card-logo');
-                if (exist && exist.parentNode) exist.parentNode.removeChild(exist);
-                if (label) label.style.display = '';
-            };
-
-            if (!this.enabled()) {
-                removeLogo();
-                return;
-            }
-
-            // подложка-обертка
-            let wrap = view.querySelector('.new-interface-card-logo');
-            if (!wrap) {
-                wrap = document.createElement('div');
-                wrap.className = 'new-interface-card-logo';
-                view.appendChild(wrap);
-            }
-
-            // для измерений по высоте текста (если включено)
-            let textHeightPx = 0;
-            if (!this.fixedHeight() && this.useTextHeight() && label && label.getBoundingClientRect) {
-                const rect = label.getBoundingClientRect();
-                textHeightPx = Math.round(rect.height);
-                if (!textHeightPx) textHeightPx = 24;
-            }
-
-            this.getLogoUrl(card.data, (url) => {
-                if (card.__ni_logo_req_id !== reqId) return;
-                if (!root.isConnected) return;
-
-                if (!url) {
-                    removeLogo();
-                    return;
-                }
-
-                const img = new Image();
-                img.alt = titleText;
-                img.src = url;
-                this.setImageSizing(img, textHeightPx);
-
-                wrap.innerHTML = '';
-                wrap.appendChild(img);
-
-                if (label) label.style.display = 'none';
-            });
-        }
-
-
-        getLogoUrlFromLogoJs(item, cb) {
-            try {
-                if (!item || !item.id) return cb && cb(null);
-
-                const source = item.source || 'tmdb';
-                if (source !== 'tmdb' && source !== 'cub') return cb && cb(null);
-
-                if (!Lampa.TMDB || typeof Lampa.TMDB.api !== 'function' || typeof Lampa.TMDB.key !== 'function') return cb && cb(null);
-
-                const type = (item.media_type === 'tv' || item.name) ? 'tv' : 'movie';
-                const lang = this.lang();
-                const key = this.cacheKey(type, item.id, lang);
-
-                const cached = localStorage.getItem(key);
-                if (cached) {
-                    if (cached === 'none') return cb && cb(null);
-                    return cb && cb(cached);
-                }
-
-                if (this.pending[key]) {
-                    this.pending[key].push(cb);
-                    return;
-                }
-
-                this.pending[key] = [cb];
-
-                const url = Lampa.TMDB.api(`${type}/${item.id}/images?api_key=${Lampa.TMDB.key()}&language=${lang}`);
-
-                $.get(url, (res) => {
-                    let filePath = null;
-
-                    if (res && Array.isArray(res.logos) && res.logos.length) {
-                        for (let i = 0; i < res.logos.length; i++) {
-                            if (res.logos[i] && res.logos[i].iso_639_1 === lang) { filePath = res.logos[i].file_path; break; }
-                        }
-                        if (!filePath) filePath = res.logos[0] && res.logos[0].file_path;
-                    }
-
-                    if (filePath) {
-                        const size = this.size();
-                        const normalized = (filePath + '').replace('.svg', '.png');
-                        const logoUrl = Lampa.TMDB.image('/t/p/' + size + normalized);
-                        localStorage.setItem(key, logoUrl);
-                        this.flush(key, logoUrl);
-                    } else {
-                        localStorage.setItem(key, 'none');
-                        this.flush(key, null);
-                    }
-                }).fail(() => {
-                    localStorage.setItem(key, 'none');
-                    this.flush(key, null);
-                });
-            } catch (e) {
-                if (cb) cb(null);
-            }
-        }
-
+        // keep "hide year/country" behavior for full card (.full-start-new__head -> .full-start-new__details)
         syncFullHead(container, logoActive) {
             try {
                 if (!container || typeof container.find !== 'function') return;
@@ -588,7 +411,6 @@
 
                 const wantMove = !!logoActive && !!Lampa.Storage.get('logo_hide_year', !0);
 
-                // restore
                 if (!wantMove) {
                     if (moved && moved.parentNode) moved.parentNode.removeChild(moved);
                     if (movedSep && movedSep.parentNode) movedSep.parentNode.removeChild(movedSep);
@@ -599,7 +421,6 @@
                     return;
                 }
 
-                // already moved
                 if (moved) {
                     headEl.style.display = 'none';
                     return;
@@ -616,13 +437,11 @@
                 sep.className = 'full-start-new__split logo-moved-separator';
                 sep.textContent = '●';
 
-                // если уже есть элементы — добавим разделитель
                 if (detailsEl.children && detailsEl.children.length > 0) detailsEl.appendChild(sep);
                 detailsEl.appendChild(headSpan);
 
-                // скрываем исходный head
                 headEl.style.display = 'none';
-            } catch (e) {}
+            } catch (e) { }
         }
 
         applyToFull(activity, item) {
@@ -638,36 +457,29 @@
                 const titleEl = titleNode[0];
                 const titleText = ((item.title || item.name || item.original_title || item.original_name || '') + '').trim() || (titleNode.text() + '');
 
-                // запоминаем исходный текст, чтобы корректно восстановить
                 if (!titleEl.__ni_full_title_text) titleEl.__ni_full_title_text = titleText;
-
                 const originalText = titleEl.__ni_full_title_text || titleText;
 
-                // выключено — возвращаем текст
                 if (!this.enabled()) {
-								this.syncFullHead(container, false);
+                    this.syncFullHead(container, false);
                     const existImg = titleEl.querySelector && titleEl.querySelector('img.new-interface-full-logo');
                     if (existImg) this.swapContent(titleEl, originalText);
                     else if (titleNode.text() !== originalText) titleNode.text(originalText);
                     return;
                 }
 
-                // синхронизация скрытия года/страны в полной карточке
-                this.syncFullHead(container, false);
-
-                // нужен текст для измерения высоты (logo_use_text_height)
+                // prepare measurement
                 if (titleNode.text() !== originalText) titleNode.text(originalText);
                 const textHeightPx = titleEl.getBoundingClientRect ? Math.round(titleEl.getBoundingClientRect().height) : 0;
 
                 const requestId = (titleEl.__ni_logo_req_id || 0) + 1;
                 titleEl.__ni_logo_req_id = requestId;
 
-                this.getLogoUrlFromLogoJs(item, (url) => {
+                this.getLogoUrl(item, (url) => {
                     if (titleEl.__ni_logo_req_id !== requestId) return;
                     if (!titleEl.isConnected) return;
 
                     if (!url) {
-                        // логотипа нет — текст
                         this.syncFullHead(container, false);
                         if (titleEl.querySelector && titleEl.querySelector('img.new-interface-full-logo')) this.swapContent(titleEl, originalText);
                         else if (titleNode.text() !== originalText) titleNode.text(originalText);
@@ -680,40 +492,70 @@
                     img.src = url;
 
                     this.setImageSizing(img, textHeightPx);
-
                     this.syncFullHead(container, true);
 
                     this.swapContent(titleEl, img);
                 });
-            } catch (e) {}
+            } catch (e) { }
         }
-
-
-        cleanupCard(card) {
-            try {
-                if (!card || typeof card.render !== 'function') return;
-
-                const jq = card.render(true);
-                const root = (jq && jq[0]) ? jq[0] : jq;
-
-                if (root) {
-                    const wrap = root.querySelector('.new-interface-card-logo');
-                    if (wrap && wrap.parentNode) wrap.parentNode.removeChild(wrap);
-                }
-
-                delete card.__ni_logo_req_id;
-            } catch (e) {}
-        }
-}
+    }
 
     const Logo = new LogoEngine();
+    initInterface2Settings();
 
-    initLogoSettings();
+    function applyInfoTitleLogo(wrapper, titleNode, headNode, movie, titleText) {
+        try {
+            if (!titleNode || !titleNode.length) return;
+            const titleEl = titleNode[0];
+            if (!titleEl) return;
 
+            const reqId = (titleEl.__ni_logo_req_id || 0) + 1;
+            titleEl.__ni_logo_req_id = reqId;
+
+            // default text
+            if (!Logo.enabled()) {
+                if (headNode && headNode.length) headNode.css('display', '');
+                if (wrapper && wrapper.removeClass) wrapper.removeClass('ni-hide-head');
+                if (titleEl.querySelector && titleEl.querySelector('img')) Logo.swapContent(titleEl, titleText);
+                else titleNode.text(titleText);
+                return;
+            }
+
+            // measure text height
+            titleNode.text(titleText);
+            const textHeightPx = titleEl.getBoundingClientRect ? Math.round(titleEl.getBoundingClientRect().height) : 0;
+
+            Logo.getLogoUrl(movie, (url) => {
+                if (titleEl.__ni_logo_req_id !== reqId) return;
+                if (!titleEl.isConnected) return;
+
+                if (!url) {
+                    if (headNode && headNode.length) headNode.css('display', '');
+                    if (wrapper && wrapper.removeClass) wrapper.removeClass('ni-hide-head');
+                    if (titleEl.querySelector && titleEl.querySelector('img')) Logo.swapContent(titleEl, titleText);
+                    else titleNode.text(titleText);
+                    return;
+                }
+
+                const img = new Image();
+                img.className = 'new-interface-info__title-logo';
+                img.alt = titleText;
+                img.src = url;
+
+                Logo.setImageSizing(img, textHeightPx);
+
+                const hideHead = !!Lampa.Storage.get('logo_hide_year', !0);
+                if (hideHead && headNode && headNode.length) headNode.css('display', 'none');
+                else if (headNode && headNode.length) headNode.css('display', '');
+
+                Logo.swapContent(titleEl, img);
+            });
+        } catch (e) { }
+    }
 
     function hookFullTitleLogos() {
-        if (window.__ni_full_logo_hooked) return;
-        window.__ni_full_logo_hooked = true;
+        if (window.__ni_interface2_full_logo_hooked) return;
+        window.__ni_interface2_full_logo_hooked = true;
 
         if (!Lampa.Listener || typeof Lampa.Listener.follow !== 'function') return;
 
@@ -726,7 +568,7 @@
                 if (!data) return;
 
                 Logo.applyToFull(e.object.activity, data);
-            } catch (err) {}
+            } catch (err) { }
         });
     }
 
@@ -780,7 +622,7 @@
             if (original) original.apply(this, args);
         });
     }
- // Premium users
+// Premium users
 function shouldUseNewInterface(object) {
     if (!object) return false;
     if (!(object.source === 'tmdb' || object.source === 'cub')) return false;
@@ -818,7 +660,9 @@ function shouldUseNewInterface(object) {
                 const container = main.render(true);
                 if (!container) return;
 
-                container.classList.add('new-interface','new-interface-h');
+                container.classList.add('new-interface');
+
+                applyCaptionsClass(container);
 
                 if (!background.parentElement) {
                     container.insertBefore(background, container.firstChild || null);
@@ -890,55 +734,9 @@ function shouldUseNewInterface(object) {
     }
 
     function prepareLineData(element) {
-        if (!element) return;
-
-        // Оставляем постеры как в оригинальном interface.js (wide/горизонтальные)
-        if (Array.isArray(element.results)) {
-            Lampa.Utils.extendItemsParams(element.results, {
-                style: { name: 'wide' }
-            });
-        }
-    }
-	
-	   function updateCardTitle(card) {
-        if (!card || typeof card.render !== 'function') return;
-
-        const element = card.render(true);
-        if (!element) return;
-
-        if (!element.isConnected) {
-            clearTimeout(card.__newInterfaceLabelTimer);
-            card.__newInterfaceLabelTimer = setTimeout(() => updateCardTitle(card), 50);
-            return;
-        }
-
-        clearTimeout(card.__newInterfaceLabelTimer);
-
-        const text = (card.data && (card.data.title || card.data.name || card.data.original_title || card.data.original_name)) ? (card.data.title || card.data.name || card.data.original_title || card.data.original_name).trim() : '';
-
-        const seek = element.querySelector('.new-interface-card-title');
-
-        if (!text) {
-            if (seek && seek.parentNode) seek.parentNode.removeChild(seek);
-            card.__newInterfaceLabel = null;
-            return;
-        }
-
-        let label = seek || card.__newInterfaceLabel;
-
-        if (!label) {
-            label = document.createElement('div');
-            label.className = 'new-interface-card-title';
-        }
-
-        label.textContent = text;
-
-        if (!label.parentNode || label.parentNode !== element) {
-            if (label.parentNode) label.parentNode.removeChild(label);
-            element.appendChild(label);
-        }
-
-        card.__newInterfaceLabel = label;
+        // Оставляем стандартный стиль карточек (вертикальные постеры),
+        // поэтому ничего не переопределяем.
+        return;
     }
 
     function decorateCard(state, card) {
@@ -948,7 +746,6 @@ function shouldUseNewInterface(object) {
 
         card.params = card.params || {};
         card.params.style = card.params.style || {};
-        if (!card.params.style.name) card.params.style.name = 'wide';
 card.use({
             onFocus() {
                 state.update(card.data);
@@ -959,26 +756,10 @@ card.use({
             onTouch() {
                 state.update(card.data);
             },
-			    onVisible() {
-                updateCardTitle(card);
-                Logo.applyToCard(card);
-            },
-            onUpdate() {
-                updateCardTitle(card);
-                Logo.applyToCard(card);
-            },
             onDestroy() {
-                Logo.cleanupCard(card);
-                clearTimeout(card.__newInterfaceLabelTimer);
-                if (card.__newInterfaceLabel && card.__newInterfaceLabel.parentNode) {
-                    card.__newInterfaceLabel.parentNode.removeChild(card.__newInterfaceLabel);
-                }
-                card.__newInterfaceLabel = null;
                 delete card.__newInterfaceCard;
             }
         });
-		updateCardTitle(card);
-        Logo.applyToCard(card);
     }
 
     function getCardData(card, element, index = 0) {
@@ -1019,8 +800,7 @@ card.use({
         if (element && Array.isArray(element.results)) {
             element.results.slice(0, 5).forEach((item) => {
                 state.info.load(item, { preload: true });
-                Logo.preload(item);
-                });
+            });
         }
 
         line.use({
@@ -1068,22 +848,26 @@ card.use({
         if (addStyleV3.added) return;
         addStyleV3.added = true;
 
-        Lampa.Template.add('new_interface_style_v3', `<style>:root{--ni-logo-max-h: clamp(3.6em, 11vh, 7.2em);--ni-card-logo-h: clamp(2.2em, 6vh, 3.8em);}
+        Lampa.Template.add('new_interface_style_v3', `<style>
 .new-interface{
     position: relative;
-    --ni-info-h: 24em;
+    /* На SMART-TV используем стандартные размеры постеров (без принудительного card-w) */
+    --ni-info-h: clamp(15em, 34vh, 24em);
+}
+html:not(.is-smarttv) .new-interface{
+    --ni-card-w: clamp(120px, 7.6vw, 170px);
 }
 
-.new-interface .card.card--wide{
-    width: 18.3em;
+/* Размер карточек и плитки "Ещё" */
+html:not(.is-smarttv) .new-interface .card--small,
+html:not(.is-smarttv) .new-interface .card-more{
+    width: var(--ni-card-w) !important;
 }
 
-/* Плитка "Ещё" под wide */
-.new-interface .card-more__box{
-    padding-bottom: 95%;
-}
-.new-interface .card.card--wide + .card-more .card-more__box{
-    padding-bottom: 95%;
+/* Вертикальные постеры: используем стандартный стиль Lampa.
+   Подправляем только плитку "Ещё", чтобы была вертикальной */
+html:not(.is-smarttv) .new-interface .card-more__box{
+    padding-bottom: 150%;
 }
 
 /* Верхний инфо-блок */
@@ -1109,33 +893,17 @@ card.use({
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, .85fr);
     column-gap: clamp(16px, 3vw, 54px);
-    align-items: stretch;
-    height: 100%;
-    box-sizing: border-box;
+    align-items: start;
 }
 
 .new-interface-info__left,
 .new-interface-info__right{
     min-width: 0;
-    height: 100%;
-}
-
-
-/* Блок "мета + описание" прижимаем вниз вместе */
-.new-interface-info__textblock{
-    margin-top: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 0.55em;
-    min-height: 0;
 }
 
 /* Чуть опускаем описание вниз, чтобы попасть в отмеченную область справа */
 .new-interface-info__right{
     padding-top: clamp(0.2em, 2.2vh, 1.6em);
-    padding-bottom: clamp(0.8em, 2.4vh, 2.0em);
-    display: flex;
-    flex-direction: column;
 }
 
 .new-interface-info__head{
@@ -1165,16 +933,15 @@ card.use({
 }
 
 .new-interface-info__title-logo{
-    /* ВАРИАНТ B: увеличенный размер логотипа */
     max-width: 100%;
     /* Важно: ограничиваем высоту логотипа, чтобы он не "съедал" описание */
-    max-height: var(--ni-logo-max-h);
+    max-height: var(--ni-logo-max-h, clamp(2.4em, 7vh, 4.2em));
     display: block;
     object-fit: contain;
 }
 
 .new-interface-info__meta{
-    margin-bottom: 0;
+    margin-bottom: 0.55em;
     display: flex;
     flex-direction: column;
     gap: 0.35em;
@@ -1228,6 +995,35 @@ card.use({
     font-size: 0.95em;
 }
 
+
+/* Логотип в полной карточке (full) */
+.new-interface-full-logo{
+    max-height: var(--ni-logo-max-h, 125px);
+    width: auto;
+    max-width: 100%;
+    object-fit: contain;
+    display: block;
+}
+
+/* Скрытие подписей под карточками (в линиях) */
+.new-interface.ni-hide-captions .card__view ~ .card__title,
+.new-interface.ni-hide-captions .card__view ~ .card__name,
+.new-interface.ni-hide-captions .card__view ~ .card__text,
+.new-interface.ni-hide-captions .card__view ~ .card__details,
+.new-interface.ni-hide-captions .card__view ~ .card__description,
+.new-interface.ni-hide-captions .card__view ~ .card__subtitle,
+.new-interface.ni-hide-captions .card__view ~ .card__year,
+.new-interface.ni-hide-captions .card__bottom,
+.new-interface.ni-hide-captions .card__caption{
+    display: none !important;
+}
+
+/* Гарантированно скрывать подписи/год (в т.ч. если класс отличается) */
+.new-interface.ni-hide-captions .card > *:not(.card__view):not(.card__promo){
+    display: none !important;
+}
+
+
 /* Описание справа */
 .new-interface-info__description{
     font-size: 0.87em;
@@ -1235,7 +1031,6 @@ card.use({
     line-height: 1.38;
     color: rgba(255, 255, 255, 0.90);
     text-shadow: 0 2px 12px rgba(0, 0, 0, 0.45);
-    margin-top: 0;
     overflow: hidden;
     -o-text-overflow: '.';
     text-overflow: '.';
@@ -1263,81 +1058,38 @@ card.use({
     padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
+/* Поднять заголовки линий ("Сейчас смотрят", "Продолжить просмотр" и т.п.) */
+.new-interface .items-line__head{
+    position: relative;
+    z-index: 5;
+}
+html:not(.is-smarttv) .new-interface .items-line__head{
+    transform: translateY(-2vh);
+}
+
+
+
+/* Поднять ленты постеров на 3% выше (3vh). Двигаем только саму ленту карточек, заголовок строки не трогаем. */
+.new-interface{
+    --ni-lines-up: 0vh;
+}
+html:not(.is-smarttv) .new-interface{
+    --ni-lines-up: 3vh;
+}
+.new-interface .items-line__body > .scroll.scroll--horizontal,
+.new-interface .items-line__body .scroll.scroll--horizontal{
+    position: relative;
+    top: calc(var(--ni-lines-up) * -1);
+}
+
+
 .new-interface .card__promo{
     display: none;
 }
 
 .new-interface .card .card-watched{
     display: none !important;
-        }
-
-        
-/* Логотип внутри карточки */
-.new-interface .card .card__view{position: relative;}
-.new-interface .new-interface-card-logo{
-    position: absolute;
-    left: 0; right: 0; bottom: 0;
-    padding: 0.35em 0.45em;
-    box-sizing: border-box;
-    pointer-events: none;
-    background: linear-gradient(to top, rgba(0,0,0,0.78), rgba(0,0,0,0));
 }
-.new-interface .new-interface-card-logo img{
-    display: block;
-    max-width: 100%;
-    max-height: var(--ni-card-logo-h);
-    width: auto;
-    height: auto;
-    object-fit: contain;
-    object-position: left bottom;
-}
-
-/* Логотип в заголовке полной карточки (как logo.js) */
-.full-start-new__title img.new-interface-full-logo,
-.full-start__title img.new-interface-full-logo{
-    display: block;
-    max-width: 100%;
-    max-height: var(--ni-logo-max-h);
-    width: auto;
-    height: auto;
-    object-fit: contain;
-    object-position: left bottom;
-    margin-top: 0.25em;
-}
-
-
-/* Перенос "год+страна" в детали при логотипе */
-.new-interface-info.ni-hide-head .new-interface-info__head{display:none;}
-.new-interface-info__moved-head{
-    flex: 0 0 auto;
-    min-width: 0;
-    font-size: 1.1em;
-    line-height: 1.25;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    opacity: 0.92;
-    display: none;
-}
-.new-interface-info__dot.dot-rate-head,
-.new-interface-info__dot.dot-head-genre{display:none;}
-.new-interface-card-title {
-            margin-top: 0.6em;
-            font-size: 1.05em;
-            font-weight: 500;
-            color: #fff;
-            display: block;
-            text-align: center;
-            max-width: 100%;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            pointer-events: none;
-        }
-
-        body.light--version .new-interface-card-title {
-            color: #111;
-		}
 
 body.light--version .new-interface-info__body{
     width: min(92%, 72em);
@@ -1345,6 +1097,13 @@ body.light--version .new-interface-info__body{
 }
 
 @media (max-height: 820px){
+    .new-interface{
+        --ni-info-h: clamp(13em, 30vh, 20em);
+    }
+    html:not(.is-smarttv) .new-interface{
+        --ni-card-w: clamp(110px, 7.2vw, 160px);
+    }
+
     .new-interface-info__right{
         padding-top: clamp(0.15em, 1.8vh, 1.2em);
     }
@@ -1357,7 +1116,6 @@ body.light--version .new-interface-info__body{
         -webkit-line-clamp: 6;
         line-clamp: 6;
         font-size: 0.83em;
-        margin-top: 0;
     }
 }
 
@@ -1370,23 +1128,6 @@ body.advanced--animation:not(.no--animation) .new-interface .card.animate-trigge
 body.advanced--animation:not(.no--animation) .new-interface .card--small.animate-trigger-enter .card__view{
     animation: animation-trigger-enter 0.2s forwards;
 }
-
-/* --- Horizontal cards: move line headers and posters up --- */
-.new-interface-h{
-  --ni-line-head-shift: -2vh;  /* ≈ 2% of screen height */
-  --ni-line-body-shift: -3vh;  /* ≈ 3% of screen height */
-}
-.new-interface-h .items-line__head{
-  position: relative;
-  top: var(--ni-line-head-shift);
-  z-index: 2;
-}
-.new-interface-h .items-line__body > .scroll.scroll--horizontal{
-  position: relative;
-  top: var(--ni-line-body-shift);
-  z-index: 1;
-}
-
 </style>`);
 
         $('body').append(Lampa.Template.get('new_interface_style_v3', {}, true));
@@ -1410,23 +1151,18 @@ body.advanced--animation:not(.no--animation) .new-interface .card--small.animate
                         <div class="new-interface-info__title"></div>
                     </div>
                     <div class="new-interface-info__right">
-                        <div class=\"new-interface-info__textblock\">
-                            <div class="new-interface-info__meta">
-                                <div class="new-interface-info__meta-top">
-                                    <div class="new-interface-info__rate"></div>
-                                    <span class="new-interface-info__dot dot-rate-head">&#9679;</span>
-                                    <div class="new-interface-info__moved-head"></div>
-                                    <span class="new-interface-info__dot dot-head-genre">&#9679;</span>
-                                    <span class="new-interface-info__dot dot-rate-genre">&#9679;</span>
-                                    <div class="new-interface-info__genres"></div>
-                                    <span class="new-interface-info__dot dot-genre-runtime">&#9679;</span>
-                                    <div class="new-interface-info__runtime"></div>
-                                    <span class="new-interface-info__dot dot-runtime-pg">&#9679;</span>
-                                    <div class="new-interface-info__pg"></div>
-                                </div>
+                        <div class="new-interface-info__meta">
+                            <div class="new-interface-info__meta-top">
+                                <div class="new-interface-info__rate"></div>
+                                <span class="new-interface-info__dot dot-rate-genre">&#9679;</span>
+                                <div class="new-interface-info__genres"></div>
+                                <span class="new-interface-info__dot dot-genre-runtime">&#9679;</span>
+                                <div class="new-interface-info__runtime"></div>
+                                <span class="new-interface-info__dot dot-runtime-pg">&#9679;</span>
+                                <div class="new-interface-info__pg"></div>
                             </div>
-                            <div class="new-interface-info__description"></div>
                         </div>
+                        <div class="new-interface-info__description"></div>
                     </div>
                 </div>
             </div>`);
@@ -1463,7 +1199,8 @@ body.advanced--animation:not(.no--animation) .new-interface .card--small.animate
 
             const type = data.media_type === 'tv' || data.name ? 'tv' : 'movie';
             const language = Lampa.Storage.get('language');
-            const url = Lampa.TMDB.api(`${type}/${data.id}?api_key=${Lampa.TMDB.key()}&append_to_response=content_ratings,release_dates&language=${language}`);
+            const shortLang = (language || 'en').split('-')[0];
+            const url = Lampa.TMDB.api(`${type}/${data.id}?api_key=${Lampa.TMDB.key()}&append_to_response=content_ratings,release_dates,images&include_image_language=${shortLang},en,null&language=${language}`);
 
             this.currentUrl = url;
 
@@ -1537,32 +1274,12 @@ body.advanced--animation:not(.no--animation) .new-interface .card--small.animate
             // Описание
             this.html.find('.new-interface-info__description').text(movie.overview || Lampa.Lang.translate('full_notext'));
 
-            
-            // Логотип (метод загрузки/кеш/настройки как в 1_readable.js)
             const titleNode = this.html.find('.new-interface-info__title');
+            const headNode = this.html.find('.new-interface-info__head');
             const titleText = movie.title || movie.name || '';
-            const headText = head.join(', ');
-
-            // дефолт: год/страна сверху
-            this.html.find('.new-interface-info__moved-head').text('').hide();
-            this.html.find('.dot-rate-head').hide();
-            this.html.find('.dot-head-genre').hide();
 
             titleNode.text(titleText);
-
-            Logo.applyToInfo({
-                wrapper: this.html,
-                title: titleNode,
-                head: this.html.find('.new-interface-info__head'),
-                moved_head: this.html.find('.new-interface-info__moved-head'),
-                dot_rate_head: this.html.find('.dot-rate-head'),
-                dot_head_genre: this.html.find('.dot-head-genre'),
-                dot_rate_genre: this.html.find('.dot-rate-genre'),
-                head_text: headText,
-                has_rate: vote > 0,
-                has_genre: !!genreText
-            }, movie, titleText);
-
+            applyInfoTitleLogo(this.html, titleNode, headNode, movie, titleText);
         }
 
         empty() {
@@ -1595,40 +1312,14 @@ if (Lampa.Manifest.app_digital >= 300) {
       var loaded = {};
 
       this.create = function () {
-        html = $(`<div class="new-interface-info">
-            <div class="new-interface-info__body">
-                <div class="new-interface-info__left">
-                    <div class="new-interface-info__head"></div>
-                    <div class="new-interface-info__title"></div>
-                </div>
-                <div class="new-interface-info__right">
-                    <div class="new-interface-info__textblock">
-                        <div class="new-interface-info__meta">
-                            <div class="new-interface-info__meta-top">
-                                <div class="new-interface-info__rate"></div>
-                                <span class="new-interface-info__dot dot-rate-head">&#9679;</span>
-                                <div class="new-interface-info__moved-head"></div>
-                                <span class="new-interface-info__dot dot-head-genre">&#9679;</span>
-                                <span class="new-interface-info__dot dot-rate-genre">&#9679;</span>
-                                <div class="new-interface-info__genres"></div>
-                                <span class="new-interface-info__dot dot-genre-runtime">&#9679;</span>
-                                <div class="new-interface-info__runtime"></div>
-                                <span class="new-interface-info__dot dot-runtime-pg">&#9679;</span>
-                                <div class="new-interface-info__pg"></div>
-                            </div>
-                        </div>
-                        <div class="new-interface-info__description"></div>
-                    </div>
-                </div>
-            </div>
-        </div>`);
+                        html = $("<div class=\"new-interface-info\">\n            <div class=\"new-interface-info__body\">\n                <div class=\"new-interface-info__left\">\n                    <div class=\"new-interface-info__head\"></div>\n                    <div class=\"new-interface-info__title\"></div>\n                </div>\n                <div class=\"new-interface-info__right\">\n                    <div class=\"new-interface-info__meta\">\n                        <div class=\"new-interface-info__meta-top\">\n                            <div class=\"new-interface-info__rate\"></div>\n                            <span class=\"new-interface-info__dot dot-rate-genre\">&#9679;</span>\n                            <div class=\"new-interface-info__genres\"></div>\n                            <span class=\"new-interface-info__dot dot-genre-runtime\">&#9679;</span>\n                            <div class=\"new-interface-info__runtime\"></div>\n                            <span class=\"new-interface-info__dot dot-runtime-pg\">&#9679;</span>\n                            <div class=\"new-interface-info__pg\"></div>\n                        </div>\n                    </div>\n                    <div class=\"new-interface-info__description\"></div>\n                </div>\n            </div>\n        </div>");
       };
 
       this.update = function (data) {
         html.find('.new-interface-info__head,.new-interface-info__genres,.new-interface-info__runtime').text('---');
         html.find('.new-interface-info__rate').empty();
         html.find('.new-interface-info__pg').empty();
-        html.find('.new-interface-info__title').text(data.title || data.name || '');
+        html.find('.new-interface-info__title').text(data.title);
         html.find('.new-interface-info__description').text(data.overview || Lampa.Lang.translate('full_notext'));
         Lampa.Background.change(Lampa.Api.img(data.backdrop_path, 'w200'));
         this.load(data);
@@ -1672,29 +1363,11 @@ if (Lampa.Manifest.app_digital >= 300) {
         dot2.toggle(!!(genreText && (runtimeText || pg)));
         dot3.toggle(!!(runtimeText && pg));
 
-        // Логотип (метод загрузки/кеш/настройки как в 1_readable.js)
         var titleNode = html.find('.new-interface-info__title');
+        var headNode = html.find('.new-interface-info__head');
         var titleText = (data.title || data.name || '') + '';
-        var headText = head.join(', ');
-
-        html.find('.new-interface-info__moved-head').text('').hide();
-        html.find('.dot-rate-head').hide();
-        html.find('.dot-head-genre').hide();
-
         titleNode.text(titleText);
-
-        Logo.applyToInfo({
-          wrapper: html,
-          title: titleNode,
-          head: html.find('.new-interface-info__head'),
-          moved_head: html.find('.new-interface-info__moved-head'),
-          dot_rate_head: html.find('.dot-rate-head'),
-          dot_head_genre: html.find('.dot-head-genre'),
-          dot_rate_genre: html.find('.dot-rate-genre'),
-          head_text: headText,
-          has_rate: vote > 0,
-          has_genre: !!genreText
-        }, data, titleText);
+        applyInfoTitleLogo(html, titleNode, headNode, data, titleText);
 };
 
       this.load = function (data) {
@@ -1736,6 +1409,8 @@ if (Lampa.Manifest.app_digital >= 300) {
       });
       var items = [];
       var html = $('<div class="new-interface"><img class="full-start__background"></div>');
+
+      applyCaptionsClass(html[0]);
       var active = 0;
       var newlampa = Lampa.Manifest.app_digital >= 166;
       var info;
@@ -1843,7 +1518,7 @@ if (Lampa.Manifest.app_digital >= 300) {
           cardClass: element.cardClass,
           genres: object.genres,
           object: object,
-          card_wide: true,
+          card_wide: false,
           nomore: element.nomore
         });
         item.create();
@@ -1968,21 +1643,26 @@ if (Lampa.Manifest.app_digital >= 300) {
       };
 
       Lampa.Template.add('new_interface_style', `
-        <style>:root{--ni-logo-max-h: clamp(3.6em, 11vh, 7.2em);--ni-card-logo-h: clamp(2.2em, 6vh, 3.8em);}
+        <style>
 .new-interface{
     position: relative;
-    --ni-info-h: 24em;
+    /* На SMART-TV используем стандартные размеры постеров (без принудительного card-w) */
+    --ni-info-h: clamp(15em, 34vh, 24em);
+}
+html:not(.is-smarttv) .new-interface{
+    --ni-card-w: clamp(120px, 7.6vw, 170px);
 }
 
-.new-interface .card--small.card--wide{
-    width: 18.3em;
+/* Размер карточек и плитки "Ещё" */
+html:not(.is-smarttv) .new-interface .card--small,
+html:not(.is-smarttv) .new-interface .card-more{
+    width: var(--ni-card-w) !important;
 }
 
-.new-interface .card-more__box{
-    padding-bottom: 95%;
-}
-.new-interface .card--small.card--wide + .card-more .card-more__box{
-    padding-bottom: 95%;
+/* Вертикальные постеры: используем стандартный стиль Lampa.
+   Подправляем только плитку "Ещё", чтобы была вертикальной */
+html:not(.is-smarttv) .new-interface .card-more__box{
+    padding-bottom: 150%;
 }
 
 /* Верхний инфо-блок */
@@ -2008,33 +1688,17 @@ if (Lampa.Manifest.app_digital >= 300) {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, .85fr);
     column-gap: clamp(16px, 3vw, 54px);
-    align-items: stretch;
-    height: 100%;
-    box-sizing: border-box;
+    align-items: start;
 }
 
 .new-interface-info__left,
 .new-interface-info__right{
     min-width: 0;
-    height: 100%;
-}
-
-
-/* Блок "мета + описание" прижимаем вниз вместе */
-.new-interface-info__textblock{
-    margin-top: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 0.55em;
-    min-height: 0;
 }
 
 /* Чуть опускаем описание вниз, чтобы попасть в отмеченную область справа */
 .new-interface-info__right{
     padding-top: clamp(0.2em, 2.2vh, 1.6em);
-    padding-bottom: clamp(0.8em, 2.4vh, 2.0em);
-    display: flex;
-    flex-direction: column;
 }
 
 .new-interface-info__head{
@@ -2066,9 +1730,38 @@ if (Lampa.Manifest.app_digital >= 300) {
 .new-interface-info__title-logo{
     max-width: 100%;
     /* Важно: ограничиваем высоту логотипа, чтобы он не "съедал" описание */
-    max-height: var(--ni-logo-max-h);
+    max-height: var(--ni-logo-max-h, clamp(2.4em, 7vh, 4.2em));
     display: block;
     object-fit: contain;
+}
+
+
+
+/* Логотип в полной карточке (full) */
+.new-interface-full-logo{
+    max-height: var(--ni-logo-max-h, 125px);
+    width: auto;
+    max-width: 100%;
+    object-fit: contain;
+    display: block;
+}
+
+/* Скрытие подписей под карточками (в линиях) */
+.new-interface.ni-hide-captions .card__view ~ .card__title,
+.new-interface.ni-hide-captions .card__view ~ .card__name,
+.new-interface.ni-hide-captions .card__view ~ .card__text,
+.new-interface.ni-hide-captions .card__view ~ .card__details,
+.new-interface.ni-hide-captions .card__view ~ .card__description,
+.new-interface.ni-hide-captions .card__view ~ .card__subtitle,
+.new-interface.ni-hide-captions .card__view ~ .card__year,
+.new-interface.ni-hide-captions .card__bottom,
+.new-interface.ni-hide-captions .card__caption{
+    display: none !important;
+}
+
+/* Гарантированно скрывать подписи/год (в т.ч. если класс отличается) */
+.new-interface.ni-hide-captions .card > *:not(.card__view):not(.card__promo){
+    display: none !important;
 }
 
 
@@ -2079,7 +1772,6 @@ if (Lampa.Manifest.app_digital >= 300) {
     line-height: 1.38;
     color: rgba(255, 255, 255, 0.90);
     text-shadow: 0 2px 12px rgba(0, 0, 0, 0.45);
-    margin-top: 0;
     overflow: hidden;
     -o-text-overflow: '.';
     text-overflow: '.';
@@ -2107,6 +1799,22 @@ if (Lampa.Manifest.app_digital >= 300) {
     padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
+
+
+/* Поднять ленты постеров на 3% выше (3vh). Двигаем только саму ленту карточек, заголовок строки не трогаем. */
+.new-interface{
+    --ni-lines-up: 0vh;
+}
+html:not(.is-smarttv) .new-interface{
+    --ni-lines-up: 3vh;
+}
+.new-interface .items-line__body > .scroll.scroll--horizontal,
+.new-interface .items-line__body .scroll.scroll--horizontal{
+    position: relative;
+    top: calc(var(--ni-lines-up) * -1);
+}
+
+
 .new-interface .card__promo{
     display: none;
 }
@@ -2115,62 +1823,19 @@ if (Lampa.Manifest.app_digital >= 300) {
     display: none !important;
 }
 
-
-/* Логотип внутри карточки */
-.new-interface .card .card__view{position: relative;}
-.new-interface .new-interface-card-logo{
-    position: absolute;
-    left: 0; right: 0; bottom: 0;
-    padding: 0.35em 0.45em;
-    box-sizing: border-box;
-    pointer-events: none;
-    background: linear-gradient(to top, rgba(0,0,0,0.78), rgba(0,0,0,0));
-}
-.new-interface .new-interface-card-logo img{
-    display: block;
-    max-width: 100%;
-    max-height: var(--ni-card-logo-h);
-    width: auto;
-    height: auto;
-    object-fit: contain;
-    object-position: left bottom;
-}
-
-/* Логотип в заголовке полной карточки (как logo.js) */
-.full-start-new__title img.new-interface-full-logo,
-.full-start__title img.new-interface-full-logo{
-    display: block;
-    max-width: 100%;
-    max-height: var(--ni-logo-max-h);
-    width: auto;
-    height: auto;
-    object-fit: contain;
-    object-position: left bottom;
-    margin-top: 0.25em;
-}
-
-
-/* Перенос "год+страна" в детали при логотипе */
-.new-interface-info.ni-hide-head .new-interface-info__head{display:none;}
-.new-interface-info__moved-head{
-    flex: 0 0 auto;
-    min-width: 0;
-    font-size: 1.1em;
-    line-height: 1.25;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    opacity: 0.92;
-    display: none;
-}
-.new-interface-info__dot.dot-rate-head,
-.new-interface-info__dot.dot-head-genre{display:none;}
 body.light--version .new-interface-info__body{
     width: min(92%, 72em);
     padding-top: 1.5em;
 }
 
 @media (max-height: 820px){
+    .new-interface{
+        --ni-info-h: clamp(13em, 30vh, 20em);
+    }
+    html:not(.is-smarttv) .new-interface{
+        --ni-card-w: clamp(110px, 7.2vw, 160px);
+    }
+
     .new-interface-info__right{
         padding-top: clamp(0.15em, 1.8vh, 1.2em);
     }
@@ -2183,7 +1848,6 @@ body.light--version .new-interface-info__body{
         -webkit-line-clamp: 6;
         line-clamp: 6;
         font-size: 0.83em;
-        margin-top: 0;
     }
 }
 
@@ -2196,23 +1860,6 @@ body.advanced--animation:not(.no--animation) .new-interface .card.animate-trigge
 body.advanced--animation:not(.no--animation) .new-interface .card--small.animate-trigger-enter .card__view{
     animation: animation-trigger-enter 0.2s forwards;
 }
-
-/* --- Horizontal cards: move line headers and posters up --- */
-.new-interface-h{
-  --ni-line-head-shift: -2vh;  /* ≈ 2% of screen height */
-  --ni-line-body-shift: -3vh;  /* ≈ 3% of screen height */
-}
-.new-interface-h .items-line__head{
-  position: relative;
-  top: var(--ni-line-head-shift);
-  z-index: 2;
-}
-.new-interface-h .items-line__body > .scroll.scroll--horizontal{
-  position: relative;
-  top: var(--ni-line-body-shift);
-  z-index: 1;
-}
-
 </style>
     `);
       $('body').append(Lampa.Template.get('new_interface_style', {}, true));
