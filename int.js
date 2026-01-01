@@ -282,7 +282,6 @@
 			}
 		}
 
-		// Добавляем лейбл Фильм/Сериал на все карточки
 		if (Lampa.Storage.get("show_content_labels", true)) {
 			addContentLabelToCard(card.render(true));
 		}
@@ -442,17 +441,14 @@
 		if (addStyles.added) return;
 		addStyles.added = true;
 
-		var is_wide = Lampa.Storage.get("wide_post") !== false;
-		var wide_rows = Lampa.Storage.get("wide_rows", "two");
-		var compact_wide = is_wide && wide_rows === "two";
-
-		var styles = is_wide ? getWideStyles(compact_wide) : getSmallStyles();
+		var styles = Lampa.Storage.get("wide_post") !== false ? getWideStyles() : getSmallStyles();
 
 		Lampa.Template.add("new_interface_style_v3", styles);
 		$("body").append(Lampa.Template.get("new_interface_style_v3", {}, true));
 	}
 
-	function getWideStyles(compact) {
+	function getWideStyles() {
+		var compact = Lampa.Storage.get("wide_rows", "two") === "two";
 		var height = compact ? "12em" : "27.5em";
 		var padding = compact ? "0.6em" : "1.5em";
 		var titleSize = compact ? "3.2em" : "4em";
@@ -636,29 +632,29 @@
 						margin-right: 0.5em !important;
 					}
 					.items-line {
-						padding-bottom: 3em !important; /* чуть меньше, чтобы названия были видны */
+						padding-bottom: 2.5em !important;
 					}
 					.new-interface-info {
 						position: relative;
-						padding: 1.2em; /* уменьшено */
-						height: 17em; /* уменьшено — постеры поднимаются выше */
+						padding: 1.2em;
+						height: 16em;
 					}
 					.new-interface-info__body {
 						position: absolute;
 						z-index: 9999999;
 						width: 80%;
-						padding-top: 0em; /* уменьшено */
+						padding-top: 0em;
 					}
 					.new-interface-info__head {
 						color: rgba(255, 255, 255, 0.6);
 						margin-bottom: 0.2em;
-						font-size: 1.1em; /* чуть меньше */
+						font-size: 1.1em;
 					}
 					.new-interface-info__head span {
 						color: #fff;
 					}
 					.new-interface-info__title {
-						font-size: 2.8em; /* чуть меньше */
+						font-size: 2.8em;
 						font-weight: 600;
 						margin-bottom: 0.1em;
 						overflow: hidden;
@@ -673,18 +669,18 @@
 					}
 					.new-interface-info__details {
 						margin-top: 0.8em;
-						margin-bottom: 1.2em; /* уменьшено */
+						margin-bottom: 1.0em;
 						display: flex;
 						align-items: center;
 						flex-wrap: wrap;
-						font-size: 1.1em; /* чуть меньше */
+						font-size: 1.1em;
 					}
 					.new-interface-info__split {
 						margin: 0 0.8em;
 						font-size: 0.7em;
 					}
 					.new-interface-info__description {
-						font-size: 1.2em; /* чуть меньше */
+						font-size: 1.2em;
 						font-weight: 310;
 						line-height: 1.3;
 						overflow: hidden;
@@ -741,7 +737,7 @@
 						padding-top: 1em;
 					}
 					body.light--version .new-interface-info {
-						height: 22em; /* уменьшено для light-режима */
+						height: 21em;
 					}
 					body.advanced--animation:not(.no--animation) .new-interface .card.card--wide.focus .card__view {
 						animation: animation-card-focus 0.2s;
@@ -873,7 +869,6 @@
 			title.css({ opacity: 1 });
 		}
 
-		// Лейбл Фильм/Сериал на детальной карточке
 		if (Lampa.Storage.get("show_content_labels", true)) {
 			setTimeout(function () {
 				var poster = $('.full-start__poster, .full-start-new__poster');
@@ -897,7 +892,6 @@
 	};
 
 	InfoPanel.prototype.showLogo = function (data, renderId) {
-		// ... (полный код showLogo из предыдущих версий, без изменений)
 		var _this = this;
 
 		var FADE_OUT_TEXT = 300;
