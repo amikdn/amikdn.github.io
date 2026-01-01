@@ -416,7 +416,7 @@
 						margin-right: 0.5em !important;
 					}
 					.items-line {
-						padding-bottom: 4em !important;
+						padding-bottom: 2.5em !important; /* уменьшено для экономии места */
 					}
 					.new-interface-info__head, .new-interface-info__details{ opacity: 0; transition: opacity 0.5s ease; }
 					.new-interface-info__head.visible, .new-interface-info__details.visible{ opacity: 1; }
@@ -428,26 +428,27 @@
 					}
 					.new-interface-info {
 						position: relative;
-						padding: 1.2em;
-						height: 18em;
+						padding: 0.8em; /* минимальный padding */
+						height: 14em; /* максимально уменьшено — постеры поднимаются выше */
 					}
 					.new-interface-info__body {
 						position: absolute;
 						z-index: 9999999;
 						width: 75%;
-						padding-top: 0.5em;
+						padding-top: 0em; /* убрано полностью */
 					}
 					.new-interface-info__head {
 						color: rgba(255, 255, 255, 0.6);
-						font-size: 1.2em;
+						font-size: 1.1em; /* компактнее */
+						margin-bottom: 0.1em;
 					}
 					.new-interface-info__head span {
 						color: #fff;
 					}
 					.new-interface-info__title {
-						font-size: 3.6em;
+						font-size: 3.4em; /* чуть меньше */
 						font-weight: 600;
-						margin-bottom: 0.2em;
+						margin-bottom: 0.1em; /* минимально */
 						overflow: hidden;
 						-o-text-overflow: '.';
 						text-overflow: '.';
@@ -456,18 +457,19 @@
 						line-clamp: 1;
 						-webkit-box-orient: vertical;
 						margin-left: -0.03em;
-						line-height: 1.3;
+						line-height: 1.2; /* компактная строка */
 					}
 					.new-interface-info__details {
-						margin-top: 0.8em;
-						margin-bottom: 0.4em;
+						margin-top: 0.3em; /* минимально */
+						margin-bottom: 0.1em; /* минимально */
 						display: flex;
 						align-items: center;
 						flex-wrap: wrap;
-						font-size: 1.2em;
+						font-size: 1.1em; /* меньше шрифт */
+						line-height: 1.2;
 					}
 					.new-interface-info__split {
-						margin: 0 1em;
+						margin: 0 0.6em; /* чуть меньше разделитель */
 						font-size: 0.7em;
 					}
 					.new-interface-info__description {
@@ -499,7 +501,7 @@
 						opacity: 1;
 					}
 					.new-interface .full-start__rate {
-						font-size: 1.3em;
+						font-size: 1.2em;
 						margin-right: 0;
 					}
 					.new-interface .card__promo {
@@ -515,10 +517,10 @@
 						position: absolute;
 						z-index: 9999999;
 						width: 69%;
-						padding-top: 1em;
+						padding-top: 0em;
 					}
 					body.light--version .new-interface-info {
-						height: 20em;
+						height: 15em; /* чуть больше для light, но всё равно компактно */
 					}
 					body.advanced--animation:not(.no--animation) .new-interface .card.card--wide.focus .card__view {
 						animation: animation-card-focus 0.2s;
