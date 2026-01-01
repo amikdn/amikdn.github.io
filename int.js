@@ -254,79 +254,6 @@
 		}
 	}
 
-	function loadCardLogo(cardElement, data) {
-		if (!data || !data.id || Lampa.Storage.get("wide_post") === false) return;
-
-		var node = cardElement.jquery ? cardElement[0] : cardElement;
-		if (!node) return;
-
-		var type = data.name ? "tv" : "movie";
-		var language = Lampa.Storage.get("language") || "ru";
-		var cache_key = "logo_cache_v2_" + type + "_" + data.id + "_" + language;
-		var cached_url = Lampa.Storage.get(cache_key);
-
-		var logoContainer = node.querySelector(".card-logo");
-		if (!logoContainer) {
-			logoContainer = document.createElement("div");
-			logoContainer.className = "card-logo";
-			node.appendChild(logoContainer);
-		} else {
-			logoContainer.innerHTML = "";
-		}
-
-		if (cached_url && cached_url !== "none") {
-			var img = new Image();
-			img.src = cached_url;
-			img.style.maxHeight = "4.5em";
-			img.style.width = "auto";
-			img.style.imageRendering = "-webkit-optimize-contrast";
-			logoContainer.appendChild(img);
-			return;
-		}
-
-		if (cached_url === "none") return;
-
-		var url = Lampa.TMDB.api(type + "/" + data.id + "/images?api_key=" + Lampa.TMDB.key() + "&include_image_language=" + language + ",en,null");
-
-		var network = new Lampa.Reguest();
-		network.silent(url, function (data_api) {
-			var final_logo = null;
-			if (data_api.logos && data_api.logos.length > 0) {
-				for (var i = 0; i < data_api.logos.length; i++) {
-					if (data_api.logos[i].iso_639_1 == language) {
-						final_logo = data_api.logos[i].file_path;
-						break;
-					}
-				}
-				if (!final_logo) {
-					for (var j = 0; j < data_api.logos.length; j++) {
-						if (data_api.logos[j].iso_639_1 == "en") {
-							final_logo = data_api.logos[j].file_path;
-							break;
-						}
-					}
-				}
-				if (!final_logo) final_logo = data_api.logos[0].file_path;
-			}
-
-			if (final_logo) {
-				var img_url = Lampa.TMDB.image("/t/p/original" + final_logo.replace(".svg", ".png"));
-				Lampa.Storage.set(cache_key, img_url);
-
-				var img = new Image();
-				img.src = img_url;
-				img.style.maxHeight = "4.5em";
-				img.style.width = "auto";
-				img.style.imageRendering = "-webkit-optimize-contrast";
-				logoContainer.appendChild(img);
-			} else {
-				Lampa.Storage.set(cache_key, "none");
-			}
-		}, function () {
-			Lampa.Storage.set(cache_key, "none");
-		});
-	}
-
 	function handleCard(state, card) {
 		if (!card || card.__newInterfaceCard) return;
 		if (typeof card.use !== "function" || !card.data) return;
@@ -338,23 +265,20 @@
 		var targetStyle = Lampa.Storage.get("wide_post") !== false ? "wide" : "small";
 		card.params.style.name = targetStyle;
 
-		var element = card.render(true);
-		if (element) {
-			var node = element.jquery ? element[0] : element;
-			if (node && node.classList) {
-				if (targetStyle === "wide") {
-					node.classList.add("card--wide");
-					node.classList.remove("card--small");
-				} else {
-					node.classList.add("card--small");
-					node.classList.remove("card--wide");
+		if (card.render && typeof card.render === "function") {
+			var element = card.render(true);
+			if (element) {
+				var node = element.jquery ? element[0] : element;
+				if (node && node.classList) {
+					if (targetStyle === "wide") {
+						node.classList.add("card--wide");
+						node.classList.remove("card--small");
+					} else {
+						node.classList.add("card--small");
+						node.classList.remove("card--wide");
+					}
 				}
 			}
-		}
-
-		// Добавляем логотип на постер только для wide
-		if (targetStyle === "wide") {
-			loadCardLogo(element, card.data);
 		}
 
 		card.use({
@@ -492,53 +416,39 @@
 						margin-right: 0.5em !important;
 					}
 					.items-line {
-						padding-bottom: 2.5em !important;
+						padding-bottom: 2em !important; /* ещё меньше пустого места снизу */
 					}
 					.new-interface-info__head, .new-interface-info__details{ opacity: 0; transition: opacity 0.5s ease; }
 					.new-interface-info__head.visible, .new-interface-info__details.visible{ opacity: 1; }
 					.new-interface .card.card--wide {
-						position: relative;
 						width: 18.3em;
-					}
-					.new-interface .card--wide .card-logo {
-						position: absolute;
-						bottom: 1.5em;
-						left: 1.5em;
-						z-index: 10;
-						pointer-events: none;
-					}
-					.new-interface .card--wide .card-logo img {
-						max-height: 4.5em;
-						width: auto;
-						image-rendering: -webkit-optimize-contrast;
 					}
 					.new-interface .card.card--small {
 						width: 18.3em;
 					}
 					.new-interface-info {
 						position: relative;
-						padding: 0.8em;
-						height: 18em; /* место для большого логотипа */
+						padding: 0.6em; /* ещё меньше padding */
+						height: 12em; /* максимально уменьшено — постеры ещё выше */
 					}
 					.new-interface-info__body {
 						position: absolute;
 						z-index: 9999999;
 						width: 75%;
 						padding-top: 0em;
-						height: 100%;
 					}
 					.new-interface-info__head {
 						color: rgba(255, 255, 255, 0.6);
-						font-size: 1.1em;
-						margin-bottom: 0.1em;
+						font-size: 1.0em; /* ещё компактнее */
+						margin-bottom: 0em;
 					}
 					.new-interface-info__head span {
 						color: #fff;
 					}
 					.new-interface-info__title {
-						font-size: 5.5em; /* большой логотип/название */
+						font-size: 3.2em; /* ещё меньше */
 						font-weight: 600;
-						margin-bottom: 0.1em;
+						margin-bottom: 0em; /* убрано полностью */
 						overflow: hidden;
 						-o-text-overflow: '.';
 						text-overflow: '.';
@@ -547,22 +457,19 @@
 						line-clamp: 1;
 						-webkit-box-orient: vertical;
 						margin-left: -0.03em;
-						line-height: 1.1;
+						line-height: 1.15; /* суперкомпактная строка */
 					}
 					.new-interface-info__details {
-						position: absolute;
-						bottom: 1em; /* спущено вниз, ближе к постерам */
-						left: 1.5em;
-						width: 80%;
-						margin: 0;
+						margin-top: 0.2em; /* минимально */
+						margin-bottom: 0em; /* убрано */
 						display: flex;
 						align-items: center;
 						flex-wrap: wrap;
-						font-size: 1.1em;
-						line-height: 1.2;
+						font-size: 1.0em; /* ещё меньше */
+						line-height: 1.1;
 					}
 					.new-interface-info__split {
-						margin: 0 0.6em;
+						margin: 0 0.5em; /* ещё меньше разделитель */
 						font-size: 0.7em;
 					}
 					.new-interface-info__description {
@@ -594,7 +501,7 @@
 						opacity: 1;
 					}
 					.new-interface .full-start__rate {
-						font-size: 1.2em;
+						font-size: 1.1em;
 						margin-right: 0;
 					}
 					.new-interface .card__promo {
@@ -613,7 +520,7 @@
 						padding-top: 0em;
 					}
 					body.light--version .new-interface-info {
-						height: 19em;
+						height: 13em; /* ещё меньше для light */
 					}
 					body.advanced--animation:not(.no--animation) .new-interface .card.card--wide.focus .card__view {
 						animation: animation-card-focus 0.2s;
@@ -635,7 +542,6 @@
 
 	function getSmallStyles() {
 		return `<style>
-					/* Оригинальные стили для узких постеров (без изменений) */
 					.new-interface-info__head, .new-interface-info__details{ opacity: 0; transition: opacity 0.5s ease; min-height: 2.2em !important;}
 					.new-interface-info__head.visible, .new-interface-info__details.visible{ opacity: 1; }
 					.new-interface .card.card--wide{
