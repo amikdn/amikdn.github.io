@@ -49,14 +49,9 @@
 
 			if (!data.params) data.params = {};
 			if (!data.params.items) data.params.items = {};
-
-			var is_wide = Lampa.Storage.get("wide_post") !== false;
-			var wide_rows = Lampa.Storage.get("wide_rows", "two");
-			var columns = is_wide ? (wide_rows === "one" ? 20 : 10) : 12;
-
-			data.params.items.view = columns;
-			data.params.items_per_row = columns;
-			data.items_per_row = columns;
+			data.params.items.view = 12;
+			data.params.items_per_row = 12;
+			data.items_per_row = 12;
 
 			extendResultsWithStyle(data);
 		}
@@ -282,10 +277,6 @@
 			}
 		}
 
-		if (Lampa.Storage.get("show_content_labels", true)) {
-			addContentLabelToCard(card.render(true));
-		}
-
 		card.use({
 			onFocus: function () {
 				state.update(card.data);
@@ -300,45 +291,6 @@
 				delete card.__newInterfaceCard;
 			},
 		});
-	}
-
-	function addContentLabelToCard(cardElement) {
-		if (!cardElement || $(cardElement).find('.content-label').length) return;
-
-		var view = $(cardElement).find('.card__view');
-		if (!view.length) return;
-
-		var meta = {};
-		try {
-			var tmp = $(cardElement).attr('data-card');
-			if (tmp) meta = JSON.parse(tmp);
-			tmp = $(cardElement).data();
-			if (tmp && Object.keys(tmp).length) meta = Object.assign(meta, tmp);
-			var id = $(cardElement).data('id') || meta.id;
-			if (id && Lampa.Storage.cache('card_' + id)) {
-				meta = Object.assign(meta, Lampa.Storage.cache('card_' + id));
-			}
-		} catch (e) {}
-
-		var isTV = false;
-		if (meta.type === 'tv' || meta.card_type === 'tv' ||
-			meta.seasons || meta.number_of_seasons > 0 ||
-			meta.episodes || meta.number_of_episodes > 0 ||
-			meta.is_series) {
-			isTV = true;
-		}
-		if (!isTV) {
-			if ($(cardElement).hasClass('card--tv') || $(cardElement).data('type') === 'tv') isTV = true;
-			else if ($(cardElement).find('.card__type, .card__temp').text().match(/(сезон|серия|эпизод|ТВ|TV)/i)) isTV = true;
-		}
-
-		var lbl = $('<div class="content-label"></div>');
-		if (isTV) {
-			lbl.addClass('serial-label').text('Сериал');
-		} else {
-			lbl.addClass('movie-label').text('Фильм');
-		}
-		view.append(lbl);
 	}
 
 	function getCardData(card, results, index) {
@@ -378,15 +330,11 @@
 
 		var state = getOrCreateState(items);
 
-		var is_wide = Lampa.Storage.get("wide_post") !== false;
-		var wide_rows = Lampa.Storage.get("wide_rows", "two");
-		var columns = is_wide ? (wide_rows === "one" ? 20 : 10) : 12;
-
-		line.items_per_row = columns;
-		line.view = columns;
+		line.items_per_row = 12;
+		line.view = 12;
 		if (line.params) {
-			line.params.items_per_row = columns;
-			if (line.params.items) line.params.items.view = columns;
+			line.params.items_per_row = 12;
+			if (line.params.items) line.params.items.view = 12;
 		}
 
 		var processCard = function (card) {
@@ -448,313 +396,294 @@
 	}
 
 	function getWideStyles() {
-		var compact = Lampa.Storage.get("wide_rows", "two") === "two";
-		var height = compact ? "12em" : "27.5em";
-		var padding = compact ? "0.6em" : "1.5em";
-		var titleSize = compact ? "3.2em" : "4em";
-		var detailsSize = compact ? "1.0em" : "1.3em";
-		var descDisplay = compact ? "none !important" : "block";
-		var descClamp = compact ? "0" : "3";
-		var bodyWidth = compact ? "75%" : "80%";
-		var bodyPaddingTop = compact ? "0em" : "1.1em";
-
-		return "<style>" +
-			".content-label { position: absolute!important; top: 1.4em!important; left: -0.8em!important; color: white!important; padding: 0.4em 0.6em!important; border-radius: 0.3em!important; font-size: 0.8em!important; z-index: 10!important; backdrop-filter: blur(2px); box-shadow: 0 2px 5px rgba(0,0,0,0.2); }" +
-			".serial-label { background-color: #3498db!important; }" +
-			".movie-label  { background-color: #2ecc71!important; }" +
-			".new-interface .card--tv .card__type { display: none!important; }" +
-
-			".items-line__title .full-person__photo {" +
-			"	width: 1.8em !important;" +
-			"	height: 1.8em !important;" +
-			"}" +
-			".items-line__title .full-person--svg .full-person__photo {" +
-			"	padding: 0.5em !important;" +
-			"	margin-right: 0.5em !important;" +
-			"}" +
-			".items-line__title .full-person__photo {" +
-			"	margin-right: 0.5em !important;" +
-			"}" +
-			".items-line {" +
-			"	padding-bottom: " + (compact ? "2em" : "4em") + " !important;" +
-			"}" +
-			".new-interface-info__head, .new-interface-info__details{ opacity: 0; transition: opacity 0.5s ease; }" +
-			".new-interface-info__head.visible, .new-interface-info__details.visible{ opacity: 1; }" +
-			".new-interface .card.card--wide {" +
-			"	width: 18.3em;" +
-			"}" +
-			".new-interface .card.card--small {" +
-			"	width: 18.3em;" +
-			"}" +
-			".new-interface-info {" +
-			"	position: relative;" +
-			"	padding: " + padding + ";" +
-			"	height: " + height + ";" +
-			"}" +
-			".new-interface-info__body {" +
-			"	position: absolute;" +
-			"	z-index: 9999999;" +
-			"	width: " + bodyWidth + ";" +
-			"	padding-top: " + bodyPaddingTop + ";" +
-			"}" +
-			".new-interface-info__head {" +
-			"	color: rgba(255, 255, 255, 0.6);" +
-			"	font-size: 1.1em;" +
-			"}" +
-			".new-interface-info__head span {" +
-			"	color: #fff;" +
-			"}" +
-			".new-interface-info__title {" +
-			"	font-size: " + titleSize + ";" +
-			"	font-weight: 600;" +
-			"	margin-bottom: 0.1em;" +
-			"	overflow: hidden;" +
-			"	-o-text-overflow: '.';" +
-			"	text-overflow: '.';" +
-			"	display: -webkit-box;" +
-			"	-webkit-line-clamp: 1;" +
-			"	line-clamp: 1;" +
-			"	-webkit-box-orient: vertical;" +
-			"	margin-left: -0.03em;" +
-			"	line-height: 1.2;" +
-			"}" +
-			".new-interface-info__details {" +
-			"	margin-top: 0.3em;" +
-			"	margin-bottom: 0.1em;" +
-			"	display: flex;" +
-			"	align-items: center;" +
-			"	flex-wrap: wrap;" +
-			"	font-size: " + detailsSize + ";" +
-			"	line-height: 1.2;" +
-			"}" +
-			".new-interface-info__split {" +
-			"	margin: 0 0.6em;" +
-			"	font-size: 0.7em;" +
-			"}" +
-			".new-interface-info__description {" +
-			"	display: " + descDisplay + ";" +
-			"	font-size: 1.4em;" +
-			"	font-weight: 310;" +
-			"	line-height: 1.3;" +
-			"	overflow: hidden;" +
-			"	-o-text-overflow: '.';" +
-			"	text-overflow: '.';" +
-			"	display: -webkit-box;" +
-			"	-webkit-line-clamp: " + descClamp + ";" +
-			"	line-clamp: " + descClamp + ";" +
-			"	-webkit-box-orient: vertical;" +
-			"	width: 65%;" +
-			"}" +
-			".new-interface .card-more__box {" +
-			"	padding-bottom: 95%;" +
-			"}" +
-			".new-interface .full-start__background-wrapper {" +
-			"	position: absolute;" +
-			"	top: 0;" +
-			"	left: 0;" +
-			"	width: 100%;" +
-			"	height: 100%;" +
-			"	z-index: -1;" +
-			"	pointer-events: none;" +
-			"}" +
-			".new-interface .full-start__background {" +
-			"	position: absolute;" +
-			"	height: 108%;" +
-			"	width: 100%;" +
-			"	top: -5em;" +
-			"	left: 0;" +
-			"	opacity: 0;" +
-			"	object-fit: cover;" +
-			"	transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1);" +
-			"}" +
-			".new-interface .full-start__background.active {" +
-			"	opacity: 1;" +
-			"}" +
-			".new-interface .full-start__rate {" +
-			"	font-size: 1.3em;" +
-			"	margin-right: 0;" +
-			"}" +
-			".new-interface .card__promo {" +
-			"	display: none;" +
-			"}" +
-			".new-interface .card.card--wide + .card-more .card-more__box {" +
-			"	padding-bottom: 95%;" +
-			"}" +
-			".new-interface .card.card--wide .card-watched {" +
-			"	display: none !important;" +
-			"}" +
-			"body.light--version .new-interface-info__body {" +
-			"	width: 69%;" +
-			"	padding-top: 1em;" +
-			"}" +
-			"body.light--version .new-interface-info {" +
-			"	height: " + (compact ? "13em" : "25.3em") + ";" +
-			"}" +
-			"body.advanced--animation:not(.no--animation) .new-interface .card.card--wide.focus .card__view {" +
-			"	animation: animation-card-focus 0.2s;" +
-			"}" +
-			"body.advanced--animation:not(.no--animation) .new-interface .card.card--wide.animate-trigger-enter .card__view {" +
-			"	animation: animation-trigger-enter 0.2s forwards;" +
-			"}" +
-			"body.advanced--animation:not(.no--animation) .new-interface .card.card--small.focus .card__view {" +
-			"	animation: animation-card-focus 0.2s;" +
-			"}" +
-			"body.advanced--animation:not(.no--animation) .new-interface .card.card--small.animate-trigger-enter .card__view {" +
-			"	animation: animation-trigger-enter 0.2s forwards;" +
-			"}" +
-			".logo-moved-head { transition: opacity 0.4s ease; }" +
-			".logo-moved-separator { transition: opacity 0.4s ease; }" +
-			(Lampa.Storage.get("hide_captions", true) ? ".card:not(.card--collection) .card__age, .card:not(.card--collection) .card__title { display: none !important; }" : "") +
-			"</style>";
+		return `<style>
+					.items-line__title .full-person__photo {
+						width: 1.8em !important;
+						height: 1.8em !important;
+					}
+					.items-line__title .full-person--svg .full-person__photo {
+						padding: 0.5em !important;
+						margin-right: 0.5em !important;
+					}
+					.items-line__title .full-person__photo {
+						margin-right: 0.5em !important;
+					}
+					.items-line {
+						padding-bottom: 4em !important;
+					}
+					.new-interface-info__head, .new-interface-info__details{ opacity: 0; transition: opacity 0.5s ease; min-height: 2.2em !important;}
+					.new-interface-info__head.visible, .new-interface-info__details.visible{ opacity: 1; }
+					.new-interface .card.card--wide {
+						width: 18.3em;
+					}
+					.new-interface .card.card--small {
+						width: 18.3em;
+					}
+					.new-interface-info {
+						position: relative;
+						padding: 1.5em;
+						height: 27.5em;
+					}
+					.new-interface-info__body {
+						position: absolute;
+						z-index: 9999999;
+						width: 80%;
+						padding-top: 1.1em;
+					}
+					.new-interface-info__head {
+						color: rgba(255, 255, 255, 0.6);
+						font-size: 1.3em;
+						min-height: 1em;
+					}
+					.new-interface-info__head span {
+						color: #fff;
+					}
+					.new-interface-info__title {
+						font-size: 4em;
+						font-weight: 600;
+						margin-bottom: 0.3em;
+						overflow: hidden;
+						-o-text-overflow: '.';
+						text-overflow: '.';
+						display: -webkit-box;
+						-webkit-line-clamp: 1;
+						line-clamp: 1;
+						-webkit-box-orient: vertical;
+						margin-left: -0.03em;
+						line-height: 1.3;
+					}
+					.new-interface-info__details {
+						margin-top: 1.2em;
+						margin-bottom: 1.6em;
+						display: flex;
+						align-items: center;
+						flex-wrap: wrap;
+						min-height: 1.9em;
+						font-size: 1.3em;
+					}
+					.new-interface-info__split {
+						margin: 0 1em;
+						font-size: 0.7em;
+					}
+					.new-interface-info__description {
+						font-size: 1.4em;
+						font-weight: 310;
+						line-height: 1.3;
+						overflow: hidden;
+						-o-text-overflow: '.';
+						text-overflow: '.';
+						display: -webkit-box;
+						-webkit-line-clamp: 3;
+						line-clamp: 3;
+						-webkit-box-orient: vertical;
+						width: 65%;
+					}
+					.new-interface .card-more__box {
+						padding-bottom: 95%;
+					}
+					.new-interface .full-start__background-wrapper {
+						position: absolute;
+						top: 0;
+						left: 0;
+						width: 100%;
+						height: 100%;
+						z-index: -1;
+						pointer-events: none;
+					}
+					.new-interface .full-start__background {
+						position: absolute;
+						height: 108%;
+						width: 100%;
+						top: -5em;
+						left: 0;
+						opacity: 0;
+						object-fit: cover;
+						transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+					}
+					.new-interface .full-start__background.active {
+						opacity: 1;
+					}
+					.new-interface .full-start__rate {
+						font-size: 1.3em;
+						margin-right: 0;
+					}
+					.new-interface .card__promo {
+						display: none;
+					}
+					.new-interface .card.card--wide + .card-more .card-more__box {
+						padding-bottom: 95%;
+					}
+					.new-interface .card.card--wide .card-watched {
+						display: none !important;
+					}
+					body.light--version .new-interface-info__body {
+						position: absolute;
+						z-index: 9999999;
+						width: 69%;
+						padding-top: 1.5em;
+					}
+					body.light--version .new-interface-info {
+						height: 25.3em;
+					}
+					body.advanced--animation:not(.no--animation) .new-interface .card.card--wide.focus .card__view {
+						animation: animation-card-focus 0.2s;
+					}
+					body.advanced--animation:not(.no--animation) .new-interface .card.card--wide.animate-trigger-enter .card__view {
+						animation: animation-trigger-enter 0.2s forwards;
+					}
+					body.advanced--animation:not(.no--animation) .new-interface .card.card--small.focus .card__view {
+						animation: animation-card-focus 0.2s;
+					}
+					body.advanced--animation:not(.no--animation) .new-interface .card.card--small.animate-trigger-enter .card__view {
+						animation: animation-trigger-enter 0.2s forwards;
+					}
+					.logo-moved-head { transition: opacity 0.4s ease; }
+					.logo-moved-separator { transition: opacity 0.4s ease; }
+					${Lampa.Storage.get("hide_captions", true) ? ".card:not(.card--collection) .card__age, .card:not(.card--collection) .card__title { display: none !important; }" : ""}
+				</style>`;
 	}
 
 	function getSmallStyles() {
-		return "<style>" +
-			".content-label { position: absolute!important; top: 1.4em!important; left: -0.8em!important; color: white!important; padding: 0.4em 0.6em!important; border-radius: 0.3em!important; font-size: 0.8em!important; z-index: 10!important; backdrop-filter: blur(2px); box-shadow: 0 2px 5px rgba(0,0,0,0.2); }" +
-			".serial-label { background-color: #3498db!important; }" +
-			".movie-label  { background-color: #2ecc71!important; }" +
-			".new-interface .card--tv .card__type { display: none!important; }" +
-
-			".new-interface-info__head, .new-interface-info__details{ opacity: 0; transition: opacity 0.5s ease; }" +
-			".new-interface-info__head.visible, .new-interface-info__details.visible{ opacity: 1; }" +
-			".new-interface .card.card--wide{" +
-			"	width: 18.3em;" +
-			"}" +
-			".items-line__title .full-person__photo {" +
-			"	width: 1.8em !important;" +
-			"	height: 1.8em !important;" +
-			"}" +
-			".items-line__title .full-person--svg .full-person__photo {" +
-			"	padding: 0.5em !important;" +
-			"	margin-right: 0.5em !important;" +
-			"}" +
-			".items-line__title .full-person__photo {" +
-			"	margin-right: 0.5em !important;" +
-			"}" +
-			".items-line {" +
-			"	padding-bottom: 2.5em !important;" +
-			"}" +
-			".new-interface-info {" +
-			"	position: relative;" +
-			"	padding: 1.2em;" +
-			"	height: 16em;" +
-			"}" +
-			".new-interface-info__body {" +
-			"	position: absolute;" +
-			"	z-index: 9999999;" +
-			"	width: 80%;" +
-			"	padding-top: 0em;" +
-			"}" +
-			".new-interface-info__head {" +
-			"	color: rgba(255, 255, 255, 0.6);" +
-			"	margin-bottom: 0.2em;" +
-			"	font-size: 1.1em;" +
-			"}" +
-			".new-interface-info__head span {" +
-			"	color: #fff;" +
-			"}" +
-			".new-interface-info__title {" +
-			"	font-size: 2.8em;" +
-			"	font-weight: 600;" +
-			"	margin-bottom: 0.1em;" +
-			"	overflow: hidden;" +
-			"	-o-text-overflow: '.';" +
-			"	text-overflow: '.';" +
-			"	display: -webkit-box;" +
-			"	-webkit-line-clamp: 1;" +
-			"	line-clamp: 1;" +
-			"	-webkit-box-orient: vertical;" +
-			"	margin-left: -0.03em;" +
-			"	line-height: 1.3;" +
-			"}" +
-			".new-interface-info__details {" +
-			"	margin-top: 0.8em;" +
-			"	margin-bottom: 1.0em;" +
-			"	display: flex;" +
-			"	align-items: center;" +
-			"	flex-wrap: wrap;" +
-			"	font-size: 1.1em;" +
-			"}" +
-			".new-interface-info__split {" +
-			"	margin: 0 0.8em;" +
-			"	font-size: 0.7em;" +
-			"}" +
-			".new-interface-info__description {" +
-			"	font-size: 1.2em;" +
-			"	font-weight: 310;" +
-			"	line-height: 1.3;" +
-			"	overflow: hidden;" +
-			"	-o-text-overflow: '.';" +
-			"	text-overflow: '.';" +
-			"	display: -webkit-box;" +
-			"	-webkit-line-clamp: 2;" +
-			"	line-clamp: 2;" +
-			"	-webkit-box-orient: vertical;" +
-			"	width: 70%;" +
-			"}" +
-			".new-interface .card-more__box {" +
-			"	padding-bottom: 150%;" +
-			"}" +
-			".new-interface .full-start__background-wrapper {" +
-			"	position: absolute;" +
-			"	top: 0;" +
-			"	left: 0;" +
-			"	width: 100%;" +
-			"	height: 100%;" +
-			"	z-index: -1;" +
-			"	pointer-events: none;" +
-			"}" +
-			".new-interface .full-start__background {" +
-			"	position: absolute;" +
-			"	height: 108%;" +
-			"	width: 100%;" +
-			"	top: -5em;" +
-			"	left: 0;" +
-			"	opacity: 0;" +
-			"	object-fit: cover;" +
-			"	transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1);" +
-			"}" +
-			".new-interface .full-start__background.active {" +
-			"	opacity: 1;" +
-			"}" +
-			".new-interface .full-start__rate {" +
-			"	font-size: 1.1em;" +
-			"	margin-right: 0;" +
-			"}" +
-			".new-interface .card__promo {" +
-			"	display: none;" +
-			"}" +
-			".new-interface .card.card--wide + .card-more .card-more__box {" +
-			"	padding-bottom: 95%;" +
-			"}" +
-			".new-interface .card.card--wide .card-watched {" +
-			"	display: none !important;" +
-			"}" +
-			"body.light--version .new-interface-info__body {" +
-			"	position: absolute;" +
-			"	z-index: 9999999;" +
-			"	width: 69%;" +
-			"	padding-top: 1em;" +
-			"}" +
-			"body.light--version .new-interface-info {" +
-			"	height: 21em;" +
-			"}" +
-			"body.advanced--animation:not(.no--animation) .new-interface .card.card--wide.focus .card__view {" +
-			"	animation: animation-card-focus 0.2s;" +
-			"}" +
-			"body.advanced--animation:not(.no--animation) .new-interface .card.card--wide.animate-trigger-enter .card__view {" +
-			"	animation: animation-trigger-enter 0.2s forwards;" +
-			"}" +
-			"body.advanced--animation:not(.no--animation) .new-interface .card.card--small.focus .card__view {" +
-			"	animation: animation-card-focus 0.2s;" +
-			"}" +
-			"body.advanced--animation:not(.no--animation) .new-interface .card.card--small.animate-trigger-enter .card__view {" +
-			"	animation: animation-trigger-enter 0.2s forwards;" +
-			"}" +
-			".logo-moved-head { transition: opacity 0.4s ease; }" +
-			".logo-moved-separator { transition: opacity 0.4s ease; }" +
-			(Lampa.Storage.get("hide_captions", true) ? ".card:not(.card--collection) .card__age, .card:not(.card--collection) .card__title { display: none !important; }" : "") +
-			"</style>";
+		return `<style>
+					.new-interface-info__head, .new-interface-info__details{ opacity: 0; transition: opacity 0.5s ease; min-height: 2.2em !important;}
+					.new-interface-info__head.visible, .new-interface-info__details.visible{ opacity: 1; }
+					.new-interface .card.card--wide{
+						width: 18.3em;
+					}
+					.items-line__title .full-person__photo {
+						width: 1.8em !important;
+						height: 1.8em !important;
+					}
+					.items-line__title .full-person--svg .full-person__photo {
+						padding: 0.5em !important;
+						margin-right: 0.5em !important;
+					}
+					.items-line__title .full-person__photo {
+						margin-right: 0.5em !important;
+					}
+					.new-interface-info {
+						position: relative;
+						padding: 1.5em;
+						height: 19.8em;
+					}
+					.new-interface-info__body {
+						position: absolute;
+						z-index: 9999999;
+						width: 80%;
+						padding-top: 0.2em;
+					}
+					.new-interface-info__head {
+						color: rgba(255, 255, 255, 0.6);
+						margin-bottom: 0.3em;
+						font-size: 1.2em;
+						min-height: 1em;
+					}
+					.new-interface-info__head span {
+						color: #fff;
+					}
+					.new-interface-info__title {
+						font-size: 3em;
+						font-weight: 600;
+						margin-bottom: 0.2em;
+						overflow: hidden;
+						-o-text-overflow: '.';
+						text-overflow: '.';
+						display: -webkit-box;
+						-webkit-line-clamp: 1;
+						line-clamp: 1;
+						-webkit-box-orient: vertical;
+						margin-left: -0.03em;
+						line-height: 1.3;
+					}
+					.new-interface-info__details {
+						margin-top: 1.2em;
+						margin-bottom: 1.6em;
+						display: flex;
+						align-items: center;
+						flex-wrap: wrap;
+						min-height: 1.9em;
+						font-size: 1.2em;
+					}
+					.new-interface-info__split {
+						margin: 0 1em;
+						font-size: 0.7em;
+					}
+					.new-interface-info__description {
+						font-size: 1.3em;
+						font-weight: 310;
+						line-height: 1.3;
+						overflow: hidden;
+						-o-text-overflow: '.';
+						text-overflow: '.';
+						display: -webkit-box;
+						-webkit-line-clamp: 2;
+						line-clamp: 2;
+						-webkit-box-orient: vertical;
+						width: 70%;
+					}
+					.new-interface .card-more__box {
+						padding-bottom: 150%;
+					}
+					.new-interface .full-start__background-wrapper {
+						position: absolute;
+						top: 0;
+						left: 0;
+						width: 100%;
+						height: 100%;
+						z-index: -1;
+						pointer-events: none;
+					}
+					.new-interface .full-start__background {
+						position: absolute;
+						height: 108%;
+						width: 100%;
+						top: -5em;
+						left: 0;
+						opacity: 0;
+						object-fit: cover;
+						transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+					}
+					.new-interface .full-start__background.active {
+						opacity: 1;
+					}
+					.new-interface .full-start__rate {
+						font-size: 1.2em;
+						margin-right: 0;
+					}
+					.new-interface .card__promo {
+						display: none;
+					}
+					.new-interface .card.card--wide + .card-more .card-more__box {
+						padding-bottom: 95%;
+					}
+					.new-interface .card.card--wide .card-watched {
+						display: none !important;
+					}
+					body.light--version .new-interface-info__body {
+						position: absolute;
+						z-index: 9999999;
+						width: 69%;
+						padding-top: 1.5em;
+					}
+					body.light--version .new-interface-info {
+						height: 25.3em;
+					}
+					body.advanced--animation:not(.no--animation) .new-interface .card.card--wide.focus .card__view {
+						animation: animation-card-focus 0.2s;
+					}
+					body.advanced--animation:not(.no--animation) .new-interface .card.card--wide.animate-trigger-enter .card__view {
+						animation: animation-trigger-enter 0.2s forwards;
+					}
+					body.advanced--animation:not(.no--animation) .new-interface .card.card--small.focus .card__view {
+						animation: animation-card-focus 0.2s;
+					}
+					body.advanced--animation:not(.no--animation) .new-interface .card.card--small.animate-trigger-enter .card__view {
+						animation: animation-trigger-enter 0.2s forwards;
+					}
+					.logo-moved-head { transition: opacity 0.4s ease; }
+					.logo-moved-separator { transition: opacity 0.4s ease; }
+					${Lampa.Storage.get("hide_captions", true) ? ".card:not(.card--collection) .card__age, .card:not(.card--collection) .card__title { display: none !important; }" : ""}
+				</style>`;
 	}
 
 	function preloadData(data, silent) {
@@ -784,10 +713,13 @@
 			if (!layer.length) return;
 
 			var cards = layer.find(".card");
+			var count = 0;
+
 			cards.each(function () {
 				var data = findCardData(this);
 				if (data) {
 					preloadData(data, true);
+					count++;
 				}
 			});
 		}, 800);
@@ -802,9 +734,11 @@
 				var added = mutations[i].addedNodes;
 				for (var j = 0; j < added.length; j++) {
 					var node = added[j];
-					if (node.nodeType === 1 && (node.classList.contains("card") || node.querySelector(".card"))) {
-						hasNewCards = true;
-						break;
+					if (node.nodeType === 1) {
+						if (node.classList.contains("card") || node.querySelector(".card")) {
+							hasNewCards = true;
+							break;
+						}
 					}
 				}
 				if (hasNewCards) break;
@@ -815,9 +749,11 @@
 			}
 		});
 
-		observer.observe(document.body, { childList: true, subtree: true });
+		observer.observe(document.body, {
+			childList: true,
+			subtree: true,
+		});
 	}
-
 	function InfoPanel() {
 		this.html = null;
 		this.timer = null;
@@ -828,14 +764,14 @@
 	}
 
 	InfoPanel.prototype.create = function () {
-		this.html = $("<div class=\"new-interface-info\">" +
-			"<div class=\"new-interface-info__body\">" +
-			"<div class=\"new-interface-info__head\"></div>" +
-			"<div class=\"new-interface-info__title\"></div>" +
-			"<div class=\"new-interface-info__details\"></div>" +
-			"<div class=\"new-interface-info__description\"></div>" +
-			"</div>" +
-			"</div>");
+		this.html = $(`<div class="new-interface-info">
+							<div class="new-interface-info__body">
+								<div class="new-interface-info__head"></div>
+								<div class="new-interface-info__title"></div>
+								<div class="new-interface-info__details"></div>
+								<div class="new-interface-info__description"></div>
+							</div>
+						</div>`);
 	};
 
 	InfoPanel.prototype.render = function (asElement) {
@@ -854,7 +790,9 @@
 		var title = this.html.find(".new-interface-info__title");
 		var desc = this.html.find(".new-interface-info__description");
 
-		desc.text(data.overview || "");
+		desc.text(data.overview || Lampa.Lang.translate("full_notext"));
+
+		clearTimeout(this.fadeTimer);
 
 		Lampa.Background.change(Lampa.Api.img(data.backdrop_path, "original"));
 
@@ -867,27 +805,6 @@
 		} else {
 			title.text(data.title || data.name || "");
 			title.css({ opacity: 1 });
-		}
-
-		if (Lampa.Storage.get("show_content_labels", true)) {
-			setTimeout(function () {
-				var poster = $(".full-start__poster, .full-start-new__poster");
-				if (poster.length) {
-					poster.find(".content-label").remove();
-					var isTV = data.number_of_seasons > 0 || data.seasons || data.type === "tv";
-					var lbl = $("<div class=\"content-label\"></div>").css({
-						position: "absolute", top: "1.4em", left: "-0.8em",
-						color: "white", padding: "0.4em 0.6em", borderRadius: "0.3em",
-						fontSize: "0.8em", zIndex: 10, backdropFilter: "blur(2px)", boxShadow: "0 2px 5px rgba(0,0,0,0.2)"
-					});
-					if (isTV) {
-						lbl.addClass("serial-label").text("Сериал").css("backgroundColor", "#3498db");
-					} else {
-						lbl.addClass("movie-label").text("Фильм").css("backgroundColor", "#2ecc71");
-					}
-					poster.css("position", "relative").append(lbl);
-				}
-			}, 100);
 		}
 	};
 
@@ -1015,12 +932,19 @@
 			if (dom_title) start_text_height = dom_title.getBoundingClientRect().height;
 
 			if (fromCache) {
+				if (dom_title) start_text_height = dom_title.getBoundingClientRect().height;
+
 				moveHeadToDetails(false);
 				applyFinalStyles(img, start_text_height);
 
 				title_elem.empty().append(img);
 				title_elem.css({ opacity: "1", transition: "none" });
 
+				if (dom_title) {
+					dom_title.style.display = "block";
+					dom_title.style.height = "";
+					dom_title.style.transition = "none";
+				}
 				img.style.opacity = "1";
 				return;
 			}
@@ -1034,6 +958,8 @@
 				setTimeout(function () {
 					if (renderId && renderId !== _this.lastRenderId) return;
 
+					if (dom_title) start_text_height = dom_title.getBoundingClientRect().height;
+
 					moveHeadToDetails(true);
 
 					title_elem.css({
@@ -1044,38 +970,49 @@
 					setTimeout(function () {
 						if (renderId && renderId !== _this.lastRenderId) return;
 
-						title_elem.empty().append(img);
+						title_elem.empty();
+						title_elem.append(img);
 						title_elem.css({ opacity: "1", transition: "none" });
 
-						var target_height = dom_title.getBoundingClientRect().height;
+						var target_container_height = dom_title.getBoundingClientRect().height;
 
 						dom_title.style.height = start_text_height + "px";
 						dom_title.style.display = "block";
 						dom_title.style.overflow = "hidden";
+						dom_title.style.boxSizing = "border-box";
 
 						void dom_title.offsetHeight;
 
-						dom_title.style.transition = "height " + MORPH_HEIGHT / 1000 + "s ease";
+						dom_title.style.transition = "height " + MORPH_HEIGHT / 1000 + "s cubic-bezier(0.4, 0, 0.2, 1)";
 
 						requestAnimationFrame(function () {
-							dom_title.style.height = target_height + "px";
+							if (renderId && renderId !== _this.lastRenderId) return;
+							dom_title.style.height = target_container_height + "px";
 
-							setTimeout(function () {
-								img.style.transition = "opacity " + FADE_IN_IMG / 1000 + "s ease";
-								img.style.opacity = "1";
-							}, Math.max(0, MORPH_HEIGHT - 100));
+							setTimeout(
+								function () {
+									if (renderId && renderId !== _this.lastRenderId) return;
+									img.style.transition = "opacity " + FADE_IN_IMG / 1000 + "s ease";
+									img.style.opacity = "1";
+								},
+								Math.max(0, MORPH_HEIGHT - 100),
+							);
 
-							setTimeout(function () {
-								applyFinalStyles(img, start_text_height);
-								dom_title.style.height = "";
-							}, MORPH_HEIGHT + FADE_IN_IMG + 50);
+							setTimeout(
+								function () {
+									if (renderId && renderId !== _this.lastRenderId) return;
+									applyFinalStyles(img, start_text_height);
+									dom_title.style.height = "";
+								},
+								MORPH_HEIGHT + FADE_IN_IMG + 50,
+							);
 						});
 					}, FADE_OUT_TEXT);
 				}, 200);
 			};
 
 			img.onerror = function () {
-				title_elem.css({ opacity: "1" });
+				title_elem.css({ opacity: "1", transition: "none" });
 			};
 		}
 
@@ -1088,6 +1025,7 @@
 			if (cached_url && cached_url !== "none") {
 				var img_cache = new Image();
 				img_cache.src = cached_url;
+
 				if (img_cache.complete || Lampa.Storage.get("async_load", true)) {
 					startLogoAnimation(cached_url, true);
 				} else {
@@ -1183,21 +1121,45 @@
 
 		var ageRating = Lampa.Api.sources.tmdb.parsePG(data);
 
+		var show_logo = Lampa.Storage.get("logo_show", true);
+
 		if (Lampa.Storage.get("rat") !== false) {
 			if (rating > 0) {
 				var rate_style = "";
+
 				if (Lampa.Storage.get("colored_ratings", true)) {
 					var vote_num = parseFloat(rating);
-					var color = vote_num <= 3 ? "red" : vote_num < 6 ? "orange" : vote_num < 8 ? "cornflowerblue" : "lawngreen";
-					if (color) rate_style = " style=\"color: " + color + "\"";
+					var color = "";
+
+					if (vote_num >= 0 && vote_num <= 3) {
+						color = "red";
+					} else if (vote_num > 3 && vote_num < 6) {
+						color = "orange";
+					} else if (vote_num >= 6 && vote_num < 7) {
+						color = "cornflowerblue";
+					} else if (vote_num >= 7 && vote_num < 8) {
+						color = "darkmagenta";
+					} else if (vote_num >= 8 && vote_num <= 10) {
+						color = "lawngreen";
+					}
+
+					if (color) rate_style = ' style="color: ' + color + '"';
 				}
-				detailsInfo.push("<div class=\"full-start__rate\"" + rate_style + "><div>" + rating + "</div><div>TMDB</div></div>");
+
+				detailsInfo.push('<div class="full-start__rate"' + rate_style + "><div>" + rating + "</div><div>TMDB</div></div>");
 			}
 		}
 
 		if (Lampa.Storage.get("ganr") !== false) {
 			if (data.genres && data.genres.length > 0) {
-				detailsInfo.push(data.genres.slice(0, 2).map(function (g) { return Lampa.Utils.capitalizeFirstLetter(g.name); }).join(" | "));
+				detailsInfo.push(
+					data.genres
+						.slice(0, 2)
+						.map(function (genre) {
+							return Lampa.Utils.capitalizeFirstLetter(genre.name);
+						})
+						.join(" | "),
+				);
 			}
 		}
 
@@ -1208,35 +1170,53 @@
 		}
 
 		if (Lampa.Storage.get("seas", false) && data.number_of_seasons) {
-			detailsInfo.push("<span class=\"full-start__pg\" style=\"font-size: 0.9em;\">Сезонов " + data.number_of_seasons + "</span>");
+			detailsInfo.push('<span class="full-start__pg" style="font-size: 0.9em;">Сезонов ' + data.number_of_seasons + "</span>");
 		}
 
 		if (Lampa.Storage.get("eps", false) && data.number_of_episodes) {
-			detailsInfo.push("<span class=\"full-start__pg\" style=\"font-size: 0.9em;\">Эпизодов " + data.number_of_episodes + "</span>");
+			detailsInfo.push('<span class="full-start__pg" style="font-size: 0.9em;">Эпизодов ' + data.number_of_episodes + "</span>");
 		}
 
 		if (Lampa.Storage.get("year_ogr") !== false) {
 			if (ageRating) {
-				detailsInfo.push("<span class=\"full-start__pg\" style=\"font-size: 0.9em;\">" + ageRating + "</span>");
+				detailsInfo.push('<span class="full-start__pg" style="font-size: 0.9em;">' + ageRating + "</span>");
 			}
 		}
 
 		if (Lampa.Storage.get("status") !== false) {
 			var statusText = "";
+
 			if (data.status) {
 				switch (data.status.toLowerCase()) {
-					case "released": statusText = "Выпущенный"; break;
-					case "ended": statusText = "Закончен"; break;
-					case "returning series": statusText = "Онгоинг"; break;
-					case "canceled": statusText = "Отменено"; break;
-					case "post production": statusText = "Скоро"; break;
-					case "planned": statusText = "Запланировано"; break;
-					case "in production": statusText = "В производстве"; break;
-					default: statusText = data.status; break;
+					case "released":
+						statusText = "Выпущенный";
+						break;
+					case "ended":
+						statusText = "Закончен";
+						break;
+					case "returning series":
+						statusText = "Онгоинг";
+						break;
+					case "canceled":
+						statusText = "Отменено";
+						break;
+					case "post production":
+						statusText = "Скоро";
+						break;
+					case "planned":
+						statusText = "Запланировано";
+						break;
+					case "in production":
+						statusText = "В производстве";
+						break;
+					default:
+						statusText = data.status;
+						break;
 				}
 			}
+
 			if (statusText) {
-				detailsInfo.push("<span class=\"full-start__status\" style=\"font-size: 0.9em;\">" + statusText + "</span>");
+				detailsInfo.push('<span class="full-start__status" style="font-size: 0.9em;">' + statusText + "</span>");
 			}
 		}
 
@@ -1248,8 +1228,12 @@
 			detailsInfo.push(yc.join(", "));
 		}
 
-		this.html.find(".new-interface-info__head").empty().append(headInfo.join(", ")).toggleClass("visible", headInfo.length > 0);
-		this.html.find(".new-interface-info__details").html(detailsInfo.join("<span class=\"new-interface-info__split\">&#9679;</span>")).addClass("visible");
+		this.html
+			.find(".new-interface-info__head")
+			.empty()
+			.append(headInfo.join(", "))
+			.toggleClass("visible", headInfo.length > 0);
+		this.html.find(".new-interface-info__details").html(detailsInfo.join('<span class="new-interface-info__split">&#9679;</span>')).addClass("visible");
 	};
 
 	InfoPanel.prototype.empty = function () {
@@ -1276,17 +1260,44 @@
 			var $el = $(element);
 			var voteText = $el.text().trim();
 
+			if (/^\d+(\.\d+)?K$/.test(voteText)) {
+				return;
+			}
+
 			var match = voteText.match(/(\d+(\.\d+)?)/);
 			if (!match) return;
 
 			var vote = parseFloat(match[0]);
 			if (isNaN(vote)) return;
 
-			var color = vote <= 3 ? "red" : vote < 6 ? "orange" : vote < 8 ? "cornflowerblue" : "lawngreen";
-			if (color) $el.css("color", color);
+			var color = "";
+
+			if (vote >= 0 && vote <= 3) {
+				color = "red";
+			} else if (vote > 3 && vote < 6) {
+				color = "orange";
+			} else if (vote >= 6 && vote < 7) {
+				color = "cornflowerblue";
+			} else if (vote >= 7 && vote < 8) {
+				color = "darkmagenta";
+			} else if (vote >= 8 && vote <= 10) {
+				color = "lawngreen";
+			}
+
+			if (color) {
+				$el.css("color", color);
+			}
 		}
 
-		$(".card__vote, .full-start__rate, .full-start-new__rate, .info__rate, .card__imdb-rate, .card__kinopoisk-rate").each(function () {
+		$(".card__vote").each(function () {
+			applyColorByRating(this);
+		});
+
+		$(".full-start__rate, .full-start-new__rate").each(function () {
+			applyColorByRating(this);
+		});
+
+		$(".info__rate, .card__imdb-rate, .card__kinopoisk-rate").each(function () {
 			applyColorByRating(this);
 		});
 	}
@@ -1298,7 +1309,10 @@
 			setTimeout(updateVoteColors, 100);
 		});
 
-		observer.observe(document.body, { childList: true, subtree: true });
+		observer.observe(document.body, {
+			childList: true,
+			subtree: true,
+		});
 	}
 
 	function setupVoteColorsForDetailPage() {
@@ -1428,18 +1442,28 @@
 			component: "style_interface",
 			param: { name: "colored_ratings", type: "trigger", default: true },
 			field: { name: "Цветные рейтинги" },
+			onChange: function (value) {
+				if (value) {
+					updateVoteColors();
+				} else {
+					$(".card__vote, .full-start__rate, .full-start-new__rate, .info__rate, .card__imdb-rate, .card__kinopoisk-rate").css("color", "");
+				}
+			},
 		});
 
 		Lampa.SettingsApi.addParam({
 			component: "style_interface",
 			param: { name: "async_load", type: "trigger", default: true },
 			field: { name: "Включить асинхронную загрузку данных" },
+			onChange: function (value) {
+				if (value) preloadAllVisibleCards();
+			},
 		});
 
 		Lampa.SettingsApi.addParam({
 			component: "style_interface",
 			param: { name: "background_resolution", type: "select", default: "original", values: { w300: "w300", w780: "w780", w1280: "w1280", original: "original" } },
-			field: { name: "Разрешение фона" },
+			field: { name: "Разрешение фона", description: "Качество загружаемых фоновых изображений" },
 		});
 
 		Lampa.SettingsApi.addParam({
@@ -1458,21 +1482,6 @@
 			onChange: function () {
 				window.location.reload();
 			},
-		});
-
-		Lampa.SettingsApi.addParam({
-			component: "style_interface",
-			param: { name: "wide_rows", type: "select", values: { one: "Один ряд", two: "Два ряда" }, default: "two" },
-			field: { name: "Ряды при широких постерах", description: "Лампа будет перезагружена" },
-			onChange: function () {
-				window.location.reload();
-			},
-		});
-
-		Lampa.SettingsApi.addParam({
-			component: "style_interface",
-			param: { name: "show_content_labels", type: "trigger", default: true },
-			field: { name: "Лейблы Фильм/Сериал" },
 		});
 
 		Lampa.SettingsApi.addParam({
@@ -1497,6 +1506,8 @@
 									localStorage.removeItem(key);
 								});
 								window.location.reload();
+							} else {
+								Lampa.Controller.toggle("settings_component");
 							}
 						},
 						onBack: function () {
@@ -1519,8 +1530,6 @@
 		function setDefaultSettings() {
 			Lampa.Storage.set("int_plug", "true");
 			Lampa.Storage.set("wide_post", "true");
-			Lampa.Storage.set("wide_rows", "two");
-			Lampa.Storage.set("show_content_labels", "true");
 			Lampa.Storage.set("logo_show", "true");
 			Lampa.Storage.set("show_background", "true");
 			Lampa.Storage.set("background_resolution", "original");
