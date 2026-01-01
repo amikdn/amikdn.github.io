@@ -51,7 +51,7 @@
 			if (!data.params.items) data.params.items = {};
 
 			var is_wide = Lampa.Storage.get("wide_post") !== false;
-			var columns = is_wide ? 10 : 12; // 10 колонок при широких постерах → ~2 ряда
+			var columns = is_wide ? 10 : 12;
 
 			data.params.items.view = columns;
 			data.params.items_per_row = columns;
@@ -254,80 +254,6 @@
 		}
 	}
 
-	function handleCard(state, card) {
-		if (!card || card.__newInterfaceCard) return;
-		if (typeof card.use !== "function" || !card.data) return;
-
-		card.__newInterfaceCard = true;
-		card.params = card.params || {};
-		card.params.style = card.params.style || {};
-
-		var targetStyle = Lampa.Storage.get("wide_post") !== false ? "wide" : "small";
-		card.params.style.name = targetStyle;
-
-		if (card.render && typeof card.render === "function") {
-			var element = card.render(true);
-			if (element) {
-				var node = element.jquery ? element[0] : element;
-				if (node && node.classList) {
-					if (targetStyle === "wide") {
-						node.classList.add("card--wide");
-						node.classList.remove("card--small");
-					} else {
-						node.classList.add("card--small");
-						node.classList.remove("card--wide");
-					}
-				}
-			}
-		}
-
-		card.use({
-			onFocus: function () {
-				state.update(card.data);
-			},
-			onHover: function () {
-				state.update(card.data);
-			},
-			onTouch: function () {
-				state.update(card.data);
-			},
-			onDestroy: function () {
-				delete card.__newInterfaceCard;
-			},
-		});
-	}
-
-	function getCardData(card, results, index) {
-		index = index || 0;
-
-		if (card && card.data) return card.data;
-		if (results && Array.isArray(results.results)) {
-			return results.results[index] || results.results[0];
-		}
-
-		return null;
-	}
-
-	function findCardData(element) {
-		if (!element) return null;
-
-		var node = element && element.jquery ? element[0] : element;
-
-		while (node && !node.card_data) {
-			node = node.parentNode;
-		}
-
-		return node && node.card_data ? node.card_data : null;
-	}
-
-	function getFocusedCard(items) {
-		var container = items && typeof items.render === "function" ? items.render(true) : null;
-		if (!container || !container.querySelector) return null;
-
-		var focusedElement = container.querySelector(".selector.focus") || container.querySelector(".focus");
-		return findCardData(focusedElement);
-	}
-
 	function handleLineAppend(items, line, data) {
 		if (line.__newInterfaceLine) return;
 		line.__newInterfaceLine = true;
@@ -335,7 +261,7 @@
 		var state = getOrCreateState(items);
 
 		var is_wide = Lampa.Storage.get("wide_post") !== false;
-		var columns = is_wide ? 10 : 12; // 10 колонок при широких постерах → ~2 ряда
+		var columns = is_wide ? 10 : 12;
 
 		line.items_per_row = columns;
 		line.view = columns;
@@ -418,7 +344,7 @@
 					.items-line {
 						padding-bottom: 4em !important;
 					}
-					.new-interface-info__head, .new-interface-info__details{ opacity: 0; transition: opacity 0.5s ease; min-height: 2.2em !important;}
+					.new-interface-info__head, .new-interface-info__details{ opacity: 0; transition: opacity 0.5s ease; }
 					.new-interface-info__head.visible, .new-interface-info__details.visible{ opacity: 1; }
 					.new-interface .card.card--wide {
 						width: 18.3em;
@@ -428,27 +354,26 @@
 					}
 					.new-interface-info {
 						position: relative;
-						padding: 1.5em;
-						height: 22em; /* уменьшено из-за скрытого описания */
+						padding: 1.2em; /* уменьшено */
+						height: 18em; /* сильно уменьшено — постеры поднимаются вверх */
 					}
 					.new-interface-info__body {
 						position: absolute;
 						z-index: 9999999;
-						width: 80%;
-						padding-top: 1.1em;
+						width: 75%; /* чуть уже, чтобы больше места под постеры */
+						padding-top: 0.5em; /* уменьшено */
 					}
 					.new-interface-info__head {
 						color: rgba(255, 255, 255, 0.6);
-						font-size: 1.3em;
-						min-height: 1em;
+						font-size: 1.2em; /* чуть меньше */
 					}
 					.new-interface-info__head span {
 						color: #fff;
 					}
 					.new-interface-info__title {
-						font-size: 4em;
+						font-size: 3.6em; /* чуть меньше для компактности */
 						font-weight: 600;
-						margin-bottom: 0.3em;
+						margin-bottom: 0.2em;
 						overflow: hidden;
 						-o-text-overflow: '.';
 						text-overflow: '.';
@@ -460,20 +385,19 @@
 						line-height: 1.3;
 					}
 					.new-interface-info__details {
-						margin-top: 1.2em;
-						margin-bottom: 0.8em; /* уменьшено */
+						margin-top: 0.8em; /* уменьшено */
+						margin-bottom: 0.4em; /* сильно уменьшено */
 						display: flex;
 						align-items: center;
 						flex-wrap: wrap;
-						min-height: 1.9em;
-						font-size: 1.3em;
+						font-size: 1.2em; /* чуть меньше */
 					}
 					.new-interface-info__split {
 						margin: 0 1em;
 						font-size: 0.7em;
 					}
 					.new-interface-info__description {
-						display: none !important; /* полностью скрываем описание при широких постерах */
+						display: none !important; /* полностью скрыто */
 					}
 					.new-interface .card-more__box {
 						padding-bottom: 95%;
@@ -517,10 +441,10 @@
 						position: absolute;
 						z-index: 9999999;
 						width: 69%;
-						padding-top: 1.5em;
+						padding-top: 1em;
 					}
 					body.light--version .new-interface-info {
-						height: 23em; /* уменьшено для light-режима */
+						height: 20em; /* уменьшено для светлой темы */
 					}
 					body.advanced--animation:not(.no--animation) .new-interface .card.card--wide.focus .card__view {
 						animation: animation-card-focus 0.2s;
@@ -542,6 +466,7 @@
 
 	function getSmallStyles() {
 		return `<style>
+					/* Здесь оставлены оригинальные стили для узких постеров (с описанием) */
 					.new-interface-info__head, .new-interface-info__details{ opacity: 0; transition: opacity 0.5s ease; min-height: 2.2em !important;}
 					.new-interface-info__head.visible, .new-interface-info__details.visible{ opacity: 1; }
 					.new-interface .card.card--wide{
