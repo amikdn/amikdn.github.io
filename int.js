@@ -254,6 +254,80 @@
 		}
 	}
 
+	function handleCard(state, card) {
+		if (!card || card.__newInterfaceCard) return;
+		if (typeof card.use !== "function" || !card.data) return;
+
+		card.__newInterfaceCard = true;
+		card.params = card.params || {};
+		card.params.style = card.params.style || {};
+
+		var targetStyle = Lampa.Storage.get("wide_post") !== false ? "wide" : "small";
+		card.params.style.name = targetStyle;
+
+		if (card.render && typeof card.render === "function") {
+			var element = card.render(true);
+			if (element) {
+				var node = element.jquery ? element[0] : element;
+				if (node && node.classList) {
+					if (targetStyle === "wide") {
+						node.classList.add("card--wide");
+						node.classList.remove("card--small");
+					} else {
+						node.classList.add("card--small");
+						node.classList.remove("card--wide");
+					}
+				}
+			}
+		}
+
+		card.use({
+			onFocus: function () {
+				state.update(card.data);
+			},
+			onHover: function () {
+				state.update(card.data);
+			},
+			onTouch: function () {
+				state.update(card.data);
+			},
+			onDestroy: function () {
+				delete card.__newInterfaceCard;
+			},
+		});
+	}
+
+	function getCardData(card, results, index) {
+		index = index || 0;
+
+		if (card && card.data) return card.data;
+		if (results && Array.isArray(results.results)) {
+			return results.results[index] || results.results[0];
+		}
+
+		return null;
+	}
+
+	function findCardData(element) {
+		if (!element) return null;
+
+		var node = element && element.jquery ? element[0] : element;
+
+		while (node && !node.card_data) {
+			node = node.parentNode;
+		}
+
+		return node && node.card_data ? node.card_data : null;
+	}
+
+	function getFocusedCard(items) {
+		var container = items && typeof items.render === "function" ? items.render(true) : null;
+		if (!container || !container.querySelector) return null;
+
+		var focusedElement = container.querySelector(".selector.focus") || container.querySelector(".focus");
+		return findCardData(focusedElement);
+	}
+
 	function handleLineAppend(items, line, data) {
 		if (line.__newInterfaceLine) return;
 		line.__newInterfaceLine = true;
@@ -354,24 +428,24 @@
 					}
 					.new-interface-info {
 						position: relative;
-						padding: 1.2em; /* уменьшено */
-						height: 18em; /* сильно уменьшено — постеры поднимаются вверх */
+						padding: 1.2em;
+						height: 18em;
 					}
 					.new-interface-info__body {
 						position: absolute;
 						z-index: 9999999;
-						width: 75%; /* чуть уже, чтобы больше места под постеры */
-						padding-top: 0.5em; /* уменьшено */
+						width: 75%;
+						padding-top: 0.5em;
 					}
 					.new-interface-info__head {
 						color: rgba(255, 255, 255, 0.6);
-						font-size: 1.2em; /* чуть меньше */
+						font-size: 1.2em;
 					}
 					.new-interface-info__head span {
 						color: #fff;
 					}
 					.new-interface-info__title {
-						font-size: 3.6em; /* чуть меньше для компактности */
+						font-size: 3.6em;
 						font-weight: 600;
 						margin-bottom: 0.2em;
 						overflow: hidden;
@@ -385,19 +459,19 @@
 						line-height: 1.3;
 					}
 					.new-interface-info__details {
-						margin-top: 0.8em; /* уменьшено */
-						margin-bottom: 0.4em; /* сильно уменьшено */
+						margin-top: 0.8em;
+						margin-bottom: 0.4em;
 						display: flex;
 						align-items: center;
 						flex-wrap: wrap;
-						font-size: 1.2em; /* чуть меньше */
+						font-size: 1.2em;
 					}
 					.new-interface-info__split {
 						margin: 0 1em;
 						font-size: 0.7em;
 					}
 					.new-interface-info__description {
-						display: none !important; /* полностью скрыто */
+						display: none !important;
 					}
 					.new-interface .card-more__box {
 						padding-bottom: 95%;
@@ -444,7 +518,7 @@
 						padding-top: 1em;
 					}
 					body.light--version .new-interface-info {
-						height: 20em; /* уменьшено для светлой темы */
+						height: 20em;
 					}
 					body.advanced--animation:not(.no--animation) .new-interface .card.card--wide.focus .card__view {
 						animation: animation-card-focus 0.2s;
@@ -466,7 +540,6 @@
 
 	function getSmallStyles() {
 		return `<style>
-					/* Здесь оставлены оригинальные стили для узких постеров (с описанием) */
 					.new-interface-info__head, .new-interface-info__details{ opacity: 0; transition: opacity 0.5s ease; min-height: 2.2em !important;}
 					.new-interface-info__head.visible, .new-interface-info__details.visible{ opacity: 1; }
 					.new-interface .card.card--wide{
@@ -676,6 +749,7 @@
 			subtree: true,
 		});
 	}
+
 	function InfoPanel() {
 		this.html = null;
 		this.timer = null;
