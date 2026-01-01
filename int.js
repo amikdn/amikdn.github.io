@@ -49,9 +49,13 @@
 
 			if (!data.params) data.params = {};
 			if (!data.params.items) data.params.items = {};
-			data.params.items.view = 12;
-			data.params.items_per_row = 12;
-			data.items_per_row = 12;
+
+			var is_wide = Lampa.Storage.get("wide_post") !== false;
+			var columns = is_wide ? 10 : 12; // 10 колонок при широких постерах → ~2 ряда
+
+			data.params.items.view = columns;
+			data.params.items_per_row = columns;
+			data.items_per_row = columns;
 
 			extendResultsWithStyle(data);
 		}
@@ -330,11 +334,14 @@
 
 		var state = getOrCreateState(items);
 
-		line.items_per_row = 12;
-		line.view = 12;
+		var is_wide = Lampa.Storage.get("wide_post") !== false;
+		var columns = is_wide ? 10 : 12; // 10 колонок при широких постерах → ~2 ряда
+
+		line.items_per_row = columns;
+		line.view = columns;
 		if (line.params) {
-			line.params.items_per_row = 12;
-			if (line.params.items) line.params.items.view = 12;
+			line.params.items_per_row = columns;
+			if (line.params.items) line.params.items.view = columns;
 		}
 
 		var processCard = function (card) {
@@ -422,7 +429,7 @@
 					.new-interface-info {
 						position: relative;
 						padding: 1.5em;
-						height: 27.5em;
+						height: 22em; /* уменьшено из-за скрытого описания */
 					}
 					.new-interface-info__body {
 						position: absolute;
@@ -454,7 +461,7 @@
 					}
 					.new-interface-info__details {
 						margin-top: 1.2em;
-						margin-bottom: 1.6em;
+						margin-bottom: 0.8em; /* уменьшено */
 						display: flex;
 						align-items: center;
 						flex-wrap: wrap;
@@ -466,17 +473,7 @@
 						font-size: 0.7em;
 					}
 					.new-interface-info__description {
-						font-size: 1.4em;
-						font-weight: 310;
-						line-height: 1.3;
-						overflow: hidden;
-						-o-text-overflow: '.';
-						text-overflow: '.';
-						display: -webkit-box;
-						-webkit-line-clamp: 3;
-						line-clamp: 3;
-						-webkit-box-orient: vertical;
-						width: 65%;
+						display: none !important; /* полностью скрываем описание при широких постерах */
 					}
 					.new-interface .card-more__box {
 						padding-bottom: 95%;
@@ -523,7 +520,7 @@
 						padding-top: 1.5em;
 					}
 					body.light--version .new-interface-info {
-						height: 25.3em;
+						height: 23em; /* уменьшено для light-режима */
 					}
 					body.advanced--animation:not(.no--animation) .new-interface .card.card--wide.focus .card__view {
 						animation: animation-card-focus 0.2s;
