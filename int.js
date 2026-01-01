@@ -254,6 +254,31 @@
 		}
 	}
 
+	function addContentTypeIcon(cardElement, isTV) {
+		if ($(cardElement).find('.content-type-icon').length) return;
+
+		var view = $(cardElement).find('.card__view');
+		if (!view.length) return;
+
+		var icon = $('<div class="content-type-icon"></div>');
+
+		if (isTV) {
+			icon.html(`
+				<svg viewBox="0 0 24 24" fill="currentColor">
+					<path d="M21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h5v2h8v-2h5c1.1 0 1.99-.9 1.99-2L23 5c0-1.1-.9-2-2-2zm0 14H3V5h18v12z"/>
+				</svg>
+			`).css('backgroundColor', '#3498db');
+		} else {
+			icon.html(`
+				<svg viewBox="0 0 24 24" fill="currentColor">
+					<path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"/>
+				</svg>
+			`).css('backgroundColor', '#2ecc71');
+		}
+
+		view.append(icon);
+	}
+
 	function handleCard(state, card) {
 		if (!card || card.__newInterfaceCard) return;
 		if (typeof card.use !== "function" || !card.data) return;
@@ -278,6 +303,16 @@
 						node.classList.remove("card--wide");
 					}
 				}
+
+				// Добавляем иконку типа контента
+				var data = card.data;
+				var isTV = false;
+				if (data.media_type === 'tv' || data.name || data.number_of_seasons > 0 || data.seasons) {
+					isTV = true;
+				}
+				if ($(node).hasClass('card--tv') || data.type === 'tv') isTV = true;
+
+				addContentTypeIcon(node, isTV);
 			}
 		}
 
@@ -416,7 +451,7 @@
 						margin-right: 0.5em !important;
 					}
 					.items-line {
-						padding-bottom: 2em !important; /* ещё меньше пустого места снизу */
+						padding-bottom: 2em !important;
 					}
 					.new-interface-info__head, .new-interface-info__details{ opacity: 0; transition: opacity 0.5s ease; }
 					.new-interface-info__head.visible, .new-interface-info__details.visible{ opacity: 1; }
@@ -428,8 +463,8 @@
 					}
 					.new-interface-info {
 						position: relative;
-						padding: 0.6em; /* ещё меньше padding */
-						height: 12em; /* максимально уменьшено — постеры ещё выше */
+						padding: 0.6em;
+						height: 12em;
 					}
 					.new-interface-info__body {
 						position: absolute;
@@ -439,16 +474,16 @@
 					}
 					.new-interface-info__head {
 						color: rgba(255, 255, 255, 0.6);
-						font-size: 1.0em; /* ещё компактнее */
+						font-size: 1.0em;
 						margin-bottom: 0em;
 					}
 					.new-interface-info__head span {
 						color: #fff;
 					}
 					.new-interface-info__title {
-						font-size: 3.2em; /* ещё меньше */
+						font-size: 3.2em;
 						font-weight: 600;
-						margin-bottom: 0em; /* убрано полностью */
+						margin-bottom: 0em;
 						overflow: hidden;
 						-o-text-overflow: '.';
 						text-overflow: '.';
@@ -457,24 +492,47 @@
 						line-clamp: 1;
 						-webkit-box-orient: vertical;
 						margin-left: -0.03em;
-						line-height: 1.15; /* суперкомпактная строка */
+						line-height: 1.15;
 					}
 					.new-interface-info__details {
-						margin-top: 0.2em; /* минимально */
-						margin-bottom: 0em; /* убрано */
+						margin-top: 0.2em;
+						margin-bottom: 0em;
 						display: flex;
 						align-items: center;
 						flex-wrap: wrap;
-						font-size: 1.0em; /* ещё меньше */
+						font-size: 1.0em;
 						line-height: 1.1;
 					}
 					.new-interface-info__split {
-						margin: 0 0.5em; /* ещё меньше разделитель */
+						margin: 0 0.5em;
 						font-size: 0.7em;
 					}
 					.new-interface-info__description {
 						display: none !important;
 					}
+					/* Иконки типа контента */
+					.new-interface .content-type-icon {
+						position: absolute !important;
+						top: 1.2em !important;
+						left: -0.7em !important;
+						width: 2.2em !important;
+						height: 2.2em !important;
+						background-color: rgba(0,0,0,0.6) !important;
+						border-radius: 50% !important;
+						display: flex !important;
+						align-items: center !important;
+						justify-content: center !important;
+						z-index: 11 !important;
+						backdrop-filter: blur(4px);
+						box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+					}
+					.new-interface .content-type-icon svg {
+						width: 1.4em !important;
+						height: 1.4em !important;
+						color: white !important;
+					}
+					.new-interface .card__type { display: none !important; } /* скрываем текст TV */
+					/* Остальные стили */
 					.new-interface .card-more__box {
 						padding-bottom: 95%;
 					}
@@ -520,7 +578,7 @@
 						padding-top: 0em;
 					}
 					body.light--version .new-interface-info {
-						height: 13em; /* ещё меньше для light */
+						height: 13em;
 					}
 					body.advanced--animation:not(.no--animation) .new-interface .card.card--wide.focus .card__view {
 						animation: animation-card-focus 0.2s;
@@ -542,6 +600,7 @@
 
 	function getSmallStyles() {
 		return `<style>
+					/* Аналогичные стили для узких постеров */
 					.new-interface-info__head, .new-interface-info__details{ opacity: 0; transition: opacity 0.5s ease; min-height: 2.2em !important;}
 					.new-interface-info__head.visible, .new-interface-info__details.visible{ opacity: 1; }
 					.new-interface .card.card--wide{
@@ -618,6 +677,28 @@
 						-webkit-box-orient: vertical;
 						width: 70%;
 					}
+					/* Иконки типа контента (и для узких постеров) */
+					.new-interface .content-type-icon {
+						position: absolute !important;
+						top: 1.2em !important;
+						left: -0.7em !important;
+						width: 2.2em !important;
+						height: 2.2em !important;
+						background-color: rgba(0,0,0,0.6) !important;
+						border-radius: 50% !important;
+						display: flex !important;
+						align-items: center !important;
+						justify-content: center !important;
+						z-index: 11 !important;
+						backdrop-filter: blur(4px);
+						box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+					}
+					.new-interface .content-type-icon svg {
+						width: 1.4em !important;
+						height: 1.4em !important;
+						color: white !important;
+					}
+					.new-interface .card__type { display: none !important; }
 					.new-interface .card-more__box {
 						padding-bottom: 150%;
 					}
@@ -681,6 +762,31 @@
 					.logo-moved-separator { transition: opacity 0.4s ease; }
 					${Lampa.Storage.get("hide_captions", true) ? ".card:not(.card--collection) .card__age, .card:not(.card--collection) .card__title { display: none !important; }" : ""}
 				</style>`;
+	}
+
+	function updateVoteColors() {
+		function applyColorByRating(element) {
+			var $el = $(element);
+			var voteText = $el.text().trim();
+
+			var match = voteText.match(/(\d+(\.\d+)?)/);
+			if (!match) return;
+
+			var vote = parseFloat(match[0]);
+			if (isNaN(vote)) return;
+
+			var color = "";
+			if (vote <= 3) color = "red";
+			else if (vote < 6) color = "orange";
+			else if (vote < 8) color = "cornflowerblue";
+			else color = "lawngreen";
+
+			if (color) $el.css("color", color);
+		}
+
+		$(".card__vote").each(function () { applyColorByRating(this); });
+		$(".full-start__rate, .full-start-new__rate").each(function () { applyColorByRating(this); });
+		$(".info__rate, .card__imdb-rate, .card__kinopoisk-rate").each(function () { applyColorByRating(this); });
 	}
 
 	function preloadData(data, silent) {
