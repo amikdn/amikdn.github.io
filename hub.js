@@ -4,8 +4,6 @@
     const STYLE_TAG = 'cardbtn-style';
     const ORDER_STORAGE = 'cardbtn_order';
     const HIDE_STORAGE = 'cardbtn_hidden';
-    let currentCard = null;
-    let currentActivity = null;
 
     const DEFAULT_LABELS = {
       'button--play': () => Lampa.Lang.translate('title_watch'),
@@ -16,6 +14,15 @@
       'view--torrent': () => Lampa.Lang.translate('full_torrents'),
       'view--trailer': () => Lampa.Lang.translate('full_trailers')
     };
+
+    const SAD_SMILE_SVG = `
+      <svg width="80" height="80" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="12" cy="12" r="11" stroke="currentColor" stroke-width="2" fill="none"/>
+        <circle cx="8" cy="9" r="1.5" fill="currentColor"/>
+        <circle cx="16" cy="9" r="1.5" fill="currentColor"/>
+        <path d="M8 16c1.5 1.5 3 1.5 4 1.5s2.5 0 4 -1.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+    `;
 
     function addStyles() {
       if (document.getElementById(STYLE_TAG)) return;
@@ -31,17 +38,18 @@
         .card-icons-only span {
             display: none;
         }
+        .card-full-text .full-start__button {
+            min-width: 120px !important;
+        }
+        .card-full-text span {
+            display: block !important;
+            font-size: 0.9em;
+        }
         .head__action.edit-card svg {
             width: 26px;
             height: 26px;
         }
-        .modal__error-icon {
-            width: 60px;
-            height: 60px;
-            margin: 0 auto 20px;
-            opacity: 0.8;
-        }
-    `;
+      `;
       $('head').append(`<style id="${STYLE_TAG}">${css}</style>`);
     }
 
@@ -187,33 +195,50 @@
         if (elements[k]) mainArea.append(elements[k]);
       });
 
-      mainArea.toggleClass('card-icons-only', Lampa.Storage.get('cardbtn_icons') === true);
+      const mode = Lampa.Storage.get('cardbtn_textmode', 'auto');
+      mainArea.toggleClass('card-icons-only', mode === 'icons');
+      mainArea.toggleClass('card-full-text', mode === 'full');
+
       mainArea.addClass('card-buttons');
       hideButtons(elements);
 
       Lampa.Controller.toggle("full_start");
+    }
 
-      if (currentActivity && currentActivity.html && container[0] === currentActivity.html[0]) {
-        const first = mainArea.find('.full-start__button.selector').not('.hide').not('.card-button-hidden').first();
-        if (first.length) currentActivity.last = first[0];
-      }
+    function showEditError() {
+      const errorHtml = $(`
+        <div style="text-align:center; padding:20px;">
+          ${SAD_SMILE_SVG}
+          <div style="margin-top:20px; font-size:1.2em;">Редактировать кнопки можно только в открытой карточке фильма</div>
+        </div>
+      `);
+
+      Lampa.Modal.open({
+        title: 'Ошибка',
+        html: errorHtml,
+        size: 'medium',
+        onBack: () => {
+          Lampa.Modal.close();
+          setTimeout(() => {
+            Lampa.Controller.toggle("settings_component");
+          }, 100);
+        }
+      });
     }
 
     function startEditor(container, fromSettings = false) {
-      if (!container || !container.length) {
-        showEditorError(fromSettings);
+      if (!container || !container.length || !container.find('.full-start-new').length) {
+        showEditError();
         return;
       }
 
       const collected = collectButtons(container, false);
-      const { keys } = collected;
+      const { keys, elements } = collected;
 
       if (keys.length === 0) {
-        showEditorError(fromSettings);
+        showEditError();
         return;
       }
-
-      const elements = collected.elements;
 
       const ordered = buildOrder(getStoredArray(ORDER_STORAGE), keys);
       const hidden = new Set(getStoredArray(HIDE_STORAGE));
@@ -302,58 +327,20 @@
       });
     }
 
-    function showEditorError(fromSettings = false) {
-      const errorHtml = $(`
-        <div style="text-align:center;">
-          <svg class="modal__error-icon" xmlns="http://www.w3.org/2000/svg" width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-          </svg>
-          <div class="modal__text">Редактировать кнопки можно только в открытой карточке фильма или сериала</div>
-        </div>
-      `);
-
-      Lampa.Modal.open({
-        title: 'Редактирование кнопок',
-        html: errorHtml,
-        size: 'small',
-        onBack: () => {
-          Lampa.Modal.close();
-          setTimeout(() => {
-            if (fromSettings) {
-              Lampa.Controller.toggle("settings_component");
-            }
-          }, 100);
-        }
-      });
-    }
-
     function startEditorFromSettings() {
-      if (!currentCard || !currentCard.length || !document.body.contains(currentCard[0])) {
-        const active = findActiveCard();
-        if (active && active.length) {
-          currentCard = active;
-        }
-      }
-
-      if (!currentCard || !currentCard.length) {
-        showEditorError(true);
+      const activeCard = findActiveCard();
+      if (!activeCard) {
+        showEditError();
         return;
       }
-
-      startEditor(currentCard, true);
+      startEditor(activeCard, true);
     }
 
     function cardListener() {
       Lampa.Listener.follow('full', e => {
-        if (e.type === 'build' && e.name === 'start' && e.item && e.item.html) {
-          currentActivity = e.item;
-        }
         if (e.type === 'complite') {
           const container = getCardContainer(e);
-          if (!container) return;
-          currentCard = container;
-          rebuildCard(container);
+          if (container) rebuildCard(container);
         }
       });
     }
@@ -375,11 +362,11 @@
         param: {
           name: "cardbtn_showall",
           type: "trigger",
-          default: true  // Включено по умолчанию
+          default: false
         },
         field: {
           name: 'Все кнопки действий в карточке',
-          description: 'Выводит все кнопки действий в карточке в одной строке'
+          description: 'Выводит все кнопки в одной строке (применяется после перезагрузки Lampa)'
         },
         onChange: () => {
           Lampa.Settings.update();
@@ -390,13 +377,18 @@
         Lampa.SettingsApi.addParam({
           component: "cardbtn",
           param: {
-            name: "cardbtn_icons",
-            type: "trigger",
-            default: false
+            name: "cardbtn_textmode",
+            type: "select",
+            values: {
+              auto: 'Авто (как в Lampa)',
+              icons: 'Только иконки',
+              full: 'Полные кнопки с текстом'
+            },
+            default: 'auto'
           },
           field: {
-            name: 'Только иконки',
-            description: 'Показывать только иконки кнопок'
+            name: 'Отображение кнопок',
+            description: 'Выберите режим отображения кнопок'
           },
           onChange: () => {
             Lampa.Settings.update();
@@ -411,7 +403,7 @@
           },
           field: {
             name: 'Редактировать кнопки',
-            description: 'Изменить порядок и скрыть кнопки в карточке'
+            description: 'Изменить порядок и скрыть кнопки (только в карточке фильма)'
           },
           onChange: () => {
             CardHandler.fromSettings();
@@ -426,7 +418,7 @@
 
     const pluginInfo = {
       type: "other",
-      version: "1.0.3",
+      version: "1.1.0",
       author: '@custom',
       name: "Кастомные кнопки карточки",
       description: "Управление кнопками действий в карточке фильма/сериала",
@@ -436,7 +428,9 @@
     function loadPlugin() {
       Lampa.Manifest.plugins = pluginInfo;
       SettingsConfig.run();
-      CardHandler.run();  // Запускаем всегда, поскольку default true
+      if (Lampa.Storage.get('cardbtn_showall') === true) {
+        CardHandler.run();
+      }
     }
 
     function init() {
