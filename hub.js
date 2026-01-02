@@ -4,7 +4,7 @@
     function main$8() {
       Lampa.Lang.add({
         lme_showbutton_desc: {
-          ru: "Добавляет кнопку редактирования кнопок действий прямо в карточке фильма"
+          ru: "Добавляет кнопку редактирования кнопок действий в верхнюю панель карточки"
         }
       });
     }
@@ -44,7 +44,7 @@
 
     function ensureStyles() {
       if (document.getElementById(STYLE_ID)) return;
-      var style = "\n        .lme-buttons {\n            display: flex;\n            flex-wrap: wrap;\n            gap: 10px;\n        }\n        .lme-button-hide {\n            display: none !important;\n        }\n        .lme-button-text-hidden span {\n            display: none;\n        }\n        .head__action.edit-buttons svg {\n            width: 24px;\n            height: 24px;\n        }\n    ";
+      var style = "\n        .lme-buttons {\n            display: flex;\n            flex-wrap: wrap;\n            gap: 10px;\n        }\n        .lme-button-hide {\n            display: none !important;\n        }\n        .lme-button-text-hidden span {\n            display: none;\n        }\n        .head__action.edit-buttons svg {\n            width: 26px;\n            height: 26px;\n        }\n    ";
       $('head').append("<style id=\"".concat(STYLE_ID, "\">").concat(style, "</style>"));
     }
 
@@ -76,7 +76,7 @@
       var idClass = className.find(function (c) {
         return c.startsWith('button--') && c !== 'button--priority';
       }) || className.find(function (c) {
-        return c.startsWith('view--');
+        return c.startsStartWith('view--');
       });
       if (idClass) return idClass;
       var dataId = $button.data('id') || $button.data('name') || $button.attr('data-name');
@@ -146,28 +146,29 @@
       var headActions = fullContainer.find('.head__actions');
       if (headActions.length === 0) return;
 
-      // Добавляем кнопку-карандаш (аналогично переключателю источников)
+      // Добавляем кнопку-карандаш в стиле переключателя источников
       var editButton = headActions.find('.edit-buttons');
       if (editButton.length === 0) {
-        editButton = $('<div class="head__action selector edit-buttons">' +
-          '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
-          '<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>' +
-          '<path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>' +
-          '</svg>' +
-          '</div>');
+        editButton = $('<div>', {
+          'class': 'head__action selector edit-buttons',
+          'style': 'position: relative;',
+          'html': '<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+                  '<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>' +
+                  '<path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>' +
+                  '</svg>'
+        });
 
-        // Вставляем после кнопки настроек (open--settings), как в примере с источниками
-        headActions.find('.open--settings').after(editButton);
+        // Вставляем в начало верхней панели (как в оригинальном sourceSwitch)
+        headActions.prepend(editButton);
 
-        // По hover:enter открываем редактор для текущей карточки
         editButton.on('hover:enter', function () {
           openEditor(fullContainer);
         });
       }
 
-      // Применяем порядок и скрытие к стандартному контейнеру кнопок внизу
+      // Применяем сохранённый порядок и скрытие к кнопкам внизу
       var priority = fullContainer.find('.full-start-new__buttons .button--priority').detach();
-      fullContainer.find('.full-start-new__buttons .button--play').remove(); // если нужно, но обычно play остаётся
+      fullContainer.find('.full-start-new__buttons .button--play').remove();
 
       var _scanButtons = scanButtons(fullContainer, true),
         items = _scanButtons.items,
@@ -177,9 +178,7 @@
       var order = normalizeOrder(readArray(ORDER_KEY), items);
 
       targetContainer.empty();
-
       if (priority.length) targetContainer.append(priority);
-
       order.forEach(function (id) {
         if (map[id]) targetContainer.append(map[id]);
       });
@@ -196,6 +195,7 @@
     }
 
     function openEditor(fullContainer) {
+      // Тот же редактор, что и раньше
       if (!fullContainer || !fullContainer.length) return;
 
       var _scanButtons2 = scanButtons(fullContainer, false),
@@ -290,10 +290,10 @@
         param: {
           name: "lme_showbutton",
           type: "trigger",
-          "default": false
+          "default": true  // Включаем по умолчанию, чтобы сразу работало
         },
         field: {
-          name: 'Редактировать кнопки в карточке',
+          name: 'Кнопка редактирования в хедере',
           description: Lampa.Lang.translate('lme_showbutton_desc')
         },
         onChange: function onChange(value) {
@@ -307,10 +307,10 @@
 
     var manifest = {
       type: "other",
-      version: "0.1.2",
+      version: "0.1.3",
       author: '@lme_chat',
-      name: "Редактор кнопок в карточке",
-      description: "Добавляет кнопку-карандаш в верхнюю панель карточки фильма. По нажатию открывается редактор для изменения порядка и скрытия кнопок действий.",
+      name: "Редактор кнопок (кнопка в хедере)",
+      description: "Добавляет кнопку-карандаш в верхнюю панель карточки (в начало, как переключатель источников). По нажатию открывает редактор порядка и скрытия кнопок действий.",
       component: "lme"
     };
 
@@ -318,7 +318,7 @@
       Lang.main();
       Lampa.Manifest.plugins = manifest;
       CONFIG.main();
-      if (Lampa.Storage.get('lme_showbutton') == true) showButton.main();
+      showButton.main();  // Запускаем всегда (опция по умолчанию включена)
     }
 
     function startPlugin() {
