@@ -1,7 +1,7 @@
 (function () {
     'use strict';
 
-    // Добавляем раздел в настройки (это обязательно, иначе ничего не появится)
+    // Добавляем раздел в настройки
     Lampa.SettingsApi.addComponent({
         component: "buttoneditor",
         name: 'Редактор кнопок',
@@ -188,7 +188,7 @@
             `);
 
             if (icon) item.find('.menu-edit-list__icon').append(icon);
-            item.toggleClass('lme-button-hidden', hidden.has(id));
+            item.toggleClass('be-button-hidden', hidden.has(id));
             item.find('.dot').attr('opacity', hidden.has(id) ? 0 : 1);
 
             item.find('.move-up').on('hover:enter', () => {
@@ -202,8 +202,8 @@
             });
 
             item.find('.toggle').on('hover:enter', () => {
-                item.toggleClass('lme-button-hidden');
-                item.find('.dot').attr('opacity', item.hasClass('lme-button-hidden') ? 0 : 1);
+                item.toggleClass('be-button-hidden');
+                item.find('.dot').attr('opacity', item.hasClass('be-button-hidden') ? 0 : 1);
             });
 
             list.append(item);
@@ -221,7 +221,7 @@
                     var id = $(this).data('id');
                     if (id) {
                         newOrder.push(id);
-                        if ($(this).hasClass('lme-button-hidden')) newHidden.push(id);
+                        if ($(this).hasClass('be-button-hidden')) newHidden.push(id);
                     }
                 });
                 Lampa.Storage.set(ORDER_KEY, newOrder);
@@ -251,7 +251,7 @@
     }
 
     function initSettings() {
-        // Основной переключатель
+        // Основной переключатель — всегда
         Lampa.SettingsApi.addParam({
             component: "buttoneditor",
             param: { name: "be_enabled", type: "trigger", default: false },
@@ -259,10 +259,23 @@
                 name: 'Все кнопки в карточке',
                 description: 'Выводит все кнопки действий в одну строку в карточке фильма/сериала'
             },
-            onChange: () => Lampa.Settings.update()
+            onChange: () => {
+                Lampa.Settings.update();
+            }
         });
 
-        // Дополнительные параметры появляются только после включения основного
+        // Кнопка редактора — всегда visible
+        Lampa.SettingsApi.addParam({
+            component: "buttoneditor",
+            param: { name: "be_edit", type: "button" },
+            field: {
+                name: 'Редактор кнопок',
+                description: 'Изменить порядок и скрыть кнопки (требуется открытая карточка)'
+            },
+            onChange: openEditorFromSettings
+        });
+
+        // Только иконки — только если включена основная функция
         if (Lampa.Storage.get('be_enabled') === true) {
             Lampa.SettingsApi.addParam({
                 component: "buttoneditor",
@@ -271,16 +284,6 @@
                     name: 'Только иконки'
                 },
                 onChange: () => Lampa.Settings.update()
-            });
-
-            Lampa.SettingsApi.addParam({
-                component: "buttoneditor",
-                param: { name: "be_edit", type: "button" },
-                field: {
-                    name: 'Редактор кнопок',
-                    description: 'Изменить порядок и скрыть кнопки в карточке'
-                },
-                onChange: openEditorFromSettings
             });
         }
     }
@@ -303,19 +306,12 @@
     function startPlugin() {
         window.plugin_buttoneditor_ready = true;
 
-        // Добавляем настройки
-        initSettings();
-
-        // Если функция уже включена — запускаем логику
-        if (Lampa.Storage.get('be_enabled') === true) {
-            main();
-        }
-
-        // При готовности приложения обновляем настройки и запускаем если нужно
         Lampa.Listener.follow('app', e => {
             if (e.type === 'ready') {
-                initSettings(); // обновляем, чтобы появились доп. параметры
-                if (Lampa.Storage.get('be_enabled') === true) main();
+                initSettings(); // Добавляем настройки только после готовности приложения (избегаем дублирования)
+                if (Lampa.Storage.get('be_enabled') === true) {
+                    main();
+                }
             }
         });
     }
