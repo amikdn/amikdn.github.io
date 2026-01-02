@@ -64,10 +64,6 @@
         return null;
     }
 
-    function resolveActiveFullContainer() {
-        return $('.full-start-new').first();
-    }
-
     function getButtonId($button) {
         var classes = ($button.attr('class') || '').split(/\s+/);
         var idClass = classes.find(c => c.startsWith('button--') && c !== 'button--priority') ||
@@ -175,6 +171,10 @@
 
     function openEditor() {
         var savedData = loadButtonsData();
+        if (savedData.length === 0) {
+            return;
+        }
+
         var order = normalizeOrder(readArray(ORDER_KEY), savedData.map(b => b.id));
         var hidden = new Set(readArray(HIDE_KEY));
 
@@ -256,17 +256,10 @@
                     if (current && current.length && Lampa.Storage.get('be_enabled', true) === true) {
                         applyLayout(current);
                     }
-                }, 100);
+                }, 0);
             },
             onClose: () => {
-                setTimeout(() => {
-                    var current = resolveActiveFullContainer();
-                    if (current && current.length) {
-                        Lampa.Controller.toggle('full_start');
-                    } else {
-                        Lampa.Controller.toggle('settings');
-                    }
-                }, 100);
+                setTimeout(() => Lampa.Controller.toggle(Lampa.Activity.active().name), 50);
             }
         });
     }
