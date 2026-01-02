@@ -40,7 +40,9 @@
             const btn = $(src.html);
             btn.on('hover:enter', () => {
                 Lampa.Storage.set('quick_source', src.title);
-                if (existing.play.length) existing.play.trigger('hover:enter');
+                setTimeout(() => {
+                    if (existing.play.length) existing.play.trigger('hover:enter');
+                }, 100);
             });
             source_buttons[src.key] = btn;
         });
@@ -92,7 +94,7 @@
                 new_sources.push({
                     key,
                     title,
-                    html: `<div class="full-start__button selector button--${key}"><div class="full-start__button__icon">${icon_svg}</div><span>${title}</span></div>`
+                    html: `<div class="full-start__button selector button--${key}">${icon_svg}<span>${title}</span></div>`
                 });
             }
         });
@@ -109,12 +111,15 @@
     });
     source_observer.observe(document.body, { childList: true, subtree: true });
 
+    // Убрано скрытие других источников — это основная причина зависаний
+    // Теперь просто выбираем нужный источник и запускаем просмотр
     const quick_observer = new MutationObserver(() => {
         if (processing_quick) return;
         const quick = Lampa.Storage.get('quick_source', '');
         if (!quick) return;
 
         processing_quick = true;
+
         const items = $('.selectbox-item');
         let target = null;
         items.each(function () {
@@ -124,15 +129,13 @@
             }
         });
 
-        if (target && items.length > 1) {
-            items.hide();
-            target.show();
+        if (target) {
             target.trigger('hover:enter');
-            setTimeout(() => target.trigger('hover:enter'), 100);
+            setTimeout(() => target.trigger('hover:enter'), 300);
         }
 
         Lampa.Storage.set('quick_source', '');
-        setTimeout(() => processing_quick = false, 1500);
+        setTimeout(() => processing_quick = false, 2000);
     });
     quick_observer.observe(document.body, { childList: true, subtree: true });
 
@@ -145,23 +148,23 @@
         order.forEach((key, idx) => {
             const is_base = base_keys.includes(key);
             const title = is_base ? base_titles[key] : dynamic_sources.find(s => s.key === key)?.title || key;
-            const icon_svg = is_base ? base_icons[key] : $(dynamic_sources.find(s => s.key === key)?.html).find('svg').prop('outerHTML') || '<svg></svg>';
+            const icon_svg = is_base ? base_icons[key] : dynamic_sources.find(s => s.key === key)?.html.match(/<svg[^>]*>[\s\S]*?<\/svg>/i)?.[0] || '<svg></svg>';
 
             const item = $(`
-                <div class="menu-edit-list__item">
+                <div class="menu-edit-list__item selector">
                     <div class="menu-edit-list__icon">${icon_svg}</div>
                     <div class="menu-edit-list__title">${title}</div>
-                    <div class="menu-edit-list__move move-up selector ${idx === 0 ? 'hide' : ''}">
+                    <div class="menu-edit-list__move move-up ${idx === 0 ? 'hide' : ''}">
                         <svg width="22" height="14" viewBox="0 0 22 14" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M2 12L11 3L20 12" stroke="currentColor" stroke-width="4" stroke-linecap="round"></path>
                         </svg>
                     </div>
-                    <div class="menu-edit-list__move move-down selector ${idx === order.length - 1 ? 'hide' : ''}">
+                    <div class="menu-edit-list__move move-down ${idx === order.length - 1 ? 'hide' : ''}">
                         <svg width="22" height="14" viewBox="0 0 22 14" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M2 2L11 11L20 2" stroke="currentColor" stroke-width="4" stroke-linecap="round"></path>
                         </svg>
                     </div>
-                    <div class="menu-edit-list__toggle toggle selector">
+                    <div class="menu-edit-list__toggle toggle">
                         <svg width="26" height="26" viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <rect x="1.89111" y="1.78369" width="21.793" height="21.793" rx="3.5" stroke="currentColor" stroke-width="3"></rect>
                             <path d="M7.44873 12.9658L10.8179 16.3349L18.1269 9.02588" stroke="currentColor" stroke-width="3" class="dot" opacity="${show[key] ? '1' : '0'}" stroke-linecap="round"></path>
@@ -170,7 +173,6 @@
                 </div>
             `);
 
-            // Toggle
             item.find('.toggle').on('hover:enter', () => {
                 show[key] = !show[key];
                 Lampa.Storage.set('card_buttons_show', show);
@@ -182,7 +184,6 @@
                 });
             });
 
-            // Up
             item.find('.move-up').on('hover:enter', () => {
                 if (idx > 0) {
                     [order[idx - 1], order[idx]] = [order[idx], order[idx - 1]];
@@ -191,7 +192,6 @@
                 }
             });
 
-            // Down
             item.find('.move-down').on('hover:enter', () => {
                 if (idx < order.length - 1) {
                     [order[idx], order[idx + 1]] = [order[idx + 1], order[idx]];
@@ -205,10 +205,11 @@
     }
 
     function open_editor_modal() {
-        const scroll = $('<div class="scroll scroll--over"><div class="scroll__content"><div class="scroll__body"></div></div></div>');
-        const body = scroll.find('.scroll__body');
+        const modal_body = $('<div class="menu-edit-list"></div>');
+        build_list(modal_body);
 
-        build_list(body);
+        const scroll = $('<div class="scroll scroll--over"><div class="scroll__content"><div class="scroll__body"></div></div></div>');
+        scroll.find('.scroll__body').append(modal_body);
 
         Lampa.Modal.open({
             title: 'Редактировать кнопки в карточке',
@@ -221,7 +222,7 @@
     Lampa.SettingsApi.addParam({
         component: 'interface',
         param: { name: 'card_buttons_edit', type: 'static' },
-        field: { name: 'Кнопки в карточке', description: 'Редактировать порядок, видимость' },
+        field: { name: 'Кнопки в карточке', description: 'Редактировать порядок и видимость' },
         onRender: (item) => {
             const ref = $('[data-name="interface_size"]').closest('.settings-param');
             if (ref.length) item.insertAfter(ref);
