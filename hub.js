@@ -118,6 +118,7 @@
         }
     });
 
+    // Возвращаем скрытие для прямого запуска на источнике
     const quick_observer = new MutationObserver(() => {
         if (processing_quick) return;
         const quick = Lampa.Storage.get('quick_source', '');
@@ -225,14 +226,13 @@
         const scroll = $('<div class="scroll scroll--over"><div class="scroll__content"><div class="scroll__body"></div></div></div>');
         scroll.find('.scroll__body').append(list_container);
 
-        // Открываем как отдельную активность (не внутри настроек)
-        Lampa.Activity.push({
-            url: '',
+        Lampa.Modal.open({
             title: 'Редактировать кнопки в карточке',
-            component: 'buttons_editor',
             html: scroll,
-            page: 1,
-            onBack: () => Lampa.Activity.back()
+            onBack: () => {
+                Lampa.Modal.close();
+            },
+            size: 'medium'
         });
     }
 
