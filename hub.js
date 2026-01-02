@@ -14,14 +14,12 @@
     };
     const default_order = ['play', 'book', 'reaction', 'subscribe', 'options'];
 
-    let dynamic_buttons = {};       // Текущие найденные источники (для создания кнопок)
-    let saved_dynamic_sources = []; // Сохранённые для настроек (массив {key, title})
-
-    // Загружаем сохранённые динамические источники
-    saved_dynamic_sources = Lampa.Storage.get('dynamic_sources', []);
+    let dynamic_buttons = {};
+    let saved_dynamic_sources = Lampa.Storage.get('dynamic_sources', []);
+    let processing_quick = false;
 
     function customize_buttons(container) {
-        if (container.data('customized')) return;
+        if (!container.length || container.data('customized')) return;
         container.data('customized', true);
 
         const existing = {
@@ -32,7 +30,6 @@
             options: container.find('.button--options').detach()
         };
 
-        // Создаём динамические кнопки из текущих найденных источников
         const source_buttons = {};
         Object.keys(dynamic_buttons).forEach(key => {
             const data = dynamic_buttons[key];
@@ -51,44 +48,35 @@
             play: true, book: true, reaction: true, subscribe: true, options: true
         });
 
-        // Добавляем недостающие базовые ключи
         base_keys.forEach(k => {
             if (!current_order.includes(k)) current_order.push(k);
         });
 
-        // Добавляем недостающие динамические ключи (вставляем после 'book' или в конец)
-        let book_index = current_order.indexOf('book');
-        let insert_pos = book_index >= 0 ? book_index + 1 : current_order.length;
-
-        Object.keys(dynamic_buttons).forEach(key => {
-            if (!current_order.includes(key)) {
-                current_order.splice(insert_pos, 0, key);
-                insert_pos++;
+        saved_dynamic_sources.forEach(src => {
+            if (!current_order.includes(src.key)) {
+                let pos = current_order.indexOf('book');
+                current_order.splice(pos >= 0 ? pos + 1 : current_order.length, 0, src.key);
             }
-            // По умолчанию показываем динамические кнопки
-            if (show_settings[key] === undefined) show_settings[key] = true;
+            if (show_settings[src.key] === undefined) show_settings[src.key] = true;
         });
 
         Lampa.Storage.set('buttons_order', current_order);
         Lampa.Storage.set('buttons_show', show_settings);
 
-        // Добавляем кнопки по порядку
         current_order.forEach(key => {
             let btn = existing[key] || source_buttons[key];
-            if (btn && (show_settings[key] ?? false)) {
+            if (btn && (show_settings[key] ?? true)) {
                 container.append(btn);
             }
         });
     }
 
-    // Observer для основной строки кнопок
     const buttons_observer = new MutationObserver(() => {
         const container = $('.full-start-new__buttons');
         if (container.length) customize_buttons(container);
     });
     buttons_observer.observe(document.body, { childList: true, subtree: true });
 
-    // Observer для выбора источников — собираем динамические кнопки
     const source_observer = new MutationObserver(() => {
         const items = $('.selectbox-item.selectbox-item--icon');
         if (items.length === 0) return;
@@ -103,21 +91,17 @@
 
             const subtitle = ($item.find('.selectbox-item__subtitle').text() || '').trim().toLowerCase();
 
-            // Добавляем только Торренты или источники с подписью «Онлайн просмотр»
             if (title === 'Торренты' || subtitle.includes('онлайн')) {
                 let icon_html = $item.find('.selectbox-item__icon')[0].outerHTML || '';
 
-                // Специально для Торрентов — гарантируем правильную иконку
                 if (title === 'Торренты') {
                     icon_html = '<svg><use xlink:href="#sprite-torrent"></use></svg>';
                 }
 
                 const key = 'source_' + title.replace(/[\s\(\)\-]+/g, '_').toLowerCase();
-
-                // Избегаем дубликатов ключей
                 let unique_key = key;
                 let counter = 1;
-                while (dynamic_buttons[unique_key]) {
+                while (new_dynamic.find(s => s.key === unique_key)) {
                     unique_key = key + '_' + counter;
                     counter++;
                 }
@@ -131,27 +115,30 @@
             }
         });
 
-        // Сохраняем для настроек
         if (new_dynamic.length > 0) {
             Lampa.Storage.set('dynamic_sources', new_dynamic);
             saved_dynamic_sources = new_dynamic;
-        }
 
-        // Пересобираем кнопки, если контейнер уже есть
-        $('.full-start-new__buttons').each(function () {
-            $(this).removeData('customized');
-            customize_buttons($(this));
-        });
+            $('.full-start-new__buttons').each(function () {
+                $(this).removeData('customized');
+                customize_buttons($(this));
+            });
+        }
     });
     source_observer.observe(document.body, { childList: true, subtree: true });
 
-    // Быстрый выбор источника
     const quick_observer = new MutationObserver(() => {
+        if (processing_quick) return;
         const quick = Lampa.Storage.get('quick_source', '');
         if (!quick) return;
 
+        processing_quick = true;
+
         const items = $('.selectbox-item');
-        if (items.length < 2) return;
+        if (items.length < 2) {
+            processing_quick = false;
+            return;
+        }
 
         let target = null;
         items.each(function () {
@@ -167,8 +154,10 @@
             target.show();
             target.trigger('hover:enter');
             setTimeout(() => target.trigger('hover:enter'), 200);
-            Lampa.Storage.set('quick_source', '');
         }
+
+        Lampa.Storage.set('quick_source', '');
+        setTimeout(() => processing_quick = false, 1000);
     });
     quick_observer.observe(document.body, { childList: true, subtree: true });
 
@@ -180,22 +169,11 @@
             play: true, book: true, reaction: true, subscribe: true, options: true
         });
 
-        // Добавляем все базовые и динамические ключи
-        const all_current_keys = [...base_keys];
-        saved_dynamic_sources.forEach(src => {
-            all_current_keys.push(src.key);
-            if (!current_order.includes(src.key)) current_order.push(src.key);
-            if (show_settings[src.key] === undefined) show_settings[src.key] = true;
-        });
+        const all_titles = {...base_name_map};
+        saved_dynamic_sources.forEach(src => all_titles[src.key] = src.title);
 
-        Lampa.Storage.set('buttons_order', current_order);
-        Lampa.Storage.set('buttons_show', show_settings);
-
-        // Отображаем в порядке current_order
         current_order.forEach((key, idx) => {
-            const title = base_name_map[key] || 
-                          saved_dynamic_sources.find(s => s.key === key)?.title || 
-                          key;
+            const title = all_titles[key] || key;
 
             const item = $('<div class="buttons-list__item selector" data-index="' + idx + '"></div>');
             item.append('<div class="item-name">' + title + '</div>');
@@ -205,7 +183,6 @@
             list.append(item);
         });
 
-        // Обработчики
         list.find('.item-toggle').on('hover:enter', function () {
             const idx = $(this).parent().data('index');
             const key = current_order[idx];
@@ -239,43 +216,49 @@
         });
     }
 
-    // Пункт в настройках (в разделе Интерфейс)
-    Lampa.SettingsApi.addParam({
-        component: "interface",
-        param: {
-            name: "buttons_manager_open",
-            type: "static"
-        },
-        field: {
-            name: "Управление кнопками",
-            description: "Скрывать/показывать и перемещать кнопки в карточке"
-        },
-        onRender: function (item) {
-            const sizeItem = $('[data-name="interface_size"]').closest('.settings-param');
-            if (sizeItem.length && !item.parent().length) {
-                item.insertAfter(sizeItem);
+    // Надёжный способ добавления пункта в настройки + открытие подраздела
+    const folder = $(`<div class="settings-folder selector">
+        <div class="settings-folder__icon">
+            <svg height="40" viewBox="0 0 40 40"><use xlink:href="#settings-plugins"></use></svg>
+        </div>
+        <div class="settings-folder__name">${plugin_name}</div>
+    </div>`);
+
+    folder.on('hover:enter', () => {
+        const view = $(`
+            <div>
+                <div class="settings__title">Управление кнопками в карточке</div>
+                <div class="buttons-list" style="margin-top: 1em;"></div>
+                <div class="settings__description" style="margin-top: 1em;">
+                    • Наведите на статус — скрыть/показать кнопку<br>
+                    • ↑↓ — переместить кнопку<br><br>
+                    Кнопки источников (Торренты + онлайн-парсеры) добавляются автоматически с оригинальными иконками и названиями.
+                </div>
+            </div>
+        `);
+
+        render_settings_list(view);
+
+        // Открываем как подраздел внутри настроек
+        Lampa.Settings.main().update({
+            title: plugin_name,
+            html: view
+        });
+    });
+
+    // Добавляем пункт только при открытии настроек (надёжно работает во всех версиях)
+    Lampa.Listener.follow('settings', (e) => {
+        if (e.type === 'open' && e.name === 'main') {
+            const body = e.body;
+            if (body.find(`.settings-folder__name:contains("${plugin_name}")`).length) return;
+
+            // Пытаемся добавить после «Интерфейс» или «Плагины/Расширения»
+            let target = body.find('.settings-folder__name:contains("Интерфейс")').parent();
+            if (!target.length) target = body.find('.settings-folder__name:contains("Плагины")').parent() || body.find('.settings-folder__name:contains("Расширения")').parent();
+
+            if (target.length) {
+                target.after(folder.clone(true)); // clone чтобы не дублировать обработчики
             }
-
-            item.on('hover:enter', () => {
-                const view = $(`
-                    <div>
-                        <div class="settings__title">Управление кнопками в карточке</div>
-                        <div class="buttons-list" style="margin-top: 1em;"></div>
-                        <div class="settings__description" style="margin-top: 1em;">
-                            • Наведите на «Видима/Скрыта» — переключить<br>
-                            • ↑↓ — переместить кнопку вверх/вниз<br><br>
-                            Быстрые кнопки источников (Торренты и онлайн-парсеры) добавляются автоматически с их оригинальными иконками и названиями.
-                        </div>
-                    </div>
-                `);
-
-                render_settings_list(view);
-
-                Lampa.Settings.main().update({
-                    title: plugin_name,
-                    html: view
-                });
-            });
         }
     });
 
