@@ -10,7 +10,7 @@ Lampa.Platform.tv();
     3: { action: 'cartoon', svg: `<svg><use xlink:href="#sprite-cartoon"></use></svg>` }
   };
 
-  /** CSS — размер в landscape подгоняется в JS под реальный аватар Lampa */
+  /** CSS — в landscape круглые кнопки, размер/отступы подгоняются в JS (в 1.5 раза больше профиля) */
   const css = `
   .navigation-bar__body {
       display: flex !important;
@@ -68,7 +68,7 @@ Lampa.Platform.tv();
       .navigation-bar__icon svg { width: 20px !important; height: 20px !important; }
   }
 
-  /* Landscape: круглые кнопки, размер подгоняется в JS */
+  /* Landscape: большие круглые кнопки */
   @media (orientation: landscape) {
       .navigation-bar__body {
           display: none !important;
@@ -79,7 +79,6 @@ Lampa.Platform.tv();
           border-radius: 50% !important;
           overflow: hidden !important;
           transition: background .25s ease, transform .2s ease !important;
-          margin: 0 8px !important;
       }
       .navigation-bar__item:hover,
       .navigation-bar__item.active {
@@ -95,8 +94,8 @@ Lampa.Platform.tv();
           justify-content: center !important;
       }
       .navigation-bar__icon svg {
-          width: 85% !important;
-          height: 85% !important;
+          width: 80% !important;
+          height: 80% !important;
       }
   }`;
 
@@ -252,7 +251,7 @@ Lampa.Platform.tv();
     });
   }
 
-  /** Перемещение и точная подгонка размера под аватар Lampa в любом режиме/экране */
+  /** Перемещение и размер в landscape: круглые, в 1.5 раза больше профиля */
   function adjustPosition() {
     const isLandscape = window.matchMedia('(orientation: landscape)').matches;
     const bar = $('.navigation-bar__body');
@@ -278,27 +277,29 @@ Lampa.Platform.tv();
       });
     }
 
-    // Динамический размер в landscape (берётся из реального аватара или любой иконки head)
+    // Размер в landscape: в 1.5 раза больше аватара профиля + увеличенные отступы
     if (isLandscape) {
-      let reference = $('.head__action.open--profile'); // приоритет — аватар
-      if (!reference) reference = $('.head__action selector')[0]; // fallback на любую иконку
+      let reference = $('.head__action.open--profile'); // аватар (круглый)
+      if (!reference) reference = $('.head__action')[0]; // fallback
 
-      let size = '40px'; // безопасный fallback
-      let margin = '8px';
+      let baseSize = 40; // fallback px
+      let baseMargin = 8;
       if (reference) {
         const computed = getComputedStyle(reference);
-        size = computed.width; // точный размер из CSS Lampa
-        // Отступы подгоняем пропорционально (обычно в Lampa ~8-12px)
-        margin = parseFloat(computed.marginLeft || computed.margin || '8') + 'px';
+        // Берём ширину (в landscape аватар обычно остаётся квадратным)
+        baseSize = parseFloat(computed.width || computed.height || '40');
+        baseMargin = parseFloat(computed.marginLeft || computed.margin || '8');
       }
+
+      const size = (baseSize * 1.5) + 'px';
+      const margin = (baseMargin * 1.5) + 'px';
 
       items.forEach(item => {
         item.style.width = size;
-        item.style.height = size;
+        item.style.height = size; // строго круглые
         item.style.margin = `0 ${margin}`;
       });
     } else {
-      // Сброс в portrait
       items.forEach(item => {
         item.style.width = '';
         item.style.height = '';
