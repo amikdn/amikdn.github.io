@@ -5,7 +5,7 @@
     Lampa.SettingsApi.addComponent({
         component: "buttoneditor",
         name: 'Редактор кнопок',
-        icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 6h18v2H3V6zm0 5h18v2H3v-2zm0 5h18v2H3v-2z" fill="currentColor"/></svg>'
+        icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M11 4H4a2 2 0 0 0 -2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2 -2v-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1 -4 9.5 -9.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
     });
 
     var STYLE_ID = 'be-button-style';
@@ -149,10 +149,8 @@
 
         applyHidden(map);
 
-        // Обновляем навигацию (как в оригинале)
         Lampa.Controller.toggle('full_start');
 
-        // Устанавливаем фокус на первую видимую кнопку
         if (lastStartInstance && lastStartInstance.html && fullContainer[0] === lastStartInstance.html[0]) {
             var firstButton = targetContainer.find('.full-start__button.selector').not('.hide').not('.be-button-hide').first();
             if (firstButton.length) {
@@ -244,12 +242,15 @@
 
                 Lampa.Modal.close();
 
-                // Применяем изменения только если карточка сейчас открыта (контейнер в DOM)
                 setTimeout(() => {
-                    if (fullContainer && document.body.contains(fullContainer[0])) {
+                    if (Lampa.Storage.get('be_enabled') === true && fullContainer && document.body.contains(fullContainer[0])) {
                         applyLayout(fullContainer);
                     }
                 }, 100);
+            },
+            onClose: () => {
+                // Возвращаем фокус на предыдущую activity (настройки или карточка)
+                setTimeout(() => Lampa.Controller.toggle(Lampa.Activity.active().name), 50);
             }
         });
     }
@@ -262,22 +263,43 @@
         } else {
             Lampa.Modal.open({
                 title: 'Информация',
-                html: Lampa.Template.get('error', { title: 'Информация', text: 'Откройте хотя бы одну карточку фильма/сериала, чтобы инициализировать редактор кнопок. После этого редактор будет доступен всегда.' }),
+                html: $('<div style="padding:1em;text-align:center;">Откройте хотя бы одну карточку фильма/сериала, чтобы инициализировать редактор кнопок.<br>После этого редактор будет доступен всегда.</div>'),
                 size: 'small',
-                onBack: () => Lampa.Modal.close()
+                onBack: () => {
+                    Lampa.Modal.close();
+                    setTimeout(() => Lampa.Controller.toggle('settings'), 50);
+                },
+                onClose: () => {
+                    setTimeout(() => Lampa.Controller.toggle('settings'), 50);
+                }
             });
         }
     }
 
     function initSettings() {
+        if (window.plugin_buttoneditor_settings_added) return;
+        window.plugin_buttoneditor_settings_added = true;
+
         Lampa.SettingsApi.addParam({
             component: "buttoneditor",
-            param: { name: "be_hide_text", type: "trigger", default: false },
+            param: { name: "be_enabled", type: "trigger", default: true },
             field: {
-                name: 'Только иконки'
+                name: 'Все кнопки в карточке',
+                description: 'Выводит все кнопки действий в одну строку (включено по умолчанию)'
             },
             onChange: () => Lampa.Settings.update()
         });
+
+        if (Lampa.Storage.get('be_enabled') === true) {
+            Lampa.SettingsApi.addParam({
+                component: "buttoneditor",
+                param: { name: "be_hide_text", type: "trigger", default: false },
+                field: {
+                    name: 'Только иконки'
+                },
+                onChange: () => Lampa.Settings.update()
+            });
+        }
 
         Lampa.SettingsApi.addParam({
             component: "buttoneditor",
@@ -299,7 +321,9 @@
                 var container = getFullContainer(e);
                 if (container) {
                     lastFullContainer = container;
-                    setTimeout(() => applyLayout(container), 0);
+                    if (Lampa.Storage.get('be_enabled') === true) {
+                        setTimeout(() => applyLayout(container), 0);
+                    }
                 }
             }
         });
@@ -308,13 +332,12 @@
     function startPlugin() {
         window.plugin_buttoneditor_ready = true;
 
-        initSettings();
-
-        main();
-
         Lampa.Listener.follow('app', e => {
             if (e.type === 'ready') {
                 initSettings();
+                if (Lampa.Storage.get('be_enabled') === true) {
+                    main();
+                }
             }
         });
     }
