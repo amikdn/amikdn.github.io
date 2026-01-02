@@ -76,7 +76,6 @@
     });
     buttons_observer.observe(document.body, { childList: true, subtree: true });
 
-    // Сбор источников после открытия списка "Смотреть"
     Lampa.Listener.follow('full', (e) => {
         if (e.type === 'complite') {
             setTimeout(() => {
@@ -119,7 +118,6 @@
         }
     });
 
-    // Прямой запуск источника
     Lampa.Listener.follow('full', (e) => {
         if (e.type === 'complite' && !quick_processing) {
             const quick = Lampa.Storage.get('quick_source', '');
@@ -140,7 +138,6 @@
                 if (target) {
                     items.not(target).hide();
                     target.show();
-                    target.addClass('selector focus');
                     target.trigger('hover:enter');
                     setTimeout(() => target.trigger('hover:enter'), 500);
                 }
@@ -154,16 +151,18 @@
     function build_list(container) {
         container.empty();
 
-        // Если источников ещё нет — показываем хотя бы базовые
-        let current_sources = all_sources.length > 0 ? all_sources : [];
-
-        let order = Lampa.Storage.get('card_buttons_order', ['play', 'book', ...current_sources.map(s => s.key), 'reaction', 'subscribe', 'options']);
+        let order = Lampa.Storage.get('card_buttons_order', ['play', 'book', ...all_sources.map(s => s.key), 'reaction', 'subscribe', 'options']);
         let show = Lampa.Storage.get('card_buttons_show', { play: true, book: true, reaction: true, subscribe: true, options: true });
+
+        if (order.length === 0 || all_sources.length === 0) {
+            // Если источников нет — показываем только базовые
+            order = ['play', 'book', 'reaction', 'subscribe', 'options'];
+        }
 
         order.forEach((key, idx) => {
             const is_base = base_keys.includes(key);
-            const title = is_base ? base_titles[key] : current_sources.find(s => s.key === key)?.title || key;
-            const icon_svg = is_base ? base_icons[key] : current_sources.find(s => s.key === key)?.html.match(/<svg[^>]*>[\s\S]*?<\/svg>/i)?.[0] || '<svg><use xlink:href="#sprite-online"></use></svg>';
+            const title = is_base ? base_titles[key] : all_sources.find(s => s.key === key)?.title || key;
+            const icon_svg = is_base ? base_icons[key] : all_sources.find(s => s.key === key)?.html.match(/<svg[^>]*>[\s\S]*?<\/svg>/i)?.[0] || '<svg><use xlink:href="#sprite-online"></use></svg>';
 
             const item = $(`
                 <div class="menu-edit-list__item selector">
@@ -219,36 +218,36 @@
         });
     }
 
-    function open_editor_modal() {
-        const list_container = $('<div class="menu-edit-list"></div>');
-        build_list(list_container);
+    function open_editor() {
+        const view = $(`
+            <div>
+                <div class="settings__title">Редактировать кнопки в карточке</div>
+                <div class="menu-edit-list" style="margin-top: 1em;"></div>
+                <div class="settings__description" style="margin-top: 1em;">
+                    • Базовые кнопки всегда доступны<br>
+                    • Кнопки источников появятся после открытия "Смотреть" в любой карточке
+                </div>
+            </div>
+        `);
 
-        const scroll_body = $('<div class="scroll__body"></div>').append(list_container);
-        const scroll_content = $('<div class="scroll__content" style="max-height: 781px;"></div>').append(scroll_body);
-        const scroll = $('<div class="scroll scroll--over"></div>').append(scroll_content);
+        const list = view.find('.menu-edit-list');
+        build_list(list);
 
-        const modal_body = $('<div class="modal__body"></div>').append(scroll);
-        const modal_head = $('<div class="modal__head"><div class="modal__title">Редактировать</div></div>');
-        const modal_content = $('<div class="modal__content"></div>').append(modal_head).append(modal_body);
-        const modal = $('<div class="modal animate"></div>').append(modal_content);
-
-        Lampa.Modal.open({
-            title: '',
-            html: modal,
-            onBack: () => Lampa.Modal.close(),
-            size: 'medium'
+        Lampa.Settings.main().update({
+            title: plugin_name,
+            html: view
         });
     }
 
     Lampa.SettingsApi.addParam({
         component: 'interface',
         param: { name: 'card_buttons_edit', type: 'static' },
-        field: { name: 'Кнопки в карточке', description: 'Все кнопки из окна "Смотреть"' },
+        field: { name: 'Кнопки в карточке', description: 'Редактировать порядок и видимость всех кнопок' },
         onRender: (item) => {
             const ref = $('[data-name="interface_size"]').closest('.settings-param');
             if (ref.length) item.insertAfter(ref);
 
-            item.on('hover:enter', open_editor_modal);
+            item.on('hover:enter', open_editor);
         }
     });
 
