@@ -96,8 +96,8 @@
     });
     quick_observer.observe(document.body, { childList: true, subtree: true });
 
-    function render_settings_list(element) {
-        const list = element.find('.buttons-list').empty();
+    function render_settings_list(view) {
+        const list = view.find('.buttons-list').empty();
 
         current_order = Lampa.Storage.get('buttons_order', default_order);
         show_settings = Lampa.Storage.get('buttons_show', {
@@ -137,7 +137,7 @@
             if (idx > 0) {
                 [current_order[idx - 1], current_order[idx]] = [current_order[idx], current_order[idx - 1]];
                 Lampa.Storage.set('buttons_order', current_order);
-                render_settings_list(element);
+                render_settings_list(view);
             }
         });
 
@@ -146,26 +146,26 @@
             if (idx < current_order.length - 1) {
                 [current_order[idx], current_order[idx + 1]] = [current_order[idx + 1], current_order[idx]];
                 Lampa.Storage.set('buttons_order', current_order);
-                render_settings_list(element);
+                render_settings_list(view);
             }
         });
     }
 
-    // Добавляем пункт в раздел «Интерфейс» (по аналогии с предоставленным кодом)
+    // Добавляем пункт в раздел «Интерфейс» как статический параметр
     Lampa.SettingsApi.addParam({
         component: "interface",
         param: {
-            name: "buttons_manager",
+            name: "buttons_manager_open",
             type: "static"
         },
         field: {
             name: "Управление кнопками",
-            description: "Скрывать, перемещать кнопки в карточке"
+            description: "Скрывать, перемещать кнопки в карточке фильма/сериала"
         },
         onRender: function (item) {
-            // Позиционируем пункт (например, после «Размер интерфейса»)
+            // Позиционируем после «Размер интерфейса» (надёжное место)
             const sizeItem = $('[data-name="interface_size"]').closest('.settings-param');
-            if (sizeItem.length && item.parent().length) {
+            if (sizeItem.length && !item.parent().length) {
                 item.insertAfter(sizeItem);
             }
 
@@ -173,19 +173,20 @@
                 const view = $(`
                     <div>
                         <div class="settings__title">Управление кнопками в карточке</div>
-                        <div class="buttons-list"></div>
-                        <div class="settings__description">Статус — скрыть/показать. ↑↓ — переместить вверх/вниз.</div>
+                        <div class="buttons-list" style="margin-top: 1em;"></div>
+                        <div class="settings__description" style="margin-top: 1em;">
+                            • Наведите на «Видима/Скрыта» — переключить видимость<br>
+                            • Наведите на ↑ или ↓ — переместить кнопку
+                        </div>
                     </div>
                 `);
 
                 render_settings_list(view);
 
-                Lampa.Activity.push({
-                    url: '',
+                // Открываем как подраздел внутри настроек (не новую страницу)
+                Lampa.Settings.main().update({
                     title: plugin_name,
-                    component: 'buttons_manager',
-                    html: view,
-                    page: 1
+                    html: view
                 });
             });
         }
