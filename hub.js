@@ -18,7 +18,6 @@
     var STYLE_ID = 'lme-button-style';
     var ORDER_KEY = 'lme_buttonsort';
     var HIDE_KEY = 'lme_buttonhide';
-    var VERSION_KEY = 'lme_plugin_version';
     var lastFullContainer = null;
     var lastStartInstance = null;
 
@@ -238,6 +237,7 @@
         item.toggleClass('lme-button-hidden', hidden.has(id));
         item.find('.dot').attr('opacity', hidden.has(id) ? 0 : 1);
 
+        // Добавляем события и для hover:enter (пульт/мышь), и для click (сенсорные устройства)
         item.find('.move-up').on('hover:enter click', function () {
           var prev = item.prev();
           if (prev.length) item.insertBefore(prev);
@@ -386,7 +386,7 @@
 
     var manifest = {
       type: "other",
-      version: "0.2.6",
+      version: "0.2.5",
       author: '@lme_chat',
       name: "Кнопки в карточке",
       description: "Выводит все кнопки действий в карточке. Добавляет карандаш в хедер и пункт в настройках для редактирования.",
@@ -396,17 +396,6 @@
     function add() {
       Lang.main();
       Lampa.Manifest.plugins = manifest;
-
-      // Автоматическая очистка кэша от старых/неработающих версий плагина
-      var CURRENT_VERSION = manifest.version;
-      var savedVersion = Lampa.Storage.get(VERSION_KEY);
-      if (savedVersion !== CURRENT_VERSION) {
-        Lampa.Storage.del(ORDER_KEY);
-        Lampa.Storage.del(HIDE_KEY);
-        // Если были другие старые ключи — добавьте здесь del
-        Lampa.Storage.set(VERSION_KEY, CURRENT_VERSION);
-      }
-
       CONFIG.main();
       if (Lampa.Storage.get('lme_showbutton') === true) {
         showButton.main();
