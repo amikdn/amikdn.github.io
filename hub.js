@@ -5,12 +5,11 @@
 
     const plugin_name = 'Управление кнопками';
     const default_order = ['play', 'book', 'torrent', 'online', 'reaction', 'subscribe', 'options'];
-    const all_keys = ['play', 'book', 'torrent', 'online', 'reaction', 'subscribe', 'options'];
     const name_map = {
         play: 'Смотреть',
         book: 'Избранное',
         torrent: 'Торренты',
-        online: 'Онлайн',
+        online: 'Онлайн (4m1K)',
         reaction: 'Реакции',
         subscribe: 'Подписаться',
         options: 'Дополнительно'
@@ -43,7 +42,7 @@
         });
 
         online_btn.on('hover:enter', () => {
-            Lampa.Storage.set('quick_source', '4m1K'); // или название вашего онлайн-парсера
+            Lampa.Storage.set('quick_source', '4m1K');
             existing.play.trigger('hover:enter');
         });
 
@@ -90,8 +89,10 @@
         });
 
         if (target) {
+            items.not(target).hide();
+            target.show();
             target.trigger('hover:enter');
-            setTimeout(() => target.trigger('hover:enter'), 300);
+            setTimeout(() => target.trigger('hover:enter'), 400);
         }
 
         Lampa.Storage.set('quick_source', '');
@@ -107,19 +108,14 @@
             reaction: true, subscribe: true, options: true
         });
 
-        all_keys.forEach(k => {
-            if (!current_order.includes(k)) current_order.push(k);
-        });
-        Lampa.Storage.set('buttons_order', current_order);
-
         current_order.forEach((key, idx) => {
             const title = name_map[key];
 
             let icon_svg = '';
             if (key === 'play') icon_svg = '<svg><use xlink:href="#sprite-play"></use></svg>';
-            else if (key === 'book') icon_svg = base_icons.book;
+            else if (key === 'book') icon_svg = '<svg width="21" height="32" viewBox="0 0 21 32" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2 1.5H19C19.2761 1.5 19.5 1.72386 19.5 2V27.9618C19.5 28.3756 19.0261 28.6103 18.697 28.3595L12.6212 23.7303C11.3682 22.7757 9.63183 22.7757 8.37885 23.7303L2.30302 28.3595C1.9739 28.6103 1.5 28.3756 1.5 27.9618V2C1.5 1.72386 1.72386 1.5 2 1.5Z" stroke="currentColor" stroke-width="2.5" fill="transparent"></path></svg>';
             else if (key === 'reaction') icon_svg = '<svg><use xlink:href="#sprite-reaction"></use></svg>';
-            else if (key === 'subscribe') icon_svg = base_icons.subscribe;
+            else if (key === 'subscribe') icon_svg = '<svg viewBox="0 0 25 30" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6.01892 24C6.27423 27.3562 9.07836 30 12.5 30C15.9216 30 18.7257 27.3562 18.981 24H15.9645C15.7219 25.6961 14.2632 27 12.5 27C10.7367 27 9.27804 25.6961 9.03542 24H6.01892Z" fill="currentColor"></path><path d="M3.81972 14.5957V10.2679C3.81972 5.41336 7.7181 1.5 12.5 1.5C17.2819 1.5 21.1803 5.41336 21.1803 10.2679V14.5957C21.1803 15.8462 21.5399 17.0709 22.2168 18.1213L23.0727 19.4494C24.2077 21.2106 22.9392 23.5 20.9098 23.5H4.09021C2.06084 23.5 0.792282 21.2106 1.9273 19.4494L2.78317 18.1213C3.46012 17.0709 3.81972 15.8462 3.81972 14.5957Z" stroke="currentColor" stroke-width="2.6"></path></svg>';
             else if (key === 'options') icon_svg = '<svg><use xlink:href="#sprite-dots"></use></svg>';
             else if (key === 'torrent') icon_svg = torrent_svg;
             else if (key === 'online') icon_svg = online_svg;
@@ -177,28 +173,18 @@
             list.append(item);
         });
 
-        const modal_html = $(`
-            <div class="modal animate">
-                <div class="modal__content">
-                    <div class="modal__head">
-                        <div class="modal__title">Редактировать кнопки</div>
-                    </div>
-                    <div class="modal__body">
-                        <div class="scroll scroll--over">
-                            <div class="scroll__content">
-                                <div class="scroll__body">
-                                    ${list.prop('outerHTML')}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `);
+        const scroll_body = $('<div class="scroll__body"></div>').append(list);
+        const scroll_content = $('<div class="scroll__content"></div>').append(scroll_body);
+        const scroll = $('<div class="scroll scroll--over"></div>').append(scroll_content);
+
+        const modal_body = $('<div class="modal__body"></div>').append(scroll);
+        const modal_head = $('<div class="modal__head"><div class="modal__title">Редактировать кнопки</div></div>');
+        const modal_content = $('<div class="modal__content"></div>').append(modal_head).append(modal_body);
+        const modal = $('<div class="modal animate"></div>').append(modal_content);
 
         Lampa.Modal.open({
             title: '',
-            html: modal_html,
+            html: modal,
             onBack: () => Lampa.Modal.close(),
             size: 'medium'
         });
@@ -207,7 +193,7 @@
     Lampa.SettingsApi.addParam({
         component: 'interface',
         param: { name: 'card_buttons_edit', type: 'static' },
-        field: { name: 'Кнопки в карточке', description: 'Скрывать, перемещать кнопки (включая Торренты и Онлайн)' },
+        field: { name: 'Кнопки в карточке', description: 'Скрывать, перемещать кнопки' },
         onRender: (item) => {
             const ref = $('[data-name="interface_size"]').closest('.settings-param');
             if (ref.length) item.insertAfter(ref);
