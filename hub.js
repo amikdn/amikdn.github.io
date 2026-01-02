@@ -119,9 +119,9 @@
         }
     });
 
-    // Прямой запуск на источнике (скрытие остальных + активация)
+    // Прямой запуск источника
     Lampa.Listener.follow('full', (e) => {
-        if (e.type === 'complite') {
+        if (e.type === 'complite' && !quick_processing) {
             const quick = Lampa.Storage.get('quick_source', '');
             if (!quick) return;
 
@@ -140,10 +140,9 @@
                 if (target) {
                     items.not(target).hide();
                     target.show();
+                    target.addClass('selector focus');
                     target.trigger('hover:enter');
-                    setTimeout(() => {
-                        target.trigger('hover:enter');
-                    }, 500);
+                    setTimeout(() => target.trigger('hover:enter'), 500);
                 }
 
                 Lampa.Storage.set('quick_source', '');
@@ -155,13 +154,16 @@
     function build_list(container) {
         container.empty();
 
-        let order = Lampa.Storage.get('card_buttons_order', ['play', 'book', ...all_sources.map(s => s.key), 'reaction', 'subscribe', 'options']);
+        // Если источников ещё нет — показываем хотя бы базовые
+        let current_sources = all_sources.length > 0 ? all_sources : [];
+
+        let order = Lampa.Storage.get('card_buttons_order', ['play', 'book', ...current_sources.map(s => s.key), 'reaction', 'subscribe', 'options']);
         let show = Lampa.Storage.get('card_buttons_show', { play: true, book: true, reaction: true, subscribe: true, options: true });
 
         order.forEach((key, idx) => {
             const is_base = base_keys.includes(key);
-            const title = is_base ? base_titles[key] : all_sources.find(s => s.key === key)?.title || key;
-            const icon_svg = is_base ? base_icons[key] : all_sources.find(s => s.key === key)?.html.match(/<svg[^>]*>[\s\S]*?<\/svg>/i)?.[0] || '<svg><use xlink:href="#sprite-online"></use></svg>';
+            const title = is_base ? base_titles[key] : current_sources.find(s => s.key === key)?.title || key;
+            const icon_svg = is_base ? base_icons[key] : current_sources.find(s => s.key === key)?.html.match(/<svg[^>]*>[\s\S]*?<\/svg>/i)?.[0] || '<svg><use xlink:href="#sprite-online"></use></svg>';
 
             const item = $(`
                 <div class="menu-edit-list__item selector">
@@ -222,11 +224,11 @@
         build_list(list_container);
 
         const scroll_body = $('<div class="scroll__body"></div>').append(list_container);
-        const scroll_content = $('<div class="scroll__content"></div>').append(scroll_body);
+        const scroll_content = $('<div class="scroll__content" style="max-height: 781px;"></div>').append(scroll_body);
         const scroll = $('<div class="scroll scroll--over"></div>').append(scroll_content);
 
         const modal_body = $('<div class="modal__body"></div>').append(scroll);
-        const modal_head = $('<div class="modal__head"><div class="modal__title">Редактировать кнопки в карточке</div></div>');
+        const modal_head = $('<div class="modal__head"><div class="modal__title">Редактировать</div></div>');
         const modal_content = $('<div class="modal__content"></div>').append(modal_head).append(modal_body);
         const modal = $('<div class="modal animate"></div>').append(modal_content);
 
@@ -241,7 +243,7 @@
     Lampa.SettingsApi.addParam({
         component: 'interface',
         param: { name: 'card_buttons_edit', type: 'static' },
-        field: { name: 'Кнопки в карточке', description: 'Редактировать все кнопки (включая источники)' },
+        field: { name: 'Кнопки в карточке', description: 'Все кнопки из окна "Смотреть"' },
         onRender: (item) => {
             const ref = $('[data-name="interface_size"]').closest('.settings-param');
             if (ref.length) item.insertAfter(ref);
