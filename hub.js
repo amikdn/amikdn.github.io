@@ -279,7 +279,7 @@ Lampa.Platform.tv();
     if (isLandscape) {
       // Берём размер из аватара профиля или любой другой head__action
       const reference = $('.head__action.open--profile') || $$('.head__action')[0];
-      let size = '44px'; // fallback
+      let size = '38px'; // fallback
       if (reference) {
         size = getComputedStyle(reference).width;
       }
