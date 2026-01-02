@@ -10,7 +10,7 @@ Lampa.Platform.tv();
     3: { action: 'cartoon', svg: `<svg><use xlink:href="#sprite-cartoon"></use></svg>` }
   };
 
-  /** CSS — в landscape фиксированный размер 27×27px, строго круглые */
+  /** CSS — в landscape размер 30×30px, строго круглые + точное вертикальное выравнивание */
   const css = `
   .navigation-bar__body {
       display: flex !important;
@@ -68,23 +68,27 @@ Lampa.Platform.tv();
       .navigation-bar__icon svg { width: 20px !important; height: 20px !important; }
   }
 
-  /* Landscape: строго круглые 27×27px как аватар */
+  /* Landscape: 30×30px, строго круглые, точное выравнивание с аватаром */
   @media (orientation: landscape) {
       .navigation-bar__body {
           display: none !important;
       }
       .navigation-bar__item {
           flex: none !important;
-          width: 27px !important;
-          height: 27px !important;
-          min-width: 27px !important;
-          min-height: 27px !important;
+          width: 30px !important;
+          height: 30px !important;
+          min-width: 30px !important;
+          min-height: 30px !important;
           background: rgba(255,255,255,0.08) !important;
           border-radius: 50% !important;
           overflow: hidden !important;
           margin: 0 8px !important;
           transition: background .25s ease, transform .2s ease !important;
           box-sizing: border-box !important;
+          align-self: center !important; /* точное вертикальное выравнивание в flex-контейнере */
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
       }
       .navigation-bar__item:hover,
       .navigation-bar__item.active {
@@ -94,7 +98,7 @@ Lampa.Platform.tv();
       .navigation-bar__icon {
           width: 100% !important;
           height: 100% !important;
-          padding: 4px !important; /* небольшой отступ, чтобы иконка не касалась краёв */
+          padding: 5px !important; /* оптимальный отступ для иконок Lampa */
           box-sizing: border-box !important;
       }
       .navigation-bar__icon svg {
@@ -255,7 +259,7 @@ Lampa.Platform.tv();
     });
   }
 
-  /** Перемещение кнопок (размер теперь фиксирован в CSS для landscape) */
+  /** Перемещение кнопок */
   function adjustPosition() {
     const isLandscape = window.matchMedia('(orientation: landscape)').matches;
     const bar = $('.navigation-bar__body');
