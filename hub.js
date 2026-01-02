@@ -1,7 +1,6 @@
 (function () {
     'use strict';
 
-    // Добавляем раздел в настройки
     Lampa.SettingsApi.addComponent({
         component: "buttoneditor",
         name: 'Редактор кнопок',
@@ -13,7 +12,6 @@
     var HIDE_KEY = 'be_button_hide';
     var lastFullContainer = null;
     var lastStartInstance = null;
-    var LAST_BUTTONS_KEY = 'be_last_buttons_data';
 
     var FALLBACK_TITLES = {
         'button--play': () => Lampa.Lang.translate('title_watch'),
@@ -62,6 +60,10 @@
         if (e && e.link && e.link.html) return e.link.html;
         if (e && e.object && e.object.activity && typeof e.object.activity.render === 'function') return e.object.activity.render();
         return null;
+    }
+
+    function resolveActiveFullContainer() {
+        return $('.full-start-new').first();
     }
 
     function getButtonId($button) {
@@ -125,19 +127,6 @@
         Object.keys(map).forEach(id => map[id].toggleClass('be-button-hide', hidden.has(id)));
     }
 
-    function saveButtonsData(items, map) {
-        var data = items.map(id => ({
-            id: id,
-            title: getButtonTitle(id, map[id]),
-            icon: getButtonIcon(map[id])
-        }));
-        Lampa.Storage.set(LAST_BUTTONS_KEY, data);
-    }
-
-    function loadButtonsData() {
-        return Lampa.Storage.get(LAST_BUTTONS_KEY, []);
-    }
-
     function applyLayout(fullContainer) {
         if (!fullContainer || !fullContainer.length) return;
 
@@ -147,16 +136,13 @@
         fullContainer.find('.full-start-new__buttons .button--play').remove();
 
         var { items, map, targetContainer } = scanButtons(fullContainer, true);
-
-        saveButtonsData(items, map);
-
         var order = normalizeOrder(readArray(ORDER_KEY), items);
 
         targetContainer.empty();
         if (priority.length) targetContainer.append(priority);
         order.forEach(id => { if (map[id]) targetContainer.append(map[id]); });
 
-        targetContainer.toggleClass('be-button-text-hidden', Lampa.Storage.get('be_hide_text', false) === true);
+        targetContainer.toggleClass('be-button-text-hidden', Lampa.Storage.get('be_hide_text') === true);
         targetContainer.addClass('be-buttons');
 
         applyHidden(map);
@@ -169,25 +155,26 @@
         }
     }
 
-    function openEditor() {
-        var savedData = loadButtonsData();
-        if (savedData.length === 0) {
-            return;
-        }
+    function openEditor(fullContainer) {
+        if (!fullContainer || !fullContainer.length) return;
 
-        var order = normalizeOrder(readArray(ORDER_KEY), savedData.map(b => b.id));
+        var { items, map } = scanButtons(fullContainer, false);
+        var order = normalizeOrder(readArray(ORDER_KEY), items);
         var hidden = new Set(readArray(HIDE_KEY));
 
         var list = $('<div class="menu-edit-list"></div>');
 
         order.forEach(id => {
-            var btnData = savedData.find(b => b.id === id);
-            if (!btnData) return;
+            var $btn = map[id];
+            if (!$btn || !$btn.length) return;
+
+            var title = getButtonTitle(id, $btn);
+            var icon = getButtonIcon($btn);
 
             var item = $(`
                 <div class="menu-edit-list__item" data-id="${id}">
                     <div class="menu-edit-list__icon"></div>
-                    <div class="menu-edit-list__title">${btnData.title}</div>
+                    <div class="menu-edit-list__title">${title}</div>
                     <div class="menu-edit-list__move move-up selector">
                         <svg width="22" height="14" viewBox="0 0 22 14" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M2 12L11 3L20 12" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
@@ -207,7 +194,7 @@
                 </div>
             `);
 
-            if (btnData.icon) item.find('.menu-edit-list__icon').append(btnData.icon);
+            if (icon) item.find('.menu-edit-list__icon').append(icon);
 
             item.find('.dot').attr('opacity', hidden.has(id) ? 0 : 1);
 
@@ -252,20 +239,36 @@
                 Lampa.Modal.close();
 
                 setTimeout(() => {
-                    var current = resolveActiveFullContainer();
-                    if (current && current.length && Lampa.Storage.get('be_enabled', true) === true) {
-                        applyLayout(current);
-                    }
-                }, 0);
+                    applyLayout(fullContainer);
+                    Lampa.Controller.toggle('full_start');
+                }, 50);
             },
             onClose: () => {
-                setTimeout(() => Lampa.Controller.toggle(Lampa.Activity.active().name), 50);
+                setTimeout(() => Lampa.Controller.toggle('full_start'), 50);
             }
         });
     }
 
     function openEditorFromSettings() {
-        openEditor();
+        var current = resolveActiveFullContainer();
+        if (current && current.length) {
+            lastFullContainer = current;
+        }
+
+        if (!lastFullContainer || !lastFullContainer.length) {
+            Lampa.Modal.open({
+                title: 'Ошибка',
+                html: $('<div style="padding:1em;text-align:center;">Откройте карточку фильма/сериала для редактирования кнопок</div>'),
+                size: 'small',
+                onBack: () => Lampa.Modal.close(),
+                onClose: () => {
+                    setTimeout(() => Lampa.Controller.toggle('settings'), 50);
+                }
+            });
+            return;
+        }
+
+        openEditor(lastFullContainer);
     }
 
     function initSettings() {
@@ -282,7 +285,7 @@
             onChange: () => Lampa.Settings.update()
         });
 
-        if (Lampa.Storage.get('be_enabled', true) === true) {
+        if (Lampa.Storage.get('be_enabled') === true) {
             Lampa.SettingsApi.addParam({
                 component: "buttoneditor",
                 param: { name: "be_hide_text", type: "trigger", default: false },
@@ -299,7 +302,7 @@
             param: { name: "be_edit", type: "button" },
             field: {
                 name: 'Редактор кнопок',
-                description: 'Изменить порядок и скрыть кнопки'
+                description: 'Изменить порядок и скрыть кнопки (требуется открытая карточка)'
             },
             onChange: openEditorFromSettings
         });
@@ -316,7 +319,7 @@
                 var container = getFullContainer(e);
                 if (container) {
                     lastFullContainer = container;
-                    if (Lampa.Storage.get('be_enabled', true) === true) {
+                    if (Lampa.Storage.get('be_enabled') === true) {
                         setTimeout(() => applyLayout(container), 0);
                     }
                 }
@@ -330,7 +333,7 @@
         Lampa.Listener.follow('app', e => {
             if (e.type === 'ready') {
                 initSettings();
-                if (Lampa.Storage.get('be_enabled', true) === true) {
+                if (Lampa.Storage.get('be_enabled') === true) {
                     main();
                 }
             }
