@@ -35,6 +35,12 @@
             width: 26px;
             height: 26px;
         }
+        .modal__error-icon {
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 20px;
+            opacity: 0.8;
+        }
     `;
       $('head').append(`<style id="${STYLE_TAG}">${css}</style>`);
     }
@@ -58,6 +64,11 @@
       if (e && e.link && e.link.html) return e.link.html;
       if (e && e.object && e.object.activity && typeof e.object.activity.render === 'function') return e.object.activity.render();
       return null;
+    }
+
+    function findActiveCard() {
+      const active = $('.full-start-new').first();
+      return active.length ? active : null;
     }
 
     function extractButtonKey($element) {
@@ -96,20 +107,31 @@
       }
       process(mainArea.find('.full-start__button'));
       process(extraArea.find('.full-start__button'));
-      return { keys, elements, mainArea };
+      return {
+        keys,
+        elements,
+        mainArea,
+        extraArea
+      };
     }
 
     function buildOrder(saved, available) {
       const result = [];
       const known = new Set(available);
-      saved.forEach(k => known.has(k) && result.push(k));
-      available.forEach(k => !result.includes(k) && result.push(k));
+      saved.forEach(k => {
+        if (known.has(k)) result.push(k);
+      });
+      available.forEach(k => {
+        if (!result.includes(k)) result.push(k);
+      });
       return result;
     }
 
     function hideButtons(elements) {
       const hidden = new Set(getStoredArray(HIDE_STORAGE));
-      Object.keys(elements).forEach(k => elements[k].toggleClass('card-button-hidden', hidden.has(k)));
+      Object.keys(elements).forEach(k => {
+        elements[k].toggleClass('card-button-hidden', hidden.has(k));
+      });
     }
 
     function rebuildCard(container) {
@@ -131,15 +153,20 @@
               </svg>
             </div>
           `);
+
           header.find('.open--settings').after(pencil);
-          pencil.on('hover:enter', () => startEditor(container));
+
+          pencil.on('hover:enter', () => {
+            startEditor(container, false);
+          });
         }
       }
 
       const priorityBtn = container.find('.full-start-new__buttons .button--priority').detach();
       container.find('.full-start-new__buttons .button--play').remove();
 
-      const { keys, elements, mainArea } = collectButtons(container, true);
+      const collected = collectButtons(container, true);
+      const { keys, elements, mainArea } = collected;
 
       const saved = getStoredArray(ORDER_STORAGE);
       let ordered = buildOrder(saved, keys);
@@ -148,13 +175,17 @@
         ordered.sort((a, b) => {
           const aOnline = a.startsWith('button--');
           const bOnline = b.startsWith('button--');
-          return aOnline && !bOnline ? -1 : !aOnline && bOnline ? 1 : 0;
+          if (aOnline && !bOnline) return -1;
+          if (!aOnline && bOnline) return 1;
+          return 0;
         });
       }
 
       mainArea.empty();
       if (priorityBtn.length) mainArea.append(priorityBtn);
-      ordered.forEach(k => elements[k] && mainArea.append(elements[k]));
+      ordered.forEach(k => {
+        if (elements[k]) mainArea.append(elements[k]);
+      });
 
       mainArea.toggleClass('card-icons-only', Lampa.Storage.get('cardbtn_icons') === true);
       mainArea.addClass('card-buttons');
@@ -168,10 +199,21 @@
       }
     }
 
-    function startEditor(container) {
-      if (!container || !container.length) return;
+    function startEditor(container, fromSettings = false) {
+      if (!container || !container.length) {
+        showEditorError(fromSettings);
+        return;
+      }
 
-      const { keys, elements } = collectButtons(container, false);
+      const collected = collectButtons(container, false);
+      const { keys } = collected;
+
+      if (keys.length === 0) {
+        showEditorError(fromSettings);
+        return;
+      }
+
+      const elements = collected.elements;
 
       const ordered = buildOrder(getStoredArray(ORDER_STORAGE), keys);
       const hidden = new Set(getStoredArray(HIDE_STORAGE));
@@ -249,9 +291,57 @@
           Lampa.Storage.set(HIDE_STORAGE, newHidden);
           Lampa.Modal.close();
           rebuildCard(container);
-          setTimeout(() => Lampa.Controller.toggle("full_start"), 100);
+          setTimeout(() => {
+            if (fromSettings) {
+              Lampa.Controller.toggle("settings_component");
+            } else {
+              Lampa.Controller.toggle("full_start");
+            }
+          }, 100);
         }
       });
+    }
+
+    function showEditorError(fromSettings = false) {
+      const errorHtml = $(`
+        <div style="text-align:center;">
+          <svg class="modal__error-icon" xmlns="http://www.w3.org/2000/svg" width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+          </svg>
+          <div class="modal__text">Редактировать кнопки можно только в открытой карточке фильма или сериала</div>
+        </div>
+      `);
+
+      Lampa.Modal.open({
+        title: 'Редактирование кнопок',
+        html: errorHtml,
+        size: 'small',
+        onBack: () => {
+          Lampa.Modal.close();
+          setTimeout(() => {
+            if (fromSettings) {
+              Lampa.Controller.toggle("settings_component");
+            }
+          }, 100);
+        }
+      });
+    }
+
+    function startEditorFromSettings() {
+      if (!currentCard || !currentCard.length || !document.body.contains(currentCard[0])) {
+        const active = findActiveCard();
+        if (active && active.length) {
+          currentCard = active;
+        }
+      }
+
+      if (!currentCard || !currentCard.length) {
+        showEditorError(true);
+        return;
+      }
+
+      startEditor(currentCard, true);
     }
 
     function cardListener() {
@@ -268,6 +358,11 @@
       });
     }
 
+    const CardHandler = {
+      run: cardListener,
+      fromSettings: startEditorFromSettings
+    };
+
     function setupSettings() {
       Lampa.SettingsApi.addComponent({
         component: "cardbtn",
@@ -277,26 +372,57 @@
 
       Lampa.SettingsApi.addParam({
         component: "cardbtn",
-        param: { name: "cardbtn_showall", type: "trigger", default: false },
+        param: {
+          name: "cardbtn_showall",
+          type: "trigger",
+          default: true  // Включено по умолчанию
+        },
         field: {
           name: 'Все кнопки действий в карточке',
           description: 'Выводит все кнопки действий в карточке в одной строке'
         },
-        onChange: () => Lampa.Settings.update()
+        onChange: () => {
+          Lampa.Settings.update();
+        }
       });
 
       if (Lampa.Storage.get('cardbtn_showall') === true) {
         Lampa.SettingsApi.addParam({
           component: "cardbtn",
-          param: { name: "cardbtn_icons", type: "trigger", default: false },
+          param: {
+            name: "cardbtn_icons",
+            type: "trigger",
+            default: false
+          },
           field: {
             name: 'Только иконки',
             description: 'Показывать только иконки кнопок'
           },
-          onChange: () => Lampa.Settings.update()
+          onChange: () => {
+            Lampa.Settings.update();
+          }
+        });
+
+        Lampa.SettingsApi.addParam({
+          component: "cardbtn",
+          param: {
+            name: "cardbtn_editor",
+            type: "button"
+          },
+          field: {
+            name: 'Редактировать кнопки',
+            description: 'Изменить порядок и скрыть кнопки в карточке'
+          },
+          onChange: () => {
+            CardHandler.fromSettings();
+          }
         });
       }
     }
+
+    const SettingsConfig = {
+      run: setupSettings
+    };
 
     const pluginInfo = {
       type: "other",
@@ -309,17 +435,17 @@
 
     function loadPlugin() {
       Lampa.Manifest.plugins = pluginInfo;
-      setupSettings();
-      if (Lampa.Storage.get('cardbtn_showall') === true) {
-        cardListener();
-      }
+      SettingsConfig.run();
+      CardHandler.run();  // Запускаем всегда, поскольку default true
     }
 
     function init() {
       window.plugin_cardbtn_ready = true;
       if (window.appready) loadPlugin();
       else {
-        Lampa.Listener.follow("app", e => e.type === "ready" && loadPlugin());
+        Lampa.Listener.follow("app", e => {
+          if (e.type === "ready") loadPlugin();
+        });
       }
     }
 
