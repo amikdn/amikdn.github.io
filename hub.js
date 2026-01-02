@@ -20,7 +20,7 @@
         options: 'Дополнительно'
     };
 
-    let dynamic_sources = Lampa.Storage.get('card_buttons_dynamic', []);
+    let all_sources = Lampa.Storage.get('card_buttons_all_sources', []);
     let processing_quick = false;
 
     function customize_buttons(container) {
@@ -36,25 +36,25 @@
         };
 
         const source_buttons = {};
-        dynamic_sources.forEach(src => {
+        all_sources.forEach(src => {
             const btn = $(src.html);
             btn.on('hover:enter', () => {
                 Lampa.Storage.set('quick_source', src.title);
                 setTimeout(() => {
                     if (existing.play.length) existing.play.trigger('hover:enter');
-                }, 100);
+                }, 150);
             });
             source_buttons[src.key] = btn;
         });
 
         container.empty();
 
-        let order = Lampa.Storage.get('card_buttons_order', ['play', 'book', ...dynamic_sources.map(s => s.key), 'reaction', 'subscribe', 'options']);
+        let order = Lampa.Storage.get('card_buttons_order', ['play', 'book', ...all_sources.map(s => s.key), 'reaction', 'subscribe', 'options']);
         let show = Lampa.Storage.get('card_buttons_show', {
             play: true, book: true, reaction: true, subscribe: true, options: true
         });
 
-        dynamic_sources.forEach(src => {
+        all_sources.forEach(src => {
             if (!order.includes(src.key)) order.push(src.key);
             if (show[src.key] === undefined) show[src.key] = true;
         });
@@ -75,8 +75,9 @@
     });
     buttons_observer.observe(document.body, { childList: true, subtree: true });
 
+    // Собираем ВСЕ источники из списка выбора
     const source_observer = new MutationObserver(() => {
-        const items = $('.selectbox-item.selectbox-item--icon');
+        const items = $('.selectbox-item');
         if (!items.length) return;
 
         const new_sources = [];
@@ -85,23 +86,27 @@
             const title = $item.find('.selectbox-item__title').text().trim();
             if (!title) return;
 
-            const subtitle = ($item.find('.selectbox-item__subtitle').text() || '').trim().toLowerCase();
-            if (title === 'Торренты' || subtitle.includes('онлайн')) {
-                let icon_svg = $item.find('.selectbox-item__icon svg')[0]?.outerHTML || '<svg><use xlink:href="#sprite-torrent"></use></svg>';
-                if (title === 'Торренты') icon_svg = '<svg><use xlink:href="#sprite-torrent"></use></svg>';
-
-                const key = 'src_' + title.replace(/[\s\(\)\-]+/g, '_').toLowerCase();
-                new_sources.push({
-                    key,
-                    title,
-                    html: `<div class="full-start__button selector button--${key}">${icon_svg}<span>${title}</span></div>`
-                });
+            // Иконка: берём svg из .selectbox-item__icon, если нет — стандартная
+            let icon_svg = '<svg><use xlink:href="#sprite-online"></use></svg>'; // fallback
+            const icon_elem = $item.find('.selectbox-item__icon svg');
+            if (icon_elem.length) {
+                icon_svg = icon_elem[0].outerHTML;
+            } else if (title.toLowerCase().includes('торрент')) {
+                icon_svg = '<svg><use xlink:href="#sprite-torrent"></use></svg>';
             }
+
+            const key = 'src_' + title.replace(/[\s\(\)\-]+/g, '_').toLowerCase();
+
+            new_sources.push({
+                key,
+                title,
+                html: `<div class="full-start__button selector button--${key}">${icon_svg}<span>${title}</span></div>`
+            });
         });
 
-        if (new_sources.length) {
-            dynamic_sources = new_sources;
-            Lampa.Storage.set('card_buttons_dynamic', dynamic_sources);
+        if (new_sources.length > 0) {
+            all_sources = new_sources;
+            Lampa.Storage.set('card_buttons_all_sources', all_sources);
 
             $('.full-start-new__buttons').each((_, cont) => {
                 $(cont).removeData('customized');
@@ -111,8 +116,7 @@
     });
     source_observer.observe(document.body, { childList: true, subtree: true });
 
-    // Убрано скрытие других источников — это основная причина зависаний
-    // Теперь просто выбираем нужный источник и запускаем просмотр
+    // Quick select без скрытия (чтобы избежать зависаний)
     const quick_observer = new MutationObserver(() => {
         if (processing_quick) return;
         const quick = Lampa.Storage.get('quick_source', '');
@@ -142,13 +146,13 @@
     function build_list(body) {
         body.empty();
 
-        let order = Lampa.Storage.get('card_buttons_order', ['play', 'book', ...dynamic_sources.map(s => s.key), 'reaction', 'subscribe', 'options']);
+        let order = Lampa.Storage.get('card_buttons_order', ['play', 'book', ...all_sources.map(s => s.key), 'reaction', 'subscribe', 'options']);
         let show = Lampa.Storage.get('card_buttons_show', { play: true, book: true, reaction: true, subscribe: true, options: true });
 
         order.forEach((key, idx) => {
             const is_base = base_keys.includes(key);
-            const title = is_base ? base_titles[key] : dynamic_sources.find(s => s.key === key)?.title || key;
-            const icon_svg = is_base ? base_icons[key] : dynamic_sources.find(s => s.key === key)?.html.match(/<svg[^>]*>[\s\S]*?<\/svg>/i)?.[0] || '<svg></svg>';
+            const title = is_base ? base_titles[key] : all_sources.find(s => s.key === key)?.title || key;
+            const icon_svg = is_base ? base_icons[key] : all_sources.find(s => s.key === key)?.html.match(/<svg[^>]*>[\s\S]*?<\/svg>/i)?.[0] || '<svg><use xlink:href="#sprite-online"></use></svg>';
 
             const item = $(`
                 <div class="menu-edit-list__item selector">
@@ -222,7 +226,7 @@
     Lampa.SettingsApi.addParam({
         component: 'interface',
         param: { name: 'card_buttons_edit', type: 'static' },
-        field: { name: 'Кнопки в карточке', description: 'Редактировать порядок и видимость' },
+        field: { name: 'Кнопки в карточке', description: 'Редактировать все кнопки (включая источники)' },
         onRender: (item) => {
             const ref = $('[data-name="interface_size"]').closest('.settings-param');
             if (ref.length) item.insertAfter(ref);
