@@ -240,19 +240,16 @@
         item.find('.move-up').on('hover:enter', function () {
           var prev = item.prev();
           if (prev.length) item.insertBefore(prev);
-          applyLayout(fullContainer);
         });
 
         item.find('.move-down').on('hover:enter', function () {
           var next = item.next();
           if (next.length) item.insertAfter(next);
-          applyLayout(fullContainer);
         });
 
         item.find('.toggle').on('hover:enter', function () {
           item.toggleClass('lme-button-hidden');
           item.find('.dot').attr('opacity', item.hasClass('lme-button-hidden') ? 0 : 1);
-          applyLayout(fullContainer);
         });
 
         list.append(item);
@@ -277,6 +274,9 @@
           Lampa.Modal.close();
           applyLayout(fullContainer);
           Lampa.Controller.toggle("full_start");
+        },
+        onSelect: function () {
+          // Если есть кнопка "Сохранить" или select, но в оригинале только back
         }
       });
     }
@@ -388,7 +388,7 @@
 
     var manifest = {
       type: "other",
-      version: "0.2.3",
+      version: "0.2.4",
       author: '@lme_chat',
       name: "Кнопки в карточке",
       description: "Выводит все кнопки действий в карточке. Добавляет карандаш в хедер и пункт в настройках для редактирования.",
