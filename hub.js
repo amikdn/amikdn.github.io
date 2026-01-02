@@ -42,7 +42,7 @@
                 Lampa.Storage.set('quick_source', src.title);
                 setTimeout(() => {
                     if (existing.play.length) existing.play.trigger('hover:enter');
-                }, 150);
+                }, 200);
             });
             source_buttons[src.key] = btn;
         });
@@ -75,48 +75,50 @@
     });
     buttons_observer.observe(document.body, { childList: true, subtree: true });
 
-    // Собираем ВСЕ источники из списка выбора
-    const source_observer = new MutationObserver(() => {
-        const items = $('.selectbox-item');
-        if (!items.length) return;
+    // Сбор всех источников только когда открывается список (без цикла)
+    Lampa.Listener.follow('full', (e) => {
+        if (e.type === 'complite') {
+            setTimeout(() => {
+                const items = $('.selectbox-item');
+                if (!items.length) return;
 
-        const new_sources = [];
-        items.each(function () {
-            const $item = $(this);
-            const title = $item.find('.selectbox-item__title').text().trim();
-            if (!title) return;
+                const new_sources = [];
+                items.each(function () {
+                    const $item = $(this);
+                    const title = $item.find('.selectbox-item__title').text().trim();
+                    if (!title) return;
 
-            // Иконка: берём svg из .selectbox-item__icon, если нет — стандартная
-            let icon_svg = '<svg><use xlink:href="#sprite-online"></use></svg>'; // fallback
-            const icon_elem = $item.find('.selectbox-item__icon svg');
-            if (icon_elem.length) {
-                icon_svg = icon_elem[0].outerHTML;
-            } else if (title.toLowerCase().includes('торрент')) {
-                icon_svg = '<svg><use xlink:href="#sprite-torrent"></use></svg>';
-            }
+                    let icon_svg = '<svg><use xlink:href="#sprite-online"></use></svg>';
+                    const icon_elem = $item.find('.selectbox-item__icon svg');
+                    if (icon_elem.length) {
+                        icon_svg = icon_elem[0].outerHTML;
+                    } else if (title.toLowerCase().includes('торрент')) {
+                        icon_svg = '<svg><use xlink:href="#sprite-torrent"></use></svg>';
+                    }
 
-            const key = 'src_' + title.replace(/[\s\(\)\-]+/g, '_').toLowerCase();
+                    const key = 'src_' + title.replace(/[\s\(\)\-]+/g, '_').toLowerCase();
 
-            new_sources.push({
-                key,
-                title,
-                html: `<div class="full-start__button selector button--${key}">${icon_svg}<span>${title}</span></div>`
-            });
-        });
+                    new_sources.push({
+                        key,
+                        title,
+                        html: `<div class="full-start__button selector button--${key}">${icon_svg}<span>${title}</span></div>`
+                    });
+                });
 
-        if (new_sources.length > 0) {
-            all_sources = new_sources;
-            Lampa.Storage.set('card_buttons_all_sources', all_sources);
+                if (new_sources.length > 0) {
+                    all_sources = new_sources;
+                    Lampa.Storage.set('card_buttons_all_sources', all_sources);
 
-            $('.full-start-new__buttons').each((_, cont) => {
-                $(cont).removeData('customized');
-                customize_buttons($(cont));
-            });
+                    $('.full-start-new__buttons').each((_, cont) => {
+                        $(cont).removeData('customized');
+                        customize_buttons($(cont));
+                    });
+                }
+            }, 500);
         }
     });
-    source_observer.observe(document.body, { childList: true, subtree: true });
 
-    // Quick select без скрытия (чтобы избежать зависаний)
+    // Quick select без скрытия и с защитой от цикла
     const quick_observer = new MutationObserver(() => {
         if (processing_quick) return;
         const quick = Lampa.Storage.get('quick_source', '');
@@ -124,22 +126,24 @@
 
         processing_quick = true;
 
-        const items = $('.selectbox-item');
-        let target = null;
-        items.each(function () {
-            if ($(this).find('.selectbox-item__title').text().trim() === quick) {
-                target = $(this);
-                return false;
+        setTimeout(() => {
+            const items = $('.selectbox-item');
+            let target = null;
+            items.each(function () {
+                if ($(this).find('.selectbox-item__title').text().trim() === quick) {
+                    target = $(this);
+                    return false;
+                }
+            });
+
+            if (target) {
+                target.trigger('hover:enter');
+                setTimeout(() => target.trigger('hover:enter'), 400);
             }
-        });
 
-        if (target) {
-            target.trigger('hover:enter');
-            setTimeout(() => target.trigger('hover:enter'), 300);
-        }
-
-        Lampa.Storage.set('quick_source', '');
-        setTimeout(() => processing_quick = false, 2000);
+            Lampa.Storage.set('quick_source', '');
+            processing_quick = false;
+        }, 300);
     });
     quick_observer.observe(document.body, { childList: true, subtree: true });
 
@@ -158,17 +162,17 @@
                 <div class="menu-edit-list__item selector">
                     <div class="menu-edit-list__icon">${icon_svg}</div>
                     <div class="menu-edit-list__title">${title}</div>
-                    <div class="menu-edit-list__move move-up ${idx === 0 ? 'hide' : ''}">
+                    <div class="menu-edit-list__move move-up selector ${idx === 0 ? 'hide' : ''}">
                         <svg width="22" height="14" viewBox="0 0 22 14" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M2 12L11 3L20 12" stroke="currentColor" stroke-width="4" stroke-linecap="round"></path>
                         </svg>
                     </div>
-                    <div class="menu-edit-list__move move-down ${idx === order.length - 1 ? 'hide' : ''}">
+                    <div class="menu-edit-list__move move-down selector ${idx === order.length - 1 ? 'hide' : ''}">
                         <svg width="22" height="14" viewBox="0 0 22 14" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M2 2L11 11L20 2" stroke="currentColor" stroke-width="4" stroke-linecap="round"></path>
                         </svg>
                     </div>
-                    <div class="menu-edit-list__toggle toggle">
+                    <div class="menu-edit-list__toggle toggle selector">
                         <svg width="26" height="26" viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <rect x="1.89111" y="1.78369" width="21.793" height="21.793" rx="3.5" stroke="currentColor" stroke-width="3"></rect>
                             <path d="M7.44873 12.9658L10.8179 16.3349L18.1269 9.02588" stroke="currentColor" stroke-width="3" class="dot" opacity="${show[key] ? '1' : '0'}" stroke-linecap="round"></path>
@@ -177,7 +181,8 @@
                 </div>
             `);
 
-            item.find('.toggle').on('hover:enter', () => {
+            // Обработчики
+            item.find('.toggle.selector').on('hover:enter', () => {
                 show[key] = !show[key];
                 Lampa.Storage.set('card_buttons_show', show);
                 item.find('.dot').css('opacity', show[key] ? '1' : '0');
@@ -188,7 +193,7 @@
                 });
             });
 
-            item.find('.move-up').on('hover:enter', () => {
+            item.find('.move-up.selector').on('hover:enter', () => {
                 if (idx > 0) {
                     [order[idx - 1], order[idx]] = [order[idx], order[idx - 1]];
                     Lampa.Storage.set('card_buttons_order', order);
@@ -196,7 +201,7 @@
                 }
             });
 
-            item.find('.move-down').on('hover:enter', () => {
+            item.find('.move-down.selector').on('hover:enter', () => {
                 if (idx < order.length - 1) {
                     [order[idx], order[idx + 1]] = [order[idx + 1], order[idx]];
                     Lampa.Storage.set('card_buttons_order', order);
@@ -226,7 +231,7 @@
     Lampa.SettingsApi.addParam({
         component: 'interface',
         param: { name: 'card_buttons_edit', type: 'static' },
-        field: { name: 'Кнопки в карточке', description: 'Редактировать все кнопки (включая источники)' },
+        field: { name: 'Кнопки в карточке', description: 'Все кнопки, включая источники после "Смотреть"' },
         onRender: (item) => {
             const ref = $('[data-name="interface_size"]').closest('.settings-param');
             if (ref.length) item.insertAfter(ref);
