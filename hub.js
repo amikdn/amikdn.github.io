@@ -13,7 +13,7 @@
     var HIDE_KEY = 'be_button_hide';
     var lastFullContainer = null;
     var lastStartInstance = null;
-    var LAST_BUTTONS_KEY = 'be_last_buttons_data'; // Для хранения данных кнопок
+    var LAST_BUTTONS_KEY = 'be_last_buttons_data';
 
     var FALLBACK_TITLES = {
         'button--play': () => Lampa.Lang.translate('title_watch'),
@@ -152,7 +152,6 @@
 
         var { items, map, targetContainer } = scanButtons(fullContainer, true);
 
-        // Сохраняем данные кнопок для будущего использования
         saveButtonsData(items, map);
 
         var order = normalizeOrder(readArray(ORDER_KEY), items);
@@ -182,7 +181,9 @@
                 html: $('<div style="padding:1em;text-align:center;">Откройте хотя бы одну карточку фильма/сериала, чтобы инициализировать редактор кнопок.<br>После этого редактор будет доступен всегда.</div>'),
                 size: 'small',
                 onBack: () => Lampa.Modal.close(),
-                onClose: () => setTimeout(() => Lampa.Controller.toggle('settings'), 50)
+                onClose: () => {
+                    setTimeout(() => Lampa.Controller.toggle('settings'), 100);
+                }
             });
             return;
         }
@@ -263,7 +264,6 @@
 
                 Lampa.Modal.close();
 
-                // Применяем, если карточка открыта
                 setTimeout(() => {
                     var current = resolveActiveFullContainer();
                     if (current && current.length && Lampa.Storage.get('be_enabled') === true) {
@@ -272,7 +272,14 @@
                 }, 100);
             },
             onClose: () => {
-                setTimeout(() => Lampa.Controller.toggle(Lampa.Activity.active().name), 50);
+                setTimeout(() => {
+                    var current = resolveActiveFullContainer();
+                    if (current && current.length) {
+                        Lampa.Controller.toggle('full_start');
+                    } else {
+                        Lampa.Controller.toggle('settings');
+                    }
+                }, 100);
             }
         });
     }
