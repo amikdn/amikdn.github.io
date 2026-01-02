@@ -200,7 +200,6 @@
 
             if (icon) item.find('.menu-edit-list__icon').append(icon);
 
-            // Только галочка меняется, без затемнения элемента (как в оригинале)
             item.find('.dot').attr('opacity', hidden.has(id) ? 0 : 1);
 
             item.find('.move-up').on('hover:enter', () => {
@@ -243,7 +242,6 @@
 
                 Lampa.Modal.close();
 
-                // Применяем изменения с небольшой задержкой, чтобы избежать зависания
                 setTimeout(() => {
                     applyLayout(fullContainer);
                 }, 200);
@@ -252,11 +250,9 @@
     }
 
     function openEditorFromSettings() {
-        if (!lastFullContainer || !lastFullContainer.length || !document.body.contains(lastFullContainer[0])) {
-            lastFullContainer = resolveActiveFullContainer();
-        }
+        var current = resolveActiveFullContainer();
 
-        if (!lastFullContainer || !lastFullContainer.length) {
+        if (!current || !current.length) {
             Lampa.Modal.open({
                 title: 'Ошибка',
                 html: Lampa.Template.get('error', { title: 'Ошибка', text: 'Откройте карточку фильма/сериала для редактирования кнопок' }),
@@ -266,16 +262,16 @@
             return;
         }
 
-        openEditor(lastFullContainer);
+        lastFullContainer = current;
+        openEditor(current);
     }
 
     function initSettings() {
         Lampa.SettingsApi.addParam({
             component: "buttoneditor",
-            param: { name: "be_enabled", type: "trigger", default: false },
+            param: { name: "be_hide_text", type: "trigger", default: false },
             field: {
-                name: 'Все кнопки в карточке',
-                description: 'Выводит все кнопки действий в одну строку'
+                name: 'Только иконки'
             },
             onChange: () => Lampa.Settings.update()
         });
@@ -289,17 +285,6 @@
             },
             onChange: openEditorFromSettings
         });
-
-        if (Lampa.Storage.get('be_enabled') === true) {
-            Lampa.SettingsApi.addParam({
-                component: "buttoneditor",
-                param: { name: "be_hide_text", type: "trigger", default: false },
-                field: {
-                    name: 'Только иконки'
-                },
-                onChange: () => Lampa.Settings.update()
-            });
-        }
     }
 
     function main() {
@@ -320,12 +305,14 @@
     function startPlugin() {
         window.plugin_buttoneditor_ready = true;
 
+        initSettings();
+
+        // Плагин всегда активен — все кнопки всегда в одну строку
+        main();
+
         Lampa.Listener.follow('app', e => {
             if (e.type === 'ready') {
                 initSettings();
-                if (Lampa.Storage.get('be_enabled') === true) {
-                    main();
-                }
             }
         });
     }
