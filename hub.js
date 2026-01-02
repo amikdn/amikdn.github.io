@@ -38,6 +38,14 @@
             .be-button-text-hidden span {
                 display: none;
             }
+            /* Стиль для скрытых элементов в списке редактора (как в оригинале — затемнение) */
+            .menu-edit-list__item.be-item-hidden {
+                opacity: 0.5;
+            }
+            /* Иконки в списке редактора — всегда яркие */
+            .menu-edit-list__item .menu-edit-list__icon svg {
+                opacity: 1 !important;
+            }
         `;
         $('head').append(`<style id="${STYLE_ID}">${style}</style>`);
     }
@@ -86,6 +94,17 @@
         var label = $button.find('span').first().text().trim() || $button.text().trim();
         if (label) return label;
         return FALLBACK_TITLES[id] ? FALLBACK_TITLES[id]() : id;
+    }
+
+    /* Исправлено копирование иконок — берём именно иконку кнопки (как в оригинале Lampa) */
+    function getButtonIcon($button) {
+        // В Lampa иконка обычно прямо в кнопке как первый <svg>
+        var svg = $button.find('svg').first();
+        if (svg.length) return svg.prop('outerHTML');
+        // Если иконка в отдельном контейнере (некоторые плагины так делают)
+        var iconDiv = $button.find('.full-start__button_icon svg').first();
+        if (iconDiv.length) return iconDiv.prop('outerHTML');
+        return '';
     }
 
     function scanButtons(fullContainer, detach) {
@@ -144,6 +163,7 @@
 
         applyHidden(map);
 
+        // Обновление фокуса (как в оригинале)
         Lampa.Controller.toggle('full_start');
 
         if (lastStartInstance && lastStartInstance.html && fullContainer[0] === lastStartInstance.html[0]) {
@@ -166,10 +186,10 @@
             if (!$btn || !$btn.length) return;
 
             var title = getButtonTitle(id, $btn);
-            var icon = $btn.find('svg').first().prop('outerHTML') || '';
+            var icon = getButtonIcon($btn);
 
             var item = $(`
-                <div class="menu-edit-list__item" data-id="${id}">
+                <div class="menu-edit-list__item be-item" data-id="${id}">
                     <div class="menu-edit-list__icon"></div>
                     <div class="menu-edit-list__title">${title}</div>
                     <div class="menu-edit-list__move move-up selector">
@@ -188,7 +208,9 @@
             `);
 
             if (icon) item.find('.menu-edit-list__icon').append(icon);
-            item.toggleClass('be-button-hidden', hidden.has(id));
+
+            // Затемнение скрытой кнопки + галочка только у видимых
+            item.toggleClass('be-item-hidden', hidden.has(id));
             item.find('.dot').attr('opacity', hidden.has(id) ? 0 : 1);
 
             item.find('.move-up').on('hover:enter', () => {
@@ -202,8 +224,9 @@
             });
 
             item.find('.toggle').on('hover:enter', () => {
-                item.toggleClass('be-button-hidden');
-                item.find('.dot').attr('opacity', item.hasClass('be-button-hidden') ? 0 : 1);
+                item.toggleClass('be-item-hidden');
+                var isHidden = item.hasClass('be-item-hidden');
+                item.find('.dot').attr('opacity', isHidden ? 0 : 1);
             });
 
             list.append(item);
@@ -221,13 +244,18 @@
                     var id = $(this).data('id');
                     if (id) {
                         newOrder.push(id);
-                        if ($(this).hasClass('be-button-hidden')) newHidden.push(id);
+                        if ($(this).hasClass('be-item-hidden')) newHidden.push(id);
                     }
                 });
                 Lampa.Storage.set(ORDER_KEY, newOrder);
                 Lampa.Storage.set(HIDE_KEY, newHidden);
+
                 Lampa.Modal.close();
-                applyLayout(fullContainer);
+
+                // Задержка, чтобы избежать зависания (DOM обновляется после закрытия модалки)
+                setTimeout(() => {
+                    applyLayout(fullContainer);
+                }, 100);
             }
         });
     }
@@ -251,20 +279,17 @@
     }
 
     function initSettings() {
-        // Основной переключатель — всегда
         Lampa.SettingsApi.addParam({
             component: "buttoneditor",
             param: { name: "be_enabled", type: "trigger", default: false },
             field: {
                 name: 'Все кнопки в карточке',
-                description: 'Выводит все кнопки действий в одну строку в карточке фильма/сериала'
+                description: 'Выводит все кнопки действий в одну строку'
             },
-            onChange: () => {
-                Lampa.Settings.update();
-            }
+            onChange: () => Lampa.Settings.update()
         });
 
-        // Кнопка редактора — всегда visible
+        // Кнопка редактора всегда видна
         Lampa.SettingsApi.addParam({
             component: "buttoneditor",
             param: { name: "be_edit", type: "button" },
@@ -275,7 +300,6 @@
             onChange: openEditorFromSettings
         });
 
-        // Только иконки — только если включена основная функция
         if (Lampa.Storage.get('be_enabled') === true) {
             Lampa.SettingsApi.addParam({
                 component: "buttoneditor",
@@ -297,6 +321,7 @@
                 var container = getFullContainer(e);
                 if (container) {
                     lastFullContainer = container;
+                    // Задержка как в оригинале
                     setTimeout(() => applyLayout(container), 0);
                 }
             }
@@ -308,7 +333,7 @@
 
         Lampa.Listener.follow('app', e => {
             if (e.type === 'ready') {
-                initSettings(); // Добавляем настройки только после готовности приложения (избегаем дублирования)
+                initSettings();
                 if (Lampa.Storage.get('be_enabled') === true) {
                     main();
                 }
