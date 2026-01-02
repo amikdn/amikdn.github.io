@@ -242,28 +242,32 @@
 
                 Lampa.Modal.close();
 
+                // Применяем изменения сразу, если сейчас открыта карточка
                 setTimeout(() => {
-                    applyLayout(fullContainer);
+                    var current = resolveActiveFullContainer();
+                    if (current && current.length) {
+                        applyLayout(current);
+                    }
                 }, 200);
             }
         });
     }
 
     function openEditorFromSettings() {
-        var current = resolveActiveFullContainer();
+        // Используем последнюю известную карточку (даже если она закрыта) или текущую открытую
+        var container = lastFullContainer && lastFullContainer.length ? lastFullContainer : resolveActiveFullContainer();
 
-        if (!current || !current.length) {
+        if (container && container.length) {
+            openEditor(container);
+        } else {
+            // Если никогда не открывали карточку — просим открыть хотя бы одну
             Lampa.Modal.open({
-                title: 'Ошибка',
-                html: Lampa.Template.get('error', { title: 'Ошибка', text: 'Откройте карточку фильма/сериала для редактирования кнопок' }),
+                title: 'Информация',
+                html: Lampa.Template.get('error', { title: 'Информация', text: 'Откройте хотя бы одну карточку фильма/сериала, чтобы инициализировать редактор кнопок. После этого редактор будет доступен всегда.' }),
                 size: 'small',
                 onBack: () => Lampa.Modal.close()
             });
-            return;
         }
-
-        lastFullContainer = current;
-        openEditor(current);
     }
 
     function initSettings() {
@@ -281,7 +285,7 @@
             param: { name: "be_edit", type: "button" },
             field: {
                 name: 'Редактор кнопок',
-                description: 'Изменить порядок и скрыть кнопки (требуется открытая карточка)'
+                description: 'Изменить порядок и скрыть кнопки'
             },
             onChange: openEditorFromSettings
         });
@@ -307,7 +311,7 @@
 
         initSettings();
 
-        // Плагин всегда активен — все кнопки всегда в одну строку
+        // Все кнопки всегда в одну строку, порядок/скрытие всегда применяются
         main();
 
         Lampa.Listener.follow('app', e => {
