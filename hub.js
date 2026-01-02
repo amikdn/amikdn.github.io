@@ -63,10 +63,6 @@
         return null;
     }
 
-    function resolveActiveFullContainer() {
-        return $('.full-start-new').first();
-    }
-
     function getButtonId($button) {
         var classes = ($button.attr('class') || '').split(/\s+/);
         var idClass = classes.find(c => c.startsWith('button--') && c !== 'button--priority') ||
@@ -143,8 +139,7 @@
         if (priority.length) targetContainer.append(priority);
         order.forEach(id => { if (map[id]) targetContainer.append(map[id]); });
 
-        var hideText = Lampa.Storage.get('be_hide_text') === true;
-        targetContainer.toggleClass('be-button-text-hidden', hideText);
+        targetContainer.toggleClass('be-button-text-hidden', Lampa.Storage.get('be_hide_text') === true);
         targetContainer.addClass('be-buttons');
 
         applyHidden(map);
@@ -153,9 +148,7 @@
 
         if (lastStartInstance && lastStartInstance.html && fullContainer[0] === lastStartInstance.html[0]) {
             var firstButton = targetContainer.find('.full-start__button.selector').not('.hide').not('.be-button-hide').first();
-            if (firstButton.length) {
-                lastStartInstance.last = firstButton[0];
-            }
+            if (firstButton.length) lastStartInstance.last = firstButton[0];
         }
     }
 
@@ -243,37 +236,24 @@
                 Lampa.Modal.close();
 
                 setTimeout(() => {
-                    if (Lampa.Storage.get('be_enabled') === true && fullContainer && document.body.contains(fullContainer[0])) {
-                        applyLayout(fullContainer);
-                    }
-                }, 100);
-            },
-            onClose: () => {
-                // Возвращаем фокус на предыдущую activity (настройки или карточка)
-                setTimeout(() => Lampa.Controller.toggle(Lampa.Activity.active().name), 50);
+                    applyLayout(fullContainer);
+                }, 0);
             }
         });
     }
 
     function openEditorFromSettings() {
-        var container = lastFullContainer && lastFullContainer.length && document.body.contains(lastFullContainer[0]) ? lastFullContainer : resolveActiveFullContainer();
-
-        if (container && container.length) {
-            openEditor(container);
-        } else {
+        if (!lastFullContainer || !lastFullContainer.length || !document.body.contains(lastFullContainer[0])) {
             Lampa.Modal.open({
-                title: 'Информация',
-                html: $('<div style="padding:1em;text-align:center;">Откройте хотя бы одну карточку фильма/сериала, чтобы инициализировать редактор кнопок.<br>После этого редактор будет доступен всегда.</div>'),
+                title: 'Ошибка',
+                html: $('<div style="padding:1em;text-align:center;">Откройте карточку фильма/сериала для редактирования кнопок</div>'),
                 size: 'small',
-                onBack: () => {
-                    Lampa.Modal.close();
-                    setTimeout(() => Lampa.Controller.toggle('settings'), 50);
-                },
-                onClose: () => {
-                    setTimeout(() => Lampa.Controller.toggle('settings'), 50);
-                }
+                onBack: () => Lampa.Modal.close()
             });
+            return;
         }
+
+        openEditor(lastFullContainer);
     }
 
     function initSettings() {
@@ -285,7 +265,7 @@
             param: { name: "be_enabled", type: "trigger", default: true },
             field: {
                 name: 'Все кнопки в карточке',
-                description: 'Выводит все кнопки действий в одну строку (включено по умолчанию)'
+                description: 'Выводит все кнопки действий в одну строку'
             },
             onChange: () => Lampa.Settings.update()
         });
@@ -295,7 +275,8 @@
                 component: "buttoneditor",
                 param: { name: "be_hide_text", type: "trigger", default: false },
                 field: {
-                    name: 'Только иконки'
+                    name: 'Только иконки',
+                    description: 'Показывать только иконки кнопок'
                 },
                 onChange: () => Lampa.Settings.update()
             });
@@ -306,7 +287,7 @@
             param: { name: "be_edit", type: "button" },
             field: {
                 name: 'Редактор кнопок',
-                description: 'Изменить порядок и скрыть кнопки'
+                description: 'Изменить порядок и скрыть кнопки (требуется открытая карточка)'
             },
             onChange: openEditorFromSettings
         });
