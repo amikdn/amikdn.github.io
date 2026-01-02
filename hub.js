@@ -1,405 +1,428 @@
 (function () {
     'use strict';
 
-    // Языковые строки
-    function initLang() {
+    function main$8() {
       Lampa.Lang.add({
-        cbe_main_desc: {
-          ru: "Собирает все кнопки действий в одну строку в карточке"
+        lme_showbutton_desc: {
+          ru: "Выводит все кнопки действий в карточке в одной строке"
         },
-        cbe_icons_only_desc: {
-          ru: "Скрывает текст, оставляя только иконки"
+        lme_showbuttonwn_desc: {
+          ru: "Показывать только иконки кнопок"
         }
       });
     }
-
-    // Константы
-    const STYLE_ID = 'cbe-card-style';
-    const ORDER_KEY = 'cbe_button_order';
-    const HIDE_KEY = 'cbe_button_hidden';
-    const SHOW_ALL_KEY = 'cbe_show_all_buttons';
-    const ICONS_ONLY_KEY = 'cbe_icons_only';
-    const VERSION_KEY = 'cbe_plugin_version';
-    const CURRENT_VERSION = '1.0.0';
-
-    let activeCard = null;
-    let cardInstance = null;
-
-    // Заголовки по умолчанию для кнопок без текста
-    const DEFAULT_LABELS = {
-      'button--play': () => Lampa.Lang.translate('title_watch'),
-      'button--book': () => Lampa.Lang.translate('settings_input_links'),
-      'button--reaction': () => Lampa.Lang.translate('title_reactions'),
-      'button--subscribe': () => Lampa.Lang.translate('title_subscribe'),
-      'button--options': () => Lampa.Lang.translate('more'),
-      'view--torrent': () => Lampa.Lang.translate('full_torrents'),
-      'view--trailer': () => Lampa.Lang.translate('full_trailers')
+    var Lang = {
+      main: main$8
     };
 
-    // Стили
-    function addStyles() {
+    var STYLE_ID = 'lme-button-style';
+    var ORDER_KEY = 'lme_buttonsort';
+    var HIDE_KEY = 'lme_buttonhide';
+    var VERSION_KEY = 'lme_plugin_version';
+    var lastFullContainer = null;
+    var lastStartInstance = null;
+
+    var FALLBACK_TITLES = {
+      'button--play': function buttonPlay() {
+        return Lampa.Lang.translate('title_watch');
+      },
+      'button--book': function buttonBook() {
+        return Lampa.Lang.translate('settings_input_links');
+      },
+      'button--reaction': function buttonReaction() {
+        return Lampa.Lang.translate('title_reactions');
+      },
+      'button--subscribe': function buttonSubscribe() {
+        return Lampa.Lang.translate('title_subscribe');
+      },
+      'button--options': function buttonOptions() {
+        return Lampa.Lang.translate('more');
+      },
+      'view--torrent': function viewTorrent() {
+        return Lampa.Lang.translate('full_torrents');
+      },
+      'view--trailer': function viewTrailer() {
+        return Lampa.Lang.translate('full_trailers');
+      }
+    };
+
+    function ensureStyles() {
       if (document.getElementById(STYLE_ID)) return;
-      const css = `
-        .cbe-button-row {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-top: 0.5em;
-        }
-        .cbe-hidden {
-            display: none !important;
-        }
-        .cbe-icons-only span {
-            display: none;
-        }
-        .head__action.cbe-editor svg {
-            width: 26px;
-            height: 26px;
-        }
-      `;
-      $('head').append(`<style id="${STYLE_ID}">${css}</style>`);
+      var style = "\n        .lme-buttons {\n            display: flex;\n            flex-wrap: wrap;\n            gap: 10px;\n        }\n        .lme-button-hide {\n            display: none !important;\n        }\n        .lme-button-text-hidden span {\n            display: none;\n        }\n        .head__action.edit-buttons svg {\n            width: 26px;\n            height: 26px;\n        }\n    ";
+      $('head').append("<style id=\"".concat(STYLE_ID, "\">").concat(style, "</style>"));
     }
 
-    // Чтение массива из Storage
-    function getStoredArray(key) {
-      const val = Lampa.Storage.get(key);
-      if (Array.isArray(val)) return val.slice();
-      if (typeof val === 'string') {
-        try { return JSON.parse(val); } catch { }
-        return val.split(',').map(v => v.trim()).filter(Boolean);
+    function readArray(key) {
+      var value = Lampa.Storage.get(key);
+      if (Array.isArray(value)) return value.slice();
+      if (typeof value === 'string') {
+        try {
+          var parsed = JSON.parse(value);
+          return Array.isArray(parsed) ? parsed : [];
+        } catch (e) {
+          return value.split(',').map(function (v) {
+            return v.trim();
+          }).filter(Boolean);
+        }
       }
       return [];
     }
 
-    // Получение контейнера карточки
-    function getCardContainer(e) {
-      if (e?.body) return e.body;
-      if (e?.link?.html) return e.link.html;
-      if (e?.object?.activity?.render) return e.object.activity.render();
+    function getFullContainer(e) {
+      if (e && e.body) return e.body;
+      if (e && e.link && e.link.html) return e.link.html;
+      if (e && e.object && e.object.activity && typeof e.object.activity.render === 'function') return e.object.activity.render();
       return null;
     }
 
-    // ID кнопки
-    function identifyButton(btn) {
-      const classes = (btn.attr('class') || '').split(/\s+/);
-      const mainClass = classes.find(c => (c.startsWith('button--') && c !== 'button--priority') || c.startsWith('view--'));
-      if (mainClass) return mainClass;
-
-      const dataId = btn.data('id') || btn.data('name') || btn.attr('data-name');
-      if (dataId) return `data:${dataId}`;
-
-      const text = btn.text().trim();
-      if (text) return `text:${text}`;
-
-      return `hash:${Lampa.Utils.hash(btn.clone().removeClass('focus').prop('outerHTML'))}`;
+    function resolveActiveFullContainer() {
+      var current = $('.full-start-new').first();
+      if (current.length) return current;
+      return null;
     }
 
-    // Текст кнопки
-    function buttonLabel(id, btn) {
-      const text = btn.find('span').first().text().trim() || btn.text().trim();
-      return text || (DEFAULT_LABELS[id] ? DEFAULT_LABELS[id]() : id);
+    function getButtonId($button) {
+      var className = ($button.attr('class') || '').split(/\s+/);
+      var idClass = className.find(function (c) {
+        return c.startsWith('button--') && c !== 'button--priority';
+      }) || className.find(function (c) {
+        return c.startsWith('view--');
+      });
+      if (idClass) return idClass;
+      var dataId = $button.data('id') || $button.data('name') || $button.attr('data-name');
+      if (dataId) return "data:".concat(dataId);
+      var title = $button.text().trim();
+      if (title) return "text:".concat(title);
+      return "html:".concat(Lampa.Utils.hash($button.clone().removeClass('focus').prop('outerHTML')));
     }
 
-    // Сбор кнопок
-    function collectButtons(container, remove = false) {
-      const mainRow = container.find('.full-start-new__buttons');
-      const extraRow = container.find('.buttons--container');
-      const buttons = [];
-      const buttonMap = {};
+    function getButtonTitle(id, $button) {
+      var label = $button.find('span').first().text().trim() || $button.text().trim();
+      if (label) return label;
+      if (FALLBACK_TITLES[id]) return FALLBACK_TITLES[id]();
+      return id;
+    }
 
-      function process(row) {
-        row.find('.full-start__button').each(function () {
-          const el = $(this);
-          if (el.hasClass('button--play') || el.hasClass('button--priority')) return;
-
-          const id = identifyButton(el);
-          if (!id || buttonMap[id]) return;
-
-          buttonMap[id] = remove ? el.detach() : el;
-          buttons.push(id);
+    function scanButtons(fullContainer, detach) {
+      var targetContainer = fullContainer.find('.full-start-new__buttons');
+      var extraContainer = fullContainer.find('.buttons--container');
+      var items = [];
+      var map = {};
+      function collect($buttons) {
+        $buttons.each(function () {
+          var $btn = $(this);
+          if ($btn.hasClass('button--play') || $btn.hasClass('button--priority')) return;
+          var id = getButtonId($btn);
+          if (!id || map[id]) return;
+          map[id] = detach ? $btn.detach() : $btn;
+          items.push(id);
         });
       }
-
-      process(mainRow);
-      process(extraRow);
-
-      return { buttons, buttonMap, mainRow };
+      collect(targetContainer.find('.full-start__button'));
+      collect(extraContainer.find('.full-start__button'));
+      return {
+        items: items,
+        map: map,
+        targetContainer: targetContainer,
+        extraContainer: extraContainer
+      };
     }
 
-    // Нормализация порядка
-    function buildOrder(saved, available) {
-      const result = [];
-      const known = new Set(available);
-
-      saved.forEach(id => { if (known.has(id)) result.push(id); });
-      available.forEach(id => { if (!result.includes(id)) result.push(id); });
-
+    function normalizeOrder(order, ids) {
+      var result = [];
+      var known = new Set(ids);
+      order.forEach(function (id) {
+        if (known.has(id)) result.push(id);
+      });
+      ids.forEach(function (id) {
+        if (!result.includes(id)) result.push(id);
+      });
       return result;
     }
 
-    // Применение скрытия
-    function hideButtons(map) {
-      const hidden = new Set(getStoredArray(HIDE_KEY));
-      Object.keys(map).forEach(id => map[id].toggleClass('cbe-hidden', hidden.has(id)));
+    function applyHidden(map) {
+      var hidden = new Set(readArray(HIDE_KEY));
+      Object.keys(map).forEach(function (id) {
+        map[id].toggleClass('lme-button-hide', hidden.has(id));
+      });
     }
 
-    // Основная логика применения
-    function rebuildCard(container) {
-      if (!Lampa.Storage.get(SHOW_ALL_KEY)) return;
+    function applyLayout(fullContainer) {
+      if (Lampa.Storage.get('lme_showbutton') !== true) return;
 
-      if (!container || !container.length) return;
+      if (!fullContainer || !fullContainer.length) return;
 
-      addStyles();
+      ensureStyles();
 
-      // Кнопка редактора в хедере
-      const header = container.find('.head__actions');
-      if (header.length && !header.find('.cbe-editor').length) {
-        const editorBtn = $(`
-          <div class="head__action selector cbe-editor">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-            </svg>
-          </div>
-        `);
-        header.find('.open--settings').after(editorBtn);
-        editorBtn.on('hover:enter', () => openButtonEditor(container));
+      var headActions = fullContainer.find('.head__actions');
+      if (headActions.length) {
+        var editButton = headActions.find('.edit-buttons');
+        if (editButton.length === 0) {
+          editButton = $('<div class="head__action selector edit-buttons">' +
+            '<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+            '<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>' +
+            '<path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>' +
+            '</svg>' +
+            '</div>');
+
+          headActions.find('.open--settings').after(editButton);
+
+          editButton.on('hover:enter', function () {
+            openEditor(fullContainer);
+          });
+        }
       }
 
-      // Собираем кнопки
-      const priority = container.find('.full-start-new__buttons .button--priority').detach();
-      container.find('.full-start-new__buttons .button--play').remove();
+      var priority = fullContainer.find('.full-start-new__buttons .button--priority').detach();
+      fullContainer.find('.full-start-new__buttons .button--play').remove();
 
-      const { buttons, buttonMap, mainRow } = collectButtons(container, true);
+      var _scanButtons = scanButtons(fullContainer, true),
+        items = _scanButtons.items,
+        map = _scanButtons.map,
+        targetContainer = _scanButtons.targetContainer;
 
-      let order = buildOrder(getStoredArray(ORDER_KEY), buttons);
+      var savedOrder = readArray(ORDER_KEY);
+      var order = normalizeOrder(savedOrder, items);
 
-      // Автосортировка при первом использовании
-      if (getStoredArray(ORDER_KEY).length === 0) {
-        order.sort((a, b) => {
-          const aOnline = a.startsWith('button--');
-          const bOnline = b.startsWith('button--');
-          return aOnline && !bOnline ? -1 : !aOnline && bOnline ? 1 : 0;
+      if (savedOrder.length === 0) {
+        order.sort(function(a, b) {
+          var aIsOnline = a.startsWith('button--');
+          var bIsOnline = b.startsWith('button--');
+          if (aIsOnline && !bIsOnline) return -1;
+          if (!aIsOnline && bIsOnline) return 1;
+          return 0;
         });
       }
 
-      mainRow.empty();
-      if (priority.length) mainRow.append(priority);
-
-      order.forEach(id => {
-        if (buttonMap[id]) mainRow.append(buttonMap[id]);
+      targetContainer.empty();
+      if (priority.length) targetContainer.append(priority);
+      order.forEach(function (id) {
+        if (map[id]) targetContainer.append(map[id]);
       });
 
-      mainRow.toggleClass('cbe-icons-only', Lampa.Storage.get(ICONS_ONLY_KEY) === true);
-      mainRow.addClass('cbe-button-row');
-      hideButtons(buttonMap);
+      targetContainer.toggleClass('lme-button-text-hidden', Lampa.Storage.get('lme_showbuttonwn') === true);
+      targetContainer.addClass('lme-buttons');
+      applyHidden(map);
 
-      Lampa.Controller.toggle('full_start');
+      Lampa.Controller.toggle("full_start");
 
-      if (cardInstance?.html && container[0] === cardInstance.html[0]) {
-        const first = mainRow.find('.full-start__button.selector').not('.hide').not('.cbe-hidden').first();
-        if (first.length) cardInstance.last = first[0];
+      if (lastStartInstance && lastStartInstance.html && fullContainer[0] === lastStartInstance.html[0]) {
+        var firstButton = targetContainer.find('.full-start__button.selector').not('.hide').not('.lme-button-hide').first();
+        if (firstButton.length) lastStartInstance.last = firstButton[0];
       }
     }
 
-    // Редактор кнопок
-    function openButtonEditor(container) {
-      const { buttons, buttonMap } = collectButtons(container, false);
-      const currentOrder = buildOrder(getStoredArray(ORDER_KEY), buttons);
-      const hidden = new Set(getStoredArray(HIDE_KEY));
+    function openEditor(fullContainer) {
+      if (!fullContainer || !fullContainer.length) return;
 
-      const editorList = $('<div class="menu-edit-list"></div>');
+      var _scanButtons2 = scanButtons(fullContainer, false),
+        items = _scanButtons2.items,
+        map = _scanButtons2.map;
 
-      currentOrder.forEach(id => {
-        const btn = buttonMap[id];
-        if (!btn?.length) return;
+      var order = normalizeOrder(readArray(ORDER_KEY), items);
+      var hidden = new Set(readArray(HIDE_KEY));
 
-        const label = buttonLabel(id, btn);
-        const icon = btn.find('svg').first().prop('outerHTML') || '';
+      var list = $('<div class="menu-edit-list"></div>');
 
-        const row = $(`
-          <div class="menu-edit-list__item" data-id="${id}">
-            <div class="menu-edit-list__icon"></div>
-            <div class="menu-edit-list__title">${label}</div>
-            <div class="menu-edit-list__move move-up selector">
-              <svg width="22" height="14" viewBox="0 0 22 14"><path d="M2 12L11 3L20 12" stroke="currentColor" stroke-width="4" stroke-linecap="round"/></svg>
-            </div>
-            <div class="menu-edit-list__move move-down selector">
-              <svg width="22" height="14" viewBox="0 0 22 14"><path d="M2 2L11 11L20 2" stroke="currentColor" stroke-width="4" stroke-linecap="round"/></svg>
-            </div>
-            <div class="menu-edit-list__toggle toggle selector">
-              <svg width="26" height="26" viewBox="0 0 26 26">
-                <rect x="1.9" y="1.8" width="21.8" height="21.8" rx="3.5" stroke="currentColor" stroke-width="3"/>
-                <path d="M7.4 13L10.8 16.3L18.1 9" stroke="currentColor" stroke-width="3" class="dot" opacity="0"/>
-              </svg>
-            </div>
-          </div>
-        `);
+      order.forEach(function (id) {
+        var $btn = map[id];
+        if (!$btn || !$btn.length) return;
 
-        if (icon) row.find('.menu-edit-list__icon').append(icon);
-        row.toggleClass('lme-button-hidden', hidden.has(id));
-        row.find('.dot').attr('opacity', hidden.has(id) ? 0 : 1);
+        var title = getButtonTitle(id, $btn);
+        var icon = $btn.find('svg').first().prop('outerHTML') || '';
 
-        row.find('.move-up').on('hover:enter click', () => {
-          const prev = row.prev();
-          if (prev.length) row.insertBefore(prev);
+        var item = $("<div class=\"menu-edit-list__item\" data-id=\"".concat(id, "\">\n            <div class=\"menu-edit-list__icon\"></div>\n            <div class=\"menu-edit-list__title\">").concat(title, "</div>\n            <div class=\"menu-edit-list__move move-up selector\">\n                <svg width=\"22\" height=\"14\" viewBox=\"0 0 22 14\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\">\n                    <path d=\"M2 12L11 3L20 12\" stroke=\"currentColor\" stroke-width=\"4\" stroke-linecap=\"round\"/>\n                </svg>\n            </div>\n            <div class=\"menu-edit-list__move move-down selector\">\n                <svg width=\"22\" height=\"14\" viewBox=\"0 0 22 14\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\">\n                    <path d=\"M2 2L11 11L20 2\" stroke=\"currentColor\" stroke-width=\"4\" stroke-linecap=\"round\"/>\n                </svg>\n            </div>\n            <div class=\"menu-edit-list__toggle toggle selector\">\n                <svg width=\"26\" height=\"26\" viewBox=\"0 0 26 26\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\">\n                    <rect x=\"1.89111\" y=\"1.78369\" width=\"21.793\" height=\"21.793\" rx=\"3.5\" stroke=\"currentColor\" stroke-width=\"3\"/>\n                    <path d=\"M7.44873 12.9658L10.8179 16.3349L18.1269 9.02588\" stroke=\"currentColor\" stroke-width=\"3\" class=\"dot\" opacity=\"0\" stroke-linecap=\"round\"/>\n                </svg>\n            </div>\n        </div>"));
+
+        if (icon) item.find('.menu-edit-list__icon').append(icon);
+
+        item.toggleClass('lme-button-hidden', hidden.has(id));
+        item.find('.dot').attr('opacity', hidden.has(id) ? 0 : 1);
+
+        item.find('.move-up').on('hover:enter click', function () {
+          var prev = item.prev();
+          if (prev.length) item.insertBefore(prev);
         });
 
-        row.find('.move-down').on('hover:enter click', () => {
-          const next = row.next();
-          if (next.length) row.insertAfter(next);
+        item.find('.move-down').on('hover:enter click', function () {
+          var next = item.next();
+          if (next.length) item.insertAfter(next);
         });
 
-        row.find('.toggle').on('hover:enter click', () => {
-          row.toggleClass('lme-button-hidden');
-          row.find('.dot').attr('opacity', row.hasClass('lme-button-hidden') ? 0 : 1);
+        item.find('.toggle').on('hover:enter click', function () {
+          item.toggleClass('lme-button-hidden');
+          item.find('.dot').attr('opacity', item.hasClass('lme-button-hidden') ? 0 : 1);
         });
 
-        editorList.append(row);
+        list.append(item);
       });
 
       Lampa.Modal.open({
         title: 'Редактировать кнопки',
-        html: editorList,
+        html: list,
         size: 'small',
         scroll_to_center: true,
-        onBack: () => {
-          const newOrder = [];
-          const newHidden = [];
-          editorList.find('.menu-edit-list__item').each(function () {
-            const id = $(this).data('id');
+        onBack: function onBack() {
+          var newOrder = [];
+          var newHidden = [];
+          list.find('.menu-edit-list__item').each(function () {
+            var id = $(this).data('id');
             if (!id) return;
             newOrder.push(id);
             if ($(this).hasClass('lme-button-hidden')) newHidden.push(id);
           });
-
           Lampa.Storage.set(ORDER_KEY, newOrder);
           Lampa.Storage.set(HIDE_KEY, newHidden);
           Lampa.Modal.close();
-          rebuildCard(container);
-          Lampa.Controller.toggle('full_start');
+          applyLayout(fullContainer);
+          Lampa.Controller.toggle("full_start");
         }
       });
     }
 
-    // Редактор из настроек
-    function openFromSettings() {
-      const current = $('.full-start-new').first();
-      if (!current.length) {
+    function openEditorFromSettings() {
+      if (!lastFullContainer || !lastFullContainer.length || !document.body.contains(lastFullContainer[0])) {
+        var current = resolveActiveFullContainer();
+        if (current && current.length) {
+          lastFullContainer = current;
+        }
+      }
+
+      if (!lastFullContainer || !lastFullContainer.length) {
         Lampa.Modal.open({
           title: 'Ошибка',
-          html: $('<div class="modal__text">Откройте карточку фильма</div>'),
+          html: $('<div class="modal__text">Откройте карточку фильма для редактирования кнопок</div>'),
           size: 'small',
-          onBack: () => {
+          onBack: function () {
             Lampa.Modal.close();
-            Lampa.Controller.toggle('settings_component');
+            Lampa.Controller.toggle("settings_component");
           }
         });
         return;
       }
-      openButtonEditor(current);
+
+      openEditor(lastFullContainer);
     }
 
-    // Слушатель событий карточки
-    function initCardListener() {
-      Lampa.Listener.follow('full', e => {
-        if (e.type === 'build' && e.name === 'start' && e.item?.html) {
-          cardInstance = e.item;
+    function main$7() {
+      Lampa.Listener.follow('full', function (e) {
+        if (e.type === 'build' && e.name === 'start' && e.item && e.item.html) {
+          lastStartInstance = e.item;
         }
         if (e.type === 'complite') {
-          const cont = getCardContainer(e);
-          if (cont) {
-            activeCard = cont;
-            rebuildCard(cont);
-          }
+          var fullContainer = getFullContainer(e);
+          if (!fullContainer) return;
+          lastFullContainer = fullContainer;
+          applyLayout(fullContainer);
         }
       });
     }
+    var showButton = {
+      main: main$7,
+      openEditorFromSettings: openEditorFromSettings
+    };
 
-    // Настройки
-    function setupSettings() {
+    function main$6() {
       Lampa.SettingsApi.addComponent({
-        component: 'cbe',
+        component: "lme",
         name: 'Кнопки в карточке',
-        icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>'
+        icon: '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>'
       });
 
       Lampa.SettingsApi.addParam({
-        component: 'cbe',
-        param: { name: SHOW_ALL_KEY, type: 'trigger', default: false },
-        field: {
-          name: 'Все кнопки в одной строке',
-          description: Lampa.Lang.translate('cbe_main_desc')
+        component: "lme",
+        param: {
+          name: "lme_showbutton",
+          type: "trigger",
+          "default": false
         },
-        onChange: () => {
+        field: {
+          name: 'Все кнопки действий в карточке',
+          description: Lampa.Lang.translate('lme_showbutton_desc')
+        },
+        onChange: function onChange(value) {
           Lampa.Settings.update();
-          setTimeout(() => Lampa.Settings.render(), 100);
+          setTimeout(function () {
+            Lampa.Settings.render();
+          }, 100);
         }
       });
 
-      if (Lampa.Storage.get(SHOW_ALL_KEY)) {
+      if (Lampa.Storage.get('lme_showbutton') === true) {
         Lampa.SettingsApi.addParam({
-          component: 'cbe',
-          param: { name: ICONS_ONLY_KEY, type: 'trigger', default: false },
+          component: "lme",
+          param: {
+            name: "lme_showbuttonwn",
+            type: "trigger",
+            "default": false
+          },
           field: {
             name: 'Только иконки',
-            description: Lampa.Lang.translate('cbe_icons_only_desc')
+            description: Lampa.Lang.translate('lme_showbuttonwn_desc')
           },
-          onChange: () => Lampa.Settings.update()
+          onChange: function onChange(value) {
+            Lampa.Settings.update();
+          }
         });
 
         Lampa.SettingsApi.addParam({
-          component: 'cbe',
-          param: { name: 'cbe_edit_btn', type: 'button' },
+          component: "lme",
+          param: {
+            name: "lme_button_editor",
+            type: "button"
+          },
           field: {
             name: 'Редактировать кнопки',
-            description: 'Изменить порядок и скрытие'
+            description: 'Изменить порядок и скрыть кнопки в карточке'
           },
-          onChange: openFromSettings
+          onChange: function onChange() {
+            showButton.openEditorFromSettings();
+          }
         });
       }
     }
-
-    // Манифест
-    const pluginManifest = {
-      type: 'other',
-      version: CURRENT_VERSION,
-      author: '@custom',
-      name: 'Кнопки в карточке',
-      description: 'Управление кнопками действий в карточке фильма',
-      component: 'cbe'
+    var CONFIG = {
+      main: main$6
     };
 
-    // Инициализация
-    function initPlugin() {
-      initLang();
-      Lampa.Manifest.plugins = pluginManifest;
+    var manifest = {
+      type: "other",
+      version: "0.2.6",
+      author: '@lme_chat',
+      name: "Кнопки в карточке",
+      description: "Выводит все кнопки действий в карточке. Добавляет карандаш в хедер и пункт в настройках для редактирования.",
+      component: "lme"
+    };
 
-      // Очистка старого кэша от LME
-      ['lme_buttonsort', 'lme_buttonhide', 'lme_showbutton', 'lme_showbuttonwn'].forEach(k => Lampa.Storage.del(k));
+    function add() {
+      Lang.main();
+      Lampa.Manifest.plugins = manifest;
 
-      // Очистка/обновление собственного кэша
-      const savedVer = Lampa.Storage.get(VERSION_KEY);
-      if (savedVer !== CURRENT_VERSION) {
+      // Автоматическая очистка кэша от старых/неработающих версий плагина
+      var CURRENT_VERSION = manifest.version;
+      var savedVersion = Lampa.Storage.get(VERSION_KEY);
+      if (savedVersion !== CURRENT_VERSION) {
         Lampa.Storage.del(ORDER_KEY);
         Lampa.Storage.del(HIDE_KEY);
+        // Если были другие старые ключи — добавьте здесь del
         Lampa.Storage.set(VERSION_KEY, CURRENT_VERSION);
       }
 
-      setupSettings();
-
-      if (Lampa.Storage.get(SHOW_ALL_KEY)) {
-        initCardListener();
+      CONFIG.main();
+      if (Lampa.Storage.get('lme_showbutton') === true) {
+        showButton.main();
       }
     }
 
-    // Запуск
-    function start() {
-      window.plugin_cbe_ready = true;
-      if (window.appready) initPlugin();
-      else Lampa.Listener.follow('app', e => { if (e.type === 'ready') initPlugin(); });
+    function startPlugin() {
+      window.plugin_lme_ready = true;
+      if (window.appready) add();
+      else {
+        Lampa.Listener.follow("app", function (e) {
+          if (e.type === "ready") add();
+        });
+      }
     }
 
-    if (!window.plugin_cbe_ready) start();
+    if (!window.plugin_lme_ready) startPlugin();
 
 })();
