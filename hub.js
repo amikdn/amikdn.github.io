@@ -4,7 +4,7 @@
     function main$8() {
       Lampa.Lang.add({
         lme_showbutton_desc: {
-          ru: "Перемещает все кнопки действий в верхнюю панель карточки"
+          ru: "Добавляет кнопку редактирования кнопок действий прямо в карточке фильма"
         }
       });
     }
@@ -17,6 +17,7 @@
     var HIDE_KEY = 'lme_buttonhide';
     var lastFullContainer = null;
     var lastStartInstance = null;
+
     var FALLBACK_TITLES = {
       'button--play': function buttonPlay() {
         return Lampa.Lang.translate('title_watch');
@@ -43,7 +44,7 @@
 
     function ensureStyles() {
       if (document.getElementById(STYLE_ID)) return;
-      var style = "\n        .lme-buttons {\n            display: flex;\n            flex-wrap: wrap;\n            gap: 10px;\n            align-items: center;\n        }\n        .lme-button-hide {\n            display: none !important;\n        }\n        .lme-button-text-hidden span {\n            display: none;\n        }\n        .lme-action-buttons .full-start__button svg {\n            width: 24px;\n            height: 24px;\n        }\n    ";
+      var style = "\n        .lme-buttons {\n            display: flex;\n            flex-wrap: wrap;\n            gap: 10px;\n        }\n        .lme-button-hide {\n            display: none !important;\n        }\n        .lme-button-text-hidden span {\n            display: none;\n        }\n        .head__action.edit-buttons svg {\n            width: 24px;\n            height: 24px;\n        }\n    ";
       $('head').append("<style id=\"".concat(STYLE_ID, "\">").concat(style, "</style>"));
     }
 
@@ -112,8 +113,7 @@
       return {
         items: items,
         map: map,
-        targetContainer: targetContainer,
-        extraContainer: extraContainer
+        targetContainer: targetContainer
       };
     }
 
@@ -146,15 +146,7 @@
       var headActions = fullContainer.find('.head__actions');
       if (headActions.length === 0) return;
 
-      // Создаём/находим контейнер для кнопок в хедере
-      var targetContainer = headActions.find('.lme-action-buttons');
-      if (targetContainer.length === 0) {
-        targetContainer = $('<div class="lme-buttons lme-action-buttons"></div>');
-        // Вставляем после кнопки настроек (open--settings)
-        headActions.find('.open--settings').after(targetContainer);
-      }
-
-      // Создаём/находим кнопку редактирования (карандаш)
+      // Добавляем кнопку-карандаш (аналогично переключателю источников)
       var editButton = headActions.find('.edit-buttons');
       if (editButton.length === 0) {
         editButton = $('<div class="head__action selector edit-buttons">' +
@@ -163,21 +155,24 @@
           '<path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>' +
           '</svg>' +
           '</div>');
+
+        // Вставляем после кнопки настроек (open--settings), как в примере с источниками
         headActions.find('.open--settings').after(editButton);
+
+        // По hover:enter открываем редактор для текущей карточки
         editButton.on('hover:enter', function () {
           openEditor(fullContainer);
         });
       }
 
-      // Позиционируем контейнер кнопок сразу после карандаша
-      editButton.after(targetContainer);
-
+      // Применяем порядок и скрытие к стандартному контейнеру кнопок внизу
       var priority = fullContainer.find('.full-start-new__buttons .button--priority').detach();
-      fullContainer.find('.full-start-new__buttons .button--play').remove();
+      fullContainer.find('.full-start-new__buttons .button--play').remove(); // если нужно, но обычно play остаётся
 
       var _scanButtons = scanButtons(fullContainer, true),
         items = _scanButtons.items,
-        map = _scanButtons.map;
+        map = _scanButtons.map,
+        targetContainer = _scanButtons.targetContainer;
 
       var order = normalizeOrder(readArray(ORDER_KEY), items);
 
@@ -188,9 +183,6 @@
       order.forEach(function (id) {
         if (map[id]) targetContainer.append(map[id]);
       });
-
-      // В хедере всегда только иконки (скрываем текст)
-      targetContainer.addClass('lme-button-text-hidden');
 
       targetContainer.addClass('lme-buttons');
       applyHidden(map);
@@ -289,7 +281,7 @@
     function main$6() {
       Lampa.SettingsApi.addComponent({
         component: "lme",
-        name: 'Кнопки в хедере',
+        name: 'Редактор кнопок',
         icon: '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>'
       });
 
@@ -301,7 +293,7 @@
           "default": false
         },
         field: {
-          name: 'Кнопки действий в верхней панели',
+          name: 'Редактировать кнопки в карточке',
           description: Lampa.Lang.translate('lme_showbutton_desc')
         },
         onChange: function onChange(value) {
@@ -315,10 +307,10 @@
 
     var manifest = {
       type: "other",
-      version: "0.1.1",
+      version: "0.1.2",
       author: '@lme_chat',
-      name: "Кнопки в хедере",
-      description: "Перемещает кнопки действий в верхнюю панель карточки фильма/сериала. Добавляет кнопку-карандаш для редактирования порядка и скрытия кнопок.",
+      name: "Редактор кнопок в карточке",
+      description: "Добавляет кнопку-карандаш в верхнюю панель карточки фильма. По нажатию открывается редактор для изменения порядка и скрытия кнопок действий.",
       component: "lme"
     };
 
