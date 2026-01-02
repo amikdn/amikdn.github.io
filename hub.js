@@ -3,7 +3,7 @@
 
     if (!window.Lampa) return;
 
-    const plugin_name = 'Кнопки в карточке';
+    const plugin_name = 'Управление кнопками';
     const base_keys = ['play', 'book', 'reaction', 'subscribe', 'options'];
     const base_icons = {
         play: '<svg><use xlink:href="#sprite-play"></use></svg>',
@@ -153,17 +153,17 @@
     });
     quick_observer.observe(document.body, { childList: true, subtree: true });
 
-    function create_editor_view() {
+    function render_editor() {
         const view = $('<div></div>');
 
         const title = $('<div class="settings__title">Редактировать кнопки в карточке</div>');
         view.append(title);
 
-        const description = $('<div class="settings__description" style="margin-bottom: 1em;">Наведите на статус — скрыть/показать<br>↑↓ — переместить кнопку</div>');
-        view.append(description);
+        const desc = $('<div class="settings__description">Наведите на статус — скрыть/показать<br>↑↓ — переместить кнопку вверх/вниз<br><br>Кнопки источников добавляются автоматически после первого нажатия "Смотреть" в любой карточке.</div>');
+        view.append(desc);
 
-        const list_container = $('<div class="menu-edit-list"></div>');
-        view.append(list_container);
+        const list = $('<div class="menu-edit-list layer--height"></div>');
+        view.append(list);
 
         let order = Lampa.Storage.get('card_buttons_order', ['play', 'book', ...all_sources.map(s => s.key), 'reaction', 'subscribe', 'options']);
         let show = Lampa.Storage.get('card_buttons_show', { play: true, book: true, reaction: true, subscribe: true, options: true });
@@ -211,8 +211,7 @@
                 if (idx > 0) {
                     [order[idx - 1], order[idx]] = [order[idx], order[idx - 1]];
                     Lampa.Storage.set('card_buttons_order', order);
-                    create_editor_view(); // Перезапускаем активность для обновления
-                    Lampa.Activity.replace();
+                    render_editor();
                 }
             });
 
@@ -220,42 +219,30 @@
                 if (idx < order.length - 1) {
                     [order[idx], order[idx + 1]] = [order[idx + 1], order[idx]];
                     Lampa.Storage.set('card_buttons_order', order);
-                    create_editor_view();
-                    Lampa.Activity.replace();
+                    render_editor();
                 }
             });
 
-            list_container.append(item);
+            list.append(item);
         });
 
         return view;
     }
 
-    function open_editor_activity() {
-        // Закрываем настройки
-        Lampa.Activity.back();
-
-        // Открываем редактор как отдельную активность
-        setTimeout(() => {
-            Lampa.Activity.push({
-                url: '',
-                title: 'Редактировать кнопки в карточке',
-                component: 'card_buttons_editor',
-                html: create_editor_view(),
-                page: 1
-            });
-        }, 300);
-    }
-
     Lampa.SettingsApi.addParam({
         component: 'interface',
         param: { name: 'card_buttons_edit', type: 'static' },
-        field: { name: 'Кнопки в карточке', description: 'Редактировать порядок и видимость (все источники добавляются автоматически после первого "Смотреть")' },
+        field: { name: 'Кнопки в карточке', description: 'Редактировать порядок и видимость' },
         onRender: (item) => {
             const ref = $('[data-name="interface_size"]').closest('.settings-param');
             if (ref.length) item.insertAfter(ref);
 
-            item.on('hover:enter', open_editor_activity);
+            item.on('hover:enter', () => {
+                Lampa.Settings.main().update({
+                    title: plugin_name,
+                    html: render_editor()
+                });
+            });
         }
     });
 
