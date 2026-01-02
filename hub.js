@@ -3,7 +3,7 @@
 
     if (!window.Lampa) return;
 
-    const plugin_name = 'Управление кнопками в карточке';
+    const plugin_name = 'Кнопки в карточке';
     const base_keys = ['play', 'book', 'reaction', 'subscribe', 'options'];
     const base_icons = {
         play: '<svg><use xlink:href="#sprite-play"></use></svg>',
@@ -52,7 +52,6 @@
             play: true, book: true, reaction: true, subscribe: true, options: true
         });
 
-        // Добавляем новые динамические в конец, если их нет в order
         dynamic_sources.forEach(src => {
             if (!order.includes(src.key)) order.push(src.key);
             if (show[src.key] === undefined) show[src.key] = true;
@@ -74,7 +73,6 @@
     });
     buttons_observer.observe(document.body, { childList: true, subtree: true });
 
-    // Сбор динамических источников
     const source_observer = new MutationObserver(() => {
         const items = $('.selectbox-item.selectbox-item--icon');
         if (!items.length) return;
@@ -87,17 +85,22 @@
 
             const subtitle = ($item.find('.selectbox-item__subtitle').text() || '').trim().toLowerCase();
             if (title === 'Торренты' || subtitle.includes('онлайн')) {
-                let icon = $item.find('.selectbox-item__icon')[0].outerHTML;
-                if (title === 'Торренты') icon = '<svg><use xlink:href="#sprite-torrent"></use></svg>';
+                let icon_svg = $item.find('.selectbox-item__icon svg')[0]?.outerHTML || '<svg><use xlink:href="#sprite-torrent"></use></svg>';
+                if (title === 'Торренты') icon_svg = '<svg><use xlink:href="#sprite-torrent"></use></svg>';
 
                 const key = 'src_' + title.replace(/[\s\(\)\-]+/g, '_').toLowerCase();
-                new_sources.push({ key, title, html: `<div class="full-start__button selector button--${key}">${icon}<span>${title}</span></div>` });
+                new_sources.push({
+                    key,
+                    title,
+                    html: `<div class="full-start__button selector button--${key}"><div class="full-start__button__icon">${icon_svg}</div><span>${title}</span></div>`
+                });
             }
         });
 
         if (new_sources.length) {
             dynamic_sources = new_sources;
             Lampa.Storage.set('card_buttons_dynamic', dynamic_sources);
+
             $('.full-start-new__buttons').each((_, cont) => {
                 $(cont).removeData('customized');
                 customize_buttons($(cont));
@@ -106,7 +109,6 @@
     });
     source_observer.observe(document.body, { childList: true, subtree: true });
 
-    // Quick source без зависаний
     const quick_observer = new MutationObserver(() => {
         if (processing_quick) return;
         const quick = Lampa.Storage.get('quick_source', '');
@@ -134,20 +136,20 @@
     });
     quick_observer.observe(document.body, { childList: true, subtree: true });
 
-    function open_editor_modal() {
+    function build_list(body) {
+        body.empty();
+
         let order = Lampa.Storage.get('card_buttons_order', ['play', 'book', ...dynamic_sources.map(s => s.key), 'reaction', 'subscribe', 'options']);
         let show = Lampa.Storage.get('card_buttons_show', { play: true, book: true, reaction: true, subscribe: true, options: true });
-
-        const list = $('<div class="menu-edit-list"></div>');
 
         order.forEach((key, idx) => {
             const is_base = base_keys.includes(key);
             const title = is_base ? base_titles[key] : dynamic_sources.find(s => s.key === key)?.title || key;
-            const icon = is_base ? base_icons[key] : dynamic_sources.find(s => s.key === key)?.html.match(/<svg.*?<\/svg>/s)[0] || '<svg></svg>';
+            const icon_svg = is_base ? base_icons[key] : $(dynamic_sources.find(s => s.key === key)?.html).find('svg').prop('outerHTML') || '<svg></svg>';
 
             const item = $(`
                 <div class="menu-edit-list__item">
-                    <div class="menu-edit-list__icon">${icon}</div>
+                    <div class="menu-edit-list__icon">${icon_svg}</div>
                     <div class="menu-edit-list__title">${title}</div>
                     <div class="menu-edit-list__move move-up selector ${idx === 0 ? 'hide' : ''}">
                         <svg width="22" height="14" viewBox="0 0 22 14" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -167,13 +169,13 @@
                     </div>
                 </div>
             `);
-            item.data('key', key);
 
             // Toggle
             item.find('.toggle').on('hover:enter', () => {
                 show[key] = !show[key];
-                item.find('.dot').css('opacity', show[key] ? '1' : '0');
                 Lampa.Storage.set('card_buttons_show', show);
+                item.find('.dot').css('opacity', show[key] ? '1' : '0');
+
                 $('.full-start-new__buttons').each((_, c) => {
                     $(c).removeData('customized');
                     customize_buttons($(c));
@@ -185,7 +187,7 @@
                 if (idx > 0) {
                     [order[idx - 1], order[idx]] = [order[idx], order[idx - 1]];
                     Lampa.Storage.set('card_buttons_order', order);
-                    open_editor_modal(); // Переоткрываем модалку для обновления
+                    build_list(body);
                 }
             });
 
@@ -194,43 +196,32 @@
                 if (idx < order.length - 1) {
                     [order[idx], order[idx + 1]] = [order[idx + 1], order[idx]];
                     Lampa.Storage.set('card_buttons_order', order);
-                    open_editor_modal();
+                    build_list(body);
                 }
             });
 
-            list.append(item);
+            body.append(item);
         });
+    }
 
-        const modal_html = $(`
-            <div class="modal animate">
-                <div class="modal__content">
-                    <div class="modal__head">
-                        <div class="modal__title">Редактировать кнопки в карточке</div>
-                    </div>
-                    <div class="modal__body">
-                        <div class="scroll scroll--over">
-                            <div class="scroll__content">
-                                <div class="scroll__body">${list.prop('outerHTML')}</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `);
+    function open_editor_modal() {
+        const scroll = $('<div class="scroll scroll--over"><div class="scroll__content"><div class="scroll__body"></div></div></div>');
+        const body = scroll.find('.scroll__body');
+
+        build_list(body);
 
         Lampa.Modal.open({
-            title: '',
-            html: modal_html,
+            title: 'Редактировать кнопки в карточке',
+            html: scroll,
             onBack: () => Lampa.Modal.close(),
             size: 'medium'
         });
     }
 
-    // Пункт в разделе Интерфейс
     Lampa.SettingsApi.addParam({
         component: 'interface',
         param: { name: 'card_buttons_edit', type: 'static' },
-        field: { name: 'Кнопки в карточке', description: 'Скрывать, перемещать, редактировать порядок' },
+        field: { name: 'Кнопки в карточке', description: 'Редактировать порядок, видимость' },
         onRender: (item) => {
             const ref = $('[data-name="interface_size"]').closest('.settings-param');
             if (ref.length) item.insertAfter(ref);
