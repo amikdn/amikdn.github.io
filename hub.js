@@ -38,14 +38,6 @@
             .be-button-text-hidden span {
                 display: none;
             }
-            /* Стиль для скрытых элементов в списке редактора (как в оригинале — затемнение) */
-            .menu-edit-list__item.be-item-hidden {
-                opacity: 0.5;
-            }
-            /* Иконки в списке редактора — всегда яркие */
-            .menu-edit-list__item .menu-edit-list__icon svg {
-                opacity: 1 !important;
-            }
         `;
         $('head').append(`<style id="${STYLE_ID}">${style}</style>`);
     }
@@ -96,15 +88,8 @@
         return FALLBACK_TITLES[id] ? FALLBACK_TITLES[id]() : id;
     }
 
-    /* Исправлено копирование иконок — берём именно иконку кнопки (как в оригинале Lampa) */
     function getButtonIcon($button) {
-        // В Lampa иконка обычно прямо в кнопке как первый <svg>
-        var svg = $button.find('svg').first();
-        if (svg.length) return svg.prop('outerHTML');
-        // Если иконка в отдельном контейнере (некоторые плагины так делают)
-        var iconDiv = $button.find('.full-start__button_icon svg').first();
-        if (iconDiv.length) return iconDiv.prop('outerHTML');
-        return '';
+        return $button.find('svg').first().prop('outerHTML') || '';
     }
 
     function scanButtons(fullContainer, detach) {
@@ -158,17 +143,19 @@
         if (priority.length) targetContainer.append(priority);
         order.forEach(id => { if (map[id]) targetContainer.append(map[id]); });
 
-        targetContainer.toggleClass('be-button-text-hidden', Lampa.Storage.get('be_hide_text') === true);
+        var hideText = Lampa.Storage.get('be_hide_text') === true;
+        targetContainer.toggleClass('be-button-text-hidden', hideText);
         targetContainer.addClass('be-buttons');
 
         applyHidden(map);
 
-        // Обновление фокуса (как в оригинале)
         Lampa.Controller.toggle('full_start');
 
         if (lastStartInstance && lastStartInstance.html && fullContainer[0] === lastStartInstance.html[0]) {
-            var first = targetContainer.find('.full-start__button.selector').not('.hide').not('.be-button-hide').first();
-            if (first.length) lastStartInstance.last = first[0];
+            var firstButton = targetContainer.find('.full-start__button.selector').not('.hide').not('.be-button-hide').first();
+            if (firstButton.length) {
+                lastStartInstance.last = firstButton[0];
+            }
         }
     }
 
@@ -189,17 +176,21 @@
             var icon = getButtonIcon($btn);
 
             var item = $(`
-                <div class="menu-edit-list__item be-item" data-id="${id}">
+                <div class="menu-edit-list__item" data-id="${id}">
                     <div class="menu-edit-list__icon"></div>
                     <div class="menu-edit-list__title">${title}</div>
                     <div class="menu-edit-list__move move-up selector">
-                        <svg width="22" height="14" viewBox="0 0 22 14"><path d="M2 12L11 3L20 12" stroke="currentColor" stroke-width="4" stroke-linecap="round"/></svg>
+                        <svg width="22" height="14" viewBox="0 0 22 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M2 12L11 3L20 12" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
+                        </svg>
                     </div>
                     <div class="menu-edit-list__move move-down selector">
-                        <svg width="22" height="14" viewBox="0 0 22 14"><path d="M2 2L11 11L20 2" stroke="currentColor" stroke-width="4" stroke-linecap="round"/></svg>
+                        <svg width="22" height="14" viewBox="0 0 22 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M2 2L11 11L20 2" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
+                        </svg>
                     </div>
                     <div class="menu-edit-list__toggle toggle selector">
-                        <svg width="26" height="26" viewBox="0 0 26 26">
+                        <svg width="26" height="26" viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <rect x="1.89111" y="1.78369" width="21.793" height="21.793" rx="3.5" stroke="currentColor" stroke-width="3"/>
                             <path d="M7.44873 12.9658L10.8179 16.3349L18.1269 9.02588" stroke="currentColor" stroke-width="3" class="dot" opacity="0" stroke-linecap="round"/>
                         </svg>
@@ -209,8 +200,7 @@
 
             if (icon) item.find('.menu-edit-list__icon').append(icon);
 
-            // Затемнение скрытой кнопки + галочка только у видимых
-            item.toggleClass('be-item-hidden', hidden.has(id));
+            // Только галочка меняется, без затемнения элемента (как в оригинале)
             item.find('.dot').attr('opacity', hidden.has(id) ? 0 : 1);
 
             item.find('.move-up').on('hover:enter', () => {
@@ -224,9 +214,9 @@
             });
 
             item.find('.toggle').on('hover:enter', () => {
-                item.toggleClass('be-item-hidden');
-                var isHidden = item.hasClass('be-item-hidden');
-                item.find('.dot').attr('opacity', isHidden ? 0 : 1);
+                var dot = item.find('.dot');
+                var current = dot.attr('opacity');
+                dot.attr('opacity', current == '1' ? '0' : '1');
             });
 
             list.append(item);
@@ -244,18 +234,19 @@
                     var id = $(this).data('id');
                     if (id) {
                         newOrder.push(id);
-                        if ($(this).hasClass('be-item-hidden')) newHidden.push(id);
+                        if ($(this).find('.dot').attr('opacity') == '0') newHidden.push(id);
                     }
                 });
+
                 Lampa.Storage.set(ORDER_KEY, newOrder);
                 Lampa.Storage.set(HIDE_KEY, newHidden);
 
                 Lampa.Modal.close();
 
-                // Задержка, чтобы избежать зависания (DOM обновляется после закрытия модалки)
+                // Применяем изменения с небольшой задержкой, чтобы избежать зависания
                 setTimeout(() => {
                     applyLayout(fullContainer);
-                }, 100);
+                }, 200);
             }
         });
     }
@@ -289,7 +280,6 @@
             onChange: () => Lampa.Settings.update()
         });
 
-        // Кнопка редактора всегда видна
         Lampa.SettingsApi.addParam({
             component: "buttoneditor",
             param: { name: "be_edit", type: "button" },
@@ -321,7 +311,6 @@
                 var container = getFullContainer(e);
                 if (container) {
                     lastFullContainer = container;
-                    // Задержка как в оригинале
                     setTimeout(() => applyLayout(container), 0);
                 }
             }
