@@ -47,7 +47,7 @@
 
     function ensureStyles() {
       if (document.getElementById(STYLE_ID)) return;
-      var style = "\n        .lme-buttons {\n            display: flex;\n            flex-wrap: wrap;\n            gap: 10px;\n            justify-content: center;\n            margin-top: 1em;\n        }\n        .lme-button-hide {\n            display: none !important;\n        }\n        .lme-button-text-hidden span {\n            display: none;\n        }\n        .head__action.edit-buttons svg {\n            width: 26px;\n            height: 26px;\n        }\n    ";
+      var style = "\n        .lme-buttons {\n            display: flex;\n            flex-wrap: wrap;\n            gap: 10px;\n        }\n        .lme-button-hide {\n            display: none !important;\n        }\n        .lme-button-text-hidden span {\n            display: none;\n        }\n        .head__action.edit-buttons svg {\n            width: 26px;\n            height: 26px;\n        }\n    ";
       $('head').append("<style id=\"".concat(STYLE_ID, "\">").concat(style, "</style>"));
     }
 
@@ -71,6 +71,12 @@
       if (e && e.body) return e.body;
       if (e && e.link && e.link.html) return e.link.html;
       if (e && e.object && e.object.activity && typeof e.object.activity.render === 'function') return e.object.activity.render();
+      return null;
+    }
+
+    function resolveActiveFullContainer() {
+      var current = $('.full-start-new').first();
+      if (current.length) return current;
       return null;
     }
 
@@ -147,7 +153,6 @@
 
       ensureStyles();
 
-      // Добавляем кнопку-карандаш в хедер (только если опция включена)
       var headActions = fullContainer.find('.head__actions');
       if (headActions.length) {
         var editButton = headActions.find('.edit-buttons');
@@ -159,7 +164,6 @@
             '</svg>' +
             '</div>');
 
-          // Вставляем после кнопки настроек
           headActions.find('.open--settings').after(editButton);
 
           editButton.on('hover:enter', function () {
@@ -168,7 +172,6 @@
         }
       }
 
-      // Основная логика вывода всех кнопок в карточке
       var priority = fullContainer.find('.full-start-new__buttons .button--priority').detach();
       fullContainer.find('.full-start-new__buttons .button--play').remove();
 
@@ -263,6 +266,27 @@
       });
     }
 
+    function openEditorFromSettings() {
+      if (!lastFullContainer || !lastFullContainer.length || !document.body.contains(lastFullContainer[0])) {
+        var current = resolveActiveFullContainer();
+        if (current && current.length) {
+          lastFullContainer = current;
+        }
+      }
+
+      if (!lastFullContainer || !lastFullContainer.length) {
+        Lampa.Modal.open({
+          title: 'Ошибка',
+          html: $('<div class="modal__text">Откройте карточку фильма для редактирования кнопок</div>'),
+          size: 'small',
+          onBack: Lampa.Modal.close
+        });
+        return;
+      }
+
+      openEditor(lastFullContainer);
+    }
+
     function main$7() {
       Lampa.Listener.follow('full', function (e) {
         if (e.type === 'build' && e.name === 'start' && e.item && e.item.html) {
@@ -277,7 +301,8 @@
       });
     }
     var showButton = {
-      main: main$7
+      main: main$7,
+      openEditorFromSettings: openEditorFromSettings
     };
 
     function main$6() {
@@ -303,7 +328,6 @@
         }
       });
 
-      // Опция "Только иконки" появляется только когда основная включена
       if (Lampa.Storage.get('lme_showbutton') === true) {
         Lampa.SettingsApi.addParam({
           component: "lme",
@@ -320,6 +344,21 @@
             Lampa.Settings.update();
           }
         });
+
+        Lampa.SettingsApi.addParam({
+          component: "lme",
+          param: {
+            name: "lme_button_editor",
+            type: "button"
+          },
+          field: {
+            name: 'Редактировать кнопки',
+            description: 'Изменить порядок и скрыть кнопки в карточке'
+          },
+          onChange: function onChange() {
+            showButton.openEditorFromSettings();
+          }
+        });
       }
     }
     var CONFIG = {
@@ -328,10 +367,10 @@
 
     var manifest = {
       type: "other",
-      version: "0.2.0",
+      version: "0.2.1",
       author: '@lme_chat',
-      name: "Кнопки в карточке + редактор в хедере",
-      description: "Выводит все кнопки действий в карточке. Добавляет кнопку-карандаш в верхнюю панель карточки для редактирования порядка и скрытия кнопок.",
+      name: "Кнопки в карточке",
+      description: "Выводит все кнопки действий в карточке. Добавляет кнопку-карандаш в хедер и пункт в настройках для редактирования.",
       component: "lme"
     };
 
