@@ -243,17 +243,22 @@
     }
 
     function openEditorFromSettings() {
-        if (!lastFullContainer || !lastFullContainer.length || !document.body.contains(lastFullContainer[0])) {
+        var container = lastFullContainer;
+
+        if (!container || !container.length) {
             Lampa.Modal.open({
-                title: 'Ошибка',
-                html: $('<div style="padding:1em;text-align:center;">Откройте карточку фильма/сериала для редактирования кнопок</div>'),
+                title: 'Информация',
+                html: $('<div style="padding:1em;text-align:center;">Откройте хотя бы одну карточку фильма/сериала, чтобы инициализировать редактор кнопок.<br>После этого редактор будет доступен всегда, даже без открытой карточки.</div>'),
                 size: 'small',
-                onBack: () => Lampa.Modal.close()
+                onBack: () => Lampa.Modal.close(),
+                onClose: () => {
+                    setTimeout(() => Lampa.Controller.toggle('settings'), 50);
+                }
             });
             return;
         }
 
-        openEditor(lastFullContainer);
+        openEditor(container);
     }
 
     function initSettings() {
@@ -287,7 +292,7 @@
             param: { name: "be_edit", type: "button" },
             field: {
                 name: 'Редактор кнопок',
-                description: 'Изменить порядок и скрыть кнопки (требуется открытая карточка)'
+                description: 'Изменить порядок и скрыть кнопки'
             },
             onChange: openEditorFromSettings
         });
