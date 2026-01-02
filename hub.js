@@ -2,27 +2,25 @@
     'use strict';
 
     const PLUGIN_ID = 'cardbuttons';
-    const STORAGE_ORDER = 'cardbuttons_order_v3';
-    const STORAGE_HIDDEN = 'cardbuttons_hidden_v3';
+    const STORAGE_ORDER = 'cardbuttons_order';
+    const STORAGE_HIDDEN = 'cardbuttons_hidden';
     const STORAGE_ICONS_ONLY = 'cardbuttons_icons_only';
     let activeCard = null;
 
-    // Стили
+    // Стили (точно как в оригинале, но с своим префиксом)
     function injectStyles() {
         if ($('#cardbuttons-style').length) return;
         const styles = `
             .cardbuttons-row {
                 display: flex;
                 flex-wrap: wrap;
-                gap: 14px;
-                justify-content: center;
-                padding: 10px 0;
+                gap: 10px;
             }
             .cardbuttons-hidden {
                 display: none !important;
             }
-            .cardbuttons-icons-only .full-start__button span {
-                display: none !important;
+            .cardbuttons-icons-only span {
+                display: none;
             }
         `;
         $('head').append(`<style id="cardbuttons-style">${styles}</style>`);
@@ -38,22 +36,22 @@
         if (data) return 'd_' + data;
 
         const txt = element.text().trim();
-        if (txt) return 't_' + txt.substring(0, 20);
+        if (txt) return 't_' + txt;
 
-        return 'h_' + btoa(element.html()).substring(0, 10);
+        return 'h_' + Lampa.Utils.hash(element.prop('outerHTML'));
     }
 
-    // Название кнопки для редактора
+    // Название кнопки
     function buttonLabel(key, element) {
         const text = element.find('span').text().trim() || element.text().trim();
         if (text) return text;
 
         const map = {
             'button--play': 'Смотреть',
-            'button--book': 'В закладки',
+            'button--book': 'Закладки',
             'button--reaction': 'Реакции',
-            'button--subscribe': 'Подписаться',
-            'button--options': 'Дополнительно',
+            'button--subscribe': 'Подписка',
+            'button--options': 'Ещё',
             'view--torrent': 'Торренты',
             'view--trailer': 'Трейлеры'
         };
@@ -65,66 +63,73 @@
         const mainBlock = cardElement.find('.full-start-new__buttons');
         const extraBlock = cardElement.find('.buttons--container');
 
-        const buttons = [];
-        const buttonByKey = {};
+        const keys = [];
+        const elements = {};
 
         function scan(block) {
-            block.children('.full-start__button').each(function () {
+            block.find('.full-start__button').each(function () {
                 const btn = $(this);
                 if (btn.hasClass('button--play') || btn.hasClass('button--priority')) return;
 
                 const key = buttonKey(btn);
-                if (!key || buttonByKey[key]) return;
+                if (!key || elements[key]) return;
 
-                buttonByKey[key] = detach ? btn.detach() : btn.clone();
-                buttons.push(key);
+                elements[key] = detach ? btn.detach() : btn;
+                keys.push(key);
             });
         }
 
         scan(mainBlock);
         scan(extraBlock);
 
-        return { keys: buttons, elements: buttonByKey, container: mainBlock };
+        return { keys, elements, container: mainBlock };
     }
 
-    // Перестройка кнопок
+    // Перестройка кнопок (убираем лишнюю пустоту сверху)
     function rebuildButtons(cardElement) {
         if (!cardElement || !cardElement.length) return;
 
         injectStyles();
 
+        // Сохраняем приоритетную кнопку (если есть)
         const priority = cardElement.find('.button--priority').detach();
+
+        // Удаляем кнопку play полностью
         cardElement.find('.button--play').remove();
 
         const { keys, elements, container } = gatherButtons(cardElement, true);
 
+        // Восстанавливаем порядок
         const savedOrder = Lampa.Storage.get(STORAGE_ORDER, []);
-        const finalOrder = [];
+        const order = [];
+        const existing = new Set(keys);
+        savedOrder.forEach(k => { if (existing.has(k)) order.push(k); });
+        keys.forEach(k => { if (!order.includes(k)) order.push(k); });
 
-        const existingKeys = new Set(keys);
-        savedOrder.forEach(k => { if (existingKeys.has(k)) finalOrder.push(k); });
-        keys.forEach(k => { if (!finalOrder.includes(k)) finalOrder.push(k); });
-
+        // Очищаем контейнер и добавляем кнопки без лишних отступов
         container.empty();
         if (priority.length) container.append(priority);
-        finalOrder.forEach(k => {
+        order.forEach(k => {
             if (elements[k]) container.append(elements[k]);
         });
 
+        // Применяем стили
         container.addClass('cardbuttons-row');
         if (Lampa.Storage.get(STORAGE_ICONS_ONLY, false)) {
             container.addClass('cardbuttons-icons-only');
         }
 
-        const hiddenKeys = new Set(Lampa.Storage.get(STORAGE_HIDDEN, []));
-        Object.keys(elements).forEach(k => {
-            if (hiddenKeys.has(k)) elements[k].addClass('cardbuttons-hidden');
+        // Скрываем кнопки
+        const hidden = new Set(Lampa.Storage.get(STORAGE_HIDDEN, []));
+        Object.values(elements).forEach(btn => {
+            btn.toggleClass('cardbuttons-hidden', hidden.has(buttonKey(btn)));
         });
 
+        // Обновляем контроллер (чтобы не было пустоты и фокус работал)
         Lampa.Controller.toggle('full_start');
     }
 
-    // Редактор
+    // Редактор — точно как в оригинале (структура, классы, SVG)
     function launchEditor() {
         activeCard = $('.full-start-new').first();
         if (!activeCard.length) {
@@ -138,63 +143,84 @@
 
         const { keys, elements } = gatherButtons(activeCard, false);
 
+        // Нормализуем порядок
         const savedOrder = Lampa.Storage.get(STORAGE_ORDER, []);
         const order = [];
-        const present = new Set(keys);
-        savedOrder.forEach(k => { if (present.has(k)) order.push(k); });
+        const existing = new Set(keys);
+        savedOrder.forEach(k => { if (existing.has(k)) order.push(k); });
         keys.forEach(k => { if (!order.includes(k)) order.push(k); });
 
-        const hiddenKeys = new Set(Lampa.Storage.get(STORAGE_HIDDEN, []));
+        const hidden = new Set(Lampa.Storage.get(STORAGE_HIDDEN, []));
 
-        const listHtml = $('<div></div>');
+        const list = $('<div class="menu-edit-list"></div>');
 
         order.forEach(key => {
-            const el = elements[key];
-            if (!el) return;
+            const btn = elements[key];
+            if (!btn || !btn.length) return;
 
-            const label = buttonLabel(key, el);
-            const svg = el.find('svg').length ? el.find('svg').prop('outerHTML') : '<div style="width:24px;height:24px;background:#555;border-radius:4px;"></div>';
+            const title = buttonLabel(key, btn);
+            const icon = btn.find('svg').first().prop('outerHTML') || '';
 
             const item = $(`
-                <div style="display:flex;align-items:center;padding:12px;background:rgba(255,255,255,0.08);margin-bottom:10px;border-radius:10px;" data-key="${key}">
-                    <div style="width:32px;margin-right:12px;">${svg}</div>
-                    <div style="flex:1;font-size:1.1em;">${label}</div>
-                    <div style="margin:0 12px;color:#69f;font-size:1.3em;cursor:pointer;">↑</div>
-                    <div style="margin:0 12px;color:#69f;font-size:1.3em;cursor:pointer;">↓</div>
-                    <div style="margin-left:12px;width:36px;text-align:center;font-size:1.6em;cursor:pointer;">${hiddenKeys.has(key) ? '✖' : '✓'}</div>
+                <div class="menu-edit-list__item" data-key="${key}">
+                    <div class="menu-edit-list__icon"></div>
+                    <div class="menu-edit-list__title">${title}</div>
+                    <div class="menu-edit-list__move move-up selector">
+                        <svg width="22" height="14" viewBox="0 0 22 14"><path d="M2 12L11 3L20 12" stroke="currentColor" stroke-width="4" stroke-linecap="round"/></svg>
+                    </div>
+                    <div class="menu-edit-list__move move-down selector">
+                        <svg width="22" height="14" viewBox="0 0 22 14"><path d="M2 2L11 11L20 2" stroke="currentColor" stroke-width="4" stroke-linecap="round"/></svg>
+                    </div>
+                    <div class="menu-edit-list__toggle toggle selector">
+                        <svg width="26" height="26" viewBox="0 0 26 26">
+                            <rect x="1.89111" y="1.78369" width="21.793" height="21.793" rx="3.5" stroke="currentColor" stroke-width="3"/>
+                            <path d="M7.44873 12.9658L10.8179 16.3349L18.1269 9.02588" stroke="currentColor" stroke-width="3" class="dot" opacity="0" stroke-linecap="round"/>
+                        </svg>
+                    </div>
                 </div>
             `);
 
-            item.find('div:nth-child(3)').on('hover:enter', () => {
+            if (icon) item.find('.menu-edit-list__icon').append(icon);
+
+            // Затемнение скрытой кнопки
+            item.toggleClass('lme-button-hidden', hidden.has(key));
+            item.find('.dot').attr('opacity', hidden.has(key) ? 0 : 1);
+
+            // Перемещение вверх
+            item.find('.move-up').on('hover:enter', () => {
                 const prev = item.prev();
                 if (prev.length) item.insertBefore(prev);
             });
 
-            item.find('div:nth-child(4)').on('hover:enter', () => {
+            // Перемещение вниз
+            item.find('.move-down').on('hover:enter', () => {
                 const next = item.next();
                 if (next.length) item.insertAfter(next);
             });
 
-            item.find('div:last').on('hover:enter', () => {
-                const mark = item.find('div:last');
-                mark.text(mark.text() === '✓' ? '✖' : '✓');
+            // Переключение видимости
+            item.find('.toggle').on('hover:enter', () => {
+                item.toggleClass('lme-button-hidden');
+                const opacity = item.hasClass('lme-button-hidden') ? 0 : 1;
+                item.find('.dot').attr('opacity', opacity);
             });
 
-            listHtml.append(item);
+            list.append(item);
         });
 
         Lampa.Modal.open({
             title: 'Редактор кнопок',
-            html: listHtml,
-            size: 'medium',
+            html: list,
+            size: 'small',
+            scroll_to_center: true,
             onBack: () => {
                 const newOrder = [];
                 const newHidden = [];
 
-                listHtml.children().each(function () {
+                list.find('.menu-edit-list__item').each(function () {
                     const key = $(this).data('key');
                     newOrder.push(key);
-                    if ($(this).find('div:last').text() === '✖') {
+                    if ($(this).hasClass('lme-button-hidden')) {
                         newHidden.push(key);
                     }
                 });
@@ -220,7 +246,7 @@
             param: { name: 'cardbuttons_enabled', type: 'trigger', default: false },
             field: {
                 name: 'Все кнопки в одну строку',
-                description: 'Собирает все кнопки действий в карточке фильма в одну строку и позволяет менять порядок и скрывать их'
+                description: 'Выводит все кнопки действий в одну строку в карточке фильма/сериала'
             },
             onChange: () => Lampa.Settings.update()
         });
@@ -238,7 +264,7 @@
                 param: { name: 'cardbuttons_edit', type: 'button' },
                 field: {
                     name: 'Редактор кнопок',
-                    description: 'Настроить порядок и видимость кнопок'
+                    description: 'Изменить порядок и скрыть кнопки'
                 },
                 onChange: launchEditor
             });
@@ -251,7 +277,7 @@
             if (event.type === 'complite') {
                 const card = event.body || (event.object?.activity?.render?.() || null);
                 if (card && card.length) {
-                    setTimeout(() => rebuildButtons(card), 100);
+                    setTimeout(() => rebuildButtons(card), 80);
                 }
             }
         });
