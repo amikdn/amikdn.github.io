@@ -153,8 +153,17 @@
     });
     quick_observer.observe(document.body, { childList: true, subtree: true });
 
-    function open_editor_modal() {
+    function create_editor_view() {
+        const view = $('<div></div>');
+
+        const title = $('<div class="settings__title">Редактировать кнопки в карточке</div>');
+        view.append(title);
+
+        const description = $('<div class="settings__description" style="margin-bottom: 1em;">Наведите на статус — скрыть/показать<br>↑↓ — переместить кнопку</div>');
+        view.append(description);
+
         const list_container = $('<div class="menu-edit-list"></div>');
+        view.append(list_container);
 
         let order = Lampa.Storage.get('card_buttons_order', ['play', 'book', ...all_sources.map(s => s.key), 'reaction', 'subscribe', 'options']);
         let show = Lampa.Storage.get('card_buttons_show', { play: true, book: true, reaction: true, subscribe: true, options: true });
@@ -202,7 +211,8 @@
                 if (idx > 0) {
                     [order[idx - 1], order[idx]] = [order[idx], order[idx - 1]];
                     Lampa.Storage.set('card_buttons_order', order);
-                    open_editor_modal(); // Переоткрываем для обновления списка
+                    create_editor_view(); // Перезапускаем активность для обновления
+                    Lampa.Activity.replace();
                 }
             });
 
@@ -210,33 +220,42 @@
                 if (idx < order.length - 1) {
                     [order[idx], order[idx + 1]] = [order[idx + 1], order[idx]];
                     Lampa.Storage.set('card_buttons_order', order);
-                    open_editor_modal();
+                    create_editor_view();
+                    Lampa.Activity.replace();
                 }
             });
 
             list_container.append(item);
         });
 
-        const scroll = $('<div class="scroll scroll--over"><div class="scroll__content"><div class="scroll__body"></div></div></div>');
-        scroll.find('.scroll__body').append(list_container);
+        return view;
+    }
 
-        Lampa.Modal.open({
-            title: 'Редактировать кнопки в карточке',
-            html: scroll,
-            onBack: () => Lampa.Modal.close(),
-            size: 'medium'
-        });
+    function open_editor_activity() {
+        // Закрываем настройки
+        Lampa.Activity.back();
+
+        // Открываем редактор как отдельную активность
+        setTimeout(() => {
+            Lampa.Activity.push({
+                url: '',
+                title: 'Редактировать кнопки в карточке',
+                component: 'card_buttons_editor',
+                html: create_editor_view(),
+                page: 1
+            });
+        }, 300);
     }
 
     Lampa.SettingsApi.addParam({
         component: 'interface',
         param: { name: 'card_buttons_edit', type: 'static' },
-        field: { name: 'Кнопки в карточке', description: 'Редактировать все кнопки и источники' },
+        field: { name: 'Кнопки в карточке', description: 'Редактировать порядок и видимость (все источники добавляются автоматически после первого "Смотреть")' },
         onRender: (item) => {
             const ref = $('[data-name="interface_size"]').closest('.settings-param');
             if (ref.length) item.insertAfter(ref);
 
-            item.on('hover:enter', open_editor_modal);
+            item.on('hover:enter', open_editor_activity);
         }
     });
 
