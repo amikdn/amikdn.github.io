@@ -47,7 +47,7 @@
 
     function ensureStyles() {
       if (document.getElementById(STYLE_ID)) return;
-      var style = "\n        .lme-buttons {\n            display: flex;\n            flex-wrap: wrap;\n            gap: 10px;\n        }\n        .lme-button-hide {\n            display: none !important;\n        }\n        .lme-button-text-hidden span {\n            display: none;\n        }\n        .head__action.edit-buttons svg {\n            width: 26px;\n            height: 26px;\n        }\n        .lme-modal-footer {\n            display: flex;\n            justify-content: flex-end;\n            gap: 1em;\n            margin-top: 1.5em;\n            padding-top: 1em;\n            border-top: 1px solid rgba(255,255,255,0.1);\n        }\n        .lme-modal-button {\n            padding: 0.8em 1.5em;\n            background: rgba(255,255,255,0.1);\n            border-radius: 0.5em;\n        }\n    ";
+      var style = "\n        .lme-buttons {\n            display: flex;\n            flex-wrap: wrap;\n            gap: 10px;\n        }\n        .lme-button-hide {\n            display: none !important;\n        }\n        .lme-button-text-hidden span {\n            display: none;\n        }\n        .head__action.edit-buttons svg {\n            width: 26px;\n            height: 26px;\n        }\n    ";
       $('head').append("<style id=\"".concat(STYLE_ID, "\">").concat(style, "</style>"));
     }
 
@@ -255,53 +255,27 @@
         list.append(item);
       });
 
-      // Добавляем футер с кнопками "Отмена" и "Сохранить"
-      var footer = $('<div class="lme-modal-footer"></div>');
-      var cancelBtn = $('<div class="lme-modal-button selector">Отмена</div>');
-      var saveBtn = $('<div class="lme-modal-button selector">Сохранить</div>');
-
-      cancelBtn.on('hover:enter', function () {
-        Lampa.Modal.close();
-        setTimeout(function() {
-          Lampa.Controller.toggle("full_start");
-        }, 200);
-      });
-
-      saveBtn.on('hover:enter', function () {
-        var newOrder = [];
-        var newHidden = [];
-        list.find('.menu-edit-list__item').each(function () {
-          var id = $(this).data('id');
-          if (!id) return;
-          newOrder.push(id);
-          if ($(this).hasClass('lme-button-hidden')) newHidden.push(id);
-        });
-        Lampa.Storage.set(ORDER_KEY, newOrder);
-        Lampa.Storage.set(HIDE_KEY, newHidden);
-        Lampa.Modal.close();
-        applyLayout(fullContainer);
-        setTimeout(function() {
-          Lampa.Controller.toggle("full_start");
-        }, 200);
-      });
-
-      footer.append(cancelBtn);
-      footer.append(saveBtn);
-
-      var modalContent = $('<div></div>');
-      modalContent.append(list);
-      modalContent.append(footer);
-
       Lampa.Modal.open({
         title: 'Редактировать кнопки',
-        html: modalContent,
+        html: list,
         size: 'small',
         scroll_to_center: true,
-        // Запрещаем закрытие по тапу вне окна (mask_close: false, если поддерживается; иначе тап вне будет как отмена)
-        mask_close: false,
-        onBack: function () {
-          // Back = Сохранить (чтобы не терять изменения случайно)
-          saveBtn.trigger('hover:enter');
+        onBack: function onBack() {
+          var newOrder = [];
+          var newHidden = [];
+          list.find('.menu-edit-list__item').each(function () {
+            var id = $(this).data('id');
+            if (!id) return;
+            newOrder.push(id);
+            if ($(this).hasClass('lme-button-hidden')) newHidden.push(id);
+          });
+          Lampa.Storage.set(ORDER_KEY, newOrder);
+          Lampa.Storage.set(HIDE_KEY, newHidden);
+          Lampa.Modal.close();
+          applyLayout(fullContainer);
+          setTimeout(function() {
+            Lampa.Controller.toggle("full_start");
+          }, 100);
         }
       });
     }
@@ -323,7 +297,7 @@
             Lampa.Modal.close();
             setTimeout(function() {
               Lampa.Controller.toggle("settings_component");
-            }, 200);
+            }, 100);
           }
         });
         return;
@@ -370,12 +344,11 @@
         },
         onChange: function onChange(value) {
           Lampa.Settings.update();
-          setTimeout(function () {
-            Lampa.Settings.render();
-          }, 100);
         }
       });
 
+      // Подопции добавляются статично — только если основная опция уже включена на момент загрузки плагина
+      // Для появления/исчезновения подопций — переоткройте настройки плагина после изменения основной опции
       if (Lampa.Storage.get('lme_showbutton') === true) {
         Lampa.SettingsApi.addParam({
           component: "lme",
@@ -415,7 +388,7 @@
 
     var manifest = {
       type: "other",
-      version: "0.2.7",
+      version: "0.2.6",
       author: '@lme_chat',
       name: "Кнопки в карточке",
       description: "Выводит все кнопки действий в карточке. Добавляет карандаш в хедер и пункт в настройках для редактирования.",
