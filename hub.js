@@ -6,9 +6,9 @@ Lampa.Platform.tv();
   /** SVG-иконки через спрайт */
   const MOVIE_SVG = `<svg><use xlink:href="#sprite-movie"></use></svg>`;
   const TV_SVG = `<svg><use xlink:href="#sprite-tv"></use></svg>`;
-  const ANIME_SVG = `<svg><use xlink:href="#sprite-anime"></use></svg>`;
+  const MULT_SVG = `<svg><use xlink:href="#sprite-mult"></use></svg>`; // Иконка мультфильмов
 
-  /** Исправленный CSS — убраны все тяжёлые эффекты для плавности на телефонах */
+  /** CSS — без тяжёлых эффектов, нижний бар всегда на месте */
   const css = `
   .navigation-bar__body {
       display: flex !important;
@@ -55,9 +55,16 @@ Lampa.Platform.tv();
       fill: currentColor;
   }
 
-  /* Полностью скрываем подписи */
   .navigation-bar__label {
       display: none !important;
+  }
+
+  /* Принудительно держим основной контейнер бара видимым */
+  .navigation-bar {
+      display: flex !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+      transform: translateY(0) !important;
   }
 
   @media (max-width: 900px) {
@@ -126,7 +133,25 @@ Lampa.Platform.tv();
     injectCSS();
     addItem('movie', MOVIE_SVG);
     addItem('tv', TV_SVG);
-    addItem('anime', ANIME_SVG);
+    addItem('cub', MULT_SVG);
+
+    // Принудительно держим бар видимым (особенно в поиске и после закрытия клавиатуры)
+    const forceShowBar = () => {
+      const nav = $('.navigation-bar');
+      if (nav) {
+        nav.style.setProperty('display', 'flex', 'important');
+        nav.style.setProperty('visibility', 'visible', 'important');
+        nav.style.setProperty('opacity', '1', 'important');
+        nav.style.setProperty('transform', 'translateY(0)', 'important');
+      }
+      const body = $('.navigation-bar__body');
+      if (body) {
+        body.style.setProperty('display', 'flex', 'important');
+      }
+    };
+
+    forceShowBar();
+    setInterval(forceShowBar, 500);
   }
 
   const mo = new MutationObserver(() => {
