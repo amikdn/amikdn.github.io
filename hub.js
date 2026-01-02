@@ -149,8 +149,10 @@
 
         applyHidden(map);
 
+        // Обновляем навигацию (как в оригинале)
         Lampa.Controller.toggle('full_start');
 
+        // Устанавливаем фокус на первую видимую кнопку
         if (lastStartInstance && lastStartInstance.html && fullContainer[0] === lastStartInstance.html[0]) {
             var firstButton = targetContainer.find('.full-start__button.selector').not('.hide').not('.be-button-hide').first();
             if (firstButton.length) {
@@ -242,25 +244,22 @@
 
                 Lampa.Modal.close();
 
-                // Применяем изменения сразу, если сейчас открыта карточка
+                // Применяем изменения только если карточка сейчас открыта (контейнер в DOM)
                 setTimeout(() => {
-                    var current = resolveActiveFullContainer();
-                    if (current && current.length) {
-                        applyLayout(current);
+                    if (fullContainer && document.body.contains(fullContainer[0])) {
+                        applyLayout(fullContainer);
                     }
-                }, 200);
+                }, 100);
             }
         });
     }
 
     function openEditorFromSettings() {
-        // Используем последнюю известную карточку (даже если она закрыта) или текущую открытую
-        var container = lastFullContainer && lastFullContainer.length ? lastFullContainer : resolveActiveFullContainer();
+        var container = lastFullContainer && lastFullContainer.length && document.body.contains(lastFullContainer[0]) ? lastFullContainer : resolveActiveFullContainer();
 
         if (container && container.length) {
             openEditor(container);
         } else {
-            // Если никогда не открывали карточку — просим открыть хотя бы одну
             Lampa.Modal.open({
                 title: 'Информация',
                 html: Lampa.Template.get('error', { title: 'Информация', text: 'Откройте хотя бы одну карточку фильма/сериала, чтобы инициализировать редактор кнопок. После этого редактор будет доступен всегда.' }),
@@ -311,7 +310,6 @@
 
         initSettings();
 
-        // Все кнопки всегда в одну строку, порядок/скрытие всегда применяются
         main();
 
         Lampa.Listener.follow('app', e => {
