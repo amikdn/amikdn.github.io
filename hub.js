@@ -160,7 +160,7 @@
         if (priority.length) targetContainer.append(priority);
         order.forEach(id => { if (map[id]) targetContainer.append(map[id]); });
 
-        targetContainer.toggleClass('be-button-text-hidden', Lampa.Storage.get('be_hide_text') === true);
+        targetContainer.toggleClass('be-button-text-hidden', Lampa.Storage.get('be_hide_text', false) === true);
         targetContainer.addClass('be-buttons');
 
         applyHidden(map);
@@ -175,19 +175,6 @@
 
     function openEditor() {
         var savedData = loadButtonsData();
-        if (savedData.length === 0) {
-            Lampa.Modal.open({
-                title: 'Информация',
-                html: $('<div style="padding:1em;text-align:center;">Откройте хотя бы одну карточку фильма/сериала, чтобы инициализировать редактор кнопок.<br>После этого редактор будет доступен всегда.</div>'),
-                size: 'small',
-                onBack: () => Lampa.Modal.close(),
-                onClose: () => {
-                    setTimeout(() => Lampa.Controller.toggle('settings'), 100);
-                }
-            });
-            return;
-        }
-
         var order = normalizeOrder(readArray(ORDER_KEY), savedData.map(b => b.id));
         var hidden = new Set(readArray(HIDE_KEY));
 
@@ -266,7 +253,7 @@
 
                 setTimeout(() => {
                     var current = resolveActiveFullContainer();
-                    if (current && current.length && Lampa.Storage.get('be_enabled') === true) {
+                    if (current && current.length && Lampa.Storage.get('be_enabled', true) === true) {
                         applyLayout(current);
                     }
                 }, 100);
@@ -302,7 +289,7 @@
             onChange: () => Lampa.Settings.update()
         });
 
-        if (Lampa.Storage.get('be_enabled') === true) {
+        if (Lampa.Storage.get('be_enabled', true) === true) {
             Lampa.SettingsApi.addParam({
                 component: "buttoneditor",
                 param: { name: "be_hide_text", type: "trigger", default: false },
@@ -323,6 +310,8 @@
             },
             onChange: openEditorFromSettings
         });
+
+        Lampa.Settings.update();
     }
 
     function main() {
@@ -334,7 +323,7 @@
                 var container = getFullContainer(e);
                 if (container) {
                     lastFullContainer = container;
-                    if (Lampa.Storage.get('be_enabled') === true) {
+                    if (Lampa.Storage.get('be_enabled', true) === true) {
                         setTimeout(() => applyLayout(container), 0);
                     }
                 }
@@ -348,7 +337,7 @@
         Lampa.Listener.follow('app', e => {
             if (e.type === 'ready') {
                 initSettings();
-                if (Lampa.Storage.get('be_enabled') === true) {
+                if (Lampa.Storage.get('be_enabled', true) === true) {
                     main();
                 }
             }
