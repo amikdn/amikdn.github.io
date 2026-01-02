@@ -287,7 +287,7 @@ Lampa.Platform.tv();
       if (reference) {
         const computed = getComputedStyle(reference);
         // Берём ширину (в landscape аватар обычно остаётся квадратным)
-        baseSize = parseFloat(computed.width || computed.height || '40');
+        baseSize = parseFloat(computed.width || computed.height || '30');
         baseMargin = parseFloat(computed.marginLeft || computed.margin || '8');
       }
 
