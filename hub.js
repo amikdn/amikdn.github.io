@@ -10,7 +10,7 @@ Lampa.Platform.tv();
     3: { action: 'cartoon', svg: `<svg><use xlink:href="#sprite-cartoon"></use></svg>` }
   };
 
-  /** CSS (без изменений) */
+  /** CSS — добавлены стили для landscape-режима */
   const css = `
   .navigation-bar__body {
       display: flex !important;
@@ -66,6 +66,30 @@ Lampa.Platform.tv();
       .navigation-bar__body { padding: 6px 6px !important; }
       .navigation-bar__item { height: 54px !important; border-radius: 12px !important; margin: 0 3px !important; }
       .navigation-bar__icon svg { width: 20px !important; height: 20px !important; }
+  }
+
+  /* Стили для горизонтального режима (landscape) */
+  @media (orientation: landscape) {
+      .navigation-bar__body {
+          display: none !important;
+      }
+      .navigation-bar__item {
+          flex: none !important;
+          background: transparent !important;
+          margin: 0 12px !important;
+          height: 60px !important;
+          width: auto !important;
+          border-radius: 16px !important;
+          transition: background .2s ease !important;
+      }
+      .navigation-bar__item:hover,
+      .navigation-bar__item.active {
+          background: rgba(255,255,255,0.12) !important;
+      }
+      .navigation-bar__icon svg {
+          width: 28px !important;
+          height: 28px !important;
+      }
   }`;
 
   const $  = (s,r=document)=>r.querySelector(s);
@@ -91,7 +115,6 @@ Lampa.Platform.tv();
   }
 
   function showIconPicker(position, div, iconEl, defaultAction, defaultSvg){
-    // Динамически собираем только реальные существующие разделы
     const options = [];
     const seenActions = new Set();
 
@@ -103,9 +126,8 @@ Lampa.Platform.tv();
         const nameEl = el.querySelector('.menu__text');
         const name = nameEl ? nameEl.textContent.trim() : action;
 
-        // Исключаем указанные разделы
         if(action === 'main' || action === 'settings' || name === 'Редактировать'){
-          return; // пропускаем
+          return;
         }
 
         const ico = el.querySelector('.menu__ico');
@@ -124,10 +146,7 @@ Lampa.Platform.tv();
       }
     });
 
-    if(options.length === 0){
-      alert('Не найдено подходящих разделов для выбора.');
-      return;
-    }
+    if(options.length === 0) return;
 
     const overlay = document.createElement('div');
     overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);display:flex;align-items:center;justify-content:center;z-index:9999;';
@@ -168,7 +187,6 @@ Lampa.Platform.tv();
       grid.appendChild(item);
     });
 
-    // Сброс
     const reset = document.createElement('div');
     reset.style.cssText = 'grid-column:1/-1;display:flex;align-items:center;justify-content:center;padding:16px;cursor:pointer;';
     reset.innerHTML = `<span style="color:#ff5555;font-size:16px;">Сбросить на стандарт</span>`;
@@ -205,7 +223,7 @@ Lampa.Platform.tv();
 
     div.addEventListener('click', () => emulateSidebarClick(div.dataset.action));
 
-    // Long press для настройки
+    // Long press
     let timer;
     const start = () => {
       timer = setTimeout(() => showIconPicker(position, div, div.querySelector('.navigation-bar__icon'), defaultAction, defaultSvg), 700);
@@ -226,11 +244,45 @@ Lampa.Platform.tv();
     });
   }
 
+  /** Перемещение кнопок в зависимости от ориентации */
+  function adjustPosition() {
+    const isLandscape = window.matchMedia('(orientation: landscape)').matches;
+    const bar = $('.navigation-bar__body');
+    const actions = $('.head__actions');
+    if (!bar || !actions) return;
+
+    const items = $$('.navigation-bar__item');
+
+    if (isLandscape) {
+      items.forEach(item => {
+        if (!actions.contains(item)) {
+          const target = actions.querySelector('.head__action.open--search') || actions.firstChild;
+          actions.insertBefore(item, target);
+        }
+      });
+    } else {
+      items.forEach(item => {
+        if (!bar.contains(item)) {
+          const target = bar.querySelector('.navigation-bar__item[data-action="search"]') || null;
+          bar.insertBefore(item, target);
+        }
+      });
+    }
+  }
+
   function init(){
     injectCSS();
     addItem('1', defaults[1].action, defaults[1].svg);
     addItem('2', defaults[2].action, defaults[2].svg);
     addItem('3', defaults[3].action, defaults[3].svg);
+
+    // Инициализация положения и слушатели
+    adjustPosition();
+
+    const mql = window.matchMedia('(orientation: landscape)');
+    mql.addEventListener('change', adjustPosition);
+    window.addEventListener('orientationchange', adjustPosition);
+    window.addEventListener('resize', adjustPosition);
   }
 
   const mo = new MutationObserver(() => {
