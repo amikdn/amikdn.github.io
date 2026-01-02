@@ -4,8 +4,6 @@
     const STYLE_TAG = 'cardbtn-style';
     const ORDER_STORAGE = 'cardbtn_order';
     const HIDE_STORAGE = 'cardbtn_hidden';
-    const SHOWALL_KEY = 'cardbtn_showall';
-    const ICONS_KEY = 'cardbtn_icons';
     let currentCard = null;
     let currentActivity = null;
 
@@ -137,7 +135,7 @@
     }
 
     function rebuildCard(container) {
-      if (Lampa.Storage.get(SHOWALL_KEY) !== true) return;
+      if (Lampa.Storage.get('cardbtn_showall') !== true) return;
 
       if (!container || !container.length) return;
 
@@ -189,7 +187,7 @@
         if (elements[k]) mainArea.append(elements[k]);
       });
 
-      mainArea.toggleClass('card-icons-only', Lampa.Storage.get(ICONS_KEY) === true);
+      mainArea.toggleClass('card-icons-only', Lampa.Storage.get('cardbtn_icons') === true);
       mainArea.addClass('card-buttons');
       hideButtons(elements);
 
@@ -365,17 +363,6 @@
       fromSettings: startEditorFromSettings
     };
 
-    function resetPluginSettings() {
-      Lampa.Storage.remove(SHOWALL_KEY);
-      Lampa.Storage.remove(ICONS_KEY);
-      Lampa.Storage.remove(ORDER_STORAGE);
-      Lampa.Storage.remove(HIDE_STORAGE);
-      Lampa.Settings.update();
-      setTimeout(() => {
-        Lampa.Controller.toggle("settings_component");
-      }, 100);
-    }
-
     function setupSettings() {
       Lampa.SettingsApi.addComponent({
         component: "cardbtn",
@@ -386,9 +373,9 @@
       Lampa.SettingsApi.addParam({
         component: "cardbtn",
         param: {
-          name: SHOWALL_KEY,
+          name: "cardbtn_showall",
           type: "trigger",
-          default: true
+          default: true  // Включено по умолчанию
         },
         field: {
           name: 'Все кнопки действий в карточке',
@@ -399,50 +386,38 @@
         }
       });
 
-      Lampa.SettingsApi.addParam({
-        component: "cardbtn",
-        param: {
-          name: ICONS_KEY,
-          type: "trigger",
-          default: false
-        },
-        field: {
-          name: 'Только иконки',
-          description: 'Показывать только иконки кнопок'
-        },
-        onChange: () => {
-          Lampa.Settings.update();
-        }
-      });
+      if (Lampa.Storage.get('cardbtn_showall') === true) {
+        Lampa.SettingsApi.addParam({
+          component: "cardbtn",
+          param: {
+            name: "cardbtn_icons",
+            type: "trigger",
+            default: false
+          },
+          field: {
+            name: 'Только иконки',
+            description: 'Показывать только иконки кнопок'
+          },
+          onChange: () => {
+            Lampa.Settings.update();
+          }
+        });
 
-      Lampa.SettingsApi.addParam({
-        component: "cardbtn",
-        param: {
-          name: "cardbtn_editor",
-          type: "button"
-        },
-        field: {
-          name: 'Редактировать кнопки',
-          description: 'Изменить порядок и скрыть кнопки в карточке'
-        },
-        onChange: () => {
-          CardHandler.fromSettings();
-        }
-      });
-
-      // Кнопка сброса настроек
-      Lampa.SettingsApi.addParam({
-        component: "cardbtn",
-        param: {
-          name: "cardbtn_reset",
-          type: "button"
-        },
-        field: {
-          name: 'Сброс настроек плагина',
-          description: 'Удалить все настройки плагина (рекомендуется перед удалением плагина)'
-        },
-        onChange: resetPluginSettings
-      });
+        Lampa.SettingsApi.addParam({
+          component: "cardbtn",
+          param: {
+            name: "cardbtn_editor",
+            type: "button"
+          },
+          field: {
+            name: 'Редактировать кнопки',
+            description: 'Изменить порядок и скрыть кнопки в карточке'
+          },
+          onChange: () => {
+            CardHandler.fromSettings();
+          }
+        });
+      }
     }
 
     const SettingsConfig = {
@@ -451,7 +426,7 @@
 
     const pluginInfo = {
       type: "other",
-      version: "1.0.4",
+      version: "1.0.3",
       author: '@custom',
       name: "Кастомные кнопки карточки",
       description: "Управление кнопками действий в карточке фильма/сериала",
@@ -461,7 +436,7 @@
     function loadPlugin() {
       Lampa.Manifest.plugins = pluginInfo;
       SettingsConfig.run();
-      CardHandler.run();
+      CardHandler.run();  // Запускаем всегда, поскольку default true
     }
 
     function init() {
