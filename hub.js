@@ -4,7 +4,6 @@
     const STYLE_TAG = 'cardbtn-style';
     const ORDER_STORAGE = 'cardbtn_order';
     const HIDE_STORAGE = 'cardbtn_hidden';
-    const DISPLAY_MODE_KEY = 'cardbtn_display_mode'; // default, icons, full
     let currentCard = null;
     let currentActivity = null;
 
@@ -25,31 +24,22 @@
             display: flex;
             flex-wrap: wrap;
             gap: 10px;
+            justify-content: flex-start;
         }
         .card-button-hidden {
             display: none !important;
         }
         .card-icons-only span {
-            display: none !important;
+            display: none;
         }
-        .card-full-labels .full-start__button {
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-width: 70px;
-            padding: 12px 8px;
+        .card-big-buttons .full-start__button {
+            min-width: 120px !important;
+            padding: 12px 8px !important;
+            font-size: 1em !important;
         }
-        .card-full-labels .full-start__button svg {
-            width: 40px;
-            height: 40px;
-            margin-bottom: 10px;
-        }
-        .card-full-labels .full-start__button span {
-            display: block !important;
-            font-size: 1em;
-            text-align: center;
-            word-break: break-word;
-            line-height: 1.2;
+        .card-big-buttons .full-start__button svg {
+            width: 28px !important;
+            height: 28px !important;
         }
         .head__action.edit-card svg {
             width: 26px;
@@ -124,7 +114,8 @@
       return {
         keys,
         elements,
-        mainArea
+        mainArea,
+        extraArea
       };
     }
 
@@ -200,9 +191,15 @@
         if (elements[k]) mainArea.append(elements[k]);
       });
 
-      const mode = Lampa.Storage.get(DISPLAY_MODE_KEY, 'default');
-      mainArea.toggleClass('card-icons-only', mode === 'icons');
-      mainArea.toggleClass('card-full-labels', mode === 'full');
+      const mode = parseInt(Lampa.Storage.get('cardbtn_mode') || '0', 10);
+
+      mainArea.removeClass('card-icons-only card-big-buttons');
+      if (mode === 1) {
+        mainArea.addClass('card-icons-only');
+      } else if (mode === 2) {
+        mainArea.addClass('card-big-buttons');
+      }
+
       mainArea.addClass('card-buttons');
       hideButtons(elements);
 
@@ -215,16 +212,26 @@
     }
 
     function startEditor(container, fromSettings = false) {
-      if (!container || !container.length) {
-        showEditorError(fromSettings);
-        return;
-      }
+      if (!container || !container.length) return;
 
       const collected = collectButtons(container, false);
       const { keys } = collected;
 
       if (keys.length === 0) {
-        showEditorError(fromSettings);
+        Lampa.Modal.open({
+          title: Lampa.Lang.translate('title_error'),
+          html: Lampa.Template.get('error', {
+            title: Lampa.Lang.translate('title_error'),
+            text: 'Редактировать кнопки можно только в открытой карточке фильма'
+          }),
+          size: 'small',
+          onBack: () => {
+            Lampa.Modal.close();
+            setTimeout(() => {
+              Lampa.Controller.toggle(fromSettings ? "settings_component" : "full_start");
+            }, 100);
+          }
+        });
         return;
       }
 
@@ -317,38 +324,27 @@
       });
     }
 
-    function showEditorError(fromSettings = false) {
-      Lampa.Modal.open({
-        title: Lampa.Lang.translate('title_error'),
-        html: Lampa.Template.get('error', {
-          title: Lampa.Lang.translate('title_error'),
-          text: 'Редактировать кнопки можно только в открытой карточке фильма'
-        }),
-        size: 'small',
-        onBack: () => {
-          Lampa.Modal.close();
-          setTimeout(() => {
-            if (fromSettings) {
-              Lampa.Controller.toggle("settings_component");
-            }
-          }, 100);
-        }
-      });
-    }
-
     function startEditorFromSettings() {
-      if (!currentCard || !currentCard.length || !document.body.contains(currentCard[0])) {
-        const active = findActiveCard();
-        if (active && active.length) {
-          currentCard = active;
-        }
-      }
-
-      if (!currentCard || !currentCard.length) {
-        showEditorError(true);
+      const active = findActiveCard();
+      if (!active || !active.length) {
+        Lampa.Modal.open({
+          title: Lampa.Lang.translate('title_error'),
+          html: Lampa.Template.get('error', {
+            title: Lampa.Lang.translate('title_error'),
+            text: 'Редактировать кнопки можно только в открытой карточке фильма'
+          }),
+          size: 'small',
+          onBack: () => {
+            Lampa.Modal.close();
+            setTimeout(() => {
+              Lampa.Controller.toggle("settings_component");
+            }, 100);
+          }
+        });
         return;
       }
 
+      currentCard = active;
       startEditor(currentCard, true);
     }
 
@@ -387,43 +383,35 @@
         },
         field: {
           name: 'Все кнопки действий в карточке',
-          description: 'Выводит все кнопки в одной строке. После включения рекомендуется перезагрузить Lampa'
+          description: 'Выводит все кнопки в одной строке. После включения рекомендуется перезагрузить приложение'
         },
-        onChange: value => {
+        onChange: () => {
           Lampa.Settings.update();
-          if (value === true) {
-            Lampa.Modal.open({
-              title: 'Внимание',
-              html: $('<div class="modal__text">Для полного применения изменений рекомендуется перезагрузить Lampa</div>'),
-              size: 'small',
-              onBack: Lampa.Modal.close
-            });
-          }
+        }
+      });
+
+      Lampa.SettingsApi.addParam({
+        component: "cardbtn",
+        param: {
+          name: "cardbtn_mode",
+          type: "select",
+          values: {
+            0: 'Стандартные кнопки',
+            1: 'Только иконки',
+            2: 'Большие кнопки с текстом'
+          },
+          default: 0
+        },
+        field: {
+          name: 'Режим отображения кнопок',
+          description: 'Выберите стиль кнопок при включённой опции выше'
+        },
+        onChange: () => {
+          Lampa.Settings.update();
         }
       });
 
       if (Lampa.Storage.get('cardbtn_showall') === true) {
-        Lampa.SettingsApi.addParam({
-          component: "cardbtn",
-          param: {
-            name: DISPLAY_MODE_KEY,
-            type: "select",
-            values: {
-              default: 'Стандартные (текст при наведении)',
-              icons: 'Только иконки',
-              full: 'Иконка с названием под ней (всегда видно)'
-            },
-            default: 'default'
-          },
-          field: {
-            name: 'Режим отображения кнопок',
-            description: 'Выберите стиль кнопок в карточке'
-          },
-          onChange: () => {
-            Lampa.Settings.update();
-          }
-        });
-
         Lampa.SettingsApi.addParam({
           component: "cardbtn",
           param: {
@@ -432,7 +420,7 @@
           },
           field: {
             name: 'Редактировать кнопки',
-            description: 'Изменить порядок и скрыть кнопки (только в карточке фильма)'
+            description: 'Изменить порядок и скрыть кнопки в карточке'
           },
           onChange: () => {
             CardHandler.fromSettings();
@@ -447,7 +435,7 @@
 
     const pluginInfo = {
       type: "other",
-      version: "1.0.4",
+      version: "1.0.3",
       author: '@custom',
       name: "Кастомные кнопки карточки",
       description: "Управление кнопками действий в карточке фильма/сериала",
