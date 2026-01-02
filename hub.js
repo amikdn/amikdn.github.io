@@ -9,7 +9,7 @@
         play: 'Смотреть',
         book: 'Избранное',
         torrent: 'Торренты',
-        online: 'Онлайн (4m1K)',
+        online: 'Онлайн',
         reaction: 'Реакции',
         subscribe: 'Подписаться',
         options: 'Дополнительно'
@@ -92,7 +92,7 @@
             items.not(target).hide();
             target.show();
             target.trigger('hover:enter');
-            setTimeout(() => target.trigger('hover:enter'), 500);
+            setTimeout(() => target.trigger('hover:enter'), 400);
         }
 
         Lampa.Storage.set('quick_source', '');
@@ -158,7 +158,7 @@
                 if (idx > 0) {
                     [current_order[idx - 1], current_order[idx]] = [current_order[idx], current_order[idx - 1]];
                     Lampa.Storage.set('buttons_order', current_order);
-                    open_editor_modal();
+                    open_editor_modal(); // Переоткрываем для обновления без nesting
                 }
             });
 
