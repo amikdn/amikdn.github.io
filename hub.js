@@ -21,7 +21,7 @@
     };
 
     let all_sources = Lampa.Storage.get('card_buttons_all_sources', []);
-    let quick_processing = false;
+    let processing_quick = false;
 
     function customize_buttons(container) {
         if (!container.length || container.data('customized')) return;
@@ -43,7 +43,7 @@
                 Lampa.Storage.set('quick_source', src.title);
                 setTimeout(() => {
                     if (existing.play.length) existing.play.trigger('hover:enter');
-                }, 250);
+                }, 200);
             });
             source_buttons[src.key] = btn;
         });
@@ -114,50 +114,50 @@
                         customize_buttons($(cont));
                     });
                 }
-            }, 700);
+            }, 600);
         }
     });
 
-    Lampa.Listener.follow('full', (e) => {
-        if (e.type === 'complite' && !quick_processing) {
-            const quick = Lampa.Storage.get('quick_source', '');
-            if (!quick) return;
+    const quick_observer = new MutationObserver(() => {
+        if (processing_quick) return;
+        const quick = Lampa.Storage.get('quick_source', '');
+        if (!quick) return;
 
-            quick_processing = true;
+        processing_quick = true;
 
-            setTimeout(() => {
-                const items = $('.selectbox-item');
-                let target = null;
-                items.each(function () {
-                    if ($(this).find('.selectbox-item__title').text().trim() === quick) {
-                        target = $(this);
-                        return false;
-                    }
-                });
+        setTimeout(() => {
+            const items = $('.selectbox-item');
+            if (items.length < 2) {
+                processing_quick = false;
+                return;
+            }
 
-                if (target) {
-                    items.not(target).hide();
-                    target.show();
-                    target.trigger('hover:enter');
-                    setTimeout(() => target.trigger('hover:enter'), 500);
+            let target = null;
+            items.each(function () {
+                if ($(this).find('.selectbox-item__title').text().trim() === quick) {
+                    target = $(this);
+                    return false;
                 }
+            });
 
-                Lampa.Storage.set('quick_source', '');
-                setTimeout(() => quick_processing = false, 3000);
-            }, 800);
-        }
+            if (target) {
+                items.not(target).hide();
+                target.show();
+                target.trigger('hover:enter');
+                setTimeout(() => target.trigger('hover:enter'), 400);
+            }
+
+            Lampa.Storage.set('quick_source', '');
+            setTimeout(() => processing_quick = false, 2000);
+        }, 400);
     });
+    quick_observer.observe(document.body, { childList: true, subtree: true });
 
     function build_list(container) {
         container.empty();
 
         let order = Lampa.Storage.get('card_buttons_order', ['play', 'book', ...all_sources.map(s => s.key), 'reaction', 'subscribe', 'options']);
         let show = Lampa.Storage.get('card_buttons_show', { play: true, book: true, reaction: true, subscribe: true, options: true });
-
-        if (order.length === 0 || all_sources.length === 0) {
-            // Если источников нет — показываем только базовые
-            order = ['play', 'book', 'reaction', 'subscribe', 'options'];
-        }
 
         order.forEach((key, idx) => {
             const is_base = base_keys.includes(key);
@@ -218,36 +218,33 @@
         });
     }
 
-    function open_editor() {
-        const view = $(`
-            <div>
-                <div class="settings__title">Редактировать кнопки в карточке</div>
-                <div class="menu-edit-list" style="margin-top: 1em;"></div>
-                <div class="settings__description" style="margin-top: 1em;">
-                    • Базовые кнопки всегда доступны<br>
-                    • Кнопки источников появятся после открытия "Смотреть" в любой карточке
-                </div>
-            </div>
-        `);
+    function open_editor_modal() {
+        const list_container = $('<div class="menu-edit-list"></div>');
+        build_list(list_container);
 
-        const list = view.find('.menu-edit-list');
-        build_list(list);
+        const scroll = $('<div class="scroll scroll--over"><div class="scroll__content"><div class="scroll__body"></div></div></div>');
+        scroll.find('.scroll__body').append(list_container);
 
-        Lampa.Settings.main().update({
-            title: plugin_name,
-            html: view
+        // Открываем как отдельную активность (не внутри настроек)
+        Lampa.Activity.push({
+            url: '',
+            title: 'Редактировать кнопки в карточке',
+            component: 'buttons_editor',
+            html: scroll,
+            page: 1,
+            onBack: () => Lampa.Activity.back()
         });
     }
 
     Lampa.SettingsApi.addParam({
         component: 'interface',
         param: { name: 'card_buttons_edit', type: 'static' },
-        field: { name: 'Кнопки в карточке', description: 'Редактировать порядок и видимость всех кнопок' },
+        field: { name: 'Кнопки в карточке', description: 'Редактировать порядок и видимость' },
         onRender: (item) => {
             const ref = $('[data-name="interface_size"]').closest('.settings-param');
             if (ref.length) item.insertAfter(ref);
 
-            item.on('hover:enter', open_editor);
+            item.on('hover:enter', open_editor_modal);
         }
     });
 
