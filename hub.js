@@ -21,7 +21,7 @@
     };
 
     let all_sources = Lampa.Storage.get('card_buttons_all_sources', []);
-    let processing_quick = false;
+    let quick_processing = false;
 
     function customize_buttons(container) {
         if (!container.length || container.data('customized')) return;
@@ -43,7 +43,7 @@
                 Lampa.Storage.set('quick_source', src.title);
                 setTimeout(() => {
                     if (existing.play.length) existing.play.trigger('hover:enter');
-                }, 200);
+                }, 250);
             });
             source_buttons[src.key] = btn;
         });
@@ -76,6 +76,7 @@
     });
     buttons_observer.observe(document.body, { childList: true, subtree: true });
 
+    // Сбор источников после открытия списка "Смотреть"
     Lampa.Listener.follow('full', (e) => {
         if (e.type === 'complite') {
             setTimeout(() => {
@@ -114,45 +115,42 @@
                         customize_buttons($(cont));
                     });
                 }
-            }, 600);
+            }, 700);
         }
     });
 
-    // Возвращаем скрытие для прямого запуска на источнике
-    const quick_observer = new MutationObserver(() => {
-        if (processing_quick) return;
-        const quick = Lampa.Storage.get('quick_source', '');
-        if (!quick) return;
+    // Прямой запуск на источнике (скрытие остальных + активация)
+    Lampa.Listener.follow('full', (e) => {
+        if (e.type === 'complite') {
+            const quick = Lampa.Storage.get('quick_source', '');
+            if (!quick) return;
 
-        processing_quick = true;
+            quick_processing = true;
 
-        setTimeout(() => {
-            const items = $('.selectbox-item');
-            if (items.length < 2) {
-                processing_quick = false;
-                return;
-            }
+            setTimeout(() => {
+                const items = $('.selectbox-item');
+                let target = null;
+                items.each(function () {
+                    if ($(this).find('.selectbox-item__title').text().trim() === quick) {
+                        target = $(this);
+                        return false;
+                    }
+                });
 
-            let target = null;
-            items.each(function () {
-                if ($(this).find('.selectbox-item__title').text().trim() === quick) {
-                    target = $(this);
-                    return false;
+                if (target) {
+                    items.not(target).hide();
+                    target.show();
+                    target.trigger('hover:enter');
+                    setTimeout(() => {
+                        target.trigger('hover:enter');
+                    }, 500);
                 }
-            });
 
-            if (target) {
-                items.not(target).hide();
-                target.show();
-                target.trigger('hover:enter');
-                setTimeout(() => target.trigger('hover:enter'), 400);
-            }
-
-            Lampa.Storage.set('quick_source', '');
-            setTimeout(() => processing_quick = false, 2000);
-        }, 400);
+                Lampa.Storage.set('quick_source', '');
+                setTimeout(() => quick_processing = false, 3000);
+            }, 800);
+        }
     });
-    quick_observer.observe(document.body, { childList: true, subtree: true });
 
     function build_list(container) {
         container.empty();
@@ -223,15 +221,19 @@
         const list_container = $('<div class="menu-edit-list"></div>');
         build_list(list_container);
 
-        const scroll = $('<div class="scroll scroll--over"><div class="scroll__content"><div class="scroll__body"></div></div></div>');
-        scroll.find('.scroll__body').append(list_container);
+        const scroll_body = $('<div class="scroll__body"></div>').append(list_container);
+        const scroll_content = $('<div class="scroll__content"></div>').append(scroll_body);
+        const scroll = $('<div class="scroll scroll--over"></div>').append(scroll_content);
+
+        const modal_body = $('<div class="modal__body"></div>').append(scroll);
+        const modal_head = $('<div class="modal__head"><div class="modal__title">Редактировать кнопки в карточке</div></div>');
+        const modal_content = $('<div class="modal__content"></div>').append(modal_head).append(modal_body);
+        const modal = $('<div class="modal animate"></div>').append(modal_content);
 
         Lampa.Modal.open({
-            title: 'Редактировать кнопки в карточке',
-            html: scroll,
-            onBack: () => {
-                Lampa.Modal.close();
-            },
+            title: '',
+            html: modal,
+            onBack: () => Lampa.Modal.close(),
             size: 'medium'
         });
     }
@@ -239,7 +241,7 @@
     Lampa.SettingsApi.addParam({
         component: 'interface',
         param: { name: 'card_buttons_edit', type: 'static' },
-        field: { name: 'Кнопки в карточке', description: 'Редактировать порядок и видимость' },
+        field: { name: 'Кнопки в карточке', description: 'Редактировать все кнопки (включая источники)' },
         onRender: (item) => {
             const ref = $('[data-name="interface_size"]').closest('.settings-param');
             if (ref.length) item.insertAfter(ref);
