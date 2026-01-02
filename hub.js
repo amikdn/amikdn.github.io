@@ -4,17 +4,15 @@
     if (!window.Lampa) return;
 
     const plugin_name = 'Управление кнопками';
-    const base_classes = ['button--play', 'button--book', 'button--reaction', 'button--subscribe', 'button--options'];
-    const default_order = ['play', 'book', 'reaction', 'subscribe', 'options'];
-    const name_map = {
+    const base_keys = ['play', 'book', 'reaction', 'subscribe', 'options'];
+    const base_titles = {
         play: 'Смотреть',
         book: 'Избранное',
         reaction: 'Реакции',
         subscribe: 'Подписаться',
         options: 'Дополнительно'
     };
-
-    const icons = {
+    const base_icons = {
         play: '<svg><use xlink:href="#sprite-play"></use></svg>',
         book: '<svg width="21" height="32" viewBox="0 0 21 32" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2 1.5H19C19.2761 1.5 19.5 1.72386 19.5 2V27.9618C19.5 28.3756 19.0261 28.6103 18.697 28.3595L12.6212 23.7303C11.3682 22.7757 9.63183 22.7757 8.37885 23.7303L2.30302 28.3595C1.9739 28.6103 1.5 28.3756 1.5 27.9618V2C1.5 1.72386 1.72386 1.5 2 1.5Z" stroke="currentColor" stroke-width="2.5" fill="transparent"></path></svg>',
         reaction: '<svg><use xlink:href="#sprite-reaction"></use></svg>',
@@ -23,20 +21,20 @@
     };
 
     function customize_buttons(container) {
-        if (container.data('customized')) return;
+        if (!container.length || container.data('customized')) return;
         container.data('customized', true);
 
-        // Detach только базовые кнопки
+        // Отсоединяем только базовые кнопки
         const detached = {};
-        base_classes.forEach(cls => {
-            const btn = container.find('.' + cls).detach();
-            if (btn.length) detached[cls.replace('button--', '')] = btn;
+        base_keys.forEach(key => {
+            const btn = container.find('.button--' + key).detach();
+            if (btn.length) detached[key] = btn;
         });
 
-        // Приоритетные кнопки источников (добавленные Lampa) остаются в контейнере
+        // Приоритетные кнопки источников (добавленные Lampa долгим нажатием) остаются на месте
 
         // Добавляем видимые базовые кнопки в начало в нужном порядке
-        const order = Lampa.Storage.get('buttons_order', default_order);
+        const order = Lampa.Storage.get('buttons_order', base_keys);
         const show = Lampa.Storage.get('buttons_show', {
             play: true, book: true, reaction: true, subscribe: true, options: true
         });
@@ -60,14 +58,14 @@
     function open_editor_modal() {
         const list = $('<div class="menu-edit-list"></div>');
 
-        const order = Lampa.Storage.get('buttons_order', default_order);
+        const order = Lampa.Storage.get('buttons_order', base_keys);
         const show = Lampa.Storage.get('buttons_show', {
             play: true, book: true, reaction: true, subscribe: true, options: true
         });
 
         order.forEach((key, idx) => {
-            const title = name_map[key];
-            const icon_svg = icons[key];
+            const title = base_titles[key];
+            const icon_svg = base_icons[key];
 
             const item = $(`
                 <div class="menu-edit-list__item selector">
@@ -122,18 +120,12 @@
             list.append(item);
         });
 
-        const scroll_body = $('<div class="scroll__body"></div>').append(list);
-        const scroll_content = $('<div class="scroll__content"></div>').append(scroll_body);
-        const scroll = $('<div class="scroll scroll--over"></div>').append(scroll_content);
-
-        const modal_body = $('<div class="modal__body"></div>').append(scroll);
-        const modal_head = $('<div class="modal__head"><div class="modal__title">Редактировать базовые кнопки</div></div>');
-        const modal_content = $('<div class="modal__content"></div>').append(modal_head).append(modal_body);
-        const modal = $('<div class="modal animate"></div>').append(modal_content);
+        const scroll = $('<div class="scroll scroll--over"><div class="scroll__content"><div class="scroll__body"></div></div></div>');
+        scroll.find('.scroll__body').append(list);
 
         Lampa.Modal.open({
-            title: '',
-            html: modal,
+            title: 'Редактировать базовые кнопки',
+            html: scroll,
             onBack: () => Lampa.Modal.close(),
             size: 'medium'
         });
@@ -142,7 +134,7 @@
     Lampa.SettingsApi.addParam({
         component: 'interface',
         param: { name: 'base_buttons_edit', type: 'static' },
-        field: { name: 'Базовые кнопки в карточке', description: 'Скрывать и перемещать (источники добавляются долгим нажатием в списке "Источник")' },
+        field: { name: 'Базовые кнопки в карточке', description: 'Скрывать и перемещать порядок (кнопки источников добавляются долгим нажатием в списке "Источник")' },
         onRender: (item) => {
             const ref = $('[data-name="interface_size"]').closest('.settings-param');
             if (ref.length) item.insertAfter(ref);
