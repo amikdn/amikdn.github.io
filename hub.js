@@ -10,7 +10,7 @@ Lampa.Platform.tv();
     3: { action: 'cartoon', svg: `<svg><use xlink:href="#sprite-cartoon"></use></svg>` }
   };
 
-  /** CSS — динамический размер в landscape берётся из JS */
+  /** CSS — размер в landscape подгоняется в JS под реальный аватар Lampa */
   const css = `
   .navigation-bar__body {
       display: flex !important;
@@ -68,7 +68,7 @@ Lampa.Platform.tv();
       .navigation-bar__icon svg { width: 20px !important; height: 20px !important; }
   }
 
-  /* Landscape: базовые стили, размер и отступы подгоняются в JS */
+  /* Landscape: круглые кнопки, размер подгоняется в JS */
   @media (orientation: landscape) {
       .navigation-bar__body {
           display: none !important;
@@ -79,7 +79,7 @@ Lampa.Platform.tv();
           border-radius: 50% !important;
           overflow: hidden !important;
           transition: background .25s ease, transform .2s ease !important;
-          margin: 0 10px !important;
+          margin: 0 8px !important;
       }
       .navigation-bar__item:hover,
       .navigation-bar__item.active {
@@ -90,10 +90,13 @@ Lampa.Platform.tv();
           width: 100% !important;
           height: 100% !important;
           padding: 0 !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
       }
       .navigation-bar__icon svg {
-          width: 75% !important;
-          height: 75% !important;
+          width: 85% !important;
+          height: 85% !important;
       }
   }`;
 
@@ -158,7 +161,7 @@ Lampa.Platform.tv();
     overlay.addEventListener('click', e => { if(e.target === overlay) overlay.remove(); });
 
     const modal = document.createElement('div');
-    modal.style.cssText = 'background:#1e1e1e24;padding:20px;border-radius:16px;max-width:95%;max-height:90%;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 10px 30px rgba(0,0,0,0.6);';
+    modal.style.cssText = 'background:#1e1e24;padding:20px;border-radius:16px;max-width:95%;max-height:90%;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 10px 30px rgba(0,0,0,0.6);';
 
     const title = document.createElement('h3');
     title.textContent = 'Настройка кнопки';
@@ -249,7 +252,7 @@ Lampa.Platform.tv();
     });
   }
 
-  /** Перемещение и подгонка размера под реальный аватар/иконки Lampa */
+  /** Перемещение и точная подгонка размера под аватар Lampa в любом режиме/экране */
   function adjustPosition() {
     const isLandscape = window.matchMedia('(orientation: landscape)').matches;
     const bar = $('.navigation-bar__body');
@@ -258,7 +261,7 @@ Lampa.Platform.tv();
 
     const items = $$('.navigation-bar__item');
 
-    // Перемещение элементов
+    // Перемещение
     if (isLandscape) {
       items.forEach(item => {
         if (!actions.contains(item)) {
@@ -275,25 +278,31 @@ Lampa.Platform.tv();
       });
     }
 
-    // Подгонка размера в landscape
+    // Динамический размер в landscape (берётся из реального аватара или любой иконки head)
     if (isLandscape) {
-      // Берём размер из аватара профиля или любой другой head__action
-      const reference = $('.head__action.open--profile') || $$('.head__action')[0];
-      let size = '38px'; // fallback
+      let reference = $('.head__action.open--profile'); // приоритет — аватар
+      if (!reference) reference = $('.head__action selector')[0]; // fallback на любую иконку
+
+      let size = '40px'; // безопасный fallback
+      let margin = '8px';
       if (reference) {
-        size = getComputedStyle(reference).width;
+        const computed = getComputedStyle(reference);
+        size = computed.width; // точный размер из CSS Lampa
+        // Отступы подгоняем пропорционально (обычно в Lampa ~8-12px)
+        margin = parseFloat(computed.marginLeft || computed.margin || '8') + 'px';
       }
 
       items.forEach(item => {
         item.style.width = size;
         item.style.height = size;
-        // border-radius, background и т.д. уже из CSS
+        item.style.margin = `0 ${margin}`;
       });
     } else {
-      // Сброс inline-размеров в portrait (основные стили из CSS)
+      // Сброс в portrait
       items.forEach(item => {
         item.style.width = '';
         item.style.height = '';
+        item.style.margin = '';
       });
     }
   }
