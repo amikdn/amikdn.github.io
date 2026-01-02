@@ -133,7 +133,7 @@ Lampa.Platform.tv();
     injectCSS();
     addItem('movie', MOVIE_SVG);
     addItem('tv', TV_SVG);
-    addItem('cub', MULT_SVG);
+    addItem('mult', MULT_SVG);
 
     // Принудительно держим бар видимым (особенно в поиске и после закрытия клавиатуры)
     const forceShowBar = () => {
