@@ -273,10 +273,9 @@
           Lampa.Storage.set(HIDE_KEY, newHidden);
           Lampa.Modal.close();
           applyLayout(fullContainer);
-          // На сенсорных устройствах принудительно возвращаем фокус в карточку
           setTimeout(function() {
             Lampa.Controller.toggle("full_start");
-          }, 100);
+          }, 200);
         }
       });
     }
@@ -298,7 +297,7 @@
             Lampa.Modal.close();
             setTimeout(function() {
               Lampa.Controller.toggle("settings_component");
-            }, 100);
+            }, 200);
           }
         });
         return;
@@ -383,22 +382,6 @@
           }
         });
       }
-
-      // Кнопка "Назад" в настройках плагина (всегда в конце)
-      Lampa.SettingsApi.addParam({
-        component: "lme",
-        param: {
-          name: "lme_back_button",
-          type: "button"
-        },
-        field: {
-          name: 'Назад',
-          description: 'Вернуться в главное меню настроек'
-        },
-        onChange: function onChange() {
-          Lampa.Activity.back();
-        }
-      });
     }
     var CONFIG = {
       main: main$6
@@ -406,7 +389,7 @@
 
     var manifest = {
       type: "other",
-      version: "0.2.5",
+      version: "0.2.6",
       author: '@lme_chat',
       name: "Кнопки в карточке",
       description: "Выводит все кнопки действий в карточке. Добавляет карандаш в хедер и пункт в настройках для редактирования.",
