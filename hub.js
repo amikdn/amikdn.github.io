@@ -11,7 +11,7 @@
         play: 'Смотреть',
         book: 'Избранное',
         torrent: 'Торренты',
-        online: 'Онлайн (4m1K)',
+        online: 'Онлайн',
         reaction: 'Реакции',
         subscribe: 'Подписаться',
         options: 'Дополнительно'
