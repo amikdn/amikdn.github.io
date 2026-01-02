@@ -47,7 +47,7 @@
 
     function ensureStyles() {
       if (document.getElementById(STYLE_ID)) return;
-      var style = "\n        .lme-buttons {\n            display: flex;\n            flex-wrap: wrap;\n            gap: 10px;\n        }\n        .lme-button-hide {\n            display: none !important;\n        }\n        .lme-button-text-hidden span {\n            display: none;\n        }\n        .head__action.edit-buttons svg {\n            width: 26px;\n            height: 26px;\n        }\n    ";
+      var style = "\n        .lme-buttons {\n            display: flex;\n            flex-wrap: wrap;\n            gap: 10px;\n        }\n        .lme-button-hide {\n            display: none !important;\n        }\n        .lme-button-text-hidden span {\n            display: none;\n        }\n        .head__action.edit-buttons svg {\n            width: 26px;\n            height: 26px;\n        }\n        /* Улучшения для мобильных в редакторе */\n        @media (max-width: 768px) {\n            .menu-edit-list__item {\n                padding: 0.8em 0.5em;\n                font-size: 1em;\n            }\n            .menu-edit-list__icon svg {\n                width: 28px;\n                height: 28px;\n            }\n            .menu-edit-list__move svg,\n            .menu-edit-list__toggle svg {\n                width: 32px;\n                height: 32px;\n            }\n        }\n    ";
       $('head').append("<style id=\"".concat(STYLE_ID, "\">").concat(style, "</style>"));
     }
 
@@ -237,18 +237,17 @@
         item.toggleClass('lme-button-hidden', hidden.has(id));
         item.find('.dot').attr('opacity', hidden.has(id) ? 0 : 1);
 
-        // Добавляем события и для hover:enter (пульт/мышь), и для click (сенсорные устройства)
-        item.find('.move-up').on('hover:enter click', function () {
+        item.find('.move-up').on('hover:enter', function () {
           var prev = item.prev();
           if (prev.length) item.insertBefore(prev);
         });
 
-        item.find('.move-down').on('hover:enter click', function () {
+        item.find('.move-down').on('hover:enter', function () {
           var next = item.next();
           if (next.length) item.insertAfter(next);
         });
 
-        item.find('.toggle').on('hover:enter click', function () {
+        item.find('.toggle').on('hover:enter', function () {
           item.toggleClass('lme-button-hidden');
           item.find('.dot').attr('opacity', item.hasClass('lme-button-hidden') ? 0 : 1);
         });
@@ -256,10 +255,13 @@
         list.append(item);
       });
 
+      // Адаптивный размер модалки: full на мобильных/тач, small на ТВ/десктоп
+      var modalSize = Lampa.Platform.is('mobile') ? 'full' : 'small';
+
       Lampa.Modal.open({
         title: 'Редактировать кнопки',
         html: list,
-        size: 'small',
+        size: modalSize,
         scroll_to_center: true,
         onBack: function onBack() {
           var newOrder = [];
