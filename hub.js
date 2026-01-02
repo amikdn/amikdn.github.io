@@ -237,17 +237,18 @@
         item.toggleClass('lme-button-hidden', hidden.has(id));
         item.find('.dot').attr('opacity', hidden.has(id) ? 0 : 1);
 
-        item.find('.move-up').on('hover:enter', function () {
+        // Добавляем события и для hover:enter (пульт/мышь), и для click (сенсорные устройства)
+        item.find('.move-up').on('hover:enter click', function () {
           var prev = item.prev();
           if (prev.length) item.insertBefore(prev);
         });
 
-        item.find('.move-down').on('hover:enter', function () {
+        item.find('.move-down').on('hover:enter click', function () {
           var next = item.next();
           if (next.length) item.insertAfter(next);
         });
 
-        item.find('.toggle').on('hover:enter', function () {
+        item.find('.toggle').on('hover:enter click', function () {
           item.toggleClass('lme-button-hidden');
           item.find('.dot').attr('opacity', item.hasClass('lme-button-hidden') ? 0 : 1);
         });
@@ -274,9 +275,6 @@
           Lampa.Modal.close();
           applyLayout(fullContainer);
           Lampa.Controller.toggle("full_start");
-        },
-        onSelect: function () {
-          // Если есть кнопка "Сохранить" или select, но в оригинале только back
         }
       });
     }
@@ -388,7 +386,7 @@
 
     var manifest = {
       type: "other",
-      version: "0.2.4",
+      version: "0.2.5",
       author: '@lme_chat',
       name: "Кнопки в карточке",
       description: "Выводит все кнопки действий в карточке. Добавляет карандаш в хедер и пункт в настройках для редактирования.",
