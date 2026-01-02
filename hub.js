@@ -118,7 +118,6 @@
         }
     });
 
-    // Возвращаем скрытие для прямого запуска на источнике
     const quick_observer = new MutationObserver(() => {
         if (processing_quick) return;
         const quick = Lampa.Storage.get('quick_source', '');
@@ -154,8 +153,8 @@
     });
     quick_observer.observe(document.body, { childList: true, subtree: true });
 
-    function build_list(container) {
-        container.empty();
+    function open_editor_modal() {
+        const list_container = $('<div class="menu-edit-list"></div>');
 
         let order = Lampa.Storage.get('card_buttons_order', ['play', 'book', ...all_sources.map(s => s.key), 'reaction', 'subscribe', 'options']);
         let show = Lampa.Storage.get('card_buttons_show', { play: true, book: true, reaction: true, subscribe: true, options: true });
@@ -203,7 +202,7 @@
                 if (idx > 0) {
                     [order[idx - 1], order[idx]] = [order[idx], order[idx - 1]];
                     Lampa.Storage.set('card_buttons_order', order);
-                    build_list(container);
+                    open_editor_modal(); // Переоткрываем для обновления списка
                 }
             });
 
@@ -211,17 +210,12 @@
                 if (idx < order.length - 1) {
                     [order[idx], order[idx + 1]] = [order[idx + 1], order[idx]];
                     Lampa.Storage.set('card_buttons_order', order);
-                    build_list(container);
+                    open_editor_modal();
                 }
             });
 
-            container.append(item);
+            list_container.append(item);
         });
-    }
-
-    function open_editor_modal() {
-        const list_container = $('<div class="menu-edit-list"></div>');
-        build_list(list_container);
 
         const scroll = $('<div class="scroll scroll--over"><div class="scroll__content"><div class="scroll__body"></div></div></div>');
         scroll.find('.scroll__body').append(list_container);
@@ -229,9 +223,7 @@
         Lampa.Modal.open({
             title: 'Редактировать кнопки в карточке',
             html: scroll,
-            onBack: () => {
-                Lampa.Modal.close();
-            },
+            onBack: () => Lampa.Modal.close(),
             size: 'medium'
         });
     }
@@ -239,7 +231,7 @@
     Lampa.SettingsApi.addParam({
         component: 'interface',
         param: { name: 'card_buttons_edit', type: 'static' },
-        field: { name: 'Кнопки в карточке', description: 'Редактировать порядок и видимость' },
+        field: { name: 'Кнопки в карточке', description: 'Редактировать все кнопки и источники' },
         onRender: (item) => {
             const ref = $('[data-name="interface_size"]').closest('.settings-param');
             if (ref.length) item.insertAfter(ref);
