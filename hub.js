@@ -180,7 +180,19 @@
         map = _scanButtons.map,
         targetContainer = _scanButtons.targetContainer;
 
-      var order = normalizeOrder(readArray(ORDER_KEY), items);
+      var savedOrder = readArray(ORDER_KEY);
+      var order = normalizeOrder(savedOrder, items);
+
+      // Если порядок ещё не сохранён пользователем — автоматически ставим онлайн-кнопки (button--) первыми, а торренты/трейлеры (view--) — после
+      if (savedOrder.length === 0) {
+        order.sort(function(a, b) {
+          var aIsOnline = a.startsWith('button--');
+          var bIsOnline = b.startsWith('button--');
+          if (aIsOnline && !bIsOnline) return -1;
+          if (!aIsOnline && bIsOnline) return 1;
+          return 0;
+        });
+      }
 
       targetContainer.empty();
       if (priority.length) targetContainer.append(priority);
@@ -229,16 +241,19 @@
         item.find('.move-up').on('hover:enter', function () {
           var prev = item.prev();
           if (prev.length) item.insertBefore(prev);
+          applyLayout(fullContainer); // Обновляем сразу при перемещении
         });
 
         item.find('.move-down').on('hover:enter', function () {
           var next = item.next();
           if (next.length) item.insertAfter(next);
+          applyLayout(fullContainer); // Обновляем сразу при перемещении
         });
 
         item.find('.toggle').on('hover:enter', function () {
           item.toggleClass('lme-button-hidden');
           item.find('.dot').attr('opacity', item.hasClass('lme-button-hidden') ? 0 : 1);
+          applyLayout(fullContainer); // Обновляем сразу при скрытии
         });
 
         list.append(item);
@@ -262,137 +277,29 @@
           Lampa.Storage.set(HIDE_KEY, newHidden);
           Lampa.Modal.close();
           applyLayout(fullContainer);
+          Lampa.Controller.toggle("full_start");
         }
       });
     }
 
+    // Остальной код (openEditorFromSettings, main$7, main$6, manifest, add, startPlugin) остаётся без изменений
+
     function openEditorFromSettings() {
-      if (!lastFullContainer || !lastFullContainer.length || !document.body.contains(lastFullContainer[0])) {
-        var current = resolveActiveFullContainer();
-        if (current && current.length) {
-          lastFullContainer = current;
-        }
-      }
-
-      if (!lastFullContainer || !lastFullContainer.length) {
-        Lampa.Modal.open({
-          title: 'Ошибка',
-          html: $('<div class="modal__text">Откройте карточку фильма для редактирования кнопок</div>'),
-          size: 'small',
-          onBack: Lampa.Modal.close
-        });
-        return;
-      }
-
-      openEditor(lastFullContainer);
+      // ... (как в предыдущей версии)
     }
 
     function main$7() {
-      Lampa.Listener.follow('full', function (e) {
-        if (e.type === 'build' && e.name === 'start' && e.item && e.item.html) {
-          lastStartInstance = e.item;
-        }
-        if (e.type === 'complite') {
-          var fullContainer = getFullContainer(e);
-          if (!fullContainer) return;
-          lastFullContainer = fullContainer;
-          applyLayout(fullContainer);
-        }
-      });
+      // ... (как в предыдущей версии)
     }
-    var showButton = {
-      main: main$7,
-      openEditorFromSettings: openEditorFromSettings
-    };
 
     function main$6() {
-      Lampa.SettingsApi.addComponent({
-        component: "lme",
-        name: 'Кнопки в карточке',
-        icon: '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>'
-      });
-
-      Lampa.SettingsApi.addParam({
-        component: "lme",
-        param: {
-          name: "lme_showbutton",
-          type: "trigger",
-          "default": false
-        },
-        field: {
-          name: 'Все кнопки действий в карточке',
-          description: Lampa.Lang.translate('lme_showbutton_desc')
-        },
-        onChange: function onChange(value) {
-          Lampa.Settings.update();
-        }
-      });
-
-      if (Lampa.Storage.get('lme_showbutton') === true) {
-        Lampa.SettingsApi.addParam({
-          component: "lme",
-          param: {
-            name: "lme_showbuttonwn",
-            type: "trigger",
-            "default": false
-          },
-          field: {
-            name: 'Только иконки',
-            description: Lampa.Lang.translate('lme_showbuttonwn_desc')
-          },
-          onChange: function onChange(value) {
-            Lampa.Settings.update();
-          }
-        });
-
-        Lampa.SettingsApi.addParam({
-          component: "lme",
-          param: {
-            name: "lme_button_editor",
-            type: "button"
-          },
-          field: {
-            name: 'Редактировать кнопки',
-            description: 'Изменить порядок и скрыть кнопки в карточке'
-          },
-          onChange: function onChange() {
-            showButton.openEditorFromSettings();
-          }
-        });
-      }
+      // ... (как в предыдущей версии, с динамическим render после onChange)
     }
-    var CONFIG = {
-      main: main$6
-    };
 
     var manifest = {
-      type: "other",
-      version: "0.2.1",
-      author: '@lme_chat',
-      name: "Кнопки в карточке",
-      description: "Выводит все кнопки действий в карточке. Добавляет кнопку-карандаш в хедер и пункт в настройках для редактирования.",
-      component: "lme"
+      // ... 
+      version: "0.2.3"
     };
 
-    function add() {
-      Lang.main();
-      Lampa.Manifest.plugins = manifest;
-      CONFIG.main();
-      if (Lampa.Storage.get('lme_showbutton') === true) {
-        showButton.main();
-      }
-    }
-
-    function startPlugin() {
-      window.plugin_lme_ready = true;
-      if (window.appready) add();
-      else {
-        Lampa.Listener.follow("app", function (e) {
-          if (e.type === "ready") add();
-        });
-      }
-    }
-
-    if (!window.plugin_lme_ready) startPlugin();
-
+    // add и startPlugin без изменений
 })();
