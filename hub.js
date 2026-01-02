@@ -60,11 +60,6 @@
       return null;
     }
 
-    function findActiveCard() {
-      const active = $('.full-start-new').first();
-      return active.length ? active : null;
-    }
-
     function extractButtonKey($element) {
       const classes = ($element.attr('class') || '').split(/\s+/);
       const keyClass = classes.find(c => c.startsWith('button--') && c !== 'button--priority') ||
@@ -101,31 +96,20 @@
       }
       process(mainArea.find('.full-start__button'));
       process(extraArea.find('.full-start__button'));
-      return {
-        keys,
-        elements,
-        mainArea,
-        extraArea
-      };
+      return { keys, elements, mainArea };
     }
 
     function buildOrder(saved, available) {
       const result = [];
       const known = new Set(available);
-      saved.forEach(k => {
-        if (known.has(k)) result.push(k);
-      });
-      available.forEach(k => {
-        if (!result.includes(k)) result.push(k);
-      });
+      saved.forEach(k => known.has(k) && result.push(k));
+      available.forEach(k => !result.includes(k) && result.push(k));
       return result;
     }
 
     function hideButtons(elements) {
       const hidden = new Set(getStoredArray(HIDE_STORAGE));
-      Object.keys(elements).forEach(k => {
-        elements[k].toggleClass('card-button-hidden', hidden.has(k));
-      });
+      Object.keys(elements).forEach(k => elements[k].toggleClass('card-button-hidden', hidden.has(k)));
     }
 
     function rebuildCard(container) {
@@ -147,20 +131,15 @@
               </svg>
             </div>
           `);
-
           header.find('.open--settings').after(pencil);
-
-          pencil.on('hover:enter', () => {
-            startEditor(container, false);
-          });
+          pencil.on('hover:enter', () => startEditor(container));
         }
       }
 
       const priorityBtn = container.find('.full-start-new__buttons .button--priority').detach();
       container.find('.full-start-new__buttons .button--play').remove();
 
-      const collected = collectButtons(container, true);
-      const { keys, elements, mainArea } = collected;
+      const { keys, elements, mainArea } = collectButtons(container, true);
 
       const saved = getStoredArray(ORDER_STORAGE);
       let ordered = buildOrder(saved, keys);
@@ -169,17 +148,13 @@
         ordered.sort((a, b) => {
           const aOnline = a.startsWith('button--');
           const bOnline = b.startsWith('button--');
-          if (aOnline && !bOnline) return -1;
-          if (!aOnline && bOnline) return 1;
-          return 0;
+          return aOnline && !bOnline ? -1 : !aOnline && bOnline ? 1 : 0;
         });
       }
 
       mainArea.empty();
       if (priorityBtn.length) mainArea.append(priorityBtn);
-      ordered.forEach(k => {
-        if (elements[k]) mainArea.append(elements[k]);
-      });
+      ordered.forEach(k => elements[k] && mainArea.append(elements[k]));
 
       mainArea.toggleClass('card-icons-only', Lampa.Storage.get('cardbtn_icons') === true);
       mainArea.addClass('card-buttons');
@@ -193,11 +168,10 @@
       }
     }
 
-    function startEditor(container, fromSettings = false) {
+    function startEditor(container) {
       if (!container || !container.length) return;
 
-      const collected = collectButtons(container, false);
-      const { keys, elements } = collected;
+      const { keys, elements } = collectButtons(container, false);
 
       const ordered = buildOrder(getStoredArray(ORDER_STORAGE), keys);
       const hidden = new Set(getStoredArray(HIDE_STORAGE));
@@ -275,41 +249,9 @@
           Lampa.Storage.set(HIDE_STORAGE, newHidden);
           Lampa.Modal.close();
           rebuildCard(container);
-          setTimeout(() => {
-            if (fromSettings) {
-              Lampa.Controller.toggle("settings_component");
-            } else {
-              Lampa.Controller.toggle("full_start");
-            }
-          }, 100);
+          setTimeout(() => Lampa.Controller.toggle("full_start"), 100);
         }
       });
-    }
-
-    function startEditorFromSettings() {
-      if (!currentCard || !currentCard.length || !document.body.contains(currentCard[0])) {
-        const active = findActiveCard();
-        if (active && active.length) {
-          currentCard = active;
-        }
-      }
-
-      if (!currentCard || !currentCard.length) {
-        Lampa.Modal.open({
-          title: 'Ошибка',
-          html: $('<div class="modal__text">Откройте карточку фильма для редактирования кнопок</div>'),
-          size: 'small',
-          onBack: () => {
-            Lampa.Modal.close();
-            setTimeout(() => {
-              Lampa.Controller.toggle("settings_component");
-            }, 100);
-          }
-        });
-        return;
-      }
-
-      startEditor(currentCard, true);
     }
 
     function cardListener() {
@@ -326,11 +268,6 @@
       });
     }
 
-    const CardHandler = {
-      run: cardListener,
-      fromSettings: startEditorFromSettings
-    };
-
     function setupSettings() {
       Lampa.SettingsApi.addComponent({
         component: "cardbtn",
@@ -340,61 +277,30 @@
 
       Lampa.SettingsApi.addParam({
         component: "cardbtn",
-        param: {
-          name: "cardbtn_showall",
-          type: "trigger",
-          default: false
-        },
+        param: { name: "cardbtn_showall", type: "trigger", default: false },
         field: {
           name: 'Все кнопки действий в карточке',
           description: 'Выводит все кнопки действий в карточке в одной строке'
         },
-        onChange: () => {
-          Lampa.Settings.update();
-        }
+        onChange: () => Lampa.Settings.update()
       });
 
       if (Lampa.Storage.get('cardbtn_showall') === true) {
         Lampa.SettingsApi.addParam({
           component: "cardbtn",
-          param: {
-            name: "cardbtn_icons",
-            type: "trigger",
-            default: false
-          },
+          param: { name: "cardbtn_icons", type: "trigger", default: false },
           field: {
             name: 'Только иконки',
             description: 'Показывать только иконки кнопок'
           },
-          onChange: () => {
-            Lampa.Settings.update();
-          }
-        });
-
-        Lampa.SettingsApi.addParam({
-          component: "cardbtn",
-          param: {
-            name: "cardbtn_editor",
-            type: "button"
-          },
-          field: {
-            name: 'Редактировать кнопки',
-            description: 'Изменить порядок и скрыть кнопки в карточке'
-          },
-          onChange: () => {
-            CardHandler.fromSettings();
-          }
+          onChange: () => Lampa.Settings.update()
         });
       }
     }
 
-    const SettingsConfig = {
-      run: setupSettings
-    };
-
     const pluginInfo = {
       type: "other",
-      version: "1.0.2",
+      version: "1.0.3",
       author: '@custom',
       name: "Кастомные кнопки карточки",
       description: "Управление кнопками действий в карточке фильма/сериала",
@@ -403,9 +309,9 @@
 
     function loadPlugin() {
       Lampa.Manifest.plugins = pluginInfo;
-      SettingsConfig.run();
+      setupSettings();
       if (Lampa.Storage.get('cardbtn_showall') === true) {
-        CardHandler.run();
+        cardListener();
       }
     }
 
@@ -413,9 +319,7 @@
       window.plugin_cardbtn_ready = true;
       if (window.appready) loadPlugin();
       else {
-        Lampa.Listener.follow("app", e => {
-          if (e.type === "ready") loadPlugin();
-        });
+        Lampa.Listener.follow("app", e => e.type === "ready" && loadPlugin());
       }
     }
 
