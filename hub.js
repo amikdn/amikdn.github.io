@@ -6,7 +6,7 @@ Lampa.Platform.tv();
   /** SVG-иконки через спрайт */
   const MOVIE_SVG = `<svg><use xlink:href="#sprite-movie"></use></svg>`;
   const TV_SVG = `<svg><use xlink:href="#sprite-tv"></use></svg>`;
-  const CARTOONS_SVG = `<svg><use xlink:href="#sprite-cartoons"></use></svg>`;  // Заменено на мультфильмы
+  const CARTOONS_SVG = `<svg><use xlink:href="#sprite-cartoon"></use></svg>`;  // Заменено на мультфильмы
 
   /** Исправленный CSS — убраны все тяжёлые эффекты для плавности на телефонах */
   const css = `
@@ -126,7 +126,7 @@ Lampa.Platform.tv();
     injectCSS();
     addItem('movie', MOVIE_SVG);
     addItem('tv', TV_SVG);
-    addItem('cartoons', CARTOONS_SVG);  // Заменено anime → cartoons
+    addItem('cartoon', CARTOONS_SVG);  // Заменено anime → cartoons
   }
 
   const mo = new MutationObserver(() => {
