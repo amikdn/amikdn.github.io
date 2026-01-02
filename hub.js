@@ -3,19 +3,24 @@
 
     if (!window.Lampa) return;
 
-    const plugin_name = 'Управление кнопками';
+    const plugin_name = 'Управление кнопками в карточке';
     const base_keys = ['play', 'book', 'reaction', 'subscribe', 'options'];
-    const base_name_map = {
+    const base_icons = {
+        play: '<svg><use xlink:href="#sprite-play"></use></svg>',
+        book: '<svg width="21" height="32" viewBox="0 0 21 32" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2 1.5H19C19.2761 1.5 19.5 1.72386 19.5 2V27.9618C19.5 28.3756 19.0261 28.6103 18.697 28.3595L12.6212 23.7303C11.3682 22.7757 9.63183 22.7757 8.37885 23.7303L2.30302 28.3595C1.9739 28.6103 1.5 28.3756 1.5 27.9618V2C1.5 1.72386 1.72386 1.5 2 1.5Z" stroke="currentColor" stroke-width="2.5" fill="transparent"></path></svg>',
+        reaction: '<svg><use xlink:href="#sprite-reaction"></use></svg>',
+        subscribe: '<svg viewBox="0 0 25 30" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6.01892 24C6.27423 27.3562 9.07836 30 12.5 30C15.9216 30 18.7257 27.3562 18.981 24H15.9645C15.7219 25.6961 14.2632 27 12.5 27C10.7367 27 9.27804 25.6961 9.03542 24H6.01892Z" fill="currentColor"></path><path d="M3.81972 14.5957V10.2679C3.81972 5.41336 7.7181 1.5 12.5 1.5C17.2819 1.5 21.1803 5.41336 21.1803 10.2679V14.5957C21.1803 15.8462 21.5399 17.0709 22.2168 18.1213L23.0727 19.4494C24.2077 21.2106 22.9392 23.5 20.9098 23.5H4.09021C2.06084 23.5 0.792282 21.2106 1.9273 19.4494L2.78317 18.1213C3.46012 17.0709 3.81972 15.8462 3.81972 14.5957Z" stroke="currentColor" stroke-width="2.6"></path></svg>',
+        options: '<svg><use xlink:href="#sprite-dots"></use></svg>'
+    };
+    const base_titles = {
         play: 'Смотреть',
         book: 'Избранное',
         reaction: 'Реакции',
         subscribe: 'Подписаться',
         options: 'Дополнительно'
     };
-    const default_order = ['play', 'book', 'reaction', 'subscribe', 'options'];
 
-    let dynamic_buttons = {};
-    let saved_dynamic_sources = Lampa.Storage.get('dynamic_sources', []);
+    let dynamic_sources = Lampa.Storage.get('card_buttons_dynamic', []);
     let processing_quick = false;
 
     function customize_buttons(container) {
@@ -31,234 +36,206 @@
         };
 
         const source_buttons = {};
-        Object.keys(dynamic_buttons).forEach(key => {
-            const data = dynamic_buttons[key];
-            const btn = $(data.html);
+        dynamic_sources.forEach(src => {
+            const btn = $(src.html);
             btn.on('hover:enter', () => {
-                Lampa.Storage.set('quick_source', data.quick);
+                Lampa.Storage.set('quick_source', src.title);
                 if (existing.play.length) existing.play.trigger('hover:enter');
             });
-            source_buttons[key] = btn;
+            source_buttons[src.key] = btn;
         });
 
         container.empty();
 
-        let current_order = Lampa.Storage.get('buttons_order', default_order.slice());
-        let show_settings = Lampa.Storage.get('buttons_show', {
+        let order = Lampa.Storage.get('card_buttons_order', ['play', 'book', ...dynamic_sources.map(s => s.key), 'reaction', 'subscribe', 'options']);
+        let show = Lampa.Storage.get('card_buttons_show', {
             play: true, book: true, reaction: true, subscribe: true, options: true
         });
 
-        base_keys.forEach(k => {
-            if (!current_order.includes(k)) current_order.push(k);
+        // Добавляем новые динамические в конец, если их нет в order
+        dynamic_sources.forEach(src => {
+            if (!order.includes(src.key)) order.push(src.key);
+            if (show[src.key] === undefined) show[src.key] = true;
         });
 
-        saved_dynamic_sources.forEach(src => {
-            if (!current_order.includes(src.key)) {
-                let pos = current_order.indexOf('book');
-                current_order.splice(pos >= 0 ? pos + 1 : current_order.length, 0, src.key);
-            }
-            if (show_settings[src.key] === undefined) show_settings[src.key] = true;
-        });
+        Lampa.Storage.set('card_buttons_order', order);
+        Lampa.Storage.set('card_buttons_show', show);
 
-        Lampa.Storage.set('buttons_order', current_order);
-        Lampa.Storage.set('buttons_show', show_settings);
-
-        current_order.forEach(key => {
+        order.forEach(key => {
             let btn = existing[key] || source_buttons[key];
-            if (btn && (show_settings[key] ?? true)) {
+            if (btn && show[key]) {
                 container.append(btn);
             }
         });
     }
 
     const buttons_observer = new MutationObserver(() => {
-        const container = $('.full-start-new__buttons');
-        if (container.length) customize_buttons(container);
+        $('.full-start-new__buttons').each((_, cont) => customize_buttons($(cont)));
     });
     buttons_observer.observe(document.body, { childList: true, subtree: true });
 
+    // Сбор динамических источников
     const source_observer = new MutationObserver(() => {
         const items = $('.selectbox-item.selectbox-item--icon');
-        if (items.length === 0) return;
+        if (!items.length) return;
 
-        dynamic_buttons = {};
-        const new_dynamic = [];
-
+        const new_sources = [];
         items.each(function () {
             const $item = $(this);
             const title = $item.find('.selectbox-item__title').text().trim();
             if (!title) return;
 
             const subtitle = ($item.find('.selectbox-item__subtitle').text() || '').trim().toLowerCase();
-
             if (title === 'Торренты' || subtitle.includes('онлайн')) {
-                let icon_html = $item.find('.selectbox-item__icon')[0].outerHTML || '';
+                let icon = $item.find('.selectbox-item__icon')[0].outerHTML;
+                if (title === 'Торренты') icon = '<svg><use xlink:href="#sprite-torrent"></use></svg>';
 
-                if (title === 'Торренты') {
-                    icon_html = '<svg><use xlink:href="#sprite-torrent"></use></svg>';
-                }
-
-                const key = 'source_' + title.replace(/[\s\(\)\-]+/g, '_').toLowerCase();
-                let unique_key = key;
-                let counter = 1;
-                while (new_dynamic.find(s => s.key === unique_key)) {
-                    unique_key = key + '_' + counter;
-                    counter++;
-                }
-
-                dynamic_buttons[unique_key] = {
-                    html: `<div class="full-start__button selector button--${unique_key}">${icon_html}<span>${title}</span></div>`,
-                    quick: title
-                };
-
-                new_dynamic.push({key: unique_key, title: title});
+                const key = 'src_' + title.replace(/[\s\(\)\-]+/g, '_').toLowerCase();
+                new_sources.push({ key, title, html: `<div class="full-start__button selector button--${key}">${icon}<span>${title}</span></div>` });
             }
         });
 
-        if (new_dynamic.length > 0) {
-            Lampa.Storage.set('dynamic_sources', new_dynamic);
-            saved_dynamic_sources = new_dynamic;
-
-            $('.full-start-new__buttons').each(function () {
-                $(this).removeData('customized');
-                customize_buttons($(this));
+        if (new_sources.length) {
+            dynamic_sources = new_sources;
+            Lampa.Storage.set('card_buttons_dynamic', dynamic_sources);
+            $('.full-start-new__buttons').each((_, cont) => {
+                $(cont).removeData('customized');
+                customize_buttons($(cont));
             });
         }
     });
     source_observer.observe(document.body, { childList: true, subtree: true });
 
+    // Quick source без зависаний
     const quick_observer = new MutationObserver(() => {
         if (processing_quick) return;
         const quick = Lampa.Storage.get('quick_source', '');
         if (!quick) return;
 
         processing_quick = true;
-
         const items = $('.selectbox-item');
-        if (items.length < 2) {
-            processing_quick = false;
-            return;
-        }
-
         let target = null;
         items.each(function () {
-            const title = $(this).find('.selectbox-item__title').text().trim();
-            if (title === quick) {
+            if ($(this).find('.selectbox-item__title').text().trim() === quick) {
                 target = $(this);
                 return false;
             }
         });
 
-        if (target) {
+        if (target && items.length > 1) {
             items.hide();
             target.show();
             target.trigger('hover:enter');
-            setTimeout(() => target.trigger('hover:enter'), 200);
+            setTimeout(() => target.trigger('hover:enter'), 100);
         }
 
         Lampa.Storage.set('quick_source', '');
-        setTimeout(() => processing_quick = false, 1000);
+        setTimeout(() => processing_quick = false, 1500);
     });
     quick_observer.observe(document.body, { childList: true, subtree: true });
 
-    function render_settings_list(view) {
-        const list = view.find('.buttons-list').empty();
+    function open_editor_modal() {
+        let order = Lampa.Storage.get('card_buttons_order', ['play', 'book', ...dynamic_sources.map(s => s.key), 'reaction', 'subscribe', 'options']);
+        let show = Lampa.Storage.get('card_buttons_show', { play: true, book: true, reaction: true, subscribe: true, options: true });
 
-        let current_order = Lampa.Storage.get('buttons_order', default_order.slice());
-        let show_settings = Lampa.Storage.get('buttons_show', {
-            play: true, book: true, reaction: true, subscribe: true, options: true
-        });
+        const list = $('<div class="menu-edit-list"></div>');
 
-        const all_titles = {...base_name_map};
-        saved_dynamic_sources.forEach(src => all_titles[src.key] = src.title);
+        order.forEach((key, idx) => {
+            const is_base = base_keys.includes(key);
+            const title = is_base ? base_titles[key] : dynamic_sources.find(s => s.key === key)?.title || key;
+            const icon = is_base ? base_icons[key] : dynamic_sources.find(s => s.key === key)?.html.match(/<svg.*?<\/svg>/s)[0] || '<svg></svg>';
 
-        current_order.forEach((key, idx) => {
-            const title = all_titles[key] || key;
+            const item = $(`
+                <div class="menu-edit-list__item">
+                    <div class="menu-edit-list__icon">${icon}</div>
+                    <div class="menu-edit-list__title">${title}</div>
+                    <div class="menu-edit-list__move move-up selector ${idx === 0 ? 'hide' : ''}">
+                        <svg width="22" height="14" viewBox="0 0 22 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M2 12L11 3L20 12" stroke="currentColor" stroke-width="4" stroke-linecap="round"></path>
+                        </svg>
+                    </div>
+                    <div class="menu-edit-list__move move-down selector ${idx === order.length - 1 ? 'hide' : ''}">
+                        <svg width="22" height="14" viewBox="0 0 22 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M2 2L11 11L20 2" stroke="currentColor" stroke-width="4" stroke-linecap="round"></path>
+                        </svg>
+                    </div>
+                    <div class="menu-edit-list__toggle toggle selector">
+                        <svg width="26" height="26" viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <rect x="1.89111" y="1.78369" width="21.793" height="21.793" rx="3.5" stroke="currentColor" stroke-width="3"></rect>
+                            <path d="M7.44873 12.9658L10.8179 16.3349L18.1269 9.02588" stroke="currentColor" stroke-width="3" class="dot" opacity="${show[key] ? '1' : '0'}" stroke-linecap="round"></path>
+                        </svg>
+                    </div>
+                </div>
+            `);
+            item.data('key', key);
 
-            const item = $('<div class="buttons-list__item selector" data-index="' + idx + '"></div>');
-            item.append('<div class="item-name">' + title + '</div>');
-            item.append('<div class="item-toggle">' + ((show_settings[key] ?? true) ? 'Видима' : 'Скрыта') + '</div>');
-            if (idx > 0) item.append('<div class="item-up">↑</div>');
-            if (idx < current_order.length - 1) item.append('<div class="item-down">↓</div>');
+            // Toggle
+            item.find('.toggle').on('hover:enter', () => {
+                show[key] = !show[key];
+                item.find('.dot').css('opacity', show[key] ? '1' : '0');
+                Lampa.Storage.set('card_buttons_show', show);
+                $('.full-start-new__buttons').each((_, c) => {
+                    $(c).removeData('customized');
+                    customize_buttons($(c));
+                });
+            });
+
+            // Up
+            item.find('.move-up').on('hover:enter', () => {
+                if (idx > 0) {
+                    [order[idx - 1], order[idx]] = [order[idx], order[idx - 1]];
+                    Lampa.Storage.set('card_buttons_order', order);
+                    open_editor_modal(); // Переоткрываем модалку для обновления
+                }
+            });
+
+            // Down
+            item.find('.move-down').on('hover:enter', () => {
+                if (idx < order.length - 1) {
+                    [order[idx], order[idx + 1]] = [order[idx + 1], order[idx]];
+                    Lampa.Storage.set('card_buttons_order', order);
+                    open_editor_modal();
+                }
+            });
+
             list.append(item);
         });
 
-        list.find('.item-toggle').on('hover:enter', function () {
-            const idx = $(this).parent().data('index');
-            const key = current_order[idx];
-            const new_val = !(show_settings[key] ?? true);
-            show_settings[key] = new_val;
-            Lampa.Storage.set('buttons_show', show_settings);
-            $(this).text(new_val ? 'Видима' : 'Скрыта');
-
-            $('.full-start-new__buttons').each(function () {
-                $(this).removeData('customized');
-                customize_buttons($(this));
-            });
-        });
-
-        list.find('.item-up').on('hover:enter', function () {
-            const idx = $(this).parent().data('index');
-            if (idx > 0) {
-                [current_order[idx - 1], current_order[idx]] = [current_order[idx], current_order[idx - 1]];
-                Lampa.Storage.set('buttons_order', current_order);
-                render_settings_list(view);
-            }
-        });
-
-        list.find('.item-down').on('hover:enter', function () {
-            const idx = $(this).parent().data('index');
-            if (idx < current_order.length - 1) {
-                [current_order[idx], current_order[idx + 1]] = [current_order[idx + 1], current_order[idx]];
-                Lampa.Storage.set('buttons_order', current_order);
-                render_settings_list(view);
-            }
-        });
-    }
-
-    // Надёжный способ добавления пункта в настройки + открытие подраздела
-    const folder = $(`<div class="settings-folder selector">
-        <div class="settings-folder__icon">
-            <svg height="40" viewBox="0 0 40 40"><use xlink:href="#settings-plugins"></use></svg>
-        </div>
-        <div class="settings-folder__name">${plugin_name}</div>
-    </div>`);
-
-    folder.on('hover:enter', () => {
-        const view = $(`
-            <div>
-                <div class="settings__title">Управление кнопками в карточке</div>
-                <div class="buttons-list" style="margin-top: 1em;"></div>
-                <div class="settings__description" style="margin-top: 1em;">
-                    • Наведите на статус — скрыть/показать кнопку<br>
-                    • ↑↓ — переместить кнопку<br><br>
-                    Кнопки источников (Торренты + онлайн-парсеры) добавляются автоматически с оригинальными иконками и названиями.
+        const modal_html = $(`
+            <div class="modal animate">
+                <div class="modal__content">
+                    <div class="modal__head">
+                        <div class="modal__title">Редактировать кнопки в карточке</div>
+                    </div>
+                    <div class="modal__body">
+                        <div class="scroll scroll--over">
+                            <div class="scroll__content">
+                                <div class="scroll__body">${list.prop('outerHTML')}</div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         `);
 
-        render_settings_list(view);
-
-        // Открываем как подраздел внутри настроек
-        Lampa.Settings.main().update({
-            title: plugin_name,
-            html: view
+        Lampa.Modal.open({
+            title: '',
+            html: modal_html,
+            onBack: () => Lampa.Modal.close(),
+            size: 'medium'
         });
-    });
+    }
 
-    // Добавляем пункт только при открытии настроек (надёжно работает во всех версиях)
-    Lampa.Listener.follow('settings', (e) => {
-        if (e.type === 'open' && e.name === 'main') {
-            const body = e.body;
-            if (body.find(`.settings-folder__name:contains("${plugin_name}")`).length) return;
+    // Пункт в разделе Интерфейс
+    Lampa.SettingsApi.addParam({
+        component: 'interface',
+        param: { name: 'card_buttons_edit', type: 'static' },
+        field: { name: 'Кнопки в карточке', description: 'Скрывать, перемещать, редактировать порядок' },
+        onRender: (item) => {
+            const ref = $('[data-name="interface_size"]').closest('.settings-param');
+            if (ref.length) item.insertAfter(ref);
 
-            // Пытаемся добавить после «Интерфейс» или «Плагины/Расширения»
-            let target = body.find('.settings-folder__name:contains("Интерфейс")').parent();
-            if (!target.length) target = body.find('.settings-folder__name:contains("Плагины")').parent() || body.find('.settings-folder__name:contains("Расширения")').parent();
-
-            if (target.length) {
-                target.after(folder.clone(true)); // clone чтобы не дублировать обработчики
-            }
+            item.on('hover:enter', open_editor_modal);
         }
     });
 
