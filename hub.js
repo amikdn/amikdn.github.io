@@ -151,38 +151,43 @@
         });
     }
 
-    const folder = $(`<div class="settings-folder selector">
-        <div class="settings-folder__icon">
-            <svg height="40" viewBox="0 0 40 40"><use xlink:href="#settings-plugins"></use></svg>
-        </div>
-        <div class="settings-folder__name">${plugin_name}</div>
-    </div>`);
-
-    folder.on('hover:enter', () => {
-        const view = $(`<div>
-            <div class="settings__title">Управление кнопками в карточке</div>
-            <div class="buttons-list"></div>
-            <div class="settings__description">Статус — скрыть/показать. ↑↓ — переместить вверх/вниз.</div>
-        </div>`);
-
-        render_settings_list(view);
-
-        Lampa.Activity.push({
-            url: '',
-            title: plugin_name,
-            component: 'buttons_manager',
-            html: view,
-            page: 1
-        });
-    });
-
-    // Исправленный listener — правильный способ для актуальных версий Lampa
-    Lampa.Listener.follow('settings', function (e) {
-        if (e.type == 'open') {
-            const plugins_folder = e.body.find('.settings-folder__name:contains("Расширения")').parent();
-            if (plugins_folder.length && !e.body.find(`.settings-folder__name:contains("${plugin_name}")`).length) {
-                plugins_folder.after(folder);
+    // Добавляем пункт в раздел «Интерфейс» (по аналогии с предоставленным кодом)
+    Lampa.SettingsApi.addParam({
+        component: "interface",
+        param: {
+            name: "buttons_manager",
+            type: "static"
+        },
+        field: {
+            name: "Управление кнопками",
+            description: "Скрывать, перемещать кнопки в карточке"
+        },
+        onRender: function (item) {
+            // Позиционируем пункт (например, после «Размер интерфейса»)
+            const sizeItem = $('[data-name="interface_size"]').closest('.settings-param');
+            if (sizeItem.length && item.parent().length) {
+                item.insertAfter(sizeItem);
             }
+
+            item.on('hover:enter', () => {
+                const view = $(`
+                    <div>
+                        <div class="settings__title">Управление кнопками в карточке</div>
+                        <div class="buttons-list"></div>
+                        <div class="settings__description">Статус — скрыть/показать. ↑↓ — переместить вверх/вниз.</div>
+                    </div>
+                `);
+
+                render_settings_list(view);
+
+                Lampa.Activity.push({
+                    url: '',
+                    title: plugin_name,
+                    component: 'buttons_manager',
+                    html: view,
+                    page: 1
+                });
+            });
         }
     });
 
