@@ -409,7 +409,7 @@
 
     const pluginInfo = {
       type: "other",
-      version: "1.1.1",
+      version: "1.1.3",
       author: '@custom',
       name: "Кастомные кнопки карточки",
       description: "Управление кнопками действий в карточке фильма/сериала",
@@ -422,6 +422,33 @@
       if (Lampa.Storage.get('cardbtn_showall') === true) {
         CardHandler.run();
       }
+
+      // Хак для перемещения пункта настроек сразу после "Интерфейс"
+      Lampa.Listener.follow('settings', e => {
+        if (e.type === 'complite') {
+          setTimeout(() => {
+            const items = $('.settings-folder .settings-item');
+            let interfaceEl = null;
+            items.each(function () {
+              const name = $(this).find('.settings-item__name').text().trim();
+              if (name === 'Интерфейс') {
+                interfaceEl = $(this);
+                return false;
+              }
+            });
+
+            if (interfaceEl) {
+              const cardbtnEl = items.filter(function () {
+                return $(this).find('.settings-item__name').text().trim() === 'Кнопки в карточке';
+              });
+
+              if (cardbtnEl.length) {
+                cardbtnEl.insertAfter(interfaceEl);
+              }
+            }
+          }, 100);
+        }
+      });
     }
 
     function init() {
