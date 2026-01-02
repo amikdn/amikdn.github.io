@@ -28,19 +28,11 @@
         .card-button-hidden {
             display: none !important;
         }
-        .card-icons-only span,
-        .card-focus-text span {
+        .card-icons-only span {
             display: none;
         }
-        .card-focus-text .focus span {
-            display: block;
-        }
-        .card-focus-text .full-start__button {
-            padding: 1.2em;
-        }
-        .card-focus-text .full-start__button svg {
-            width: 32px;
-            height: 32px;
+        .card-always-text span {
+            display: block !important;
         }
         .head__action.edit-card svg {
             width: 26px;
@@ -193,9 +185,9 @@
       });
 
       const mode = Lampa.Storage.get('cardbtn_viewmode', 'default');
-      mainArea.removeClass('card-icons-only card-focus-text');
+      mainArea.removeClass('card-icons-only card-always-text');
       if (mode === 'icons') mainArea.addClass('card-icons-only');
-      if (mode === 'focus') mainArea.addClass('card-focus-text');
+      if (mode === 'always') mainArea.addClass('card-always-text');
 
       mainArea.addClass('card-buttons');
       hideButtons(elements);
@@ -310,7 +302,6 @@
       }
 
       if (!currentCard || !currentCard.length) {
-        // Используем оригинальный шаблон ошибки с грустным смайликом
         Lampa.Modal.open({
           title: Lampa.Lang.translate('title_error'),
           html: Lampa.Template.get('error', {
@@ -380,15 +371,15 @@
             name: "cardbtn_viewmode",
             type: "select",
             values: {
-              default: 'Стандартный вид',
+              default: 'Стандартный (текст при фокусе)',
               icons: 'Только иконки',
-              focus: 'Текст при фокусе (большие кнопки)'
+              always: 'Текст всегда видим'
             },
             default: 'default'
           },
           field: {
             name: 'Режим отображения кнопок',
-            description: 'Выберите стиль кнопок в карточке'
+            description: 'Выберите, когда показывать текст кнопок'
           },
           onChange: () => {
             Lampa.Settings.update();
@@ -418,7 +409,7 @@
 
     const pluginInfo = {
       type: "other",
-      version: "1.1.0",
+      version: "1.1.1",
       author: '@custom',
       name: "Кастомные кнопки карточки",
       description: "Управление кнопками действий в карточке фильма/сериала",
