@@ -91,7 +91,7 @@ Lampa.Platform.tv();
   }
 
   function showIconPicker(position, div, iconEl, defaultAction, defaultSvg){
-    // Динамически собираем только реальные существующие разделы (те, у кого есть data-action)
+    // Динамически собираем только реальные существующие разделы
     const options = [];
     const seenActions = new Set();
 
@@ -102,6 +102,11 @@ Lampa.Platform.tv();
 
         const nameEl = el.querySelector('.menu__text');
         const name = nameEl ? nameEl.textContent.trim() : action;
+
+        // Исключаем указанные разделы
+        if(action === 'main' || action === 'settings' || name === 'Редактировать'){
+          return; // пропускаем
+        }
 
         const ico = el.querySelector('.menu__ico');
         let svg = '';
@@ -120,8 +125,7 @@ Lampa.Platform.tv();
     });
 
     if(options.length === 0){
-      // Запасной вариант, если по какой-то причине ничего не найдено
-      alert('Не удалось найти разделы меню. Попробуйте позже.');
+      alert('Не найдено подходящих разделов для выбора.');
       return;
     }
 
