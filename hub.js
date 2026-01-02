@@ -326,7 +326,7 @@
           "default": false
         },
         field: {
-          name: 'Все кнопки действий в карточке',
+          name: 'Все кнопки действий в карточке (Требуется перезагрузка приложения)',
           description: Lampa.Lang.translate('cardbtn_all_desc')
         },
         onChange: function () {
