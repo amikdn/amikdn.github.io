@@ -10,7 +10,7 @@ Lampa.Platform.tv();
     3: { action: 'cartoon', svg: `<svg><use xlink:href="#sprite-cartoon"></use></svg>` }
   };
 
-  /** CSS — добавлены стили для landscape (круглые кнопки под размер профиля) */
+  /** CSS — динамический размер в landscape берётся из JS */
   const css = `
   .navigation-bar__body {
       display: flex !important;
@@ -68,19 +68,18 @@ Lampa.Platform.tv();
       .navigation-bar__icon svg { width: 20px !important; height: 20px !important; }
   }
 
-  /* Landscape: скрываем нижнюю панель и делаем кнопки круглыми под размер профиля */
+  /* Landscape: базовые стили, размер и отступы подгоняются в JS */
   @media (orientation: landscape) {
       .navigation-bar__body {
           display: none !important;
       }
       .navigation-bar__item {
-          width: 44px !important;
-          height: 44px !important;
-          margin: 0 10px !important;
+          flex: none !important;
           background: rgba(255,255,255,0.08) !important;
           border-radius: 50% !important;
           overflow: hidden !important;
           transition: background .25s ease, transform .2s ease !important;
+          margin: 0 10px !important;
       }
       .navigation-bar__item:hover,
       .navigation-bar__item.active {
@@ -90,12 +89,11 @@ Lampa.Platform.tv();
       .navigation-bar__icon {
           width: 100% !important;
           height: 100% !important;
-          padding: 9px !important;
-          box-sizing: border-box !important;
+          padding: 0 !important;
       }
       .navigation-bar__icon svg {
-          width: 100% !important;
-          height: 100% !important;
+          width: 75% !important;
+          height: 75% !important;
       }
   }`;
 
@@ -160,7 +158,7 @@ Lampa.Platform.tv();
     overlay.addEventListener('click', e => { if(e.target === overlay) overlay.remove(); });
 
     const modal = document.createElement('div');
-    modal.style.cssText = 'background:#1e1e24;padding:20px;border-radius:16px;max-width:95%;max-height:90%;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 10px 30px rgba(0,0,0,0.6);';
+    modal.style.cssText = 'background:#1e1e1e24;padding:20px;border-radius:16px;max-width:95%;max-height:90%;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 10px 30px rgba(0,0,0,0.6);';
 
     const title = document.createElement('h3');
     title.textContent = 'Настройка кнопки';
@@ -251,7 +249,7 @@ Lampa.Platform.tv();
     });
   }
 
-  /** Перемещение кнопок в зависимости от ориентации */
+  /** Перемещение и подгонка размера под реальный аватар/иконки Lampa */
   function adjustPosition() {
     const isLandscape = window.matchMedia('(orientation: landscape)').matches;
     const bar = $('.navigation-bar__body');
@@ -260,6 +258,7 @@ Lampa.Platform.tv();
 
     const items = $$('.navigation-bar__item');
 
+    // Перемещение элементов
     if (isLandscape) {
       items.forEach(item => {
         if (!actions.contains(item)) {
@@ -273,6 +272,28 @@ Lampa.Platform.tv();
           const target = bar.querySelector('.navigation-bar__item[data-action="search"]') || null;
           bar.insertBefore(item, target);
         }
+      });
+    }
+
+    // Подгонка размера в landscape
+    if (isLandscape) {
+      // Берём размер из аватара профиля или любой другой head__action
+      const reference = $('.head__action.open--profile') || $$('.head__action')[0];
+      let size = '44px'; // fallback
+      if (reference) {
+        size = getComputedStyle(reference).width;
+      }
+
+      items.forEach(item => {
+        item.style.width = size;
+        item.style.height = size;
+        // border-radius, background и т.д. уже из CSS
+      });
+    } else {
+      // Сброс inline-размеров в portrait (основные стили из CSS)
+      items.forEach(item => {
+        item.style.width = '';
+        item.style.height = '';
       });
     }
   }
