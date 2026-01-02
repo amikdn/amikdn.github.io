@@ -10,7 +10,7 @@ Lampa.Platform.tv();
     3: { action: 'cartoon', svg: `<svg><use xlink:href="#sprite-cartoon"></use></svg>` }
   };
 
-  /** CSS — в landscape круглые кнопки, размер/отступы подгоняются в JS (в 1.5 раза больше профиля) */
+  /** CSS — в landscape фиксированный размер 27×27px, строго круглые */
   const css = `
   .navigation-bar__body {
       display: flex !important;
@@ -68,34 +68,38 @@ Lampa.Platform.tv();
       .navigation-bar__icon svg { width: 20px !important; height: 20px !important; }
   }
 
-  /* Landscape: большие круглые кнопки */
+  /* Landscape: строго круглые 27×27px как аватар */
   @media (orientation: landscape) {
       .navigation-bar__body {
           display: none !important;
       }
       .navigation-bar__item {
           flex: none !important;
+          width: 27px !important;
+          height: 27px !important;
+          min-width: 27px !important;
+          min-height: 27px !important;
           background: rgba(255,255,255,0.08) !important;
           border-radius: 50% !important;
           overflow: hidden !important;
+          margin: 0 8px !important;
           transition: background .25s ease, transform .2s ease !important;
+          box-sizing: border-box !important;
       }
       .navigation-bar__item:hover,
       .navigation-bar__item.active {
           background: rgba(255,255,255,0.18) !important;
-          transform: scale(1.08);
+          transform: scale(1.1);
       }
       .navigation-bar__icon {
           width: 100% !important;
           height: 100% !important;
-          padding: 0 !important;
-          display: flex !important;
-          align-items: center !important;
-          justify-content: center !important;
+          padding: 4px !important; /* небольшой отступ, чтобы иконка не касалась краёв */
+          box-sizing: border-box !important;
       }
       .navigation-bar__icon svg {
-          width: 80% !important;
-          height: 80% !important;
+          width: 100% !important;
+          height: 100% !important;
       }
   }`;
 
@@ -251,7 +255,7 @@ Lampa.Platform.tv();
     });
   }
 
-  /** Перемещение и размер в landscape: круглые, в 1.5 раза больше профиля */
+  /** Перемещение кнопок (размер теперь фиксирован в CSS для landscape) */
   function adjustPosition() {
     const isLandscape = window.matchMedia('(orientation: landscape)').matches;
     const bar = $('.navigation-bar__body');
@@ -260,7 +264,6 @@ Lampa.Platform.tv();
 
     const items = $$('.navigation-bar__item');
 
-    // Перемещение
     if (isLandscape) {
       items.forEach(item => {
         if (!actions.contains(item)) {
@@ -274,36 +277,6 @@ Lampa.Platform.tv();
           const target = bar.querySelector('.navigation-bar__item[data-action="search"]') || null;
           bar.insertBefore(item, target);
         }
-      });
-    }
-
-    // Размер в landscape: в 1.5 раза больше аватара профиля + увеличенные отступы
-    if (isLandscape) {
-      let reference = $('.head__action.open--profile'); // аватар (круглый)
-      if (!reference) reference = $('.head__action')[0]; // fallback
-
-      let baseSize = 26; // fallback px
-      let baseMargin = 8;
-      if (reference) {
-        const computed = getComputedStyle(reference);
-        // Берём ширину (в landscape аватар обычно остаётся квадратным)
-        baseSize = parseFloat(computed.width || computed.height || '26');
-        baseMargin = parseFloat(computed.marginLeft || computed.margin || '8');
-      }
-
-      const size = (baseSize * 1.5) + 'px';
-      const margin = (baseMargin * 1.5) + 'px';
-
-      items.forEach(item => {
-        item.style.width = size;
-        item.style.height = size; // строго круглые
-        item.style.margin = `0 ${margin}`;
-      });
-    } else {
-      items.forEach(item => {
-        item.style.width = '';
-        item.style.height = '';
-        item.style.margin = '';
       });
     }
   }
