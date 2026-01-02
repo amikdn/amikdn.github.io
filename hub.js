@@ -282,12 +282,12 @@ Lampa.Platform.tv();
       let reference = $('.head__action.open--profile'); // аватар (круглый)
       if (!reference) reference = $('.head__action')[0]; // fallback
 
-      let baseSize = 40; // fallback px
+      let baseSize = 26; // fallback px
       let baseMargin = 8;
       if (reference) {
         const computed = getComputedStyle(reference);
         // Берём ширину (в landscape аватар обычно остаётся квадратным)
-        baseSize = parseFloat(computed.width || computed.height || '30');
+        baseSize = parseFloat(computed.width || computed.height || '26');
         baseMargin = parseFloat(computed.marginLeft || computed.margin || '8');
       }
 
