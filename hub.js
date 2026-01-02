@@ -8,42 +8,37 @@ Lampa.Platform.tv();
   const TV_SVG = `<svg><use xlink:href="#sprite-tv"></use></svg>`;
   const ANIME_SVG = `<svg><use xlink:href="#sprite-anime"></use></svg>`;
 
-  /** CSS */
+  /** Исправленный CSS — убраны все тяжёлые эффекты для плавности на телефонах */
   const css = `
   .navigation-bar__body {
       display: flex !important;
       justify-content: center !important;
       align-items: center !important;
       width: 100% !important;
-      padding: 6px 10px !important;
-      background: rgba(20,20,25,0.45);
-      backdrop-filter: blur(14px);
-      -webkit-backdrop-filter: blur(14px);
-      box-shadow: 0 2px 20px rgba(0,0,0,0.3);
+      padding: 6px 8px !important;
+      background: rgba(20,20,25,0.85) !important;
       border-top: 1px solid rgba(255,255,255,0.08);
       overflow: hidden !important;
+      box-sizing: border-box;
   }
 
   .navigation-bar__item {
-      flex: 1 1 auto !important;
+      flex: 1 1 0 !important;
       display: flex !important;
       align-items: center;
       justify-content: center;
-      height: 70px !important;
+      height: 62px !important;
+      min-width: 0 !important;
       margin: 0 4px !important;
-      background: rgba(255,255,255,0.06);
-      border-radius: 14px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.35);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      transition: background .2s ease, transform .2s ease;
+      background: rgba(255,255,255,0.08) !important;
+      border-radius: 14px !important;
+      transition: background .25s ease !important;
       box-sizing: border-box;
   }
 
   .navigation-bar__item:hover,
   .navigation-bar__item.active {
-      background: rgba(255,255,255,0.14);
-      transform: scale(1.05);
+      background: rgba(255,255,255,0.18) !important;
   }
 
   .navigation-bar__icon {
@@ -57,6 +52,7 @@ Lampa.Platform.tv();
   .navigation-bar__icon svg {
       width: 22px !important;
       height: 22px !important;
+      fill: currentColor;
   }
 
   /* Полностью скрываем подписи */
@@ -65,11 +61,24 @@ Lampa.Platform.tv();
   }
 
   @media (max-width: 900px) {
-      .navigation-bar__item { height: 66px !important; }
+      .navigation-bar__item { 
+          height: 58px !important; 
+          margin: 0 3px !important;
+      }
   }
   @media (max-width: 600px) {
-      .navigation-bar__item { height: 60px !important; border-radius: 12px; }
-      .navigation-bar__icon svg { width: 20px !important; height: 20px !important; }
+      .navigation-bar__body {
+          padding: 6px 6px !important;
+      }
+      .navigation-bar__item { 
+          height: 54px !important; 
+          border-radius: 12px !important;
+          margin: 0 3px !important;
+      }
+      .navigation-bar__icon svg { 
+          width: 20px !important; 
+          height: 20px !important; 
+      }
   }`;
 
   const $  = (s,r=document)=>r.querySelector(s);
@@ -88,40 +97,29 @@ Lampa.Platform.tv();
     for(const el of $$('.menu__item, .selector')){
       if(el.dataset && el.dataset.action && el.dataset.action === action){
         el.click();
-        return;
+        return true;
       }
     }
+    return false;
   }
 
   function addItem(action, svg){
     const bar = $('.navigation-bar__body');
     if(!bar || bar.querySelector(`[data-action="${action}"]`)) return;
+    
     const div = document.createElement('div');
     div.className = 'navigation-bar__item';
     div.dataset.action = action;
     div.innerHTML = `<div class="navigation-bar__icon">${svg}</div>`;
+    
     const search = bar.querySelector('.navigation-bar__item[data-action="search"]');
-    if(search) bar.insertBefore(div, search); else bar.appendChild(div);
+    if(search) {
+      bar.insertBefore(div, search);
+    } else {
+      bar.appendChild(div);
+    }
+    
     div.addEventListener('click', () => emulateSidebarClick(action));
-  }
-
-  function adjustSpacing(){
-    const bar=$('.navigation-bar__body');
-    if(!bar) return;
-    const items=$$('.navigation-bar__item',bar);
-    if(!items.length) return;
-
-    const width=bar.clientWidth;
-    const count=items.length;
-    const minGap=Math.max(2,Math.floor(width*0.005));
-    const totalGap=minGap*(count-1);
-    const available=width-totalGap;
-    const itemWidth=Math.floor(available/count);
-
-    items.forEach((it,i)=>{
-      it.style.flex=`0 0 ${itemWidth}px`;
-      it.style.marginRight=(i<count-1)?`${minGap}px`:'0';
-    });
   }
 
   function init(){
@@ -129,20 +127,20 @@ Lampa.Platform.tv();
     addItem('movie', MOVIE_SVG);
     addItem('tv', TV_SVG);
     addItem('anime', ANIME_SVG);
-    adjustSpacing();
-
-    const bar=$('.navigation-bar__body');
-    if(!bar) return;
-    const ro=new ResizeObserver(adjustSpacing);
-    ro.observe(bar);
-    window.addEventListener('resize',adjustSpacing);
-    window.addEventListener('orientationchange',adjustSpacing);
   }
 
-  const mo=new MutationObserver(()=>{
-    const bar=$('.navigation-bar__body');
-    if(bar){mo.disconnect();init();}
+  const mo = new MutationObserver(() => {
+    const bar = $('.navigation-bar__body');
+    if(bar){
+      mo.disconnect();
+      init();
+    }
   });
-  mo.observe(document.documentElement,{childList:true,subtree:true});
-  if($('.navigation-bar__body')){mo.disconnect();init();}
+  
+  mo.observe(document.documentElement, {childList: true, subtree: true});
+  
+  if($('.navigation-bar__body')){
+    mo.disconnect();
+    init();
+  }
 })();
