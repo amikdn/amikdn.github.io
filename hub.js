@@ -30,23 +30,26 @@
             display: none !important;
         }
         .card-icons-only span {
-            display: none;
+            display: none !important;
         }
         .card-full-labels .full-start__button {
             flex-direction: column;
             align-items: center;
-            width: 80px;
-            padding: 10px 5px;
+            justify-content: center;
+            min-width: 70px;
+            padding: 12px 8px;
         }
         .card-full-labels .full-start__button svg {
-            width: 32px;
-            height: 32px;
-            margin-bottom: 8px;
+            width: 40px;
+            height: 40px;
+            margin-bottom: 10px;
         }
         .card-full-labels .full-start__button span {
-            font-size: 0.9em;
+            display: block !important;
+            font-size: 1em;
             text-align: center;
             word-break: break-word;
+            line-height: 1.2;
         }
         .head__action.edit-card svg {
             width: 26px;
@@ -406,9 +409,9 @@
             name: DISPLAY_MODE_KEY,
             type: "select",
             values: {
-              default: 'Стандартные (иконка + текст сбоку)',
+              default: 'Стандартные (текст при наведении)',
               icons: 'Только иконки',
-              full: 'Большие кнопки с названием под иконкой'
+              full: 'Иконка с названием под ней (всегда видно)'
             },
             default: 'default'
           },
@@ -444,7 +447,7 @@
 
     const pluginInfo = {
       type: "other",
-      version: "1.0.3",
+      version: "1.0.4",
       author: '@custom',
       name: "Кастомные кнопки карточки",
       description: "Управление кнопками действий в карточке фильма/сериала",
