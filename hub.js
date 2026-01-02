@@ -143,7 +143,10 @@
     }
 
     function rebuildCard(container) {
-      if (Lampa.Storage.get('cardbtn_showall') !== true) return;
+      if (Lampa.Storage.get('cardbtn_showall') !== true) {
+        // Если выключено — ничего не делаем (стандартный вид остаётся)
+        return;
+      }
 
       if (!container || !container.length) return;
 
@@ -366,10 +369,18 @@
         },
         field: {
           name: 'Все кнопки действий в карточке',
-          description: 'Выводит все кнопки в одной строке (применяется после перезагрузки Lampa)'
+          description: 'Выводит все кнопки действий в карточке в одной строке'
         },
-        onChange: () => {
+        onChange: (value) => {
           Lampa.Settings.update();
+          const active = findActiveCard();
+          if (active) {
+            if (value) {
+              rebuildCard(active);
+            } else {
+              Lampa.Activity.reload(); // Сброс к стандартному виду
+            }
+          }
         }
       });
 
@@ -392,6 +403,8 @@
           },
           onChange: () => {
             Lampa.Settings.update();
+            const active = findActiveCard();
+            if (active) rebuildCard(active);
           }
         });
 
@@ -418,7 +431,7 @@
 
     const pluginInfo = {
       type: "other",
-      version: "1.1.0",
+      version: "1.1.1",
       author: '@custom',
       name: "Кастомные кнопки карточки",
       description: "Управление кнопками действий в карточке фильма/сериала",
@@ -428,9 +441,7 @@
     function loadPlugin() {
       Lampa.Manifest.plugins = pluginInfo;
       SettingsConfig.run();
-      if (Lampa.Storage.get('cardbtn_showall') === true) {
-        CardHandler.run();
-      }
+      CardHandler.run(); // Слушатель всегда активен
     }
 
     function init() {
