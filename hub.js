@@ -38,7 +38,7 @@
         const source_buttons = {};
         all_sources.forEach(src => {
             const btn = $(src.html);
-            btn.addClass('selector'); // Добавляем selector для фокуса
+            btn.addClass('selector');
             btn.on('hover:enter', () => {
                 Lampa.Storage.set('quick_source', src.title);
                 setTimeout(() => {
@@ -76,7 +76,6 @@
     });
     buttons_observer.observe(document.body, { childList: true, subtree: true });
 
-    // Сбор источников после полного открытия списка
     Lampa.Listener.follow('full', (e) => {
         if (e.type === 'complite') {
             setTimeout(() => {
@@ -119,7 +118,7 @@
         }
     });
 
-    // Quick select
+    // Возвращаем скрытие для прямого запуска на источнике
     const quick_observer = new MutationObserver(() => {
         if (processing_quick) return;
         const quick = Lampa.Storage.get('quick_source', '');
@@ -129,6 +128,11 @@
 
         setTimeout(() => {
             const items = $('.selectbox-item');
+            if (items.length < 2) {
+                processing_quick = false;
+                return;
+            }
+
             let target = null;
             items.each(function () {
                 if ($(this).find('.selectbox-item__title').text().trim() === quick) {
@@ -138,12 +142,14 @@
             });
 
             if (target) {
+                items.not(target).hide();
+                target.show();
                 target.trigger('hover:enter');
                 setTimeout(() => target.trigger('hover:enter'), 400);
             }
 
             Lampa.Storage.set('quick_source', '');
-            processing_quick = false;
+            setTimeout(() => processing_quick = false, 2000);
         }, 400);
     });
     quick_observer.observe(document.body, { childList: true, subtree: true });
@@ -217,29 +223,14 @@
         const list_container = $('<div class="menu-edit-list"></div>');
         build_list(list_container);
 
-        const body = $('<div class="modal__body"></div>');
         const scroll = $('<div class="scroll scroll--over"><div class="scroll__content"><div class="scroll__body"></div></div></div>');
         scroll.find('.scroll__body').append(list_container);
-        body.append(scroll);
-
-        const head = $('<div class="modal__head"><div class="modal__title">Редактировать кнопки в карточке</div></div>');
-
-        const content = $('<div class="modal__content"></div>');
-        content.append(head);
-        content.append(body);
-
-        const modal = $('<div class="modal animate"></div>');
-        modal.append(content);
 
         Lampa.Modal.open({
-            title: '',
-            html: modal,
+            title: 'Редактировать кнопки в карточке',
+            html: scroll,
             onBack: () => {
                 Lampa.Modal.close();
-                // Принудительно возвращаем фокус в настройки
-                setTimeout(() => {
-                    Lampa.Controller.toggle('settings_component');
-                }, 100);
             },
             size: 'medium'
         });
@@ -248,7 +239,7 @@
     Lampa.SettingsApi.addParam({
         component: 'interface',
         param: { name: 'card_buttons_edit', type: 'static' },
-        field: { name: 'Кнопки в карточке', description: 'Редактировать порядок и видимость (все источники)' },
+        field: { name: 'Кнопки в карточке', description: 'Редактировать порядок и видимость' },
         onRender: (item) => {
             const ref = $('[data-name="interface_size"]').closest('.settings-param');
             if (ref.length) item.insertAfter(ref);
