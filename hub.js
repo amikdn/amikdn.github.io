@@ -5,12 +5,12 @@ Lampa.Platform.tv();
 
   /** Дефолтные настройки для трёх кнопок (позиции 1-3 слева направо) */
   const defaults = {
-    1: { action: 'movie',   svg: `<svg><use xlink:href="#sprite-movie"></use></svg>` },
-    2: { action: 'tv',      svg: `<svg><use xlink:href="#sprite-tv"></use></svg>` },
-    3: { action: 'cartoon', svg: `<svg><use xlink:href="#sprite-cartoon"></use></svg>` }
+    1: { action: 'movie',   svg: `<svg><use xlink:href="#sprite-movie"></use></svg>`,   name: 'Фильмы' },
+    2: { action: 'tv',      svg: `<svg><use xlink:href="#sprite-tv"></use></svg>`,      name: 'Сериалы' },
+    3: { action: 'cartoon', svg: `<svg><use xlink:href="#sprite-cartoon"></use></svg>`, name: 'Мультфильмы' }
   };
 
-  /** CSS — в landscape размер 30×30px, строго круглые + точное вертикальное выравнивание */
+  /** CSS — добавлены стили для подписей в portrait, скрыты в landscape */
   const css = `
   .navigation-bar__body {
       display: flex !important;
@@ -27,9 +27,10 @@ Lampa.Platform.tv();
   .navigation-bar__item {
       flex: 1 1 0 !important;
       display: flex !important;
+      flex-direction: column !important;
       align-items: center;
       justify-content: center;
-      height: 62px !important;
+      height: 72px !important; /* чуть выше для подписи */
       min-width: 0 !important;
       margin: 0 4px !important;
       background: rgba(255,255,255,0.08) !important;
@@ -44,37 +45,57 @@ Lampa.Platform.tv();
   }
 
   .navigation-bar__icon {
-      width: 24px;
-      height: 24px;
+      width: 28px;
+      height: 28px;
       display: flex;
       align-items: center;
       justify-content: center;
+      margin-bottom: 4px;
   }
 
   .navigation-bar__icon svg {
-      width: 22px !important;
-      height: 22px !important;
+      width: 26px !important;
+      height: 26px !important;
       fill: currentColor;
   }
 
-  .navigation-bar__label { display: none !important; }
+  .navigation-bar__label {
+      font-size: 10px !important;
+      color: #fff !important;
+      opacity: 0.85 !important;
+      white-space: nowrap !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+      width: 100% !important;
+      text-align: center !important;
+      padding: 0 4px !important;
+      box-sizing: border-box !important;
+  }
 
   @media (max-width: 900px) {
-      .navigation-bar__item { height: 58px !important; margin: 0 3px !important; }
+      .navigation-bar__item { height: 68px !important; margin: 0 3px !important; }
+      .navigation-bar__icon svg { width: 24px !important; height: 24px !important; }
   }
   @media (max-width: 600px) {
       .navigation-bar__body { padding: 6px 6px !important; }
-      .navigation-bar__item { height: 54px !important; border-radius: 12px !important; margin: 0 3px !important; }
-      .navigation-bar__icon svg { width: 20px !important; height: 20px !important; }
+      .navigation-bar__item { 
+          height: 64px !important; 
+          border-radius: 12px !important; 
+          margin: 0 3px !important; 
+      }
+      .navigation-bar__icon { width: 24px; height: 24px; }
+      .navigation-bar__icon svg { width: 22px !important; height: 22px !important; }
+      .navigation-bar__label { font-size: 9px !important; }
   }
 
-  /* Landscape: 30×30px, строго круглые, точное выравнивание с аватаром */
+  /* Landscape: скрываем подписи, 30×30px круглые */
   @media (orientation: landscape) {
       .navigation-bar__body {
           display: none !important;
       }
       .navigation-bar__item {
           flex: none !important;
+          flex-direction: row !important;
           width: 30px !important;
           height: 30px !important;
           min-width: 30px !important;
@@ -85,10 +106,7 @@ Lampa.Platform.tv();
           margin: 0 8px !important;
           transition: background .25s ease, transform .2s ease !important;
           box-sizing: border-box !important;
-          align-self: center !important; /* точное вертикальное выравнивание в flex-контейнере */
-          display: flex !important;
-          align-items: center !important;
-          justify-content: center !important;
+          align-self: center !important;
       }
       .navigation-bar__item:hover,
       .navigation-bar__item.active {
@@ -98,12 +116,16 @@ Lampa.Platform.tv();
       .navigation-bar__icon {
           width: 100% !important;
           height: 100% !important;
-          padding: 5px !important; /* оптимальный отступ для иконок Lampa */
+          margin-bottom: 0 !important;
+          padding: 5px !important;
           box-sizing: border-box !important;
       }
       .navigation-bar__icon svg {
           width: 100% !important;
           height: 100% !important;
+      }
+      .navigation-bar__label {
+          display: none !important;
       }
   }`;
 
@@ -129,7 +151,7 @@ Lampa.Platform.tv();
     return false;
   }
 
-  function showIconPicker(position, div, iconEl, defaultAction, defaultSvg){
+  function showIconPicker(position, div, iconEl, labelEl, defaultAction, defaultSvg, defaultName){
     const options = [];
     const seenActions = new Set();
 
@@ -197,6 +219,8 @@ Lampa.Platform.tv();
         localStorage.setItem(`bottom_bar_${position}_action`, opt.action);
         iconEl.innerHTML = opt.svg;
         localStorage.setItem(`bottom_bar_${position}_svg`, opt.svg);
+        labelEl.textContent = opt.name;
+        localStorage.setItem(`bottom_bar_${position}_name`, opt.name);
         overlay.remove();
       });
       grid.appendChild(item);
@@ -210,6 +234,8 @@ Lampa.Platform.tv();
       localStorage.removeItem(`bottom_bar_${position}_action`);
       iconEl.innerHTML = defaultSvg;
       localStorage.removeItem(`bottom_bar_${position}_svg`);
+      labelEl.textContent = defaultName;
+      localStorage.removeItem(`bottom_bar_${position}_name`);
       overlay.remove();
     });
     grid.appendChild(reset);
@@ -219,18 +245,29 @@ Lampa.Platform.tv();
     document.body.appendChild(overlay);
   }
 
-  function addItem(position, defaultAction, defaultSvg){
+  function addItem(position, defaultAction, defaultSvg, defaultName){
     const bar = $('.navigation-bar__body');
     if(!bar || bar.querySelector(`[data-position="${position}"]`)) return;
 
     const savedAction = localStorage.getItem(`bottom_bar_${position}_action`) || defaultAction;
     const savedSvg = localStorage.getItem(`bottom_bar_${position}_svg`) || defaultSvg;
+    const savedName = localStorage.getItem(`bottom_bar_${position}_name`) || defaultName;
 
     const div = document.createElement('div');
     div.className = 'navigation-bar__item';
     div.dataset.action = savedAction;
     div.dataset.position = position;
-    div.innerHTML = `<div class="navigation-bar__icon">${savedSvg}</div>`;
+
+    const iconDiv = document.createElement('div');
+    iconDiv.className = 'navigation-bar__icon';
+    iconDiv.innerHTML = savedSvg;
+
+    const labelDiv = document.createElement('div');
+    labelDiv.className = 'navigation-bar__label';
+    labelDiv.textContent = savedName;
+
+    div.appendChild(iconDiv);
+    div.appendChild(labelDiv);
 
     const search = bar.querySelector('.navigation-bar__item[data-action="search"]');
     if(search) bar.insertBefore(div, search);
@@ -241,7 +278,7 @@ Lampa.Platform.tv();
     // Long press
     let timer;
     const start = () => {
-      timer = setTimeout(() => showIconPicker(position, div, div.querySelector('.navigation-bar__icon'), defaultAction, defaultSvg), 700);
+      timer = setTimeout(() => showIconPicker(position, div, iconDiv, labelDiv, defaultAction, defaultSvg, defaultName), 700);
     };
     const cancel = () => clearTimeout(timer);
 
@@ -287,9 +324,9 @@ Lampa.Platform.tv();
 
   function init(){
     injectCSS();
-    addItem('1', defaults[1].action, defaults[1].svg);
-    addItem('2', defaults[2].action, defaults[2].svg);
-    addItem('3', defaults[3].action, defaults[3].svg);
+    addItem('1', defaults[1].action, defaults[1].svg, defaults[1].name);
+    addItem('2', defaults[2].action, defaults[2].svg, defaults[2].name);
+    addItem('3', defaults[3].action, defaults[3].svg, defaults[3].name);
 
     adjustPosition();
 
