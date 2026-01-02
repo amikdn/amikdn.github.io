@@ -10,34 +10,34 @@ Lampa.Platform.tv();
     3: { action: 'cartoon', svg: `<svg><use xlink:href="#sprite-cartoon"></use></svg>`, name: 'Мультфильмы' }
   };
 
-  /** CSS — полностью убрана подложка под кнопками, кнопки компактнее для 7+ элементов */
+  /** CSS — задний фон бара полностью прозрачный, кнопки шире с градиентом */
   const css = `
   .navigation-bar__body {
       display: flex !important;
       justify-content: center !important;
       align-items: center !important;
       width: 100% !important;
-      padding: 6px 2px !important; /* минимальные отступы */
-      background: rgba(20,20,25,0.85) !important;
+      padding: 6px 3px !important;
+      background: transparent !important; /* полностью убрали тёмный задний фон */
       border-top: 1px solid rgba(255,255,255,0.08);
-      overflow-x: auto !important; /* горизонтальный скролл если совсем не влезут */
+      overflow-x: auto !important;
       overflow-y: hidden !important;
       box-sizing: border-box;
-      scrollbar-width: none; /* скрыть скроллбар */
+      scrollbar-width: none;
   }
   .navigation-bar__body::-webkit-scrollbar { display: none; }
 
   .navigation-bar__item {
-      flex: 1 1 0 !important; /* равномерное распределение, сжатие до минимума */
-      min-width: 55px !important; /* минимальная ширина для иконки + короткой подписи */
+      flex: 1 1 0 !important;
+      min-width: 68px !important; /* чуть шире для комфортного размещения надписей */
       display: flex !important;
       flex-direction: column !important;
       align-items: center;
       justify-content: center;
-      height: 64px !important;
-      margin: 0 3px !important; /* минимальные отступы между кнопками */
-      background: transparent !important; /* полностью убрана подложка */
-      border-radius: 12px !important;
+      height: 66px !important;
+      margin: 0 4px !important;
+      background: linear-gradient(to top, rgba(255,255,255,0.18), rgba(255,255,255,0.06)) !important; /* градиент снизу светлее → вверх темнее */
+      border-radius: 14px !important;
       transition: background .3s ease, transform .2s ease !important;
       box-sizing: border-box;
       overflow: hidden !important;
@@ -45,60 +45,60 @@ Lampa.Platform.tv();
 
   .navigation-bar__item:hover,
   .navigation-bar__item.active {
-      background: rgba(255,255,255,0.12) !important; /* лёгкий фон только при наведении/активно */
-      transform: translateY(-2px);
+      background: linear-gradient(to top, rgba(255,255,255,0.28), rgba(255,255,255,0.12)) !important;
+      transform: translateY(-3px);
   }
 
   .navigation-bar__icon {
-      width: 26px;
-      height: 26px;
+      width: 28px;
+      height: 28px;
       display: flex;
       align-items: center;
       justify-content: center;
-      margin-bottom: 4px;
+      margin-bottom: 5px;
   }
 
   .navigation-bar__icon svg {
-      width: 24px !important;
-      height: 24px !important;
+      width: 26px !important;
+      height: 26px !important;
       fill: currentColor;
   }
 
   .navigation-bar__label {
-      font-size: 10px !important;
+      font-size: 10.5px !important;
       color: #fff !important;
-      opacity: 0.9 !important;
+      opacity: 0.95 !important;
       white-space: nowrap !important;
       overflow: hidden !important;
       text-overflow: ellipsis !important;
       width: 100% !important;
       text-align: center !important;
-      padding: 0 4px !important;
+      padding: 0 5px !important;
       box-sizing: border-box !important;
   }
 
   @media (max-width: 900px) {
       .navigation-bar__item { 
-          height: 60px !important; 
-          min-width: 50px !important;
-          margin: 0 2px !important;
+          height: 62px !important; 
+          min-width: 62px !important;
+          margin: 0 3px !important;
       }
-      .navigation-bar__icon svg { width: 22px !important; height: 22px !important; }
-      .navigation-bar__label { font-size: 9.5px !important; }
+      .navigation-bar__icon svg { width: 24px !important; height: 24px !important; }
+      .navigation-bar__label { font-size: 10px !important; }
   }
   @media (max-width: 600px) {
-      .navigation-bar__body { padding: 6px 1px !important; }
+      .navigation-bar__body { padding: 6px 2px !important; }
       .navigation-bar__item { 
-          height: 56px !important; 
-          min-width: 45px !important;
-          margin: 0 2px !important;
+          height: 58px !important; 
+          min-width: 55px !important;
+          margin: 0 3px !important;
       }
-      .navigation-bar__icon { width: 24px; height: 24px; margin-bottom: 3px; }
-      .navigation-bar__icon svg { width: 22px !important; height: 22px !important; }
-      .navigation-bar__label { font-size: 9px !important; }
+      .navigation-bar__icon { width: 26px; height: 26px; margin-bottom: 4px; }
+      .navigation-bar__icon svg { width: 24px !important; height: 24px !important; }
+      .navigation-bar__label { font-size: 9.5px !important; }
   }
 
-  /* Landscape: круглые 30×30 без подписей и без подложки */
+  /* Landscape: без изменений (круглые с лёгким фоном) */
   @media (orientation: landscape) {
       .navigation-bar__body {
           display: none !important;
