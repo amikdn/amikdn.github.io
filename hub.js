@@ -24,22 +24,23 @@
             display: flex;
             flex-wrap: wrap;
             gap: 10px;
-            justify-content: flex-start;
         }
         .card-button-hidden {
             display: none !important;
         }
-        .card-icons-only span {
+        .card-icons-only span,
+        .card-focus-text span {
             display: none;
         }
-        .card-big-buttons .full-start__button {
-            min-width: 120px !important;
-            padding: 12px 8px !important;
-            font-size: 1em !important;
+        .card-focus-text .focus span {
+            display: block;
         }
-        .card-big-buttons .full-start__button svg {
-            width: 28px !important;
-            height: 28px !important;
+        .card-focus-text .full-start__button {
+            padding: 1.2em;
+        }
+        .card-focus-text .full-start__button svg {
+            width: 32px;
+            height: 32px;
         }
         .head__action.edit-card svg {
             width: 26px;
@@ -191,14 +192,10 @@
         if (elements[k]) mainArea.append(elements[k]);
       });
 
-      const mode = parseInt(Lampa.Storage.get('cardbtn_mode') || '0', 10);
-
-      mainArea.removeClass('card-icons-only card-big-buttons');
-      if (mode === 1) {
-        mainArea.addClass('card-icons-only');
-      } else if (mode === 2) {
-        mainArea.addClass('card-big-buttons');
-      }
+      const mode = Lampa.Storage.get('cardbtn_viewmode', 'default');
+      mainArea.removeClass('card-icons-only card-focus-text');
+      if (mode === 'icons') mainArea.addClass('card-icons-only');
+      if (mode === 'focus') mainArea.addClass('card-focus-text');
 
       mainArea.addClass('card-buttons');
       hideButtons(elements);
@@ -215,27 +212,7 @@
       if (!container || !container.length) return;
 
       const collected = collectButtons(container, false);
-      const { keys } = collected;
-
-      if (keys.length === 0) {
-        Lampa.Modal.open({
-          title: Lampa.Lang.translate('title_error'),
-          html: Lampa.Template.get('error', {
-            title: Lampa.Lang.translate('title_error'),
-            text: 'Редактировать кнопки можно только в открытой карточке фильма'
-          }),
-          size: 'small',
-          onBack: () => {
-            Lampa.Modal.close();
-            setTimeout(() => {
-              Lampa.Controller.toggle(fromSettings ? "settings_component" : "full_start");
-            }, 100);
-          }
-        });
-        return;
-      }
-
-      const elements = collected.elements;
+      const { keys, elements } = collected;
 
       const ordered = buildOrder(getStoredArray(ORDER_STORAGE), keys);
       const hidden = new Set(getStoredArray(HIDE_STORAGE));
@@ -325,8 +302,15 @@
     }
 
     function startEditorFromSettings() {
-      const active = findActiveCard();
-      if (!active || !active.length) {
+      if (!currentCard || !currentCard.length || !document.body.contains(currentCard[0])) {
+        const active = findActiveCard();
+        if (active && active.length) {
+          currentCard = active;
+        }
+      }
+
+      if (!currentCard || !currentCard.length) {
+        // Используем оригинальный шаблон ошибки с грустным смайликом
         Lampa.Modal.open({
           title: Lampa.Lang.translate('title_error'),
           html: Lampa.Template.get('error', {
@@ -344,7 +328,6 @@
         return;
       }
 
-      currentCard = active;
       startEditor(currentCard, true);
     }
 
@@ -383,28 +366,7 @@
         },
         field: {
           name: 'Все кнопки действий в карточке',
-          description: 'Выводит все кнопки в одной строке. После включения рекомендуется перезагрузить приложение'
-        },
-        onChange: () => {
-          Lampa.Settings.update();
-        }
-      });
-
-      Lampa.SettingsApi.addParam({
-        component: "cardbtn",
-        param: {
-          name: "cardbtn_mode",
-          type: "select",
-          values: {
-            0: 'Стандартные кнопки',
-            1: 'Только иконки',
-            2: 'Большие кнопки с текстом'
-          },
-          default: 0
-        },
-        field: {
-          name: 'Режим отображения кнопок',
-          description: 'Выберите стиль кнопок при включённой опции выше'
+          description: 'Выводит все кнопки действий в карточке в одной строке (рекомендуется перезагрузить приложение после включения)'
         },
         onChange: () => {
           Lampa.Settings.update();
@@ -412,6 +374,27 @@
       });
 
       if (Lampa.Storage.get('cardbtn_showall') === true) {
+        Lampa.SettingsApi.addParam({
+          component: "cardbtn",
+          param: {
+            name: "cardbtn_viewmode",
+            type: "select",
+            values: {
+              default: 'Стандартный вид',
+              icons: 'Только иконки',
+              focus: 'Текст при фокусе (большие кнопки)'
+            },
+            default: 'default'
+          },
+          field: {
+            name: 'Режим отображения кнопок',
+            description: 'Выберите стиль кнопок в карточке'
+          },
+          onChange: () => {
+            Lampa.Settings.update();
+          }
+        });
+
         Lampa.SettingsApi.addParam({
           component: "cardbtn",
           param: {
@@ -435,7 +418,7 @@
 
     const pluginInfo = {
       type: "other",
-      version: "1.0.3",
+      version: "1.1.0",
       author: '@custom',
       name: "Кастомные кнопки карточки",
       description: "Управление кнопками действий в карточке фильма/сериала",
