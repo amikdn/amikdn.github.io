@@ -29,7 +29,7 @@ Lampa.Platform.tv();
 
   .navigation-bar__item {
       flex: 1 1 0 !important;
-      min-width: 68px !important; /* чуть шире для комфортного размещения надписей */
+      min-width: 60px !important; /* чуть шире для комфортного размещения надписей */
       display: flex !important;
       flex-direction: column !important;
       align-items: center;
