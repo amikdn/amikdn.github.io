@@ -4,22 +4,21 @@
     if (!window.Lampa) return;
 
     const plugin_name = 'Управление кнопками';
-    const default_order = ['play', 'book', 'torrent', 'online', 'reaction', 'subscribe', 'options'];
-    const all_keys = ['play', 'book', 'torrent', 'online', 'reaction', 'subscribe', 'options'];
-    const name_map = {
+    const base_keys = ['play', 'book', 'reaction', 'subscribe', 'options'];
+    const base_name_map = {
         play: 'Смотреть',
         book: 'Избранное',
-        torrent: 'Торренты',
-        online: 'Онлайн (4m1K)',
         reaction: 'Реакции',
         subscribe: 'Подписаться',
         options: 'Дополнительно'
     };
+    const default_order = ['play', 'book', 'reaction', 'subscribe', 'options'];
 
-    let show_settings = {};
-    let current_order = [];
+    let dynamic_buttons = {};       // Текущие найденные источники (для создания кнопок)
+    let saved_dynamic_sources = []; // Сохранённые для настроек (массив {key, title})
 
-    const online_svg = '<svg enable-background="new 0 0 32 32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" width="21" height="32"><g><path fill="currentColor" d="m31.6 5.2c-.2-.2-.6-.2-.9-.2-9.6 2.6-19.8 2.6-29.4 0-.3 0-.7 0-.9.2-.3.2-.4.5-.4.8v20c0 .3.1.6.4.8.2.2.6.2.9.2 9.6-2.6 19.8-2.6 29.5 0h.3c.2 0 .4-.1.6-.2.2-.2.4-.5.4-.8v-20c-.1-.3-.2-.6-.5-.8zm-17.6 14.8c0 .6-.4 1-1 1s-1-.4-1-1v-2h-4c-.4 0-.8-.2-.9-.6-.2-.4-.1-.8.2-1.1l5-5c.1-.1.2-.2.3-.2.2-.1.5-.1.8 0 .2.1.4.3.5.5.1.1.1.3.1.4zm8.8-.6c.3.4.2 1.1-.2 1.4-.2.1-.4.2-.6.2-.3 0-.6-.1-.8-.4l-3-4c-.1-.2-.2-.4-.2-.6v4c0 .6-.4 1-1 1s-1-.4-1-1v-8c0-.6.4-1 1-1s1 .4 1 1v4c0-.2.1-.4.2-.6l3-4c.3-.4 1-.5 1.4-.2s.5 1 .2 1.4l-2.5 3.4z"></path><path fill="currentColor" d="m12 16v-1.6l-1.6 1.6z"></path></g></svg>';
+    // Загружаем сохранённые динамические источники
+    saved_dynamic_sources = Lampa.Storage.get('dynamic_sources', []);
 
     function customize_buttons(container) {
         if (container.data('customized')) return;
@@ -33,43 +32,120 @@
             options: container.find('.button--options').detach()
         };
 
-        const new_buttons = {
-            torrent: $('<div class="full-start__button selector button--torrent"><svg><use xlink:href="#sprite-torrent"></use></svg><span>Торренты</span></div>'),
-            online: $(`<div class="full-start__button selector button--online">${online_svg}<span>Онлайн</span></div>`)
-        };
-
-        new_buttons.torrent.on('hover:enter', () => {
-            Lampa.Storage.set('quick_source', 'Торренты');
-            if (existing.play.length) existing.play.trigger('hover:enter');
-        });
-
-        new_buttons.online.on('hover:enter', () => {
-            Lampa.Storage.set('quick_source', '4m1K');
-            if (existing.play.length) existing.play.trigger('hover:enter');
+        // Создаём динамические кнопки из текущих найденных источников
+        const source_buttons = {};
+        Object.keys(dynamic_buttons).forEach(key => {
+            const data = dynamic_buttons[key];
+            const btn = $(data.html);
+            btn.on('hover:enter', () => {
+                Lampa.Storage.set('quick_source', data.quick);
+                if (existing.play.length) existing.play.trigger('hover:enter');
+            });
+            source_buttons[key] = btn;
         });
 
         container.empty();
 
-        current_order = Lampa.Storage.get('buttons_order', default_order);
-        show_settings = Lampa.Storage.get('buttons_show', {
-            play: true, book: true, torrent: true, online: true,
-            reaction: true, subscribe: true, options: true
+        let current_order = Lampa.Storage.get('buttons_order', default_order.slice());
+        let show_settings = Lampa.Storage.get('buttons_show', {
+            play: true, book: true, reaction: true, subscribe: true, options: true
         });
 
+        // Добавляем недостающие базовые ключи
+        base_keys.forEach(k => {
+            if (!current_order.includes(k)) current_order.push(k);
+        });
+
+        // Добавляем недостающие динамические ключи (вставляем после 'book' или в конец)
+        let book_index = current_order.indexOf('book');
+        let insert_pos = book_index >= 0 ? book_index + 1 : current_order.length;
+
+        Object.keys(dynamic_buttons).forEach(key => {
+            if (!current_order.includes(key)) {
+                current_order.splice(insert_pos, 0, key);
+                insert_pos++;
+            }
+            // По умолчанию показываем динамические кнопки
+            if (show_settings[key] === undefined) show_settings[key] = true;
+        });
+
+        Lampa.Storage.set('buttons_order', current_order);
+        Lampa.Storage.set('buttons_show', show_settings);
+
+        // Добавляем кнопки по порядку
         current_order.forEach(key => {
-            let btn = existing[key] || new_buttons[key];
-            if (btn && show_settings[key]) {
+            let btn = existing[key] || source_buttons[key];
+            if (btn && (show_settings[key] ?? false)) {
                 container.append(btn);
             }
         });
     }
 
+    // Observer для основной строки кнопок
     const buttons_observer = new MutationObserver(() => {
         const container = $('.full-start-new__buttons');
         if (container.length) customize_buttons(container);
     });
     buttons_observer.observe(document.body, { childList: true, subtree: true });
 
+    // Observer для выбора источников — собираем динамические кнопки
+    const source_observer = new MutationObserver(() => {
+        const items = $('.selectbox-item.selectbox-item--icon');
+        if (items.length === 0) return;
+
+        dynamic_buttons = {};
+        const new_dynamic = [];
+
+        items.each(function () {
+            const $item = $(this);
+            const title = $item.find('.selectbox-item__title').text().trim();
+            if (!title) return;
+
+            const subtitle = ($item.find('.selectbox-item__subtitle').text() || '').trim().toLowerCase();
+
+            // Добавляем только Торренты или источники с подписью «Онлайн просмотр»
+            if (title === 'Торренты' || subtitle.includes('онлайн')) {
+                let icon_html = $item.find('.selectbox-item__icon')[0].outerHTML || '';
+
+                // Специально для Торрентов — гарантируем правильную иконку
+                if (title === 'Торренты') {
+                    icon_html = '<svg><use xlink:href="#sprite-torrent"></use></svg>';
+                }
+
+                const key = 'source_' + title.replace(/[\s\(\)\-]+/g, '_').toLowerCase();
+
+                // Избегаем дубликатов ключей
+                let unique_key = key;
+                let counter = 1;
+                while (dynamic_buttons[unique_key]) {
+                    unique_key = key + '_' + counter;
+                    counter++;
+                }
+
+                dynamic_buttons[unique_key] = {
+                    html: `<div class="full-start__button selector button--${unique_key}">${icon_html}<span>${title}</span></div>`,
+                    quick: title
+                };
+
+                new_dynamic.push({key: unique_key, title: title});
+            }
+        });
+
+        // Сохраняем для настроек
+        if (new_dynamic.length > 0) {
+            Lampa.Storage.set('dynamic_sources', new_dynamic);
+            saved_dynamic_sources = new_dynamic;
+        }
+
+        // Пересобираем кнопки, если контейнер уже есть
+        $('.full-start-new__buttons').each(function () {
+            $(this).removeData('customized');
+            customize_buttons($(this));
+        });
+    });
+    source_observer.observe(document.body, { childList: true, subtree: true });
+
+    // Быстрый выбор источника
     const quick_observer = new MutationObserver(() => {
         const quick = Lampa.Storage.get('quick_source', '');
         if (!quick) return;
@@ -99,32 +175,44 @@
     function render_settings_list(view) {
         const list = view.find('.buttons-list').empty();
 
-        current_order = Lampa.Storage.get('buttons_order', default_order);
-        show_settings = Lampa.Storage.get('buttons_show', {
-            play: true, book: true, torrent: true, online: true,
-            reaction: true, subscribe: true, options: true
+        let current_order = Lampa.Storage.get('buttons_order', default_order.slice());
+        let show_settings = Lampa.Storage.get('buttons_show', {
+            play: true, book: true, reaction: true, subscribe: true, options: true
         });
 
-        all_keys.forEach(k => {
-            if (!current_order.includes(k)) current_order.push(k);
+        // Добавляем все базовые и динамические ключи
+        const all_current_keys = [...base_keys];
+        saved_dynamic_sources.forEach(src => {
+            all_current_keys.push(src.key);
+            if (!current_order.includes(src.key)) current_order.push(src.key);
+            if (show_settings[src.key] === undefined) show_settings[src.key] = true;
         });
+
         Lampa.Storage.set('buttons_order', current_order);
+        Lampa.Storage.set('buttons_show', show_settings);
 
+        // Отображаем в порядке current_order
         current_order.forEach((key, idx) => {
+            const title = base_name_map[key] || 
+                          saved_dynamic_sources.find(s => s.key === key)?.title || 
+                          key;
+
             const item = $('<div class="buttons-list__item selector" data-index="' + idx + '"></div>');
-            item.append('<div class="item-name">' + (name_map[key] || key) + '</div>');
-            item.append('<div class="item-toggle">' + (show_settings[key] ? 'Видима' : 'Скрыта') + '</div>');
+            item.append('<div class="item-name">' + title + '</div>');
+            item.append('<div class="item-toggle">' + ((show_settings[key] ?? true) ? 'Видима' : 'Скрыта') + '</div>');
             if (idx > 0) item.append('<div class="item-up">↑</div>');
             if (idx < current_order.length - 1) item.append('<div class="item-down">↓</div>');
             list.append(item);
         });
 
+        // Обработчики
         list.find('.item-toggle').on('hover:enter', function () {
             const idx = $(this).parent().data('index');
             const key = current_order[idx];
-            show_settings[key] = !show_settings[key];
+            const new_val = !(show_settings[key] ?? true);
+            show_settings[key] = new_val;
             Lampa.Storage.set('buttons_show', show_settings);
-            $(this).text(show_settings[key] ? 'Видима' : 'Скрыта');
+            $(this).text(new_val ? 'Видима' : 'Скрыта');
 
             $('.full-start-new__buttons').each(function () {
                 $(this).removeData('customized');
@@ -151,7 +239,7 @@
         });
     }
 
-    // Добавляем пункт в раздел «Интерфейс» как статический параметр
+    // Пункт в настройках (в разделе Интерфейс)
     Lampa.SettingsApi.addParam({
         component: "interface",
         param: {
@@ -160,10 +248,9 @@
         },
         field: {
             name: "Управление кнопками",
-            description: "Скрывать, перемещать кнопки в карточке фильма/сериала"
+            description: "Скрывать/показывать и перемещать кнопки в карточке"
         },
         onRender: function (item) {
-            // Позиционируем после «Размер интерфейса» (надёжное место)
             const sizeItem = $('[data-name="interface_size"]').closest('.settings-param');
             if (sizeItem.length && !item.parent().length) {
                 item.insertAfter(sizeItem);
@@ -175,15 +262,15 @@
                         <div class="settings__title">Управление кнопками в карточке</div>
                         <div class="buttons-list" style="margin-top: 1em;"></div>
                         <div class="settings__description" style="margin-top: 1em;">
-                            • Наведите на «Видима/Скрыта» — переключить видимость<br>
-                            • Наведите на ↑ или ↓ — переместить кнопку
+                            • Наведите на «Видима/Скрыта» — переключить<br>
+                            • ↑↓ — переместить кнопку вверх/вниз<br><br>
+                            Быстрые кнопки источников (Торренты и онлайн-парсеры) добавляются автоматически с их оригинальными иконками и названиями.
                         </div>
                     </div>
                 `);
 
                 render_settings_list(view);
 
-                // Открываем как подраздел внутри настроек (не новую страницу)
                 Lampa.Settings.main().update({
                     title: plugin_name,
                     html: view
