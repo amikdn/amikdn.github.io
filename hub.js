@@ -10,7 +10,7 @@ Lampa.Platform.tv();
     3: { action: 'cartoon', svg: `<svg><use xlink:href="#sprite-cartoon"></use></svg>` }
   };
 
-  /** CSS — добавлены стили для landscape-режима */
+  /** CSS — добавлены стили для landscape (круглые кнопки под размер профиля) */
   const css = `
   .navigation-bar__body {
       display: flex !important;
@@ -68,27 +68,34 @@ Lampa.Platform.tv();
       .navigation-bar__icon svg { width: 20px !important; height: 20px !important; }
   }
 
-  /* Стили для горизонтального режима (landscape) */
+  /* Landscape: скрываем нижнюю панель и делаем кнопки круглыми под размер профиля */
   @media (orientation: landscape) {
       .navigation-bar__body {
           display: none !important;
       }
       .navigation-bar__item {
-          flex: none !important;
-          background: transparent !important;
-          margin: 0 12px !important;
-          height: 60px !important;
-          width: auto !important;
-          border-radius: 16px !important;
-          transition: background .2s ease !important;
+          width: 44px !important;
+          height: 44px !important;
+          margin: 0 10px !important;
+          background: rgba(255,255,255,0.08) !important;
+          border-radius: 50% !important;
+          overflow: hidden !important;
+          transition: background .25s ease, transform .2s ease !important;
       }
       .navigation-bar__item:hover,
       .navigation-bar__item.active {
-          background: rgba(255,255,255,0.12) !important;
+          background: rgba(255,255,255,0.18) !important;
+          transform: scale(1.08);
+      }
+      .navigation-bar__icon {
+          width: 100% !important;
+          height: 100% !important;
+          padding: 9px !important;
+          box-sizing: border-box !important;
       }
       .navigation-bar__icon svg {
-          width: 28px !important;
-          height: 28px !important;
+          width: 100% !important;
+          height: 100% !important;
       }
   }`;
 
@@ -276,7 +283,6 @@ Lampa.Platform.tv();
     addItem('2', defaults[2].action, defaults[2].svg);
     addItem('3', defaults[3].action, defaults[3].svg);
 
-    // Инициализация положения и слушатели
     adjustPosition();
 
     const mql = window.matchMedia('(orientation: landscape)');
