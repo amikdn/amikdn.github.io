@@ -47,7 +47,7 @@
 
     function ensureStyles() {
       if (document.getElementById(STYLE_ID)) return;
-      var style = "\n        .lme-buttons {\n            display: flex;\n            flex-wrap: wrap;\n            gap: 10px;\n        }\n        .lme-button-hide {\n            display: none !important;\n        }\n        .lme-button-text-hidden span {\n            display: none;\n        }\n        .head__action.edit-buttons svg {\n            width: 26px;\n            height: 26px;\n        }\n        /* Улучшения для мобильных в редакторе */\n        @media (max-width: 768px) {\n            .menu-edit-list__item {\n                padding: 0.8em 0.5em;\n                font-size: 1em;\n            }\n            .menu-edit-list__icon svg {\n                width: 28px;\n                height: 28px;\n            }\n            .menu-edit-list__move svg,\n            .menu-edit-list__toggle svg {\n                width: 32px;\n                height: 32px;\n            }\n        }\n    ";
+      var style = "\n        .lme-buttons {\n            display: flex;\n            flex-wrap: wrap;\n            gap: 10px;\n        }\n        .lme-button-hide {\n            display: none !important;\n        }\n        .lme-button-text-hidden span {\n            display: none;\n        }\n        .head__action.edit-buttons svg {\n            width: 26px;\n            height: 26px;\n        }\n    ";
       $('head').append("<style id=\"".concat(STYLE_ID, "\">").concat(style, "</style>"));
     }
 
@@ -255,13 +255,10 @@
         list.append(item);
       });
 
-      // Адаптивный размер модалки: full на мобильных/тач, small на ТВ/десктоп
-      var modalSize = Lampa.Platform.is('mobile') ? 'full' : 'small';
-
       Lampa.Modal.open({
         title: 'Редактировать кнопки',
         html: list,
-        size: modalSize,
+        size: 'small',
         scroll_to_center: true,
         onBack: function onBack() {
           var newOrder = [];
@@ -276,7 +273,10 @@
           Lampa.Storage.set(HIDE_KEY, newHidden);
           Lampa.Modal.close();
           applyLayout(fullContainer);
-          Lampa.Controller.toggle("full_start");
+          // На сенсорных устройствах принудительно возвращаем фокус в карточку
+          setTimeout(function() {
+            Lampa.Controller.toggle("full_start");
+          }, 100);
         }
       });
     }
@@ -296,7 +296,9 @@
           size: 'small',
           onBack: function () {
             Lampa.Modal.close();
-            Lampa.Controller.toggle("settings_component");
+            setTimeout(function() {
+              Lampa.Controller.toggle("settings_component");
+            }, 100);
           }
         });
         return;
@@ -381,6 +383,22 @@
           }
         });
       }
+
+      // Кнопка "Назад" в настройках плагина (всегда в конце)
+      Lampa.SettingsApi.addParam({
+        component: "lme",
+        param: {
+          name: "lme_back_button",
+          type: "button"
+        },
+        field: {
+          name: 'Назад',
+          description: 'Вернуться в главное меню настроек'
+        },
+        onChange: function onChange() {
+          Lampa.Activity.back();
+        }
+      });
     }
     var CONFIG = {
       main: main$6
