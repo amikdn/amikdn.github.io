@@ -1,6 +1,13 @@
 (function () {
     'use strict';
 
+    // Добавляем раздел в настройки (это обязательно, иначе ничего не появится)
+    Lampa.SettingsApi.addComponent({
+        component: "buttoneditor",
+        name: 'Редактор кнопок',
+        icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 6h18v2H3V6zm0 5h18v2H3v-2zm0 5h18v2H3v-2z" fill="currentColor"/></svg>'
+    });
+
     var STYLE_ID = 'be-button-style';
     var ORDER_KEY = 'be_button_order';
     var HIDE_KEY = 'be_button_hide';
@@ -233,7 +240,7 @@
         if (!lastFullContainer || !lastFullContainer.length) {
             Lampa.Modal.open({
                 title: 'Ошибка',
-                html: Lampa.Template.get('error', { title: 'Ошибка', text: 'Откройте карточку фильма для редактирования кнопок' }),
+                html: Lampa.Template.get('error', { title: 'Ошибка', text: 'Откройте карточку фильма/сериала для редактирования кнопок' }),
                 size: 'small',
                 onBack: () => Lampa.Modal.close()
             });
@@ -244,6 +251,7 @@
     }
 
     function initSettings() {
+        // Основной переключатель
         Lampa.SettingsApi.addParam({
             component: "buttoneditor",
             param: { name: "be_enabled", type: "trigger", default: false },
@@ -254,6 +262,7 @@
             onChange: () => Lampa.Settings.update()
         });
 
+        // Дополнительные параметры появляются только после включения основного
         if (Lampa.Storage.get('be_enabled') === true) {
             Lampa.SettingsApi.addParam({
                 component: "buttoneditor",
@@ -269,7 +278,7 @@
                 param: { name: "be_edit", type: "button" },
                 field: {
                     name: 'Редактор кнопок',
-                    description: 'Изменить порядок и скрыть кнопки'
+                    description: 'Изменить порядок и скрыть кнопки в карточке'
                 },
                 onChange: openEditorFromSettings
             });
@@ -293,14 +302,19 @@
 
     function startPlugin() {
         window.plugin_buttoneditor_ready = true;
+
+        // Добавляем настройки
         initSettings();
 
+        // Если функция уже включена — запускаем логику
         if (Lampa.Storage.get('be_enabled') === true) {
             main();
         }
 
+        // При готовности приложения обновляем настройки и запускаем если нужно
         Lampa.Listener.follow('app', e => {
             if (e.type === 'ready') {
+                initSettings(); // обновляем, чтобы появились доп. параметры
                 if (Lampa.Storage.get('be_enabled') === true) main();
             }
         });
