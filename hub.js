@@ -13,6 +13,7 @@
     var HIDE_KEY = 'be_button_hide';
     var lastFullContainer = null;
     var lastStartInstance = null;
+    var LAST_BUTTONS_KEY = 'be_last_buttons_data'; // Для хранения данных кнопок
 
     var FALLBACK_TITLES = {
         'button--play': () => Lampa.Lang.translate('title_watch'),
@@ -61,6 +62,10 @@
         if (e && e.link && e.link.html) return e.link.html;
         if (e && e.object && e.object.activity && typeof e.object.activity.render === 'function') return e.object.activity.render();
         return null;
+    }
+
+    function resolveActiveFullContainer() {
+        return $('.full-start-new').first();
     }
 
     function getButtonId($button) {
@@ -124,6 +129,19 @@
         Object.keys(map).forEach(id => map[id].toggleClass('be-button-hide', hidden.has(id)));
     }
 
+    function saveButtonsData(items, map) {
+        var data = items.map(id => ({
+            id: id,
+            title: getButtonTitle(id, map[id]),
+            icon: getButtonIcon(map[id])
+        }));
+        Lampa.Storage.set(LAST_BUTTONS_KEY, data);
+    }
+
+    function loadButtonsData() {
+        return Lampa.Storage.get(LAST_BUTTONS_KEY, []);
+    }
+
     function applyLayout(fullContainer) {
         if (!fullContainer || !fullContainer.length) return;
 
@@ -133,6 +151,10 @@
         fullContainer.find('.full-start-new__buttons .button--play').remove();
 
         var { items, map, targetContainer } = scanButtons(fullContainer, true);
+
+        // Сохраняем данные кнопок для будущего использования
+        saveButtonsData(items, map);
+
         var order = normalizeOrder(readArray(ORDER_KEY), items);
 
         targetContainer.empty();
@@ -152,26 +174,32 @@
         }
     }
 
-    function openEditor(fullContainer) {
-        if (!fullContainer || !fullContainer.length) return;
+    function openEditor() {
+        var savedData = loadButtonsData();
+        if (savedData.length === 0) {
+            Lampa.Modal.open({
+                title: 'Информация',
+                html: $('<div style="padding:1em;text-align:center;">Откройте хотя бы одну карточку фильма/сериала, чтобы инициализировать редактор кнопок.<br>После этого редактор будет доступен всегда.</div>'),
+                size: 'small',
+                onBack: () => Lampa.Modal.close(),
+                onClose: () => setTimeout(() => Lampa.Controller.toggle('settings'), 50)
+            });
+            return;
+        }
 
-        var { items, map } = scanButtons(fullContainer, false);
-        var order = normalizeOrder(readArray(ORDER_KEY), items);
+        var order = normalizeOrder(readArray(ORDER_KEY), savedData.map(b => b.id));
         var hidden = new Set(readArray(HIDE_KEY));
 
         var list = $('<div class="menu-edit-list"></div>');
 
         order.forEach(id => {
-            var $btn = map[id];
-            if (!$btn || !$btn.length) return;
-
-            var title = getButtonTitle(id, $btn);
-            var icon = getButtonIcon($btn);
+            var btnData = savedData.find(b => b.id === id);
+            if (!btnData) return;
 
             var item = $(`
                 <div class="menu-edit-list__item" data-id="${id}">
                     <div class="menu-edit-list__icon"></div>
-                    <div class="menu-edit-list__title">${title}</div>
+                    <div class="menu-edit-list__title">${btnData.title}</div>
                     <div class="menu-edit-list__move move-up selector">
                         <svg width="22" height="14" viewBox="0 0 22 14" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M2 12L11 3L20 12" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
@@ -191,7 +219,7 @@
                 </div>
             `);
 
-            if (icon) item.find('.menu-edit-list__icon').append(icon);
+            if (btnData.icon) item.find('.menu-edit-list__icon').append(btnData.icon);
 
             item.find('.dot').attr('opacity', hidden.has(id) ? 0 : 1);
 
@@ -235,30 +263,22 @@
 
                 Lampa.Modal.close();
 
+                // Применяем, если карточка открыта
                 setTimeout(() => {
-                    applyLayout(fullContainer);
-                }, 0);
+                    var current = resolveActiveFullContainer();
+                    if (current && current.length && Lampa.Storage.get('be_enabled') === true) {
+                        applyLayout(current);
+                    }
+                }, 100);
+            },
+            onClose: () => {
+                setTimeout(() => Lampa.Controller.toggle(Lampa.Activity.active().name), 50);
             }
         });
     }
 
     function openEditorFromSettings() {
-        var container = lastFullContainer;
-
-        if (!container || !container.length) {
-            Lampa.Modal.open({
-                title: 'Информация',
-                html: $('<div style="padding:1em;text-align:center;">Откройте хотя бы одну карточку фильма/сериала, чтобы инициализировать редактор кнопок.<br>После этого редактор будет доступен всегда, даже без открытой карточки.</div>'),
-                size: 'small',
-                onBack: () => Lampa.Modal.close(),
-                onClose: () => {
-                    setTimeout(() => Lampa.Controller.toggle('settings'), 50);
-                }
-            });
-            return;
-        }
-
-        openEditor(container);
+        openEditor();
     }
 
     function initSettings() {
