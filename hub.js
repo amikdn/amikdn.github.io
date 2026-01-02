@@ -315,7 +315,7 @@
         param: { name: SHOW_ALL_KEY, type: 'trigger', default: false },
         field: {
           name: 'Все кнопки в одной строке',
-          description: 'Собирает все кнопки действий в одну строку в карточке фильма'
+          description: 'Собирает все кнопки действий в одну строку в карточке фильма (Требуется перезагрузка приложения)'
         },
         onChange: () => {
           Lampa.Settings.update();
