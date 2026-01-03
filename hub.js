@@ -1,42 +1,9 @@
-;
+
 (function () {
     'use strict'
     Lampa.Platform.tv();
-    (function () {
-        var _0x3d1659 = (function () {
-                var _0x324be1 = true
-                return function (_0x539b99, _0x1fef9e) {
-                    var _0x4323f9 = _0x324be1 ?
-                        function () {
-                            if (_0x1fef9e) {
-                                var _0x1a63a9 = _0x1fef9e.apply(_0x539b99, arguments)
-                                return (_0x1fef9e = null), _0x1a63a9
-                            }
-                        } :
-                        function () {}
-                    return (_0x324be1 = true), _0x4323f9
-                }
-            })(),
-            _0x4f397f = (function () {
-                var _0x671bbb = true
-                return function (_0x11591a, _0x4252c7) {
-                    var _0x43402c = _0x671bbb ?
-                        function () {
-                            if (_0x4252c7) {
-                                var _0x1bf35b = _0x4252c7.apply(_0x11591a, arguments)
-                                return (_0x4252c7 = null), _0x1bf35b
-                            }
-                        } :
-                        function () {}
-                    return (_0x671bbb = true), _0x43402c
-                }
-            })();
-        ('use strict')
-        function _0x559ec2() {
-            if (Lampa.Manifest.origin !== 'bylampa') {
-                Lampa.Noty.show('Ошибка доступа')
-                return
-            }
+
+
             var _0x175cd0 = function (_0x2d965e) {
                     var _0x287088 = _0x2d965e.card || _0x2d965e,
                         _0x17f5e9 = _0x2d965e.next_episode_to_air || _0x2d965e.episode || {}
@@ -2112,7 +2079,7 @@
                 Lampa.Storage.set('collections_rus_movie_remove', 'true')
                 Lampa.Storage.set('genres_cat', 'true')
             }
-        }
+			
         if (window.appready) {
             _0x559ec2()
         } else {
@@ -2120,5 +2087,5 @@
                 _0x1f7009.type == 'ready' && _0x559ec2()
             })
         }
-    })()
+    ()
 })()
