@@ -32,7 +32,7 @@ Lampa.Platform.tv();
     }
   }
 
-  /** CSS — фон прозрачный, градиент на кнопках, иконки чуть выше */
+  /** CSS — фон бара прозрачный, кнопки с градиентом, иконки смещены выше */
   const css = `
   .navigation-bar__body {
       display: flex !important;
@@ -63,6 +63,7 @@ Lampa.Platform.tv();
       transition: background .3s ease, transform .2s ease !important;
       box-sizing: border-box;
       overflow: hidden !important;
+      padding-top: 6px !important; /* смещение всего содержимого вверх */
   }
 
   .navigation-bar__item:hover,
@@ -77,8 +78,7 @@ Lampa.Platform.tv();
       display: flex;
       align-items: center;
       justify-content: center;
-      margin-bottom: 6px !important; /* увеличено для подъёма иконки */
-      margin-top: -4px !important; /* иконка смещена чуть выше */
+      margin-bottom: 0 !important; /* убрано нижнее расстояние */
   }
 
   .navigation-bar__icon svg {
@@ -98,6 +98,7 @@ Lampa.Platform.tv();
       text-align: center !important;
       padding: 0 4px !important;
       box-sizing: border-box !important;
+      margin-top: 2px !important; /* текст ближе к иконке */
   }
 
   @media (max-width: 900px) {
@@ -105,6 +106,7 @@ Lampa.Platform.tv();
           height: 60px !important; 
           min-width: 50px !important;
           margin: 0 2px !important;
+          padding-top: 5px !important;
       }
       .navigation-bar__icon svg { width: 24px !important; height: 24px !important; }
       .navigation-bar__label { font-size: 9.5px !important; }
@@ -115,10 +117,11 @@ Lampa.Platform.tv();
           height: 56px !important; 
           min-width: 45px !important;
           margin: 0 2px !important;
+          padding-top: 4px !important;
       }
-      .navigation-bar__icon { width: 24px; height: 24px; margin-bottom: 5px !important; margin-top: -3px !important; }
+      .navigation-bar__icon { width: 24px; height: 24px; }
       .navigation-bar__icon svg { width: 22px !important; height: 22px !important; }
-      .navigation-bar__label { font-size: 9px !important; }
+      .navigation-bar__label { font-size: 9px !important; margin-top: 1px !important; }
   }
 
   @media (orientation: landscape) {
@@ -139,6 +142,7 @@ Lampa.Platform.tv();
           transition: background .25s ease, transform .2s ease !important;
           box-sizing: border-box !important;
           align-self: center !important;
+          padding-top: 0 !important;
       }
       .navigation-bar__item:hover,
       .navigation-bar__item.active {
@@ -149,7 +153,6 @@ Lampa.Platform.tv();
           width: 100% !important;
           height: 100% !important;
           margin-bottom: 0 !important;
-          margin-top: 0 !important;
           padding: 5px !important;
       }
       .navigation-bar__icon svg {
@@ -374,27 +377,47 @@ Lampa.Platform.tv();
     });
   }
 
-  /** Зажатие кнопки "Назад" — используем hover:long (работает в Lampa на телефоне и TV) */
+  /** Исправленный long press для кнопки "Назад" с поддержкой короткого клика */
   function addBackLongPress() {
     const backBtn = $('.head__backward');
     if (!backBtn) return;
 
-    // Основной способ — hover:long (стандартное событие Lampa для long press)
-    if (typeof $ !== 'undefined' && $(backBtn).on) {
-      $(backBtn).on('hover:long', showBackMenu);
-    } else {
-      // Fallback на touch (на всякий случай)
-      let timer;
-      const start = (e) => {
-        timer = setTimeout(showBackMenu, 800);
-      };
-      const cancel = () => clearTimeout(timer);
+    let longPressTimer;
+    let isLongPress = false;
+    let startTime;
 
-      backBtn.addEventListener('touchstart', start);
-      backBtn.addEventListener('touchend', cancel);
-      backBtn.addEventListener('touchmove', cancel);
-      backBtn.addEventListener('touchcancel', cancel);
-    }
+    const start = (e) => {
+      // Не предотвращаем стандартное поведение сразу
+      isLongPress = false;
+      startTime = Date.now();
+      longPressTimer = setTimeout(() => {
+        isLongPress = true;
+        showBackMenu();
+      }, 700);
+    };
+
+    const end = (e) => {
+      clearTimeout(longPressTimer);
+      if (!isLongPress && (Date.now() - startTime < 700)) {
+        // Короткий клик — выполняем стандартный "назад"
+        backBtn.click(); // или Lampa.Activity.back() если нужно
+      }
+    };
+
+    const move = () => {
+      clearTimeout(longPressTimer);
+      isLongPress = false;
+    };
+
+    backBtn.addEventListener('touchstart', start, { passive: true });
+    backBtn.addEventListener('touchend', end);
+    backBtn.addEventListener('touchmove', move);
+    backBtn.addEventListener('touchcancel', end);
+
+    backBtn.addEventListener('mousedown', start);
+    backBtn.addEventListener('mouseup', end);
+    backBtn.addEventListener('mousemove', move);
+    backBtn.addEventListener('mouseleave', end);
   }
 
   function adjustPosition() {
@@ -440,7 +463,6 @@ Lampa.Platform.tv();
   const mo = new MutationObserver(() => {
     const bar = $('.navigation-bar__body');
     if(bar){
-      addBackLongPress(); // повторно добавляем на случай динамической загрузки кнопки "Назад"
       mo.disconnect();
       init();
     }
