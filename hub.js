@@ -10,29 +10,16 @@ Lampa.Platform.tv();
     3: { action: 'cartoon', svg: `<svg><use xlink:href="#sprite-cartoon"></use></svg>`, name: 'Мультфильмы' }
   };
 
-  /** Функция выхода из Lampa */
+  /** Функция выхода из Lampa (только для Android) */
   function exitLamp() {
-    try {
-      if (Lampa && Lampa.Activity) Lampa.Activity.out();
-    } catch (e) {}
-    if (Lampa && Lampa.Platform) {
-      if (Lampa.Platform.is('tizen')) {
-        tizen.application.getCurrentApplication().exit();
-      } else if (Lampa.Platform.is('webos')) {
-        window.close();
-      } else if (Lampa.Platform.is('android')) {
+    if (Lampa && Lampa.Platform && Lampa.Platform.is('android')) {
+      try {
         Lampa.Android.exit();
-      } else if (Lampa.Platform.is('orsay')) {
-        Lampa.Orsay.exit();
-      } else {
-        location.reload();
-      }
-    } else {
-      location.reload();
+      } catch (e) {}
     }
   }
 
-  /** CSS — фон бара прозрачный, кнопки с градиентом, иконки смещены выше */
+  /** CSS — фон прозрачный, градиент на кнопках, иконки подняты выше */
   const css = `
   .navigation-bar__body {
       display: flex !important;
@@ -63,7 +50,7 @@ Lampa.Platform.tv();
       transition: background .3s ease, transform .2s ease !important;
       box-sizing: border-box;
       overflow: hidden !important;
-      padding-top: 6px !important; /* смещение всего содержимого вверх */
+      padding-top: 4px !important; /* дополнительный подъём содержимого */
   }
 
   .navigation-bar__item:hover,
@@ -79,6 +66,7 @@ Lampa.Platform.tv();
       align-items: center;
       justify-content: center;
       margin-bottom: 0 !important; /* убрано нижнее расстояние */
+      margin-top: -4px !important; /* иконка смещена выше */
   }
 
   .navigation-bar__icon svg {
@@ -98,7 +86,6 @@ Lampa.Platform.tv();
       text-align: center !important;
       padding: 0 4px !important;
       box-sizing: border-box !important;
-      margin-top: 2px !important; /* текст ближе к иконке */
   }
 
   @media (max-width: 900px) {
@@ -106,7 +93,6 @@ Lampa.Platform.tv();
           height: 60px !important; 
           min-width: 50px !important;
           margin: 0 2px !important;
-          padding-top: 5px !important;
       }
       .navigation-bar__icon svg { width: 24px !important; height: 24px !important; }
       .navigation-bar__label { font-size: 9.5px !important; }
@@ -117,11 +103,10 @@ Lampa.Platform.tv();
           height: 56px !important; 
           min-width: 45px !important;
           margin: 0 2px !important;
-          padding-top: 4px !important;
       }
-      .navigation-bar__icon { width: 24px; height: 24px; }
+      .navigation-bar__icon { width: 24px; height: 24px; margin-top: -3px !important; }
       .navigation-bar__icon svg { width: 22px !important; height: 22px !important; }
-      .navigation-bar__label { font-size: 9px !important; margin-top: 1px !important; }
+      .navigation-bar__label { font-size: 9px !important; }
   }
 
   @media (orientation: landscape) {
@@ -142,7 +127,6 @@ Lampa.Platform.tv();
           transition: background .25s ease, transform .2s ease !important;
           box-sizing: border-box !important;
           align-self: center !important;
-          padding-top: 0 !important;
       }
       .navigation-bar__item:hover,
       .navigation-bar__item.active {
@@ -281,6 +265,9 @@ Lampa.Platform.tv();
   }
 
   function showBackMenu() {
+    // Показываем меню только на Android
+    if (!(Lampa && Lampa.Platform && Lampa.Platform.is('android'))) return;
+
     const overlay = document.createElement('div');
     overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);display:flex;align-items:center;justify-content:center;z-index:9999;';
     overlay.addEventListener('click', e => { if(e.target === overlay) overlay.remove(); });
@@ -377,47 +364,63 @@ Lampa.Platform.tv();
     });
   }
 
-  /** Исправленный long press для кнопки "Назад" с поддержкой короткого клика */
   function addBackLongPress() {
     const backBtn = $('.head__backward');
     if (!backBtn) return;
 
-    let longPressTimer;
-    let isLongPress = false;
-    let startTime;
+    let longPressed = false;
+    let timer;
 
     const start = (e) => {
-      // Не предотвращаем стандартное поведение сразу
-      isLongPress = false;
-      startTime = Date.now();
-      longPressTimer = setTimeout(() => {
-        isLongPress = true;
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+      }
+      longPressed = false;
+      timer = setTimeout(() => {
+        longPressed = true;
         showBackMenu();
       }, 700);
     };
 
-    const end = (e) => {
-      clearTimeout(longPressTimer);
-      if (!isLongPress && (Date.now() - startTime < 700)) {
-        // Короткий клик — выполняем стандартный "назад"
-        backBtn.click(); // или Lampa.Activity.back() если нужно
+    const cancel = (e) => {
+      clearTimeout(timer);
+      if (longPressed && e) {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
       }
+      longPressed = false;
     };
 
-    const move = () => {
-      clearTimeout(longPressTimer);
-      isLongPress = false;
-    };
+    // Touch события
+    backBtn.addEventListener('touchstart', start, { passive: false });
+    backBtn.addEventListener('touchend', cancel);
+    backBtn.addEventListener('touchmove', cancel);
+    backBtn.addEventListener('touchcancel', cancel);
 
-    backBtn.addEventListener('touchstart', start, { passive: true });
-    backBtn.addEventListener('touchend', end);
-    backBtn.addEventListener('touchmove', move);
-    backBtn.addEventListener('touchcancel', end);
+    // Mouse события
+    backBtn.addEventListener('mousedown', (e) => {
+      if (e.button === 0) {
+        start(e);
+        const mouseUp = (ev) => {
+          cancel(ev);
+          document.removeEventListener('mouseup', mouseUp);
+        };
+        document.addEventListener('mouseup', mouseUp);
+      }
+    });
 
-    backBtn.addEventListener('mousedown', start);
-    backBtn.addEventListener('mouseup', end);
-    backBtn.addEventListener('mousemove', move);
-    backBtn.addEventListener('mouseleave', end);
+    // Предотвращаем обычный "назад" при long press
+    backBtn.addEventListener('click', (e) => {
+      if (longPressed) {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        longPressed = false;
+      }
+    });
   }
 
   function adjustPosition() {
