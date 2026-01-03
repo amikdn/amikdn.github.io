@@ -10,34 +10,35 @@ Lampa.Platform.tv();
     3: { action: 'cartoon', svg: `<svg><use xlink:href="#sprite-cartoon"></use></svg>`, name: 'Мультфильмы' }
   };
 
-  /** CSS — фон бара полностью прозрачный, кнопки с градиентом, текст ближе к иконке */
+  /** CSS — бар полностью прозрачный, кнопки только с градиентом, высота подогнана под оригинальную подложку */
   const css = `
   .navigation-bar__body {
       display: flex !important;
       justify-content: center !important;
       align-items: center !important;
       width: 100% !important;
-      padding: 6px 2px !important;
+      padding: 8px 4px !important; /* подогнано под оригинальную высоту ~80px */
       background: transparent !important; /* полностью прозрачный фон бара */
-      border-top: 1px solid rgba(255,255,255,0.08);
+      border-top: none !important; /* убрана окантовка сверху */
       overflow-x: auto !important;
       overflow-y: hidden !important;
       box-sizing: border-box;
+      height: 80px !important; /* фиксированная высота как у оригинальной подложки */
       scrollbar-width: none;
   }
   .navigation-bar__body::-webkit-scrollbar { display: none; }
 
   .navigation-bar__item {
       flex: 1 1 0 !important;
-      min-width: 55px !important;
+      min-width: 60px !important;
       display: flex !important;
       flex-direction: column !important;
       align-items: center;
       justify-content: center;
-      height: 64px !important;
-      margin: 0 3px !important;
-      background: linear-gradient(to top, rgba(80,80,80,0.35), rgba(30,30,35,0.25)) !important; /* градиент: снизу светлее серый, вверх темнее */
-      border-radius: 14px !important;
+      height: 64px !important; /* кнопки полностью заполняют высоту бара с padding */
+      margin: 0 4px !important;
+      background: linear-gradient(to top, rgba(90,90,90,0.4), rgba(40,40,45,0.3)) !important; /* только градиент, без прозрачности вне градиента */
+      border-radius: 16px !important;
       transition: background .3s ease, transform .2s ease !important;
       box-sizing: border-box;
       overflow: hidden !important;
@@ -45,27 +46,27 @@ Lampa.Platform.tv();
 
   .navigation-bar__item:hover,
   .navigation-bar__item.active {
-      background: linear-gradient(to top, rgba(100,100,100,0.45), rgba(40,40,45,0.35)) !important; /* ярче при наведении */
+      background: linear-gradient(to top, rgba(110,110,110,0.5), rgba(50,50,55,0.4)) !important;
       transform: translateY(-3px);
   }
 
   .navigation-bar__icon {
-      width: 28px;
-      height: 28px;
+      width: 30px;
+      height: 30px;
       display: flex;
       align-items: center;
       justify-content: center;
-      margin-bottom: 2px !important; /* текст поднят выше (меньше отступ снизу иконки) */
+      margin-bottom: 3px !important;
   }
 
   .navigation-bar__icon svg {
-      width: 26px !important;
-      height: 26px !important;
+      width: 28px !important;
+      height: 28px !important;
       fill: currentColor;
   }
 
   .navigation-bar__label {
-      font-size: 10px !important;
+      font-size: 10.5px !important;
       color: #fff !important;
       opacity: 0.95 !important;
       white-space: nowrap !important;
@@ -73,69 +74,30 @@ Lampa.Platform.tv();
       text-overflow: ellipsis !important;
       width: 100% !important;
       text-align: center !important;
-      padding: 0 4px !important;
-      margin-top: -2px !important; /* дополнительно поднять текст */
+      padding: 0 6px !important;
       box-sizing: border-box !important;
   }
 
   @media (max-width: 900px) {
       .navigation-bar__item { 
           height: 60px !important; 
-          min-width: 50px !important;
-          margin: 0 2px !important;
+          min-width: 55px !important;
       }
-      .navigation-bar__icon svg { width: 24px !important; height: 24px !important; }
-      .navigation-bar__label { font-size: 9.5px !important; }
+      .navigation-bar__icon svg { width: 26px !important; height: 26px !important; }
   }
   @media (max-width: 600px) {
-      .navigation-bar__body { padding: 6px 1px !important; }
+      .navigation-bar__body { padding: 8px 2px !important; }
       .navigation-bar__item { 
           height: 56px !important; 
-          min-width: 45px !important;
-          margin: 0 2px !important;
+          min-width: 50px !important;
       }
-      .navigation-bar__icon { width: 26px; height: 26px; margin-bottom: 1px !important; }
       .navigation-bar__icon svg { width: 24px !important; height: 24px !important; }
-      .navigation-bar__label { font-size: 9px !important; margin-top: -1px !important; }
+      .navigation-bar__label { font-size: 10px !important; }
   }
 
-  /* Landscape: круглые 30×30 с лёгким фоном */
+  /* Landscape: полностью скрываем нижний бар с кастомными кнопками */
   @media (orientation: landscape) {
       .navigation-bar__body {
-          display: none !important;
-      }
-      .navigation-bar__item {
-          flex: none !important;
-          flex-direction: row !important;
-          width: 30px !important;
-          height: 30px !important;
-          min-width: 30px !important;
-          min-height: 30px !important;
-          background: rgba(255,255,255,0.08) !important;
-          border-radius: 50% !important;
-          overflow: hidden !important;
-          margin: 0 8px !important;
-          transition: background .25s ease, transform .2s ease !important;
-          box-sizing: border-box !important;
-          align-self: center !important;
-      }
-      .navigation-bar__item:hover,
-      .navigation-bar__item.active {
-          background: rgba(255,255,255,0.18) !important;
-          transform: scale(1.1);
-      }
-      .navigation-bar__icon {
-          width: 100% !important;
-          height: 100% !important;
-          margin-bottom: 0 !important;
-          padding: 5px !important;
-          box-sizing: border-box !important;
-      }
-      .navigation-bar__icon svg {
-          width: 100% !important;
-          height: 100% !important;
-      }
-      .navigation-bar__label {
           display: none !important;
       }
   }`;
@@ -307,43 +269,11 @@ Lampa.Platform.tv();
     });
   }
 
-  function adjustPosition() {
-    const isLandscape = window.matchMedia('(orientation: landscape)').matches;
-    const bar = $('.navigation-bar__body');
-    const actions = $('.head__actions');
-    if (!bar || !actions) return;
-
-    const items = $$('.navigation-bar__item');
-
-    if (isLandscape) {
-      items.forEach(item => {
-        if (!actions.contains(item)) {
-          const target = actions.querySelector('.head__action.open--search') || actions.firstChild;
-          actions.insertBefore(item, target);
-        }
-      });
-    } else {
-      items.forEach(item => {
-        if (!bar.contains(item)) {
-          const target = bar.querySelector('.navigation-bar__item[data-action="search"]') || null;
-          bar.insertBefore(item, target);
-        }
-      });
-    }
-  }
-
   function init(){
     injectCSS();
     addItem('1', defaults[1].action, defaults[1].svg, defaults[1].name);
     addItem('2', defaults[2].action, defaults[2].svg, defaults[2].name);
     addItem('3', defaults[3].action, defaults[3].svg, defaults[3].name);
-
-    adjustPosition();
-
-    const mql = window.matchMedia('(orientation: landscape)');
-    mql.addEventListener('change', adjustPosition);
-    window.addEventListener('orientationchange', adjustPosition);
-    window.addEventListener('resize', adjustPosition);
   }
 
   const mo = new MutationObserver(() => {
