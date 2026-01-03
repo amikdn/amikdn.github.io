@@ -261,7 +261,7 @@
         })
       })
       $('.menu .menu__list').eq(0).append(_0x58ae88)
-    }
+    };
     if (window.appready) {
       _0x208538()
     } else {
