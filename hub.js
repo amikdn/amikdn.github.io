@@ -10,16 +10,16 @@ Lampa.Platform.tv();
     3: { action: 'cartoon', svg: `<svg><use xlink:href="#sprite-cartoon"></use></svg>`, name: 'Мультфильмы' }
   };
 
-  /** Функция выхода из Lampa (только для Android) */
+  /** Функция выхода — только для Android */
   function exitLamp() {
-    if (Lampa && Lampa.Platform && Lampa.Platform.is('android')) {
+    if (Lampa.Platform.is('android')) {
       try {
         Lampa.Android.exit();
       } catch (e) {}
     }
   }
 
-  /** CSS — фон прозрачный, градиент на кнопках, иконки подняты выше */
+  /** CSS — фон бара прозрачный, кнопки с градиентом, иконки чуть выше */
   const css = `
   .navigation-bar__body {
       display: flex !important;
@@ -42,7 +42,8 @@ Lampa.Platform.tv();
       display: flex !important;
       flex-direction: column !important;
       align-items: center;
-      justify-content: center;
+      justify-content: flex-start !important; /* начало сверху для смещения вверх */
+      padding-top: 8px !important; /* дополнительный отступ сверху — иконки выше */
       height: 64px !important;
       margin: 0 3px !important;
       background: linear-gradient(to top, rgba(100,100,100,0.5), rgba(50,50,50,0.6)) !important;
@@ -50,7 +51,6 @@ Lampa.Platform.tv();
       transition: background .3s ease, transform .2s ease !important;
       box-sizing: border-box;
       overflow: hidden !important;
-      padding-top: 6px !important; /* дополнительно поднимаем содержимое кнопки */
   }
 
   .navigation-bar__item:hover,
@@ -65,8 +65,7 @@ Lampa.Platform.tv();
       display: flex;
       align-items: center;
       justify-content: center;
-      margin-bottom: 2px !important;
-      margin-top: -6px !important; /* иконки смещены ещё выше */
+      margin-bottom: 4px !important; /* пространство под иконкой */
   }
 
   .navigation-bar__icon svg {
@@ -93,9 +92,8 @@ Lampa.Platform.tv();
           height: 60px !important; 
           min-width: 50px !important;
           margin: 0 2px !important;
-          padding-top: 5px !important;
+          padding-top: 6px !important;
       }
-      .navigation-bar__icon { margin-top: -5px !important; }
       .navigation-bar__icon svg { width: 24px !important; height: 24px !important; }
       .navigation-bar__label { font-size: 9.5px !important; }
   }
@@ -105,9 +103,9 @@ Lampa.Platform.tv();
           height: 56px !important; 
           min-width: 45px !important;
           margin: 0 2px !important;
-          padding-top: 4px !important;
+          padding-top: 5px !important;
       }
-      .navigation-bar__icon { width: 24px; height: 24px; margin-top: -4px !important; margin-bottom: 1px !important; }
+      .navigation-bar__icon { width: 24px; height: 24px; margin-bottom: 3px !important; }
       .navigation-bar__icon svg { width: 22px !important; height: 22px !important; }
       .navigation-bar__label { font-size: 9px !important; }
   }
@@ -130,6 +128,7 @@ Lampa.Platform.tv();
           transition: background .25s ease, transform .2s ease !important;
           box-sizing: border-box !important;
           align-self: center !important;
+          padding-top: 0 !important;
       }
       .navigation-bar__item:hover,
       .navigation-bar__item.active {
@@ -268,8 +267,6 @@ Lampa.Platform.tv();
   }
 
   function showBackMenu() {
-    if (!(Lampa && Lampa.Platform && Lampa.Platform.is('android'))) return;
-
     const overlay = document.createElement('div');
     overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);display:flex;align-items:center;justify-content:center;z-index:9999;';
     overlay.addEventListener('click', e => { if(e.target === overlay) overlay.remove(); });
@@ -352,7 +349,7 @@ Lampa.Platform.tv();
     };
     const cancel = () => clearTimeout(timer);
 
-    div.addEventListener('touchstart', start, { passive: false });
+    div.addEventListener('touchstart', start, {passive: false});
     div.addEventListener('touchend', cancel);
     div.addEventListener('touchmove', cancel);
     div.addEventListener('touchcancel', cancel);
@@ -370,60 +367,36 @@ Lampa.Platform.tv();
     const backBtn = $('.head__backward');
     if (!backBtn) return;
 
-    let longPressed = false;
     let timer;
+    let longPressFired = false;
 
     const start = (e) => {
-      if (e) {
-        e.preventDefault();
-        e.stopPropagation();
-        e.stopImmediatePropagation();
-      }
-      longPressed = false;
+      if (e.type === 'touchstart') e.preventDefault();
+      longPressFired = false;
       timer = setTimeout(() => {
-        longPressed = true;
+        longPressFired = true;
         showBackMenu();
       }, 700);
     };
-
     const cancel = (e) => {
       clearTimeout(timer);
-      if (e) {
-        e.preventDefault();
-        e.stopPropagation();
-        e.stopImmediatePropagation();
+      if (!longPressFired && e.type === 'touchend') {
+        // Если короткий тап — позволяем стандартному поведению "назад" сработать
       }
-      longPressed = false;
     };
 
-    // Touch события с passive: false для preventDefault
-    backBtn.addEventListener('touchstart', start, { passive: false });
+    backBtn.addEventListener('touchstart', start, {passive: false});
     backBtn.addEventListener('touchend', cancel);
     backBtn.addEventListener('touchmove', cancel);
     backBtn.addEventListener('touchcancel', cancel);
 
-    // Mouse события
     backBtn.addEventListener('mousedown', (e) => {
       if (e.button === 0) {
         start(e);
-        const mouseUp = (ev) => {
-          cancel(ev);
-          document.removeEventListener('mouseup', mouseUp);
-        };
-        document.addEventListener('mouseup', mouseUp);
+        const up = () => { cancel(); document.removeEventListener('mouseup', up); };
+        document.addEventListener('mouseup', up);
       }
     });
-
-    // Блокировка обычного клика при long press (в capture phase для надёжности)
-    backBtn.addEventListener('click', function(e) {
-      if (longPressed) {
-        e.preventDefault();
-        e.stopPropagation();
-        e.stopImmediatePropagation();
-        longPressed = false; // сбрасываем флаг
-        return false;
-      }
-    }, true); // capture phase
   }
 
   function adjustPosition() {
