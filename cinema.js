@@ -1,7 +1,7 @@
-(function () {
+;(function () {
   'use strict'
   Lampa.Platform.tv()
-  (function () {
+  ;(function () {
     var _0xf3c106 = (function () {
       var _0x32ab90 = true
       return function (_0x5a33ed, _0x5acb01) {
@@ -16,7 +16,7 @@
         return (_0x32ab90 = false), _0x3ffbf6
       }
     })()
-
+    ;('use strict')
     function _0x208538() {
       var _0x137b96 = _0xf3c106(this, function () {
         var _0x4167d3 = function () {
@@ -786,5 +786,5 @@
         _0x48d710()
       }
     }
-  })();
-})();
+  })()
+})()
