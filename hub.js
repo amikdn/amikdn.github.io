@@ -20,7 +20,7 @@
     function _0x559ec2() {
       if (Lampa.Manifest.origin !== "lampa") {
         Lampa.Noty.show("Ошибка доступа");
-        return;
+
       }
       var _0x175cd0 = function (_0x2d965e) {
         var _0x287088 = _0x2d965e.card || _0x2d965e;
