@@ -104,7 +104,7 @@
             this.request = (path, params = {}, success, error = () => {}) => {
                 let url = 'https://api.themoviedb.org/3/' + path;
 
-                const apiKey = Lampa.TMDB ? Lampa.TMDB.key() : '4fd2d6e1a1e9e0f0a4d1d0e0a0b0c0d0';
+                const apiKey = (Lampa.TMDB && Lampa.TMDB.key && typeof Lampa.TMDB.key === 'function') ? Lampa.TMDB.key() : '4fd2d6e1a1e9e0f0a4d1d0e0a0b0c0d0';
                 const language = Lampa.Storage.get('language', 'ru');
 
                 const queryParams = new URLSearchParams({
@@ -634,110 +634,127 @@
     const personalHubSource = Object.assign({}, baseSource, new PersonalHub(baseSource));
     Lampa.Api.sources.personalhub = personalHubSource;
 
-    if (Lampa.Settings && Lampa.Settings.main && Lampa.Settings.main().field && Lampa.Settings.main().field.source && Lampa.Settings.main().field.source.values) {
-        Lampa.Settings.select('source', Object.assign({}, Lampa.Settings.main().field.source.values, {personalhub: 'PersonalHub'}), 'tmdb');
+    if (Lampa.Settings && Lampa.Settings.main && typeof Lampa.Settings.select === 'function') {
+        const sourceValues = (Lampa.Settings.main().field && Lampa.Settings.main().field.source && Lampa.Settings.main().field.source.values) || {};
+        Lampa.Settings.select('source', Object.assign({}, sourceValues, {personalhub: 'PersonalHub'}), 'tmdb');
     }
 
     if (Lampa.Storage.get('source') === 'personalhub') {
         const initInterval = setInterval(() => {
-            if (Lampa.Controller && Lampa.Controller.active()) {
+            if (Lampa.Controller && typeof Lampa.Controller.toggle === 'function') {
                 clearInterval(initInterval);
                 Lampa.Controller.toggle('main');
             }
         }, 300);
     }
 
-    Lampa.Settings.listener.follow('open', e => {
-        if (e.name === 'more') {
-            const render = Lampa.Settings.main().render();
-            if (render.find('[data-component="bylampa_source"]').length === 0) {
-                Lampa.SettingsApi.addComponent({component: 'bylampa_source', name: 'Источник PersonalHub'});
-            }
-            Lampa.Settings.main().update();
-            render.find('div[data-name="source"]').parent().hide();
-        }
-    });
-
-    Lampa.SettingsApi.addComponent({
-        component: 'bylampa_source',
-        param: {name: 'bylampa_source', type: 'toggle', default: true},
-        field: {name: 'Источник PersonalHub', description: 'Настройки главного экрана'},
-        onRender: function(item) {
-            setTimeout(() => {
-                const sourceParam = $('div[data-name="source"]').parent();
-                if (sourceParam.length) sourceParam.insertAfter(item.parent());
-                if (Lampa.Storage.get('source') !== 'personalhub') {
-                    item.hide();
-                } else {
-                    item.show();
-                }
-            }, 20);
-
-            item.on('hover:enter', () => {
-                Lampa.Settings.open('bylampa_source');
-                if (Lampa.Controller.active().field) {
-                    Lampa.Controller.active().field.back = () => Lampa.Settings.open('more');
-                }
-            });
-        }
-    });
-
-    Lampa.Storage.listener.follow('change', e => {
-        if (e.name === 'source') {
-            setTimeout(() => {
-                const items = $('.settings-param > div:contains("Источник PersonalHub")');
-                if (items.length) {
-                    if (Lampa.Storage.get('source') !== 'personalhub') {
-                        items.parent().hide();
-                    } else {
-                        items.parent().show();
-                    }
-                }
-            }, 50);
-        }
-    });
-
-    function addCategorySettings(id, title, description, shuffleDefault = false, displayDefault = '1', orderDefault = '1') {
+    if (Lampa.Settings && Lampa.Settings.listener && typeof Lampa.Settings.listener.follow === 'function') {
         Lampa.Settings.listener.follow('open', e => {
             if (e.name === 'more') {
-                const render = Lampa.Settings.main().render();
-                if (render.find(`[data-component="${id}"]`).length === 0) {
-                    Lampa.SettingsApi.addComponent({component: id, name: title});
+                const render = Lampa.Settings.main && Lampa.Settings.main().render && Lampa.Settings.main().render();
+                if (render && render.find('[data-component="bylampa_source"]').length === 0) {
+                    if (Lampa.SettingsApi && typeof Lampa.SettingsApi.addComponent === 'function') {
+                        Lampa.SettingsApi.addComponent({component: 'bylampa_source', name: 'Источник PersonalHub'});
+                    }
                 }
-                render.find('[data-component="bylampa_source"]').addClass('hide');
+                if (Lampa.Settings.main && typeof Lampa.Settings.main().update === 'function') Lampa.Settings.main().update();
+                if (render) render.find('div[data-name="source"]').parent().hide();
             }
         });
+    }
 
-        Lampa.SettingsApi.addParam({
+    if (Lampa.SettingsApi && typeof Lampa.SettingsApi.addComponent === 'function') {
+        Lampa.SettingsApi.addComponent({
             component: 'bylampa_source',
-            param: {name: id, type: 'toggle', default: true},
-            field: {name: title, description: description},
+            param: {name: 'bylampa_source', type: 'toggle', default: true},
+            field: {name: 'Источник PersonalHub', description: 'Настройки главного экрана'},
             onRender: function(item) {
+                setTimeout(() => {
+                    const sourceParam = $('div[data-name="source"]').parent();
+                    if (sourceParam.length) sourceParam.insertAfter(item.parent());
+                    if (Lampa.Storage.get('source') !== 'personalhub') {
+                        item.hide();
+                    } else {
+                        item.show();
+                    }
+                }, 20);
+
                 item.on('hover:enter', () => {
-                    Lampa.Settings.open(id);
-                    if (Lampa.Controller.active().field) {
-                        Lampa.Controller.active().field.back = () => {
-                            Lampa.Settings.open('bylampa_source');
-                            setTimeout(() => {
-                                const index = Array.from(item.parent().children()).indexOf(item[0]) + 1;
-                                const elem = document.querySelector(`#app > div.settings.animate > div.settings__content.layer--height > div.settings__body > div > div > div > div > div:nth-child(${index})`);
-                                if (elem) Lampa.Controller.focus(elem);
-                            }, 50);
-                        };
+                    Lampa.Settings.open('bylampa_source');
+                    const activeController = Lampa.Controller && Lampa.Controller.active && Lampa.Controller.active();
+                    if (activeController && activeController.field) {
+                        activeController.field.back = () => Lampa.Settings.open('more');
                     }
                 });
             }
         });
+    }
 
-        Lampa.SettingsApi.addParam({component: id, param: {name: id + '_shuffle', type: 'toggle', default: shuffleDefault}, field: {name: 'Перемешивать'}});
-        Lampa.SettingsApi.addParam({component: id, param: {name: id + '_display', type: 'select', values: {1: 'Стандарт', 2: 'Коллекция', 3: 'Широкие маленькие', 4: 'Top Line'}, default: displayDefault}, field: {name: 'Вид отображения'}});
-        Lampa.SettingsApi.addParam({component: id, param: {name: 'number_' + id, type: 'select', values: {
-            1:'1',2:'2',3:'3',4:'4',5:'5',6:'6',7:'7',8:'8',9:'9',10:'10',
-            11:'11',12:'12',13:'13',14:'14',15:'15',16:'16',17:'17',18:'18',19:'19',20:'20',
-            21:'21',22:'22',23:'23',24:'24',25:'25',26:'26',27:'27',28:'28',29:'29',30:'30',
-            31:'31',32:'32',33:'33',34:'34',35:'35',36:'36',37:'37'
-        }, default: orderDefault}, field: {name: 'Порядок отображения'}});
-        Lampa.SettingsApi.addParam({component: id, param: {name: id + '_remove', type: 'toggle', default: false}, field: {name: 'Убрать с главной страницы'}});
+    if (Lampa.Storage && Lampa.Storage.listener && typeof Lampa.Storage.listener.follow === 'function') {
+        Lampa.Storage.listener.follow('change', e => {
+            if (e.name === 'source') {
+                setTimeout(() => {
+                    const items = $('.settings-param > div:contains("Источник PersonalHub")');
+                    if (items.length) {
+                        if (Lampa.Storage.get('source') !== 'personalhub') {
+                            items.parent().hide();
+                        } else {
+                            items.parent().show();
+                        }
+                    }
+                }, 50);
+            }
+        });
+    }
+
+    function addCategorySettings(id, title, description, shuffleDefault = false, displayDefault = '1', orderDefault = '1') {
+        if (Lampa.Settings && Lampa.Settings.listener && typeof Lampa.Settings.listener.follow === 'function') {
+            Lampa.Settings.listener.follow('open', e => {
+                if (e.name === 'more') {
+                    const render = Lampa.Settings.main && Lampa.Settings.main().render && Lampa.Settings.main().render();
+                    if (render && render.find(`[data-component="${id}"]`).length === 0) {
+                        if (Lampa.SettingsApi && typeof Lampa.SettingsApi.addComponent === 'function') {
+                            Lampa.SettingsApi.addComponent({component: id, name: title});
+                        }
+                    }
+                    if (render) render.find('[data-component="bylampa_source"]').addClass('hide');
+                }
+            });
+        }
+
+        if (Lampa.SettingsApi && typeof Lampa.SettingsApi.addParam === 'function') {
+            Lampa.SettingsApi.addParam({
+                component: 'bylampa_source',
+                param: {name: id, type: 'toggle', default: true},
+                field: {name: title, description: description},
+                onRender: function(item) {
+                    item.on('hover:enter', () => {
+                        Lampa.Settings.open(id);
+                        const activeController = Lampa.Controller && Lampa.Controller.active && Lampa.Controller.active();
+                        if (activeController && activeController.field) {
+                            activeController.field.back = () => {
+                                Lampa.Settings.open('bylampa_source');
+                                setTimeout(() => {
+                                    const index = Array.from(item.parent().children()).indexOf(item[0]) + 1;
+                                    const elem = document.querySelector(`#app > div.settings.animate > div.settings__content.layer--height > div.settings__body > div > div > div > div > div:nth-child(${index})`);
+                                    if (elem && Lampa.Controller && typeof Lampa.Controller.focus === 'function') Lampa.Controller.focus(elem);
+                                }, 50);
+                            };
+                        }
+                    });
+                }
+            });
+
+            Lampa.SettingsApi.addParam({component: id, param: {name: id + '_shuffle', type: 'toggle', default: shuffleDefault}, field: {name: 'Перемешивать'}});
+            Lampa.SettingsApi.addParam({component: id, param: {name: id + '_display', type: 'select', values: {1: 'Стандарт', 2: 'Коллекция', 3: 'Широкие маленькие', 4: 'Top Line'}, default: displayDefault}, field: {name: 'Вид отображения'}});
+            Lampa.SettingsApi.addParam({component: id, param: {name: 'number_' + id, type: 'select', values: {
+                1:'1',2:'2',3:'3',4:'4',5:'5',6:'6',7:'7',8:'8',9:'9',10:'10',
+                11:'11',12:'12',13:'13',14:'14',15:'15',16:'16',17:'17',18:'18',19:'19',20:'20',
+                21:'21',22:'22',23:'23',24:'24',25:'25',26:'26',27:'27',28:'28',29:'29',30:'30',
+                31:'31',32:'32',33:'33',34:'34',35:'35',36:'36',37:'37'
+            }, default: orderDefault}, field: {name: 'Порядок отображения'}});
+            Lampa.SettingsApi.addParam({component: id, param: {name: id + '_remove', type: 'toggle', default: false}, field: {name: 'Убрать с главной страницы'}});
+        }
     }
 
     addCategorySettings('now_watch', 'Сейчас смотрят', 'Нажми для настройки', false, '1', '1');
@@ -778,15 +795,15 @@
     addCategorySettings('collections_inter_movie', 'Подборки зарубежных фильмов', 'Нажми для настройки', true, '1', '36');
     addCategorySettings('collections_rus_movie', 'Подборки русских фильмов', 'Нажми для настройки', true, '1', '37');
 
-    Lampa.SettingsApi.addParam({component: 'bylampa_source', param: {name: 'upcoming_episodes_remove', type: 'toggle', default: false}, field: {name: 'Убрать с главной страницы'}});
-
     if (window.appready) {
         Lampa.Card = CustomCard;
     } else {
-        Lampa.Listener.follow('app', e => {
-            if (e.type === 'ready') {
-                Lampa.Card = CustomCard;
-            }
-        });
+        if (Lampa.Listener && typeof Lampa.Listener.follow === 'function') {
+            Lampa.Listener.follow('app', e => {
+                if (e.type === 'ready') {
+                    Lampa.Card = CustomCard;
+                }
+            });
+        }
     }
 })();
