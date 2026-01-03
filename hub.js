@@ -2,20 +2,20 @@
   "use strict";
   Lampa.Platform.tv();
   (function () {
-    var _0x4f397f = function () {
-      var _0x671bbb = true;
-      return function (_0x11591a, _0x4252c7) {
-        var _0x43402c = _0x671bbb ? function () {
-          if (_0x4252c7) {
-            var _0x1bf35b = _0x4252c7.apply(_0x11591a, arguments);
-            _0x4252c7 = null;
-            return _0x1bf35b;
-          }
-        } : function () {};
-        _0x671bbb = false;
-        return _0x43402c;
-      };
-    }();
+//    var _0x4f397f = function () {
+//      var _0x671bbb = true;
+//      return function (_0x11591a, _0x4252c7) {
+//        var _0x43402c = _0x671bbb ? function () {
+//          if (_0x4252c7) {
+//            var _0x1bf35b = _0x4252c7.apply(_0x11591a, arguments);
+//            _0x4252c7 = null;
+//            return _0x1bf35b;
+//          }
+//        } : function () {};
+//        _0x671bbb = false;
+//        return _0x43402c;
+//      };
+//    }();
     
       var _0x175cd0 = function (_0x2d965e) {
         var cardData = _0x2d965e.card || _0x2d965e;
