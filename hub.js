@@ -261,7 +261,7 @@
         })
       })
       $('.menu .menu__list').eq(0).append(_0x58ae88)
-    };
+    }
     if (window.appready) {
       _0x208538()
     } else {
@@ -271,21 +271,21 @@
     }
   })()
   ;(function () {
-    var _0x585323 = (function () {
-      var _0x15f4aa = true
-      return function (_0x4e973d, _0x2a76f6) {
-        var _0x3f0f00 = _0x15f4aa
-          ? function () {
-              if (_0x2a76f6) {
-                var _0x57faa1 = _0x2a76f6.apply(_0x4e973d, arguments)
-                return (_0x2a76f6 = null), _0x57faa1
-              }
-            }
-          : function () {}
-        return (_0x15f4aa = false), _0x3f0f00
-      }
-    })()
-    ;('use strict')
+   // var _0x585323 = (function () {
+   //   var _0x15f4aa = true
+   //   return function (_0x4e973d, _0x2a76f6) {
+    //    var _0x3f0f00 = _0x15f4aa
+    //      ? function () {
+    //          if (_0x2a76f6) {
+    //            var _0x57faa1 = _0x2a76f6.apply(_0x4e973d, arguments)
+    //            return (_0x2a76f6 = null), _0x57faa1
+    //          }
+    //        }
+    //      : function () {}
+   //     return (_0x15f4aa = false), _0x3f0f00
+   //   }
+  //  })();
+
     function _0x48d710() {
       window.plugin_tmdb_mod_ready = true
       var _0x5e87f9 = function (_0x181ca6) {
