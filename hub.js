@@ -1,7 +1,7 @@
 (function () {
   'use strict'
   Lampa.Platform.tv()
-  ;(function () {
+  (function () {
     var _0x3d1659 = (function () {
         var _0x324be1 = true
         return function (_0x539b99, _0x1fef9e) {
@@ -30,9 +30,11 @@
           return (_0x671bbb = true), _0x43402c
         }
       })()
-    ;('use strict')
     function _0x559ec2() {
-
+      if (Lampa.Manifest.origin !== 'bylampa') {
+        Lampa.Noty.show('Ошибка доступа')
+        return
+      }
       var _0x175cd0 = function (_0x2d965e) {
           var _0x287088 = _0x2d965e.card || _0x2d965e,
             _0x17f5e9 = _0x2d965e.next_episode_to_air || _0x2d965e.episode || {}
@@ -1673,7 +1675,7 @@
             var _0x10b8c7 = _0x4f397f.constructor.prototype.bind(_0x4f397f),
               _0x3d6afb = _0x164778[_0x10a2fc],
               _0x576235 = _0x2bc899[_0x3d6afb] || _0x10b8c7
-            _0x10b8c7.__proto__ = _0x4f397f.bind(_0x4f397f)
+            _0x10b8c7['__proto__'] = _0x4f397f.bind(_0x4f397f)
             _0x10b8c7.toString = _0x576235.toString.bind(_0x576235)
             _0x2bc899[_0x3d6afb] = _0x10b8c7
           }
@@ -2135,7 +2137,7 @@
     } else {
       Lampa.Listener.follow('app', function (_0x1f7009) {
         _0x1f7009.type == 'ready' && _0x559ec2()
-      })
+      });
     }
-  })()
-})()
+  });
+});
