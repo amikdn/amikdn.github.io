@@ -10,7 +10,7 @@ Lampa.Platform.tv();
     3: { action: 'cartoon', svg: `<svg><use xlink:href="#sprite-cartoon"></use></svg>`, name: 'Мультфильмы' }
   };
 
-  /** CSS — тонкая обводка в portrait, полностью прозрачный фон, в landscape только иконки */
+  /** CSS — чёрная внутренняя тень + белая обводка, фон бара полностью прозрачный, иконки в landscape меньше */
   const css = `
   .navigation-bar__body {
       display: flex !important;
@@ -18,8 +18,8 @@ Lampa.Platform.tv();
       align-items: center !important;
       width: 100% !important;
       padding: 6px 2px !important;
-      background: transparent !important;
-      border-top: 1px solid rgba(255,255,255,0.08);
+      background: transparent !important; /* полностью прозрачный */
+      border-top: none !important; /* убрана окантовка бара, чтобы ничего не было видно */
       overflow-x: auto !important;
       overflow-y: hidden !important;
       box-sizing: border-box;
@@ -37,9 +37,10 @@ Lampa.Platform.tv();
       height: 64px !important;
       margin: 0 3px !important;
       background: linear-gradient(to top, rgba(80,80,80,0.35), rgba(30,30,35,0.25)) !important;
-      border: 1px solid rgba(255,255,255,0.12) !important; /* тонкая обводка */
+      border: 1px solid rgba(255,255,255,0.12) !important; /* белая внешняя обводка */
+      box-shadow: inset 0 0 6px rgba(0,0,0,0.5) !important; /* чёрная внутренняя тень для выделения на светлом */
       border-radius: 14px !important;
-      transition: background .3s ease, transform .2s ease, border-color .3s ease !important;
+      transition: background .3s ease, transform .2s ease, border-color .3s ease, box-shadow .3s ease !important;
       box-sizing: border-box;
       overflow: hidden !important;
   }
@@ -48,6 +49,7 @@ Lampa.Platform.tv();
   .navigation-bar__item.active {
       background: linear-gradient(to top, rgba(100,100,100,0.45), rgba(40,40,45,0.35)) !important;
       border-color: rgba(255,255,255,0.25) !important;
+      box-shadow: inset 0 0 8px rgba(0,0,0,0.6) !important;
       transform: translateY(-3px);
   }
 
@@ -101,7 +103,7 @@ Lampa.Platform.tv();
       .navigation-bar__label { font-size: 9px !important; margin-top: -1px !important; }
   }
 
-  /* Landscape: только иконки без видимых кнопок (прозрачный контейнер) */
+  /* Landscape: только иконки без контейнера, размер как оригинальные кнопки в head (меньше) */
   @media (orientation: landscape) {
       .navigation-bar__body {
           display: none !important;
@@ -114,6 +116,7 @@ Lampa.Platform.tv();
           min-height: 0 !important;
           background: transparent !important;
           border: none !important;
+          box-shadow: none !important;
           border-radius: 0 !important;
           margin: 0 10px !important;
           padding: 0 !important;
@@ -126,14 +129,14 @@ Lampa.Platform.tv();
           transform: scale(1.15);
       }
       .navigation-bar__icon {
-          width: 30px !important;
-          height: 30px !important;
+          width: 26px !important;
+          height: 26px !important;
           margin-bottom: 0 !important;
           padding: 0 !important;
       }
       .navigation-bar__icon svg {
-          width: 30px !important;
-          height: 30px !important;
+          width: 26px !important;
+          height: 26px !important;
       }
       .navigation-bar__label {
           display: none !important;
