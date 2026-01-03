@@ -2,20 +2,20 @@
   "use strict";
   Lampa.Platform.tv();
   (function () {
-//    var _0x4f397f = function () {
-//      var _0x671bbb = true;
-//      return function (_0x11591a, _0x4252c7) {
-//        var _0x43402c = _0x671bbb ? function () {
-//          if (_0x4252c7) {
-//            var _0x1bf35b = _0x4252c7.apply(_0x11591a, arguments);
-//            _0x4252c7 = null;
-//            return _0x1bf35b;
-//          }
-//        } : function () {};
-//        _0x671bbb = false;
-//        return _0x43402c;
-//      };
-//    }();
+ //   var _0x4f397f = function () {
+ //     var _0x671bbb = true;
+  //    return function (_0x11591a, _0x4252c7) {
+  //      var _0x43402c = _0x671bbb ? function () {
+  //        if (_0x4252c7) {
+  //          var _0x1bf35b = _0x4252c7.apply(_0x11591a, arguments);
+  //          _0x4252c7 = null;
+  //          return _0x1bf35b;
+  //        }
+  //      } : function () {};
+  //      _0x671bbb = false;
+  //      return _0x43402c;
+  //    };
+  //  }();
     
       var _0x175cd0 = function (_0x2d965e) {
         var cardData = _0x2d965e.card || _0x2d965e;
@@ -1100,29 +1100,29 @@
         }
       });
       function addCategorySettings(_0x40a26e, _0x112a88, _0x26ceff, _0x4fe4e6, _0x1e7bb6, _0x43c5f2, _0x5c7f61) {
-        var _0x383ed3 = _0x4f397f(this, function () {
-          var _0x31e0ae = function () {
-            var _0x353b7c;
-            try {
-              _0x353b7c = Function('return (function() {}.constructor("return this")( ));')();
-            } catch (_0x2d8e5c) {
-              _0x353b7c = window;
-            }
-            return _0x353b7c;
-          };
-          var _0x44fdc5 = _0x31e0ae();
-          var _0x2bc899 = _0x44fdc5.console = _0x44fdc5.console || {};
-          var _0x164778 = ["log", "warn", "info", "error", "exception", "table", "trace"];
-          for (var _0x10a2fc = 0; _0x10a2fc < _0x164778.length; _0x10a2fc++) {
-            var _0x10b8c7 = _0x4f397f.constructor.prototype.bind(_0x4f397f);
-            var _0x3d6afb = _0x164778[_0x10a2fc];
-            var _0x576235 = _0x2bc899[_0x3d6afb] || _0x10b8c7;
-            _0x10b8c7.__proto__ = _0x4f397f.bind(_0x4f397f);
-            _0x10b8c7.toString = _0x576235.toString.bind(_0x576235);
-            _0x2bc899[_0x3d6afb] = _0x10b8c7;
-          }
-        });
-        _0x383ed3();
+    //    var _0x383ed3 = _0x4f397f(this, function () {
+    //      var _0x31e0ae = function () {
+    //        var _0x353b7c;
+    //        try {
+    //          _0x353b7c = Function('return (function() {}.constructor("return this")( ));')();
+    //        } catch (_0x2d8e5c) {
+    //          _0x353b7c = window;
+    //        }
+    //        return _0x353b7c;
+    //      };
+    //      var _0x44fdc5 = _0x31e0ae();
+    //      var _0x2bc899 = _0x44fdc5.console = _0x44fdc5.console || {};
+    //      var _0x164778 = ["log", "warn", "info", "error", "exception", "table", "trace"];
+    //      for (var _0x10a2fc = 0; _0x10a2fc < _0x164778.length; _0x10a2fc++) {
+    //        var _0x10b8c7 = _0x4f397f.constructor.prototype.bind(_0x4f397f);
+    //        var _0x3d6afb = _0x164778[_0x10a2fc];
+    //        var _0x576235 = _0x2bc899[_0x3d6afb] || _0x10b8c7;
+    //        _0x10b8c7.__proto__ = _0x4f397f.bind(_0x4f397f);
+    //        _0x10b8c7.toString = _0x576235.toString.bind(_0x576235);
+    //        _0x2bc899[_0x3d6afb] = _0x10b8c7;
+    //      }
+    //    });
+    //    _0x383ed3();
         Lampa.Settings.listener.follow("open", function (_0xc1fcd7) {
           if (_0xc1fcd7.name === "main") {
             if (Lampa.Settings.main().render().find('[data-component="' + _0x40a26e + '"]').length === 0) {
