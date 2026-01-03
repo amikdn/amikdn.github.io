@@ -18,9 +18,9 @@
     }();
     "use strict";
     function _0x559ec2() {
-      if (Lampa.Manifest.origin !== "undefined") {
-        Lampa.Noty.show("Ошибка доступа");
-
+    //  if (Lampa.Manifest.origin !== "bylampa") {
+    //    Lampa.Noty.show("Ошибка доступа");
+    //    return;
       }
       var _0x175cd0 = function (_0x2d965e) {
         var _0x287088 = _0x2d965e.card || _0x2d965e;
@@ -1053,12 +1053,12 @@
         };
       };
       var _0x2357d4 = Object.assign({}, Lampa.Api.sources.tmdb, new _0x35171b(Lampa.Api.sources.tmdb));
-      Lampa.Api.sources.lampa = _0x2357d4;
-      Object.defineProperty(Lampa.Api.sources, "lampa", {get: function _0x39dd1d() {
+      Lampa.Api.sources.hub = _0x2357d4;
+      Object.defineProperty(Lampa.Api.sources, "hub", {get: function _0x39dd1d() {
         return _0x2357d4;
       }});
-      Lampa.Params.select("source", Object.assign({}, Lampa.Params.values.source, {lampa: "LAMPA"}), "tmdb");
-      if (Lampa.Storage.get("source") == "lampa") {
+      Lampa.Params.select("source", Object.assign({}, Lampa.Params.values.source, {hub: "ByLAMPA"}), "tmdb");
+      if (Lampa.Storage.get("source") == "hub") {
         var _0x271bfd = Lampa.Storage.get("source");
         var _0x4171fb = setInterval(function () {
           var _0x4450b2 = Lampa.Activity.active();
@@ -1070,24 +1070,24 @@
       }
       Lampa.Settings.listener.follow("open", function (_0x1e6e1a) {
         if (_0x1e6e1a.name == "main") {
-          if (Lampa.Settings.main().render().find('[data-component="lampa_source"]').length == 0) {
-            Lampa.SettingsApi.addComponent({component: "lampa_source", name: "Источник LAMPA"});
+          if (Lampa.Settings.main().render().find('[data-component="hub_source"]').length == 0) {
+            Lampa.SettingsApi.addComponent({component: "hub_source", name: "Источник ByLAMPA"});
           }
           Lampa.Settings.main().update();
-          Lampa.Settings.main().render().find('[data-component="lampa_source"]').addClass("hide");
+          Lampa.Settings.main().render().find('[data-component="bylampa_source"]').addClass("hide");
         }
       });
-      Lampa.SettingsApi.addParam({component: "more", param: {name: "lampa_source", type: "static", default: true}, field: {name: "Источник LAMPA", description: "Настройки главного экрана"}, onRender: function (_0x304a5b) {
+      Lampa.SettingsApi.addParam({component: "more", param: {name: "bylampa_source", type: "static", default: true}, field: {name: "Источник ByLAMPA", description: "Настройки главного экрана"}, onRender: function (_0x304a5b) {
         setTimeout(function () {
-          $('.settings-param > div:contains("Источник LAMPA")').parent().insertAfter($('div[data-name="source"]'));
-          if (Lampa.Storage.field("source") !== "lampa") {
+          $('.settings-param > div:contains("Источник ByLAMPA")').parent().insertAfter($('div[data-name="source"]'));
+          if (Lampa.Storage.field("source") !== "hub") {
             _0x304a5b.hide();
           } else {
             _0x304a5b.show();
           }
         }, 20);
         _0x304a5b.on("hover:enter", function () {
-          Lampa.Settings.create("lampa_source");
+          Lampa.Settings.create("hub_source");
           Lampa.Controller.enabled().controller.back = function () {
             Lampa.Settings.create("more");
           };
@@ -1096,10 +1096,10 @@
       Lampa.Storage.listener.follow("change", function (_0x1c966a) {
         if (_0x1c966a.name == "source") {
           setTimeout(function () {
-            if (Lampa.Storage.get("source") !== "lampa") {
-              $('.settings-param > div:contains("Источник LAMPA")').parent().hide();
+            if (Lampa.Storage.get("source") !== "hub") {
+              $('.settings-param > div:contains("Источник ByLAMPA")').parent().hide();
             } else {
-              $('.settings-param > div:contains("Источник LAMPA")').parent().show();
+              $('.settings-param > div:contains("Источник ByLAMPA")').parent().show();
             }
           }, 50);
         }
@@ -1137,7 +1137,7 @@
             Lampa.Settings.main().render().find('[data-component="' + _0x40a26e + '"]').addClass("hide");
           }
         });
-        Lampa.SettingsApi.addParam({component: "lampa_source", param: {name: _0x40a26e, type: "static", default: true}, field: {name: _0x112a88, description: _0x26ceff}, onRender: function (_0x6f0319) {
+        Lampa.SettingsApi.addParam({component: "hub_source", param: {name: _0x40a26e, type: "static", default: true}, field: {name: _0x112a88, description: _0x26ceff}, onRender: function (_0x6f0319) {
           _0x6f0319.on("hover:enter", function (_0x3f0171) {
             var _0x2cc2cf = _0x3f0171.target;
             var _0x423bdb = _0x2cc2cf.parentElement;
@@ -1146,7 +1146,7 @@
             var _0x28a263 = _0x106f81 + 1;
             Lampa.Settings.create(_0x40a26e);
             Lampa.Controller.enabled().controller.back = function () {
-              Lampa.Settings.create("lampa_source");
+              Lampa.Settings.create("hub_source");
               setTimeout(function () {
                 var _0x21231b = document.querySelector("#app > div.settings.animate > div.settings__content.layer--height > div.settings__body > div > div > div > div > div:nth-child(" + _0x28a263 + ")");
                 Lampa.Controller.focus(_0x21231b);
@@ -1196,18 +1196,18 @@
       _0x5d2a93("collections_rus_tv", "Подборки русских сериалов", "Нажми для настройки", true, "1", "35", false);
       _0x5d2a93("collections_inter_movie", "Подборки зарубежных фильмов", "Нажми для настройки", true, "1", "36", false);
       _0x5d2a93("collections_rus_movie", "Подборки русских фильмов", "Нажми для настройки", true, "1", "37", false);
-      Lampa.SettingsApi.addParam({component: "lampa_source", param: {name: "upcoming_episodes_remove", type: "trigger", default: false}, field: {name: "Выход ближайших эпизодов", description: "Убрать с главной страницы"}});
-      Lampa.SettingsApi.addParam({component: "lampa_source", param: {name: "genres_cat", type: "trigger", default: true}, field: {name: "Подборки по жанрам", description: "Убрать с главной страницы"}});
+      Lampa.SettingsApi.addParam({component: "hub_source", param: {name: "upcoming_episodes_remove", type: "trigger", default: false}, field: {name: "Выход ближайших эпизодов", description: "Убрать с главной страницы"}});
+      Lampa.SettingsApi.addParam({component: "hub_source", param: {name: "genres_cat", type: "trigger", default: true}, field: {name: "Подборки по жанрам", description: "Убрать с главной страницы"}});
       var _0x237ec3 = setInterval(function () {
         if (typeof Lampa !== "undefined") {
           clearInterval(_0x237ec3);
-          if (!Lampa.Storage.get("lampa_source_params", "false")) {
+          if (!Lampa.Storage.get("hub_source_params", "false")) {
             _0x4783da();
           }
         }
       }, 200);
       function _0x4783da() {
-        Lampa.Storage.set("lampa_source_params", "true");
+        Lampa.Storage.set("hub_source_params", "true");
         Lampa.Storage.set("trend_day_tv_remove", "true");
         Lampa.Storage.set("trend_day_film_remove", "true");
         Lampa.Storage.set("trend_week_tv_remove", "true");
