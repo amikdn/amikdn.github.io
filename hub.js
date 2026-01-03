@@ -50,7 +50,7 @@ Lampa.Platform.tv();
       transition: background .3s ease, transform .2s ease !important;
       box-sizing: border-box;
       overflow: hidden !important;
-      padding-top: 4px !important; /* дополнительный подъём содержимого */
+      padding-top: 6px !important; /* дополнительно поднимаем содержимое кнопки */
   }
 
   .navigation-bar__item:hover,
@@ -65,8 +65,8 @@ Lampa.Platform.tv();
       display: flex;
       align-items: center;
       justify-content: center;
-      margin-bottom: 0 !important; /* убрано нижнее расстояние */
-      margin-top: -4px !important; /* иконка смещена выше */
+      margin-bottom: 2px !important;
+      margin-top: -6px !important; /* иконки смещены ещё выше */
   }
 
   .navigation-bar__icon svg {
@@ -93,7 +93,9 @@ Lampa.Platform.tv();
           height: 60px !important; 
           min-width: 50px !important;
           margin: 0 2px !important;
+          padding-top: 5px !important;
       }
+      .navigation-bar__icon { margin-top: -5px !important; }
       .navigation-bar__icon svg { width: 24px !important; height: 24px !important; }
       .navigation-bar__label { font-size: 9.5px !important; }
   }
@@ -103,8 +105,9 @@ Lampa.Platform.tv();
           height: 56px !important; 
           min-width: 45px !important;
           margin: 0 2px !important;
+          padding-top: 4px !important;
       }
-      .navigation-bar__icon { width: 24px; height: 24px; margin-top: -3px !important; }
+      .navigation-bar__icon { width: 24px; height: 24px; margin-top: -4px !important; margin-bottom: 1px !important; }
       .navigation-bar__icon svg { width: 22px !important; height: 22px !important; }
       .navigation-bar__label { font-size: 9px !important; }
   }
@@ -265,7 +268,6 @@ Lampa.Platform.tv();
   }
 
   function showBackMenu() {
-    // Показываем меню только на Android
     if (!(Lampa && Lampa.Platform && Lampa.Platform.is('android'))) return;
 
     const overlay = document.createElement('div');
@@ -350,7 +352,7 @@ Lampa.Platform.tv();
     };
     const cancel = () => clearTimeout(timer);
 
-    div.addEventListener('touchstart', start);
+    div.addEventListener('touchstart', start, { passive: false });
     div.addEventListener('touchend', cancel);
     div.addEventListener('touchmove', cancel);
     div.addEventListener('touchcancel', cancel);
@@ -386,7 +388,7 @@ Lampa.Platform.tv();
 
     const cancel = (e) => {
       clearTimeout(timer);
-      if (longPressed && e) {
+      if (e) {
         e.preventDefault();
         e.stopPropagation();
         e.stopImmediatePropagation();
@@ -394,7 +396,7 @@ Lampa.Platform.tv();
       longPressed = false;
     };
 
-    // Touch события
+    // Touch события с passive: false для preventDefault
     backBtn.addEventListener('touchstart', start, { passive: false });
     backBtn.addEventListener('touchend', cancel);
     backBtn.addEventListener('touchmove', cancel);
@@ -412,15 +414,16 @@ Lampa.Platform.tv();
       }
     });
 
-    // Предотвращаем обычный "назад" при long press
-    backBtn.addEventListener('click', (e) => {
+    // Блокировка обычного клика при long press (в capture phase для надёжности)
+    backBtn.addEventListener('click', function(e) {
       if (longPressed) {
         e.preventDefault();
         e.stopPropagation();
         e.stopImmediatePropagation();
-        longPressed = false;
+        longPressed = false; // сбрасываем флаг
+        return false;
       }
-    });
+    }, true); // capture phase
   }
 
   function adjustPosition() {
