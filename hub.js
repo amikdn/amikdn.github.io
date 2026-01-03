@@ -634,8 +634,8 @@
     const personalHubSource = Object.assign({}, baseSource, new PersonalHub(baseSource));
     Lampa.Api.sources.personalhub = personalHubSource;
 
-    if (Lampa.Settings && Lampa.Settings.main && typeof Lampa.Settings.select === 'function') {
-        const sourceValues = (Lampa.Settings.main().field && Lampa.Settings.main().field.source && Lampa.Settings.main().field.source.values) || {};
+    if (Lampa.Settings && typeof Lampa.Settings.select === 'function') {
+        const sourceValues = (Lampa.Settings.main && Lampa.Settings.main().field && Lampa.Settings.main().field.source && Lampa.Settings.main().field.source.values) || {};
         Lampa.Settings.select('source', Object.assign({}, sourceValues, {personalhub: 'PersonalHub'}), 'tmdb');
     }
 
@@ -652,9 +652,9 @@
         Lampa.Settings.listener.follow('open', e => {
             if (e.name === 'more') {
                 const render = Lampa.Settings.main && Lampa.Settings.main().render && Lampa.Settings.main().render();
-                if (render && render.find('[data-component="bylampa_source"]').length === 0) {
+                if (render && render.find('[data-component="personalhub_source"]').length === 0 && Lampa.Storage.get('source') === 'personalhub') {
                     if (Lampa.SettingsApi && typeof Lampa.SettingsApi.addComponent === 'function') {
-                        Lampa.SettingsApi.addComponent({component: 'bylampa_source', name: 'Источник PersonalHub'});
+                        Lampa.SettingsApi.addComponent({component: 'personalhub_source', name: 'Источник PersonalHub'});
                     }
                 }
                 if (Lampa.Settings.main && typeof Lampa.Settings.main().update === 'function') Lampa.Settings.main().update();
@@ -665,25 +665,25 @@
 
     if (Lampa.SettingsApi && typeof Lampa.SettingsApi.addComponent === 'function') {
         Lampa.SettingsApi.addComponent({
-            component: 'bylampa_source',
-            param: {name: 'bylampa_source', type: 'toggle', default: true},
+            component: 'personalhub_source',
+            param: {name: 'personalhub_source', type: 'toggle', default: true},
             field: {name: 'Источник PersonalHub', description: 'Настройки главного экрана'},
             onRender: function(item) {
                 setTimeout(() => {
                     const sourceParam = $('div[data-name="source"]').parent();
                     if (sourceParam.length) sourceParam.insertAfter(item.parent());
                     if (Lampa.Storage.get('source') !== 'personalhub') {
-                        item.hide();
+                        item.parent().parent().hide();
                     } else {
-                        item.show();
+                        item.parent().parent().show();
                     }
                 }, 20);
 
                 item.on('hover:enter', () => {
-                    Lampa.Settings.open('bylampa_source');
-                    const activeController = Lampa.Controller && Lampa.Controller.active && Lampa.Controller.active();
-                    if (activeController && activeController.field) {
-                        activeController.field.back = () => Lampa.Settings.open('more');
+                    Lampa.Settings.open('personalhub_source');
+                    const active = Lampa.Controller.active();
+                    if (active && active.field) {
+                        active.field.back = () => Lampa.Settings.open('more');
                     }
                 });
             }
@@ -694,12 +694,12 @@
         Lampa.Storage.listener.follow('change', e => {
             if (e.name === 'source') {
                 setTimeout(() => {
-                    const items = $('.settings-param > div:contains("Источник PersonalHub")');
-                    if (items.length) {
+                    const folder = $('.settings-folder[data-component="personalhub_source"]');
+                    if (folder.length) {
                         if (Lampa.Storage.get('source') !== 'personalhub') {
-                            items.parent().hide();
+                            folder.hide();
                         } else {
-                            items.parent().show();
+                            folder.show();
                         }
                     }
                 }, 50);
@@ -707,93 +707,82 @@
         });
     }
 
-    function addCategorySettings(id, title, description, shuffleDefault = false, displayDefault = '1', orderDefault = '1') {
-        if (Lampa.Settings && Lampa.Settings.listener && typeof Lampa.Settings.listener.follow === 'function') {
-            Lampa.Settings.listener.follow('open', e => {
-                if (e.name === 'more') {
-                    const render = Lampa.Settings.main && Lampa.Settings.main().render && Lampa.Settings.main().render();
-                    if (render && render.find(`[data-component="${id}"]`).length === 0) {
-                        if (Lampa.SettingsApi && typeof Lampa.SettingsApi.addComponent === 'function') {
-                            Lampa.SettingsApi.addComponent({component: id, name: title});
-                        }
-                    }
-                    if (render) render.find('[data-component="bylampa_source"]').addClass('hide');
-                }
-            });
-        }
-
+    function addCategoryParam(id, title, description, shuffleDefault = false, displayDefault = '1', orderDefault = '1') {
         if (Lampa.SettingsApi && typeof Lampa.SettingsApi.addParam === 'function') {
             Lampa.SettingsApi.addParam({
-                component: 'bylampa_source',
+                component: 'personalhub_source',
                 param: {name: id, type: 'toggle', default: true},
-                field: {name: title, description: description},
-                onRender: function(item) {
-                    item.on('hover:enter', () => {
-                        Lampa.Settings.open(id);
-                        const activeController = Lampa.Controller && Lampa.Controller.active && Lampa.Controller.active();
-                        if (activeController && activeController.field) {
-                            activeController.field.back = () => {
-                                Lampa.Settings.open('bylampa_source');
-                                setTimeout(() => {
-                                    const index = Array.from(item.parent().children()).indexOf(item[0]) + 1;
-                                    const elem = document.querySelector(`#app > div.settings.animate > div.settings__content.layer--height > div.settings__body > div > div > div > div > div:nth-child(${index})`);
-                                    if (elem && Lampa.Controller && typeof Lampa.Controller.focus === 'function') Lampa.Controller.focus(elem);
-                                }, 50);
-                            };
-                        }
-                    });
-                }
+                field: {name: title, description: description}
             });
 
-            Lampa.SettingsApi.addParam({component: id, param: {name: id + '_shuffle', type: 'toggle', default: shuffleDefault}, field: {name: 'Перемешивать'}});
-            Lampa.SettingsApi.addParam({component: id, param: {name: id + '_display', type: 'select', values: {1: 'Стандарт', 2: 'Коллекция', 3: 'Широкие маленькие', 4: 'Top Line'}, default: displayDefault}, field: {name: 'Вид отображения'}});
-            Lampa.SettingsApi.addParam({component: id, param: {name: 'number_' + id, type: 'select', values: {
-                1:'1',2:'2',3:'3',4:'4',5:'5',6:'6',7:'7',8:'8',9:'9',10:'10',
-                11:'11',12:'12',13:'13',14:'14',15:'15',16:'16',17:'17',18:'18',19:'19',20:'20',
-                21:'21',22:'22',23:'23',24:'24',25:'25',26:'26',27:'27',28:'28',29:'29',30:'30',
-                31:'31',32:'32',33:'33',34:'34',35:'35',36:'36',37:'37'
-            }, default: orderDefault}, field: {name: 'Порядок отображения'}});
-            Lampa.SettingsApi.addParam({component: id, param: {name: id + '_remove', type: 'toggle', default: false}, field: {name: 'Убрать с главной страницы'}});
+            Lampa.SettingsApi.addParam({
+                component: 'personalhub_source',
+                param: {name: id + '_shuffle', type: 'toggle', default: shuffleDefault},
+                field: {name: 'Перемешивать'}
+            });
+
+            Lampa.SettingsApi.addParam({
+                component: 'personalhub_source',
+                param: {name: id + '_display', type: 'select', values: {1: 'Стандарт', 2: 'Коллекция', 3: 'Широкие маленькие', 4: 'Top Line'}, default: displayDefault},
+                field: {name: 'Вид отображения'}
+            });
+
+            Lampa.SettingsApi.addParam({
+                component: 'personalhub_source',
+                param: {name: 'number_' + id, type: 'select', values: {
+                    1:'1',2:'2',3:'3',4:'4',5:'5',6:'6',7:'7',8:'8',9:'9',10:'10',
+                    11:'11',12:'12',13:'13',14:'14',15:'15',16:'16',17:'17',18:'18',19:'19',20:'20',
+                    21:'21',22:'22',23:'23',24:'24',25:'25',26:'26',27:'27',28:'28',29:'29',30:'30',
+                    31:'31',32:'32',33:'33',34:'34',35:'35',36:'36',37:'37'
+                }, default: orderDefault},
+                field: {name: 'Порядок отображения'}
+            });
+
+            Lampa.SettingsApi.addParam({
+                component: 'personalhub_source',
+                param: {name: id + '_remove', type: 'toggle', default: false},
+                field: {name: 'Убрать с главной страницы'}
+            });
         }
     }
 
-    addCategorySettings('now_watch', 'Сейчас смотрят', 'Нажми для настройки', false, '1', '1');
-    addCategorySettings('upcoming_episodes', 'Выход ближайших эпизодов', 'Нажми для настройки', false, '1', '2');
-    addCategorySettings('trend_day', 'Сегодня в тренде', 'Нажми для настройки', false, '1', '3');
-    addCategorySettings('trend_day_tv', 'Сегодня в тренде (сериалы)', 'Нажми для настройки', true, '1', '4');
-    addCategorySettings('trend_day_film', 'Сегодня в тренде (фильмы)', 'Нажми для настройки', true, '1', '5');
-    addCategorySettings('trend_week', 'В тренде за неделю', 'Нажми для настройки', false, '1', '6');
-    addCategorySettings('trend_week_tv', 'В тренде за неделю (сериалы)', 'Нажми для настройки', true, '1', '7');
-    addCategorySettings('trend_week_film', 'В тренде за неделю (фильмы)', 'Нажми для настройки', true, '1', '8');
-    addCategorySettings('upcoming', 'Смотрите в кинозалах', 'Нажми для настройки', false, '1', '9');
-    addCategorySettings('top_movie', 'Топ фильмы', 'Нажми для настройки', false, '1', '10');
-    addCategorySettings('top_tv', 'Топ сериалы', 'Нажми для настройки', false, '1', '11');
-    addCategorySettings('popular_movie', 'Популярные фильмы', 'Нажми для настройки', false, '4', '12');
-    addCategorySettings('popular_tv', 'Популярные сериалы', 'Нажми для настройки', false, '4', '13');
-    addCategorySettings('netflix', 'Netflix', 'Нажми для настройки', true, '1', '14');
-    addCategorySettings('apple_tv', 'Apple TV+', 'Нажми для настройки', true, '1', '15');
-    addCategorySettings('prime_video', 'Prime Video', 'Нажми для настройки', true, '1', '16');
-    addCategorySettings('hbo', 'HBO', 'Нажми для настройки', true, '1', '17');
-    addCategorySettings('mgm', 'MGM+', 'Нажми для настройки', true, '1', '18');
-    addCategorySettings('dorams', 'Дорамы', 'Нажми для настройки', true, '1', '19');
-    addCategorySettings('tur_serials', 'Турецкие сериалы', 'Нажми для настройки', true, '1', '20');
-    addCategorySettings('ind_films', 'Индийские фильмы', 'Нажми для настройки', true, '1', '21');
-    addCategorySettings('rus_movie', 'Русские фильмы', 'Нажми для настройки', true, '1', '22');
-    addCategorySettings('rus_tv', 'Русские сериалы', 'Нажми для настройки', true, '1', '23');
-    addCategorySettings('rus_mult', 'Русские мультфильмы', 'Нажми для настройки', true, '1', '24');
-    addCategorySettings('start', 'Start', 'Нажми для настройки', true, '1', '25');
-    addCategorySettings('premier', 'Premier', 'Нажми для настройки', true, '1', '26');
-    addCategorySettings('ivi', 'ИВИ', 'Нажми для настройки', true, '1', '27');
-    addCategorySettings('okko', 'OKKO', 'Нажми для настройки', true, '1', '28');
-    addCategorySettings('kion', 'KION', 'Нажми для настройки', true, '1', '29');
-    addCategorySettings('kinopoisk', 'КиноПоиск', 'Нажми для настройки', true, '1', '30');
-    addCategorySettings('wink', 'Wink', 'Нажми для настройки', true, '1', '31');
-    addCategorySettings('sts', 'СТС', 'Нажми для настройки', true, '1', '32');
-    addCategorySettings('tnt', 'ТНТ', 'Нажми для настройки', true, '1', '33');
-    addCategorySettings('collections_inter_tv', 'Подборки зарубежных сериалов', 'Нажми для настройки', true, '1', '34');
-    addCategorySettings('collections_rus_tv', 'Подборки русских сериалов', 'Нажми для настройки', true, '1', '35');
-    addCategorySettings('collections_inter_movie', 'Подборки зарубежных фильмов', 'Нажми для настройки', true, '1', '36');
-    addCategorySettings('collections_rus_movie', 'Подборки русских фильмов', 'Нажми для настройки', true, '1', '37');
+    addCategoryParam('now_watch', 'Сейчас смотрят', 'Нажми для настройки', false, '1', '1');
+    addCategoryParam('upcoming_episodes', 'Выход ближайших эпизодов', 'Нажми для настройки', false, '1', '2');
+    addCategoryParam('trend_day', 'Сегодня в тренде', 'Нажми для настройки', false, '1', '3');
+    addCategoryParam('trend_day_tv', 'Сегодня в тренде (сериалы)', 'Нажми для настройки', true, '1', '4');
+    addCategoryParam('trend_day_film', 'Сегодня в тренде (фильмы)', 'Нажми для настройки', true, '1', '5');
+    addCategoryParam('trend_week', 'В тренде за неделю', 'Нажми для настройки', false, '1', '6');
+    addCategoryParam('trend_week_tv', 'В тренде за неделю (сериалы)', 'Нажми для настройки', true, '1', '7');
+    addCategoryParam('trend_week_film', 'В тренде за неделю (фильмы)', 'Нажми для настройки', true, '1', '8');
+    addCategoryParam('upcoming', 'Смотрите в кинозалах', 'Нажми для настройки', false, '1', '9');
+    addCategoryParam('top_movie', 'Топ фильмы', 'Нажми для настройки', false, '1', '10');
+    addCategoryParam('top_tv', 'Топ сериалы', 'Нажми для настройки', false, '1', '11');
+    addCategoryParam('popular_movie', 'Популярные фильмы', 'Нажми для настройки', false, '4', '12');
+    addCategoryParam('popular_tv', 'Популярные сериалы', 'Нажми для настройки', false, '4', '13');
+    addCategoryParam('netflix', 'Netflix', 'Нажми для настройки', true, '1', '14');
+    addCategoryParam('apple_tv', 'Apple TV+', 'Нажми для настройки', true, '1', '15');
+    addCategoryParam('prime_video', 'Prime Video', 'Нажми для настройки', true, '1', '16');
+    addCategoryParam('hbo', 'HBO', 'Нажми для настройки', true, '1', '17');
+    addCategoryParam('mgm', 'MGM+', 'Нажми для настройки', true, '1', '18');
+    addCategoryParam('dorams', 'Дорамы', 'Нажми для настройки', true, '1', '19');
+    addCategoryParam('tur_serials', 'Турецкие сериалы', 'Нажми для настройки', true, '1', '20');
+    addCategoryParam('ind_films', 'Индийские фильмы', 'Нажми для настройки', true, '1', '21');
+    addCategoryParam('rus_movie', 'Русские фильмы', 'Нажми для настройки', true, '1', '22');
+    addCategoryParam('rus_tv', 'Русские сериалы', 'Нажми для настройки', true, '1', '23');
+    addCategoryParam('rus_mult', 'Русские мультфильмы', 'Нажми для настройки', true, '1', '24');
+    addCategoryParam('start', 'Start', 'Нажми для настройки', true, '1', '25');
+    addCategoryParam('premier', 'Premier', 'Нажми для настройки', true, '1', '26');
+    addCategoryParam('ivi', 'ИВИ', 'Нажми для настройки', true, '1', '27');
+    addCategoryParam('okko', 'OKKO', 'Нажми для настройки', true, '1', '28');
+    addCategoryParam('kion', 'KION', 'Нажми для настройки', true, '1', '29');
+    addCategoryParam('kinopoisk', 'КиноПоиск', 'Нажми для настройки', true, '1', '30');
+    addCategoryParam('wink', 'Wink', 'Нажми для настройки', true, '1', '31');
+    addCategoryParam('sts', 'СТС', 'Нажми для настройки', true, '1', '32');
+    addCategoryParam('tnt', 'ТНТ', 'Нажми для настройки', true, '1', '33');
+    addCategoryParam('collections_inter_tv', 'Подборки зарубежных сериалов', 'Нажми для настройки', true, '1', '34');
+    addCategoryParam('collections_rus_tv', 'Подборки русских сериалов', 'Нажми для настройки', true, '1', '35');
+    addCategoryParam('collections_inter_movie', 'Подборки зарубежных фильмов', 'Нажми для настройки', true, '1', '36');
+    addCategoryParam('collections_rus_movie', 'Подборки русских фильмов', 'Нажми для настройки', true, '1', '37');
 
     if (window.appready) {
         Lampa.Card = CustomCard;
