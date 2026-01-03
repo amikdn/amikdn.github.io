@@ -10,34 +10,34 @@ Lampa.Platform.tv();
     3: { action: 'cartoon', svg: `<svg><use xlink:href="#sprite-cartoon"></use></svg>`, name: 'Мультфильмы' }
   };
 
-  /** CSS — полностью убрана подложка под кнопками, кнопки компактнее для 7+ элементов */
+  /** CSS — фон бара полностью прозрачный, кнопки с градиентом, текст ближе к иконке */
   const css = `
   .navigation-bar__body {
       display: flex !important;
       justify-content: center !important;
       align-items: center !important;
       width: 100% !important;
-      padding: 6px 2px !important; /* минимальные отступы */
-      background: rgba(20,20,25,0.85) !important;
+      padding: 6px 2px !important;
+      background: transparent !important; /* полностью прозрачный фон бара */
       border-top: 1px solid rgba(255,255,255,0.08);
-      overflow-x: auto !important; /* горизонтальный скролл если совсем не влезут */
+      overflow-x: auto !important;
       overflow-y: hidden !important;
       box-sizing: border-box;
-      scrollbar-width: none; /* скрыть скроллбар */
+      scrollbar-width: none;
   }
   .navigation-bar__body::-webkit-scrollbar { display: none; }
 
   .navigation-bar__item {
-      flex: 1 1 0 !important; /* равномерное распределение, сжатие до минимума */
-      min-width: 55px !important; /* минимальная ширина для иконки + короткой подписи */
+      flex: 1 1 0 !important;
+      min-width: 55px !important;
       display: flex !important;
       flex-direction: column !important;
       align-items: center;
       justify-content: center;
       height: 64px !important;
-      margin: 0 3px !important; /* минимальные отступы между кнопками */
-      background: transparent !important; /* полностью убрана подложка */
-      border-radius: 12px !important;
+      margin: 0 3px !important;
+      background: linear-gradient(to top, rgba(80,80,80,0.35), rgba(30,30,35,0.25)) !important; /* градиент: снизу светлее серый, вверх темнее */
+      border-radius: 14px !important;
       transition: background .3s ease, transform .2s ease !important;
       box-sizing: border-box;
       overflow: hidden !important;
@@ -45,35 +45,36 @@ Lampa.Platform.tv();
 
   .navigation-bar__item:hover,
   .navigation-bar__item.active {
-      background: rgba(255,255,255,0.12) !important; /* лёгкий фон только при наведении/активно */
-      transform: translateY(-2px);
+      background: linear-gradient(to top, rgba(100,100,100,0.45), rgba(40,40,45,0.35)) !important; /* ярче при наведении */
+      transform: translateY(-3px);
   }
 
   .navigation-bar__icon {
-      width: 26px;
-      height: 26px;
+      width: 28px;
+      height: 28px;
       display: flex;
       align-items: center;
       justify-content: center;
-      margin-bottom: 4px;
+      margin-bottom: 2px !important; /* текст поднят выше (меньше отступ снизу иконки) */
   }
 
   .navigation-bar__icon svg {
-      width: 24px !important;
-      height: 24px !important;
+      width: 26px !important;
+      height: 26px !important;
       fill: currentColor;
   }
 
   .navigation-bar__label {
       font-size: 10px !important;
       color: #fff !important;
-      opacity: 0.9 !important;
+      opacity: 0.95 !important;
       white-space: nowrap !important;
       overflow: hidden !important;
       text-overflow: ellipsis !important;
       width: 100% !important;
       text-align: center !important;
       padding: 0 4px !important;
+      margin-top: -2px !important; /* дополнительно поднять текст */
       box-sizing: border-box !important;
   }
 
@@ -83,7 +84,7 @@ Lampa.Platform.tv();
           min-width: 50px !important;
           margin: 0 2px !important;
       }
-      .navigation-bar__icon svg { width: 22px !important; height: 22px !important; }
+      .navigation-bar__icon svg { width: 24px !important; height: 24px !important; }
       .navigation-bar__label { font-size: 9.5px !important; }
   }
   @media (max-width: 600px) {
@@ -93,12 +94,12 @@ Lampa.Platform.tv();
           min-width: 45px !important;
           margin: 0 2px !important;
       }
-      .navigation-bar__icon { width: 24px; height: 24px; margin-bottom: 3px; }
-      .navigation-bar__icon svg { width: 22px !important; height: 22px !important; }
-      .navigation-bar__label { font-size: 9px !important; }
+      .navigation-bar__icon { width: 26px; height: 26px; margin-bottom: 1px !important; }
+      .navigation-bar__icon svg { width: 24px !important; height: 24px !important; }
+      .navigation-bar__label { font-size: 9px !important; margin-top: -1px !important; }
   }
 
-  /* Landscape: круглые 30×30 без подписей и без подложки */
+  /* Landscape: круглые 30×30 с лёгким фоном */
   @media (orientation: landscape) {
       .navigation-bar__body {
           display: none !important;
