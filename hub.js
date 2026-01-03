@@ -3,7 +3,7 @@
 
     Lampa.Platform.tv();
 
-    // Часть 1: Пункт меню "Русское" (остаётся прежним, работает отлично)
+    // Часть 1: Пункт меню "Русское" (остаётся без изменений)
     (function () {
         function initMenu() {
             var menuIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="1.2em" height="1.2em" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="4"><path stroke-linejoin="round" d="M24 44c11.046 0 20-8.954 20-20S35.046 4 24 4S4 12.954 4 24s8.954 20 20 20Z"/><path stroke-linejoin="round" d="M24 18a3 3 0 1 0 0-6a3 3 0 0 0 0 6Zm0 18a3 3 0 1 0 0-6a3 3 0 0 0 0 6Zm-9-9a3 3 0 1 0 0-6a3 3 0 0 0 0 6Zm18 0a3 3 0 1 0 0-6a3 3 0 0 0 0 6Z"/><path stroke-linecap="round" d="M24 44h20"/></g></svg>';
@@ -15,7 +15,6 @@
                 '</li>'
             );
 
-            // Все SVG/HTML для подкатегорий (полные из оригинала)
             var rusFilms = '<div class="settings-folder" style="padding:0!important"><div style="width:2.2em;height:1.7em;padding-right:.5em"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 48 48"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" d="M12.071 33V15h5.893c3.331 0 6.032 2.707 6.032 6.045s-2.7 6.045-6.032 6.045h-5.893m5.893 0l5.892 5.905m3.073-11.92V28.5a4.5 4.5 0 0 0 4.5 4.5h0a4.5 4.5 0 0 0 4.5-4.5v-7.425m0 7.425V33"/><rect width="37" height="37" x="5.5" y="5.5" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" rx="4" ry="4"/></svg></div><div style="font-size:1.3em">Русские фильмы</div></div>';
 
             var rusSeries = '<div class="settings-folder" style="padding:0!important"><div style="width:2.2em;height:1.7em;padding-right:.5em"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 48 48"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" d="M12.071 33V15h5.893c3.331 0 6.032 2.707 6.032 6.045s-2.7 6.045-6.032 6.045h-5.893m5.893 0l5.892 5.905m3.073-11.92V28.5a4.5 4.5 0 0 0 4.5 4.5h0a4.5 4.5 0 0 0 4.5-4.5v-7.425m0 7.425V33"/><rect width="37" height="37" x="5.5" y="5.5" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" rx="4" ry="4"/></svg></div><div style="font-size:1.3em">Русские сериалы</div></div>';
@@ -121,7 +120,7 @@
         }
     })();
 
-    // Часть 2: Кастомная карточка + все 21 подборки на главной (полностью заменяем main, чтобы избежать конфликтов и ошибок)
+    // Часть 2: Кастомная карточка + все 21 подборки (максимальная защита от ошибок)
     (function () {
         Lampa.Template.add('card_episode', `
             <div class="full-episode">
@@ -143,7 +142,7 @@
             card.release_year = (card.first_air_date || '0000').substr(0, 4);
 
             function hide(el) {
-                if (el) el.remove();
+                if (el && typeof el.remove === 'function') el.remove();
             }
 
             this.html = function () {
@@ -158,13 +157,13 @@
                 if (ageEl) ageEl.innerText = card.release_year || '';
 
                 var nameEl = this.template.querySelector('.full-episode__name');
-                if (nameEl && next && next.air_date) nameEl.innerText = next.name || Lampa.Lang.translate('noname') || '';
+                if (nameEl && next && next.air_date) nameEl.innerText = next.name || (Lampa.Lang && Lampa.Lang.translate('noname')) || '';
 
                 var numEl = this.template.querySelector('.full-episode__num');
                 if (numEl && next && next.air_date) numEl.innerText = next.episode_number || '';
 
                 var dateEl = this.template.querySelector('.full-episode__date');
-                if (dateEl && next && next.air_date) dateEl.innerText = next.air_date ? Lampa.Time.parseTime(next.air_date).full : '----';
+                if (dateEl && next && next.air_date) dateEl.innerText = next.air_date && Lampa.Time && Lampa.Time.parseTime ? Lampa.Time.parseTime(next.air_date).full : '----';
 
                 if (card.release_year === '0000' && ageEl) hide(ageEl);
 
@@ -192,14 +191,14 @@
             };
 
             this.visible = function () {
-                if (card.backdrop_path) this.poster.src = Lampa.Utils.img(card.backdrop_path);
-                else if (card.poster_path) this.poster.src = Lampa.Utils.img(card.poster_path);
+                if (card.backdrop_path && Lampa.Utils && Lampa.Utils.img) this.poster.src = Lampa.Utils.img(card.backdrop_path);
+                else if (card.poster_path && Lampa.Utils && Lampa.Utils.img) this.poster.src = Lampa.Utils.img(card.poster_path);
                 else if (card.poster) this.episode_img.src = card.poster;
                 else if (card.img) this.episode_img.src = card.img;
                 else this.episode_img.src = './img/img_broken.svg';
 
-                if (next.still_path) this.episode_img.src = Lampa.Utils.img(next.still_path, 'w300');
-                else if (card.poster_path) this.episode_img.src = Lampa.Utils.img(card.poster_path, 'w300');
+                if (next.still_path && Lampa.Utils && Lampa.Utils.img) this.episode_img.src = Lampa.Utils.img(next.still_path, 'w300');
+                else if (card.poster_path && Lampa.Utils && Lampa.Utils.img) this.episode_img.src = Lampa.Utils.img(card.poster_path, 'w300');
                 else if (next.img) this.episode_img.src = next.img;
                 else if (card.img) this.episode_img.src = card.img;
                 else this.episode_img.src = './img/img_broken.svg';
@@ -229,294 +228,318 @@
             if (window.plugin_tmdb_mod_ready) return;
             window.plugin_tmdb_mod_ready = true;
 
-            Lampa.Api.sources.tmdb.main = function (params = {}, onSuccess, onError) {
-                var lines = [
-                    // 1. Тренды недели (сериалы)
-                    function (success) {
-                        var req = new Lampa.Reguest();
-                        req.get('trending/tv/week', params, function (data) {
-                            data = data || {};
-                            data.results = data.results || [];
-                            data.title = Lampa.Lang.translate('title_trend_week') || 'Тренды недели';
-                            success(data);
-                        }, function () {
-                            success({results: [], title: 'Тренды недели'});
-                        });
-                    },
-                    // 2. Недавно просмотренные
-                    function (success) {
-                        var cache = Lampa.Storage.cache('lately', 30, []) || [];
-                        success({
-                            source: 'tmdb',
-                            results: cache.slice(0, 14),
-                            title: Lampa.Lang.translate('title_now_watch') || 'Недавно просмотренные',
-                            nomore: true,
-                            cardClass: function (card) { return new CustomCard(card); }
-                        });
-                    },
-                    // 3. Топ-rated сериалы
-                    function (success) {
-                        var req = new Lampa.Reguest();
-                        req.get('tv/top_rated', params, function (data) {
-                            data = data || {};
-                            data.results = data.results || [];
-                            data.title = Lampa.Lang.translate('title_top_tv') || 'Топ сериалы';
-                            success(data);
-                        }, function () {
-                            success({results: [], title: 'Топ сериалы'});
-                        });
-                    },
-                    // 4. Популярные сериалы
-                    function (success) {
-                        var req = new Lampa.Reguest();
-                        req.get('tv/popular', params, function (data) {
-                            data = data || {};
-                            data.results = data.results || [];
-                            data.title = Lampa.Lang.translate('title_popular_tv') || 'Популярные сериалы';
-                            success(data);
-                        }, function () {
-                            success({results: [], title: 'Популярные сериалы'});
-                        });
-                    },
-                    // 5. Тренды дня
-                    function (success) {
-                        var dateStr = new Date().toISOString().slice(0, 10);
-                        var req = new Lampa.Reguest();
-                        req.get('trending/movie/day' + dateStr, params, function (data) {
-                            data = data || {};
-                            data.results = data.results || [];
-                            data.title = Lampa.Lang.translate('title_trend_day') || 'Тренды дня';
-                            success(data);
-                        }, function () {
-                            success({results: [], title: 'Тренды дня'});
-                        });
-                    },
-                    // 6. Русские сериалы
-                    function (success) {
-                        var req = new Lampa.Reguest();
-                        req.get('discover/tv?with_original_language=ru&sort_by=first_air_date.desc', params, function (data) {
-                            data = data || {};
-                            data.results = data.results || [];
-                            data.title = 'Русские сериалы';
-                            data.wide = true;
-                            data.small = true;
-                            data.results.forEach(function (item) {
-                                item.promo = item.backdrop_path || '';
-                                item.promo_title = item.title || item.name || '';
-                            });
-                            success(data);
-                        }, function () {
-                            success({results: [], title: 'Русские сериалы'});
-                        });
-                    },
-                    // 7. Лайн с lately (ещё раз)
-                    function (success) {
-                        var cache = Lampa.Storage.cache('lately', 30, []) || [];
-                        success({
-                            source: 'tmdb',
-                            results: cache,
-                            title: Lampa.Lang.translate('title_now_watch') || 'Недавно просмотренные',
-                            nomore: true
-                        });
-                    },
-                    // 8. Тренды недели (фильмы)
-                    function (success) {
-                        var dateStr = new Date().toISOString().slice(0, 10);
-                        var req = new Lampa.Reguest();
-                        req.get('trending/movie/week' + dateStr, params, function (data) {
-                            data = data || {};
-                            data.results = data.results || [];
-                            data.title = Lampa.Lang.translate('title_trend_week') || 'Тренды недели';
-                            data.small = true;
-                            data.wide = true;
-                            data.results.forEach(function (item) {
-                                item.promo = item.backdrop_path || '';
-                                item.promo_title = item.title || item.name || '';
-                            });
-                            success(data);
-                        }, function () {
-                            success({results: [], title: 'Тренды недели'});
-                        });
-                    },
-                    // 9. Популярные фильмы
-                    function (success) {
-                        var req = new Lampa.Reguest();
-                        req.get('movie/popular', params, function (data) {
-                            data = data || {};
-                            data.results = data.results || [];
-                            data.title = Lampa.Lang.translate('title_popular_movie') || 'Популярные фильмы';
-                            success(data);
-                        }, function () {
-                            success({results: [], title: 'Популярные фильмы'});
-                        });
-                    },
-                    // 10. Топ-rated фильмы
-                    function (success) {
-                        var req = new Lampa.Reguest();
-                        req.get('movie/top_rated', params, function (data) {
-                            data = data || {};
-                            data.results = data.results || [];
-                            data.title = Lampa.Lang.translate('title_top_movie') || 'Топ фильмы';
-                            success(data);
-                        }, function () {
-                            success({results: [], title: 'Топ фильмы'});
-                        });
-                    },
-                    // 11. Start
-                    function (success) {
-                        var req = new Lampa.Reguest();
-                        req.get('discover/tv?with_networks=2859&sort_by=first_air_date.desc', params, function (data) {
-                            data = data || {};
-                            data.results = data.results || [];
-                            data.title = 'Start';
-                            data.wide = true;
-                            data.small = true;
-                            data.results.forEach(function (item) {
-                                item.promo = item.backdrop_path || '';
-                                item.promo_title = item.title || item.name || '';
-                            });
-                            success(data);
-                        }, function () {
-                            success({results: [], title: 'Start'});
-                        });
-                    },
-                    // 12. Premier (upcoming)
-                    function (success) {
-                        var req = new Lampa.Reguest();
-                        req.get('movie/upcoming', params, function (data) {
-                            data = data || {};
-                            data.results = data.results || [];
-                            data.title = Lampa.Lang.translate('Premier') || 'Premier';
-                            success(data);
-                        }, function () {
-                            success({results: [], title: 'Premier'});
-                        });
-                    },
-                    // 13. СТС
-                    function (success) {
-                        var req = new Lampa.Reguest();
-                        req.get('discover/tv?with_networks=4085&sort_by=first_air_date.desc', params, function (data) {
-                            data = data || {};
-                            data.results = data.results || [];
-                            data.title = 'СТС';
-                            success(data);
-                        }, function () {
-                            success({results: [], title: 'СТС'});
-                        });
-                    },
-                    // 14. ИВИ
-                    function (success) {
-                        var req = new Lampa.Reguest();
-                        req.get('discover/tv?with_networks=2493&sort_by=first_air_date.desc', params, function (data) {
-                            data = data || {};
-                            data.results = data.results || [];
-                            data.title = 'ИВИ';
-                            data.wide = true;
-                            data.small = true;
-                            data.results.forEach(function (item) {
-                                item.promo = item.backdrop_path || '';
-                                item.promo_title = item.title || item.name || '';
-                            });
-                            success(data);
-                        }, function () {
-                            success({results: [], title: 'ИВИ'});
-                        });
-                    },
-                    // 15. Okko
-                    function (success) {
-                        var req = new Lampa.Reguest();
-                        req.get('discover/tv?with_networks=3923&sort_by=first_air_date.desc', params, function (data) {
-                            data = data || {};
-                            data.results = data.results || [];
-                            data.title = 'Okko';
-                            success(data);
-                        }, function () {
-                            success({results: [], title: 'Okko'});
-                        });
-                    },
-                    // 16. КиноПоиск
-                    function (success) {
-                        var req = new Lampa.Reguest();
-                        req.get('discover/tv?with_networks=3827&sort_by=first_air_date.desc', params, function (data) {
-                            data = data || {};
-                            data.results = data.results || [];
-                            data.title = 'КиноПоиск';
-                            success(data);
-                        }, function () {
-                            success({results: [], title: 'КиноПоиск'});
-                        });
-                    },
-                    // 17. Wink
-                    function (success) {
-                        var req = new Lampa.Reguest();
-                        req.get('discover/tv?with_networks=5806&sort_by=first_air_date.desc', params, function (data) {
-                            data = data || {};
-                            data.results = data.results || [];
-                            data.title = 'Wink';
-                            data.wide = true;
-                            data.small = true;
-                            data.results.forEach(function (item) {
-                                item.promo = item.backdrop_path || '';
-                                item.promo_title = item.title || item.name || '';
-                            });
-                            success(data);
-                        }, function () {
-                            success({results: [], title: 'Wink'});
-                        });
-                    },
-                    // 18. Premier (806)
-                    function (success) {
-                        var req = new Lampa.Reguest();
-                        req.get('discover/tv?with_networks=806&sort_by=first_air_date.desc', params, function (data) {
-                            data = data || {};
-                            data.results = data.results || [];
-                            data.title = 'Premier';
-                            success(data);
-                        }, function () {
-                            success({results: [], title: 'Premier'});
-                        });
-                    },
-                    // 19. ТНТ
-                    function (success) {
-                        var req = new Lampa.Reguest();
-                        req.get('discover/tv?with_networks=3871&sort_by=first_air_date.desc', params, function (data) {
-                            data = data || {};
-                            data.results = data.results || [];
-                            data.title = 'ТНТ';
-                            success(data);
-                        }, function () {
-                            success({results: [], title: 'ТНТ'});
-                        });
-                    },
-                    // 20. Топ-rated сериалы line
-                    function (success) {
-                        var req = new Lampa.Reguest();
-                        req.get('tv/top_rated', params, function (data) {
-                            data = data || {};
-                            data.results = data.results || [];
-                            data.title = Lampa.Lang.translate('title_top_tv') || 'Топ сериалы';
-                            data.line_type = 'line';
-                            success(data);
-                        }, function () {
-                            success({results: [], title: 'Топ сериалы'});
-                        });
-                    },
-                    // 21. Now playing
-                    function (success) {
-                        var req = new Lampa.Reguest();
-                        req.get('movie/now_playing', params, function (data) {
-                            data = data || {};
-                            data.results = data.results || [];
-                            data.title = Lampa.Lang.translate('title_now_watch') || 'Сейчас в кино';
-                            success(data);
-                        }, function () {
-                            success({results: [], title: 'Сейчас в кино'});
-                        });
-                    }
-                ];
+            var originalMain = Lampa.Api.sources.tmdb.main ? Lampa.Api.sources.tmdb.main.bind(Lampa.Api.sources.tmdb) : function (params, onSuccess) { onSuccess([]); };
 
-                // Имитация partNext — вызываем onSuccess с массивом функций-линий
-                onSuccess(lines);
+            Lampa.Api.sources.tmdb.main = function (params, onSuccess, onError) {
+                originalMain(params, function (originalLines) {
+                    var latelyCache = [];
+                    try {
+                        latelyCache = Lampa.Storage.cache('lately', 30, []) || [];
+                    } catch (e) {}
+
+                    var addedLines = [
+                        // 1. Тренды недели (сериалы)
+                        function (success) {
+                            var req = new Lampa.Reguest();
+                            req.get('trending/tv/week', params, function (data) {
+                                data = data || {};
+                                data.results = data.results || [];
+                                data.title = (Lampa.Lang && Lampa.Lang.translate('title_trend_week')) || 'Тренды недели';
+                                success(data);
+                            }, function () {
+                                success({results: [], title: 'Тренды недели'});
+                            });
+                        },
+                        // 2. Недавно просмотренные с кастомной карточкой
+                        function (success) {
+                            success({
+                                source: 'tmdb',
+                                results: latelyCache.slice(0, 14),
+                                title: (Lampa.Lang && Lampa.Lang.translate('title_now_watch')) || 'Недавно просмотренные',
+                                nomore: true,
+                                cardClass: function (card) {
+                                    try {
+                                        return new CustomCard(card);
+                                    } catch (e) {
+                                        return null;
+                                    }
+                                }
+                            });
+                        },
+                        // 3. Топ-rated сериалы
+                        function (success) {
+                            var req = new Lampa.Reguest();
+                            req.get('tv/top_rated', params, function (data) {
+                                data = data || {};
+                                data.results = data.results || [];
+                                data.title = (Lampa.Lang && Lampa.Lang.translate('title_top_tv')) || 'Топ сериалы';
+                                success(data);
+                            }, function () {
+                                success({results: [], title: 'Топ сериалы'});
+                            });
+                        },
+                        // 4. Популярные сериалы
+                        function (success) {
+                            var req = new Lampa.Reguest();
+                            req.get('tv/popular', params, function (data) {
+                                data = data || {};
+                                data.results = data.results || [];
+                                data.title = (Lampa.Lang && Lampa.Lang.translate('title_popular_tv')) || 'Популярные сериалы';
+                                success(data);
+                            }, function () {
+                                success({results: [], title: 'Популярные сериалы'});
+                            });
+                        },
+                        // 5. Тренды дня (фильмы)
+                        function (success) {
+                            var dateStr = new Date().toISOString().slice(0, 10);
+                            var req = new Lampa.Reguest();
+                            req.get('trending/movie/day' + dateStr, params, function (data) {
+                                data = data || {};
+                                data.results = data.results || [];
+                                data.title = (Lampa.Lang && Lampa.Lang.translate('title_trend_day')) || 'Тренды дня';
+                                success(data);
+                            }, function () {
+                                success({results: [], title: 'Тренды дня'});
+                            });
+                        },
+                        // 6. Русские сериалы
+                        function (success) {
+                            var req = new Lampa.Reguest();
+                            req.get('discover/tv?with_original_language=ru&sort_by=first_air_date.desc', params, function (data) {
+                                data = data || {};
+                                data.results = data.results || [];
+                                data.title = 'Русские сериалы';
+                                data.wide = true;
+                                data.small = true;
+                                data.results.forEach(function (item) {
+                                    if (item) {
+                                        item.promo = item.backdrop_path || '';
+                                        item.promo_title = item.title || item.name || '';
+                                    }
+                                });
+                                success(data);
+                            }, function () {
+                                success({results: [], title: 'Русские сериалы'});
+                            });
+                        },
+                        // 7. Недавно просмотренные (без cardClass)
+                        function (success) {
+                            success({
+                                source: 'tmdb',
+                                results: latelyCache,
+                                title: (Lampa.Lang && Lampa.Lang.translate('title_now_watch')) || 'Недавно просмотренные',
+                                nomore: true
+                            });
+                        },
+                        // 8. Тренды недели (фильмы)
+                        function (success) {
+                            var dateStr = new Date().toISOString().slice(0, 10);
+                            var req = new Lampa.Reguest();
+                            req.get('trending/movie/week' + dateStr, params, function (data) {
+                                data = data || {};
+                                data.results = data.results || [];
+                                data.title = (Lampa.Lang && Lampa.Lang.translate('title_trend_week')) || 'Тренды недели';
+                                data.small = true;
+                                data.wide = true;
+                                data.results.forEach(function (item) {
+                                    if (item) {
+                                        item.promo = item.backdrop_path || '';
+                                        item.promo_title = item.title || item.name || '';
+                                    }
+                                });
+                                success(data);
+                            }, function () {
+                                success({results: [], title: 'Тренды недели'});
+                            });
+                        },
+                        // 9. Популярные фильмы
+                        function (success) {
+                            var req = new Lampa.Reguest();
+                            req.get('movie/popular', params, function (data) {
+                                data = data || {};
+                                data.results = data.results || [];
+                                data.title = (Lampa.Lang && Lampa.Lang.translate('title_popular_movie')) || 'Популярные фильмы';
+                                success(data);
+                            }, function () {
+                                success({results: [], title: 'Популярные фильмы'});
+                            });
+                        },
+                        // 10. Топ-rated фильмы
+                        function (success) {
+                            var req = new Lampa.Reguest();
+                            req.get('movie/top_rated', params, function (data) {
+                                data = data || {};
+                                data.results = data.results || [];
+                                data.title = (Lampa.Lang && Lampa.Lang.translate('title_top_movie')) || 'Топ фильмы';
+                                success(data);
+                            }, function () {
+                                success({results: [], title: 'Топ фильмы'});
+                            });
+                        },
+                        // 11. Start
+                        function (success) {
+                            var req = new Lampa.Reguest();
+                            req.get('discover/tv?with_networks=2859&sort_by=first_air_date.desc', params, function (data) {
+                                data = data || {};
+                                data.results = data.results || [];
+                                data.title = 'Start';
+                                data.wide = true;
+                                data.small = true;
+                                data.results.forEach(function (item) {
+                                    if (item) {
+                                        item.promo = item.backdrop_path || '';
+                                        item.promo_title = item.title || item.name || '';
+                                    }
+                                });
+                                success(data);
+                            }, function () {
+                                success({results: [], title: 'Start'});
+                            });
+                        },
+                        // 12. Premier (upcoming)
+                        function (success) {
+                            var req = new Lampa.Reguest();
+                            req.get('movie/upcoming', params, function (data) {
+                                data = data || {};
+                                data.results = data.results || [];
+                                data.title = (Lampa.Lang && Lampa.Lang.translate('Premier')) || 'Premier';
+                                success(data);
+                            }, function () {
+                                success({results: [], title: 'Premier'});
+                            });
+                        },
+                        // 13. СТС
+                        function (success) {
+                            var req = new Lampa.Reguest();
+                            req.get('discover/tv?with_networks=4085&sort_by=first_air_date.desc', params, function (data) {
+                                data = data || {};
+                                data.results = data.results || [];
+                                data.title = 'СТС';
+                                success(data);
+                            }, function () {
+                                success({results: [], title: 'СТС'});
+                            });
+                        },
+                        // 14. ИВИ
+                        function (success) {
+                            var req = new Lampa.Reguest();
+                            req.get('discover/tv?with_networks=2493&sort_by=first_air_date.desc', params, function (data) {
+                                data = data || {};
+                                data.results = data.results || [];
+                                data.title = 'ИВИ';
+                                data.wide = true;
+                                data.small = true;
+                                data.results.forEach(function (item) {
+                                    if (item) {
+                                        item.promo = item.backdrop_path || '';
+                                        item.promo_title = item.title || item.name || '';
+                                    }
+                                });
+                                success(data);
+                            }, function () {
+                                success({results: [], title: 'ИВИ'});
+                            });
+                        },
+                        // 15. Okko
+                        function (success) {
+                            var req = new Lampa.Reguest();
+                            req.get('discover/tv?with_networks=3923&sort_by=first_air_date.desc', params, function (data) {
+                                data = data || {};
+                                data.results = data.results || [];
+                                data.title = 'Okko';
+                                success(data);
+                            }, function () {
+                                success({results: [], title: 'Okko'});
+                            });
+                        },
+                        // 16. КиноПоиск
+                        function (success) {
+                            var req = new Lampa.Reguest();
+                            req.get('discover/tv?with_networks=3827&sort_by=first_air_date.desc', params, function (data) {
+                                data = data || {};
+                                data.results = data.results || [];
+                                data.title = 'КиноПоиск';
+                                success(data);
+                            }, function () {
+                                success({results: [], title: 'КиноПоиск'});
+                            });
+                        },
+                        // 17. Wink
+                        function (success) {
+                            var req = new Lampa.Reguest();
+                            req.get('discover/tv?with_networks=5806&sort_by=first_air_date.desc', params, function (data) {
+                                data = data || {};
+                                data.results = data.results || [];
+                                data.title = 'Wink';
+                                data.wide = true;
+                                data.small = true;
+                                data.results.forEach(function (item) {
+                                    if (item) {
+                                        item.promo = item.backdrop_path || '';
+                                        item.promo_title = item.title || item.name || '';
+                                    }
+                                });
+                                success(data);
+                            }, function () {
+                                success({results: [], title: 'Wink'});
+                            });
+                        },
+                        // 18. Premier (806)
+                        function (success) {
+                            var req = new Lampa.Reguest();
+                            req.get('discover/tv?with_networks=806&sort_by=first_air_date.desc', params, function (data) {
+                                data = data || {};
+                                data.results = data.results || [];
+                                data.title = 'Premier';
+                                success(data);
+                            }, function () {
+                                success({results: [], title: 'Premier'});
+                            });
+                        },
+                        // 19. ТНТ
+                        function (success) {
+                            var req = new Lampa.Reguest();
+                            req.get('discover/tv?with_networks=3871&sort_by=first_air_date.desc', params, function (data) {
+                                data = data || {};
+                                data.results = data.results || [];
+                                data.title = 'ТНТ';
+                                success(data);
+                            }, function () {
+                                success({results: [], title: 'ТНТ'});
+                            });
+                        },
+                        // 20. Топ-rated сериалы line
+                        function (success) {
+                            var req = new Lampa.Reguest();
+                            req.get('tv/top_rated', params, function (data) {
+                                data = data || {};
+                                data.results = data.results || [];
+                                data.title = (Lampa.Lang && Lampa.Lang.translate('title_top_tv')) || 'Топ сериалы';
+                                data.line_type = 'line';
+                                success(data);
+                            }, function () {
+                                success({results: [], title: 'Топ сериалы'});
+                            });
+                        },
+                        // 21. Now playing
+                        function (success) {
+                            var req = new Lampa.Reguest();
+                            req.get('movie/now_playing', params, function (data) {
+                                data = data || {};
+                                data.results = data.results || [];
+                                data.title = (Lampa.Lang && Lampa.Lang.translate('title_now_watch')) || 'Сейчас в кино';
+                                success(data);
+                            }, function () {
+                                success({results: [], title: 'Сейчас в кино'});
+                            });
+                        }
+                    ];
+
+                    var allLines = addedLines.concat(originalLines || []);
+
+                    if (typeof onSuccess === 'function') onSuccess(allLines);
+                }, onError || function () {});
             };
         }
 
@@ -527,7 +550,7 @@
             onRender: function (el) {
                 setTimeout(function () {
                     var sizeEl = $('div[data-name="interface_size"]');
-                    if (sizeEl.length) sizeEl.after(el);
+                    if (sizeEl && sizeEl.length) sizeEl.after(el);
                 }, 0);
             }
         });
