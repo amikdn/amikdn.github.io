@@ -16,12 +16,7 @@
         return _0x43402c;
       };
     }();
- //   "use strict";
-//   function _0x559ec2() {
- //     if (Lampa.Manifest.origin !== "hub") {
- //       Lampa.Noty.show("Ошибка доступа");
-//        return;
-//      }
+    
       var _0x175cd0 = function (_0x2d965e) {
         var _0x287088 = _0x2d965e.card || _0x2d965e;
         var _0x17f5e9 = _0x2d965e.next_episode_to_air || _0x2d965e.episode || {};
@@ -1057,7 +1052,7 @@
       Object.defineProperty(Lampa.Api.sources, "hub", {get: function _0x39dd1d() {
         return _0x2357d4;
       }});
-      Lampa.Params.select("source", Object.assign({}, Lampa.Params.values.source, {hub: "ByLAMPA"}), "tmdb");
+      Lampa.Params.select("source", Object.assign({}, Lampa.Params.values.source, {hub: "PERSONAL"}), "tmdb");
       if (Lampa.Storage.get("source") == "hub") {
         var _0x271bfd = Lampa.Storage.get("source");
         var _0x4171fb = setInterval(function () {
@@ -1071,15 +1066,15 @@
       Lampa.Settings.listener.follow("open", function (_0x1e6e1a) {
         if (_0x1e6e1a.name == "main") {
           if (Lampa.Settings.main().render().find('[data-component="hub_source"]').length == 0) {
-            Lampa.SettingsApi.addComponent({component: "hub_source", name: "Источник ByLAMPA"});
+            Lampa.SettingsApi.addComponent({component: "hub_source", name: "Источник PERSONAL"});
           }
           Lampa.Settings.main().update();
           Lampa.Settings.main().render().find('[data-component="hub_source"]').addClass("hide");
         }
       });
-      Lampa.SettingsApi.addParam({component: "more", param: {name: "hub_source", type: "static", default: true}, field: {name: "Источник ByLAMPA", description: "Настройки главного экрана"}, onRender: function (_0x304a5b) {
+      Lampa.SettingsApi.addParam({component: "more", param: {name: "hub_source", type: "static", default: true}, field: {name: "Источник PERSONAL", description: "Настройки главного экрана"}, onRender: function (_0x304a5b) {
         setTimeout(function () {
-          $('.settings-param > div:contains("Источник ByLAMPA")').parent().insertAfter($('div[data-name="source"]'));
+          $('.settings-param > div:contains("Источник PERSONAL")').parent().insertAfter($('div[data-name="source"]'));
           if (Lampa.Storage.field("source") !== "hub") {
             _0x304a5b.hide();
           } else {
@@ -1097,9 +1092,9 @@
         if (_0x1c966a.name == "source") {
           setTimeout(function () {
             if (Lampa.Storage.get("source") !== "hub") {
-              $('.settings-param > div:contains("Источник ByLAMPA")').parent().hide();
+              $('.settings-param > div:contains("Источник PERSONAL")').parent().hide();
             } else {
-              $('.settings-param > div:contains("Источник ByLAMPA")').parent().show();
+              $('.settings-param > div:contains("Источник PERSONAL")').parent().show();
             }
           }, 50);
         }
@@ -1240,7 +1235,6 @@
         Lampa.Storage.set("collections_rus_movie_remove", "true");
         Lampa.Storage.set("genres_cat", "true");
       }
-//    }
     if (window.appready) {
       _0x559ec2();
     } else {
