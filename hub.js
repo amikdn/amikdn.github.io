@@ -103,7 +103,7 @@ Lampa.Platform.tv();
       .navigation-bar__label { font-size: 9px !important; margin-top: -1px !important; }
   }
 
-  /* Уменьшено до 22×22px (контейнер .navigation-bar__icon и svg внутри) */
+  /* Уменьшено до 20×20px (контейнер .navigation-bar__icon и svg внутри) */
   @media (orientation: landscape) {
       .navigation-bar__body {
           display: none !important;
@@ -129,14 +129,14 @@ Lampa.Platform.tv();
           transform: scale(1.15);
       }
       .navigation-bar__icon {
-          width: 22px !important;  /* ← размер контейнера иконки */
-          height: 22px !important; /* ← размер контейнера иконки */
+          width: 20px !important;  /* ← размер контейнера иконки */
+          height: 20px !important; /* ← размер контейнера иконки */
           margin-bottom: 0 !important;
           padding: 0 !important;
       }
       .navigation-bar__icon svg {
-          width: 22px !important;  /* ← размер самой SVG-иконки */
-          height: 22px !important; /* ← размер самой SVG-иконки */
+          width: 20px !important;  /* ← размер самой SVG-иконки */
+          height: 20px !important; /* ← размер самой SVG-иконки */
       }
       .navigation-bar__label {
           display: none !important;
