@@ -18,7 +18,7 @@
     }();
     "use strict";
     function _0x559ec2() {
-      if (Lampa.Manifest.origin !== "lampa") {
+      if (Lampa.Manifest.origin !== "undefined") {
         Lampa.Noty.show("Ошибка доступа");
 
       }
