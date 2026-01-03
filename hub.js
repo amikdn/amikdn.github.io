@@ -10,13 +10,29 @@ Lampa.Platform.tv();
     3: { action: 'cartoon', svg: `<svg><use xlink:href="#sprite-cartoon"></use></svg>`, name: 'Мультфильмы' }
   };
 
-  /** CSS — изменения:
-   * - Задний фон панели полностью прозрачный
-   * - Панель расширена (минимальные padding)
-   * - Кнопки шире (min-width увеличен), с лёгким градиентом снизу вверх
-   * - Текст под иконками поднят выше (margin-bottom у иконки уменьшен)
-   * - При наведении/активно — более заметный градиент + подъём
-   */
+  /** Функция выхода из Lampa (из предоставленного кода) */
+  function exitLamp() {
+    try {
+      if (Lampa && Lampa.Activity) Lampa.Activity.out();
+    } catch (e) {}
+    if (Lampa && Lampa.Platform) {
+      if (Lampa.Platform.is('tizen')) {
+        tizen.application.getCurrentApplication().exit();
+      } else if (Lampa.Platform.is('webos')) {
+        window.close();
+      } else if (Lampa.Platform.is('android')) {
+        Lampa.Android.exit();
+      } else if (Lampa.Platform.is('orsay')) {
+        Lampa.Orsay.exit();
+      } else {
+        location.reload();
+      }
+    } else {
+      location.reload();
+    }
+  }
+
+  /** CSS — фон бара полностью прозрачный, кнопки с градиентом светло-серый снизу → тёмно-серый вверх */
   const css = `
   .navigation-bar__body {
       display: flex !important;
@@ -24,8 +40,8 @@ Lampa.Platform.tv();
       align-items: center !important;
       width: 100% !important;
       padding: 6px 2px !important;
-      background: transparent !important;
-      border-top: 1px solid rgba(255,255,255,0.08);
+      background: transparent !important; /* полностью прозрачный фон */
+      border-top: none !important; /* убрана верхняя граница */
       overflow-x: auto !important;
       overflow-y: hidden !important;
       box-sizing: border-box;
@@ -35,14 +51,14 @@ Lampa.Platform.tv();
 
   .navigation-bar__item {
       flex: 1 1 0 !important;
-      min-width: 65px !important;
+      min-width: 55px !important;
       display: flex !important;
       flex-direction: column !important;
       align-items: center;
       justify-content: center;
       height: 64px !important;
-      margin: 0 4px !important;
-      background: linear-gradient(to top, rgba(255,255,255,0.08), rgba(255,255,255,0.02)) !important;
+      margin: 0 3px !important;
+      background: linear-gradient(to top, rgba(80,80,80,0.6), rgba(40,40,40,0.6)) !important; /* градиент светло-серый снизу → тёмно-серый вверх */
       border-radius: 14px !important;
       transition: background .3s ease, transform .2s ease !important;
       box-sizing: border-box;
@@ -51,8 +67,8 @@ Lampa.Platform.tv();
 
   .navigation-bar__item:hover,
   .navigation-bar__item.active {
-      background: linear-gradient(to top, rgba(255,255,255,0.18), rgba(255,255,255,0.08)) !important;
-      transform: translateY(-3px);
+      background: linear-gradient(to top, rgba(100,100,100,0.7), rgba(60,60,60,0.7)) !important; /* ярче при наведении */
+      transform: translateY(-2px);
   }
 
   .navigation-bar__icon {
@@ -61,7 +77,7 @@ Lampa.Platform.tv();
       display: flex;
       align-items: center;
       justify-content: center;
-      margin-bottom: 2px !important;
+      margin-bottom: 2px !important; /* текст поднят выше */
   }
 
   .navigation-bar__icon svg {
@@ -71,7 +87,7 @@ Lampa.Platform.tv();
   }
 
   .navigation-bar__label {
-      font-size: 10.5px !important;
+      font-size: 10px !important;
       color: #fff !important;
       opacity: 0.9 !important;
       white-space: nowrap !important;
@@ -81,29 +97,31 @@ Lampa.Platform.tv();
       text-align: center !important;
       padding: 0 4px !important;
       box-sizing: border-box !important;
+      margin-top: -2px !important; /* дополнительно поднять текст */
   }
 
   @media (max-width: 900px) {
       .navigation-bar__item { 
           height: 60px !important; 
-          min-width: 60px !important;
-          margin: 0 3px !important;
+          min-width: 50px !important;
+          margin: 0 2px !important;
       }
       .navigation-bar__icon svg { width: 24px !important; height: 24px !important; }
-      .navigation-bar__label { font-size: 10px !important; }
+      .navigation-bar__label { font-size: 9.5px !important; }
   }
   @media (max-width: 600px) {
       .navigation-bar__body { padding: 6px 1px !important; }
       .navigation-bar__item { 
           height: 56px !important; 
-          min-width: 55px !important;
+          min-width: 45px !important;
           margin: 0 2px !important;
       }
-      .navigation-bar__icon { width: 26px; height: 26px; margin-bottom: 1px !important; }
-      .navigation-bar__icon svg { width: 24px !important; height: 24px !important; }
-      .navigation-bar__label { font-size: 9.5px !important; }
+      .navigation-bar__icon { width: 24px; height: 24px; margin-bottom: 1px !important; }
+      .navigation-bar__icon svg { width: 22px !important; height: 22px !important; }
+      .navigation-bar__label { font-size: 9px !important; }
   }
 
+  /* Landscape: круглые 30×30 без подписей и с лёгким фоном */
   @media (orientation: landscape) {
       .navigation-bar__body {
           display: none !important;
@@ -133,7 +151,6 @@ Lampa.Platform.tv();
           height: 100% !important;
           margin-bottom: 0 !important;
           padding: 5px !important;
-          box-sizing: border-box !important;
       }
       .navigation-bar__icon svg {
           width: 100% !important;
@@ -166,79 +183,8 @@ Lampa.Platform.tv();
     return false;
   }
 
-  function exitLamp() {
-    try {
-      if (Lampa && Lampa.Activity) Lampa.Activity.out();
-    } catch (e) {}
-    if (Lampa && Lampa.Platform) {
-      if (Lampa.Platform.is('tizen')) {
-        tizen.application.getCurrentApplication().exit();
-      } else if (Lampa.Platform.is('webos')) {
-        window.close();
-      } else if (Lampa.Platform.is('android')) {
-        Lampa.Android.exit();
-      } else if (Lampa.Platform.is('orsay')) {
-        Lampa.Orsay.exit();
-      } else {
-        location.reload();
-      }
-    } else {
-      location.reload();
-    }
-  }
-
-  function addBackButtonLongPress() {
-    const backward = $('.head__backward');
-    if (!backward) return;
-
-    let timer;
-    const start = () => {
-      timer = setTimeout(() => {
-        const overlay = document.createElement('div');
-        overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.8);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;';
-        overlay.addEventListener('click', e => { if(e.target === overlay) overlay.remove(); });
-
-        const modal = document.createElement('div');
-        modal.style.cssText = 'background:#1e1e24;padding:30px;border-radius:20px;display:flex;flex-direction:column;gap:20px;align-items:center;box-shadow:0 10px 40px rgba(0,0,0,0.7);';
-
-        const title = document.createElement('h3');
-        title.textContent = 'Действие';
-        title.style.cssText = 'color:#fff;font-size:20px;margin:0;';
-        modal.appendChild(title);
-
-        const reloadBtn = document.createElement('div');
-        reloadBtn.textContent = 'Перезагрузка';
-        reloadBtn.style.cssText = 'background:rgba(255,255,255,0.15);color:#fff;padding:15px 40px;border-radius:14px;font-size:18px;cursor:pointer;transition:background .2s;';
-        reloadBtn.addEventListener('click', () => { location.reload(); overlay.remove(); });
-        modal.appendChild(reloadBtn);
-
-        const exitBtn = document.createElement('div');
-        exitBtn.textContent = 'Выход из Lampa';
-        exitBtn.style.cssText = 'background:rgba(255,80,80,0.3);color:#ff5555;padding:15px 40px;border-radius:14px;font-size:18px;cursor:pointer;transition:background .2s;';
-        exitBtn.addEventListener('click', () => { exitLamp(); overlay.remove(); });
-        modal.appendChild(exitBtn);
-
-        overlay.appendChild(modal);
-        document.body.appendChild(overlay);
-      }, 700);
-    };
-    const cancel = () => clearTimeout(timer);
-
-    backward.addEventListener('touchstart', start);
-    backward.addEventListener('touchend', cancel);
-    backward.addEventListener('touchmove', cancel);
-    backward.addEventListener('touchcancel', cancel);
-
-    backward.addEventListener('mousedown', e => {
-      if(e.button === 0){
-        start();
-        const up = () => { cancel(); document.removeEventListener('mouseup', up); };
-        document.addEventListener('mouseup', up);
-      }
-    });
-  }
-
   function showIconPicker(position, div, iconEl, labelEl, defaultAction, defaultSvg, defaultName){
+    // (тот же код пикера, что и раньше — без изменений)
     const options = [];
     const seenActions = new Set();
 
@@ -332,7 +278,58 @@ Lampa.Platform.tv();
     document.body.appendChild(overlay);
   }
 
+  /** Модалка для кнопки "Назад" — Перезагрузка / Выход */
+  function showBackMenu() {
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);display:flex;align-items:center;justify-content:center;z-index:9999;';
+    overlay.addEventListener('click', e => { if(e.target === overlay) overlay.remove(); });
+
+    const modal = document.createElement('div');
+    modal.style.cssText = 'background:#1e1e24;padding:30px;border-radius:20px;max-width:80%;box-shadow:0 10px 30px rgba(0,0,0,0.6);display:flex;flex-direction:column;gap:20px;';
+
+    const title = document.createElement('h3');
+    title.textContent = 'Меню';
+    title.style.cssText = 'text-align:center;color:#fff;margin:0;font-size:20px;';
+    modal.appendChild(title);
+
+    // Кнопка Перезагрузка
+    const reloadBtn = document.createElement('div');
+    reloadBtn.style.cssText = 'display:flex;align-items:center;justify-content:center;cursor:pointer;padding:16px;background:rgba(255,255,255,0.1);border-radius:14px;transition:background .2s;';
+    reloadBtn.innerHTML = `
+      <svg fill="#ffffff" viewBox="0 0 24 24" width="28" height="28" style="margin-right:12px;">
+        <path d="M4,12a1,1,0,0,1-2,0A9.983,9.983,0,0,1,18.242,4.206V2.758a1,1,0,1,1,2,0v4a1,1,0,0,1-1,1h-4a1,1,0,0,1,0-2h1.743A7.986,7.986,0,0,0,4,12Zm17-1a1,1,0,0,0-1,1A7.986,7.986,0,0,1,7.015,18.242H8.757a1,1,0,1,0,0-2h-4a1,1,0,0,0-1,1v4a1,1,0,0,0,2,0V19.794A9.984,9.984,0,0,0,22,12,1,1,0,0,0,21,11Z" fill="currentColor"></path>
+      </svg>
+      <span style="color:#fff;font-size:18px;">Перезагрузка</span>
+    `;
+    reloadBtn.addEventListener('click', () => {
+      location.reload();
+      overlay.remove();
+    });
+    modal.appendChild(reloadBtn);
+
+    // Кнопка Выход
+    const exitBtn = document.createElement('div');
+    exitBtn.style.cssText = 'display:flex;align-items:center;justify-content:center;cursor:pointer;padding:16px;background:rgba(255,255,255,0.1);border-radius:14px;transition:background .2s;';
+    exitBtn.innerHTML = `
+      <svg fill="none" viewBox="0 0 24 24" width="28" height="28" style="margin-right:12px;">
+        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+        <line x1="8" y1="8" x2="16" y2="16" stroke="currentColor" stroke-width="2"/>
+        <line x1="16" y1="8" x2="8" y2="16" stroke="currentColor" stroke-width="2"/>
+      </svg>
+      <span style="color:#fff;font-size:18px;">Выход</span>
+    `;
+    exitBtn.addEventListener('click', () => {
+      exitLamp();
+      overlay.remove();
+    });
+    modal.appendChild(exitBtn);
+
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+  }
+
   function addItem(position, defaultAction, defaultSvg, defaultName){
+    // (тот же код добавления кнопок — без изменений)
     const bar = $('.navigation-bar__body');
     if(!bar || bar.querySelector(`[data-position="${position}"]`)) return;
 
@@ -382,6 +379,33 @@ Lampa.Platform.tv();
     });
   }
 
+  /** Long press на кнопке "Назад" */
+  function addBackLongPress() {
+    const backBtn = $('.head__backward');
+    if (!backBtn) return;
+
+    let timer;
+    const start = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      timer = setTimeout(showBackMenu, 700);
+    };
+    const cancel = () => clearTimeout(timer);
+
+    backBtn.addEventListener('touchstart', start);
+    backBtn.addEventListener('touchend', cancel);
+    backBtn.addEventListener('touchmove', cancel);
+    backBtn.addEventListener('touchcancel', cancel);
+
+    backBtn.addEventListener('mousedown', (e) => {
+      if (e.button === 0) {
+        start(e);
+        const up = () => { cancel(); document.removeEventListener('mouseup', up); };
+        document.addEventListener('mouseup', up);
+      }
+    });
+  }
+
   function adjustPosition() {
     const isLandscape = window.matchMedia('(orientation: landscape)').matches;
     const bar = $('.navigation-bar__body');
@@ -414,7 +438,7 @@ Lampa.Platform.tv();
     addItem('3', defaults[3].action, defaults[3].svg, defaults[3].name);
 
     adjustPosition();
-    addBackButtonLongPress();
+    addBackLongPress(); // добавляем long press на кнопку "Назад"
 
     const mql = window.matchMedia('(orientation: landscape)');
     mql.addEventListener('change', adjustPosition);
