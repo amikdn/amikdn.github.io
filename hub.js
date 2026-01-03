@@ -40,7 +40,6 @@
 
         this.image = function() {
             this.img_poster.onerror = () => this.img_poster.src = './img/img_broken.svg';
-            this.img_poster.onload = () => {};
 
             if (this.img_episode) {
                 this.img_episode.onerror = () => this.img_episode.src = './img/img_broken.svg';
@@ -100,8 +99,33 @@
 
     class PersonalHub {
         constructor(base) {
-            this.base = base;
-            this.request = base.request.bind(base);
+            this.base = base || {};
+
+            this.request = (path, params = {}, success, error = () => {}) => {
+                let url = 'https://api.themoviedb.org/3/' + path;
+
+                const apiKey = Lampa.TMDB ? Lampa.TMDB.key() : '4fd2d6e1a1e9e0f0a4d1d0e0a0b0c0d0';
+                const language = Lampa.Storage.get('language', 'ru');
+
+                const queryParams = new URLSearchParams({
+                    api_key: apiKey,
+                    language: language,
+                    ...params
+                });
+
+                url += '?' + queryParams.toString();
+
+                fetch(url)
+                    .then(res => {
+                        if (!res.ok) throw new Error('Network error: ' + res.status);
+                        return res.json();
+                    })
+                    .then(data => success(data))
+                    .catch(err => {
+                        console.log('PersonalHub request error:', path, err);
+                        error(err);
+                    });
+            };
         }
 
         shuffle(array) {
@@ -160,32 +184,16 @@
             const activeCategories = categories.filter(cat => cat.active).sort((a, b) => a.order - b.order);
 
             if (activeCategories.length === 0) {
-                onError && onError('Нет доступных категорий для загрузки.');
+                if (onError) onError('Нет доступных категорий для загрузки.');
                 return;
             }
 
             activeCategories.forEach(cat => {
-                if (!processed.includes(cat.id) && this[cat.id]) {
+                if (!processed.includes(cat.id) && typeof this[cat.id] === 'function') {
                     requests.push(this[cat.id].bind(this));
                     processed.push(cat.id);
                 }
             });
-
-            if (Lampa.Storage.get('genres_shuffle', 'false') === 'true' && this.base.genres) {
-                this.base.genres.forEach(genre => {
-                    if (!processed.includes(genre.id)) {
-                        const genreReq = (callback) => {
-                            this.request(`discover/movie?with_genres=${genre.id}`, {}, data => {
-                                data.title = Lampa.Lang.translate(genre.name || genre.title);
-                                this.shuffle(data.results);
-                                callback(data);
-                            }, callback);
-                        };
-                        requests.push(genreReq);
-                        processed.push(genre.id);
-                    }
-                });
-            }
 
             if (requests.length > 0) {
                 Lampa.Api.parallel(requests, concurrency, onRender, onError);
@@ -193,16 +201,21 @@
         }
 
         now_watch(callback) {
-            const lately = Lampa.Activity.lately() || {results: [], title: 'Сейчас смотрят'};
-            callback(lately);
+            const lately = Lampa.Activity.lately();
+            const data = lately || {results: [], title: 'Сейчас смотрят'};
+            callback(data);
         }
 
         upcoming_episodes(callback) {
-            const timetable = new Lampa.TimeTable();
-            timetable.get(data => {
-                data.title = 'Выход ближайших эпизодов';
-                callback(data);
-            }, callback);
+            if (typeof Lampa.TimeTable === 'function') {
+                const timetable = new Lampa.TimeTable();
+                timetable.get(data => {
+                    data.title = 'Выход ближайших эпизодов';
+                    callback(data);
+                }, () => callback({results: [], title: 'Выход ближайших эпизодов'}));
+            } else {
+                callback({results: [], title: 'Выход ближайших эпизодов'});
+            }
         }
 
         trend_day(callback) {
@@ -295,7 +308,7 @@
 
         netflix(callback) {
             const date = new Date().toISOString().slice(0, 10);
-            this.request(`discover/tv?with_networks=213&first_air_date.gte=2020-01-01&vote_average.gte=6&vote_average.lte=10&first_air_date.lte=${date}`, {}, data => {
+            this.request('discover/tv', {with_networks: '213', first_air_date_gte: '2020-01-01', vote_average_gte: 6, vote_average_lte: 10, first_air_date_lte: date}, data => {
                 data.title = 'Netflix';
                 const display = Lampa.Storage.get('netflix_display', '1');
                 if (display === '2') { data.collection = true; data.line_type = 'collection'; }
@@ -308,7 +321,7 @@
 
         apple_tv(callback) {
             const date = new Date().toISOString().slice(0, 10);
-            this.request(`discover/tv?with_networks=2552&first_air_date.gte=2020-01-01&vote_average.gte=6&vote_average.lte=10&first_air_date.lte=${date}`, {}, data => {
+            this.request('discover/tv', {with_networks: '2552', first_air_date_gte: '2020-01-01', vote_average_gte: 6, vote_average_lte: 10, first_air_date_lte: date}, data => {
                 data.title = 'Apple TV+';
                 const display = Lampa.Storage.get('apple_tv_display', '1');
                 if (display === '2') { data.collection = true; data.line_type = 'collection'; }
@@ -321,7 +334,7 @@
 
         prime_video(callback) {
             const date = new Date().toISOString().slice(0, 10);
-            this.request(`discover/tv?with_networks=1024&first_air_date.gte=2020-01-01&vote_average.gte=6&vote_average.lte=10&first_air_date.lte=${date}`, {}, data => {
+            this.request('discover/tv', {with_networks: '1024', first_air_date_gte: '2020-01-01', vote_average_gte: 6, vote_average_lte: 10, first_air_date_lte: date}, data => {
                 data.title = 'Prime Video';
                 const display = Lampa.Storage.get('prime_video_display', '1');
                 if (display === '2') { data.collection = true; data.line_type = 'collection'; }
@@ -334,7 +347,7 @@
 
         hbo(callback) {
             const date = new Date().toISOString().slice(0, 10);
-            this.request(`discover/tv?with_networks=49&first_air_date.gte=2020-01-01&vote_average.gte=6&vote_average.lte=10&first_air_date.lte=${date}`, {}, data => {
+            this.request('discover/tv', {with_networks: '49', first_air_date_gte: '2020-01-01', vote_average_gte: 6, vote_average_lte: 10, first_air_date_lte: date}, data => {
                 data.title = 'HBO';
                 const display = Lampa.Storage.get('hbo_display', '1');
                 if (display === '2') { data.collection = true; data.line_type = 'collection'; }
@@ -347,7 +360,7 @@
 
         mgm(callback) {
             const date = new Date().toISOString().slice(0, 10);
-            this.request(`discover/tv?with_networks=6219&first_air_date.gte=2020-01-01&vote_average.gte=6&vote_average.lte=10&first_air_date.lte=${date}`, {}, data => {
+            this.request('discover/tv', {with_networks: '6219', first_air_date_gte: '2020-01-01', vote_average_gte: 6, vote_average_lte: 10, first_air_date_lte: date}, data => {
                 data.title = 'MGM+';
                 const display = Lampa.Storage.get('mgm_display', '1');
                 if (display === '2') { data.collection = true; data.line_type = 'collection'; }
@@ -360,7 +373,7 @@
 
         dorams(callback) {
             const date = new Date().toISOString().slice(0, 10);
-            this.request(`discover/tv?with_networks=5806&sort_by=first_air_date.desc&air_date.lte=${date}`, {}, data => {
+            this.request('discover/tv', {with_networks: '5806', sort_by: 'first_air_date.desc', air_date_lte: date}, data => {
                 data.title = 'Дорамы';
                 const display = Lampa.Storage.get('dorams_display', '1');
                 if (display === '2') { data.collection = true; data.line_type = 'collection'; }
@@ -373,7 +386,7 @@
 
         tur_serials(callback) {
             const date = new Date().toISOString().slice(0, 10);
-            this.request(`discover/tv?first_air_date.gte=2020-01-01&without_genres=16&with_original_language=tr&vote_average.gte=6&vote_average.lte=10&first_air_date.lte=${date}`, {}, data => {
+            this.request('discover/tv', {first_air_date_gte: '2020-01-01', without_genres: '16', with_original_language: 'tr', vote_average_gte: 6, vote_average_lte: 10, first_air_date_lte: date}, data => {
                 data.title = 'Турецкие сериалы';
                 const display = Lampa.Storage.get('tur_serials_display', '1');
                 if (display === '2') { data.collection = true; data.line_type = 'collection'; }
@@ -387,7 +400,7 @@
         ind_films(callback) {
             const date = new Date().toISOString().slice(0, 10);
             const lastYear = (new Date().getFullYear() - 1) + '-01-01';
-            this.request(`discover/movie?vote_average.gte=5&vote_average.lte=9.5&with_original_language=hi&sort_by=primary_release_date.desc&primary_release_date.lte=${date}&primary_release_date.gte=${lastYear}`, {}, data => {
+            this.request('discover/movie', {vote_average_gte: 5, vote_average_lte: 9.5, with_original_language: 'hi', sort_by: 'primary_release_date.desc', primary_release_date_lte: date, primary_release_date_gte: lastYear}, data => {
                 data.title = 'Индийские фильмы';
                 const display = Lampa.Storage.get('ind_films_display', '1');
                 if (display === '2') { data.collection = true; data.line_type = 'collection'; }
@@ -401,7 +414,7 @@
         rus_movie(callback) {
             const date = new Date().toISOString().slice(0, 10);
             const lastYear = (new Date().getFullYear() - 1) + '-01-01';
-            this.request(`discover/movie?vote_average.gte=5&vote_average.lte=9.5&with_original_language=ru&sort_by=primary_release_date.desc&primary_release_date.lte=${date}&primary_release_date.gte=${lastYear}`, {}, data => {
+            this.request('discover/movie', {vote_average_gte: 5, vote_average_lte: 9.5, with_original_language: 'ru', sort_by: 'primary_release_date.desc', primary_release_date_lte: date, primary_release_date_gte: lastYear}, data => {
                 data.title = 'Русские фильмы';
                 const display = Lampa.Storage.get('rus_movie_display', '1');
                 if (display === '2') { data.collection = true; data.line_type = 'collection'; }
@@ -414,7 +427,7 @@
 
         rus_tv(callback) {
             const date = new Date().toISOString().slice(0, 10);
-            this.request(`discover/tv?with_networks=2859&sort_by=first_air_date.desc&air_date.lte=${date}`, {}, data => {
+            this.request('discover/tv', {with_networks: '2859', sort_by: 'first_air_date.desc', air_date_lte: date}, data => {
                 data.title = 'Русские сериалы';
                 const display = Lampa.Storage.get('rus_tv_display', '1');
                 if (display === '2') { data.collection = true; data.line_type = 'collection'; }
@@ -428,7 +441,7 @@
         rus_mult(callback) {
             const date = new Date().toISOString().slice(0, 10);
             const lastYear = (new Date().getFullYear() - 1) + '-01-01';
-            this.request(`discover/movie?vote_average.gte=5&vote_average.lte=9.5&with_genres=16&with_original_language=ru&sort_by=primary_release_date.desc&primary_release_date.lte=${date}&primary_release_date.gte=${lastYear}`, {}, data => {
+            this.request('discover/movie', {vote_average_gte: 5, vote_average_lte: 9.5, with_genres: '16', with_original_language: 'ru', sort_by: 'primary_release_date.desc', primary_release_date_lte: date, primary_release_date_gte: lastYear}, data => {
                 data.title = 'Русские мультфильмы';
                 const display = Lampa.Storage.get('rus_mult_display', '1');
                 if (display === '2') { data.collection = true; data.line_type = 'collection'; }
@@ -441,7 +454,7 @@
 
         start(callback) {
             const date = new Date().toISOString().slice(0, 10);
-            this.request(`discover/tv?with_networks=3923&sort_by=first_air_date.desc&air_date.lte=${date}`, {}, data => {
+            this.request('discover/tv', {with_networks: '3923', sort_by: 'first_air_date.desc', air_date_lte: date}, data => {
                 data.title = 'Start';
                 const display = Lampa.Storage.get('start_display', '1');
                 if (display === '2') { data.collection = true; data.line_type = 'collection'; }
@@ -454,7 +467,7 @@
 
         premier(callback) {
             const date = new Date().toISOString().slice(0, 10);
-            this.request(`discover/tv?with_networks=2493&sort_by=first_air_date.desc&air_date.lte=${date}`, {}, data => {
+            this.request('discover/tv', {with_networks: '2493', sort_by: 'first_air_date.desc', air_date_lte: date}, data => {
                 data.title = 'Premier';
                 const display = Lampa.Storage.get('premier_display', '1');
                 if (display === '2') { data.collection = true; data.line_type = 'collection'; }
@@ -467,7 +480,7 @@
 
         ivi(callback) {
             const date = new Date().toISOString().slice(0, 10);
-            this.request(`discover/tv?with_networks=3871&sort_by=first_air_date.desc&air_date.lte=${date}`, {}, data => {
+            this.request('discover/tv', {with_networks: '3871', sort_by: 'first_air_date.desc', air_date_lte: date}, data => {
                 data.title = 'ИВИ';
                 const display = Lampa.Storage.get('ivi_display', '1');
                 if (display === '2') { data.collection = true; data.line_type = 'collection'; }
@@ -480,7 +493,7 @@
 
         okko(callback) {
             const date = new Date().toISOString().slice(0, 10);
-            this.request(`discover/tv?with_networks=3827&sort_by=first_air_date.desc&air_date.lte=${date}`, {}, data => {
+            this.request('discover/tv', {with_networks: '3827', sort_by: 'first_air_date.desc', air_date_lte: date}, data => {
                 data.title = 'OKKO';
                 const display = Lampa.Storage.get('okko_display', '1');
                 if (display === '2') { data.collection = true; data.line_type = 'collection'; }
@@ -493,7 +506,7 @@
 
         kion(callback) {
             const date = new Date().toISOString().slice(0, 10);
-            this.request(`discover/tv?with_networks=4085&sort_by=first_air_date.desc&air_date.lte=${date}`, {}, data => {
+            this.request('discover/tv', {with_networks: '4085', sort_by: 'first_air_date.desc', air_date_lte: date}, data => {
                 data.title = 'KION';
                 const display = Lampa.Storage.get('kion_display', '1');
                 if (display === '2') { data.collection = true; data.line_type = 'collection'; }
@@ -506,7 +519,7 @@
 
         kinopoisk(callback) {
             const date = new Date().toISOString().slice(0, 10);
-            this.request(`discover/tv?with_networks=1191&sort_by=first_air_date.desc&air_date.lte=${date}`, {}, data => {
+            this.request('discover/tv', {with_networks: '1191', sort_by: 'first_air_date.desc', air_date_lte: date}, data => {
                 data.title = 'КиноПоиск';
                 const display = Lampa.Storage.get('kinopoisk_display', '1');
                 if (display === '2') { data.collection = true; data.line_type = 'collection'; }
@@ -519,7 +532,7 @@
 
         wink(callback) {
             const date = new Date().toISOString().slice(0, 10);
-            this.request(`discover/tv?with_networks=806&sort_by=first_air_date.desc&air_date.lte=${date}`, {}, data => {
+            this.request('discover/tv', {with_networks: '806', sort_by: 'first_air_date.desc', air_date_lte: date}, data => {
                 data.title = 'Wink';
                 const display = Lampa.Storage.get('wink_display', '1');
                 if (display === '2') { data.collection = true; data.line_type = 'collection'; }
@@ -532,7 +545,7 @@
 
         sts(callback) {
             const date = new Date().toISOString().slice(0, 10);
-            this.request(`discover/tv?with_networks=806&sort_by=first_air_date.desc&air_date.lte=${date}`, {}, data => {
+            this.request('discover/tv', {with_networks: '806', sort_by: 'first_air_date.desc', air_date_lte: date}, data => {
                 data.title = 'СТС';
                 const display = Lampa.Storage.get('sts_display', '1');
                 if (display === '2') { data.collection = true; data.line_type = 'collection'; }
@@ -545,7 +558,7 @@
 
         tnt(callback) {
             const date = new Date().toISOString().slice(0, 10);
-            this.request(`discover/tv?with_networks=5806&sort_by=first_air_date.desc&air_date.lte=${date}`, {}, data => {
+            this.request('discover/tv', {with_networks: '5806', sort_by: 'first_air_date.desc', air_date_lte: date}, data => {
                 data.title = 'ТНТ';
                 const display = Lampa.Storage.get('tnt_display', '1');
                 if (display === '2') { data.collection = true; data.line_type = 'collection'; }
@@ -558,9 +571,9 @@
 
         collections_inter_tv(callback) {
             const date = new Date();
-            const minDate = new Date(date.getFullYear(), date.getMonth() - 6, date.getDate()).toISOString().slice(0, 10);
+            const minDate = new Date(date.getFullYear(), date.getMonth() - 12, date.getDate()).toISOString().slice(0, 10);
             const maxDate = date.toISOString().slice(0, 10);
-            this.request(`discover/tv?with_networks=213|2552|1024|6219|49&sort_by=popularity.desc&air_date.lte=${maxDate}&first_air_date.gte=${minDate}`, {}, data => {
+            this.request('discover/tv', {with_networks: '213|2552|1024|6219|49', sort_by: 'popularity.desc', air_date_lte: maxDate, first_air_date_gte: minDate}, data => {
                 data.title = 'Подборки зарубежных сериалов';
                 const display = Lampa.Storage.get('collections_inter_tv_display', '1');
                 if (display === '2') { data.collection = true; data.line_type = 'collection'; }
@@ -573,9 +586,9 @@
 
         collections_rus_tv(callback) {
             const date = new Date();
-            const minDate = new Date(date.getFullYear(), date.getMonth() - 6, date.getDate()).toISOString().slice(0, 10);
+            const minDate = new Date(date.getFullYear(), date.getMonth() - 12, date.getDate()).toISOString().slice(0, 10);
             const maxDate = date.toISOString().slice(0, 10);
-            this.request(`discover/tv?with_networks=2493|2859|4085|3923|3871|3827|5806|806|1191&sort_by=popularity.desc&first_air_date.lte=${maxDate}&first_air_date.gte=${minDate}`, {}, data => {
+            this.request('discover/tv', {with_networks: '2493|2859|4085|3923|3871|3827|5806|806|1191', sort_by: 'popularity.desc', first_air_date_lte: maxDate, first_air_date_gte: minDate}, data => {
                 data.title = 'Подборки русских сериалов';
                 const display = Lampa.Storage.get('collections_rus_tv_display', '1');
                 if (display === '2') { data.collection = true; data.line_type = 'collection'; }
@@ -588,9 +601,9 @@
 
         collections_inter_movie(callback) {
             const date = new Date();
-            const minDate = new Date(date.getFullYear(), date.getMonth() - 6, date.getDate()).toISOString().slice(0, 10);
+            const minDate = new Date(date.getFullYear(), date.getMonth() - 12, date.getDate()).toISOString().slice(0, 10);
             const maxDate = date.toISOString().slice(0, 10);
-            this.request(`discover/movie?vote_average.gte=5&vote_average.lte=9.5&sort_by=popularity.desc&primary_release_date.lte=${maxDate}&primary_release_date.gte=${minDate}`, {}, data => {
+            this.request('discover/movie', {vote_average_gte: 5, vote_average_lte: 9.5, sort_by: 'popularity.desc', primary_release_date_lte: maxDate, primary_release_date_gte: minDate}, data => {
                 data.title = 'Подборки зарубежных фильмов';
                 const display = Lampa.Storage.get('collections_inter_movie_display', '1');
                 if (display === '2') { data.collection = true; data.line_type = 'collection'; }
@@ -603,9 +616,9 @@
 
         collections_rus_movie(callback) {
             const date = new Date();
-            const minDate = new Date(date.getFullYear(), date.getMonth() - 6, date.getDate()).toISOString().slice(0, 10);
+            const minDate = new Date(date.getFullYear(), date.getMonth() - 12, date.getDate()).toISOString().slice(0, 10);
             const maxDate = date.toISOString().slice(0, 10);
-            this.request(`discover/movie?primary_release_date.gte=${minDate}&vote_average.gte=5&vote_average.lte=9.5&with_original_language=ru&sort_by=popularity.desc&primary_release_date.lte=${maxDate}`, {}, data => {
+            this.request('discover/movie', {primary_release_date_gte: minDate, vote_average_gte: 5, vote_average_lte: 9.5, with_original_language: 'ru', sort_by: 'popularity.desc', primary_release_date_lte: maxDate}, data => {
                 data.title = 'Подборки русских фильмов';
                 const display = Lampa.Storage.get('collections_rus_movie_display', '1');
                 if (display === '2') { data.collection = true; data.line_type = 'collection'; }
@@ -617,14 +630,17 @@
         }
     }
 
-    const personalHubSource = Object.assign({}, Lampa.Api.sources.tmdb, new PersonalHub(Lampa.Api.sources.tmdb));
+    const baseSource = Lampa.Api.sources.tmdb || {};
+    const personalHubSource = Object.assign({}, baseSource, new PersonalHub(baseSource));
     Lampa.Api.sources.personalhub = personalHubSource;
 
-    Lampa.Settings.select('source', Object.assign({}, Lampa.Settings.main().field.source.values, {personalhub: 'PersonalHub'}), 'tmdb');
+    if (Lampa.Settings && Lampa.Settings.main && Lampa.Settings.main().field && Lampa.Settings.main().field.source && Lampa.Settings.main().field.source.values) {
+        Lampa.Settings.select('source', Object.assign({}, Lampa.Settings.main().field.source.values, {personalhub: 'PersonalHub'}), 'tmdb');
+    }
 
     if (Lampa.Storage.get('source') === 'personalhub') {
         const initInterval = setInterval(() => {
-            if (Lampa.Controller.active()) {
+            if (Lampa.Controller && Lampa.Controller.active()) {
                 clearInterval(initInterval);
                 Lampa.Controller.toggle('main');
             }
@@ -649,7 +665,7 @@
         onRender: function(item) {
             setTimeout(() => {
                 const sourceParam = $('div[data-name="source"]').parent();
-                sourceParam.insertAfter(item.parent());
+                if (sourceParam.length) sourceParam.insertAfter(item.parent());
                 if (Lampa.Storage.get('source') !== 'personalhub') {
                     item.hide();
                 } else {
@@ -659,7 +675,9 @@
 
             item.on('hover:enter', () => {
                 Lampa.Settings.open('bylampa_source');
-                Lampa.Controller.active().field.back = () => Lampa.Settings.open('more');
+                if (Lampa.Controller.active().field) {
+                    Lampa.Controller.active().field.back = () => Lampa.Settings.open('more');
+                }
             });
         }
     });
@@ -667,17 +685,19 @@
     Lampa.Storage.listener.follow('change', e => {
         if (e.name === 'source') {
             setTimeout(() => {
-                const item = $('.settings-param > div:contains("Источник PersonalHub")');
-                if (Lampa.Storage.get('source') !== 'personalhub') {
-                    item.parent().hide();
-                } else {
-                    item.parent().show();
+                const items = $('.settings-param > div:contains("Источник PersonalHub")');
+                if (items.length) {
+                    if (Lampa.Storage.get('source') !== 'personalhub') {
+                        items.parent().hide();
+                    } else {
+                        items.parent().show();
+                    }
                 }
             }, 50);
         }
     });
 
-    function addCategorySettings(id, title, description, shuffleDefault = false, displayDefault = '1', orderDefault, removeDefault = false) {
+    function addCategorySettings(id, title, description, shuffleDefault = false, displayDefault = '1', orderDefault = '1') {
         Lampa.Settings.listener.follow('open', e => {
             if (e.name === 'more') {
                 const render = Lampa.Settings.main().render();
@@ -695,22 +715,29 @@
             onRender: function(item) {
                 item.on('hover:enter', () => {
                     Lampa.Settings.open(id);
-                    Lampa.Controller.active().field.back = () => {
-                        Lampa.Settings.open('bylampa_source');
-                        setTimeout(() => {
-                            const index = Array.from(item.parent().children()).indexOf(item[0]) + 1;
-                            const elem = document.querySelector(`#app > div.settings.animate > div.settings__content.layer--height > div.settings__body > div > div > div > div > div:nth-child(${index})`);
-                            if (elem) Lampa.Controller.focus(elem);
-                        }, 50);
-                    };
+                    if (Lampa.Controller.active().field) {
+                        Lampa.Controller.active().field.back = () => {
+                            Lampa.Settings.open('bylampa_source');
+                            setTimeout(() => {
+                                const index = Array.from(item.parent().children()).indexOf(item[0]) + 1;
+                                const elem = document.querySelector(`#app > div.settings.animate > div.settings__content.layer--height > div.settings__body > div > div > div > div > div:nth-child(${index})`);
+                                if (elem) Lampa.Controller.focus(elem);
+                            }, 50);
+                        };
+                    }
                 });
             }
         });
 
         Lampa.SettingsApi.addParam({component: id, param: {name: id + '_shuffle', type: 'toggle', default: shuffleDefault}, field: {name: 'Перемешивать'}});
         Lampa.SettingsApi.addParam({component: id, param: {name: id + '_display', type: 'select', values: {1: 'Стандарт', 2: 'Коллекция', 3: 'Широкие маленькие', 4: 'Top Line'}, default: displayDefault}, field: {name: 'Вид отображения'}});
-        Lampa.SettingsApi.addParam({component: id, param: {name: 'number_' + id, type: 'select', values: {1:'1',2:'2',3:'3',4:'4',5:'5',6:'6',7:'7',8:'8',9:'9',10:'10',11:'11',12:'12',13:'13',14:'14',15:'15',16:'16',17:'17',18:'18',19:'19',20:'20',21:'21',22:'22',23:'23',24:'24',25:'25',26:'26',27:'27',28:'28',29:'29',30:'30',31:'31',32:'32',33:'33',34:'34',35:'35',36:'36',37:'37'}, default: orderDefault}, field: {name: 'Порядок отображения'}});
-        Lampa.SettingsApi.addParam({component: id, param: {name: id + '_remove', type: 'toggle', default: removeDefault}, field: {name: 'Убрать с главной страницы'}});
+        Lampa.SettingsApi.addParam({component: id, param: {name: 'number_' + id, type: 'select', values: {
+            1:'1',2:'2',3:'3',4:'4',5:'5',6:'6',7:'7',8:'8',9:'9',10:'10',
+            11:'11',12:'12',13:'13',14:'14',15:'15',16:'16',17:'17',18:'18',19:'19',20:'20',
+            21:'21',22:'22',23:'23',24:'24',25:'25',26:'26',27:'27',28:'28',29:'29',30:'30',
+            31:'31',32:'32',33:'33',34:'34',35:'35',36:'36',37:'37'
+        }, default: orderDefault}, field: {name: 'Порядок отображения'}});
+        Lampa.SettingsApi.addParam({component: id, param: {name: id + '_remove', type: 'toggle', default: false}, field: {name: 'Убрать с главной страницы'}});
     }
 
     addCategorySettings('now_watch', 'Сейчас смотрят', 'Нажми для настройки', false, '1', '1');
@@ -752,16 +779,6 @@
     addCategorySettings('collections_rus_movie', 'Подборки русских фильмов', 'Нажми для настройки', true, '1', '37');
 
     Lampa.SettingsApi.addParam({component: 'bylampa_source', param: {name: 'upcoming_episodes_remove', type: 'toggle', default: false}, field: {name: 'Убрать с главной страницы'}});
-    Lampa.SettingsApi.addParam({component: 'bylampa_source', param: {name: 'genres_shuffle', type: 'toggle', default: true}, field: {name: 'Изменять порядок карточек на главной'}});
-
-    const initInterval = setInterval(() => {
-        if (typeof Lampa !== 'undefined') {
-            clearInterval(initInterval);
-            if (!Lampa.Storage.get('bylampa_source_params')) {
-                Lampa.Storage.set('bylampa_source_params', 'popularity.desc');
-            }
-        }
-    }, 200);
 
     if (window.appready) {
         Lampa.Card = CustomCard;
