@@ -103,7 +103,7 @@ Lampa.Platform.tv();
       .navigation-bar__label { font-size: 9px !important; margin-top: -1px !important; }
   }
 
-  /* Уменьшено до 20×20px (контейнер .navigation-bar__icon и svg внутри) */
+  /* Уменьшено до 20×20px (контейнер .navigation-bar__icon и svg внутри в горизонтальном режиме) */
   @media (orientation: landscape) {
       .navigation-bar__body {
           display: none !important;
