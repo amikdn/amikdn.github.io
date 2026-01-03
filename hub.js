@@ -135,8 +135,8 @@ Lampa.Platform.tv();
           padding: 0 !important;
       }
       .navigation-bar__icon svg {
-          width: 26px !important;
-          height: 26px !important;
+          width: 24px !important;
+          height: 24px !important;
       }
       .navigation-bar__label {
           display: none !important;
