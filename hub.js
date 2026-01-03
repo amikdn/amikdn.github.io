@@ -10,44 +10,34 @@ Lampa.Platform.tv();
     3: { action: 'cartoon', svg: `<svg><use xlink:href="#sprite-cartoon"></use></svg>`, name: 'Мультфильмы' }
   };
 
-  /** Функция выхода — только для Android */
-  function exitLamp() {
-    if (Lampa.Platform.is('android')) {
-      try {
-        Lampa.Android.exit();
-      } catch (e) {}
-    }
-  }
-
-  /** CSS — фон бара прозрачный, кнопки с градиентом, иконки чуть выше */
+  /** CSS — полностью убрана подложка под кнопками, кнопки компактнее для 7+ элементов */
   const css = `
   .navigation-bar__body {
       display: flex !important;
       justify-content: center !important;
       align-items: center !important;
       width: 100% !important;
-      padding: 6px 2px !important;
-      background: transparent !important;
-      border-top: none !important;
-      overflow-x: auto !important;
+      padding: 6px 2px !important; /* минимальные отступы */
+      background: rgba(20,20,25,0.85) !important;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      overflow-x: auto !important; /* горизонтальный скролл если совсем не влезут */
       overflow-y: hidden !important;
       box-sizing: border-box;
-      scrollbar-width: none;
+      scrollbar-width: none; /* скрыть скроллбар */
   }
   .navigation-bar__body::-webkit-scrollbar { display: none; }
 
   .navigation-bar__item {
-      flex: 1 1 0 !important;
-      min-width: 55px !important;
+      flex: 1 1 0 !important; /* равномерное распределение, сжатие до минимума */
+      min-width: 55px !important; /* минимальная ширина для иконки + короткой подписи */
       display: flex !important;
       flex-direction: column !important;
       align-items: center;
-      justify-content: flex-start !important; /* начало сверху для смещения вверх */
-      padding-top: 8px !important; /* дополнительный отступ сверху — иконки выше */
+      justify-content: center;
       height: 64px !important;
-      margin: 0 3px !important;
-      background: linear-gradient(to top, rgba(100,100,100,0.5), rgba(50,50,50,0.6)) !important;
-      border-radius: 14px !important;
+      margin: 0 3px !important; /* минимальные отступы между кнопками */
+      background: transparent !important; /* полностью убрана подложка */
+      border-radius: 12px !important;
       transition: background .3s ease, transform .2s ease !important;
       box-sizing: border-box;
       overflow: hidden !important;
@@ -55,22 +45,22 @@ Lampa.Platform.tv();
 
   .navigation-bar__item:hover,
   .navigation-bar__item.active {
-      background: linear-gradient(to top, rgba(120,120,120,0.6), rgba(70,70,70,0.7)) !important;
+      background: rgba(255,255,255,0.12) !important; /* лёгкий фон только при наведении/активно */
       transform: translateY(-2px);
   }
 
   .navigation-bar__icon {
-      width: 28px;
-      height: 28px;
+      width: 26px;
+      height: 26px;
       display: flex;
       align-items: center;
       justify-content: center;
-      margin-bottom: 4px !important; /* пространство под иконкой */
+      margin-bottom: 4px;
   }
 
   .navigation-bar__icon svg {
-      width: 26px !important;
-      height: 26px !important;
+      width: 24px !important;
+      height: 24px !important;
       fill: currentColor;
   }
 
@@ -92,9 +82,8 @@ Lampa.Platform.tv();
           height: 60px !important; 
           min-width: 50px !important;
           margin: 0 2px !important;
-          padding-top: 6px !important;
       }
-      .navigation-bar__icon svg { width: 24px !important; height: 24px !important; }
+      .navigation-bar__icon svg { width: 22px !important; height: 22px !important; }
       .navigation-bar__label { font-size: 9.5px !important; }
   }
   @media (max-width: 600px) {
@@ -103,13 +92,13 @@ Lampa.Platform.tv();
           height: 56px !important; 
           min-width: 45px !important;
           margin: 0 2px !important;
-          padding-top: 5px !important;
       }
-      .navigation-bar__icon { width: 24px; height: 24px; margin-bottom: 3px !important; }
+      .navigation-bar__icon { width: 24px; height: 24px; margin-bottom: 3px; }
       .navigation-bar__icon svg { width: 22px !important; height: 22px !important; }
       .navigation-bar__label { font-size: 9px !important; }
   }
 
+  /* Landscape: круглые 30×30 без подписей и без подложки */
   @media (orientation: landscape) {
       .navigation-bar__body {
           display: none !important;
@@ -128,7 +117,6 @@ Lampa.Platform.tv();
           transition: background .25s ease, transform .2s ease !important;
           box-sizing: border-box !important;
           align-self: center !important;
-          padding-top: 0 !important;
       }
       .navigation-bar__item:hover,
       .navigation-bar__item.active {
@@ -140,6 +128,7 @@ Lampa.Platform.tv();
           height: 100% !important;
           margin-bottom: 0 !important;
           padding: 5px !important;
+          box-sizing: border-box !important;
       }
       .navigation-bar__icon svg {
           width: 100% !important;
@@ -266,53 +255,6 @@ Lampa.Platform.tv();
     document.body.appendChild(overlay);
   }
 
-  function showBackMenu() {
-    const overlay = document.createElement('div');
-    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);display:flex;align-items:center;justify-content:center;z-index:9999;';
-    overlay.addEventListener('click', e => { if(e.target === overlay) overlay.remove(); });
-
-    const modal = document.createElement('div');
-    modal.style.cssText = 'background:#1e1e24;padding:30px;border-radius:20px;max-width:80%;box-shadow:0 10px 30px rgba(0,0,0,0.6);display:flex;flex-direction:column;gap:20px;';
-
-    const title = document.createElement('h3');
-    title.textContent = 'Меню';
-    title.style.cssText = 'text-align:center;color:#fff;margin:0;font-size:20px;';
-    modal.appendChild(title);
-
-    const reloadBtn = document.createElement('div');
-    reloadBtn.style.cssText = 'display:flex;align-items:center;justify-content:center;cursor:pointer;padding:16px;background:rgba(255,255,255,0.1);border-radius:14px;transition:background .2s;';
-    reloadBtn.innerHTML = `
-      <svg fill="#ffffff" viewBox="0 0 24 24" width="28" height="28" style="margin-right:12px;">
-        <path d="M4,12a1,1,0,0,1-2,0A9.983,9.983,0,0,1,18.242,4.206V2.758a1,1,0,1,1,2,0v4a1,1,0,0,1-1,1h-4a1,1,0,0,1,0-2h1.743A7.986,7.986,0,0,0,4,12Zm17-1a1,1,0,0,0-1,1A7.986,7.986,0,0,1,7.015,18.242H8.757a1,1,0,1,0,0-2h-4a1,1,0,0,0-1,1v4a1,1,0,0,0,2,0V19.794A9.984,9.984,0,0,0,22,12,1,1,0,0,0,21,11Z" fill="currentColor"></path>
-      </svg>
-      <span style="color:#fff;font-size:18px;">Перезагрузка</span>
-    `;
-    reloadBtn.addEventListener('click', () => {
-      location.reload();
-      overlay.remove();
-    });
-    modal.appendChild(reloadBtn);
-
-    const exitBtn = document.createElement('div');
-    exitBtn.style.cssText = 'display:flex;align-items:center;justify-content:center;cursor:pointer;padding:16px;background:rgba(255,255,255,0.1);border-radius:14px;transition:background .2s;';
-    exitBtn.innerHTML = `
-      <svg fill="none" viewBox="0 0 24 24" width="28" height="28" style="margin-right:12px;">
-        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-        <line x1="8" y1="8" x2="16" y2="16" stroke="currentColor" stroke-width="2"/>
-        <line x1="16" y1="8" x2="8" y2="16" stroke="currentColor" stroke-width="2"/>
-      </svg>
-      <span style="color:#fff;font-size:18px;">Выход</span>
-    `;
-    exitBtn.addEventListener('click', () => {
-      exitLamp();
-      overlay.remove();
-    });
-    modal.appendChild(exitBtn);
-
-    overlay.appendChild(modal);
-    document.body.appendChild(overlay);
-  }
-
   function addItem(position, defaultAction, defaultSvg, defaultName){
     const bar = $('.navigation-bar__body');
     if(!bar || bar.querySelector(`[data-position="${position}"]`)) return;
@@ -343,13 +285,14 @@ Lampa.Platform.tv();
 
     div.addEventListener('click', () => emulateSidebarClick(div.dataset.action));
 
+    // Long press
     let timer;
     const start = () => {
       timer = setTimeout(() => showIconPicker(position, div, iconDiv, labelDiv, defaultAction, defaultSvg, defaultName), 700);
     };
     const cancel = () => clearTimeout(timer);
 
-    div.addEventListener('touchstart', start, {passive: false});
+    div.addEventListener('touchstart', start);
     div.addEventListener('touchend', cancel);
     div.addEventListener('touchmove', cancel);
     div.addEventListener('touchcancel', cancel);
@@ -357,42 +300,6 @@ Lampa.Platform.tv();
     div.addEventListener('mousedown', e => {
       if(e.button === 0){
         start();
-        const up = () => { cancel(); document.removeEventListener('mouseup', up); };
-        document.addEventListener('mouseup', up);
-      }
-    });
-  }
-
-  function addBackLongPress() {
-    const backBtn = $('.head__backward');
-    if (!backBtn) return;
-
-    let timer;
-    let longPressFired = false;
-
-    const start = (e) => {
-      if (e.type === 'touchstart') e.preventDefault();
-      longPressFired = false;
-      timer = setTimeout(() => {
-        longPressFired = true;
-        showBackMenu();
-      }, 700);
-    };
-    const cancel = (e) => {
-      clearTimeout(timer);
-      if (!longPressFired && e.type === 'touchend') {
-        // Если короткий тап — позволяем стандартному поведению "назад" сработать
-      }
-    };
-
-    backBtn.addEventListener('touchstart', start, {passive: false});
-    backBtn.addEventListener('touchend', cancel);
-    backBtn.addEventListener('touchmove', cancel);
-    backBtn.addEventListener('touchcancel', cancel);
-
-    backBtn.addEventListener('mousedown', (e) => {
-      if (e.button === 0) {
-        start(e);
         const up = () => { cancel(); document.removeEventListener('mouseup', up); };
         document.addEventListener('mouseup', up);
       }
@@ -431,7 +338,6 @@ Lampa.Platform.tv();
     addItem('3', defaults[3].action, defaults[3].svg, defaults[3].name);
 
     adjustPosition();
-    addBackLongPress();
 
     const mql = window.matchMedia('(orientation: landscape)');
     mql.addEventListener('change', adjustPosition);
