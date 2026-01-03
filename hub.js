@@ -1052,7 +1052,7 @@
       Object.defineProperty(Lampa.Api.sources, "hub", {get: function _0x39dd1d() {
         return _0x2357d4;
       }});
-      Lampa.Params.select("source", Object.assign({}, Lampa.Params.values.source, {hub: "PERSONAL"}), "tmdb");
+      Lampa.Params.select("source", Object.assign({}, Lampa.Params.values.source, {PERSONAL: "PERSONAL"}), "tmdb");
       if (Lampa.Storage.get("source") == "hub") {
         var _0x271bfd = Lampa.Storage.get("source");
         var _0x4171fb = setInterval(function () {
