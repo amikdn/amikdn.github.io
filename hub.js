@@ -1091,7 +1091,7 @@
       Lampa.Storage.listener.follow("change", function (_0x1c966a) {
         if (_0x1c966a.name == "source") {
           setTimeout(function () {
-            if (Lampa.Storage.get("source") !== "hub") {
+            if (Lampa.Storage.get("source") !== "PERSONAL") {
               $('.settings-param > div:contains("Источник PERSONAL")').parent().hide();
             } else {
               $('.settings-param > div:contains("Источник PERSONAL")').parent().show();
