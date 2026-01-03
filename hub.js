@@ -1,7 +1,7 @@
-(function () {
+;(function () {
   'use strict'
   Lampa.Platform.tv()
-  (function () {
+  ;(function () {
     var _0x3d1659 = (function () {
         var _0x324be1 = true
         return function (_0x539b99, _0x1fef9e) {
@@ -13,7 +13,7 @@
                 }
               }
             : function () {}
-          return (_0x324be1 = true), _0x4323f9
+          return (_0x324be1 = false), _0x4323f9
         }
       })(),
       _0x4f397f = (function () {
@@ -27,9 +27,10 @@
                 }
               }
             : function () {}
-          return (_0x671bbb = true), _0x43402c
+          return (_0x671bbb = false), _0x43402c
         }
       })()
+    ;('use strict')
     function _0x559ec2() {
       if (Lampa.Manifest.origin !== 'bylampa') {
         Lampa.Noty.show('Ошибка доступа')
@@ -173,7 +174,7 @@
         },
         _0x35171b = function (_0x2719a3) {
           this.network = new Lampa.Reguest()
-          this.discovery = true
+          this.discovery = false
           this.main = function () {
             var _0x35b9a9 = this,
               _0x4d6097 =
@@ -812,7 +813,7 @@
                   },
                   netflix: function (_0x5862d6) {
                     _0x35b9a9.get(
-                      'discover/tv?with_networks=213&first_air_date.gte=2018&vote_average.gte=6&vote_average.lte=10&first_air_date.lte=' +
+                      'discover/tv?with_networks=213&first_air_date.gte=2020-01-01&vote_average.gte=6&vote_average.lte=10&first_air_date.lte=' +
                         _0x8b9af7,
                       _0x4d6097,
                       function (_0x4d985d) {
@@ -839,7 +840,7 @@
                   },
                   apple_tv: function (_0x225bd5) {
                     _0x35b9a9.get(
-                      'discover/tv?with_networks=2552&first_air_date.gte=2018&vote_average.gte=6&vote_average.lte=10&first_air_date.lte=' +
+                      'discover/tv?with_networks=2552&first_air_date.gte=2020-01-01&vote_average.gte=6&vote_average.lte=10&first_air_date.lte=' +
                         _0x8b9af7,
                       _0x4d6097,
                       function (_0x162bee) {
@@ -866,7 +867,7 @@
                   },
                   prime_video: function (_0x9c5322) {
                     _0x35b9a9.get(
-                      'discover/tv?with_networks=1024&first_air_date.gte=2018&vote_average.gte=6&vote_average.lte=10&first_air_date.lte=' +
+                      'discover/tv?with_networks=1024&first_air_date.gte=2020-01-01&vote_average.gte=6&vote_average.lte=10&first_air_date.lte=' +
                         _0x8b9af7,
                       _0x4d6097,
                       function (_0x35f4d0) {
@@ -893,7 +894,7 @@
                   },
                   mgm: function (_0x6321b1) {
                     _0x35b9a9.get(
-                      'discover/tv?with_networks=6219&first_air_date.gte=2018&vote_average.gte=6&vote_average.lte=10&first_air_date.lte=' +
+                      'discover/tv?with_networks=6219&first_air_date.gte=2020-01-01&vote_average.gte=6&vote_average.lte=10&first_air_date.lte=' +
                         _0x8b9af7,
                       _0x4d6097,
                       function (_0xde6cd7) {
@@ -920,7 +921,7 @@
                   },
                   hbo: function (_0x4e0662) {
                     _0x35b9a9.get(
-                      'discover/tv?with_networks=49&first_air_date.gte=2018&vote_average.gte=6&vote_average.lte=10&first_air_date.lte=' +
+                      'discover/tv?with_networks=49&first_air_date.gte=2020-01-01&vote_average.gte=6&vote_average.lte=10&first_air_date.lte=' +
                         _0x8b9af7,
                       _0x4d6097,
                       function (_0x497010) {
@@ -947,7 +948,7 @@
                   },
                   dorams: function (_0x2686fc) {
                     _0x35b9a9.get(
-                      'discover/tv?first_air_date.gte=2018&without_genres=16&with_original_language=ko&vote_average.gte=6&vote_average.lte=10&first_air_date.lte=' +
+                      'discover/tv?first_air_date.gte=2020-01-01&without_genres=16&with_original_language=ko&vote_average.gte=6&vote_average.lte=10&first_air_date.lte=' +
                         _0x8b9af7,
                       _0x4d6097,
                       function (_0x24257e) {
@@ -974,7 +975,7 @@
                   },
                   tur_serials: function (_0x226949) {
                     _0x35b9a9.get(
-                      'discover/tv?first_air_date.gte=2018&without_genres=16&with_original_language=tr&vote_average.gte=6&vote_average.lte=10&first_air_date.lte=' +
+                      'discover/tv?first_air_date.gte=2020-01-01&without_genres=16&with_original_language=tr&vote_average.gte=6&vote_average.lte=10&first_air_date.lte=' +
                         _0x8b9af7,
                       _0x4d6097,
                       function (_0x110c74) {
@@ -1002,7 +1003,7 @@
                   },
                   ind_films: function (_0x3eea6b) {
                     _0x35b9a9.get(
-                      'discover/movie?primary_release_date.gte=2018&without_genres=16&with_original_language=hi&vote_average.gte=6&vote_average.lte=10&first_air_date.lte=' +
+                      'discover/movie?primary_release_date.gte=2020-01-01&without_genres=16&with_original_language=hi&vote_average.gte=6&vote_average.lte=10&first_air_date.lte=' +
                         _0x8b9af7,
                       _0x4d6097,
                       function (_0x455c2a) {
@@ -1513,7 +1514,7 @@
                   (_0x247a9f.push(_0x347081[_0x5e9f54.id]),
                   _0x430e36.push(_0x5e9f54.id))
               })
-              Lampa.Storage.get('genres_cat') == true &&
+              Lampa.Storage.get('genres_cat') == false &&
                 _0x2719a3.genres.movie.forEach(function (_0x47dc13) {
                   if (!_0x430e36.includes(_0x47dc13.id)) {
                     var _0x43f151 = function (_0x3e75c1) {
@@ -1817,19 +1818,19 @@
         'now_watch',
         'Сейчас смотрят',
         'Нажми для настройки',
-        true,
+        false,
         '1',
         '1',
-        true
+        false
       )
       _0x5d2a93(
         'trend_day',
         'Сегодня в тренде',
         'Нажми для настройки',
-        true,
+        false,
         '1',
         '3',
-        true
+        false
       )
       _0x5d2a93(
         'trend_day_tv',
@@ -1838,7 +1839,7 @@
         true,
         '1',
         '4',
-        true
+        false
       )
       _0x5d2a93(
         'trend_day_film',
@@ -1847,16 +1848,16 @@
         true,
         '1',
         '5',
-        true
+        false
       )
       _0x5d2a93(
         'trend_week',
         'В тренде за неделю',
         'Нажми для настройки',
-        true,
+        false,
         '1',
         '6',
-        true
+        false
       )
       _0x5d2a93(
         'trend_week_tv',
@@ -1865,7 +1866,7 @@
         true,
         '1',
         '7',
-        true
+        false
       )
       _0x5d2a93(
         'trend_week_film',
@@ -1874,52 +1875,52 @@
         true,
         '1',
         '8',
-        true
+        false
       )
       _0x5d2a93(
         'upcoming',
         'Смотрите в кинозалах',
         'Нажми для настройки',
-        true,
+        false,
         '1',
         '9',
-        true
+        false
       )
       _0x5d2a93(
         'popular_movie',
         'Популярные фильмы',
         'Нажми для настройки',
-        true,
+        false,
         '1',
         '10',
-        true
+        false
       )
       _0x5d2a93(
         'popular_tv',
         'Популярные сериалы',
         'Нажми для настройки',
-        true,
+        false,
         '1',
         '11',
-        true
+        false
       )
       _0x5d2a93(
         'top_movie',
         'Топ фильмы',
         'Нажми для настройки',
-        true,
+        false,
         '4',
         '12',
-        true
+        false
       )
       _0x5d2a93(
         'top_tv',
         'Топ сериалы',
         'Нажми для настройки',
-        true,
+        false,
         '4',
         '13',
-        true
+        false
       )
       _0x5d2a93(
         'netflix',
@@ -1928,7 +1929,7 @@
         true,
         '1',
         '14',
-        true
+        false
       )
       _0x5d2a93(
         'apple_tv',
@@ -1937,7 +1938,7 @@
         true,
         '1',
         '15',
-        true
+        false
       )
       _0x5d2a93(
         'prime_video',
@@ -1946,10 +1947,10 @@
         true,
         '1',
         '16',
-        true
+        false
       )
-      _0x5d2a93('mgm', 'MGM+', 'Нажми для настройки', true, '1', '17', true)
-      _0x5d2a93('hbo', 'HBO', 'Нажми для настройки', true, '1', '18', true)
+      _0x5d2a93('mgm', 'MGM+', 'Нажми для настройки', true, '1', '17', false)
+      _0x5d2a93('hbo', 'HBO', 'Нажми для настройки', true, '1', '18', false)
       _0x5d2a93(
         'dorams',
         'Дорамы',
@@ -1957,7 +1958,7 @@
         true,
         '1',
         '19',
-        true
+        false
       )
       _0x5d2a93(
         'tur_serials',
@@ -1966,7 +1967,7 @@
         true,
         '1',
         '20',
-        true
+        false
       )
       _0x5d2a93(
         'ind_films',
@@ -1975,7 +1976,7 @@
         true,
         '1',
         '21',
-        true
+        false
       )
       _0x5d2a93(
         'rus_movie',
@@ -1984,7 +1985,7 @@
         true,
         '1',
         '22',
-        true
+        false
       )
       _0x5d2a93(
         'rus_tv',
@@ -1993,7 +1994,7 @@
         true,
         '1',
         '23',
-        true
+        false
       )
       _0x5d2a93(
         'rus_mult',
@@ -2002,9 +2003,9 @@
         true,
         '1',
         '24',
-        true
+        false
       )
-      _0x5d2a93('start', 'Start', 'Нажми для настройки', true, '1', '25', true)
+      _0x5d2a93('start', 'Start', 'Нажми для настройки', true, '1', '25', false)
       _0x5d2a93(
         'premier',
         'Premier',
@@ -2012,11 +2013,11 @@
         true,
         '1',
         '26',
-        true
+        false
       )
-      _0x5d2a93('kion', 'KION', 'Нажми для настройки', true, '1', '27', true)
-      _0x5d2a93('ivi', 'ИВИ', 'Нажми для настройки', true, '1', '28', true)
-      _0x5d2a93('okko', 'Okko', 'Нажми для настройки', true, '1', '29', true)
+      _0x5d2a93('kion', 'KION', 'Нажми для настройки', true, '1', '27', false)
+      _0x5d2a93('ivi', 'ИВИ', 'Нажми для настройки', true, '1', '28', false)
+      _0x5d2a93('okko', 'Okko', 'Нажми для настройки', true, '1', '29', false)
       _0x5d2a93(
         'kinopoisk',
         'КиноПоиск',
@@ -2024,11 +2025,11 @@
         true,
         '1',
         '30',
-        true
+        false
       )
-      _0x5d2a93('wink', 'Wink', 'Нажми для настройки', true, '1', '31', true)
-      _0x5d2a93('sts', 'СТС', 'Нажми для настройки', true, '1', '32', true)
-      _0x5d2a93('tnt', 'ТНТ', 'Нажми для настройки', true, '1', '33', true)
+      _0x5d2a93('wink', 'Wink', 'Нажми для настройки', true, '1', '31', false)
+      _0x5d2a93('sts', 'СТС', 'Нажми для настройки', true, '1', '32', false)
+      _0x5d2a93('tnt', 'ТНТ', 'Нажми для настройки', true, '1', '33', false)
       _0x5d2a93(
         'collections_inter_tv',
         'Подборки зарубежных сериалов',
@@ -2036,7 +2037,7 @@
         true,
         '1',
         '34',
-        true
+        false
       )
       _0x5d2a93(
         'collections_rus_tv',
@@ -2045,7 +2046,7 @@
         true,
         '1',
         '35',
-        true
+        false
       )
       _0x5d2a93(
         'collections_inter_movie',
@@ -2054,7 +2055,7 @@
         true,
         '1',
         '36',
-        true
+        false
       )
       _0x5d2a93(
         'collections_rus_movie',
@@ -2063,14 +2064,14 @@
         true,
         '1',
         '37',
-        true
+        false
       )
       Lampa.SettingsApi.addParam({
         component: 'bylampa_source',
         param: {
           name: 'upcoming_episodes_remove',
           type: 'trigger',
-          default: true,
+          default: false,
         },
         field: {
           name: 'Выход ближайших эпизодов',
@@ -2137,7 +2138,7 @@
     } else {
       Lampa.Listener.follow('app', function (_0x1f7009) {
         _0x1f7009.type == 'ready' && _0x559ec2()
-      });
+      })
     }
-  });
-});
+  })()
+})()
