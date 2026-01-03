@@ -17,169 +17,125 @@
   //    };
   //  }();
     
-var EpisodeCard = function (data) {
-    // Основные данные карточки (фильм/сериал)
-    var cardData = data.card || data;
-    
-    // Данные следующего/текущего эпизода (для отображения в карточке)
-    var episodeData = data.next_episode_to_air || data.episode || {};
-
-    // Если источник не указан — по умолчанию TMDB
-    if (cardData.source === undefined) {
-        cardData.source = "tmdb";
-    }
-
-    // Дополняем объект карточки полями, которые ожидаются в других местах Lampa
-    Lampa.Arrays.extend(cardData, {
-        title: cardData.name,
-        original_title: cardData.original_name,
-        release_date: cardData.first_air_date
-    });
-
-    // Год выхода (для отображения в углу карточки)
-    cardData.release_year = ((cardData.release_date || "0000") + "").slice(0, 4);
-
-    // Вспомогательная функция удаления элемента
-    function removeElement(el) {
-        if (el) {
+      var _0x175cd0 = function (_0x2d965e) {
+        var cardData = _0x2d965e.card || _0x2d965e;
+        var _0x17f5e9 = _0x2d965e.next_episode_to_air || _0x2d965e.episode || {};
+        if (cardData.source == undefined) {
+          cardData.source = "tmdb";
+        }
+        Lampa.Arrays.extend(cardData, {title: cardData.name, original_title: cardData.original_name, release_date: cardData.first_air_date});
+        cardData.release_year = ((cardData.release_date || "0000") + "").slice(0, 4);
+        function removeElement(el) {
+          if (el) {
             el.remove();
+          }
         }
-    }
-
-    // Создание DOM-элемента карточки из шаблона
-    this.build = function () {
-        this.card = Lampa.Template.js("card_episode");
-        this.img_poster = this.card.querySelector(".card__img") || {};
-        this.img_episode = this.card.querySelector(".full-episode__img img") || {};
-
-        // Основной заголовок
-        this.card.querySelector(".card__title").innerText = cardData.title;
-
-        // Количество непросмотренных эпизодов (или пусто)
-        this.card.querySelector(".full-episode__num").innerText = cardData.unwatched || "";
-
-        // Если есть данные о следующем эпизоде — заполняем блок эпизода
-        if (episodeData && episodeData.air_date) {
-            this.card.querySelector(".full-episode__name").innerText = 
-                episodeData.name || Lampa.Lang.translate("noname");
-            
-            this.card.querySelector(".full-episode__num").innerText = 
-                episodeData.episode_number || "";
-            
-            this.card.querySelector(".full-episode__date").innerText = 
-                episodeData.air_date 
-                    ? Lampa.Utils.parseTime(episodeData.air_date).full 
-                    : "----";
-        }
-
-        // Год выхода: скрываем элемент, если год неизвестен
-        if (cardData.release_year === "0000") {
+        this.build = function () {
+          this.card = Lampa.Template.js("card_episode");
+          this.img_poster = this.card.querySelector(".card__img") || {};
+          this.img_episode = this.card.querySelector(".full-episode__img img") || {};
+          this.card.querySelector(".card__title").innerText = cardData.title;
+          this.card.querySelector(".full-episode__num").innerText = cardData.unwatched || "";
+          if (_0x17f5e9 && _0x17f5e9.air_date) {
+            this.card.querySelector(".full-episode__name").innerText = _0x17f5e9.name || Lang.translate("noname");
+            this.card.querySelector(".full-episode__num").innerText = _0x17f5e9.episode_number || "";
+            this.card.querySelector(".full-episode__date").innerText = _0x17f5e9.air_date ? Lampa.Utils.parseTime(_0x17f5e9.air_date).full : "----";
+          }
+          if (cardData.release_year == "0000") {
             removeElement(this.card.querySelector(".card__age"));
-        } else {
+          } else {
             this.card.querySelector(".card__age").innerText = cardData.release_year;
-        }
-
-        // Подписываемся на событие видимости карточки (lazy-load изображений)
-        this.card.addEventListener("visible", this.visible.bind(this));
-    };
-
-    // Настройка обработчиков загрузки изображений
-    this.image = function () {
-        // Постер
-        this.img_poster.onload = () => {};
-        this.img_poster.onerror = () => {
-            this.img_poster.src = "./img/img_broken.svg";
+          }
+          this.card.addEventListener("visible", this.visible.bind(this));
         };
-
-        // Кадр эпизода
-        this.img_episode.onload = () => {
-            this.card.querySelector(".full-episode__img").classList.add("full-episode__img--loaded");
+        this.image = function () {
+          var _0x246912 = this;
+          this.img_poster.onload = function () {};
+          this.img_poster.onerror = function () {
+            _0x246912.img_poster.src = "./img/img_broken.svg";
+          };
+          this.img_episode.onload = function () {
+            _0x246912.card.querySelector(".full-episode__img").classList.add("full-episode__img--loaded");
+          };
+          this.img_episode.onerror = function () {
+            _0x246912.img_episode.src = "./img/img_broken.svg";
+          };
         };
-        this.img_episode.onerror = () => {
-            this.img_episode.src = "./img/img_broken.svg";
+        this.create = function () {
+          var _0x4c97b6 = this;
+          this.build();
+          this.card.addEventListener("hover:focus", function () {
+            if (_0x4c97b6.onFocus) {
+              _0x4c97b6.onFocus(_0x4c97b6.card, cardData);
+            }
+          });
+          this.card.addEventListener("hover:hover", function () {
+            if (_0x4c97b6.onHover) {
+              _0x4c97b6.onHover(_0x4c97b6.card, cardData);
+            }
+          });
+          this.card.addEventListener("hover:enter", function () {
+            if (_0x4c97b6.onEnter) {
+              _0x4c97b6.onEnter(_0x4c97b6.card, cardData);
+            }
+          });
+          this.image();
         };
-    };
-
-    // Полное создание карточки: строим структуру и вешаем события навигации
-    this.create = function () {
-        this.build();
-
-        this.card.addEventListener("hover:focus", () => {
-            if (this.onFocus) {
-                this.onFocus(this.card, cardData);
-            }
-        });
-
-        this.card.addEventListener("hover:hover", () => {
-            if (this.onHover) {
-                this.onHover(this.card, cardData);
-            }
-        });
-
-        this.card.addEventListener("hover:enter", () => {
-            if (this.onEnter) {
-                this.onEnter(this.card, cardData);
-            }
-        });
-
-        this.image();
-    };
-
-    // Lazy-load изображений, когда карточка становится видимой
-    this.visible = function () {
-        // Основной постер (приоритет: poster_path → profile_path → poster → img)
-        if (cardData.poster_path) {
+        this.visible = function () {
+          if (cardData.poster_path) {
             this.img_poster.src = Lampa.Api.img(cardData.poster_path);
-        } else if (cardData.profile_path) {
-            this.img_poster.src = Lampa.Api.img(cardData.profile_path);
-        } else if (cardData.poster) {
-            this.img_poster.src = cardData.poster;
-        } else if (cardData.img) {
-            this.img_poster.src = cardData.img;
-        } else {
-            this.img_poster.src = "./img/img_broken.svg";
-        }
-
-        // Изображение эпизода (still → backdrop → episode.img → card.img)
-        if (cardData.still_path) { // ← здесь в оригинале условие на cardData, но значение из episodeData — возможно баг
-            this.img_episode.src = Lampa.Api.img(episodeData.still_path, "w300");
-        } else if (cardData.backdrop_path) {
-            this.img_episode.src = Lampa.Api.img(cardData.backdrop_path, "w300");
-        } else if (episodeData.img) {
-            this.img_episode.src = episodeData.img;
-        } else if (cardData.img) {
-            this.img_episode.src = cardData.img;
-        } else {
-            this.img_episode.src = "./img/img_broken.svg";
-        }
-
-        if (this.onVisible) {
+          } else {
+            if (cardData.profile_path) {
+              this.img_poster.src = Lampa.Api.img(cardData.profile_path);
+            } else {
+              if (cardData.poster) {
+                this.img_poster.src = cardData.poster;
+              } else {
+                if (cardData.img) {
+                  this.img_poster.src = cardData.img;
+                } else {
+                  this.img_poster.src = "./img/img_broken.svg";
+                }
+              }
+            }
+          }
+          if (cardData.still_path) {
+            this.img_episode.src = Lampa.Api.img(_0x17f5e9.still_path, "w300");
+          } else {
+            if (cardData.backdrop_path) {
+              this.img_episode.src = Lampa.Api.img(cardData.backdrop_path, "w300");
+            } else {
+              if (_0x17f5e9.img) {
+                this.img_episode.src = _0x17f5e9.img;
+              } else {
+                if (cardData.img) {
+                  this.img_episode.src = cardData.img;
+                } else {
+                  this.img_episode.src = "./img/img_broken.svg";
+                }
+              }
+            }
+          }
+          if (this.onVisible) {
             this.onVisible(this.card, cardData);
-        }
-    };
-
-    // Очистка при удалении карточки
-    this.destroy = function () {
-        this.img_poster.onerror = null;
-        this.img_poster.onload = null;
-        this.img_episode.onerror = null;
-        this.img_episode.onload = null;
-
-        this.img_poster.src = "";
-        this.img_episode.src = "";
-
-        removeElement(this.card);
-
-        this.card = null;
-        this.img_poster = null;
-        this.img_episode = null;
-    };
-
-    // Рендер: возвращаем либо чистый DOM-элемент, либо jQuery-объект
-    this.render = function (asJquery) {
-        return asJquery ? this.card : $(this.card);
-    };
-};
+          }
+        };
+        this.destroy = function () {
+          this.img_poster.onerror = function () {};
+          this.img_poster.onload = function () {};
+          this.img_episode.onerror = function () {};
+          this.img_episode.onload = function () {};
+          this.img_poster.src = "";
+          this.img_episode.src = "";
+          removeElement(this.card);
+          this.card = null;
+          this.img_poster = null;
+          this.img_episode = null;
+        };
+        this.render = function (_0x4fd9cc) {
+          return _0x4fd9cc ? this.card : $(this.card);
+        };
+      };
       var _0x35171b = function (_0x2719a3) {
         this.network = new Lampa.Reguest;
         this.discovery = false;
