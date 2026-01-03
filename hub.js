@@ -18,8 +18,8 @@ Lampa.Platform.tv();
       align-items: center !important;
       width: 100% !important;
       padding: 6px 2px !important;
-      background: transparent !important; /* полностью прозрачный */
-      border-top: none !important; /* убрана окантовка бара, чтобы ничего не было видно */
+      background: transparent !important;
+      border-top: none !important;
       overflow-x: auto !important;
       overflow-y: hidden !important;
       box-sizing: border-box;
@@ -37,8 +37,8 @@ Lampa.Platform.tv();
       height: 64px !important;
       margin: 0 3px !important;
       background: linear-gradient(to top, rgba(80,80,80,0.35), rgba(30,30,35,0.25)) !important;
-      border: 1px solid rgba(255,255,255,0.12) !important; /* белая внешняя обводка */
-      box-shadow: inset 0 0 6px rgba(0,0,0,0.5) !important; /* чёрная внутренняя тень для выделения на светлом */
+      border: 1px solid rgba(255,255,255,0.12) !important;
+      box-shadow: inset 0 0 6px rgba(0,0,0,0.5) !important;
       border-radius: 14px !important;
       transition: background .3s ease, transform .2s ease, border-color .3s ease, box-shadow .3s ease !important;
       box-sizing: border-box;
@@ -103,7 +103,7 @@ Lampa.Platform.tv();
       .navigation-bar__label { font-size: 9px !important; margin-top: -1px !important; }
   }
 
-  /* Landscape: только иконки без контейнера, размер как оригинальные кнопки в head (меньше) */
+  /* Уменьшено до 22×22px (контейнер .navigation-bar__icon и svg внутри) */
   @media (orientation: landscape) {
       .navigation-bar__body {
           display: none !important;
@@ -129,14 +129,14 @@ Lampa.Platform.tv();
           transform: scale(1.15);
       }
       .navigation-bar__icon {
-          width: 26px !important;
-          height: 26px !important;
+          width: 22px !important;  /* ← размер контейнера иконки */
+          height: 22px !important; /* ← размер контейнера иконки */
           margin-bottom: 0 !important;
           padding: 0 !important;
       }
       .navigation-bar__icon svg {
-          width: 24px !important;
-          height: 24px !important;
+          width: 22px !important;  /* ← размер самой SVG-иконки */
+          height: 22px !important; /* ← размер самой SVG-иконки */
       }
       .navigation-bar__label {
           display: none !important;
