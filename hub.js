@@ -1074,10 +1074,10 @@
             Lampa.SettingsApi.addComponent({component: "hub_source", name: "Источник ByLAMPA"});
           }
           Lampa.Settings.main().update();
-          Lampa.Settings.main().render().find('[data-component="bylampa_source"]').addClass("hide");
+          Lampa.Settings.main().render().find('[data-component="hub_source"]').addClass("hide");
         }
       });
-      Lampa.SettingsApi.addParam({component: "more", param: {name: "bylampa_source", type: "static", default: true}, field: {name: "Источник ByLAMPA", description: "Настройки главного экрана"}, onRender: function (_0x304a5b) {
+      Lampa.SettingsApi.addParam({component: "more", param: {name: "hub_source", type: "static", default: true}, field: {name: "Источник ByLAMPA", description: "Настройки главного экрана"}, onRender: function (_0x304a5b) {
         setTimeout(function () {
           $('.settings-param > div:contains("Источник ByLAMPA")').parent().insertAfter($('div[data-name="source"]'));
           if (Lampa.Storage.field("source") !== "hub") {
