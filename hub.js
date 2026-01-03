@@ -10,7 +10,7 @@ Lampa.Platform.tv();
     3: { action: 'cartoon', svg: `<svg><use xlink:href="#sprite-cartoon"></use></svg>`, name: 'Мультфильмы' }
   };
 
-  /** Функция выхода из Lampa (из предоставленного кода) */
+  /** Функция выхода из Lampa */
   function exitLamp() {
     try {
       if (Lampa && Lampa.Activity) Lampa.Activity.out();
@@ -32,7 +32,7 @@ Lampa.Platform.tv();
     }
   }
 
-  /** CSS — фон бара полностью прозрачный, кнопки с градиентом светло-серый снизу → тёмно-серый вверх */
+  /** CSS — фон бара прозрачный, кнопки с градиентом светло-серый снизу → тёмно-серый вверх */
   const css = `
   .navigation-bar__body {
       display: flex !important;
@@ -40,8 +40,8 @@ Lampa.Platform.tv();
       align-items: center !important;
       width: 100% !important;
       padding: 6px 2px !important;
-      background: transparent !important; /* полностью прозрачный фон */
-      border-top: none !important; /* убрана верхняя граница */
+      background: transparent !important;
+      border-top: none !important;
       overflow-x: auto !important;
       overflow-y: hidden !important;
       box-sizing: border-box;
@@ -58,7 +58,7 @@ Lampa.Platform.tv();
       justify-content: center;
       height: 64px !important;
       margin: 0 3px !important;
-      background: linear-gradient(to top, rgba(80,80,80,0.6), rgba(40,40,40,0.6)) !important; /* градиент светло-серый снизу → тёмно-серый вверх */
+      background: linear-gradient(to top, rgba(100,100,100,0.5), rgba(50,50,50,0.6)) !important;
       border-radius: 14px !important;
       transition: background .3s ease, transform .2s ease !important;
       box-sizing: border-box;
@@ -67,7 +67,7 @@ Lampa.Platform.tv();
 
   .navigation-bar__item:hover,
   .navigation-bar__item.active {
-      background: linear-gradient(to top, rgba(100,100,100,0.7), rgba(60,60,60,0.7)) !important; /* ярче при наведении */
+      background: linear-gradient(to top, rgba(120,120,120,0.6), rgba(70,70,70,0.7)) !important;
       transform: translateY(-2px);
   }
 
@@ -77,7 +77,7 @@ Lampa.Platform.tv();
       display: flex;
       align-items: center;
       justify-content: center;
-      margin-bottom: 2px !important; /* текст поднят выше */
+      margin-bottom: 2px !important;
   }
 
   .navigation-bar__icon svg {
@@ -97,7 +97,7 @@ Lampa.Platform.tv();
       text-align: center !important;
       padding: 0 4px !important;
       box-sizing: border-box !important;
-      margin-top: -2px !important; /* дополнительно поднять текст */
+      margin-top: -2px !important;
   }
 
   @media (max-width: 900px) {
@@ -121,7 +121,6 @@ Lampa.Platform.tv();
       .navigation-bar__label { font-size: 9px !important; }
   }
 
-  /* Landscape: круглые 30×30 без подписей и с лёгким фоном */
   @media (orientation: landscape) {
       .navigation-bar__body {
           display: none !important;
@@ -184,7 +183,6 @@ Lampa.Platform.tv();
   }
 
   function showIconPicker(position, div, iconEl, labelEl, defaultAction, defaultSvg, defaultName){
-    // (тот же код пикера, что и раньше — без изменений)
     const options = [];
     const seenActions = new Set();
 
@@ -278,7 +276,6 @@ Lampa.Platform.tv();
     document.body.appendChild(overlay);
   }
 
-  /** Модалка для кнопки "Назад" — Перезагрузка / Выход */
   function showBackMenu() {
     const overlay = document.createElement('div');
     overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);display:flex;align-items:center;justify-content:center;z-index:9999;';
@@ -292,7 +289,6 @@ Lampa.Platform.tv();
     title.style.cssText = 'text-align:center;color:#fff;margin:0;font-size:20px;';
     modal.appendChild(title);
 
-    // Кнопка Перезагрузка
     const reloadBtn = document.createElement('div');
     reloadBtn.style.cssText = 'display:flex;align-items:center;justify-content:center;cursor:pointer;padding:16px;background:rgba(255,255,255,0.1);border-radius:14px;transition:background .2s;';
     reloadBtn.innerHTML = `
@@ -307,7 +303,6 @@ Lampa.Platform.tv();
     });
     modal.appendChild(reloadBtn);
 
-    // Кнопка Выход
     const exitBtn = document.createElement('div');
     exitBtn.style.cssText = 'display:flex;align-items:center;justify-content:center;cursor:pointer;padding:16px;background:rgba(255,255,255,0.1);border-radius:14px;transition:background .2s;';
     exitBtn.innerHTML = `
@@ -329,7 +324,6 @@ Lampa.Platform.tv();
   }
 
   function addItem(position, defaultAction, defaultSvg, defaultName){
-    // (тот же код добавления кнопок — без изменений)
     const bar = $('.navigation-bar__body');
     if(!bar || bar.querySelector(`[data-position="${position}"]`)) return;
 
@@ -379,7 +373,6 @@ Lampa.Platform.tv();
     });
   }
 
-  /** Long press на кнопке "Назад" */
   function addBackLongPress() {
     const backBtn = $('.head__backward');
     if (!backBtn) return;
@@ -438,7 +431,7 @@ Lampa.Platform.tv();
     addItem('3', defaults[3].action, defaults[3].svg, defaults[3].name);
 
     adjustPosition();
-    addBackLongPress(); // добавляем long press на кнопку "Назад"
+    addBackLongPress();
 
     const mql = window.matchMedia('(orientation: landscape)');
     mql.addEventListener('change', adjustPosition);
