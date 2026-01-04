@@ -1,28 +1,28 @@
-(function () {
+;(function () {
   'use strict';
 
   Lampa.Platform.tv();
 
-  (function () {
+  ;(function () {
     function initRussianPlugin() {
-
+      // SVG иконка для пункта меню "Русское"
       var russianMenuIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="1.2em" height="1.2em" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="4"><path stroke-linejoin="round" d="M24 44c11.046 0 20-8.954 20-20S35.046 4 24 4S4 12.954 4 24s8.954 20 20 20Z"/><path stroke-linejoin="round" d="M24 18a3 3 0 1 0 0-6a3 3 0 0 0 0 6Zm0 18a3 3 0 1 0 0-6a3 3 0 0 0 0 6Zm-9-9a3 3 0 1 0 0-6a3 3 0 0 0 0 6Zm18 0a3 3 0 1 0 0-6a3 3 0 0 0 0 6Z"/><path stroke-linecap="round" d="M24 44h20"/></g></svg>';
 
       var today = new Date().toISOString().substr(0, 10);
 
       var russianCategories = [
-        { title: 'Русские фильмы', img: 'https://amikdn.github.io/img/rus_movie.jpg', request: 'discover/movie?sort_by=primary_release_date.desc&with_original_language=ru&vote_average.gte=5&vote_average.lte=9.5&primary_release_date.lte=' + today },
-        { title: 'Русские сериалы', img: 'https://amikdn.github.io/img/rus_tv.jpg', request: 'discover/tv?sort_by=first_air_date.desc&with_original_language=ru&air_date.lte=' + today },
-        { title: 'Русские мультфильмы', img: 'https://amikdn.github.io/img/rus_mult.jpg', request: 'discover/movie?sort_by=primary_release_date.desc&vote_average.gte=5&vote_average.lte=9.5&with_genres=16&with_original_language=ru&primary_release_date.lte=' + today },
-        { title: 'Start', img: 'https://amikdn.github.io/img/start.jpg', request: 'discover/tv?with_networks=2493&sort_by=first_air_date.desc&air_date.lte=' + today },
-        { title: 'Premier', img: 'https://amikdn.github.io/img/premier.jpg', request: 'discover/tv?with_networks=2859&sort_by=first_air_date.desc&air_date.lte=' + today },
-        { title: 'KION', img: 'https://amikdn.github.io/img/kion.jpg', request: 'discover/tv?with_networks=4085&sort_by=first_air_date.desc&air_date.lte=' + today },
-        { title: 'ИВИ', img: 'https://amikdn.github.io/img/ivi.jpg', request: 'discover/tv?with_networks=3923&sort_by=first_air_date.desc&air_date.lte=' + today },
-        { title: 'Okko', img: 'https://amikdn.github.io/img/okko.jpg', request: 'discover/tv?with_networks=3871&sort_by=first_air_date.desc&air_date.lte=' + today },
-        { title: 'КиноПоиск', img: 'https://amikdn.github.io/img/kinopoisk.jpg', request: 'discover/tv?with_networks=3827&sort_by=first_air_date.desc&air_date.lte=' + today },
-        { title: 'Wink', img: 'https://amikdn.github.io/img/wink.jpg', request: 'discover/tv?with_networks=5806&sort_by=first_air_date.desc&air_date.lte=' + today },
-        { title: 'СТС', img: 'https://amikdn.github.io/img/sts.jpg', request: 'discover/tv?with_networks=806&sort_by=first_air_date.desc&air_date.lte=' + today },
-        { title: 'ТНТ', img: 'https://amikdn.github.io/img/tnt.jpg', request: 'discover/tv?with_networks=1191&sort_by=first_air_date.desc&air_date.lte=' + today },
+        { title: 'Русские фильмы', img: 'https://bylampa.github.io/img/rus_movie.jpg', request: 'discover/movie?sort_by=primary_release_date.desc&with_original_language=ru&vote_average.gte=5&vote_average.lte=9.5&primary_release_date.lte=' + today },
+        { title: 'Русские сериалы', img: 'https://bylampa.github.io/img/rus_tv.jpg', request: 'discover/tv?sort_by=first_air_date.desc&with_original_language=ru&air_date.lte=' + today },
+        { title: 'Русские мультфильмы', img: 'https://bylampa.github.io/img/rus_mult.jpg', request: 'discover/movie?sort_by=primary_release_date.desc&vote_average.gte=5&vote_average.lte=9.5&with_genres=16&with_original_language=ru&primary_release_date.lte=' + today },
+        { title: 'Start', img: 'https://bylampa.github.io/img/start.jpg', request: 'discover/tv?with_networks=2493&sort_by=first_air_date.desc&air_date.lte=' + today },
+        { title: 'Premier', img: 'https://bylampa.github.io/img/premier.jpg', request: 'discover/tv?with_networks=2859&sort_by=first_air_date.desc&air_date.lte=' + today },
+        { title: 'KION', img: 'https://bylampa.github.io/img/kion.jpg', request: 'discover/tv?with_networks=4085&sort_by=first_air_date.desc&air_date.lte=' + today },
+        { title: 'ИВИ', img: 'https://bylampa.github.io/img/ivi.jpg', request: 'discover/tv?with_networks=3923&sort_by=first_air_date.desc&air_date.lte=' + today },
+        { title: 'Okko', img: 'https://bylampa.github.io/img/okko.jpg', request: 'discover/tv?with_networks=3871&sort_by=first_air_date.desc&air_date.lte=' + today },
+        { title: 'КиноПоиск', img: 'https://bylampa.github.io/img/kinopoisk.jpg', request: 'discover/tv?with_networks=3827&sort_by=first_air_date.desc&air_date.lte=' + today },
+        { title: 'Wink', img: 'https://bylampa.github.io/img/wink.jpg', request: 'discover/tv?with_networks=5806&sort_by=first_air_date.desc&air_date.lte=' + today },
+        { title: 'СТС', img: 'https://bylampa.github.io/img/sts.jpg', request: 'discover/tv?with_networks=806&sort_by=first_air_date.desc&air_date.lte=' + today },
+        { title: 'ТНТ', img: 'https://bylampa.github.io/img/tnt.jpg', request: 'discover/tv?with_networks=1191&sort_by=first_air_date.desc&air_date.lte=' + today },
       ];
 
       function russianCategoryComponent(data) {
@@ -218,6 +218,8 @@
 
           var rusIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="2em" height="2em" viewBox="0 0 36 36"><path fill="#ce2028" d="M36 27a4 4 0 0 1-4 4H4a4 4 0 0 1-4-4v-4h36z"/><path fill="#22408c" d="M0 13h36v10H0z"/><path fill="#eee" d="M32 5H4a4 4 0 0 0-4 4v4h36V9a4 4 0 0 0-4-4"/></svg>';
 
+          var startIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"><path fill="currentColor" d="M2.185 6.758c-1.495 0-2.193.849-2.193 2.171v1.534c0 1.373.246 1.959 1.235 2.58l.763.474c.618.374.698.651.698 1.453v1.354c0 .393-.18.636-.521.636c-.342 0-.522-.228-.522-.636v-2.125H-.008v2.14c0 1.338.683 2.17 2.159 2.17c1.526 0 2.224-.882 2.224-2.17v-1.666c0-1.272-.326-1.927-1.265-2.529l-.763-.49c-.537-.342-.668-.586-.668-1.469v-1.24c0-.394.18-.637.503-.637c.341 0 .537.247.537.636v2.105h1.656V8.93c0-1.307-.698-2.17-2.19-2.17m2.711.162v1.635h1.17v9.797h1.687V8.555h1.17V6.92zm5.066 0l-.943 11.427h1.672l.23-3.053h1.227l.23 3.053h1.706l-.94-11.427Zm4.985 0v11.427h1.687v-4.78h1.024v3.917c0 .652.276.863.276.863h1.687c.004.004-.272-.207-.272-.863v-2.972c0-.949-.357-1.47-1.22-1.65v-.197c.86-.131 1.3-.768 1.3-1.797V8.929c0-1.257-.747-2.009-2.193-2.009zm5.02 0v1.635h1.169v9.797h1.687V8.555h1.17V6.92zm-8.529 1.55h.2l.399 5.274h-.997zm5.2.004h.437c.522 0 .667.212.667 1.06v1.419c0 .817-.18 1.06-.732 1.06h-.372z"/></svg>';
+
           var premierIcon = '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" viewBox="0 0 1000 1000"><circle fill="#FDDD2D" cx="500" cy="500" r="500"/><path d="M388.5,352.7926025V646.458313c0,22.3770142,24.1044312,36.4656372,43.6017151,25.484375l259.3798523-146.0874634c19.8106689-11.1577148,19.8726807-39.6622925,0.1107788-50.9061279l-259.3798218-147.578186C412.7141418,316.2770081,388.5,330.3591003,388.5,352.7926025z"/></svg>';
 
           var kionIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="2em" height="2em" viewBox="0 0 24 24"><path fill="currentColor" d="M23.084 8.47h.373c.347 0 .55.174.55.444c0 .256-.19.463-.533.463h-.114v.357h-.276zm.643.455c0-.132-.1-.202-.243-.202h-.124v.408h.125c.143 0 .242-.074.242-.206m-1.646-.202h-.37v-.252h1.013v.252h-.368v1.01h-.275zm-.827 1.01l-.112-.308h-.472l-.108.309h-.288l.472-1.263h.319l.479 1.263Zm-.508-.534h.319l-.16-.44ZM19.04 8.47h.792v.249h-.516v.262h.472v.228h-.472v.276h.516v.248h-.792Zm-1.078.252h-.37V8.47h1.013v.252h-.369v1.01h-.274zm-1.993.38a.64.64 0 0 1 .652-.66c.37 0 .652.277.652.66c0 .382-.281.66-.652.66a.64.64 0 0 1-.652-.66m1.024 0c0-.26-.18-.407-.372-.407c-.193 0-.372.148-.372.406c0 .261.18.409.372.409c.191 0 .372-.15.372-.409m-1.768.125h-.516v.506h-.276V8.47h.276v.506h.516V8.47h.274v1.263h-.274ZM12.71 8.47h.263v.848h.001l.581-.848h.266v1.263h-.262v-.859h-.002l-.582.859h-.264zm-.8 1.263l-.475-.601v.6h-.276v-1.26h.276v.592l.472-.592h.324l-.505.623l.515.64zm-1.82-.643h.493v.208h-.493Zm-.852.137h-.516v.506h-.276V8.47h.276v.506h.516V8.47h.274v1.263h-.274ZM6.722 8.47h.263v.848h.001l.581-.848h.266v1.263H7.57v-.859h-.002l-.582.859h-.264zm.564-.114c-.178 0-.326-.09-.326-.305h.194c0 .104.04.16.132.16c.091 0 .132-.057.132-.16h.193c.001.216-.146.305-.325.305M5.953 9.734l-.111-.309H5.37l-.109.309h-.288l.472-1.263h.319l.479 1.263Zm-.508-.535h.319l-.16-.44Zm-2.033.303c.15 0 .211-.095.211-.322v-.71h.867v1.263h-.276v-1.01h-.322v.453c0 .402-.139.566-.48.566zm-.841-.274h-.517v.506h-.276V8.47h.276v.506h.517V8.47h.274v1.263H2.57ZM.007 9.102a.64.64 0 0 1 .652-.66a.64.64 0 0 1 .652.66c0 .383-.281.66-.652.66a.64.64 0 0 1-.652-.66m1.024 0c0-.259-.181-.406-.372-.406c-.193 0-.373.148-.373.406c0 .261.182.409.373.409s.372-.15.372-.409m6.857 1.66v5.264a.213.213 0 0 1-.213.213H6.303a.213.213 0 0 1-.213-.213v-5.264c0-.117.096-.212.213-.212h1.372c.118 0 .213.095.213.212M5.742 16l-1.599-2.736l1.516-2.466a.159.159 0 0 0-.13-.249l-1.666.003a.16.16 0 0 0-.132.07l-1.177 2.001h-.688v-1.86a.213.213 0 0 0-.212-.213H.282a.213.213 0 0 0-.213.212v5.264c0 .117.096.213.213.213h1.372a.213.213 0 0 0 .213-.213v-1.853h.836l1.17 1.99a.16.16 0 0 0 .136.078h1.598c.124 0 .2-.135.135-.241m17.99.239a.213.213 0 0 0 .212-.213v-5.264a.213.213 0 0 0-.212-.212h-1.323a.213.213 0 0 0-.212.212l.008 2.693l-2.401-2.903h-1.526a.213.213 0 0 0-.212.213v5.264c0 .117.095.212.212.212h1.32a.21.21 0 0 0 .212-.212v-2.696l2.377 2.906zm-6.216-5.455v5.22c0 .13-.105.235-.235.235H8.672a.235.235 0 0 1-.234-.235v-5.22c0-.13.105-.235.234-.235h8.61c.129 0 .234.106.234.235m-1.787 1.278a.075.075 0 0 0-.09-.073c-.93.186-4.223.214-5.327-.001a.074.074 0 0 0-.088.073v2.583c0 .046.04.08.086.074c.916-.136 4.396-.113 5.336.003a.074.074 0 0 0 .083-.074zm-7.841-1.3v5.264a.213.213 0 0 1-.213.213H6.303a.213.213 0 0 1-.213-.213v-5.264c0-.117.096-.212.213-.212h1.372c.118 0 .213.095.213.212M5.742 16l-1.599-2.736l1.516-2.466a.159.159 0 0 0-.13-.249l-1.666.003a.16.16 0 0 0-.132.07l-1.177 2.001h-.688v-1.86a.213.213 0 0 0-.212-.213H.282a.213.213 0 0 0-.213.212v5.264c0 .117.096.213.213.213h1.372a.213.213 0 0 0 .213-.213v-1.853h.836l1.17 1.99a.16.16 0 0 0 .136.078h1.598c.124 0 .2-.135.135-.241m17.99.239a.213.213 0 0 0 .212-.213v-5.264a.213.213 0 0 0-.212-.212h-1.323a.213.213 0 0 0-.212.212l.008 2.693l-2.401-2.903h-1.526a.213.213 0 0 0-.212.213v5.264c0 .117.095.212.212.212h1.32a.21.21 0 0 0 .212-.212v-2.696l2.377 2.906zm-6.216-5.455v5.22c0 .13-.105.235-.235.235H8.672a.235.235 0 0 1-.234-.235v-5.22c0-.13.105-.235.234-.235h8.61c.129 0 .234.106.234.235m-1.787 1.278a.075.075 0 0 0-.09-.073c-.93.186-4.223.214-5.327-.001a.074.074 0 0 0-.088.073v2.583c0 .046.04.08.086.074c.916-.136 4.396-.113 5.336.003a.074.074 0 0 0 .083-.074z"/></svg>';
@@ -237,6 +239,7 @@
           Lampa.Template.add('now_icon', nowIcon);
           Lampa.Template.add('upcoming_icon', upcomingIcon);
           Lampa.Template.add('rus_icon', rusIcon);
+          Lampa.Template.add('start_icon', startIcon);
           Lampa.Template.add('premier_icon', premierIcon);
           Lampa.Template.add('kion_icon', kionIcon);
           Lampa.Template.add('ivi_icon', iviIcon);
@@ -282,24 +285,57 @@
             },
 
             function (callback) {
-              Lampa.Api.sources.tmdb.get('discover/movie?vote_average.gte=5&vote_average.lte=9.5&with_original_language=ru&sort_by=primary_release_date.desc&primary_release_date.lte=' + today, params, function (data) {
-                data.title = Lampa.Lang.translate('Русские фильмы');
-                data.icon_svg = Lampa.Template.string('rus_icon');
-                data.icon_bgcolor = 'rgba(255,255,255,0.15)';
-                data.results.forEach(function (item) { item.params = { style: { name: 'wide' } }; });
-                data.params = { items: { view: 3 }, module: Lampa.Maker.module('Line').toggle(Lampa.Maker.module('Line').MASK.base, 'Icon') };
+              Lampa.Api.sources.tmdb.get('trending/tv/day', params, function (data) {
+                data.title = Lampa.Lang.translate('Сегодня в тренде (сериалы)');
+                data.icon_svg = Lampa.Template.string('icon_star');
+                data.icon_bgcolor = '#fff';
+                data.icon_color = '#212121';
+                data.params = { module: Lampa.Maker.module('Line').toggle(Lampa.Maker.module('Line').MASK.base, 'Icon') };
                 callback(data);
               }, callback);
             },
 
             function (callback) {
-              Lampa.Api.sources.tmdb.get('discover/tv?with_original_language=ru&sort_by=first_air_date.desc&air_date.lte=' + today, params, function (data) {
-                data.title = Lampa.Lang.translate('Русские сериалы');
-                data.icon_svg = Lampa.Template.string('rus_icon');
-                data.icon_bgcolor = 'rgba(255,255,255,0.15)';
+              Lampa.Api.sources.tmdb.get('trending/movie/day', params, function (data) {
+                data.title = Lampa.Lang.translate('Сегодня в тренде (фильмы)');
+                data.icon_svg = Lampa.Template.string('icon_star');
+                data.icon_bgcolor = '#fff';
+                data.icon_color = '#212121';
                 data.params = { module: Lampa.Maker.module('Line').toggle(Lampa.Maker.module('Line').MASK.base, 'Icon') };
                 callback(data);
               }, callback);
+            },
+
+            function (callback) {
+              Lampa.Api.sources.tmdb.get('trending/tv/week', params, function (data) {
+                data.title = Lampa.Lang.translate('В тренде за неделю (сериалы)');
+                data.icon_svg = Lampa.Template.string('icon_star');
+                data.icon_bgcolor = '#fff';
+                data.icon_color = '#212121';
+                data.params = { module: Lampa.Maker.module('Line').toggle(Lampa.Maker.module('Line').MASK.base, 'Icon') };
+                callback(data);
+              }, callback);
+            },
+
+            function (callback) {
+              Lampa.Api.sources.tmdb.get('trending/movie/week', params, function (data) {
+                data.title = Lampa.Lang.translate('В тренде за неделю (фильмы)');
+                data.icon_svg = Lampa.Template.string('icon_star');
+                data.icon_bgcolor = '#fff';
+                data.icon_color = '#212121';
+                data.params = { module: Lampa.Maker.module('Line').toggle(Lampa.Maker.module('Line').MASK.base, 'Icon') };
+                callback(data);
+              }, callback);
+            },
+
+            function (callback) {
+              callback({
+                source: 'tmdb',
+                results: Lampa.TimeTable.lately().slice(0, 20),
+                title: Lampa.Lang.translate('title_upcoming_episodes'),
+                nomore: true,
+                cardClass: function (card, episode) { return new EpisodeCard(card, episode); }
+              });
             },
 
             function (callback) {
@@ -308,17 +344,6 @@
                 data.icon_svg = Lampa.Template.string('upcoming_icon');
                 data.icon_bgcolor = '#25b7d3';
                 data.params = { module: Lampa.Maker.module('Line').toggle(Lampa.Maker.module('Line').MASK.base, 'Icon') };
-                callback(data);
-              }, callback);
-            },
-
-            function (callback) {
-              Lampa.Api.sources.tmdb.get('discover/movie?vote_average.gte=5&vote_average.lte=9.5&with_genres=16&with_original_language=ru&sort_by=primary_release_date.desc&primary_release_date.lte=' + today, params, function (data) {
-                data.title = Lampa.Lang.translate('Русские мультфильмы');
-                data.icon_svg = Lampa.Template.string('rus_icon');
-                data.icon_bgcolor = 'rgba(255,255,255,0.15)';
-                data.results.forEach(function (item) { item.params = { style: { name: 'collection' } }; });
-                data.params = { items: { view: 4 }, module: Lampa.Maker.module('Line').toggle(Lampa.Maker.module('Line').MASK.base, 'Icon') };
                 callback(data);
               }, callback);
             },
@@ -341,6 +366,58 @@
                 data.icon_bgcolor = '#fff';
                 data.icon_color = '#fd4518';
                 data.params = { module: Lampa.Maker.module('Line').toggle(Lampa.Maker.module('Line').MASK.base, 'Icon') };
+                callback(data);
+              }, callback);
+            },
+
+            function (callback) {
+              Lampa.Api.sources.tmdb.get('movie/top_rated', params, function (data) {
+                data.title = Lampa.Lang.translate('title_top_movie');
+                data.icon_svg = Lampa.Template.string('icon_top');
+                data.icon_bgcolor = '#e02129';
+                data.params = { module: Lampa.Maker.module('Line').toggle(Lampa.Maker.module('Line').MASK.base, 'Icon') };
+                callback(data);
+              }, callback);
+            },
+
+            function (callback) {
+              Lampa.Api.sources.tmdb.get('tv/top_rated', params, function (data) {
+                data.title = Lampa.Lang.translate('title_top_tv');
+                data.icon_svg = Lampa.Template.string('icon_top');
+                data.icon_bgcolor = '#e02129';
+                data.params = { module: Lampa.Maker.module('Line').toggle(Lampa.Maker.module('Line').MASK.base, 'Icon') };
+                callback(data);
+              }, callback);
+            },
+
+            function (callback) {
+              Lampa.Api.sources.tmdb.get('discover/movie?vote_average.gte=5&vote_average.lte=9.5&with_original_language=ru&sort_by=primary_release_date.desc&primary_release_date.lte=' + today, params, function (data) {
+                data.title = Lampa.Lang.translate('Русские фильмы');
+                data.icon_svg = Lampa.Template.string('rus_icon');
+                data.icon_bgcolor = 'rgba(255,255,255,0.15)';
+                data.results.forEach(function (item) { item.params = { style: { name: 'wide' } }; });
+                data.params = { items: { view: 3 }, module: Lampa.Maker.module('Line').toggle(Lampa.Maker.module('Line').MASK.base, 'Icon') };
+                callback(data);
+              }, callback);
+            },
+
+            function (callback) {
+              Lampa.Api.sources.tmdb.get('discover/tv?with_original_language=ru&sort_by=first_air_date.desc&air_date.lte=' + today, params, function (data) {
+                data.title = Lampa.Lang.translate('Русские сериалы');
+                data.icon_svg = Lampa.Template.string('rus_icon');
+                data.icon_bgcolor = 'rgba(255,255,255,0.15)';
+                data.params = { module: Lampa.Maker.module('Line').toggle(Lampa.Maker.module('Line').MASK.base, 'Icon') };
+                callback(data);
+              }, callback);
+            },
+
+            function (callback) {
+              Lampa.Api.sources.tmdb.get('discover/movie?vote_average.gte=5&vote_average.lte=9.5&with_genres=16&with_original_language=ru&sort_by=primary_release_date.desc&primary_release_date.lte=' + today, params, function (data) {
+                data.title = Lampa.Lang.translate('Русские мультфильмы');
+                data.icon_svg = Lampa.Template.string('rus_icon');
+                data.icon_bgcolor = 'rgba(255,255,255,0.15)';
+                data.results.forEach(function (item) { item.params = { style: { name: 'collection' } }; });
+                data.params = { items: { view: 4 }, module: Lampa.Maker.module('Line').toggle(Lampa.Maker.module('Line').MASK.base, 'Icon') };
                 callback(data);
               }, callback);
             },
@@ -466,32 +543,11 @@
                 callback(data);
               }, callback);
             },
-
-            function (callback) {
-              Lampa.Api.sources.tmdb.get('movie/top_rated', params, function (data) {
-                data.title = Lampa.Lang.translate('title_top_movie');
-                data.icon_svg = Lampa.Template.string('icon_top');
-                data.icon_bgcolor = '#e02129';
-                data.params = { module: Lampa.Maker.module('Line').toggle(Lampa.Maker.module('Line').MASK.base, 'Icon') };
-                callback(data);
-              }, callback);
-            },
-
-            function (callback) {
-              Lampa.Api.sources.tmdb.get('tv/top_rated', params, function (data) {
-                data.title = Lampa.Lang.translate('title_top_tv');
-                data.icon_svg = Lampa.Template.string('icon_top');
-                data.icon_bgcolor = '#e02129';
-                data.params = { module: Lampa.Maker.module('Line').toggle(Lampa.Maker.module('Line').MASK.base, 'Icon') };
-                callback(data);
-              }, callback);
-            },
           ];
 
           var position = requests.length + 1;
           Lampa.Arrays.insert(requests, 0, Lampa.Api.partPersons(requests, 6, 'movie', position));
 
-          // Защита от ошибки с genres
           if (Lampa.Storage.get('genres_cat') != false && params.genres && params.genres.movie) {
             params.genres.movie.forEach(function (genre) {
               requests.push(function (callback) {
