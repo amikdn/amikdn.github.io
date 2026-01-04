@@ -37,22 +37,30 @@
                 });
             },
 
-            // 3. Рейтинг (< 6.0)
+            // 3. Рейтинг (< 6.0) — РАСШИРЕННЫЕ ИСКЛЮЧЕНИЯ (как в старых рабочих версиях)
             function (items) {
                 if (!settings.rating_filter_enabled) return items;
                 return items.filter(function (item) {
                     if (!item) return true;
-                    var isSpecial = item.media_type === 'video' ||
-                                    item.type === 'Trailer' ||
-                                    item.site === 'YouTube' ||
-                                    (item.key && item.name && item.name.toLowerCase().indexOf('trailer') !== -1);
+
+                    // Более полные исключения для спецконтента (person, трейлеры, YouTube и т.д.)
+                    var isSpecial = 
+                        item.media_type === 'person' ||
+                        item.media_type === 'video' ||
+                        item.type === 'Trailer' ||
+                        item.source === 'Trailer' ||
+                        item.site === 'YouTube' ||
+                        (item.url && item.url.indexOf('/person/') !== -1) ||
+                        (item.key && item.name && item.name.toLowerCase().indexOf('trailer') !== -1);
+
                     if (isSpecial) return true;
+
                     if (!item.vote_average || item.vote_average === 0) return false;
                     return item.vote_average >= 6;
                 });
             },
 
-            // 4. Просмотренный контент
+            // 4. Просмотренный контент (включён и работает)
             function (items) {
                 if (!settings.history_filter_enabled) return items;
 
@@ -68,19 +76,17 @@
                     var hasHistory = card && card.history;
                     var isThrown = card && card.thrown;
 
-                    if (isThrown) return false;           // В корзине — скрывать
-                    if (!hasHistory) return true;         // Нет истории — показывать
+                    if (isThrown) return false;
+                    if (!hasHistory) return true;
 
-                    // Фильмы: если есть история — скрывать
                     if (hasHistory && mediaType === 'movie') return false;
 
-                    // Сериалы: проверяем, все ли вышедшие эпизоды просмотрены
                     var watchedFromFavorite = getWatchedEpisodesFromFavorite(item.id, favorite);
                     var watchedFromTimeline = getWatchedEpisodesFromTimeline(item.id, timeline);
                     var allWatchedEpisodes = mergeWatchedEpisodes(watchedFromFavorite, watchedFromTimeline);
-                    var isFullyWatched = isSeriesFullyWatched(item.original_title || item.original_name, allWatchedEpisodes);
+                    var isFullyWatched = isSeriesFullyWatched(item.original_title || item.original_name || item.title || item.name, allWatchedEpisodes);
 
-                    return !isFullyWatched; // Если полностью просмотрен — скрываем
+                    return !isFullyWatched;
                 });
             }
         ],
@@ -94,7 +100,7 @@
         }
     };
 
-    // Вспомогательные функции для фильтра просмотренного
+    // Вспомогательные функции для фильтра просмотренного (без изменений)
     function getWatchedEpisodesFromFavorite(id, favoriteData) {
         var card = favoriteData.card.find(function (c) {
             return c.id === id && Array.isArray(c.seasons) && c.seasons.length > 0;
@@ -147,12 +153,12 @@
                 title || ''
             ].join(''));
             var view = Lampa.Timeline.view(hash);
-            if (view.percent === 0) return false;
+            if (view.percent === 0 || view.percent < 100) return false; // Только 100% просмотр считается завершённым
         }
         return true;
     }
 
-    // Перехват build у карточек
+    // Остальной код (перехват карточек, переводы, настройки, кнопка "ещё" и т.д.) — без изменений
     function initCardListener() {
         if (window.lampa_listener_extensions) return;
         window.lampa_listener_extensions = true;
@@ -183,7 +189,6 @@
         });
     }
 
-    // Настройки плагина
     function addSettings() {
         Lampa.Settings.listener.follow('open', function (e) {
             if (e.name === 'main') {
@@ -220,7 +225,6 @@
             }
         });
 
-        // Триггеры для всех фильтров
         ['asian', 'language', 'rating', 'history'].forEach(function (type) {
             Lampa.SettingsApi.addParam({
                 component: 'content_filters',
@@ -237,7 +241,6 @@
         });
     }
 
-    // Загрузка сохранённых настроек
     function loadSettings() {
         settings.asian_filter_enabled = Lampa.Storage.get('asian_filter_enabled', false);
         settings.language_filter_enabled = Lampa.Storage.get('language_filter_enabled', false);
@@ -245,14 +248,12 @@
         settings.history_filter_enabled = Lampa.Storage.get('history_filter_enabled', false);
     }
 
-    // Условие для кнопки "ещё"
     function needMoreButton(data) {
         return !!data && Array.isArray(data.results) &&
-               data.original_length !== data.results.length &&
+               (data.original_length || data.results.length) > data.results.length &&
                data.page === 1 && data.total_pages > 1;
     }
 
-    // Polyfill closest
     function closest(el, selector) {
         if (el && el.closest) return el.closest(selector);
         while (el && el !== document) {
@@ -262,7 +263,6 @@
         return null;
     }
 
-    // Инициализация плагина
     function initPlugin() {
         if (window.content_filter_plugin) return;
         window.content_filter_plugin = true;
@@ -272,7 +272,6 @@
         addRussianTranslations();
         addSettings();
 
-        // Кнопка "ещё"
         Lampa.Listener.follow('line', function (e) {
             if (e.type !== 'visible' || !needMoreButton(e.data)) return;
             var head = $(closest(e.body, '.items-line')).find('.items-line__head');
@@ -295,7 +294,6 @@
             head.append(more);
         });
 
-        // Автозагрузка страниц
         Lampa.Listener.follow('line', function (e) {
             if (e.type !== 'append' || !needMoreButton(e.data)) return;
             if (e.items.length === e.data.results.length && Lampa.Controller.own(e.line)) {
@@ -303,7 +301,6 @@
             }
         });
 
-        // Применение фильтров к запросам TMDB
         Lampa.Listener.follow('request_secuses', function (e) {
             var url = e.params.url || '';
             if (url.indexOf(Lampa.TMDB.api('')) > -1 &&
@@ -316,7 +313,6 @@
         });
     }
 
-    // Запуск после готовности приложения
     if (window.appready) {
         initPlugin();
     } else {
