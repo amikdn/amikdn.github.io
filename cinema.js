@@ -3,80 +3,28 @@
 
   Lampa.Platform.tv();
 
-  ;(function () {
+  (function () {
     function initRussianPlugin() {
-      // Убрана проверка на origin — теперь работает в любой сборке Lampa
 
-      // SVG иконка для пункта меню "Русское"
       var russianMenuIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="1.2em" height="1.2em" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="4"><path stroke-linejoin="round" d="M24 44c11.046 0 20-8.954 20-20S35.046 4 24 4S4 12.954 4 24s8.954 20 20 20Z"/><path stroke-linejoin="round" d="M24 18a3 3 0 1 0 0-6a3 3 0 0 0 0 6Zm0 18a3 3 0 1 0 0-6a3 3 0 0 0 0 6Zm-9-9a3 3 0 1 0 0-6a3 3 0 0 0 0 6Zm18 0a3 3 0 1 0 0-6a3 3 0 0 0 0 6Z"/><path stroke-linecap="round" d="M24 44h20"/></g></svg>';
 
       var today = new Date().toISOString().substr(0, 10);
 
-      // Список русских категорий для плитки "Русское"
       var russianCategories = [
-        {
-          title: 'Русские фильмы',
-          img: 'https://bylampa.github.io/img/rus_movie.jpg',
-          request: 'discover/movie?sort_by=primary_release_date.desc&with_original_language=ru&vote_average.gte=5&vote_average.lte=9.5&primary_release_date.lte=' + today,
-        },
-        {
-          title: 'Русские сериалы',
-          img: 'https://bylampa.github.io/img/rus_tv.jpg',
-          request: 'discover/tv?sort_by=first_air_date.desc&with_original_language=ru&air_date.lte=' + today,
-        },
-        {
-          title: 'Русские мультфильмы',
-          img: 'https://bylampa.github.io/img/rus_mult.jpg',
-          request: 'discover/movie?sort_by=primary_release_date.desc&vote_average.gte=5&vote_average.lte=9.5&with_genres=16&with_original_language=ru&primary_release_date.lte=' + today,
-        },
-        {
-          title: 'Start',
-          img: 'https://bylampa.github.io/img/start.jpg',
-          request: 'discover/tv?with_networks=2493&sort_by=first_air_date.desc&air_date.lte=' + today,
-        },
-        {
-          title: 'Premier',
-          img: 'https://bylampa.github.io/img/premier.jpg',
-          request: 'discover/tv?with_networks=2859&sort_by=first_air_date.desc&air_date.lte=' + today,
-        },
-        {
-          title: 'KION',
-          img: 'https://bylampa.github.io/img/kion.jpg',
-          request: 'discover/tv?with_networks=4085&sort_by=first_air_date.desc&air_date.lte=' + today,
-        },
-        {
-          title: 'ИВИ',
-          img: 'https://bylampa.github.io/img/ivi.jpg',
-          request: 'discover/tv?with_networks=3923&sort_by=first_air_date.desc&air_date.lte=' + today,
-        },
-        {
-          title: 'Okko',
-          img: 'https://bylampa.github.io/img/okko.jpg',
-          request: 'discover/tv?with_networks=3871&sort_by=first_air_date.desc&air_date.lte=' + today,
-        },
-        {
-          title: 'КиноПоиск',
-          img: 'https://bylampa.github.io/img/kinopoisk.jpg',
-          request: 'discover/tv?with_networks=3827&sort_by=first_air_date.desc&air_date.lte=' + today,
-        },
-        {
-          title: 'Wink',
-          img: 'https://bylampa.github.io/img/wink.jpg',
-          request: 'discover/tv?with_networks=5806&sort_by=first_air_date.desc&air_date.lte=' + today,
-        },
-        {
-          title: 'СТС',
-          img: 'https://bylampa.github.io/img/sts.jpg',
-          request: 'discover/tv?with_networks=806&sort_by=first_air_date.desc&air_date.lte=' + today,
-        },
-        {
-          title: 'ТНТ',
-          img: 'https://bylampa.github.io/img/tnt.jpg',
-          request: 'discover/tv?with_networks=1191&sort_by=first_air_date.desc&air_date.lte=' + today,
-        },
+        { title: 'Русские фильмы', img: 'https://amikdn.github.io/img/rus_movie.jpg', request: 'discover/movie?sort_by=primary_release_date.desc&with_original_language=ru&vote_average.gte=5&vote_average.lte=9.5&primary_release_date.lte=' + today },
+        { title: 'Русские сериалы', img: 'https://amikdn.github.io/img/rus_tv.jpg', request: 'discover/tv?sort_by=first_air_date.desc&with_original_language=ru&air_date.lte=' + today },
+        { title: 'Русские мультфильмы', img: 'https://amikdn.github.io/img/rus_mult.jpg', request: 'discover/movie?sort_by=primary_release_date.desc&vote_average.gte=5&vote_average.lte=9.5&with_genres=16&with_original_language=ru&primary_release_date.lte=' + today },
+        { title: 'Start', img: 'https://amikdn.github.io/img/start.jpg', request: 'discover/tv?with_networks=2493&sort_by=first_air_date.desc&air_date.lte=' + today },
+        { title: 'Premier', img: 'https://amikdn.github.io/img/premier.jpg', request: 'discover/tv?with_networks=2859&sort_by=first_air_date.desc&air_date.lte=' + today },
+        { title: 'KION', img: 'https://amikdn.github.io/img/kion.jpg', request: 'discover/tv?with_networks=4085&sort_by=first_air_date.desc&air_date.lte=' + today },
+        { title: 'ИВИ', img: 'https://amikdn.github.io/img/ivi.jpg', request: 'discover/tv?with_networks=3923&sort_by=first_air_date.desc&air_date.lte=' + today },
+        { title: 'Okko', img: 'https://amikdn.github.io/img/okko.jpg', request: 'discover/tv?with_networks=3871&sort_by=first_air_date.desc&air_date.lte=' + today },
+        { title: 'КиноПоиск', img: 'https://amikdn.github.io/img/kinopoisk.jpg', request: 'discover/tv?with_networks=3827&sort_by=first_air_date.desc&air_date.lte=' + today },
+        { title: 'Wink', img: 'https://amikdn.github.io/img/wink.jpg', request: 'discover/tv?with_networks=5806&sort_by=first_air_date.desc&air_date.lte=' + today },
+        { title: 'СТС', img: 'https://amikdn.github.io/img/sts.jpg', request: 'discover/tv?with_networks=806&sort_by=first_air_date.desc&air_date.lte=' + today },
+        { title: 'ТНТ', img: 'https://amikdn.github.io/img/tnt.jpg', request: 'discover/tv?with_networks=1191&sort_by=first_air_date.desc&air_date.lte=' + today },
       ];
 
-      // Компонент категории "Русское" (плитка с сервисами)
       function russianCategoryComponent(data) {
         var category = Lampa.Maker.make('Category', data);
 
@@ -119,7 +67,6 @@
         return category;
       }
 
-      // Манифест плагина
       var pluginManifest = {
         type: 'video',
         version: '1.0.0',
@@ -128,21 +75,12 @@
         component: 'rus_movie',
       };
 
-      if (!Lampa.Manifest.plugins) {
-        Lampa.Manifest.plugins = {};
-      }
+      if (!Lampa.Manifest.plugins) Lampa.Manifest.plugins = {};
       Lampa.Manifest.plugins.rus_movie = pluginManifest;
 
       Lampa.Component.add('rus_movie', russianCategoryComponent);
 
-      // Добавляем пункт в меню
-      var menuItem = $(
-        '<li class="menu__item selector"><div class="menu__ico">' +
-        russianMenuIcon +
-        '</div><div class="menu__text">' +
-        pluginManifest.name +
-        '</div></li>'
-      );
+      var menuItem = $('<li class="menu__item selector"><div class="menu__ico">' + russianMenuIcon + '</div><div class="menu__text">' + pluginManifest.name + '</div></li>');
 
       menuItem.on('hover:enter', function () {
         Lampa.Activity.push({
@@ -155,14 +93,11 @@
 
       $('.menu .menu__list').eq(0).append(menuItem);
 
-      // Класс карточки для эпизодов (используется в некоторых подборках)
       function EpisodeCard(cardData, episodeData) {
         var card = cardData.card || cardData;
         var episode = episodeData.next_episode_to_air || episodeData.episode || {};
 
-        if (card.source === undefined) {
-          card.source = 'tmdb';
-        }
+        if (card.source === undefined) card.source = 'tmdb';
 
         Lampa.Arrays.extend(card, {
           title: card.name,
@@ -172,9 +107,7 @@
 
         card.release_year = (card.release_date || '0000').slice(0, 4);
 
-        function removeElement(el) {
-          if (el) el.remove();
-        }
+        function removeElement(el) { if (el) el.remove(); }
 
         this.build = function () {
           this.cardElement = Lampa.Template.js('card_episode');
@@ -187,9 +120,7 @@
           if (episode.air_date) {
             this.cardElement.querySelector('.full-episode__name').innerText = episode.name || Lampa.Lang.translate('noname');
             this.cardElement.querySelector('.full-episode__num').innerText = episode.episode_number || '';
-            this.cardElement.querySelector('.full-episode__date').innerText = episode.air_date
-              ? Lampa.Utils.parseTime(episode.air_date).full
-              : '----';
+            this.cardElement.querySelector('.full-episode__date').innerText = episode.air_date ? Lampa.Utils.parseTime(episode.air_date).full : '----';
           }
 
           if (card.release_year === '0000') {
@@ -203,61 +134,37 @@
 
         this.image = function () {
           this.imgPoster.onload = function () {};
-          this.imgPoster.onerror = function () {
-            this.src = './img/img_broken.svg';
-          };
+          this.imgPoster.onerror = function () { this.src = './img/img_broken.svg'; };
 
           this.imgEpisode.onload = function () {
             this.cardElement.querySelector('.full-episode__img').classList.add('full-episode__img--loaded');
           }.bind(this);
 
-          this.imgEpisode.onerror = function () {
-            this.src = './img/img_broken.svg';
-          };
+          this.imgEpisode.onerror = function () { this.src = './img/img_broken.svg'; };
         };
 
         this.create = function () {
           this.build();
 
-          this.cardElement.addEventListener('hover:focus', () => {
-            if (this.onFocus) this.onFocus(this.cardElement, card);
-          });
-
-          this.cardElement.addEventListener('hover:hover', () => {
-            if (this.onHover) this.onHover(this.cardElement, card);
-          });
-
-          this.cardElement.addEventListener('hover:enter', () => {
-            if (this.onEnter) this.onEnter(this.cardElement, card);
-          });
+          this.cardElement.addEventListener('hover:focus', () => { if (this.onFocus) this.onFocus(this.cardElement, card); });
+          this.cardElement.addEventListener('hover:hover', () => { if (this.onHover) this.onHover(this.cardElement, card); });
+          this.cardElement.addEventListener('hover:enter', () => { if (this.onEnter) this.onEnter(this.cardElement, card); });
 
           this.image();
         };
 
         this.visible = function () {
-          if (card.poster_path) {
-            this.imgPoster.src = Lampa.Api.img(card.poster_path);
-          } else if (card.profile_path) {
-            this.imgPoster.src = Lampa.Api.img(card.profile_path);
-          } else if (card.poster) {
-            this.imgPoster.src = card.poster;
-          } else if (card.img) {
-            this.imgPoster.src = card.img;
-          } else {
-            this.imgPoster.src = './img/img_broken.svg';
-          }
+          if (card.poster_path) this.imgPoster.src = Lampa.Api.img(card.poster_path);
+          else if (card.profile_path) this.imgPoster.src = Lampa.Api.img(card.profile_path);
+          else if (card.poster) this.imgPoster.src = card.poster;
+          else if (card.img) this.imgPoster.src = card.img;
+          else this.imgPoster.src = './img/img_broken.svg';
 
-          if (episode.still_path) {
-            this.imgEpisode.src = Lampa.Api.img(episode.still_path, 'w300');
-          } else if (card.backdrop_path) {
-            this.imgEpisode.src = Lampa.Api.img(card.backdrop_path, 'w300');
-          } else if (episode.img) {
-            this.imgEpisode.src = episode.img;
-          } else if (card.img) {
-            this.imgEpisode.src = card.img;
-          } else {
-            this.imgEpisode.src = './img/img_broken.svg';
-          }
+          if (episode.still_path) this.imgEpisode.src = Lampa.Api.img(episode.still_path, 'w300');
+          else if (card.backdrop_path) this.imgEpisode.src = Lampa.Api.img(card.backdrop_path, 'w300');
+          else if (episode.img) this.imgEpisode.src = episode.img;
+          else if (card.img) this.imgEpisode.src = card.img;
+          else this.imgEpisode.src = './img/img_broken.svg';
 
           if (this.onVisible) this.onVisible(this.cardElement, card);
         };
@@ -273,12 +180,9 @@
           this.imgEpisode = null;
         };
 
-        this.render = function (jquery) {
-          return jquery ? $(this.cardElement) : this.cardElement;
-        };
+        this.render = function (jquery) { return jquery ? $(this.cardElement) : this.cardElement; };
       }
 
-      // Модификация главного экрана TMDB (добавление русских подборок)
       function RussianMainSource() {
         this.network = new Lampa.Reguest();
 
@@ -308,7 +212,6 @@
 
           var today = new Date().toISOString().substr(0, 10);
 
-          // SVG иконки для строк
           var nowIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="2em" height="2em" viewBox="0 0 24 24"><path fill="currentColor" d="M8.8 11.997c0-.974.789-1.763 1.76-1.763c.972 0 1.76.79 1.76 1.763c0 .974-.788 1.764-1.76 1.764c-.971 0-1.76-.79-1.76-1.764m13.03-2.896l-1.217 2.453l-.788-2.319h-.001a1.144 1.144 0 0 0-2.039-.257c-.526.802-1.05 1.61-1.574 2.414l-.278-1.956a1.145 1.145 0 1 0-2.263.342l.049.328a3.675 3.675 0 0 0-6.332.028l.07-.343a1.108 1.108 0 1 0-2.171-.444l-.476 2.338l-1.752-2.718a1.106 1.106 0 0 0-2.012.374L.023 14.353a1.11 1.11 0 0 0 1.087 1.336c.513.004.976-.358 1.084-.892l.476-2.338q.888 1.383 1.78 2.764a1.108 1.108 0 0 0 1.993-.456l.469-2.302a3.68 3.68 0 0 0 3.648 3.219a3.68 3.68 0 0 0 3.57-2.797l.262 1.759c.074.579.548 1.037 1.141 1.037c.427 0 .776-.245.997-.584l1.885-2.895l.905 2.665c.162.475.58.814 1.096.814c.479 0 .855-.288 1.06-.716l2.403-4.845a1.15 1.15 0 0 0-.512-1.54a1.143 1.143 0 0 0-1.538.52" stroke-width="0.5" stroke="currentColor"/></svg>';
 
           var upcomingIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="2em" height="2em" viewBox="0 0 24 24"><path fill="currentColor" d="M2.185 6.758c-1.495 0-2.193.849-2.193 2.171v1.534c0 1.373.246 1.959 1.235 2.58l.763.474c.618.374.698.651.698 1.453v1.354c0 .393-.18.636-.521.636c-.342 0-.522-.228-.522-.636v-2.125H-.008v2.14c0 1.338.683 2.17 2.159 2.17c1.526 0 2.224-.882 2.224-2.17v-1.666c0-1.272-.326-1.927-1.265-2.529l-.763-.49c-.537-.342-.668-.586-.668-1.469v-1.24c0-.394.18-.637.503-.637c.341 0 .537.247.537.636v2.105h1.656V8.93c0-1.307-.698-2.17-2.19-2.17m2.711.162v1.635h1.17v9.797h1.687V8.555h1.17V6.92zm5.066 0l-.943 11.427h1.672l.23-3.053h1.227l.23 3.053h1.706l-.94-11.427Zm4.985 0v11.427h1.687v-4.78h1.024v3.917c0 .652.276.863.276.863h1.687c.004.004-.272-.207-.272-.863v-2.972c0-.949-.357-1.47-1.22-1.65v-.197c.86-.131 1.3-.768 1.3-1.797V8.929c0-1.257-.747-2.009-2.193-2.009zm5.02 0v1.635h1.169v9.797h1.687V8.555h1.17V6.92zm-8.529 1.55h.2l.399 5.274h-.997zm5.2.004h.437c.522 0 .667.212.667 1.06v1.419c0 .817-.18 1.06-.732 1.06h-.372z"/></svg>';
@@ -344,20 +247,18 @@
           Lampa.Template.add('tnt_icon', tntIcon);
 
           var requests = [
-            // Теперь смотрят
             function (callback) {
               Lampa.Api.sources.tmdb.get('movie/now_playing', params, function (data) {
                 data.title = Lampa.Lang.translate('title_now_watch');
                 data.icon_svg = Lampa.Template.string('now_icon');
                 data.icon_bgcolor = '#0f7679';
                 data.icon_color = '#fff';
-                data.results.forEach(item => { item.params = { style: { name: 'collection' } }; });
+                data.results.forEach(function (item) { item.params = { style: { name: 'collection' } }; });
                 data.params = { items: { view: 4 }, module: Lampa.Maker.module('Line').toggle(Lampa.Maker.module('Line').MASK.base, 'Icon') };
                 callback(data);
               }, callback);
             },
 
-            // Тренд дня
             function (callback) {
               Lampa.Api.sources.tmdb.get('trending/all/day', params, function (data) {
                 data.title = Lampa.Lang.translate('title_trend_day');
@@ -369,7 +270,6 @@
               }, callback);
             },
 
-            // Тренд недели
             function (callback) {
               Lampa.Api.sources.tmdb.get('trending/all/week', params, function (data) {
                 data.title = Lampa.Lang.translate('title_trend_week');
@@ -381,19 +281,17 @@
               }, callback);
             },
 
-            // Русские фильмы
             function (callback) {
               Lampa.Api.sources.tmdb.get('discover/movie?vote_average.gte=5&vote_average.lte=9.5&with_original_language=ru&sort_by=primary_release_date.desc&primary_release_date.lte=' + today, params, function (data) {
                 data.title = Lampa.Lang.translate('Русские фильмы');
                 data.icon_svg = Lampa.Template.string('rus_icon');
                 data.icon_bgcolor = 'rgba(255,255,255,0.15)';
-                data.results.forEach(item => { item.params = { style: { name: 'wide' } }; });
+                data.results.forEach(function (item) { item.params = { style: { name: 'wide' } }; });
                 data.params = { items: { view: 3 }, module: Lampa.Maker.module('Line').toggle(Lampa.Maker.module('Line').MASK.base, 'Icon') };
                 callback(data);
               }, callback);
             },
 
-            // Русские сериалы
             function (callback) {
               Lampa.Api.sources.tmdb.get('discover/tv?with_original_language=ru&sort_by=first_air_date.desc&air_date.lte=' + today, params, function (data) {
                 data.title = Lampa.Lang.translate('Русские сериалы');
@@ -404,7 +302,6 @@
               }, callback);
             },
 
-            // Скоро в кино
             function (callback) {
               Lampa.Api.sources.tmdb.get('movie/upcoming', params, function (data) {
                 data.title = Lampa.Lang.translate('title_upcoming');
@@ -415,19 +312,17 @@
               }, callback);
             },
 
-            // Русские мультфильмы
             function (callback) {
               Lampa.Api.sources.tmdb.get('discover/movie?vote_average.gte=5&vote_average.lte=9.5&with_genres=16&with_original_language=ru&sort_by=primary_release_date.desc&primary_release_date.lte=' + today, params, function (data) {
                 data.title = Lampa.Lang.translate('Русские мультфильмы');
                 data.icon_svg = Lampa.Template.string('rus_icon');
                 data.icon_bgcolor = 'rgba(255,255,255,0.15)';
-                data.results.forEach(item => { item.params = { style: { name: 'collection' } }; });
+                data.results.forEach(function (item) { item.params = { style: { name: 'collection' } }; });
                 data.params = { items: { view: 4 }, module: Lampa.Maker.module('Line').toggle(Lampa.Maker.module('Line').MASK.base, 'Icon') };
                 callback(data);
               }, callback);
             },
 
-            // Популярные фильмы
             function (callback) {
               Lampa.Api.sources.tmdb.get('movie/popular', params, function (data) {
                 data.title = Lampa.Lang.translate('title_popular_movie');
@@ -439,7 +334,6 @@
               }, callback);
             },
 
-            // Популярные сериалы
             function (callback) {
               Lampa.Api.sources.tmdb.get('trending/tv/week', params, function (data) {
                 data.title = Lampa.Lang.translate('title_popular_tv');
@@ -451,7 +345,6 @@
               }, callback);
             },
 
-            // Подборки русских фильмов
             function (callback) {
               Lampa.Api.sources.tmdb.get('discover/movie?primary_release_date.gte=' + dateFrom2 + '&primary_release_date.lte=' + dateTo2 + '&vote_average.gte=5&vote_average.lte=9.5&with_original_language=ru&sort_by=' + randomSort2, params, function (data) {
                 data.title = Lampa.Lang.translate('Подборки русских фильмов');
@@ -463,7 +356,6 @@
               }, callback);
             },
 
-            // Подборки русских сериалов
             function (callback) {
               Lampa.Api.sources.tmdb.get('discover/tv?first_air_date.gte=' + dateFrom1 + '&first_air_date.lte=' + dateTo1 + '&with_networks=2493|2859|4085|3923|3871|3827|5806|806|1191&sort_by=' + randomSort1, params, function (data) {
                 data.title = Lampa.Lang.translate('Подборки русских сериалов');
@@ -475,20 +367,18 @@
               }, callback);
             },
 
-            // Start
             function (callback) {
               Lampa.Api.sources.tmdb.get('discover/tv?with_networks=2493&sort_by=first_air_date.desc&air_date.lte=' + today, params, function (data) {
                 data.title = Lampa.Lang.translate('Start');
                 data.icon_svg = Lampa.Template.string('start_icon');
                 data.icon_bgcolor = '#ff0019';
                 data.icon_color = '#fff';
-                data.results.forEach(item => { item.params = { style: { name: 'wide' } }; });
+                data.results.forEach(function (item) { item.params = { style: { name: 'wide' } }; });
                 data.params = { items: { view: 3 }, module: Lampa.Maker.module('Line').toggle(Lampa.Maker.module('Line').MASK.base, 'Icon') };
                 callback(data);
               }, callback);
             },
 
-            // Premier
             function (callback) {
               Lampa.Api.sources.tmdb.get('discover/tv?with_networks=2859&sort_by=first_air_date.desc&air_date.lte=' + today, params, function (data) {
                 data.title = Lampa.Lang.translate('Premier');
@@ -500,7 +390,6 @@
               }, callback);
             },
 
-            // KION
             function (callback) {
               Lampa.Api.sources.tmdb.get('discover/tv?with_networks=4085&sort_by=first_air_date.desc&air_date.lte=' + today, params, function (data) {
                 data.title = Lampa.Lang.translate('KION');
@@ -512,20 +401,18 @@
               }, callback);
             },
 
-            // ИВИ
             function (callback) {
               Lampa.Api.sources.tmdb.get('discover/tv?with_networks=3923&sort_by=first_air_date.desc&air_date.lte=' + today, params, function (data) {
                 data.title = Lampa.Lang.translate('IVI');
                 data.icon_svg = Lampa.Template.string('ivi_icon');
                 data.icon_bgcolor = '#f2144f';
                 data.icon_color = '#fff';
-                data.results.forEach(item => { item.params = { style: { name: 'collection' } }; });
+                data.results.forEach(function (item) { item.params = { style: { name: 'collection' } }; });
                 data.params = { items: { view: 4 }, module: Lampa.Maker.module('Line').toggle(Lampa.Maker.module('Line').MASK.base, 'Icon') };
                 callback(data);
               }, callback);
             },
 
-            // OKKO
             function (callback) {
               Lampa.Api.sources.tmdb.get('discover/tv?with_networks=3871&sort_by=first_air_date.desc&air_date.lte=' + today, params, function (data) {
                 data.title = Lampa.Lang.translate('OKKO');
@@ -537,7 +424,6 @@
               }, callback);
             },
 
-            // КиноПоиск
             function (callback) {
               Lampa.Api.sources.tmdb.get('discover/tv?with_networks=3827&sort_by=first_air_date.desc&air_date.lte=' + today, params, function (data) {
                 data.title = Lampa.Lang.translate('КиноПоиск');
@@ -549,20 +435,18 @@
               }, callback);
             },
 
-            // Wink
             function (callback) {
               Lampa.Api.sources.tmdb.get('discover/tv?with_networks=5806&sort_by=first_air_date.desc&air_date.lte=' + today, params, function (data) {
                 data.title = Lampa.Lang.translate('Wink');
                 data.icon_svg = Lampa.Template.string('wink_icon');
                 data.icon_bgcolor = '#fff';
                 data.icon_color = '#ff5b22';
-                data.results.forEach(item => { item.params = { style: { name: 'wide' } }; });
+                data.results.forEach(function (item) { item.params = { style: { name: 'wide' } }; });
                 data.params = { items: { view: 3 }, module: Lampa.Maker.module('Line').toggle(Lampa.Maker.module('Line').MASK.base, 'Icon') };
                 callback(data);
               }, callback);
             },
 
-            // СТС
             function (callback) {
               Lampa.Api.sources.tmdb.get('discover/tv?with_networks=806&sort_by=first_air_date.desc&air_date.lte=' + today, params, function (data) {
                 data.title = Lampa.Lang.translate('СТС');
@@ -573,7 +457,6 @@
               }, callback);
             },
 
-            // ТНТ
             function (callback) {
               Lampa.Api.sources.tmdb.get('discover/tv?with_networks=1191&sort_by=first_air_date.desc&air_date.lte=' + today, params, function (data) {
                 data.title = Lampa.Lang.translate('ТНТ');
@@ -584,7 +467,6 @@
               }, callback);
             },
 
-            // Топ фильмы
             function (callback) {
               Lampa.Api.sources.tmdb.get('movie/top_rated', params, function (data) {
                 data.title = Lampa.Lang.translate('title_top_movie');
@@ -595,7 +477,6 @@
               }, callback);
             },
 
-            // Топ сериалы
             function (callback) {
               Lampa.Api.sources.tmdb.get('tv/top_rated', params, function (data) {
                 data.title = Lampa.Lang.translate('title_top_tv');
@@ -607,35 +488,33 @@
             },
           ];
 
-          Lampa.ContentRows.call('main', params, requests);
-
           var position = requests.length + 1;
           Lampa.Arrays.insert(requests, 0, Lampa.Api.partPersons(requests, 6, 'movie', position));
 
-          params.genres.movie.forEach(function (genre) {
-            var genreLoader = function (callback) {
-              Lampa.Api.sources.tmdb.get('discover/movie?with_genres=' + genre.id, params, function (data) {
-                data.title = Lampa.Lang.translate(genre.title.replace(/[^a-z_]/g, ''));
-                callback(data);
-              }, callback);
-            };
-            requests.push(genreLoader);
-          });
-
-          function loadNext(onSuccess, onError) {
-            Lampa.Api.partNext(requests, 6, onSuccess, onError);
+          // Защита от ошибки с genres
+          if (Lampa.Storage.get('genres_cat') != false && params.genres && params.genres.movie) {
+            params.genres.movie.forEach(function (genre) {
+              requests.push(function (callback) {
+                Lampa.Api.sources.tmdb.get('discover/movie?with_genres=' + genre.id, params, function (data) {
+                  data.title = Lampa.Lang.translate(genre.title.replace(/[^a-z_]/g, ''));
+                  callback(data);
+                }, callback);
+              });
+            });
           }
 
-          return loadNext;
+          if (requests.length > 0) {
+            Lampa.Api.partNext(requests, 6, onSuccess, onError);
+          } else {
+            onSuccess();
+          }
         };
       }
 
-      // Включаем русские подборки на главной, если параметр включён
       if (Lampa.Storage.get('rus_movie_main') !== false) {
-        Object.assign(Lampa.Api.sources.tmdb, new RussianMainSource(Lampa.Api.sources.tmdb));
+        Object.assign(Lampa.Api.sources.tmdb, new RussianMainSource());
       }
 
-      // Принудительный перезапуск главной при выборе TMDB (для обновления)
       if (Lampa.Storage.get('source') === 'tmdb') {
         var savedSource = Lampa.Storage.get('source');
         var interval = setInterval(function () {
@@ -650,7 +529,6 @@
         }, 200);
       }
 
-      // Параметр в настройках для включения русских новинок на главной
       Lampa.SettingsApi.addParam({
         component: 'interface',
         param: { name: 'rus_movie_main', type: 'trigger', default: true },
