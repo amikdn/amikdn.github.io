@@ -6,6 +6,12 @@
   ;(function () {
     function initRussianPlugin() {
 
+      // Проверка источника
+      const currentSource = Lampa.Storage.get('source') || 'unknown'
+      if (currentSource !== 'tmdb') {
+        Lampa.Noty.show('Для русских подборок на главной выберите источник TMDB в настройках → Источники контента')
+      }
+
       const menuIconSvg = `
         <svg xmlns="http://www.w3.org/2000/svg" width="1.2em" height="1.2em" viewBox="0 0 48 48">
           <g fill="none" stroke="currentColor" stroke-width="4">
@@ -107,7 +113,6 @@
 
       $('.menu .menu__list').eq(0).append(menuItem)
 
-      // Все SVG-иконки полностью
       Lampa.Template.add('now_icon', `
         <svg xmlns="http://www.w3.org/2000/svg" width="2em" height="2em" viewBox="0 0 24 24">
           <path fill="currentColor" d="M8.8 11.997c0-.974.789-1.763 1.76-1.763c.972 0 1.76.79 1.76 1.763c0 .974-.788 1.764-1.76 1.764c-.971 0-1.76-.79-1.76-1.764m13.03-2.896l-1.217 2.453l-.788-2.319h-.001a1.144 1.144 0 0 0-2.039-.257c-.526.802-1.05 1.61-1.574 2.414l-.278-1.956a1.145 1.145 0 1 0-2.263.342l.049.328a3.675 3.675 0 0 0-6.332.028l.07-.343a1.108 1.108 0 1 0-2.171-.444l-.476 2.338l-1.752-2.718a1.106 1.106 0 0 0-2.012.374L.023 14.353a1.11 1.11 0 0 0 1.087 1.336c.513.004.976-.358 1.084-.892l.476-2.338q.888 1.383 1.78 2.764a1.108 1.108 0 0 0 1.993-.456l.469-2.302a3.68 3.68 0 0 0 3.648 3.219a3.68 3.68 0 0 0 3.57-2.797l.262 1.759c.074.579.548 1.037 1.141 1.037c.427 0 .776-.245.997-.584l1.885-2.895l.905 2.665c.162.475.58.814 1.096.814c.479 0 .855-.288 1.06-.716l2.403-4.845a1.15 1.15 0 0 0-.512-1.54a1.143 1.143 0 0 0-1.538.52" stroke-width="0.5" stroke="currentColor"/>
@@ -443,24 +448,29 @@
 
       function applyRussianMain() {
         if (Lampa.Storage.get('rus_movie_main') !== false && Lampa.Storage.get('source') === 'tmdb') {
+          // Применяем новый источник
+          Object.assign(Lampa.Api.sources.tmdb, new RussianTmdbSource(Lampa.Api.sources.tmdb))
+
+          // Принудительный refresh главной
+          setTimeout(() => {
+            Lampa.Controller.toggle('main')
+            Lampa.Noty.show('Русские подборки применены на главной (toggle main)')
+          }, 500)
+
+          // Дополнительный interval на всякий случай
           const refreshInterval = setInterval(() => {
             const active = Lampa.Activity.active()
-            const settingsOpen = $('.settings__content.layer--height').length > 0
-
-            if (active && active.component === 'main' && !settingsOpen) {
+            if (active && active.component === 'main') {
               clearInterval(refreshInterval)
-              Lampa.Activity.replace({
-                component: 'main',
-                source: 'tmdb',
-              })
-              Lampa.Noty.show('Русские подборки применены на главной')
+              Lampa.Controller.toggle('main')
+              Lampa.Noty.show('Русские подборки обновлены')
             }
-          }, 200)
+          }, 300)
         }
       }
 
+      // Применяем при загрузке, если опция включена
       if (Lampa.Storage.get('rus_movie_main') !== false) {
-        Object.assign(Lampa.Api.sources.tmdb, new RussianTmdbSource(Lampa.Api.sources.tmdb))
         applyRussianMain()
       }
 
@@ -469,7 +479,7 @@
         param: { name: 'rus_movie_main', type: 'trigger', default: true },
         field: {
           name: 'Русские новинки на главной',
-          description: 'Показывать русские подборки на главной странице (только TMDB). После изменения перезапустите приложение или переключите опцию.',
+          description: 'Показывать русские подборки на главной (только TMDB). После изменения переключите опцию или перезапустите.',
         },
         onRender(element) {
           setTimeout(() => {
@@ -477,14 +487,7 @@
           }, 0)
         },
         onChange() {
-          setTimeout(() => {
-            if (Lampa.Storage.get('rus_movie_main') !== false) {
-              Object.assign(Lampa.Api.sources.tmdb, new RussianTmdbSource(Lampa.Api.sources.tmdb))
-            } else {
-              location.reload()
-            }
-            applyRussianMain()
-          }, 500)
+          setTimeout(applyRussianMain, 500)
         }
       })
     }
