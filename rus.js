@@ -3,7 +3,6 @@
 
     Lampa.Platform.tv();
 
-    // Плагин: пункт "Русское" в меню + отдельная страница с большими иконками-коллекциями (без подборок на главной)
     (function () {
         function initPlugin() {
             if (window.plugin_rus_movie_ready) return;
