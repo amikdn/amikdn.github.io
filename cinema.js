@@ -4,6 +4,11 @@
   Lampa.Platform.tv();
 
   function initPlugin() {
+    // Проверка источника
+    if (Lampa.Manifest.origin !== 'bylampa') {
+      Lampa.Noty.show('Ошибка доступа');
+      return;
+    }
 
     const today = new Date().toISOString().substr(0, 10);
 
@@ -24,7 +29,7 @@
 
     const hboSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"><path fill="currentColor" d="M7.042 16.896H4.414v-3.754H2.708v3.754H.01L0 7.22h2.708v3.6h1.706v-3.6h2.628zm12.043.046C21.795 16.94 24 14.689 24 11.978a4.89 4.89 0 0 0-4.915-4.92c-2.707-.002-4.09 1.991-4.432 2.795c.003-1.207-1.187-2.632-2.58-2.634H7.59v9.674l4.181.001c1.686 0 2.886-1.46 2.888-2.713c.385.788 1.72 2.762 4.427 2.76zm-7.665-3.936c.387 0 .692.382.692.817s-.305.817-.692.817h-1.33v-1.634zm.005-3.633c.387 0 .692.382.692.817c0 .436-.305.818-.692.818h-1.33V9.373zm1.77 2.607c.305-.039.813-.387.992-.61c-.063.276-.068 1.074.006 1.35c-.204-.314-.688-.701-.998-.74m3.43 0a2.462 2.462 0 1 1 4.924 0a2.462 2.462 0 0 1-4.925 0zm2.462 1.936a1.936 1.936 0 1 0 0-3.872a1.936 1.936 0 0 0 0 3.872"/></svg>';
 
-    // Массив коллекций
+    // Коллекции
     const collections = [
       { title: 'Дорамы',          img: 'https://amikdn.github.io/img/dorams.jpg',          svg: doramySvg,   networks: null,  extra: '&without_genres=16&with_original_language=ko&vote_average.gte=6&vote_average.lte=10' },
       { title: 'Турецкие сериалы',img: 'https://amikdn.github.io/img/tur_serials.jpg',    svg: turkishSvg,  networks: null,  extra: '&without_genres=16&with_original_language=tr&vote_average.gte=6&vote_average.lte=10' },
@@ -36,23 +41,36 @@
       { title: 'HBO',             img: 'https://amikdn.github.io/img/hbo.jpg',             svg: hboSvg,      networks: '49' },
     ].map(item => ({
       ...item,
-      request: `$discover/${item.type || 'tv'}?first_air_date.gte=2020-01-01&first_air_date.lte=${today}${item.extra ? item.extra : '&vote_average.gte=6&vote_average.lte=10'}${item.networks ? `&with_networks=${item.networks}` : ''}`
+      request: `discover/${item.type || 'tv'}?first_air_date.gte=2020-01-01&first_air_date.lte=${today}${item.extra ? item.extra : '&vote_average.gte=6&vote_average.lte=10'}${item.networks ? `&with_networks=${item.networks}` : ''}`
     }));
 
-    // Настройка переключения вида
+    // Добавляем настройку
     Lampa.SettingsApi.addParam({
       component: 'interface',
       param: {
         name: 'foreign_movie_view',
         type: 'select',
-        values: { grid: 'Сетка', list: 'Список' },
-        default: 'grid'
+        values: { grid: 'Сетка с картинками', list: 'Список плиток (модальное окно)' },
+        default: 'list'
       },
       field: {
-        name: 'Зарубежное: Интерфейс',
-        description: 'Сетка — страница с обложками. Список — окно со списком.'
-      },
-      onRender: item => setTimeout(() => $('div[data-name="foreign_movie_view"]').insertAfter('div[data-name="interface_size"]'), 10)
+        name: 'Зарубежное: вид отображения',
+        description: 'Сетка — отдельная страница с обложками. Список плиток — модальное окно.'
+      }
+    });
+
+    // Надёжное позиционирование настройки при открытии раздела
+    Lampa.Listener.follow('settings', function (e) {
+      if (e.type === 'open' && e.name === 'interface') {
+        setTimeout(() => {
+          const setting = $('div[data-name="foreign_movie_view"]');
+          const anchor = $('div[data-name="interface_size"]'); // После размера интерфейса
+
+          if (setting.length && anchor.length && !setting.next().is(anchor)) {
+            setting.insertAfter(anchor);
+          }
+        }, 100);
+      }
     });
 
     // Компонент для режима "Сетка"
