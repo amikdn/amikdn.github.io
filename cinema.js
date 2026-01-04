@@ -24,6 +24,7 @@
         { title: 'ТНТ', img: 'https://bylampa.github.io/img/tnt.jpg', request: 'discover/tv?with_networks=1191&sort_by=first_air_date.desc&air_date.lte=' + today },
       ];
 
+      // Плитка "Русское" — горизонтальные карточки (wide)
       function russianCategoryComponent(data) {
         var category = Lampa.Maker.make('Category', data);
 
@@ -36,6 +37,7 @@
               var results = russianCategories.map(item => ({
                 title: item.title,
                 img: item.img,
+                params: { style: { name: 'wide' } }, // Горизонтальные (wide)
                 data: {
                   url: item.request,
                   title: item.title,
@@ -90,7 +92,8 @@
 
       $('.menu .menu__list').eq(0).append(menuItem);
 
-      function RussianMainSource(baseSource) {
+      // Основной источник с русскими подборками на главной (все постеры вертикальные)
+      function EnhancedTmdbSource(baseSource) {
         this.network = new Lampa.Reguest();
         this.base = baseSource;
 
@@ -114,188 +117,134 @@
           var dateFrom2 = randomYears2.start + '-01-01';
           var dateTo2 = randomYears2.end + '-12-31';
 
-          var sortOptions = ['vote_count.desc', 'vote_average.desc', 'popularity.desc', 'revenue.desc'];
-          var randomSort1 = sortOptions[Math.floor(Math.random() * sortOptions.length)];
+          var randomSort1 = ['vote_count.desc', 'vote_average.desc', 'popularity.desc', 'revenue.desc'][Math.floor(Math.random() * 4)];
           var randomSort2 = ['vote_count.desc', 'popularity.desc', 'revenue.desc'][Math.floor(Math.random() * 3)];
 
           var today = new Date().toISOString().substr(0, 10);
 
           var requests = [
-            // Сейчас смотрят
-            function (callback) {
-              this.base.get('movie/now_playing', params, function (data) {
-                data.title = Lampa.Lang.translate('title_now_watch');
-                callback(data);
-              }, callback);
-            }.bind(this),
+            // Оригинальные TMDB подборки (все вертикальные, без специальных стилей)
+            function (callback) { this.base.get('movie/now_playing', params, callback, callback); }.bind(this),
+            function (callback) { this.base.get('trending/all/day', params, callback, callback); }.bind(this),
+            function (callback) { this.base.get('trending/all/week', params, callback, callback); }.bind(this),
+            function (callback) { this.base.get('movie/upcoming', params, callback, callback); }.bind(this),
+            function (callback) { this.base.get('movie/popular', params, callback, callback); }.bind(this),
+            function (callback) { this.base.get('trending/tv/week', params, callback, callback); }.bind(this),
+            function (callback) { this.base.get('movie/top_rated', params, callback, callback); }.bind(this),
+            function (callback) { this.base.get('tv/top_rated', params, callback, callback); }.bind(this),
+            function (callback) { this.base.get('discover/tv?with_networks=213&first_air_date.gte=2020-01-01&vote_average.gte=6&vote_average.lte=10&first_air_date.lte=' + today, params, callback, callback); }.bind(this),
+            function (callback) { this.base.get('discover/tv?with_networks=2552&first_air_date.gte=2020-01-01&vote_average.gte=6&vote_average.lte=10&first_air_date.lte=' + today, params, callback, callback); }.bind(this),
+            function (callback) { this.base.get('discover/tv?with_networks=1024&first_air_date.gte=2020-01-01&vote_average.gte=6&vote_average.lte=10&first_air_date.lte=' + today, params, callback, callback); }.bind(this),
+            function (callback) { this.base.get('discover/tv?with_networks=6219&first_air_date.gte=2020-01-01&vote_average.gte=6&vote_average.lte=10&first_air_date.lte=' + today, params, callback, callback); }.bind(this),
+            function (callback) { this.base.get('discover/tv?with_networks=49&first_air_date.gte=2020-01-01&vote_average.gte=6&vote_average.lte=10&first_air_date.lte=' + today, params, callback, callback); }.bind(this),
+            function (callback) { this.base.get('discover/tv?first_air_date.gte=2020-01-01&without_genres=16&with_original_language=ko&vote_average.gte=6&vote_average.lte=10&first_air_date.lte=' + today, params, callback, callback); }.bind(this),
+            function (callback) { this.base.get('discover/tv?first_air_date.gte=2020-01-01&without_genres=16&with_original_language=tr&vote_average.gte=6&vote_average.lte=10&first_air_date.lte=' + today, params, callback, callback); }.bind(this),
+            function (callback) { this.base.get('discover/movie?primary_release_date.gte=2020-01-01&without_genres=16&with_original_language=hi&vote_average.gte=6&vote_average.lte=10&first_air_date.lte=' + today, params, callback, callback); }.bind(this),
 
-            // Тренд дня
-            function (callback) {
-              this.base.get('trending/all/day', params, function (data) {
-                data.title = Lampa.Lang.translate('title_trend_day');
-                callback(data);
-              }, callback);
-            }.bind(this),
-
-            // Тренд недели
-            function (callback) {
-              this.base.get('trending/all/week', params, function (data) {
-                data.title = Lampa.Lang.translate('title_trend_week');
-                callback(data);
-              }, callback);
-            }.bind(this),
-
-            // Русские фильмы
+            // Русские подборки (вертикальные)
             function (callback) {
               this.base.get('discover/movie?vote_average.gte=5&vote_average.lte=9.5&with_original_language=ru&sort_by=primary_release_date.desc&primary_release_date.lte=' + today, params, function (data) {
-                data.title = Lampa.Lang.translate('Русские фильмы');
+                data.title = 'Русские фильмы';
                 callback(data);
               }, callback);
             }.bind(this),
 
-            // Русские сериалы
             function (callback) {
               this.base.get('discover/tv?with_original_language=ru&sort_by=first_air_date.desc&air_date.lte=' + today, params, function (data) {
-                data.title = Lampa.Lang.translate('Русские сериалы');
+                data.title = 'Русские сериалы';
                 callback(data);
               }, callback);
             }.bind(this),
 
-            // Скоро в кино
-            function (callback) {
-              this.base.get('movie/upcoming', params, function (data) {
-                data.title = Lampa.Lang.translate('title_upcoming');
-                callback(data);
-              }, callback);
-            }.bind(this),
-
-            // Русские мультфильмы
             function (callback) {
               this.base.get('discover/movie?vote_average.gte=5&vote_average.lte=9.5&with_genres=16&with_original_language=ru&sort_by=primary_release_date.desc&primary_release_date.lte=' + today, params, function (data) {
-                data.title = Lampa.Lang.translate('Русские мультфильмы');
+                data.title = 'Русские мультфильмы';
                 callback(data);
               }, callback);
             }.bind(this),
 
-            // Популярные фильмы
-            function (callback) {
-              this.base.get('movie/popular', params, function (data) {
-                data.title = Lampa.Lang.translate('title_popular_movie');
-                callback(data);
-              }, callback);
-            }.bind(this),
-
-            // Популярные сериалы
-            function (callback) {
-              this.base.get('trending/tv/week', params, function (data) {
-                data.title = Lampa.Lang.translate('title_popular_tv');
-                callback(data);
-              }, callback);
-            }.bind(this),
-
-            // Подборки русских фильмов
             function (callback) {
               this.base.get('discover/movie?primary_release_date.gte=' + dateFrom2 + '&primary_release_date.lte=' + dateTo2 + '&vote_average.gte=5&vote_average.lte=9.5&with_original_language=ru&sort_by=' + randomSort2, params, function (data) {
-                data.title = Lampa.Lang.translate('Подборки русских фильмов');
+                data.title = 'Подборки русских фильмов';
                 callback(data);
               }, callback);
             }.bind(this),
 
-            // Подборки русских сериалов
             function (callback) {
               this.base.get('discover/tv?first_air_date.gte=' + dateFrom1 + '&first_air_date.lte=' + dateTo1 + '&with_networks=2493|2859|4085|3923|3871|3827|5806|806|1191&sort_by=' + randomSort1, params, function (data) {
-                data.title = Lampa.Lang.translate('Подборки русских сериалов');
+                data.title = 'Подборки русских сериалов';
                 callback(data);
               }, callback);
             }.bind(this),
 
-            // Netflix
+            // Сервисы (Start, Premier и т.д.) — как отдельные строки
             function (callback) {
-              this.base.get('discover/tv?with_networks=213&first_air_date.gte=2020-01-01&vote_average.gte=6&vote_average.lte=10&first_air_date.lte=' + today, params, function (data) {
-                data.title = 'Netflix';
+              this.base.get('discover/tv?with_networks=2493&sort_by=first_air_date.desc&air_date.lte=' + today, params, function (data) {
+                data.title = 'Start';
                 callback(data);
               }, callback);
             }.bind(this),
 
-            // Apple TV+
             function (callback) {
-              this.base.get('discover/tv?with_networks=2552&first_air_date.gte=2020-01-01&vote_average.gte=6&vote_average.lte=10&first_air_date.lte=' + today, params, function (data) {
-                data.title = 'Apple TV+';
+              this.base.get('discover/tv?with_networks=2859&sort_by=first_air_date.desc&air_date.lte=' + today, params, function (data) {
+                data.title = 'Premier';
                 callback(data);
               }, callback);
             }.bind(this),
 
-            // Prime Video
             function (callback) {
-              this.base.get('discover/tv?with_networks=1024&first_air_date.gte=2020-01-01&vote_average.gte=6&vote_average.lte=10&first_air_date.lte=' + today, params, function (data) {
-                data.title = 'Prime Video';
+              this.base.get('discover/tv?with_networks=4085&sort_by=first_air_date.desc&air_date.lte=' + today, params, function (data) {
+                data.title = 'KION';
                 callback(data);
               }, callback);
             }.bind(this),
 
-            // MGM+
             function (callback) {
-              this.base.get('discover/tv?with_networks=6219&first_air_date.gte=2020-01-01&vote_average.gte=6&vote_average.lte=10&first_air_date.lte=' + today, params, function (data) {
-                data.title = 'MGM+';
+              this.base.get('discover/tv?with_networks=3923&sort_by=first_air_date.desc&air_date.lte=' + today, params, function (data) {
+                data.title = 'ИВИ';
                 callback(data);
               }, callback);
             }.bind(this),
 
-            // HBO
             function (callback) {
-              this.base.get('discover/tv?with_networks=49&first_air_date.gte=2020-01-01&vote_average.gte=6&vote_average.lte=10&first_air_date.lte=' + today, params, function (data) {
-                data.title = 'HBO';
+              this.base.get('discover/tv?with_networks=3871&sort_by=first_air_date.desc&air_date.lte=' + today, params, function (data) {
+                data.title = 'Okko';
                 callback(data);
               }, callback);
             }.bind(this),
 
-            // Дорамы
             function (callback) {
-              this.base.get('discover/tv?first_air_date.gte=2020-01-01&without_genres=16&with_original_language=ko&vote_average.gte=6&vote_average.lte=10&first_air_date.lte=' + today, params, function (data) {
-                data.title = 'Дорамы';
+              this.base.get('discover/tv?with_networks=3827&sort_by=first_air_date.desc&air_date.lte=' + today, params, function (data) {
+                data.title = 'КиноПоиск';
                 callback(data);
               }, callback);
             }.bind(this),
 
-            // Турецкие сериалы
             function (callback) {
-              this.base.get('discover/tv?first_air_date.gte=2020-01-01&without_genres=16&with_original_language=tr&vote_average.gte=6&vote_average.lte=10&first_air_date.lte=' + today, params, function (data) {
-                data.title = 'Турецкие сериалы';
+              this.base.get('discover/tv?with_networks=5806&sort_by=first_air_date.desc&air_date.lte=' + today, params, function (data) {
+                data.title = 'Wink';
                 callback(data);
               }, callback);
             }.bind(this),
 
-            // Индийские фильмы
             function (callback) {
-              this.base.get('discover/movie?primary_release_date.gte=2020-01-01&without_genres=16&with_original_language=hi&vote_average.gte=6&vote_average.lte=10&first_air_date.lte=' + today, params, function (data) {
-                data.title = 'Индийские фильмы';
+              this.base.get('discover/tv?with_networks=806&sort_by=first_air_date.desc&air_date.lte=' + today, params, function (data) {
+                data.title = 'СТС';
                 callback(data);
               }, callback);
             }.bind(this),
 
-            // Start, Premier, KION, ИВИ, Okko, КиноПоиск, Wink, СТС, ТНТ — уже выше в русских
-
-            // Топ фильмы
             function (callback) {
-              this.base.get('movie/top_rated', params, function (data) {
-                data.title = Lampa.Lang.translate('title_top_movie');
-                callback(data);
-              }, callback);
-            }.bind(this),
-
-            // Топ сериалы
-            function (callback) {
-              this.base.get('tv/top_rated', params, function (data) {
-                data.title = Lampa.Lang.translate('title_top_tv');
+              this.base.get('discover/tv?with_networks=1191&sort_by=first_air_date.desc&air_date.lte=' + today, params, function (data) {
+                data.title = 'ТНТ';
                 callback(data);
               }, callback);
             }.bind(this),
           ];
 
-          // Добавляем persons в начало
+          // Persons и жанры из оригинального TMDB
           Lampa.Arrays.insert(requests, 0, Lampa.Api.partPersons(requests, 6, 'movie', requests.length + 1));
 
-          // Добавляем жанры в конец (с защитой от ошибки)
           if (Lampa.Storage.get('genres_cat') != false && params.genres && params.genres.movie) {
             params.genres.movie.forEach(function (genre) {
               requests.push(function (callback) {
@@ -307,43 +256,48 @@
             }.bind(this));
           }
 
-          if (requests.length > 0) {
-            Lampa.Api.partNext(requests, 6, onSuccess, onError);
-          } else {
-            onSuccess();
-          }
+          Lampa.Api.partNext(requests, 6, onSuccess, onError);
         };
       }
 
-      if (Lampa.Storage.get('rus_movie_main') !== false) {
+      // Включаем русские подборки на главной только если параметр включён
+      if (Lampa.Storage.get('rus_movie_main', true)) {
         var originalTmdb = Lampa.Api.sources.tmdb;
-        var enhancedTmdb = Object.assign({}, originalTmdb, new RussianMainSource(originalTmdb));
-        Lampa.Api.sources.tmdb = enhancedTmdb;
+        Lampa.Api.sources.tmdb = Object.assign({}, originalTmdb, new EnhancedTmdbSource(originalTmdb));
       }
 
+      // Перезапуск главной при смене источника или параметра
+      Lampa.Storage.listener.follow('change', function (e) {
+        if (e.name === 'rus_movie_main' || e.name === 'source') {
+          if (Lampa.Storage.get('source') === 'tmdb') {
+            Lampa.Activity.replace();
+          }
+        }
+      });
+
       if (Lampa.Storage.get('source') === 'tmdb') {
-        var savedSource = Lampa.Storage.get('source');
         var interval = setInterval(function () {
           var activity = Lampa.Activity.active();
           if (activity && activity.component === 'main') {
             clearInterval(interval);
-            Lampa.Activity.replace({
-              source: savedSource,
-              title: Lampa.Lang.translate('title_main') + ' - ' + Lampa.Storage.field('source').toUpperCase(),
-            });
+            Lampa.Activity.replace();
           }
         }, 200);
       }
 
+      // Параметр включения/отключения русских подборок на главной
       Lampa.SettingsApi.addParam({
         component: 'interface',
         param: { name: 'rus_movie_main', type: 'trigger', default: true },
-        field: { name: 'Русские новинки на главной', description: 'Показывать русские подборки на главной странице вместе с оригинальными TMDB (все постеры вертикальные). Перезапустите приложение после изменения.' },
+        field: { name: 'Русские новинки на главной', description: 'Включить русские подборки на главной странице TMDB (все постеры вертикальные). Перезапустите приложение после изменения.' },
         onRender: function (el) {
           setTimeout(() => {
             $('div[data-name="rus_movie_main"]').insertAfter('div[data-name="interface_size"]');
           }, 0);
         },
+        onChange: function () {
+          Lampa.Activity.replace(); // Перезагрузка главной при изменении
+        }
       });
     }
 
