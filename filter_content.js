@@ -23,7 +23,7 @@
                 });
             },
 
-            // 2. Язык (скрывать не переведённое на язык по умолчанию)
+            // 2. Язык
             function (items) {
                 if (!settings.language_filter_enabled) return items;
                 return items.filter(function (item) {
@@ -37,30 +37,25 @@
                 });
             },
 
-            // 3. Рейтинг (< 6.0) — РАСШИРЕННЫЕ ИСКЛЮЧЕНИЯ (как в старых рабочих версиях)
+            // 3. Рейтинг — точно как в старых рабочих версиях (минимальные исключения)
             function (items) {
                 if (!settings.rating_filter_enabled) return items;
                 return items.filter(function (item) {
                     if (!item) return true;
 
-                    // Более полные исключения для спецконтента (person, трейлеры, YouTube и т.д.)
                     var isSpecial = 
-                        item.media_type === 'person' ||
                         item.media_type === 'video' ||
                         item.type === 'Trailer' ||
-                        item.source === 'Trailer' ||
                         item.site === 'YouTube' ||
-                        (item.url && item.url.indexOf('/person/') !== -1) ||
                         (item.key && item.name && item.name.toLowerCase().indexOf('trailer') !== -1);
 
                     if (isSpecial) return true;
-
                     if (!item.vote_average || item.vote_average === 0) return false;
                     return item.vote_average >= 6;
                 });
             },
 
-            // 4. Просмотренный контент (включён и работает)
+            // 4. Просмотренный контент (включён)
             function (items) {
                 if (!settings.history_filter_enabled) return items;
 
@@ -78,13 +73,13 @@
 
                     if (isThrown) return false;
                     if (!hasHistory) return true;
-
                     if (hasHistory && mediaType === 'movie') return false;
 
                     var watchedFromFavorite = getWatchedEpisodesFromFavorite(item.id, favorite);
                     var watchedFromTimeline = getWatchedEpisodesFromTimeline(item.id, timeline);
                     var allWatchedEpisodes = mergeWatchedEpisodes(watchedFromFavorite, watchedFromTimeline);
-                    var isFullyWatched = isSeriesFullyWatched(item.original_title || item.original_name || item.title || item.name, allWatchedEpisodes);
+                    var title = item.original_title || item.original_name || item.title || item.name || '';
+                    var isFullyWatched = isSeriesFullyWatched(title, allWatchedEpisodes);
 
                     return !isFullyWatched;
                 });
@@ -100,9 +95,9 @@
         }
     };
 
-    // Вспомогательные функции для фильтра просмотренного (без изменений)
+    // Вспомогательные функции для просмотренного
     function getWatchedEpisodesFromFavorite(id, favoriteData) {
-        var card = favoriteData.card.find(function (c) {
+        var card = (favoriteData.card || []).find(function (c) {
             return c.id === id && Array.isArray(c.seasons) && c.seasons.length > 0;
         });
         if (!card) return [];
@@ -121,7 +116,7 @@
     }
 
     function getWatchedEpisodesFromTimeline(id, timelineData) {
-        var entry = timelineData.find(function (e) { return e.id === id; }) || {};
+        var entry = (timelineData || []).find(function (e) { return e.id === id; }) || {};
         if (!Array.isArray(entry.episodes) || entry.episodes.length === 0) return [];
 
         return entry.episodes.filter(function (ep) {
@@ -130,7 +125,7 @@
     }
 
     function mergeWatchedEpisodes(arr1, arr2) {
-        var merged = arr1.concat(arr2);
+        var merged = (arr1 || []).concat(arr2 || []);
         var unique = [];
         merged.forEach(function (ep) {
             var exists = unique.some(function (u) {
@@ -150,15 +145,14 @@
                 ep.season_number,
                 ep.season_number > 10 ? ':' : '',
                 ep.episode_number,
-                title || ''
+                title
             ].join(''));
             var view = Lampa.Timeline.view(hash);
-            if (view.percent === 0 || view.percent < 100) return false; // Только 100% просмотр считается завершённым
+            if (!view || view.percent < 100) return false;
         }
         return true;
     }
 
-    // Остальной код (перехват карточек, переводы, настройки, кнопка "ещё" и т.д.) — без изменений
     function initCardListener() {
         if (window.lampa_listener_extensions) return;
         window.lampa_listener_extensions = true;
@@ -249,9 +243,9 @@
     }
 
     function needMoreButton(data) {
-        return !!data && Array.isArray(data.results) &&
-               (data.original_length || data.results.length) > data.results.length &&
-               data.page === 1 && data.total_pages > 1;
+        if (!data || !Array.isArray(data.results)) return false;
+        var orig = data.original_length || 0;
+        return orig > data.results.length && data.page === 1 && data.total_pages > 1;
     }
 
     function closest(el, selector) {
@@ -272,6 +266,7 @@
         addRussianTranslations();
         addSettings();
 
+        // Кнопка "ещё"
         Lampa.Listener.follow('line', function (e) {
             if (e.type !== 'visible' || !needMoreButton(e.data)) return;
             var head = $(closest(e.body, '.items-line')).find('.items-line__head');
@@ -288,12 +283,13 @@
                     page: 1,
                     genres: e.params.genres,
                     filter: e.data.filter,
-                    source: e.data.source || e.params.object.source
+                    source: e.data.source || (e.params.object ? e.params.object.source : '')
                 });
             });
             head.append(more);
         });
 
+        // Автозагрузка
         Lampa.Listener.follow('line', function (e) {
             if (e.type !== 'append' || !needMoreButton(e.data)) return;
             if (e.items.length === e.data.results.length && Lampa.Controller.own(e.line)) {
@@ -301,12 +297,9 @@
             }
         });
 
+        // Применение фильтров — БЕЗ строгой проверки URL (чтобы работало во всех категориях)
         Lampa.Listener.follow('request_secuses', function (e) {
-            var url = e.params.url || '';
-            if (url.indexOf(Lampa.TMDB.api('')) > -1 &&
-                url.indexOf('/search') === -1 &&
-                url.indexOf('/person/') === -1 &&
-                e.data && Array.isArray(e.data.results)) {
+            if (e.data && Array.isArray(e.data.results)) {
                 e.data.original_length = e.data.results.length;
                 e.data.results = filterProcessor.apply(e.data.results);
             }
