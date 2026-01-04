@@ -5,8 +5,6 @@
 
   ;(function () {
     function initCustomSource() {
-      // Проверка на origin удалена — работает в любой сборке Lampa
-
       // Класс карточки для ближайших эпизодов
       function EpisodeCard(cardData, episodeData) {
         var card = cardData.card || cardData;
@@ -634,7 +632,8 @@
             }
           });
 
-          if (Lampa.Storage.get('genres_cat') != false) {
+          // Добавлена защита от ошибки: проверка наличия params.genres и params.genres.movie
+          if (Lampa.Storage.get('genres_cat') != false && params.genres && params.genres.movie && params.genres.movie.length > 0) {
             params.genres.movie.forEach(function (genre) {
               if (!usedIds.includes(genre.id)) {
                 var genreLoader = function (callback) {
