@@ -56,12 +56,12 @@
       param: {
         name: 'rus_movie_view',
         type: 'select',
-        values: { grid: 'Сетка с картинками', list: 'Список плиток' },
+        values: { grid: 'Сетка', list: 'Список' },
         default: 'list'
       },
       field: {
-        name: 'Русское: вид отображения',
-        description: 'Сетка — отдельная страница с обложками. Список плиток — модальное окно.'
+        name: 'Русское: Интерфейс',
+        description: 'Сетка — страница с обложками. Список — окно со списком.'
       },
       onRender: item => setTimeout(() => $('div[data-name="rus_movie_view"]').insertAfter('div[data-name="interface_size"]'), 10)
     });
