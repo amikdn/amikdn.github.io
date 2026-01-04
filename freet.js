@@ -3,8 +3,6 @@
 
   Lampa.Platform.tv();
 
-  // Убрана проверка на Manifest.origin — плагин теперь работает в любой версии Lampa, включая браузер на ПК
-
   // SVG-иконка
   const serverIconSvg = `
     <svg version="1.1" id="_x36_" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 512 512" xml:space="preserve" fill="currentColor">
@@ -164,7 +162,6 @@
     },
   });
 
-  // Новый параметр: текущий активный адрес (всегда виден)
   Lampa.SettingsApi.addParam({
     component: 'server',
     param: { name: 'current_torrserver', type: 'static' },
