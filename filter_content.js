@@ -12,7 +12,7 @@
     // Процессор фильтров
     var filterProcessor = {
         filters: [
-            // 1. Азиатский контент
+            // Фильтр азиатского контента
             function (items) {
                 if (!settings.asian_filter_enabled) return items;
                 return items.filter(function (item) {
@@ -23,7 +23,7 @@
                 });
             },
 
-            // 2. Язык
+            // Фильтр языка (скрывать контент, не переведённый на язык по умолчанию)
             function (items) {
                 if (!settings.language_filter_enabled) return items;
                 return items.filter(function (item) {
@@ -37,7 +37,7 @@
                 });
             },
 
-            // 3. Рейтинг — точно как в старых рабочих версиях (минимальные исключения)
+            // Фильтр низкого рейтинга (< 6.0)
             function (items) {
                 if (!settings.rating_filter_enabled) return items;
                 return items.filter(function (item) {
@@ -55,7 +55,7 @@
                 });
             },
 
-            // 4. Просмотренный контент (включён)
+            // 4. Просмотренный контент
             function (items) {
                 if (!settings.history_filter_enabled) return items;
 
@@ -266,7 +266,6 @@
         addRussianTranslations();
         addSettings();
 
-        // Кнопка "ещё"
         Lampa.Listener.follow('line', function (e) {
             if (e.type !== 'visible' || !needMoreButton(e.data)) return;
             var head = $(closest(e.body, '.items-line')).find('.items-line__head');
@@ -297,7 +296,7 @@
             }
         });
 
-        // Применение фильтров — БЕЗ строгой проверки URL (чтобы работало во всех категориях)
+        // Применение фильтров
         Lampa.Listener.follow('request_secuses', function (e) {
             if (e.data && Array.isArray(e.data.results)) {
                 e.data.original_length = e.data.results.length;
