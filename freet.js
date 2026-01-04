@@ -3,7 +3,9 @@
 
   Lampa.Platform.tv();
 
-  // SVG-иконка для кнопки и настроек
+  // Убрана проверка на Manifest.origin — плагин теперь работает в любой версии Lampa, включая браузер на ПК
+
+  // SVG-иконка
   const serverIconSvg = `
     <svg version="1.1" id="_x36_" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 512 512" xml:space="preserve" fill="currentColor">
       <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
@@ -24,7 +26,7 @@
               <path style="fill:#currentColor;" d="M492.427,6.264H19.545c-7.351,0-13.31,5.959-13.31,13.31v81.539 c0,7.351,5.959,13.309,13.31,13.309h472.882c7.351,0,13.31-5.959,13.31-13.309V19.573 C505.737,12.222,499.778,6.264,492.427,6.264z"></path>
               <path style="fill:#currentColor;" d="M492.427,146.79H19.545c-7.351,0-13.31,5.959-13.31,13.31v81.539c0,7.351,5.959,13.31,13.31,13.31 h472.882c7.351,0,13.31-5.959,13.31-13.31V160.1C505.737,152.749,499.778,146.79,492.427,146.79z"></path>
               <path style="fill:#currentColor;" d="M492.427,287.318H19.545c-7.351,0-13.31,5.959-13.31,13.31v81.539 c0,7.351,5.959,13.31,13.31,13.31h472.882c7.351,0,13.31-5.959,13.31-13.31v-81.539 C505.737,293.276,499.778,287.318,492.427,287.318z"></path>
-              <!-- Все остальные пути из оригинального SVG сохранены полностью -->
+              <!-- Все остальные пути SVG сохранены полностью (как в предыдущих версиях) -->
             </g>
           </g>
           <g style="opacity:0.5;">
@@ -34,7 +36,7 @@
       </g>
     </svg>`;
 
-  // Получение случайного TorrServer IP и установка URL
+  // Получение случайного TorrServer
   function fetchRandomTorrServer() {
     const xhr = new XMLHttpRequest();
     xhr.open('GET', 'http://185.87.48.42:8090/random_torr', true);
@@ -45,37 +47,33 @@
         const newUrl = `http://${ip}:8090`;
         Lampa.Storage.set('torrserver_url_two', newUrl);
         Lampa.Noty.show(`TorrServer изменён: ${newUrl}`);
-        updateCurrentServerDisplay(); // Обновляем отображение в настройках
+        updateCurrentServerDisplay();
       } else {
-        console.error('Ошибка при получении IP:', xhr.status);
-        Lampa.Noty.show('Ошибка запроса');
+        Lampa.Noty.show('Ошибка запроса к серверу случайного TorrServer');
       }
     };
 
-    xhr.onerror = () => {
-      console.error('Ошибка сети при запросе IP');
-      Lampa.Noty.show('Ошибка запроса');
-    };
+    xhr.onerror = () => Lampa.Noty.show('Ошибка сети при запросе TorrServer');
 
     xhr.send();
   }
 
-  // Функция для обновления отображаемого текущего сервера
+  // Обновление отображаемого текущего адреса
   function updateCurrentServerDisplay() {
-    const currentUrl = Lampa.Storage.get('torrserver_url_two', '');
+    const useLink = Lampa.Storage.get('torrserver_use_link', 'one');
+    const url = useLink === 'two' 
+      ? Lampa.Storage.get('torrserver_url_two', '') 
+      : Lampa.Storage.get('torrserver_url', '');
+
     const displayEl = $('div[data-name="current_torrserver"] .settings-param__value');
     if (displayEl.length) {
-      displayEl.text(currentUrl || 'Не установлен');
+      displayEl.text(url || 'Не установлен');
     }
   }
 
-  // Добавление кнопки смены сервера в хедер
+  // Кнопка в хедере
   function addSwitchButton() {
-    const buttonHtml = `
-      <div id="SWITCH_SERVER" class="head__action selector switch-screen">
-        ${serverIconSvg}
-      </div>`;
-
+    const buttonHtml = `<div id="SWITCH_SERVER" class="head__action selector switch-screen">${serverIconSvg}</div>`;
     $('#app > div.head > div > div.head__actions').append(buttonHtml);
     $('#SWITCH_SERVER').insertAfter('div[class="head__action selector open--settings"]');
 
@@ -93,17 +91,11 @@
 
   function applyButtonVisibility() {
     const mode = Lampa.Storage.get('switch_server_button', '2');
-
-    if (mode === '1') {
-      $('#SWITCH_SERVER').hide();
-    } else if (mode === '2') {
+    if (mode === '1') $('#SWITCH_SERVER').hide();
+    else if (mode === '2') {
       Lampa.Storage.listener.follow('change', (e) => {
         if (e.name === 'activity') {
-          if (Lampa.Activity.active().component === 'torrents') {
-            $('#SWITCH_SERVER').show();
-          } else {
-            $('#SWITCH_SERVER').hide();
-          }
+          $('#SWITCH_SERVER').toggle(Lampa.Activity.active().component === 'torrents');
         }
       });
     } else if (mode === '3') {
@@ -111,21 +103,20 @@
     }
   }
 
+  // Обработка ошибки подключения
   let errorObserver = null;
-
   function startErrorObserver() {
-    if (localStorage.getItem('torrserv') !== '1') return;
+    if (Lampa.Storage.get('torrserv') != '1') return;
 
     errorObserver = new MutationObserver(() => {
-      const title = $('.modal__title').text().trim();
-      if (title === Lampa.Lang.translate('torrent_error_connect')) {
+      if ($('.modal__title').text().trim() === Lampa.Lang.translate('torrent_error_connect')) {
         $('.torrent-checklist__progress-steps, .torrent-checklist__progress-bar > div, .torrent-checklist__list > li').remove();
-        $('.torrent-checklist__descr').html('Сервер не ответил, нажмите кнопку снизу для его замены на другой!');
+        $('.torrent-checklist__descr').html('Сервер не ответил, нажмите кнопку снизу для замены');
 
         const button = $('.modal .simple-button');
         if (button.length) {
           button.html('Сменить сервер');
-          button.off('hover:enter hover:click hover:touch').on('hover:enter hover:click hover:touch', () => {
+          button.off().on('hover:enter hover:click hover:touch', () => {
             $('.modal').remove();
             Lampa.Noty.show('TorrServer изменён');
             fetchRandomTorrServer();
@@ -134,122 +125,73 @@
         }
       }
     });
-
     errorObserver.observe(document.body, { childList: true, subtree: true });
   }
 
-  function stopErrorObserver() {
-    if (errorObserver) {
-      errorObserver.disconnect();
-      errorObserver = null;
-    }
-  }
-
-  // Основная настройка выбора режима
+  // Настройка режима
   Lampa.SettingsApi.addParam({
     component: 'server',
     param: { name: 'torrserv', type: 'select', values: { 0: 'Свой вариант', 1: 'Автовыбор' }, default: 1 },
     field: {
-      name: `<div class="settings-folder" style="padding:0!important">
-        <div style="width:1.3em;height:1.3em;padding-right:.1em">${serverIconSvg}</div>
-        <div style="font-size:1.0em">
-          <div style="padding: 0.3em 0.3em; padding-top: 0;">
-            <div style="background: #d99821; padding: 0.5em; border-radius: 0.4em;">
-              <div style="line-height: 0.3;">Free TorrServer</div>
-            </div>
-          </div>
-        </div>
-      </div>`,
+      name: `<div class="settings-folder" style="padding:0!important"><div style="width:1.3em;height:1.3em;padding-right:.1em">${serverIconSvg}</div><div style="font-size:1.0em"><div style="padding: 0.3em 0.3em; padding-top: 0;"><div style="background: #d99821; padding: 0.5em; border-radius: 0.4em;"><div style="line-height: 0.3;">Free TorrServer</div></div></div></div></div>`,
       description: 'Нажмите для смены сервера',
     },
     onChange: (value) => {
       if (value == '0') {
         Lampa.Storage.set('torrserver_use_link', 'one');
         Lampa.Storage.set('torrserver_url_two', '');
-        applyButtonVisibility();
-        Lampa.Settings.update();
-      } else if (value == '1') {
-        Lampa.Noty.show('TorrServer изменён');
+      } else {
         Lampa.Storage.set('torrserver_use_link', 'two');
         fetchRandomTorrServer();
-        applyButtonVisibility();
-        Lampa.Settings.update();
       }
+      applyButtonVisibility();
+      Lampa.Settings.update();
       updateCurrentServerDisplay();
     },
     onRender: (element) => {
       setTimeout(() => {
         if ($('div[data-name="torrserv"]').length > 1) element.hide();
-
         $('.settings-param__name', element).css('color', 'ffffff');
         $('div[data-name="torrserv"]').insertAfter('div[data-name="torrserver_use_link"]');
 
+        // В автовыборе НЕ скрываем поле url_two — оно будет read-only (стандартное поведение Lampa)
+        // Пользователь увидит адрес в стандартном поле "Ссылка 2"
         if (Lampa.Storage.get('torrserv') == '1') {
-          $('div[data-name="torrserver_url_two"], div[data-name="torrserver_url"], div[data-name="torrserver_use_link"]').hide();
+          $('div[data-name="torrserver_url"], div[data-name="torrserver_use_link"]').hide();
           $('div > span:contains("Ссылки")').remove();
-        } else {
-          $('div[data-name="torrserver_url_two"], div[data-name="torrserver_use_link"], div[data-name="switch_server_button"]').hide();
         }
       }, 0);
     },
   });
 
-  // Новый параметр: отображение текущего сервера (только при автовыборе)
+  // Новый параметр: текущий активный адрес (всегда виден)
   Lampa.SettingsApi.addParam({
     component: 'server',
-    param: { name: 'current_torrserver', type: 'static', default: '' },
+    param: { name: 'current_torrserver', type: 'static' },
     field: {
-      name: 'Текущий сервер (автовыбор)',
-      description: 'Здесь отображается автоматически выбранный сервер',
+      name: 'Текущий адрес TorrServer',
+      description: 'Активный сервер (зависит от выбранного режима)',
     },
     onRender: (element) => {
-      const valueEl = $('.settings-param__value', element);
-      valueEl.text(Lampa.Storage.get('torrserver_url_two', 'Не установлен'));
+      updateCurrentServerDisplay();
+      element.show().insertAfter('div[data-name="torrserv"]');
 
-      // Показываем только при автовыборе
-      if (Lampa.Storage.get('torrserv') == '1') {
-        element.show();
-        $('div[data-name="current_torrserver"]').insertAfter('div[data-name="torrserv"]');
-      } else {
-        element.hide();
-      }
-
-      // Обновляем при изменении
+      // Обновление при любых изменениях
       Lampa.Storage.listener.follow('change', (e) => {
-        if (e.name === 'torrserver_url_two') {
-          valueEl.text(Lampa.Storage.get('torrserver_url_two', 'Не установлен'));
-        }
-        if (e.name === 'torrserv') {
-          if (e.value == '1') {
-            element.show().insertAfter('div[data-name="torrserv"]');
-            updateCurrentServerDisplay();
-          } else {
-            element.hide();
-          }
+        if (['torrserver_url', 'torrserver_url_two', 'torrserver_use_link', 'torrserv'].includes(e.name)) {
+          updateCurrentServerDisplay();
         }
       });
     },
   });
 
-  // Настройка видимости кнопки
+  // Видимость кнопки
   Lampa.SettingsApi.addParam({
     component: 'server',
-    param: {
-      name: 'switch_server_button',
-      type: 'select',
-      values: { 1: 'Не показывать', 2: 'Показывать только в торрентах', 3: 'Показывать всегда' },
-      default: '2',
-    },
-    field: {
-      name: 'Кнопка для смены сервера',
-      description: 'Параметр включает отображение кнопки в верхнем баре для быстрой смены сервера',
-    },
+    param: { name: 'switch_server_button', type: 'select', values: { 1: 'Не показывать', 2: 'Только в торрентах', 3: 'Всегда' }, default: '2' },
+    field: { name: 'Кнопка смены сервера в баре', description: 'Отображение кнопки в верхней панели' },
     onChange: applyButtonVisibility,
-    onRender: () => {
-      setTimeout(() => {
-        $('div[data-name="switch_server_button"]').insertAfter('div[data-name="torrserver_url"]');
-      }, 0);
-    },
+    onRender: () => setTimeout(() => $('div[data-name="switch_server_button"]').insertAfter('div[data-name="torrserver_url"]'), 0),
   });
 
   // Инициализация
@@ -257,7 +199,7 @@
     if (typeof Lampa !== 'undefined') {
       clearInterval(initInterval);
 
-      if (localStorage.getItem('torrserv') === null || localStorage.getItem('torrserv') == 1) {
+      if (!localStorage.getItem('torrserv') || localStorage.getItem('torrserv') == '1') {
         Lampa.Storage.set('torrserv', '1');
         Lampa.Storage.set('torrserver_url_two', '');
         setTimeout(() => {
@@ -266,17 +208,13 @@
         }, 3000);
       }
 
-      if (localStorage.getItem('switch_server_button') === null) {
-        Lampa.Storage.set('switch_server_button', '2');
-      }
+      if (!localStorage.getItem('switch_server_button')) Lampa.Storage.set('switch_server_button', '2');
 
-      if (Lampa.Platform.is('android')) {
-        Lampa.Storage.set('internal_torrclient', true);
-      }
+      if (Lampa.Platform.is('android')) Lampa.Storage.set('internal_torrclient', true);
 
       addSwitchButton();
       startErrorObserver();
-      updateCurrentServerDisplay(); // Инициализируем отображение
+      updateCurrentServerDisplay();
     }
   }, 200);
 })();
