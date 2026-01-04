@@ -5,6 +5,13 @@
 
   ;(function () {
     function initRussianPlugin() {
+      if (Lampa.Manifest.origin !== 'bylampa') {
+        Lampa.Noty.show('Ошибка доступа')
+        return
+      }
+
+      // Уведомление для проверки загрузки плагина
+      Lampa.Noty.show('Плагин "Русское" успешно загружен')
 
       const menuIconSvg = `
         <svg xmlns="http://www.w3.org/2000/svg" width="1.2em" height="1.2em" viewBox="0 0 48 48">
@@ -107,6 +114,7 @@
 
       $('.menu .menu__list').eq(0).append(menuItem)
 
+      // Все SVG-иконки полностью
       Lampa.Template.add('now_icon', `
         <svg xmlns="http://www.w3.org/2000/svg" width="2em" height="2em" viewBox="0 0 24 24">
           <path fill="currentColor" d="M8.8 11.997c0-.974.789-1.763 1.76-1.763c.972 0 1.76.79 1.76 1.763c0 .974-.788 1.764-1.76 1.764c-.971 0-1.76-.79-1.76-1.764m13.03-2.896l-1.217 2.453l-.788-2.319h-.001a1.144 1.144 0 0 0-2.039-.257c-.526.802-1.05 1.61-1.574 2.414l-.278-1.956a1.145 1.145 0 1 0-2.263.342l.049.328a3.675 3.675 0 0 0-6.332.028l.07-.343a1.108 1.108 0 1 0-2.171-.444l-.476 2.338l-1.752-2.718a1.106 1.106 0 0 0-2.012.374L.023 14.353a1.11 1.11 0 0 0 1.087 1.336c.513.004.976-.358 1.084-.892l.476-2.338q.888 1.383 1.78 2.764a1.108 1.108 0 0 0 1.993-.456l.469-2.302a3.68 3.68 0 0 0 3.648 3.219a3.68 3.68 0 0 0 3.57-2.797l.262 1.759c.074.579.548 1.037 1.141 1.037c.427 0 .776-.245.997-.584l1.885-2.895l.905 2.665c.162.475.58.814 1.096.814c.479 0 .855-.288 1.06-.716l2.403-4.845a1.15 1.15 0 0 0-.512-1.54a1.143 1.143 0 0 0-1.538.52" stroke-width="0.5" stroke="currentColor"/>
@@ -223,7 +231,7 @@
 
           const requests = [
             cb => this.get('movie/now_playing', params, data => {
-              data.title = Lampa.Lang.translate('title_now_watch')
+              data.title = 'Сейчас в кино'
               data.icon_svg = Lampa.Template.string('now_icon')
               data.icon_bgcolor = '#0f7679'
               data.icon_color = '#fff'
@@ -233,7 +241,7 @@
             }, cb),
 
             cb => this.get('trending/all/day', params, data => {
-              data.title = Lampa.Lang.translate('title_trend_day')
+              data.title = 'Тренды дня'
               data.icon_svg = Lampa.Template.string('icon_star')
               data.icon_bgcolor = '#fff'
               data.icon_color = '#212121'
@@ -242,7 +250,7 @@
             }, cb),
 
             cb => this.get('trending/all/week', params, data => {
-              data.title = Lampa.Lang.translate('title_trend_week')
+              data.title = 'Тренды недели'
               data.icon_svg = Lampa.Template.string('icon_star')
               data.icon_bgcolor = '#fff'
               data.icon_color = '#212121'
@@ -268,7 +276,7 @@
             }, cb),
 
             cb => this.get('movie/upcoming', params, data => {
-              data.title = Lampa.Lang.translate('title_upcoming')
+              data.title = 'Скоро в кино'
               data.icon_svg = Lampa.Template.string('upcoming_icon')
               data.icon_bgcolor = '#25b7d3'
               data.params = { module: Lampa.Maker.module('Line').toggle(Lampa.Maker.module('Line').MASK.base, 'Icon') }
@@ -285,7 +293,7 @@
             }, cb),
 
             cb => this.get('movie/popular', params, data => {
-              data.title = Lampa.Lang.translate('title_popular_movie')
+              data.title = 'Популярные фильмы'
               data.icon_svg = Lampa.Template.string('icon_fire')
               data.icon_bgcolor = '#fff'
               data.icon_color = '#fd4518'
@@ -294,7 +302,7 @@
             }, cb),
 
             cb => this.get('trending/tv/week', params, data => {
-              data.title = Lampa.Lang.translate('title_popular_tv')
+              data.title = 'Популярные сериалы'
               data.icon_svg = Lampa.Template.string('icon_fire')
               data.icon_bgcolor = '#fff'
               data.icon_color = '#fd4518'
@@ -403,7 +411,7 @@
             }, cb),
 
             cb => this.get('movie/top_rated', params, data => {
-              data.title = Lampa.Lang.translate('title_top_movie')
+              data.title = 'Топ фильмы'
               data.icon_svg = Lampa.Template.string('icon_top')
               data.icon_bgcolor = '#e02129'
               data.params = { module: Lampa.Maker.module('Line').toggle(Lampa.Maker.module('Line').MASK.base, 'Icon') }
@@ -411,7 +419,7 @@
             }, cb),
 
             cb => this.get('tv/top_rated', params, data => {
-              data.title = Lampa.Lang.translate('title_top_tv')
+              data.title = 'Топ сериалы'
               data.icon_svg = Lampa.Template.string('icon_top')
               data.icon_bgcolor = '#e02129'
               data.params = { module: Lampa.Maker.module('Line').toggle(Lampa.Maker.module('Line').MASK.base, 'Icon') }
@@ -426,7 +434,7 @@
 
           this.original.genres.movie.forEach(genre => {
             requests.push(cb => this.get(`discover/movie?with_genres=${genre.id}`, params, data => {
-              data.title = Lampa.Lang.translate(genre.title.replace(/[^a-z_]/g, ''))
+              data.title = genre.name
               cb(data)
             }, cb))
           })
@@ -440,20 +448,19 @@
         }
       }
 
-      // Точная копия refresh из оригинального кода
       function applyRussianMain() {
         if (Lampa.Storage.get('rus_movie_main') !== false && Lampa.Storage.get('source') === 'tmdb') {
-          const currentSource = Lampa.Storage.get('source')
           const refreshInterval = setInterval(() => {
             const active = Lampa.Activity.active()
-            const settingsOpen = $('#app > div.settings > div.settings__content.layer--height > div.settings__body > div').length > 0
+            const settingsOpen = $('.settings__content.layer--height').length > 0
 
             if (active && active.component === 'main' && !settingsOpen) {
               clearInterval(refreshInterval)
               Lampa.Activity.replace({
-                source: currentSource,
-                title: Lampa.Lang.translate('title_main') + ' - ' + Lampa.Storage.field('source').toUpperCase(),
+                component: 'main',
+                source: 'tmdb',
               })
+              Lampa.Noty.show('Русские подборки применены на главной')
             }
           }, 200)
         }
@@ -469,7 +476,7 @@
         param: { name: 'rus_movie_main', type: 'trigger', default: true },
         field: {
           name: 'Русские новинки на главной',
-          description: 'Показывать русские подборки на главной странице (только TMDB). После изменения перезапустите приложение.',
+          description: 'Показывать русские подборки на главной странице (только TMDB). После изменения перезапустите приложение или переключите опцию.',
         },
         onRender(element) {
           setTimeout(() => {
@@ -480,6 +487,8 @@
           setTimeout(() => {
             if (Lampa.Storage.get('rus_movie_main') !== false) {
               Object.assign(Lampa.Api.sources.tmdb, new RussianTmdbSource(Lampa.Api.sources.tmdb))
+            } else {
+              location.reload()
             }
             applyRussianMain()
           }, 500)
