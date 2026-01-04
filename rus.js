@@ -1,15 +1,11 @@
 (function () {
     'use strict';
-
     Lampa.Platform.tv();
-
     (function () {
         function initPlugin() {
             if (window.plugin_rus_movie_ready) return;
             window.plugin_rus_movie_ready = true;
-
             var currentDate = new Date().toISOString().substr(0, 10);
-
             var collections = [
                 { title: 'Русские фильмы', img: 'https://amikdn.github.io/img/rus_movie.jpg', request: 'discover/movie?sort_by=primary_release_date.desc&with_original_language=ru&vote_average.gte=5&vote_average.lte=9.5&primary_release_date.lte=' + currentDate },
                 { title: 'Русские сериалы', img: 'https://amikdn.github.io/img/rus_tv.jpg', request: 'discover/tv?sort_by=first_air_date.desc&with_original_language=ru&air_date.lte=' + currentDate },
@@ -24,7 +20,6 @@
                 { title: 'СТС', img: 'https://amikdn.github.io/img/sts.jpg', request: 'discover/tv?with_networks=806&sort_by=first_air_date.desc&air_date.lte=' + currentDate },
                 { title: 'ТНТ', img: 'https://amikdn.github.io/img/tnt.jpg', request: 'discover/tv?with_networks=1191&sort_by=first_air_date.desc&air_date.lte=' + currentDate }
             ];
-
             function collectionMain(params, onSuccess, onError) {
                 var data = {
                     collection: true,
@@ -39,7 +34,6 @@
                 };
                 onSuccess(data);
             }
-
             function collectionFull(params, onSuccess, onError) {
                 var network = new Lampa.Reguest();
                 var url = Lampa.Utils.protocol() + 'api.themoviedb.org/3/' + params.url + '&page=' + (params.page || 1);
@@ -51,24 +45,19 @@
                     onSuccess({ results: [], title: params.title || '' });
                 });
             }
-
             var collectionApi = {
                 main: collectionMain,
                 full: collectionFull,
                 clear: function () {}
             };
-
             function RusMovieCollection(params) {
                 var category = new Lampa.InteractionCategory(params);
-
                 category.create = function () {
                     collectionApi.main(params, this.build.bind(this), this.empty.bind(this));
                 };
-
                 category.nextPageReuest = function (obj, success, error) {
                     collectionApi.main(obj, success.bind(this), error.bind(this));
                 };
-
                 category.cardRender = function (card, data, render) {
                     render.onMenu = false;
                     render.onEnter = function () {
@@ -81,10 +70,8 @@
                         });
                     };
                 };
-
                 return category;
             }
-
             var manifest = {
                 type: 'video',
                 version: '1.0.0',
@@ -92,12 +79,9 @@
                 description: 'Русские новинки',
                 component: 'rus_movie'
             };
-
             if (!Lampa.Manifest.plugins) Lampa.Manifest.plugins = {};
             Lampa.Manifest.plugins.rus_movie = manifest;
-
             Lampa.Component.add('rus_movie', RusMovieCollection);
-
             // Скрытие фона при открытии коллекции
             Lampa.Storage.listener.follow('change', function (e) {
                 if (e.name === 'activity') {
@@ -109,20 +93,16 @@
                     }
                 }
             });
-
-            // Добавление пункта в меню (с защитой от дублирования и усиленной проверкой)
+            // Добавление пункта в меню
             function addMenuItem() {
-                if ($('.menu__item[data-action="ru_movie"]').length > 0) return;
-
+                if ($('.menu__item[data-action="rus_movie"]').length > 0) return;
                 var menuIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="1.2em" height="1.2em" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="4"><path stroke-linejoin="round" d="M24 44c11.046 0 20-8.954 20-20S35.046 4 24 4S4 12.954 4 24s8.954 20 20 20Z"/><path stroke-linejoin="round" d="M24 18a3 3 0 1 0 0-6a3 3 0 0 0 0 6Zm0 18a3 3 0 1 0 0-6a3 3 0 0 0 0 6Zm-9-9a3 3 0 1 0 0-6a3 3 0 0 0 0 6Zm18 0a3 3 0 1 0 0-6a3 3 0 0 0 0 6Z"/><path stroke-linecap="round" d="M24 44h20"/></g></svg>';
-
                 var $menuItem = $(
-                    '<li class="menu__item selector" data-action="ru_movie">' +
+                    '<li class="menu__item selector" data-action="rus_movie">' +
                     '<div class="menu__ico">' + menuIcon + '</div>' +
                     '<div class="menu__text">Русское</div>' +
                     '</li>'
                 );
-
                 $menuItem.on('hover:enter', function () {
                     Lampa.Activity.push({
                         url: '',
@@ -132,15 +112,11 @@
                     });
                     $('.card').css('text-align', 'center');
                 });
-
-                var menuLists = $('.menu .menu__list');
-                if (menuLists.length > 0) {
-                    menuLists.each(function () {
-                        $(this).append($menuItem.clone(true));
-                    });
+                var menuList = $('.menu .menu__list').last();
+                if (menuList.length > 0) {
+                    menuList.append($menuItem);
                 }
             }
-
             function tryAddMenu() {
                 if (typeof $ !== 'undefined' && $('.menu .menu__list').length > 0) {
                     addMenuItem();
@@ -148,10 +124,8 @@
                     setTimeout(tryAddMenu, 200);
                 }
             }
-
             tryAddMenu();
         }
-
         if (window.appready) {
             initPlugin();
         } else {
