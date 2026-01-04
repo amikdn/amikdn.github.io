@@ -7,7 +7,6 @@
 
     const today = new Date().toISOString().substr(0, 10);
 
-    // SVG-иконки для плиточного вида
     const doramySvg = '<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 512 512"><path fill="currentColor" d="M418.813 30.625c-21.178 26.27-49.712 50.982-84.125 70.844c-36.778 21.225-75.064 33.62-110.313 38.06a310 310 0 0 0 6.813 18.25c16.01.277 29.366-.434 36.406-1.5l9.47-1.53l8.436-1.28l.22 10.186a308 308 0 0 1-1.095 18.72l56.625 8.843q1.289-.145 2.563-.157c11.188-.114 21.44 7.29 24.468 18.593c.657 2.448.922 4.903.845 7.313c5.972-2.075 11.753-4.305 17.28-6.72l9.595-4.188l2.313 10.22a340 340 0 0 1 7.375 48.062C438.29 247.836 468.438 225.71 493 197.5c-3.22-36.73-16.154-78.04-39.125-117.813a291 291 0 0 0-2.22-3.78l-27.56 71.374c5.154.762 10.123 3.158 14.092 7.126c9.81 9.807 9.813 25.69 0 35.5c-9.812 9.81-25.722 9.807-35.53 0c-8.86-8.858-9.69-22.68-2.532-32.5l38.938-100.844a322 322 0 0 0-20.25-25.937zM51.842 118.72c-8.46 17.373-15.76 36.198-21.187 56.436c-14.108 52.617-13.96 103.682-2.812 143.438c13.3-2.605 26.442-3.96 39.312-4.03c1.855-.012 3.688.02 5.53.06c20.857.48 40.98 4.332 59.97 11.5a355 355 0 0 1-1.656-34.218c0-27.8 3.135-54.377 9-78.937l2.47-10.407l9.655 4.562c29.467 13.98 66.194 23.424 106.28 25.22c5.136-20.05 8.19-39.78 9.408-58.75c-35.198 4.83-75.387 2.766-116.407-8.22c-38.363-10.272-72.314-26.78-99.562-46.656zm230.594 82.218c-1.535 10.452-3.615 21.03-6.218 31.687a313 313 0 0 0 46-3.97a24.98 24.98 0 0 1-1.532-21.748zM105 201.375l4.156 18.22l-21.594 4.905c8.75 5.174 13.353 15.703 10.594 26c-3.32 12.394-16.045 19.758-28.437 16.438c-12.394-3.32-19.76-16.075-16.44-28.47a23.2 23.2 0 0 1 3.126-6.874l-21.062 4.78l-4.125-18.218l73.78-16.78zm388.594 22.813c-25.53 25.46-55.306 45.445-86.906 60.5c.05 2.397.093 4.8.093 7.218c0 9.188-.354 18.232-1.03 27.125c16.635 1.33 32.045-1.7 45.344-9.374c25.925-14.962 40.608-45.694 42.5-85.47zm-338.844 3c-4.03 19.993-6.33 41.31-6.406 63.593l.125-.342c30.568 10.174 62.622 17.572 95.25 21.375l7.5.875l.718 7.5l5.687 60.125l-18.625 1.75l-2.53-26.75a23.1 23.1 0 0 1-14.845.968c-12.393-3.32-19.76-16.042-16.438-28.436c.285-1.06.647-2.08 1.063-3.063a497 497 0 0 1-57.406-14.53c2.69 49.62 16.154 94.04 36.094 126.656c22.366 36.588 52.13 57.78 83.968 57.78c31.838.003 61.602-21.19 83.97-57.78c19.536-31.96 32.846-75.244 35.905-123.656a499 499 0 0 1-48.25 11.656c1.914 4.57 2.415 9.78 1.033 14.938c-3.322 12.394-16.045 19.758-28.438 16.437a23 23 0 0 1-2.125-.686l-2.5 26.47l-18.594-1.752l5.688-60.125l.72-7.5l7.498-.875c29.245-3.407 57.995-9.717 85.657-18.312v-1.594c0-21.573-2.27-42.23-6.064-61.75C351.132 242.653 313.092 250 272.312 250c-43.59 0-83.986-8.658-117.562-22.813zm-87.5 105.968c-10.87.102-21.995 1.22-33.375 3.313c12.695 31.62 33.117 53.07 59 60c16.9 4.523 34.896 2.536 52.813-5.25c-4.382-13.89-7.874-28.606-10.344-43.97c-21.115-9.623-43.934-14.32-68.094-14.094zm137.5 80.22h130.813c-40.082 44.594-92.623 42.844-130.813 0"/></svg>';
 
     const turkishSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 64 64"><path fill="currentColor" d="M32 2C15.432 2 2 15.432 2 32s13.432 30 30 30s30-13.432 30-30S48.568 2 32 2m-3.117 15.25c4.381 0 8.311 1.955 10.984 5.049a11.53 11.53 0 0 0-6.638-2.099c-6.444 0-11.668 5.283-11.668 11.8s5.224 11.8 11.668 11.8c2.466 0 4.753-.775 6.638-2.097c-2.674 3.092-6.604 5.047-10.984 5.047C20.828 46.75 14.3 40.147 14.3 32s6.528-14.75 14.583-14.75M49.7 36.254l-5.263-1.638l-3.246 4.268l.012-5.267L35.934 32l5.27-1.617l-.012-5.266l3.246 4.267l5.263-1.638L46.436 32z"/></svg>';
@@ -24,58 +23,42 @@
 
     const hboSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"><path fill="currentColor" d="M7.042 16.896H4.414v-3.754H2.708v3.754H.01L0 7.22h2.708v3.6h1.706v-3.6h2.628zm12.043.046C21.795 16.94 24 14.689 24 11.978a4.89 4.89 0 0 0-4.915-4.92c-2.707-.002-4.09 1.991-4.432 2.795c.003-1.207-1.187-2.632-2.58-2.634H7.59v9.674l4.181.001c1.686 0 2.886-1.46 2.888-2.713c.385.788 1.72 2.762 4.427 2.76zm-7.665-3.936c.387 0 .692.382.692.817s-.305.817-.692.817h-1.33v-1.634zm.005-3.633c.387 0 .692.382.692.817c0 .436-.305.818-.692.818h-1.33V9.373zm1.77 2.607c.305-.039.813-.387.992-.61c-.063.276-.068 1.074.006 1.35c-.204-.314-.688-.701-.998-.74m3.43 0a2.462 2.462 0 1 1 4.924 0a2.462 2.462 0 0 1-4.925 0zm2.462 1.936a1.936 1.936 0 1 0 0-3.872a1.936 1.936 0 0 0 0 3.872"/></svg>';
 
-    // Коллекции
     const collections = [
-      { title: 'Дорамы',          img: 'https://amikdn.github.io/img/dorams.jpg',          svg: doramySvg,   networks: null,  extra: '&without_genres=16&with_original_language=ko&vote_average.gte=6&vote_average.lte=10' },
-      { title: 'Турецкие сериалы',img: 'https://amikdn.github.io/img/tur_serials.jpg',    svg: turkishSvg,  networks: null,  extra: '&without_genres=16&with_original_language=tr&vote_average.gte=6&vote_average.lte=10' },
-      { title: 'Индийские фильмы',img: 'https://amikdn.github.io/img/ind_films.jpg',       svg: indianSvg,   networks: null,  extra: '&without_genres=16&with_original_language=hi&vote_average.gte=6&vote_average.lte=10', type: 'movie' },
-      { title: 'Netflix',         img: 'https://amikdn.github.io/img/netflix.jpg',         svg: netflixSvg,  networks: '213' },
-      { title: 'Apple TV+',       img: 'https://amikdn.github.io/img/apple_tv.jpg',        svg: appleSvg,    networks: '2552' },
-      { title: 'Prime Video',     img: 'https://amikdn.github.io/img/prime_video.jpg',    svg: primeSvg,    networks: '1024' },
-      { title: 'MGM+',            img: 'https://amikdn.github.io/img/mgm.jpg',             svg: mgmSvg,      networks: '6219' },
-      { title: 'HBO',             img: 'https://amikdn.github.io/img/hbo.jpg',             svg: hboSvg,      networks: '49' },
+      { title: 'Дорамы',          img: 'https://amikdn.github.io/img/dorams.jpg',          svg: doramySvg },
+      { title: 'Турецкие сериалы',img: 'https://amikdn.github.io/img/tur_serials.jpg',    svg: turkishSvg },
+      { title: 'Индийские фильмы',img: 'https://amikdn.github.io/img/ind_films.jpg',       svg: indianSvg },
+      { title: 'Netflix',         img: 'https://amikdn.github.io/img/netflix.jpg',         svg: netflixSvg },
+      { title: 'Apple TV+',       img: 'https://amikdn.github.io/img/apple_tv.jpg',        svg: appleSvg },
+      { title: 'Prime Video',     img: 'https://amikdn.github.io/img/prime_video.jpg',    svg: primeSvg },
+      { title: 'MGM+',            img: 'https://amikdn.github.io/img/mgm.jpg',             svg: mgmSvg },
+      { title: 'HBO',             img: 'https://amikdn.github.io/img/hbo.jpg',             svg: hboSvg },
     ].map(item => ({
       ...item,
-      request: `discover/${item.type || 'tv'}?first_air_date.gte=2020-01-01&first_air_date.lte=${today}${item.extra ? item.extra : '&vote_average.gte=6&vote_average.lte=10'}${item.networks ? `&with_networks=${item.networks}` : ''}`
+      request: item.title === 'Индийские фильмы' ? `discover/movie?primary_release_date.gte=2020-01-01&primary_release_date.lte=${today}&without_genres=16&with_original_language=hi&vote_average.gte=6&vote_average.lte=10` :
+               item.title === 'Дорамы' || item.title === 'Турецкие сериалы' ? `discover/tv?first_air_date.gte=2020-01-01&first_air_date.lte=${today}&without_genres=16&with_original_language=${item.title === 'Дорамы' ? 'ko' : 'tr'}&vote_average.gte=6&vote_average.lte=10` :
+               `discover/tv?with_networks=${{Netflix:213,'Apple TV+':2552,'Prime Video':1024,'MGM+':6219,HBO:49}[item.title]}&first_air_date.gte=2020-01-01&first_air_date.lte=${today}&vote_average.gte=6&vote_average.lte=10`
     }));
 
-    // Добавляем настройку
     Lampa.SettingsApi.addParam({
       component: 'interface',
       param: {
         name: 'foreign_movie_view',
         type: 'select',
-        values: { grid: 'Сетка с картинками', list: 'Список плиток (модальное окно)' },
-        default: 'list'
+        values: { grid: 'Сетка', list: 'Список' },
+        default: 'grid'
       },
       field: {
-        name: 'Зарубежное: вид отображения',
-        description: 'Сетка — отдельная страница с обложками. Список плиток — модальное окно.'
-      }
+        name: 'Зарубежное: Интерфейс',
+        description: 'Сетка — страница с обложками. Список — окно со списком.'
+      },
+      onRender: item => setTimeout(() => $('div[data-name="foreign_movie_view"]').insertAfter('div[data-name="interface_size"]'), 10)
     });
 
-    // Надёжное позиционирование настройки при открытии раздела
-    Lampa.Listener.follow('settings', function (e) {
-      if (e.type === 'open' && e.name === 'interface') {
-        setTimeout(() => {
-          const setting = $('div[data-name="foreign_movie_view"]');
-          const anchor = $('div[data-name="interface_size"]'); // После размера интерфейса
-
-          if (setting.length && anchor.length && !setting.next().is(anchor)) {
-            setting.insertAfter(anchor);
-          }
-        }, 100);
-      }
-    });
-
-    // Компонент для режима "Сетка"
-    function foreignGridComponent(object) {
+    function foreignMovieGridComponent(object) {
       const category = Lampa.Maker.make('Category', object);
-
       category.use({
         onCreate: function () {
           this.body.addClass('mapping--grid cols--5');
-
           setTimeout(() => {
             const data = {
               results: collections.map(item => ({
@@ -91,7 +74,6 @@
                 },
               })),
             };
-
             this.build(data);
             $('.card', this.body).css('text-align', 'center');
           }, 100);
@@ -102,13 +84,11 @@
           });
         },
       });
-
       return category;
     }
 
-    Lampa.Component.add('foreign_movie_grid', foreignGridComponent);
+    Lampa.Component.add('foreign_movie_grid', foreignMovieGridComponent);
 
-    // Иконка меню
     const menuIconSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="1.2em" height="1.2em" viewBox="0 0 16 16"><g fill="currentColor"><path d="M2 3a.5.5 0 0 0 .5.5h11a.5.5 0 0 0 0-1h-11A.5.5 0 0 0 2 3m2-2a.5.5 0 0 0 .5.5h7a.5.5 0 0 0 0-1h-7A.5.5 0 0 0 4 1m2.765 5.576A.5.5 0 0 0 6 7v5a.5.5 0 0 0 .765.424l4-2.5a.5.5 0 0 0 0-.848z"/><path d="M1.5 14.5A1.5 1.5 0 0 1 0 13V6a1.5 1.5 0 0 1 1.5-1.5h13A1.5 1.5 0 0 1 16 6v7a1.5 1.5 0 0 1-1.5 1.5zm13-1a.5.5 0 0 0 .5-.5V6a.5.5 0 0 0-.5-.5h-13A.5.5 0 0 0 1 6v7a.5.5 0 0 0 .5.5z"/></g></svg>';
 
     const menuItem = $(`
@@ -120,7 +100,6 @@
 
     menuItem.on('hover:enter', () => {
       const view = Lampa.Storage.get('foreign_movie_view', 'list');
-
       if (view === 'grid') {
         Lampa.Activity.push({
           url: '',
@@ -132,7 +111,6 @@
         const items = collections.map(item => ({
           title: `<div class="settings-folder" style="padding:0!important"><div style="width:2.2em;height:1.7em;padding-right:.5em">${item.svg}</div><div style="font-size:1.3em">${item.title}</div></div>`
         }));
-
         Lampa.Select.show({
           title: 'Зарубежное',
           items: items,
