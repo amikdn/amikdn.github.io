@@ -3,7 +3,8 @@
   Lampa.Platform.tv();
   function initPlugin() {
     const today = new Date().toISOString().substr(0, 10);
-    // SVG-иконки для плиток
+
+    // SVG-иконки для коллекций (маленькие, для плиток в меню)
     const rusSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 48 48"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" d="M12.071 33V15h5.893c3.331 0 6.032 2.707 6.032 6.045s-2.7 6.045-6.032 6.045h-5.893m5.893 0l5.892 5.905m3.073-11.92V28.5a4.5 4.5 0 0 0 4.5 4.5h0a4.5 4.5 0 0 0 4.5-4.5v-7.425m0 7.425V33"/><rect width="37" height="37" x="5.5" y="5.5" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" rx="4" ry="4"/></svg>';
     const startSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"><path fill="currentColor" d="M2.185 6.758c-1.495 0-2.193.849-2.193 2.171v1.534c0 1.373.246 1.959 1.235 2.58l.763.474c.618.374.698.651.698 1.453v1.354c0 .393-.18.636-.521.636c-.342 0-.522-.228-.522-.636v-2.125H-.008v2.14c0 1.338.683 2.17 2.159 2.17c1.526 0 2.224-.882 2.224-2.17v-1.666c0-1.272-.326-1.927-1.265-2.529l-.763-.49c-.537-.342-.668-.586-.668-1.469v-1.24c0-.394.18-.637.503-.637c.341 0 .537.247.537.636v2.105h1.656V8.93c0-1.307-.698-2.17-2.19-2.17m2.711.162v1.635h1.17v9.797h1.687V8.555h1.17V6.92zm5.066 0l-.943 11.427h1.672l.23-3.053h1.227l.23 3.053h1.706l-.94-11.427Zm4.985 0v11.427h1.687v-4.78h1.024v3.917c0 .652.276.863.276.863h1.687c.004.004-.272-.207-.272-.863v-2.972c0-.949-.357-1.47-1.22-1.65v-.197c.86-.131 1.3-.768 1.3-1.797V8.929c0-1.257-.747-2.009-2.193-2.009zm5.02 0v1.635h1.169v9.797h1.687V8.555h1.17V6.92zm-8.529 1.55h.2l.399 5.274h-.997zm5.2.004h.437c.522 0 .667.212.667 1.06v1.419c0 .817-.18 1.06-.732 1.06h-.372z"/></svg>';
     const premierSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"><path fill="currentColor" d="M10.63 11.11a1.16 1.16 0 0 1-.81.77A4 4 0 0 1 8.2 12c-.11 0-.15 0-.15-.16V9.4c0-.09 0-.17.12-.17q.712-.01 1.42.07a1.3 1.3 0 0 1 1.04 1.81"/><path fill="currentColor" d="M17 2H7a5 5 0 0 0-5 5v10a5 5 0 0 0 5 5h10a5 5 0 0 0 5-5V7a5 5 0 0 0-5-5m-5.14 10.57a3 3 0 0 1-2 1c-.5.06-1 0-1.5.08H8v2.57c0 .2 0 .23-.21.23H6.37c-.15 0-.21-.05-.21-.21V7.79c0-.13 0-.2.18-.2H9.1A4 4 0 0 1 11 8a2.71 2.71 0 0 1 1.55 2.43a2.88 2.88 0 0 1-.69 2.14m5.94-1.29c0 .14-.08.17-.2.17a3.6 3.6 0 0 0-1.45.26l-.13.06a.58.58 0 0 0-.4.62v3.82c0 .23 0 .24-.23.24h-1.45c-.21 0-.23 0-.23-.23v-5.19c0-.38 0-.76-.05-1.14c0-.13 0-.19.17-.18h1.33a.23.23 0 0 1 .27.22c0 .2.07.41.1.58c.3-.21.59-.44.91-.63a2.35 2.35 0 0 1 1.19-.31c.12 0 .18 0 .18.17z"/></svg>';
@@ -14,60 +15,37 @@
     const winkSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 48 48"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" d="M18.644 24.001L7.931 13.288L18.644 2.575L40.069 24L18.644 45.425L7.931 34.712z"/></svg>';
     const stsSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 -0.5 17 17"><path fill="currentColor" d="M14.338,3.045 L9.008,4.047 L3.647,3.045 C2.195,3.045 1.016,4.373 1.016,6.011 L1.016,11.034 C1.016,12.672 2.195,14 3.647,14 L9.008,12.969 L14.338,14 C15.79,14 16.969,12.672 16.969,11.034 L16.969,6.011 C16.969,4.373 15.79,3.045 14.338,3.045 L14.338,3.045 Z M8.024,7.016 L6.026,7.016 L6.026,11.047 L4.964,11.047 L4.964,7.016 L2.984,7.016 L2.984,6 L8.024,6 L8.024,7.016 L8.024,7.016 Z M13.086,11.033 L11.959,11.033 L9.962,5.965 L11.262,5.965 L12.53,9.631 L13.761,5.965 L15.055,5.965 L13.086,11.033 L13.086,11.033 Z"/></svg>';
     const tntSvg = stsSvg;
-    // Коллекции
+
+    // Добавляем иконки для строк на главной (как в примере)
+    Lampa.Template.add('rus_icon', '<svg xmlns="http://www.w3.org/2000/svg" width="2em" height="2em" viewBox="0 0 36 36"><path fill="#ce2028" d="M36 27a4 4 0 0 1-4 4H4a4 4 0 0 1-4-4v-4h36z"/><path fill="#22408c" d="M0 13h36v10H0z"/><path fill="#eee" d="M32 5H4a4 4 0 0 0-4 4v4h36V9a4 4 0 0 0-4-4"/></svg>');
+    Lampa.Template.add('start_icon', startSvg.replace('width="1em" height="1em"', 'width="2em" height="2em"'));
+    Lampa.Template.add('premier_icon', premierSvg.replace('width="1em" height="1em"', 'width="2em" height="2em"'));
+    Lampa.Template.add('kion_icon', kionSvg.replace('width="1em" height="1em"', 'width="2em" height="2em"'));
+    Lampa.Template.add('ivi_icon', iviSvg.replace('width="1em" height="1em"', 'width="2em" height="2em"'));
+    Lampa.Template.add('okko_icon', okkoSvg.replace('width="1em" height="1em"', 'width="2em" height="2em"'));
+    Lampa.Template.add('kinopoisk_icon', kinopoiskSvg.replace('width="1em" height="1em"', 'width="2em" height="2em"'));
+    Lampa.Template.add('wink_icon', winkSvg.replace('width="1em" height="1em"', 'width="2em" height="2em"'));
+    Lampa.Template.add('sts_icon', stsSvg.replace('width="1em" height="1em"', 'width="2em" height="2em"'));
+    Lampa.Template.add('tnt_icon', tntSvg.replace('width="1em" height="1em"', 'width="2em" height="2em"'));
+
+    // Коллекции (для меню и для строк на главной)
     const collections = [
-      { title: 'Русские фильмы', img: 'https://amikdn.github.io/img/rus_movie.jpg', svg: rusSvg },
-      { title: 'Русские сериалы', img: 'https://amikdn.github.io/img/rus_tv.jpg', svg: rusSvg },
-      { title: 'Русские мультфильмы',img: 'https://amikdn.github.io/img/rus_mult.jpg', svg: rusSvg },
-      { title: 'Start', img: 'https://amikdn.github.io/img/start.jpg', svg: startSvg },
-      { title: 'Premier', img: 'https://amikdn.github.io/img/premier.jpg', svg: premierSvg },
-      { title: 'KION', img: 'https://amikdn.github.io/img/kion.jpg', svg: kionSvg },
-      { title: 'ИВИ', img: 'https://amikdn.github.io/img/ivi.jpg', svg: iviSvg },
-      { title: 'Okko', img: 'https://amikdn.github.io/img/okko.jpg', svg: okkoSvg },
-      { title: 'КиноПоиск', img: 'https://amikdn.github.io/img/kinopoisk.jpg', svg: kinopoiskSvg },
-      { title: 'Wink', img: 'https://amikdn.github.io/img/wink.jpg', svg: winkSvg },
-      { title: 'СТС', img: 'https://amikdn.github.io/img/sts.jpg', svg: stsSvg },
-      { title: 'ТНТ', img: 'https://amikdn.github.io/img/tnt.jpg', svg: tntSvg },
-    ].map(item => ({
-      ...item,
-      request: item.title === 'Русские фильмы' ? `discover/movie?sort_by=primary_release_date.desc&with_original_language=ru&vote_average.gte=5&vote_average.lte=9.5&primary_release_date.lte=${today}` :
-               item.title === 'Русские сериалы' ? `discover/tv?sort_by=first_air_date.desc&with_original_language=ru&air_date.lte=${today}` :
-               item.title === 'Русские мультфильмы' ? `discover/movie?sort_by=primary_release_date.desc&vote_average.gte=5&vote_average.lte=9.5&with_genres=16&with_original_language=ru&primary_release_date.lte=${today}` :
-               `discover/tv?with_networks=${{Start:2493,Premier:2859,KION:4085,'ИВИ':3923,Okko:3871,'КиноПоиск':3827,Wink:5806,СТС:806,ТНТ:1191}[item.title]}&sort_by=first_air_date.desc&air_date.lte=${today}`
-    }));
-    // Настройка переключения вида
-    Lampa.SettingsApi.addParam({
-      component: 'interface',
-      param: {
-        name: 'rus_movie_view',
-        type: 'select',
-        values: { grid: 'Сетка', list: 'Список' },
-        default: 'grid'
-      },
-      field: {
-        name: 'Русское: Интерфейс',
-        description: 'Сетка — страница с обложками. Список — окно со списком.'
-      },
-      onRender: item => setTimeout(() => $('div[data-name="rus_movie_view"]').insertAfter('div[data-name="interface_size"]'), 10)
-    });
+      { title: 'Русские фильмы', img: 'https://amikdn.github.io/img/rus_movie.jpg', svg: rusSvg, network: null, wide: true },
+      { title: 'Русские сериалы', img: 'https://amikdn.github.io/img/rus_tv.jpg', svg: rusSvg, network: null },
+      { title: 'Русские мультфильмы', img: 'https://amikdn.github.io/img/rus_mult.jpg', svg: rusSvg, network: null, collection: true },
+      { title: 'Start', img: 'https://amikdn.github.io/img/start.jpg', svg: startSvg, network: 2493, wide: true },
+      { title: 'Premier', img: 'https://amikdn.github.io/img/premier.jpg', svg: premierSvg, network: 2859 },
+      { title: 'KION', img: 'https://amikdn.github.io/img/kion.jpg', svg: kionSvg, network: 4085 },
+      { title: 'ИВИ', img: 'https://amikdn.github.io/img/ivi.jpg', svg: iviSvg, network: 3923, collection: true },
+      { title: 'Okko', img: 'https://amikdn.github.io/img/okko.jpg', svg: okkoSvg, network: 3871 },
+      { title: 'КиноПоиск', img: 'https://amikdn.github.io/img/kinopoisk.jpg', svg: kinopoiskSvg, network: 3827 },
+      { title: 'Wink', img: 'https://amikdn.github.io/img/wink.jpg', svg: winkSvg, network: 5806, wide: true },
+      { title: 'СТС', img: 'https://amikdn.github.io/img/sts.jpg', svg: stsSvg, network: 806 },
+      { title: 'ТНТ', img: 'https://amikdn.github.io/img/tnt.jpg', svg: tntSvg, network: 1191 },
+    ];
 
-    // Новая настройка — показывать строку на главной
-    Lampa.SettingsApi.addParam({
-      component: 'interface',
-      param: {
-        name: 'rus_main_line',
-        type: 'trigger',
-        default: true
-      },
-      field: {
-        name: 'Русские подборки на главной',
-        description: 'Показывать горизонтальную строку с плитками русских подборок на главной странице (только при выбранном каталоге TMDB).'
-      },
-      onRender: item => setTimeout(() => $('div[data-name="rus_main_line"]').insertAfter('div[data-name="rus_movie_view"]'), 10)
-    });
-
-    // Компонент только для режима "Сетка"
-    function rusMovieGridComponent(object) {
+    // Компонент — сетка плиток коллекций (как в примере)
+    function rusMovieComponent(object) {
       const category = Lampa.Maker.make('Category', object);
       category.use({
         onCreate: function () {
@@ -79,7 +57,11 @@
                 img: item.img,
                 params: { style: { name: 'collection' } },
                 data: {
-                  url: item.request,
+                  url: item.network === null 
+                    ? (item.title === 'Русские фильмы' ? `discover/movie?sort_by=primary_release_date.desc&with_original_language=ru&vote_average.gte=5&vote_average.lte=9.5&primary_release_date.lte=${today}` :
+                       item.title === 'Русские сериалы' ? `discover/tv?sort_by=first_air_date.desc&with_original_language=ru&air_date.lte=${today}` :
+                       `discover/movie?sort_by=primary_release_date.desc&vote_average.gte=5&vote_average.lte=9.5&with_genres=16&with_original_language=ru&primary_release_date.lte=${today}`)
+                    : `discover/tv?with_networks=${item.network}&sort_by=first_air_date.desc&air_date.lte=${today}`,
                   title: item.title,
                   component: 'category_full',
                   source: 'tmdb',
@@ -99,120 +81,157 @@
       });
       return category;
     }
-    // Регистрация компонента для grid
-    Lampa.Component.add('rus_movie_grid', rusMovieGridComponent);
+
+    Lampa.Component.add('rus_movie', rusMovieComponent);
+
     // Пункт меню
     const menuIconSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="1.2em" height="1.2em" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="4"><path stroke-linejoin="round" d="M24 44c11.046 0 20-8.954 20-20S35.046 4 24 4S4 12.954 4 24s8.954 20 20 20Z"/><path stroke-linejoin="round" d="M24 18a3 3 0 1 0 0-6a3 3 0 0 0 0 6Zm0 18a3 3 0 1 0 0-6a3 3 0 0 0 0 6Zm-9-9a3 3 0 1 0 0-6a3 3 0 0 0 0 6Zm18 0a3 3 0 1 0 0-6a3 3 0 0 0 0 6Z"/><path stroke-linecap="round" d="M24 44h20"/></g></svg>';
-    const menuItem = $(`
-      <li class="menu__item selector">
-        <div class="menu__ico">${menuIconSvg}</div>
-        <div class="menu__text">Русское</div>
-      </li>
-    `);
+    const menuItem = $(`<li class="menu__item selector"><div class="menu__ico">${menuIconSvg}</div><div class="menu__text">Русское</div></li>`);
     menuItem.on('hover:enter', () => {
-      const view = Lampa.Storage.get('rus_movie_view', 'list');
-      if (view === 'grid') {
-        Lampa.Activity.push({
-          url: '',
-          title: 'Русское',
-          component: 'rus_movie_grid',
-          page: 1,
-        });
-      } else {
-        // Режим списка плиток — модальное окно Lampa.Select
-        const items = collections.map(item => ({
-          title: `<div class="settings-folder" style="padding:0!important"><div style="width:2.2em;height:1.7em;padding-right:.5em">${item.svg}</div><div style="font-size:1.3em">${item.title}</div></div>`
-        }));
-        Lampa.Select.show({
-          title: 'Русское',
-          items: items,
-          onSelect: selected => {
-            const index = items.indexOf(selected);
-            if (index >= 0) {
-              const col = collections[index];
-              Lampa.Activity.push({
-                url: col.request,
-                title: col.title,
-                component: 'category_full',
-                source: 'tmdb',
-                page: 1,
-              });
-            }
-          },
-          onBack: () => Lampa.Controller.toggle('menu')
-        });
-      }
+      Lampa.Activity.push({
+        url: '',
+        title: 'Русское',
+        component: 'rus_movie',
+        page: 1,
+      });
     });
     $('.menu .menu__list').eq(0).append(menuItem);
 
-    // Добавление строки «Русские подборки» на главную (только при TMDB)
-    Lampa.Listener.follow('activity', e => {
-      if (e.type === 'ready' && e.activity.component === 'main' && Lampa.Storage.get('source', 'cub') === 'tmdb' && Lampa.Storage.get('rus_main_line', true)) {
-        setTimeout(() => {
-          const active = Lampa.Activity.active();
-          if (active && active.component === 'main') {
-            const container = active.render().find('.scroll');
-            if (container.length && container.find('.category__title').filter((i, el) => $(el).text().trim() === 'Русские подборки').length === 0) {
-              const object = { title: 'Русские подборки' };
-              const category = Lampa.Maker.make('Category', object);
+    // Настройка — русские новинки на главной
+    Lampa.SettingsApi.addParam({
+      component: 'interface',
+      param: { name: 'rus_movie_main', type: 'trigger', default: true },
+      field: {
+        name: 'Русские новинки на главной',
+        description: 'Показывать подборки русских новинок на главной странице (только с TMDB). Перезапустите приложение после изменения.'
+      },
+      onRender: el => setTimeout(() => $('div[data-name="rus_movie_main"]').insertAfter('div[data-name="interface_size"]'), 0)
+    });
 
-              category.use({
-                onCreate: function () {
-                  this.body.addClass('mapping--line cols--4'); // 4 крупные плитки видно, остальные скролл
+    // Переопределяем main для TMDB при включённой настройке
+    if (Lampa.Storage.get('rus_movie_main') !== false) {
+      const extendedMain = function (source) {
+        this.network = new Lampa.Reguest();
 
-                  const results = collections.map(item => ({
-                    title: item.title,
-                    img: item.img,
-                    params: { style: { name: 'collection' } },
-                    data: {
-                      url: item.request,
-                      title: item.title,
-                      component: 'category_full',
-                      source: 'tmdb',
-                      page: 1,
-                    },
-                  }));
+        this.main = function () {
+          const yearsRanges = [
+            { start: 2023, end: 2025 }, { start: 2020, end: 2022 }, { start: 2017, end: 2019 },
+            { start: 2014, end: 2016 }, { start: 2011, end: 2013 }
+          ];
+          const randomRange1 = yearsRanges[Math.floor(Math.random() * yearsRanges.length)];
+          const randomRange2 = yearsRanges[Math.floor(Math.random() * yearsRanges.length)];
+          const sortOptions = ['vote_count.desc', 'vote_average.desc', 'popularity.desc', 'revenue.desc'];
+          const sortOptions2 = ['vote_count.desc', 'popularity.desc', 'revenue.desc'];
+          const randomSort1 = sortOptions[Math.floor(Math.random() * sortOptions.length)];
+          const randomSort2 = sortOptions2[Math.floor(Math.random() * sortOptions2.length)];
 
-                  this.build({ results: results });
+          const lines = [
+            // Русские фильмы
+            cb => this.network.get('discover/movie?sort_by=primary_release_date.desc&with_original_language=ru&vote_average.gte=5&vote_average.lte=9.5&primary_release_date.lte=' + today, {}, data => {
+              data.title = 'Русские фильмы';
+              data.icon_svg = Lampa.Template.string('rus_icon');
+              data.icon_bgcolor = 'rgba(255,255,255,0.15)';
+              data.results.forEach(i => i.params = { style: { name: 'wide' } });
+              data.params = { items: { view: 3 }, module: Lampa.Maker.module('Line').toggle(Lampa.Maker.module('Line').MASK.base, 'Icon') };
+              cb(data);
+            }, cb),
 
-                  // Добавляем SVG-иконку поверх каждой плитки
-                  $('.card', this.body).each((idx, el) => {
-                    const svg = collections[idx].svg;
-                    $(el).find('.card__view').prepend($(svg).css({
-                      width: '60%',
-                      height: '60%',
-                      position: 'absolute',
-                      top: '50%',
-                      left: '50%',
-                      transform: 'translate(-50%, -50%)',
-                      pointerEvents: 'none',
-                      color: 'white',
-                      opacity: '0.95'
-                    }));
-                  });
+            // Русские сериалы
+            cb => this.network.get('discover/tv?sort_by=first_air_date.desc&with_original_language=ru&air_date.lte=' + today, {}, data => {
+              data.title = 'Русские сериалы';
+              data.icon_svg = Lampa.Template.string('rus_icon');
+              data.icon_bgcolor = 'rgba(255,255,255,0.15)';
+              data.params = { module: Lampa.Maker.module('Line').toggle(Lampa.Maker.module('Line').MASK.base, 'Icon') };
+              cb(data);
+            }, cb),
 
-                  $('.card', this.body).css('text-align', 'center');
-                },
-                onInstance: function (instance, cardData) {
-                  instance.use({
-                    onlyEnter: () => cardData.data && Lampa.Activity.push(cardData.data)
-                  });
-                }
-              });
+            // Русские мультфильмы
+            cb => this.network.get('discover/movie?sort_by=primary_release_date.desc&vote_average.gte=5&vote_average.lte=9.5&with_genres=16&with_original_language=ru&primary_release_date.lte=' + today, {}, data => {
+              data.title = 'Русские мультфильмы';
+              data.icon_svg = Lampa.Template.string('rus_icon');
+              data.icon_bgcolor = 'rgba(255,255,255,0.15)';
+              data.results.forEach(i => i.params = { style: { name: 'collection' } });
+              data.params = { items: { view: 4 }, module: Lampa.Maker.module('Line').toggle(Lampa.Maker.module('Line').MASK.base, 'Icon') };
+              cb(data);
+            }, cb),
 
-              category.create();
-              category.render().appendTo(container);
-            }
+            // Сети
+            ...collections.filter(c => c.network).map(col => cb => this.network.get(`discover/tv?with_networks=${col.network}&sort_by=first_air_date.desc&air_date.lte=${today}`, {}, data => {
+              data.title = col.title;
+              data.icon_svg = Lampa.Template.string(col.title.toLowerCase().replace(/[^a-z]/g, '') + '_icon');
+              if (col.wide) {
+                data.icon_bgcolor = col.title === 'Start' ? '#ff0019' : '#fff';
+                data.icon_color = col.title === 'Start' ? '#fff' : '#ff5b22';
+                data.results.forEach(i => i.params = { style: { name: 'wide' } });
+                data.params = { items: { view: 3 }, module: Lampa.Maker.module('Line').toggle(Lampa.Maker.module('Line').MASK.base, 'Icon') };
+              } else if (col.collection) {
+                data.results.forEach(i => i.params = { style: { name: 'collection' } });
+                data.params = { items: { view: 4 }, module: Lampa.Maker.module('Line').toggle(Lampa.Maker.module('Line').MASK.base, 'Icon') };
+              } else {
+                data.params = { module: Lampa.Maker.module('Line').toggle(Lampa.Maker.module('Line').MASK.base, 'Icon') };
+              }
+              cb(data);
+            }, cb)),
+
+            // Подборки по годам (фильмы)
+            cb => this.network.get(`discover/movie?primary_release_date.gte=${randomRange2.start}-01-01&primary_release_date.lte=${randomRange2.end}-12-31&vote_average.gte=5&vote_average.lte=9.5&with_original_language=ru&sort_by=${randomSort2}`, {}, data => {
+              data.title = 'Подборки русских фильмов';
+              data.icon_svg = Lampa.Template.string('icon_collection');
+              data.icon_color = '#fff';
+              data.icon_bgcolor = 'rgba(255,255,255,0.15)';
+              data.params = { module: Lampa.Maker.module('Line').toggle(Lampa.Maker.module('Line').MASK.base, 'Icon') };
+              cb(data);
+            }, cb),
+
+            // Подборки по годам (сериалы)
+            cb => this.network.get(`discover/tv?first_air_date.gte=${randomRange1.start}-01-01&first_air_date.lte=${randomRange1.end}-12-31&with_networks=2493|2859|4085|3923|3871|3827|5806|806|1191&sort_by=${randomSort1}`, {}, data => {
+              data.title = 'Подборки русских сериалов';
+              data.icon_svg = Lampa.Template.string('icon_collection');
+              data.icon_color = '#fff';
+              data.icon_bgcolor = 'rgba(255,255,255,0.15)';
+              data.params = { module: Lampa.Maker.module('Line').toggle(Lampa.Maker.module('Line').MASK.base, 'Icon') };
+              cb(data);
+            }, cb),
+          ];
+
+          Lampa.ContentRows.call('main', {}, lines);
+
+          const total = lines.length + 1;
+          Lampa.Arrays.insert(lines, 0, Lampa.Api.partPersons(lines, 6, 'movie', total));
+
+          source.genres.movie.forEach(genre => {
+            lines.push(cb => this.network.get(`discover/movie?with_genres=${genre.id}`, {}, data => {
+              data.title = Lampa.Lang.translate(genre.title.replace(/[^a-z_]/g, ''));
+              cb(data);
+            }, cb));
+          });
+
+          function partNext(page, totalPages) {
+            Lampa.Api.partNext(lines, 6, page, totalPages);
           }
-        }, 400);
+          return partNext;
+        };
+      };
+
+      Object.assign(Lampa.Api.sources.tmdb, new extendedMain(Lampa.Api.sources.tmdb));
+
+      // Force replace если уже на главной и tmdb
+      if (Lampa.Storage.get('source') === 'tmdb') {
+        const currentSource = Lampa.Storage.get('source');
+        setInterval(() => {
+          const active = Lampa.Activity.active();
+          if (active && active.component === 'main' && !$('#app > div.settings').length) {
+            clearInterval(this);
+            Lampa.Activity.replace({
+              source: currentSource,
+              title: Lampa.Lang.translate('title_main') + ' - ' + Lampa.Storage.field('source').toUpperCase()
+            });
+          }
+        }, 200);
       }
-    });
+    }
   }
-  if (window.appready) {
-    initPlugin();
-  } else {
-    Lampa.Listener.follow('app', e => {
-      if (e.type === 'ready') initPlugin();
-    });
-  }
+
+  if (window.appready) initPlugin();
+  else Lampa.Listener.follow('app', e => e.type === 'ready' && initPlugin());
 })();
