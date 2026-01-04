@@ -9,8 +9,8 @@
   // Список предустановленных Jackett-серверов
   const servers = [
     {
-      id: 'bylampa_jackett',
-      name: 'ByLampa Jackett',
+      id: 'lampa_jackett',
+      name: 'Lampa Jackett',
       baseUrl: '87.120.84.218:8443',
       key: '777',
       interview: 'all',
