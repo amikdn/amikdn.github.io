@@ -21,7 +21,6 @@
                 { title: 'ТНТ', img: 'https://amikdn.github.io/img/tnt.jpg', request: 'discover/tv?with_networks=1191&sort_by=first_air_date.desc&air_date.lte=' + currentDate }
             ];
 
-            // Компонент коллекции (аналогично примеру «Зарубежное» — большие постеры, 5 колонок)
             function RusMovieCollection(params) {
                 var component = Lampa.Maker.make('Category', params);
 
