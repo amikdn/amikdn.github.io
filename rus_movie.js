@@ -57,7 +57,7 @@
         name: 'rus_movie_view',
         type: 'select',
         values: { grid: 'Сетка', list: 'Список' },
-        default: 'list'
+        default: 'grid'
       },
       field: {
         name: 'Русское: Интерфейс',
