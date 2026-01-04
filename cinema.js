@@ -4,6 +4,11 @@
   Lampa.Platform.tv();
 
   function initPlugin() {
+    // Проверка источника
+    if (Lampa.Manifest.origin !== 'bylampa') {
+      Lampa.Noty.show('Ошибка доступа');
+      return;
+    }
 
     const today = new Date().toISOString().substr(0, 10);
 
