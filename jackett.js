@@ -50,9 +50,17 @@
     },
     {
       id: 'jacred_pro',
-      name: 'Jacred Pro',
+      name: 'RU Jacred Pro',
       baseUrl: 'ru.jacred.pro',
       key: '',
+      interview: 'all',
+      lang: 'lg',
+    },
+    {
+      id: 'freebie_tom_ru',
+      name: 'Freebie',
+      baseUrl: 'jacred.freebie.tom.ru',
+      key: '1',
       interview: 'all',
       lang: 'lg',
     },
