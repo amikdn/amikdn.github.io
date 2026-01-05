@@ -24,7 +24,7 @@
         Urls: {
             get Localhost() { var url = getServerUrl(); return url ? url + "/" : ""; },
             get LampOnline() { return getServerUrl(); },
-            NwsClientScript: "https://amikdn.github.io//nws-client-es5.js",
+            NwsClientScript: "https://amikdn.github.io/nws-client-es5.js",
             GithubCheck: "https://github.com/",
             CorsCheckPath: "/cors/check",
         },
