@@ -24,7 +24,7 @@
         Urls: {
             get Localhost() { var url = getServerUrl(); return url ? url + "/" : ""; },
             get LampOnline() { return getServerUrl(); },
-            NwsClientScript: "https://amikdn.github.io/nws-client-es5.js",
+            NwsClientScript: "https://honeyxcat.github.io/plugins/nws-client-es5.js",
             GithubCheck: "https://github.com/",
             CorsCheckPath: "/cors/check",
         },
@@ -368,17 +368,11 @@
             items: items,
             onSelect: function(item) {
                 if (item.manual) {
-                    Lampa.Input.show({
-                        title: Lampa.Lang.translate("lampac_server_address"),
-                        value: Lampa.Storage.get(STORAGE_KEY_SERVER, ""),
-                        placeholder: "http://example.com:9118",
-                        onDone: function(value) {
-                            if (value.trim()) {
-                                Lampa.Storage.set(STORAGE_KEY_SERVER, value.trim());
-                                location.reload();
-                            }
-                        }
-                    });
+                    var value = prompt(Lampa.Lang.translate("lampac_server_address") + "\n" + Lampa.Lang.translate("lampac_server_address_desc"), Lampa.Storage.get(STORAGE_KEY_SERVER, ""));
+                    if (value && value.trim()) {
+                        Lampa.Storage.set(STORAGE_KEY_SERVER, value.trim());
+                        location.reload();
+                    }
                 } else {
                     Lampa.Storage.set(STORAGE_KEY_SERVER, item.url);
                     location.reload();
@@ -1862,7 +1856,7 @@
                 var all = Lampa.Storage.get(Config.StorageKeys.ClarificationSearch, "{}");
                 Lampa.Activity.push({
                     url: "",
-                    title: Lampa.Lang.translate("title_online"),
+                    title: "Custom",
                     component: "lamponline",
                     search: all[id] ? all[id] : object.title,
                     search_one: object.title,
@@ -1893,15 +1887,14 @@
             lampac_balanser_timeout: { ru: 'Источник будет переключен автоматически через <span class="timeout">10</span> секунд.', uk: 'Джерело буде автоматично переключено через <span class="timeout">10</span> секунд.', en: 'The source will be switched automatically after <span class="timeout">10</span> seconds.', zh: '平衡器将在<span class="timeout">10</span>秒内自动切换。' },
             lampac_does_not_answer_text: { ru: "Поиск не дал результатов", uk: "Пошук на ({balanser}) не дав результатів", en: "Search on ({balanser}) did not return any results", zh: "搜索 ({balanser}) 未返回任何结果" },
             lampac_server_not_set: { ru: "Сервер не настроен", uk: "Сервер не налаштований", en: "Server not configured", zh: "服务器未配置" },
-            lampac_server_not_set_desc: { ru: "Укажите адрес сервера в настройках для просмотра онлайн", uk: "Вкажіть адресу сервера в налаштуваннях для перегляду онлайн", en: "Specify the server address in settings to watch online", zh: "在设置中指定服务器地址以在线观看" },
+            lampac_server_not_set_desc: { ru: "Укажите адрес сервера для просмотра онлайн", uk: "Вкажіть адресу сервера для перегляду онлайн", en: "Specify the server address to watch online", zh: "在设置中指定服务器地址以在线观看" },
             lampac_change_server: { ru: "Сменить сервер", en: "Change server", uk: "Змінити сервер", zh: "更改服务器" },
             lampac_select_server: { ru: "Выберите сервер", en: "Select server", uk: "Оберіть сервер", zh: "选择服务器" },
             lampac_manual_server: { ru: "Ввести вручную", en: "Enter manually", uk: "Ввести вручну", zh: "手动输入" },
             lampac_server_address: { ru: "Адрес сервера", uk: "Адреса сервера", en: "Server address", zh: "服务器地址" },
             lampac_server_address_desc: { ru: "Например: 192.168.1.1:9118 или lampac.site", uk: "Наприклад: 192.168.1.1:9118 або lampac.site", en: "Example: 192.168.1.1:9118 or lampac.site", zh: "例如：192.168.1.1:9118 或 lampac.site" },
-            lampac_settings_title: { ru: "Онлайн", uk: "Онлайн", en: "Online", zh: "在线" },
         });
-        var button = '<div class="full-start__button selector view--online lampac--button" data-subtitle="' + manifst.name + ' ' + manifst.version + '">\n <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">\n <path d="M11.783 10.094c-1.699.998-3.766 1.684-5.678 1.95a1.66 1.66 0 0 1-.684.934c.512 1.093 1.249 2.087 2.139 2.987a7.98 7.98 0 0 0 6.702-3.074l.083-.119c-.244-.914-.648-1.784-1.145-2.644q-.134.038-.261.062c-.143.04-.291.068-.446.068a1.7 1.7 0 0 1-.71-.164M9.051 5.492a18 18 0 0 0-2.004-1.256 1.67 1.67 0 0 1-1.907.985c-.407 1.535-.624 3.162-.511 4.694a1.67 1.67 0 0 1 1.52 1.354c1.695-.279 3.47-.879 4.967-1.738a1.67 1.67 0 0 1-.297-.949c0-.413.156-.786.403-1.078-.654-.736-1.389-1.443-2.171-2.012M4 9.989c-.137-1.634.104-3.392.541-5.032a1.67 1.67 0 0 1-.713-1.369c0-.197.039-.386.104-.562a18 18 0 0 0-1.974-.247c-.089.104-.185.204-.269.314a7.98 7.98 0 0 0-1.23 7.547 9.5 9.5 0 0 0 2.397.666A1.67 1.67 0 0 1 4 9.989m9.928-.3c-.029.037-.064.067-.096.1.433.736.799 1.482 1.053 2.268a7.98 7.98 0 0 0 .832-6.122c-.09.133-.176.267-.271.396-.436.601-.875 1.217-1.354 1.772.045.152.076.311.076.479v.004c.084.374.013.779-.24 1.103M7.164 3.447c.799.414 1.584.898 2.33 1.44.84.611 1.627 1.373 2.324 2.164.207-.092.434-.145.676-.145.5 0 .945.225 1.252.572.404-.492.783-1.022 1.161-1.54.194-.268.372-.543.544-.82A7.96 7.96 0 0 0 7.701.012q-.173.217-.339.439c-.401.552-.739 1.08-1.04 1.637.039.029.064.066.1.1.417.276.697.734.742 1.259m-4.285 8.518a10 10 0 0 1-2.07-.487 7.95 7.95 0 0 0 5.806 4.397 11 11 0 0 1-1.753-2.66 1.675 1.675 0 0 1-1.983-1.25m1.635-9.723a1.32 1.32 0 0 1 1.199-.416C6.025 1.24 6.377.683 6.794.104a7.97 7.97 0 0 0-4.247 2.062c.59.066 1.176.14 1.761.252q.096-.095.206-.176" fill="currentColor"/>\n </svg>\n <span>#{title_online}</span>\n </div>';
+        var button = '<div class="full-start__button selector view--online lampac--button" data-subtitle=" 1.0.0">\n <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">\n <path d="M11.783 10.094c-1.699.998-3.766 1.684-5.678 1.95a1.66 1.66 0 0 1-.684.934c.512 1.093 1.249 2.087 2.139 2.987a7.98 7.98 0 0 0 6.702-3.074l.083-.119c-.244-.914-.648-1.784-1.145-2.644q-.134.038-.261.062c-.143.04-.291.068-.446.068a1.7 1.7 0 0 1-.71-.164M9.051 5.492a18 18 0 0 0-2.004-1.256 1.67 1.67 0 0 1-1.907.985c-.407 1.535-.624 3.162-.511 4.694a1.67 1.67 0 0 1 1.52 1.354c1.695-.279 3.47-.879 4.967-1.738a1.67 1.67 0 0 1-.297-.949c0-.413.156-.786.403-1.078-.654-.736-1.389-1.443-2.171-2.012M4 9.989c-.137-1.634.104-3.392.541-5.032a1.67 1.67 0 0 1-.713-1.369c0-.197.039-.386.104-.562a18 18 0 0 0-1.974-.247c-.089.104-.185.204-.269.314a7.98 7.98 0 0 0-1.23 7.547 9.5 9.5 0 0 0 2.397.666A1.67 1.67 0 0 1 4 9.989m9.928-.3c-.029.037-.064.067-.096.1.433.736.799 1.482 1.053 2.268a7.98 7.98 0 0 0 .832-6.122c-.09.133-.176.267-.271.396-.436.601-.875 1.217-1.354 1.772.045.152.076.311.076.479v.004c.084.374.013.779-.24 1.103M7.164 3.447c.799.414 1.584.898 2.33 1.44.84.611 1.627 1.373 2.324 2.164.207-.092.434-.145.676-.145.5 0 .945.225 1.252.572.404-.492.783-1.022 1.161-1.54.194-.268.372-.543.544-.82A7.96 7.96 0 0 0 7.701.012q-.173.217-.339.439c-.401.552-.739 1.08-1.04 1.637.039.029.064.066.1.1.417.276.697.734.742 1.259m-4.285 8.518a10 10 0 0 1-2.07-.487 7.95 7.95 0 0 0 5.806 4.397 11 11 0 0 1-1.753-2.66 1.675 1.675 0 0 1-1.983-1.25m1.635-9.723a1.32 1.32 0 0 1 1.199-.416C6.025 1.24 6.377.683 6.794.104a7.97 7.97 0 0 0-4.247 2.062c.59.066 1.176.14 1.761.252q.096-.095.206-.176" fill="currentColor"/>\n </svg>\n <span>Custom</span>\n </div>';
         Lampa.Component.add("lamponline", component);
         function addButton(e) {
             if (e.render.find(".lampac--button").length) return;
@@ -1912,7 +1905,7 @@
                 var all = Lampa.Storage.get(Config.StorageKeys.ClarificationSearch, "{}");
                 Lampa.Activity.push({
                     url: "",
-                    title: Lampa.Lang.translate("title_online"),
+                    title: "Custom",
                     component: "lamponline",
                     search: all[id] ? all[id] : e.movie.title,
                     search_one: e.movie.title,
@@ -1941,21 +1934,6 @@
             });
             Lampa.Storage.sync(Config.StorageKeys.OnlineWatchedLast, "object_object");
         }
-        Lampa.Settings.listener.follow("open", function (event) {
-            if (event.name == "main") {
-                if (Lampa.Settings.main().render().find('[data-component="lamponline_settings"]').length == 0) {
-                    Lampa.SettingsApi.addComponent({ component: "lamponline_settings", name: Lampa.Lang.translate("lampac_settings_title"), icon: '<svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path d="M11.783 10.094c-1.699.998-3.766 1.684-5.678 1.95a1.66 1.66 0 0 1-.684.934c.512 1.093 1.249 2.087 2.139 2.987a7.98 7.98 0 0 0 6.702-3.074l.083-.119c-.244-.914-.648-1.784-1.145-2.644q-.134.038-.261.062c-.143.04-.291.068-.446.068a1.7 1.7 0 0 1-.71-.164M9.051 5.492a18 18 0 0 0-2.004-1.256 1.67 1.67 0 0 1-1.907.985c-.407 1.535-.624 3.162-.511 4.694a1.67 1.67 0 0 1 1.52 1.354c1.695-.279 3.47-.879 4.967-1.738a1.67 1.67 0 0 1-.297-.949c0-.413.156-.786.403-1.078-.654-.736-1.389-1.443-2.171-2.012M4 9.989c-.137-1.634.104-3.392.541-5.032a1.67 1.67 0 0 1-.713-1.369c0-.197.039-.386.104-.562a18 18 0 0 0-1.974-.247c-.089.104-.185.204-.269.314a7.98 7.98 0 0 0-1.23 7.547 9.5 9.5 0 0 0 2.397.666A1.67 1.67 0 0 1 4 9.989m9.928-.3c-.029.037-.064.067-.096.1.433.736.799 1.482 1.053 2.268a7.98 7.98 0 0 0 .832-6.122c-.09.133-.176.267-.271.396-.436.601-.875 1.217-1.354 1.772.045.152.076.311.076.479v.004c.084.374.013.779-.24 1.103M7.164 3.447c.799.414 1.584.898 2.33 1.44.84.611 1.627 1.373 2.324 2.164.207-.092.434-.145.676-.145.5 0 .945.225 1.252.572.404-.492.783-1.022 1.161-1.54.194-.268.372-.543.544-.82A7.96 7.96 0 0 0 7.701.012q-.173.217-.339.439c-.401.552-.739 1.08-1.04 1.637.039.029.064.066.1.1.417.276.697.734.742 1.259m-4.285 8.518a10 10 0 0 1-2.07-.487 7.95 7.95 0 0 0 5.806 4.397 11 11 0 0 1-1.753-2.66 1.675 1.675 0 0 1-1.983-1.25m1.635-9.723a1.32 1.32 0 0 1 1.199-.416C6.025 1.24 6.377.683 6.794.104a7.97 7.97 0 0 0-4.247 2.062c.59.066 1.176.14 1.761.252q.096-.095.206-.176" fill="currentColor"/></svg>' });
-                }
-                Lampa.Settings.main().update();
-            }
-        });
-        Lampa.Params.select(STORAGE_KEY_SERVER, "", "");
-        Lampa.SettingsApi.addParam({
-            component: "lamponline_settings",
-            param: { name: STORAGE_KEY_SERVER, type: "input", placeholder: "", values: "", default: "" },
-            field: { name: Lampa.Lang.translate("lampac_server_address"), description: Lampa.Lang.translate("lampac_server_address_desc") },
-            onChange: function (value) { ensureRchNws(); }
-        });
     }
     if (!window.lamponline_plugin) startPlugin();
     function initBalanserInFilterMenu() {
