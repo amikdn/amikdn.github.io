@@ -354,9 +354,9 @@
 
     function openServerModal() {
         var serverList = [
-            // Добавьте свои серверы сюда
-            // { title: "Сервер 1", url: "http://192.168.1.100:9118" },
-            // { title: "Публичный", url: "https://lampac.site" },
+             { title: "Онлайн Н", url: "http://78.40.199.67:10630" },
+             { title: "Актёр", url: "http://akter-black.com" },
+			 { title: "Онлайн", url: "http://144.124.227.5:10056" }
         ];
         var items = serverList.map(function(s) {
             return { title: s.title, url: s.url };
