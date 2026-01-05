@@ -24,7 +24,7 @@
         Urls: {
             get Localhost() { var url = getServerUrl(); return url ? url + "/" : ""; },
             get LampOnline() { return getServerUrl(); },
-            NwsClientScript: "https://amikdn.github.io/nws-client-es5.js",
+            NwsClientScript: "https://amikdn.github.io//nws-client-es5.js",
             GithubCheck: "https://github.com/",
             CorsCheckPath: "/cors/check",
         },
@@ -351,6 +351,45 @@
         return info.join(split);
     }
     var Network = Lampa.Reguest;
+
+    function openServerModal() {
+        var serverList = [
+            // Добавьте свои серверы сюда
+            // { title: "Сервер 1", url: "http://192.168.1.100:9118" },
+            // { title: "Публичный", url: "https://lampac.site" },
+        ];
+        var items = serverList.map(function(s) {
+            return { title: s.title, url: s.url };
+        });
+        items.push({ title: Lampa.Lang.translate("lampac_manual_server"), manual: true });
+
+        Lampa.Select.show({
+            title: Lampa.Lang.translate("lampac_select_server"),
+            items: items,
+            onSelect: function(item) {
+                if (item.manual) {
+                    Lampa.Input.show({
+                        title: Lampa.Lang.translate("lampac_server_address"),
+                        value: Lampa.Storage.get(STORAGE_KEY_SERVER, ""),
+                        placeholder: "http://example.com:9118",
+                        onDone: function(value) {
+                            if (value.trim()) {
+                                Lampa.Storage.set(STORAGE_KEY_SERVER, value.trim());
+                                location.reload();
+                            }
+                        }
+                    });
+                } else {
+                    Lampa.Storage.set(STORAGE_KEY_SERVER, item.url);
+                    location.reload();
+                }
+            },
+            onBack: function() {
+                Lampa.Controller.toggle("content");
+            }
+        });
+    }
+
     function component(object) {
         var network = new Network();
         var scroll = new Lampa.Scroll({ mask: true, over: true });
@@ -538,7 +577,7 @@
             Lampa.Template.add("lampac_prestige_full", '<div class="online-prestige online-prestige--full selector">\n <div class="online-prestige__img">\n <img alt="">\n <div class="online-prestige__loader"></div>\n </div>\n <div class="online-prestige__body">\n <div class="online-prestige__head">\n <div class="online-prestige__title">{title}</div>\n <div class="online-prestige__time">{time}</div>\n </div>\n\n <div class="online-prestige__timeline"></div>\n\n <div class="online-prestige__footer">\n <div class="online-prestige__info">{info}</div>\n <div class="online-prestige__quality">{quality}</div>\n </div>\n </div>\n </div>');
             Lampa.Template.add("lampac_content_loading", '<div class="online-empty">\n <div class="broadcast__scan"><div></div></div>\n\t\t\t\n <div class="online-empty__templates">\n <div class="online-empty-template selector">\n <div class="online-empty-template__ico"></div>\n <div class="online-empty-template__body"></div>\n </div>\n <div class="online-empty-template">\n <div class="online-empty-template__ico"></div>\n <div class="online-empty-template__body"></div>\n </div>\n <div class="online-empty-template">\n <div class="online-empty-template__ico"></div>\n <div class="online-empty-template__body"></div>\n </div>\n </div>\n </div>');
             Lampa.Template.add("lampac_does_not_answer", '<div class="online-empty">\n <div class="online-empty__title">\n #{lampac_balanser_dont_work}\n </div>\n <div class="online-empty__time">\n #{lampac_balanser_timeout}\n </div>\n <div class="online-empty__buttons">\n <div class="online-empty__button selector cancel">#{cancel}</div>\n <div class="online-empty__button selector change">#{lampac_change_balanser}</div>\n </div>\n <div class="online-empty__templates">\n <div class="online-empty-template">\n <div class="online-empty-template__ico"></div>\n <div class="online-empty-template__body"></div>\n </div>\n <div class="online-empty-template">\n <div class="online-empty-template__ico"></div>\n <div class="online-empty-template__body"></div>\n </div>\n <div class="online-empty-template">\n <div class="online-empty-template__ico"></div>\n <div class="online-empty-template__body"></div>\n </div>\n </div>\n </div>');
-            Lampa.Template.add("lampac_server_not_configured", '<div class="online-empty">\n <div class="online-empty__title">\n #{lampac_server_not_set}\n </div>\n <div class="online-empty__time">\n #{lampac_server_not_set_desc}\n </div>\n <div class="online-empty__buttons">\n <div class="online-empty__button selector cancel">#{cancel}</div>\n <div class="online-empty__button selector change_server">#{lampac_change_server}</div>\n </div>\n <div class="online-empty__templates">\n <div class="online-empty-template">\n <div class="online-empty-template__ico"></div>\n <div class="online-empty-template__body"></div>\n </div>\n <div class="online-empty-template">\n <div class="online-empty-template__ico"></div>\n <div class="online-empty-template__body"></div>\n </div>\n <div class="online-empty-template">\n <div class="online-empty-template__ico"></div>\n <div class="online-empty-template__body"></div>\n </div>\n </div>\n </div>');
+            Lampa.Template.add("lampac_server_not_configured", '<div class="online-empty">\n <div class="online-empty__title">\n #{lampac_server_not_set}\n </div>\n <div class="online-empty__time">\n #{lampac_server_not_set_desc}\n </div>\n <div class="online-empty__templates">\n <div class="online-empty-template">\n <div class="online-empty-template__ico"></div>\n <div class="online-empty-template__body"></div>\n </div>\n <div class="online-empty-template">\n <div class="online-empty-template__ico"></div>\n <div class="online-empty-template__body"></div>\n </div>\n <div class="online-empty-template">\n <div class="online-empty-template__ico"></div>\n <div class="online-empty-template__body"></div>\n </div>\n </div>\n </div>');
             Lampa.Template.add("lampac_prestige_rate", '<div class="online-prestige-rate">\n <svg width="17" height="16" viewBox="0 0 17 16" fill="none" xmlns="http://www.w3.org/2000/svg">\n <path d="M8.39409 0.192139L10.99 5.30994L16.7882 6.20387L12.5475 10.4277L13.5819 15.9311L8.39409 13.2425L3.20626 15.9311L4.24065 10.4277L0 6.20387L5.79819 5.30994L8.39409 0.192139Z" fill="#fff"></path>\n </svg>\n <span>{rate}</span>\n </div>');
             Lampa.Template.add("lampac_prestige_folder", '<div class="online-prestige online-prestige--folder selector">\n <div class="online-prestige__folder">\n <svg viewBox="0 0 128 112" fill="none" xmlns="http://www.w3.org/2000/svg">\n <rect y="20" width="128" height="92" rx="13" fill="white"></rect>\n <path d="M29.9963 8H98.0037C96.0446 3.3021 91.4079 0 86 0H42C36.5921 0 31.9555 3.3021 29.9963 8Z" fill="white" fill-opacity="0.23"></path>\n <rect x="11" y="8" width="106" height="76" rx="13" fill="white" fill-opacity="0.51"></rect>\n </svg>\n </div>\n <div class="online-prestige__body">\n <div class="online-prestige__head">\n <div class="online-prestige__title">{title}</div>\n <div class="online-prestige__time">{time}</div>\n </div>\n\n <div class="online-prestige__footer">\n <div class="online-prestige__info">{info}</div>\n </div>\n </div>\n </div>');
             Lampa.Template.add("lampac_prestige_watched", '<div class="online-prestige online-prestige-watched selector">\n <div class="online-prestige-watched__icon">\n <svg width="21" height="21" viewBox="0 0 21 21" fill="none" xmlns="http://www.w3.org/2000/svg">\n <circle cx="10.5" cy="10.5" r="9" stroke="currentColor" stroke-width="3"/>\n <path d="M14.8477 10.5628L8.20312 14.399L8.20313 6.72656L14.8477 10.5628Z" fill="currentColor"/>\n </svg>\n </div>\n <div class="online-prestige-watched__body">\n \n </div>\n </div>');
@@ -573,31 +612,9 @@
             delete all[id];
             Lampa.Storage.set(Config.StorageKeys.ClarificationSearch, all);
         }
-        this.showServerNotConfigured = function () {
-            var _this = this;
-            var html = Lampa.Template.get("lampac_server_not_configured", {});
-            html.find(".cancel").on("hover:enter", function () {
-                Lampa.Activity.backward();
-            });
-            html.find(".change_server").on("hover:enter", function () {
-                Lampa.Activity.backward();
-                openServerModal();
-            });
-            scroll.clear();
-            scroll.append(html);
-            this.loading(false);
-        };
         this.initialize = function () {
             UIManager.initTemplates();
             var _this = this;
-            if (!isServerConfigured()) {
-                this.loading(true);
-                scroll.body().addClass("torrent-list");
-                files.appendFiles(scroll.render());
-                Lampa.Controller.enable("content");
-                this.showServerNotConfigured();
-                return;
-            }
             this.loading(true);
             filter.onSearch = function (value) {
                 clarificationSearchAdd(value);
@@ -656,9 +673,24 @@
             files.appendFiles(scroll.render());
             files.appendHead(filter.render());
             scroll.minus(files.render().find(".explorer__files-head"));
-            scroll.body().append(Lampa.Template.get("lampac_content_loading"));
+
+            var serverBtn = $('<div class="simple-button simple-button--filter selector filter--server"><span>' + Lampa.Lang.translate("lampac_change_server") + '</span></div>');
+            serverBtn.on("hover:enter", function () {
+                openServerModal();
+            });
+            filter.render().find(".torrent-filter").append(serverBtn);
+
             Lampa.Controller.enable("content");
+
+            if (!isServerConfigured()) {
+                scroll.body().append(Lampa.Template.get("lampac_server_not_configured", {}));
+                this.loading(false);
+                return;
+            }
+
+            scroll.body().append(Lampa.Template.get("lampac_content_loading"));
             this.loading(false);
+
             if (object.balanser) {
                 files.render().find(".filter--search").remove();
                 sources = {};
@@ -1816,43 +1848,6 @@
         };
         Lampa.Search.addSource(source);
     }
-    function openServerModal() {
-        var serverList = [
-
-             { title: "Онлайн Н", url: "http://78.40.199.67:10630" },
-             { title: "Актёр", url: "http://akter-black.com" },
-			 { title: "Онлайн", url: "http://144.124.227.5:10056" }
-        ];
-        var items = serverList.map(function(s) {
-            return { title: s.title, url: s.url };
-        });
-        items.push({ title: Lampa.Lang.translate("lampac_manual_server"), manual: true });
-        Lampa.Select.show({
-            title: Lampa.Lang.translate("lampac_select_server"),
-            items: items,
-            onSelect: function(item) {
-                if (item.manual) {
-                    Lampa.Input.show({
-                        title: Lampa.Lang.translate("lampac_server_address"),
-                        value: Lampa.Storage.get(STORAGE_KEY_SERVER, ""),
-                        placeholder: "http://example.com:9118",
-                        onDone: function(value) {
-                            if (value.trim()) {
-                                Lampa.Storage.set(STORAGE_KEY_SERVER, value.trim());
-                                location.reload();
-                            }
-                        }
-                    });
-                } else {
-                    Lampa.Storage.set(STORAGE_KEY_SERVER, item.url);
-                    location.reload();
-                }
-            },
-            onBack: function() {
-                Lampa.Controller.toggle("content");
-            }
-        });
-    }
     function startPlugin() {
         window.lamponline_plugin = true;
         var manifst = {
@@ -1902,12 +1897,15 @@
             lampac_change_server: { ru: "Сменить сервер", en: "Change server", uk: "Змінити сервер", zh: "更改服务器" },
             lampac_select_server: { ru: "Выберите сервер", en: "Select server", uk: "Оберіть сервер", zh: "选择服务器" },
             lampac_manual_server: { ru: "Ввести вручную", en: "Enter manually", uk: "Ввести вручну", zh: "手动输入" },
+            lampac_server_address: { ru: "Адрес сервера", uk: "Адреса сервера", en: "Server address", zh: "服务器地址" },
+            lampac_server_address_desc: { ru: "Например: 192.168.1.1:9118 или lampac.site", uk: "Наприклад: 192.168.1.1:9118 або lampac.site", en: "Example: 192.168.1.1:9118 or lampac.site", zh: "例如：192.168.1.1:9118 或 lampac.site" },
+            lampac_settings_title: { ru: "Онлайн", uk: "Онлайн", en: "Online", zh: "在线" },
         });
         var button = '<div class="full-start__button selector view--online lampac--button" data-subtitle="' + manifst.name + ' ' + manifst.version + '">\n <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">\n <path d="M11.783 10.094c-1.699.998-3.766 1.684-5.678 1.95a1.66 1.66 0 0 1-.684.934c.512 1.093 1.249 2.087 2.139 2.987a7.98 7.98 0 0 0 6.702-3.074l.083-.119c-.244-.914-.648-1.784-1.145-2.644q-.134.038-.261.062c-.143.04-.291.068-.446.068a1.7 1.7 0 0 1-.71-.164M9.051 5.492a18 18 0 0 0-2.004-1.256 1.67 1.67 0 0 1-1.907.985c-.407 1.535-.624 3.162-.511 4.694a1.67 1.67 0 0 1 1.52 1.354c1.695-.279 3.47-.879 4.967-1.738a1.67 1.67 0 0 1-.297-.949c0-.413.156-.786.403-1.078-.654-.736-1.389-1.443-2.171-2.012M4 9.989c-.137-1.634.104-3.392.541-5.032a1.67 1.67 0 0 1-.713-1.369c0-.197.039-.386.104-.562a18 18 0 0 0-1.974-.247c-.089.104-.185.204-.269.314a7.98 7.98 0 0 0-1.23 7.547 9.5 9.5 0 0 0 2.397.666A1.67 1.67 0 0 1 4 9.989m9.928-.3c-.029.037-.064.067-.096.1.433.736.799 1.482 1.053 2.268a7.98 7.98 0 0 0 .832-6.122c-.09.133-.176.267-.271.396-.436.601-.875 1.217-1.354 1.772.045.152.076.311.076.479v.004c.084.374.013.779-.24 1.103M7.164 3.447c.799.414 1.584.898 2.33 1.44.84.611 1.627 1.373 2.324 2.164.207-.092.434-.145.676-.145.5 0 .945.225 1.252.572.404-.492.783-1.022 1.161-1.54.194-.268.372-.543.544-.82A7.96 7.96 0 0 0 7.701.012q-.173.217-.339.439c-.401.552-.739 1.08-1.04 1.637.039.029.064.066.1.1.417.276.697.734.742 1.259m-4.285 8.518a10 10 0 0 1-2.07-.487 7.95 7.95 0 0 0 5.806 4.397 11 11 0 0 1-1.753-2.66 1.675 1.675 0 0 1-1.983-1.25m1.635-9.723a1.32 1.32 0 0 1 1.199-.416C6.025 1.24 6.377.683 6.794.104a7.97 7.97 0 0 0-4.247 2.062c.59.066 1.176.14 1.761.252q.096-.095.206-.176" fill="currentColor"/>\n </svg>\n <span>#{title_online}</span>\n </div>';
         Lampa.Component.add("lamponline", component);
         function addButton(e) {
             if (e.render.find(".lampac--button").length) return;
-            var btn = $(Lampa.Lang.translate(button));
+            var btn = $(button);
             btn.on("hover:enter", function () {
                 Lampa.Component.add("lamponline", component);
                 var id = Lampa.Utils.hash(e.movie.number_of_seasons ? e.movie.original_name : e.movie.original_title);
