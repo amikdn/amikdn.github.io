@@ -129,17 +129,6 @@
         });
     }
 
-    // Остальной код плагина полностью без изменений (Config, component, startPlugin и т.д.)
-    // Вставьте сюда весь остальной код из предыдущей версии, начиная с var Config = { ... }
-    // до конца файла.
-
-    // Важно: в startPlugin миграция старого URL остаётся без изменений.
-    // В component.initialize добавление кнопки "Сменить сервер" остаётся.
-    // В showServerNotConfigured кнопка "Добавить сервер" → openServerManager().
-
-    if (!window.lamponline_plugin) startPlugin();
-})();
-
     var Config = {
         get HostKey() { return getHostKey(); },
         Urls: {
