@@ -23,9 +23,20 @@
         return Boolean(getServerUrl());
     }
 
+    function getServersList() {
+        var str = Lampa.Storage.get(STORAGE_KEY_SERVERS, "[]");
+        try {
+            var arr = JSON.parse(str);
+            if (Array.isArray(arr)) return arr;
+        } catch (e) {
+            console.error("Invalid servers storage", e);
+        }
+        return [];
+    }
+
     function openServerManager() {
         var changed = false;
-        var servers = JSON.parse(Lampa.Storage.get(STORAGE_KEY_SERVERS, "[]"));
+        var servers = getServersList();
         var active = getServerUrl();
 
         var html = $('<div></div>');
@@ -86,7 +97,7 @@
         addBtn.on("hover:enter", function () {
             var val = input.val().trim();
             if (!val) {
-                Lampa.Noty.show("Введите адрес");
+                Lampa.Noty.show("Введите адрес сервера");
                 return;
             }
             if (!val.match(/^https?:\/\//i)) val = "http://" + val;
@@ -94,7 +105,7 @@
             if (servers.indexOf(val) === -1) {
                 servers.push(val);
                 Lampa.Storage.set(STORAGE_KEY_SERVERS, JSON.stringify(servers));
-                if (!active) {
+                if (!active || active === "") {
                     Lampa.Storage.set(STORAGE_KEY_ACTIVE, val);
                     active = val;
                     changed = true;
@@ -117,6 +128,17 @@
             }
         });
     }
+
+    // Остальной код плагина полностью без изменений (Config, component, startPlugin и т.д.)
+    // Вставьте сюда весь остальной код из предыдущей версии, начиная с var Config = { ... }
+    // до конца файла.
+
+    // Важно: в startPlugin миграция старого URL остаётся без изменений.
+    // В component.initialize добавление кнопки "Сменить сервер" остаётся.
+    // В showServerNotConfigured кнопка "Добавить сервер" → openServerManager().
+
+    if (!window.lamponline_plugin) startPlugin();
+})();
 
     var Config = {
         get HostKey() { return getHostKey(); },
