@@ -39,32 +39,38 @@
         var servers = getServersList();
         var active = getServerUrl();
 
-        var html = $('<div></div>');
+        var input = $('<input type="text" placeholder="Введите адрес сервера (например http://192.168.1.1:9118)" style="width:100%;padding:1em;font-size:1.2em;border-radius:0.3em;border:1px solid rgba(255,255,255,0.2);background:rgba(0,0,0,0.3);color:white;margin-bottom:1em;">');
+        var addBtn = $('<div class="simple-button selector" style="padding:1em;text-align:center;">Добавить сервер</div>');
 
-        var inputGroup = $('<div style="display:flex;margin-bottom:1.5em;"></div>');
-        var input = $('<input type="text" placeholder="Введите адрес сервера (например http://192.168.1.1:9118)" style="flex:1;padding:0.8em;font-size:1.2em;border-radius:0.3em;border:1px solid rgba(255,255,255,0.2);background:rgba(0,0,0,0.3);color:white;">');
-        var addBtn = $('<div class="simple-button selector" style="margin-left:1em;padding:0.8em 1.5em;">Добавить</div>');
+        var scroll = $('<div class="scroll scroll--over"><div class="scroll__content"><div class="scroll__body"><div class="menu-edit-list"></div></div></div></div>');
+        var list = scroll.find(".menu-edit-list");
 
-        inputGroup.append(input);
-        inputGroup.append(addBtn);
-        html.append(inputGroup);
-
-        var list = $('<div></div>');
-        html.append(list);
+        var onlineSvg = '<svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path d="M11.783 10.094c-1.699.998-3.766 1.684-5.678 1.95a1.66 1.66 0 0 1-.684.934c.512 1.093 1.249 2.087 2.139 2.987a7.98 7.98 0 0 0 6.702-3.074l.083-.119c-.244-.914-.648-1.784-1.145-2.644q-.134.038-.261.062c-.143.04-.291.068-.446.068a1.7 1.7 0 0 1-.71-.164M9.051 5.492a18 18 0 0 0-2.004-1.256 1.67 1.67 0 0 1-1.907.985c-.407 1.535-.624 3.162-.511 4.694a1.67 1.67 0 0 1 1.52 1.354c1.695-.279 3.47-.879 4.967-1.738a1.67 1.67 0 0 1-.297-.949c0-.413.156-.786.403-1.078-.654-.736-1.389-1.443-2.171-2.012M4 9.989c-.137-1.634.104-3.392.541-5.032a1.67 1.67 0 0 1-.713-1.369c0-.197.039-.386.104-.562a18 18 0 0 0-1.974-.247c-.089.104-.185.204-.269.314a7.98 7.98 0 0 0-1.23 7.547 9.5 9.5 0 0 0 2.397.666A1.67 1.67 0 0 1 4 9.989m9.928-.3c-.029.037-.064.067-.096.1.433.736.799 1.482 1.053 2.268a7.98 7.98 0 0 0 .832-6.122c-.09.133-.176.267-.271.396-.436.601-.875 1.217-1.354 1.772.045.152.076.311.076.479v.004c.084.374.013.779-.24 1.103M7.164 3.447c.799.414 1.584.898 2.33 1.44.84.611 1.627 1.373 2.324 2.164.207-.092.434-.145.676-.145.5 0 .945.225 1.252.572.404-.492.783-1.022 1.161-1.54.194-.268.372-.543.544-.82A7.96 7.96 0 0 0 7.701.012q-.173.217-.339.439c-.401.552-.739 1.08-1.04 1.637.039.029.064.066.1.1.417.276.697.734.742 1.259m-4.285 8.518a10 10 0 0 1-2.07-.487 7.95 7.95 0 0 0 5.806 4.397 11 11 0 0 1-1.753-2.66 1.675 1.675 0 0 1-1.983-1.25m1.635-9.723a1.32 1.32 0 0 1 1.199-.416C6.025 1.24 6.377.683 6.794.104a7.97 7.97 0 0 0-4.247 2.062c.59.066 1.176.14 1.761.252q.096-.095.206-.176" fill="currentColor"></path></svg>';
 
         function refreshList() {
             list.empty();
             if (servers.length === 0) {
-                list.append('<div style="padding:1em;color:#999;text-align:center;">Нет сохранённых серверов</div>');
+                list.append('<div style="padding:2em;color:#999;text-align:center;">Нет сохранённых серверов</div>');
                 return;
             }
             servers.forEach(function (url, i) {
-                var item = $('<div class="selector" style="padding:1em;background:rgba(255,255,255,0.12);margin-bottom:0.5em;position:relative;border-radius:0.3em;">' +
-                    '<div>' + url + (url === active ? ' <strong>(активный)</strong>' : '') + '</div>' +
+                var isActive = url === active;
+                var item = $('<div class="menu-edit-list__item selector" style="position:relative;">' +
+                    '<div class="menu-edit-list__icon">' + onlineSvg + '</div>' +
+                    '<div class="menu-edit-list__title">' + url + (isActive ? ' (активный)' : '') + '</div>' +
+                    '<div class="menu-edit-list__move move-up selector"><svg width="22" height="14" viewBox="0 0 22 14" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2 12L11 3L20 12" stroke="currentColor" stroke-width="4" stroke-linecap="round"></path></svg></div>' +
+                    '<div class="menu-edit-list__move move-down selector"><svg width="22" height="14" viewBox="0 0 22 14" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2 2L11 11L20 2" stroke="currentColor" stroke-width="4" stroke-linecap="round"></path></svg></div>' +
+                    '<div class="menu-edit-list__toggle toggle selector">' +
+                    '<svg width="26" height="26" viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+                    '<rect x="1.89111" y="1.78369" width="21.793" height="21.793" rx="3.5" stroke="currentColor" stroke-width="3"></rect>' +
+                    '<path d="M7.44873 12.9658L10.8179 16.3349L18.1269 9.02588" stroke="currentColor" stroke-width="3" class="dot" opacity="' + (isActive ? '1' : '0') + '" stroke-linecap="round"></path>' +
+                    '</svg></div>' +
+                    '<div class="menu-edit-list__remove selector" style="margin-left:0.5em;color:#ff4444;">Удалить</div>' +
                     '</div>');
 
-                item.on("hover:enter", function () {
-                    if (url !== active) {
+                // Активация
+                item.find(".menu-edit-list__toggle").on("hover:enter", function () {
+                    if (!isActive) {
                         Lampa.Storage.set(STORAGE_KEY_ACTIVE, url);
                         active = url;
                         changed = true;
@@ -72,9 +78,30 @@
                     }
                 });
 
-                var del = $('<div style="position:absolute;right:1em;top:50%;transform:translateY(-50%);color:#ff4444;font-size:0.9em;">Удалить</div>');
-                del.on("click", function (e) {
-                    e.stopPropagation();
+                // Перемещение вверх
+                item.find(".move-up").on("hover:enter", function () {
+                    if (i > 0) {
+                        var temp = servers[i];
+                        servers[i] = servers[i - 1];
+                        servers[i - 1] = temp;
+                        Lampa.Storage.set(STORAGE_KEY_SERVERS, JSON.stringify(servers));
+                        refreshList();
+                    }
+                });
+
+                // Перемещение вниз
+                item.find(".move-down").on("hover:enter", function () {
+                    if (i < servers.length - 1) {
+                        var temp = servers[i];
+                        servers[i] = servers[i + 1];
+                        servers[i + 1] = temp;
+                        Lampa.Storage.set(STORAGE_KEY_SERVERS, JSON.stringify(servers));
+                        refreshList();
+                    }
+                });
+
+                // Удаление
+                item.find(".menu-edit-list__remove").on("hover:enter", function () {
                     if (confirm("Удалить сервер " + url + "?")) {
                         servers.splice(i, 1);
                         Lampa.Storage.set(STORAGE_KEY_SERVERS, JSON.stringify(servers));
@@ -87,12 +114,20 @@
                         refreshList();
                     }
                 });
-                item.append(del);
+
+                // Основной клик по item - активация
+                item.on("hover:enter", function () {
+                    if (!isActive) {
+                        Lampa.Storage.set(STORAGE_KEY_ACTIVE, url);
+                        active = url;
+                        changed = true;
+                        refreshList();
+                    }
+                });
+
                 list.append(item);
             });
         }
-
-        refreshList();
 
         addBtn.on("hover:enter", function () {
             var val = input.val().trim();
@@ -105,7 +140,7 @@
             if (servers.indexOf(val) === -1) {
                 servers.push(val);
                 Lampa.Storage.set(STORAGE_KEY_SERVERS, JSON.stringify(servers));
-                if (!active || active === "") {
+                if (!active) {
                     Lampa.Storage.set(STORAGE_KEY_ACTIVE, val);
                     active = val;
                     changed = true;
@@ -117,14 +152,19 @@
             }
         });
 
+        refreshList();
+
+        var body = $('<div></div>');
+        body.append(input);
+        body.append(addBtn);
+        body.append(scroll);
+
         Lampa.Modal.open({
             title: "Сменить сервер",
-            html: html,
+            html: body,
             size: "medium",
             onClose: function () {
-                if (changed) {
-                    location.reload();
-                }
+                if (changed) location.reload();
             }
         });
     }
