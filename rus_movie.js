@@ -118,7 +118,7 @@
     `);
 
     menuItem.on('hover:enter', () => {
-      const view = Lampa.Storage.get('rus_movie_view', 'list');
+      const view = Lampa.Storage.get('rus_movie_view', 'grid');
 
       if (view === 'grid') {
         Lampa.Activity.push({
