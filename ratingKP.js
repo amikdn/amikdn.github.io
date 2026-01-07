@@ -269,37 +269,29 @@
 		});
 	}
 
-	// Добавляем параметр в раздел "Интерфейс"
-	Lampa.Listener.follow('settings', function (e) {
-		if (e.type == 'open' && e.component == 'interface') {
-			setTimeout(function () {
-				if (e.body.find('.kp_api_key_setting').length) return;
-
-				var current = Lampa.Storage.get('kinopoisk_api_key', '') || 'по умолчанию';
-
-				var line = $(`
-					<div class="settings-param selector kp_api_key_setting">
-						<div class="settings-param__name">Kinopoisk API ключ (unofficial)</div>
-						<div class="settings-param__value">${current}</div>
-						<div class="settings-param__descr">Для рейтингов KP/IMDB. Пусто — стандартный ключ.</div>
-					</div>
-				`);
-
-				e.body.append(line);
-
-				line.on('hover:enter', function () {
-					Lampa.Input.edit({
-						title: 'Kinopoisk API ключ',
-						value: Lampa.Storage.get('kinopoisk_api_key', ''),
-						done: function (val) {
-							val = val.trim();
-							Lampa.Storage.set('kinopoisk_api_key', val);
-							line.find('.settings-param__value').text(val || 'по умолчанию');
-							Lampa.Noty.show('Ключ сохранён. Перезапустите карточку фильма для применения.');
-						}
-					});
-				});
-			}, 300);
+	// Добавляем настройку через SettingsApi (появится в Настройки → Интерфейс)
+	Lampa.SettingsApi.addParam({
+		component: 'interface',
+		param: {
+			name: 'kinopoisk_api_key',
+			type: 'input',
+			default: ''
+		},
+		field: {
+			name: 'Kinopoisk API ключ (unofficial)',
+			description: 'Для рейтингов KP/IMDB. Оставьте пустым для стандартного ключа.'
+		},
+		onRender: function(item) {
+			setTimeout(function() {
+				// Позиционируем после какого-нибудь элемента (например, после interface_size, если есть)
+				var target = $('div[data-name="interface_size"]');
+				if (target.length) {
+					$('div[data-name="kinopoisk_api_key"]').insertAfter(target);
+				}
+			}, 10);
+		},
+		onChange: function(value) {
+			Lampa.Storage.set('kinopoisk_api_key', value.trim());
 		}
 	});
 
