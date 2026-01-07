@@ -269,16 +269,40 @@
 		});
 	}
 
-	Lampa.SettingsApi.addParam({
-		component: 'interface',
-		param: {
-			name: 'kinopoisk_api_key',
-			type: 'input',
-			default: ''
-		},
-		field: {
-			name: 'Kinopoisk API ключ (unofficial)',
-			description: 'Для рейтингов KP/IMDB. Пусто — стандартный ключ.'
+	Lampa.Listener.follow('app', function (e) {
+		if (e.type === 'ready') {
+			Lampa.Listener.follow('settings', function (s) {
+				if (s.type === 'open' && s.component === 'interface') {
+					setTimeout(function () {
+						var body = s.body || Lampa.Settings.render();
+						if (body.find('.kp_api_key_setting').length) return;
+
+						var current = Lampa.Storage.get('kinopoisk_api_key', '') || 'по умолчанию';
+
+						var line = $(`
+							<div class="settings-param selector kp_api_key_setting">
+								<div class="settings-param__name">Kinopoisk API ключ (unofficial)</div>
+								<div class="settings-param__value">${current}</div>
+								<div class="settings-param__descr">Для рейтингов KP/IMDB. Пусто — стандартный ключ.</div>
+							</div>
+						`);
+
+						body.append(line);
+
+						line.on('hover:enter', function () {
+							Lampa.Input.edit({
+								title: 'Kinopoisk API ключ',
+								value: Lampa.Storage.get('kinopoisk_api_key', ''),
+								done: function (val) {
+									val = val.trim();
+									Lampa.Storage.set('kinopoisk_api_key', val);
+									line.find('.settings-param__value').text(val || 'по умолчанию');
+								}
+							});
+						});
+					}, 300);
+				}
+			});
 		}
 	});
 
