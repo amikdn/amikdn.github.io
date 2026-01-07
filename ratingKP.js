@@ -284,7 +284,7 @@
 			type: 'static'
 		},
 		field: {
-			name: 'Kinopoisk API ключ (unofficial)',
+			name: 'Kinopoisk API ключ',
 			description: 'Для рейтингов KP/IMDB. Пусто — стандартный ключ.'
 		},
 		onRender: function (item) {
