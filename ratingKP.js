@@ -9,16 +9,14 @@
 		var orig = card.original_title || card.original_name;
 		var kp_prox = '';
 
-		var stored_key = Lampa.Storage.get('kinopoisk_api_key', '');
-		var api_key = stored_key; // пусто — без ключа (API вернёт ошибку)
+		var stored_key = Lampa.Storage.get('kinopoisk_api_key', '').trim();
+		var headers = stored_key ? { 'X-API-KEY': stored_key } : {};
 
 		var params = {
 			id: card.id,
 			url: kp_prox + 'https://kinopoiskapiunofficial.tech/',
 			rating_url: kp_prox + 'https://rating.kinopoisk.ru/',
-			headers: {
-				'X-API-KEY': api_key
-			},
+			headers: headers,
 			cache_time: 60 * 60 * 24 * 1000
 		};
 		getRating();
@@ -269,7 +267,7 @@
 		});
 	}
 
-	// Поле в "Интерфейс" — стандартный input (Lampa сохраняет/отображает автоматически)
+	// Поле ввода в "Интерфейс" (Lampa сохраняет/отображает автоматически)
 	Lampa.SettingsApi.addParam({
 		component: 'interface',
 		param: {
@@ -279,7 +277,7 @@
 		},
 		field: {
 			name: 'Kinopoisk API ключ (unofficial)',
-			description: 'Для рейтингов KP/IMDB. Введите свой ключ (обязательно).'
+			description: 'Введите свой ключ. Без ключа рейтинги не загрузятся (401 ошибка).'
 		}
 	});
 
