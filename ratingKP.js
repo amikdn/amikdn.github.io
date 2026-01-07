@@ -276,7 +276,7 @@
 		icon: `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 17.27L18.18 21L16.54 13.97L22 9.24L14.81 8.63L12 2L9.19 8.63L2 9.24L7.46 13.97L5.82 21L12 17.27Z" fill="currentColor"/></svg>`
 	});
 
-	// Static поле — нажатие открывает ввод, без обновления value (избегает ошибки)
+	// Static поле — показывает текущий ключ, нажатие открывает ввод
 	Lampa.SettingsApi.addParam({
 		component: 'kp_rating',
 		param: {
@@ -288,8 +288,9 @@
 			description: 'Нажмите ОК для ввода. Пусто — стандартный ключ.'
 		},
 		onRender: function (item) {
-			var current = Lampa.Storage.get('kinopoisk_api_key', '') || 'по умолчанию';
-			item.find('.settings-param__value').text(current);
+			var current = Lampa.Storage.get('kinopoisk_api_key', '');
+			var display = current ? current : 'по умолчанию';
+			item.find('.settings-param__value').text(display);
 
 			item.on('hover:enter', function () {
 				Lampa.Input.edit({
@@ -298,7 +299,7 @@
 					done: function (val) {
 						val = val.trim();
 						Lampa.Storage.set('kinopoisk_api_key', val);
-						Lampa.Noty.show('Ключ сохранён. Переоткройте раздел для обновления.');
+						Lampa.Noty.show('Ключ сохранён');
 					}
 				});
 			});
