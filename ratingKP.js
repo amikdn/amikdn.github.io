@@ -267,17 +267,33 @@
 		});
 	}
 
-	// Поле ввода в "Интерфейс" (Lampa сохраняет/отображает автоматически)
+	// Поле в "Интерфейс" как static (без ошибок)
 	Lampa.SettingsApi.addParam({
 		component: 'interface',
 		param: {
-			name: 'kinopoisk_api_key',
-			type: 'input',
-			default: ''
+			name: 'kinopoisk_api_key_field',
+			type: 'static'
 		},
 		field: {
 			name: 'Kinopoisk API ключ (unofficial)',
-			description: 'Введите свой ключ. Без ключа рейтинги не загрузятся (401 ошибка).'
+			description: 'Нажмите ОК для ввода. Пусто — рейтинги не загрузятся.'
+		},
+		onRender: function (item) {
+			var current = Lampa.Storage.get('kinopoisk_api_key', '');
+			var display = current ? current : 'пусто';
+			item.find('.settings-param__value').text(display);
+
+			item.on('hover:enter', function () {
+				Lampa.Input.edit({
+					title: 'Kinopoisk API ключ',
+					value: Lampa.Storage.get('kinopoisk_api_key', ''),
+					done: function (val) {
+						val = val.trim();
+						Lampa.Storage.set('kinopoisk_api_key', val);
+						Lampa.Noty.show('Ключ сохранён');
+					}
+				});
+			});
 		}
 	});
 
