@@ -269,32 +269,37 @@
 		});
 	}
 
-	// Кнопка в основных настройках (не раздел, а пункт)
-	Lampa.SettingsApi.addParam({
-		component: 'main',
-		param: {
-			name: 'kp_api_key_btn',
-			type: 'static'
-		},
-		field: {
-			name: 'Kinopoisk API ключ (unofficial)',
-			description: 'Нажмите для ввода ключа. Пусто — стандартный.'
-		},
-		onRender: function (item) {
-			var current = Lampa.Storage.get('kinopoisk_api_key', '') || 'по умолчанию';
-			item.find('.settings-param__value').text(current);
+	// Добавляем пункт в основные настройки (вниз списка)
+	Lampa.Listener.follow('app', function (e) {
+		if (e.type === 'ready') {
+			setTimeout(function () {
+				var render = Lampa.Settings.render();
+				if (render.find('.kp_api_key_setting').length) return;
 
-			item.on('hover:enter', function () {
-				Lampa.Input.edit({
-					title: 'Kinopoisk API ключ',
-					value: Lampa.Storage.get('kinopoisk_api_key', ''),
-					done: function (val) {
-						val = val.trim();
-						Lampa.Storage.set('kinopoisk_api_key', val);
-						item.find('.settings-param__value').text(val || 'по умолчанию');
-					}
+				var current = Lampa.Storage.get('kinopoisk_api_key', '') || 'по умолчанию';
+
+				var line = $(`
+					<div class="settings-param selector kp_api_key_setting">
+						<div class="settings-param__name">Kinopoisk API ключ (unofficial)</div>
+						<div class="settings-param__value">${current}</div>
+						<div class="settings-param__descr">Нажмите для ввода ключа. Пусто — стандартный.</div>
+					</div>
+				`);
+
+				render.append(line);
+
+				line.on('hover:enter', function () {
+					Lampa.Input.edit({
+						title: 'Kinopoisk API ключ',
+						value: Lampa.Storage.get('kinopoisk_api_key', ''),
+						done: function (val) {
+							val = val.trim();
+							Lampa.Storage.set('kinopoisk_api_key', val);
+							line.find('.settings-param__value').text(val || 'по умолчанию');
+						}
+					});
 				});
-			});
+			}, 1000);
 		}
 	});
 
