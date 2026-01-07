@@ -99,7 +99,7 @@
     `);
 
     menuItem.on('hover:enter', () => {
-      const view = Lampa.Storage.get('foreign_movie_view', 'list');
+      const view = Lampa.Storage.get('foreign_movie_view', 'grid');
       if (view === 'grid') {
         Lampa.Activity.push({
           url: '',
