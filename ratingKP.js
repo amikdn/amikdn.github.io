@@ -269,39 +269,27 @@
 		});
 	}
 
-	// Раздел "Рейтинг KP"
+	// Раздел "Рейтинг KP" — при нажатии сразу открывается ввод ключа
 	Lampa.SettingsApi.addComponent({
 		component: 'kp_rating',
 		name: 'Рейтинг KP',
 		icon: `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 17.27L18.18 21L16.54 13.97L22 9.24L14.81 8.63L12 2L9.19 8.63L2 9.24L7.46 13.97L5.82 21L12 17.27Z" fill="currentColor"/></svg>`
 	});
 
-	// Поле как "кнопка" (static) — при нажатии открывает ввод
-	Lampa.SettingsApi.addParam({
-		component: 'kp_rating',
-		param: {
-			name: 'kinopoisk_api_key_input',
-			type: 'static'
-		},
-		field: {
-			name: 'Kinopoisk API ключ (unofficial)',
-			description: 'Для рейтингов KP/IMDB. Пусто — стандартный ключ.'
-		},
-		onRender: function (item) {
-			var current = Lampa.Storage.get('kinopoisk_api_key', '') || 'по умолчанию';
-			item.find('.settings-param__value').text(current);
-
-			item.on('hover:enter', function () {
-				Lampa.Input.edit({
-					title: 'Kinopoisk API ключ',
-					value: Lampa.Storage.get('kinopoisk_api_key', ''),
-					done: function (val) {
-						val = val.trim();
-						Lampa.Storage.set('kinopoisk_api_key', val);
-						item.find('.settings-param__value').text(val || 'по умолчанию');
-					}
-				});
+	Lampa.Listener.follow('settings', function (e) {
+		if (e.type === 'open' && e.component === 'kp_rating') {
+			// Сразу открываем ввод ключа
+			Lampa.Input.edit({
+				title: 'Kinopoisk API ключ (unofficial)',
+				value: Lampa.Storage.get('kinopoisk_api_key', ''),
+				done: function (val) {
+					val = val.trim();
+					Lampa.Storage.set('kinopoisk_api_key', val);
+					Lampa.Noty.show('Ключ сохранён' + (val ? '' : ' (стандартный)'));
+				}
 			});
+			// Закрываем пустой раздел
+			Lampa.Controller.toggle('settings');
 		}
 	});
 
