@@ -445,116 +445,115 @@
                 var listData = '';
                 var chIDs = {};
                 var allLoaded = function() {
-                    if (load === 0) {
-                        var parseList = function () {
-                            if (typeof listData != 'string' || listData.substr(0, 7).toUpperCase() !== "#EXTM3U") {
-                                emptyResult();
-                                return;
-                            }
-                            catalog = {
-                                '': {
-                                    title: langGet('favorites'),
-                                    channels: []
-                                }
-                            };
-                            lists[object.id].groups = [{
+                    if (load > 0) return;
+                    var parseList = function () {
+                        if (typeof listData != 'string' || listData.substr(0, 7).toUpperCase() !== "#EXTM3U") {
+                            emptyResult();
+                            return;
+                        }
+                        catalog = {
+                            '': {
                                 title: langGet('favorites'),
-                                key: ''
-                            }];
-                            var l = listData.split(/\r?\n/);
-                            var cnt = 0, i = 1, chNum = 0, m, mm, defGroup = defaultGroup;
-                            if (!!(m = l[0].match(/([^\s=]+)=((["'])(.*?)\3|\S+)/g))) {
-                                for (var jj = 0; jj < m.length; jj++) {
-                                    if (!!(mm = m[jj].match(/([^\s=]+)=((["'])(.*?)\3|\S+)/))) {
-                                        listCfg[mm[1].toLowerCase()] = mm[4] || mm[2];
-                                    }
+                                channels: []
+                            }
+                        };
+                        lists[object.id].groups = [{
+                            title: langGet('favorites'),
+                            key: ''
+                        }];
+                        var l = listData.split(/\r?\n/);
+                        var cnt = 0, i = 1, chNum = 0, m, mm, defGroup = defaultGroup;
+                        if (!!(m = l[0].match(/([^\s=]+)=((["'])(.*?)\3|\S+)/g))) {
+                            for (var jj = 0; jj < m.length; jj++) {
+                                if (!!(mm = m[jj].match(/([^\s=]+)=((["'])(.*?)\3|\S+)/))) {
+                                    listCfg[mm[1].toLowerCase()] = mm[4] || mm[2];
                                 }
                             }
-                            while (i < l.length) {
-                                chNum = cnt + 1;
-                                var channel = {
-                                    ChNum: chNum,
-                                    Title: "Ch " + chNum,
-                                    isYouTube: false,
-                                    Url: '',
-                                    Group: '',
-                                    Options: {}
-                                };
-                                for (; cnt < chNum && i < l.length; i++) {
-                                    if (!!(m = l[i].match(/^#EXTGRP:\s*(.+?)\s*$/i)) && m[1].trim() !== '') {
-                                        defGroup = m[1].trim();
-                                    } else if (!!(m = l[i].match(/^#EXTINF:\s*-?\d+(\s+\S.*?\s*)?,(.+)$/i))) {
-                                        channel.Title = m[2].trim();
-                                        if (!!m[1] && !!(m = m[1].match(/([^\s=]+)=((["'])(.*?)\3|\S+)/g))) {
-                                            for (var j = 0; j < m.length; j++) {
-                                                if (!!(mm = m[j].match(/([^\s=]+)=((["'])(.*?)\3|\S+)/))) {
-                                                    channel[mm[1].toLowerCase()] = mm[4] || mm[2];
-                                                }
+                        }
+                        while (i < l.length) {
+                            chNum = cnt + 1;
+                            var channel = {
+                                ChNum: chNum,
+                                Title: "Ch " + chNum,
+                                isYouTube: false,
+                                Url: '',
+                                Group: '',
+                                Options: {}
+                            };
+                            for (; cnt < chNum && i < l.length; i++) {
+                                if (!!(m = l[i].match(/^#EXTGRP:\s*(.+?)\s*$/i)) && m[1].trim() !== '') {
+                                    defGroup = m[1].trim();
+                                } else if (!!(m = l[i].match(/^#EXTINF:\s*-?\d+(\s+\S.*?\s*)?,(.+)$/i))) {
+                                    channel.Title = m[2].trim();
+                                    if (!!m[1] && !!(m = m[1].match(/([^\s=]+)=((["'])(.*?)\3|\S+)/g))) {
+                                        for (var j = 0; j < m.length; j++) {
+                                            if (!!(mm = m[j].match(/([^\s=]+)=((["'])(.*?)\3|\S+)/))) {
+                                                channel[mm[1].toLowerCase()] = mm[4] || mm[2];
                                             }
                                         }
-                                    } else if (!!(m = l[i].match(/^#EXTVLCOPT:\s*([^\s=]+)=(.+)$/i))) {
-                                        channel.Options[m[1].trim().toLowerCase()] = m[2].trim();
-                                    } else if (!!(m = l[i].match(/^(https?):\/\/(.+)$/i))) {
-                                        channel.Url = m[0].trim();
-                                        channel.isYouTube = !!(m[2].match(/^(www\.)?youtube\.com/));
-                                        channel.Group = channel['group-title'] || defGroup;
-                                        cnt++;
                                     }
-                                }
-                                if (!!channel.Url && !channel.isYouTube) {
-                                    if (!catalog[channel.Group]) {
-                                        catalog[channel.Group] = {
-                                            title: channel.Group,
-                                            channels: []
-                                        };
-                                        lists[object.id].groups.push({
-                                            title: channel.Group,
-                                            key: channel.Group
-                                        });
-                                    }
-                                    channel['epgId'] = epgIdByName(channel['Title'], true);
-                                    channel['Title'] = channel['Title'].replace('ⓢ', '').replace('ⓖ', '').replace(/\s+/g, ' ').trim();
-                                    if (!channel['tvg-logo'] && channel['epgId']) {
-                                        channel['tvg-logo'] = Lampa.Utils.protocol() + 'epg.it999.ru/img2/' + channel['epgId'] + '.png'
-                                    }
-                                    if (!channel['tvg-logo'] && channel['Title'] !== "Ch " + chNum) {
-                                        channel['tvg-logo'] = Lampa.Utils.protocol() + 'epg.rootu.top/picon/' + encodeURIComponent(channel['Title']) + '.png';
-                                    }
-                                    catalog[channel.Group].channels.push(channel);
-                                    var favI = favorite.indexOf(favID(channel.Title));
-                                    if (favI !== -1) {
-                                        catalog[''].channels[favI] = channel;
-                                    }
+                                } else if (!!(m = l[i].match(/^#EXTVLCOPT:\s*([^\s=]+)=(.+)$/i))) {
+                                    channel.Options[m[1].trim().toLowerCase()] = m[2].trim();
+                                } else if (!!(m = l[i].match(/^(https?):\/\/(.+)$/i))) {
+                                    channel.Url = m[0].trim();
+                                    channel.isYouTube = !!(m[2].match(/^(www\.)?youtube\.com/));
+                                    channel.Group = channel['group-title'] || defGroup;
+                                    cnt++;
                                 }
                             }
-                            for (i = 0; i < lists[object.id].groups.length; i++) {
-                                var group = lists[object.id].groups[i];
-                                group.title += ' [' + catalog[group.key].channels.length + ']';
-                            }
-                            for (i = 0; i < favorite.length; i++) {
-                                if (!catalog[''].channels[i]) {
-                                    catalog[''].channels[i] = {
-                                        ChNum: -1,
-                                        Title: "#" + favorite[i],
-                                        isYouTube: false,
-                                        Url: Lampa.Utils.protocol() + 'epg.rootu.top/empty/_.m3u8',
-                                        Group: '',
-                                        Options: {},
-                                        'tvg-logo': Lampa.Utils.protocol() + 'epg.rootu.top/empty/_.gif'
+                            if (!!channel.Url && !channel.isYouTube) {
+                                if (!catalog[channel.Group]) {
+                                    catalog[channel.Group] = {
+                                        title: channel.Group,
+                                        channels: []
                                     };
+                                    lists[object.id].groups.push({
+                                        title: channel.Group,
+                                        key: channel.Group
+                                    });
+                                }
+                                channel['epgId'] = epgIdByName(channel.Title, true);
+                                channel['Title'] = channel['Title'].replace('ⓢ', '').replace('ⓖ', '').replace(/\s+/g, ' ').trim();
+                                if (!channel['tvg-logo'] && channel['epgId']) {
+                                    channel['tvg-logo'] = Lampa.Utils.protocol() + 'epg.it999.ru/img2/' + channel['epgId'] + '.png'
+                                }
+                                if (!channel['tvg-logo'] && channel['Title'] !== "Ch " + chNum) {
+                                    channel['tvg-logo'] = Lampa.Utils.protocol() + 'epg.rootu.top/picon/' + encodeURIComponent(channel['Title']) + '.png';
+                                }
+                                catalog[channel.Group].channels.push(channel);
+                                var favI = favorite.indexOf(favID(channel.Title));
+                                if (favI !== -1) {
+                                    catalog[''].channels[favI] = channel;
                                 }
                             }
-                            page.build(
-                                !catalog[object.currentGroup]
-                                ? (lists[object.id].groups.length > 1 && !!catalog[lists[object.id].groups[1].key]
-                                ? catalog[lists[object.id].groups[1].key]['channels']
-                                : []
-                                )
-                                : catalog[object.currentGroup]['channels']
-                            );
-                        };
-                        parseList();
-                    }
+                        }
+                        for (i = 0; i < lists[object.id].groups.length; i++) {
+                            var group = lists[object.id].groups[i];
+                            group.title += ' [' + catalog[group.key].channels.length + ']';
+                        }
+                        for (i = 0; i < favorite.length; i++) {
+                            if (!catalog[''].channels[i]) {
+                                catalog[''].channels[i] = {
+                                    ChNum: -1,
+                                    Title: "#" + favorite[i],
+                                    isYouTube: false,
+                                    Url: Lampa.Utils.protocol() + 'epg.rootu.top/empty/_.m3u8',
+                                    Group: '',
+                                    Options: {},
+                                    'tvg-logo': Lampa.Utils.protocol() + 'epg.rootu.top/empty/_.gif'
+                                };
+                            }
+                        }
+                        page.build(
+                            !catalog[object.currentGroup]
+                            ? (lists[object.id].groups.length > 1 && !!catalog[lists[object.id].groups[1].key]
+                            ? catalog[lists[object.id].groups[1].key]['channels']
+                            : []
+                            )
+                            : catalog[object.currentGroup]['channels']
+                        );
+                    };
+                    parseList();
                 };
                 if (!timeOffsetSet) {
                     load++;
@@ -631,11 +630,12 @@
                 network.silent(
                     Lampa.Utils.protocol() + 'epg.rootu.top/api/channels',
                     function(d){
-                        chIDs = d;
+                        chIDs = d || {};
                         load--;
                         allLoaded();
                     },
                     function(){
+                        chIDs = {};
                         load--;
                         allLoaded();
                     }
@@ -644,16 +644,16 @@
                 network.native(
                     listUrl,
                     function(txt){
-                        listData = txt;
+                        listData = txt || '';
                         load--;
                         allLoaded();
                     },
                     function () {
+                        load--;
                         network.silent(
                             Lampa.Utils.protocol() + 'epg.rootu.top/cors.php?url=' + encodeURIComponent(listUrl) + '&uid=' + utils.uid() + '&sig=' + generateSigForString(listUrl),
                             function(txt){
-                                listData = txt;
-                                load--;
+                                listData = txt || '';
                                 allLoaded();
                             },
                             emptyResult,
