@@ -269,7 +269,7 @@
 		});
 	}
 
-	// Добавляем настройку через SettingsApi (появится в Настройки → Интерфейс)
+	// Стандартное добавление настройки через SettingsApi (без onRender/onChange)
 	Lampa.SettingsApi.addParam({
 		component: 'interface',
 		param: {
@@ -279,19 +279,7 @@
 		},
 		field: {
 			name: 'Kinopoisk API ключ (unofficial)',
-			description: 'Для рейтингов KP/IMDB. Оставьте пустым для стандартного ключа.'
-		},
-		onRender: function(item) {
-			setTimeout(function() {
-				// Позиционируем после какого-нибудь элемента (например, после interface_size, если есть)
-				var target = $('div[data-name="interface_size"]');
-				if (target.length) {
-					$('div[data-name="kinopoisk_api_key"]').insertAfter(target);
-				}
-			}, 10);
-		},
-		onChange: function(value) {
-			Lampa.Storage.set('kinopoisk_api_key', value.trim());
+			description: 'Для рейтингов KP/IMDB. Пустое поле — стандартный ключ.'
 		}
 	});
 
