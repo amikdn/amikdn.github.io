@@ -10,7 +10,7 @@
 		var kp_prox = '';
 
 		var stored_key = Lampa.Storage.get('kinopoisk_api_key', '');
-		var api_key = stored_key || '2a4a0808-81a3-40ae-b0d3-e11335ede616';
+		var api_key = stored_key || '';
 
 		var params = {
 			id: card.id,
