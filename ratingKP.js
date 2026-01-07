@@ -9,7 +9,6 @@
 		var orig = card.original_title || card.original_name;
 		var kp_prox = '';
 
-		// Читаем ключ из настроек
 		var stored_key = Lampa.Storage.get('kinopoisk_api_key', '');
 		var api_key = stored_key || '2a4a0808-81a3-40ae-b0d3-e11335ede616';
 
@@ -270,31 +269,23 @@
 		});
 	}
 
-	// Добавляем настройку в раздел "Интерфейс" при открытии меню настроек
-	Lampa.Listener.follow('view', function (e) {
-		if (e.type == 'enter' && e.name == 'settings') {
+	// Добавляем параметр в раздел "Интерфейс"
+	Lampa.Listener.follow('settings', function (e) {
+		if (e.type == 'open' && e.component == 'interface') {
 			setTimeout(function () {
-				var render = Lampa.Settings.render();
-				if (render.find('.kp_api_key_setting').length) return;
+				if (e.body.find('.kp_api_key_setting').length) return;
 
 				var current = Lampa.Storage.get('kinopoisk_api_key', '') || 'по умолчанию';
 
 				var line = $(`
-					<div class="settings-param selector kp_api_key_setting" title="Нажмите ОК для изменения">
+					<div class="settings-param selector kp_api_key_setting">
 						<div class="settings-param__name">Kinopoisk API ключ (unofficial)</div>
 						<div class="settings-param__value">${current}</div>
 						<div class="settings-param__descr">Для рейтингов KP/IMDB. Пусто — стандартный ключ.</div>
 					</div>
 				`);
 
-				// Пытаемся добавить в раздел "Интерфейс"
-				var interfaceSection = render.find('[data-component="interface"]');
-				if (interfaceSection.length) {
-					interfaceSection.append(line);
-				} else {
-					// Если нет — в основной раздел
-					render.find('.settings__list').first().append(line);
-				}
+				e.body.append(line);
 
 				line.on('hover:enter', function () {
 					Lampa.Input.edit({
@@ -304,11 +295,11 @@
 							val = val.trim();
 							Lampa.Storage.set('kinopoisk_api_key', val);
 							line.find('.settings-param__value').text(val || 'по умолчанию');
-							Lampa.Noty.show('Ключ сохранён');
+							Lampa.Noty.show('Ключ сохранён. Перезапустите карточку фильма для применения.');
 						}
 					});
 				});
-			}, 200);
+			}, 300);
 		}
 	});
 
