@@ -279,8 +279,7 @@
 		field: {
 			name: 'Kinopoisk API ключ (unofficial)',
 			description: 'Для рейтингов KP/IMDB. Пусто — стандартный ключ.'
-		},
-		onRender: item => setTimeout(() => $('div[data-name="kinopoisk_api_key"]').insertAfter('div[data-name="interface_size"]'), 10)
+		}
 	});
 
 	if (!window.rating_plugin) startPlugin();
