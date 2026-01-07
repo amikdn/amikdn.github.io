@@ -269,14 +269,14 @@
 		});
 	}
 
-	// Раздел "Рейтинг KP"
+	// Создаём раздел
 	Lampa.SettingsApi.addComponent({
 		component: 'kp_rating',
 		name: 'Рейтинг KP',
 		icon: `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 17.27L18.18 21L16.54 13.97L22 9.24L14.81 8.63L12 2L9.19 8.63L2 9.24L7.46 13.97L5.82 21L12 17.27Z" fill="currentColor"/></svg>`
 	});
 
-	// Добавляем поле ввода при открытии раздела (Lampa сам сохраняет в Storage)
+	// Добавляем input-поле при открытии раздела (Lampa сохраняет автоматически)
 	Lampa.Listener.follow('settings', function (e) {
 		if (e.type === 'open' && e.component === 'kp_rating') {
 			setTimeout(function () {
@@ -290,13 +290,13 @@
 						default: ''
 					},
 					field: {
-						name: 'Kinopoisk API ключ (unofficial)',
-						description: 'Нажмите для ввода ключа. Пусто — стандартный ключ.'
+						name: 'Kinopoisk API ключ',
+						description: 'Введите ключ. Пусто — стандартный ключ.'
 					}
 				});
 
 				Lampa.Settings.update();
-			}, 100);
+			}, 200);
 		}
 	});
 
