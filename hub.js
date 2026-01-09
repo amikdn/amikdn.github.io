@@ -16,7 +16,7 @@ Lampa.Platform.tv();
     3: { action: 'cartoon', svg: `<svg><use xlink:href="#sprite-cartoon"></use></svg>`, name: 'Мультфильмы' }
   };
 
-  /** CSS — улучшенная адаптивность и поддержка единой темы в стиле кнопок нижнего бара */
+  /** CSS — адаптивность и "стеклянная" тема из phone_menu */
   const css = `
   :root {
       --nb-item-height: 64px;
@@ -26,19 +26,20 @@ Lampa.Platform.tv();
       --nb-label-size: 10px;
       --nb-gap: 6px;
       
-      /* Основные цвета из phone_menu (Стеклянно-серый стиль) */
+      /* Основные цвета "стеклянного" стиля */
       --nb-item-bg: linear-gradient(to top, rgba(80,80,80,0.35), rgba(30,30,35,0.25));
       --nb-item-border: 1px solid rgba(255,255,255,0.12);
       --nb-item-shadow: inset 0 0 6px rgba(0,0,0,0.5);
       --nb-item-radius: 14px;
       
-      /* Активное состояние (тоже из phone_menu) */
+      /* Активное состояние (фокус) */
       --nb-active-bg: linear-gradient(to top, rgba(100,100,100,0.45), rgba(40,40,45,0.35));
       --nb-active-border: 1px solid rgba(255,255,255,0.25);
       --nb-active-shadow: inset 0 0 8px rgba(0,0,0,0.6);
       --nb-active-text: #fff;
   }
 
+  /* Нижний бар в портретном режиме */
   .navigation-bar__body {
       display: flex !important;
       justify-content: center !important;
@@ -111,7 +112,7 @@ Lampa.Platform.tv();
       box-sizing: border-box !important;
   }
 
-  /* Адаптивность */
+  /* Адаптивность для мобильных */
   @media (max-width: 900px) {
       :root {
           --nb-item-height: 58px;
@@ -134,7 +135,46 @@ Lampa.Platform.tv();
       .navigation-bar__body { padding: 6px 2px !important; }
   }
 
-  /* ГЛОБАЛЬНАЯ ТЕМА (в стиле кнопок phone_menu) */
+  /* ГОРЫЗОНТАЛЬНЫЙ РЕЖИМ: только иконки 20x20 */
+  @media (orientation: landscape) {
+      .navigation-bar__body {
+          display: none !important;
+      }
+      .navigation-bar__item {
+          flex: none !important;
+          width: 20px !important;
+          height: 20px !important;
+          min-width: 0 !important;
+          background: transparent !important;
+          border: none !important;
+          box-shadow: none !important;
+          border-radius: 0 !important;
+          margin: 0 10px !important;
+          padding: 0 !important;
+          align-self: center !important;
+          color: #fff !important;
+      }
+      .navigation-bar__item.active {
+          background: transparent !important;
+          transform: scale(1.1) !important;
+          box-shadow: none !important;
+          border: none !important;
+      }
+      .navigation-bar__icon {
+          width: 20px !important;
+          height: 20px !important;
+          margin-bottom: 0 !important;
+      }
+      .navigation-bar__icon svg {
+          width: 20px !important;
+          height: 20px !important;
+      }
+      .navigation-bar__label {
+          display: none !important;
+      }
+  }
+
+  /* ГЛОБАЛЬНАЯ ТЕМА (Стеклянно-серый стиль для всего) */
   body[data-nb-mod-enabled="true"] .menu__item.focus,
   body[data-nb-mod-enabled="true"] .menu__item.traverse,
   body[data-nb-mod-enabled="true"] .menu__item.hover,
@@ -149,7 +189,7 @@ Lampa.Platform.tv();
       background: var(--nb-active-bg) !important;
       border: var(--nb-active-border) !important;
       box-shadow: var(--nb-active-shadow) !important;
-      border-radius: 10px !important; /* чуть меньше для меню */
+      border-radius: 12px !important;
       color: #fff !important;
       transform: scale(1.02);
       transition: all 0.2s ease !important;
@@ -157,13 +197,9 @@ Lampa.Platform.tv();
 
   body[data-nb-mod-enabled="true"] .card.focus .card__view::after,
   body[data-nb-mod-enabled="true"] .card.hover .card__view::after {
-      border: 2px solid rgba(255,255,255,0.4) !important;
+      border: 2px solid rgba(255,255,255,0.3) !important;
       box-shadow: 0 0 15px rgba(0,0,0,0.5) !important;
-      border-radius: 14px !important;
-  }
-
-  body[data-nb-mod-enabled="true"] .navigation-bar__item.active {
-      transform: translateY(-4px) !important;
+      border-radius: var(--nb-item-radius) !important;
   }
   `;
 
@@ -366,30 +402,29 @@ Lampa.Platform.tv();
   function startPlugin() {
     injectCSS();
 
-    // Настройки темы
-    Lampa.SettingsApi.addComponent({
-      component: 'nb_settings',
-      name: 'Настройки меню',
-      icon: '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 15C13.6569 15 15 13.6569 15 12C15 10.3431 13.6569 9 12 9C10.3431 9 9 10.3431 9 12C9 13.6569 10.3431 15 12 15Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
-    });
-
-    Lampa.SettingsApi.addParam({
-      component: 'nb_settings',
-      param: {
-        name: 'nb_mod_enabled',
-        type: 'trigger',
-        default: false
-      },
-      field: {
-        name: 'Применить тему меню',
-        description: 'Использовать стеклянно-серый стиль кнопок для всего интерфейса меню'
-      },
-      onChange: function (v) {
-        InterFaceMod.settings.theme_enabled = v;
-        Lampa.Storage.set('nb_mod_enabled', v);
-        toggleMod(v);
+    // Добавляем параметр в раздел "Интерфейс"
+    // Мы используем тайм-аут, чтобы убедиться, что Lampa успела инициализировать свои компоненты
+    setTimeout(function() {
+      if (Lampa.SettingsApi) {
+        Lampa.SettingsApi.addParam({
+          component: 'interface',
+          param: {
+            name: 'nb_mod_enabled',
+            type: 'trigger',
+            default: false
+          },
+          field: {
+            name: 'Стеклянная тема меню',
+            description: 'Применить стиль нижнего бара ко всем кнопкам и меню приложения'
+          },
+          onChange: function (v) {
+            InterFaceMod.settings.theme_enabled = v;
+            Lampa.Storage.set('nb_mod_enabled', v);
+            toggleMod(v);
+          }
+        });
       }
-    });
+    }, 1000);
 
     InterFaceMod.settings.theme_enabled = Lampa.Storage.get('nb_mod_enabled', false);
     toggleMod(InterFaceMod.settings.theme_enabled);
@@ -406,13 +441,21 @@ Lampa.Platform.tv();
     window.addEventListener('resize', adjustPosition);
   }
 
-  function init(){
+  // Проверка готовности приложения (используем более надежный метод)
+  function init() {
     if (window.appready) {
       startPlugin();
     } else {
-      Lampa.Listener.follow('app', function (e) {
-        if (e.type === 'ready') startPlugin();
-      });
+      var listener = Lampa.Listener || (Lampa.Events && Lampa.Events.on);
+      if (listener && typeof listener.follow === 'function') {
+        listener.follow('app', function (e) {
+          if (e.type === 'ready') startPlugin();
+        });
+      } else if (listener && typeof listener.on === 'function') {
+        listener.on('ready', startPlugin);
+      } else {
+        setTimeout(startPlugin, 500);
+      }
     }
   }
 
