@@ -402,29 +402,32 @@ Lampa.Platform.tv();
   function startPlugin() {
     injectCSS();
 
-    // Добавляем параметр в раздел "Интерфейс"
-    // Мы используем тайм-аут, чтобы убедиться, что Lampa успела инициализировать свои компоненты
-    setTimeout(function() {
-      if (Lampa.SettingsApi) {
+    // Добавляем параметр в раздел "Интерфейс" по вашему примеру
+    if (Lampa.SettingsApi) {
         Lampa.SettingsApi.addParam({
-          component: 'interface',
-          param: {
-            name: 'nb_mod_enabled',
-            type: 'trigger',
-            default: false
-          },
-          field: {
-            name: 'Стеклянная тема меню',
-            description: 'Применить стиль нижнего бара ко всем кнопкам и меню приложения'
-          },
-          onChange: function (v) {
-            InterFaceMod.settings.theme_enabled = v;
-            Lampa.Storage.set('nb_mod_enabled', v);
-            toggleMod(v);
-          }
+            component: 'interface',
+            param: {
+                name: 'nb_mod_enabled',
+                type: 'trigger',
+                default: false
+            },
+            field: {
+                name: 'Стеклянная тема меню',
+                description: 'Применить стиль нижнего бара ко всем кнопкам и меню приложения'
+            },
+            onRender: function (el) {
+                setTimeout(function () {
+                    // Перемещаем кнопку сразу после "Размер интерфейса"
+                    $('div[data-name="nb_mod_enabled"]').insertAfter($('div[data-name="interface_size"]'));
+                }, 0);
+            },
+            onChange: function (v) {
+                InterFaceMod.settings.theme_enabled = v;
+                Lampa.Storage.set('nb_mod_enabled', v);
+                toggleMod(v);
+            }
         });
-      }
-    }, 1000);
+    }
 
     InterFaceMod.settings.theme_enabled = Lampa.Storage.get('nb_mod_enabled', false);
     toggleMod(InterFaceMod.settings.theme_enabled);
@@ -441,7 +444,7 @@ Lampa.Platform.tv();
     window.addEventListener('resize', adjustPosition);
   }
 
-  // Проверка готовности приложения (используем более надежный метод)
+  // Проверка готовности приложения
   function init() {
     if (window.appready) {
       startPlugin();
