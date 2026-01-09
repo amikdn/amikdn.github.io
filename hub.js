@@ -5,7 +5,7 @@ Lampa.Platform.tv();
 
   var InterFaceMod = {
     settings: {
-      theme: 'default'
+      theme_enabled: false
     }
   };
 
@@ -16,7 +16,7 @@ Lampa.Platform.tv();
     3: { action: 'cartoon', svg: `<svg><use xlink:href="#sprite-cartoon"></use></svg>`, name: 'Мультфильмы' }
   };
 
-  /** CSS — улучшенная адаптивность и поддержка тем */
+  /** CSS — улучшенная адаптивность и поддержка единой темы в стиле кнопок нижнего бара */
   const css = `
   :root {
       --nb-item-height: 64px;
@@ -25,13 +25,17 @@ Lampa.Platform.tv();
       --nb-svg-size: 26px;
       --nb-label-size: 10px;
       --nb-gap: 6px;
+      
+      /* Основные цвета из phone_menu (Стеклянно-серый стиль) */
       --nb-item-bg: linear-gradient(to top, rgba(80,80,80,0.35), rgba(30,30,35,0.25));
       --nb-item-border: 1px solid rgba(255,255,255,0.12);
       --nb-item-shadow: inset 0 0 6px rgba(0,0,0,0.5);
       --nb-item-radius: 14px;
+      
+      /* Активное состояние (тоже из phone_menu) */
       --nb-active-bg: linear-gradient(to top, rgba(100,100,100,0.45), rgba(40,40,45,0.35));
-      --nb-active-border: rgba(255,255,255,0.4);
-      --nb-active-shadow: inset 0 0 8px rgba(0,0,0,0.6), 0 0 10px rgba(255,255,255,0.1);
+      --nb-active-border: 1px solid rgba(255,255,255,0.25);
+      --nb-active-shadow: inset 0 0 8px rgba(0,0,0,0.6);
       --nb-active-text: #fff;
   }
 
@@ -72,7 +76,7 @@ Lampa.Platform.tv();
 
   .navigation-bar__item.active {
       background: var(--nb-active-bg) !important;
-      border-color: var(--nb-active-border) !important;
+      border: var(--nb-active-border) !important;
       box-shadow: var(--nb-active-shadow) !important;
       transform: translateY(-2px);
       color: var(--nb-active-text) !important;
@@ -107,15 +111,7 @@ Lampa.Platform.tv();
       box-sizing: border-box !important;
   }
 
-  /* Адаптивность под разные разрешения */
-  @media (max-width: 1200px) {
-      :root {
-          --nb-item-height: 62px;
-          --nb-item-min-width: 52px;
-          --nb-icon-size: 27px;
-          --nb-svg-size: 25px;
-      }
-  }
+  /* Адаптивность */
   @media (max-width: 900px) {
       :root {
           --nb-item-height: 58px;
@@ -137,97 +133,37 @@ Lampa.Platform.tv();
       }
       .navigation-bar__body { padding: 6px 2px !important; }
   }
-  @media (max-width: 400px) {
-      :root {
-          --nb-item-height: 50px;
-          --nb-item-min-width: 38px;
-          --nb-icon-size: 22px;
-          --nb-svg-size: 20px;
-          --nb-label-size: 8px;
-          --nb-gap: 2px;
-      }
+
+  /* ГЛОБАЛЬНАЯ ТЕМА (в стиле кнопок phone_menu) */
+  body[data-nb-mod-enabled="true"] .menu__item.focus,
+  body[data-nb-mod-enabled="true"] .menu__item.traverse,
+  body[data-nb-mod-enabled="true"] .menu__item.hover,
+  body[data-nb-mod-enabled="true"] .settings-folder.focus,
+  body[data-nb-mod-enabled="true"] .settings-param.focus,
+  body[data-nb-mod-enabled="true"] .selectbox-item.focus,
+  body[data-nb-mod-enabled="true"] .full-start__button.focus,
+  body[data-nb-mod-enabled="true"] .full-descr__tag.focus,
+  body[data-nb-mod-enabled="true"] .player-panel .button.focus,
+  body[data-nb-mod-enabled="true"] .head__action.focus,
+  body[data-nb-mod-enabled="true"] .head__action.hover {
+      background: var(--nb-active-bg) !important;
+      border: var(--nb-active-border) !important;
+      box-shadow: var(--nb-active-shadow) !important;
+      border-radius: 10px !important; /* чуть меньше для меню */
+      color: #fff !important;
+      transform: scale(1.02);
+      transition: all 0.2s ease !important;
   }
 
-  /* Landscape Mode */
-  @media (orientation: landscape) {
-      .navigation-bar__body {
-          display: none !important;
-      }
-      .navigation-bar__item {
-          flex: none !important;
-          width: auto !important;
-          height: auto !important;
-          min-width: 0 !important;
-          background: transparent !important;
-          border: none !important;
-          box-shadow: none !important;
-          border-radius: 0 !important;
-          margin: 0 10px !important;
-          padding: 0 !important;
-          align-self: center !important;
-      }
-      .navigation-bar__item.active {
-          background: transparent !important;
-          transform: scale(1.1);
-          box-shadow: none !important;
-          border-color: transparent !important;
-      }
-      .navigation-bar__icon {
-          width: 24px !important;
-          height: 24px !important;
-          margin-bottom: 0 !important;
-      }
-      .navigation-bar__icon svg {
-          width: 22px !important;
-          height: 22px !important;
-      }
-      .navigation-bar__label {
-          display: none !important;
-      }
+  body[data-nb-mod-enabled="true"] .card.focus .card__view::after,
+  body[data-nb-mod-enabled="true"] .card.hover .card__view::after {
+      border: 2px solid rgba(255,255,255,0.4) !important;
+      box-shadow: 0 0 15px rgba(0,0,0,0.5) !important;
+      border-radius: 14px !important;
   }
 
-  /* ТЕМЫ ОФОРМЛЕНИЯ */
-  body[data-nb-theme="neon"] .navigation-bar__item.active {
-      background: linear-gradient(to right, #ff00ff, #00ffff) !important;
-      box-shadow: 0 0 20px rgba(255,0,255,0.4) !important;
-      border: none !important;
-      color: #fff !important;
-  }
-  body[data-nb-theme="dark_night"] .navigation-bar__item.active {
-      background: linear-gradient(to right, #8a2387, #e94057, #f27121) !important;
-      box-shadow: 0 0 30px rgba(233,64,87,0.3) !important;
-      border: none !important;
-      color: #fff !important;
-  }
-  body[data-nb-theme="blue_cosmos"] .navigation-bar__item.active {
-      background: linear-gradient(to right, #12c2e9, #c471ed, #f64f59) !important;
-      box-shadow: 0 0 30px rgba(18,194,233,0.3) !important;
-      border: none !important;
-      color: #fff !important;
-  }
-  body[data-nb-theme="sunset"] .navigation-bar__item.active {
-      background: linear-gradient(to right, #ff6e7f, #bfe9ff) !important;
-      box-shadow: 0 0 15px rgba(255,110,127,0.3) !important;
-      color: #2d1f3d !important;
-      border: none !important;
-  }
-  body[data-nb-theme="emerald"] .navigation-bar__item.active {
-      background: linear-gradient(to right, #43cea2, #185a9d) !important;
-      box-shadow: 0 4px 15px rgba(67,206,162,0.3) !important;
-      border: none !important;
-      color: #fff !important;
-  }
-  body[data-nb-theme="aurora"] .navigation-bar__item.active {
-      background: linear-gradient(to right, #aa4b6b, #6b6b83, #3b8d99) !important;
-      box-shadow: 0 0 20px rgba(170,75,107,0.3) !important;
-      border: none !important;
-      color: #fff !important;
-  }
-  body[data-nb-theme="bywolf_mod"] .navigation-bar__item.active {
-      background: linear-gradient(to right, #fc00ff, #00dbde) !important;
-      box-shadow: 0 0 30px rgba(252,0,255,0.3) !important;
-      border: none !important;
-      color: #fff !important;
+  body[data-nb-mod-enabled="true"] .navigation-bar__item.active {
+      transform: translateY(-4px) !important;
   }
   `;
 
@@ -243,8 +179,8 @@ Lampa.Platform.tv();
     }
   }
 
-  function applyTheme(theme) {
-    document.body.setAttribute('data-nb-theme', theme);
+  function toggleMod(enabled) {
+    document.body.setAttribute('data-nb-mod-enabled', enabled);
   }
 
   function emulateSidebarClick(action){
@@ -434,39 +370,29 @@ Lampa.Platform.tv();
     Lampa.SettingsApi.addComponent({
       component: 'nb_settings',
       name: 'Настройки меню',
-      icon: '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 6H20M4 12H20M4 18H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+      icon: '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 15C13.6569 15 15 13.6569 15 12C15 10.3431 13.6569 9 12 9C10.3431 9 9 10.3431 9 12C9 13.6569 10.3431 15 12 15Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
     });
 
     Lampa.SettingsApi.addParam({
       component: 'nb_settings',
       param: {
-        name: 'nb_theme',
-        type: 'select',
-        values: {
-          default: 'Стандартная',
-          bywolf_mod: 'Bywolf_mod',
-          dark_night: 'Dark Night',
-          blue_cosmos: 'Blue Cosmos',
-          neon: 'Neon',
-          sunset: 'Dark MOD',
-          emerald: 'Emerald',
-          aurora: 'Aurora'
-        },
-        default: 'default'
+        name: 'nb_mod_enabled',
+        type: 'trigger',
+        default: false
       },
       field: {
-        name: 'Тема нижнего меню',
-        description: 'Выберите тему оформления для кнопок меню'
+        name: 'Применить тему меню',
+        description: 'Использовать стеклянно-серый стиль кнопок для всего интерфейса меню'
       },
       onChange: function (v) {
-        InterFaceMod.settings.theme = v;
-        Lampa.Storage.set('nb_theme', v);
-        applyTheme(v);
+        InterFaceMod.settings.theme_enabled = v;
+        Lampa.Storage.set('nb_mod_enabled', v);
+        toggleMod(v);
       }
     });
 
-    InterFaceMod.settings.theme = Lampa.Storage.get('nb_theme', 'default');
-    applyTheme(InterFaceMod.settings.theme);
+    InterFaceMod.settings.theme_enabled = Lampa.Storage.get('nb_mod_enabled', false);
+    toggleMod(InterFaceMod.settings.theme_enabled);
 
     addItem('1', defaults[1].action, defaults[1].svg, defaults[1].name);
     addItem('2', defaults[2].action, defaults[2].svg, defaults[2].name);
