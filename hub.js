@@ -43,10 +43,10 @@ Lampa.Platform.tv();
       transition: background .3s ease, transform .2s ease, border-color .3s ease, box-shadow .3s ease, height .3s ease !important;
       box-sizing: border-box;
       overflow: hidden !important;
+      position: relative !important;
   }
 
-  .navigation-bar__item:hover,
-  .navigation-bar__item.active {
+  .navigation-bar__item:hover {
       background: linear-gradient(to top, rgba(100,100,100,0.45), rgba(40,40,45,0.35)) !important;
       border-color: rgba(255,255,255,0.25) !important;
       box-shadow: inset 0 0 8px rgba(0,0,0,0.6) !important;
@@ -58,6 +58,11 @@ Lampa.Platform.tv();
   .navigation-bar__item[data-position="3"].active {
       height: 72px !important;
       min-height: 72px !important;
+      background: linear-gradient(to top, rgba(100,100,100,0.45), rgba(40,40,45,0.35)) !important;
+      border-color: rgba(255,255,255,0.25) !important;
+      box-shadow: inset 0 0 8px rgba(0,0,0,0.6) !important;
+      margin-top: -8px !important;
+      margin-bottom: 0 !important;
   }
 
   .navigation-bar__icon {
@@ -112,7 +117,9 @@ Lampa.Platform.tv();
       font-size: 11px !important;
   }
 
-  .menu__item {
+  .menu__item,
+  .menu .menu__item,
+  body .menu__item {
       background: linear-gradient(to top, rgba(80,80,80,0.35), rgba(30,30,35,0.25)) !important;
       border: 1px solid rgba(255,255,255,0.12) !important;
       box-shadow: inset 0 0 6px rgba(0,0,0,0.5) !important;
@@ -130,7 +137,8 @@ Lampa.Platform.tv();
       box-shadow: inset 0 0 8px rgba(0,0,0,0.6) !important;
   }
 
-  .menu__content {
+  .menu__content,
+  body .menu__content {
       background: linear-gradient(to top, rgba(80,80,80,0.2), rgba(30,30,35,0.15)) !important;
       border: 1px solid rgba(255,255,255,0.1) !important;
       box-shadow: inset 0 0 4px rgba(0,0,0,0.4) !important;
@@ -138,7 +146,9 @@ Lampa.Platform.tv();
   }
 
   .settings-folder,
-  .settings-param {
+  .settings-param,
+  body .settings-folder,
+  body .settings-param {
       background: linear-gradient(to top, rgba(80,80,80,0.3), rgba(30,30,35,0.2)) !important;
       border: 1px solid rgba(255,255,255,0.12) !important;
       box-shadow: inset 0 0 5px rgba(0,0,0,0.4) !important;
@@ -148,13 +158,16 @@ Lampa.Platform.tv();
   }
 
   .settings-folder.focus,
-  .settings-param.focus {
+  .settings-param.focus,
+  body .settings-folder.focus,
+  body .settings-param.focus {
       background: linear-gradient(to top, rgba(100,100,100,0.4), rgba(40,40,45,0.3)) !important;
       border-color: rgba(255,255,255,0.25) !important;
       box-shadow: inset 0 0 7px rgba(0,0,0,0.5) !important;
   }
 
-  .selectbox-item {
+  .selectbox-item,
+  body .selectbox-item {
       background: linear-gradient(to top, rgba(80,80,80,0.3), rgba(30,30,35,0.2)) !important;
       border: 1px solid rgba(255,255,255,0.12) !important;
       box-shadow: inset 0 0 5px rgba(0,0,0,0.4) !important;
@@ -163,13 +176,15 @@ Lampa.Platform.tv();
       transition: background .3s ease, border-color .3s ease, box-shadow .3s ease !important;
   }
 
-  .selectbox-item.focus {
+  .selectbox-item.focus,
+  body .selectbox-item.focus {
       background: linear-gradient(to top, rgba(100,100,100,0.4), rgba(40,40,45,0.3)) !important;
       border-color: rgba(255,255,255,0.25) !important;
       box-shadow: inset 0 0 7px rgba(0,0,0,0.5) !important;
   }
 
-  .full-start__button {
+  .full-start__button,
+  body .full-start__button {
       background: linear-gradient(to top, rgba(80,80,80,0.35), rgba(30,30,35,0.25)) !important;
       border: 1px solid rgba(255,255,255,0.12) !important;
       box-shadow: inset 0 0 6px rgba(0,0,0,0.5) !important;
@@ -178,13 +193,16 @@ Lampa.Platform.tv();
   }
 
   .full-start__button.focus,
-  .full-start__button:hover {
+  .full-start__button:hover,
+  body .full-start__button.focus,
+  body .full-start__button:hover {
       background: linear-gradient(to top, rgba(100,100,100,0.45), rgba(40,40,45,0.35)) !important;
       border-color: rgba(255,255,255,0.25) !important;
       box-shadow: inset 0 0 8px rgba(0,0,0,0.6) !important;
   }
 
-  .player-panel .button {
+  .player-panel .button,
+  body .player-panel .button {
       background: linear-gradient(to top, rgba(80,80,80,0.35), rgba(30,30,35,0.25)) !important;
       border: 1px solid rgba(255,255,255,0.12) !important;
       box-shadow: inset 0 0 6px rgba(0,0,0,0.5) !important;
@@ -193,7 +211,9 @@ Lampa.Platform.tv();
   }
 
   .player-panel .button.focus,
-  .player-panel .button:hover {
+  .player-panel .button:hover,
+  body .player-panel .button.focus,
+  body .player-panel .button:hover {
       background: linear-gradient(to top, rgba(100,100,100,0.45), rgba(40,40,45,0.35)) !important;
       border-color: rgba(255,255,255,0.25) !important;
       box-shadow: inset 0 0 8px rgba(0,0,0,0.6) !important;
@@ -212,6 +232,8 @@ Lampa.Platform.tv();
       .navigation-bar__item[data-position="3"].active {
           height: 80px !important;
           min-height: 80px !important;
+          margin-top: -10px !important;
+          margin-bottom: 0 !important;
       }
       .navigation-bar__icon { width: 32px; height: 32px; }
       .navigation-bar__item[data-position="1"].active .navigation-bar__icon,
@@ -248,6 +270,8 @@ Lampa.Platform.tv();
       .navigation-bar__item[data-position="3"].active {
           height: 76px !important;
           min-height: 76px !important;
+          margin-top: -8px !important;
+          margin-bottom: 0 !important;
       }
       .navigation-bar__icon { width: 30px; height: 30px; }
       .navigation-bar__item[data-position="1"].active .navigation-bar__icon,
@@ -283,6 +307,8 @@ Lampa.Platform.tv();
       .navigation-bar__item[data-position="3"].active {
           height: 74px !important;
           min-height: 74px !important;
+          margin-top: -8px !important;
+          margin-bottom: 0 !important;
       }
       .navigation-bar__icon { width: 29px; height: 29px; }
       .navigation-bar__item[data-position="1"].active .navigation-bar__icon,
@@ -318,6 +344,8 @@ Lampa.Platform.tv();
       .navigation-bar__item[data-position="3"].active {
           height: 72px !important;
           min-height: 72px !important;
+          margin-top: -8px !important;
+          margin-bottom: 0 !important;
       }
       .navigation-bar__icon { width: 28px; height: 28px; }
       .navigation-bar__item[data-position="1"].active .navigation-bar__icon,
@@ -352,6 +380,8 @@ Lampa.Platform.tv();
       .navigation-bar__item[data-position="3"].active {
           height: 68px !important;
           min-height: 68px !important;
+          margin-top: -8px !important;
+          margin-bottom: 0 !important;
       }
       .navigation-bar__icon { width: 26px; height: 26px; }
       .navigation-bar__item[data-position="1"].active .navigation-bar__icon,
@@ -387,6 +417,8 @@ Lampa.Platform.tv();
       .navigation-bar__item[data-position="3"].active {
           height: 64px !important;
           min-height: 64px !important;
+          margin-top: -8px !important;
+          margin-bottom: 0 !important;
       }
       .navigation-bar__icon { width: 24px; height: 24px; margin-bottom: 1px !important; }
       .navigation-bar__item[data-position="1"].active .navigation-bar__icon,
@@ -422,6 +454,8 @@ Lampa.Platform.tv();
       .navigation-bar__item[data-position="3"].active {
           height: 60px !important;
           min-height: 60px !important;
+          margin-top: -8px !important;
+          margin-bottom: 0 !important;
       }
       .navigation-bar__icon { width: 22px; height: 22px; }
       .navigation-bar__item[data-position="1"].active .navigation-bar__icon,
