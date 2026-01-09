@@ -61,8 +61,7 @@ Lampa.Platform.tv();
       background: linear-gradient(to top, rgba(100,100,100,0.45), rgba(40,40,45,0.35)) !important;
       border-color: rgba(255,255,255,0.25) !important;
       box-shadow: inset 0 0 8px rgba(0,0,0,0.6) !important;
-      margin-top: -8px !important;
-      margin-bottom: 0 !important;
+      transform: translateY(-8px) !important;
   }
 
   .navigation-bar__icon {
@@ -219,6 +218,78 @@ Lampa.Platform.tv();
       box-shadow: inset 0 0 8px rgba(0,0,0,0.6) !important;
   }
 
+  /* На десктопе/TV убираем тему меню, оставляем только обводку для выбранной иконки */
+  @media (min-width: 901px) {
+      .menu__item,
+      .menu .menu__item,
+      body .menu__item,
+      .menu__content,
+      body .menu__content,
+      .settings-folder,
+      .settings-param,
+      body .settings-folder,
+      body .settings-param,
+      .selectbox-item,
+      body .selectbox-item,
+      .full-start__button,
+      body .full-start__button,
+      .player-panel .button,
+      body .player-panel .button {
+          background: initial !important;
+          border: initial !important;
+          box-shadow: initial !important;
+          border-radius: initial !important;
+          margin: initial !important;
+      }
+      .menu__item:hover,
+      .menu__item.focus,
+      .menu__item.traverse,
+      .menu__item.hover,
+      .settings-folder.focus,
+      .settings-param.focus,
+      body .settings-folder.focus,
+      body .settings-param.focus,
+      .selectbox-item.focus,
+      body .selectbox-item.focus,
+      .full-start__button.focus,
+      .full-start__button:hover,
+      body .full-start__button.focus,
+      body .full-start__button:hover,
+      .player-panel .button.focus,
+      .player-panel .button:hover,
+      body .player-panel .button.focus,
+      body .player-panel .button:hover {
+          background: initial !important;
+          border: initial !important;
+          box-shadow: initial !important;
+      }
+      /* На десктопе/TV активные кнопки не увеличиваются, только обводка */
+      .navigation-bar__item[data-position="1"].active,
+      .navigation-bar__item[data-position="2"].active,
+      .navigation-bar__item[data-position="3"].active {
+          height: initial !important;
+          min-height: initial !important;
+          transform: none !important;
+      }
+      .navigation-bar__item[data-position="1"].active .navigation-bar__icon,
+      .navigation-bar__item[data-position="2"].active .navigation-bar__icon,
+      .navigation-bar__item[data-position="3"].active .navigation-bar__icon {
+          width: initial !important;
+          height: initial !important;
+      }
+      .navigation-bar__item[data-position="1"].active .navigation-bar__icon svg,
+      .navigation-bar__item[data-position="2"].active .navigation-bar__icon svg,
+      .navigation-bar__item[data-position="3"].active .navigation-bar__icon svg {
+          width: initial !important;
+          height: initial !important;
+      }
+      .navigation-bar__item[data-position="1"].active .navigation-bar__label,
+      .navigation-bar__item[data-position="2"].active .navigation-bar__label,
+      .navigation-bar__item[data-position="3"].active .navigation-bar__label {
+          font-size: initial !important;
+      }
+  }
+
   @media (min-width: 1920px) {
       .navigation-bar__body { padding: 8px 3px !important; }
       .navigation-bar__item { 
@@ -232,8 +303,7 @@ Lampa.Platform.tv();
       .navigation-bar__item[data-position="3"].active {
           height: 80px !important;
           min-height: 80px !important;
-          margin-top: -10px !important;
-          margin-bottom: 0 !important;
+          transform: translateY(-10px) !important;
       }
       .navigation-bar__icon { width: 32px; height: 32px; }
       .navigation-bar__item[data-position="1"].active .navigation-bar__icon,
@@ -270,8 +340,7 @@ Lampa.Platform.tv();
       .navigation-bar__item[data-position="3"].active {
           height: 76px !important;
           min-height: 76px !important;
-          margin-top: -8px !important;
-          margin-bottom: 0 !important;
+          transform: translateY(-8px) !important;
       }
       .navigation-bar__icon { width: 30px; height: 30px; }
       .navigation-bar__item[data-position="1"].active .navigation-bar__icon,
@@ -307,8 +376,7 @@ Lampa.Platform.tv();
       .navigation-bar__item[data-position="3"].active {
           height: 74px !important;
           min-height: 74px !important;
-          margin-top: -8px !important;
-          margin-bottom: 0 !important;
+          transform: translateY(-8px) !important;
       }
       .navigation-bar__icon { width: 29px; height: 29px; }
       .navigation-bar__item[data-position="1"].active .navigation-bar__icon,
@@ -344,8 +412,7 @@ Lampa.Platform.tv();
       .navigation-bar__item[data-position="3"].active {
           height: 72px !important;
           min-height: 72px !important;
-          margin-top: -8px !important;
-          margin-bottom: 0 !important;
+          transform: translateY(-8px) !important;
       }
       .navigation-bar__icon { width: 28px; height: 28px; }
       .navigation-bar__item[data-position="1"].active .navigation-bar__icon,
@@ -380,8 +447,7 @@ Lampa.Platform.tv();
       .navigation-bar__item[data-position="3"].active {
           height: 68px !important;
           min-height: 68px !important;
-          margin-top: -8px !important;
-          margin-bottom: 0 !important;
+          transform: translateY(-8px) !important;
       }
       .navigation-bar__icon { width: 26px; height: 26px; }
       .navigation-bar__item[data-position="1"].active .navigation-bar__icon,
@@ -417,8 +483,7 @@ Lampa.Platform.tv();
       .navigation-bar__item[data-position="3"].active {
           height: 64px !important;
           min-height: 64px !important;
-          margin-top: -8px !important;
-          margin-bottom: 0 !important;
+          transform: translateY(-8px) !important;
       }
       .navigation-bar__icon { width: 24px; height: 24px; margin-bottom: 1px !important; }
       .navigation-bar__item[data-position="1"].active .navigation-bar__icon,
@@ -454,8 +519,7 @@ Lampa.Platform.tv();
       .navigation-bar__item[data-position="3"].active {
           height: 60px !important;
           min-height: 60px !important;
-          margin-top: -8px !important;
-          margin-bottom: 0 !important;
+          transform: translateY(-8px) !important;
       }
       .navigation-bar__icon { width: 22px; height: 22px; }
       .navigation-bar__item[data-position="1"].active .navigation-bar__icon,
@@ -503,11 +567,15 @@ Lampa.Platform.tv();
       .navigation-bar__item[data-position="3"].active {
           height: auto !important;
           min-height: 0 !important;
+          transform: translateY(4px) !important;
       }
-      .navigation-bar__item:hover,
-      .navigation-bar__item.active {
+      .navigation-bar__item:hover {
           background: transparent !important;
           transform: scale(1.15);
+      }
+      .navigation-bar__item.active:not([data-position="1"]):not([data-position="2"]):not([data-position="3"]) {
+          background: transparent !important;
+          transform: none !important;
       }
       .navigation-bar__icon {
           width: 20px !important;
