@@ -116,9 +116,9 @@ Lampa.Platform.tv();
       font-size: 11px !important;
   }
 
-  .menu__item,
-  .menu .menu__item,
-  body .menu__item {
+  body .menu__item,
+  html body .menu__item,
+  body .menu .menu__item {
       background: linear-gradient(to top, rgba(80,80,80,0.35), rgba(30,30,35,0.25)) !important;
       border: 1px solid rgba(255,255,255,0.12) !important;
       box-shadow: inset 0 0 6px rgba(0,0,0,0.5) !important;
@@ -127,27 +127,27 @@ Lampa.Platform.tv();
       margin: 2px 0 !important;
   }
 
-  .menu__item:hover,
-  .menu__item.focus,
-  .menu__item.traverse,
-  .menu__item.hover {
+  body .menu__item:hover,
+  body .menu__item.focus,
+  body .menu__item.traverse,
+  body .menu__item.hover {
       background: linear-gradient(to top, rgba(100,100,100,0.45), rgba(40,40,45,0.35)) !important;
       border-color: rgba(255,255,255,0.25) !important;
       box-shadow: inset 0 0 8px rgba(0,0,0,0.6) !important;
   }
 
-  .menu__content,
-  body .menu__content {
+  body .menu__content,
+  html body .menu__content {
       background: linear-gradient(to top, rgba(80,80,80,0.2), rgba(30,30,35,0.15)) !important;
       border: 1px solid rgba(255,255,255,0.1) !important;
       box-shadow: inset 0 0 4px rgba(0,0,0,0.4) !important;
       border-radius: 12px !important;
   }
 
-  .settings-folder,
-  .settings-param,
   body .settings-folder,
-  body .settings-param {
+  body .settings-param,
+  html body .settings-folder,
+  html body .settings-param {
       background: linear-gradient(to top, rgba(80,80,80,0.3), rgba(30,30,35,0.2)) !important;
       border: 1px solid rgba(255,255,255,0.12) !important;
       box-shadow: inset 0 0 5px rgba(0,0,0,0.4) !important;
@@ -156,17 +156,17 @@ Lampa.Platform.tv();
       transition: background .3s ease, border-color .3s ease, box-shadow .3s ease !important;
   }
 
-  .settings-folder.focus,
-  .settings-param.focus,
   body .settings-folder.focus,
-  body .settings-param.focus {
+  body .settings-param.focus,
+  html body .settings-folder.focus,
+  html body .settings-param.focus {
       background: linear-gradient(to top, rgba(100,100,100,0.4), rgba(40,40,45,0.3)) !important;
       border-color: rgba(255,255,255,0.25) !important;
       box-shadow: inset 0 0 7px rgba(0,0,0,0.5) !important;
   }
 
-  .selectbox-item,
-  body .selectbox-item {
+  body .selectbox-item,
+  html body .selectbox-item {
       background: linear-gradient(to top, rgba(80,80,80,0.3), rgba(30,30,35,0.2)) !important;
       border: 1px solid rgba(255,255,255,0.12) !important;
       box-shadow: inset 0 0 5px rgba(0,0,0,0.4) !important;
@@ -175,15 +175,15 @@ Lampa.Platform.tv();
       transition: background .3s ease, border-color .3s ease, box-shadow .3s ease !important;
   }
 
-  .selectbox-item.focus,
-  body .selectbox-item.focus {
+  body .selectbox-item.focus,
+  html body .selectbox-item.focus {
       background: linear-gradient(to top, rgba(100,100,100,0.4), rgba(40,40,45,0.3)) !important;
       border-color: rgba(255,255,255,0.25) !important;
       box-shadow: inset 0 0 7px rgba(0,0,0,0.5) !important;
   }
 
-  .full-start__button,
-  body .full-start__button {
+  body .full-start__button,
+  html body .full-start__button {
       background: linear-gradient(to top, rgba(80,80,80,0.35), rgba(30,30,35,0.25)) !important;
       border: 1px solid rgba(255,255,255,0.12) !important;
       box-shadow: inset 0 0 6px rgba(0,0,0,0.5) !important;
@@ -191,17 +191,17 @@ Lampa.Platform.tv();
       transition: background .3s ease, border-color .3s ease, box-shadow .3s ease !important;
   }
 
-  .full-start__button.focus,
-  .full-start__button:hover,
   body .full-start__button.focus,
-  body .full-start__button:hover {
+  body .full-start__button:hover,
+  html body .full-start__button.focus,
+  html body .full-start__button:hover {
       background: linear-gradient(to top, rgba(100,100,100,0.45), rgba(40,40,45,0.35)) !important;
       border-color: rgba(255,255,255,0.25) !important;
       box-shadow: inset 0 0 8px rgba(0,0,0,0.6) !important;
   }
 
-  .player-panel .button,
-  body .player-panel .button {
+  body .player-panel .button,
+  html body .player-panel .button {
       background: linear-gradient(to top, rgba(80,80,80,0.35), rgba(30,30,35,0.25)) !important;
       border: 1px solid rgba(255,255,255,0.12) !important;
       box-shadow: inset 0 0 6px rgba(0,0,0,0.5) !important;
@@ -209,61 +209,17 @@ Lampa.Platform.tv();
       transition: background .3s ease, border-color .3s ease, box-shadow .3s ease !important;
   }
 
-  .player-panel .button.focus,
-  .player-panel .button:hover,
   body .player-panel .button.focus,
-  body .player-panel .button:hover {
+  body .player-panel .button:hover,
+  html body .player-panel .button.focus,
+  html body .player-panel .button:hover {
       background: linear-gradient(to top, rgba(100,100,100,0.45), rgba(40,40,45,0.35)) !important;
       border-color: rgba(255,255,255,0.25) !important;
       box-shadow: inset 0 0 8px rgba(0,0,0,0.6) !important;
   }
 
-  /* На десктопе/TV убираем тему меню, оставляем только обводку для выбранной иконки */
+  /* На десктопе/TV активные кнопки не увеличиваются, только обводка */
   @media (min-width: 901px) {
-      .menu__item,
-      .menu .menu__item,
-      body .menu__item,
-      .menu__content,
-      body .menu__content,
-      .settings-folder,
-      .settings-param,
-      body .settings-folder,
-      body .settings-param,
-      .selectbox-item,
-      body .selectbox-item,
-      .full-start__button,
-      body .full-start__button,
-      .player-panel .button,
-      body .player-panel .button {
-          background: initial !important;
-          border: initial !important;
-          box-shadow: initial !important;
-          border-radius: initial !important;
-          margin: initial !important;
-      }
-      .menu__item:hover,
-      .menu__item.focus,
-      .menu__item.traverse,
-      .menu__item.hover,
-      .settings-folder.focus,
-      .settings-param.focus,
-      body .settings-folder.focus,
-      body .settings-param.focus,
-      .selectbox-item.focus,
-      body .selectbox-item.focus,
-      .full-start__button.focus,
-      .full-start__button:hover,
-      body .full-start__button.focus,
-      body .full-start__button:hover,
-      .player-panel .button.focus,
-      .player-panel .button:hover,
-      body .player-panel .button.focus,
-      body .player-panel .button:hover {
-          background: initial !important;
-          border: initial !important;
-          box-shadow: initial !important;
-      }
-      /* На десктопе/TV активные кнопки не увеличиваются, только обводка */
       .navigation-bar__item[data-position="1"].active,
       .navigation-bar__item[data-position="2"].active,
       .navigation-bar__item[data-position="3"].active {
