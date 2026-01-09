@@ -53,7 +53,6 @@ Lampa.Platform.tv();
       transform: translateY(-3px);
   }
 
-  /* Выделение активной кнопки - увеличение высоты */
   .navigation-bar__item.active {
       height: 72px !important;
       min-height: 72px !important;
@@ -105,7 +104,6 @@ Lampa.Platform.tv();
       font-size: 11px !important;
   }
 
-  /* Тема для всего меню в стиле кнопок */
   .menu__item {
       background: linear-gradient(to top, rgba(80,80,80,0.35), rgba(30,30,35,0.25)) !important;
       border: 1px solid rgba(255,255,255,0.12) !important;
@@ -193,7 +191,6 @@ Lampa.Platform.tv();
       box-shadow: inset 0 0 8px rgba(0,0,0,0.6) !important;
   }
 
-  /* Адаптивные размеры для больших экранов (TV, десктоп) */
   @media (min-width: 1920px) {
       .navigation-bar__body { padding: 8px 3px !important; }
       .navigation-bar__item { 
@@ -277,7 +274,6 @@ Lampa.Platform.tv();
       }
   }
 
-  /* Планшеты */
   @media (min-width: 901px) and (max-width: 1365px) {
       .navigation-bar__body { padding: 6px 2px !important; }
       .navigation-bar__item { 
@@ -385,7 +381,6 @@ Lampa.Platform.tv();
       }
   }
 
-  /* Уменьшено до 20×20px (контейнер .navigation-bar__icon и svg внутри в горизонтальном режиме) */
   @media (orientation: landscape) {
       .navigation-bar__body {
           display: none !important;
@@ -611,27 +606,9 @@ Lampa.Platform.tv();
   }
 
   function updateActiveButton() {
-    // Определяем активную кнопку по текущему маршруту
-    const currentPath = window.location.hash || window.location.pathname;
     const items = $$('.navigation-bar__item');
-    
-    items.forEach(item => {
-      item.classList.remove('active');
-      const action = item.dataset.action;
-      
-      // Проверяем соответствие действия текущему маршруту
-      if (action && (
-        (action === 'movie' && (currentPath.includes('movie') || currentPath.includes('фильм'))) ||
-        (action === 'tv' && (currentPath.includes('tv') || currentPath.includes('сериал'))) ||
-        (action === 'cartoon' && (currentPath.includes('cartoon') || currentPath.includes('мульт'))) ||
-        (currentPath.includes(action))
-      )) {
-        item.classList.add('active');
-      }
-    });
-
-    // Также проверяем активный элемент в меню
     const activeMenuItem = $('.menu__item.focus, .menu__item.active');
+    
     if (activeMenuItem) {
       const menuAction = activeMenuItem.dataset.action;
       if (menuAction) {
@@ -706,7 +683,7 @@ Lampa.Platform.tv();
     });
 
     // Отслеживаем навигацию
-    if (Lampa.Listener) {
+    if (typeof Lampa !== 'undefined' && Lampa.Listener) {
       Lampa.Listener.follow('app', function(e) {
         if (e.type === 'ready') {
           setTimeout(updateActiveButton, 500);
