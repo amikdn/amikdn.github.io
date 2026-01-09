@@ -53,7 +53,9 @@ Lampa.Platform.tv();
       transform: translateY(-3px);
   }
 
-  .navigation-bar__item.active {
+  .navigation-bar__item[data-position="1"].active,
+  .navigation-bar__item[data-position="2"].active,
+  .navigation-bar__item[data-position="3"].active {
       height: 72px !important;
       min-height: 72px !important;
   }
@@ -68,7 +70,9 @@ Lampa.Platform.tv();
       transition: width .3s ease, height .3s ease !important;
   }
 
-  .navigation-bar__item.active .navigation-bar__icon {
+  .navigation-bar__item[data-position="1"].active .navigation-bar__icon,
+  .navigation-bar__item[data-position="2"].active .navigation-bar__icon,
+  .navigation-bar__item[data-position="3"].active .navigation-bar__icon {
       width: 32px !important;
       height: 32px !important;
   }
@@ -80,7 +84,9 @@ Lampa.Platform.tv();
       transition: width .3s ease, height .3s ease !important;
   }
 
-  .navigation-bar__item.active .navigation-bar__icon svg {
+  .navigation-bar__item[data-position="1"].active .navigation-bar__icon svg,
+  .navigation-bar__item[data-position="2"].active .navigation-bar__icon svg,
+  .navigation-bar__item[data-position="3"].active .navigation-bar__icon svg {
       width: 30px !important;
       height: 30px !important;
   }
@@ -100,7 +106,9 @@ Lampa.Platform.tv();
       transition: font-size .3s ease !important;
   }
 
-  .navigation-bar__item.active .navigation-bar__label {
+  .navigation-bar__item[data-position="1"].active .navigation-bar__label,
+  .navigation-bar__item[data-position="2"].active .navigation-bar__label,
+  .navigation-bar__item[data-position="3"].active .navigation-bar__label {
       font-size: 11px !important;
   }
 
@@ -199,22 +207,30 @@ Lampa.Platform.tv();
           margin: 0 4px !important;
           border-radius: 16px !important;
       }
-      .navigation-bar__item.active {
+      .navigation-bar__item[data-position="1"].active,
+      .navigation-bar__item[data-position="2"].active,
+      .navigation-bar__item[data-position="3"].active {
           height: 80px !important;
           min-height: 80px !important;
       }
       .navigation-bar__icon { width: 32px; height: 32px; }
-      .navigation-bar__item.active .navigation-bar__icon {
+      .navigation-bar__item[data-position="1"].active .navigation-bar__icon,
+      .navigation-bar__item[data-position="2"].active .navigation-bar__icon,
+      .navigation-bar__item[data-position="3"].active .navigation-bar__icon {
           width: 36px !important;
           height: 36px !important;
       }
       .navigation-bar__icon svg { width: 30px !important; height: 30px !important; }
-      .navigation-bar__item.active .navigation-bar__icon svg {
+      .navigation-bar__item[data-position="1"].active .navigation-bar__icon svg,
+      .navigation-bar__item[data-position="2"].active .navigation-bar__icon svg,
+      .navigation-bar__item[data-position="3"].active .navigation-bar__icon svg {
           width: 34px !important;
           height: 34px !important;
       }
       .navigation-bar__label { font-size: 11px !important; }
-      .navigation-bar__item.active .navigation-bar__label {
+      .navigation-bar__item[data-position="1"].active .navigation-bar__label,
+      .navigation-bar__item[data-position="2"].active .navigation-bar__label,
+      .navigation-bar__item[data-position="3"].active .navigation-bar__label {
           font-size: 12px !important;
       }
   }
@@ -227,22 +243,30 @@ Lampa.Platform.tv();
           margin: 0 3px !important;
           border-radius: 15px !important;
       }
-      .navigation-bar__item.active {
+      .navigation-bar__item[data-position="1"].active,
+      .navigation-bar__item[data-position="2"].active,
+      .navigation-bar__item[data-position="3"].active {
           height: 76px !important;
           min-height: 76px !important;
       }
       .navigation-bar__icon { width: 30px; height: 30px; }
-      .navigation-bar__item.active .navigation-bar__icon {
+      .navigation-bar__item[data-position="1"].active .navigation-bar__icon,
+      .navigation-bar__item[data-position="2"].active .navigation-bar__icon,
+      .navigation-bar__item[data-position="3"].active .navigation-bar__icon {
           width: 34px !important;
           height: 34px !important;
       }
       .navigation-bar__icon svg { width: 28px !important; height: 28px !important; }
-      .navigation-bar__item.active .navigation-bar__icon svg {
+      .navigation-bar__item[data-position="1"].active .navigation-bar__icon svg,
+      .navigation-bar__item[data-position="2"].active .navigation-bar__icon svg,
+      .navigation-bar__item[data-position="3"].active .navigation-bar__icon svg {
           width: 32px !important;
           height: 32px !important;
       }
       .navigation-bar__label { font-size: 10.5px !important; }
-      .navigation-bar__item.active .navigation-bar__label {
+      .navigation-bar__item[data-position="1"].active .navigation-bar__label,
+      .navigation-bar__item[data-position="2"].active .navigation-bar__label,
+      .navigation-bar__item[data-position="3"].active .navigation-bar__label {
           font-size: 11.5px !important;
       }
   }
@@ -254,22 +278,30 @@ Lampa.Platform.tv();
           min-width: 58px !important;
           margin: 0 3px !important;
       }
-      .navigation-bar__item.active {
+      .navigation-bar__item[data-position="1"].active,
+      .navigation-bar__item[data-position="2"].active,
+      .navigation-bar__item[data-position="3"].active {
           height: 74px !important;
           min-height: 74px !important;
       }
       .navigation-bar__icon { width: 29px; height: 29px; }
-      .navigation-bar__item.active .navigation-bar__icon {
+      .navigation-bar__item[data-position="1"].active .navigation-bar__icon,
+      .navigation-bar__item[data-position="2"].active .navigation-bar__icon,
+      .navigation-bar__item[data-position="3"].active .navigation-bar__icon {
           width: 33px !important;
           height: 33px !important;
       }
       .navigation-bar__icon svg { width: 27px !important; height: 27px !important; }
-      .navigation-bar__item.active .navigation-bar__icon svg {
+      .navigation-bar__item[data-position="1"].active .navigation-bar__icon svg,
+      .navigation-bar__item[data-position="2"].active .navigation-bar__icon svg,
+      .navigation-bar__item[data-position="3"].active .navigation-bar__icon svg {
           width: 31px !important;
           height: 31px !important;
       }
       .navigation-bar__label { font-size: 10px !important; }
-      .navigation-bar__item.active .navigation-bar__label {
+      .navigation-bar__item[data-position="1"].active .navigation-bar__label,
+      .navigation-bar__item[data-position="2"].active .navigation-bar__label,
+      .navigation-bar__item[data-position="3"].active .navigation-bar__label {
           font-size: 11px !important;
       }
   }
@@ -281,22 +313,30 @@ Lampa.Platform.tv();
           min-width: 55px !important;
           margin: 0 3px !important;
       }
-      .navigation-bar__item.active {
+      .navigation-bar__item[data-position="1"].active,
+      .navigation-bar__item[data-position="2"].active,
+      .navigation-bar__item[data-position="3"].active {
           height: 72px !important;
           min-height: 72px !important;
       }
       .navigation-bar__icon { width: 28px; height: 28px; }
-      .navigation-bar__item.active .navigation-bar__icon {
+      .navigation-bar__item[data-position="1"].active .navigation-bar__icon,
+      .navigation-bar__item[data-position="2"].active .navigation-bar__icon,
+      .navigation-bar__item[data-position="3"].active .navigation-bar__icon {
           width: 32px !important;
           height: 32px !important;
       }
       .navigation-bar__icon svg { width: 26px !important; height: 26px !important; }
-      .navigation-bar__item.active .navigation-bar__icon svg {
+      .navigation-bar__item[data-position="1"].active .navigation-bar__icon svg,
+      .navigation-bar__item[data-position="2"].active .navigation-bar__icon svg,
+      .navigation-bar__item[data-position="3"].active .navigation-bar__icon svg {
           width: 30px !important;
           height: 30px !important;
       }
       .navigation-bar__label { font-size: 10px !important; }
-      .navigation-bar__item.active .navigation-bar__label {
+      .navigation-bar__item[data-position="1"].active .navigation-bar__label,
+      .navigation-bar__item[data-position="2"].active .navigation-bar__label,
+      .navigation-bar__item[data-position="3"].active .navigation-bar__label {
           font-size: 11px !important;
       }
   }
@@ -307,22 +347,30 @@ Lampa.Platform.tv();
           min-width: 50px !important;
           margin: 0 2px !important;
       }
-      .navigation-bar__item.active {
+      .navigation-bar__item[data-position="1"].active,
+      .navigation-bar__item[data-position="2"].active,
+      .navigation-bar__item[data-position="3"].active {
           height: 68px !important;
           min-height: 68px !important;
       }
       .navigation-bar__icon { width: 26px; height: 26px; }
-      .navigation-bar__item.active .navigation-bar__icon {
+      .navigation-bar__item[data-position="1"].active .navigation-bar__icon,
+      .navigation-bar__item[data-position="2"].active .navigation-bar__icon,
+      .navigation-bar__item[data-position="3"].active .navigation-bar__icon {
           width: 30px !important;
           height: 30px !important;
       }
       .navigation-bar__icon svg { width: 24px !important; height: 24px !important; }
-      .navigation-bar__item.active .navigation-bar__icon svg {
+      .navigation-bar__item[data-position="1"].active .navigation-bar__icon svg,
+      .navigation-bar__item[data-position="2"].active .navigation-bar__icon svg,
+      .navigation-bar__item[data-position="3"].active .navigation-bar__icon svg {
           width: 28px !important;
           height: 28px !important;
       }
       .navigation-bar__label { font-size: 9.5px !important; }
-      .navigation-bar__item.active .navigation-bar__label {
+      .navigation-bar__item[data-position="1"].active .navigation-bar__label,
+      .navigation-bar__item[data-position="2"].active .navigation-bar__label,
+      .navigation-bar__item[data-position="3"].active .navigation-bar__label {
           font-size: 10.5px !important;
       }
   }
@@ -334,22 +382,30 @@ Lampa.Platform.tv();
           min-width: 45px !important;
           margin: 0 2px !important;
       }
-      .navigation-bar__item.active {
+      .navigation-bar__item[data-position="1"].active,
+      .navigation-bar__item[data-position="2"].active,
+      .navigation-bar__item[data-position="3"].active {
           height: 64px !important;
           min-height: 64px !important;
       }
       .navigation-bar__icon { width: 24px; height: 24px; margin-bottom: 1px !important; }
-      .navigation-bar__item.active .navigation-bar__icon {
+      .navigation-bar__item[data-position="1"].active .navigation-bar__icon,
+      .navigation-bar__item[data-position="2"].active .navigation-bar__icon,
+      .navigation-bar__item[data-position="3"].active .navigation-bar__icon {
           width: 28px !important;
           height: 28px !important;
       }
       .navigation-bar__icon svg { width: 22px !important; height: 22px !important; }
-      .navigation-bar__item.active .navigation-bar__icon svg {
+      .navigation-bar__item[data-position="1"].active .navigation-bar__icon svg,
+      .navigation-bar__item[data-position="2"].active .navigation-bar__icon svg,
+      .navigation-bar__item[data-position="3"].active .navigation-bar__icon svg {
           width: 26px !important;
           height: 26px !important;
       }
       .navigation-bar__label { font-size: 9px !important; margin-top: -1px !important; }
-      .navigation-bar__item.active .navigation-bar__label {
+      .navigation-bar__item[data-position="1"].active .navigation-bar__label,
+      .navigation-bar__item[data-position="2"].active .navigation-bar__label,
+      .navigation-bar__item[data-position="3"].active .navigation-bar__label {
           font-size: 10px !important;
       }
   }
@@ -361,22 +417,30 @@ Lampa.Platform.tv();
           min-width: 40px !important;
           margin: 0 1px !important;
       }
-      .navigation-bar__item.active {
+      .navigation-bar__item[data-position="1"].active,
+      .navigation-bar__item[data-position="2"].active,
+      .navigation-bar__item[data-position="3"].active {
           height: 60px !important;
           min-height: 60px !important;
       }
       .navigation-bar__icon { width: 22px; height: 22px; }
-      .navigation-bar__item.active .navigation-bar__icon {
+      .navigation-bar__item[data-position="1"].active .navigation-bar__icon,
+      .navigation-bar__item[data-position="2"].active .navigation-bar__icon,
+      .navigation-bar__item[data-position="3"].active .navigation-bar__icon {
           width: 26px !important;
           height: 26px !important;
       }
       .navigation-bar__icon svg { width: 20px !important; height: 20px !important; }
-      .navigation-bar__item.active .navigation-bar__icon svg {
+      .navigation-bar__item[data-position="1"].active .navigation-bar__icon svg,
+      .navigation-bar__item[data-position="2"].active .navigation-bar__icon svg,
+      .navigation-bar__item[data-position="3"].active .navigation-bar__icon svg {
           width: 24px !important;
           height: 24px !important;
       }
       .navigation-bar__label { font-size: 8.5px !important; }
-      .navigation-bar__item.active .navigation-bar__label {
+      .navigation-bar__item[data-position="1"].active .navigation-bar__label,
+      .navigation-bar__item[data-position="2"].active .navigation-bar__label,
+      .navigation-bar__item[data-position="3"].active .navigation-bar__label {
           font-size: 9.5px !important;
       }
   }
@@ -400,7 +464,9 @@ Lampa.Platform.tv();
           transition: transform .2s ease !important;
           align-self: center !important;
       }
-      .navigation-bar__item.active {
+      .navigation-bar__item[data-position="1"].active,
+      .navigation-bar__item[data-position="2"].active,
+      .navigation-bar__item[data-position="3"].active {
           height: auto !important;
           min-height: 0 !important;
       }
@@ -415,7 +481,9 @@ Lampa.Platform.tv();
           margin-bottom: 0 !important;
           padding: 0 !important;
       }
-      .navigation-bar__item.active .navigation-bar__icon {
+      .navigation-bar__item[data-position="1"].active .navigation-bar__icon,
+      .navigation-bar__item[data-position="2"].active .navigation-bar__icon,
+      .navigation-bar__item[data-position="3"].active .navigation-bar__icon {
           width: 24px !important;
           height: 24px !important;
       }
@@ -423,7 +491,9 @@ Lampa.Platform.tv();
           width: 20px !important;
           height: 20px !important;
       }
-      .navigation-bar__item.active .navigation-bar__icon svg {
+      .navigation-bar__item[data-position="1"].active .navigation-bar__icon svg,
+      .navigation-bar__item[data-position="2"].active .navigation-bar__icon svg,
+      .navigation-bar__item[data-position="3"].active .navigation-bar__icon svg {
           width: 24px !important;
           height: 24px !important;
       }
@@ -577,10 +647,12 @@ Lampa.Platform.tv();
     else bar.appendChild(div);
 
     div.addEventListener('click', () => {
-      // Удаляем класс active у всех кнопок
-      $$('.navigation-bar__item').forEach(item => item.classList.remove('active'));
-      // Добавляем класс active текущей кнопке
-      div.classList.add('active');
+      // Удаляем класс active у всех основных кнопок
+      removeActiveFromMainButtons();
+      // Добавляем класс active текущей кнопке (только если это одна из трёх основных)
+      if (div.dataset.position === '1' || div.dataset.position === '2' || div.dataset.position === '3') {
+        div.classList.add('active');
+      }
       emulateSidebarClick(div.dataset.action);
     });
 
@@ -606,13 +678,14 @@ Lampa.Platform.tv();
   }
 
   function updateActiveButton() {
-    const items = $$('.navigation-bar__item');
+    // Работаем только с тремя основными кнопками
+    const mainItems = $$('.navigation-bar__item[data-position="1"], .navigation-bar__item[data-position="2"], .navigation-bar__item[data-position="3"]');
     const activeMenuItem = $('.menu__item.focus, .menu__item.active');
     
     if (activeMenuItem) {
       const menuAction = activeMenuItem.dataset.action;
       if (menuAction) {
-        items.forEach(item => {
+        mainItems.forEach(item => {
           if (item.dataset.action === menuAction) {
             item.classList.add('active');
           } else {
@@ -621,6 +694,13 @@ Lampa.Platform.tv();
         });
       }
     }
+  }
+
+  function removeActiveFromMainButtons() {
+    // Удаляем класс active у всех трёх основных кнопок
+    $$('.navigation-bar__item[data-position="1"], .navigation-bar__item[data-position="2"], .navigation-bar__item[data-position="3"]').forEach(item => {
+      item.classList.remove('active');
+    });
   }
 
   function adjustPosition() {
@@ -654,6 +734,20 @@ Lampa.Platform.tv();
     addItem('2', defaults[2].action, defaults[2].svg, defaults[2].name);
     addItem('3', defaults[3].action, defaults[3].svg, defaults[3].name);
 
+    // Добавляем обработчик клика на все остальные кнопки навигации
+    setTimeout(() => {
+      const allNavItems = $$('.navigation-bar__item');
+      allNavItems.forEach(item => {
+        const position = item.dataset.position;
+        // Если это не одна из трёх основных кнопок
+        if (position !== '1' && position !== '2' && position !== '3') {
+          item.addEventListener('click', () => {
+            removeActiveFromMainButtons();
+          });
+        }
+      });
+    }, 100);
+
     adjustPosition();
     updateActiveButton();
 
@@ -674,6 +768,21 @@ Lampa.Platform.tv();
     // Отслеживаем изменения в меню для обновления активной кнопки
     const menuObserver = new MutationObserver(() => {
       updateActiveButton();
+      
+      // Добавляем обработчик на новые кнопки навигации
+      const allNavItems = $$('.navigation-bar__item');
+      allNavItems.forEach(item => {
+        const position = item.dataset.position;
+        if (position !== '1' && position !== '2' && position !== '3') {
+          // Проверяем, не добавлен ли уже обработчик
+          if (!item.dataset.hasClickHandler) {
+            item.addEventListener('click', () => {
+              removeActiveFromMainButtons();
+            });
+            item.dataset.hasClickHandler = 'true';
+          }
+        }
+      });
     });
     menuObserver.observe(document.body, {
       childList: true,
