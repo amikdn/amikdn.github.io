@@ -3,12 +3,6 @@ Lampa.Platform.tv();
 (function () {
   'use strict';
 
-  var InterFaceMod = {
-    settings: {
-      theme_enabled: false
-    }
-  };
-
   /** Дефолтные настройки для трёх кнопок (позиции 1-3 слева направо) */
   const defaults = {
     1: { action: 'movie',   svg: `<svg><use xlink:href="#sprite-movie"></use></svg>`,   name: 'Фильмы' },
@@ -16,195 +10,432 @@ Lampa.Platform.tv();
     3: { action: 'cartoon', svg: `<svg><use xlink:href="#sprite-cartoon"></use></svg>`, name: 'Мультфильмы' }
   };
 
-  /** CSS — адаптивность и "стеклянная" тема */
+  /** CSS — адаптивные размеры + тема в стиле кнопок для всего меню */
   const css = `
-  :root {
-      --nb-item-height: 64px;
-      --nb-item-min-width: 55px;
-      --nb-icon-size: 28px;
-      --nb-svg-size: 26px;
-      --nb-label-size: 10px;
-      --nb-gap: 6px;
-      
-      /* Основные цвета "стеклянного" стиля */
-      --nb-item-bg: linear-gradient(to top, rgba(80,80,80,0.35), rgba(30,30,35,0.25));
-      --nb-item-border: 1px solid rgba(255,255,255,0.12);
-      --nb-item-shadow: inset 0 0 6px rgba(0,0,0,0.5);
-      --nb-item-radius: 14px;
-      
-      /* Активное состояние (фокус) */
-      --nb-active-bg: linear-gradient(to top, rgba(100,100,100,0.45), rgba(40,40,45,0.35));
-      --nb-active-border: 1px solid rgba(255,255,255,0.25);
-      --nb-active-shadow: inset 0 0 8px rgba(0,0,0,0.6);
-      --nb-active-text: #fff;
-  }
-
-  /* Нижний бар в портретном режиме */
   .navigation-bar__body {
       display: flex !important;
       justify-content: center !important;
       align-items: center !important;
       width: 100% !important;
-      padding: 8px 4px !important;
+      padding: 6px 2px !important;
       background: transparent !important;
       border-top: none !important;
       overflow-x: auto !important;
       overflow-y: hidden !important;
       box-sizing: border-box;
       scrollbar-width: none;
-      gap: var(--nb-gap) !important;
   }
   .navigation-bar__body::-webkit-scrollbar { display: none; }
 
   .navigation-bar__item {
       flex: 1 1 0 !important;
-      min-width: var(--nb-item-min-width) !important;
+      min-width: 55px !important;
       display: flex !important;
       flex-direction: column !important;
       align-items: center;
       justify-content: center;
-      height: var(--nb-item-height) !important;
-      background: var(--nb-item-bg) !important;
-      border: var(--nb-item-border) !important;
-      box-shadow: var(--nb-item-shadow) !important;
-      border-radius: var(--nb-item-radius) !important;
-      transition: all .3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+      height: 64px !important;
+      margin: 0 3px !important;
+      background: linear-gradient(to top, rgba(80,80,80,0.35), rgba(30,30,35,0.25)) !important;
+      border: 1px solid rgba(255,255,255,0.12) !important;
+      box-shadow: inset 0 0 6px rgba(0,0,0,0.5) !important;
+      border-radius: 14px !important;
+      transition: background .3s ease, transform .2s ease, border-color .3s ease, box-shadow .3s ease, height .3s ease !important;
       box-sizing: border-box;
-      overflow: visible !important; /* Чтобы вылезало вверх */
-      position: relative;
-      color: #fff !important;
+      overflow: hidden !important;
   }
 
-  /* Активная кнопка становится выше остальных */
+  .navigation-bar__item:hover,
   .navigation-bar__item.active {
-      background: var(--nb-active-bg) !important;
-      border: var(--nb-active-border) !important;
-      box-shadow: var(--nb-active-shadow), 0 10px 20px rgba(0,0,0,0.4) !important;
-      transform: translateY(-12px) scale(1.05) !important;
-      color: var(--nb-active-text) !important;
-      z-index: 10;
+      background: linear-gradient(to top, rgba(100,100,100,0.45), rgba(40,40,45,0.35)) !important;
+      border-color: rgba(255,255,255,0.25) !important;
+      box-shadow: inset 0 0 8px rgba(0,0,0,0.6) !important;
+      transform: translateY(-3px);
+  }
+
+  /* Выделение активной кнопки - увеличение высоты */
+  .navigation-bar__item.active {
+      height: 72px !important;
+      min-height: 72px !important;
   }
 
   .navigation-bar__icon {
-      width: var(--nb-icon-size);
-      height: var(--nb-icon-size);
+      width: 28px;
+      height: 28px;
       display: flex;
       align-items: center;
       justify-content: center;
       margin-bottom: 2px !important;
+      transition: width .3s ease, height .3s ease !important;
+  }
+
+  .navigation-bar__item.active .navigation-bar__icon {
+      width: 32px !important;
+      height: 32px !important;
   }
 
   .navigation-bar__icon svg {
-      width: var(--nb-svg-size) !important;
-      height: var(--nb-svg-size) !important;
+      width: 26px !important;
+      height: 26px !important;
       fill: currentColor;
+      transition: width .3s ease, height .3s ease !important;
+  }
+
+  .navigation-bar__item.active .navigation-bar__icon svg {
+      width: 30px !important;
+      height: 30px !important;
   }
 
   .navigation-bar__label {
-      font-size: var(--nb-label-size) !important;
-      color: inherit !important;
-      opacity: 0.9 !important;
+      font-size: 10px !important;
+      color: #fff !important;
+      opacity: 0.95 !important;
       white-space: nowrap !important;
       overflow: hidden !important;
       text-overflow: ellipsis !important;
       width: 100% !important;
       text-align: center !important;
       padding: 0 4px !important;
-      margin-top: -1px !important;
+      margin-top: -2px !important;
       box-sizing: border-box !important;
+      transition: font-size .3s ease !important;
   }
 
-  /* Адаптивность для мобильных */
-  @media (max-width: 900px) {
-      :root {
-          --nb-item-height: 58px;
-          --nb-item-min-width: 48px;
-          --nb-icon-size: 26px;
-          --nb-svg-size: 24px;
-          --nb-label-size: 9.5px;
-          --nb-gap: 4px;
+  .navigation-bar__item.active .navigation-bar__label {
+      font-size: 11px !important;
+  }
+
+  /* Тема для всего меню в стиле кнопок */
+  .menu__item {
+      background: linear-gradient(to top, rgba(80,80,80,0.35), rgba(30,30,35,0.25)) !important;
+      border: 1px solid rgba(255,255,255,0.12) !important;
+      box-shadow: inset 0 0 6px rgba(0,0,0,0.5) !important;
+      border-radius: 14px !important;
+      transition: background .3s ease, border-color .3s ease, box-shadow .3s ease !important;
+      margin: 2px 0 !important;
+  }
+
+  .menu__item:hover,
+  .menu__item.focus,
+  .menu__item.traverse,
+  .menu__item.hover {
+      background: linear-gradient(to top, rgba(100,100,100,0.45), rgba(40,40,45,0.35)) !important;
+      border-color: rgba(255,255,255,0.25) !important;
+      box-shadow: inset 0 0 8px rgba(0,0,0,0.6) !important;
+  }
+
+  .menu__content {
+      background: linear-gradient(to top, rgba(80,80,80,0.2), rgba(30,30,35,0.15)) !important;
+      border: 1px solid rgba(255,255,255,0.1) !important;
+      box-shadow: inset 0 0 4px rgba(0,0,0,0.4) !important;
+      border-radius: 12px !important;
+  }
+
+  .settings-folder,
+  .settings-param {
+      background: linear-gradient(to top, rgba(80,80,80,0.3), rgba(30,30,35,0.2)) !important;
+      border: 1px solid rgba(255,255,255,0.12) !important;
+      box-shadow: inset 0 0 5px rgba(0,0,0,0.4) !important;
+      border-radius: 10px !important;
+      margin: 2px 0 !important;
+      transition: background .3s ease, border-color .3s ease, box-shadow .3s ease !important;
+  }
+
+  .settings-folder.focus,
+  .settings-param.focus {
+      background: linear-gradient(to top, rgba(100,100,100,0.4), rgba(40,40,45,0.3)) !important;
+      border-color: rgba(255,255,255,0.25) !important;
+      box-shadow: inset 0 0 7px rgba(0,0,0,0.5) !important;
+  }
+
+  .selectbox-item {
+      background: linear-gradient(to top, rgba(80,80,80,0.3), rgba(30,30,35,0.2)) !important;
+      border: 1px solid rgba(255,255,255,0.12) !important;
+      box-shadow: inset 0 0 5px rgba(0,0,0,0.4) !important;
+      border-radius: 10px !important;
+      margin: 2px 0 !important;
+      transition: background .3s ease, border-color .3s ease, box-shadow .3s ease !important;
+  }
+
+  .selectbox-item.focus {
+      background: linear-gradient(to top, rgba(100,100,100,0.4), rgba(40,40,45,0.3)) !important;
+      border-color: rgba(255,255,255,0.25) !important;
+      box-shadow: inset 0 0 7px rgba(0,0,0,0.5) !important;
+  }
+
+  .full-start__button {
+      background: linear-gradient(to top, rgba(80,80,80,0.35), rgba(30,30,35,0.25)) !important;
+      border: 1px solid rgba(255,255,255,0.12) !important;
+      box-shadow: inset 0 0 6px rgba(0,0,0,0.5) !important;
+      border-radius: 10px !important;
+      transition: background .3s ease, border-color .3s ease, box-shadow .3s ease !important;
+  }
+
+  .full-start__button.focus,
+  .full-start__button:hover {
+      background: linear-gradient(to top, rgba(100,100,100,0.45), rgba(40,40,45,0.35)) !important;
+      border-color: rgba(255,255,255,0.25) !important;
+      box-shadow: inset 0 0 8px rgba(0,0,0,0.6) !important;
+  }
+
+  .player-panel .button {
+      background: linear-gradient(to top, rgba(80,80,80,0.35), rgba(30,30,35,0.25)) !important;
+      border: 1px solid rgba(255,255,255,0.12) !important;
+      box-shadow: inset 0 0 6px rgba(0,0,0,0.5) !important;
+      border-radius: 10px !important;
+      transition: background .3s ease, border-color .3s ease, box-shadow .3s ease !important;
+  }
+
+  .player-panel .button.focus,
+  .player-panel .button:hover {
+      background: linear-gradient(to top, rgba(100,100,100,0.45), rgba(40,40,45,0.35)) !important;
+      border-color: rgba(255,255,255,0.25) !important;
+      box-shadow: inset 0 0 8px rgba(0,0,0,0.6) !important;
+  }
+
+  /* Адаптивные размеры для больших экранов (TV, десктоп) */
+  @media (min-width: 1920px) {
+      .navigation-bar__body { padding: 8px 3px !important; }
+      .navigation-bar__item { 
+          height: 70px !important; 
+          min-width: 65px !important;
+          margin: 0 4px !important;
+          border-radius: 16px !important;
+      }
+      .navigation-bar__item.active {
+          height: 80px !important;
+          min-height: 80px !important;
+      }
+      .navigation-bar__icon { width: 32px; height: 32px; }
+      .navigation-bar__item.active .navigation-bar__icon {
+          width: 36px !important;
+          height: 36px !important;
+      }
+      .navigation-bar__icon svg { width: 30px !important; height: 30px !important; }
+      .navigation-bar__item.active .navigation-bar__icon svg {
+          width: 34px !important;
+          height: 34px !important;
+      }
+      .navigation-bar__label { font-size: 11px !important; }
+      .navigation-bar__item.active .navigation-bar__label {
+          font-size: 12px !important;
       }
   }
-  @media (max-width: 600px) {
-      :root {
-          --nb-item-height: 54px;
-          --nb-item-min-width: 42px;
-          --nb-icon-size: 24px;
-          --nb-svg-size: 22px;
-          --nb-label-size: 9px;
-          --nb-gap: 3px;
+
+  @media (min-width: 1600px) and (max-width: 1919px) {
+      .navigation-bar__body { padding: 7px 3px !important; }
+      .navigation-bar__item { 
+          height: 68px !important; 
+          min-width: 60px !important;
+          margin: 0 3px !important;
+          border-radius: 15px !important;
       }
+      .navigation-bar__item.active {
+          height: 76px !important;
+          min-height: 76px !important;
+      }
+      .navigation-bar__icon { width: 30px; height: 30px; }
+      .navigation-bar__item.active .navigation-bar__icon {
+          width: 34px !important;
+          height: 34px !important;
+      }
+      .navigation-bar__icon svg { width: 28px !important; height: 28px !important; }
+      .navigation-bar__item.active .navigation-bar__icon svg {
+          width: 32px !important;
+          height: 32px !important;
+      }
+      .navigation-bar__label { font-size: 10.5px !important; }
+      .navigation-bar__item.active .navigation-bar__label {
+          font-size: 11.5px !important;
+      }
+  }
+
+  @media (min-width: 1366px) and (max-width: 1599px) {
+      .navigation-bar__body { padding: 7px 2px !important; }
+      .navigation-bar__item { 
+          height: 66px !important; 
+          min-width: 58px !important;
+          margin: 0 3px !important;
+      }
+      .navigation-bar__item.active {
+          height: 74px !important;
+          min-height: 74px !important;
+      }
+      .navigation-bar__icon { width: 29px; height: 29px; }
+      .navigation-bar__item.active .navigation-bar__icon {
+          width: 33px !important;
+          height: 33px !important;
+      }
+      .navigation-bar__icon svg { width: 27px !important; height: 27px !important; }
+      .navigation-bar__item.active .navigation-bar__icon svg {
+          width: 31px !important;
+          height: 31px !important;
+      }
+      .navigation-bar__label { font-size: 10px !important; }
+      .navigation-bar__item.active .navigation-bar__label {
+          font-size: 11px !important;
+      }
+  }
+
+  /* Планшеты */
+  @media (min-width: 901px) and (max-width: 1365px) {
       .navigation-bar__body { padding: 6px 2px !important; }
+      .navigation-bar__item { 
+          height: 64px !important; 
+          min-width: 55px !important;
+          margin: 0 3px !important;
+      }
+      .navigation-bar__item.active {
+          height: 72px !important;
+          min-height: 72px !important;
+      }
+      .navigation-bar__icon { width: 28px; height: 28px; }
+      .navigation-bar__item.active .navigation-bar__icon {
+          width: 32px !important;
+          height: 32px !important;
+      }
+      .navigation-bar__icon svg { width: 26px !important; height: 26px !important; }
+      .navigation-bar__item.active .navigation-bar__icon svg {
+          width: 30px !important;
+          height: 30px !important;
+      }
+      .navigation-bar__label { font-size: 10px !important; }
+      .navigation-bar__item.active .navigation-bar__label {
+          font-size: 11px !important;
+      }
   }
 
-  /* ГОРЫЗОНТАЛЬНЫЙ РЕЖИМ: только иконки 20x20 */
+  @media (max-width: 900px) {
+      .navigation-bar__item { 
+          height: 60px !important; 
+          min-width: 50px !important;
+          margin: 0 2px !important;
+      }
+      .navigation-bar__item.active {
+          height: 68px !important;
+          min-height: 68px !important;
+      }
+      .navigation-bar__icon { width: 26px; height: 26px; }
+      .navigation-bar__item.active .navigation-bar__icon {
+          width: 30px !important;
+          height: 30px !important;
+      }
+      .navigation-bar__icon svg { width: 24px !important; height: 24px !important; }
+      .navigation-bar__item.active .navigation-bar__icon svg {
+          width: 28px !important;
+          height: 28px !important;
+      }
+      .navigation-bar__label { font-size: 9.5px !important; }
+      .navigation-bar__item.active .navigation-bar__label {
+          font-size: 10.5px !important;
+      }
+  }
+
+  @media (max-width: 600px) {
+      .navigation-bar__body { padding: 6px 1px !important; }
+      .navigation-bar__item { 
+          height: 56px !important; 
+          min-width: 45px !important;
+          margin: 0 2px !important;
+      }
+      .navigation-bar__item.active {
+          height: 64px !important;
+          min-height: 64px !important;
+      }
+      .navigation-bar__icon { width: 24px; height: 24px; margin-bottom: 1px !important; }
+      .navigation-bar__item.active .navigation-bar__icon {
+          width: 28px !important;
+          height: 28px !important;
+      }
+      .navigation-bar__icon svg { width: 22px !important; height: 22px !important; }
+      .navigation-bar__item.active .navigation-bar__icon svg {
+          width: 26px !important;
+          height: 26px !important;
+      }
+      .navigation-bar__label { font-size: 9px !important; margin-top: -1px !important; }
+      .navigation-bar__item.active .navigation-bar__label {
+          font-size: 10px !important;
+      }
+  }
+
+  @media (max-width: 400px) {
+      .navigation-bar__body { padding: 5px 1px !important; }
+      .navigation-bar__item { 
+          height: 52px !important; 
+          min-width: 40px !important;
+          margin: 0 1px !important;
+      }
+      .navigation-bar__item.active {
+          height: 60px !important;
+          min-height: 60px !important;
+      }
+      .navigation-bar__icon { width: 22px; height: 22px; }
+      .navigation-bar__item.active .navigation-bar__icon {
+          width: 26px !important;
+          height: 26px !important;
+      }
+      .navigation-bar__icon svg { width: 20px !important; height: 20px !important; }
+      .navigation-bar__item.active .navigation-bar__icon svg {
+          width: 24px !important;
+          height: 24px !important;
+      }
+      .navigation-bar__label { font-size: 8.5px !important; }
+      .navigation-bar__item.active .navigation-bar__label {
+          font-size: 9.5px !important;
+      }
+  }
+
+  /* Уменьшено до 20×20px (контейнер .navigation-bar__icon и svg внутри в горизонтальном режиме) */
   @media (orientation: landscape) {
       .navigation-bar__body {
           display: none !important;
       }
       .navigation-bar__item {
           flex: none !important;
-          width: 20px !important;
-          height: 20px !important;
+          width: auto !important;
+          height: auto !important;
           min-width: 0 !important;
+          min-height: 0 !important;
           background: transparent !important;
           border: none !important;
           box-shadow: none !important;
           border-radius: 0 !important;
           margin: 0 10px !important;
           padding: 0 !important;
+          transition: transform .2s ease !important;
           align-self: center !important;
-          color: #fff !important;
-          transform: none !important;
       }
       .navigation-bar__item.active {
+          height: auto !important;
+          min-height: 0 !important;
+      }
+      .navigation-bar__item:hover,
+      .navigation-bar__item.active {
           background: transparent !important;
-          transform: scale(1.15) !important;
-          box-shadow: none !important;
-          border: none !important;
+          transform: scale(1.15);
       }
       .navigation-bar__icon {
           width: 20px !important;
           height: 20px !important;
           margin-bottom: 0 !important;
+          padding: 0 !important;
+      }
+      .navigation-bar__item.active .navigation-bar__icon {
+          width: 24px !important;
+          height: 24px !important;
       }
       .navigation-bar__icon svg {
           width: 20px !important;
           height: 20px !important;
       }
+      .navigation-bar__item.active .navigation-bar__icon svg {
+          width: 24px !important;
+          height: 24px !important;
+      }
       .navigation-bar__label {
           display: none !important;
       }
-  }
-
-  /* ГЛОБАЛЬНАЯ ТЕМА (Стеклянно-серый стиль для всего) */
-  body[data-nb-mod-enabled="true"] .menu__item.focus,
-  body[data-nb-mod-enabled="true"] .menu__item.traverse,
-  body[data-nb-mod-enabled="true"] .menu__item.hover,
-  body[data-nb-mod-enabled="true"] .settings-folder.focus,
-  body[data-nb-mod-enabled="true"] .settings-param.focus,
-  body[data-nb-mod-enabled="true"] .selectbox-item.focus,
-  body[data-nb-mod-enabled="true"] .full-start__button.focus,
-  body[data-nb-mod-enabled="true"] .full-descr__tag.focus,
-  body[data-nb-mod-enabled="true"] .player-panel .button.focus,
-  body[data-nb-mod-enabled="true"] .head__action.focus,
-  body[data-nb-mod-enabled="true"] .head__action.hover {
-      background: var(--nb-active-bg) !important;
-      border: var(--nb-active-border) !important;
-      box-shadow: var(--nb-active-shadow) !important;
-      border-radius: 12px !important;
-      color: #fff !important;
-      transform: scale(1.02);
-      transition: all 0.2s ease !important;
-  }
-
-  body[data-nb-mod-enabled="true"] .card.focus .card__view::after,
-  body[data-nb-mod-enabled="true"] .card.hover .card__view::after {
-      border: 2px solid rgba(255,255,255,0.3) !important;
-      box-shadow: 0 0 15px rgba(0,0,0,0.5) !important;
-      border-radius: var(--nb-item-radius) !important;
-  }
-  `;
+  }`;
 
   const $  = (s,r=document)=>r.querySelector(s);
   const $$ = (s,r=document)=>Array.from(r.querySelectorAll(s));
@@ -216,10 +447,6 @@ Lampa.Platform.tv();
       st.textContent=css;
       document.head.appendChild(st);
     }
-  }
-
-  function toggleMod(enabled) {
-    document.body.setAttribute('data-nb-mod-enabled', enabled);
   }
 
   function emulateSidebarClick(action){
@@ -354,7 +581,13 @@ Lampa.Platform.tv();
     if(search) bar.insertBefore(div, search);
     else bar.appendChild(div);
 
-    div.addEventListener('click', () => emulateSidebarClick(div.dataset.action));
+    div.addEventListener('click', () => {
+      // Удаляем класс active у всех кнопок
+      $$('.navigation-bar__item').forEach(item => item.classList.remove('active'));
+      // Добавляем класс active текущей кнопке
+      div.classList.add('active');
+      emulateSidebarClick(div.dataset.action);
+    });
 
     // Long press
     let timer;
@@ -375,6 +608,42 @@ Lampa.Platform.tv();
         document.addEventListener('mouseup', up);
       }
     });
+  }
+
+  function updateActiveButton() {
+    // Определяем активную кнопку по текущему маршруту
+    const currentPath = window.location.hash || window.location.pathname;
+    const items = $$('.navigation-bar__item');
+    
+    items.forEach(item => {
+      item.classList.remove('active');
+      const action = item.dataset.action;
+      
+      // Проверяем соответствие действия текущему маршруту
+      if (action && (
+        (action === 'movie' && (currentPath.includes('movie') || currentPath.includes('фильм'))) ||
+        (action === 'tv' && (currentPath.includes('tv') || currentPath.includes('сериал'))) ||
+        (action === 'cartoon' && (currentPath.includes('cartoon') || currentPath.includes('мульт'))) ||
+        (currentPath.includes(action))
+      )) {
+        item.classList.add('active');
+      }
+    });
+
+    // Также проверяем активный элемент в меню
+    const activeMenuItem = $('.menu__item.focus, .menu__item.active');
+    if (activeMenuItem) {
+      const menuAction = activeMenuItem.dataset.action;
+      if (menuAction) {
+        items.forEach(item => {
+          if (item.dataset.action === menuAction) {
+            item.classList.add('active');
+          } else {
+            item.classList.remove('active');
+          }
+        });
+      }
+    }
   }
 
   function adjustPosition() {
@@ -402,64 +671,46 @@ Lampa.Platform.tv();
     }
   }
 
-  function startPlugin() {
+  function init(){
     injectCSS();
-
-    // Добавляем параметр в раздел "Интерфейс" используя метод из примера
-    function addSettingsParam() {
-        if (Lampa.SettingsApi) {
-            Lampa.SettingsApi.addParam({
-                component: 'interface',
-                param: {
-                    name: 'nb_mod_enabled',
-                    type: 'trigger',
-                    default: false
-                },
-                field: {
-                    name: 'Стеклянная тема меню',
-                    description: 'Применить стиль нижнего бара ко всем кнопкам и меню приложения'
-                },
-                onRender: function (el) {
-                    setTimeout(function () {
-                        var title = 'Стеклянная тема меню';
-                        $('.settings-param > div:contains("' + title + '")').parent().insertAfter($('div[data-name="interface_size"]'));
-                    }, 0);
-                },
-                onChange: function (v) {
-                    InterFaceMod.settings.theme_enabled = v;
-                    Lampa.Storage.set('nb_mod_enabled', v);
-                    toggleMod(v);
-                }
-            });
-        }
-    }
-
-    addSettingsParam();
-
-    InterFaceMod.settings.theme_enabled = Lampa.Storage.get('nb_mod_enabled', false);
-    toggleMod(InterFaceMod.settings.theme_enabled);
-
     addItem('1', defaults[1].action, defaults[1].svg, defaults[1].name);
     addItem('2', defaults[2].action, defaults[2].svg, defaults[2].name);
     addItem('3', defaults[3].action, defaults[3].svg, defaults[3].name);
 
     adjustPosition();
+    updateActiveButton();
 
     const mql = window.matchMedia('(orientation: landscape)');
-    if(mql.addEventListener) mql.addEventListener('change', adjustPosition);
-    else mql.addListener(adjustPosition);
-    
-    window.addEventListener('orientationchange', adjustPosition);
-    window.addEventListener('resize', adjustPosition);
-  }
+    mql.addEventListener('change', () => {
+      adjustPosition();
+      updateActiveButton();
+    });
+    window.addEventListener('orientationchange', () => {
+      adjustPosition();
+      updateActiveButton();
+    });
+    window.addEventListener('resize', () => {
+      adjustPosition();
+      updateActiveButton();
+    });
 
-  // Проверка готовности приложения
-  function init() {
-    if (window.appready) {
-      startPlugin();
-    } else {
-      Lampa.Listener.follow('app', function (e) {
-        if (e.type === 'ready') startPlugin();
+    // Отслеживаем изменения в меню для обновления активной кнопки
+    const menuObserver = new MutationObserver(() => {
+      updateActiveButton();
+    });
+    menuObserver.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['class', 'data-action']
+    });
+
+    // Отслеживаем навигацию
+    if (Lampa.Listener) {
+      Lampa.Listener.follow('app', function(e) {
+        if (e.type === 'ready') {
+          setTimeout(updateActiveButton, 500);
+        }
       });
     }
   }
