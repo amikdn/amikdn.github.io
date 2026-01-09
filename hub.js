@@ -16,7 +16,7 @@ Lampa.Platform.tv();
     3: { action: 'cartoon', svg: `<svg><use xlink:href="#sprite-cartoon"></use></svg>`, name: 'Мультфильмы' }
   };
 
-  /** CSS — адаптивность и "стеклянная" тема из phone_menu */
+  /** CSS — адаптивность и "стеклянная" тема */
   const css = `
   :root {
       --nb-item-height: 64px;
@@ -68,19 +68,21 @@ Lampa.Platform.tv();
       border: var(--nb-item-border) !important;
       box-shadow: var(--nb-item-shadow) !important;
       border-radius: var(--nb-item-radius) !important;
-      transition: all .3s ease !important;
+      transition: all .3s cubic-bezier(0.4, 0, 0.2, 1) !important;
       box-sizing: border-box;
-      overflow: hidden !important;
+      overflow: visible !important; /* Чтобы вылезало вверх */
       position: relative;
       color: #fff !important;
   }
 
+  /* Активная кнопка становится выше остальных */
   .navigation-bar__item.active {
       background: var(--nb-active-bg) !important;
       border: var(--nb-active-border) !important;
-      box-shadow: var(--nb-active-shadow) !important;
-      transform: translateY(-2px);
+      box-shadow: var(--nb-active-shadow), 0 10px 20px rgba(0,0,0,0.4) !important;
+      transform: translateY(-12px) scale(1.05) !important;
       color: var(--nb-active-text) !important;
+      z-index: 10;
   }
 
   .navigation-bar__icon {
@@ -153,10 +155,11 @@ Lampa.Platform.tv();
           padding: 0 !important;
           align-self: center !important;
           color: #fff !important;
+          transform: none !important;
       }
       .navigation-bar__item.active {
           background: transparent !important;
-          transform: scale(1.1) !important;
+          transform: scale(1.15) !important;
           box-shadow: none !important;
           border: none !important;
       }
@@ -402,32 +405,36 @@ Lampa.Platform.tv();
   function startPlugin() {
     injectCSS();
 
-    // Добавляем параметр в раздел "Интерфейс" по вашему примеру
-    if (Lampa.SettingsApi) {
-        Lampa.SettingsApi.addParam({
-            component: 'interface',
-            param: {
-                name: 'nb_mod_enabled',
-                type: 'trigger',
-                default: false
-            },
-            field: {
-                name: 'Стеклянная тема меню',
-                description: 'Применить стиль нижнего бара ко всем кнопкам и меню приложения'
-            },
-            onRender: function (el) {
-                setTimeout(function () {
-                    // Перемещаем кнопку сразу после "Размер интерфейса"
-                    $('div[data-name="nb_mod_enabled"]').insertAfter($('div[data-name="interface_size"]'));
-                }, 0);
-            },
-            onChange: function (v) {
-                InterFaceMod.settings.theme_enabled = v;
-                Lampa.Storage.set('nb_mod_enabled', v);
-                toggleMod(v);
-            }
-        });
+    // Добавляем параметр в раздел "Интерфейс" используя метод из примера
+    function addSettingsParam() {
+        if (Lampa.SettingsApi) {
+            Lampa.SettingsApi.addParam({
+                component: 'interface',
+                param: {
+                    name: 'nb_mod_enabled',
+                    type: 'trigger',
+                    default: false
+                },
+                field: {
+                    name: 'Стеклянная тема меню',
+                    description: 'Применить стиль нижнего бара ко всем кнопкам и меню приложения'
+                },
+                onRender: function (el) {
+                    setTimeout(function () {
+                        var title = 'Стеклянная тема меню';
+                        $('.settings-param > div:contains("' + title + '")').parent().insertAfter($('div[data-name="interface_size"]'));
+                    }, 0);
+                },
+                onChange: function (v) {
+                    InterFaceMod.settings.theme_enabled = v;
+                    Lampa.Storage.set('nb_mod_enabled', v);
+                    toggleMod(v);
+                }
+            });
+        }
     }
+
+    addSettingsParam();
 
     InterFaceMod.settings.theme_enabled = Lampa.Storage.get('nb_mod_enabled', false);
     toggleMod(InterFaceMod.settings.theme_enabled);
@@ -439,7 +446,9 @@ Lampa.Platform.tv();
     adjustPosition();
 
     const mql = window.matchMedia('(orientation: landscape)');
-    mql.addEventListener('change', adjustPosition);
+    if(mql.addEventListener) mql.addEventListener('change', adjustPosition);
+    else mql.addListener(adjustPosition);
+    
     window.addEventListener('orientationchange', adjustPosition);
     window.addEventListener('resize', adjustPosition);
   }
@@ -449,16 +458,9 @@ Lampa.Platform.tv();
     if (window.appready) {
       startPlugin();
     } else {
-      var listener = Lampa.Listener || (Lampa.Events && Lampa.Events.on);
-      if (listener && typeof listener.follow === 'function') {
-        listener.follow('app', function (e) {
-          if (e.type === 'ready') startPlugin();
-        });
-      } else if (listener && typeof listener.on === 'function') {
-        listener.on('ready', startPlugin);
-      } else {
-        setTimeout(startPlugin, 500);
-      }
+      Lampa.Listener.follow('app', function (e) {
+        if (e.type === 'ready') startPlugin();
+      });
     }
   }
 
