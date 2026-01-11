@@ -604,19 +604,19 @@
                     if (view && view.percent > 0) { percent = view.percent; timeStr = formatTime(view.time); }
                     else if (params.time) { percent = params.percent || 0; timeStr = formatTime(params.time); }
 
-                    var labelText = 'Продолжить';
-                    if (params.season && params.episode) labelText += ' S' + params.season + ' E' + params.episode;
-                    if (timeStr) labelText += ' <span style="opacity:0.7;font-size:0.9em">(' + timeStr + ')</span>';
+                    var mainText = 'Продолжить';
+                    if (params.season && params.episode) mainText += ' S' + params.season + ' E' + params.episode;
 
                     var dashArray = (percent * 65.97 / 100).toFixed(2);
                     var continueButtonHtml = `
-                        <div class="full-start__button selector button--continue-watch" style="display:flex;align-items:center;">
-                            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" style="margin-right:0.5em;flex-shrink:0;">
+                        <div class="full-start__button selector button--continue-watch" style="display:flex;align-items:center;gap:0.5em;">
+                            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" style="flex-shrink:0;">
                                 <path d="M8 5v14l11-7L8 5z" fill="currentColor"/>
                                 <circle cx="12" cy="12" r="10.5" stroke="currentColor" stroke-width="1.5" fill="none" 
                                     stroke-dasharray="${dashArray} 65.97" transform="rotate(-90 12 12)" style="opacity:0.5"/>
                             </svg>
-                            <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${labelText}</div>
+                            <div style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${mainText}</div>
+                            ${timeStr ? '<div style="opacity:0.7;font-size:0.9em;flex-shrink:0;">(' + timeStr + ')</div>' : ''}
                         </div>
                     `;
 
