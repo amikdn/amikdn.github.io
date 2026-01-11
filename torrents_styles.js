@@ -4,12 +4,11 @@
   Lampa.Platform.tv();
 
   const config = {
-    version: '2.0.3',
+    version: '2.0.4',
     name: 'Torrent Styles MOD',
     pluginId: 'torrent_styles_mod'
   };
 
-  // Пороги значений
   const TH = {
     seeds: { low: 5, good: 10, high: 20 },
     bitrate: { high: 50, veryHigh: 100 },
@@ -63,7 +62,7 @@
       'text-shadow': '0 0 0.25em rgba(255,195,113,0.25)'
     },
 
-    /* Личеры — базовый сразу */
+    /* Личеры */
     '.torrent-item__grabs > span': {
       'color': '#4db6ff',
       'background-color': 'rgba(77,182,255,0.12)',
@@ -136,8 +135,7 @@
       'border': '0.24em solid #5cd4b0',
       'box-shadow': '0 0 0.6em rgba(92,212,176,0.18)',
       'border-radius': '0.9em'
-    },
-    '.scroll__body': { 'margin': '5px' }
+    }
   };
 
   const mobileStyles = `
@@ -204,7 +202,6 @@
   }
 
   function updateTorrentStyles() {
-    // Сиды
     document.querySelectorAll('.torrent-item__seeds > span').forEach(span => {
       const val = parseIntVal(span.textContent);
       let tier = '';
@@ -214,7 +211,6 @@
       setTier(span, ['low-seeds', 'good-seeds', 'high-seeds'], tier);
     });
 
-    // Битрейт
     document.querySelectorAll('.torrent-item__bitrate > span').forEach(span => {
       const val = parseFloatVal(span.textContent);
       let tier = '';
@@ -223,13 +219,11 @@
       setTier(span, ['high-bitrate', 'very-high-bitrate'], tier);
     });
 
-    // Личеры
     document.querySelectorAll('.torrent-item__grabs > span').forEach(span => {
       const val = parseIntVal(span.textContent);
       setTier(span, ['high-grabs'], val > 10 ? 'high-grabs' : '');
     });
 
-    // Размер
     document.querySelectorAll('.torrent-item__size').forEach(el => {
       const gb = parseSizeGB(el.textContent);
       if (gb === null) {
@@ -263,7 +257,7 @@
         type: 'other',
         name: config.name,
         version: config.version,
-        description: 'Цветовая индикация торрентов'
+        description: 'Цветовая индикация торрентов.'
       };
     }
     window['plugin_' + config.pluginId + '_ready'] = true;
