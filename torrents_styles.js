@@ -4,39 +4,39 @@
   Lampa.Platform.tv();
 
   const config = {
-    version: '2.0.1',
+    version: '2.0.2',
     name: 'Torrent Styles MOD',
     pluginId: 'torrent_styles_mod'
   };
 
   // Пороги значений
   const TH = {
-    seeds: { low: 5, good: 10, high: 20 },        // Сиды: <5 — плохо, 10–19 — хорошо, ≥20 — отлично
-    bitrate: { high: 50, veryHigh: 100 },        // Битрейт: ≥50 — высокий, >100 — очень высокий
-    size: { mid: 50, high: 100, top: 200 },      // Размер: ≥50 ГБ — средний, ≥100 — большой, >200 — огромный
-    debounce: 80                                 // Задержка обновления стилей (мс)
+    seeds: { low: 5, good: 10, high: 20 },
+    bitrate: { high: 50, veryHigh: 100 },
+    size: { mid: 50, high: 100, top: 200 },
+    debounce: 80
   };
 
-  // Стили для элементов торрент-карточек
   const styles = {
     '.torrent-item__bitrate > span.ts-bitrate, .torrent-item__seeds > span.ts-seeds, .torrent-item__grabs > span.ts-grabs, .torrent-item__size.ts-size': {
       'display': 'inline-flex',
       'align-items': 'center',
       'justify-content': 'center',
-      'min-height': '1.7em',
-      'padding': '0.15em 0.45em',
+      'min-height': '1.5em',
+      'padding': '0.1em 0.35em',
       'border-radius': '0.5em',
       'font-weight': '700',
-      'font-size': '0.9em',
+      'font-size': '0.85em',
       'white-space': 'nowrap',
       'font-variant-numeric': 'tabular-nums',
       'box-sizing': 'border-box'
     },
+
     '.torrent-item__bitrate, .torrent-item__grabs, .torrent-item__seeds': {
-      'margin-right': '0.55em'
+      'margin-right': '0.4em'
     },
 
-    /* Сиды (раздают) */
+    /* Сиды */
     '.torrent-item__seeds > span.ts-seeds': {
       'color': '#5cd4b0',
       'background-color': 'rgba(92,212,176,0.14)',
@@ -64,7 +64,7 @@
       'text-shadow': '0 0 0.25em rgba(255,195,113,0.25)'
     },
 
-    /* Личеры (качают) */
+    /* Личеры */
     '.torrent-item__grabs > span.ts-grabs': {
       'color': '#4db6ff',
       'background-color': 'rgba(77,182,255,0.12)',
@@ -100,7 +100,7 @@
       'text-shadow': '0 0 0.25em rgba(255,95,109,0.25)'
     },
 
-    /* Размер файла */
+    /* Размер */
     '.torrent-item__size.ts-size': {
       'color': '#5cd4b0',
       'background-color': 'rgba(92,212,176,0.12)',
@@ -129,7 +129,7 @@
       'text-shadow': '0 0 0.25em rgba(255,95,109,0.22)'
     },
 
-    /* Фокус элементов */
+    /* Фокус */
     '.torrent-item.selector.focus, .torrent-serial.selector.focus, .torrent-file.selector.focus': {
       'box-shadow': '0 0 0 0.3em rgba(67,206,162,0.4)'
     },
@@ -141,7 +141,24 @@
     '.scroll__body': { 'margin': '5px' }
   };
 
-  // Внедряет CSS-стили в <head>
+  const mobileStyles = `
+    @media (max-width: 768px) {
+      .torrent-item__bitrate > span.ts-bitrate,
+      .torrent-item__seeds > span.ts-seeds,
+      .torrent-item__grabs > span.ts-grabs,
+      .torrent-item__size.ts-size {
+        min-height: 1.4em !important;
+        padding: 0.08em 0.3em !important;
+        font-size: 0.8em !important;
+      }
+      .torrent-item__bitrate,
+      .torrent-item__grabs,
+      .torrent-item__seeds {
+        margin-right: 0.35em !important;
+      }
+    }
+  `;
+
   function injectStyles() {
     const style = document.createElement('style');
     style.setAttribute('data-' + config.pluginId, 'true');
@@ -149,28 +166,24 @@
       .map(([selector, rules]) => 
         `${selector} { ${Object.entries(rules).map(([k, v]) => `${k}: ${v} !important`).join('; ')} }`
       )
-      .join('\n');
+      .join('\n') + mobileStyles;
     document.head.appendChild(style);
   }
 
-  // Планирует обновление стилей с debounce
   let updateTimer = null;
   function scheduleUpdate() {
     clearTimeout(updateTimer);
     updateTimer = setTimeout(updateTorrentStyles, TH.debounce);
   }
 
-  // Парсит целое число из текста
   function parseIntVal(text) {
     return parseInt(text || '', 10) || 0;
   }
 
-  // Парсит число с плавающей точкой
   function parseFloatVal(text) {
     return parseFloat((text || '').replace(',', '.')) || 0;
   }
 
-  // Преобразует размер (KB/MB/GB/TB) в гигабайты
   function parseSizeGB(text) {
     const normalized = (text || '').replace(/\u00A0/g, ' ').trim();
     const match = normalized.match(/(\d+(?:[.,]\d+)?)\s*(kb|mb|gb|tb|кб|мб|гб|тб)/i);
@@ -186,15 +199,12 @@
     return 0;
   }
 
-  // Удаляет старые классы и добавляет новый
   function addClass(el, classesToRemove, classToAdd) {
     classesToRemove.forEach(c => el.classList.remove(c));
     if (classToAdd) el.classList.add(classToAdd);
   }
 
-  // Основная функция: применяет цветовые классы к элементам торрентов
   function updateTorrentStyles() {
-    // Сиды
     document.querySelectorAll('.torrent-item__seeds span').forEach(span => {
       const val = parseIntVal(span.textContent);
       span.classList.add('ts-seeds');
@@ -205,7 +215,6 @@
       addClass(span, ['low-seeds', 'good-seeds', 'high-seeds'], tier);
     });
 
-    // Битрейт
     document.querySelectorAll('.torrent-item__bitrate span').forEach(span => {
       const val = parseFloatVal(span.textContent);
       span.classList.add('ts-bitrate');
@@ -215,14 +224,12 @@
       addClass(span, ['high-bitrate', 'very-high-bitrate'], tier);
     });
 
-    // Личеры (качают)
     document.querySelectorAll('.torrent-item__grabs span').forEach(span => {
       const val = parseIntVal(span.textContent);
       span.classList.add('ts-grabs');
       addClass(span, ['high-grabs'], val > 10 ? 'high-grabs' : '');
     });
 
-    // Размер
     document.querySelectorAll('.torrent-item__size').forEach(el => {
       el.classList.add('ts-size');
       const gb = parseSizeGB(el.textContent);
@@ -238,7 +245,6 @@
     });
   }
 
-  // Наблюдает за изменениями DOM и запускает обновление стилей
   function observe() {
     const observer = new MutationObserver(mutations => {
       for (const m of mutations) {
@@ -258,7 +264,6 @@
     updateTorrentStyles();
   }
 
-  // Регистрирует плагин в манифесте Lampa
   function register() {
     if (typeof Lampa !== 'undefined') {
       Lampa.Manifest.plugins = Lampa.Manifest.plugins || {};
@@ -266,13 +271,12 @@
         type: 'other',
         name: config.name,
         version: config.version,
-        description: 'Цветовая индикация сидов, личеров, битрейта и размера в торрент-карточках.'
+        description: 'Цветовая индикация торрентов + адаптация под мобильные экраны.'
       };
     }
     window['plugin_' + config.pluginId + '_ready'] = true;
   }
 
-  // Инициализация плагина
   function init() {
     injectStyles();
     observe();
