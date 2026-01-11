@@ -4,7 +4,7 @@
   Lampa.Platform.tv();
 
   const config = {
-    version: '2.0.2',
+    version: '2.0.3',
     name: 'Torrent Styles MOD',
     pluginId: 'torrent_styles_mod'
   };
@@ -14,11 +14,13 @@
     seeds: { low: 5, good: 10, high: 20 },
     bitrate: { high: 50, veryHigh: 100 },
     size: { mid: 50, high: 100, top: 200 },
-    debounce: 80
+    debounce: 30   // Уменьшено для более быстрого реагирования
   };
 
+  // Стили — теперь базовые применяются сразу к оригинальным элементам Lampa (без .ts-)
   const styles = {
-    '.torrent-item__bitrate > span.ts-bitrate, .torrent-item__seeds > span.ts-seeds, .torrent-item__grabs > span.ts-grabs, .torrent-item__size.ts-size': {
+    // Общий вид бейджей — применяется сразу
+    '.torrent-item__bitrate > span, .torrent-item__seeds > span, .torrent-item__grabs > span, .torrent-item__size': {
       'display': 'inline-flex',
       'align-items': 'center',
       'justify-content': 'center',
@@ -31,32 +33,31 @@
       'font-variant-numeric': 'tabular-nums',
       'box-sizing': 'border-box'
     },
-
     '.torrent-item__bitrate, .torrent-item__grabs, .torrent-item__seeds': {
       'margin-right': '0.4em'
     },
 
-    /* Сиды */
-    '.torrent-item__seeds > span.ts-seeds': {
+    /* Сиды — базовый (нормальный) сразу */
+    '.torrent-item__seeds > span': {
       'color': '#5cd4b0',
       'background-color': 'rgba(92,212,176,0.14)',
       'border': '0.15em solid rgba(92,212,176,0.9)',
       'box-shadow': '0 0 0.75em rgba(92,212,176,0.28)'
     },
-    '.torrent-item__seeds > span.ts-seeds.low-seeds': {
+    '.torrent-item__seeds > span.low-seeds': {
       'color': '#ff5f6d',
       'background-color': 'rgba(255,95,109,0.14)',
       'border': '0.15em solid rgba(255,95,109,0.82)',
       'box-shadow': '0 0 0.65em rgba(255,95,109,0.26)',
       'text-shadow': '0 0 0.25em rgba(255,95,109,0.25)'
     },
-    '.torrent-item__seeds > span.ts-seeds.good-seeds': {
+    '.torrent-item__seeds > span.good-seeds': {
       'color': '#43cea2',
       'background-color': 'rgba(67,206,162,0.16)',
       'border': '0.15em solid rgba(67,206,162,0.92)',
       'box-shadow': '0 0 0.9em rgba(67,206,162,0.34)'
     },
-    '.torrent-item__seeds > span.ts-seeds.high-seeds': {
+    '.torrent-item__seeds > span.high-seeds': {
       'color': '#ffc371',
       'background': 'linear-gradient(135deg, rgba(255,195,113,0.28), rgba(67,206,162,0.10))',
       'border': '0.15em solid rgba(255,195,113,0.92)',
@@ -64,35 +65,35 @@
       'text-shadow': '0 0 0.25em rgba(255,195,113,0.25)'
     },
 
-    /* Личеры */
-    '.torrent-item__grabs > span.ts-grabs': {
+    /* Личеры — базовый сразу */
+    '.torrent-item__grabs > span': {
       'color': '#4db6ff',
       'background-color': 'rgba(77,182,255,0.12)',
       'border': '0.15em solid rgba(77,182,255,0.82)',
       'box-shadow': '0 0 0.35em rgba(77,182,255,0.16)'
     },
-    '.torrent-item__grabs > span.ts-grabs.high-grabs': {
+    '.torrent-item__grabs > span.high-grabs': {
       'color': '#4db6ff',
       'background': 'linear-gradient(135deg, rgba(77,182,255,0.18), rgba(52,152,219,0.10))',
       'border': '0.15em solid rgba(77,182,255,0.92)',
       'box-shadow': '0 0 0.55em rgba(77,182,255,0.22)'
     },
 
-    /* Битрейт */
-    '.torrent-item__bitrate > span.ts-bitrate': {
+    /* Битрейт — базовый сразу */
+    '.torrent-item__bitrate > span': {
       'color': '#5cd4b0',
       'background-color': 'rgba(67,206,162,0.10)',
       'border': '0.15em solid rgba(92,212,176,0.78)',
       'box-shadow': '0 0 0.45em rgba(92,212,176,0.20)'
     },
-    '.torrent-item__bitrate > span.ts-bitrate.high-bitrate': {
+    '.torrent-item__bitrate > span.high-bitrate': {
       'color': '#ffc371',
       'background': 'linear-gradient(135deg, rgba(255,195,113,0.28), rgba(67,206,162,0.10))',
       'border': '0.15em solid rgba(255,195,113,0.92)',
       'box-shadow': '0 0 0.95em rgba(255,195,113,0.38)',
       'text-shadow': '0 0 0.25em rgba(255,195,113,0.25)'
     },
-    '.torrent-item__bitrate > span.ts-bitrate.very-high-bitrate': {
+    '.torrent-item__bitrate > span.very-high-bitrate': {
       'color': '#ff5f6d',
       'background': 'linear-gradient(135deg, rgba(255,95,109,0.28), rgba(67,206,162,0.08))',
       'border': '0.15em solid rgba(255,95,109,0.92)',
@@ -100,28 +101,28 @@
       'text-shadow': '0 0 0.25em rgba(255,95,109,0.25)'
     },
 
-    /* Размер */
-    '.torrent-item__size.ts-size': {
+    /* Размер — базовый сразу */
+    '.torrent-item__size': {
       'color': '#5cd4b0',
       'background-color': 'rgba(92,212,176,0.12)',
       'border': '0.15em solid rgba(92,212,176,0.82)',
       'box-shadow': '0 0 0.7em rgba(92,212,176,0.26)',
       'font-weight': '700'
     },
-    '.torrent-item__size.ts-size.mid-size': {
+    '.torrent-item__size.mid-size': {
       'color': '#43cea2',
       'background-color': 'rgba(67,206,162,0.16)',
       'border': '0.15em solid rgba(67,206,162,0.92)',
       'box-shadow': '0 0 0.9em rgba(67,206,162,0.34)'
     },
-    '.torrent-item__size.ts-size.high-size': {
+    '.torrent-item__size.high-size': {
       'color': '#ffc371',
       'background': 'linear-gradient(135deg, rgba(255,195,113,0.28), rgba(67,206,162,0.10))',
       'border': '0.15em solid rgba(255,195,113,0.95)',
       'box-shadow': '0 0 1.05em rgba(255,195,113,0.40)',
       'text-shadow': '0 0 0.25em rgba(255,195,113,0.22)'
     },
-    '.torrent-item__size.ts-size.top-size': {
+    '.torrent-item__size.top-size': {
       'color': '#ff5f6d',
       'background': 'linear-gradient(135deg, rgba(255,95,109,0.28), rgba(67,206,162,0.08))',
       'border': '0.15em solid rgba(255,95,109,0.95)',
@@ -143,10 +144,10 @@
 
   const mobileStyles = `
     @media (max-width: 768px) {
-      .torrent-item__bitrate > span.ts-bitrate,
-      .torrent-item__seeds > span.ts-seeds,
-      .torrent-item__grabs > span.ts-grabs,
-      .torrent-item__size.ts-size {
+      .torrent-item__bitrate > span,
+      .torrent-item__seeds > span,
+      .torrent-item__grabs > span,
+      .torrent-item__size {
         min-height: 1.4em !important;
         padding: 0.08em 0.3em !important;
         font-size: 0.8em !important;
@@ -199,61 +200,55 @@
     return 0;
   }
 
-  function addClass(el, classesToRemove, classToAdd) {
-    classesToRemove.forEach(c => el.classList.remove(c));
-    if (classToAdd) el.classList.add(classToAdd);
+  function setTier(el, tiers, tier) {
+    tiers.forEach(c => el.classList.remove(c));
+    if (tier) el.classList.add(tier);
   }
 
+  // Применяет только tier-классы (базовые стили уже в CSS)
   function updateTorrentStyles() {
-    document.querySelectorAll('.torrent-item__seeds span').forEach(span => {
+    // Сиды
+    document.querySelectorAll('.torrent-item__seeds > span').forEach(span => {
       const val = parseIntVal(span.textContent);
-      span.classList.add('ts-seeds');
       let tier = '';
       if (val < TH.seeds.low) tier = 'low-seeds';
       else if (val >= TH.seeds.high) tier = 'high-seeds';
       else if (val >= TH.seeds.good) tier = 'good-seeds';
-      addClass(span, ['low-seeds', 'good-seeds', 'high-seeds'], tier);
+      setTier(span, ['low-seeds', 'good-seeds', 'high-seeds'], tier);
     });
 
-    document.querySelectorAll('.torrent-item__bitrate span').forEach(span => {
+    // Битрейт
+    document.querySelectorAll('.torrent-item__bitrate > span').forEach(span => {
       const val = parseFloatVal(span.textContent);
-      span.classList.add('ts-bitrate');
       let tier = '';
       if (val > TH.bitrate.veryHigh) tier = 'very-high-bitrate';
       else if (val >= TH.bitrate.high) tier = 'high-bitrate';
-      addClass(span, ['high-bitrate', 'very-high-bitrate'], tier);
+      setTier(span, ['high-bitrate', 'very-high-bitrate'], tier);
     });
 
-    document.querySelectorAll('.torrent-item__grabs span').forEach(span => {
+    // Личеры
+    document.querySelectorAll('.torrent-item__grabs > span').forEach(span => {
       const val = parseIntVal(span.textContent);
-      span.classList.add('ts-grabs');
-      addClass(span, ['high-grabs'], val > 10 ? 'high-grabs' : '');
+      setTier(span, ['high-grabs'], val > 10 ? 'high-grabs' : '');
     });
 
+    // Размер
     document.querySelectorAll('.torrent-item__size').forEach(el => {
-      el.classList.add('ts-size');
       const gb = parseSizeGB(el.textContent);
       if (gb === null) {
-        addClass(el, ['mid-size', 'high-size', 'top-size'], '');
+        setTier(el, ['mid-size', 'high-size', 'top-size'], '');
         return;
       }
       let tier = '';
       if (gb > TH.size.top) tier = 'top-size';
       else if (gb >= TH.size.high) tier = 'high-size';
       else if (gb >= TH.size.mid) tier = 'mid-size';
-      addClass(el, ['mid-size', 'high-size', 'top-size'], tier);
+      setTier(el, ['mid-size', 'high-size', 'top-size'], tier);
     });
   }
 
   function observe() {
-    const observer = new MutationObserver(mutations => {
-      for (const m of mutations) {
-        if (m.addedNodes.length || m.type === 'characterData') {
-          scheduleUpdate();
-          return;
-        }
-      }
-    });
+    const observer = new MutationObserver(() => scheduleUpdate());
 
     observer.observe(document.body, {
       childList: true,
@@ -261,6 +256,7 @@
       characterData: true
     });
 
+    // Немедленное применение при загрузке
     updateTorrentStyles();
   }
 
@@ -271,24 +267,24 @@
         type: 'other',
         name: config.name,
         version: config.version,
-        description: 'Цветовая индикация торрентов + адаптация под мобильные экраны.'
+        description: 'Цветовая индикация торрентов без вспышки старых стилей.'
       };
     }
     window['plugin_' + config.pluginId + '_ready'] = true;
   }
 
   function init() {
-    injectStyles();
-    observe();
+    injectStyles();         // Стили сразу
+    updateTorrentStyles();  // Tier-классы сразу
+    observe();              // Наблюдение за изменениями
 
     if (window.appready) {
       register();
-      scheduleUpdate();
     } else if (Lampa?.Listener?.follow) {
       Lampa.Listener.follow('app', e => {
         if (e.type === 'ready') {
           register();
-          scheduleUpdate();
+          updateTorrentStyles();
         }
       });
     } else {
