@@ -14,12 +14,10 @@
     seeds: { low: 5, good: 10, high: 20 },
     bitrate: { high: 50, veryHigh: 100 },
     size: { mid: 50, high: 100, top: 200 },
-    debounce: 30   // Уменьшено для более быстрого реагирования
+    debounce: 30
   };
 
-  // Стили — теперь базовые применяются сразу к оригинальным элементам Lampa (без .ts-)
   const styles = {
-    // Общий вид бейджей — применяется сразу
     '.torrent-item__bitrate > span, .torrent-item__seeds > span, .torrent-item__grabs > span, .torrent-item__size': {
       'display': 'inline-flex',
       'align-items': 'center',
@@ -37,7 +35,7 @@
       'margin-right': '0.4em'
     },
 
-    /* Сиды — базовый (нормальный) сразу */
+    /* Сиды */
     '.torrent-item__seeds > span': {
       'color': '#5cd4b0',
       'background-color': 'rgba(92,212,176,0.14)',
@@ -79,7 +77,7 @@
       'box-shadow': '0 0 0.55em rgba(77,182,255,0.22)'
     },
 
-    /* Битрейт — базовый сразу */
+    /* Битрейт */
     '.torrent-item__bitrate > span': {
       'color': '#5cd4b0',
       'background-color': 'rgba(67,206,162,0.10)',
@@ -101,7 +99,7 @@
       'text-shadow': '0 0 0.25em rgba(255,95,109,0.25)'
     },
 
-    /* Размер — базовый сразу */
+    /* Размер */
     '.torrent-item__size': {
       'color': '#5cd4b0',
       'background-color': 'rgba(92,212,176,0.12)',
@@ -205,7 +203,6 @@
     if (tier) el.classList.add(tier);
   }
 
-  // Применяет только tier-классы (базовые стили уже в CSS)
   function updateTorrentStyles() {
     // Сиды
     document.querySelectorAll('.torrent-item__seeds > span').forEach(span => {
@@ -256,7 +253,6 @@
       characterData: true
     });
 
-    // Немедленное применение при загрузке
     updateTorrentStyles();
   }
 
@@ -267,16 +263,16 @@
         type: 'other',
         name: config.name,
         version: config.version,
-        description: 'Цветовая индикация торрентов без вспышки старых стилей.'
+        description: 'Цветовая индикация торрентов'
       };
     }
     window['plugin_' + config.pluginId + '_ready'] = true;
   }
 
   function init() {
-    injectStyles();         // Стили сразу
-    updateTorrentStyles();  // Tier-классы сразу
-    observe();              // Наблюдение за изменениями
+    injectStyles();
+    updateTorrentStyles();
+    observe();
 
     if (window.appready) {
       register();
