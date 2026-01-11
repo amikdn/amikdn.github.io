@@ -4,19 +4,15 @@
     // ========================================================================
     // КОНФИГУРАЦИЯ И КЭШ
     // ========================================================================
-    // УБРАЛИ: var STORAGE_KEY = 'continue_watch_params';
     var MEMORY_CACHE = null;
     var TORRSERVER_CACHE = null;
     var FILES_CACHE = {};
 
     var ACCOUNT_READY = !!window.appready;
 
-    // чтобы не смешивать кэш разных профилей
     var ACTIVE_STORAGE_KEY = null;
-    // чтобы гарантировать, что sync зарегистрирован именно для текущего ключа
     var SYNCED_STORAGE_KEY = null;
 
-    // миграция старого общего ключа -> профильный (однократно)
     var MIGRATION_FLAG_KEY = 'continue_watch_params__migrated_to_profiles';
 
     var TIMERS = {
@@ -58,7 +54,7 @@
         var key = getStorageKey();
         if (ACTIVE_STORAGE_KEY !== key) {
             ACTIVE_STORAGE_KEY = key;
-            MEMORY_CACHE = null; // не смешиваем данные разных профилей
+            MEMORY_CACHE = null;
         }
         return key;
     }
@@ -77,16 +73,13 @@
     // 1. ХРАНИЛИЩЕ
     // ========================================================================
 
-    // регистрируем sync хотя бы для базового ключа сразу
     ensureStorageSync();
 
     Lampa.Storage.listener.follow('change', function (e) {
-        // если изменился любой continue_watch ключ — сбрасываем кэш
         if (e.name && typeof e.name === 'string' && e.name.indexOf('continue_watch_params') === 0) {
             MEMORY_CACHE = null;
         }
 
-        // при смене аккаунта/подгрузке permit — пересобираем ключ, sync и миграцию
         if (e.name === 'account') {
             MEMORY_CACHE = null;
             ensureStorageSync();
@@ -134,7 +127,6 @@
 
         if (changed || !params[hash].timestamp) {
             params[hash].timestamp = Date.now();
-            // Мгновенная синхронизация при завершении (>90%)
             var isCritical = (data.percent && data.percent > 90);
             setParams(params, isCritical);
         }
@@ -173,7 +165,7 @@
                 var params = getParams();
                 var now = Date.now();
                 var changed = false;
-                var max_age = 60 * 24 * 60 * 60 * 1000; // 60 дней
+                var max_age = 60 * 24 * 60 * 60 * 1000;
 
                 Object.keys(params).forEach(function (hash) {
                     if (params[hash].timestamp && now - params[hash].timestamp > max_age) {
@@ -441,7 +433,7 @@
     }
 
     // ========================================================================
-    // 5. ЛОГИКА ПЛЕЕРА И ХУКИ (С ИСПРАВЛЕНИЕМ СИНХРОНИЗАЦИИ)
+    // 5. ЛОГИКА ПЛЕЕРА И ХУКИ
     // ========================================================================
 
     function launchPlayer(movie, params) {
@@ -534,7 +526,6 @@
         LISTENERS.initialized = false;
     }
 
-    // ИСПРАВЛЕННАЯ ФУНКЦИЯ PATCHPLAYER
     function patchPlayer() {
         var originalPlay = Lampa.Player.play;
         Lampa.Player.play = function (params) {
@@ -543,7 +534,6 @@
                 if (movie) {
                     var hash = generateHash(movie, params.season, params.episode);
                     if (hash) {
-                        // FIX: Проверяем наличие прогресса в Timeline перед сохранением
                         var timeline = Lampa.Timeline.view(hash);
                         var isNewSession = !timeline || !timeline.percent || timeline.percent < 5;
 
@@ -620,25 +610,35 @@
 
                     var dashArray = (percent * 65.97 / 100).toFixed(2);
                     var continueButtonHtml = `
-                        <div class="full-start__button selector button--continue-watch" style="margin-top: 0.5em;">
-                            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" style="margin-right: 0.5em">
+                        <div class="full-start__button selector button--continue-watch" style="display:flex;align-items:center;">
+                            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" style="margin-right:0.5em;flex-shrink:0;">
                                 <path d="M8 5v14l11-7L8 5z" fill="currentColor"/>
                                 <circle cx="12" cy="12" r="10.5" stroke="currentColor" stroke-width="1.5" fill="none" 
-                                    stroke-dasharray="${dashArray} 65.97" transform="rotate(-90 12 12)" style="opacity: 0.5"/>
+                                    stroke-dasharray="${dashArray} 65.97" transform="rotate(-90 12 12)" style="opacity:0.5"/>
                             </svg>
-                            <div>${labelText}</div>
+                            <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${labelText}</div>
                         </div>
                     `;
 
                     var continueBtn = $(continueButtonHtml);
                     continueBtn.on('hover:enter', function () { handleContinueClick(e.data.movie, this); });
 
-                    var torrentBtn = render.find('.view--torrent').last();
-                    var buttonsContainer = render.find('.full-start-new__buttons, .full-start__buttons').first();
+                    // Универсальная вставка: сначала пытаемся после кнопки торрента (работает на всех платформах)
+                    var torrentBtn = render.find('.view--torrent, .button--torrent').last();
+                    if (torrentBtn.length) {
+                        torrentBtn.after(continueBtn);
+                        return;
+                    }
 
-                    if (torrentBtn.length) torrentBtn.after(continueBtn);
-                    else if (buttonsContainer.length) buttonsContainer.append(continueBtn);
-                    else render.find('.full-start__button').last().after(continueBtn);
+                    // Затем в контейнер кнопок
+                    var buttonsContainer = render.find('.full-start-new__buttons, .full-start__buttons, .full-start__actions').first();
+                    if (buttonsContainer.length) {
+                        buttonsContainer.append(continueBtn);
+                        return;
+                    }
+
+                    // Fallback: после последней кнопки
+                    render.find('.full-start__button').last().after(continueBtn);
                 });
             }
         });
@@ -654,7 +654,6 @@
             TORRSERVER_CACHE = null;
             FILES_CACHE = {};
 
-            // ключ мог поменяться -> регистрируем sync на новый ключ
             ensureStorageSync();
             migrateOldData();
 
@@ -664,10 +663,8 @@
 
     function migrateOldData() {
         try {
-            // мигрируем только когда реально есть профили и sync включен
             if (!(ACCOUNT_READY && Lampa.Account && Lampa.Account.Permit && Lampa.Account.Permit.sync)) return;
 
-            // миграция один раз, чтобы не копировать общий ключ в каждый профиль
             if (Lampa.Storage.get(MIGRATION_FLAG_KEY, false)) return;
 
             var oldKey = 'continue_watch_params';
@@ -680,7 +677,6 @@
                 Lampa.Storage.set(MIGRATION_FLAG_KEY, true);
                 console.log('[ContinueWatch] Migrated old data to profile key:', newKey);
             } else {
-                // даже если мигрировать нечего — ставим флаг, чтобы не гонять это каждый раз
                 if (Object.keys(oldData).length === 0) Lampa.Storage.set(MIGRATION_FLAG_KEY, true);
             }
         } catch (e) { }
@@ -701,7 +697,6 @@
         console.log("[ContinueWatch] v71 Loaded. Sync Fix Applied. Profile support enabled.");
     }
 
-    // готовность приложения (страховка)
     Lampa.Listener.follow('app', function (e) {
         if (e.type === 'ready') {
             ACCOUNT_READY = true;
