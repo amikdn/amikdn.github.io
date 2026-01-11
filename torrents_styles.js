@@ -4,7 +4,7 @@
   Lampa.Platform.tv();
 
   const config = {
-    version: '2.0.4',
+    version: '2.0.5',
     name: 'Torrent Styles MOD',
     pluginId: 'torrent_styles_mod'
   };
@@ -21,17 +21,17 @@
       'display': 'inline-flex',
       'align-items': 'center',
       'justify-content': 'center',
-      'min-height': '1.5em',
-      'padding': '0.1em 0.35em',
+      'min-height': '1.7em',
+      'padding': '0.15em 0.45em',
       'border-radius': '0.5em',
       'font-weight': '700',
-      'font-size': '0.85em',
+      'font-size': '0.9em',
       'white-space': 'nowrap',
       'font-variant-numeric': 'tabular-nums',
       'box-sizing': 'border-box'
     },
     '.torrent-item__bitrate, .torrent-item__grabs, .torrent-item__seeds': {
-      'margin-right': '0.4em'
+      'margin-right': '0.55em'
     },
 
     /* Сиды */
@@ -144,14 +144,14 @@
       .torrent-item__seeds > span,
       .torrent-item__grabs > span,
       .torrent-item__size {
-        min-height: 1.4em !important;
-        padding: 0.08em 0.3em !important;
-        font-size: 0.8em !important;
+        min-height: 1.5em !important;
+        padding: 0.1em 0.35em !important;
+        font-size: 0.85em !important;
       }
       .torrent-item__bitrate,
       .torrent-item__grabs,
       .torrent-item__seeds {
-        margin-right: 0.35em !important;
+        margin-right: 0.4em !important;
       }
     }
   `;
