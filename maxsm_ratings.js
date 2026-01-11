@@ -407,7 +407,7 @@
     var KP_API_KEYS   = (window.RATINGS_PLUGIN_TOKENS && window.RATINGS_PLUGIN_TOKENS.KP_API_KEYS)   || ['4d596d4d-3790-4091-89cd-60ecc72f7007']; // api ключи массивом
     var PROXY_TIMEOUT = 5000; // Таймаут прокси
     var JACRED_PROTOCOL = 'https://'; // Протокол JacRed
-    var JACRED_URL = 'jacred.xyz';
+    var JACRED_URL = 'ru.jacred.pro';
     var JACRED_API_KEY = '';
     var PROXY_LIST = [  // Корс прокси для запросов 
         'https://cors.bwa.workers.dev/',
