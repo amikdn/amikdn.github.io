@@ -1,480 +1,296 @@
 (function () {
   'use strict';
 
-  var config = {
-    version: '1.0.0',
-    name: 'Torrent Styles',
+  Lampa.Platform.tv();
+
+  const config = {
+    version: '2.0.1',
+    name: 'Torrent Styles MOD',
     pluginId: 'torrent_styles_mod'
   };
 
-  // Thresholds
-  // Seeds:
-  // - <5: danger (red)
-  // - 5..9: normal (light emerald)   -> base `ts-seeds`
-  // - 10..19: good (emerald)         -> `good-seeds`
-  // - >=20: top (gold)               -> `high-seeds`
-  //
-  // Bitrate (Mbps):
-  // - <50: base `ts-bitrate`
-  // - 50..100: gold                  -> `high-bitrate`
-  // - >100: red                      -> `very-high-bitrate`
-  //
-  // Size (GB):
-  // - <50: base `ts-size`
-  // - 50..99: emerald                -> `mid-size`
-  // - 100..200: gold                 -> `high-size`
-  // - >200: red                      -> `top-size`
-  var TH = {
-    seeds: {
-      danger_below: 5,
-      good_from: 10,
-      top_from: 20
-    },
-    bitrate: {
-      warn_from: 50,
-      danger_from: 100
-    },
-    size: {
-      mid_from_gb: 50,
-      high_from_gb: 100,
-      top_from_gb: 200
-    },
-    // Debounce updateTorrentStyles() calls triggered by MutationObserver
-    debounce_ms: 60
+  // Пороги значений
+  const TH = {
+    seeds: { low: 5, good: 10, high: 20 },        // Сиды: <5 — плохо, 10–19 — хорошо, ≥20 — отлично
+    bitrate: { high: 50, veryHigh: 100 },        // Битрейт: ≥50 — высокий, >100 — очень высокий
+    size: { mid: 50, high: 100, top: 200 },      // Размер: ≥50 ГБ — средний, ≥100 — большой, >200 — огромный
+    debounce: 80                                 // Задержка обновления стилей (мс)
   };
 
-  var styles = {
-    // Base badge look (emerald theme)
+  // Стили для элементов торрент-карточек
+  const styles = {
     '.torrent-item__bitrate > span.ts-bitrate, .torrent-item__seeds > span.ts-seeds, .torrent-item__grabs > span.ts-grabs, .torrent-item__size.ts-size': {
       'display': 'inline-flex',
-      '-webkit-box-align': 'center',
-      '-webkit-align-items': 'center',
-      '-moz-box-align': 'center',
-      '-ms-flex-align': 'center',
       'align-items': 'center',
-      '-webkit-box-pack': 'center',
-      '-webkit-justify-content': 'center',
-      '-moz-box-pack': 'center',
-      '-ms-flex-pack': 'center',
       'justify-content': 'center',
-      'box-sizing': 'border-box',
-      // same visual "size" (height/shape), but allow content width to vary -> fits in one row better
       'min-height': '1.7em',
       'padding': '0.15em 0.45em',
       'border-radius': '0.5em',
       'font-weight': '700',
       'font-size': '0.9em',
-      'line-height': '1',
       'white-space': 'nowrap',
-      'vertical-align': 'middle',
-      // steadier digit width (helps visual alignment)
-      'font-variant-numeric': 'tabular-nums'
+      'font-variant-numeric': 'tabular-nums',
+      'box-sizing': 'border-box'
     },
-
-    // Tighten spacing so everything fits on one row
     '.torrent-item__bitrate, .torrent-item__grabs, .torrent-item__seeds': {
       'margin-right': '0.55em'
     },
 
-    // Seeds (give)
+    /* Сиды (раздают) */
     '.torrent-item__seeds > span.ts-seeds': {
-      // 5..9 (normal)
-      color: '#5cd4b0',
-      'background-color': 'rgba(92, 212, 176, 0.14)',
-      border: '0.15em solid rgba(92, 212, 176, 0.90)',
-      'box-shadow': '0 0 0.75em rgba(92, 212, 176, 0.28)'
+      'color': '#5cd4b0',
+      'background-color': 'rgba(92,212,176,0.14)',
+      'border': '0.15em solid rgba(92,212,176,0.9)',
+      'box-shadow': '0 0 0.75em rgba(92,212,176,0.28)'
     },
-    // Low seeds (danger) — soft red (emerald palette)
     '.torrent-item__seeds > span.ts-seeds.low-seeds': {
-      color: '#ff5f6d',
-      'background-color': 'rgba(255, 95, 109, 0.14)',
-      border: '0.15em solid rgba(255, 95, 109, 0.82)',
-      'box-shadow': '0 0 0.65em rgba(255, 95, 109, 0.26)',
-      'text-shadow': '0 0 0.25em rgba(255, 95, 109, 0.25)'
+      'color': '#ff5f6d',
+      'background-color': 'rgba(255,95,109,0.14)',
+      'border': '0.15em solid rgba(255,95,109,0.82)',
+      'box-shadow': '0 0 0.65em rgba(255,95,109,0.26)',
+      'text-shadow': '0 0 0.25em rgba(255,95,109,0.25)'
     },
-    // 10..19 (good) — emerald
     '.torrent-item__seeds > span.ts-seeds.good-seeds': {
-      color: '#43cea2',
-      'background-color': 'rgba(67, 206, 162, 0.16)',
-      border: '0.15em solid rgba(67, 206, 162, 0.92)',
-      'box-shadow': '0 0 0.9em rgba(67, 206, 162, 0.34)'
+      'color': '#43cea2',
+      'background-color': 'rgba(67,206,162,0.16)',
+      'border': '0.15em solid rgba(67,206,162,0.92)',
+      'box-shadow': '0 0 0.9em rgba(67,206,162,0.34)'
     },
     '.torrent-item__seeds > span.ts-seeds.high-seeds': {
-      // >=20 (top) — gold accent (same family as high-bitrate)
-      color: '#ffc371',
-      background: 'linear-gradient(135deg, rgba(255, 195, 113, 0.28), rgba(67, 206, 162, 0.10))',
-      border: '0.15em solid rgba(255, 195, 113, 0.92)',
-      'box-shadow': '0 0 0.95em rgba(255, 195, 113, 0.38)',
-      'text-shadow': '0 0 0.25em rgba(255, 195, 113, 0.25)'
+      'color': '#ffc371',
+      'background': 'linear-gradient(135deg, rgba(255,195,113,0.28), rgba(67,206,162,0.10))',
+      'border': '0.15em solid rgba(255,195,113,0.92)',
+      'box-shadow': '0 0 0.95em rgba(255,195,113,0.38)',
+      'text-shadow': '0 0 0.25em rgba(255,195,113,0.25)'
     },
 
-    // Grabs/Peers (download) — theme blue
+    /* Личеры (качают) */
     '.torrent-item__grabs > span.ts-grabs': {
-      // neutral (no strong glow)
-      color: '#4db6ff',
-      'background-color': 'rgba(77, 182, 255, 0.12)',
-      border: '0.15em solid rgba(77, 182, 255, 0.82)',
-      'box-shadow': '0 0 0.35em rgba(77, 182, 255, 0.16)'
+      'color': '#4db6ff',
+      'background-color': 'rgba(77,182,255,0.12)',
+      'border': '0.15em solid rgba(77,182,255,0.82)',
+      'box-shadow': '0 0 0.35em rgba(77,182,255,0.16)'
     },
     '.torrent-item__grabs > span.ts-grabs.high-grabs': {
-      // slightly stronger, still neutral
-      color: '#4db6ff',
-      background: 'linear-gradient(135deg, rgba(77, 182, 255, 0.18), rgba(52, 152, 219, 0.10))',
-      border: '0.15em solid rgba(77, 182, 255, 0.92)',
-      'box-shadow': '0 0 0.55em rgba(77, 182, 255, 0.22)'
+      'color': '#4db6ff',
+      'background': 'linear-gradient(135deg, rgba(77,182,255,0.18), rgba(52,152,219,0.10))',
+      'border': '0.15em solid rgba(77,182,255,0.92)',
+      'box-shadow': '0 0 0.55em rgba(77,182,255,0.22)'
     },
 
-    // Bitrate — light emerald accent
+    /* Битрейт */
     '.torrent-item__bitrate > span.ts-bitrate': {
-      color: '#5cd4b0',
-      'background-color': 'rgba(67, 206, 162, 0.10)',
-      border: '0.15em solid rgba(92, 212, 176, 0.78)',
-      'box-shadow': '0 0 0.45em rgba(92, 212, 176, 0.20)'
+      'color': '#5cd4b0',
+      'background-color': 'rgba(67,206,162,0.10)',
+      'border': '0.15em solid rgba(92,212,176,0.78)',
+      'box-shadow': '0 0 0.45em rgba(92,212,176,0.20)'
     },
-    // 50..100 Mbps (gold)
     '.torrent-item__bitrate > span.ts-bitrate.high-bitrate': {
-      color: '#ffc371',
-      background: 'linear-gradient(135deg, rgba(255, 195, 113, 0.28), rgba(67, 206, 162, 0.10))',
-      border: '0.15em solid rgba(255, 195, 113, 0.92)',
-      'box-shadow': '0 0 0.95em rgba(255, 195, 113, 0.38)',
-      'text-shadow': '0 0 0.25em rgba(255, 195, 113, 0.25)'
+      'color': '#ffc371',
+      'background': 'linear-gradient(135deg, rgba(255,195,113,0.28), rgba(67,206,162,0.10))',
+      'border': '0.15em solid rgba(255,195,113,0.92)',
+      'box-shadow': '0 0 0.95em rgba(255,195,113,0.38)',
+      'text-shadow': '0 0 0.25em rgba(255,195,113,0.25)'
     },
-    // >100 Mbps (danger)
     '.torrent-item__bitrate > span.ts-bitrate.very-high-bitrate': {
-      color: '#ff5f6d',
-      background: 'linear-gradient(135deg, rgba(255, 95, 109, 0.28), rgba(67, 206, 162, 0.08))',
-      border: '0.15em solid rgba(255, 95, 109, 0.92)',
-      'box-shadow': '0 0 1.05em rgba(255, 95, 109, 0.40)',
-      'text-shadow': '0 0 0.25em rgba(255, 95, 109, 0.25)'
+      'color': '#ff5f6d',
+      'background': 'linear-gradient(135deg, rgba(255,95,109,0.28), rgba(67,206,162,0.08))',
+      'border': '0.15em solid rgba(255,95,109,0.92)',
+      'box-shadow': '0 0 1.05em rgba(255,95,109,0.40)',
+      'text-shadow': '0 0 0.25em rgba(255,95,109,0.25)'
     },
 
-    // Size — tiered
+    /* Размер файла */
     '.torrent-item__size.ts-size': {
-      // <50GB: light emerald/teal (theme-friendly, not dull)
-      color: '#5cd4b0',
-      'background-color': 'rgba(92, 212, 176, 0.12)',
-      border: '0.15em solid rgba(92, 212, 176, 0.82)',
-      'box-shadow': '0 0 0.7em rgba(92, 212, 176, 0.26)',
-      // override upstream white badge
+      'color': '#5cd4b0',
+      'background-color': 'rgba(92,212,176,0.12)',
+      'border': '0.15em solid rgba(92,212,176,0.82)',
+      'box-shadow': '0 0 0.7em rgba(92,212,176,0.26)',
       'font-weight': '700'
     },
-    // 50..100GB: emerald
     '.torrent-item__size.ts-size.mid-size': {
-      color: '#43cea2',
-      'background-color': 'rgba(67, 206, 162, 0.16)',
-      border: '0.15em solid rgba(67, 206, 162, 0.92)',
-      'box-shadow': '0 0 0.9em rgba(67, 206, 162, 0.34)'
+      'color': '#43cea2',
+      'background-color': 'rgba(67,206,162,0.16)',
+      'border': '0.15em solid rgba(67,206,162,0.92)',
+      'box-shadow': '0 0 0.9em rgba(67,206,162,0.34)'
     },
-    // 100..200GB: gold (match emerald theme "premium"/high bitrate)
     '.torrent-item__size.ts-size.high-size': {
-      color: '#ffc371',
-      background: 'linear-gradient(135deg, rgba(255, 195, 113, 0.28), rgba(67, 206, 162, 0.10))',
-      border: '0.15em solid rgba(255, 195, 113, 0.95)',
-      'box-shadow': '0 0 1.05em rgba(255, 195, 113, 0.40)',
-      'text-shadow': '0 0 0.25em rgba(255, 195, 113, 0.22)'
+      'color': '#ffc371',
+      'background': 'linear-gradient(135deg, rgba(255,195,113,0.28), rgba(67,206,162,0.10))',
+      'border': '0.15em solid rgba(255,195,113,0.95)',
+      'box-shadow': '0 0 1.05em rgba(255,195,113,0.40)',
+      'text-shadow': '0 0 0.25em rgba(255,195,113,0.22)'
     },
-    // >200GB: red (danger)
     '.torrent-item__size.ts-size.top-size': {
-      color: '#ff5f6d',
-      background: 'linear-gradient(135deg, rgba(255, 95, 109, 0.28), rgba(67, 206, 162, 0.08))',
-      border: '0.15em solid rgba(255, 95, 109, 0.95)',
-      'box-shadow': '0 0 1.1em rgba(255, 95, 109, 0.42)',
-      'text-shadow': '0 0 0.25em rgba(255, 95, 109, 0.22)'
+      'color': '#ff5f6d',
+      'background': 'linear-gradient(135deg, rgba(255,95,109,0.28), rgba(67,206,162,0.08))',
+      'border': '0.15em solid rgba(255,95,109,0.95)',
+      'box-shadow': '0 0 1.1em rgba(255,95,109,0.42)',
+      'text-shadow': '0 0 0.25em rgba(255,95,109,0.22)'
     },
 
-    '.torrent-item.selector.focus': {
-      'box-shadow': '0 0 0 0.3em rgba(67, 206, 162, 0.4)'
-    },
-    '.torrent-serial.selector.focus': {
-      'box-shadow': '0 0 0 0.25em rgba(67, 206, 162, 0.4)'
-    },
-    '.torrent-file.selector.focus': {
-      'box-shadow': '0 0 0 0.25em rgba(67, 206, 162, 0.4)'
+    /* Фокус элементов */
+    '.torrent-item.selector.focus, .torrent-serial.selector.focus, .torrent-file.selector.focus': {
+      'box-shadow': '0 0 0 0.3em rgba(67,206,162,0.4)'
     },
     '.torrent-item.focus::after': {
-      border: '0.24em solid #5cd4b0',
-      'box-shadow': '0 0 0.6em rgba(92, 212, 176, 0.18)',
+      'border': '0.24em solid #5cd4b0',
+      'box-shadow': '0 0 0.6em rgba(92,212,176,0.18)',
       'border-radius': '0.9em'
     },
-    '.scroll__body': {
-      margin: '5px'
-    }
+    '.scroll__body': { 'margin': '5px' }
   };
 
+  // Внедряет CSS-стили в <head>
   function injectStyles() {
-    try {
-      var style = document.createElement('style');
-      var css = Object.keys(styles)
-        .map(function (selector) {
-          var props = styles[selector];
-          var rules = Object.keys(props)
-            .map(function (prop) {
-              return prop + ': ' + props[prop] + ' !important';
-            })
-            .join('; ');
-          return selector + ' { ' + rules + ' }';
-        })
-        .join('\n');
-
-      // Mobile responsive styles
-      var mobileStyles = '\n\n' +
-        '@media (max-width: 768px) {\n' +
-        '  .torrent-item__bitrate > span.ts-bitrate, .torrent-item__seeds > span.ts-seeds, .torrent-item__grabs > span.ts-grabs, .torrent-item__size.ts-size {\n' +
-        '    min-height: 1.5em !important;\n' +
-        '    padding: 0.12em 0.35em !important;\n' +
-        '    border-radius: 0.4em !important;\n' +
-        '    font-size: 0.85em !important;\n' +
-        '    border-width: 0.12em !important;\n' +
-        '  }\n' +
-        '  .torrent-item__bitrate, .torrent-item__grabs, .torrent-item__seeds {\n' +
-        '    margin-right: 0.4em !important;\n' +
-        '  }\n' +
-        '  .torrent-item.selector.focus {\n' +
-        '    box-shadow: 0 0 0 0.25em rgba(67, 206, 162, 0.4) !important;\n' +
-        '  }\n' +
-        '  .torrent-serial.selector.focus, .torrent-file.selector.focus {\n' +
-        '    box-shadow: 0 0 0 0.2em rgba(67, 206, 162, 0.4) !important;\n' +
-        '  }\n' +
-        '  .torrent-item.focus::after {\n' +
-        '    border-width: 0.2em !important;\n' +
-        '    border-radius: 0.7em !important;\n' +
-        '  }\n' +
-        '  .scroll__body {\n' +
-        '    margin: 3px !important;\n' +
-        '  }\n' +
-        '}\n\n' +
-        '@media (max-width: 480px) {\n' +
-        '  .torrent-item__bitrate > span.ts-bitrate, .torrent-item__seeds > span.ts-seeds, .torrent-item__grabs > span.ts-grabs, .torrent-item__size.ts-size {\n' +
-        '    min-height: 1.4em !important;\n' +
-        '    padding: 0.1em 0.3em !important;\n' +
-        '    border-radius: 0.35em !important;\n' +
-        '    font-size: 0.8em !important;\n' +
-        '    border-width: 0.1em !important;\n' +
-        '  }\n' +
-        '  .torrent-item__bitrate, .torrent-item__grabs, .torrent-item__seeds {\n' +
-        '    margin-right: 0.3em !important;\n' +
-        '  }\n' +
-        '  .torrent-item.selector.focus {\n' +
-        '    box-shadow: 0 0 0 0.2em rgba(67, 206, 162, 0.4) !important;\n' +
-        '  }\n' +
-        '  .torrent-serial.selector.focus, .torrent-file.selector.focus {\n' +
-        '    box-shadow: 0 0 0 0.15em rgba(67, 206, 162, 0.4) !important;\n' +
-        '  }\n' +
-        '  .torrent-item.focus::after {\n' +
-        '    border-width: 0.18em !important;\n' +
-        '    border-radius: 0.6em !important;\n' +
-        '  }\n' +
-        '  .scroll__body {\n' +
-        '    margin: 2px !important;\n' +
-        '  }\n' +
-        '}\n\n' +
-        '@media (max-width: 360px) {\n' +
-        '  .torrent-item__bitrate > span.ts-bitrate, .torrent-item__seeds > span.ts-seeds, .torrent-item__grabs > span.ts-grabs, .torrent-item__size.ts-size {\n' +
-        '    min-height: 1.3em !important;\n' +
-        '    padding: 0.08em 0.25em !important;\n' +
-        '    border-radius: 0.3em !important;\n' +
-        '    font-size: 0.75em !important;\n' +
-        '    border-width: 0.1em !important;\n' +
-        '  }\n' +
-        '  .torrent-item__bitrate, .torrent-item__grabs, .torrent-item__seeds {\n' +
-        '    margin-right: 0.25em !important;\n' +
-        '  }\n' +
-        '}\n';
-
-      style.setAttribute('data-' + config.pluginId + '-styles', 'true');
-      style.innerHTML = css + mobileStyles;
-      document.head.appendChild(style);
-    } catch (e) {
-      console.error(config.name, 'style injection error:', e);
-    }
+    const style = document.createElement('style');
+    style.setAttribute('data-' + config.pluginId, 'true');
+    style.textContent = Object.entries(styles)
+      .map(([selector, rules]) => 
+        `${selector} { ${Object.entries(rules).map(([k, v]) => `${k}: ${v} !important`).join('; ')} }`
+      )
+      .join('\n');
+    document.head.appendChild(style);
   }
 
-  var tsUpdateTimer = null;
-  function scheduleUpdate(delayMs) {
-    try {
-      if (tsUpdateTimer) clearTimeout(tsUpdateTimer);
-    } catch (e) { }
-
-    var ms = typeof delayMs === 'number' ? delayMs : TH.debounce_ms;
-    tsUpdateTimer = setTimeout(function () {
-      tsUpdateTimer = null;
-      updateTorrentStyles();
-    }, ms);
+  // Планирует обновление стилей с debounce
+  let updateTimer = null;
+  function scheduleUpdate() {
+    clearTimeout(updateTimer);
+    updateTimer = setTimeout(updateTorrentStyles, TH.debounce);
   }
 
-  function tsParseFloat(text) {
-    var t = ((text || '') + '').trim();
-    var m = t.match(/(\d+(?:[.,]\d+)?)/);
-    return m ? (parseFloat(m[1].replace(',', '.')) || 0) : 0;
+  // Парсит целое число из текста
+  function parseIntVal(text) {
+    return parseInt(text || '', 10) || 0;
   }
 
-  function tsParseInt(text) {
-    var t = ((text || '') + '').trim();
-    var v = parseInt(t, 10);
-    return isNaN(v) ? 0 : v;
+  // Парсит число с плавающей точкой
+  function parseFloatVal(text) {
+    return parseFloat((text || '').replace(',', '.')) || 0;
   }
 
-  function tsApplyTier(el, classesToClear, classToAdd) {
-    try {
-      for (var i = 0; i < classesToClear.length; i++) el.classList.remove(classesToClear[i]);
-      if (classToAdd) el.classList.add(classToAdd);
-    } catch (e) { }
+  // Преобразует размер (KB/MB/GB/TB) в гигабайты
+  function parseSizeGB(text) {
+    const normalized = (text || '').replace(/\u00A0/g, ' ').trim();
+    const match = normalized.match(/(\d+(?:[.,]\d+)?)\s*(kb|mb|gb|tb|кб|мб|гб|тб)/i);
+    if (!match) return null;
+
+    const num = parseFloat(match[1].replace(',', '.'));
+    const unit = match[2].toLowerCase();
+
+    if (unit === 'tb' || unit === 'тб') return num * 1024;
+    if (unit === 'gb' || unit === 'гб') return num;
+    if (unit === 'mb' || unit === 'мб') return num / 1024;
+    if (unit === 'kb' || unit === 'кб') return num / (1024 * 1024);
+    return 0;
   }
 
-  function tsParseSizeToGb(text) {
-    try {
-      var t = ((text || '') + '').replace(/\u00A0/g, ' ').trim(); // NBSP -> space
-      // Supports: "123 GB", "1.2 TB", "900 MB" and RU: "ГБ/ТБ/МБ/КБ"
-      var m = t.match(/(\d+(?:[.,]\d+)?)\s*(kb|mb|gb|tb|кб|мб|гб|тб)/i);
-      if (!m) return null;
-
-      var num = parseFloat((m[1] || '0').replace(',', '.')) || 0;
-      var unit = (m[2] || '').toLowerCase();
-      var gb = 0;
-
-      if (unit === 'tb' || unit === 'тб') gb = num * 1024;
-      else if (unit === 'gb' || unit === 'гб') gb = num;
-      else if (unit === 'mb' || unit === 'мб') gb = num / 1024;
-      else if (unit === 'kb' || unit === 'кб') gb = num / (1024 * 1024);
-      else gb = 0;
-
-      return gb;
-    } catch (e) {
-      return null;
-    }
+  // Удаляет старые классы и добавляет новый
+  function addClass(el, classesToRemove, classToAdd) {
+    classesToRemove.forEach(c => el.classList.remove(c));
+    if (classToAdd) el.classList.add(classToAdd);
   }
 
+  // Основная функция: применяет цветовые классы к элементам торрентов
   function updateTorrentStyles() {
-    try {
-      document.querySelectorAll('.torrent-item__seeds span').forEach(function (span) {
-        var value = tsParseInt(span.textContent);
-        span.classList.add('ts-seeds');
+    // Сиды
+    document.querySelectorAll('.torrent-item__seeds span').forEach(span => {
+      const val = parseIntVal(span.textContent);
+      span.classList.add('ts-seeds');
+      let tier = '';
+      if (val < TH.seeds.low) tier = 'low-seeds';
+      else if (val >= TH.seeds.high) tier = 'high-seeds';
+      else if (val >= TH.seeds.good) tier = 'good-seeds';
+      addClass(span, ['low-seeds', 'good-seeds', 'high-seeds'], tier);
+    });
 
-        var seedTier = '';
-        if (value < TH.seeds.danger_below) seedTier = 'low-seeds';
-        else if (value >= TH.seeds.top_from) seedTier = 'high-seeds';
-        else if (value >= TH.seeds.good_from) seedTier = 'good-seeds';
-        tsApplyTier(span, ['low-seeds', 'good-seeds', 'high-seeds'], seedTier);
-      });
+    // Битрейт
+    document.querySelectorAll('.torrent-item__bitrate span').forEach(span => {
+      const val = parseFloatVal(span.textContent);
+      span.classList.add('ts-bitrate');
+      let tier = '';
+      if (val > TH.bitrate.veryHigh) tier = 'very-high-bitrate';
+      else if (val >= TH.bitrate.high) tier = 'high-bitrate';
+      addClass(span, ['high-bitrate', 'very-high-bitrate'], tier);
+    });
 
-      document.querySelectorAll('.torrent-item__bitrate span').forEach(function (span) {
-        var value = tsParseFloat(span.textContent);
-        span.classList.add('ts-bitrate');
+    // Личеры (качают)
+    document.querySelectorAll('.torrent-item__grabs span').forEach(span => {
+      const val = parseIntVal(span.textContent);
+      span.classList.add('ts-grabs');
+      addClass(span, ['high-grabs'], val > 10 ? 'high-grabs' : '');
+    });
 
-        var brTier = '';
-        if (value > TH.bitrate.danger_from) brTier = 'very-high-bitrate';
-        else if (value >= TH.bitrate.warn_from) brTier = 'high-bitrate';
-        tsApplyTier(span, ['high-bitrate', 'very-high-bitrate'], brTier);
-      });
+    // Размер
+    document.querySelectorAll('.torrent-item__size').forEach(el => {
+      el.classList.add('ts-size');
+      const gb = parseSizeGB(el.textContent);
+      if (gb === null) {
+        addClass(el, ['mid-size', 'high-size', 'top-size'], '');
+        return;
+      }
+      let tier = '';
+      if (gb > TH.size.top) tier = 'top-size';
+      else if (gb >= TH.size.high) tier = 'high-size';
+      else if (gb >= TH.size.mid) tier = 'mid-size';
+      addClass(el, ['mid-size', 'high-size', 'top-size'], tier);
+    });
+  }
 
-      // "Grabs" in Lampa template is actually peers/leechers (качают)
-      document.querySelectorAll('.torrent-item__grabs span').forEach(function (span) {
-        var value = tsParseInt(span.textContent);
-        span.classList.add('ts-grabs');
-        tsApplyTier(span, ['high-grabs'], value > 10 ? 'high-grabs' : '');
-      });
-
-      // Size badge (highlight big files)
-      document.querySelectorAll('.torrent-item__size').forEach(function (el) {
-        var text = (el.textContent || '');
-        el.classList.add('ts-size');
-
-        var gb = tsParseSizeToGb(text);
-        if (gb === null) {
-          tsApplyTier(el, ['mid-size', 'high-size', 'top-size'], '');
+  // Наблюдает за изменениями DOM и запускает обновление стилей
+  function observe() {
+    const observer = new MutationObserver(mutations => {
+      for (const m of mutations) {
+        if (m.addedNodes.length || m.type === 'characterData') {
+          scheduleUpdate();
           return;
         }
-
-        var szTier = '';
-        if (gb > TH.size.top_from_gb) szTier = 'top-size';
-        else if (gb >= TH.size.high_from_gb) szTier = 'high-size';
-        else if (gb >= TH.size.mid_from_gb) szTier = 'mid-size';
-        tsApplyTier(el, ['mid-size', 'high-size', 'top-size'], szTier);
-      });
-    } catch (e) {
-      console.error(config.name, 'torrent update error:', e);
-    }
-  }
-
-  function observeDom() {
-    try {
-      var observer = new MutationObserver(function (mutations) {
-        var needsUpdate = false;
-        for (var i = 0; i < mutations.length; i++) {
-          var mutation = mutations[i];
-          // Check for added nodes
-          if (mutation.addedNodes && mutation.addedNodes.length) {
-            needsUpdate = true;
-            break;
-          }
-          // Check for text content changes (bitrate/seeds values might update)
-          if (mutation.type === 'characterData' ||
-            (mutation.type === 'childList' && mutation.target &&
-              (mutation.target.classList &&
-                (mutation.target.classList.contains('torrent-item__bitrate') ||
-                  mutation.target.classList.contains('torrent-item__seeds') ||
-                  mutation.target.classList.contains('torrent-item__grabs') ||
-                  mutation.target.classList.contains('torrent-item__size'))))) {
-            needsUpdate = true;
-            break;
-          }
-        }
-        if (needsUpdate) scheduleUpdate();
-      });
-
-      observer.observe(document.body, {
-        childList: true,
-        subtree: true,
-        characterData: true
-      });
-      scheduleUpdate(0);
-    } catch (e) {
-      console.error(config.name, 'observer error:', e);
-      scheduleUpdate(0);
-    }
-  }
-
-  function registerPlugin() {
-    try {
-      if (typeof Lampa !== 'undefined') {
-        Lampa.Manifest = Lampa.Manifest || {};
-        Lampa.Manifest.plugins = Lampa.Manifest.plugins || {};
-
-        Lampa.Manifest.plugins[config.pluginId] = {
-          type: 'other',
-          name: config.name,
-          version: config.version,
-          description: 'Дополнительные стили для карточек торрентов.'
-        };
       }
-    } catch (e) {
-      console.error(config.name, 'register error:', e);
-    } finally {
-      window['plugin_' + config.pluginId + '_ready'] = true;
-    }
+    });
+
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      characterData: true
+    });
+
+    updateTorrentStyles();
   }
 
+  // Регистрирует плагин в манифесте Lampa
+  function register() {
+    if (typeof Lampa !== 'undefined') {
+      Lampa.Manifest.plugins = Lampa.Manifest.plugins || {};
+      Lampa.Manifest.plugins[config.pluginId] = {
+        type: 'other',
+        name: config.name,
+        version: config.version,
+        description: 'Цветовая индикация сидов, личеров, битрейта и размера в торрент-карточках.'
+      };
+    }
+    window['plugin_' + config.pluginId + '_ready'] = true;
+  }
+
+  // Инициализация плагина
   function init() {
     injectStyles();
-    observeDom();
+    observe();
 
     if (window.appready) {
-      registerPlugin();
-      scheduleUpdate(200);
-    } else if (typeof Lampa !== 'undefined' && Lampa.Listener && typeof Lampa.Listener.follow === 'function') {
-      Lampa.Listener.follow('app', function (e) {
+      register();
+      scheduleUpdate();
+    } else if (Lampa?.Listener?.follow) {
+      Lampa.Listener.follow('app', e => {
         if (e.type === 'ready') {
-          registerPlugin();
-          scheduleUpdate(200);
+          register();
+          scheduleUpdate();
         }
       });
     } else {
-      setTimeout(registerPlugin, 500);
+      setTimeout(register, 500);
     }
-
-    console.log(config.name, 'Configuration plugin loaded, version:', config.version);
   }
 
   init();
-
 })();
