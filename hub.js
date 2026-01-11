@@ -1,6 +1,6 @@
 (function () {
   'use strict';
-
+    Lampa.Platform.tv();
   var config = {
     version: '2.0.4-safe',
     name: 'Torrent Styles MOD (Safe Solid)',
