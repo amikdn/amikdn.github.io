@@ -4,12 +4,11 @@
   Lampa.Platform.tv();
 
   const config = {
-    version: '2.0.3',
+    version: '2.0.5',
     name: 'Torrent Styles MOD',
     pluginId: 'torrent_styles_mod'
   };
 
-  // Пороги значений
   const TH = {
     seeds: { low: 5, good: 10, high: 20 },
     bitrate: { high: 50, veryHigh: 100 },
@@ -17,22 +16,23 @@
     debounce: 30
   };
 
+  // Базовые стили — возвращены к размерам исходника
   const styles = {
     '.torrent-item__bitrate > span, .torrent-item__seeds > span, .torrent-item__grabs > span, .torrent-item__size': {
       'display': 'inline-flex',
       'align-items': 'center',
       'justify-content': 'center',
-      'min-height': '1.5em',
-      'padding': '0.1em 0.35em',
+      'min-height': '1.7em',
+      'padding': '0.15em 0.45em',
       'border-radius': '0.5em',
       'font-weight': '700',
-      'font-size': '0.85em',
+      'font-size': '0.9em',
       'white-space': 'nowrap',
       'font-variant-numeric': 'tabular-nums',
       'box-sizing': 'border-box'
     },
     '.torrent-item__bitrate, .torrent-item__grabs, .torrent-item__seeds': {
-      'margin-right': '0.4em'
+      'margin-right': '0.55em'
     },
 
     /* Сиды */
@@ -63,7 +63,7 @@
       'text-shadow': '0 0 0.25em rgba(255,195,113,0.25)'
     },
 
-    /* Личеры — базовый сразу */
+    /* Личеры */
     '.torrent-item__grabs > span': {
       'color': '#4db6ff',
       'background-color': 'rgba(77,182,255,0.12)',
@@ -136,24 +136,24 @@
       'border': '0.24em solid #5cd4b0',
       'box-shadow': '0 0 0.6em rgba(92,212,176,0.18)',
       'border-radius': '0.9em'
-    },
-    '.scroll__body': { 'margin': '5px' }
+    }
   };
 
+  // Адаптация под мобильные — бейджи становятся компактнее, чтобы всё помещалось в строку
   const mobileStyles = `
     @media (max-width: 768px) {
       .torrent-item__bitrate > span,
       .torrent-item__seeds > span,
       .torrent-item__grabs > span,
       .torrent-item__size {
-        min-height: 1.4em !important;
-        padding: 0.08em 0.3em !important;
-        font-size: 0.8em !important;
+        min-height: 1.5em !important;
+        padding: 0.1em 0.35em !important;
+        font-size: 0.85em !important;
       }
       .torrent-item__bitrate,
       .torrent-item__grabs,
       .torrent-item__seeds {
-        margin-right: 0.35em !important;
+        margin-right: 0.4em !important;
       }
     }
   `;
@@ -204,7 +204,6 @@
   }
 
   function updateTorrentStyles() {
-    // Сиды
     document.querySelectorAll('.torrent-item__seeds > span').forEach(span => {
       const val = parseIntVal(span.textContent);
       let tier = '';
@@ -214,7 +213,6 @@
       setTier(span, ['low-seeds', 'good-seeds', 'high-seeds'], tier);
     });
 
-    // Битрейт
     document.querySelectorAll('.torrent-item__bitrate > span').forEach(span => {
       const val = parseFloatVal(span.textContent);
       let tier = '';
@@ -223,13 +221,11 @@
       setTier(span, ['high-bitrate', 'very-high-bitrate'], tier);
     });
 
-    // Личеры
     document.querySelectorAll('.torrent-item__grabs > span').forEach(span => {
       const val = parseIntVal(span.textContent);
       setTier(span, ['high-grabs'], val > 10 ? 'high-grabs' : '');
     });
 
-    // Размер
     document.querySelectorAll('.torrent-item__size').forEach(el => {
       const gb = parseSizeGB(el.textContent);
       if (gb === null) {
@@ -263,7 +259,7 @@
         type: 'other',
         name: config.name,
         version: config.version,
-        description: 'Цветовая индикация торрентов'
+        description: 'Цветовая индикация торрентов с оригинальными размерами бейджей.'
       };
     }
     window['plugin_' + config.pluginId + '_ready'] = true;
