@@ -216,8 +216,73 @@
         })
         .join('\n');
 
+      // Mobile responsive styles
+      var mobileStyles = '\n\n' +
+        '@media (max-width: 768px) {\n' +
+        '  .torrent-item__bitrate > span.ts-bitrate, .torrent-item__seeds > span.ts-seeds, .torrent-item__grabs > span.ts-grabs, .torrent-item__size.ts-size {\n' +
+        '    min-height: 1.5em !important;\n' +
+        '    padding: 0.12em 0.35em !important;\n' +
+        '    border-radius: 0.4em !important;\n' +
+        '    font-size: 0.85em !important;\n' +
+        '    border-width: 0.12em !important;\n' +
+        '  }\n' +
+        '  .torrent-item__bitrate, .torrent-item__grabs, .torrent-item__seeds {\n' +
+        '    margin-right: 0.4em !important;\n' +
+        '  }\n' +
+        '  .torrent-item.selector.focus {\n' +
+        '    box-shadow: 0 0 0 0.25em rgba(67, 206, 162, 0.4) !important;\n' +
+        '  }\n' +
+        '  .torrent-serial.selector.focus, .torrent-file.selector.focus {\n' +
+        '    box-shadow: 0 0 0 0.2em rgba(67, 206, 162, 0.4) !important;\n' +
+        '  }\n' +
+        '  .torrent-item.focus::after {\n' +
+        '    border-width: 0.2em !important;\n' +
+        '    border-radius: 0.7em !important;\n' +
+        '  }\n' +
+        '  .scroll__body {\n' +
+        '    margin: 3px !important;\n' +
+        '  }\n' +
+        '}\n\n' +
+        '@media (max-width: 480px) {\n' +
+        '  .torrent-item__bitrate > span.ts-bitrate, .torrent-item__seeds > span.ts-seeds, .torrent-item__grabs > span.ts-grabs, .torrent-item__size.ts-size {\n' +
+        '    min-height: 1.4em !important;\n' +
+        '    padding: 0.1em 0.3em !important;\n' +
+        '    border-radius: 0.35em !important;\n' +
+        '    font-size: 0.8em !important;\n' +
+        '    border-width: 0.1em !important;\n' +
+        '  }\n' +
+        '  .torrent-item__bitrate, .torrent-item__grabs, .torrent-item__seeds {\n' +
+        '    margin-right: 0.3em !important;\n' +
+        '  }\n' +
+        '  .torrent-item.selector.focus {\n' +
+        '    box-shadow: 0 0 0 0.2em rgba(67, 206, 162, 0.4) !important;\n' +
+        '  }\n' +
+        '  .torrent-serial.selector.focus, .torrent-file.selector.focus {\n' +
+        '    box-shadow: 0 0 0 0.15em rgba(67, 206, 162, 0.4) !important;\n' +
+        '  }\n' +
+        '  .torrent-item.focus::after {\n' +
+        '    border-width: 0.18em !important;\n' +
+        '    border-radius: 0.6em !important;\n' +
+        '  }\n' +
+        '  .scroll__body {\n' +
+        '    margin: 2px !important;\n' +
+        '  }\n' +
+        '}\n\n' +
+        '@media (max-width: 360px) {\n' +
+        '  .torrent-item__bitrate > span.ts-bitrate, .torrent-item__seeds > span.ts-seeds, .torrent-item__grabs > span.ts-grabs, .torrent-item__size.ts-size {\n' +
+        '    min-height: 1.3em !important;\n' +
+        '    padding: 0.08em 0.25em !important;\n' +
+        '    border-radius: 0.3em !important;\n' +
+        '    font-size: 0.75em !important;\n' +
+        '    border-width: 0.1em !important;\n' +
+        '  }\n' +
+        '  .torrent-item__bitrate, .torrent-item__grabs, .torrent-item__seeds {\n' +
+        '    margin-right: 0.25em !important;\n' +
+        '  }\n' +
+        '}\n';
+
       style.setAttribute('data-' + config.pluginId + '-styles', 'true');
-      style.innerHTML = css;
+      style.innerHTML = css + mobileStyles;
       document.head.appendChild(style);
     } catch (e) {
       console.error(config.name, 'style injection error:', e);
