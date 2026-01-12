@@ -1,14 +1,14 @@
 (function() {
     'use strict';
 
-    // Ваш фиксированный ID (измените на нужный)
     const fixedUnicId = 'azharkov';
+    const fixedLampaUid = 'xgGax1Fs';
 
-    // Принудительно устанавливаем ID при каждом запуске приложения
     Lampa.Listener.follow('app', function(e) {
         if (e.type === 'ready') {
             Lampa.Storage.set('lampac_unic_id', fixedUnicId);
-            console.log('lampac_unic_id установлен:', fixedUnicId);
+            Lampa.Storage.set('lampa_uid', fixedLampaUid);
+            console.log('ID установлены:', fixedUnicId, fixedLampaUid);
         }
     });
 })();
