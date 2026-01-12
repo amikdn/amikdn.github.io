@@ -294,6 +294,8 @@
             // Меню слева
             ".menu__item.focus {border-radius: 0 0.5em 0.5em 0;\n}\n" +
             ".menu__list {\npadding-left: 0em;\n}\n" +
+            // Отключаем анимацию при перелистывании списка торрентов в парсере
+            ".torrent-serial,\n.torrent-list,\n.torrent-item,\n.items-line--type-torrents,\n.items-line--type-torrents * {\ntransition: none !important;\nanimation: none !important;\ntransform: none !important;\n}\n" +
             // Белые иконки в бошке
             // ".head__action.focus, .head__action.hover {\ncolor: fff;\n}\n" +
             "</style>\n";
