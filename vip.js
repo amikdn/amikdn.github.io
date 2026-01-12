@@ -294,9 +294,8 @@
             // Меню слева
             ".menu__item.focus {border-radius: 0 0.5em 0.5em 0;\n}\n" +
             ".menu__list {\npadding-left: 0em;\n}\n" +
-            // Сохраняем исходный цвет иконок при фокусе (отменяем наследование белого цвета от .menu__item.focus)
-            ".menu__item.focus .menu__ico {\ncolor: #ffffff !important;\n}\n" +
-            ".menu__item.focus .menu__ico svg,\n.menu__item.focus .menu__ico svg * {\ncolor: inherit !important;\nfill: inherit !important;\nstroke: inherit !important;\n}\n" +
+            // Сохраняем исходный цвет иконок при фокусе (отменяем наследование белого цвета)
+            ".menu__item:not(.focus) .menu__ico,\n.menu__item.focus .menu__ico {\ncolor: rgba(255, 255, 255, 0.7) !important;\n}\n" +
             // Белые иконки в бошке
             // ".head__action.focus, .head__action.hover {\ncolor: fff;\n}\n" +
             "</style>\n";
