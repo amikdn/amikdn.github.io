@@ -8,7 +8,8 @@
         if (e.type === 'ready') {
             Lampa.Storage.set('lampac_unic_id', fixedUnicId);
             Lampa.Storage.set('lampa_uid', fixedLampaUid);
-            console.log('ID установлены:', fixedUnicId, fixedLampaUid);
+            Lampa.Storage.set('platform', 'browser');
+            console.log('ID и platform установлены:', fixedUnicId, fixedLampaUid, 'browser');
         }
     });
 })();
