@@ -294,8 +294,8 @@
             // Меню слева
             ".menu__item.focus {border-radius: 0 0.5em 0.5em 0;\n}\n" +
             ".menu__list {\npadding-left: 0em;\n}\n" +
-            // Сохраняем исходный цвет иконок при фокусе (для иконок с currentColor)
-            ".menu__item.focus .menu__ico {\ncolor: rgba(255, 255, 255, 0.9) !important;\n}\n" +
+            // Сохраняем исходный цвет иконок при фокусе (для иконок с currentColor, без !important чтобы не было лагов)
+            ".menu__item.focus .menu__ico {\ncolor: rgba(255, 255, 255, 0.85);\n}\n" +
             // Белые иконки в бошке
             // ".head__action.focus, .head__action.hover {\ncolor: fff;\n}\n" +
             "</style>\n";
