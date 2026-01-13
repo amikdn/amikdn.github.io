@@ -2952,11 +2952,11 @@ function _typeof(e) {
                 ;
                 var p = Lampa.Template.get('season_episode', i), v = p.find('.season-episode__loader'), h = p.find('.season-episode__img'), g = function (e) {
                         p.find('.season-episode__viewed').remove();
-                        (Boolean(i.timeline.percent) || e) && p.find('.season-episode__img').append('<div class="season-episode__viewed">' + Lampa.Template.get('icon_viewed', {}, true) + '</div>');
+                        (Boolean(i.timeline && i.timeline.percent) || e) && p.find('.season-episode__img').append('<div class="season-episode__viewed">' + Lampa.Template.get('icon_viewed', {}, true) + '</div>');
                     };
                 ;
-                p.find('.season-episode__timeline').append(Lampa.Timeline.render(i.timeline));
-                m > 0 ? p.css('opacity', '0.5') : (g(), Boolean(i.timeline.percent) && (t = p[0]), p.on('hover:enter', function () {
+                i.timeline && p.find('.season-episode__timeline').append(Lampa.Timeline.render(i.timeline));
+                m > 0 ? p.css('opacity', '0.5') : (g(), Boolean(i.timeline && i.timeline.percent) && (t = p[0]), p.on('hover:enter', function () {
                     var r = new H(e), s = new J(e);
                     r.tv({
                         movie: e.movie,
