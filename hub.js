@@ -2995,7 +2995,9 @@ function _typeof(e) {
                 });
                 a.append(p);
             });
-            t && a.update($(t), true);
+            if (t && typeof t === 'object' && t.nodeType === 1) {
+                a.update($(t), true);
+            }
             Lampa.Layer.visible(a.render(true));
             Lampa.Controller.enable('content');
         };
