@@ -127,6 +127,15 @@
       'text-shadow': '0 0 0.25em rgba(255,95,109,0.22)'
     },
 
+    /* Фокус */
+    '.torrent-item.selector.focus, .torrent-serial.selector.focus, .torrent-file.selector.focus': {
+      'box-shadow': '0 0 0 0.3em rgba(67,206,162,0.4)'
+    },
+    '.torrent-item.focus::after': {
+      'border': 'none',
+      'box-shadow': '0 0 0.6em rgba(92,212,176,0.18)',
+      'border-radius': '0.9em'
+    }
   };
 
   const mobileStyles = `
