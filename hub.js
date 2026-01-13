@@ -2995,7 +2995,7 @@ function _typeof(e) {
                 });
                 a.append(p);
             });
-            if (t && typeof t === 'object' && t.nodeType === 1) {
+            if (t && typeof t !== 'number' && t.nodeType && t.nodeType === 1 && typeof t.getBoundingClientRect === 'function') {
                 a.update($(t), true);
             }
             Lampa.Layer.visible(a.render(true));
