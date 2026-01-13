@@ -141,9 +141,7 @@
       'box-shadow': '0 0 0 0.3em rgba(67,206,162,0.4), 0 0 0.6em rgba(92,212,176,0.18)'
     },
     '.torrent-item.focus::after': {
-      'border': '0.24em solid #5cd4b0',
-      'box-shadow': '0 0 0.6em rgba(92,212,176,0.18)',
-      'border-radius': '0.9em'
+      'display': 'none'
     }
   };
 
