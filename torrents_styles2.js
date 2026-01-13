@@ -129,24 +129,21 @@
 
     /* Фокус */
     '.torrent-item.selector.focus, .torrent-serial.selector.focus, .torrent-file.selector.focus': {
-      'box-shadow': 'none',
-      'border': 'none',
+      'box-shadow': '0 0 0 0.3em rgba(67,206,162,0.4)',
+      'border': '0.2em solid rgba(255,255,255,0.9)',
+      'border-radius': '0.5em',
       'outline': 'none'
     },
-    '.torrent-item.focus, .torrent-serial.focus, .torrent-file.focus': {
-      'border': 'none',
+    '.torrent-item.focus, .torrent-item.selector.focus': {
+      'border': '0.2em solid rgba(255,255,255,0.9)',
+      'border-radius': '0.5em',
       'outline': 'none',
-      'box-shadow': 'none'
+      'box-shadow': '0 0 0 0.3em rgba(67,206,162,0.4), 0 0 0.6em rgba(92,212,176,0.18)'
     },
-    '.torrent-item.focus::after, .torrent-serial.focus::after, .torrent-file.focus::after': {
-      'border': 'none',
-      'box-shadow': 'none',
-      'display': 'none'
-    },
-    '.torrent-item.selector.focus::after, .torrent-serial.selector.focus::after, .torrent-file.selector.focus::after': {
-      'border': 'none',
-      'box-shadow': 'none',
-      'display': 'none'
+    '.torrent-item.focus::after': {
+      'border': '0.24em solid #5cd4b0',
+      'box-shadow': '0 0 0.6em rgba(92,212,176,0.18)',
+      'border-radius': '0.9em'
     }
   };
 
