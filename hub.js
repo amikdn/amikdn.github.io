@@ -2843,7 +2843,7 @@ function _typeof(e) {
             ]), e;
         }();
     function X(e) {
-        var t, n = new Lampa.Explorer(e), i = new Lampa.Filter(e), a = new Lampa.Scroll({
+        var t = 1, n = new Lampa.Explorer(e), i = new Lampa.Filter(e), a = new Lampa.Scroll({
                 mask: true,
                 over: true
             }), r = e.movie.number_of_seasons || 1, s = false, c = false;
@@ -2880,15 +2880,15 @@ function _typeof(e) {
                 s || p();
             }, 3000)), this.activity.toggle(), this.render();
         };
-        this.setChoice = function (t) {
-            1 = t;
+        this.setChoice = function (val) {
+            t = val;
             var n = Lampa.Storage.cache('season_choice', '{}', 1000);
-            n[e.movie.id] = t;
+            n[e.movie.id] = val;
             Lampa.Storage.set('season_choice', n);
         };
         this.getChoice = function () {
-            var t = Lampa.Storage.get('season_choice', '{}');
-            t[e.movie.id] && (1 = Math.max(1, t[e.movie.id]), s && 1 > r && (1 = r));
+            var stored = Lampa.Storage.get('season_choice', '{}');
+            stored[e.movie.id] && (t = Math.max(1, stored[e.movie.id]), s && t > r && (t = r));
         };
         this.filter = function () {
             var e = this;
@@ -2897,14 +2897,15 @@ function _typeof(e) {
             ;
         };
         this.selected = function () {
-            var e = [], t = [];
+            var selectedSeason = t, e = [], t = [];
             for (var n in o)
                 'season' == n && e.push(Lampa.Lang.translate('torrent_serial_season') + ': ' + o[n]);
             for (var a = 0; a < r; a++) {
+                var seasonNum = a + 1;
                 t.push({
-                    title: Lampa.Lang.translate('torrent_serial_season') + ' ' + (a + 1),
-                    season: a + 1,
-                    selected: 1 == a + 1
+                    title: Lampa.Lang.translate('torrent_serial_season') + ' ' + seasonNum,
+                    season: seasonNum,
+                    selected: selectedSeason == seasonNum
                 });
             }
             i.set('filter', t);
