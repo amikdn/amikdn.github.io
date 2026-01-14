@@ -200,11 +200,34 @@
         let data = card ? (card.dataset || {}) : {};
         let cardData = event && event.object ? (event.object.data || {}) : {};
         
-        // Пробуем получить рейтинг КП из данных карточки
-        if (cardData.kp || cardData.rating_kp || cardData.rating) {
-            defaultRating = cardData.kp || cardData.rating_kp || cardData.rating;
-        } else if (data.kp || data.rating_kp || data.rating) {
-            defaultRating = data.kp || data.rating_kp || data.rating;
+        // Сначала пробуем получить рейтинг TMDB (vote_average) - это дефолтный рейтинг в Lampa
+        if (cardData.vote_average !== undefined && cardData.vote_average !== null) {
+            defaultRating = parseFloat(cardData.vote_average);
+        } else if (data.vote_average !== undefined && data.vote_average !== null) {
+            defaultRating = parseFloat(data.vote_average);
+        } else if (cardData.voteAverage !== undefined && cardData.voteAverage !== null) {
+            defaultRating = parseFloat(cardData.voteAverage);
+        } else if (data.voteAverage !== undefined && data.voteAverage !== null) {
+            defaultRating = parseFloat(data.voteAverage);
+        }
+        
+        // Если не нашли TMDB, пробуем получить из card_data
+        if (!defaultRating && card && card.card_data) {
+            let cardDataObj = card.card_data;
+            if (cardDataObj.vote_average !== undefined && cardDataObj.vote_average !== null) {
+                defaultRating = parseFloat(cardDataObj.vote_average);
+            } else if (cardDataObj.voteAverage !== undefined && cardDataObj.voteAverage !== null) {
+                defaultRating = parseFloat(cardDataObj.voteAverage);
+            }
+        }
+        
+        // Если все еще нет, пробуем получить рейтинг КП из данных карточки
+        if (!defaultRating) {
+            if (cardData.kp || cardData.rating_kp || cardData.rating) {
+                defaultRating = cardData.kp || cardData.rating_kp || cardData.rating;
+            } else if (data.kp || data.rating_kp || data.rating) {
+                defaultRating = data.kp || data.rating_kp || data.rating;
+            }
         }
         
         // Если не нашли в данных, пробуем получить из DOM элемента КП
@@ -219,10 +242,12 @@
             }
         }
         
-        // Если все еще нет, пробуем получить из card_data
+        // Если все еще нет, пробуем получить из card_data (КП)
         if (!defaultRating && card && card.card_data) {
             let cardDataObj = card.card_data;
-            defaultRating = cardDataObj.kp || cardDataObj.rating_kp || cardDataObj.rating;
+            if (!cardDataObj.vote_average && !cardDataObj.voteAverage) {
+                defaultRating = cardDataObj.kp || cardDataObj.rating_kp || cardDataObj.rating;
+            }
         }
         
         return defaultRating && defaultRating > 0 ? defaultRating : null;
@@ -238,7 +263,12 @@
         return false;
     }
     function insertCardRating(card, event) {
+        // Ищем существующий элемент рейтинга (Lampa или дефолтный)
         let voteEl = card.querySelector('.card__vote.rate--lampa');
+        // Если нет нашего элемента, ищем дефолтный элемент рейтинга для замены
+        if (!voteEl) {
+            voteEl = card.querySelector('.card__vote:not(.rate--lampa)');
+        }
         
         let data = card.dataset || {};
         let cardData = event.object.data || {};
@@ -250,77 +280,25 @@
         let ratingKey = type + "_" + id;
         
         const cached = ratingCache.get('lampa_rating', ratingKey);
+        let defaultRating = getDefaultRating(card, event);
         
         // Если есть кэшированный рейтинг
         if (cached) {
-            // Если рейтинг = 0, удаляем элемент и не показываем
-            if (cached.rating === 0 || cached.rating === '0.0') {
-                if (voteEl) {
-                    voteEl.remove();
-                }
-                return;
+            let ratingToShow = null;
+            let showIcon = false;
+            
+            // Если рейтинг Lampa > 0, показываем его
+            if (cached.rating !== 0 && cached.rating !== '0.0') {
+                ratingToShow = cached.rating;
+                showIcon = !!cached.medianReaction;
+            } else if (defaultRating && defaultRating > 0) {
+                // Если рейтинг Lampa = 0, показываем TMDB рейтинг
+                ratingToShow = defaultRating.toFixed(1);
+                showIcon = false;
             }
             
-            // Если рейтинг > 0, создаем или обновляем элемент
-            if (!voteEl) {
-                voteEl = document.createElement('div');
-                voteEl.className = 'card__vote rate--lampa';
-                
-                // Получаем стили позиционирования в зависимости от темы
-                let positionStyles = getRatingPositionStyles();
-                
-                voteEl.style.cssText = `
-                    line-height: 1;
-                    font-family: "SegoeUI", sans-serif;
-                    cursor: pointer;
-                    box-sizing: border-box;
-                    outline: none;
-                    user-select: none;
-                    position: absolute;
-                    top: ${positionStyles.top};
-                    right: ${positionStyles.right};
-                    bottom: ${positionStyles.bottom};
-                    left: ${positionStyles.left};
-                    background: rgba(0, 0, 0, 0.5);
-                    color: #fff;
-                    padding: 0.15em 0.4em;
-                    border-radius: ${positionStyles.borderRadius};
-                    display: flex;
-                    align-items: center;
-                    gap: 0.1em;
-                    height: auto !important;
-                    max-height: fit-content !important;
-                    flex-shrink: 0 !important;
-                    align-self: flex-start !important;
-                    font-size: 0.9em;
-                `;
-                const parent = card.querySelector('.card__view') || card;
-                parent.appendChild(voteEl);
-            }
-            
-            voteEl.dataset.movieId = id.toString();
-            let html = cached.rating;
-            if (cached.medianReaction) {
-                let reactionSrc = 'https://cubnotrip.top/img/reactions/' + cached.medianReaction + '.svg';
-                html += `<img style="width:0.9em;height:0.9em;margin:0;vertical-align:middle;" src="${reactionSrc}">`;
-            }
-            voteEl.innerHTML = html;
-            voteEl.style.display = '';
-            return;
-        }
-        
-        // Получаем рейтинг асинхронно
-        addToQueue(() => {
-            getLampaRating(ratingKey).then(result => {
-                // Если рейтинг = 0, удаляем элемент и не показываем
-                if (result.rating === 0 || result.rating === '0.0' || result.rating === null) {
-                    if (voteEl && voteEl.parentNode && voteEl.dataset.movieId === id.toString()) {
-                        voteEl.remove();
-                    }
-                    return;
-                }
-                
-                // Если рейтинг > 0, создаем или обновляем элемент
+            // Если есть что показать, заменяем содержимое существующего элемента или создаем новый
+            if (ratingToShow) {
                 if (!voteEl || !voteEl.parentNode) {
                     voteEl = document.createElement('div');
                     voteEl.className = 'card__vote rate--lampa';
@@ -346,7 +324,6 @@
                         border-radius: ${positionStyles.borderRadius};
                         display: flex;
                         align-items: center;
-                        gap: 0.1em;
                         height: auto !important;
                         max-height: fit-content !important;
                         flex-shrink: 0 !important;
@@ -355,19 +332,122 @@
                     `;
                     const parent = card.querySelector('.card__view') || card;
                     parent.appendChild(voteEl);
+                } else {
+                    // Заменяем класс на наш, если это был дефолтный элемент
+                    if (!voteEl.classList.contains('rate--lampa')) {
+                        voteEl.className = 'card__vote rate--lampa';
+                        // Применяем стили позиционирования
+                        let positionStyles = getRatingPositionStyles();
+                        voteEl.style.top = positionStyles.top;
+                        voteEl.style.right = positionStyles.right;
+                        voteEl.style.bottom = positionStyles.bottom;
+                        voteEl.style.left = positionStyles.left;
+                        voteEl.style.borderRadius = positionStyles.borderRadius;
+                    }
                 }
                 
-                if (voteEl.dataset.movieId !== id.toString()) {
-                    voteEl.dataset.movieId = id.toString();
-                }
-                
-                let html = result.rating;
-                if (result.medianReaction) {
-                    let reactionSrc = 'https://cubnotrip.top/img/reactions/' + result.medianReaction + '.svg';
-                    html += `<img style="width:0.9em;height:0.9em;margin:0;vertical-align:middle;" src="${reactionSrc}">`;
+                voteEl.dataset.movieId = id.toString();
+                let html = ratingToShow;
+                if (showIcon && cached.medianReaction) {
+                    let reactionSrc = 'https://cubnotrip.top/img/reactions/' + cached.medianReaction + '.svg';
+                    html += `<img style="width:1em;height:1em;margin:0 0.2em;vertical-align:middle;" src="${reactionSrc}">`;
                 }
                 voteEl.innerHTML = html;
                 voteEl.style.display = '';
+            } else {
+                // Если нечего показывать, удаляем только наш элемент
+                if (voteEl && voteEl.classList.contains('rate--lampa')) {
+                    voteEl.remove();
+                }
+            }
+            return;
+        }
+        
+        // Получаем рейтинг асинхронно
+        addToQueue(() => {
+            getLampaRating(ratingKey).then(result => {
+                // Обновляем ссылку на элемент, так как он мог измениться
+                let currentVoteEl = card.querySelector('.card__vote.rate--lampa') || card.querySelector('.card__vote:not(.rate--lampa)');
+                
+                let ratingToShow = null;
+                let showIcon = false;
+                
+                // Если рейтинг Lampa > 0, показываем его
+                if (result.rating !== 0 && result.rating !== '0.0' && result.rating !== null) {
+                    ratingToShow = result.rating;
+                    showIcon = !!result.medianReaction;
+                } else if (defaultRating && defaultRating > 0) {
+                    // Если рейтинг Lampa = 0, показываем TMDB рейтинг
+                    ratingToShow = defaultRating.toFixed(1);
+                    showIcon = false;
+                }
+                
+                // Если есть что показать, заменяем содержимое существующего элемента или создаем новый
+                if (ratingToShow) {
+                    if (!currentVoteEl || !currentVoteEl.parentNode) {
+                        currentVoteEl = document.createElement('div');
+                        currentVoteEl.className = 'card__vote rate--lampa';
+                        
+                        // Получаем стили позиционирования в зависимости от темы
+                        let positionStyles = getRatingPositionStyles();
+                        
+                        currentVoteEl.style.cssText = `
+                            line-height: 1;
+                            font-family: "SegoeUI", sans-serif;
+                            cursor: pointer;
+                            box-sizing: border-box;
+                            outline: none;
+                            user-select: none;
+                            position: absolute;
+                            top: ${positionStyles.top};
+                            right: ${positionStyles.right};
+                            bottom: ${positionStyles.bottom};
+                            left: ${positionStyles.left};
+                            background: rgba(0, 0, 0, 0.5);
+                            color: #fff;
+                            padding: 0.15em 0.4em;
+                            border-radius: ${positionStyles.borderRadius};
+                            display: flex;
+                            align-items: center;
+                            height: auto !important;
+                            max-height: fit-content !important;
+                            flex-shrink: 0 !important;
+                            align-self: flex-start !important;
+                            font-size: 0.9em;
+                        `;
+                        const parent = card.querySelector('.card__view') || card;
+                        parent.appendChild(currentVoteEl);
+                    } else {
+                        // Заменяем класс на наш, если это был дефолтный элемент
+                        if (!currentVoteEl.classList.contains('rate--lampa')) {
+                            currentVoteEl.className = 'card__vote rate--lampa';
+                            // Применяем стили позиционирования
+                            let positionStyles = getRatingPositionStyles();
+                            currentVoteEl.style.top = positionStyles.top;
+                            currentVoteEl.style.right = positionStyles.right;
+                            currentVoteEl.style.bottom = positionStyles.bottom;
+                            currentVoteEl.style.left = positionStyles.left;
+                            currentVoteEl.style.borderRadius = positionStyles.borderRadius;
+                        }
+                    }
+                    
+                    if (currentVoteEl.dataset.movieId !== id.toString()) {
+                        currentVoteEl.dataset.movieId = id.toString();
+                    }
+                    
+                    let html = ratingToShow;
+                    if (showIcon && result.medianReaction) {
+                        let reactionSrc = 'https://cubnotrip.top/img/reactions/' + result.medianReaction + '.svg';
+                        html += `<img style="width:1em;height:1em;margin:0 0.2em;vertical-align:middle;" src="${reactionSrc}">`;
+                    }
+                    currentVoteEl.innerHTML = html;
+                    currentVoteEl.style.display = '';
+                } else {
+                    // Если нечего показывать, удаляем только наш элемент
+                    if (currentVoteEl && currentVoteEl.classList.contains('rate--lampa') && currentVoteEl.dataset.movieId === id.toString()) {
+                        currentVoteEl.remove();
+                    }
+                }
             });
         });
     }
@@ -394,18 +474,34 @@
                     
                     const ratingKey = (data.seasons || data.first_air_date || data.original_name) ? `tv_${data.id}` : `movie_${data.id}`;
                     const cached = ratingCache.get('lampa_rating', ratingKey);
+                    let defaultRating = getDefaultRating(card, { object: { data } });
                     
-                    // Если рейтинг = 0, удаляем элемент
-                    if (cached && (cached.rating === 0 || cached.rating === '0.0')) {
-                        ratingElement.remove();
-                    } else if (cached && cached.rating !== 0 && cached.rating !== '0.0' && ratingElement.innerHTML === '') {
-                        let html = cached.rating;
-                        if (cached.medianReaction) {
-                            let reactionSrc = 'https://cubnotrip.top/img/reactions/' + cached.medianReaction + '.svg';
-                            html += `<img style="width:0.9em;height:0.9em;margin:0;vertical-align:middle;" src="${reactionSrc}">`;
+                    if (cached) {
+                        let ratingToShow = null;
+                        let showIcon = false;
+                        
+                        // Если рейтинг Lampa > 0, показываем его
+                        if (cached.rating !== 0 && cached.rating !== '0.0') {
+                            ratingToShow = cached.rating;
+                            showIcon = !!cached.medianReaction;
+                        } else if (defaultRating && defaultRating > 0) {
+                            // Если рейтинг Lampa = 0, показываем TMDB рейтинг
+                            ratingToShow = defaultRating.toFixed(1);
+                            showIcon = false;
                         }
-                        ratingElement.innerHTML = html;
-                        ratingElement.style.display = '';
+                        
+                        if (ratingToShow && ratingElement.innerHTML === '') {
+                            let html = ratingToShow;
+                            if (showIcon && cached.medianReaction) {
+                                let reactionSrc = 'https://cubnotrip.top/img/reactions/' + cached.medianReaction + '.svg';
+                                html += `<img style="width:1em;height:1em;margin:0 0.2em;vertical-align:middle;" src="${reactionSrc}">`;
+                            }
+                            ratingElement.innerHTML = html;
+                            ratingElement.style.display = '';
+                        } else if (!ratingToShow) {
+                            // Если нечего показывать, удаляем элемент
+                            ratingElement.remove();
+                        }
                     }
                 }
             }
@@ -436,10 +532,8 @@
                 max-height: fit-content !important;
                 flex-shrink: 0 !important;
                 align-self: flex-start !important;
-                gap: 0.1em !important;
             }
             .card__vote img {
-                margin: 0 !important;
                 vertical-align: middle !important;
             }
             /* Стили для темы с рейтингом в верхнем углу */
@@ -532,7 +626,7 @@
                             let kpBlock = rateLine.find('.rate--kp');
                             let lampaBlockHtml = '<div class="full-start__rate rate--lampa">' +
                                 '<div class="rate-value">' + cached.rating + '</div>' +
-                                '<div class="rate-icon">' + (cached.medianReaction ? '<img style="width:0.9em;height:0.9em;margin:0;vertical-align:middle;" src="https://cubnotrip.top/img/reactions/' + cached.medianReaction + '.svg">' : '') + '</div>' +
+                                '<div class="rate-icon">' + (cached.medianReaction ? '<img style="width:1em;height:1em;margin:0 0.2em;vertical-align:middle;" src="https://cubnotrip.top/img/reactions/' + cached.medianReaction + '.svg">' : '') + '</div>' +
                                 '<div class="source--name">LAMPA</div>' +
                                 '</div>';
                     if (kpBlock.length > 0) {
@@ -563,7 +657,7 @@
                             let kpBlock = rateLine.find('.rate--kp');
                             let lampaBlockHtml = '<div class="full-start__rate rate--lampa">' +
                                 '<div class="rate-value">' + result.rating + '</div>' +
-                                '<div class="rate-icon">' + (result.medianReaction ? '<img style="width:0.9em;height:0.9em;margin:0;vertical-align:middle;" src="https://cubnotrip.top/img/reactions/' + result.medianReaction + '.svg">' : '') + '</div>' +
+                                '<div class="rate-icon">' + (result.medianReaction ? '<img style="width:1em;height:1em;margin:0 0.2em;vertical-align:middle;" src="https://cubnotrip.top/img/reactions/' + result.medianReaction + '.svg">' : '') + '</div>' +
                                 '<div class="source--name">LAMPA</div>' +
                                 '</div>';
                             if (kpBlock.length > 0) {
