@@ -149,6 +149,10 @@
                 border-radius: 1em;
                 display: flex;
                 align-items: center;
+                height: auto !important;
+                max-height: fit-content !important;
+                flex-shrink: 0 !important;
+                align-self: flex-start !important;
             `;
             const parent = card.querySelector('.card__view') || card;
             parent.appendChild(voteEl);
@@ -233,8 +237,12 @@
         style.type = 'text/css';
         style.textContent = `
             .card__vote {
-                display: flex;
+                display: flex !important;
                 align-items: center !important;
+                height: auto !important;
+                max-height: fit-content !important;
+                flex-shrink: 0 !important;
+                align-self: flex-start !important;
             }
             @media (max-width: 480px) and (orientation: portrait) {
                 .full-start__rate.rate--lampa {
