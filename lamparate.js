@@ -233,32 +233,9 @@
         if (rateLine.length === 0) return false;
         if (rateLine.find('.rate--lampa').length > 0) return true;
         
-        // Пробуем получить дефолтный рейтинг из КП
-        let defaultRating = null;
-        let kpBlock = rateLine.find('.rate--kp');
-        if (kpBlock.length > 0) {
-            let kpValue = kpBlock.find('.rate-value');
-            if (kpValue.length > 0) {
-                let kpText = kpValue.text();
-                let kpMatch = kpText.match(/[\d.]+/);
-                if (kpMatch) {
-                    defaultRating = parseFloat(kpMatch[0]);
-                }
-            }
-        }
-        
-        let initialValue = defaultRating && defaultRating > 0 ? defaultRating.toFixed(1) : '0.0';
-        let lampaBlockHtml = '<div class="full-start__rate rate--lampa">' +
-            '<div class="rate-value">' + initialValue + '</div>' +
-            '<div class="rate-icon"></div>' +
-            '<div class="source--name">LAMPA</div>' +
-            '</div>';
-        if (kpBlock.length > 0) {
-            kpBlock.after(lampaBlockHtml);
-        } else {
-            rateLine.append(lampaBlockHtml);
-        }
-        return true;
+        // Не создаем блок заранее - он будет создан только если есть рейтинг Lampa > 0
+        // Блок будет создан в обработчике события 'full' после получения рейтинга
+        return false;
     }
     function insertCardRating(card, event) {
         let voteEl = card.querySelector('.card__vote');
@@ -478,55 +455,67 @@
         Lampa.Listener.follow('full', (e) => {
             if (e.type === 'complite') {
                 let render = e.object.activity.render();
-                if (render && insertLampaBlock(render)) {
-                    if (e.object.method && e.object.id) {
-                        let ratingKey = e.object.method + "_" + e.object.id;
-                        const cached = ratingCache.get('lampa_rating', ratingKey);
-                        if (cached && cached.rating !== 0 && cached.rating !== '0.0') {
-                            let rateValue = $(render).find('.rate--lampa .rate-value');
-                            let rateIcon = $(render).find('.rate--lampa .rate-icon');
-                            rateValue.text(cached.rating);
-                            if (cached.medianReaction) {
-                                let reactionSrc = 'https://cubnotrip.top/img/reactions/' + cached.medianReaction + '.svg';
-                                rateIcon.html('<img style="width:1em;height:1em;margin:0 0.2em;" src="' + reactionSrc + '">');
-                            }
+                if (!render || !e.object.method || !e.object.id) return;
+                
+                let rateLine = $(render).find('.full-start-new__rate-line');
+                if (rateLine.length === 0) return;
+                
+                // Удаляем существующий блок, если есть
+                $(render).find('.rate--lampa').remove();
+                
+                let ratingKey = e.object.method + "_" + e.object.id;
+                const cached = ratingCache.get('lampa_rating', ratingKey);
+                
+                // Если есть кэшированный рейтинг и он > 0
+                if (cached && cached.rating !== 0 && cached.rating !== '0.0') {
+                    let kpBlock = rateLine.find('.rate--kp');
+                    let lampaBlockHtml = '<div class="full-start__rate rate--lampa">' +
+                        '<div class="rate-value">' + cached.rating + '</div>' +
+                        '<div class="rate-icon">' + (cached.medianReaction ? '<img style="width:1em;height:1em;margin:0 0.2em;" src="https://cubnotrip.top/img/reactions/' + cached.medianReaction + '.svg">' : '') + '</div>' +
+                        '<div class="source--name">LAMPA</div>' +
+                        '</div>';
+                    if (kpBlock.length > 0) {
+                        kpBlock.after(lampaBlockHtml);
+                    } else {
+                        rateLine.append(lampaBlockHtml);
+                    }
+                    return;
+                }
+                
+                // Получаем рейтинг асинхронно
+                addToQueue(() => {
+                    getLampaRating(ratingKey).then(result => {
+                        // Если рейтинг Lampa равен 0, НЕ показываем блок вообще
+                        if (result.rating === 0 || result.rating === '0.0' || result.rating === null) {
+                            $(render).find('.rate--lampa').remove();
                             return;
                         }
-                        addToQueue(() => {
-                            getLampaRating(ratingKey).then(result => {
-                                let rateValue = $(render).find('.rate--lampa .rate-value');
-                                let rateIcon = $(render).find('.rate--lampa .rate-icon');
-                                if (result.rating !== null && result.rating > 0) {
-                                    rateValue.text(result.rating);
-                                    if (result.medianReaction) {
-                                        let reactionSrc = 'https://cubnotrip.top/img/reactions/' + result.medianReaction + '.svg';
-                                        rateIcon.html('<img style="width:1em;height:1em;margin:0 0.2em;" src="' + reactionSrc + '">');
-                                    }
-                                } else {
-                                    // Если рейтинга нет, пробуем получить дефолтный из КП
-                                    let kpBlock = $(render).find('.rate--kp');
-                                    let defaultRating = null;
-                                    if (kpBlock.length > 0) {
-                                        let kpValue = kpBlock.find('.rate-value');
-                                        if (kpValue.length > 0) {
-                                            let kpText = kpValue.text();
-                                            let kpMatch = kpText.match(/[\d.]+/);
-                                            if (kpMatch) {
-                                                defaultRating = parseFloat(kpMatch[0]);
-                                            }
-                                        }
-                                    }
-                                    if (defaultRating && defaultRating > 0) {
-                                        rateValue.text(defaultRating.toFixed(1));
-                                        rateIcon.html('');
-                                    } else {
-                                        $(render).find('.rate--lampa').hide();
-                                    }
-                                }
-                            });
-                        });
-                    }
-                }
+                        
+                        // Если рейтинг > 0, создаем и показываем блок
+                        if (result.rating !== null && result.rating > 0) {
+                            let rateLine = $(render).find('.full-start-new__rate-line');
+                            if (rateLine.length === 0) return;
+                            
+                            // Удаляем существующий блок, если есть
+                            $(render).find('.rate--lampa').remove();
+                            
+                            let kpBlock = rateLine.find('.rate--kp');
+                            let lampaBlockHtml = '<div class="full-start__rate rate--lampa">' +
+                                '<div class="rate-value">' + result.rating + '</div>' +
+                                '<div class="rate-icon">' + (result.medianReaction ? '<img style="width:1em;height:1em;margin:0 0.2em;" src="https://cubnotrip.top/img/reactions/' + result.medianReaction + '.svg">' : '') + '</div>' +
+                                '<div class="source--name">LAMPA</div>' +
+                                '</div>';
+                            if (kpBlock.length > 0) {
+                                kpBlock.after(lampaBlockHtml);
+                            } else {
+                                rateLine.append(lampaBlockHtml);
+                            }
+                        } else {
+                            // Если рейтинга нет (равен 0), удаляем блок
+                            $(render).find('.rate--lampa').remove();
+                        }
+                    });
+                });
             }
         });
     }
