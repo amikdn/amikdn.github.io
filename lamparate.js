@@ -238,46 +238,8 @@
         return false;
     }
     function insertCardRating(card, event) {
-        let voteEl = card.querySelector('.card__vote');
-        let defaultRating = getDefaultRating(card, event);
-        let defaultRatingText = defaultRating && defaultRating > 0 ? defaultRating.toFixed(1) : '0.0';
+        let voteEl = card.querySelector('.card__vote.rate--lampa');
         
-        if (!voteEl) {
-            voteEl = document.createElement('div');
-            voteEl.className = 'card__vote rate--lampa';
-            
-            // Получаем стили позиционирования в зависимости от темы
-            let positionStyles = getRatingPositionStyles();
-            
-            voteEl.style.cssText = `
-                line-height: 1;
-                font-family: "SegoeUI", sans-serif;
-                cursor: pointer;
-                box-sizing: border-box;
-                outline: none;
-                user-select: none;
-                position: absolute;
-                top: ${positionStyles.top};
-                right: ${positionStyles.right};
-                bottom: ${positionStyles.bottom};
-                left: ${positionStyles.left};
-                background: rgba(0, 0, 0, 0.5);
-                color: #fff;
-                padding: 0.2em 0.5em;
-                border-radius: ${positionStyles.borderRadius};
-                display: flex;
-                align-items: center;
-                height: auto !important;
-                max-height: fit-content !important;
-                flex-shrink: 0 !important;
-                align-self: flex-start !important;
-            `;
-            const parent = card.querySelector('.card__view') || card;
-            parent.appendChild(voteEl);
-            voteEl.innerHTML = defaultRatingText;
-        } else {
-            voteEl.innerHTML = '';
-        }
         let data = card.dataset || {};
         let cardData = event.object.data || {};
         let id = cardData.id || data.id || card.getAttribute('data-id') || (card.getAttribute('data-card-id') || '0').replace('movie_', '') || '0';
@@ -286,39 +248,126 @@
             type = 'tv';
         }
         let ratingKey = type + "_" + id;
-        voteEl.dataset.movieId = id.toString();
+        
         const cached = ratingCache.get('lampa_rating', ratingKey);
-        if (cached && cached.rating !== 0 && cached.rating !== '0.0') {
+        
+        // Если есть кэшированный рейтинг
+        if (cached) {
+            // Если рейтинг = 0, удаляем элемент и не показываем
+            if (cached.rating === 0 || cached.rating === '0.0') {
+                if (voteEl) {
+                    voteEl.remove();
+                }
+                return;
+            }
+            
+            // Если рейтинг > 0, создаем или обновляем элемент
+            if (!voteEl) {
+                voteEl = document.createElement('div');
+                voteEl.className = 'card__vote rate--lampa';
+                
+                // Получаем стили позиционирования в зависимости от темы
+                let positionStyles = getRatingPositionStyles();
+                
+                voteEl.style.cssText = `
+                    line-height: 1;
+                    font-family: "SegoeUI", sans-serif;
+                    cursor: pointer;
+                    box-sizing: border-box;
+                    outline: none;
+                    user-select: none;
+                    position: absolute;
+                    top: ${positionStyles.top};
+                    right: ${positionStyles.right};
+                    bottom: ${positionStyles.bottom};
+                    left: ${positionStyles.left};
+                    background: rgba(0, 0, 0, 0.5);
+                    color: #fff;
+                    padding: 0.15em 0.4em;
+                    border-radius: ${positionStyles.borderRadius};
+                    display: flex;
+                    align-items: center;
+                    gap: 0.1em;
+                    height: auto !important;
+                    max-height: fit-content !important;
+                    flex-shrink: 0 !important;
+                    align-self: flex-start !important;
+                    font-size: 0.9em;
+                `;
+                const parent = card.querySelector('.card__view') || card;
+                parent.appendChild(voteEl);
+            }
+            
+            voteEl.dataset.movieId = id.toString();
             let html = cached.rating;
             if (cached.medianReaction) {
                 let reactionSrc = 'https://cubnotrip.top/img/reactions/' + cached.medianReaction + '.svg';
-                html += ` <img style="width:1em;height:1em;margin:0 0.2em;" src="${reactionSrc}">`;
+                html += `<img style="width:0.9em;height:0.9em;margin:0;vertical-align:middle;" src="${reactionSrc}">`;
             }
             voteEl.innerHTML = html;
+            voteEl.style.display = '';
             return;
         }
+        
+        // Получаем рейтинг асинхронно
         addToQueue(() => {
             getLampaRating(ratingKey).then(result => {
-                if (voteEl.parentNode && voteEl.dataset.movieId === id.toString()) {
-                    let html;
-                    if (result.rating !== null && result.rating !== 0 && result.rating !== '0.0') {
-                        html = result.rating;
-                    } else {
-                        // Если рейтинга нет, используем дефолтный
-                        html = defaultRatingText;
+                // Если рейтинг = 0, удаляем элемент и не показываем
+                if (result.rating === 0 || result.rating === '0.0' || result.rating === null) {
+                    if (voteEl && voteEl.parentNode && voteEl.dataset.movieId === id.toString()) {
+                        voteEl.remove();
                     }
-                    if (result.medianReaction) {
-                        let reactionSrc = 'https://cubnotrip.top/img/reactions/' + result.medianReaction + '.svg';
-                        html += ` <img style="width:1em;height:1em;margin:0 0.2em;" src="${reactionSrc}">`;
-                    }
-                    voteEl.innerHTML = html;
-                    // Не скрываем элемент, если есть дефолтный рейтинг
-                    if ((result.rating === 0 || result.rating === '0.0') && !defaultRating) {
-                        voteEl.style.display = 'none';
-                    } else {
-                        voteEl.style.display = '';
-                    }
+                    return;
                 }
+                
+                // Если рейтинг > 0, создаем или обновляем элемент
+                if (!voteEl || !voteEl.parentNode) {
+                    voteEl = document.createElement('div');
+                    voteEl.className = 'card__vote rate--lampa';
+                    
+                    // Получаем стили позиционирования в зависимости от темы
+                    let positionStyles = getRatingPositionStyles();
+                    
+                    voteEl.style.cssText = `
+                        line-height: 1;
+                        font-family: "SegoeUI", sans-serif;
+                        cursor: pointer;
+                        box-sizing: border-box;
+                        outline: none;
+                        user-select: none;
+                        position: absolute;
+                        top: ${positionStyles.top};
+                        right: ${positionStyles.right};
+                        bottom: ${positionStyles.bottom};
+                        left: ${positionStyles.left};
+                        background: rgba(0, 0, 0, 0.5);
+                        color: #fff;
+                        padding: 0.15em 0.4em;
+                        border-radius: ${positionStyles.borderRadius};
+                        display: flex;
+                        align-items: center;
+                        gap: 0.1em;
+                        height: auto !important;
+                        max-height: fit-content !important;
+                        flex-shrink: 0 !important;
+                        align-self: flex-start !important;
+                        font-size: 0.9em;
+                    `;
+                    const parent = card.querySelector('.card__view') || card;
+                    parent.appendChild(voteEl);
+                }
+                
+                if (voteEl.dataset.movieId !== id.toString()) {
+                    voteEl.dataset.movieId = id.toString();
+                }
+                
+                let html = result.rating;
+                if (result.medianReaction) {
+                    let reactionSrc = 'https://cubnotrip.top/img/reactions/' + result.medianReaction + '.svg';
+                    html += `<img style="width:0.9em;height:0.9em;margin:0;vertical-align:middle;" src="${reactionSrc}">`;
+                }
+                voteEl.innerHTML = html;
+                voteEl.style.display = '';
             });
         });
     }
@@ -345,20 +394,18 @@
                     
                     const ratingKey = (data.seasons || data.first_air_date || data.original_name) ? `tv_${data.id}` : `movie_${data.id}`;
                     const cached = ratingCache.get('lampa_rating', ratingKey);
-                    if (cached && cached.rating !== 0 && cached.rating !== '0.0' && ratingElement.innerHTML === '') {
+                    
+                    // Если рейтинг = 0, удаляем элемент
+                    if (cached && (cached.rating === 0 || cached.rating === '0.0')) {
+                        ratingElement.remove();
+                    } else if (cached && cached.rating !== 0 && cached.rating !== '0.0' && ratingElement.innerHTML === '') {
                         let html = cached.rating;
                         if (cached.medianReaction) {
                             let reactionSrc = 'https://cubnotrip.top/img/reactions/' + cached.medianReaction + '.svg';
-                            html += ` <img style="width:1em;height:1em;margin:0 0.2em;" src="${reactionSrc}">`;
+                            html += `<img style="width:0.9em;height:0.9em;margin:0;vertical-align:middle;" src="${reactionSrc}">`;
                         }
                         ratingElement.innerHTML = html;
-                    } else if (ratingElement.innerHTML === '' || ratingElement.innerHTML === '0.0') {
-                        // Если рейтинга нет, показываем дефолтный
-                        let defaultRating = getDefaultRating(card, { object: { data } });
-                        if (defaultRating && defaultRating > 0) {
-                            ratingElement.innerHTML = defaultRating.toFixed(1);
-                            ratingElement.style.display = '';
-                        }
+                        ratingElement.style.display = '';
                     }
                 }
             }
@@ -389,6 +436,11 @@
                 max-height: fit-content !important;
                 flex-shrink: 0 !important;
                 align-self: flex-start !important;
+                gap: 0.1em !important;
+            }
+            .card__vote img {
+                margin: 0 !important;
+                vertical-align: middle !important;
             }
             /* Стили для темы с рейтингом в верхнем углу */
             [data-theme*="top"] .card__vote.rate--lampa,
@@ -411,6 +463,15 @@
                 bottom: 0.3em !important;
                 left: auto !important;
                 border-radius: 1em !important;
+            }
+            .full-start__rate.rate--lampa {
+                display: flex !important;
+                align-items: center !important;
+                gap: 0.1em !important;
+            }
+            .full-start__rate.rate--lampa .rate-icon img {
+                margin: 0 !important;
+                vertical-align: middle !important;
             }
             @media (max-width: 480px) and (orientation: portrait) {
                 .full-start__rate.rate--lampa {
@@ -468,12 +529,12 @@
                 
                 // Если есть кэшированный рейтинг и он > 0
                 if (cached && cached.rating !== 0 && cached.rating !== '0.0') {
-                    let kpBlock = rateLine.find('.rate--kp');
-                    let lampaBlockHtml = '<div class="full-start__rate rate--lampa">' +
-                        '<div class="rate-value">' + cached.rating + '</div>' +
-                        '<div class="rate-icon">' + (cached.medianReaction ? '<img style="width:1em;height:1em;margin:0 0.2em;" src="https://cubnotrip.top/img/reactions/' + cached.medianReaction + '.svg">' : '') + '</div>' +
-                        '<div class="source--name">LAMPA</div>' +
-                        '</div>';
+                            let kpBlock = rateLine.find('.rate--kp');
+                            let lampaBlockHtml = '<div class="full-start__rate rate--lampa">' +
+                                '<div class="rate-value">' + cached.rating + '</div>' +
+                                '<div class="rate-icon">' + (cached.medianReaction ? '<img style="width:0.9em;height:0.9em;margin:0;vertical-align:middle;" src="https://cubnotrip.top/img/reactions/' + cached.medianReaction + '.svg">' : '') + '</div>' +
+                                '<div class="source--name">LAMPA</div>' +
+                                '</div>';
                     if (kpBlock.length > 0) {
                         kpBlock.after(lampaBlockHtml);
                     } else {
@@ -502,7 +563,7 @@
                             let kpBlock = rateLine.find('.rate--kp');
                             let lampaBlockHtml = '<div class="full-start__rate rate--lampa">' +
                                 '<div class="rate-value">' + result.rating + '</div>' +
-                                '<div class="rate-icon">' + (result.medianReaction ? '<img style="width:1em;height:1em;margin:0 0.2em;" src="https://cubnotrip.top/img/reactions/' + result.medianReaction + '.svg">' : '') + '</div>' +
+                                '<div class="rate-icon">' + (result.medianReaction ? '<img style="width:0.9em;height:0.9em;margin:0;vertical-align:middle;" src="https://cubnotrip.top/img/reactions/' + result.medianReaction + '.svg">' : '') + '</div>' +
                                 '<div class="source--name">LAMPA</div>' +
                                 '</div>';
                             if (kpBlock.length > 0) {
