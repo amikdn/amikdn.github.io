@@ -263,11 +263,21 @@
         return false;
     }
     function insertCardRating(card, event) {
-        // Ищем существующий элемент рейтинга (Lampa или дефолтный)
-        let voteEl = card.querySelector('.card__vote.rate--lampa');
-        // Если нет нашего элемента, ищем дефолтный элемент рейтинга для замены
-        if (!voteEl) {
-            voteEl = card.querySelector('.card__vote:not(.rate--lampa)');
+        // Ищем все элементы рейтинга на карточке
+        let allVoteElements = card.querySelectorAll('.card__vote');
+        let voteEl = null;
+        
+        // Сначала ищем наш элемент
+        for (let el of allVoteElements) {
+            if (el.classList.contains('rate--lampa')) {
+                voteEl = el;
+                break;
+            }
+        }
+        
+        // Если нет нашего элемента, ищем любой дефолтный элемент рейтинга для замены
+        if (!voteEl && allVoteElements.length > 0) {
+            voteEl = allVoteElements[0];
         }
         
         let data = card.dataset || {};
@@ -299,6 +309,16 @@
             
             // Если есть что показать, заменяем содержимое существующего элемента или создаем новый
             if (ratingToShow) {
+                // Удаляем все дубликаты элементов рейтинга, оставляя только один
+                let allVoteElements = card.querySelectorAll('.card__vote');
+                if (allVoteElements.length > 1) {
+                    // Оставляем первый найденный, остальные удаляем
+                    for (let i = 1; i < allVoteElements.length; i++) {
+                        allVoteElements[i].remove();
+                    }
+                    voteEl = allVoteElements[0];
+                }
+                
                 if (!voteEl || !voteEl.parentNode) {
                     voteEl = document.createElement('div');
                     voteEl.className = 'card__vote rate--lampa';
@@ -320,7 +340,7 @@
                         left: ${positionStyles.left};
                         background: rgba(0, 0, 0, 0.5);
                         color: #fff;
-                        padding: 0.15em 0.4em;
+                        padding: 0.2em 0.5em;
                         border-radius: ${positionStyles.borderRadius};
                         display: flex;
                         align-items: center;
@@ -328,13 +348,13 @@
                         max-height: fit-content !important;
                         flex-shrink: 0 !important;
                         align-self: flex-start !important;
-                        font-size: 0.9em;
                     `;
                     const parent = card.querySelector('.card__view') || card;
                     parent.appendChild(voteEl);
                 } else {
-                    // Заменяем класс на наш, если это был дефолтный элемент
+                    // Заменяем класс и стили, если это был дефолтный элемент
                     if (!voteEl.classList.contains('rate--lampa')) {
+                        // Удаляем все старые классы и добавляем наш
                         voteEl.className = 'card__vote rate--lampa';
                         // Применяем стили позиционирования
                         let positionStyles = getRatingPositionStyles();
@@ -343,6 +363,8 @@
                         voteEl.style.bottom = positionStyles.bottom;
                         voteEl.style.left = positionStyles.left;
                         voteEl.style.borderRadius = positionStyles.borderRadius;
+                        voteEl.style.padding = '0.2em 0.5em';
+                        voteEl.style.fontSize = '';
                     }
                 }
                 
@@ -367,7 +389,21 @@
         addToQueue(() => {
             getLampaRating(ratingKey).then(result => {
                 // Обновляем ссылку на элемент, так как он мог измениться
-                let currentVoteEl = card.querySelector('.card__vote.rate--lampa') || card.querySelector('.card__vote:not(.rate--lampa)');
+                let allVoteElements = card.querySelectorAll('.card__vote');
+                let currentVoteEl = null;
+                
+                // Сначала ищем наш элемент
+                for (let el of allVoteElements) {
+                    if (el.classList.contains('rate--lampa')) {
+                        currentVoteEl = el;
+                        break;
+                    }
+                }
+                
+                // Если нет нашего элемента, ищем любой дефолтный элемент рейтинга для замены
+                if (!currentVoteEl && allVoteElements.length > 0) {
+                    currentVoteEl = allVoteElements[0];
+                }
                 
                 let ratingToShow = null;
                 let showIcon = false;
@@ -384,6 +420,16 @@
                 
                 // Если есть что показать, заменяем содержимое существующего элемента или создаем новый
                 if (ratingToShow) {
+                    // Удаляем все дубликаты элементов рейтинга, оставляя только один
+                    let allVoteElementsCheck = card.querySelectorAll('.card__vote');
+                    if (allVoteElementsCheck.length > 1) {
+                        // Оставляем первый найденный, остальные удаляем
+                        for (let i = 1; i < allVoteElementsCheck.length; i++) {
+                            allVoteElementsCheck[i].remove();
+                        }
+                        currentVoteEl = allVoteElementsCheck[0];
+                    }
+                    
                     if (!currentVoteEl || !currentVoteEl.parentNode) {
                         currentVoteEl = document.createElement('div');
                         currentVoteEl.className = 'card__vote rate--lampa';
@@ -405,7 +451,7 @@
                             left: ${positionStyles.left};
                             background: rgba(0, 0, 0, 0.5);
                             color: #fff;
-                            padding: 0.15em 0.4em;
+                            padding: 0.2em 0.5em;
                             border-radius: ${positionStyles.borderRadius};
                             display: flex;
                             align-items: center;
@@ -413,13 +459,13 @@
                             max-height: fit-content !important;
                             flex-shrink: 0 !important;
                             align-self: flex-start !important;
-                            font-size: 0.9em;
                         `;
                         const parent = card.querySelector('.card__view') || card;
                         parent.appendChild(currentVoteEl);
                     } else {
-                        // Заменяем класс на наш, если это был дефолтный элемент
+                        // Заменяем класс и стили, если это был дефолтный элемент
                         if (!currentVoteEl.classList.contains('rate--lampa')) {
+                            // Удаляем все старые классы и добавляем наш
                             currentVoteEl.className = 'card__vote rate--lampa';
                             // Применяем стили позиционирования
                             let positionStyles = getRatingPositionStyles();
@@ -428,6 +474,8 @@
                             currentVoteEl.style.bottom = positionStyles.bottom;
                             currentVoteEl.style.left = positionStyles.left;
                             currentVoteEl.style.borderRadius = positionStyles.borderRadius;
+                            currentVoteEl.style.padding = '0.2em 0.5em';
+                            currentVoteEl.style.fontSize = '';
                         }
                     }
                     
