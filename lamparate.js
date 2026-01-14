@@ -110,17 +110,149 @@
             return { rating: 0, medianReaction: '' };
         }
     }
+    function getRatingPositionStyles() {
+        // Определяем тему из различных источников
+        let body = document.body;
+        let html = document.documentElement;
+        let theme = null;
+        
+        // Проверяем data-атрибуты
+        if (body && body.getAttribute('data-theme')) {
+            let dataTheme = body.getAttribute('data-theme');
+            if (dataTheme.includes('top') || dataTheme.includes('rating-top')) {
+                theme = 'top';
+            } else if (dataTheme.includes('bottom') || dataTheme.includes('rating-bottom')) {
+                theme = 'bottom';
+            }
+        } else if (html && html.getAttribute('data-theme')) {
+            let dataTheme = html.getAttribute('data-theme');
+            if (dataTheme.includes('top') || dataTheme.includes('rating-top')) {
+                theme = 'top';
+            } else if (dataTheme.includes('bottom') || dataTheme.includes('rating-bottom')) {
+                theme = 'bottom';
+            }
+        }
+        
+        // Проверяем data-rating-position
+        if (!theme && body && body.getAttribute('data-rating-position')) {
+            theme = body.getAttribute('data-rating-position');
+        }
+        
+        // Проверяем классы на body/html
+        if (!theme && body) {
+            if (body.classList.contains('theme-top') || body.classList.contains('rating-top')) {
+                theme = 'top';
+            } else if (body.classList.contains('theme-bottom') || body.classList.contains('rating-bottom')) {
+                theme = 'bottom';
+            }
+        }
+        
+        // Проверяем настройки Lampa
+        if (!theme && window.Lampa && window.Lampa.Settings) {
+            try {
+                let ratingPosition = Lampa.Settings.get('card_rating_position') || 
+                                    Lampa.Settings.get('rating_position') ||
+                                    Lampa.Storage.get('card_rating_position');
+                if (ratingPosition) {
+                    theme = ratingPosition;
+                }
+            } catch(e) {}
+        }
+        
+        // Проверяем существующие элементы рейтинга для определения позиции
+        if (!theme) {
+            let existingRating = document.querySelector('.card__vote:not(.rate--lampa), .rate--kp, .card__vote.rate--kp');
+            if (existingRating) {
+                let computedStyle = window.getComputedStyle(existingRating);
+                let topValue = computedStyle.getPropertyValue('top');
+                let bottomValue = computedStyle.getPropertyValue('bottom');
+                // Если top установлен и близок к 0, значит рейтинг вверху
+                if (topValue && topValue !== 'auto' && parseFloat(topValue) < 10) {
+                    theme = 'top';
+                } else if (bottomValue && bottomValue !== 'auto') {
+                    theme = 'bottom';
+                }
+            }
+        }
+        
+        // Применяем стили в зависимости от темы
+        if (theme === 'top' || theme === 'rating-top') {
+            return {
+                top: '0',
+                right: '0',
+                bottom: 'auto',
+                left: 'auto',
+                borderRadius: '0 0 0 1em'
+            };
+        } else {
+            // По умолчанию - нижний правый угол
+            return {
+                top: 'auto',
+                right: '0.3em',
+                bottom: '0.3em',
+                left: 'auto',
+                borderRadius: '1em'
+            };
+        }
+    }
+    function getDefaultRating(card, event) {
+        let defaultRating = null;
+        let data = card ? (card.dataset || {}) : {};
+        let cardData = event && event.object ? (event.object.data || {}) : {};
+        
+        // Пробуем получить рейтинг КП из данных карточки
+        if (cardData.kp || cardData.rating_kp || cardData.rating) {
+            defaultRating = cardData.kp || cardData.rating_kp || cardData.rating;
+        } else if (data.kp || data.rating_kp || data.rating) {
+            defaultRating = data.kp || data.rating_kp || data.rating;
+        }
+        
+        // Если не нашли в данных, пробуем получить из DOM элемента КП
+        if (!defaultRating && card) {
+            let kpElement = card.querySelector('.rate--kp .rate-value, .card__vote.rate--kp');
+            if (kpElement) {
+                let kpText = kpElement.textContent || kpElement.innerText;
+                let kpMatch = kpText.match(/[\d.]+/);
+                if (kpMatch) {
+                    defaultRating = parseFloat(kpMatch[0]);
+                }
+            }
+        }
+        
+        // Если все еще нет, пробуем получить из card_data
+        if (!defaultRating && card && card.card_data) {
+            let cardDataObj = card.card_data;
+            defaultRating = cardDataObj.kp || cardDataObj.rating_kp || cardDataObj.rating;
+        }
+        
+        return defaultRating && defaultRating > 0 ? defaultRating : null;
+    }
     function insertLampaBlock(render) {
         if (!render) return false;
         let rateLine = $(render).find('.full-start-new__rate-line');
         if (rateLine.length === 0) return false;
         if (rateLine.find('.rate--lampa').length > 0) return true;
+        
+        // Пробуем получить дефолтный рейтинг из КП
+        let defaultRating = null;
+        let kpBlock = rateLine.find('.rate--kp');
+        if (kpBlock.length > 0) {
+            let kpValue = kpBlock.find('.rate-value');
+            if (kpValue.length > 0) {
+                let kpText = kpValue.text();
+                let kpMatch = kpText.match(/[\d.]+/);
+                if (kpMatch) {
+                    defaultRating = parseFloat(kpMatch[0]);
+                }
+            }
+        }
+        
+        let initialValue = defaultRating && defaultRating > 0 ? defaultRating.toFixed(1) : '0.0';
         let lampaBlockHtml = '<div class="full-start__rate rate--lampa">' +
-            '<div class="rate-value">0.0</div>' +
+            '<div class="rate-value">' + initialValue + '</div>' +
             '<div class="rate-icon"></div>' +
             '<div class="source--name">LAMPA</div>' +
             '</div>';
-        let kpBlock = rateLine.find('.rate--kp');
         if (kpBlock.length > 0) {
             kpBlock.after(lampaBlockHtml);
         } else {
@@ -130,9 +262,16 @@
     }
     function insertCardRating(card, event) {
         let voteEl = card.querySelector('.card__vote');
+        let defaultRating = getDefaultRating(card, event);
+        let defaultRatingText = defaultRating && defaultRating > 0 ? defaultRating.toFixed(1) : '0.0';
+        
         if (!voteEl) {
             voteEl = document.createElement('div');
             voteEl.className = 'card__vote rate--lampa';
+            
+            // Получаем стили позиционирования в зависимости от темы
+            let positionStyles = getRatingPositionStyles();
+            
             voteEl.style.cssText = `
                 line-height: 1;
                 font-family: "SegoeUI", sans-serif;
@@ -141,12 +280,14 @@
                 outline: none;
                 user-select: none;
                 position: absolute;
-                right: 0.3em;
-                bottom: 0.3em;
+                top: ${positionStyles.top};
+                right: ${positionStyles.right};
+                bottom: ${positionStyles.bottom};
+                left: ${positionStyles.left};
                 background: rgba(0, 0, 0, 0.5);
                 color: #fff;
                 padding: 0.2em 0.5em;
-                border-radius: 1em;
+                border-radius: ${positionStyles.borderRadius};
                 display: flex;
                 align-items: center;
                 height: auto !important;
@@ -156,7 +297,7 @@
             `;
             const parent = card.querySelector('.card__view') || card;
             parent.appendChild(voteEl);
-            voteEl.innerHTML = '0.0';
+            voteEl.innerHTML = defaultRatingText;
         } else {
             voteEl.innerHTML = '';
         }
@@ -182,28 +323,49 @@
         addToQueue(() => {
             getLampaRating(ratingKey).then(result => {
                 if (voteEl.parentNode && voteEl.dataset.movieId === id.toString()) {
-                    let html = result.rating !== null ? result.rating : '0.0';
+                    let html;
+                    if (result.rating !== null && result.rating !== 0 && result.rating !== '0.0') {
+                        html = result.rating;
+                    } else {
+                        // Если рейтинга нет, используем дефолтный
+                        html = defaultRatingText;
+                    }
                     if (result.medianReaction) {
                         let reactionSrc = 'https://cubnotrip.top/img/reactions/' + result.medianReaction + '.svg';
                         html += ` <img style="width:1em;height:1em;margin:0 0.2em;" src="${reactionSrc}">`;
                     }
                     voteEl.innerHTML = html;
-                    if (result.rating === 0 || result.rating === '0.0') {
+                    // Не скрываем элемент, если есть дефолтный рейтинг
+                    if ((result.rating === 0 || result.rating === '0.0') && !defaultRating) {
                         voteEl.style.display = 'none';
+                    } else {
+                        voteEl.style.display = '';
                     }
                 }
             });
         });
+    }
+    function updateRatingPosition(ratingElement) {
+        if (!ratingElement) return;
+        let positionStyles = getRatingPositionStyles();
+        ratingElement.style.top = positionStyles.top;
+        ratingElement.style.right = positionStyles.right;
+        ratingElement.style.bottom = positionStyles.bottom;
+        ratingElement.style.left = positionStyles.left;
+        ratingElement.style.borderRadius = positionStyles.borderRadius;
     }
     function pollCards() {
         const allCards = document.querySelectorAll('.card');
         allCards.forEach(card => {
             const data = card.card_data;
             if (data && data.id) {
-                const ratingElement = card.querySelector('.card__vote');
+                const ratingElement = card.querySelector('.card__vote.rate--lampa');
                 if (!ratingElement || ratingElement.dataset.movieId !== data.id.toString()) {
                     insertCardRating(card, { object: { data } });
                 } else {
+                    // Обновляем позицию в соответствии с темой
+                    updateRatingPosition(ratingElement);
+                    
                     const ratingKey = (data.seasons || data.first_air_date || data.original_name) ? `tv_${data.id}` : `movie_${data.id}`;
                     const cached = ratingCache.get('lampa_rating', ratingKey);
                     if (cached && cached.rating !== 0 && cached.rating !== '0.0' && ratingElement.innerHTML === '') {
@@ -213,6 +375,13 @@
                             html += ` <img style="width:1em;height:1em;margin:0 0.2em;" src="${reactionSrc}">`;
                         }
                         ratingElement.innerHTML = html;
+                    } else if (ratingElement.innerHTML === '' || ratingElement.innerHTML === '0.0') {
+                        // Если рейтинга нет, показываем дефолтный
+                        let defaultRating = getDefaultRating(card, { object: { data } });
+                        if (defaultRating && defaultRating > 0) {
+                            ratingElement.innerHTML = defaultRating.toFixed(1);
+                            ratingElement.style.display = '';
+                        }
                     }
                 }
             }
@@ -244,6 +413,28 @@
                 flex-shrink: 0 !important;
                 align-self: flex-start !important;
             }
+            /* Стили для темы с рейтингом в верхнем углу */
+            [data-theme*="top"] .card__vote.rate--lampa,
+            .theme-top .card__vote.rate--lampa,
+            .rating-top .card__vote.rate--lampa,
+            body[data-rating-position="top"] .card__vote.rate--lampa {
+                top: 0 !important;
+                right: 0 !important;
+                bottom: auto !important;
+                left: auto !important;
+                border-radius: 0 0 0 1em !important;
+            }
+            /* Стили для темы с рейтингом в нижнем углу (по умолчанию) */
+            [data-theme*="bottom"] .card__vote.rate--lampa,
+            .theme-bottom .card__vote.rate--lampa,
+            .rating-bottom .card__vote.rate--lampa,
+            body[data-rating-position="bottom"] .card__vote.rate--lampa {
+                top: auto !important;
+                right: 0.3em !important;
+                bottom: 0.3em !important;
+                left: auto !important;
+                border-radius: 1em !important;
+            }
             @media (max-width: 480px) and (orientation: portrait) {
                 .full-start__rate.rate--lampa {
                     min-width: 80px;
@@ -253,6 +444,32 @@
         document.head.appendChild(style);
         setupCardListener();
         pollCards();
+        
+        // Слушаем изменения темы и обновляем позицию рейтинга
+        let lastTheme = null;
+        function checkThemeChange() {
+            let currentTheme = document.body.getAttribute('data-theme') || 
+                             document.documentElement.getAttribute('data-theme') || 
+                             (document.body.classList.contains('theme-top') ? 'top' : 'bottom');
+            if (currentTheme !== lastTheme) {
+                lastTheme = currentTheme;
+                // Обновляем позицию всех элементов рейтинга
+                document.querySelectorAll('.card__vote.rate--lampa').forEach(updateRatingPosition);
+            }
+        }
+        
+        // Проверяем изменения темы периодически
+        setInterval(checkThemeChange, 1000);
+        
+        // Также слушаем изменения через MutationObserver
+        if (window.MutationObserver) {
+            let observer = new MutationObserver(() => {
+                checkThemeChange();
+            });
+            observer.observe(document.body, { attributes: true, attributeFilter: ['data-theme', 'class'] });
+            observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'class'] });
+        }
+        
         Lampa.Listener.follow('card', (e) => {
             if (e.type === 'build' && e.object.card) {
                 insertCardRating(e.object.card, e);
@@ -286,7 +503,25 @@
                                         rateIcon.html('<img style="width:1em;height:1em;margin:0 0.2em;" src="' + reactionSrc + '">');
                                     }
                                 } else {
-                                    $(render).find('.rate--lampa').hide();
+                                    // Если рейтинга нет, пробуем получить дефолтный из КП
+                                    let kpBlock = $(render).find('.rate--kp');
+                                    let defaultRating = null;
+                                    if (kpBlock.length > 0) {
+                                        let kpValue = kpBlock.find('.rate-value');
+                                        if (kpValue.length > 0) {
+                                            let kpText = kpValue.text();
+                                            let kpMatch = kpText.match(/[\d.]+/);
+                                            if (kpMatch) {
+                                                defaultRating = parseFloat(kpMatch[0]);
+                                            }
+                                        }
+                                    }
+                                    if (defaultRating && defaultRating > 0) {
+                                        rateValue.text(defaultRating.toFixed(1));
+                                        rateIcon.html('');
+                                    } else {
+                                        $(render).find('.rate--lampa').hide();
+                                    }
                                 }
                             });
                         });
