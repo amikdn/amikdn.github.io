@@ -25,8 +25,9 @@
     const CACHE_TIME = 24 * 60 * 60 * 1000;
     let taskQueue = [];
     let isProcessing = false;
-    const taskInterval = 300;
+    const taskInterval = 100; // Уменьшен интервал для более быстрой обработки
     let requestPool = [];
+    let pendingRequests = new Map(); // Отслеживаем активные запросы, чтобы не дублировать
     function getRequest() {
         return requestPool.pop() || new Lampa.Reguest();
     }
@@ -38,14 +39,29 @@
         if (isProcessing || !taskQueue.length) return;
         isProcessing = true;
         const task = taskQueue.shift();
-        task.execute();
-        setTimeout(() => {
-            isProcessing = false;
-            processQueue();
-        }, taskInterval);
+        try {
+            task.execute();
+        } catch(e) {
+            console.error('Error in task queue:', e);
+        } finally {
+            if (task.key) {
+                pendingRequests.delete(task.key);
+            }
+            setTimeout(() => {
+                isProcessing = false;
+                processQueue();
+            }, taskInterval);
+        }
     }
-    function addToQueue(task) {
-        taskQueue.push({ execute: task });
+    function addToQueue(task, key = null) {
+        // Если указан ключ и запрос уже выполняется, не добавляем дубликат
+        if (key && pendingRequests.has(key)) {
+            return;
+        }
+        if (key) {
+            pendingRequests.set(key, true);
+        }
+        taskQueue.push({ execute: task, key: key });
         processQueue();
     }
     function calculateLampaRating10(reactions) {
@@ -110,7 +126,27 @@
             return { rating: 0, medianReaction: '' };
         }
     }
-    function getRatingPositionStyles() {
+    function getRatingPositionStyles(existingElement = null) {
+        // Если передан существующий элемент, проверяем его текущую позицию
+        if (existingElement) {
+            let computedStyle = window.getComputedStyle(existingElement);
+            let topValue = computedStyle.getPropertyValue('top');
+            let rightValue = computedStyle.getPropertyValue('right');
+            let bottomValue = computedStyle.getPropertyValue('bottom');
+            let leftValue = computedStyle.getPropertyValue('left');
+            
+            // Если позиция уже задана (не auto), сохраняем её
+            if (topValue !== 'auto' || bottomValue !== 'auto' || rightValue !== 'auto' || leftValue !== 'auto') {
+                return {
+                    top: topValue || 'auto',
+                    right: rightValue || 'auto',
+                    bottom: bottomValue || 'auto',
+                    left: leftValue || 'auto',
+                    borderRadius: computedStyle.getPropertyValue('border-radius') || '1em'
+                };
+            }
+        }
+        
         // Определяем тему из различных источников
         let body = document.body;
         let html = document.documentElement;
@@ -356,8 +392,8 @@
                     if (!voteEl.classList.contains('rate--lampa')) {
                         // Удаляем все старые классы и добавляем наш
                         voteEl.className = 'card__vote rate--lampa';
-                        // Применяем стили позиционирования
-                        let positionStyles = getRatingPositionStyles();
+                        // Применяем стили позиционирования, сохраняя существующую позицию если она задана
+                        let positionStyles = getRatingPositionStyles(voteEl);
                         voteEl.style.top = positionStyles.top;
                         voteEl.style.right = positionStyles.right;
                         voteEl.style.bottom = positionStyles.bottom;
@@ -385,7 +421,7 @@
             return;
         }
         
-        // Получаем рейтинг асинхронно
+        // Получаем рейтинг асинхронно сразу, используя ключ для предотвращения дубликатов
         addToQueue(() => {
             getLampaRating(ratingKey).then(result => {
                 // Обновляем ссылку на элемент, так как он мог измениться
@@ -467,8 +503,8 @@
                         if (!currentVoteEl.classList.contains('rate--lampa')) {
                             // Удаляем все старые классы и добавляем наш
                             currentVoteEl.className = 'card__vote rate--lampa';
-                            // Применяем стили позиционирования
-                            let positionStyles = getRatingPositionStyles();
+                            // Применяем стили позиционирования, сохраняя существующую позицию если она задана
+                            let positionStyles = getRatingPositionStyles(currentVoteEl);
                             currentVoteEl.style.top = positionStyles.top;
                             currentVoteEl.style.right = positionStyles.right;
                             currentVoteEl.style.bottom = positionStyles.bottom;
@@ -501,7 +537,8 @@
     }
     function updateRatingPosition(ratingElement) {
         if (!ratingElement) return;
-        let positionStyles = getRatingPositionStyles();
+        // Сохраняем существующую позицию, если она уже задана темой
+        let positionStyles = getRatingPositionStyles(ratingElement);
         ratingElement.style.top = positionStyles.top;
         ratingElement.style.right = positionStyles.right;
         ratingElement.style.bottom = positionStyles.bottom;
@@ -685,9 +722,9 @@
                     return;
                 }
                 
-                // Получаем рейтинг асинхронно
-                addToQueue(() => {
-                    getLampaRating(ratingKey).then(result => {
+        // Получаем рейтинг асинхронно сразу, используя ключ для предотвращения дубликатов
+        addToQueue(() => {
+            getLampaRating(ratingKey).then(result => {
                         // Если рейтинг Lampa равен 0, НЕ показываем блок вообще
                         if (result.rating === 0 || result.rating === '0.0' || result.rating === null) {
                             $(render).find('.rate--lampa').remove();
