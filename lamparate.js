@@ -205,16 +205,16 @@
                     borderRadius: borderRadius
                 };
                 
-                // Определяем правильный border-radius в зависимости от угла
-                if (!borderRadius || borderRadius === '0px' || borderRadius.includes('1em')) {
+                // Определяем правильный border-radius в зависимости от угла (как в maxsm_themes.js)
+                if (!borderRadius || borderRadius === '0px' || borderRadius.includes('1em') || borderRadius.includes('0.34em')) {
                     if (position === 'top-left') {
-                        result.borderRadius = '0 0 1em 0'; // Скругление только справа снизу
+                        result.borderRadius = '0 0 0.34em 0'; // Скругление только справа снизу
                     } else if (position === 'top-right') {
-                        result.borderRadius = '0 0 0 1em'; // Скругление только слева снизу
+                        result.borderRadius = '0 0 0 0.34em'; // Скругление только слева снизу (как в maxsm_themes.js)
                     } else if (position === 'bottom-left') {
-                        result.borderRadius = '0 1em 0 0'; // Скругление только сверху справа
+                        result.borderRadius = '0 0.34em 0 0'; // Скругление только сверху справа
                     } else if (position === 'bottom-right') {
-                        result.borderRadius = '1em 0 0 0'; // Скругление только сверху слева
+                        result.borderRadius = '0.34em 0 0 0'; // Скругление только сверху слева
                     }
                 }
                 
@@ -255,14 +255,14 @@
             }
         }
         
-        // Применяем стили в зависимости от позиции
+        // Применяем стили в зависимости от позиции (как в maxsm_themes.js)
         if (position === 'top-left') {
             return {
                 top: '0',
                 right: 'auto',
                 bottom: 'auto',
                 left: '0',
-                borderRadius: '0 0 1em 0' // Скругление только справа снизу
+                borderRadius: '0 0 0.34em 0' // Скругление только справа снизу
             };
         } else if (position === 'top-right') {
             return {
@@ -270,7 +270,7 @@
                 right: '0',
                 bottom: 'auto',
                 left: 'auto',
-                borderRadius: '0 0 0 1em' // Скругление только слева снизу
+                borderRadius: '0 0 0 0.34em' // Скругление только слева снизу (как в maxsm_themes.js)
             };
         } else if (position === 'bottom-left') {
             return {
@@ -278,7 +278,7 @@
                 right: 'auto',
                 bottom: '0',
                 left: '0',
-                borderRadius: '0 1em 0 0' // Скругление только сверху справа
+                borderRadius: '0 0.34em 0 0' // Скругление только сверху справа
             };
         } else {
             // По умолчанию - нижний правый угол
@@ -287,7 +287,7 @@
                 right: '0',
                 bottom: '0',
                 left: 'auto',
-                borderRadius: '1em 0 0 0' // Скругление только сверху слева
+                borderRadius: '0.34em 0 0 0' // Скругление только сверху слева
             };
         }
     }
@@ -423,7 +423,7 @@
                     let positionStyles = getRatingPositionStyles(null, card);
                     
                     voteEl.style.cssText = `
-                        line-height: 1;
+                        line-height: 1.0;
                         font-family: "SegoeUI", sans-serif;
                         cursor: pointer;
                         box-sizing: border-box;
@@ -434,9 +434,10 @@
                         right: ${positionStyles.right};
                         bottom: ${positionStyles.bottom};
                         left: ${positionStyles.left};
-                        background: rgba(0, 0, 0, 0.5);
+                        background: rgba(0, 0, 0, 0.6);
+                        font-weight: 700;
                         color: #fff;
-                        padding: 0.25em 0.7em;
+                        padding: 0.4em 0.6em;
                         border-radius: ${positionStyles.borderRadius};
                         display: flex;
                         align-items: center;
@@ -445,6 +446,7 @@
                         flex-shrink: 0 !important;
                         align-self: flex-start !important;
                         overflow: hidden;
+                        font-size: 1.4em;
                     `;
                     const parent = card.querySelector('.card__view') || card;
                     parent.appendChild(voteEl);
@@ -460,8 +462,11 @@
                         voteEl.style.bottom = positionStyles.bottom;
                         voteEl.style.left = positionStyles.left;
                         voteEl.style.borderRadius = positionStyles.borderRadius;
-                        voteEl.style.padding = '0.25em 0.7em';
-                        voteEl.style.fontSize = '';
+                        voteEl.style.padding = '0.4em 0.6em';
+                        voteEl.style.fontSize = '1.4em';
+                        voteEl.style.fontWeight = '700';
+                        voteEl.style.background = 'rgba(0, 0, 0, 0.6)';
+                        voteEl.style.lineHeight = '1.0';
                     }
                 }
                 
@@ -469,7 +474,7 @@
                 let html = ratingToShow;
                 if (showIcon && cached.medianReaction) {
                     let reactionSrc = 'https://cubnotrip.top/img/reactions/' + cached.medianReaction + '.svg';
-                    html += `<img style="width:1em;height:1em;margin:0 0.2em;vertical-align:middle;" src="${reactionSrc}">`;
+                    html += `<img style="width:1em;height:1em;margin:0 0.2em;vertical-align:middle;max-width:1em;max-height:1em;display:inline-block;" src="${reactionSrc}">`;
                 }
                 // Обновляем содержимое и добавляем стили для иконки, чтобы она не выходила за пределы
                 voteEl.innerHTML = html;
@@ -544,7 +549,7 @@
                         let positionStyles = getRatingPositionStyles(null, card);
                         
                         currentVoteEl.style.cssText = `
-                            line-height: 1;
+                            line-height: 1.0;
                             font-family: "SegoeUI", sans-serif;
                             cursor: pointer;
                             box-sizing: border-box;
@@ -555,9 +560,10 @@
                             right: ${positionStyles.right};
                             bottom: ${positionStyles.bottom};
                             left: ${positionStyles.left};
-                            background: rgba(0, 0, 0, 0.5);
+                            background: rgba(0, 0, 0, 0.6);
+                            font-weight: 700;
                             color: #fff;
-                            padding: 0.25em 0.7em;
+                            padding: 0.4em 0.6em;
                             border-radius: ${positionStyles.borderRadius};
                             display: flex;
                             align-items: center;
@@ -566,6 +572,7 @@
                             flex-shrink: 0 !important;
                             align-self: flex-start !important;
                             overflow: hidden;
+                            font-size: 1.4em;
                         `;
                         const parent = card.querySelector('.card__view') || card;
                         parent.appendChild(currentVoteEl);
@@ -581,8 +588,11 @@
                             currentVoteEl.style.bottom = positionStyles.bottom;
                             currentVoteEl.style.left = positionStyles.left;
                             currentVoteEl.style.borderRadius = positionStyles.borderRadius;
-                            currentVoteEl.style.padding = '0.25em 0.7em';
-                            currentVoteEl.style.fontSize = '';
+                            currentVoteEl.style.padding = '0.4em 0.6em';
+                            currentVoteEl.style.fontSize = '1.4em';
+                            currentVoteEl.style.fontWeight = '700';
+                            currentVoteEl.style.background = 'rgba(0, 0, 0, 0.6)';
+                            currentVoteEl.style.lineHeight = '1.0';
                             currentVoteEl.style.overflow = 'hidden';
                         }
                     }
@@ -692,9 +702,12 @@
                 max-height: fit-content !important;
                 flex-shrink: 0 !important;
                 align-self: flex-start !important;
-            }
-            .card__vote {
                 overflow: hidden !important;
+                background: rgba(0, 0, 0, 0.6) !important;
+                font-weight: 700 !important;
+                line-height: 1.0 !important;
+                font-size: 1.4em !important;
+                padding: 0.4em 0.6em !important;
             }
             .card__vote img {
                 vertical-align: middle !important;
