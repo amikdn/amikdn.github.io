@@ -126,108 +126,147 @@
             return { rating: 0, medianReaction: '' };
         }
     }
-    function getRatingPositionStyles(existingElement = null) {
-        // Если передан существующий элемент, проверяем его текущую позицию
+    function getRatingPositionStyles(existingElement = null, card = null) {
+        // Сначала проверяем существующие элементы рейтинга на странице для определения позиции
+        let position = null; // 'top-left', 'top-right', 'bottom-left', 'bottom-right'
+        let existingRating = null;
+        
+        // Если передан существующий элемент, используем его
         if (existingElement) {
-            let computedStyle = window.getComputedStyle(existingElement);
+            existingRating = existingElement;
+        } else {
+            // Ищем любой элемент рейтинга на карточке
+            if (card) {
+                existingRating = card.querySelector('.card__vote:not(.rate--lampa)');
+            }
+            // Если не найден на карточке, ищем на странице
+            if (!existingRating) {
+                existingRating = document.querySelector('.card__vote:not(.rate--lampa), .rate--kp, .card__vote.rate--kp');
+            }
+        }
+        
+        // Если найден существующий элемент рейтинга, определяем его позицию
+        if (existingRating) {
+            let computedStyle = window.getComputedStyle(existingRating);
             let topValue = computedStyle.getPropertyValue('top');
             let rightValue = computedStyle.getPropertyValue('right');
             let bottomValue = computedStyle.getPropertyValue('bottom');
             let leftValue = computedStyle.getPropertyValue('left');
             
-            // Если позиция уже задана (не auto), сохраняем её
-            if (topValue !== 'auto' || bottomValue !== 'auto' || rightValue !== 'auto' || leftValue !== 'auto') {
-                return {
+            // Определяем угол по значениям
+            let top = topValue && topValue !== 'auto' && parseFloat(topValue) < 10;
+            let bottom = bottomValue && bottomValue !== 'auto';
+            let left = leftValue && leftValue !== 'auto' && parseFloat(leftValue) < 10;
+            let right = rightValue && rightValue !== 'auto' && parseFloat(rightValue) < 10;
+            
+            if (top && left) {
+                position = 'top-left';
+            } else if (top && right) {
+                position = 'top-right';
+            } else if (bottom && left) {
+                position = 'bottom-left';
+            } else if (bottom && right) {
+                position = 'bottom-right';
+            } else if (top) {
+                position = 'top-right'; // По умолчанию для top
+            } else if (bottom) {
+                position = 'bottom-right'; // По умолчанию для bottom
+            }
+            
+            // Если позиция определена из существующего элемента, используем её стили
+            if (position) {
+                let borderRadius = computedStyle.getPropertyValue('border-radius') || '';
+                let result = {
                     top: topValue || 'auto',
                     right: rightValue || 'auto',
                     bottom: bottomValue || 'auto',
                     left: leftValue || 'auto',
-                    borderRadius: computedStyle.getPropertyValue('border-radius') || '1em'
+                    borderRadius: borderRadius
                 };
+                
+                // Определяем правильный border-radius в зависимости от угла
+                if (!borderRadius || borderRadius === '0px' || borderRadius.includes('1em')) {
+                    if (position === 'top-left') {
+                        result.borderRadius = '0 0 1em 0'; // Скругление только справа снизу
+                    } else if (position === 'top-right') {
+                        result.borderRadius = '0 0 0 1em'; // Скругление только слева снизу
+                    } else if (position === 'bottom-left') {
+                        result.borderRadius = '0 1em 0 0'; // Скругление только сверху справа
+                    } else if (position === 'bottom-right') {
+                        result.borderRadius = '1em 0 0 0'; // Скругление только сверху слева
+                    }
+                }
+                
+                return result;
             }
         }
         
-        // Определяем тему из различных источников
+        // Если позиция не определена, пробуем определить из темы
         let body = document.body;
         let html = document.documentElement;
-        let theme = null;
+        let themePosition = null;
         
-        // Проверяем data-атрибуты
+        // Проверяем data-атрибуты и классы
         if (body && body.getAttribute('data-theme')) {
             let dataTheme = body.getAttribute('data-theme');
-            if (dataTheme.includes('top') || dataTheme.includes('rating-top')) {
-                theme = 'top';
-            } else if (dataTheme.includes('bottom') || dataTheme.includes('rating-bottom')) {
-                theme = 'bottom';
-            }
-        } else if (html && html.getAttribute('data-theme')) {
-            let dataTheme = html.getAttribute('data-theme');
-            if (dataTheme.includes('top') || dataTheme.includes('rating-top')) {
-                theme = 'top';
-            } else if (dataTheme.includes('bottom') || dataTheme.includes('rating-bottom')) {
-                theme = 'bottom';
+            if (dataTheme.includes('top-left') || dataTheme.includes('rating-top-left')) {
+                position = 'top-left';
+            } else if (dataTheme.includes('top-right') || dataTheme.includes('rating-top-right') || dataTheme.includes('top')) {
+                position = 'top-right';
+            } else if (dataTheme.includes('bottom-left') || dataTheme.includes('rating-bottom-left')) {
+                position = 'bottom-left';
+            } else if (dataTheme.includes('bottom-right') || dataTheme.includes('rating-bottom-right') || dataTheme.includes('bottom')) {
+                position = 'bottom-right';
             }
         }
         
         // Проверяем data-rating-position
-        if (!theme && body && body.getAttribute('data-rating-position')) {
-            theme = body.getAttribute('data-rating-position');
-        }
-        
-        // Проверяем классы на body/html
-        if (!theme && body) {
-            if (body.classList.contains('theme-top') || body.classList.contains('rating-top')) {
-                theme = 'top';
-            } else if (body.classList.contains('theme-bottom') || body.classList.contains('rating-bottom')) {
-                theme = 'bottom';
+        if (!position && body && body.getAttribute('data-rating-position')) {
+            let ratingPos = body.getAttribute('data-rating-position');
+            if (ratingPos.includes('top-left')) {
+                position = 'top-left';
+            } else if (ratingPos.includes('top-right') || ratingPos.includes('top')) {
+                position = 'top-right';
+            } else if (ratingPos.includes('bottom-left')) {
+                position = 'bottom-left';
+            } else if (ratingPos.includes('bottom-right') || ratingPos.includes('bottom')) {
+                position = 'bottom-right';
             }
         }
         
-        // Проверяем настройки Lampa
-        if (!theme && window.Lampa && window.Lampa.Settings) {
-            try {
-                let ratingPosition = Lampa.Settings.get('card_rating_position') || 
-                                    Lampa.Settings.get('rating_position') ||
-                                    Lampa.Storage.get('card_rating_position');
-                if (ratingPosition) {
-                    theme = ratingPosition;
-                }
-            } catch(e) {}
-        }
-        
-        // Проверяем существующие элементы рейтинга для определения позиции
-        if (!theme) {
-            let existingRating = document.querySelector('.card__vote:not(.rate--lampa), .rate--kp, .card__vote.rate--kp');
-            if (existingRating) {
-                let computedStyle = window.getComputedStyle(existingRating);
-                let topValue = computedStyle.getPropertyValue('top');
-                let bottomValue = computedStyle.getPropertyValue('bottom');
-                // Если top установлен и близок к 0, значит рейтинг вверху
-                if (topValue && topValue !== 'auto' && parseFloat(topValue) < 10) {
-                    theme = 'top';
-                } else if (bottomValue && bottomValue !== 'auto') {
-                    theme = 'bottom';
-                }
-            }
-        }
-        
-        // Применяем стили в зависимости от темы
-        if (theme === 'top' || theme === 'rating-top') {
+        // Применяем стили в зависимости от позиции
+        if (position === 'top-left') {
+            return {
+                top: '0',
+                right: 'auto',
+                bottom: 'auto',
+                left: '0',
+                borderRadius: '0 0 1em 0' // Скругление только справа снизу
+            };
+        } else if (position === 'top-right') {
             return {
                 top: '0',
                 right: '0',
                 bottom: 'auto',
                 left: 'auto',
-                borderRadius: '0 0 0 1em'
+                borderRadius: '0 0 0 1em' // Скругление только слева снизу
+            };
+        } else if (position === 'bottom-left') {
+            return {
+                top: 'auto',
+                right: 'auto',
+                bottom: '0',
+                left: '0',
+                borderRadius: '0 1em 0 0' // Скругление только сверху справа
             };
         } else {
             // По умолчанию - нижний правый угол
             return {
                 top: 'auto',
-                right: '0.3em',
-                bottom: '0.3em',
+                right: '0',
+                bottom: '0',
                 left: 'auto',
-                borderRadius: '1em'
+                borderRadius: '1em 0 0 0' // Скругление только сверху слева
             };
         }
     }
@@ -360,7 +399,7 @@
                     voteEl.className = 'card__vote rate--lampa';
                     
                     // Получаем стили позиционирования в зависимости от темы
-                    let positionStyles = getRatingPositionStyles();
+                    let positionStyles = getRatingPositionStyles(null, card);
                     
                     voteEl.style.cssText = `
                         line-height: 1;
@@ -384,6 +423,7 @@
                         max-height: fit-content !important;
                         flex-shrink: 0 !important;
                         align-self: flex-start !important;
+                        overflow: hidden;
                     `;
                     const parent = card.querySelector('.card__view') || card;
                     parent.appendChild(voteEl);
@@ -392,8 +432,8 @@
                     if (!voteEl.classList.contains('rate--lampa')) {
                         // Удаляем все старые классы и добавляем наш
                         voteEl.className = 'card__vote rate--lampa';
-                        // Применяем стили позиционирования, сохраняя существующую позицию если она задана
-                        let positionStyles = getRatingPositionStyles(voteEl);
+                    // Применяем стили позиционирования, сохраняя существующую позицию если она задана
+                    let positionStyles = getRatingPositionStyles(voteEl, card);
                         voteEl.style.top = positionStyles.top;
                         voteEl.style.right = positionStyles.right;
                         voteEl.style.bottom = positionStyles.bottom;
@@ -410,7 +450,16 @@
                     let reactionSrc = 'https://cubnotrip.top/img/reactions/' + cached.medianReaction + '.svg';
                     html += `<img style="width:1em;height:1em;margin:0 0.2em;vertical-align:middle;" src="${reactionSrc}">`;
                 }
+                // Обновляем содержимое и добавляем стили для иконки, чтобы она не выходила за пределы
                 voteEl.innerHTML = html;
+                // Убеждаемся, что иконка внутри окантовки
+                let icon = voteEl.querySelector('img');
+                if (icon) {
+                    icon.style.maxWidth = '1em';
+                    icon.style.maxHeight = '1em';
+                    icon.style.display = 'inline-block';
+                    icon.style.verticalAlign = 'middle';
+                }
                 voteEl.style.display = '';
             } else {
                 // Если нечего показывать, удаляем только наш элемент
@@ -471,7 +520,7 @@
                         currentVoteEl.className = 'card__vote rate--lampa';
                         
                         // Получаем стили позиционирования в зависимости от темы
-                        let positionStyles = getRatingPositionStyles();
+                        let positionStyles = getRatingPositionStyles(null, card);
                         
                         currentVoteEl.style.cssText = `
                             line-height: 1;
@@ -495,6 +544,7 @@
                             max-height: fit-content !important;
                             flex-shrink: 0 !important;
                             align-self: flex-start !important;
+                            overflow: hidden;
                         `;
                         const parent = card.querySelector('.card__view') || card;
                         parent.appendChild(currentVoteEl);
@@ -504,7 +554,7 @@
                             // Удаляем все старые классы и добавляем наш
                             currentVoteEl.className = 'card__vote rate--lampa';
                             // Применяем стили позиционирования, сохраняя существующую позицию если она задана
-                            let positionStyles = getRatingPositionStyles(currentVoteEl);
+                            let positionStyles = getRatingPositionStyles(currentVoteEl, card);
                             currentVoteEl.style.top = positionStyles.top;
                             currentVoteEl.style.right = positionStyles.right;
                             currentVoteEl.style.bottom = positionStyles.bottom;
@@ -512,6 +562,7 @@
                             currentVoteEl.style.borderRadius = positionStyles.borderRadius;
                             currentVoteEl.style.padding = '0.2em 0.5em';
                             currentVoteEl.style.fontSize = '';
+                            currentVoteEl.style.overflow = 'hidden';
                         }
                     }
                     
@@ -522,10 +573,11 @@
                     let html = ratingToShow;
                     if (showIcon && result.medianReaction) {
                         let reactionSrc = 'https://cubnotrip.top/img/reactions/' + result.medianReaction + '.svg';
-                        html += `<img style="width:1em;height:1em;margin:0 0.2em;vertical-align:middle;" src="${reactionSrc}">`;
+                        html += `<img style="width:1em;height:1em;margin:0 0.2em;vertical-align:middle;max-width:1em;max-height:1em;display:inline-block;" src="${reactionSrc}">`;
                     }
                     currentVoteEl.innerHTML = html;
                     currentVoteEl.style.display = '';
+                    currentVoteEl.style.overflow = 'hidden';
                 } else {
                     // Если нечего показывать, удаляем только наш элемент
                     if (currentVoteEl && currentVoteEl.classList.contains('rate--lampa') && currentVoteEl.dataset.movieId === id.toString()) {
@@ -538,12 +590,14 @@
     function updateRatingPosition(ratingElement) {
         if (!ratingElement) return;
         // Сохраняем существующую позицию, если она уже задана темой
-        let positionStyles = getRatingPositionStyles(ratingElement);
+        let card = ratingElement.closest('.card');
+        let positionStyles = getRatingPositionStyles(ratingElement, card);
         ratingElement.style.top = positionStyles.top;
         ratingElement.style.right = positionStyles.right;
         ratingElement.style.bottom = positionStyles.bottom;
         ratingElement.style.left = positionStyles.left;
         ratingElement.style.borderRadius = positionStyles.borderRadius;
+        ratingElement.style.overflow = 'hidden';
     }
     function pollCards() {
         const allCards = document.querySelectorAll('.card');
@@ -618,8 +672,14 @@
                 flex-shrink: 0 !important;
                 align-self: flex-start !important;
             }
+            .card__vote {
+                overflow: hidden !important;
+            }
             .card__vote img {
                 vertical-align: middle !important;
+                max-width: 1em !important;
+                max-height: 1em !important;
+                display: inline-block !important;
             }
             /* Стили для темы с рейтингом в верхнем углу */
             [data-theme*="top"] .card__vote.rate--lampa,
