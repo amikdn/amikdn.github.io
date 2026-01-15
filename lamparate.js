@@ -153,24 +153,45 @@
             let bottomValue = computedStyle.getPropertyValue('bottom');
             let leftValue = computedStyle.getPropertyValue('left');
             
-            // Определяем угол по значениям
-            let top = topValue && topValue !== 'auto' && parseFloat(topValue) < 10;
-            let bottom = bottomValue && bottomValue !== 'auto';
-            let left = leftValue && leftValue !== 'auto' && parseFloat(leftValue) < 10;
-            let right = rightValue && rightValue !== 'auto' && parseFloat(rightValue) < 10;
+            // Определяем угол по значениям - проверяем точные значения позиции
+            let topIsSet = topValue && topValue !== 'auto' && (topValue === '0' || topValue === '0px' || parseFloat(topValue) < 10);
+            let bottomIsSet = bottomValue && bottomValue !== 'auto' && (bottomValue === '0' || bottomValue === '0px' || parseFloat(bottomValue) < 10);
+            let leftIsSet = leftValue && leftValue !== 'auto' && (leftValue === '0' || leftValue === '0px' || parseFloat(leftValue) < 10);
+            let rightIsSet = rightValue && rightValue !== 'auto' && (rightValue === '0' || rightValue === '0px' || parseFloat(rightValue) < 10);
             
-            if (top && left) {
+            // Если top и bottom оба установлены, используем тот, который ближе к 0
+            if (topIsSet && bottomIsSet) {
+                if (parseFloat(topValue) <= parseFloat(bottomValue)) {
+                    bottomIsSet = false;
+                } else {
+                    topIsSet = false;
+                }
+            }
+            
+            // Если left и right оба установлены, используем тот, который ближе к 0
+            if (leftIsSet && rightIsSet) {
+                if (parseFloat(leftValue) <= parseFloat(rightValue)) {
+                    rightIsSet = false;
+                } else {
+                    leftIsSet = false;
+                }
+            }
+            
+            // Определяем позицию по комбинации top/bottom и left/right
+            if (topIsSet && leftIsSet) {
                 position = 'top-left';
-            } else if (top && right) {
+            } else if (topIsSet && rightIsSet) {
                 position = 'top-right';
-            } else if (bottom && left) {
+            } else if (topIsSet) {
+                // Если только top определен, по умолчанию top-right (обычно рейтинг справа)
+                position = 'top-right';
+            } else if (bottomIsSet && leftIsSet) {
                 position = 'bottom-left';
-            } else if (bottom && right) {
+            } else if (bottomIsSet && rightIsSet) {
                 position = 'bottom-right';
-            } else if (top) {
-                position = 'top-right'; // По умолчанию для top
-            } else if (bottom) {
-                position = 'bottom-right'; // По умолчанию для bottom
+            } else if (bottomIsSet) {
+                // Если только bottom определен, по умолчанию bottom-right (обычно рейтинг справа)
+                position = 'bottom-right';
             }
             
             // Если позиция определена из существующего элемента, используем её стили
@@ -415,7 +436,7 @@
                         left: ${positionStyles.left};
                         background: rgba(0, 0, 0, 0.5);
                         color: #fff;
-                        padding: 0.2em 0.5em;
+                        padding: 0.25em 0.7em;
                         border-radius: ${positionStyles.borderRadius};
                         display: flex;
                         align-items: center;
@@ -439,7 +460,7 @@
                         voteEl.style.bottom = positionStyles.bottom;
                         voteEl.style.left = positionStyles.left;
                         voteEl.style.borderRadius = positionStyles.borderRadius;
-                        voteEl.style.padding = '0.2em 0.5em';
+                        voteEl.style.padding = '0.25em 0.7em';
                         voteEl.style.fontSize = '';
                     }
                 }
@@ -536,7 +557,7 @@
                             left: ${positionStyles.left};
                             background: rgba(0, 0, 0, 0.5);
                             color: #fff;
-                            padding: 0.2em 0.5em;
+                            padding: 0.25em 0.7em;
                             border-radius: ${positionStyles.borderRadius};
                             display: flex;
                             align-items: center;
@@ -560,7 +581,7 @@
                             currentVoteEl.style.bottom = positionStyles.bottom;
                             currentVoteEl.style.left = positionStyles.left;
                             currentVoteEl.style.borderRadius = positionStyles.borderRadius;
-                            currentVoteEl.style.padding = '0.2em 0.5em';
+                            currentVoteEl.style.padding = '0.25em 0.7em';
                             currentVoteEl.style.fontSize = '';
                             currentVoteEl.style.overflow = 'hidden';
                         }
