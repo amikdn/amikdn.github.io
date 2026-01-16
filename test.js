@@ -1,7 +1,7 @@
 (function() {
     'use strict';
 
-    const fixedUnicId = 'netwhiz';
+    const fixedUnicId = 'qch0yxct';
    // const fixedLampaUid = 'xgGax1Fs';
 
     Lampa.Listener.follow('app', function(e) {
@@ -12,4 +12,5 @@
             console.log('ID и platform установлены:', fixedUnicId, fixedLampaUid, 'browser');
         }
     });
+
 })();
