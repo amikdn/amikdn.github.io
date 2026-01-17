@@ -13,9 +13,9 @@
                 return;
             }
             
-            // Проверяем по наличию sprite-shots внутри items-line
-            var $shotsSprite = $itemsLine.find('use[xlink\\:href="#sprite-shots"], use[*|href="#sprite-shots"]');
-            if ($shotsSprite.length) {
+            // Проверяем по наличию sprite-shots внутри items-line (через нативный querySelector)
+            var shotsSprite = $itemsLine[0].querySelector('use[xlink\\:href="#sprite-shots"]');
+            if (shotsSprite) {
                 $itemsLine.remove();
             }
         });
@@ -28,7 +28,8 @@
         // Удаляем full-person с Shots напрямую, как в ads_full удаляются кнопки
         container.find('.full-person').filter(function() {
             var $this = $(this);
-            var hasShotsSprite = $this.find('use[xlink\\:href="#sprite-shots"], use[*|href="#sprite-shots"]').length > 0;
+            // Проверяем sprite-shots через нативный querySelector
+            var hasShotsSprite = this.querySelector('use[xlink\\:href="#sprite-shots"]') !== null;
             var hasShotsText = $this.find('.full-person__name').text().trim() === 'Shots';
             return hasShotsSprite || hasShotsText;
         }).remove();
