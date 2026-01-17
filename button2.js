@@ -1,64 +1,49 @@
 (function () {
     'use strict';
     
-    // Функция для удаления shots элементов
-    function removeShotsElements() {
-        // Удаляем все элементы с sprite-shots
-        var shotsElements = document.querySelectorAll('use[xlink\\:href="#sprite-shots"]');
-        shotsElements.forEach(function(el) {
-            var svg = el.closest('svg');
-            if (svg) svg.remove();
-        });
-        
-        // Удаляем items-line блоки, содержащие Shots
-        var itemsLines = document.querySelectorAll('.items-line');
-        itemsLines.forEach(function(itemsLine) {
-            var shotsPerson = itemsLine.querySelector('.full-person__name');
-            if (shotsPerson && shotsPerson.textContent.trim() === 'Shots') {
-                itemsLine.remove();
+    // Функция для удаления items-line с Shots
+    function removeShotsItemsLine() {
+        $('.items-line').each(function() {
+            var $itemsLine = $(this);
+            var $shotsPerson = $itemsLine.find('.full-person__name');
+            if ($shotsPerson.length && $shotsPerson.text().trim() === 'Shots') {
+                $itemsLine.remove();
             }
         });
     }
     
-    // Удаление shots элементов на странице full
+    // Удаление кнопки шотсов на странице full (по аналогии с трейлерами)
     Lampa.Listener.follow('full', function (e) {
         if (e.type == 'complite') {
             var render = e.object.activity.render();
-            // Удаляем элементы с sprite-shots в рендере
-            render.find('use[xlink\\:href="#sprite-shots"]').closest('svg').remove();
-            // Также выполняем общую очистку
-            removeShotsElements();
+            // Удаляем full-person элемент с Shots (кнопку шотсов)
+            render.find('.full-person__name').each(function() {
+                if (this.textContent.trim() === 'Shots') {
+                    $(this).closest('.full-person').remove();
+                }
+            });
         }
     });
     
-    // Удаление shots элементов на главной странице
+    // Удаление блока шотсов на главной странице
     Lampa.Listener.follow('main', function (e) {
         if (e.type == 'complite' || e.type == 'ready') {
-            removeShotsElements();
+            removeShotsItemsLine();
         }
     });
     
-    // Дополнительная проверка при динамическом обновлении страницы
-    var observer = new MutationObserver(function(mutations) {
-        removeShotsElements();
+    // Удаление при динамическом добавлении элементов (для предотвращения застревания)
+    var removeShotsObserver = new MutationObserver(function() {
+        removeShotsItemsLine();
     });
     
-    // Начинаем наблюдение за изменениями DOM
+    // Начинаем наблюдение после загрузки
     if (document.body) {
-        observer.observe(document.body, {
+        removeShotsObserver.observe(document.body, {
             childList: true,
             subtree: true
         });
-    } else {
-        document.addEventListener('DOMContentLoaded', function() {
-            observer.observe(document.body, {
-                childList: true,
-                subtree: true
-            });
-        });
+        // Первоначальная проверка
+        setTimeout(removeShotsItemsLine, 100);
     }
-    
-    // Первоначальная очистка
-    removeShotsElements();
 })();
-
