@@ -1,7 +1,7 @@
 (function() {
     'use strict';
     var LAMPAC_ICON = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><path d="M20.331 14.644l-13.794-13.831 17.55 10.075zM2.938 0c-0.813 0.425-1.356 1.2-1.356 2.206v27.581c0 1.006 0.544 1.781 1.356 2.206l16.038-16zM29.512 14.1l-3.681-2.131-4.106 4.031 4.106 4.031 3.756-2.131c1.125-0.893 1.125-2.906-0.075-3.8zM6.538 31.188l17.55-10.075-3.756-3.756z" fill="currentColor"></path></svg>';
-    var EXCLUDED_CLASSES = ['button--edit-order']; // Убираем button--play, чтобы она обрабатывалась
+    var EXCLUDED_CLASSES = ['button--play', 'button--edit-order'];
     var DEFAULT_GROUPS = [
         { name: 'online', patterns: ['online', 'lampac', 'modss', 'showy'], label: 'Онлайн' },
         { name: 'torrent', patterns: ['torrent'], label: 'Торренты' },
@@ -77,7 +77,12 @@
     function isExcluded(button) {
         var classes = button.attr('class') || '';
         for (var i = 0; i < EXCLUDED_CLASSES.length; i++) {
-            if (classes.indexOf(EXCLUDED_CLASSES[i]) !== -1) {
+            var excludedClass = EXCLUDED_CLASSES[i];
+            // Если это button--play и настройка "Отображать все кнопки" выключена, не исключаем её
+            if (excludedClass === 'button--play' && !getShowAllButtons()) {
+                continue;
+            }
+            if (classes.indexOf(excludedClass) !== -1) {
                 return true;
             }
         }
@@ -85,22 +90,15 @@
     }
 
     function categorizeButtons(container) {
-        // Собираем ВСЕ кнопки, включая "Смотреть" - как в interface_mod.js
-        var allButtons = container.find('.full-start__button').not('.button--edit-order');
-        var categories = { online: [], torrent: [], trailer: [], favorite: [], subscribe: [], book: [], reaction: [], play: [], other: [] };
+        var buttonSelector = '.button--edit-order';
+        if (getShowAllButtons()) {
+            buttonSelector += ', .button--play';
+        }
+        var allButtons = container.find('.full-start__button').not(buttonSelector);
+        var categories = { online: [], torrent: [], trailer: [], favorite: [], subscribe: [], book: [], reaction: [], other: [] };
         allButtons.each(function() {
             var $btn = $(this);
-            
-            // Проверяем, является ли это кнопкой "Смотреть" ПЕРЕД isExcluded
-            var classes = $btn.attr('class') || '';
-            if (classes.indexOf('button--play') !== -1) {
-                categories.play.push($btn);
-                return;
-            }
-            
-            // Исключаем только карандаш (button--edit-order), кнопку "Смотреть" уже обработали
             if (isExcluded($btn)) return;
-            
             var type = getButtonType($btn);
             if (type === 'online' && $btn.hasClass('lampac--button') && !$btn.hasClass('modss--button') && !$btn.hasClass('showy--button')) {
                 var svgElement = $btn.find('svg').first();
@@ -119,27 +117,16 @@
 
     function sortByCustomOrder(buttons) {
         var customOrder = getCustomOrder();
-        var playButtons = [];  // Кнопка "Смотреть" всегда первой
         var priority = [];
         var regular = [];
-        
         buttons.forEach(function(btn) {
-            var classes = btn.attr('class') || '';
             var id = getButtonId(btn);
-            
-            // Кнопка "Смотреть" всегда первой
-            if (classes.indexOf('button--play') !== -1) {
-                playButtons.push(btn);
-                return;
-            }
-            
             if (id === 'modss_online_button' || id === 'showy_online_button') {
                 priority.push(btn);
             } else {
                 regular.push(btn);
             }
         });
-        
         priority.sort(function(a, b) {
             var idA = getButtonId(a);
             var idB = getButtonId(b);
@@ -149,7 +136,6 @@
             if (idB === 'showy_online_button') return 1;
             return 0;
         });
-        
         if (!customOrder.length) {
             regular.sort(function(a, b) {
                 var typeOrder = ['online', 'torrent', 'trailer', 'favorite', 'subscribe', 'book', 'reaction', 'other'];
@@ -161,9 +147,8 @@
                 if (indexB === -1) indexB = 999;
                 return indexA - indexB;
             });
-            return playButtons.concat(priority).concat(regular);
+            return priority.concat(regular);
         }
-        
         var sorted = [];
         var remaining = regular.slice();
         customOrder.forEach(function(id) {
@@ -175,50 +160,14 @@
                 }
             }
         });
-        return playButtons.concat(priority).concat(sorted).concat(remaining);
-    }
-
-    function getDefaultVisibleButtonClasses() {
-        // Стандартные кнопки, которые должны быть видны по умолчанию (включая "Смотреть")
-        return ['button--play', 'button--book', 'button--reaction', 'button--options'];
+        return priority.concat(sorted).concat(remaining);
     }
 
     function applyHiddenButtons(buttons) {
         var hidden = getHiddenButtons();
-        var showAllButtons = Lampa.Storage.get('show_all_buttons_enabled', false);
-        var defaultVisibleClasses = getDefaultVisibleButtonClasses();
-        
         buttons.forEach(function(btn) {
             var id = getButtonId(btn);
-            var classes = btn.attr('class') || '';
-            var isInHiddenList = hidden.indexOf(id) !== -1;
-            
-            // Определяем, является ли кнопка стандартной видимой
-            var isDefaultVisible = false;
-            for (var i = 0; i < defaultVisibleClasses.length; i++) {
-                if (classes.indexOf(defaultVisibleClasses[i]) !== -1) {
-                    isDefaultVisible = true;
-                    break;
-                }
-            }
-            
-            if (showAllButtons) {
-                // Если настройка включена - показываем ВСЕ кнопки (убираем все классы скрытия)
-                btn.removeClass('hidden').removeClass('hide');
-            } else {
-                // Если настройка выключена - показываем только стандартные кнопки
-                // Исключение: если кнопка в списке скрытых редактора - скрываем её
-                if (isInHiddenList) {
-                    // Кнопка явно скрыта через редактор
-                    btn.addClass('hidden');
-                } else if (isDefaultVisible) {
-                    // Стандартная кнопка - показываем
-                    btn.removeClass('hidden').removeClass('hide');
-                } else {
-                    // Нестандартная кнопка - скрываем
-                    btn.addClass('hidden');
-                }
-            }
+            btn.toggleClass('hidden', hidden.indexOf(id) !== -1);
         });
     }
 
@@ -255,11 +204,8 @@
 
     function applyChanges() {
         if (!currentContainer) return;
-        var showAllButtons = Lampa.Storage.get('show_all_buttons_enabled', false);
         var categories = categorizeButtons(currentContainer);
-        // Кнопка "Смотреть" должна быть первой - как в reorderButtons
         var allButtons = []
-            .concat(categories.play)  // Кнопка "Смотреть" первой
             .concat(categories.online)
             .concat(categories.torrent)
             .concat(categories.trailer)
@@ -273,32 +219,19 @@
         currentButtons = allButtons;
         var targetContainer = currentContainer.find('.full-start-new__buttons');
         if (!targetContainer.length) return;
-        
-        // Удаляем только кнопку редактирования (карандаш)
-        currentContainer.find('.button--edit-order').remove();
-        targetContainer.children().detach();
-        
-        // Применяем логику скрытия/показа
-        applyHiddenButtons(currentButtons);
-        
+        targetContainer.find('.full-start__button').not('.button--edit-order').detach();
         var visibleButtons = [];
         currentButtons.forEach(function(btn) {
-            // При включенной настройке убираем класс hide (дополнительная проверка)
-            if (showAllButtons) {
-                btn.removeClass('hide').removeClass('hidden');
-            }
-            // Добавляем кнопку в контейнер
             targetContainer.append(btn);
-            // Проверяем видимость - кнопка не должна быть hidden
-            if (!btn.hasClass('hidden')) {
-                visibleButtons.push(btn);
-            }
+            if (!btn.hasClass('hidden')) visibleButtons.push(btn);
         });
-        
-        var editButton = createEditButton();
-        targetContainer.append(editButton);
-        visibleButtons.push(editButton);
         applyButtonAnimation(visibleButtons);
+        var editBtn = targetContainer.find('.button--edit-order');
+        if (editBtn.length) {
+            editBtn.detach();
+            targetContainer.append(editBtn);
+        }
+        applyHiddenButtons(currentButtons);
         var viewmode = Lampa.Storage.get('buttons_viewmode', 'default');
         targetContainer.removeClass('icons-only always-text');
         if (viewmode === 'icons') targetContainer.addClass('icons-only');
@@ -476,11 +409,15 @@
             Lampa.Storage.set('button_custom_order', []);
             Lampa.Storage.set('button_hidden', []);
             Lampa.Storage.set('buttons_viewmode', 'default');
-            Lampa.Modal.close();
-            setTimeout(function() {
-                if (currentContainer) {
-                    currentContainer.find('.button--play, .button--edit-order').remove();
-                    currentContainer.data('buttons-processed', false);
+                    Lampa.Modal.close();
+                    setTimeout(function() {
+                        if (currentContainer) {
+                            var removeSelector = '.button--edit-order';
+                            if (getShowAllButtons()) {
+                                removeSelector += ', .button--play';
+                            }
+                            currentContainer.find(removeSelector).remove();
+                            currentContainer.data('buttons-processed', false);
                     var targetContainer = currentContainer.find('.full-start-new__buttons');
                     var existingButtons = targetContainer.find('.full-start__button').toArray();
                     allButtonsOriginal.forEach(function(originalBtn) {
@@ -522,25 +459,13 @@
         var targetContainer = container.find('.full-start-new__buttons');
         if (!targetContainer.length) return false;
         currentContainer = container;
-        var showAllButtons = Lampa.Storage.get('show_all_buttons_enabled', false);
-        
-        // ВАЖНО: Сохраняем кнопку "Смотреть" ДО categorizeButtons, чтобы она не потерялась
-        var existingPlayButton = targetContainer.find('.button--play').first();
-        var playButtonClone = null;
-        if (existingPlayButton.length) {
-            playButtonClone = existingPlayButton.clone(true, true);
+        var removeSelector = '.button--edit-order';
+        if (getShowAllButtons()) {
+            removeSelector += ', .button--play';
         }
-        
+        container.find(removeSelector).remove();
         var categories = categorizeButtons(container);
-        
-        // Если кнопка "Смотреть" не была найдена в categorizeButtons, используем сохранённую
-        if (categories.play.length === 0 && playButtonClone && playButtonClone.length) {
-            categories.play.push(playButtonClone);
-        }
-        
-        // Кнопка "Смотреть" должна быть первой - как в interface_mod.js
         var allButtons = []
-            .concat(categories.play)  // Кнопка "Смотреть" первой
             .concat(categories.online)
             .concat(categories.torrent)
             .concat(categories.trailer)
@@ -549,17 +474,6 @@
             .concat(categories.book)
             .concat(categories.reaction)
             .concat(categories.other);
-        
-        // ВАЖНО: Проверяем, что кнопка "Смотреть" есть в списке
-        var hasPlayButton = allButtons.some(function(btn) {
-            var classes = btn.attr ? btn.attr('class') : (btn.className || '');
-            return classes.indexOf('button--play') !== -1;
-        });
-        // Если кнопки "Смотреть" нет в списке, но есть сохранённая - добавляем её
-        if (!hasPlayButton && playButtonClone && playButtonClone.length) {
-            allButtons.unshift(playButtonClone); // Добавляем в начало
-        }
-        
         allButtons = sortByCustomOrder(allButtons);
         allButtonsCache = allButtons;
         if (allButtonsOriginal.length === 0) {
@@ -568,48 +482,16 @@
             });
         }
         currentButtons = allButtons;
-        
-        // Удаляем только кнопку редактирования (карандаш) - как в interface_mod.js
-        container.find('.button--edit-order').remove();
-        
-        // Удаляем ВСЕ дочерние элементы контейнера (как в interface_mod.js cont.children().detach())
-        // Кнопка "Смотреть" будет добавлена обратно вместе с остальными
         targetContainer.children().detach();
-        
-        // Применяем логику скрытия/показа до добавления в контейнер
-        applyHiddenButtons(currentButtons);
-        
         var visibleButtons = [];
         currentButtons.forEach(function(btn) {
-            var classes = btn.attr ? btn.attr('class') : (btn.className || '');
-            var isPlayButton = classes.indexOf('button--play') !== -1;
-            
-            // При включенной настройке убираем класс hide (дополнительная проверка)
-            if (showAllButtons) {
-                btn.removeClass('hide').removeClass('hidden');
-            } else if (isPlayButton) {
-                // Кнопка "Смотреть" всегда видна - убираем классы скрытия
-                btn.removeClass('hidden').removeClass('hide');
-            }
-            
-            // Добавляем кнопку в контейнер
             targetContainer.append(btn);
-            // Проверяем видимость - кнопка не должна быть hidden
-            // Кнопка "Смотреть" всегда должна быть видимой
-            if (!btn.hasClass('hidden') || isPlayButton) {
-                if (isPlayButton) {
-                    // Кнопка "Смотреть" всегда первой в visibleButtons
-                    visibleButtons.unshift(btn);
-                } else {
-                    visibleButtons.push(btn);
-                }
-            }
+            if (!btn.hasClass('hidden')) visibleButtons.push(btn);
         });
-        
         var editButton = createEditButton();
         targetContainer.append(editButton);
         visibleButtons.push(editButton);
-        
+        applyHiddenButtons(currentButtons);
         var viewmode = Lampa.Storage.get('buttons_viewmode', 'default');
         targetContainer.removeClass('icons-only always-text');
         if (viewmode === 'icons') targetContainer.addClass('icons-only');
@@ -648,7 +530,6 @@
             '@keyframes button-fade-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }' +
             '.full-start-new__buttons .full-start__button { opacity: 0; }' +
             '.full-start__button.hidden { display: none !important; }' +
-            '.full-start__button.hide { display: none !important; }' +
             '.full-start-new__buttons { ' +
             'display: flex !important; ' +
             'flex-direction: row !important; ' +
@@ -674,31 +555,15 @@
             if (targetContainer.length) {
                 targetContainer.addClass('buttons-loading');
             }
-            // Увеличиваем задержку, чтобы кнопка "Смотреть" успела создаться системой
             setTimeout(function() {
                 try {
                     if (!container.data('buttons-processed')) {
-                        // Проверяем наличие кнопки "Смотреть" перед обработкой
-                        var playButton = targetContainer.find('.button--play').first();
-                        if (!playButton.length) {
-                            // Если кнопки нет, ждём ещё немного
-                            setTimeout(function() {
-                                container.data('buttons-processed', true);
-                                if (reorderButtons(container)) {
-                                    if (targetContainer.length) {
-                                        targetContainer.removeClass('buttons-loading');
-                                    }
-                                    refreshController();
-                                }
-                            }, 200);
-                        } else {
-                            container.data('buttons-processed', true);
-                            if (reorderButtons(container)) {
-                                if (targetContainer.length) {
-                                    targetContainer.removeClass('buttons-loading');
-                                }
-                                refreshController();
+                        container.data('buttons-processed', true);
+                        if (reorderButtons(container)) {
+                            if (targetContainer.length) {
+                                targetContainer.removeClass('buttons-loading');
                             }
+                            refreshController();
                         }
                     }
                 } catch(err) {
@@ -706,8 +571,16 @@
                         targetContainer.removeClass('buttons-loading');
                     }
                 }
-            }, 500);
+            }, 400);
         });
+    }
+
+    function getShowAllButtons() {
+        return Lampa.Storage.get('buttons_show_all', true);
+    }
+
+    function setShowAllButtons(value) {
+        Lampa.Storage.set('buttons_show_all', value);
     }
 
     if (Lampa.SettingsApi) {
@@ -732,72 +605,34 @@
             }
         });
 
-        // Настройка "Отображать все кнопки"
         Lampa.SettingsApi.addParam({
             component: 'interface',
-            param: { name: 'show_all_buttons_enabled', type: 'trigger', default: false },
-            field: { name: 'Отображать все кнопки', description: 'Показывать все кнопки, включая скрытые по умолчанию' },
+            param: { name: 'buttons_show_all', type: 'trigger', default: true },
+            field: { name: 'Отображать все кнопки' },
             onChange: function(value) {
-                Lampa.Storage.set('show_all_buttons_enabled', value);
-                // Просто обновляем видимость кнопок без перезагрузки и провала в карточку
+                setShowAllButtons(value);
                 setTimeout(function() {
-                    var targetContainers = $('.full-start-new__buttons');
-                    if (targetContainers.length) {
-                        targetContainers.find('.full-start__button').each(function() {
-                            var btn = $(this);
-                            var classes = btn.attr('class') || '';
-                            
-                            // Не трогаем кнопку "Смотреть" и карандаш
-                            if (classes.indexOf('button--play') !== -1 || classes.indexOf('button--edit-order') !== -1) {
-                                return;
-                            }
-                            
-                            if (value) {
-                                // Если включено - убираем класс hide и hidden со всех кнопок
-                                btn.removeClass('hide').removeClass('hidden');
-                            } else {
-                                // Если выключено - применяем логику скрытия
-                                var btnId = getButtonId(btn);
-                                var hidden = getHiddenButtons();
-                                var isInHiddenList = hidden.indexOf(btnId) !== -1;
-                                var defaultVisibleClasses = getDefaultVisibleButtonClasses();
-                                
-                                // Определяем, является ли кнопка стандартной видимой
-                                var isDefaultVisible = false;
-                                for (var i = 0; i < defaultVisibleClasses.length; i++) {
-                                    if (classes.indexOf(defaultVisibleClasses[i]) !== -1) {
-                                        isDefaultVisible = true;
-                                        break;
-                                    }
-                                }
-                                
-                                // Если кнопка в списке скрытых - скрываем её
-                                if (isInHiddenList) {
-                                    btn.addClass('hidden');
-                                } else if (hidden.length === 0) {
-                                    // Первый запуск - показываем только стандартные кнопки
-                                    if (!isDefaultVisible) {
-                                        btn.addClass('hidden');
-                                    } else {
-                                        btn.removeClass('hidden');
-                                    }
-                                } else {
-                                    // Пользователь уже настраивал - показываем все кроме скрытых
-                                    btn.removeClass('hidden');
-                                }
-                                // Возвращаем класс hide кнопкам, которые должны быть скрыты по умолчанию
-                                if (classes.indexOf('button--subscribe') !== -1) {
-                                    btn.addClass('hide');
-                                }
-                            }
-                        });
+                    if (currentContainer) {
+                        currentContainer.data('buttons-processed', false);
+                        var targetContainer = currentContainer.find('.full-start-new__buttons');
+                        var removeSelector = '.button--edit-order';
+                        if (getShowAllButtons()) {
+                            removeSelector += ', .button--play';
+                        }
+                        targetContainer.find(removeSelector).remove();
+                        reorderButtons(currentContainer);
+                        refreshController();
                     }
                 }, 100);
             },
             onRender: function(element) {
                 setTimeout(function() {
-                    // Добавляем после "Редактор кнопок"
-                    $('div[data-name="buttons_editor_enabled"]').after(element);
+                    var editorElement = $('div[data-name="buttons_editor_enabled"]').closest('.settings-param');
+                    if (editorElement.length) {
+                        editorElement.after(element);
+                    } else {
+                        $('div[data-name="interface_size"]').after(element);
+                    }
                 }, 0);
             }
         });
