@@ -459,27 +459,43 @@
             onBack: function() {
                 Lampa.Modal.close();
                 applyChanges();
-                setTimeout(function() {
+                var focusEditButton = function(attempt) {
+                    attempt = attempt || 1;
                     if (currentContainer) {
                         var targetContainer = currentContainer.find('.full-start-new__buttons');
                         if (targetContainer.length) {
-                            var editButton = targetContainer.find('.button--edit-order.selector');
+                            var editButton = targetContainer.find('use[xlink\\:href="#sprite-edit"]').closest('.button--edit-order.selector');
+                            if (!editButton.length) {
+                                editButton = targetContainer.find('.button--edit-order.selector');
+                            }
+                            if (!editButton.length) {
+                                editButton = $(targetContainer[0].querySelector('use[xlink\\:href="#sprite-edit"]')).closest('.button--edit-order.selector');
+                            }
                             if (editButton.length && editButton.is(':visible')) {
                                 if (Lampa.Controller && Lampa.Controller.toggle) {
                                     try {
                                         Lampa.Controller.toggle(editButton[0]);
                                     } catch(e) {
                                         try {
+                                            editButton.addClass('focus');
                                             editButton.trigger('hover');
                                         } catch(e2) {}
                                     }
                                 } else {
+                                    editButton.addClass('focus');
                                     editButton.trigger('hover');
                                 }
+                            } else if (attempt < 3) {
+                                setTimeout(function() { focusEditButton(attempt + 1); }, 100);
                             }
+                        } else if (attempt < 3) {
+                            setTimeout(function() { focusEditButton(attempt + 1); }, 100);
                         }
+                    } else if (attempt < 3) {
+                        setTimeout(function() { focusEditButton(attempt + 1); }, 100);
                     }
-                }, 200);
+                };
+                setTimeout(function() { focusEditButton(1); }, 300);
             }
         });
     }
