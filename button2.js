@@ -72,11 +72,11 @@
     function restoreSystemButtons(container) {
         var targetContainer = container.find('.full-start-new__buttons');
         if (!targetContainer.length) return;
-        var showPlayButton = Lampa.Storage.get('buttons_play_visible', false);
+        var showAllButtons = Lampa.Storage.get('buttons_show_all', false);
         savedSystemButtons.forEach(function(btn) {
             var classes = btn.attr('class') || '';
             if (classes.indexOf('button--play') !== -1) {
-                if (showPlayButton) {
+                if (!showAllButtons) {
                     var existingPlayBtn = targetContainer.find('.button--play');
                     if (!existingPlayBtn.length) {
                         var playBtn = btn.clone(true, true);
@@ -87,11 +87,42 @@
                             targetContainer.prepend(playBtn);
                         }
                     }
+                } else {
+                    targetContainer.find('.button--play').remove();
                 }
             } else if (classes.indexOf('button--edit-order') !== -1) {
                 // edit-order button создается отдельно, не восстанавливаем
             }
         });
+    }
+
+    function insertButtonsIntoPlayButton(container, viewButtons) {
+        var targetContainer = container.find('.full-start-new__buttons');
+        if (!targetContainer.length) return;
+        var playBtn = targetContainer.find('.button--play').first();
+        if (!playBtn.length) return;
+
+        var submenuContainer = playBtn.find('.button--play-submenu');
+        if (!submenuContainer.length) {
+            submenuContainer = $('<div class="button--play-submenu"></div>');
+            playBtn.append(submenuContainer);
+            playBtn.addClass('has-submenu');
+            playBtn.off('hover:enter.submenu').on('hover:enter.submenu', function(e) {
+                e.stopPropagation();
+                var submenu = $(this).find('.button--play-submenu');
+                if (submenu.length) {
+                    submenu.toggleClass('visible');
+                }
+            });
+        }
+        submenuContainer.empty();
+        if (viewButtons && viewButtons.length > 0) {
+            viewButtons.forEach(function(btn) {
+                var clonedBtn = btn.clone(true, true);
+                clonedBtn.css({ 'opacity': '1', 'animation': 'none' });
+                submenuContainer.append(clonedBtn);
+            });
+        }
     }
 
     function getButtonType(button) {
@@ -230,27 +261,42 @@
         if (!currentContainer) return;
         saveSystemButtons(currentContainer);
         var categories = categorizeButtons(currentContainer);
-        var allButtons = []
+        var viewButtons = []
             .concat(categories.online)
             .concat(categories.torrent)
-            .concat(categories.trailer)
+            .concat(categories.trailer);
+        var otherButtons = []
             .concat(categories.favorite)
             .concat(categories.subscribe)
             .concat(categories.book)
             .concat(categories.reaction)
             .concat(categories.other);
-        allButtons = sortByCustomOrder(allButtons);
+        viewButtons = sortByCustomOrder(viewButtons);
+        otherButtons = sortByCustomOrder(otherButtons);
+        var allButtons = viewButtons.concat(otherButtons);
         allButtonsCache = allButtons;
         currentButtons = allButtons;
         var targetContainer = currentContainer.find('.full-start-new__buttons');
         if (!targetContainer.length) return;
-        targetContainer.find('.full-start__button').not('.button--edit-order').detach();
-        var visibleButtons = [];
-        currentButtons.forEach(function(btn) {
-            targetContainer.append(btn);
-            if (!btn.hasClass('hidden')) visibleButtons.push(btn);
-        });
-        applyButtonAnimation(visibleButtons);
+        targetContainer.find('.full-start__button').not('.button--edit-order, .button--play').detach();
+        restoreSystemButtons(currentContainer);
+        var showAllButtons = Lampa.Storage.get('buttons_show_all', false);
+        if (showAllButtons) {
+            var visibleButtons = [];
+            allButtons.forEach(function(btn) {
+                targetContainer.append(btn);
+                if (!btn.hasClass('hidden')) visibleButtons.push(btn);
+            });
+            applyButtonAnimation(visibleButtons);
+        } else {
+            insertButtonsIntoPlayButton(currentContainer, viewButtons);
+            var visibleButtons = [];
+            otherButtons.forEach(function(btn) {
+                targetContainer.append(btn);
+                if (!btn.hasClass('hidden')) visibleButtons.push(btn);
+            });
+            applyButtonAnimation(visibleButtons);
+        }
         var editBtn = targetContainer.find('.button--edit-order');
         if (editBtn.length) {
             editBtn.detach();
@@ -261,7 +307,6 @@
         targetContainer.removeClass('icons-only always-text');
         if (viewmode === 'icons') targetContainer.addClass('icons-only');
         if (viewmode === 'always') targetContainer.addClass('always-text');
-        restoreSystemButtons(currentContainer);
         saveOrder();
         setTimeout(function() {
             if (currentContainer) {
@@ -484,16 +529,19 @@
         saveSystemButtons(container);
         container.find('.button--play, .button--edit-order').remove();
         var categories = categorizeButtons(container);
-        var allButtons = []
+        var viewButtons = []
             .concat(categories.online)
             .concat(categories.torrent)
-            .concat(categories.trailer)
+            .concat(categories.trailer);
+        var otherButtons = []
             .concat(categories.favorite)
             .concat(categories.subscribe)
             .concat(categories.book)
             .concat(categories.reaction)
             .concat(categories.other);
-        allButtons = sortByCustomOrder(allButtons);
+        viewButtons = sortByCustomOrder(viewButtons);
+        otherButtons = sortByCustomOrder(otherButtons);
+        var allButtons = viewButtons.concat(otherButtons);
         allButtonsCache = allButtons;
         if (allButtonsOriginal.length === 0) {
             allButtons.forEach(function(btn) {
@@ -502,11 +550,21 @@
         }
         currentButtons = allButtons;
         targetContainer.children().detach();
+        restoreSystemButtons(container);
+        var showAllButtons = Lampa.Storage.get('buttons_show_all', false);
         var visibleButtons = [];
-        currentButtons.forEach(function(btn) {
-            targetContainer.append(btn);
-            if (!btn.hasClass('hidden')) visibleButtons.push(btn);
-        });
+        if (showAllButtons) {
+            allButtons.forEach(function(btn) {
+                targetContainer.append(btn);
+                if (!btn.hasClass('hidden')) visibleButtons.push(btn);
+            });
+        } else {
+            insertButtonsIntoPlayButton(container, viewButtons);
+            otherButtons.forEach(function(btn) {
+                targetContainer.append(btn);
+                if (!btn.hasClass('hidden')) visibleButtons.push(btn);
+            });
+        }
         var editButton = createEditButton();
         targetContainer.append(editButton);
         visibleButtons.push(editButton);
@@ -515,7 +573,6 @@
         targetContainer.removeClass('icons-only always-text');
         if (viewmode === 'icons') targetContainer.addClass('icons-only');
         if (viewmode === 'always') targetContainer.addClass('always-text');
-        restoreSystemButtons(container);
         applyButtonAnimation(visibleButtons);
         setTimeout(function() {
             setupButtonNavigation(container);
@@ -565,6 +622,29 @@
             '.viewmode-switch { background: rgba(100,100,255,0.3); margin: 0.5em 0 1em 0; border-radius: 0.3em; }' +
             '.viewmode-switch.focus { border: 3px solid rgba(255,255,255,0.8); }' +
             '.menu-edit-list__item-hidden { opacity: 0.5; }' +
+            '.button--play { position: relative; }' +
+            '.button--play-submenu { ' +
+            'display: none; ' +
+            'position: absolute; ' +
+            'top: 100%; ' +
+            'left: 0; ' +
+            'margin-top: 0.5em; ' +
+            'padding: 0.5em; ' +
+            'background: rgba(0, 0, 0, 0.9); ' +
+            'border-radius: 0.5em; ' +
+            'z-index: 1000; ' +
+            'min-width: 200px; ' +
+            'flex-direction: column; ' +
+            'gap: 0.5em; ' +
+            'box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5); ' +
+            '}' +
+            '.button--play-submenu.visible { display: flex; }' +
+            '.button--play-submenu .full-start__button { ' +
+            'width: 100%; ' +
+            'margin: 0; ' +
+            'opacity: 1 !important; ' +
+            'animation: none !important; ' +
+            '}' +
             '</style>');
         $('body').append(style);
 
@@ -619,17 +699,12 @@
 
         Lampa.SettingsApi.addParam({
             component: 'interface',
-            param: { name: 'buttons_play_visible', type: 'trigger', default: false },
-            field: { name: 'Показать кнопку Play' },
+            param: { name: 'buttons_show_all', type: 'trigger', default: false },
+            field: { name: 'Отображение всех кнопок' },
             onChange: function(value) {
                 setTimeout(function() {
-                    var currentValue = Lampa.Storage.get('buttons_play_visible', false);
                     if (currentContainer) {
-                        if (currentValue) {
-                            restoreSystemButtons(currentContainer);
-                        } else {
-                            currentContainer.find('.button--play').remove();
-                        }
+                        applyChanges();
                         refreshController();
                     }
                 }, 100);
