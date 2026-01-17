@@ -15,7 +15,6 @@
     var allButtonsCache = [];
     var allButtonsOriginal = [];
     var currentContainer = null;
-    var savedSystemButtons = [];
 
     function findButton(btnId) {
         var btn = allButtonsOriginal.find(function(b) { return getButtonId(b) === btnId; });
@@ -60,81 +59,6 @@
             id = id + '_' + subtitle.replace(/\s+/g, '_').substring(0, 30);
         }
         return id;
-    }
-
-    function saveSystemButtons(container) {
-        savedSystemButtons = [];
-        container.find('.button--play, .button--edit-order').each(function() {
-            savedSystemButtons.push($(this).clone(true, true));
-        });
-    }
-
-    function restoreSystemButtons(container) {
-        var targetContainer = container.find('.full-start-new__buttons');
-        if (!targetContainer.length) return;
-        var showAllButtons = Lampa.Storage.get('buttons_show_all', false);
-        savedSystemButtons.forEach(function(btn) {
-            var classes = btn.attr('class') || '';
-            if (classes.indexOf('button--play') !== -1) {
-                var existingPlayBtn = targetContainer.find('.button--play');
-                if (showAllButtons) {
-                    if (existingPlayBtn.length) {
-                        existingPlayBtn.remove();
-                    }
-                } else {
-                    if (!existingPlayBtn.length) {
-                        var playBtn = btn.clone(true, true);
-                        var firstBtn = targetContainer.find('.full-start__button').not('.button--edit-order').first();
-                        if (firstBtn.length) {
-                            playBtn.insertBefore(firstBtn);
-                        } else {
-                            targetContainer.prepend(playBtn);
-                        }
-                    }
-                }
-            } else if (classes.indexOf('button--edit-order') !== -1) {
-                // edit-order button создается отдельно, не восстанавливаем
-            }
-        });
-    }
-
-    function openPlayButtonsModal(viewButtons) {
-        if (!viewButtons || viewButtons.length === 0) return;
-        
-        var list = $('<div class="menu-edit-list"></div>');
-        viewButtons.forEach(function(btn) {
-            var clonedBtn = btn.clone(true, true);
-            clonedBtn.css({ 'opacity': '1', 'animation': 'none', 'margin': '0.5em' });
-            var item = $('<div class="menu-edit-list__item" style="padding: 0.5em; cursor: pointer;"></div>');
-            item.append(clonedBtn);
-            item.on('hover:enter', function() {
-                clonedBtn.trigger('hover:enter');
-            });
-            list.append(item);
-        });
-
-        Lampa.Modal.open({
-            title: 'Выберите способ просмотра',
-            html: list,
-            size: 'small',
-            scroll_to_center: true,
-            onBack: function() {
-                Lampa.Modal.close();
-            }
-        });
-    }
-
-    function setupPlayButton(container, viewButtons) {
-        var targetContainer = container.find('.full-start-new__buttons');
-        if (!targetContainer.length) return;
-        var playBtn = targetContainer.find('.button--play').first();
-        if (!playBtn.length) return;
-
-        playBtn.off('hover:enter.playmodal').on('hover:enter.playmodal', function() {
-            if (viewButtons && viewButtons.length > 0) {
-                openPlayButtonsModal(viewButtons);
-            }
-        });
     }
 
     function getButtonType(button) {
@@ -271,55 +195,28 @@
 
     function applyChanges() {
         if (!currentContainer) return;
-        var originalPlayBtn = currentContainer.find('.button--play').first();
-        saveSystemButtons(currentContainer);
-        if (!savedSystemButtons.length && originalPlayBtn.length) {
-            savedSystemButtons.push(originalPlayBtn.clone(true, true));
-        }
         var categories = categorizeButtons(currentContainer);
-        var viewButtons = []
+        var allButtons = []
             .concat(categories.online)
             .concat(categories.torrent)
-            .concat(categories.trailer);
-        var otherButtons = []
+            .concat(categories.trailer)
             .concat(categories.favorite)
             .concat(categories.subscribe)
             .concat(categories.book)
             .concat(categories.reaction)
             .concat(categories.other);
-        viewButtons = sortByCustomOrder(viewButtons);
-        otherButtons = sortByCustomOrder(otherButtons);
-        var allButtons = viewButtons.concat(otherButtons);
+        allButtons = sortByCustomOrder(allButtons);
         allButtonsCache = allButtons;
         currentButtons = allButtons;
         var targetContainer = currentContainer.find('.full-start-new__buttons');
         if (!targetContainer.length) return;
-        var showAllButtons = Lampa.Storage.get('buttons_show_all', false);
-        targetContainer.find('.full-start__button').not('.button--edit-order, .button--play').detach();
-        if (!showAllButtons) {
-            restoreSystemButtons(currentContainer);
-        } else {
-            currentContainer.find('.button--play').remove();
-        }
-        if (showAllButtons) {
-            var visibleButtons = [];
-            allButtons.forEach(function(btn) {
-                targetContainer.append(btn);
-                if (!btn.hasClass('hidden')) visibleButtons.push(btn);
-            });
-            applyButtonAnimation(visibleButtons);
-        } else {
-            var playBtn = targetContainer.find('.button--play').first();
-            if (playBtn.length) {
-                setupPlayButton(currentContainer, viewButtons);
-            }
-            var visibleButtons = [];
-            otherButtons.forEach(function(btn) {
-                targetContainer.append(btn);
-                if (!btn.hasClass('hidden')) visibleButtons.push(btn);
-            });
-            applyButtonAnimation(visibleButtons);
-        }
+        targetContainer.find('.full-start__button').not('.button--edit-order').detach();
+        var visibleButtons = [];
+        currentButtons.forEach(function(btn) {
+            targetContainer.append(btn);
+            if (!btn.hasClass('hidden')) visibleButtons.push(btn);
+        });
+        applyButtonAnimation(visibleButtons);
         var editBtn = targetContainer.find('.button--edit-order');
         if (editBtn.length) {
             editBtn.detach();
@@ -331,6 +228,11 @@
         if (viewmode === 'icons') targetContainer.addClass('icons-only');
         if (viewmode === 'always') targetContainer.addClass('always-text');
         saveOrder();
+        setTimeout(function() {
+            if (currentContainer) {
+                setupButtonNavigation(currentContainer);
+            }
+        }, 100);
     }
 
     function capitalize(str) {
@@ -544,26 +446,18 @@
         var targetContainer = container.find('.full-start-new__buttons');
         if (!targetContainer.length) return false;
         currentContainer = container;
-        var originalPlayBtn = container.find('.button--play').first();
-        saveSystemButtons(container);
-        if (!savedSystemButtons.length && originalPlayBtn.length) {
-            savedSystemButtons.push(originalPlayBtn.clone(true, true));
-        }
         container.find('.button--play, .button--edit-order').remove();
         var categories = categorizeButtons(container);
-        var viewButtons = []
+        var allButtons = []
             .concat(categories.online)
             .concat(categories.torrent)
-            .concat(categories.trailer);
-        var otherButtons = []
+            .concat(categories.trailer)
             .concat(categories.favorite)
             .concat(categories.subscribe)
             .concat(categories.book)
             .concat(categories.reaction)
             .concat(categories.other);
-        viewButtons = sortByCustomOrder(viewButtons);
-        otherButtons = sortByCustomOrder(otherButtons);
-        var allButtons = viewButtons.concat(otherButtons);
+        allButtons = sortByCustomOrder(allButtons);
         allButtonsCache = allButtons;
         if (allButtonsOriginal.length === 0) {
             allButtons.forEach(function(btn) {
@@ -572,28 +466,11 @@
         }
         currentButtons = allButtons;
         targetContainer.children().detach();
-        var showAllButtons = Lampa.Storage.get('buttons_show_all', false);
-        if (!showAllButtons) {
-            restoreSystemButtons(container);
-        } else {
-            container.find('.button--play').remove();
-        }
         var visibleButtons = [];
-        if (showAllButtons) {
-            allButtons.forEach(function(btn) {
-                targetContainer.append(btn);
-                if (!btn.hasClass('hidden')) visibleButtons.push(btn);
-            });
-        } else {
-            var playBtn = targetContainer.find('.button--play').first();
-            if (playBtn.length) {
-                setupPlayButton(container, viewButtons);
-            }
-            otherButtons.forEach(function(btn) {
-                targetContainer.append(btn);
-                if (!btn.hasClass('hidden')) visibleButtons.push(btn);
-            });
-        }
+        currentButtons.forEach(function(btn) {
+            targetContainer.append(btn);
+            if (!btn.hasClass('hidden')) visibleButtons.push(btn);
+        });
         var editButton = createEditButton();
         targetContainer.append(editButton);
         visibleButtons.push(editButton);
@@ -612,30 +489,23 @@
     function setupButtonNavigation(container) {
         if (Lampa.Controller && typeof Lampa.Controller.toggle === 'function') {
             try {
-                var currentController = Lampa.Controller.enabled();
-                var isFullStart = currentController && currentController.name === 'full_start';
-                if (isFullStart) {
-                    Lampa.Controller.toggle('settings_component');
-                    setTimeout(function() {
-                        Lampa.Controller.toggle('full_start');
-                    }, 100);
-                }
+                Lampa.Controller.toggle('full_start');
             } catch(e) {}
         }
     }
 
     function refreshController() {
         if (!Lampa.Controller || typeof Lampa.Controller.toggle !== 'function') return;
-        try {
-            var currentController = Lampa.Controller.enabled();
-            var isFullStart = currentController && currentController.name === 'full_start';
-            if (isFullStart) {
-                Lampa.Controller.toggle('settings_component');
-                setTimeout(function() {
-                    Lampa.Controller.toggle('full_start');
-                }, 100);
-            }
-        } catch(e) {}
+        setTimeout(function() {
+            try {
+                Lampa.Controller.toggle('full_start');
+                if (currentContainer) {
+                    setTimeout(function() {
+                        setupButtonNavigation(currentContainer);
+                    }, 100);
+                }
+            } catch(e) {}
+        }, 50);
     }
 
     function init() {
@@ -706,34 +576,6 @@
             onRender: function(element) {
                 setTimeout(function() {
                     $('div[data-name="interface_size"]').after(element);
-                }, 0);
-            }
-        });
-
-        Lampa.SettingsApi.addParam({
-            component: 'interface',
-            param: { name: 'buttons_show_all', type: 'trigger', default: false },
-            field: { name: 'Отображение всех кнопок' },
-            onChange: function(value) {
-                setTimeout(function() {
-                    if (currentContainer) {
-                        var toggle = Lampa.Controller.enabled().name === 'full_start';
-                        if (toggle && Lampa.Controller && typeof Lampa.Controller.toggle === 'function') {
-                            Lampa.Controller.toggle('settings_component');
-                        }
-                        currentContainer.data('buttons-processed', false);
-                        applyChanges();
-                        if (toggle && Lampa.Controller && typeof Lampa.Controller.toggle === 'function') {
-                            setTimeout(function() {
-                                Lampa.Controller.toggle('full_start');
-                            }, 150);
-                        }
-                    }
-                }, 100);
-            },
-            onRender: function(element) {
-                setTimeout(function() {
-                    $('div[data-name="buttons_editor_enabled"]').after(element);
                 }, 0);
             }
         });
