@@ -76,19 +76,21 @@
         savedSystemButtons.forEach(function(btn) {
             var classes = btn.attr('class') || '';
             if (classes.indexOf('button--play') !== -1) {
-                if (!showAllButtons) {
-                    var existingPlayBtn = targetContainer.find('.button--play');
+                var existingPlayBtn = targetContainer.find('.button--play');
+                if (showAllButtons) {
+                    if (existingPlayBtn.length) {
+                        existingPlayBtn.remove();
+                    }
+                } else {
                     if (!existingPlayBtn.length) {
                         var playBtn = btn.clone(true, true);
-                        var firstBtn = targetContainer.find('.full-start__button').first();
+                        var firstBtn = targetContainer.find('.full-start__button').not('.button--edit-order').first();
                         if (firstBtn.length) {
                             playBtn.insertBefore(firstBtn);
                         } else {
                             targetContainer.prepend(playBtn);
                         }
                     }
-                } else {
-                    targetContainer.find('.button--play').remove();
                 }
             } else if (classes.indexOf('button--edit-order') !== -1) {
                 // edit-order button создается отдельно, не восстанавливаем
@@ -107,12 +109,31 @@
             submenuContainer = $('<div class="button--play-submenu"></div>');
             playBtn.append(submenuContainer);
             playBtn.addClass('has-submenu');
-            playBtn.off('hover:enter.submenu').on('hover:enter.submenu', function(e) {
+            
+            var openSubmenu = function() {
+                submenuContainer.addClass('visible');
+            };
+            var closeSubmenu = function() {
+                submenuContainer.removeClass('visible');
+            };
+            
+            playBtn.off('hover:enter.submenu hover:leave.submenu').on('hover:enter.submenu', function(e) {
                 e.stopPropagation();
-                var submenu = $(this).find('.button--play-submenu');
-                if (submenu.length) {
-                    submenu.toggleClass('visible');
-                }
+                openSubmenu();
+            }).on('hover:leave.submenu', function(e) {
+                setTimeout(function() {
+                    if (!submenuContainer.is(':hover') && !playBtn.is(':hover')) {
+                        closeSubmenu();
+                    }
+                }, 100);
+            });
+            
+            submenuContainer.on('mouseleave', function() {
+                setTimeout(function() {
+                    if (!playBtn.is(':hover')) {
+                        closeSubmenu();
+                    }
+                }, 100);
             });
         }
         submenuContainer.empty();
@@ -278,9 +299,13 @@
         currentButtons = allButtons;
         var targetContainer = currentContainer.find('.full-start-new__buttons');
         if (!targetContainer.length) return;
-        targetContainer.find('.full-start__button').not('.button--edit-order, .button--play').detach();
-        restoreSystemButtons(currentContainer);
         var showAllButtons = Lampa.Storage.get('buttons_show_all', false);
+        targetContainer.find('.full-start__button').not('.button--edit-order, .button--play').detach();
+        if (!showAllButtons) {
+            restoreSystemButtons(currentContainer);
+        } else {
+            currentContainer.find('.button--play').remove();
+        }
         if (showAllButtons) {
             var visibleButtons = [];
             allButtons.forEach(function(btn) {
@@ -289,7 +314,10 @@
             });
             applyButtonAnimation(visibleButtons);
         } else {
-            insertButtonsIntoPlayButton(currentContainer, viewButtons);
+            var playBtn = targetContainer.find('.button--play').first();
+            if (playBtn.length) {
+                insertButtonsIntoPlayButton(currentContainer, viewButtons);
+            }
             var visibleButtons = [];
             otherButtons.forEach(function(btn) {
                 targetContainer.append(btn);
@@ -308,11 +336,6 @@
         if (viewmode === 'icons') targetContainer.addClass('icons-only');
         if (viewmode === 'always') targetContainer.addClass('always-text');
         saveOrder();
-        setTimeout(function() {
-            if (currentContainer) {
-                setupButtonNavigation(currentContainer);
-            }
-        }, 100);
     }
 
     function capitalize(str) {
@@ -550,8 +573,12 @@
         }
         currentButtons = allButtons;
         targetContainer.children().detach();
-        restoreSystemButtons(container);
         var showAllButtons = Lampa.Storage.get('buttons_show_all', false);
+        if (!showAllButtons) {
+            restoreSystemButtons(container);
+        } else {
+            container.find('.button--play').remove();
+        }
         var visibleButtons = [];
         if (showAllButtons) {
             allButtons.forEach(function(btn) {
@@ -559,7 +586,10 @@
                 if (!btn.hasClass('hidden')) visibleButtons.push(btn);
             });
         } else {
-            insertButtonsIntoPlayButton(container, viewButtons);
+            var playBtn = targetContainer.find('.button--play').first();
+            if (playBtn.length) {
+                insertButtonsIntoPlayButton(container, viewButtons);
+            }
             otherButtons.forEach(function(btn) {
                 targetContainer.append(btn);
                 if (!btn.hasClass('hidden')) visibleButtons.push(btn);
@@ -583,23 +613,30 @@
     function setupButtonNavigation(container) {
         if (Lampa.Controller && typeof Lampa.Controller.toggle === 'function') {
             try {
-                Lampa.Controller.toggle('full_start');
+                var currentController = Lampa.Controller.enabled();
+                var isFullStart = currentController && currentController.name === 'full_start';
+                if (isFullStart) {
+                    Lampa.Controller.toggle('settings_component');
+                    setTimeout(function() {
+                        Lampa.Controller.toggle('full_start');
+                    }, 100);
+                }
             } catch(e) {}
         }
     }
 
     function refreshController() {
         if (!Lampa.Controller || typeof Lampa.Controller.toggle !== 'function') return;
-        setTimeout(function() {
-            try {
-                Lampa.Controller.toggle('full_start');
-                if (currentContainer) {
-                    setTimeout(function() {
-                        setupButtonNavigation(currentContainer);
-                    }, 100);
-                }
-            } catch(e) {}
-        }, 50);
+        try {
+            var currentController = Lampa.Controller.enabled();
+            var isFullStart = currentController && currentController.name === 'full_start';
+            if (isFullStart) {
+                Lampa.Controller.toggle('settings_component');
+                setTimeout(function() {
+                    Lampa.Controller.toggle('full_start');
+                }, 100);
+            }
+        } catch(e) {}
     }
 
     function init() {
@@ -704,8 +741,17 @@
             onChange: function(value) {
                 setTimeout(function() {
                     if (currentContainer) {
+                        var toggle = Lampa.Controller.enabled().name === 'full_start';
+                        if (toggle && Lampa.Controller && typeof Lampa.Controller.toggle === 'function') {
+                            Lampa.Controller.toggle('settings_component');
+                        }
+                        currentContainer.data('buttons-processed', false);
                         applyChanges();
-                        refreshController();
+                        if (toggle && Lampa.Controller && typeof Lampa.Controller.toggle === 'function') {
+                            setTimeout(function() {
+                                Lampa.Controller.toggle('full_start');
+                            }, 150);
+                        }
                     }
                 }, 100);
             },
