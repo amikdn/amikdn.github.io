@@ -188,7 +188,7 @@
         btn.on('hover:enter', function() {
             openEditDialog();
         });
-        if (Lampa.Storage.get('buttons_editor_enabled') === false) {
+        if (Lampa.Storage.get('buttons_editor_enabled') === false || !getShowAllButtons()) {
             btn.hide();
         }
         return btn;
@@ -456,14 +456,14 @@
     }
 
     function reorderButtons(container) {
+        // Если настройка "Отображать все кнопки" выключена, не обрабатываем кнопки
+        if (!getShowAllButtons()) {
+            return false;
+        }
         var targetContainer = container.find('.full-start-new__buttons');
         if (!targetContainer.length) return false;
         currentContainer = container;
-        var removeSelector = '.button--edit-order';
-        if (getShowAllButtons()) {
-            removeSelector += ', .button--play';
-        }
-        container.find(removeSelector).remove();
+        container.find('.button--play, .button--edit-order').remove();
         var categories = categorizeButtons(container);
         var allButtons = []
             .concat(categories.online)
@@ -559,6 +559,15 @@
                 try {
                     if (!container.data('buttons-processed')) {
                         container.data('buttons-processed', true);
+                        // Если настройка "Отображать все кнопки" выключена, не запускаем редактор
+                        if (!getShowAllButtons()) {
+                            if (targetContainer.length) {
+                                targetContainer.removeClass('buttons-loading');
+                            }
+                            // Убираем кнопку редактора если она есть
+                            targetContainer.find('.button--edit-order').remove();
+                            return;
+                        }
                         if (reorderButtons(container)) {
                             if (targetContainer.length) {
                                 targetContainer.removeClass('buttons-loading');
@@ -615,13 +624,14 @@
                     if (currentContainer) {
                         currentContainer.data('buttons-processed', false);
                         var targetContainer = currentContainer.find('.full-start-new__buttons');
-                        var removeSelector = '.button--edit-order';
-                        if (getShowAllButtons()) {
-                            removeSelector += ', .button--play';
+                        if (!value) {
+                            // Выключено - убираем кнопку редактора, оставляем стандартные кнопки
+                            targetContainer.find('.button--edit-order').remove();
+                        } else {
+                            // Включено - запускаем редактор
+                            reorderButtons(currentContainer);
+                            refreshController();
                         }
-                        targetContainer.find(removeSelector).remove();
-                        reorderButtons(currentContainer);
-                        refreshController();
                     }
                 }, 100);
             },
