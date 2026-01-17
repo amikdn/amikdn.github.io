@@ -100,7 +100,7 @@
     
     // Начинаем наблюдение после загрузки
     if (document.body) {
-        removeShotsObserver.observe(document.body, {
+        moveShotsObserver.observe(document.body, {
             childList: true,
             subtree: true
         });
