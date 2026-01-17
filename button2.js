@@ -459,43 +459,48 @@
             onBack: function() {
                 Lampa.Modal.close();
                 applyChanges();
-                var focusEditButton = function(attempt) {
-                    attempt = attempt || 1;
-                    if (currentContainer) {
+                setTimeout(function() {
+                    var tryFocusEdit = function() {
+                        if (!currentContainer) return;
                         var targetContainer = currentContainer.find('.full-start-new__buttons');
-                        if (targetContainer.length) {
-                            var editButton = targetContainer.find('use[xlink\\:href="#sprite-edit"]').closest('.button--edit-order.selector');
-                            if (!editButton.length) {
-                                editButton = targetContainer.find('.button--edit-order.selector');
-                            }
-                            if (!editButton.length) {
-                                editButton = $(targetContainer[0].querySelector('use[xlink\\:href="#sprite-edit"]')).closest('.button--edit-order.selector');
-                            }
-                            if (editButton.length && editButton.is(':visible')) {
-                                if (Lampa.Controller && Lampa.Controller.toggle) {
-                                    try {
-                                        Lampa.Controller.toggle(editButton[0]);
-                                    } catch(e) {
-                                        try {
-                                            editButton.addClass('focus');
-                                            editButton.trigger('hover');
-                                        } catch(e2) {}
-                                    }
-                                } else {
-                                    editButton.addClass('focus');
-                                    editButton.trigger('hover');
+                        if (!targetContainer.length) return;
+                        
+                        var editButton = targetContainer.find('.button--edit-order.selector');
+                        if (!editButton.length) {
+                            var useEl = targetContainer[0].querySelector('use[xlink\\:href="#sprite-edit"], use[*|href="#sprite-edit"]');
+                            if (useEl) {
+                                var btnEl = useEl;
+                                while (btnEl && !btnEl.classList.contains('button--edit-order')) {
+                                    btnEl = btnEl.parentElement;
                                 }
-                            } else if (attempt < 3) {
-                                setTimeout(function() { focusEditButton(attempt + 1); }, 100);
+                                if (btnEl) editButton = $(btnEl);
                             }
-                        } else if (attempt < 3) {
-                            setTimeout(function() { focusEditButton(attempt + 1); }, 100);
                         }
-                    } else if (attempt < 3) {
-                        setTimeout(function() { focusEditButton(attempt + 1); }, 100);
-                    }
-                };
-                setTimeout(function() { focusEditButton(1); }, 300);
+                        
+                        if (editButton.length && editButton.is(':visible')) {
+                            try {
+                                var btnElement = editButton[0];
+                                if (!btnElement.hasAttribute('tabindex')) {
+                                    btnElement.setAttribute('tabindex', '0');
+                                }
+                                editButton.addClass('focus').siblings().removeClass('focus');
+                                if (Lampa.Controller) {
+                                    if (typeof Lampa.Controller.toggle === 'function') {
+                                        Lampa.Controller.toggle(btnElement);
+                                    }
+                                    if (typeof Lampa.Controller.active === 'function') {
+                                        Lampa.Controller.active(btnElement);
+                                    }
+                                }
+                                editButton.trigger('hover');
+                                btnElement.focus();
+                            } catch(e) {}
+                        }
+                    };
+                    tryFocusEdit();
+                    setTimeout(tryFocusEdit, 200);
+                    setTimeout(tryFocusEdit, 500);
+                }, 300);
             }
         });
     }
