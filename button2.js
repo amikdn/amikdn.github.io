@@ -1,7 +1,6 @@
 (function() {
     'use strict';
     var LAMPAC_ICON = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><path d="M20.331 14.644l-13.794-13.831 17.55 10.075zM2.938 0c-0.813 0.425-1.356 1.2-1.356 2.206v27.581c0 1.006 0.544 1.781 1.356 2.206l16.038-16zM29.512 14.1l-3.681-2.131-4.106 4.031 4.106 4.031 3.756-2.131c1.125-0.893 1.125-2.906-0.075-3.8zM6.538 31.188l17.55-10.075-3.756-3.756z" fill="currentColor"></path></svg>';
-    var WATCH_ICON = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" fill="currentColor"/></path></svg>';
     var EXCLUDED_CLASSES = ['button--play', 'button--edit-order'];
     var DEFAULT_GROUPS = [
         { name: 'online', patterns: ['online', 'lampac', 'modss', 'showy'], label: 'Онлайн' },
@@ -24,23 +23,18 @@
         }
         return btn;
     }
-
     function getCustomOrder() {
         return Lampa.Storage.get('button_custom_order', []);
     }
-
     function setCustomOrder(order) {
         Lampa.Storage.set('button_custom_order', order);
     }
-
     function getHiddenButtons() {
         return Lampa.Storage.get('button_hidden', []);
     }
-
     function setHiddenButtons(hidden) {
         Lampa.Storage.set('button_hidden', hidden);
     }
-
     function getButtonId(button) {
         var classes = button.attr('class') || '';
         var text = button.find('span').text().trim().replace(/\s+/g, '_');
@@ -61,7 +55,6 @@
         }
         return id;
     }
-
     function getButtonType(button) {
         var classes = button.attr('class') || '';
         for (var i = 0; i < DEFAULT_GROUPS.length; i++) {
@@ -74,7 +67,6 @@
         }
         return 'other';
     }
-
     function isExcluded(button) {
         var classes = button.attr('class') || '';
         for (var i = 0; i < EXCLUDED_CLASSES.length; i++) {
@@ -84,9 +76,8 @@
         }
         return false;
     }
-
     function categorizeButtons(container) {
-        var allButtons = container.find('.full-start__button').not('.button--play, .button--edit-order, .button--watch');
+        var allButtons = container.find('.full-start__button').not('.button--edit-order, .button--play');
         var categories = { online: [], torrent: [], trailer: [], favorite: [], subscribe: [], book: [], reaction: [], other: [] };
         allButtons.each(function() {
             var $btn = $(this);
@@ -106,7 +97,6 @@
         });
         return categories;
     }
-
     function sortByCustomOrder(buttons) {
         var customOrder = getCustomOrder();
         var priority = [];
@@ -154,7 +144,6 @@
         });
         return priority.concat(sorted).concat(remaining);
     }
-
     function applyHiddenButtons(buttons) {
         var hidden = getHiddenButtons();
         buttons.forEach(function(btn) {
@@ -162,7 +151,6 @@
             btn.toggleClass('hidden', hidden.indexOf(id) !== -1);
         });
     }
-
     function applyButtonAnimation(buttons) {
         buttons.forEach(function(btn, index) {
             btn.css({
@@ -172,7 +160,6 @@
             });
         });
     }
-
     function createEditButton() {
         var btn = $('<div class="full-start__button selector button--edit-order" style="order: 9999;">' +
             '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 29" fill="none"><use xlink:href="#sprite-edit"></use></svg>' +
@@ -185,7 +172,6 @@
         }
         return btn;
     }
-
     function saveOrder() {
         var order = [];
         currentButtons.forEach(function(btn) {
@@ -193,12 +179,10 @@
         });
         setCustomOrder(order);
     }
-
     function capitalize(str) {
         if (!str) return str;
         return str.charAt(0).toUpperCase() + str.slice(1);
     }
-
     function getButtonDisplayName(btn, allButtons) {
         var text = btn.find('span').text().trim();
         var classes = btn.attr('class') || '';
@@ -250,65 +234,32 @@
         currentButtons = allButtons;
         var targetContainer = currentContainer.find('.full-start-new__buttons');
         if (!targetContainer.length) return;
+
         targetContainer.find('.full-start__button').not('.button--edit-order').detach();
-        targetContainer.find('.button--watch').remove();
-
-        var groupOnline = Lampa.Storage.get('buttons_group_online', true);
-        var visibleButtons = [];
-
-        var watchBtn = null;
-        if (groupOnline && categories.online.length > 0) {
-            watchBtn = $('<div class="full-start__button selector button--watch" style="order: -100;">' +
-                WATCH_ICON +
-                '<span>Смотреть</span>' +
-                '</div>');
-            watchBtn.on('hover:enter', function() {
-                var modalContent = $('<div class="full-start-new__buttons" style="display:flex;flex-wrap:wrap;gap:1em;justify-content:flex-start;padding:2em;"></div>');
-                var onlineOriginal = allButtonsOriginal.filter(function(b) { return getButtonType(b) === 'online'; });
-                onlineOriginal.forEach(function(originalBtn, index) {
-                    var cloned = originalBtn.clone(true, true);
-                    cloned.removeClass('hidden');
-                    cloned.css({
-                        'opacity': '0',
-                        'animation': 'button-fade-in 0.4s ease forwards',
-                        'animation-delay': (index * 0.08) + 's'
-                    });
-                    modalContent.append(cloned);
-                });
-                var viewmode = Lampa.Storage.get('buttons_viewmode', 'default');
-                modalContent.removeClass('icons-only always-text');
-                if (viewmode === 'icons') modalContent.addClass('icons-only');
-                if (viewmode === 'always') modalContent.addClass('always-text');
-                Lampa.Modal.open({
-                    title: 'Смотреть',
-                    html: modalContent,
-                    size: 'small',
-                    scroll_to_center: true,
-                    onBack: function() {
-                        Lampa.Modal.close();
-                        setTimeout(refreshController, 100);
-                    }
-                });
-            });
-            targetContainer.append(watchBtn);
-            visibleButtons.push(watchBtn);
-        }
 
         currentButtons.forEach(function(btn) {
-            if (groupOnline && getButtonType(btn) === 'online') return;
             targetContainer.append(btn);
-            if (!btn.hasClass('hidden')) visibleButtons.push(btn);
         });
 
-        applyButtonAnimation(visibleButtons);
+        applyHiddenButtons(currentButtons);
 
-        var editBtn = targetContainer.find('.button--edit-order');
-        if (editBtn.length) {
-            editBtn.detach();
-            targetContainer.append(editBtn);
+        var showAll = Lampa.Storage.get('buttons_show_all', true);
+        targetContainer.toggleClass('buttons-hidden-all', !showAll);
+
+        var visibleButtons = [];
+        if (showAll) {
+            currentButtons.forEach(function(btn) {
+                if (!btn.hasClass('hidden')) visibleButtons.push(btn);
+            });
         }
 
-        applyHiddenButtons(currentButtons);
+        var editBtn = targetContainer.find('.button--edit-order');
+        if (editBtn.length) editBtn.detach();
+        if (!editBtn.length) editBtn = createEditButton();
+        targetContainer.append(editBtn);
+        visibleButtons.push(editBtn);
+
+        applyButtonAnimation(visibleButtons);
 
         var viewmode = Lampa.Storage.get('buttons_viewmode', 'default');
         targetContainer.removeClass('icons-only always-text');
@@ -316,7 +267,6 @@
         if (viewmode === 'always') targetContainer.addClass('always-text');
 
         saveOrder();
-
         setTimeout(function() {
             if (currentContainer) {
                 setupButtonNavigation(currentContainer);
@@ -340,13 +290,12 @@
             allButtonsCache = allButtons;
             currentButtons = allButtons;
         }
-
         var list = $('<div class="menu-edit-list"></div>');
         var hidden = getHiddenButtons();
+
         var modes = ['default', 'icons', 'always'];
         var labels = {default: 'Стандартный', icons: 'Только иконки', always: 'С текстом'};
         var currentMode = Lampa.Storage.get('buttons_viewmode', 'default');
-
         var modeBtn = $('<div class="selector viewmode-switch">' +
             '<div style="text-align: center; padding: 1em;">Вид кнопок: ' + labels[currentMode] + '</div>' +
             '</div>');
@@ -365,17 +314,17 @@
         });
         list.append(modeBtn);
 
-        var groupOnline = Lampa.Storage.get('buttons_group_online', true);
-        var groupBtn = $('<div class="selector viewmode-switch group-switch" style="background:rgba(100,255,100,0.3);margin:0.5em 0 1em 0;border-radius:0.3em;">' +
-            '<div style="text-align:center;padding:1em;">Кнопка «Смотреть»: ' + (groupOnline ? 'Включена' : 'Выключена') + '</div>' +
+        var showAllCurrent = Lampa.Storage.get('buttons_show_all', true);
+        var showAllBtn = $('<div class="selector showall-switch">' +
+            '<div style="text-align: center; padding: 1em;">Показывать кнопки источников: ' + (showAllCurrent ? 'Да' : 'Нет') + '</div>' +
             '</div>');
-        groupBtn.on('hover:enter', function() {
-            groupOnline = !groupOnline;
-            Lampa.Storage.set('buttons_group_online', groupOnline);
-            $(this).find('div').text('Кнопка «Смотреть»: ' + (groupOnline ? 'Включена' : 'Выключена'));
+        showAllBtn.on('hover:enter', function() {
+            showAllCurrent = !showAllCurrent;
+            Lampa.Storage.set('buttons_show_all', showAllCurrent);
+            $(this).find('div').text('Показывать кнопки источников: ' + (showAllCurrent ? 'Да' : 'Нет'));
             applyChanges();
         });
-        list.append(groupBtn);
+        list.append(showAllBtn);
 
         function createButtonItem(btn) {
             var displayName = getButtonDisplayName(btn, currentButtons);
@@ -449,12 +398,11 @@
                     hiddenList.splice(index, 1);
                 }
                 setHiddenButtons(hiddenList);
+                applyChanges();
             });
             return item;
         }
-
         currentButtons.forEach(function(btn) {
-            if (groupOnline && getButtonType(btn) === 'online') return;
             list.append(createButtonItem(btn));
         });
 
@@ -465,11 +413,11 @@
             Lampa.Storage.set('button_custom_order', []);
             Lampa.Storage.set('button_hidden', []);
             Lampa.Storage.set('buttons_viewmode', 'default');
-            Lampa.Storage.set('buttons_group_online', true);
+            Lampa.Storage.set('buttons_show_all', true);
             Lampa.Modal.close();
             setTimeout(function() {
                 if (currentContainer) {
-                    currentContainer.find('.button--play, .button--edit-order, .button--watch').remove();
+                    currentContainer.find('.button--play, .button--edit-order').remove();
                     currentContainer.data('buttons-processed', false);
                     var targetContainer = currentContainer.find('.full-start-new__buttons');
                     var existingButtons = targetContainer.find('.full-start__button').toArray();
@@ -532,59 +480,25 @@
         }
         currentButtons = allButtons;
         targetContainer.children().detach();
-
-        var groupOnline = Lampa.Storage.get('buttons_group_online', true);
-        var visibleButtons = [];
-
-        var watchBtn = null;
-        if (groupOnline && categories.online.length > 0) {
-            watchBtn = $('<div class="full-start__button selector button--watch" style="order: -100;">' +
-                WATCH_ICON +
-                '<span>Смотреть</span>' +
-                '</div>');
-            watchBtn.on('hover:enter', function() {
-                var modalContent = $('<div class="full-start-new__buttons" style="display:flex;flex-wrap:wrap;gap:1em;justify-content:flex-start;padding:2em;"></div>');
-                var onlineOriginal = allButtonsOriginal.filter(function(b) { return getButtonType(b) === 'online'; });
-                onlineOriginal.forEach(function(originalBtn, index) {
-                    var cloned = originalBtn.clone(true, true);
-                    cloned.removeClass('hidden');
-                    cloned.css({
-                        'opacity': '0',
-                        'animation': 'button-fade-in 0.4s ease forwards',
-                        'animation-delay': (index * 0.08) + 's'
-                    });
-                    modalContent.append(cloned);
-                });
-                var viewmode = Lampa.Storage.get('buttons_viewmode', 'default');
-                modalContent.removeClass('icons-only always-text');
-                if (viewmode === 'icons') modalContent.addClass('icons-only');
-                if (viewmode === 'always') modalContent.addClass('always-text');
-                Lampa.Modal.open({
-                    title: 'Смотреть',
-                    html: modalContent,
-                    size: 'small',
-                    scroll_to_center: true,
-                    onBack: function() {
-                        Lampa.Modal.close();
-                        setTimeout(refreshController, 100);
-                    }
-                });
-            });
-            targetContainer.append(watchBtn);
-            visibleButtons.push(watchBtn);
-        }
-
         currentButtons.forEach(function(btn) {
-            if (groupOnline && getButtonType(btn) === 'online') return;
             targetContainer.append(btn);
-            if (!btn.hasClass('hidden')) visibleButtons.push(btn);
         });
+
+        applyHiddenButtons(currentButtons);
+
+        var showAll = Lampa.Storage.get('buttons_show_all', true);
+        targetContainer.toggleClass('buttons-hidden-all', !showAll);
+
+        var visibleButtons = [];
+        if (showAll) {
+            currentButtons.forEach(function(btn) {
+                if (!btn.hasClass('hidden')) visibleButtons.push(btn);
+            });
+        }
 
         var editButton = createEditButton();
         targetContainer.append(editButton);
         visibleButtons.push(editButton);
-
-        applyHiddenButtons(currentButtons);
 
         var viewmode = Lampa.Storage.get('buttons_viewmode', 'default');
         targetContainer.removeClass('icons-only always-text');
@@ -596,7 +510,6 @@
         setTimeout(function() {
             setupButtonNavigation(container);
         }, 100);
-
         return true;
     }
 
@@ -627,6 +540,7 @@
             '@keyframes button-fade-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }' +
             '.full-start-new__buttons .full-start__button { opacity: 0; }' +
             '.full-start__button.hidden { display: none !important; }' +
+            '.full-start-new__buttons.buttons-hidden-all .full-start__button:not(.button--edit-order) { display: none !important; }' +
             '.full-start-new__buttons { ' +
             'display: flex !important; ' +
             'flex-direction: row !important; ' +
@@ -641,7 +555,8 @@
             '.full-start-new__buttons.always-text .full-start__button span { display: block !important; }' +
             '.viewmode-switch { background: rgba(100,100,255,0.3); margin: 0.5em 0 1em 0; border-radius: 0.3em; }' +
             '.viewmode-switch.focus { border: 3px solid rgba(255,255,255,0.8); }' +
-            '.group-switch.focus { border: 3px solid rgba(255,255,255,0.8); }' +
+            '.showall-switch { background: rgba(50,200,50,0.3); margin: 0.5em 0 1em 0; border-radius: 0.3em; }' +
+            '.showall-switch.focus { border: 3px solid rgba(255,255,255,0.8); }' +
             '.menu-edit-list__item-hidden { opacity: 0.5; }' +
             '</style>');
         $('body').append(style);
@@ -697,7 +612,6 @@
     }
 
     init();
-
     if (typeof module !== 'undefined' && module.exports) {
         module.exports = {};
     }
