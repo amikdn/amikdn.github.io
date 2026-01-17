@@ -1008,6 +1008,9 @@
                 var icon = iconElement.length ? iconElement.clone() : $('<svg></svg>');
                 var isHidden = hidden.indexOf(btnId) !== -1;
 
+                var watchFolderName = getTranslation('buttons_plugin_watch_folder');
+                var isWatchFolder = folder.name === watchFolderName || folder.name === 'Смотреть';
+                
                 var item = $('<div class="menu-edit-list__item">' +
                     '<div class="menu-edit-list__icon"></div>' +
                     '<div class="menu-edit-list__title">' + displayName + '</div>' +
@@ -1021,6 +1024,11 @@
                             '<path d="M2 2L11 11L20 2" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>' +
                         '</svg>' +
                     '</div>' +
+                    (isWatchFolder ? '<div class="menu-edit-list__move-out selector" title="Переместить на главную">' +
+                        '<svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+                            '<path d="M11 2L11 20M2 11L20 11" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>' +
+                        '</svg>' +
+                    '</div>' : '') +
                 '</div>');
 
                 item.find('.menu-edit-list__icon').append(icon);
@@ -1032,6 +1040,7 @@
                     if (prev.length) {
                         item.insertBefore(prev);
                         saveFolderButtonOrder(folder, list);
+                        ensureWatchFolderFirst();
                     }
                 });
 
@@ -1040,93 +1049,70 @@
                     if (next.length) {
                         item.insertAfter(next);
                         saveFolderButtonOrder(folder, list);
+                        ensureWatchFolderFirst();
                     }
                 });
                 
-                // Добавляем возможность перемещения кнопки из папки на главную страницу при зажатии
-                var longPressTimer = null;
-                var isLongPressing = false;
-                
-                item.on('contextmenu', function(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                });
-                
-                item.on('mousedown touchstart', function(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    isLongPressing = true;
-                    longPressTimer = setTimeout(function() {
-                        if (!isLongPressing) return;
-                        var watchFolderName = getTranslation('buttons_plugin_watch_folder');
-                        var isWatchFolder = folder.name === watchFolderName || folder.name === 'Смотреть';
+                // Добавляем кнопку для перемещения из папки на главную страницу
+                if (isWatchFolder) {
+                    item.find('.menu-edit-list__move-out').on('hover:enter', function() {
+                        // Удаляем кнопку из папки "Смотреть"
+                        var folders = getFolders();
+                        var watchFolder = folders.find(function(f) { 
+                            return f.name === watchFolderName || f.name === 'Смотреть'; 
+                        });
                         
-                        if (isWatchFolder) {
-                            // Удаляем кнопку из папки "Смотреть"
-                            var folders = getFolders();
-                            var watchFolder = folders.find(function(f) { 
-                                return f.name === watchFolderName || f.name === 'Смотреть'; 
-                            });
-                            
-                            if (watchFolder) {
-                                var btnIndex = watchFolder.buttons.indexOf(btnId);
-                                if (btnIndex !== -1) {
-                                    watchFolder.buttons.splice(btnIndex, 1);
-                                    
-                                    // Обновляем папку в хранилище
-                                    for (var i = 0; i < folders.length; i++) {
-                                        if (folders[i].id === watchFolder.id) {
-                                            folders[i] = watchFolder;
-                                            break;
-                                        }
+                        if (watchFolder) {
+                            var btnIndex = watchFolder.buttons.indexOf(btnId);
+                            if (btnIndex !== -1) {
+                                watchFolder.buttons.splice(btnIndex, 1);
+                                
+                                // Обновляем папку в хранилище
+                                for (var i = 0; i < folders.length; i++) {
+                                    if (folders[i].id === watchFolder.id) {
+                                        folders[i] = watchFolder;
+                                        break;
                                     }
-                                    setFolders(folders);
-                                    
-                                    // Обновляем itemOrder - добавляем кнопку на главную страницу
-                                    var itemOrder = getItemOrder();
-                                    var watchFolderItemIndex = -1;
-                                    for (var i = 0; i < itemOrder.length; i++) {
-                                        if (itemOrder[i].type === 'folder' && itemOrder[i].id === watchFolder.id) {
-                                            watchFolderItemIndex = i;
-                                            break;
-                                        }
-                                    }
-                                    
-                                    // Добавляем кнопку после папки "Смотреть"
-                                    if (watchFolderItemIndex !== -1) {
-                                        itemOrder.splice(watchFolderItemIndex + 1, 0, {
-                                            type: 'button',
-                                            id: btnId
-                                        });
-                                    } else {
-                                        itemOrder.push({
-                                            type: 'button',
-                                            id: btnId
-                                        });
-                                    }
-                                    setItemOrder(itemOrder);
-                                    
-                                    Lampa.Modal.close();
-                                    Lampa.Noty.show('Кнопка перемещена на главную страницу');
-                                    
-                                    if (currentContainer) {
-                                        currentContainer.data('buttons-processed', false);
-                                        reorderButtons(currentContainer);
-                                    }
-                                    refreshController();
                                 }
+                                setFolders(folders);
+                                
+                                // Обновляем itemOrder - добавляем кнопку на главную страницу
+                                var itemOrder = getItemOrder();
+                                var watchFolderItemIndex = -1;
+                                for (var i = 0; i < itemOrder.length; i++) {
+                                    if (itemOrder[i].type === 'folder' && itemOrder[i].id === watchFolder.id) {
+                                        watchFolderItemIndex = i;
+                                        break;
+                                    }
+                                }
+                                
+                                // Добавляем кнопку после папки "Смотреть"
+                                if (watchFolderItemIndex !== -1) {
+                                    itemOrder.splice(watchFolderItemIndex + 1, 0, {
+                                        type: 'button',
+                                        id: btnId
+                                    });
+                                } else {
+                                    itemOrder.push({
+                                        type: 'button',
+                                        id: btnId
+                                    });
+                                }
+                                setItemOrder(itemOrder);
+                                ensureWatchFolderFirst();
+                                
+                                Lampa.Modal.close();
+                                Lampa.Noty.show('Кнопка перемещена на главную страницу');
+                                
+                                if (currentContainer) {
+                                    currentContainer.data('buttons-processed', false);
+                                    reorderButtons(currentContainer);
+                                }
+                                refreshController();
                             }
                         }
-                    }, 500); // Зажатие 500мс
-                });
-                
-                item.on('mouseup mouseleave touchend touchcancel', function() {
-                    isLongPressing = false;
-                    if (longPressTimer) {
-                        clearTimeout(longPressTimer);
-                        longPressTimer = null;
-                    }
-                });
+                    });
+                }
 
                 list.append(item);
             }
@@ -1183,6 +1169,11 @@
         
         updateFolderIcon(folder);
         ensureWatchFolderFirst();
+        
+        // Применяем изменения сразу
+        if (currentContainer) {
+            applyChanges();
+        }
     }
 
     function updateFolderIcon(folder) {
@@ -1316,29 +1307,37 @@
             item.data('itemType', 'folder');
 
             if (!isWatchFolder) {
-                item.find('.move-up').on('hover:enter', function() {
-                    var prev = item.prev();
-                    while (prev.length && (prev.hasClass('viewmode-switch') || prev.hasClass('menu-edit-list__create-folder'))) {
-                        prev = prev.prev();
+            item.find('.move-up').on('hover:enter', function() {
+                var prev = item.prev();
+                while (prev.length && (prev.hasClass('viewmode-switch') || prev.hasClass('menu-edit-list__create-folder'))) {
+                    prev = prev.prev();
+                }
+                if (prev.length && !prev.hasClass('viewmode-switch') && !prev.hasClass('menu-edit-list__create-folder')) {
+                    item.insertBefore(prev);
+                    saveItemOrder();
+                    ensureWatchFolderFirst();
+                    // Применяем изменения сразу
+                    if (currentContainer) {
+                        applyChanges();
                     }
-                    if (prev.length && !prev.hasClass('viewmode-switch') && !prev.hasClass('menu-edit-list__create-folder')) {
-                        item.insertBefore(prev);
-                        saveItemOrder();
-                        ensureWatchFolderFirst();
-                    }
-                });
+                }
+            });
 
-                item.find('.move-down').on('hover:enter', function() {
-                    var next = item.next();
-                    while (next.length && next.hasClass('folder-reset-button')) {
-                        next = next.next();
+            item.find('.move-down').on('hover:enter', function() {
+                var next = item.next();
+                while (next.length && next.hasClass('folder-reset-button')) {
+                    next = next.next();
+                }
+                if (next.length && !next.hasClass('folder-reset-button')) {
+                    item.insertAfter(next);
+                    saveItemOrder();
+                    ensureWatchFolderFirst();
+                    // Применяем изменения сразу
+                    if (currentContainer) {
+                        applyChanges();
                     }
-                    if (next.length && !next.hasClass('folder-reset-button')) {
-                        item.insertAfter(next);
-                        saveItemOrder();
-                        ensureWatchFolderFirst();
-                    }
-                });
+                }
+            });
 
                 item.find('.menu-edit-list__delete').on('hover:enter', function() {
                     var folderId = folder.id;
@@ -1524,6 +1523,12 @@
             var btnId = getBtnIdentifier(btn);
             var isHidden = hidden.indexOf(btnId) !== -1;
 
+            var watchFolderName = getTranslation('buttons_plugin_watch_folder');
+            var watchFolder = folders.find(function(f) { 
+                return f.name === watchFolderName || f.name === 'Смотреть'; 
+            });
+            var isInWatchFolder = watchFolder && watchFolder.buttons.indexOf(btnId) !== -1;
+            
             var item = $('<div class="menu-edit-list__item">' +
                 '<div class="menu-edit-list__icon"></div>' +
                 '<div class="menu-edit-list__title">' + displayName + '</div>' +
@@ -1543,6 +1548,11 @@
                         '<path d="M7.44873 12.9658L10.8179 16.3349L18.1269 9.02588" stroke="currentColor" stroke-width="3" class="dot" opacity="' + (isHidden ? '0' : '1') + '" stroke-linecap="round"/>' +
                     '</svg>' +
                 '</div>' +
+                (!isInWatchFolder && watchFolder ? '<div class="menu-edit-list__move-in selector" title="Переместить в папку Смотреть">' +
+                    '<svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+                        '<path d="M11 2L11 20M2 11L20 11" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>' +
+                    '</svg>' +
+                '</div>' : '') +
             '</div>');
 
             item.find('.menu-edit-list__icon').append(icon);
@@ -1568,6 +1578,11 @@
                         currentButtons.splice(btnIndex - 1, 0, btn);
                     }
                     saveItemOrder();
+                    ensureWatchFolderFirst();
+                    // Применяем изменения сразу
+                    if (currentContainer) {
+                        applyChanges();
+                    }
                 }
             });
 
@@ -1584,6 +1599,11 @@
                         currentButtons.splice(btnIndex + 1, 0, btn);
                     }
                     saveItemOrder();
+                    ensureWatchFolderFirst();
+                    // Применяем изменения сразу
+                    if (currentContainer) {
+                        applyChanges();
+                    }
                 }
             });
 
@@ -1611,64 +1631,43 @@
                 }
             });
             
-            // Добавляем возможность перемещения кнопки с главной страницы в папку "Смотреть" при зажатии
-            var longPressTimer = null;
-            var isLongPressing = false;
-            var watchFolderName = getTranslation('buttons_plugin_watch_folder');
-            var watchFolder = folders.find(function(f) { 
-                return f.name === watchFolderName || f.name === 'Смотреть'; 
-            });
-            
-            // Проверяем, не находится ли кнопка уже в папке "Смотреть"
-            var isInWatchFolder = watchFolder && watchFolder.buttons.indexOf(btnId) !== -1;
-            
+            // Добавляем кнопку для перемещения с главной страницы в папку "Смотреть"
             if (!isInWatchFolder && watchFolder) {
-                item.on('mousedown touchstart', function(e) {
-                    isLongPressing = true;
-                    longPressTimer = setTimeout(function() {
-                        if (!isLongPressing) return;
-                        // Добавляем кнопку в папку "Смотреть"
-                        if (watchFolder.buttons.indexOf(btnId) === -1) {
-                            watchFolder.buttons.push(btnId);
-                            
-                            // Обновляем папку в хранилище
-                            var folders = getFolders();
-                            for (var i = 0; i < folders.length; i++) {
-                                if (folders[i].id === watchFolder.id) {
-                                    folders[i] = watchFolder;
-                                    break;
-                                }
+                item.find('.menu-edit-list__move-in').on('hover:enter', function() {
+                    // Добавляем кнопку в папку "Смотреть"
+                    if (watchFolder.buttons.indexOf(btnId) === -1) {
+                        watchFolder.buttons.push(btnId);
+                        
+                        // Обновляем папку в хранилище
+                        var folders = getFolders();
+                        for (var i = 0; i < folders.length; i++) {
+                            if (folders[i].id === watchFolder.id) {
+                                folders[i] = watchFolder;
+                                break;
                             }
-                            setFolders(folders);
-                            
-                            // Удаляем кнопку из itemOrder (если она там есть)
-                            var itemOrder = getItemOrder();
-                            var newItemOrder = [];
-                            for (var i = 0; i < itemOrder.length; i++) {
-                                if (itemOrder[i].type === 'button' && itemOrder[i].id === btnId) {
-                                    continue; // Пропускаем эту кнопку
-                                }
-                                newItemOrder.push(itemOrder[i]);
-                            }
-                            setItemOrder(newItemOrder);
-                            
-                            Lampa.Modal.close();
-                            Lampa.Noty.show('Кнопка перемещена в папку "Смотреть"');
-                            
-                            if (currentContainer) {
-                                currentContainer.data('buttons-processed', false);
-                                reorderButtons(currentContainer);
-                            }
-                            refreshController();
                         }
-                    }, 500); // Зажатие 500мс
-                });
-                
-                item.on('mouseup mouseleave touchend touchcancel', function() {
-                    isLongPressing = false;
-                    if (longPressTimer) {
-                        clearTimeout(longPressTimer);
-                        longPressTimer = null;
+                        setFolders(folders);
+                        
+                        // Удаляем кнопку из itemOrder (если она там есть)
+                        var itemOrder = getItemOrder();
+                        var newItemOrder = [];
+                        for (var i = 0; i < itemOrder.length; i++) {
+                            if (itemOrder[i].type === 'button' && itemOrder[i].id === btnId) {
+                                continue; // Пропускаем эту кнопку
+                            }
+                            newItemOrder.push(itemOrder[i]);
+                        }
+                        setItemOrder(newItemOrder);
+                        ensureWatchFolderFirst();
+                        
+                        Lampa.Modal.close();
+                        Lampa.Noty.show('Кнопка перемещена в папку "Смотреть"');
+                        
+                        if (currentContainer) {
+                            currentContainer.data('buttons-processed', false);
+                            reorderButtons(currentContainer);
+                        }
+                        refreshController();
                     }
                 });
             }
@@ -1837,7 +1836,7 @@
                 Lampa.Modal.close();
                 ensureWatchFolderFirst();
                 applyChanges();
-                Lampa.Controller.toggle('full_start');
+                // Не переключаем контроллер, оставляем фокус в окне настроек
             }
         });
     }
@@ -2181,6 +2180,9 @@
             '.folder-reset-button { background: rgba(200,100,100,0.3); margin-top: 1em; border-radius: 0.3em; }' +
             '.folder-reset-button.focus { border: 3px solid rgba(255,255,255,0.8); }' +
             '.menu-edit-list__toggle.focus { border: 2px solid rgba(255,255,255,0.8); border-radius: 0.3em; }' +
+            '.menu-edit-list__move-out, .menu-edit-list__move-in { width: 2.4em; height: 2.4em; display: flex; align-items: center; justify-content: center; cursor: pointer; margin-left: 0.5em; }' +
+            '.menu-edit-list__move-out svg, .menu-edit-list__move-in svg { width: 1.2em !important; height: 1.2em !important; }' +
+            '.menu-edit-list__move-out.focus, .menu-edit-list__move-in.focus { border: 2px solid rgba(255,255,255,0.8); border-radius: 0.3em; }' +
         '</style>');
         $('body').append(style);
 
