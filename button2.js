@@ -905,31 +905,10 @@
             '</svg>';
         
         if (isWatchFolder) {
-            // Для папки "Смотреть" ищем иконку от трейлеров
-            var trailerBtn = null;
-            folder.buttons.forEach(function(btnId) {
-                var btn = findButton(btnId);
-                if (btn && detectBtnCategory(btn) === 'trailer') {
-                    trailerBtn = btn;
-                    return false; // Прерываем цикл
-                }
-            });
-            
-            if (trailerBtn) {
-                var btnIcon = trailerBtn.find('svg').first();
-                if (btnIcon.length) {
-                    icon = btnIcon.prop('outerHTML');
-                }
-            } else if (folder.buttons.length > 0) {
-                // Если трейлеров нет, используем первую кнопку
-                var firstBtn = findButton(folder.buttons[0]);
-                if (firstBtn) {
-                    var btnIcon = firstBtn.find('svg').first();
-                    if (btnIcon.length) {
-                        icon = btnIcon.prop('outerHTML');
-                    }
-                }
-            }
+            // Для папки "Смотреть" используем иконку Play
+            icon = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">' +
+                '<path d="M8 5v14l11-7z"/>' +
+            '</svg>';
         } else {
             // Для других папок используем первую кнопку
             var firstBtnId = folder.buttons[0];
@@ -1234,33 +1213,26 @@
         if (folderBtn.length) {
             var watchFolderName = getTranslation('buttons_plugin_watch_folder');
             var isWatchFolder = folder.name === watchFolderName || folder.name === 'Смотреть';
-            var iconBtn = null;
+            var icon = null;
             
             if (isWatchFolder) {
-                // Для папки "Смотреть" ищем иконку от трейлеров
-                folder.buttons.forEach(function(btnId) {
-                    var btn = findButton(btnId);
-                    if (btn && detectBtnCategory(btn) === 'trailer') {
-                        iconBtn = btn;
-                        return false; // Прерываем цикл
-                    }
-                });
-                
-                // Если трейлеров нет, используем первую кнопку
-                if (!iconBtn && folder.buttons.length > 0) {
-                    iconBtn = findButton(folder.buttons[0]);
-                }
+                // Для папки "Смотреть" всегда используем иконку Play
+                icon = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">' +
+                    '<path d="M8 5v14l11-7z"/>' +
+                '</svg>';
             } else {
                 // Для других папок используем первую кнопку
-                iconBtn = findButton(folder.buttons[0]);
+                var iconBtn = findButton(folder.buttons[0]);
+                if (iconBtn) {
+                    var iconElement = iconBtn.find('svg').first();
+                    if (iconElement.length) {
+                        icon = iconElement.clone();
+                    }
+                }
             }
             
-            if (iconBtn) {
-                var iconElement = iconBtn.find('svg').first();
-                if (iconElement.length) {
-                    var btnIcon = iconElement.clone();
-                    folderBtn.find('svg').replaceWith(btnIcon);
-                }
+            if (icon) {
+                folderBtn.find('svg').replaceWith(icon);
             } else {
                 var defaultIcon = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' +
                     '<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>' +
