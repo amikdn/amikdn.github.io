@@ -154,22 +154,52 @@
         return priority.concat(sorted).concat(remaining);
     }
 
+    function getDefaultVisibleButtonClasses() {
+        // Стандартные кнопки, которые должны быть видны по умолчанию (кроме "Смотреть")
+        return ['button--book', 'button--reaction', 'button--options'];
+    }
+
     function applyHiddenButtons(buttons) {
         var hidden = getHiddenButtons();
         var showAllButtons = Lampa.Storage.get('show_all_buttons_enabled', false);
+        var defaultVisibleClasses = getDefaultVisibleButtonClasses();
         
         buttons.forEach(function(btn) {
             var id = getButtonId(btn);
+            var classes = btn.attr('class') || '';
             var isInHiddenList = hidden.indexOf(id) !== -1;
+            
+            // Определяем, является ли кнопка стандартной видимой
+            var isDefaultVisible = false;
+            for (var i = 0; i < defaultVisibleClasses.length; i++) {
+                if (classes.indexOf(defaultVisibleClasses[i]) !== -1) {
+                    isDefaultVisible = true;
+                    break;
+                }
+            }
             
             if (showAllButtons) {
                 // Если настройка включена - показываем все кнопки
                 // Убираем класс hide и hidden
                 btn.removeClass('hidden').removeClass('hide');
             } else {
-                // Если настройка выключена - используем список скрытых кнопок из хранилища
-                // Скрываем только те кнопки, которые явно помечены как скрытые
-                btn.toggleClass('hidden', isInHiddenList);
+                // Если настройка выключена:
+                // - Если кнопка в списке скрытых - скрываем её (настройки редактора)
+                // - Если кнопка стандартная видимая - показываем её
+                // - Если список скрытых пуст (первый запуск) - скрываем все нестандартные
+                // - Иначе показываем кнопки, которые не в списке скрытых
+                var shouldHide = false;
+                if (isInHiddenList) {
+                    // Кнопка явно скрыта через редактор
+                    shouldHide = true;
+                } else if (hidden.length === 0) {
+                    // Первый запуск - показываем только стандартные кнопки
+                    shouldHide = !isDefaultVisible;
+                } else {
+                    // Пользователь уже настраивал - показываем все, кроме скрытых в редакторе
+                    shouldHide = false;
+                }
+                btn.toggleClass('hidden', shouldHide);
                 // Класс hide оставляем как есть (он управляется системой)
             }
         });
