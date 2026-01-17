@@ -585,11 +585,25 @@
             buttonsInFolders = buttonsInFolders.concat(folder.buttons);
         });
         
+        // Проверяем itemOrder - если кнопка там есть, не перемещаем её в папку
+        var itemOrder = getItemOrder();
+        var buttonsInItemOrder = [];
+        itemOrder.forEach(function(item) {
+            if (item.type === 'button') {
+                buttonsInItemOrder.push(item.id);
+            }
+        });
+        
         allButtons.forEach(function(btn) {
             var btnId = getBtnIdentifier(btn);
             
             // Пропускаем кнопки, которые уже в папках
             if (buttonsInFolders.indexOf(btnId) !== -1) {
+                return;
+            }
+            
+            // Пропускаем кнопки, которые уже в itemOrder (они на главной странице)
+            if (buttonsInItemOrder.indexOf(btnId) !== -1) {
                 return;
             }
             
@@ -733,13 +747,37 @@
                     }
                 } else if (item.type === 'button') {
                     var btnId = item.id;
-                    if (buttonsInFolders.indexOf(btnId) === -1) {
-                        var btn = currentButtons.find(function(b) { return getBtnIdentifier(b) === btnId; });
-                        if (btn && !btn.hasClass('hidden')) {
-                            targetContainer.append(btn);
-                            visibleButtons.push(btn);
-                            addedButtons.push(btnId);
+                    // Если кнопка в itemOrder, она должна быть на главной странице
+                    // Находим кнопку среди всех кнопок
+                    var allButtonsList = allButtonsCache.length > 0 ? allButtonsCache : allButtons;
+                    var btn = allButtonsList.find(function(b) { return getBtnIdentifier(b) === btnId; });
+                    if (btn && !btn.hasClass('hidden')) {
+                        // Проверяем, не находится ли кнопка уже в контейнере
+                        var existingBtn = targetContainer.find('.full-start__button').filter(function() {
+                            return getBtnIdentifier($(this)) === btnId;
+                        });
+                        if (!existingBtn.length) {
+                            // Клонируем кнопку из оригинальных кнопок
+                            var originalBtn = allButtonsOriginal.find(function(b) { 
+                                return getBtnIdentifier(b) === btnId; 
+                            });
+                            if (originalBtn) {
+                                var clonedBtn = originalBtn.clone(true, true);
+                                clonedBtn.css({ 'opacity': '1', 'animation': 'none' });
+                                clonedBtn.removeClass('hidden');
+                                targetContainer.append(clonedBtn);
+                                visibleButtons.push(clonedBtn);
+                            } else {
+                                var clonedBtn = btn.clone(true, true);
+                                clonedBtn.css({ 'opacity': '1', 'animation': 'none' });
+                                clonedBtn.removeClass('hidden');
+                                targetContainer.append(clonedBtn);
+                                visibleButtons.push(clonedBtn);
+                            }
+                        } else {
+                            visibleButtons.push(existingBtn);
                         }
+                        addedButtons.push(btnId);
                     }
                 }
             });
@@ -1075,6 +1113,7 @@
                         if (watchFolder) {
                             var btnIndex = watchFolder.buttons.indexOf(btnId);
                             if (btnIndex !== -1) {
+                                // Удаляем кнопку из папки
                                 watchFolder.buttons.splice(btnIndex, 1);
                                 
                                 // Обновляем папку в хранилище
@@ -1096,49 +1135,41 @@
                                     }
                                 }
                                 
-                                // Добавляем кнопку после папки "Смотреть"
-                                if (watchFolderItemIndex !== -1) {
-                                    itemOrder.splice(watchFolderItemIndex + 1, 0, {
-                                        type: 'button',
-                                        id: btnId
-                                    });
-                                } else {
-                                    itemOrder.push({
-                                        type: 'button',
-                                        id: btnId
-                                    });
+                                // Проверяем, нет ли уже этой кнопки в itemOrder
+                                var btnExistsInOrder = itemOrder.some(function(item) {
+                                    return item.type === 'button' && item.id === btnId;
+                                });
+                                
+                                // Добавляем кнопку после папки "Смотреть", если её там еще нет
+                                if (!btnExistsInOrder) {
+                                    if (watchFolderItemIndex !== -1) {
+                                        itemOrder.splice(watchFolderItemIndex + 1, 0, {
+                                            type: 'button',
+                                            id: btnId
+                                        });
+                                    } else {
+                                        itemOrder.push({
+                                            type: 'button',
+                                            id: btnId
+                                        });
+                                    }
+                                    setItemOrder(itemOrder);
                                 }
-                                setItemOrder(itemOrder);
+                                
                                 ensureWatchFolderFirst();
+                                
+                                // Удаляем элемент из списка в диалоге
+                                item.remove();
                                 
                                 Lampa.Noty.show('Кнопка перемещена на главную страницу');
                                 
-                                // Применяем изменения
+                                // Применяем изменения к главной странице (без переключения контроллера)
                                 if (currentContainer) {
                                     currentContainer.data('buttons-processed', false);
                                     applyChanges();
                                 }
                                 
-                                // Обновляем диалог редактирования папки - закрываем и открываем заново
-                                Lampa.Modal.close();
-                                setTimeout(function() {
-                                    // Обновляем папку из хранилища
-                                    var updatedFolders = getFolders();
-                                    var updatedFolder = updatedFolders.find(function(f) { 
-                                        return f.id === folder.id; 
-                                    });
-                                    if (updatedFolder) {
-                                        openFolderEditDialog(updatedFolder);
-                                    }
-                                }, 100);
-                                
-                                // Обновляем главную страницу
-                                setTimeout(function() {
-                                    if (currentContainer) {
-                                        reorderButtons(currentContainer);
-                                    }
-                                    refreshController();
-                                }, 200);
+                                // Не закрываем диалог и не переключаем контроллер - остаемся в диалоге
                             }
                         }
                     });
@@ -1200,10 +1231,12 @@
         updateFolderIcon(folder);
         ensureWatchFolderFirst();
         
-        // Применяем изменения сразу
+        // Применяем изменения сразу (без переключения контроллера)
         if (currentContainer) {
             applyChanges();
         }
+        
+        // Не переключаем контроллер - остаемся в диалоге
     }
 
     function updateFolderIcon(folder) {
@@ -1920,6 +1953,15 @@
             buttonsInFolders = buttonsInFolders.concat(folder.buttons);
         });
 
+        // Проверяем itemOrder - если кнопка там есть, не перемещаем её в папку
+        var itemOrder = getItemOrder();
+        var buttonsInItemOrder = [];
+        itemOrder.forEach(function(item) {
+            if (item.type === 'button') {
+                buttonsInItemOrder.push(item.id);
+            }
+        });
+        
         // Автоматически перемещаем новые кнопки в папку "Смотреть"
         var watchFolderUpdated = false;
         allButtons.forEach(function(btn) {
@@ -1927,6 +1969,11 @@
             
             // Пропускаем кнопки, которые уже в папках
             if (buttonsInFolders.indexOf(btnId) !== -1) {
+                return;
+            }
+            
+            // Пропускаем кнопки, которые уже в itemOrder (они на главной странице)
+            if (buttonsInItemOrder.indexOf(btnId) !== -1) {
                 return;
             }
             
@@ -2011,7 +2058,28 @@
                         addedFolders.push(folder.id);
                     }
                 } else if (item.type === 'button') {
+                    // Если кнопка в itemOrder, она должна быть на главной странице
+                    // Ищем кнопку среди всех кнопок, а не только среди filteredButtons
                     var btn = filteredButtons.find(function(b) { return getBtnIdentifier(b) === item.id; });
+                    if (!btn) {
+                        // Если кнопка не в filteredButtons, ищем в allButtons (она может быть в папке)
+                        btn = allButtons.find(function(b) { return getBtnIdentifier(b) === item.id; });
+                        if (btn) {
+                            // Клонируем кнопку из оригинальных кнопок
+                            var originalBtn = allButtonsOriginal.find(function(b) { 
+                                return getBtnIdentifier(b) === item.id; 
+                            });
+                            if (originalBtn) {
+                                btn = originalBtn.clone(true, true);
+                                btn.css({ 'opacity': '1', 'animation': 'none' });
+                                btn.removeClass('hidden');
+                            } else {
+                                btn = btn.clone(true, true);
+                                btn.css({ 'opacity': '1', 'animation': 'none' });
+                                btn.removeClass('hidden');
+                            }
+                        }
+                    }
                     if (btn && !btn.hasClass('hidden')) {
                         targetContainer.append(btn);
                         visibleButtons.push(btn);
@@ -2169,28 +2237,20 @@
 
     function setupButtonNavigation(container) {
         // Lampa автоматически обрабатывает навигацию для flex-wrap: wrap
-        // Просто убедимся что контроллер обновлен
-        if (Lampa.Controller && typeof Lampa.Controller.toggle === 'function') {
-            try {
-                Lampa.Controller.toggle('full_start');
-            } catch(e) {}
-        }
+        // Не переключаем контроллер, чтобы не уходить из диалога настроек
+        // Просто обновляем навигацию если нужно
     }
 
     function refreshController() {
         if (!Lampa.Controller || typeof Lampa.Controller.toggle !== 'function') return;
         
-        setTimeout(function() {
-            try {
-                Lampa.Controller.toggle('full_start');
-                
-                if (currentContainer) {
-                    setTimeout(function() {
-                        setupButtonNavigation(currentContainer);
-                    }, 100);
-                }
-            } catch(e) {}
-        }, 50);
+        // Не переключаем контроллер, чтобы не уходить из диалога настроек
+        // Просто обновляем навигацию если нужно
+        if (currentContainer) {
+            setTimeout(function() {
+                setupButtonNavigation(currentContainer);
+            }, 100);
+        }
     }
 
     function init() {
