@@ -119,16 +119,27 @@
 
     function sortByCustomOrder(buttons) {
         var customOrder = getCustomOrder();
+        var playButtons = [];  // Кнопка "Смотреть" всегда первой
         var priority = [];
         var regular = [];
+        
         buttons.forEach(function(btn) {
+            var classes = btn.attr('class') || '';
             var id = getButtonId(btn);
+            
+            // Кнопка "Смотреть" всегда первой
+            if (classes.indexOf('button--play') !== -1) {
+                playButtons.push(btn);
+                return;
+            }
+            
             if (id === 'modss_online_button' || id === 'showy_online_button') {
                 priority.push(btn);
             } else {
                 regular.push(btn);
             }
         });
+        
         priority.sort(function(a, b) {
             var idA = getButtonId(a);
             var idB = getButtonId(b);
@@ -138,6 +149,7 @@
             if (idB === 'showy_online_button') return 1;
             return 0;
         });
+        
         if (!customOrder.length) {
             regular.sort(function(a, b) {
                 var typeOrder = ['online', 'torrent', 'trailer', 'favorite', 'subscribe', 'book', 'reaction', 'other'];
@@ -149,8 +161,9 @@
                 if (indexB === -1) indexB = 999;
                 return indexA - indexB;
             });
-            return priority.concat(regular);
+            return playButtons.concat(priority).concat(regular);
         }
+        
         var sorted = [];
         var remaining = regular.slice();
         customOrder.forEach(function(id) {
@@ -162,7 +175,7 @@
                 }
             }
         });
-        return priority.concat(sorted).concat(remaining);
+        return playButtons.concat(priority).concat(sorted).concat(remaining);
     }
 
     function getDefaultVisibleButtonClasses() {
@@ -244,7 +257,9 @@
         if (!currentContainer) return;
         var showAllButtons = Lampa.Storage.get('show_all_buttons_enabled', false);
         var categories = categorizeButtons(currentContainer);
+        // Кнопка "Смотреть" должна быть первой - как в reorderButtons
         var allButtons = []
+            .concat(categories.play)  // Кнопка "Смотреть" первой
             .concat(categories.online)
             .concat(categories.torrent)
             .concat(categories.trailer)
@@ -258,33 +273,32 @@
         currentButtons = allButtons;
         var targetContainer = currentContainer.find('.full-start-new__buttons');
         if (!targetContainer.length) return;
-        // Сохраняем кнопку "Смотреть"
-        var playButton = targetContainer.find('.button--play');
-        targetContainer.find('.full-start__button').not('.button--edit-order, .button--play').detach();
-        var visibleButtons = [];
+        
+        // Удаляем только кнопку редактирования (карандаш)
+        currentContainer.find('.button--edit-order').remove();
+        targetContainer.children().detach();
         
         // Применяем логику скрытия/показа
         applyHiddenButtons(currentButtons);
         
+        var visibleButtons = [];
         currentButtons.forEach(function(btn) {
-            // Если настройка включена - убираем класс hide
+            // При включенной настройке убираем класс hide (дополнительная проверка)
             if (showAllButtons) {
-                btn.removeClass('hide');
+                btn.removeClass('hide').removeClass('hidden');
             }
+            // Добавляем кнопку в контейнер
             targetContainer.append(btn);
-            if (!btn.hasClass('hidden')) visibleButtons.push(btn);
+            // Проверяем видимость - кнопка не должна быть hidden
+            if (!btn.hasClass('hidden')) {
+                visibleButtons.push(btn);
+            }
         });
+        
+        var editButton = createEditButton();
+        targetContainer.append(editButton);
+        visibleButtons.push(editButton);
         applyButtonAnimation(visibleButtons);
-        var editBtn = targetContainer.find('.button--edit-order');
-        if (editBtn.length) {
-            editBtn.detach();
-            targetContainer.append(editBtn);
-        }
-        // Кнопка "Смотреть" должна оставаться на месте
-        if (playButton.length) {
-            playButton.detach();
-            targetContainer.prepend(playButton);
-        }
         var viewmode = Lampa.Storage.get('buttons_viewmode', 'default');
         targetContainer.removeClass('icons-only always-text');
         if (viewmode === 'icons') targetContainer.addClass('icons-only');
@@ -543,10 +557,13 @@
         
         var visibleButtons = [];
         currentButtons.forEach(function(btn) {
+            // При включенной настройке убираем класс hide (дополнительная проверка)
+            if (showAllButtons) {
+                btn.removeClass('hide').removeClass('hidden');
+            }
             // Добавляем кнопку в контейнер
             targetContainer.append(btn);
-            // Проверяем видимость кнопки (не должна быть hidden)
-            // Класс hide обрабатывается через CSS, но при включенной настройке убираем его
+            // Проверяем видимость - кнопка не должна быть hidden
             if (!btn.hasClass('hidden')) {
                 visibleButtons.push(btn);
             }
