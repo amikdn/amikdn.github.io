@@ -498,6 +498,40 @@
         setCustomOrder(order);
     }
 
+    function ensureWatchFolderFirst() {
+        var itemOrder = getItemOrder();
+        var watchFolderName = getTranslation('buttons_plugin_watch_folder');
+        var folders = getFolders();
+        var watchFolder = folders.find(function(f) { 
+            return f.name === watchFolderName || f.name === 'Смотреть'; 
+        });
+        
+        if (watchFolder) {
+            // Находим папку "Смотреть" в itemOrder
+            var watchIndex = -1;
+            for (var i = 0; i < itemOrder.length; i++) {
+                if (itemOrder[i].type === 'folder' && itemOrder[i].id === watchFolder.id) {
+                    watchIndex = i;
+                    break;
+                }
+            }
+            
+            // Если папка найдена и не первая, перемещаем её в начало
+            if (watchIndex > 0) {
+                var watchItem = itemOrder.splice(watchIndex, 1)[0];
+                itemOrder.unshift(watchItem);
+                setItemOrder(itemOrder);
+            } else if (watchIndex === -1) {
+                // Если папки нет в itemOrder, добавляем в начало
+                itemOrder.unshift({
+                    type: 'folder',
+                    id: watchFolder.id
+                });
+                setItemOrder(itemOrder);
+            }
+        }
+    }
+
     function saveItemOrder() {
         var order = [];
         var items = $('.menu-edit-list .menu-edit-list__item').not('.menu-edit-list__create-folder');
@@ -520,6 +554,7 @@
         });
         
         setItemOrder(order);
+        ensureWatchFolderFirst();
     }
 
     function applyChanges() {
@@ -805,6 +840,7 @@
         }
 
         saveOrder();
+        ensureWatchFolderFirst();
         
         setTimeout(function() {
             if (currentContainer) {
@@ -889,10 +925,16 @@
 
     function openFolderMenu(folder) {
         var items = [];
+        var hidden = getHiddenButtons();
         
         folder.buttons.forEach(function(btnId) {
             var btn = findButton(btnId);
             if (btn) {
+                // Пропускаем скрытые кнопки
+                if (hidden.indexOf(btnId) !== -1) {
+                    return;
+                }
+                
                 var displayName = getBtnDisplayText(btn, allButtonsOriginal);
                 var iconElement = btn.find('svg').first();
                 var icon = iconElement.length ? iconElement.prop('outerHTML') : '';
@@ -979,12 +1021,6 @@
                             '<path d="M2 2L11 11L20 2" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>' +
                         '</svg>' +
                     '</div>' +
-                    '<div class="menu-edit-list__toggle toggle selector">' +
-                        '<svg width="26" height="26" viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">' +
-                            '<rect x="1.89111" y="1.78369" width="21.793" height="21.793" rx="3.5" stroke="currentColor" stroke-width="3"/>' +
-                            '<path d="M7.44873 12.9658L10.8179 16.3349L18.1269 9.02588" stroke="currentColor" stroke-width="3" class="dot" opacity="' + (isHidden ? '0' : '1') + '" stroke-linecap="round"/>' +
-                        '</svg>' +
-                    '</div>' +
                 '</div>');
 
                 item.find('.menu-edit-list__icon').append(icon);
@@ -1004,30 +1040,6 @@
                     if (next.length) {
                         item.insertAfter(next);
                         saveFolderButtonOrder(folder, list);
-                    }
-                });
-
-                item.find('.toggle').on('hover:enter', function() {
-                    var hidden = getHiddenButtons();
-                    var index = hidden.indexOf(btnId);
-                    
-                    if (index !== -1) {
-                        hidden.splice(index, 1);
-                        btn.removeClass('hidden');
-                        item.find('.dot').attr('opacity', '1');
-                        item.removeClass('menu-edit-list__item-hidden');
-                    } else {
-                        hidden.push(btnId);
-                        btn.addClass('hidden');
-                        item.find('.dot').attr('opacity', '0');
-                        item.addClass('menu-edit-list__item-hidden');
-                    }
-                    
-                    setHiddenButtons(hidden);
-                    
-                    // Применяем изменения к контейнеру
-                    if (currentContainer) {
-                        applyChanges();
                     }
                 });
 
@@ -1057,34 +1069,21 @@
             }
         });
         
-        // Сохраняем порядок, но при первой загрузке сортируем: трейлеры всегда первые
-        // Если порядок уже был изменен пользователем, сохраняем его как есть
-        // Проверяем, есть ли уже трейлеры в начале списка
-        var hasTrailerAtStart = false;
-        if (newOrder.length > 0) {
-            var firstBtn = findButton(newOrder[0]);
-            if (firstBtn && detectBtnCategory(firstBtn) === 'trailer') {
-                hasTrailerAtStart = true;
-            }
-        }
+        // Трейлеры всегда первые в папке "Смотреть"
+        var trailerButtons = [];
+        var otherButtons = [];
         
-        // Если трейлеры не в начале, сортируем
-        if (!hasTrailerAtStart) {
-            var trailerButtons = [];
-            var otherButtons = [];
-            
-            newOrder.forEach(function(btnId) {
-                var btn = findButton(btnId);
-                var category = btn ? detectBtnCategory(btn) : '';
-                if (category === 'trailer') {
-                    trailerButtons.push(btnId);
-                } else {
-                    otherButtons.push(btnId);
-                }
-            });
-            
-            newOrder = trailerButtons.concat(otherButtons);
-        }
+        newOrder.forEach(function(btnId) {
+            var btn = findButton(btnId);
+            var category = btn ? detectBtnCategory(btn) : '';
+            if (category === 'trailer') {
+                trailerButtons.push(btnId);
+            } else {
+                otherButtons.push(btnId);
+            }
+        });
+        
+        newOrder = trailerButtons.concat(otherButtons);
         
         folder.buttons = newOrder;
         
@@ -1098,6 +1097,7 @@
         setFolders(folders);
         
         updateFolderIcon(folder);
+        ensureWatchFolderFirst();
     }
 
     function updateFolderIcon(folder) {
@@ -1197,6 +1197,9 @@
         list.append(modeBtn);
 
         function createFolderItem(folder) {
+            var watchFolderName = getTranslation('buttons_plugin_watch_folder');
+            var isWatchFolder = folder.name === watchFolderName || folder.name === 'Смотреть';
+            
             var item = $('<div class="menu-edit-list__item folder-item">' +
                 '<div class="menu-edit-list__icon">' +
                     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' +
@@ -1204,50 +1207,55 @@
                     '</svg>' +
                 '</div>' +
                 '<div class="menu-edit-list__title">' + folder.name + ' <span style="opacity:0.5">(' + folder.buttons.length + ')</span></div>' +
-                '<div class="menu-edit-list__move move-up selector">' +
-                    '<svg width="22" height="14" viewBox="0 0 22 14" fill="none" xmlns="http://www.w3.org/2000/svg">' +
-                        '<path d="M2 12L11 3L20 12" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>' +
-                    '</svg>' +
-                '</div>' +
-                '<div class="menu-edit-list__move move-down selector">' +
-                    '<svg width="22" height="14" viewBox="0 0 22 14" fill="none" xmlns="http://www.w3.org/2000/svg">' +
-                        '<path d="M2 2L11 11L20 2" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>' +
-                    '</svg>' +
-                '</div>' +
-                '<div class="menu-edit-list__delete selector">' +
-                    '<svg width="26" height="26" viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">' +
-                        '<rect x="1.89111" y="1.78369" width="21.793" height="21.793" rx="3.5" stroke="currentColor" stroke-width="3"/>' +
-                        '<path d="M9.5 9.5L16.5 16.5M16.5 9.5L9.5 16.5" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>' +
-                    '</svg>' +
-                '</div>' +
+                (isWatchFolder ? '' : (
+                    '<div class="menu-edit-list__move move-up selector">' +
+                        '<svg width="22" height="14" viewBox="0 0 22 14" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+                            '<path d="M2 12L11 3L20 12" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>' +
+                        '</svg>' +
+                    '</div>' +
+                    '<div class="menu-edit-list__move move-down selector">' +
+                        '<svg width="22" height="14" viewBox="0 0 22 14" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+                            '<path d="M2 2L11 11L20 2" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>' +
+                        '</svg>' +
+                    '</div>' +
+                    '<div class="menu-edit-list__delete selector">' +
+                        '<svg width="26" height="26" viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+                            '<rect x="1.89111" y="1.78369" width="21.793" height="21.793" rx="3.5" stroke="currentColor" stroke-width="3"/>' +
+                            '<path d="M9.5 9.5L16.5 16.5M16.5 9.5L9.5 16.5" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>' +
+                        '</svg>' +
+                    '</div>'
+                )) +
             '</div>');
 
             item.data('folderId', folder.id);
             item.data('itemType', 'folder');
 
-            item.find('.move-up').on('hover:enter', function() {
-                var prev = item.prev();
-                while (prev.length && (prev.hasClass('viewmode-switch') || prev.hasClass('menu-edit-list__create-folder'))) {
-                    prev = prev.prev();
-                }
-                if (prev.length && !prev.hasClass('viewmode-switch') && !prev.hasClass('menu-edit-list__create-folder')) {
-                    item.insertBefore(prev);
-                    saveItemOrder();
-                }
-            });
+            if (!isWatchFolder) {
+                item.find('.move-up').on('hover:enter', function() {
+                    var prev = item.prev();
+                    while (prev.length && (prev.hasClass('viewmode-switch') || prev.hasClass('menu-edit-list__create-folder'))) {
+                        prev = prev.prev();
+                    }
+                    if (prev.length && !prev.hasClass('viewmode-switch') && !prev.hasClass('menu-edit-list__create-folder')) {
+                        item.insertBefore(prev);
+                        saveItemOrder();
+                        ensureWatchFolderFirst();
+                    }
+                });
 
-            item.find('.move-down').on('hover:enter', function() {
-                var next = item.next();
-                while (next.length && next.hasClass('folder-reset-button')) {
-                    next = next.next();
-                }
-                if (next.length && !next.hasClass('folder-reset-button')) {
-                    item.insertAfter(next);
-                    saveItemOrder();
-                }
-            });
+                item.find('.move-down').on('hover:enter', function() {
+                    var next = item.next();
+                    while (next.length && next.hasClass('folder-reset-button')) {
+                        next = next.next();
+                    }
+                    if (next.length && !next.hasClass('folder-reset-button')) {
+                        item.insertAfter(next);
+                        saveItemOrder();
+                        ensureWatchFolderFirst();
+                    }
+                });
 
-            item.find('.menu-edit-list__delete').on('hover:enter', function() {
+                item.find('.menu-edit-list__delete').on('hover:enter', function() {
                 var folderId = folder.id;
                 var folderButtons = folder.buttons.slice();
                 
@@ -1510,6 +1518,11 @@
                 }
                 
                 setHiddenButtons(hidden);
+                
+                // Применяем изменения сразу для кнопок из папки "Смотреть"
+                if (currentContainer) {
+                    applyChanges();
+                }
             });
             
             return item;
@@ -1674,6 +1687,7 @@
             scroll_to_center: true,
             onBack: function() {
                 Lampa.Modal.close();
+                ensureWatchFolderFirst();
                 applyChanges();
                 Lampa.Controller.toggle('full_start');
             }
