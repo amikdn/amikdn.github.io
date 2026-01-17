@@ -1,46 +1,64 @@
 (function () {
     'use strict';
     
-    // Функция для удаления items-line с Shots
-    function removeShotsItemsLine() {
+    // Функция для перемещения items-line с Shots в самый низ страницы
+    function moveShotsItemsLineToBottom() {
         $('.items-line').each(function() {
             var $itemsLine = $(this);
             var $shotsPerson = $itemsLine.find('.full-person__name');
             
+            var isShots = false;
             // Проверяем по тексту Shots
             if ($shotsPerson.length && $shotsPerson.text().trim() === 'Shots') {
-                $itemsLine.remove();
-                return;
+                isShots = true;
             }
             
             // Проверяем по наличию sprite-shots внутри items-line (через нативный querySelector)
-            var shotsSprite = $itemsLine[0].querySelector('use[xlink\\:href="#sprite-shots"]');
-            if (shotsSprite) {
-                $itemsLine.remove();
+            if (!isShots && $itemsLine[0]) {
+                var shotsSprite = $itemsLine[0].querySelector('use[xlink\\:href="#sprite-shots"]');
+                if (shotsSprite) {
+                    isShots = true;
+                }
+            }
+            
+            if (isShots) {
+                // Находим родительский контейнер всех items-line (обычно это main или body)
+                var $parentContainer = $itemsLine.closest('main, .main, body');
+                if ($parentContainer.length) {
+                    // Перемещаем в самый низ родительского контейнера
+                    $parentContainer.append($itemsLine);
+                } else {
+                    // Если не нашли родителя, перемещаем в конец body
+                    $('body').append($itemsLine);
+                }
             }
         });
     }
     
-    // Удаление кнопки шотсов на странице full (по аналогии с ads_full.js)
+    // Удаление кнопки шотсов на странице full (по аналогии с button2.js)
     Lampa.Listener.follow('full', function (e) {
-        if (e.type !== 'complite') return;
-        var container = e.object.activity.render();
-        // Удаляем full-person с Shots напрямую, как в ads_full удаляются кнопки
-        container.find('.full-person').filter(function() {
-            var $this = $(this);
-            // Проверяем sprite-shots через нативный querySelector
-            var hasShotsSprite = this.querySelector('use[xlink\\:href="#sprite-shots"]') !== null;
-            var hasShotsText = $this.find('.full-person__name').text().trim() === 'Shots';
-            return hasShotsSprite || hasShotsText;
-        }).remove();
+        if (e.type == 'complite') {
+            var render = e.object.activity.render();
+            // Удаляем full-person с Shots, проверяя по тексту и по sprite-shots
+            render.find('.full-person').each(function() {
+                var $this = $(this);
+                var $shotsPerson = $this.find('.full-person__name');
+                var hasShotsText = $shotsPerson.length && $shotsPerson.text().trim() === 'Shots';
+                var hasShotsSprite = this.querySelector('use[xlink\\:href="#sprite-shots"]') !== null;
+                
+                if (hasShotsText || hasShotsSprite) {
+                    $this.remove();
+                }
+            });
+        }
     });
     
-    // Удаление блока шотсов на главной странице (по аналогии с cuboff.js)
-    function removeShotsOnToggle() {
+    // Перемещение блока шотсов на главной странице (по аналогии с cuboff.js)
+    function moveShotsOnToggle() {
         Lampa.Controller.listener.follow('toggle', function (event) {
             if (event.name === 'select') {
                 setTimeout(function() {
-                    removeShotsItemsLine();
+                    moveShotsItemsLineToBottom();
                 }, 150);
             }
         });
@@ -48,31 +66,26 @@
     
     // Инициализация при готовности приложения
     function initializeApp() {
-        // Добавляем CSS для скрытия элементов shots
-        var style = document.createElement('style');
-        style.innerHTML = '.items-line:has(.full-person__name:contains("Shots")), .items-line:has(use[xlink\\:href="#sprite-shots"]) { display: none !important; }';
-        document.head.appendChild(style);
-        
-        // Удаляем элементы shots
+        // Перемещаем элементы shots в самый низ страницы
         setTimeout(function() {
-            removeShotsItemsLine();
+            moveShotsItemsLineToBottom();
         }, 1000);
     }
     
     if (window.appready) {
         initializeApp();
-        removeShotsOnToggle();
+        moveShotsOnToggle();
     } else {
         Lampa.Listener.follow('app', function (event) {
             if (event.type === 'ready') {
                 initializeApp();
-                removeShotsOnToggle();
+                moveShotsOnToggle();
             }
         });
     }
     
     // Дополнительная проверка при изменении DOM
-    var removeShotsObserver = new MutationObserver(function(mutations) {
+    var moveShotsObserver = new MutationObserver(function(mutations) {
         var shouldCheck = false;
         for (var i = 0; i < mutations.length; i++) {
             if (mutations[i].addedNodes.length > 0) {
@@ -81,7 +94,7 @@
             }
         }
         if (shouldCheck) {
-            setTimeout(removeShotsItemsLine, 100);
+            setTimeout(moveShotsItemsLineToBottom, 100);
         }
     });
     
