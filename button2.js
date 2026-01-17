@@ -3,23 +3,37 @@
     
     // Функция для удаления items-line с Shots
     function removeShotsItemsLine() {
-        $('.items-line').each(function() {
-            var $itemsLine = $(this);
-            var $shotsPerson = $itemsLine.find('.full-person__name');
-            if ($shotsPerson.length && $shotsPerson.text().trim() === 'Shots') {
-                $itemsLine.remove();
+        var itemsLines = document.querySelectorAll('.items-line');
+        for (var i = 0; i < itemsLines.length; i++) {
+            var itemsLine = itemsLines[i];
+            
+            // Проверяем по тексту Shots
+            var shotsPerson = itemsLine.querySelector('.full-person__name');
+            if (shotsPerson && shotsPerson.textContent.trim() === 'Shots') {
+                itemsLine.remove();
+                continue;
             }
-        });
+            
+            // Проверяем по наличию sprite-shots внутри items-line
+            var shotsSprite = itemsLine.querySelector('use[xlink\\:href="#sprite-shots"], use[*|href="#sprite-shots"]');
+            if (shotsSprite) {
+                itemsLine.remove();
+            }
+        }
     }
     
     // Удаление кнопки шотсов на странице full (по аналогии с трейлерами)
     Lampa.Listener.follow('full', function (e) {
         if (e.type == 'complite') {
             var render = e.object.activity.render();
-            // Удаляем full-person элемент с Shots (кнопку шотсов)
-            render.find('.full-person__name').each(function() {
-                if (this.textContent.trim() === 'Shots') {
-                    $(this).closest('.full-person').remove();
+            // Ищем full-person элементы, содержащие sprite-shots или с текстом Shots
+            render.find('.full-person').each(function() {
+                var $fullPerson = $(this);
+                var hasShotsSprite = $fullPerson.find('use[xlink\\:href="#sprite-shots"], use[*|href="#sprite-shots"]').length > 0;
+                var hasShotsText = $fullPerson.find('.full-person__name').text().trim() === 'Shots';
+                
+                if (hasShotsSprite || hasShotsText) {
+                    $fullPerson.remove();
                 }
             });
         }
@@ -32,10 +46,13 @@
         }
     });
     
-    // Удаление при динамическом добавлении элементов (для предотвращения застревания)
+    // Постоянная проверка для удаления динамически добавляемых элементов
     var removeShotsObserver = new MutationObserver(function() {
         removeShotsItemsLine();
     });
+    
+    // Запускаем проверку периодически
+    var checkInterval = setInterval(removeShotsItemsLine, 200);
     
     // Начинаем наблюдение после загрузки
     if (document.body) {
@@ -43,7 +60,17 @@
             childList: true,
             subtree: true
         });
-        // Первоначальная проверка
-        setTimeout(removeShotsItemsLine, 100);
+    } else {
+        document.addEventListener('DOMContentLoaded', function() {
+            removeShotsObserver.observe(document.body, {
+                childList: true,
+                subtree: true
+            });
+        });
     }
+    
+    // Первоначальные проверки
+    setTimeout(removeShotsItemsLine, 50);
+    setTimeout(removeShotsItemsLine, 200);
+    setTimeout(removeShotsItemsLine, 500);
 })();
