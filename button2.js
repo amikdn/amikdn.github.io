@@ -585,7 +585,7 @@
     }
 
     function getShowAllButtons() {
-        return Lampa.Storage.get('buttons_show_all', true);
+        return Lampa.Storage.get('buttons_show_all', false);
     }
 
     function setShowAllButtons(value) {
@@ -616,7 +616,7 @@
 
         Lampa.SettingsApi.addParam({
             component: 'interface',
-            param: { name: 'buttons_show_all', type: 'trigger', default: true },
+            param: { name: 'buttons_show_all', type: 'trigger', default: false },
             field: { name: 'Отображать все кнопки' },
             onChange: function(value) {
                 setShowAllButtons(value);
