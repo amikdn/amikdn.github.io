@@ -156,10 +156,34 @@
 
     function applyHiddenButtons(buttons) {
         var hidden = getHiddenButtons();
-        buttons.forEach(function(btn) {
-            var id = getButtonId(btn);
-            btn.toggleClass('hidden', hidden.indexOf(id) !== -1);
-        });
+        var showAllButtons = Lampa.Storage.get('show_all_buttons_enabled', false);
+        
+        // Если настройка "Отображать все кнопки" выключена, скрываем все кнопки
+        if (!showAllButtons) {
+            // Если список скрытых пуст - это первый запуск, скрываем все кнопки по умолчанию
+            if (hidden.length === 0) {
+                buttons.forEach(function(btn) {
+                    var id = getButtonId(btn);
+                    hidden.push(id);
+                });
+                setHiddenButtons(hidden);
+            }
+            // Скрываем все кнопки
+            buttons.forEach(function(btn) {
+                var id = getButtonId(btn);
+                var shouldHide = hidden.indexOf(id) !== -1;
+                btn.toggleClass('hidden', shouldHide);
+            });
+        } else {
+            // Если настройка включена - показываем все кнопки и очищаем список скрытых
+            buttons.forEach(function(btn) {
+                btn.removeClass('hidden');
+            });
+            // Очищаем список скрытых, чтобы при выключении настройки кнопки снова скрылись
+            if (hidden.length > 0) {
+                setHiddenButtons([]);
+            }
+        }
     }
 
     function applyButtonAnimation(buttons) {
@@ -313,41 +337,6 @@
         });
         list.append(modeBtn);
 
-        // Пункт "Отображать все кнопки"
-        var showAllBtn = $('<div class="selector viewmode-switch">' +
-            '<div style="text-align: center; padding: 1em;">Отображать все кнопки</div>' +
-            '</div>');
-        showAllBtn.on('hover:enter', function() {
-            if (currentContainer) {
-                var targetContainer = currentContainer.find('.full-start-new__buttons');
-                // Удаляем класс hide со всех кнопок в контейнере
-                targetContainer.find('.full-start__button').removeClass('hide');
-                // Показываем кнопку "Смотреть" если она была скрыта
-                currentContainer.find('.button--play').removeClass('hide').show();
-                // Очищаем список скрытых кнопок в хранилище
-                setHiddenButtons([]);
-                // Обновляем все кнопки - убираем класс hidden
-                if (currentButtons && currentButtons.length) {
-                    currentButtons.forEach(function(btn) {
-                        if (btn && btn.removeClass) {
-                            btn.removeClass('hidden');
-                        }
-                    });
-                }
-                // Обновляем элементы в диалоге - убираем класс hidden
-                list.find('.menu-edit-list__item').each(function() {
-                    var item = $(this);
-                    item.removeClass('menu-edit-list__item-hidden');
-                    item.find('.dot').attr('opacity', '1');
-                });
-                // Применяем изменения
-                applyChanges();
-                // Обновляем контроллер
-                refreshController();
-            }
-        });
-        list.append(showAllBtn);
-
         function createButtonItem(btn) {
             var displayName = getButtonDisplayName(btn, currentButtons);
             var icon = btn.find('svg').clone();
@@ -481,7 +470,21 @@
         var targetContainer = container.find('.full-start-new__buttons');
         if (!targetContainer.length) return false;
         currentContainer = container;
-        container.find('.button--play, .button--edit-order').remove();
+        var showAllButtons = Lampa.Storage.get('show_all_buttons_enabled', false);
+        
+        // Сохраняем кнопку "Смотреть" ДО её возможного удаления
+        var playButton = targetContainer.find('.button--play').first();
+        var playButtonClone = null;
+        if (playButton.length) {
+            playButtonClone = playButton.clone(true, true);
+        }
+        
+        // Удаляем кнопки редактирования и "Смотреть" (если настройка выключена)
+        container.find('.button--edit-order').remove();
+        if (!showAllButtons) {
+            playButton.remove();
+        }
+        
         var categories = categorizeButtons(container);
         var allButtons = []
             .concat(categories.online)
@@ -501,7 +504,18 @@
         }
         currentButtons = allButtons;
         targetContainer.children().detach();
+        
+        // Если настройка включена - добавляем кнопку "Смотреть" в начало
+        if (showAllButtons && playButtonClone && playButtonClone.length) {
+            targetContainer.prepend(playButtonClone);
+        }
+        
         var visibleButtons = [];
+        // Сначала добавляем кнопку "Смотреть" если она есть
+        if (showAllButtons && playButtonClone && playButtonClone.length) {
+            visibleButtons.push(playButtonClone);
+        }
+        
         currentButtons.forEach(function(btn) {
             targetContainer.append(btn);
             if (!btn.hasClass('hidden')) visibleButtons.push(btn);
@@ -611,6 +625,44 @@
             onRender: function(element) {
                 setTimeout(function() {
                     $('div[data-name="interface_size"]').after(element);
+                }, 0);
+            }
+        });
+
+        // Настройка "Отображать все кнопки"
+        Lampa.SettingsApi.addParam({
+            component: 'interface',
+            param: { name: 'show_all_buttons_enabled', type: 'trigger', default: false },
+            field: { name: 'Отображать все кнопки', description: 'Показывать все кнопки, включая кнопку "Смотреть"' },
+            onChange: function(value) {
+                Lampa.Storage.set('show_all_buttons_enabled', value);
+                // Перезагружаем кнопки для применения изменений
+                setTimeout(function() {
+                    if (currentContainer) {
+                        currentContainer.data('buttons-processed', false);
+                        currentContainer.find('.full-start-new__buttons').each(function() {
+                            var cont = $(this);
+                            // Перезагружаем кнопки
+                            reorderButtons(currentContainer);
+                            refreshController();
+                        });
+                    } else {
+                        // Обновляем все открытые карточки
+                        $('.full-start-new__buttons').each(function() {
+                            var container = $(this).closest('[data-id], [id]').first();
+                            if (container.length) {
+                                container.data('buttons-processed', false);
+                                reorderButtons(container);
+                            }
+                        });
+                        refreshController();
+                    }
+                }, 100);
+            },
+            onRender: function(element) {
+                setTimeout(function() {
+                    // Добавляем после "Редактор кнопок"
+                    $('div[data-name="buttons_editor_enabled"]').after(element);
                 }, 0);
             }
         });
