@@ -1341,178 +1341,179 @@
                 });
 
                 item.find('.menu-edit-list__delete').on('hover:enter', function() {
-                var folderId = folder.id;
-                var folderButtons = folder.buttons.slice();
-                
-                deleteFolder(folderId);
-                
-                var itemOrder = getItemOrder();
-                var newItemOrder = [];
-                
-                for (var i = 0; i < itemOrder.length; i++) {
-                    if (itemOrder[i].type === 'folder' && itemOrder[i].id === folderId) {
-                        continue;
-                    }
-                    if (itemOrder[i].type === 'button') {
-                        var isInFolder = false;
-                        for (var j = 0; j < folderButtons.length; j++) {
-                            if (itemOrder[i].id === folderButtons[j]) {
-                                isInFolder = true;
-                                break;
-                            }
-                        }
-                        if (isInFolder) {
+                    var folderId = folder.id;
+                    var folderButtons = folder.buttons.slice();
+                    
+                    deleteFolder(folderId);
+                    
+                    var itemOrder = getItemOrder();
+                    var newItemOrder = [];
+                    
+                    for (var i = 0; i < itemOrder.length; i++) {
+                        if (itemOrder[i].type === 'folder' && itemOrder[i].id === folderId) {
                             continue;
                         }
-                    }
-                    newItemOrder.push(itemOrder[i]);
-                }
-                
-                setItemOrder(newItemOrder);
-                
-                var customOrder = getCustomOrder();
-                var newCustomOrder = [];
-                for (var i = 0; i < customOrder.length; i++) {
-                    var found = false;
-                    for (var j = 0; j < folderButtons.length; j++) {
-                        if (customOrder[i] === folderButtons[j]) {
-                            found = true;
-                            break;
-                        }
-                    }
-                    if (!found) {
-                        newCustomOrder.push(customOrder[i]);
-                    }
-                }
-                setCustomOrder(newCustomOrder);
-                
-                item.remove();
-                Lampa.Noty.show(getTranslation('buttons_plugin_folder_deleted'));
-                
-                setTimeout(function() {
-                    if (currentContainer) {
-                        currentContainer.find('.button--play, .button--edit-order, .button--folder').remove();
-                        currentContainer.data('buttons-processed', false);
-                        
-                        var targetContainer = currentContainer.find('.full-start-new__buttons');
-                        var existingButtons = targetContainer.find('.full-start__button').toArray();
-                        
-                        allButtonsOriginal.forEach(function(originalBtn) {
-                            var btnId = getBtnIdentifier(originalBtn);
-                            var exists = false;
-                            
-                            for (var i = 0; i < existingButtons.length; i++) {
-                                if (getBtnIdentifier($(existingButtons[i])) === btnId) {
-                                    exists = true;
+                        if (itemOrder[i].type === 'button') {
+                            var isInFolder = false;
+                            for (var j = 0; j < folderButtons.length; j++) {
+                                if (itemOrder[i].id === folderButtons[j]) {
+                                    isInFolder = true;
                                     break;
                                 }
                             }
-                            
-                            if (!exists) {
-                                var clonedBtn = originalBtn.clone(true, true);
-                                clonedBtn.css({
-                                    'opacity': '1',
-                                    'animation': 'none'
-                                });
-                                targetContainer.append(clonedBtn);
+                            if (isInFolder) {
+                                continue;
                             }
-                        });
-                        
-                        reorderButtons(currentContainer);
-                        
-                        setTimeout(function() {
-                            var updatedItemOrder = [];
-                            targetContainer.find('.full-start__button').not('.button--edit-order').each(function() {
-                                var $btn = $(this);
-                                if ($btn.hasClass('button--folder')) {
-                                    var fId = $btn.attr('data-folder-id');
-                                    updatedItemOrder.push({
-                                        type: 'folder',
-                                        id: fId
-                                    });
-                                } else {
-                                    var btnId = getBtnIdentifier($btn);
-                                    updatedItemOrder.push({
-                                        type: 'button',
-                                        id: btnId
-                                    });
-                                }
-                            });
-                            setItemOrder(updatedItemOrder);
+                        }
+                        newItemOrder.push(itemOrder[i]);
+                    }
+                    
+                    setItemOrder(newItemOrder);
+                    
+                    var customOrder = getCustomOrder();
+                    var newCustomOrder = [];
+                    for (var i = 0; i < customOrder.length; i++) {
+                        var found = false;
+                        for (var j = 0; j < folderButtons.length; j++) {
+                            if (customOrder[i] === folderButtons[j]) {
+                                found = true;
+                                break;
+                            }
+                        }
+                        if (!found) {
+                            newCustomOrder.push(customOrder[i]);
+                        }
+                    }
+                    setCustomOrder(newCustomOrder);
+                    
+                    item.remove();
+                    Lampa.Noty.show(getTranslation('buttons_plugin_folder_deleted'));
+                    
+                    setTimeout(function() {
+                        if (currentContainer) {
+                            currentContainer.find('.button--play, .button--edit-order, .button--folder').remove();
+                            currentContainer.data('buttons-processed', false);
                             
-                            var categories = groupBtnsByType(currentContainer);
-                            var allButtons = []
-                                .concat(categories.online)
-                                .concat(categories.torrent)
-                                .concat(categories.trailer)
-                                .concat(categories.shots)
-                                .concat(categories.book)
-                                .concat(categories.reaction)
-                                .concat(categories.subscribe)
-                                .concat(categories.other);
+                            var targetContainer = currentContainer.find('.full-start-new__buttons');
+                            var existingButtons = targetContainer.find('.full-start__button').toArray();
                             
-                            allButtons = arrangeBtnsByOrder(allButtons);
-                            allButtonsCache = allButtons;
-                            
-                            var folders = getFolders();
-                            var buttonsInFolders = [];
-                            folders.forEach(function(folder) {
-                                buttonsInFolders = buttonsInFolders.concat(folder.buttons);
-                            });
-                            
-                            var filteredButtons = allButtons.filter(function(btn) {
-                                return buttonsInFolders.indexOf(getBtnIdentifier(btn)) === -1;
-                            });
-                            
-                            currentButtons = filteredButtons;
-                            
-                            folderButtons.forEach(function(btnId) {
-                                var btn = allButtons.find(function(b) { return getBtnIdentifier(b) === btnId; });
-                                if (btn) {
-                                    var btnItem = createButtonItem(btn);
-                                    
-                                    var inserted = false;
-                                    list.find('.menu-edit-list__item').not('.menu-edit-list__create-folder, .folder-reset-button').each(function() {
-                                        var $existingItem = $(this);
-                                        var existingType = $existingItem.data('itemType');
-                                        
-                                        if (existingType === 'button') {
-                                            var existingBtnId = $existingItem.data('buttonId');
-                                            var existingIndex = updatedItemOrder.findIndex(function(item) {
-                                                return item.type === 'button' && item.id === existingBtnId;
-                                            });
-                                            var newIndex = updatedItemOrder.findIndex(function(item) {
-                                                return item.type === 'button' && item.id === btnId;
-                                            });
-                                            
-                                            if (newIndex !== -1 && existingIndex !== -1 && newIndex < existingIndex) {
-                                                btnItem.insertBefore($existingItem);
-                                                inserted = true;
-                                                return false;
-                                            }
-                                        }
-                                    });
-                                    
-                                    if (!inserted) {
-                                        var resetButton = list.find('.folder-reset-button');
-                                        if (resetButton.length) {
-                                            btnItem.insertBefore(resetButton);
-                                        } else {
-                                            list.append(btnItem);
-                                        }
+                            allButtonsOriginal.forEach(function(originalBtn) {
+                                var btnId = getBtnIdentifier(originalBtn);
+                                var exists = false;
+                                
+                                for (var i = 0; i < existingButtons.length; i++) {
+                                    if (getBtnIdentifier($(existingButtons[i])) === btnId) {
+                                        exists = true;
+                                        break;
                                     }
                                 }
+                                
+                                if (!exists) {
+                                    var clonedBtn = originalBtn.clone(true, true);
+                                    clonedBtn.css({
+                                        'opacity': '1',
+                                        'animation': 'none'
+                                    });
+                                    targetContainer.append(clonedBtn);
+                                }
                             });
                             
+                            reorderButtons(currentContainer);
+                            
                             setTimeout(function() {
-                                try {
-                                    Lampa.Controller.toggle('modal');
-                                } catch(e) {}
+                                var updatedItemOrder = [];
+                                targetContainer.find('.full-start__button').not('.button--edit-order').each(function() {
+                                    var $btn = $(this);
+                                    if ($btn.hasClass('button--folder')) {
+                                        var fId = $btn.attr('data-folder-id');
+                                        updatedItemOrder.push({
+                                            type: 'folder',
+                                            id: fId
+                                        });
+                                    } else {
+                                        var btnId = getBtnIdentifier($btn);
+                                        updatedItemOrder.push({
+                                            type: 'button',
+                                            id: btnId
+                                        });
+                                    }
+                                });
+                                setItemOrder(updatedItemOrder);
+                                
+                                var categories = groupBtnsByType(currentContainer);
+                                var allButtons = []
+                                    .concat(categories.online)
+                                    .concat(categories.torrent)
+                                    .concat(categories.trailer)
+                                    .concat(categories.shots)
+                                    .concat(categories.book)
+                                    .concat(categories.reaction)
+                                    .concat(categories.subscribe)
+                                    .concat(categories.other);
+                                
+                                allButtons = arrangeBtnsByOrder(allButtons);
+                                allButtonsCache = allButtons;
+                                
+                                var folders = getFolders();
+                                var buttonsInFolders = [];
+                                folders.forEach(function(folder) {
+                                    buttonsInFolders = buttonsInFolders.concat(folder.buttons);
+                                });
+                                
+                                var filteredButtons = allButtons.filter(function(btn) {
+                                    return buttonsInFolders.indexOf(getBtnIdentifier(btn)) === -1;
+                                });
+                                
+                                currentButtons = filteredButtons;
+                                
+                                folderButtons.forEach(function(btnId) {
+                                    var btn = allButtons.find(function(b) { return getBtnIdentifier(b) === btnId; });
+                                    if (btn) {
+                                        var btnItem = createButtonItem(btn);
+                                        
+                                        var inserted = false;
+                                        list.find('.menu-edit-list__item').not('.menu-edit-list__create-folder, .folder-reset-button').each(function() {
+                                            var $existingItem = $(this);
+                                            var existingType = $existingItem.data('itemType');
+                                            
+                                            if (existingType === 'button') {
+                                                var existingBtnId = $existingItem.data('buttonId');
+                                                var existingIndex = updatedItemOrder.findIndex(function(item) {
+                                                    return item.type === 'button' && item.id === existingBtnId;
+                                                });
+                                                var newIndex = updatedItemOrder.findIndex(function(item) {
+                                                    return item.type === 'button' && item.id === btnId;
+                                                });
+                                                
+                                                if (newIndex !== -1 && existingIndex !== -1 && newIndex < existingIndex) {
+                                                    btnItem.insertBefore($existingItem);
+                                                    inserted = true;
+                                                    return false;
+                                                }
+                                            }
+                                        });
+                                        
+                                        if (!inserted) {
+                                            var resetButton = list.find('.folder-reset-button');
+                                            if (resetButton.length) {
+                                                btnItem.insertBefore(resetButton);
+                                            } else {
+                                                list.append(btnItem);
+                                            }
+                                        }
+                                    }
+                                });
+                                
+                                setTimeout(function() {
+                                    try {
+                                        Lampa.Controller.toggle('modal');
+                                    } catch(e) {}
+                                }, 100);
                             }, 100);
-                        }, 100);
-                    }
-                }, 50);
-            });
+                        }
+                    }, 50);
+                });
+            }
             
             return item;
         }
