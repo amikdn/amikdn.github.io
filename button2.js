@@ -563,6 +563,11 @@
                         if (!getShowAllButtons()) {
                             if (targetContainer.length) {
                                 targetContainer.removeClass('buttons-loading');
+                                // Сбрасываем opacity кнопок чтобы они были видимы
+                                targetContainer.find('.full-start__button').css({
+                                    'opacity': '1',
+                                    'animation': 'none'
+                                });
                             }
                             // Убираем кнопку редактора если она есть
                             targetContainer.find('.button--edit-order').remove();
@@ -627,6 +632,11 @@
                         if (!value) {
                             // Выключено - убираем кнопку редактора, оставляем стандартные кнопки
                             targetContainer.find('.button--edit-order').remove();
+                            // Сбрасываем opacity кнопок чтобы они были видимы
+                            targetContainer.find('.full-start__button').css({
+                                'opacity': '1',
+                                'animation': 'none'
+                            });
                         } else {
                             // Включено - запускаем редактор
                             reorderButtons(currentContainer);
