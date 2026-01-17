@@ -524,7 +524,20 @@
         currentContainer = container;
         var showAllButtons = Lampa.Storage.get('show_all_buttons_enabled', false);
         
+        // ВАЖНО: Сохраняем кнопку "Смотреть" ДО categorizeButtons, чтобы она не потерялась
+        var existingPlayButton = targetContainer.find('.button--play').first();
+        var playButtonClone = null;
+        if (existingPlayButton.length) {
+            playButtonClone = existingPlayButton.clone(true, true);
+        }
+        
         var categories = categorizeButtons(container);
+        
+        // Если кнопка "Смотреть" не была найдена в categorizeButtons, используем сохранённую
+        if (categories.play.length === 0 && playButtonClone && playButtonClone.length) {
+            categories.play.push(playButtonClone);
+        }
+        
         // Кнопка "Смотреть" должна быть первой - как в interface_mod.js
         var allButtons = []
             .concat(categories.play)  // Кнопка "Смотреть" первой
@@ -536,6 +549,17 @@
             .concat(categories.book)
             .concat(categories.reaction)
             .concat(categories.other);
+        
+        // ВАЖНО: Проверяем, что кнопка "Смотреть" есть в списке
+        var hasPlayButton = allButtons.some(function(btn) {
+            var classes = btn.attr ? btn.attr('class') : (btn.className || '');
+            return classes.indexOf('button--play') !== -1;
+        });
+        // Если кнопки "Смотреть" нет в списке, но есть сохранённая - добавляем её
+        if (!hasPlayButton && playButtonClone && playButtonClone.length) {
+            allButtons.unshift(playButtonClone); // Добавляем в начало
+        }
+        
         allButtons = sortByCustomOrder(allButtons);
         allButtonsCache = allButtons;
         if (allButtonsOriginal.length === 0) {
@@ -557,15 +581,28 @@
         
         var visibleButtons = [];
         currentButtons.forEach(function(btn) {
+            var classes = btn.attr ? btn.attr('class') : (btn.className || '');
+            var isPlayButton = classes.indexOf('button--play') !== -1;
+            
             // При включенной настройке убираем класс hide (дополнительная проверка)
             if (showAllButtons) {
                 btn.removeClass('hide').removeClass('hidden');
+            } else if (isPlayButton) {
+                // Кнопка "Смотреть" всегда видна - убираем классы скрытия
+                btn.removeClass('hidden').removeClass('hide');
             }
+            
             // Добавляем кнопку в контейнер
             targetContainer.append(btn);
             // Проверяем видимость - кнопка не должна быть hidden
-            if (!btn.hasClass('hidden')) {
-                visibleButtons.push(btn);
+            // Кнопка "Смотреть" всегда должна быть видимой
+            if (!btn.hasClass('hidden') || isPlayButton) {
+                if (isPlayButton) {
+                    // Кнопка "Смотреть" всегда первой в visibleButtons
+                    visibleButtons.unshift(btn);
+                } else {
+                    visibleButtons.push(btn);
+                }
             }
         });
         
