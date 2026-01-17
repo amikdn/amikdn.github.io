@@ -898,16 +898,47 @@
     }
 
     function createFolderButton(folder) {
-        var firstBtnId = folder.buttons[0];
-        var firstBtn = findButton(firstBtnId);
+        var watchFolderName = getTranslation('buttons_plugin_watch_folder');
+        var isWatchFolder = folder.name === watchFolderName || folder.name === 'Смотреть';
         var icon = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' +
                 '<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>' +
             '</svg>';
         
-        if (firstBtn) {
-            var btnIcon = firstBtn.find('svg').first();
-            if (btnIcon.length) {
-                icon = btnIcon.prop('outerHTML');
+        if (isWatchFolder) {
+            // Для папки "Смотреть" ищем иконку от трейлеров
+            var trailerBtn = null;
+            folder.buttons.forEach(function(btnId) {
+                var btn = findButton(btnId);
+                if (btn && detectBtnCategory(btn) === 'trailer') {
+                    trailerBtn = btn;
+                    return false; // Прерываем цикл
+                }
+            });
+            
+            if (trailerBtn) {
+                var btnIcon = trailerBtn.find('svg').first();
+                if (btnIcon.length) {
+                    icon = btnIcon.prop('outerHTML');
+                }
+            } else if (folder.buttons.length > 0) {
+                // Если трейлеров нет, используем первую кнопку
+                var firstBtn = findButton(folder.buttons[0]);
+                if (firstBtn) {
+                    var btnIcon = firstBtn.find('svg').first();
+                    if (btnIcon.length) {
+                        icon = btnIcon.prop('outerHTML');
+                    }
+                }
+            }
+        } else {
+            // Для других папок используем первую кнопку
+            var firstBtnId = folder.buttons[0];
+            var firstBtn = findButton(firstBtnId);
+            if (firstBtn) {
+                var btnIcon = firstBtn.find('svg').first();
+                if (btnIcon.length) {
+                    icon = btnIcon.prop('outerHTML');
+                }
             }
         }
         
@@ -1101,14 +1132,34 @@
                                 setItemOrder(itemOrder);
                                 ensureWatchFolderFirst();
                                 
-                                Lampa.Modal.close();
                                 Lampa.Noty.show('Кнопка перемещена на главную страницу');
                                 
+                                // Применяем изменения
                                 if (currentContainer) {
                                     currentContainer.data('buttons-processed', false);
-                                    reorderButtons(currentContainer);
+                                    applyChanges();
                                 }
-                                refreshController();
+                                
+                                // Обновляем диалог редактирования папки - закрываем и открываем заново
+                                Lampa.Modal.close();
+                                setTimeout(function() {
+                                    // Обновляем папку из хранилища
+                                    var updatedFolders = getFolders();
+                                    var updatedFolder = updatedFolders.find(function(f) { 
+                                        return f.id === folder.id; 
+                                    });
+                                    if (updatedFolder) {
+                                        openFolderEditDialog(updatedFolder);
+                                    }
+                                }, 100);
+                                
+                                // Обновляем главную страницу
+                                setTimeout(function() {
+                                    if (currentContainer) {
+                                        reorderButtons(currentContainer);
+                                    }
+                                    refreshController();
+                                }, 200);
                             }
                         }
                     });
@@ -1181,11 +1232,31 @@
         
         var folderBtn = currentContainer.find('.button--folder[data-folder-id="' + folder.id + '"]');
         if (folderBtn.length) {
-            var firstBtnId = folder.buttons[0];
-            var firstBtn = findButton(firstBtnId);
+            var watchFolderName = getTranslation('buttons_plugin_watch_folder');
+            var isWatchFolder = folder.name === watchFolderName || folder.name === 'Смотреть';
+            var iconBtn = null;
             
-            if (firstBtn) {
-                var iconElement = firstBtn.find('svg').first();
+            if (isWatchFolder) {
+                // Для папки "Смотреть" ищем иконку от трейлеров
+                folder.buttons.forEach(function(btnId) {
+                    var btn = findButton(btnId);
+                    if (btn && detectBtnCategory(btn) === 'trailer') {
+                        iconBtn = btn;
+                        return false; // Прерываем цикл
+                    }
+                });
+                
+                // Если трейлеров нет, используем первую кнопку
+                if (!iconBtn && folder.buttons.length > 0) {
+                    iconBtn = findButton(folder.buttons[0]);
+                }
+            } else {
+                // Для других папок используем первую кнопку
+                iconBtn = findButton(folder.buttons[0]);
+            }
+            
+            if (iconBtn) {
+                var iconElement = iconBtn.find('svg').first();
                 if (iconElement.length) {
                     var btnIcon = iconElement.clone();
                     folderBtn.find('svg').replaceWith(btnIcon);
