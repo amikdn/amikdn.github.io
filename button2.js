@@ -169,6 +169,103 @@
             var id = getButtonId(btn);
             btn.toggleClass('hidden', hidden.indexOf(id) !== -1);
         });
+        // Синхронизируем с меню Источник
+        syncHiddenButtonsWithSourceMenu(currentContainer);
+    }
+
+    function syncHiddenButtonsWithSourceMenu(container) {
+        if (!container) {
+            container = currentContainer || $('body');
+        }
+        var hidden = getHiddenButtons();
+        if (!hidden || hidden.length === 0) {
+            // Если нет скрытых кнопок, показываем все элементы меню
+            $('.selectbox-item').show();
+            return;
+        }
+        
+        // Находим меню Источник (selectbox)
+        var selectbox = $('.selectbox__content, .selectbox').filter(':visible');
+        
+        selectbox.find('.selectbox-item').each(function() {
+            var item = $(this);
+            var itemText = item.find('.selectbox-item__title').text().trim();
+            var subtitle = item.find('.selectbox-item__subtitle').text().trim();
+            
+            // Ищем соответствующую кнопку по всем доступным кнопкам
+            var found = false;
+            var sourceContainer = container.find('.full-start-new__buttons');
+            if (!sourceContainer.length && currentContainer) {
+                sourceContainer = currentContainer.find('.full-start-new__buttons');
+            }
+            if (!sourceContainer.length) {
+                sourceContainer = $('.full-start-new__buttons');
+            }
+            
+            var allButtons = sourceContainer.find('.full-start__button').not('.button--edit-order, .button--play');
+            
+            allButtons.each(function() {
+                var btn = $(this);
+                var btnText = btn.find('span').text().trim();
+                var btnClasses = btn.attr('class') || '';
+                
+                // Проверяем соответствие по различным критериям
+                var match = false;
+                
+                // 1. По классам (shots, trailer и т.д.)
+                if (itemText.indexOf('Shots') !== -1 || subtitle.indexOf('нарезки') !== -1) {
+                    if (btnClasses.indexOf('shots') !== -1 || btnClasses.indexOf('view--shots') !== -1) {
+                        match = true;
+                    }
+                }
+                if (itemText.indexOf('Трейлер') !== -1 || itemText.indexOf('Trailer') !== -1) {
+                    if (btnClasses.indexOf('trailer') !== -1 || btnClasses.indexOf('view--trailer') !== -1) {
+                        match = true;
+                    }
+                }
+                
+                // 2. По тексту кнопки
+                if (!match && btnText && itemText) {
+                    var normalizedBtnText = btnText.toLowerCase().replace(/\s+/g, ' ');
+                    var normalizedItemText = itemText.toLowerCase().replace(/\s+/g, ' ');
+                    if (normalizedBtnText === normalizedItemText || 
+                        normalizedBtnText.indexOf(normalizedItemText) !== -1 ||
+                        normalizedItemText.indexOf(normalizedBtnText) !== -1) {
+                        match = true;
+                    }
+                }
+                
+                // 3. По иконке
+                if (!match) {
+                    var itemIcon = item.find('.selectbox-item__icon svg use');
+                    var btnIcon = btn.find('svg use');
+                    if (itemIcon.length && btnIcon.length) {
+                        var itemHref = itemIcon.attr('xlink:href') || itemIcon.attr('href') || '';
+                        var btnHref = btnIcon.attr('xlink:href') || btnIcon.attr('href') || '';
+                        if (itemHref && btnHref && itemHref === btnHref) {
+                            match = true;
+                        }
+                    }
+                }
+                
+                if (match) {
+                    var btnId = getButtonId(btn);
+                    // Если кнопка скрыта, скрываем и элемент меню
+                    if (hidden.indexOf(btnId) !== -1) {
+                        item.hide();
+                    } else {
+                        item.show();
+                    }
+                    found = true;
+                    return false;
+                }
+            });
+            
+            // Если не нашли соответствие, показываем элемент по умолчанию
+            if (!found) {
+                item.show();
+            }
+        });
     }
 
     function applyButtonAnimation(buttons) {
@@ -188,7 +285,9 @@
         btn.on('hover:enter', function() {
             openEditDialog();
         });
-        if (Lampa.Storage.get('buttons_editor_enabled') === false || !getShowAllButtons()) {
+        // Показываем кнопку редактора только если она включена в настройках
+        // независимо от настройки "Отображать все кнопки"
+        if (Lampa.Storage.get('buttons_editor_enabled') === false) {
             btn.hide();
         }
         return btn;
@@ -394,6 +493,8 @@
                     hiddenList.splice(index, 1);
                 }
                 setHiddenButtons(hiddenList);
+                // Синхронизируем с меню Источник
+                syncHiddenButtonsWithSourceMenu(currentContainer);
             });
             return item;
         }
@@ -548,6 +649,23 @@
             '</style>');
         $('body').append(style);
 
+        // Отслеживаем открытие меню "Источник" для синхронизации скрытых кнопок
+        var observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (mutation.addedNodes.length) {
+                    $(mutation.addedNodes).each(function() {
+                        var node = $(this);
+                        if (node.hasClass('selectbox') || node.find('.selectbox').length) {
+                            setTimeout(function() {
+                                syncHiddenButtonsWithSourceMenu(currentContainer || $('body'));
+                            }, 100);
+                        }
+                    });
+                }
+            });
+        });
+        observer.observe(document.body, { childList: true, subtree: true });
+
         Lampa.Listener.follow('full', function(e) {
             if (e.type !== 'complite') return;
             var container = e.object.activity.render();
@@ -569,8 +687,19 @@
                                     'animation': 'none'
                                 });
                             }
-                            // Убираем кнопку редактора если она есть
-                            targetContainer.find('.button--edit-order').remove();
+                            // Убираем кнопку редактора только если она выключена в настройках
+                            // Если включена - добавляем её
+                            if (Lampa.Storage.get('buttons_editor_enabled') === false) {
+                                targetContainer.find('.button--edit-order').remove();
+                            } else {
+                                // Проверяем, есть ли уже кнопка редактора
+                                if (!targetContainer.find('.button--edit-order').length) {
+                                    var editBtn = createEditButton();
+                                    targetContainer.append(editBtn);
+                                }
+                            }
+                            // Синхронизируем скрытые кнопки с меню Источник
+                            syncHiddenButtonsWithSourceMenu(container);
                             return;
                         }
                         if (reorderButtons(container)) {
@@ -590,11 +719,17 @@
     }
 
     function getShowAllButtons() {
-        return Lampa.Storage.get('buttons_show_all', false);
+        var value = Lampa.Storage.get('buttons_show_all');
+        // Проверяем явно на true/false, так как Storage может вернуть строку
+        if (value === true || value === 'true' || value === 1 || value === '1') {
+            return true;
+        }
+        return false;
     }
 
     function setShowAllButtons(value) {
-        Lampa.Storage.set('buttons_show_all', value);
+        // Сохраняем как булево значение
+        Lampa.Storage.set('buttons_show_all', value === true || value === 'true' || value === 1 || value === '1');
     }
 
     if (Lampa.SettingsApi) {
@@ -624,19 +759,33 @@
             param: { name: 'buttons_show_all', type: 'trigger', default: false },
             field: { name: 'Отображать все кнопки' },
             onChange: function(value) {
+                // Сохраняем значение - setShowAllButtons правильно обработает тип
                 setShowAllButtons(value);
                 setTimeout(function() {
                     if (currentContainer) {
                         currentContainer.data('buttons-processed', false);
                         var targetContainer = currentContainer.find('.full-start-new__buttons');
                         if (!value) {
-                            // Выключено - убираем кнопку редактора, оставляем стандартные кнопки
-                            targetContainer.find('.button--edit-order').remove();
+                            // Выключено - оставляем стандартные кнопки
+                            // Кнопку редактора убираем только если она выключена в настройках
+                            if (Lampa.Storage.get('buttons_editor_enabled') === false) {
+                                targetContainer.find('.button--edit-order').remove();
+                            } else {
+                                // Добавляем кнопку редактора если её нет
+                                if (!targetContainer.find('.button--edit-order').length) {
+                                    var editBtn = createEditButton();
+                                    targetContainer.append(editBtn);
+                                }
+                            }
                             // Сбрасываем opacity кнопок чтобы они были видимы
                             targetContainer.find('.full-start__button').css({
                                 'opacity': '1',
                                 'animation': 'none'
                             });
+                            // Синхронизируем скрытые кнопки с меню Источник
+                            if (currentContainer) {
+                                syncHiddenButtonsWithSourceMenu(currentContainer);
+                            }
                         } else {
                             // Включено - запускаем редактор
                             reorderButtons(currentContainer);
