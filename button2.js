@@ -146,6 +146,13 @@
             en: 'Buttons view',
             be: 'Выгляд кнопак',
             zh: '按钮视图'
+        },
+        buttons_plugin_watch_folder: {
+            uk: 'Дивитися',
+            ru: 'Смотреть',
+            en: 'Watch',
+            be: 'Глядзець',
+            zh: '观看'
         }
     });
     
@@ -217,17 +224,19 @@
 
     function getWatchFolder() {
         var folders = getFolders();
-        return folders.find(function(f) { return f.name === 'Смотреть'; });
+        var watchFolderName = getTranslation('buttons_plugin_watch_folder');
+        return folders.find(function(f) { return f.name === watchFolderName || f.name === 'Смотреть'; });
     }
 
     function ensureWatchFolder() {
         var folders = getFolders();
-        var watchFolder = folders.find(function(f) { return f.name === 'Смотреть'; });
+        var watchFolderName = getTranslation('buttons_plugin_watch_folder');
+        var watchFolder = folders.find(function(f) { return f.name === watchFolderName || f.name === 'Смотреть'; });
         
         if (!watchFolder) {
             watchFolder = {
                 id: 'folder_watch_' + Date.now(),
-                name: 'Смотреть',
+                name: getTranslation('buttons_plugin_watch_folder'),
                 buttons: []
             };
             folders.push(watchFolder);
@@ -263,6 +272,8 @@
     function shouldMoveToWatchFolder(btn) {
         var btnId = getBtnIdentifier(btn);
         var category = detectBtnCategory(btn);
+        var text = btn.find('span').text().trim().toLowerCase();
+        var classes = btn.attr('class') || '';
         
         // Не перемещаем book, reaction, subscribe
         if (category === 'book' || category === 'reaction' || category === 'subscribe') {
@@ -271,6 +282,11 @@
         
         // Не перемещаем кнопку редактирования
         if (btnId === 'button--edit-order' || btn.hasClass('button--edit-order')) {
+            return false;
+        }
+        
+        // Не перемещаем кнопку Options
+        if (text === 'options' || text.indexOf('options') !== -1 || classes.indexOf('options') !== -1) {
             return false;
         }
         
@@ -926,7 +942,23 @@
         var list = $('<div class="menu-edit-list"></div>');
         var hidden = getHiddenButtons();
         
+        // Сортируем кнопки: трейлеры всегда первые
+        var trailerButtons = [];
+        var otherButtons = [];
+        
         folder.buttons.forEach(function(btnId) {
+            var btn = findButton(btnId);
+            var category = btn ? detectBtnCategory(btn) : '';
+            if (category === 'trailer') {
+                trailerButtons.push(btnId);
+            } else {
+                otherButtons.push(btnId);
+            }
+        });
+        
+        var sortedButtons = trailerButtons.concat(otherButtons);
+        
+        sortedButtons.forEach(function(btnId) {
             var btn = findButton(btnId);
             if (btn) {
                 var displayName = getBtnDisplayText(btn, allButtonsOriginal);
@@ -992,6 +1024,11 @@
                     }
                     
                     setHiddenButtons(hidden);
+                    
+                    // Применяем изменения к контейнеру
+                    if (currentContainer) {
+                        applyChanges();
+                    }
                 });
 
                 list.append(item);
@@ -1015,8 +1052,39 @@
         var newOrder = [];
         list.find('.menu-edit-list__item').each(function() {
             var btnId = $(this).data('btnId');
-            newOrder.push(btnId);
+            if (btnId) {
+                newOrder.push(btnId);
+            }
         });
+        
+        // Сохраняем порядок, но при первой загрузке сортируем: трейлеры всегда первые
+        // Если порядок уже был изменен пользователем, сохраняем его как есть
+        // Проверяем, есть ли уже трейлеры в начале списка
+        var hasTrailerAtStart = false;
+        if (newOrder.length > 0) {
+            var firstBtn = findButton(newOrder[0]);
+            if (firstBtn && detectBtnCategory(firstBtn) === 'trailer') {
+                hasTrailerAtStart = true;
+            }
+        }
+        
+        // Если трейлеры не в начале, сортируем
+        if (!hasTrailerAtStart) {
+            var trailerButtons = [];
+            var otherButtons = [];
+            
+            newOrder.forEach(function(btnId) {
+                var btn = findButton(btnId);
+                var category = btn ? detectBtnCategory(btn) : '';
+                if (category === 'trailer') {
+                    trailerButtons.push(btnId);
+                } else {
+                    otherButtons.push(btnId);
+                }
+            });
+            
+            newOrder = trailerButtons.concat(otherButtons);
+        }
         
         folder.buttons = newOrder;
         
@@ -1055,169 +1123,10 @@
         }
     }
 
-    function createFolder(name, buttonIds) {
-        var folders = getFolders();
-        var folder = {
-            id: 'folder_' + Date.now(),
-            name: name,
-            buttons: buttonIds
-        };
-        folders.push(folder);
-        setFolders(folders);
-        return folder;
-    }
-
     function deleteFolder(folderId) {
         var folders = getFolders();
         folders = folders.filter(function(f) { return f.id !== folderId; });
         setFolders(folders);
-    }
-
-    function openCreateFolderDialog() {
-        Lampa.Input.edit({
-            free: true,
-            title: getTranslation('buttons_plugin_folder_name'),
-            nosave: true,
-            value: '',
-            nomic: true
-        }, function(folderName) {
-            if (!folderName || !folderName.trim()) {
-                Lampa.Noty.show(getTranslation('buttons_plugin_folder_name'));
-                openEditDialog();
-                return;
-            }
-            openSelectButtonsDialog(folderName.trim());
-        });
-    }
-
-    function openSelectButtonsDialog(folderName) {
-        var selectedButtons = [];
-        var list = $('<div class="menu-edit-list"></div>');
-        
-        var buttonsInFolders = getButtonsInFolders();
-        var sortedButtons = arrangeBtnsByOrder(allButtonsOriginal.slice());
-
-        sortedButtons.forEach(function(btn) {
-            var btnId = getBtnIdentifier(btn);
-            
-            if (buttonsInFolders.indexOf(btnId) !== -1) {
-                return;
-            }
-            
-            var displayName = getBtnDisplayText(btn, sortedButtons);
-            var iconElement = btn.find('svg').first();
-            var icon = iconElement.length ? iconElement.clone() : $('<svg></svg>');
-
-            var item = $('<div class="menu-edit-list__item">' +
-                '<div class="menu-edit-list__icon"></div>' +
-                '<div class="menu-edit-list__title">' + displayName + '</div>' +
-                '<div class="menu-edit-list__toggle selector">' +
-                    '<svg width="26" height="26" viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">' +
-                        '<rect x="1.89111" y="1.78369" width="21.793" height="21.793" rx="3.5" stroke="currentColor" stroke-width="3"/>' +
-                        '<path d="M7.44873 12.9658L10.8179 16.3349L18.1269 9.02588" stroke="currentColor" stroke-width="3" class="dot" opacity="0" stroke-linecap="round"/>' +
-                    '</svg>' +
-                '</div>' +
-            '</div>');
-
-            item.find('.menu-edit-list__icon').append(icon);
-
-            item.find('.menu-edit-list__toggle').on('hover:enter', function() {
-                var index = selectedButtons.indexOf(btnId);
-                if (index !== -1) {
-                    selectedButtons.splice(index, 1);
-                    item.find('.dot').attr('opacity', '0');
-                } else {
-                    selectedButtons.push(btnId);
-                    item.find('.dot').attr('opacity', '1');
-                }
-            });
-
-            list.append(item);
-        });
-
-        var createBtn = $('<div class="selector folder-create-confirm">' +
-            '<div style="text-align: center; padding: 1em;">' + getTranslation('buttons_plugin_create_folder') + ' "' + folderName + '"</div>' +
-        '</div>');
-        
-        createBtn.on('hover:enter', function() {
-            if (selectedButtons.length < 2) {
-                Lampa.Noty.show(getTranslation('buttons_plugin_min_2_buttons'));
-                return;
-            }
-
-            var folder = createFolder(folderName, selectedButtons);
-            
-            var itemOrder = getItemOrder();
-            
-            if (itemOrder.length === 0) {
-                currentButtons.forEach(function(btn) {
-                    itemOrder.push({
-                        type: 'button',
-                        id: getBtnIdentifier(btn)
-                    });
-                });
-            }
-            
-            var folderAdded = false;
-            
-            for (var i = 0; i < selectedButtons.length; i++) {
-                var btnId = selectedButtons[i];
-                
-                for (var j = 0; j < itemOrder.length; j++) {
-                    if (itemOrder[j].type === 'button' && itemOrder[j].id === btnId) {
-                        if (!folderAdded) {
-                            itemOrder[j] = {
-                                type: 'folder',
-                                id: folder.id
-                            };
-                            folderAdded = true;
-                        } else {
-                            itemOrder.splice(j, 1);
-                            j--;
-                        }
-                        break;
-                    }
-                }
-                
-                for (var k = 0; k < currentButtons.length; k++) {
-                    if (getBtnIdentifier(currentButtons[k]) === btnId) {
-                        currentButtons.splice(k, 1);
-                        break;
-                    }
-                }
-            }
-            
-            if (!folderAdded) {
-                itemOrder.push({
-                    type: 'folder',
-                    id: folder.id
-                });
-            }
-            
-            setItemOrder(itemOrder);
-            
-            Lampa.Modal.close();
-            Lampa.Noty.show(getTranslation('buttons_plugin_folder_created') + ' "' + folderName + '"');
-            
-            if (currentContainer) {
-                currentContainer.data('buttons-processed', false);
-                reorderButtons(currentContainer);
-            }
-            refreshController();
-        });
-
-        list.append(createBtn);
-
-        Lampa.Modal.open({
-            title: getTranslation('buttons_plugin_select_buttons'),
-            html: list,
-            size: 'medium',
-            scroll_to_center: true,
-            onBack: function() {
-                Lampa.Modal.close();
-                openEditDialog();
-            }
-        });
     }
 
     function openEditDialog() {
@@ -1898,7 +1807,8 @@
             });
             
             // Если папка "Смотреть" создана, но её нет в itemOrder, добавляем
-            var watchFolder = folders.find(function(f) { return f.name === 'Смотреть'; });
+            var watchFolderName = getTranslation('buttons_plugin_watch_folder');
+            var watchFolder = folders.find(function(f) { return f.name === watchFolderName || f.name === 'Смотреть'; });
             if (watchFolder && watchFolder.buttons.length > 0) {
                 var existsInOrder = itemOrder.some(function(item) {
                     return item.type === 'folder' && item.id === watchFolder.id;
