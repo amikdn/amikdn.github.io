@@ -1042,6 +1042,91 @@
                         saveFolderButtonOrder(folder, list);
                     }
                 });
+                
+                // Добавляем возможность перемещения кнопки из папки на главную страницу при зажатии
+                var longPressTimer = null;
+                var isLongPressing = false;
+                
+                item.on('contextmenu', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                });
+                
+                item.on('mousedown touchstart', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    isLongPressing = true;
+                    longPressTimer = setTimeout(function() {
+                        if (!isLongPressing) return;
+                        var watchFolderName = getTranslation('buttons_plugin_watch_folder');
+                        var isWatchFolder = folder.name === watchFolderName || folder.name === 'Смотреть';
+                        
+                        if (isWatchFolder) {
+                            // Удаляем кнопку из папки "Смотреть"
+                            var folders = getFolders();
+                            var watchFolder = folders.find(function(f) { 
+                                return f.name === watchFolderName || f.name === 'Смотреть'; 
+                            });
+                            
+                            if (watchFolder) {
+                                var btnIndex = watchFolder.buttons.indexOf(btnId);
+                                if (btnIndex !== -1) {
+                                    watchFolder.buttons.splice(btnIndex, 1);
+                                    
+                                    // Обновляем папку в хранилище
+                                    for (var i = 0; i < folders.length; i++) {
+                                        if (folders[i].id === watchFolder.id) {
+                                            folders[i] = watchFolder;
+                                            break;
+                                        }
+                                    }
+                                    setFolders(folders);
+                                    
+                                    // Обновляем itemOrder - добавляем кнопку на главную страницу
+                                    var itemOrder = getItemOrder();
+                                    var watchFolderItemIndex = -1;
+                                    for (var i = 0; i < itemOrder.length; i++) {
+                                        if (itemOrder[i].type === 'folder' && itemOrder[i].id === watchFolder.id) {
+                                            watchFolderItemIndex = i;
+                                            break;
+                                        }
+                                    }
+                                    
+                                    // Добавляем кнопку после папки "Смотреть"
+                                    if (watchFolderItemIndex !== -1) {
+                                        itemOrder.splice(watchFolderItemIndex + 1, 0, {
+                                            type: 'button',
+                                            id: btnId
+                                        });
+                                    } else {
+                                        itemOrder.push({
+                                            type: 'button',
+                                            id: btnId
+                                        });
+                                    }
+                                    setItemOrder(itemOrder);
+                                    
+                                    Lampa.Modal.close();
+                                    Lampa.Noty.show('Кнопка перемещена на главную страницу');
+                                    
+                                    if (currentContainer) {
+                                        currentContainer.data('buttons-processed', false);
+                                        reorderButtons(currentContainer);
+                                    }
+                                    refreshController();
+                                }
+                            }
+                        }
+                    }, 500); // Зажатие 500мс
+                });
+                
+                item.on('mouseup mouseleave touchend touchcancel', function() {
+                    isLongPressing = false;
+                    if (longPressTimer) {
+                        clearTimeout(longPressTimer);
+                        longPressTimer = null;
+                    }
+                });
 
                 list.append(item);
             }
@@ -1524,6 +1609,68 @@
                     applyChanges();
                 }
             });
+            
+            // Добавляем возможность перемещения кнопки с главной страницы в папку "Смотреть" при зажатии
+            var longPressTimer = null;
+            var isLongPressing = false;
+            var watchFolderName = getTranslation('buttons_plugin_watch_folder');
+            var watchFolder = folders.find(function(f) { 
+                return f.name === watchFolderName || f.name === 'Смотреть'; 
+            });
+            
+            // Проверяем, не находится ли кнопка уже в папке "Смотреть"
+            var isInWatchFolder = watchFolder && watchFolder.buttons.indexOf(btnId) !== -1;
+            
+            if (!isInWatchFolder && watchFolder) {
+                item.on('mousedown touchstart', function(e) {
+                    isLongPressing = true;
+                    longPressTimer = setTimeout(function() {
+                        if (!isLongPressing) return;
+                        // Добавляем кнопку в папку "Смотреть"
+                        if (watchFolder.buttons.indexOf(btnId) === -1) {
+                            watchFolder.buttons.push(btnId);
+                            
+                            // Обновляем папку в хранилище
+                            var folders = getFolders();
+                            for (var i = 0; i < folders.length; i++) {
+                                if (folders[i].id === watchFolder.id) {
+                                    folders[i] = watchFolder;
+                                    break;
+                                }
+                            }
+                            setFolders(folders);
+                            
+                            // Удаляем кнопку из itemOrder (если она там есть)
+                            var itemOrder = getItemOrder();
+                            var newItemOrder = [];
+                            for (var i = 0; i < itemOrder.length; i++) {
+                                if (itemOrder[i].type === 'button' && itemOrder[i].id === btnId) {
+                                    continue; // Пропускаем эту кнопку
+                                }
+                                newItemOrder.push(itemOrder[i]);
+                            }
+                            setItemOrder(newItemOrder);
+                            
+                            Lampa.Modal.close();
+                            Lampa.Noty.show('Кнопка перемещена в папку "Смотреть"');
+                            
+                            if (currentContainer) {
+                                currentContainer.data('buttons-processed', false);
+                                reorderButtons(currentContainer);
+                            }
+                            refreshController();
+                        }
+                    }, 500); // Зажатие 500мс
+                });
+                
+                item.on('mouseup mouseleave touchend touchcancel', function() {
+                    isLongPressing = false;
+                    if (longPressTimer) {
+                        clearTimeout(longPressTimer);
+                        longPressTimer = null;
+                    }
+                });
+            }
             
             return item;
         }
