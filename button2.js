@@ -180,9 +180,6 @@
             var classes = btn.attr('class') || '';
             var isInHiddenList = hidden.indexOf(id) !== -1;
             
-            // Проверяем, является ли это кнопкой "Смотреть" - она всегда должна быть видна
-            var isPlayButton = classes.indexOf('button--play') !== -1;
-            
             // Определяем, является ли кнопка стандартной видимой
             var isDefaultVisible = false;
             for (var i = 0; i < defaultVisibleClasses.length; i++) {
@@ -193,33 +190,20 @@
             }
             
             if (showAllButtons) {
-                // Если настройка включена - показываем ВСЕ кнопки
-                // Убираем класс hide и hidden со всех кнопок
+                // Если настройка включена - показываем ВСЕ кнопки (убираем все классы скрытия)
                 btn.removeClass('hidden').removeClass('hide');
             } else {
-                // Если настройка выключена:
-                // - Кнопка "Смотреть" всегда видна
-                // - Если кнопка в списке скрытых - скрываем её (настройки редактора)
-                // - Если кнопка стандартная видимая - показываем её
-                // - Если список скрытых пуст (первый запуск) - скрываем все нестандартные
-                // - Иначе показываем кнопки, которые не в списке скрытых
-                if (isPlayButton) {
-                    // Кнопка "Смотреть" всегда видна - убираем все классы скрытия
+                // Если настройка выключена - показываем только стандартные кнопки
+                // Исключение: если кнопка в списке скрытых редактора - скрываем её
+                if (isInHiddenList) {
+                    // Кнопка явно скрыта через редактор
+                    btn.addClass('hidden');
+                } else if (isDefaultVisible) {
+                    // Стандартная кнопка - показываем
                     btn.removeClass('hidden').removeClass('hide');
                 } else {
-                    var shouldHide = false;
-                    if (isInHiddenList) {
-                        // Кнопка явно скрыта через редактор
-                        shouldHide = true;
-                    } else if (hidden.length === 0) {
-                        // Первый запуск - показываем только стандартные кнопки
-                        shouldHide = !isDefaultVisible;
-                    } else {
-                        // Пользователь уже настраивал - показываем все, кроме скрытых в редакторе
-                        shouldHide = false;
-                    }
-                    btn.toggleClass('hidden', shouldHide);
-                    // Класс hide оставляем как есть (он управляется системой)
+                    // Нестандартная кнопка - скрываем
+                    btn.addClass('hidden');
                 }
             }
         });
@@ -559,15 +543,11 @@
         
         var visibleButtons = [];
         currentButtons.forEach(function(btn) {
-            // Если настройка включена - убираем класс hide (дополнительная проверка)
-            if (showAllButtons) {
-                btn.removeClass('hide').removeClass('hidden');
-            }
             // Добавляем кнопку в контейнер
             targetContainer.append(btn);
-            // Проверяем видимость кнопки (не должна быть hidden или hide)
-            var isVisible = !btn.hasClass('hidden') && (!btn.hasClass('hide') || showAllButtons);
-            if (isVisible) {
+            // Проверяем видимость кнопки (не должна быть hidden)
+            // Класс hide обрабатывается через CSS, но при включенной настройке убираем его
+            if (!btn.hasClass('hidden')) {
                 visibleButtons.push(btn);
             }
         });
