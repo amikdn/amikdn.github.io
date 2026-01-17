@@ -1,7 +1,7 @@
 (function() {
     'use strict';
     var LAMPAC_ICON = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><path d="M20.331 14.644l-13.794-13.831 17.55 10.075zM2.938 0c-0.813 0.425-1.356 1.2-1.356 2.206v27.581c0 1.006 0.544 1.781 1.356 2.206l16.038-16zM29.512 14.1l-3.681-2.131-4.106 4.031 4.106 4.031 3.756-2.131c1.125-0.893 1.125-2.906-0.075-3.8zM6.538 31.188l17.55-10.075-3.756-3.756z" fill="currentColor"></path></svg>';
-    var EXCLUDED_CLASSES = ['button--play', 'button--edit-order'];
+    var EXCLUDED_CLASSES = ['button--edit-order']; // Убираем button--play, чтобы она обрабатывалась
     var DEFAULT_GROUPS = [
         { name: 'online', patterns: ['online', 'lampac', 'modss', 'showy'], label: 'Онлайн' },
         { name: 'torrent', patterns: ['torrent'], label: 'Торренты' },
@@ -85,11 +85,22 @@
     }
 
     function categorizeButtons(container) {
-        var allButtons = container.find('.full-start__button').not('.button--edit-order, .button--play');
-        var categories = { online: [], torrent: [], trailer: [], favorite: [], subscribe: [], book: [], reaction: [], other: [] };
+        // Собираем ВСЕ кнопки, включая "Смотреть" - как в interface_mod.js
+        var allButtons = container.find('.full-start__button').not('.button--edit-order');
+        var categories = { online: [], torrent: [], trailer: [], favorite: [], subscribe: [], book: [], reaction: [], play: [], other: [] };
         allButtons.each(function() {
             var $btn = $(this);
+            
+            // Проверяем, является ли это кнопкой "Смотреть" ПЕРЕД isExcluded
+            var classes = $btn.attr('class') || '';
+            if (classes.indexOf('button--play') !== -1) {
+                categories.play.push($btn);
+                return;
+            }
+            
+            // Исключаем только карандаш (button--edit-order), кнопку "Смотреть" уже обработали
             if (isExcluded($btn)) return;
+            
             var type = getButtonType($btn);
             if (type === 'online' && $btn.hasClass('lampac--button') && !$btn.hasClass('modss--button') && !$btn.hasClass('showy--button')) {
                 var svgElement = $btn.find('svg').first();
@@ -506,18 +517,10 @@
         currentContainer = container;
         var showAllButtons = Lampa.Storage.get('show_all_buttons_enabled', false);
         
-        // Сохраняем кнопку "Смотреть" - она всегда должна оставаться
-        var playButton = targetContainer.find('.button--play').first();
-        var playButtonClone = null;
-        if (playButton.length) {
-            playButtonClone = playButton.clone(true, true);
-        }
-        
-        // Удаляем только кнопку редактирования (карандаш), кнопку "Смотреть" НЕ трогаем
-        container.find('.button--edit-order').remove();
-        
         var categories = categorizeButtons(container);
+        // Кнопка "Смотреть" должна быть первой - как в interface_mod.js
         var allButtons = []
+            .concat(categories.play)  // Кнопка "Смотреть" первой
             .concat(categories.online)
             .concat(categories.torrent)
             .concat(categories.trailer)
@@ -535,36 +538,23 @@
         }
         currentButtons = allButtons;
         
-        // Сохраняем кнопку "Смотреть" если она ещё не сохранена
-        if (!playButtonClone || !playButtonClone.length) {
-            var existingPlayButton = targetContainer.find('.button--play').first();
-            if (existingPlayButton.length) {
-                playButtonClone = existingPlayButton.clone(true, true);
-            }
-        }
+        // Удаляем только кнопку редактирования (карандаш) - как в interface_mod.js
+        container.find('.button--edit-order').remove();
         
-        // Удаляем все кнопки кроме "Смотреть" (она будет добавлена заново)
+        // Удаляем ВСЕ дочерние элементы контейнера (как в interface_mod.js cont.children().detach())
+        // Кнопка "Смотреть" будет добавлена обратно вместе с остальными
         targetContainer.children().detach();
-        
-        // Всегда добавляем кнопку "Смотреть" в начало
-        if (playButtonClone && playButtonClone.length) {
-            targetContainer.prepend(playButtonClone);
-        }
-        
-        var visibleButtons = [];
-        // Добавляем кнопку "Смотреть" первой
-        if (playButtonClone && playButtonClone.length) {
-            visibleButtons.push(playButtonClone);
-        }
         
         // Применяем логику скрытия/показа до добавления в контейнер
         applyHiddenButtons(currentButtons);
         
+        var visibleButtons = [];
         currentButtons.forEach(function(btn) {
             // Если настройка включена - убираем класс hide
             if (showAllButtons) {
                 btn.removeClass('hide');
             }
+            // Добавляем кнопку в контейнер
             targetContainer.append(btn);
             if (!btn.hasClass('hidden')) {
                 visibleButtons.push(btn);
@@ -639,15 +629,31 @@
             if (targetContainer.length) {
                 targetContainer.addClass('buttons-loading');
             }
+            // Увеличиваем задержку, чтобы кнопка "Смотреть" успела создаться системой
             setTimeout(function() {
                 try {
                     if (!container.data('buttons-processed')) {
-                        container.data('buttons-processed', true);
-                        if (reorderButtons(container)) {
-                            if (targetContainer.length) {
-                                targetContainer.removeClass('buttons-loading');
+                        // Проверяем наличие кнопки "Смотреть" перед обработкой
+                        var playButton = targetContainer.find('.button--play').first();
+                        if (!playButton.length) {
+                            // Если кнопки нет, ждём ещё немного
+                            setTimeout(function() {
+                                container.data('buttons-processed', true);
+                                if (reorderButtons(container)) {
+                                    if (targetContainer.length) {
+                                        targetContainer.removeClass('buttons-loading');
+                                    }
+                                    refreshController();
+                                }
+                            }, 200);
+                        } else {
+                            container.data('buttons-processed', true);
+                            if (reorderButtons(container)) {
+                                if (targetContainer.length) {
+                                    targetContainer.removeClass('buttons-loading');
+                                }
+                                refreshController();
                             }
-                            refreshController();
                         }
                     }
                 } catch(err) {
@@ -655,7 +661,7 @@
                         targetContainer.removeClass('buttons-loading');
                     }
                 }
-            }, 400);
+            }, 500);
         });
     }
 
