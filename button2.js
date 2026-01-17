@@ -1455,6 +1455,11 @@
             item.data('button', btn);
             item.data('buttonId', btnId);
             item.data('itemType', 'button');
+            
+            // Добавляем класс для скрытых кнопок
+            if (isHidden) {
+                item.addClass('menu-edit-list__item-hidden');
+            }
 
             item.find('.move-up').on('hover:enter', function() {
                 var prev = item.prev();
@@ -1496,10 +1501,12 @@
                     hidden.splice(index, 1);
                     btn.removeClass('hidden');
                     item.find('.dot').attr('opacity', '1');
+                    item.removeClass('menu-edit-list__item-hidden');
                 } else {
                     hidden.push(btnId);
                     btn.addClass('hidden');
                     item.find('.dot').attr('opacity', '0');
+                    item.addClass('menu-edit-list__item-hidden');
                 }
                 
                 setHiddenButtons(hidden);
@@ -1508,7 +1515,42 @@
             return item;
         }
         
+        // Получаем кнопки из папки "Смотреть" для возможности их скрытия
+        var watchFolderName = getTranslation('buttons_plugin_watch_folder');
+        var watchFolder = folders.find(function(f) { 
+            return f.name === watchFolderName || f.name === 'Смотреть'; 
+        });
+        var watchFolderButtons = [];
+        if (watchFolder) {
+            watchFolder.buttons.forEach(function(btnId) {
+                var btn = findButton(btnId);
+                if (btn) {
+                    watchFolderButtons.push(btn);
+                }
+            });
+        }
+        
+        // Сортируем папки: "Смотреть" всегда первая
+        folders.sort(function(a, b) {
+            var aIsWatch = a.name === watchFolderName || a.name === 'Смотреть';
+            var bIsWatch = b.name === watchFolderName || b.name === 'Смотреть';
+            if (aIsWatch && !bIsWatch) return -1;
+            if (!aIsWatch && bIsWatch) return 1;
+            return 0;
+        });
+        
+        // Сортируем itemOrder: папка "Смотреть" всегда первая
         if (itemOrder.length > 0) {
+            if (watchFolder) {
+                itemOrder.sort(function(a, b) {
+                    var aIsWatch = a.type === 'folder' && a.id === watchFolder.id;
+                    var bIsWatch = b.type === 'folder' && b.id === watchFolder.id;
+                    if (aIsWatch && !bIsWatch) return -1;
+                    if (!aIsWatch && bIsWatch) return 1;
+                    return 0;
+                });
+            }
+            
             itemOrder.forEach(function(item) {
                 if (item.type === 'folder') {
                     var folder = folders.find(function(f) { return f.id === item.id; });
@@ -1533,6 +1575,17 @@
                 }
             });
             
+            // Добавляем кнопки из папки "Смотреть" для возможности их скрытия
+            watchFolderButtons.forEach(function(btn) {
+                var btnId = getBtnIdentifier(btn);
+                var found = itemOrder.some(function(item) {
+                    return item.type === 'button' && item.id === btnId;
+                });
+                if (!found) {
+                    list.append(createButtonItem(btn));
+                }
+            });
+            
             folders.forEach(function(folder) {
                 var found = itemOrder.some(function(item) {
                     return item.type === 'folder' && item.id === folder.id;
@@ -1542,11 +1595,23 @@
                 }
             });
         } else {
+            // Папка "Смотреть" всегда первая
+            if (watchFolder) {
+                list.append(createFolderItem(watchFolder));
+            }
+            
             folders.forEach(function(folder) {
-                list.append(createFolderItem(folder));
+                if (folder.id !== watchFolder.id) {
+                    list.append(createFolderItem(folder));
+                }
             });
             
             currentButtons.forEach(function(btn) {
+                list.append(createButtonItem(btn));
+            });
+            
+            // Добавляем кнопки из папки "Смотреть" для возможности их скрытия
+            watchFolderButtons.forEach(function(btn) {
                 list.append(createButtonItem(btn));
             });
         }
@@ -1699,8 +1764,34 @@
 
         targetContainer.children().detach();
         
+        // Сортируем папки: "Смотреть" всегда первая
+        var watchFolderName = getTranslation('buttons_plugin_watch_folder');
+        folders.sort(function(a, b) {
+            var aIsWatch = a.name === watchFolderName || a.name === 'Смотреть';
+            var bIsWatch = b.name === watchFolderName || b.name === 'Смотреть';
+            if (aIsWatch && !bIsWatch) return -1;
+            if (!aIsWatch && bIsWatch) return 1;
+            return 0;
+        });
+        
         var visibleButtons = [];
         var itemOrder = getItemOrder();
+        
+        // Сортируем itemOrder: папка "Смотреть" всегда первая
+        if (itemOrder.length > 0) {
+            var watchFolder = folders.find(function(f) { 
+                return f.name === watchFolderName || f.name === 'Смотреть'; 
+            });
+            if (watchFolder) {
+                itemOrder.sort(function(a, b) {
+                    var aIsWatch = a.type === 'folder' && a.id === watchFolder.id;
+                    var bIsWatch = b.type === 'folder' && b.id === watchFolder.id;
+                    if (aIsWatch && !bIsWatch) return -1;
+                    if (!aIsWatch && bIsWatch) return 1;
+                    return 0;
+                });
+            }
+        }
         
         if (itemOrder.length > 0) {
             var addedFolders = [];
@@ -1784,6 +1875,23 @@
                 }
             });
             
+            // Добавляем папки, которых нет в itemOrder, но "Смотреть" всегда первая
+            var watchFolder = folders.find(function(f) { 
+                var watchFolderName = getTranslation('buttons_plugin_watch_folder');
+                return f.name === watchFolderName || f.name === 'Смотреть'; 
+            });
+            if (watchFolder && addedFolders.indexOf(watchFolder.id) === -1) {
+                var folderBtn = createFolderButton(watchFolder);
+                var firstButton = targetContainer.find('.full-start__button').not('.button--edit-order').first();
+                if (firstButton.length) {
+                    folderBtn.insertBefore(firstButton);
+                } else {
+                    targetContainer.prepend(folderBtn);
+                }
+                visibleButtons.push(folderBtn);
+                addedFolders.push(watchFolder.id);
+            }
+            
             folders.forEach(function(folder) {
                 if (addedFolders.indexOf(folder.id) === -1) {
                     var folderBtn = createFolderButton(folder);
@@ -1792,11 +1900,24 @@
                 }
             });
         } else {
-            // Если itemOrder пустой, сначала отображаем папки, потом кнопки
-            folders.forEach(function(folder) {
-                var folderBtn = createFolderButton(folder);
+            // Если itemOrder пустой, сначала отображаем папку "Смотреть", потом остальные папки, потом кнопки
+            var watchFolder = folders.find(function(f) { 
+                var watchFolderName = getTranslation('buttons_plugin_watch_folder');
+                return f.name === watchFolderName || f.name === 'Смотреть'; 
+            });
+            if (watchFolder) {
+                var folderBtn = createFolderButton(watchFolder);
                 targetContainer.append(folderBtn);
                 visibleButtons.push(folderBtn);
+            }
+            
+            folders.forEach(function(folder) {
+                var watchFolderName = getTranslation('buttons_plugin_watch_folder');
+                if (folder.name !== watchFolderName && folder.name !== 'Смотреть') {
+                    var folderBtn = createFolderButton(folder);
+                    targetContainer.append(folderBtn);
+                    visibleButtons.push(folderBtn);
+                }
             });
             
             filteredButtons.forEach(function(btn) {
@@ -1887,7 +2008,8 @@
             '.full-start-new__buttons.always-text .full-start__button span { display: block !important; }' +
             '.viewmode-switch { background: rgba(100,100,255,0.3); margin: 0.5em 0 1em 0; border-radius: 0.3em; }' +
             '.viewmode-switch.focus { border: 3px solid rgba(255,255,255,0.8); }' +
-            '.menu-edit-list__item-hidden { opacity: 0.5; }' +
+            '.menu-edit-list__item-hidden { opacity: 0.4 !important; }' +
+            '.menu-edit-list__item.hidden { display: block !important; opacity: 0.4 !important; }' +
             '.menu-edit-list__delete { width: 2.4em; height: 2.4em; display: flex; align-items: center; justify-content: center; cursor: pointer; }' +
             '.menu-edit-list__delete svg { width: 1.2em !important; height: 1.2em !important; }' +
             '.menu-edit-list__delete.focus { border: 2px solid rgba(255,255,255,0.8); border-radius: 0.3em; }' +
