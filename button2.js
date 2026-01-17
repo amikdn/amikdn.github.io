@@ -158,32 +158,21 @@
         var hidden = getHiddenButtons();
         var showAllButtons = Lampa.Storage.get('show_all_buttons_enabled', false);
         
-        // Если настройка "Отображать все кнопки" выключена, скрываем все кнопки
-        if (!showAllButtons) {
-            // Если список скрытых пуст - это первый запуск, скрываем все кнопки по умолчанию
-            if (hidden.length === 0) {
-                buttons.forEach(function(btn) {
-                    var id = getButtonId(btn);
-                    hidden.push(id);
-                });
-                setHiddenButtons(hidden);
+        buttons.forEach(function(btn) {
+            var id = getButtonId(btn);
+            var isInHiddenList = hidden.indexOf(id) !== -1;
+            
+            if (showAllButtons) {
+                // Если настройка включена - показываем все кнопки
+                // Убираем класс hide и hidden
+                btn.removeClass('hidden').removeClass('hide');
+            } else {
+                // Если настройка выключена - используем список скрытых кнопок из хранилища
+                // Скрываем только те кнопки, которые явно помечены как скрытые
+                btn.toggleClass('hidden', isInHiddenList);
+                // Класс hide оставляем как есть (он управляется системой)
             }
-            // Скрываем все кнопки
-            buttons.forEach(function(btn) {
-                var id = getButtonId(btn);
-                var shouldHide = hidden.indexOf(id) !== -1;
-                btn.toggleClass('hidden', shouldHide);
-            });
-        } else {
-            // Если настройка включена - показываем все кнопки и очищаем список скрытых
-            buttons.forEach(function(btn) {
-                btn.removeClass('hidden');
-            });
-            // Очищаем список скрытых, чтобы при выключении настройки кнопки снова скрылись
-            if (hidden.length > 0) {
-                setHiddenButtons([]);
-            }
-        }
+        });
     }
 
     function applyButtonAnimation(buttons) {
@@ -219,6 +208,7 @@
 
     function applyChanges() {
         if (!currentContainer) return;
+        var showAllButtons = Lampa.Storage.get('show_all_buttons_enabled', false);
         var categories = categorizeButtons(currentContainer);
         var allButtons = []
             .concat(categories.online)
@@ -234,9 +224,19 @@
         currentButtons = allButtons;
         var targetContainer = currentContainer.find('.full-start-new__buttons');
         if (!targetContainer.length) return;
-        targetContainer.find('.full-start__button').not('.button--edit-order').detach();
+        // Сохраняем кнопку "Смотреть"
+        var playButton = targetContainer.find('.button--play');
+        targetContainer.find('.full-start__button').not('.button--edit-order, .button--play').detach();
         var visibleButtons = [];
+        
+        // Применяем логику скрытия/показа
+        applyHiddenButtons(currentButtons);
+        
         currentButtons.forEach(function(btn) {
+            // Если настройка включена - убираем класс hide
+            if (showAllButtons) {
+                btn.removeClass('hide');
+            }
             targetContainer.append(btn);
             if (!btn.hasClass('hidden')) visibleButtons.push(btn);
         });
@@ -246,7 +246,11 @@
             editBtn.detach();
             targetContainer.append(editBtn);
         }
-        applyHiddenButtons(currentButtons);
+        // Кнопка "Смотреть" должна оставаться на месте
+        if (playButton.length) {
+            playButton.detach();
+            targetContainer.prepend(playButton);
+        }
         var viewmode = Lampa.Storage.get('buttons_viewmode', 'default');
         targetContainer.removeClass('icons-only always-text');
         if (viewmode === 'icons') targetContainer.addClass('icons-only');
@@ -472,18 +476,15 @@
         currentContainer = container;
         var showAllButtons = Lampa.Storage.get('show_all_buttons_enabled', false);
         
-        // Сохраняем кнопку "Смотреть" ДО её возможного удаления
+        // Сохраняем кнопку "Смотреть" - она всегда должна оставаться
         var playButton = targetContainer.find('.button--play').first();
         var playButtonClone = null;
         if (playButton.length) {
             playButtonClone = playButton.clone(true, true);
         }
         
-        // Удаляем кнопки редактирования и "Смотреть" (если настройка выключена)
+        // Удаляем только кнопку редактирования (карандаш), кнопку "Смотреть" НЕ трогаем
         container.find('.button--edit-order').remove();
-        if (!showAllButtons) {
-            playButton.remove();
-        }
         
         var categories = categorizeButtons(container);
         var allButtons = []
@@ -505,25 +506,35 @@
         currentButtons = allButtons;
         targetContainer.children().detach();
         
-        // Если настройка включена - добавляем кнопку "Смотреть" в начало
-        if (showAllButtons && playButtonClone && playButtonClone.length) {
+        // Всегда добавляем кнопку "Смотреть" в начало
+        if (playButtonClone && playButtonClone.length) {
             targetContainer.prepend(playButtonClone);
         }
         
         var visibleButtons = [];
-        // Сначала добавляем кнопку "Смотреть" если она есть
-        if (showAllButtons && playButtonClone && playButtonClone.length) {
+        // Добавляем кнопку "Смотреть" первой
+        if (playButtonClone && playButtonClone.length) {
             visibleButtons.push(playButtonClone);
         }
         
+        // Применяем логику скрытия/показа до добавления в контейнер
+        applyHiddenButtons(currentButtons);
+        
         currentButtons.forEach(function(btn) {
+            // Если настройка включена - убираем класс hide
+            if (showAllButtons) {
+                btn.removeClass('hide');
+            }
             targetContainer.append(btn);
-            if (!btn.hasClass('hidden')) visibleButtons.push(btn);
+            if (!btn.hasClass('hidden')) {
+                visibleButtons.push(btn);
+            }
         });
+        
         var editButton = createEditButton();
         targetContainer.append(editButton);
         visibleButtons.push(editButton);
-        applyHiddenButtons(currentButtons);
+        
         var viewmode = Lampa.Storage.get('buttons_viewmode', 'default');
         targetContainer.removeClass('icons-only always-text');
         if (viewmode === 'icons') targetContainer.addClass('icons-only');
@@ -562,6 +573,7 @@
             '@keyframes button-fade-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }' +
             '.full-start-new__buttons .full-start__button { opacity: 0; }' +
             '.full-start__button.hidden { display: none !important; }' +
+            '.full-start__button.hide { display: none !important; }' +
             '.full-start-new__buttons { ' +
             'display: flex !important; ' +
             'flex-direction: row !important; ' +
@@ -633,22 +645,27 @@
         Lampa.SettingsApi.addParam({
             component: 'interface',
             param: { name: 'show_all_buttons_enabled', type: 'trigger', default: false },
-            field: { name: 'Отображать все кнопки', description: 'Показывать все кнопки, включая кнопку "Смотреть"' },
+            field: { name: 'Отображать все кнопки', description: 'Показывать все кнопки, включая скрытые по умолчанию' },
             onChange: function(value) {
                 Lampa.Storage.set('show_all_buttons_enabled', value);
-                // Перезагружаем кнопки для применения изменений
+                // Применяем изменения к классу hide
                 setTimeout(function() {
+                    var targetContainers = $('.full-start-new__buttons');
+                    if (value) {
+                        // Если включено - убираем класс hide со всех кнопок
+                        targetContainers.find('.full-start__button').removeClass('hide');
+                    } else {
+                        // Если выключено - возвращаем класс hide кнопкам, которые должны быть скрыты по умолчанию
+                        targetContainers.find('.button--subscribe').addClass('hide');
+                    }
+                    // Перезагружаем кнопки для применения изменений
                     if (currentContainer) {
                         currentContainer.data('buttons-processed', false);
-                        currentContainer.find('.full-start-new__buttons').each(function() {
-                            var cont = $(this);
-                            // Перезагружаем кнопки
-                            reorderButtons(currentContainer);
-                            refreshController();
-                        });
+                        reorderButtons(currentContainer);
+                        refreshController();
                     } else {
                         // Обновляем все открытые карточки
-                        $('.full-start-new__buttons').each(function() {
+                        targetContainers.each(function() {
                             var container = $(this).closest('[data-id], [id]').first();
                             if (container.length) {
                                 container.data('buttons-processed', false);
