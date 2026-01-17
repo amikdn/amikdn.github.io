@@ -221,6 +221,9 @@
         if (editBtn.length) {
             editBtn.detach();
             targetContainer.append(editBtn);
+        } else {
+            var newEditButton = createEditButton();
+            targetContainer.append(newEditButton);
         }
         applyHiddenButtons(currentButtons);
         var viewmode = Lampa.Storage.get('buttons_viewmode', 'default');
@@ -428,18 +431,16 @@
                         if (currentContainer) {
                             var targetContainer = currentContainer.find('.full-start-new__buttons');
                             if (targetContainer.length) {
-                                var firstButton = targetContainer.find('.full-start__button.selector')
-                                    .not('.button--edit-order, .button--play, .hidden')
-                                    .first();
-                                if (firstButton.length) {
+                                var editButton = targetContainer.find('.button--edit-order.selector');
+                                if (editButton.length) {
                                     if (Lampa.Controller && Lampa.Controller.toggle) {
                                         try {
-                                            Lampa.Controller.toggle(firstButton);
+                                            Lampa.Controller.toggle(editButton);
                                         } catch(e) {
-                                            firstButton.trigger('hover');
+                                            editButton.trigger('hover');
                                         }
                                     } else {
-                                        firstButton.trigger('hover');
+                                        editButton.trigger('hover');
                                     }
                                 }
                             }
@@ -458,28 +459,27 @@
             onBack: function() {
                 Lampa.Modal.close();
                 applyChanges();
-                Lampa.Controller.toggle('full_start');
                 setTimeout(function() {
                     if (currentContainer) {
                         var targetContainer = currentContainer.find('.full-start-new__buttons');
                         if (targetContainer.length) {
-                            var firstButton = targetContainer.find('.full-start__button.selector')
-                                .not('.button--edit-order, .button--play, .hidden')
-                                .first();
-                            if (firstButton.length) {
+                            var editButton = targetContainer.find('.button--edit-order.selector');
+                            if (editButton.length && editButton.is(':visible')) {
                                 if (Lampa.Controller && Lampa.Controller.toggle) {
                                     try {
-                                        Lampa.Controller.toggle(firstButton);
+                                        Lampa.Controller.toggle(editButton[0]);
                                     } catch(e) {
-                                        firstButton.trigger('hover');
+                                        try {
+                                            editButton.trigger('hover');
+                                        } catch(e2) {}
                                     }
                                 } else {
-                                    firstButton.trigger('hover');
+                                    editButton.trigger('hover');
                                 }
                             }
                         }
                     }
-                }, 150);
+                }, 200);
             }
         });
     }
