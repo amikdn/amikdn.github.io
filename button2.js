@@ -313,6 +313,41 @@
         });
         list.append(modeBtn);
 
+        // Пункт "Отображать все кнопки"
+        var showAllBtn = $('<div class="selector viewmode-switch">' +
+            '<div style="text-align: center; padding: 1em;">Отображать все кнопки</div>' +
+            '</div>');
+        showAllBtn.on('hover:enter', function() {
+            if (currentContainer) {
+                var targetContainer = currentContainer.find('.full-start-new__buttons');
+                // Удаляем класс hide со всех кнопок в контейнере
+                targetContainer.find('.full-start__button').removeClass('hide');
+                // Показываем кнопку "Смотреть" если она была скрыта
+                currentContainer.find('.button--play').removeClass('hide').show();
+                // Очищаем список скрытых кнопок в хранилище
+                setHiddenButtons([]);
+                // Обновляем все кнопки - убираем класс hidden
+                if (currentButtons && currentButtons.length) {
+                    currentButtons.forEach(function(btn) {
+                        if (btn && btn.removeClass) {
+                            btn.removeClass('hidden');
+                        }
+                    });
+                }
+                // Обновляем элементы в диалоге - убираем класс hidden
+                list.find('.menu-edit-list__item').each(function() {
+                    var item = $(this);
+                    item.removeClass('menu-edit-list__item-hidden');
+                    item.find('.dot').attr('opacity', '1');
+                });
+                // Применяем изменения
+                applyChanges();
+                // Обновляем контроллер
+                refreshController();
+            }
+        });
+        list.append(showAllBtn);
+
         function createButtonItem(btn) {
             var displayName = getButtonDisplayName(btn, currentButtons);
             var icon = btn.find('svg').clone();
