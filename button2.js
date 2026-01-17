@@ -98,52 +98,43 @@
         });
     }
 
-    function insertButtonsIntoPlayButton(container, viewButtons) {
+    function openPlayButtonsModal(viewButtons) {
+        if (!viewButtons || viewButtons.length === 0) return;
+        
+        var list = $('<div class="menu-edit-list"></div>');
+        viewButtons.forEach(function(btn) {
+            var clonedBtn = btn.clone(true, true);
+            clonedBtn.css({ 'opacity': '1', 'animation': 'none', 'margin': '0.5em' });
+            var item = $('<div class="menu-edit-list__item" style="padding: 0.5em; cursor: pointer;"></div>');
+            item.append(clonedBtn);
+            item.on('hover:enter', function() {
+                clonedBtn.trigger('hover:enter');
+            });
+            list.append(item);
+        });
+
+        Lampa.Modal.open({
+            title: 'Выберите способ просмотра',
+            html: list,
+            size: 'small',
+            scroll_to_center: true,
+            onBack: function() {
+                Lampa.Modal.close();
+            }
+        });
+    }
+
+    function setupPlayButton(container, viewButtons) {
         var targetContainer = container.find('.full-start-new__buttons');
         if (!targetContainer.length) return;
         var playBtn = targetContainer.find('.button--play').first();
         if (!playBtn.length) return;
 
-        var submenuContainer = playBtn.find('.button--play-submenu');
-        if (!submenuContainer.length) {
-            submenuContainer = $('<div class="button--play-submenu"></div>');
-            playBtn.append(submenuContainer);
-            playBtn.addClass('has-submenu');
-            
-            var openSubmenu = function() {
-                submenuContainer.addClass('visible');
-            };
-            var closeSubmenu = function() {
-                submenuContainer.removeClass('visible');
-            };
-            
-            playBtn.off('hover:enter.submenu hover:leave.submenu').on('hover:enter.submenu', function(e) {
-                e.stopPropagation();
-                openSubmenu();
-            }).on('hover:leave.submenu', function(e) {
-                setTimeout(function() {
-                    if (!submenuContainer.is(':hover') && !playBtn.is(':hover')) {
-                        closeSubmenu();
-                    }
-                }, 100);
-            });
-            
-            submenuContainer.on('mouseleave', function() {
-                setTimeout(function() {
-                    if (!playBtn.is(':hover')) {
-                        closeSubmenu();
-                    }
-                }, 100);
-            });
-        }
-        submenuContainer.empty();
-        if (viewButtons && viewButtons.length > 0) {
-            viewButtons.forEach(function(btn) {
-                var clonedBtn = btn.clone(true, true);
-                clonedBtn.css({ 'opacity': '1', 'animation': 'none' });
-                submenuContainer.append(clonedBtn);
-            });
-        }
+        playBtn.off('hover:enter.playmodal').on('hover:enter.playmodal', function() {
+            if (viewButtons && viewButtons.length > 0) {
+                openPlayButtonsModal(viewButtons);
+            }
+        });
     }
 
     function getButtonType(button) {
@@ -280,7 +271,11 @@
 
     function applyChanges() {
         if (!currentContainer) return;
+        var originalPlayBtn = currentContainer.find('.button--play').first();
         saveSystemButtons(currentContainer);
+        if (!savedSystemButtons.length && originalPlayBtn.length) {
+            savedSystemButtons.push(originalPlayBtn.clone(true, true));
+        }
         var categories = categorizeButtons(currentContainer);
         var viewButtons = []
             .concat(categories.online)
@@ -316,7 +311,7 @@
         } else {
             var playBtn = targetContainer.find('.button--play').first();
             if (playBtn.length) {
-                insertButtonsIntoPlayButton(currentContainer, viewButtons);
+                setupPlayButton(currentContainer, viewButtons);
             }
             var visibleButtons = [];
             otherButtons.forEach(function(btn) {
@@ -549,7 +544,11 @@
         var targetContainer = container.find('.full-start-new__buttons');
         if (!targetContainer.length) return false;
         currentContainer = container;
+        var originalPlayBtn = container.find('.button--play').first();
         saveSystemButtons(container);
+        if (!savedSystemButtons.length && originalPlayBtn.length) {
+            savedSystemButtons.push(originalPlayBtn.clone(true, true));
+        }
         container.find('.button--play, .button--edit-order').remove();
         var categories = categorizeButtons(container);
         var viewButtons = []
@@ -588,7 +587,7 @@
         } else {
             var playBtn = targetContainer.find('.button--play').first();
             if (playBtn.length) {
-                insertButtonsIntoPlayButton(container, viewButtons);
+                setupPlayButton(container, viewButtons);
             }
             otherButtons.forEach(function(btn) {
                 targetContainer.append(btn);
@@ -659,29 +658,6 @@
             '.viewmode-switch { background: rgba(100,100,255,0.3); margin: 0.5em 0 1em 0; border-radius: 0.3em; }' +
             '.viewmode-switch.focus { border: 3px solid rgba(255,255,255,0.8); }' +
             '.menu-edit-list__item-hidden { opacity: 0.5; }' +
-            '.button--play { position: relative; }' +
-            '.button--play-submenu { ' +
-            'display: none; ' +
-            'position: absolute; ' +
-            'top: 100%; ' +
-            'left: 0; ' +
-            'margin-top: 0.5em; ' +
-            'padding: 0.5em; ' +
-            'background: rgba(0, 0, 0, 0.9); ' +
-            'border-radius: 0.5em; ' +
-            'z-index: 1000; ' +
-            'min-width: 200px; ' +
-            'flex-direction: column; ' +
-            'gap: 0.5em; ' +
-            'box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5); ' +
-            '}' +
-            '.button--play-submenu.visible { display: flex; }' +
-            '.button--play-submenu .full-start__button { ' +
-            'width: 100%; ' +
-            'margin: 0; ' +
-            'opacity: 1 !important; ' +
-            'animation: none !important; ' +
-            '}' +
             '</style>');
         $('body').append(style);
 
