@@ -2312,6 +2312,41 @@
                                 targetContainer.removeClass('buttons-loading');
                             }
                             refreshController();
+                            
+                            // Устанавливаем фокус на кнопку "Смотреть"
+                            setTimeout(function() {
+                                var watchFolderName = getTranslation('buttons_plugin_watch_folder');
+                                var folders = getFolders();
+                                var watchFolder = folders.find(function(f) { 
+                                    return f.name === watchFolderName || f.name === 'Смотреть'; 
+                                });
+                                
+                                if (watchFolder) {
+                                    var watchFolderBtn = targetContainer.find('.button--folder[data-folder-id="' + watchFolder.id + '"]');
+                                    if (watchFolderBtn.length && watchFolderBtn.hasClass('selector')) {
+                                        try {
+                                            // Устанавливаем фокус на кнопку "Смотреть"
+                                            // Сначала пытаемся через нативный focus
+                                            watchFolderBtn[0].focus();
+                                            
+                                            // Затем через Lampa Controller если доступно
+                                            if (Lampa.Controller) {
+                                                if (typeof Lampa.Controller.active === 'function') {
+                                                    Lampa.Controller.active(watchFolderBtn[0]);
+                                                } else if (typeof Lampa.Controller.toggle === 'function') {
+                                                    // Переключаем контроллер и устанавливаем фокус
+                                                    Lampa.Controller.toggle('full_start');
+                                                    setTimeout(function() {
+                                                        watchFolderBtn[0].focus();
+                                                    }, 50);
+                                                }
+                                            }
+                                        } catch(e) {
+                                            // Игнорируем ошибки фокуса
+                                        }
+                                    }
+                                }
+                            }, 200);
                         }
                     }
                 } catch(err) {
