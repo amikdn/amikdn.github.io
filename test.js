@@ -1,7 +1,7 @@
 (function() {
     'use strict';
 
-    const fixedUnicId = 'qch0yxct';
+    const fixedUnicId = 'altq';
    // const fixedLampaUid = 'xgGax1Fs';
 
     Lampa.Listener.follow('app', function(e) {
@@ -14,4 +14,5 @@
     });
 
 })();
+
 
