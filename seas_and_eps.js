@@ -3,7 +3,7 @@
 
   Lampa.Platform.tv();
 
-  // Стили для статуса сериала
+  // Стили
   const style = document.createElement('style');
   style.textContent = `
     .card__status {
@@ -25,6 +25,18 @@
     .card__status[data-status="wait"] {
       background: #ffa416;
     }
+    .card--new_seria {
+      right: -0.6em !important;
+      position: absolute;
+      background: #16c7ff;
+      color: #000;
+      bottom: .6em !important;
+      padding: 0.4em 0.4em;
+      font-size: 1.2em;
+      -webkit-border-radius: 0.3em;
+      -moz-border-radius: 0.3em;
+      border-radius: 0.3em;
+    }
   `.trim();
   document.head.appendChild(style);
 
@@ -44,14 +56,14 @@
     const isTv = data.type === 'tv' || data.source === 'tmdb' || data.number_of_seasons || card.classList.contains('card--tv');
     if (!isTv) return;
 
-    let status = (data.status || '').toLowerCase();
+    let status = (data.status || '').toLowerCase().trim();
 
     if (status) {
       addLabels(status, view, data);
     } else if (data.id) {
       fetchStatus(data.id, info => {
         if (info) {
-          data.status = info.status;
+          data.status = info.status?.toLowerCase();
           data.lastSeason = info.lastSeason;
           data.lastEpisode = info.lastEpisode;
           data.totalEpisodes = info.totalEpisodes;
@@ -64,10 +76,8 @@
   }
 
   function addLabels(status, view, data) {
-    // Удаляем старые метки
     view.querySelectorAll('.card__type, .card__status').forEach(el => el.remove());
 
-    // Метка TV
     const typeEl = document.createElement('div');
     typeEl.className = 'card__type';
     typeEl.textContent = 'TV';
@@ -85,12 +95,9 @@
         break;
       case 'returning series':
       case 'in_production':
-        statusEl.setAttribute('data-status', 'on_the_air');
-        statusEl.textContent = 'В производстве';
-        break;
       case 'on_the_air':
         statusEl.setAttribute('data-status', 'on_the_air');
-        statusEl.textContent = 'Идёт';
+        statusEl.textContent = 'В производстве';
         break;
       case 'planned':
         statusEl.setAttribute('data-status', 'wait');
@@ -108,9 +115,9 @@
         statusEl.setAttribute('data-status', 'wait');
         statusEl.textContent = 'По слухам';
         break;
-      case 'returning series':
+      default:
         if (data.lastSeason && data.lastEpisode && data.totalEpisodes) {
-          if (data.lastEpisode === data.totalEpisodes) {
+          if (data.lastEpisode >= data.totalEpisodes) {
             statusEl.setAttribute('data-status', 'end');
             statusEl.textContent = 'Завершён';
           } else {
@@ -123,10 +130,10 @@
         } else if (data.lastSeason) {
           statusEl.setAttribute('data-status', 'on_the_air');
           statusEl.textContent = `Сезон: ${data.lastSeason}`;
+        } else {
+          return;
         }
         break;
-      default:
-        return;
     }
 
     view.appendChild(statusEl);
@@ -137,13 +144,21 @@
     const req = new Lampa.Reguest();
     req.timeout(10000);
     req.get(Lampa.Storage.proxy(url), json => {
-      const info = { status: json.status?.toLowerCase() || null, lastSeason: null, lastEpisode: null, totalEpisodes: null };
+      const info = {
+        status: json.status?.toLowerCase() || null,
+        lastSeason: null,
+        lastEpisode: null,
+        totalEpisodes: null
+      };
 
-      if (json.seasons?.length) {
+      if (json.seasons && json.seasons.length) {
         info.lastSeason = json.seasons[json.seasons.length - 1].season_number;
+
         const next = json.next_episode_to_air;
         const last = json.last_episode_to_air;
-        info.lastEpisode = next && new Date(next.air_date) <= new Date() ? next.episode_number : last?.episode_number;
+
+        info.lastEpisode = next && new Date(next.air_date) <= new Date() ? next.episode_number : last?.episode_number || null;
+
         const season = json.seasons.find(s => s.season_number === info.lastSeason);
         if (season) info.totalEpisodes = season.episode_count;
       }
@@ -152,7 +167,6 @@
     }, () => cb(null));
   }
 
-  // Инициализация плагина
   function init() {
     if (window.serial_status_plugin) return;
     window.serial_status_plugin = true;
@@ -160,26 +174,68 @@
     Lampa.SettingsApi.addParam({
       component: 'card',
       param: { name: 'season_and_seria', type: 'toggle', default: true },
-      field: { name: 'Отображение состояния сериала (сезон/серия)' }
+      field: { name: 'Отображение состояния сериала (сезон/серия)' },
+      onRender: () => {
+        setTimeout(() => {
+          $('div[data-name="season_and_seria"]').insertAfter('div[data-name="card_interfice_cover"]');
+        }, 0);
+      }
     });
 
     if (Lampa.Storage.get('season_and_seria') !== false) {
       const iface = Lampa.SettingsApi.interface('card');
-      if (iface?.Card?.onVisible) {
-        const orig = iface.Card.onVisible;
+      if (iface && iface.Card && iface.Card.onVisible) {
+        const original = iface.Card.onVisible;
         iface.Card.onVisible = function () {
-          orig.apply(this);
-          processCard(this);
+          original.apply(this);
+          processCard({ data: this.data, card: this.card });
         };
+      } else {
+        console.log('Card.Card.onVisible not found');
       }
 
-      // Дополнительно в полном просмотре (упрощённо)
       Lampa.Listener.follow('full', e => {
-        if (e.type === 'start') {
-          const act = Lampa.Activity.active();
-          if (act.component === 'full' && act.data?.type === 'tv' && act.data?.source === 'tmdb') {
-            // Добавление тега с текущим сезоном/серией — логика из оригинала
-          }
+        if (e.type !== 'start') return;
+
+        const activity = Lampa.Activity.active();
+        if (activity.component !== 'full') return;
+
+        const data = activity.data;
+        if (!data || data.source !== 'tmdb' || data.type !== 'tv') return;
+        if (!data.seasons || !data.last_episode_to_air || !data.seasons[data.seasons.length - 1]?.season_number) return;
+
+        const lastSeason = data.seasons[data.seasons.length - 1].season_number;
+        const next = data.next_episode_to_air;
+        const lastEpisodeNum = next && new Date(next.air_date) <= new Date() ? next.episode_number : data.last_episode_to_air.episode_number;
+
+        const seasonInfo = data.seasons.find(s => s.season_number === lastSeason);
+        const totalInSeason = seasonInfo ? seasonInfo.episode_count : null;
+
+        let text;
+        if (next) {
+          text = `Сезон: ${lastSeason} Серия: ${lastEpisodeNum} из ${totalInSeason}`;
+        } else {
+          text = `Сезон ${lastSeason} сезон`;
+        }
+
+        const translated = Lampa.Lang.translate(text);
+
+        const render = activity.render();
+        const container = render[0];
+
+        const hasNewTag = $('.full-start__tag.card--new_seria', container).length > 0;
+        if (hasNewTag) return;
+
+        const htmlIcon = '<div class="full-start__tag card--new_seria"><img src="./img/icons/menu/movie.svg" /> <div>';
+        const htmlClose = '</div></div>';
+        const htmlSplit = '<span class="full-start-new__split">●</span><div class="card--new_seria"><div> ';
+
+        if (window.innerWidth > 585 && !$('.full-start-new.cardify', container).length) {
+          $('.full-start-new__poster, .full-start-new__poster', container).append(htmlIcon + translated + htmlClose);
+        } else if ($('.full-start__tags', render).length) {
+          $('.full-start__tags', render).append(htmlSplit + translated + htmlClose);
+        } else {
+          $('.full-start-new__details', container).append(htmlIcon + translated + htmlClose);
         }
       });
     }
