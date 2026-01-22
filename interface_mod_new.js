@@ -177,380 +177,7 @@
     // Информация о плагине
     var aboutPluginData = null;
     
-// Основные настройки плагина
-class PluginSettings {
-    constructor() {
-        this.pluginInfo = {
-            author: 'Лазарев Иван (bywolf2010)',
-            telegram: '@wolf2010',
-            version: 'Emerald V1',
-            copyright: '⚠️ Нарушение авторских прав!'
-        };
-        
-        this.settings = {
-            movieType: 'default',
-            showInfoPanel: true,
-            voteColors: true,
-            buttonStyle: 'main2',
-            theme: 'default',
-            stylizeTitles: false,
-            enhancedDetailedInfo: false
-        };
-    }
-
-    // Инициализация плагина
-    initialize() {
-        this.setupSettings();
-        this.applyCurrentTheme();
-    }
-
-    // Настройка параметров в интерфейсе Lampa
-    setupSettings() {
-        // Настройка типа фильмов
-        Lampa.SettingsApi.addParam({
-            component: 'interface_mod_new_movie_type',
-            param: {
-                name: 'movie_type',
-                type: 'select',
-                values: {
-                    default: 'По умолчанию',
-                    all: 'Все',
-                    main2: 'Основной 2'
-                },
-                default: 'main2'
-            },
-            field: {
-                name: 'Тип отображения фильмов',
-                description: 'Выберите стиль отображения фильмов в интерфейсе'
-            },
-            onChange: (value) => {
-                this.settings.movieType = value;
-                Lampa.Storage.set('interface_mod_new_movie_type', value);
-                Lampa.Settings.update();
-            }
-        });
-
-        // Панель информации
-        Lampa.SettingsApi.addParam({
-            component: 'interface_mod_new_info_panel',
-            param: {
-                name: 'info_panel',
-                type: 'switch',
-                default: true
-            },
-            field: {
-                name: 'Информационная панель',
-                description: 'Показывать расширенную информацию о контенте'
-            },
-            onChange: (value) => {
-                this.settings.showInfoPanel = value;
-                Lampa.Storage.set('interface_mod_new_info_panel', value);
-                Lampa.Settings.update();
-            }
-        });
-
-        // Цвета рейтингов
-        Lampa.SettingsApi.addParam({
-            component: 'interface_mod_new_vote_colors',
-            param: {
-                name: 'vote_colors',
-                type: 'switch',
-                default: true
-            },
-            field: {
-                name: 'Цветные рейтинги',
-                description: 'Включить цветовое оформление рейтингов'
-            },
-            onChange: (value) => {
-                this.settings.voteColors = value;
-                Lampa.Storage.set('interface_mod_new_vote_colors', value);
-                Lampa.Settings.update();
-                if (value) {
-                    this.setupVoteColors();
-                }
-            }
-        });
-
-        // Стиль кнопок
-        Lampa.SettingsApi.addParam({
-            component: 'interface_mod_new_buttons_style',
-            param: {
-                name: 'buttons_style',
-                type: 'select',
-                values: {
-                    default: 'По умолчанию',
-                    all: 'Все',
-                    main2: 'Основной 2'
-                },
-                default: 'main2'
-            },
-            field: {
-                name: 'Стиль кнопок',
-                description: 'Выберите стиль отображения кнопок в интерфейсе'
-            },
-            onChange: (value) => {
-                this.settings.buttonStyle = value;
-                Lampa.Storage.set('interface_mod_new_buttons_style_mode', value);
-                Lampa.Settings.update();
-            }
-        });
-
-        // Темы оформления
-        Lampa.SettingsApi.addParam({
-            component: 'interface_mod_new_themes',
-            param: {
-                name: 'theme',
-                type: 'select',
-                values: {
-                    default: 'По умолчанию',
-                    aurora: 'Aurora',
-                    emerald: 'Emerald V1'
-                },
-                default: 'default'
-            },
-            field: {
-                name: 'Тема оформления',
-                description: 'Выберите тему оформления интерфейса'
-            },
-            onChange: (value) => {
-                this.settings.theme = value;
-                Lampa.Storage.set('interface_mod_new_themes', value);
-                Lampa.Settings.update();
-                this.applyTheme(value);
-            }
-        });
-
-        // Стилизация заголовков
-        Lampa.SettingsApi.addParam({
-            component: 'interface_mod_new_stylized_titles',
-            param: {
-                name: 'stylize_titles',
-                type: 'switch',
-                default: false
-            },
-            field: {
-                name: 'Стилизованные заголовки',
-                description: 'Включить специальное оформление заголовков'
-            },
-            onChange: (value) => {
-                this.settings.stylizeTitles = value;
-                Lampa.Storage.set('stylized-titles-css', value);
-                Lampa.Settings.update();
-                if (value) {
-                    this.stylizeTitles();
-                }
-            }
-        });
-
-        // Расширенная информация
-        Lampa.SettingsApi.addParam({
-            component: 'interface_mod_new_enhanced_detailed_info',
-            param: {
-                name: 'enhanced_detailed_info',
-                type: 'switch',
-                default: false
-            },
-            field: {
-                name: 'Расширенная информация',
-                description: 'Показывать дополнительную информацию о фильмах и сериалах'
-            },
-            onChange: (value) => {
-                this.settings.enhancedDetailedInfo = value;
-                Lampa.Storage.set('interface_mod_new_enhanced_detailed_info', value);
-                Lampa.Settings.update();
-                if (value) {
-                    this.enhanceDetailedInfo();
-                }
-            }
-        });
-    }
-
-    // Применение темы
-    applyTheme(themeName) {
-        // Удаляем предыдущие темы
-        document.querySelectorAll('[id^="theme-"]').forEach(el => el.remove());
-        
-        if (themeName !== 'default') {
-            const style = document.createElement('style');
-            style.id = `theme-${themeName}`;
-            style.innerHTML = this.getThemeCSS(themeName);
-            style.disabled = false;
-            document.head.appendChild(style);
-        }
-    }
-
-    // Получение CSS для темы
-    getThemeCSS(themeName) {
-        const themes = {
-            aurora: `
-                .interface_mod_new {
-                    --primary-color: #7e57c2;
-                    --secondary-color: #2196f3;
-                }
-            `,
-            emerald: `
-                .interface_mod_new {
-                    --primary-color: #2e7d32;
-                    --secondary-color: #4caf50;
-                }
-            `
-        };
-        
-        return themes[themeName] || '';
-    }
-
-    // Настройка цветов рейтингов
-    setupVoteColors() {
-        const css = `
-            .card-new__rate,
-            .card-new__rating,
-            .card__imdb-rate,
-            .card__kinopoisk-rate {
-                color: #ff9800;
-                font-weight: bold;
-            }
-            .info-card__rate,
-            .info-card__imdb-rate,
-            .info-card__kinopoisk-rate {
-                background: rgba(255, 152, 0, 0.1);
-                padding: 0.3em 0.6em;
-                border-radius: 0.5em;
-                font-size: 1.2em;
-            }
-        `;
-        
-        this.addStyle('vote-colors-css', css);
-    }
-
-    // Стилизация заголовков
-    stylizeTitles() {
-        const css = `
-            .full__title,
-            .category__title {
-                font-size: 2.2em;
-                font-weight: 900;
-                text-shadow: 0 2px 4px rgba(0,0,0,0.3);
-                background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
-                -webkit-background-clip: text;
-                -webkit-text-fill-color: transparent;
-            }
-        `;
-        
-        this.addStyle('stylized-titles-css', css);
-    }
-
-    // Расширенная информация
-    enhanceDetailedInfo() {
-        const css = `
-            .detail__info {
-                padding: 20px;
-                border-radius: 10px;
-                background: rgba(0,0,0,0.7);
-                margin: 20px auto;
-                max-width: 800px;
-            }
-            .detail__info-title {
-                font-size: 1.8em;
-                color: #ff0000;
-                margin-bottom: 15px;
-                text-align: center;
-            }
-            .detail__info-text {
-                font-size: 1.2em;
-                line-height: 1.6;
-            }
-        `;
-        
-        this.addStyle('enhanced-detailed-info-css', css);
-    }
-
-    // Добавление стилей
-    addStyle(id, css) {
-        let style = document.getElementById(id);
-        if (!style) {
-            style = document.createElement('style');
-            style.id = id;
-            document.head.appendChild(style);
-        }
-        style.innerHTML = css;
-    }
-
-    // Применение текущей темы
-    applyCurrentTheme() {
-        const savedTheme = Lampa.Storage.get('interface_mod_new_themes') || 'default';
-        this.applyTheme(savedTheme);
-    }
-}
-
-// Инициализация плагина
-document.addEventListener('DOMContentLoaded', () => {
-    // Проверяем, что Lampa доступна
-    if (typeof Lampa !== 'undefined') {
-        const plugin = new PluginSettings();
-        
-        // Задержка для полной загрузки интерфейса
-        setTimeout(() => {
-            plugin.initialize();
-        }, 1000);
-        
-        // Обработчик для кнопки настроек плагина
-        const observer = new MutationObserver(() => {
-            const settingsBtn = document.querySelector('.settings_mod_new_button');
-            if (settingsBtn && !settingsBtn.hasAttribute('data-mod-listener')) {
-                settingsBtn.setAttribute('data-mod-listener', 'true');
-                settingsBtn.addEventListener('click', () => {
-                    // Показ настроек плагина
-                    Lampa.Activity.show('plugin-settings');
-                });
-            }
-        });
-        
-        observer.observe(document.body, {
-            childList: true,
-            subtree: true
-        });
-    }
-});
-
-// Функция для загрузки информации о плагине
-function loadPluginInfo(callback) {
-    // Эмуляция загрузки информации
-    setTimeout(() => {
-        callback(null, {
-            name: "New Interface Mod",
-            version: "1.0",
-            author: "bywolf2010",
-            description: "Модификация интерфейса Lampa Player"
-        });
-    }, 500);
-}
-
-// Перемещение папки настроек
-function moveModSettingsFolder() {
-    console.log('Settings folder moved');
-}
-
-// Анти-отладка (упрощенная версия)
-const antiDebug = (function() {
-    let isActive = true;
-    return function() {
-        if (!isActive) return;
-        // Простая проверка на отладку
-        const startTime = Date.now();
-        debugger;
-        const endTime = Date.now();
-        if (endTime - startTime > 100) {
-            console.warn('Debugger detected!');
-        }
-    };
-})();
-
-// Защита от копирования
-Object.defineProperty(window, 'ModNewInterface', {
-    value: PluginSettings,
-    writable: false,
-    configurable: false
-});
+// Основные настройки плагина (удалено - перенесено в addSettings)
 
     // Функция для добавления лейблов на карточки
     function changeMovieTypeLabels() {
@@ -743,6 +370,7 @@ Object.defineProperty(window, 'ModNewInterface', {
             name: Lampa.Lang.translate('interface_mod_new_plugin_name'),
             icon: '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 5C4 4.44772 4.44772 4 5 4H19C19.5523 4 20 4.44772 20 5V7C20 7.55228 19.5523 8 19 8H5C4.44772 8 4 7.55228 4 7V5Z" fill="currentColor"/><path d="M4 11C4 10.4477 4.44772 10 5 10H19C19.5523 10 20 10.4477 20 11V13C20 13.5523 19.5523 14 19 14H5C4.44772 14 4 13.5523 4 13V11Z" fill="currentColor"/><path d="M4 17C4 16.4477 4.44772 16 5 16H19C19.5523 16 20 16.4477 20 17V19C20 19.5523 19.5523 20 19 20H5C4.44772 20 4 19.5523 4 19V17Z" fill="currentColor"/></svg>'
         });
+        
         // Перемещаем пункт "Интерфейс MOD" сразу после "Интерфейс" (без зацикливания)
         function moveModSettingsFolder() {
             var $folders = $('.settings-folder');
@@ -759,6 +387,152 @@ Object.defineProperty(window, 'ModNewInterface', {
                 }
             }
         }
+        
+        // Настройка типа фильмов
+        Lampa.SettingsApi.addParam({
+            component: 'interface_mod_new',
+            param: {
+                name: 'movie_type',
+                type: 'select',
+                values: {
+                    default: 'По умолчанию',
+                    all: 'Все',
+                    main2: 'Основной 2'
+                },
+                default: 'main2'
+            },
+            field: {
+                name: 'Тип отображения фильмов',
+                description: 'Выберите стиль отображения фильмов в интерфейсе'
+            },
+            onChange: function(value) {
+                Lampa.Storage.set('interface_mod_new_movie_type', value);
+                Lampa.Settings.update();
+                changeMovieTypeLabels();
+            }
+        });
+
+        // Панель информации
+        Lampa.SettingsApi.addParam({
+            component: 'interface_mod_new',
+            param: {
+                name: 'info_panel',
+                type: 'switch',
+                default: true
+            },
+            field: {
+                name: 'Информационная панель',
+                description: 'Показывать расширенную информацию о контенте'
+            },
+            onChange: function(value) {
+                Lampa.Storage.set('interface_mod_new_info_panel', value);
+                Lampa.Settings.update();
+            }
+        });
+
+        // Цвета рейтингов
+        Lampa.SettingsApi.addParam({
+            component: 'interface_mod_new',
+            param: {
+                name: 'vote_colors',
+                type: 'switch',
+                default: true
+            },
+            field: {
+                name: 'Цветные рейтинги',
+                description: 'Включить цветовое оформление рейтингов'
+            },
+            onChange: function(value) {
+                Lampa.Storage.set('interface_mod_new_vote_colors', value);
+                Lampa.Settings.update();
+            }
+        });
+
+        // Стиль кнопок
+        Lampa.SettingsApi.addParam({
+            component: 'interface_mod_new',
+            param: {
+                name: 'buttons_style',
+                type: 'select',
+                values: {
+                    default: 'По умолчанию',
+                    all: 'Все',
+                    main2: 'Основной 2'
+                },
+                default: 'main2'
+            },
+            field: {
+                name: 'Стиль кнопок',
+                description: 'Выберите стиль отображения кнопок в интерфейсе'
+            },
+            onChange: function(value) {
+                Lampa.Storage.set('interface_mod_new_buttons_style_mode', value);
+                Lampa.Settings.update();
+            }
+        });
+
+        // Темы оформления
+        Lampa.SettingsApi.addParam({
+            component: 'interface_mod_new',
+            param: {
+                name: 'theme',
+                type: 'select',
+                values: {
+                    default: 'По умолчанию',
+                    aurora: 'Aurora',
+                    emerald: 'Emerald V1'
+                },
+                default: 'default'
+            },
+            field: {
+                name: 'Тема оформления',
+                description: 'Выберите тему оформления интерфейса'
+            },
+            onChange: function(value) {
+                Lampa.Storage.set('interface_mod_new_themes', value);
+                Lampa.Settings.update();
+            }
+        });
+
+        // Стилизация заголовков
+        Lampa.SettingsApi.addParam({
+            component: 'interface_mod_new',
+            param: {
+                name: 'stylize_titles',
+                type: 'switch',
+                default: false
+            },
+            field: {
+                name: 'Стилизованные заголовки',
+                description: 'Включить специальное оформление заголовков'
+            },
+            onChange: function(value) {
+                Lampa.Storage.set('stylized-titles-css', value);
+                Lampa.Settings.update();
+            }
+        });
+
+        // Расширенная информация
+        Lampa.SettingsApi.addParam({
+            component: 'interface_mod_new',
+            param: {
+                name: 'enhanced_detailed_info',
+                type: 'switch',
+                default: false
+            },
+            field: {
+                name: 'Расширенная информация',
+                description: 'Показывать дополнительную информацию о фильмах и сериалах'
+            },
+            onChange: function(value) {
+                Lampa.Storage.set('interface_mod_new_enhanced_detailed_info', value);
+                Lampa.Settings.update();
+            }
+        });
+        
+        setTimeout(function() {
+            moveModSettingsFolder();
+        }, 100);
     }
 
     // Функция склонения слов
