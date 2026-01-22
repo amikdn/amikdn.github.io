@@ -154,7 +154,6 @@
 
   // Инициализация плагина
   function init() {
-    if (Lampa.Manifest.app !== 'bylampa') return;
     if (window.serial_status_plugin) return;
     window.serial_status_plugin = true;
 
