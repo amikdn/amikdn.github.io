@@ -24,6 +24,11 @@
       var kp_prox = 'https://cors.kp556.workers.dev:8443/';
       var url = 'https://kinopoiskapiunofficial.tech/';
       url += method;
+      var params = {
+        headers: {
+          'X-API-KEY': Lampa.Storage.get('source_api_key') || '2a4a0808-81a3-40ae-b0d3-e11335ede616'
+        }
+      };
       network.timeout(15000);
       network.silent((use_proxy ? kp_prox : '') + url, function (json) {
         oncomplite(json);
@@ -36,17 +41,9 @@
           network.silent(kp_prox + url, function (json) {
             good_cnt++;
             oncomplite(json);
-          }, onerror, false, {
-            headers: {
-              'X-API-KEY': '2a4a0808-81a3-40ae-b0d3-e11335ede616'
-            }
-          });
+          }, onerror, false, params);
         } else onerror(a, c);
-      }, false, {
-        headers: {
-          'X-API-KEY': '2a4a0808-81a3-40ae-b0d3-e11335ede616'
-        }
-      });
+      }, false, params);
     }
 
     function getComplite(method, oncomplite) {
@@ -799,6 +796,25 @@
 
     function startPlugin() {
       window.kp_source_plugin = true;
+
+      Lampa.SettingsApi.addComponent({
+        component: 'source_kp',
+        icon: '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24"><!-- Icon from Lucide by Lucide Contributors - https://github.com/lucide-icons/lucide/blob/main/LICENSE --><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18.338a2.1 2.1 0 0 0-.987.244L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16l2.309-4.679A.53.53 0 0 1 12 2"/></svg>',
+        name: 'KP Source'
+      });
+
+      Lampa.SettingsApi.addParam({
+        component: 'source_kp',
+        param: {
+          name: 'source_api_key',
+          type: 'input',
+          values: '',
+          default: '2a4a0808-81a3-40ae-b0d3-e11335ede616'
+        },
+        field: {
+          name: 'API-KEY kinopoiskapiunofficial.tech'
+        }
+      });
 
       function addPlugin() {
         if (Lampa.Api.sources[KP.SOURCE_NAME]) {
