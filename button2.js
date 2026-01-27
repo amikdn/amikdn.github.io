@@ -32,9 +32,20 @@
     }
 
     function findButton(btnId) {
-        var btn = allButtonsOriginal.find(function(b) { return getButtonId(b) === btnId; });
+        var btn = null;
+        for (var i = 0; i < allButtonsOriginal.length; i++) {
+            if (getButtonId(allButtonsOriginal[i]) === btnId) {
+                btn = allButtonsOriginal[i];
+                break;
+            }
+        }
         if (!btn) {
-            btn = allButtonsCache.find(function(b) { return getButtonId(b) === btnId; });
+            for (var j = 0; j < allButtonsCache.length; j++) {
+                if (getButtonId(allButtonsCache[j]) === btnId) {
+                    btn = allButtonsCache[j];
+                    break;
+                }
+            }
         }
         return btn;
     }
@@ -64,6 +75,9 @@
         }
         if (classes.indexOf('showy') !== -1 || text.indexOf('Showy') !== -1) {
             return 'showy_online_button';
+        }
+        if (classes.indexOf('view---torrent') !== -1 || text.indexOf('Торренты') !== -1 || text.indexOf('Torrents') !== -1) {
+            return 'torrents2_button';
         }
         var viewClasses = classes.split(' ').filter(function(c) { return c.indexOf('view--') === 0 || c.indexOf('button--') === 0; }).join('_');
         if (!viewClasses && !text) {
@@ -102,9 +116,13 @@
     function categorizeButtons(container) {
         var allButtons = container.find('.full-start__button').not('.button--edit-order, .button--play');
         var categories = { online: [], torrent: [], trailer: [], favorite: [], subscribe: [], book: [], reaction: [], other: [] };
+        var seenIds = {};
         allButtons.each(function() {
             var $btn = $(this);
             if (isExcluded($btn)) return;
+            var btnId = getButtonId($btn);
+            if (seenIds[btnId]) return;
+            seenIds[btnId] = true;
             var type = getButtonType($btn);
             if (type === 'online' && $btn.hasClass('lampac--button') && !$btn.hasClass('modss--button') && !$btn.hasClass('showy--button')) {
                 var svgElement = $btn.find('svg').first();
@@ -204,7 +222,13 @@
         
         allButtons.forEach(function(btn) {
             var btnId = getButtonId(btn);
-            var existingIndex = allButtonsOriginal.findIndex(function(b) { return getButtonId(b) === btnId; });
+            var existingIndex = -1;
+            for (var i = 0; i < allButtonsOriginal.length; i++) {
+                if (getButtonId(allButtonsOriginal[i]) === btnId) {
+                    existingIndex = i;
+                    break;
+                }
+            }
             if (existingIndex === -1) {
                 allButtonsOriginal.push(btn.clone(true, true));
             }
@@ -221,7 +245,11 @@
         existingButtons.each(function() {
             var $btn = $(this);
             var id = getButtonId($btn);
-            buttonMap[id] = $btn;
+            if (!buttonMap[id]) {
+                buttonMap[id] = $btn;
+            } else {
+                $btn.remove();
+            }
         });
         
         targetContainer.find('.full-start__button').not('.button--edit-order').detach();
@@ -493,7 +521,13 @@
         
         allButtons.forEach(function(btn) {
             var btnId = getButtonId(btn);
-            var existingIndex = allButtonsOriginal.findIndex(function(b) { return getButtonId(b) === btnId; });
+            var existingIndex = -1;
+            for (var i = 0; i < allButtonsOriginal.length; i++) {
+                if (getButtonId(allButtonsOriginal[i]) === btnId) {
+                    existingIndex = i;
+                    break;
+                }
+            }
             if (existingIndex === -1) {
                 allButtonsOriginal.push(btn.clone(true, true));
             }
@@ -508,7 +542,11 @@
         existingButtons.each(function() {
             var $btn = $(this);
             var id = getButtonId($btn);
-            buttonMap[id] = $btn;
+            if (!buttonMap[id]) {
+                buttonMap[id] = $btn;
+            } else {
+                $btn.remove();
+            }
         });
         
         targetContainer.children().detach();
