@@ -120,13 +120,9 @@
     function categorizeButtons(container) {
         var allButtons = container.find('.full-start__button').not('.button--edit-order, .button--play');
         var categories = { online: [], torrent: [], trailer: [], favorite: [], subscribe: [], book: [], reaction: [], other: [] };
-        var seenIds = {};
         allButtons.each(function() {
             var $btn = $(this);
             if (isExcluded($btn)) return;
-            var btnId = getButtonId($btn);
-            if (seenIds[btnId]) return;
-            seenIds[btnId] = true;
             var type = getButtonType($btn);
             if (type === 'online' && $btn.hasClass('lampac--button') && !$btn.hasClass('modss--button') && !$btn.hasClass('showy--button')) {
                 var svgElement = $btn.find('svg').first();
