@@ -118,13 +118,7 @@
     }
 
     function categorizeButtons(container) {
-        var targetContainer = container.find('.full-start-new__buttons');
-        var allButtons;
-        if (targetContainer.length) {
-            allButtons = targetContainer.find('.full-start__button').not('.button--edit-order, .button--play');
-        } else {
-            allButtons = container.find('.full-start__button').not('.button--edit-order, .button--play');
-        }
+        var allButtons = container.find('.full-start__button').not('.button--edit-order, .button--play');
         var categories = { online: [], torrent: [], trailer: [], favorite: [], subscribe: [], book: [], reaction: [], other: [] };
         var seenIds = {};
         allButtons.each(function() {
