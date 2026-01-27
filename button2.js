@@ -261,8 +261,9 @@
                 targetContainer.append(existingBtn);
                 if (!existingBtn.hasClass('hidden')) visibleButtons.push(existingBtn);
             } else {
-                targetContainer.append(btn);
-                if (!btn.hasClass('hidden')) visibleButtons.push(btn);
+                var btnClone = btn.clone(true, true);
+                targetContainer.append(btnClone);
+                if (!btnClone.hasClass('hidden')) visibleButtons.push(btnClone);
             }
         });
         applyButtonAnimation(visibleButtons);
@@ -558,8 +559,9 @@
                 targetContainer.append(existingBtn);
                 if (!existingBtn.hasClass('hidden')) visibleButtons.push(existingBtn);
             } else {
-                targetContainer.append(btn);
-                if (!btn.hasClass('hidden')) visibleButtons.push(btn);
+                var btnClone = btn.clone(true, true);
+                targetContainer.append(btnClone);
+                if (!btnClone.hasClass('hidden')) visibleButtons.push(btnClone);
             }
         });
         var editButton = createEditButton();
