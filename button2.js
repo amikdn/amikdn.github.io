@@ -106,6 +106,31 @@
                 $btn.addClass('selector');
             }
         });
+        var targetContainer = container.find('.full-start-new__buttons');
+        if (targetContainer.length) {
+            targetContainer.find('.full-start__button').not('.button--edit-order, .button--play').each(function() {
+                var $btn = $(this);
+                if (isExcluded($btn)) return;
+                var found = false;
+                for (var cat in categories) {
+                    if (categories[cat].indexOf($btn) !== -1) {
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) {
+                    var type = getButtonType($btn);
+                    if (categories[type]) {
+                        categories[type].push($btn);
+                    } else {
+                        categories.other.push($btn);
+                    }
+                    if (!$btn.hasClass('selector')) {
+                        $btn.addClass('selector');
+                    }
+                }
+            });
+        }
         return categories;
     }
 
@@ -466,6 +491,47 @@
             });
         }
         currentButtons = allButtons;
+        var existingButtons = targetContainer.find('.full-start__button').not('.button--edit-order').toArray();
+        var missingButtons = [];
+        existingButtons.forEach(function(existingBtn) {
+            var $existingBtn = $(existingBtn);
+            if (isExcluded($existingBtn)) return;
+            var existingId = getButtonId($existingBtn);
+            var found = false;
+            for (var i = 0; i < allButtons.length; i++) {
+                if (getButtonId(allButtons[i]) === existingId) {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                missingButtons.push($existingBtn);
+            }
+        });
+        if (missingButtons.length > 0) {
+            missingButtons.forEach(function($btn) {
+                var type = getButtonType($btn);
+                if (categories[type]) {
+                    categories[type].push($btn);
+                } else {
+                    categories.other.push($btn);
+                }
+                if (!$btn.hasClass('selector')) {
+                    $btn.addClass('selector');
+                }
+            });
+            allButtons = []
+                .concat(categories.online)
+                .concat(categories.torrent)
+                .concat(categories.trailer)
+                .concat(categories.favorite)
+                .concat(categories.subscribe)
+                .concat(categories.book)
+                .concat(categories.reaction)
+                .concat(categories.other);
+            allButtons = sortByCustomOrder(allButtons);
+            currentButtons = allButtons;
+        }
         targetContainer.children().detach();
         var visibleButtons = [];
         currentButtons.forEach(function(btn) {
@@ -551,6 +617,30 @@
                             }
                             refreshController();
                         }
+                    } else {
+                        setTimeout(function() {
+                            if (container.data('buttons-processed')) {
+                                var newButtons = targetContainer.find('.full-start__button').not('.button--edit-order, .button--play');
+                                var hasNewButtons = false;
+                                newButtons.each(function() {
+                                    var $btn = $(this);
+                                    if (isExcluded($btn)) return;
+                                    var found = false;
+                                    for (var i = 0; i < currentButtons.length; i++) {
+                                        if (getButtonId(currentButtons[i]) === getButtonId($btn)) {
+                                            found = true;
+                                            break;
+                                        }
+                                    }
+                                    if (!found) {
+                                        hasNewButtons = true;
+                                    }
+                                });
+                                if (hasNewButtons) {
+                                    reorderButtons(container);
+                                }
+                            }
+                        }, 600);
                     }
                 } catch(err) {
                     if (targetContainer.length) {
