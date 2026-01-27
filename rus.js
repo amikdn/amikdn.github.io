@@ -203,18 +203,10 @@
       this.network = new Lampa.Reguest();
       var self = this;
       
-      // Копируем все методы из исходного источника
-      for (var key in source) {
-        if (source.hasOwnProperty(key) && typeof source[key] === 'function') {
-          this[key] = source[key];
-        }
+      // Используем оригинальный метод get из источника
+      if (source && source.get) {
+        this.get = source.get;
       }
-      
-      this.get = function(url, params, callback, errorCallback) {
-        var request = new Lampa.Reguest();
-        var fullUrl = Lampa.Utils.protocol() + 'api.themoviedb.org/3/' + url + '&page=' + (params.page || 1);
-        request.native(fullUrl, callback, errorCallback);
-      };
 
       this.main = function() {
         var yearRanges = [
@@ -238,10 +230,11 @@
         var params = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
         var callback = arguments.length > 1 ? arguments[1] : undefined;
         var errorCallback = arguments.length > 2 ? arguments[2] : undefined;
+        var q = this; // Используем this вместо self для правильного контекста
         
         var sections = [
           function(cb) {
-            self.get('movie/now_playing', params, function(data) {
+            q.get('movie/now_playing', params, function(data) {
               data.title = Lampa.Lang.translate('title_now_watch');
               data.collection = true;
               data.line_type = 'collection';
@@ -260,19 +253,19 @@
             });
           },
           function(cb) {
-            self.get('trending/all/day', params, function(data) {
+            q.get('trending/all/day', params, function(data) {
               data.title = Lampa.Lang.translate('title_trend_day');
               cb(data);
             }, cb);
           },
           function(cb) {
-            self.get('trending/all/week', params, function(data) {
+            q.get('trending/all/week', params, function(data) {
               data.title = Lampa.Lang.translate('title_trend_week');
               cb(data);
             }, cb);
           },
           function(cb) {
-            self.get('discover/movie?vote_average.gte=5&vote_average.lte=9.5&with_original_language=ru&sort_by=primary_release_date.desc&primary_release_date.lte=' + todayStr, params, function(data) {
+            q.get('discover/movie?vote_average.gte=5&vote_average.lte=9.5&with_original_language=ru&sort_by=primary_release_date.desc&primary_release_date.lte=' + todayStr, params, function(data) {
               data.title = Lampa.Lang.translate('Русские фильмы');
               data.small = true;
               data.wide = true;
@@ -284,19 +277,19 @@
             }, cb);
           },
           function(cb) {
-            self.get('discover/tv?with_original_language=ru&sort_by=first_air_date.desc&air_date.lte=' + todayStr, params, function(data) {
+            q.get('discover/tv?with_original_language=ru&sort_by=first_air_date.desc&air_date.lte=' + todayStr, params, function(data) {
               data.title = Lampa.Lang.translate('Русские сериалы');
               cb(data);
             }, cb);
           },
           function(cb) {
-            self.get('movie/upcoming', params, function(data) {
+            q.get('movie/upcoming', params, function(data) {
               data.title = Lampa.Lang.translate('title_upcoming');
               cb(data);
             }, cb);
           },
           function(cb) {
-            self.get('discover/movie?vote_average.gte=5&vote_average.lte=9.5&with_genres=16&with_original_language=ru&sort_by=primary_release_date.desc&primary_release_date.lte=' + todayStr, params, function(data) {
+            q.get('discover/movie?vote_average.gte=5&vote_average.lte=9.5&with_genres=16&with_original_language=ru&sort_by=primary_release_date.desc&primary_release_date.lte=' + todayStr, params, function(data) {
               data.title = Lampa.Lang.translate('Русские мультфильмы');
               data.collection = true;
               data.line_type = 'collection';
@@ -304,33 +297,33 @@
             }, cb);
           },
           function(cb) {
-            self.get('movie/popular', params, function(data) {
+            q.get('movie/popular', params, function(data) {
               data.title = Lampa.Lang.translate('title_popular_movie');
               cb(data);
             }, cb);
           },
           function(cb) {
-            self.get('trending/tv/week', params, function(data) {
+            q.get('trending/tv/week', params, function(data) {
               data.title = Lampa.Lang.translate('title_popular_tv');
               cb(data);
             }, cb);
           },
           function(cb) {
-            self.get('discover/movie?primary_release_date.gte=' + dateStart2 + '&primary_release_date.lte=' + dateEnd2 + '&vote_average.gte=5&vote_average.lte=9.5&with_original_language=ru&sort_by=' + randomSort2, params, function(data) {
+            q.get('discover/movie?primary_release_date.gte=' + dateStart2 + '&primary_release_date.lte=' + dateEnd2 + '&vote_average.gte=5&vote_average.lte=9.5&with_original_language=ru&sort_by=' + randomSort2, params, function(data) {
               data.title = Lampa.Lang.translate('Подборки русских фильмов');
               data.line_type = 'top';
               cb(data);
             }, cb);
           },
           function(cb) {
-            self.get('discover/tv?first_air_date.gte=' + dateStart1 + '&first_air_date.lte=' + dateEnd1 + '&with_networks=2493|2859|4085|3923|3871|3827|5806|806|1191&sort_by=' + randomSort1, params, function(data) {
+            q.get('discover/tv?first_air_date.gte=' + dateStart1 + '&first_air_date.lte=' + dateEnd1 + '&with_networks=2493|2859|4085|3923|3871|3827|5806|806|1191&sort_by=' + randomSort1, params, function(data) {
               data.title = Lampa.Lang.translate('Подборки русских сериалов');
               data.line_type = 'top';
               cb(data);
             }, cb);
           },
           function(cb) {
-            self.get('discover/tv?with_networks=2493&sort_by=first_air_date.desc&air_date.lte=' + todayStr, params, function(data) {
+            q.get('discover/tv?with_networks=2493&sort_by=first_air_date.desc&air_date.lte=' + todayStr, params, function(data) {
               data.title = Lampa.Lang.translate('Start');
               data.small = true;
               data.wide = true;
@@ -342,19 +335,19 @@
             }, cb);
           },
           function(cb) {
-            self.get('discover/tv?with_networks=2859&sort_by=first_air_date.desc&air_date.lte=' + todayStr, params, function(data) {
+            q.get('discover/tv?with_networks=2859&sort_by=first_air_date.desc&air_date.lte=' + todayStr, params, function(data) {
               data.title = Lampa.Lang.translate('Premier');
               cb(data);
             }, cb);
           },
           function(cb) {
-            self.get('discover/tv?with_networks=4085&sort_by=first_air_date.desc&air_date.lte=' + todayStr, params, function(data) {
+            q.get('discover/tv?with_networks=4085&sort_by=first_air_date.desc&air_date.lte=' + todayStr, params, function(data) {
               data.title = Lampa.Lang.translate('KION');
               cb(data);
             }, cb);
           },
           function(cb) {
-            self.get('discover/tv?with_networks=3923&sort_by=first_air_date.desc&air_date.lte=' + todayStr, params, function(data) {
+            q.get('discover/tv?with_networks=3923&sort_by=first_air_date.desc&air_date.lte=' + todayStr, params, function(data) {
               data.title = Lampa.Lang.translate('IVI');
               data.collection = true;
               data.line_type = 'collection';
@@ -362,19 +355,19 @@
             }, cb);
           },
           function(cb) {
-            self.get('discover/tv?with_networks=3871&sort_by=first_air_date.desc&air_date.lte=' + todayStr, params, function(data) {
+            q.get('discover/tv?with_networks=3871&sort_by=first_air_date.desc&air_date.lte=' + todayStr, params, function(data) {
               data.title = Lampa.Lang.translate('OKKO');
               cb(data);
             }, cb);
           },
           function(cb) {
-            self.get('discover/tv?with_networks=3827&sort_by=first_air_date.desc&air_date.lte=' + todayStr, params, function(data) {
+            q.get('discover/tv?with_networks=3827&sort_by=first_air_date.desc&air_date.lte=' + todayStr, params, function(data) {
               data.title = Lampa.Lang.translate('КиноПоиск');
               cb(data);
             }, cb);
           },
           function(cb) {
-            self.get('discover/tv?with_networks=5806&sort_by=first_air_date.desc&air_date.lte=' + todayStr, params, function(data) {
+            q.get('discover/tv?with_networks=5806&sort_by=first_air_date.desc&air_date.lte=' + todayStr, params, function(data) {
               data.title = Lampa.Lang.translate('Wink');
               data.small = true;
               data.wide = true;
@@ -386,26 +379,26 @@
             }, cb);
           },
           function(cb) {
-            self.get('discover/tv?with_networks=806&sort_by=first_air_date.desc&air_date.lte=' + todayStr, params, function(data) {
+            q.get('discover/tv?with_networks=806&sort_by=first_air_date.desc&air_date.lte=' + todayStr, params, function(data) {
               data.title = Lampa.Lang.translate('СТС');
               cb(data);
             }, cb);
           },
           function(cb) {
-            self.get('discover/tv?with_networks=1191&sort_by=first_air_date.desc&air_date.lte=' + todayStr, params, function(data) {
+            q.get('discover/tv?with_networks=1191&sort_by=first_air_date.desc&air_date.lte=' + todayStr, params, function(data) {
               data.title = Lampa.Lang.translate('ТНТ');
               cb(data);
             }, cb);
           },
           function(cb) {
-            self.get('movie/top_rated', params, function(data) {
+            q.get('movie/top_rated', params, function(data) {
               data.title = Lampa.Lang.translate('title_top_movie');
               data.line_type = 'top';
               cb(data);
             }, cb);
           },
           function(cb) {
-            self.get('tv/top_rated', params, function(data) {
+            q.get('tv/top_rated', params, function(data) {
               data.title = Lampa.Lang.translate('title_top_tv');
               data.line_type = 'top';
               cb(data);
@@ -421,7 +414,7 @@
         if (params.genres && params.genres.movie) {
           params.genres.movie.forEach(function(genre) {
             var genreSection = function(cb) {
-              self.get('discover/movie?with_genres=' + genre.id, params, function(data) {
+              q.get('discover/movie?with_genres=' + genre.id, params, function(data) {
                 data.title = Lampa.Lang.translate(genre.title.replace(/[^a-z_]/g, ''));
                 cb(data);
               }, cb);
@@ -459,9 +452,9 @@
     }
 
     if (Lampa.Storage.get('rus_movie_main') !== false) {
-      var originalSource = Lampa.Api.sources.tmdb;
-      var newSource = new RusMainSource(originalSource);
-      // Копируем все свойства из нового источника в оригинальный
+      var newSource = new RusMainSource(Lampa.Api.sources.tmdb);
+      // Копируем только переопределенные методы из нового источника в оригинальный (ES5 совместимый Object.assign)
+      // Это перезапишет только main, get и network, сохранив все остальные методы оригинального источника
       for (var key in newSource) {
         if (newSource.hasOwnProperty(key)) {
           Lampa.Api.sources.tmdb[key] = newSource[key];
