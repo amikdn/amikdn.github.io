@@ -92,6 +92,10 @@
 
     function getButtonType(button) {
         var classes = button.attr('class') || '';
+        var btnId = getButtonId(button);
+        if (btnId === 'torrents2_button') {
+            return 'torrent';
+        }
         for (var i = 0; i < DEFAULT_GROUPS.length; i++) {
             var group = DEFAULT_GROUPS[i];
             for (var j = 0; j < group.patterns.length; j++) {
@@ -325,18 +329,17 @@
 
     function openEditDialog() {
         if (currentContainer) {
-            var allButtons = currentContainer.find('.full-start__button').not('.button--edit-order, .button--play');
-            var seenIds = {};
-            var uniqueButtons = [];
-            allButtons.each(function() {
-                var $btn = $(this);
-                var btnId = getButtonId($btn);
-                if (!seenIds[btnId]) {
-                    seenIds[btnId] = true;
-                    uniqueButtons.push($btn);
-                }
-            });
-            allButtons = sortByCustomOrder(uniqueButtons);
+            var categories = categorizeButtons(currentContainer);
+            var allButtons = []
+                .concat(categories.online)
+                .concat(categories.torrent)
+                .concat(categories.trailer)
+                .concat(categories.favorite)
+                .concat(categories.subscribe)
+                .concat(categories.book)
+                .concat(categories.reaction)
+                .concat(categories.other);
+            allButtons = sortByCustomOrder(allButtons);
             allButtonsCache = allButtons;
             currentButtons = allButtons;
         }
