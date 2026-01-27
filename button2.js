@@ -16,20 +16,6 @@
     var allButtonsOriginal = [];
     var currentContainer = null;
     
-    function isAndroid9() {
-        var ua = navigator.userAgent || navigator.vendor || window.opera;
-        return /Android\s+9/i.test(ua);
-    }
-    
-    function isTizen() {
-        var ua = navigator.userAgent || navigator.vendor || window.opera;
-        return /Tizen/i.test(ua);
-    }
-    
-    function isMobileOrTV() {
-        return isAndroid9() || isTizen();
-    }
-    
     function safeFocus(element) {
         if (!element || !element.length) return;
         try {
@@ -41,9 +27,6 @@
             }
             if (Lampa.Controller && typeof Lampa.Controller.focused === 'function') {
                 Lampa.Controller.focused(element);
-            }
-            if (isTizen() && element[0]) {
-                element[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
             }
         } catch(e) {}
     }
@@ -140,27 +123,8 @@
 
     function sortByCustomOrder(buttons) {
         var customOrder = getCustomOrder();
-        var priority = [];
-        var regular = [];
-        buttons.forEach(function(btn) {
-            var id = getButtonId(btn);
-            if (id === 'modss_online_button' || id === 'showy_online_button') {
-                priority.push(btn);
-            } else {
-                regular.push(btn);
-            }
-        });
-        priority.sort(function(a, b) {
-            var idA = getButtonId(a);
-            var idB = getButtonId(b);
-            if (idA === 'modss_online_button') return -1;
-            if (idB === 'modss_online_button') return 1;
-            if (idA === 'showy_online_button') return -1;
-            if (idB === 'showy_online_button') return 1;
-            return 0;
-        });
         if (!customOrder.length) {
-            regular.sort(function(a, b) {
+            buttons.sort(function(a, b) {
                 var typeOrder = ['online', 'torrent', 'trailer', 'favorite', 'subscribe', 'book', 'reaction', 'other'];
                 var typeA = getButtonType(a);
                 var typeB = getButtonType(b);
@@ -170,10 +134,10 @@
                 if (indexB === -1) indexB = 999;
                 return indexA - indexB;
             });
-            return priority.concat(regular);
+            return buttons;
         }
         var sorted = [];
-        var remaining = regular.slice();
+        var remaining = buttons.slice();
         customOrder.forEach(function(id) {
             for (var i = 0; i < remaining.length; i++) {
                 if (getButtonId(remaining[i]) === id) {
@@ -183,7 +147,7 @@
                 }
             }
         });
-        return priority.concat(sorted).concat(remaining);
+        return sorted.concat(remaining);
     }
 
     function applyHiddenButtons(buttons) {
@@ -251,11 +215,27 @@
         currentButtons = allButtons;
         var targetContainer = currentContainer.find('.full-start-new__buttons');
         if (!targetContainer.length) return;
+        
+        var existingButtons = targetContainer.find('.full-start__button').not('.button--edit-order');
+        var buttonMap = {};
+        existingButtons.each(function() {
+            var $btn = $(this);
+            var id = getButtonId($btn);
+            buttonMap[id] = $btn;
+        });
+        
         targetContainer.find('.full-start__button').not('.button--edit-order').detach();
         var visibleButtons = [];
         currentButtons.forEach(function(btn) {
-            targetContainer.append(btn);
-            if (!btn.hasClass('hidden')) visibleButtons.push(btn);
+            var btnId = getButtonId(btn);
+            var existingBtn = buttonMap[btnId];
+            if (existingBtn && existingBtn.length) {
+                targetContainer.append(existingBtn);
+                if (!existingBtn.hasClass('hidden')) visibleButtons.push(existingBtn);
+            } else {
+                targetContainer.append(btn);
+                if (!btn.hasClass('hidden')) visibleButtons.push(btn);
+            }
         });
         applyButtonAnimation(visibleButtons);
         var editBtn = targetContainer.find('.button--edit-order');
@@ -489,7 +469,7 @@
                                 safeFocus(firstButton);
                             }
                         }
-                    }, isMobileOrTV() ? 150 : 50);
+                    }, 50);
                 }
             }
         });
@@ -515,7 +495,6 @@
             var btnId = getButtonId(btn);
             var existingIndex = allButtonsOriginal.findIndex(function(b) { return getButtonId(b) === btnId; });
             if (existingIndex === -1) {
-
                 allButtonsOriginal.push(btn.clone(true, true));
             }
         });
@@ -523,11 +502,27 @@
         allButtons = sortByCustomOrder(allButtons);
         allButtonsCache = allButtons;
         currentButtons = allButtons;
+        
+        var existingButtons = targetContainer.find('.full-start__button').not('.button--edit-order');
+        var buttonMap = {};
+        existingButtons.each(function() {
+            var $btn = $(this);
+            var id = getButtonId($btn);
+            buttonMap[id] = $btn;
+        });
+        
         targetContainer.children().detach();
         var visibleButtons = [];
         currentButtons.forEach(function(btn) {
-            targetContainer.append(btn);
-            if (!btn.hasClass('hidden')) visibleButtons.push(btn);
+            var btnId = getButtonId(btn);
+            var existingBtn = buttonMap[btnId];
+            if (existingBtn && existingBtn.length) {
+                targetContainer.append(existingBtn);
+                if (!existingBtn.hasClass('hidden')) visibleButtons.push(existingBtn);
+            } else {
+                targetContainer.append(btn);
+                if (!btn.hasClass('hidden')) visibleButtons.push(btn);
+            }
         });
         var editButton = createEditButton();
         targetContainer.append(editButton);
@@ -555,11 +550,9 @@
                 Lampa.Controller.toggle('full_start');
 
                 if (firstButton.length) {
-
-                    var focusDelay = isMobileOrTV() ? 150 : 50;
                     setTimeout(function() {
                         safeFocus(firstButton);
-                    }, focusDelay);
+                    }, 50);
                 }
             } catch(e) {}
         }
@@ -567,34 +560,19 @@
 
     function refreshController() {
         if (!Lampa.Controller || typeof Lampa.Controller.toggle !== 'function') return;
-        var refreshDelay = isMobileOrTV() ? 100 : 50;
         setTimeout(function() {
             try {
                 Lampa.Controller.toggle('full_start');
                 if (currentContainer) {
                     setTimeout(function() {
                         setupButtonNavigation(currentContainer);
-                    }, refreshDelay);
+                    }, 50);
                 }
             } catch(e) {}
-        }, refreshDelay);
+        }, 50);
     }
 
     function init() {
-        var platformSpecificCSS = '';
-        
-        if (isAndroid9()) {
-            platformSpecificCSS = 
-                '.full-start-new__buttons .full-start__button { -webkit-transform: translateZ(0); transform: translateZ(0); }' +
-                '.full-start-new__buttons { -webkit-backface-visibility: hidden; backface-visibility: hidden; }';
-        }
-        
-        if (isTizen()) {
-            platformSpecificCSS = 
-                '.full-start-new__buttons .full-start__button:focus { outline: 3px solid #00a8ff; outline-offset: 2px; }' +
-                '.full-start-new__buttons { -webkit-overflow-scrolling: touch; }';
-        }
-        
         var style = $('<style>' +
             '@keyframes button-fade-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }' +
             '.full-start-new__buttons .full-start__button { opacity: 0; }' +
@@ -614,7 +592,6 @@
             '.viewmode-switch { background: rgba(100,100,255,0.3); margin: 0.5em 0 1em 0; border-radius: 0.3em; }' +
             '.viewmode-switch.focus { border: 3px solid rgba(255,255,255,0.8); }' +
             '.menu-edit-list__item-hidden { opacity: 0.5; }' +
-            platformSpecificCSS +
             '</style>');
         $('body').append(style);
 
@@ -626,7 +603,6 @@
                 targetContainer.addClass('buttons-loading');
             }
 
-            var initDelay = isMobileOrTV() ? 600 : 400;
             setTimeout(function() {
                 try {
                     if (!container.data('buttons-processed')) {
@@ -636,12 +612,6 @@
                                 targetContainer.removeClass('buttons-loading');
                             }
                             refreshController();
-
-                            if (isMobileOrTV()) {
-                                setTimeout(function() {
-                                    setupButtonNavigation(container);
-                                }, 200);
-                            }
                         }
                     }
                 } catch(err) {
@@ -649,7 +619,7 @@
                         targetContainer.removeClass('buttons-loading');
                     }
                 }
-            }, initDelay);
+            }, 400);
         });
     }
 
