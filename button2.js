@@ -325,17 +325,18 @@
 
     function openEditDialog() {
         if (currentContainer) {
-            var categories = categorizeButtons(currentContainer);
-            var allButtons = []
-                .concat(categories.online)
-                .concat(categories.torrent)
-                .concat(categories.trailer)
-                .concat(categories.favorite)
-                .concat(categories.subscribe)
-                .concat(categories.book)
-                .concat(categories.reaction)
-                .concat(categories.other);
-            allButtons = sortByCustomOrder(allButtons);
+            var allButtons = currentContainer.find('.full-start__button').not('.button--edit-order, .button--play');
+            var seenIds = {};
+            var uniqueButtons = [];
+            allButtons.each(function() {
+                var $btn = $(this);
+                var btnId = getButtonId($btn);
+                if (!seenIds[btnId]) {
+                    seenIds[btnId] = true;
+                    uniqueButtons.push($btn);
+                }
+            });
+            allButtons = sortByCustomOrder(uniqueButtons);
             allButtonsCache = allButtons;
             currentButtons = allButtons;
         }
