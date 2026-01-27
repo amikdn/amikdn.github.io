@@ -188,12 +188,53 @@
     }
 
     function applyButtonAnimation(buttons) {
+        // Определяем, нужно ли отключать анимацию для старых устройств
+        // На старых Tizen анимация может блокировать навигацию
+        var disableAnimation = false;
+        
+        // Проверяем, старый ли это Tizen (2018 год и ранее)
+        try {
+            var userAgent = navigator.userAgent || '';
+            // Tizen 2018 обычно имеет версию 4.0 или ниже
+            if (userAgent.indexOf('Tizen') !== -1) {
+                var tizenVersionMatch = userAgent.match(/Tizen\/(\d+)/);
+                if (tizenVersionMatch && parseInt(tizenVersionMatch[1]) <= 4) {
+                    disableAnimation = true;
+                }
+            }
+            // Также отключаем на очень старых браузерах
+            if (userAgent.indexOf('Tizen 3') !== -1 || userAgent.indexOf('Tizen 2') !== -1) {
+                disableAnimation = true;
+            }
+        } catch(e) {}
+        
         buttons.forEach(function(btn, index) {
-            btn.css({
-                'opacity': '0',
-                'animation': 'button-fade-in 0.4s ease forwards',
-                'animation-delay': (index * 0.08) + 's'
-            });
+            if (disableAnimation) {
+                // Для старых Tizen: сразу устанавливаем opacity: 1 без анимации
+                btn.css({
+                    'opacity': '1',
+                    'animation': 'none',
+                    'transform': 'none',
+                    'visibility': 'visible'
+                });
+                // Убеждаемся, что элемент доступен для навигации
+                var nativeBtn = btn[0];
+                if (nativeBtn) {
+                    nativeBtn.style.opacity = '1';
+                    nativeBtn.style.visibility = 'visible';
+                    nativeBtn.style.display = ''; // Убеждаемся, что display не блокирует
+                    // КРИТИЧНО: устанавливаем tabindex на нативном элементе
+                    if (!nativeBtn.hasAttribute('tabindex')) {
+                        nativeBtn.setAttribute('tabindex', '0');
+                    }
+                }
+            } else {
+                btn.css({
+                    'opacity': '0',
+                    'animation': 'button-fade-in 0.4s ease forwards',
+                    'animation-delay': (index * 0.08) + 's'
+                });
+            }
         });
     }
 
@@ -240,6 +281,11 @@
         currentButtons = allButtons;
         var targetContainer = currentContainer.find('.full-start-new__buttons');
         if (!targetContainer.length) return;
+        
+        // Добавляем класс для старых Tizen устройств
+        if (isOldTizen()) {
+            targetContainer.addClass('tizen-old');
+        }
         targetContainer.find('.full-start__button').not('.button--edit-order').detach();
         var visibleButtons = [];
         currentButtons.forEach(function(btn) {
@@ -548,6 +594,12 @@
     function reorderButtons(container) {
         var targetContainer = container.find('.full-start-new__buttons');
         if (!targetContainer.length) return false;
+        
+        // Добавляем класс для старых Tizen устройств
+        if (isOldTizen()) {
+            targetContainer.addClass('tizen-old');
+        }
+        
         currentContainer = container;
         container.find('.button--play, .button--edit-order').remove();
         var categories = categorizeButtons(container);
@@ -981,10 +1033,36 @@
         setTimeout(tryRefresh, 50);
     }
 
+    // Определяем, является ли устройство старым Tizen
+    function isOldTizen() {
+        try {
+            var userAgent = navigator.userAgent || '';
+            if (userAgent.indexOf('Tizen') !== -1) {
+                // Tizen 2018 обычно имеет версию 4.0 или ниже
+                var tizenVersionMatch = userAgent.match(/Tizen\/(\d+)/);
+                if (tizenVersionMatch && parseInt(tizenVersionMatch[1]) <= 4) {
+                    return true;
+                }
+                // Также проверяем по другим признакам
+                if (userAgent.indexOf('Tizen 3') !== -1 || userAgent.indexOf('Tizen 2') !== -1) {
+                    return true;
+                }
+            }
+        } catch(e) {}
+        return false;
+    }
+
     function init() {
+        var oldTizen = isOldTizen();
+        
         var style = $('<style>' +
             '@keyframes button-fade-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }' +
+            // Для старых Tizen не устанавливаем opacity: 0 по умолчанию, чтобы не блокировать навигацию
             '.full-start-new__buttons .full-start__button { opacity: 0; }' +
+            // Переопределение для старых Tizen - элементы должны быть видимыми сразу
+            '@media screen and (-webkit-min-device-pixel-ratio: 0) { ' +
+            '  .full-start-new__buttons.tizen-old .full-start__button { opacity: 1 !important; animation: none !important; } ' +
+            '}' +
             '.full-start__button.hidden { display: none !important; }' +
             '.full-start-new__buttons { ' +
             'display: flex !important; ' +
@@ -993,6 +1071,12 @@
             'gap: 0.5em !important; ' +
             '}' +
             '.full-start-new__buttons.buttons-loading .full-start__button { visibility: hidden !important; }' +
+            // Для старых Tizen: убеждаемся, что элементы доступны для навигации даже во время загрузки
+            '.full-start-new__buttons.tizen-old.buttons-loading .full-start__button.selector { visibility: visible !important; opacity: 1 !important; }' +
+            // КРИТИЧНО для старых Tizen: элементы с opacity: 0 могут быть недоступны для навигации
+            '.full-start-new__buttons.tizen-old .full-start__button.selector { opacity: 1 !important; animation: none !important; pointer-events: auto !important; }' +
+            // Переопределяем начальное правило opacity: 0 для старых Tizen
+            '.full-start-new__buttons.tizen-old .full-start__button { opacity: 1 !important; }' +
             // Улучшенная поддержка фокуса для старых Tizen и Android устройств
             '.full-start__button.selector { outline: none !important; }' +
             '.full-start__button.selector:focus { outline: 2px solid rgba(255,255,255,0.8) !important; outline-offset: 2px !important; }' +
@@ -1016,6 +1100,12 @@
             if (e.type !== 'complite') return;
             var container = e.object.activity.render();
             var targetContainer = container.find('.full-start-new__buttons');
+            
+            // Добавляем класс для старых Tizen устройств
+            if (oldTizen && targetContainer.length) {
+                targetContainer.addClass('tizen-old');
+            }
+            
             if (targetContainer.length) {
                 targetContainer.addClass('buttons-loading');
             }
