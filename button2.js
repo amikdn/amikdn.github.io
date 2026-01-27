@@ -586,7 +586,19 @@
             onBack: function() {
                 Lampa.Modal.close();
                 applyChanges();
-                Lampa.Controller.toggle('full_start');
+                // Восстанавливаем навигацию после закрытия редактора
+                // Используем стандартный метод для всех устройств
+                setTimeout(function() {
+                    if (Lampa.Controller && typeof Lampa.Controller.toggle === 'function') {
+                        try {
+                            Lampa.Controller.toggle('full_start');
+                        } catch(e) {}
+                    }
+                    // Дополнительно обновляем навигацию для текущего контейнера
+                    if (currentContainer) {
+                        setupButtonNavigation(currentContainer);
+                    }
+                }, 100);
             }
         });
     }
@@ -831,6 +843,9 @@
         
             // Увеличиваем задержку для старых устройств (Tizen и Android) и вызываем навигацию несколько раз
         // Для Tizen важно дать время DOM обновиться после detach/append
+        var isOldDevice = isOldTizen();
+        var delay = isOldDevice ? 200 : 100;
+        
         setTimeout(function() {
             // Сначала убеждаемся, что все элементы в DOM и имеют правильные атрибуты
             var allButtonsInDom = targetContainer.find('.full-start__button.selector');
@@ -846,11 +861,13 @@
             });
             
             setupButtonNavigation(container);
-            // Дополнительный вызов для надежности на старых устройствах
-            setTimeout(function() {
-                setupButtonNavigation(container);
-            }, 200);
-        }, 200);
+            // Дополнительный вызов только для старых устройств
+            if (isOldDevice) {
+                setTimeout(function() {
+                    setupButtonNavigation(container);
+                }, 200);
+            }
+        }, delay);
         return true;
     }
 
@@ -897,107 +914,117 @@
             }
         });
         
+        // Определяем, нужно ли использовать агрессивные методы (только для старых Tizen)
+        var useAggressiveMethods = isOldTizen();
+        
         // Для Tizen: пробуем разные способы обновления навигации
         if (Lampa.Controller) {
-            // Метод 1: toggle (стандартный)
+            // Метод 1: toggle (стандартный) - используется везде
             if (typeof Lampa.Controller.toggle === 'function') {
                 try {
                     Lampa.Controller.toggle('full_start');
                 } catch(e) {
-                    console.warn('Controller.toggle failed:', e);
+                    if (useAggressiveMethods) {
+                        console.warn('Controller.toggle failed:', e);
+                    }
                 }
             }
             
-            // Метод 2: enable (для старых устройств)
-            if (typeof Lampa.Controller.enable === 'function') {
-                try {
-                    Lampa.Controller.enable('full_start');
-                } catch(e) {
-                    console.warn('Controller.enable failed:', e);
-                }
-            }
-            
-            // Метод 3: disable и enable для принудительного обновления (Tizen)
-            if (typeof Lampa.Controller.disable === 'function' && typeof Lampa.Controller.enable === 'function') {
-                try {
-                    Lampa.Controller.disable('full_start');
-                    setTimeout(function() {
+            // Агрессивные методы только для старых Tizen
+            if (useAggressiveMethods) {
+                // Метод 2: enable (для старых устройств)
+                if (typeof Lampa.Controller.enable === 'function') {
+                    try {
                         Lampa.Controller.enable('full_start');
-                    }, 10);
-                } catch(e) {
-                    console.warn('Controller disable/enable failed:', e);
-                }
-            }
-            
-            // Метод 4: trigger событие для пересканирования (если доступно)
-            if (typeof Lampa.Listener === 'object' && Lampa.Listener.send) {
-                try {
-                    Lampa.Listener.send('controller', { type: 'update', name: 'full_start' });
-                } catch(e) {}
-            }
-            
-            // Метод 5 для Tizen: пробуем найти и вызвать методы регистрации элементов напрямую
-            // Некоторые версии Lampa могут иметь методы для явной регистрации
-            if (Lampa.Controller) {
-                // Пробуем разные возможные методы
-                var possibleMethods = ['register', 'add', 'refresh', 'reload', 'scan', 'update'];
-                for (var i = 0; i < possibleMethods.length; i++) {
-                    var methodName = possibleMethods[i];
-                    if (typeof Lampa.Controller[methodName] === 'function') {
-                        try {
-                            Lampa.Controller[methodName]('full_start');
-                        } catch(e) {}
+                    } catch(e) {
+                        console.warn('Controller.enable failed:', e);
                     }
                 }
-            }
-            
-            // Метод 6 для Tizen: пробуем принудительно установить фокус на первый элемент
-            // Это может помочь контроллеру "увидеть" элементы
-            setTimeout(function() {
-                var firstButton = container.find('.full-start__button.selector').not('.hidden').first();
-                if (firstButton.length) {
-                    var firstNative = firstButton[0];
-                    if (firstNative) {
-                        try {
-                            // Не устанавливаем фокус, но проверяем, что элемент доступен
-                            firstNative.setAttribute('tabindex', '0');
-                            firstNative.setAttribute('role', 'button');
-                        } catch(e) {}
+                
+                // Метод 3: disable и enable для принудительного обновления (Tizen)
+                if (typeof Lampa.Controller.disable === 'function' && typeof Lampa.Controller.enable === 'function') {
+                    try {
+                        Lampa.Controller.disable('full_start');
+                        setTimeout(function() {
+                            Lampa.Controller.enable('full_start');
+                        }, 10);
+                    } catch(e) {
+                        console.warn('Controller disable/enable failed:', e);
                     }
                 }
-            }, 50);
+                
+                // Метод 4: trigger событие для пересканирования (если доступно)
+                if (typeof Lampa.Listener === 'object' && Lampa.Listener.send) {
+                    try {
+                        Lampa.Listener.send('controller', { type: 'update', name: 'full_start' });
+                    } catch(e) {}
+                }
+                
+                // Метод 5 для Tizen: пробуем найти и вызвать методы регистрации элементов напрямую
+                // Некоторые версии Lampa могут иметь методы для явной регистрации
+                if (Lampa.Controller) {
+                    // Пробуем разные возможные методы
+                    var possibleMethods = ['register', 'add', 'refresh', 'reload', 'scan', 'update'];
+                    for (var i = 0; i < possibleMethods.length; i++) {
+                        var methodName = possibleMethods[i];
+                        if (typeof Lampa.Controller[methodName] === 'function') {
+                            try {
+                                Lampa.Controller[methodName]('full_start');
+                            } catch(e) {}
+                        }
+                    }
+                }
+                
+                // Метод 6 для Tizen: пробуем принудительно установить фокус на первый элемент
+                // Это может помочь контроллеру "увидеть" элементы
+                setTimeout(function() {
+                    var firstButton = container.find('.full-start__button.selector').not('.hidden').first();
+                    if (firstButton.length) {
+                        var firstNative = firstButton[0];
+                        if (firstNative) {
+                            try {
+                                // Не устанавливаем фокус, но проверяем, что элемент доступен
+                                firstNative.setAttribute('tabindex', '0');
+                                firstNative.setAttribute('role', 'button');
+                            } catch(e) {}
+                        }
+                    }
+                }, 50);
+            }
         }
         
-        // Принудительное обновление навигации через таймауты (для Tizen)
-        setTimeout(function() {
-            // Повторная установка атрибутов на нативных элементах
-            buttons.each(function() {
-                var $btn = $(this);
-                var nativeBtn = $btn[0];
-                if (nativeBtn && !$btn.hasClass('hidden')) {
-                    nativeBtn.setAttribute('tabindex', '0');
-                    if (!nativeBtn.hasAttribute('role')) {
-                        nativeBtn.setAttribute('role', 'button');
+        // Принудительное обновление навигации через таймауты (только для старых Tizen)
+        if (useAggressiveMethods) {
+            setTimeout(function() {
+                // Повторная установка атрибутов на нативных элементах
+                buttons.each(function() {
+                    var $btn = $(this);
+                    var nativeBtn = $btn[0];
+                    if (nativeBtn && !$btn.hasClass('hidden')) {
+                        nativeBtn.setAttribute('tabindex', '0');
+                        if (!nativeBtn.hasAttribute('role')) {
+                            nativeBtn.setAttribute('role', 'button');
+                        }
                     }
+                });
+                
+                // Повторный вызов toggle
+                if (Lampa.Controller && typeof Lampa.Controller.toggle === 'function') {
+                    try {
+                        Lampa.Controller.toggle('full_start');
+                    } catch(e) {}
                 }
-            });
+            }, 100);
             
-            // Повторный вызов toggle
-            if (Lampa.Controller && typeof Lampa.Controller.toggle === 'function') {
-                try {
-                    Lampa.Controller.toggle('full_start');
-                } catch(e) {}
-            }
-        }, 100);
-        
-        // Еще один вызов для надежности на Tizen
-        setTimeout(function() {
-            if (Lampa.Controller && typeof Lampa.Controller.toggle === 'function') {
-                try {
-                    Lampa.Controller.toggle('full_start');
-                } catch(e) {}
-            }
-        }, 300);
+            // Еще один вызов для надежности на Tizen
+            setTimeout(function() {
+                if (Lampa.Controller && typeof Lampa.Controller.toggle === 'function') {
+                    try {
+                        Lampa.Controller.toggle('full_start');
+                    } catch(e) {}
+                }
+            }, 300);
+        }
     }
 
     function refreshController() {
