@@ -292,7 +292,6 @@
       });
     }
 
-    // Перехват стандартного меню «Выход»
     Lampa.Controller.listener.follow('toggle', (e) => {
       if (e.name === 'select' && $('.selectbox__title').text() === Lampa.Lang.translate('title_out')) {
         Lampa.Select.hide();
