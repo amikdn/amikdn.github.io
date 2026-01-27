@@ -87,9 +87,13 @@
     function categorizeButtons(container) {
         var allButtons = container.find('.full-start__button').not('.button--edit-order, .button--play');
         var categories = { online: [], torrent: [], trailer: [], favorite: [], subscribe: [], book: [], reaction: [], other: [] };
+        var processedIds = {};
         allButtons.each(function() {
             var $btn = $(this);
             if (isExcluded($btn)) return;
+            var btnId = getButtonId($btn);
+            if (processedIds[btnId]) return;
+            processedIds[btnId] = true;
             var type = getButtonType($btn);
             if (type === 'online' && $btn.hasClass('lampac--button') && !$btn.hasClass('modss--button') && !$btn.hasClass('showy--button')) {
                 var svgElement = $btn.find('svg').first();
@@ -106,31 +110,6 @@
                 $btn.addClass('selector');
             }
         });
-        var targetContainer = container.find('.full-start-new__buttons');
-        if (targetContainer.length) {
-            targetContainer.find('.full-start__button').not('.button--edit-order, .button--play').each(function() {
-                var $btn = $(this);
-                if (isExcluded($btn)) return;
-                var found = false;
-                for (var cat in categories) {
-                    if (categories[cat].indexOf($btn) !== -1) {
-                        found = true;
-                        break;
-                    }
-                }
-                if (!found) {
-                    var type = getButtonType($btn);
-                    if (categories[type]) {
-                        categories[type].push($btn);
-                    } else {
-                        categories.other.push($btn);
-                    }
-                    if (!$btn.hasClass('selector')) {
-                        $btn.addClass('selector');
-                    }
-                }
-            });
-        }
         return categories;
     }
 
@@ -312,7 +291,16 @@
                 .concat(categories.book)
                 .concat(categories.reaction)
                 .concat(categories.other);
-            allButtons = sortByCustomOrder(allButtons);
+            var uniqueButtons = [];
+            var seenIds = {};
+            allButtons.forEach(function(btn) {
+                var btnId = getButtonId(btn);
+                if (!seenIds[btnId]) {
+                    seenIds[btnId] = true;
+                    uniqueButtons.push(btn);
+                }
+            });
+            allButtons = sortByCustomOrder(uniqueButtons);
             allButtonsCache = allButtons;
             currentButtons = allButtons;
         }
@@ -509,7 +497,14 @@
             }
         });
         if (missingButtons.length > 0) {
+            var seenIds = {};
+            allButtons.forEach(function(btn) {
+                seenIds[getButtonId(btn)] = true;
+            });
             missingButtons.forEach(function($btn) {
+                var btnId = getButtonId($btn);
+                if (seenIds[btnId]) return;
+                seenIds[btnId] = true;
                 var type = getButtonType($btn);
                 if (categories[type]) {
                     categories[type].push($btn);
@@ -520,7 +515,9 @@
                     $btn.addClass('selector');
                 }
             });
-            allButtons = []
+            var uniqueButtons = [];
+            seenIds = {};
+            var allButtonsNew = []
                 .concat(categories.online)
                 .concat(categories.torrent)
                 .concat(categories.trailer)
@@ -529,7 +526,14 @@
                 .concat(categories.book)
                 .concat(categories.reaction)
                 .concat(categories.other);
-            allButtons = sortByCustomOrder(allButtons);
+            allButtonsNew.forEach(function(btn) {
+                var btnId = getButtonId(btn);
+                if (!seenIds[btnId]) {
+                    seenIds[btnId] = true;
+                    uniqueButtons.push(btn);
+                }
+            });
+            allButtons = sortByCustomOrder(uniqueButtons);
             currentButtons = allButtons;
         }
         targetContainer.children().detach();
