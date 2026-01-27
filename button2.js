@@ -109,6 +109,10 @@
             if (!$btn.hasClass('selector')) {
                 $btn.addClass('selector');
             }
+            // Для совместимости со старыми Tizen устройствами
+            if (!$btn.attr('tabindex')) {
+                $btn.attr('tabindex', '0');
+            }
         });
         return categories;
     }
@@ -163,7 +167,14 @@
         var hidden = getHiddenButtons();
         buttons.forEach(function(btn) {
             var id = getButtonId(btn);
-            btn.toggleClass('hidden', hidden.indexOf(id) !== -1);
+            var isHidden = hidden.indexOf(id) !== -1;
+            btn.toggleClass('hidden', isHidden);
+            // Обновляем tabindex для совместимости со старыми Tizen
+            if (isHidden) {
+                btn.attr('tabindex', '-1');
+            } else {
+                btn.attr('tabindex', '0');
+            }
         });
     }
 
@@ -178,7 +189,7 @@
     }
 
     function createEditButton() {
-        var btn = $('<div class="full-start__button selector button--edit-order" style="order: 9999;">' +
+        var btn = $('<div class="full-start__button selector button--edit-order" style="order: 9999;" tabindex="0">' +
             '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 29" fill="none"><use xlink:href="#sprite-edit"></use></svg>' +
             '</div>');
         btn.on('hover:enter', function() {
@@ -186,6 +197,7 @@
         });
         if (Lampa.Storage.get('buttons_editor_enabled') === false) {
             btn.hide();
+            btn.attr('tabindex', '-1');
         }
         return btn;
     }
@@ -218,6 +230,10 @@
         targetContainer.find('.full-start__button').not('.button--edit-order').detach();
         var visibleButtons = [];
         currentButtons.forEach(function(btn) {
+            // Убеждаемся, что кнопка имеет tabindex перед добавлением
+            if (!btn.attr('tabindex')) {
+                btn.attr('tabindex', btn.hasClass('hidden') ? '-1' : '0');
+            }
             targetContainer.append(btn);
             if (!btn.hasClass('hidden')) visibleButtons.push(btn);
         });
@@ -228,6 +244,16 @@
             targetContainer.append(editBtn);
         }
         applyHiddenButtons(currentButtons);
+        
+        // Обновляем tabindex для скрытых кнопок
+        currentButtons.forEach(function(btn) {
+            if (btn.hasClass('hidden')) {
+                btn.attr('tabindex', '-1');
+            } else {
+                btn.attr('tabindex', '0');
+            }
+        });
+        
         var viewmode = Lampa.Storage.get('buttons_viewmode', 'default');
         targetContainer.removeClass('icons-only always-text');
         if (viewmode === 'icons') targetContainer.addClass('icons-only');
@@ -236,8 +262,14 @@
         setTimeout(function() {
             if (currentContainer) {
                 setupButtonNavigation(currentContainer);
+                // Дополнительный вызов для надежности на старых устройствах
+                setTimeout(function() {
+                    if (currentContainer) {
+                        setupButtonNavigation(currentContainer);
+                    }
+                }, 150);
             }
-        }, 100);
+        }, 150);
     }
 
     function capitalize(str) {
@@ -514,6 +546,10 @@
                 if (!$btn.hasClass('selector')) {
                     $btn.addClass('selector');
                 }
+                // Для совместимости со старыми Tizen устройствами
+                if (!$btn.attr('tabindex')) {
+                    $btn.attr('tabindex', '0');
+                }
             });
             var uniqueButtons = [];
             seenIds = {};
@@ -539,46 +575,123 @@
         targetContainer.children().detach();
         var visibleButtons = [];
         currentButtons.forEach(function(btn) {
+            // Убеждаемся, что кнопка имеет tabindex перед добавлением
+            if (!btn.attr('tabindex')) {
+                btn.attr('tabindex', btn.hasClass('hidden') ? '-1' : '0');
+            }
             targetContainer.append(btn);
             if (!btn.hasClass('hidden')) visibleButtons.push(btn);
         });
         var editButton = createEditButton();
         targetContainer.append(editButton);
         visibleButtons.push(editButton);
+        // Устанавливаем tabindex для кнопки редактирования
+        if (!editButton.attr('tabindex')) {
+            editButton.attr('tabindex', '0');
+        }
         applyHiddenButtons(currentButtons);
+        
+        // Обновляем tabindex для скрытых кнопок
+        currentButtons.forEach(function(btn) {
+            if (btn.hasClass('hidden')) {
+                btn.attr('tabindex', '-1');
+            } else {
+                btn.attr('tabindex', '0');
+            }
+        });
+        
         var viewmode = Lampa.Storage.get('buttons_viewmode', 'default');
         targetContainer.removeClass('icons-only always-text');
         if (viewmode === 'icons') targetContainer.addClass('icons-only');
         if (viewmode === 'always') targetContainer.addClass('always-text');
         applyButtonAnimation(visibleButtons);
+        
+        // Увеличиваем задержку для старых устройств и вызываем навигацию несколько раз
         setTimeout(function() {
             setupButtonNavigation(container);
-        }, 100);
+            // Дополнительный вызов для надежности на старых устройствах
+            setTimeout(function() {
+                setupButtonNavigation(container);
+            }, 150);
+        }, 150);
         return true;
     }
 
     window.reorderButtons = reorderButtons;
 
     function setupButtonNavigation(container) {
+        if (!container) return;
+        
+        // Убеждаемся, что все кнопки имеют необходимые атрибуты для навигации
+        var buttons = container.find('.full-start__button.selector');
+        buttons.each(function() {
+            var $btn = $(this);
+            if (!$btn.attr('tabindex')) {
+                $btn.attr('tabindex', '0');
+            }
+            // Убеждаемся, что кнопка видима и не скрыта
+            if ($btn.hasClass('hidden')) {
+                $btn.attr('tabindex', '-1');
+            } else {
+                $btn.attr('tabindex', '0');
+            }
+        });
+        
+        // Обновляем контроллер навигации
         if (Lampa.Controller && typeof Lampa.Controller.toggle === 'function') {
             try {
                 Lampa.Controller.toggle('full_start');
             } catch(e) {}
         }
+        
+        // Дополнительная инициализация для старых Tizen устройств
+        if (Lampa.Controller && typeof Lampa.Controller.enable === 'function') {
+            try {
+                Lampa.Controller.enable('full_start');
+            } catch(e) {}
+        }
+        
+        // Принудительное обновление навигации через небольшой таймаут
+        setTimeout(function() {
+            if (Lampa.Controller && typeof Lampa.Controller.toggle === 'function') {
+                try {
+                    Lampa.Controller.toggle('full_start');
+                } catch(e) {}
+            }
+        }, 50);
     }
 
     function refreshController() {
-        if (!Lampa.Controller || typeof Lampa.Controller.toggle !== 'function') return;
-        setTimeout(function() {
+        if (!Lampa.Controller) return;
+        
+        // Множественные попытки обновления для старых устройств
+        var attempts = 0;
+        var maxAttempts = 3;
+        
+        function tryRefresh() {
+            attempts++;
             try {
-                Lampa.Controller.toggle('full_start');
-                if (currentContainer) {
-                    setTimeout(function() {
-                        setupButtonNavigation(currentContainer);
-                    }, 100);
+                if (typeof Lampa.Controller.toggle === 'function') {
+                    Lampa.Controller.toggle('full_start');
                 }
-            } catch(e) {}
-        }, 50);
+                if (typeof Lampa.Controller.enable === 'function') {
+                    Lampa.Controller.enable('full_start');
+                }
+                if (currentContainer) {
+                    setupButtonNavigation(currentContainer);
+                }
+                // Повторяем попытку для надежности на старых устройствах
+                if (attempts < maxAttempts) {
+                    setTimeout(tryRefresh, 100 * attempts);
+                }
+            } catch(e) {
+                if (attempts < maxAttempts) {
+                    setTimeout(tryRefresh, 100 * attempts);
+                }
+            }
+        }
+        
+        setTimeout(tryRefresh, 50);
     }
 
     function init() {
@@ -593,6 +706,11 @@
             'gap: 0.5em !important; ' +
             '}' +
             '.full-start-new__buttons.buttons-loading .full-start__button { visibility: hidden !important; }' +
+            // Улучшенная поддержка фокуса для старых Tizen устройств
+            '.full-start__button.selector { outline: none !important; }' +
+            '.full-start__button.selector:focus { outline: 2px solid rgba(255,255,255,0.8) !important; outline-offset: 2px !important; }' +
+            '.full-start__button.selector[tabindex="0"] { cursor: pointer; }' +
+            '.full-start__button.selector[tabindex="-1"] { pointer-events: none; }' +
             '.folder-reset-button { background: rgba(200,100,100,0.3); margin-top: 1em; border-radius: 0.3em; }' +
             '.folder-reset-button.focus { border: 3px solid rgba(255,255,255,0.8); }' +
             '.menu-edit-list__toggle.focus { border: 2px solid rgba(255,255,255,0.8); border-radius: 0.3em; }' +
