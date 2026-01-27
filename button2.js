@@ -15,37 +15,11 @@
     var allButtonsCache = [];
     var allButtonsOriginal = [];
     var currentContainer = null;
-    
-    function safeFocus(element) {
-        if (!element || !element.length) return;
-        try {
-            if (typeof element[0].focus === 'function') {
-                element[0].focus();
-            }
-            if (typeof element.trigger === 'function') {
-                element.trigger('focus');
-            }
-            if (Lampa.Controller && typeof Lampa.Controller.focused === 'function') {
-                Lampa.Controller.focused(element);
-            }
-        } catch(e) {}
-    }
 
     function findButton(btnId) {
-        var btn = null;
-        for (var i = 0; i < allButtonsOriginal.length; i++) {
-            if (getButtonId(allButtonsOriginal[i]) === btnId) {
-                btn = allButtonsOriginal[i];
-                break;
-            }
-        }
+        var btn = allButtonsOriginal.find(function(b) { return getButtonId(b) === btnId; });
         if (!btn) {
-            for (var j = 0; j < allButtonsCache.length; j++) {
-                if (getButtonId(allButtonsCache[j]) === btnId) {
-                    btn = allButtonsCache[j];
-                    break;
-                }
-            }
+            btn = allButtonsCache.find(function(b) { return getButtonId(b) === btnId; });
         }
         return btn;
     }
@@ -76,9 +50,6 @@
         if (classes.indexOf('showy') !== -1 || text.indexOf('Showy') !== -1) {
             return 'showy_online_button';
         }
-        if (classes.indexOf('view---torrent') !== -1 || text.indexOf('Торренты') !== -1 || text.indexOf('Torrents') !== -1) {
-            return 'torrents2_button';
-        }
         var viewClasses = classes.split(' ').filter(function(c) { return c.indexOf('view--') === 0 || c.indexOf('button--') === 0; }).join('_');
         if (!viewClasses && !text) {
             return 'button_unknown';
@@ -92,10 +63,6 @@
 
     function getButtonType(button) {
         var classes = button.attr('class') || '';
-        var btnId = getButtonId(button);
-        if (btnId === 'torrents2_button') {
-            return 'torrent';
-        }
         for (var i = 0; i < DEFAULT_GROUPS.length; i++) {
             var group = DEFAULT_GROUPS[i];
             for (var j = 0; j < group.patterns.length; j++) {
@@ -135,14 +102,34 @@
             } else {
                 categories.other.push($btn);
             }
+            if (!$btn.hasClass('selector')) {
+                $btn.addClass('selector');
+            }
         });
         return categories;
     }
 
     function sortByCustomOrder(buttons) {
         var customOrder = getCustomOrder();
+        var priority = [];
+        var regular = [];
+        buttons.forEach(function(btn) {
+            var id = getButtonId(btn);
+            if (id === 'modss_online_button') {
+                priority.push(btn);
+            } else {
+                regular.push(btn);
+            }
+        });
+        priority.sort(function(a, b) {
+            var idA = getButtonId(a);
+            var idB = getButtonId(b);
+            if (idA === 'modss_online_button') return -1;
+            if (idB === 'modss_online_button') return 1;
+            return 0;
+        });
         if (!customOrder.length) {
-            buttons.sort(function(a, b) {
+            regular.sort(function(a, b) {
                 var typeOrder = ['online', 'torrent', 'trailer', 'favorite', 'subscribe', 'book', 'reaction', 'other'];
                 var typeA = getButtonType(a);
                 var typeB = getButtonType(b);
@@ -152,10 +139,10 @@
                 if (indexB === -1) indexB = 999;
                 return indexA - indexB;
             });
-            return buttons;
+            return priority.concat(regular);
         }
         var sorted = [];
-        var remaining = buttons.slice();
+        var remaining = regular.slice();
         customOrder.forEach(function(id) {
             for (var i = 0; i < remaining.length; i++) {
                 if (getButtonId(remaining[i]) === id) {
@@ -165,7 +152,7 @@
                 }
             }
         });
-        return sorted.concat(remaining);
+        return priority.concat(sorted).concat(remaining);
     }
 
     function applyHiddenButtons(buttons) {
@@ -219,52 +206,16 @@
             .concat(categories.book)
             .concat(categories.reaction)
             .concat(categories.other);
-        
-        allButtons.forEach(function(btn) {
-            var btnId = getButtonId(btn);
-            var existingIndex = -1;
-            for (var i = 0; i < allButtonsOriginal.length; i++) {
-                if (getButtonId(allButtonsOriginal[i]) === btnId) {
-                    existingIndex = i;
-                    break;
-                }
-            }
-            if (existingIndex === -1) {
-                allButtonsOriginal.push(btn.clone(true, true));
-            }
-        });
-        
         allButtons = sortByCustomOrder(allButtons);
         allButtonsCache = allButtons;
         currentButtons = allButtons;
         var targetContainer = currentContainer.find('.full-start-new__buttons');
         if (!targetContainer.length) return;
-        
-        var existingButtons = targetContainer.find('.full-start__button').not('.button--edit-order');
-        var buttonMap = {};
-        existingButtons.each(function() {
-            var $btn = $(this);
-            var id = getButtonId($btn);
-            if (!buttonMap[id]) {
-                buttonMap[id] = $btn;
-            } else {
-                $btn.remove();
-            }
-        });
-        
         targetContainer.find('.full-start__button').not('.button--edit-order').detach();
         var visibleButtons = [];
         currentButtons.forEach(function(btn) {
-            var btnId = getButtonId(btn);
-            var existingBtn = buttonMap[btnId];
-            if (existingBtn && existingBtn.length) {
-                targetContainer.append(existingBtn);
-                if (!existingBtn.hasClass('hidden')) visibleButtons.push(existingBtn);
-            } else {
-                var btnClone = btn.clone(true, true);
-                targetContainer.append(btnClone);
-                if (!btnClone.hasClass('hidden')) visibleButtons.push(btnClone);
-            }
+            targetContainer.append(btn);
+            if (!btn.hasClass('hidden')) visibleButtons.push(btn);
         });
         applyButtonAnimation(visibleButtons);
         var editBtn = targetContainer.find('.button--edit-order');
@@ -488,18 +439,6 @@
                 Lampa.Modal.close();
                 applyChanges();
                 Lampa.Controller.toggle('full_start');
-
-                if (currentContainer) {
-                    setTimeout(function() {
-                        var targetContainer = currentContainer.find('.full-start-new__buttons');
-                        if (targetContainer.length) {
-                            var firstButton = targetContainer.find('.full-start__button').not('.button--edit-order, .hidden').first();
-                            if (firstButton.length) {
-                                safeFocus(firstButton);
-                            }
-                        }
-                    }, 50);
-                }
             }
         });
     }
@@ -519,50 +458,19 @@
             .concat(categories.book)
             .concat(categories.reaction)
             .concat(categories.other);
-        
-        allButtons.forEach(function(btn) {
-            var btnId = getButtonId(btn);
-            var existingIndex = -1;
-            for (var i = 0; i < allButtonsOriginal.length; i++) {
-                if (getButtonId(allButtonsOriginal[i]) === btnId) {
-                    existingIndex = i;
-                    break;
-                }
-            }
-            if (existingIndex === -1) {
-                allButtonsOriginal.push(btn.clone(true, true));
-            }
-        });
-        
         allButtons = sortByCustomOrder(allButtons);
         allButtonsCache = allButtons;
+        if (allButtonsOriginal.length === 0) {
+            allButtons.forEach(function(btn) {
+                allButtonsOriginal.push(btn.clone(true, true));
+            });
+        }
         currentButtons = allButtons;
-        
-        var existingButtons = targetContainer.find('.full-start__button').not('.button--edit-order');
-        var buttonMap = {};
-        existingButtons.each(function() {
-            var $btn = $(this);
-            var id = getButtonId($btn);
-            if (!buttonMap[id]) {
-                buttonMap[id] = $btn;
-            } else {
-                $btn.remove();
-            }
-        });
-        
         targetContainer.children().detach();
         var visibleButtons = [];
         currentButtons.forEach(function(btn) {
-            var btnId = getButtonId(btn);
-            var existingBtn = buttonMap[btnId];
-            if (existingBtn && existingBtn.length) {
-                targetContainer.append(existingBtn);
-                if (!existingBtn.hasClass('hidden')) visibleButtons.push(existingBtn);
-            } else {
-                var btnClone = btn.clone(true, true);
-                targetContainer.append(btnClone);
-                if (!btnClone.hasClass('hidden')) visibleButtons.push(btnClone);
-            }
+            targetContainer.append(btn);
+            if (!btn.hasClass('hidden')) visibleButtons.push(btn);
         });
         var editButton = createEditButton();
         targetContainer.append(editButton);
@@ -579,21 +487,12 @@
         return true;
     }
 
+    window.reorderButtons = reorderButtons;
+
     function setupButtonNavigation(container) {
-        var targetContainer = container.find('.full-start-new__buttons');
-        if (!targetContainer.length) return;
-        
-        var firstButton = targetContainer.find('.full-start__button').not('.button--edit-order, .hidden').first();
-        
         if (Lampa.Controller && typeof Lampa.Controller.toggle === 'function') {
             try {
                 Lampa.Controller.toggle('full_start');
-
-                if (firstButton.length) {
-                    setTimeout(function() {
-                        safeFocus(firstButton);
-                    }, 50);
-                }
             } catch(e) {}
         }
     }
@@ -606,7 +505,7 @@
                 if (currentContainer) {
                     setTimeout(function() {
                         setupButtonNavigation(currentContainer);
-                    }, 50);
+                    }, 100);
                 }
             } catch(e) {}
         }, 50);
@@ -642,7 +541,6 @@
             if (targetContainer.length) {
                 targetContainer.addClass('buttons-loading');
             }
-
             setTimeout(function() {
                 try {
                     if (!container.data('buttons-processed')) {
