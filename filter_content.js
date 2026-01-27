@@ -298,10 +298,39 @@
 
         // Применение фильтров
         Lampa.Listener.follow('request_secuses', function (e) {
-            if (e.data && Array.isArray(e.data.results)) {
-                e.data.original_length = e.data.results.length;
-                e.data.results = filterProcessor.apply(e.data.results);
+            if (!e.data || !Array.isArray(e.data.results)) return;
+            
+            // Проверяем URL на наличие ключевых слов расширений/магазина
+            var url = e.url || (e.data && e.data.url) || '';
+            var urlStr = typeof url === 'string' ? url.toLowerCase() : '';
+            if (urlStr.indexOf('extension') !== -1 ||
+                urlStr.indexOf('plugin') !== -1 ||
+                urlStr.indexOf('store') !== -1 ||
+                urlStr.indexOf('market') !== -1 ||
+                urlStr.indexOf('магазин') !== -1) {
+                return; // Не применяем фильтры к расширениям/магазину
             }
+            
+            // Проверяем, не являются ли данные расширениями или магазином
+            // Данные расширений/магазина обычно не содержат медиа-полей
+            // Если массив пустой, пропускаем (может быть расширения/магазин)
+            if (e.data.results.length === 0) return;
+            
+            var isMediaContent = e.data.results.some(function(item) {
+                return item && (item.original_language !== undefined || 
+                               item.vote_average !== undefined || 
+                               item.media_type !== undefined ||
+                               item.first_air_date !== undefined ||
+                               item.release_date !== undefined ||
+                               item.title !== undefined ||
+                               item.name !== undefined);
+            });
+            
+            // Если это не медиа-контент (расширения/магазин), не применяем фильтры
+            if (!isMediaContent) return;
+            
+            e.data.original_length = e.data.results.length;
+            e.data.results = filterProcessor.apply(e.data.results);
         });
     }
 
