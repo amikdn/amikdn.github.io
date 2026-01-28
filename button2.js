@@ -1,5 +1,97 @@
 (function() {
     'use strict';
+
+    // Polyfills для совместимости со старыми устройствами
+    if (!Array.prototype.forEach) {
+        Array.prototype.forEach = function(callback, thisArg) {
+            var T, k;
+            if (this == null) throw new TypeError('this is null or not defined');
+            var O = Object(this);
+            var len = O.length >>> 0;
+            if (typeof callback !== 'function') throw new TypeError(callback + ' is not a function');
+            if (arguments.length > 1) T = thisArg;
+            k = 0;
+            while (k < len) {
+                var kValue;
+                if (k in O) {
+                    kValue = O[k];
+                    callback.call(T, kValue, k, O);
+                }
+                k++;
+            }
+        };
+    }
+
+    if (!Array.prototype.filter) {
+        Array.prototype.filter = function(callback, thisArg) {
+            if (this == null) throw new TypeError('this is null or not defined');
+            var O = Object(this);
+            var len = O.length >>> 0;
+            if (typeof callback !== 'function') throw new TypeError(callback + ' is not a function');
+            var res = [];
+            var T = thisArg;
+            var k = 0;
+            while (k < len) {
+                if (k in O) {
+                    var kValue = O[k];
+                    if (callback.call(T, kValue, k, O)) res.push(kValue);
+                }
+                k++;
+            }
+            return res;
+        };
+    }
+
+    if (!Array.prototype.find) {
+        Array.prototype.find = function(callback, thisArg) {
+            if (this == null) throw new TypeError('this is null or not defined');
+            var O = Object(this);
+            var len = O.length >>> 0;
+            if (typeof callback !== 'function') throw new TypeError(callback + ' is not a function');
+            var T = thisArg;
+            var k = 0;
+            while (k < len) {
+                var kValue = O[k];
+                if (callback.call(T, kValue, k, O)) return kValue;
+                k++;
+            }
+            return undefined;
+        };
+    }
+
+    if (!Array.prototype.some) {
+        Array.prototype.some = function(callback, thisArg) {
+            if (this == null) throw new TypeError('this is null or not defined');
+            var O = Object(this);
+            var len = O.length >>> 0;
+            if (typeof callback !== 'function') throw new TypeError(callback + ' is not a function');
+            var T = thisArg;
+            var k = 0;
+            while (k < len) {
+                if (k in O && callback.call(T, O[k], k, O)) return true;
+                k++;
+            }
+            return false;
+        };
+    }
+
+    if (!Array.prototype.indexOf) {
+        Array.prototype.indexOf = function(searchElement, fromIndex) {
+            if (this == null) throw new TypeError('this is null or not defined');
+            var O = Object(this);
+            var len = O.length >>> 0;
+            if (len === 0) return -1;
+            var n = fromIndex | 0;
+            if (n >= len) return -1;
+            var k = Math.max(n >= 0 ? n : len - Math.abs(n), 0);
+            while (k < len) {
+                if (k in O && O[k] === searchElement) return k;
+                k++;
+            }
+            return -1;
+        };
+    }
+
     var LAMPAC_ICON = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><path d="M20.331 14.644l-13.794-13.831 17.55 10.075zM2.938 0c-0.813 0.425-1.356 1.2-1.356 2.206v27.581c0 1.006 0.544 1.781 1.356 2.206l16.038-16zM29.512 14.1l-3.681-2.131-4.106 4.031 4.106 4.031 3.756-2.131c1.125-0.893 1.125-2.906-0.075-3.8zM6.538 31.188l17.55-10.075-3.756-3.756z" fill="currentColor"></path></svg>';
     var EXCLUDED_CLASSES = ['button--play', 'button--edit-order'];
     var DEFAULT_GROUPS = [
@@ -109,14 +201,6 @@
             if (!$btn.hasClass('selector')) {
                 $btn.addClass('selector');
             }
-            // Для совместимости со старыми Tizen и Android устройствами
-            if (!$btn.attr('tabindex')) {
-                $btn.attr('tabindex', '0');
-            }
-            // Добавляем role для Android TV
-            if (!$btn.attr('role')) {
-                $btn.attr('role', 'button');
-            }
         });
         return categories;
     }
@@ -171,75 +255,22 @@
         var hidden = getHiddenButtons();
         buttons.forEach(function(btn) {
             var id = getButtonId(btn);
-            var isHidden = hidden.indexOf(id) !== -1;
-            btn.toggleClass('hidden', isHidden);
-            // Обновляем tabindex для совместимости со старыми Tizen и Android
-            if (isHidden) {
-                btn.attr('tabindex', '-1');
-            } else {
-                btn.attr('tabindex', '0');
-            }
-            // Обновляем на нативном элементе для Android 9
-            var nativeBtn = btn[0];
-            if (nativeBtn) {
-                nativeBtn.setAttribute('tabindex', isHidden ? '-1' : '0');
-            }
+            btn.toggleClass('hidden', hidden.indexOf(id) !== -1);
         });
     }
 
     function applyButtonAnimation(buttons) {
-        // Определяем, нужно ли отключать анимацию для старых устройств
-        // На старых Tizen анимация может блокировать навигацию
-        var disableAnimation = false;
-        
-        // Проверяем, старый ли это Tizen (2018 год и ранее)
-        try {
-            var userAgent = navigator.userAgent || '';
-            // Tizen 2018 обычно имеет версию 4.0 или ниже
-            if (userAgent.indexOf('Tizen') !== -1) {
-                var tizenVersionMatch = userAgent.match(/Tizen\/(\d+)/);
-                if (tizenVersionMatch && parseInt(tizenVersionMatch[1]) <= 4) {
-                    disableAnimation = true;
-                }
-            }
-            // Также отключаем на очень старых браузерах
-            if (userAgent.indexOf('Tizen 3') !== -1 || userAgent.indexOf('Tizen 2') !== -1) {
-                disableAnimation = true;
-            }
-        } catch(e) {}
-        
         buttons.forEach(function(btn, index) {
-            if (disableAnimation) {
-                // Для старых Tizen: сразу устанавливаем opacity: 1 без анимации
-                btn.css({
-                    'opacity': '1',
-                    'animation': 'none',
-                    'transform': 'none',
-                    'visibility': 'visible'
-                });
-                // Убеждаемся, что элемент доступен для навигации
-                var nativeBtn = btn[0];
-                if (nativeBtn) {
-                    nativeBtn.style.opacity = '1';
-                    nativeBtn.style.visibility = 'visible';
-                    nativeBtn.style.display = ''; // Убеждаемся, что display не блокирует
-                    // КРИТИЧНО: устанавливаем tabindex на нативном элементе
-                    if (!nativeBtn.hasAttribute('tabindex')) {
-                        nativeBtn.setAttribute('tabindex', '0');
-                    }
-                }
-            } else {
-                btn.css({
-                    'opacity': '0',
-                    'animation': 'button-fade-in 0.4s ease forwards',
-                    'animation-delay': (index * 0.08) + 's'
-                });
-            }
+            btn.css({
+                'opacity': '0',
+                'animation': 'button-fade-in 0.4s ease forwards',
+                'animation-delay': (index * 0.08) + 's'
+            });
         });
     }
 
     function createEditButton() {
-        var btn = $('<div class="full-start__button selector button--edit-order" style="order: 9999;" tabindex="0" role="button">' +
+        var btn = $('<div class="full-start__button selector button--edit-order" style="order: 9999;">' +
             '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 29" fill="none"><use xlink:href="#sprite-edit"></use></svg>' +
             '</div>');
         btn.on('hover:enter', function() {
@@ -247,11 +278,6 @@
         });
         if (Lampa.Storage.get('buttons_editor_enabled') === false) {
             btn.hide();
-            btn.attr('tabindex', '-1');
-            var nativeBtn = btn[0];
-            if (nativeBtn) {
-                nativeBtn.setAttribute('tabindex', '-1');
-            }
         }
         return btn;
     }
@@ -281,31 +307,9 @@
         currentButtons = allButtons;
         var targetContainer = currentContainer.find('.full-start-new__buttons');
         if (!targetContainer.length) return;
-        
-        // Добавляем класс для старых Tizen устройств
-        if (isOldTizen()) {
-            targetContainer.addClass('tizen-old');
-        }
         targetContainer.find('.full-start__button').not('.button--edit-order').detach();
         var visibleButtons = [];
         currentButtons.forEach(function(btn) {
-            // Убеждаемся, что кнопка имеет tabindex перед добавлением
-            var isHidden = btn.hasClass('hidden');
-            if (!btn.attr('tabindex')) {
-                btn.attr('tabindex', isHidden ? '-1' : '0');
-            }
-            // Добавляем role для Android TV
-            if (!btn.attr('role')) {
-                btn.attr('role', 'button');
-            }
-            // Устанавливаем на нативном элементе для Android 9 и Tizen
-            var nativeBtn = btn[0];
-            if (nativeBtn) {
-                nativeBtn.setAttribute('tabindex', isHidden ? '-1' : '0');
-                if (!isHidden && !nativeBtn.hasAttribute('role')) {
-                    nativeBtn.setAttribute('role', 'button');
-                }
-            }
             targetContainer.append(btn);
             if (!btn.hasClass('hidden')) visibleButtons.push(btn);
         });
@@ -316,47 +320,6 @@
             targetContainer.append(editBtn);
         }
         applyHiddenButtons(currentButtons);
-        
-        // КРИТИЧНО для Tizen: принудительно регистрируем все кнопки после добавления в DOM
-        setTimeout(function() {
-            var allButtonsInDom = targetContainer.find('.full-start__button.selector');
-            allButtonsInDom.each(function() {
-                var $btn = $(this);
-                var nativeBtn = $btn[0];
-                if (nativeBtn && nativeBtn.isConnected && !$btn.hasClass('hidden')) {
-                    nativeBtn.setAttribute('tabindex', '0');
-                    if (!nativeBtn.hasAttribute('role')) {
-                        nativeBtn.setAttribute('role', 'button');
-                    }
-                    if (!nativeBtn.classList.contains('selector')) {
-                        nativeBtn.classList.add('selector');
-                    }
-                }
-            });
-            
-            // Пробуем уведомить Lampa о новых элементах через события
-            if (Lampa.Listener && typeof Lampa.Listener.send === 'function') {
-                try {
-                    Lampa.Listener.send('full_start', { type: 'buttons_updated' });
-                } catch(e) {}
-            }
-        }, 10);
-        
-        // Обновляем tabindex для скрытых кнопок (Tizen и Android)
-        currentButtons.forEach(function(btn) {
-            var isHidden = btn.hasClass('hidden');
-            if (isHidden) {
-                btn.attr('tabindex', '-1');
-            } else {
-                btn.attr('tabindex', '0');
-            }
-            // Обновляем на нативном элементе для Android 9
-            var nativeBtn = btn[0];
-            if (nativeBtn) {
-                nativeBtn.setAttribute('tabindex', isHidden ? '-1' : '0');
-            }
-        });
-        
         var viewmode = Lampa.Storage.get('buttons_viewmode', 'default');
         targetContainer.removeClass('icons-only always-text');
         if (viewmode === 'icons') targetContainer.addClass('icons-only');
@@ -365,14 +328,8 @@
         setTimeout(function() {
             if (currentContainer) {
                 setupButtonNavigation(currentContainer);
-                // Дополнительный вызов для надежности на старых устройствах (Tizen и Android)
-                setTimeout(function() {
-                    if (currentContainer) {
-                        setupButtonNavigation(currentContainer);
-                    }
-                }, 150);
             }
-        }, 150);
+        }, 100);
     }
 
     function capitalize(str) {
@@ -586,19 +543,7 @@
             onBack: function() {
                 Lampa.Modal.close();
                 applyChanges();
-                // Восстанавливаем навигацию после закрытия редактора
-                // Используем стандартный метод для всех устройств
-                setTimeout(function() {
-                    if (Lampa.Controller && typeof Lampa.Controller.toggle === 'function') {
-                        try {
-                            Lampa.Controller.toggle('full_start');
-                        } catch(e) {}
-                    }
-                    // Дополнительно обновляем навигацию для текущего контейнера
-                    if (currentContainer) {
-                        setupButtonNavigation(currentContainer);
-                    }
-                }, 100);
+                Lampa.Controller.toggle('full_start');
             }
         });
     }
@@ -606,12 +551,6 @@
     function reorderButtons(container) {
         var targetContainer = container.find('.full-start-new__buttons');
         if (!targetContainer.length) return false;
-        
-        // Добавляем класс для старых Tizen устройств
-        if (isOldTizen()) {
-            targetContainer.addClass('tizen-old');
-        }
-        
         currentContainer = container;
         container.find('.button--play, .button--edit-order').remove();
         var categories = categorizeButtons(container);
@@ -667,14 +606,6 @@
                 if (!$btn.hasClass('selector')) {
                     $btn.addClass('selector');
                 }
-                // Для совместимости со старыми Tizen и Android устройствами
-                if (!$btn.attr('tabindex')) {
-                    $btn.attr('tabindex', '0');
-                }
-                // Добавляем role для Android TV
-                if (!$btn.attr('role')) {
-                    $btn.attr('role', 'button');
-                }
             });
             var uniqueButtons = [];
             seenIds = {};
@@ -697,399 +628,55 @@
             allButtons = sortByCustomOrder(uniqueButtons);
             currentButtons = allButtons;
         }
-        // Для Tizen: пробуем не использовать detach, чтобы сохранить связи с контроллером
-        // Сначала проверяем, все ли кнопки уже на месте
-        var needsReorder = false;
-        var currentOrder = [];
-        targetContainer.find('.full-start__button').not('.button--edit-order').each(function(index) {
-            currentOrder.push(getButtonId($(this)));
+        targetContainer.children().detach();
+        var visibleButtons = [];
+        currentButtons.forEach(function(btn) {
+            targetContainer.append(btn);
+            if (!btn.hasClass('hidden')) visibleButtons.push(btn);
         });
-        for (var i = 0; i < currentButtons.length; i++) {
-            if (i >= currentOrder.length || getButtonId(currentButtons[i]) !== currentOrder[i]) {
-                needsReorder = true;
-                break;
-            }
-        }
-        
-        if (needsReorder) {
-            // Используем detach только если действительно нужно изменить порядок
-            targetContainer.children().detach();
-            var visibleButtons = [];
-            currentButtons.forEach(function(btn, index) {
-                // Убеждаемся, что кнопка имеет tabindex перед добавлением
-                var isHidden = btn.hasClass('hidden');
-                if (!btn.attr('tabindex')) {
-                    btn.attr('tabindex', isHidden ? '-1' : '0');
-                }
-                // Добавляем role для Android TV
-                if (!btn.attr('role')) {
-                    btn.attr('role', 'button');
-                }
-                // Устанавливаем на нативном элементе для Android 9 и Tizen
-                var nativeBtn = btn[0];
-                if (nativeBtn) {
-                    nativeBtn.setAttribute('tabindex', isHidden ? '-1' : '0');
-                    if (!isHidden && !nativeBtn.hasAttribute('role')) {
-                        nativeBtn.setAttribute('role', 'button');
-                    }
-                    // Добавляем data-атрибут для отслеживания порядка
-                    nativeBtn.setAttribute('data-button-index', index);
-                }
-                targetContainer.append(btn);
-                if (!btn.hasClass('hidden')) visibleButtons.push(btn);
-            });
-        } else {
-            // Если порядок правильный, просто обновляем атрибуты
-            var visibleButtons = [];
-            currentButtons.forEach(function(btn, index) {
-                var isHidden = btn.hasClass('hidden');
-                if (!btn.attr('tabindex')) {
-                    btn.attr('tabindex', isHidden ? '-1' : '0');
-                }
-                if (!btn.attr('role')) {
-                    btn.attr('role', 'button');
-                }
-                var nativeBtn = btn[0];
-                if (nativeBtn) {
-                    nativeBtn.setAttribute('tabindex', isHidden ? '-1' : '0');
-                    if (!isHidden && !nativeBtn.hasAttribute('role')) {
-                        nativeBtn.setAttribute('role', 'button');
-                    }
-                    nativeBtn.setAttribute('data-button-index', index);
-                }
-                if (!btn.hasClass('hidden')) visibleButtons.push(btn);
-            });
-        }
         var editButton = createEditButton();
         targetContainer.append(editButton);
         visibleButtons.push(editButton);
-        // Устанавливаем tabindex для кнопки редактирования
-        if (!editButton.attr('tabindex')) {
-            editButton.attr('tabindex', '0');
-        }
-        // Убеждаемся, что нативный элемент тоже имеет атрибуты
-        var nativeEditBtn = editButton[0];
-        if (nativeEditBtn) {
-            nativeEditBtn.setAttribute('tabindex', '0');
-            if (!nativeEditBtn.hasAttribute('role')) {
-                nativeEditBtn.setAttribute('role', 'button');
-            }
-        }
         applyHiddenButtons(currentButtons);
-        
-        // КРИТИЧНО для Tizen: принудительно регистрируем все кнопки после добавления в DOM
-        // Ждем, пока DOM обновится
-        setTimeout(function() {
-            var allButtonsInDom = targetContainer.find('.full-start__button.selector');
-            allButtonsInDom.each(function() {
-                var $btn = $(this);
-                var nativeBtn = $btn[0];
-                if (nativeBtn && nativeBtn.isConnected) {
-                    // Принудительно устанавливаем все атрибуты на нативном элементе
-                    if (!$btn.hasClass('hidden')) {
-                        nativeBtn.setAttribute('tabindex', '0');
-                        if (!nativeBtn.hasAttribute('role')) {
-                            nativeBtn.setAttribute('role', 'button');
-                        }
-                        // Убеждаемся, что класс selector есть
-                        if (!nativeBtn.classList.contains('selector')) {
-                            nativeBtn.classList.add('selector');
-                        }
-                    }
-                }
-            });
-            
-            // Пробуем уведомить Lampa о новых элементах через события
-            if (Lampa.Listener && typeof Lampa.Listener.send === 'function') {
-                try {
-                    Lampa.Listener.send('full_start', { type: 'buttons_updated' });
-                } catch(e) {}
-            }
-            
-            // Альтернативный способ: триггерим событие на контейнере
-            try {
-                var event = new Event('buttonsUpdated', { bubbles: true, cancelable: true });
-                targetContainer[0].dispatchEvent(event);
-            } catch(e) {
-                // Fallback для старых браузеров
-                try {
-                    var evt = document.createEvent('Event');
-                    evt.initEvent('buttonsUpdated', true, true);
-                    targetContainer[0].dispatchEvent(evt);
-                } catch(e2) {}
-            }
-        }, 10);
-        
-        // Обновляем tabindex для скрытых кнопок (Tizen и Android)
-        currentButtons.forEach(function(btn) {
-            var isHidden = btn.hasClass('hidden');
-            if (isHidden) {
-                btn.attr('tabindex', '-1');
-            } else {
-                btn.attr('tabindex', '0');
-            }
-            // Обновляем на нативном элементе для Android 9
-            var nativeBtn = btn[0];
-            if (nativeBtn) {
-                nativeBtn.setAttribute('tabindex', isHidden ? '-1' : '0');
-            }
-        });
-        
         var viewmode = Lampa.Storage.get('buttons_viewmode', 'default');
         targetContainer.removeClass('icons-only always-text');
         if (viewmode === 'icons') targetContainer.addClass('icons-only');
         if (viewmode === 'always') targetContainer.addClass('always-text');
         applyButtonAnimation(visibleButtons);
-        
-            // Увеличиваем задержку для старых устройств (Tizen и Android) и вызываем навигацию несколько раз
-        // Для Tizen важно дать время DOM обновиться после detach/append
-        var isOldDevice = isOldTizen();
-        var delay = isOldDevice ? 200 : 100;
-        
         setTimeout(function() {
-            // Сначала убеждаемся, что все элементы в DOM и имеют правильные атрибуты
-            var allButtonsInDom = targetContainer.find('.full-start__button.selector');
-            allButtonsInDom.each(function() {
-                var $btn = $(this);
-                var nativeBtn = $btn[0];
-                if (nativeBtn && nativeBtn.isConnected && !$btn.hasClass('hidden')) {
-                    nativeBtn.setAttribute('tabindex', '0');
-                    if (!nativeBtn.hasAttribute('role')) {
-                        nativeBtn.setAttribute('role', 'button');
-                    }
-                }
-            });
-            
             setupButtonNavigation(container);
-            // Дополнительный вызов только для старых устройств
-            if (isOldDevice) {
-                setTimeout(function() {
-                    setupButtonNavigation(container);
-                }, 200);
-            }
-        }, delay);
+        }, 100);
         return true;
     }
 
     window.reorderButtons = reorderButtons;
 
     function setupButtonNavigation(container) {
-        if (!container) return;
-        
-        // Убеждаемся, что все кнопки имеют необходимые атрибуты для навигации
-        var buttons = container.find('.full-start__button.selector');
-        buttons.each(function() {
-            var $btn = $(this);
-            var isHidden = $btn.hasClass('hidden');
-            var nativeBtn = $btn[0];
-            
-            // Устанавливаем tabindex для навигации (Tizen и Android TV)
-            if (isHidden) {
-                $btn.attr('tabindex', '-1');
-                if (nativeBtn) nativeBtn.setAttribute('tabindex', '-1');
-            } else {
-                $btn.attr('tabindex', '0');
-                if (nativeBtn) nativeBtn.setAttribute('tabindex', '0');
-            }
-            
-            // Добавляем role="button" для Android TV и accessibility
-            if (!$btn.attr('role')) {
-                $btn.attr('role', 'button');
-                if (nativeBtn && !nativeBtn.hasAttribute('role')) {
-                    nativeBtn.setAttribute('role', 'button');
-                }
-            }
-            
-            // Для Tizen важно, чтобы элемент был видимым в DOM и имел правильные атрибуты
-            if (nativeBtn && !isHidden) {
-                // Убеждаемся, что элемент действительно в DOM
-                if (!nativeBtn.isConnected) {
-                    console.warn('Button not connected to DOM:', nativeBtn);
-                }
-                // Принудительно устанавливаем атрибуты на нативном элементе
-                nativeBtn.setAttribute('tabindex', '0');
-                if (!nativeBtn.hasAttribute('role')) {
-                    nativeBtn.setAttribute('role', 'button');
-                }
-            }
-        });
-        
-        // Определяем, нужно ли использовать агрессивные методы (только для старых Tizen)
-        var useAggressiveMethods = isOldTizen();
-        
-        // Для Tizen: пробуем разные способы обновления навигации
-        if (Lampa.Controller) {
-            // Метод 1: toggle (стандартный) - используется везде
-            if (typeof Lampa.Controller.toggle === 'function') {
-                try {
-                    Lampa.Controller.toggle('full_start');
-                } catch(e) {
-                    if (useAggressiveMethods) {
-                        console.warn('Controller.toggle failed:', e);
-                    }
-                }
-            }
-            
-            // Агрессивные методы только для старых Tizen
-            if (useAggressiveMethods) {
-                // Метод 2: enable (для старых устройств)
-                if (typeof Lampa.Controller.enable === 'function') {
-                    try {
-                        Lampa.Controller.enable('full_start');
-                    } catch(e) {
-                        console.warn('Controller.enable failed:', e);
-                    }
-                }
-                
-                // Метод 3: disable и enable для принудительного обновления (Tizen)
-                if (typeof Lampa.Controller.disable === 'function' && typeof Lampa.Controller.enable === 'function') {
-                    try {
-                        Lampa.Controller.disable('full_start');
-                        setTimeout(function() {
-                            Lampa.Controller.enable('full_start');
-                        }, 10);
-                    } catch(e) {
-                        console.warn('Controller disable/enable failed:', e);
-                    }
-                }
-                
-                // Метод 4: trigger событие для пересканирования (если доступно)
-                if (typeof Lampa.Listener === 'object' && Lampa.Listener.send) {
-                    try {
-                        Lampa.Listener.send('controller', { type: 'update', name: 'full_start' });
-                    } catch(e) {}
-                }
-                
-                // Метод 5 для Tizen: пробуем найти и вызвать методы регистрации элементов напрямую
-                // Некоторые версии Lampa могут иметь методы для явной регистрации
-                if (Lampa.Controller) {
-                    // Пробуем разные возможные методы
-                    var possibleMethods = ['register', 'add', 'refresh', 'reload', 'scan', 'update'];
-                    for (var i = 0; i < possibleMethods.length; i++) {
-                        var methodName = possibleMethods[i];
-                        if (typeof Lampa.Controller[methodName] === 'function') {
-                            try {
-                                Lampa.Controller[methodName]('full_start');
-                            } catch(e) {}
-                        }
-                    }
-                }
-                
-                // Метод 6 для Tizen: пробуем принудительно установить фокус на первый элемент
-                // Это может помочь контроллеру "увидеть" элементы
-                setTimeout(function() {
-                    var firstButton = container.find('.full-start__button.selector').not('.hidden').first();
-                    if (firstButton.length) {
-                        var firstNative = firstButton[0];
-                        if (firstNative) {
-                            try {
-                                // Не устанавливаем фокус, но проверяем, что элемент доступен
-                                firstNative.setAttribute('tabindex', '0');
-                                firstNative.setAttribute('role', 'button');
-                            } catch(e) {}
-                        }
-                    }
-                }, 50);
-            }
-        }
-        
-        // Принудительное обновление навигации через таймауты (только для старых Tizen)
-        if (useAggressiveMethods) {
-            setTimeout(function() {
-                // Повторная установка атрибутов на нативных элементах
-                buttons.each(function() {
-                    var $btn = $(this);
-                    var nativeBtn = $btn[0];
-                    if (nativeBtn && !$btn.hasClass('hidden')) {
-                        nativeBtn.setAttribute('tabindex', '0');
-                        if (!nativeBtn.hasAttribute('role')) {
-                            nativeBtn.setAttribute('role', 'button');
-                        }
-                    }
-                });
-                
-                // Повторный вызов toggle
-                if (Lampa.Controller && typeof Lampa.Controller.toggle === 'function') {
-                    try {
-                        Lampa.Controller.toggle('full_start');
-                    } catch(e) {}
-                }
-            }, 100);
-            
-            // Еще один вызов для надежности на Tizen
-            setTimeout(function() {
-                if (Lampa.Controller && typeof Lampa.Controller.toggle === 'function') {
-                    try {
-                        Lampa.Controller.toggle('full_start');
-                    } catch(e) {}
-                }
-            }, 300);
+        if (Lampa.Controller && typeof Lampa.Controller.toggle === 'function') {
+            try {
+                Lampa.Controller.toggle('full_start');
+            } catch(e) {}
         }
     }
 
     function refreshController() {
-        if (!Lampa.Controller) return;
-        
-        // Множественные попытки обновления для старых устройств
-        var attempts = 0;
-        var maxAttempts = 3;
-        
-        function tryRefresh() {
-            attempts++;
+        if (!Lampa.Controller || typeof Lampa.Controller.toggle !== 'function') return;
+        setTimeout(function() {
             try {
-                if (typeof Lampa.Controller.toggle === 'function') {
-                    Lampa.Controller.toggle('full_start');
-                }
-                if (typeof Lampa.Controller.enable === 'function') {
-                    Lampa.Controller.enable('full_start');
-                }
+                Lampa.Controller.toggle('full_start');
                 if (currentContainer) {
-                    setupButtonNavigation(currentContainer);
+                    setTimeout(function() {
+                        setupButtonNavigation(currentContainer);
+                    }, 100);
                 }
-                // Повторяем попытку для надежности на старых устройствах
-                if (attempts < maxAttempts) {
-                    setTimeout(tryRefresh, 100 * attempts);
-                }
-            } catch(e) {
-                if (attempts < maxAttempts) {
-                    setTimeout(tryRefresh, 100 * attempts);
-                }
-            }
-        }
-        
-        setTimeout(tryRefresh, 50);
-    }
-
-    // Определяем, является ли устройство старым Tizen
-    function isOldTizen() {
-        try {
-            var userAgent = navigator.userAgent || '';
-            if (userAgent.indexOf('Tizen') !== -1) {
-                // Tizen 2018 обычно имеет версию 4.0 или ниже
-                var tizenVersionMatch = userAgent.match(/Tizen\/(\d+)/);
-                if (tizenVersionMatch && parseInt(tizenVersionMatch[1]) <= 4) {
-                    return true;
-                }
-                // Также проверяем по другим признакам
-                if (userAgent.indexOf('Tizen 3') !== -1 || userAgent.indexOf('Tizen 2') !== -1) {
-                    return true;
-                }
-            }
-        } catch(e) {}
-        return false;
+            } catch(e) {}
+        }, 50);
     }
 
     function init() {
-        var oldTizen = isOldTizen();
-        
         var style = $('<style>' +
             '@keyframes button-fade-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }' +
-            // Для старых Tizen не устанавливаем opacity: 0 по умолчанию, чтобы не блокировать навигацию
             '.full-start-new__buttons .full-start__button { opacity: 0; }' +
-            // Переопределение для старых Tizen - элементы должны быть видимыми сразу
-            '@media screen and (-webkit-min-device-pixel-ratio: 0) { ' +
-            '  .full-start-new__buttons.tizen-old .full-start__button { opacity: 1 !important; animation: none !important; } ' +
-            '}' +
             '.full-start__button.hidden { display: none !important; }' +
             '.full-start-new__buttons { ' +
             'display: flex !important; ' +
@@ -1098,20 +685,6 @@
             'gap: 0.5em !important; ' +
             '}' +
             '.full-start-new__buttons.buttons-loading .full-start__button { visibility: hidden !important; }' +
-            // Для старых Tizen: убеждаемся, что элементы доступны для навигации даже во время загрузки
-            '.full-start-new__buttons.tizen-old.buttons-loading .full-start__button.selector { visibility: visible !important; opacity: 1 !important; }' +
-            // КРИТИЧНО для старых Tizen: элементы с opacity: 0 могут быть недоступны для навигации
-            '.full-start-new__buttons.tizen-old .full-start__button.selector { opacity: 1 !important; animation: none !important; pointer-events: auto !important; }' +
-            // Переопределяем начальное правило opacity: 0 для старых Tizen
-            '.full-start-new__buttons.tizen-old .full-start__button { opacity: 1 !important; }' +
-            // Улучшенная поддержка фокуса для старых Tizen и Android устройств
-            '.full-start__button.selector { outline: none !important; }' +
-            '.full-start__button.selector:focus { outline: 2px solid rgba(255,255,255,0.8) !important; outline-offset: 2px !important; }' +
-            '.full-start__button.selector[tabindex="0"] { cursor: pointer; }' +
-            '.full-start__button.selector[tabindex="-1"] { pointer-events: none; }' +
-            // Дополнительная поддержка для Android TV
-            '.full-start__button.selector[role="button"] { -webkit-tap-highlight-color: transparent; }' +
-            '.full-start__button.selector[role="button"]:focus-visible { outline: 2px solid rgba(255,255,255,0.8) !important; }' +
             '.folder-reset-button { background: rgba(200,100,100,0.3); margin-top: 1em; border-radius: 0.3em; }' +
             '.folder-reset-button.focus { border: 3px solid rgba(255,255,255,0.8); }' +
             '.menu-edit-list__toggle.focus { border: 2px solid rgba(255,255,255,0.8); border-radius: 0.3em; }' +
@@ -1127,12 +700,6 @@
             if (e.type !== 'complite') return;
             var container = e.object.activity.render();
             var targetContainer = container.find('.full-start-new__buttons');
-            
-            // Добавляем класс для старых Tizen устройств
-            if (oldTizen && targetContainer.length) {
-                targetContainer.addClass('tizen-old');
-            }
-            
             if (targetContainer.length) {
                 targetContainer.addClass('buttons-loading');
             }
