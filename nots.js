@@ -3,16 +3,24 @@
 
   Lampa.Platform.tv();
 
-  // Удаляем существующие карточки с качеством "ts"
+  // Функция очистки TS (оптимизированная)
   function clearTS(forceToggle) {
-    // Ищем элементы качества, содержащие "ts", и удаляем всю карточку
-    $('.card__quality > div:contains("ts")')
-      .parent()
-      .parent()
-      .parent()
-      .remove();
+    // Используем querySelectorAll вместо jQuery для скорости
+    // Ищем все карточки
+    var cards = document.querySelectorAll('.card');
+    
+    for (var i = 0; i < cards.length; i++) {
+      var card = cards[i];
+      // Проверяем, не удалена ли уже карточка, чтобы избежать ошибок
+      if (!card.isConnected) continue;
 
-    // Если передан параметр — принудительно переключаем视图 (как в оригинале)
+      var quality = card.querySelector('.card__quality');
+      // Проверяем текст
+      if (quality && quality.textContent.toLowerCase().indexOf('ts') !== -1) {
+        card.remove();
+      }
+    }
+
     if (forceToggle) {
       Lampa.Controller.toggle('head');
       Lampa.Controller.toggle('content');
@@ -22,21 +30,25 @@
   // Отслеживаем динамическое добавление карточек
   function watchTS() {
     const observer = new MutationObserver((mutations) => {
-      for (const mutation of mutations) {
-        if (mutation.type === 'childList') {
-          mutation.addedNodes.forEach((node) => {
-            if (
-              node.nodeType === 1 && 
-              node.classList.contains('card') &&
-              node.textContent.toLowerCase().includes('ts')
-            ) {
-              node.remove();
-            }
-          });
+      // Используем requestAnimationFrame, чтобы не вешать UI
+      requestAnimationFrame(() => {
+        var needCheck = false;
+        
+        // Проверяем mutations, чтобы не запускать поиск попусту
+        for (const mutation of mutations) {
+          if (mutation.addedNodes.length) {
+            needCheck = true;
+            break;
+          }
         }
-      }
+
+        if (needCheck) {
+          clearTS();
+        }
+      });
     });
 
+    // Наблюдаем только за body, но не анализируем каждый узел внутри
     observer.observe(document.body, {
       childList: true,
       subtree: true
@@ -60,12 +72,13 @@
   // Запускаем, когда приложение готово
   if (window.appready) {
     watchTS();
-    clearTS(true);
+    // Небольшая задержка, чтобы первый рендер успел произойти
+    setTimeout(function(){ clearTS(true); }, 500);
   } else {
     Lampa.Listener.follow('app', (e) => {
       if (e.type === 'ready') {
         watchTS();
-        clearTS(true);
+        setTimeout(function(){ clearTS(true); }, 500);
       }
     });
   }
