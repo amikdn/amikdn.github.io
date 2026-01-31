@@ -352,12 +352,11 @@
                 else if ($(card).find('.card__type, .card__temp').text().match(/(сезон|серия|эпизод|ТВ|TV)/i)) isTV = true;
             }
 
+            // ИСПРАВЛЕНИЕ: Если это не сериал (фильм), выходим и не добавляем лейбл
+            if (!isTV) return;
+
             var lbl = $('<div class="content-label"></div>');
-            if (isTV) {
-                lbl.addClass('serial-label').text('Сериал').data('type', 'serial');
-            } else {
-                lbl.addClass('movie-label').text('Фильм').data('type', 'movie');
-            }
+            lbl.addClass('serial-label').text('Сериал').data('type', 'serial');
             view.append(lbl);
         }
 
@@ -374,17 +373,17 @@
                 var isTV = m.number_of_seasons > 0 || m.seasons || m.type === 'tv';
                 if (InterFaceMod.settings.show_movie_type) {
                     poster.find('.content-label').remove();
-                    var lbl = $('<div class="content-label"></div>').css({
-                        position: 'absolute', top: '1.4em', left: '-0.8em',
-                        color: 'white', padding: '0.4em', borderRadius: '0.3em',
-                        fontSize: '0.8em', zIndex: 10
-                    });
+                    
+                    // ИСПРАВЛЕНИЕ: Добавляем лейбл только если это сериал
                     if (isTV) {
+                        var lbl = $('<div class="content-label"></div>').css({
+                            position: 'absolute', top: '1.4em', left: '-0.8em',
+                            color: 'white', padding: '0.4em', borderRadius: '0.3em',
+                            fontSize: '0.8em', zIndex: 10
+                        });
                         lbl.addClass('serial-label').text('Сериал').css('backgroundColor', '#3498db');
-                    } else {
-                        lbl.addClass('movie-label').text('Фильм').css('backgroundColor', '#2ecc71');
+                        poster.css('position', 'relative').append(lbl);
                     }
-                    poster.css('position', 'relative').append(lbl);
                 }
             }
         });
@@ -532,7 +531,7 @@
                 }
                 .head__action.focus, .head__action.hover {
                     background: linear-gradient(45deg, #ff6e7f, #bfe9ff);
-                    color: #2d1f3d;
+                    color: '#2d1f3d';
                 }
                 .full-start__background {
                     opacity: 0.8;
