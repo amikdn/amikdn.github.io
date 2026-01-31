@@ -3,7 +3,7 @@
 
   var Defined = {
     api: 'lampac',
-    localhost: 'https://claba.ru/',
+    localhost: 'http://sw.ekb-its.ru/',
     apn: ''
   };
 
@@ -28,7 +28,7 @@
   }
 }
 
-var hostkey = 'https://claba.ru'.replace('http://', '').replace('https://', '');
+var hostkey = 'http://sw.ekb-its.ru'.replace('http://', '').replace('https://', '');
 
 if (!window.rch_nws || !window.rch_nws[hostkey]) {
   if (!window.rch_nws) window.rch_nws = {};
@@ -53,7 +53,7 @@ window.rch_nws[hostkey].typeInvoke = function rchtypeInvoke(host, call) {
     if (Lampa.Platform.is('android') || Lampa.Platform.is('tizen')) check(true);
     else {
       var net = new Lampa.Reguest();
-      net.silent('https://claba.ru'.indexOf(location.host) >= 0 ? 'https://github.com/' : host + '/cors/check', function() {
+      net.silent('http://sw.ekb-its.ru'.indexOf(location.host) >= 0 ? 'https://github.com/' : host + '/cors/check', function() {
         check(true);
       }, function() {
         check(false);
@@ -65,7 +65,7 @@ window.rch_nws[hostkey].typeInvoke = function rchtypeInvoke(host, call) {
 };
 
 window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection) {
-  window.rch_nws[hostkey].typeInvoke('https://claba.ru', function() {
+  window.rch_nws[hostkey].typeInvoke('http://sw.ekb-its.ru', function() {
 
     client.invoke("RchRegistry", JSON.stringify({
       version: 149,
@@ -115,7 +115,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
                 client.invoke("RchResult", rchId, html);
               } else {
                 $.ajax({
-                  url: 'https://claba.ru/rch/gzresult?id=' + rchId,
+                  url: 'http://sw.ekb-its.ru/rch/gzresult?id=' + rchId,
                   type: 'POST',
                   data: compressedArray,
                   async: true,
@@ -172,7 +172,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
     });
   });
 };
-  window.rch_nws[hostkey].typeInvoke('https://claba.ru', function() {});
+  window.rch_nws[hostkey].typeInvoke('http://sw.ekb-its.ru', function() {});
 
   function rchInvoke(json, call) {
     if (window.nwsClient && window.nwsClient[hostkey] && window.nwsClient[hostkey]._shouldReconnect){
@@ -195,7 +195,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
 
   function rchRun(json, call) {
     if (typeof NativeWsClient == 'undefined') {
-      Lampa.Utils.putScript(["https://claba.ru/js/nws-client-es5.js?v18112025"], function() {}, false, function() {
+      Lampa.Utils.putScript(["http://sw.ekb-its.ru/js/nws-client-es5.js?v18112025"], function() {}, false, function() {
         rchInvoke(json, call);
       }, true);
     } else {
@@ -218,7 +218,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
       if (token != '') url = Lampa.Utils.addUrlComponent(url, 'token=');
     }
     if (url.indexOf('nws_id=') == -1 && window.rch_nws && window.rch_nws[hostkey]) {
-      var nws_id = window.rch_nws[hostkey].connectionId || Lampa.Storage.get('lampac_nws_id', '');
+      var nws_id = window.rch_nws[hostkey].connectionId || '';
       if (nws_id) url = Lampa.Utils.addUrlComponent(url, 'nws_id=' + encodeURIComponent(nws_id));
     }
     return url;
@@ -258,7 +258,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
 	
     if (balansers_with_search == undefined) {
       network.timeout(10000);
-      network.silent(account('https://claba.ru/lite/withsearch'), function(json) {
+      network.silent(account('http://sw.ekb-its.ru/lite/withsearch'), function(json) {
         balansers_with_search = json;
       }, function() {
 		  balansers_with_search = [];
@@ -790,7 +790,7 @@ else if (element.url) {
   if (false) {
     if (Platform.is('browser') && location.host.indexOf("127.0.0.1") !== -1) {
       Noty.show('Видео открыто в playerInner', {time: 3000});
-      $.get('https://claba.ru/player-inner/' + element.url);
+      $.get('http://sw.ekb-its.ru/player-inner/' + element.url);
       return;
     }
 
