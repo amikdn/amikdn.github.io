@@ -303,7 +303,19 @@
     }, 400);
   }
 
-  // Сохранить новый парсер и обновить список: закрыть модалку, один раз назад, затем открыть экран торрентов заново (без кэша) — навигация и список сохраняются
+  // Убрать текущий экран из стека Lampa (один раз назад), затем открыть экран торрентов заново — в стеке только один экран торрентов
+  function goBackOnceThenPush(cleanActivity) {
+    var back = typeof Lampa.Activity.back === 'function' ? Lampa.Activity.back : function () { window.history.back(); };
+    back();
+    setTimeout(function () {
+      Lampa.Activity.push(cleanActivity);
+      setTimeout(addParserFilterButton, 500);
+      setTimeout(addParserFilterButton, 1200);
+      scheduleParserButtonAfterChange();
+    }, 350);
+  }
+
+  // Сохранить новый парсер и обновить список: закрыть модалку, один раз назад (убрать экран торрентов), затем открыть экран торрентов заново — кнопка добавляется
   function applyParserAndRefreshTorrents(item, currentActivity) {
     Lampa.Storage.set('jackett_url', item.url);
     Lampa.Storage.set('jackett_urltwo', item.url_two);
@@ -328,12 +340,7 @@
     var hasActivity = Object.keys(cleanActivity).length > 0;
 
     if (hasActivity) {
-      window.history.back();
-      setTimeout(function () {
-        Lampa.Activity.push(cleanActivity);
-        setTimeout(addParserFilterButton, 200);
-        scheduleParserButtonAfterChange();
-      }, 300);
+      goBackOnceThenPush(cleanActivity);
     } else {
       addParserFilterButton();
       scheduleParserButtonAfterChange();
