@@ -147,7 +147,7 @@
       name: 'jackett_urltwo',
       type: 'select',
       values: selectValues,
-      default: 'jacred_xyz',
+      default: 'jacred_pro',
     },
     field: {
       name: `<div class="settings-folder" style="padding:0!important">
