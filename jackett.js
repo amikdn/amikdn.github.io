@@ -7,7 +7,7 @@
   Lampa.Storage.set('parser_use', true);
 
   // Список предустановленных Jackett-серверов
-  const servers = [
+  var servers = [
     {
       id: 'lampa_jackett',
       name: 'Lampa Jackett',
@@ -41,14 +41,6 @@
       lang: 'lg',
     },
     {
-      id: 'jacred_viewbox_dev',
-      name: 'Viewbox',
-      baseUrl: 'jacred.viewbox.dev',
-      key: 'viewbox',
-      interview: 'all',
-      lang: 'lg',
-    },
-    {
       id: 'jacred_pro',
       name: 'RU Jacred Pro',
       baseUrl: 'ru.jacred.pro',
@@ -76,7 +68,7 @@
 
   // Применение конфигурации выбранного сервера
   function applyServerConfig() {
-    const selected = Lampa.Storage.get('jackett_urltwo');
+    var selected = Lampa.Storage.get('jackett_urltwo');
 
     if (selected === 'no_parser') {
       Lampa.Storage.set('jackett_url', '');
@@ -87,7 +79,7 @@
       return;
     }
 
-    const server = servers.find(s => s.id === selected);
+    var server = servers.find(s => s.id === selected);
     if (server) {
       Lampa.Storage.set('jackett_url', server.baseUrl);
       Lampa.Storage.set('jackett_key', server.key);
@@ -97,12 +89,16 @@
     }
   }
 
-  // Проверка статуса сервера
+  // Проверка статуса сервера (freebie_tom_ru всегда считается рабочим)
   function checkServerStatus(server, callback) {
-    const protocol = server.baseUrl === 'jr.maxvol.pro' ? 'https://' : 'http://';
-    const url = `${protocol}${server.baseUrl}/api/v2.0/indexers/status:healthy/results?apikey=${server.key}`;
+    if (server.id === 'freebie_tom_ru') {
+      callback(server, true, 200);
+      return;
+    }
+    var protocol = server.baseUrl === 'jr.maxvol.pro' ? 'https://' : 'http://';
+    var url = `${protocol}${server.baseUrl}/api/v2.0/indexers/status:healthy/results?apikey=${server.key}`;
 
-    const xhr = new XMLHttpRequest();
+    var xhr = new XMLHttpRequest();
     xhr.timeout = 3000;
     xhr.open('GET', url, true);
     xhr.send();
@@ -120,15 +116,19 @@
       }
 
       servers.forEach((server, index) => {
-        const selector = `body > div.selectbox > div.selectbox__content.layer--height > div.selectbox__body.layer--wheight > div > div > div > div:nth-child(${index + 2}) > div`;
-        const element = $(selector);
+        var selector = `body > div.selectbox > div.selectbox__content.layer--height > div.selectbox__body.layer--wheight > div > div > div > div:nth-child(${index + 2}) > div`;
+        var element = $(selector);
 
         if (element.text().trim() === server.name) {
+          if (server.id === 'freebie_tom_ru') {
+            element.html('✓&nbsp;&nbsp;' + server.name).css('color', '64e364');
+            return;
+          }
           checkServerStatus(server, (srv, ok, status) => {
             if (ok) {
               element.html('✓&nbsp;&nbsp;' + srv.name).css('color', '64e364');
             } else {
-              const color = status === 401 ? '000' : 'ff2121';
+              var color = status === 401 ? '000' : 'ff2121';
               element.html('✗&nbsp;&nbsp;' + srv.name).css('color', color);
             }
           });
@@ -138,7 +138,7 @@
   }
 
   // Добавление параметра выбора сервера в настройки парсера
-  const selectValues = { no_parser: 'Свой вариант' };
+  var selectValues = { no_parser: 'Свой вариант' };
   servers.forEach(s => (selectValues[s.id] = s.name));
 
   Lampa.SettingsApi.addParam({
@@ -171,7 +171,7 @@
         </div>
         <div style="font-size:1.0em">
           <div style="padding: 0.3em 0.3em; padding-top: 0;">
-            <div style="background: #d99821; padding: 0.5em; border-radius: 0.4em;">
+            <div style="background: #1a7fd4; padding: 0.5em; border-radius: 0.4em;">
               <div style="line-height: 0.3;">Выбрать парсер</div>
             </div>
           </div>
@@ -218,7 +218,7 @@
   function addParserFilterButton() {
     if (document.querySelector('.filter--parser')) return;
 
-    const button = document.createElement('div');
+    var button = document.createElement('div');
     button.className = 'simple-button simple-button--filter selector filter--parser';
     button.innerHTML = `
       <svg width="24" height="24" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
@@ -243,27 +243,27 @@
 
     $(button).on('hover:enter', showServerSwitchMenu);
 
-    const filterContainer = document.querySelector('.torrent-filter');
+    var filterContainer = document.querySelector('.torrent-filter');
     if (filterContainer) {
-      const sortButton = filterContainer.querySelector('.filter--sort');
+      var sortButton = filterContainer.querySelector('.filter--sort');
       sortButton ? filterContainer.insertBefore(button, sortButton) : filterContainer.appendChild(button);
     }
   }
 
   // Текущее название парсера для кнопки
   function getCurrentParserName() {
-    const selected = Lampa.Storage.get('jackett_urltwo');
+    var selected = Lampa.Storage.get('jackett_urltwo');
     if (selected === 'no_parser') return 'Свой';
-    const server = servers.find(s => s.id === selected);
+    var server = servers.find(s => s.id === selected);
     return server ? server.name : 'Не выбран';
   }
 
-  // Проверка статуса всех серверов для меню
+  // Проверка статуса всех серверов для меню (freebie_tom_ru всегда зелёный)
   async function checkAllServers() {
-    return Promise.all(servers.map(server => 
+    return Promise.all(servers.map(server =>
       new Promise(resolve => {
         checkServerStatus(server, (srv, ok) => {
-          srv.title = ok 
+          srv.title = ok
             ? `<span style="color:#64e364">✓&nbsp;&nbsp;${srv.name}</span>`
             : `<span style="color:#ff2121">✗&nbsp;&nbsp;${srv.name}</span>`;
           resolve(srv);
@@ -272,21 +272,49 @@
     ));
   }
 
-  // Меню смены парсера (при пустом результате или по кнопке)
-  async function showServerSwitchMenu() {
-    const checkedServers = await checkAllServers();
-    const currentActivity = Lampa.Storage.get('activity');
+  // Общие данные для меню смены парсера
+  function getServerSelectItem(s) {
+    return {
+      title: s.title || s.name,
+      url: s.baseUrl,
+      url_two: s.id,
+      jac_key: s.key,
+      jac_int: s.interview,
+      jac_lang: s.lang,
+    };
+  }
 
+  // Меню смены парсера: сначала показываем окно, затем проверяем парсеры
+  async function showServerSwitchMenu() {
+    var currentActivity = Lampa.Storage.get('activity');
+
+    var showCheckedList = (checkedServers) => {
+      Lampa.Select.show({
+        title: 'Меню смены парсера',
+        items: checkedServers.map(s => getServerSelectItem(s)),
+        onBack: () => Lampa.Controller.toggle(Lampa.Controller.enabled().name),
+        onSelect: (item) => {
+          Lampa.Storage.set('jackett_url', item.url);
+          Lampa.Storage.set('jackett_urltwo', item.url_two);
+          Lampa.Storage.set('jackett_key', item.jac_key);
+          Lampa.Storage.set('jackett_interview', item.jac_int);
+          Lampa.Storage.set('parse_lang', item.jac_lang);
+          Lampa.Storage.set('parse_in_search', true);
+
+          var nameEl = document.getElementById('current-parser-name');
+          if (nameEl) nameEl.textContent = getCurrentParserName();
+
+          setTimeout(() => window.history.back(), 1000);
+          setTimeout(() => Lampa.Activity.push(currentActivity), 2000);
+          setTimeout(addParserFilterButton, 2500);
+        },
+      });
+    };
+
+    // Сразу показываем окно со списком парсеров (без статусов)
     Lampa.Select.show({
       title: 'Меню смены парсера',
-      items: checkedServers.map(s => ({
-        title: s.title,
-        url: s.baseUrl,
-        url_two: s.id,
-        jac_key: s.key,
-        jac_int: s.interview,
-        jac_lang: s.lang,
-      })),
+      items: servers.map(s => getServerSelectItem({ ...s, title: `Проверка... ${s.name}` })),
       onBack: () => Lampa.Controller.toggle(Lampa.Controller.enabled().name),
       onSelect: (item) => {
         Lampa.Storage.set('jackett_url', item.url);
@@ -296,19 +324,21 @@
         Lampa.Storage.set('parse_lang', item.jac_lang);
         Lampa.Storage.set('parse_in_search', true);
 
-        // Обновляем название на кнопке
-        const nameEl = document.getElementById('current-parser-name');
+        var nameEl = document.getElementById('current-parser-name');
         if (nameEl) nameEl.textContent = getCurrentParserName();
 
-        // Перезагружаем активность
         setTimeout(() => window.history.back(), 1000);
         setTimeout(() => Lampa.Activity.push(currentActivity), 2000);
+        setTimeout(addParserFilterButton, 2500);
       },
     });
+
+    var checkedServers = await checkAllServers();
+    showCheckedList(checkedServers);
   }
 
   // Observer для показа меню при пустом результате поиска торрентов
-  let emptyObserver = null;
+  var emptyObserver = null;
 
   function startEmptyObserver() {
     stopEmptyObserver();
@@ -332,16 +362,17 @@
   Lampa.Storage.listener.follow('change', (e) => {
     // Показ/скрытие параметра
     if (e.name === 'parser_torrent_type') {
-      const el = $('div[data-name="jackett_urltwo"]');
+      var el = $('div[data-name="jackett_urltwo"]');
       if (e.value !== 'jackett') el.hide();
       else el.show().insertAfter('div[data-name="parser_torrent_type"]');
     }
 
-    // Вход в торренты — добавляем кнопку и observer
+    // Вход в торренты — добавляем кнопку и observer (несколько попыток, чтобы кнопка не пропадала после смены парсера)
     if (e.name === 'activity') {
       if (Lampa.Activity.active().component === 'torrents') {
         startEmptyObserver();
         setTimeout(addParserFilterButton, 100);
+        setTimeout(addParserFilterButton, 800);
       } else {
         stopEmptyObserver();
       }
@@ -349,7 +380,7 @@
 
     // Обновляем название кнопки
     if (e.name === 'jackett_urltwo') {
-      const nameEl = document.getElementById('current-parser-name');
+      var nameEl = document.getElementById('current-parser-name');
       if (nameEl) nameEl.textContent = getCurrentParserName();
     }
   });
@@ -362,7 +393,7 @@
   });
 
   // Дефолтные настройки при первом запуске
-  const initInterval = setInterval(() => {
+  var initInterval = setInterval(() => {
     if (typeof Lampa !== 'undefined') {
       clearInterval(initInterval);
       if (!Lampa.Storage.get('jack', false)) {
