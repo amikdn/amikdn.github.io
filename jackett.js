@@ -214,9 +214,11 @@
     }
   });
 
-  // Добавление кнопки "Парсер" в фильтры торрентов
+  // Добавление кнопки "Парсер" в фильтры торрентов (проверяем наличие внутри текущего .torrent-filter, а не во всём документе)
   function addParserFilterButton() {
-    if (document.querySelector('.filter--parser')) return;
+    var filterContainer = document.querySelector('.torrent-filter');
+    if (!filterContainer) return;
+    if (filterContainer.querySelector('.filter--parser')) return;
 
     var button = document.createElement('div');
     button.className = 'simple-button simple-button--filter selector filter--parser';
@@ -243,11 +245,8 @@
 
     $(button).on('hover:enter', showServerSwitchMenu);
 
-    var filterContainer = document.querySelector('.torrent-filter');
-    if (filterContainer) {
-      var sortButton = filterContainer.querySelector('.filter--sort');
-      sortButton ? filterContainer.insertBefore(button, sortButton) : filterContainer.appendChild(button);
-    }
+    var sortButton = filterContainer.querySelector('.filter--sort');
+    sortButton ? filterContainer.insertBefore(button, sortButton) : filterContainer.appendChild(button);
   }
 
   // Текущее название парсера для кнопки
@@ -303,19 +302,7 @@
     }, 400);
   }
 
-  // Убрать текущий экран из стека Lampa (один раз назад), затем открыть экран торрентов заново — в стеке только один экран торрентов
-  function goBackOnceThenPush(cleanActivity) {
-    var back = typeof Lampa.Activity.back === 'function' ? Lampa.Activity.back : function () { window.history.back(); };
-    back();
-    setTimeout(function () {
-      Lampa.Activity.push(cleanActivity);
-      setTimeout(addParserFilterButton, 500);
-      setTimeout(addParserFilterButton, 1200);
-      scheduleParserButtonAfterChange();
-    }, 350);
-  }
-
-  // Сохранить новый парсер и обновить список: закрыть модалку, один раз назад (убрать экран торрентов), затем открыть экран торрентов заново — кнопка добавляется
+  // Заменить текущий экран торрентов на тот же экран без кэша (replace) или back+push
   function applyParserAndRefreshTorrents(item, currentActivity) {
     Lampa.Storage.set('jackett_url', item.url);
     Lampa.Storage.set('jackett_urltwo', item.url_two);
@@ -331,7 +318,7 @@
 
     var act = currentActivity && typeof currentActivity === 'object' ? currentActivity : Lampa.Storage.get('activity');
     var cleanActivity = {};
-    var skipKeys = { torrents: 1, results: 1, list: 1, data: 1, items: 1, cache: 1 };
+    var skipKeys = { torrents: 1, results: 1, list: 1, data: 1, items: 1, cache: 1, _cache: 1, _data: 1, state: 1, torrentList: 1, torrent_list: 1 };
     if (act && typeof act === 'object') {
       for (var k in act) {
         if (act.hasOwnProperty(k) && !skipKeys[k]) cleanActivity[k] = act[k];
@@ -339,12 +326,36 @@
     }
     var hasActivity = Object.keys(cleanActivity).length > 0;
 
-    if (hasActivity) {
-      goBackOnceThenPush(cleanActivity);
-    } else {
-      addParserFilterButton();
+    function addButtonDelayed() {
+      setTimeout(addParserFilterButton, 300);
+      setTimeout(addParserFilterButton, 800);
+      setTimeout(addParserFilterButton, 1500);
       scheduleParserButtonAfterChange();
     }
+
+    if (!hasActivity) {
+      addParserFilterButton();
+      scheduleParserButtonAfterChange();
+      return;
+    }
+
+    if (typeof Lampa.Activity.replace === 'function') {
+      Lampa.Activity.replace(cleanActivity);
+      addButtonDelayed();
+      return;
+    }
+    if (typeof Lampa.Activity.replaceWith === 'function') {
+      Lampa.Activity.replaceWith(cleanActivity);
+      addButtonDelayed();
+      return;
+    }
+
+    var back = typeof Lampa.Activity.back === 'function' ? Lampa.Activity.back : function () { window.history.back(); };
+    back();
+    setTimeout(function () {
+      Lampa.Activity.push(cleanActivity);
+      addButtonDelayed();
+    }, 400);
   }
 
   // Меню смены парсера: та же логика, что в настройках — сначала окно, затем проверка парсеров
