@@ -175,62 +175,65 @@ Lampa.Platform.tv();
 
   /** Находит пункт меню по action и кликает. Ищет только внутри левого меню (sidebar). */
   function findAndClickMenuItem(action){
-    var root = getLeftMenuRoot();
-    var list = root ? root.querySelectorAll('.menu__item[data-action], .menu__item[data-id], .selector[data-action], .selector[data-id], .menu__item, .selector') : [];
-    for(var i = 0; i < list.length; i++){
-      var el = list[i];
-      var v = (el.getAttribute && el.getAttribute('data-action')) || (el.getAttribute && el.getAttribute('data-id'));
-      if(v && v === action){
-        triggerClick(el);
-        return true;
+    try{
+      var root = getLeftMenuRoot();
+      var list = root && root.querySelectorAll ? root.querySelectorAll('.menu__item[data-action], .menu__item[data-id], .selector[data-action], .selector[data-id], .menu__item, .selector') : [];
+      for(var i = 0; i < list.length; i++){
+        var el = list[i];
+        var v = (el && el.getAttribute && (el.getAttribute('data-action') || el.getAttribute('data-id'))) || '';
+        if(v && v === action){ triggerClick(el); return true; }
       }
-    }
-    for(var j = 0; j < list.length; j++){
-      var el2 = list[j];
-      var nameEl = el2.querySelector('.menu__text, .selector__text, .selector-title');
-      var text = nameEl ? nameEl.textContent.trim() : (el2.textContent || '').trim().replace(/\s+/g, ' ');
-      if(text && text === action){
-        triggerClick(el2);
-        return true;
+      for(var j = 0; j < list.length; j++){
+        var el2 = list[j];
+        var nameEl = el2 && el2.querySelector ? el2.querySelector('.menu__text, .selector__text, .selector-title') : null;
+        var text = (nameEl && nameEl.textContent ? nameEl.textContent.trim() : (el2.textContent || '').trim().replace(/\s+/g, ' ')) || '';
+        if(text && text === action){ triggerClick(el2); return true; }
       }
-    }
+    } catch(e){}
     return false;
   }
 
   function emulateSidebarClick(action){
-    if(!action) return false;
-    if(typeof Lampa !== 'undefined' && Lampa.Go){
-      try{ Lampa.Go(action); return true; } catch(e){}
-    }
-    if(findAndClickMenuItem(action)) return true;
-    setTimeout(function(){
-      if(!findAndClickMenuItem(action)){
-        var byAttr = document.querySelectorAll('.menu__item[data-action], .menu__item[data-id], .selector[data-action], .selector[data-id]');
-        for(var a = 0; a < byAttr.length; a++){
-          var el = byAttr[a];
-          var v = el.getAttribute('data-action') || el.getAttribute('data-id');
-          if(v && v === action){ triggerClick(el); return; }
-        }
-        var byText = document.querySelectorAll('.menu__item, .selector');
-        for(var b = 0; b < byText.length; b++){
-          var el2 = byText[b];
-          var nameEl = el2.querySelector('.menu__text, .selector__text, .selector-title');
-          var text = nameEl ? nameEl.textContent.trim() : (el2.textContent || '').trim().replace(/\s+/g, ' ');
-          if(text && text === action){ triggerClick(el2); return; }
-        }
+    try{
+      if(!action) return false;
+      if(typeof Lampa !== 'undefined' && Lampa.Go){
+        try{ Lampa.Go(action); return true; } catch(e){}
       }
-    }, 280);
-    return true;
+      if(findAndClickMenuItem(action)) return true;
+      setTimeout(function(){
+        try{
+          if(findAndClickMenuItem(action)) return;
+          var byAttr = document.querySelectorAll('.menu__item[data-action], .menu__item[data-id], .selector[data-action], .selector[data-id]');
+          for(var a = 0; a < byAttr.length; a++){
+            var el = byAttr[a];
+            if(!el || !el.getAttribute) continue;
+            var v = el.getAttribute('data-action') || el.getAttribute('data-id');
+            if(v && v === action){ triggerClick(el); return; }
+          }
+          var byText = document.querySelectorAll('.menu__item, .selector');
+          for(var b = 0; b < byText.length; b++){
+            var el2 = byText[b];
+            if(!el2) continue;
+            var nameEl = el2.querySelector ? el2.querySelector('.menu__text, .selector__text, .selector-title') : null;
+            var text = (nameEl && nameEl.textContent ? nameEl.textContent.trim() : (el2.textContent || '').trim().replace(/\s+/g, ' ')) || '';
+            if(text && text === action){ triggerClick(el2); return; }
+          }
+        } catch(e){}
+      }, 280);
+      return true;
+    } catch(e){ return false; }
   }
 
   /** Контейнер только левого меню Lampa (боковая панель). Не ищем в других разделах. */
   function getLeftMenuRoot(){
-    var sidebarMenu = document.querySelector('.sidebar .menu, .sidebar .selector');
-    if(sidebarMenu) return sidebarMenu.parentElement;
-    var sidebar = document.querySelector('.sidebar, .sidebar__body');
-    if(sidebar) return sidebar;
-    var menu = document.querySelector('.menu');
-    return menu || null;
+    try{
+      var sidebarMenu = document.querySelector('.sidebar .menu, .sidebar .selector');
+      if(sidebarMenu && sidebarMenu.parentElement) return sidebarMenu.parentElement;
+      var sidebar = document.querySelector('.sidebar, .sidebar__body');
+      if(sidebar) return sidebar;
+      var menu = document.querySelector('.menu');
+      return menu || null;
+    } catch(e){ return null; }
   }
 
   /** Собирает пункты только из левого меню Lampa (sidebar). Другие разделы не сканируются. */
@@ -376,7 +379,9 @@ Lampa.Platform.tv();
     if(search) bar.insertBefore(div, search);
     else bar.appendChild(div);
 
-    div.addEventListener('click', function(){ emulateSidebarClick(div.getAttribute('data-action')); });
+    div.addEventListener('click', function(){
+      try{ emulateSidebarClick(div.getAttribute('data-action')); } catch(e){}
+    });
 
     var timer;
     function start(){
