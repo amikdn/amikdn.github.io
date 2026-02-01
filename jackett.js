@@ -147,7 +147,7 @@
       name: 'jackett_urltwo',
       type: 'select',
       values: selectValues,
-      default: 'jacred_pro',
+      default: 'jacred_xyz',
     },
     field: {
       name: `<div class="settings-folder" style="padding:0!important">
@@ -284,12 +284,23 @@
     };
   }
 
-  // Несколько попыток добавить кнопку парсера после смены парсера (список торрентов обновляется асинхронно)
+  // После смены парсера периодически пробуем добавить кнопку, пока список торрентов не обновится
+  var parserButtonRetryInterval = null;
+
   function scheduleParserButtonAfterChange() {
-    var delays = [2000, 3000, 4000, 5000, 6000, 8000];
-    delays.forEach(function (delay) {
-      setTimeout(addParserFilterButton, delay);
-    });
+    if (parserButtonRetryInterval) clearInterval(parserButtonRetryInterval);
+    var attempts = 0;
+    var maxAttempts = 40; // 40 * 400ms = 16 сек
+    parserButtonRetryInterval = setInterval(function () {
+      addParserFilterButton();
+      attempts++;
+      if (document.querySelector('.filter--parser') || attempts >= maxAttempts) {
+        if (parserButtonRetryInterval) {
+          clearInterval(parserButtonRetryInterval);
+          parserButtonRetryInterval = null;
+        }
+      }
+    }, 400);
   }
 
   // Меню смены парсера: та же логика, что в настройках — сначала окно, затем проверка парсеров
@@ -319,11 +330,10 @@
       });
     };
 
-    // Та же логика, что и в настройках парсера: сначала окно, затем проверка
-    // Сразу показываем окно со списком парсеров (без статусов)
+    // Как в настройках: список парсеров белым, после проверки — зелёный/красный (без надписи «Проверка»)
     Lampa.Select.show({
       title: 'Меню смены парсера',
-      items: servers.map(function (s) { return getServerSelectItem(s, 'Проверка... ' + s.name); }),
+      items: servers.map(function (s) { return getServerSelectItem(s); }),
       onBack: function () { Lampa.Controller.toggle(Lampa.Controller.enabled().name); },
       onSelect: function (item) {
         Lampa.Storage.set('jackett_url', item.url);
