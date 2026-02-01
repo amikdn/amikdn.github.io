@@ -323,8 +323,8 @@
           var nameEl = document.getElementById('current-parser-name');
           if (nameEl) nameEl.textContent = getCurrentParserName();
 
-          setTimeout(function () { window.history.back(); }, 1000);
-          setTimeout(function () { Lampa.Activity.push(currentActivity); }, 2000);
+          Lampa.Controller.toggle(Lampa.Controller.enabled().name);
+          addParserFilterButton();
           scheduleParserButtonAfterChange();
         },
       });
@@ -346,8 +346,8 @@
         var nameEl = document.getElementById('current-parser-name');
         if (nameEl) nameEl.textContent = getCurrentParserName();
 
-        setTimeout(function () { window.history.back(); }, 1000);
-        setTimeout(function () { Lampa.Activity.push(currentActivity); }, 2000);
+        Lampa.Controller.toggle(Lampa.Controller.enabled().name);
+        addParserFilterButton();
         scheduleParserButtonAfterChange();
       },
     });
