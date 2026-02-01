@@ -303,6 +303,43 @@
     }, 400);
   }
 
+  // Сохранить новый парсер и обновить список торрентов (перезапуск экрана без кэша старого парсера)
+  function applyParserAndRefreshTorrents(item, currentActivity) {
+    Lampa.Storage.set('jackett_url', item.url);
+    Lampa.Storage.set('jackett_urltwo', item.url_two);
+    Lampa.Storage.set('jackett_key', item.jac_key);
+    Lampa.Storage.set('jackett_interview', item.jac_int);
+    Lampa.Storage.set('parse_lang', item.jac_lang);
+    Lampa.Storage.set('parse_in_search', true);
+
+    var nameEl = document.getElementById('current-parser-name');
+    if (nameEl) nameEl.textContent = getCurrentParserName();
+
+    Lampa.Controller.toggle(Lampa.Controller.enabled().name);
+
+    var act = currentActivity && typeof currentActivity === 'object' ? currentActivity : Lampa.Storage.get('activity');
+    var cleanActivity = {};
+    var skipKeys = { torrents: 1, results: 1, list: 1, data: 1, items: 1, cache: 1 };
+    if (act && typeof act === 'object') {
+      for (var k in act) {
+        if (act.hasOwnProperty(k) && !skipKeys[k]) cleanActivity[k] = act[k];
+      }
+    }
+    var hasActivity = Object.keys(cleanActivity).length > 0;
+
+    if (hasActivity) {
+      setTimeout(function () { window.history.back(); }, 150);
+      setTimeout(function () {
+        Lampa.Activity.push(cleanActivity);
+        addParserFilterButton();
+        scheduleParserButtonAfterChange();
+      }, 400);
+    } else {
+      addParserFilterButton();
+      scheduleParserButtonAfterChange();
+    }
+  }
+
   // Меню смены парсера: та же логика, что в настройках — сначала окно, затем проверка парсеров
   async function showServerSwitchMenu() {
     var currentActivity = Lampa.Storage.get('activity');
@@ -313,19 +350,7 @@
         items: checkedServers.map(function (s) { return getServerSelectItem(s); }),
         onBack: function () { Lampa.Controller.toggle(Lampa.Controller.enabled().name); },
         onSelect: function (item) {
-          Lampa.Storage.set('jackett_url', item.url);
-          Lampa.Storage.set('jackett_urltwo', item.url_two);
-          Lampa.Storage.set('jackett_key', item.jac_key);
-          Lampa.Storage.set('jackett_interview', item.jac_int);
-          Lampa.Storage.set('parse_lang', item.jac_lang);
-          Lampa.Storage.set('parse_in_search', true);
-
-          var nameEl = document.getElementById('current-parser-name');
-          if (nameEl) nameEl.textContent = getCurrentParserName();
-
-          Lampa.Controller.toggle(Lampa.Controller.enabled().name);
-          addParserFilterButton();
-          scheduleParserButtonAfterChange();
+          applyParserAndRefreshTorrents(item, currentActivity);
         },
       });
     };
@@ -336,19 +361,7 @@
       items: servers.map(function (s) { return getServerSelectItem(s); }),
       onBack: function () { Lampa.Controller.toggle(Lampa.Controller.enabled().name); },
       onSelect: function (item) {
-        Lampa.Storage.set('jackett_url', item.url);
-        Lampa.Storage.set('jackett_urltwo', item.url_two);
-        Lampa.Storage.set('jackett_key', item.jac_key);
-        Lampa.Storage.set('jackett_interview', item.jac_int);
-        Lampa.Storage.set('parse_lang', item.jac_lang);
-        Lampa.Storage.set('parse_in_search', true);
-
-        var nameEl = document.getElementById('current-parser-name');
-        if (nameEl) nameEl.textContent = getCurrentParserName();
-
-        Lampa.Controller.toggle(Lampa.Controller.enabled().name);
-        addParserFilterButton();
-        scheduleParserButtonAfterChange();
+        applyParserAndRefreshTorrents(item, currentActivity);
       },
     });
 
