@@ -32,7 +32,7 @@ Lampa.Platform.tv();
     '  border-color: rgba(255,255,255,0.25) !important; box-shadow: inset 0 0 8px rgba(0,0,0,0.6) !important; transform: translateY(-3px);',
     '}',
     '.navigation-bar__icon { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; margin-bottom: 2px !important; }',
-    '.navigation-bar__icon svg { width: 26px !important; height: 26px !important; fill: currentColor; }',
+    '.navigation-bar__icon svg { width: 26px !important; height: 26px !important; }',
     '.navigation-bar__label {',
     '  font-size: 10px !important; color: #fff !important; opacity: 0.95 !important; white-space: nowrap !important;',
     '  overflow: hidden !important; text-overflow: ellipsis !important; width: 100% !important; text-align: center !important;',
@@ -77,7 +77,7 @@ Lampa.Platform.tv();
     '.phone-menu-picker-grid .picker-item { display: flex; flex-direction: column; align-items: center; cursor: pointer; padding: 8px; border-radius: 10px; transition: background 0.2s; }',
     '.phone-menu-picker-grid .picker-item:hover { background: rgba(255,255,255,0.1); }',
     '.phone-menu-picker-grid .picker-icon-wrap { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; margin-bottom: 6px; }',
-    '.phone-menu-picker-grid .picker-icon-wrap svg { width: 40px; height: 40px; fill: currentColor; }',
+    '.phone-menu-picker-grid .picker-icon-wrap svg { width: 40px; height: 40px; }',
     '.phone-menu-picker-grid .picker-name { font-size: 11px; color: #fff; text-align: center; word-break: break-word; }',
     '.phone-menu-picker-reset { grid-column: 1 / -1; text-align: center; padding: 12px; cursor: pointer; color: #ff5555; font-size: 14px; }',
     '@media (min-width: 360px) {',
@@ -104,6 +104,29 @@ Lampa.Platform.tv();
 
   var $  = function(s,r){ r = r || document; return r.querySelector(s); };
   var $$ = function(s,r){ r = r || document; var n = r.querySelectorAll(s); return Array.prototype.slice.call(n); };
+
+  /** Разворачивает <use xlink:href="#sprite-..."> в полный inline SVG, чтобы иконка отображалась в Storage Manager и не заливалась белым. */
+  function resolveSvgToInline(svgString){
+    if(!svgString || typeof svgString !== 'string') return svgString;
+    if(svgString.indexOf('xlink:href') === -1 && svgString.indexOf('href="#') === -1) return svgString;
+    var div = document.createElement('div');
+    div.innerHTML = svgString;
+    var useEl = div.querySelector('use');
+    if(!useEl) return svgString;
+    var href = useEl.getAttribute('xlink:href') || useEl.getAttribute('href') || '';
+    if(href.indexOf('#') !== 0) return svgString;
+    var id = href.slice(1);
+    var sym = document.getElementById(id);
+    if(!sym) return svgString;
+    var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    var vb = sym.getAttribute('viewBox') || '0 0 24 24';
+    svg.setAttribute('viewBox', vb);
+    svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+    var children = [];
+    for(var k = 0; k < sym.childNodes.length; k++) children.push(sym.childNodes[k]);
+    for(var k = 0; k < children.length; k++) svg.appendChild(children[k].cloneNode(true));
+    return svg.outerHTML;
+  }
 
   function injectCSS(){
     if(!$('#menu-glass-auto-style')){
@@ -245,6 +268,7 @@ Lampa.Platform.tv();
         if(firstSvg) svg = firstSvg.outerHTML;
       }
       if(!svg) svg = fallbackSvg;
+      svg = resolveSvgToInline(svg) || svg;
       out.push({ name: name || key, action: key, svg: svg });
     }
 
@@ -273,10 +297,11 @@ Lampa.Platform.tv();
       if(opt.action !== '_'){
         (function(o, a, s, n){
           item.addEventListener('click', function(){
+            var svgToSave = resolveSvgToInline(s) || s;
             div.setAttribute('data-action', a);
             localStorage.setItem('bottom_bar_' + position + '_action', a);
-            iconEl.innerHTML = s;
-            localStorage.setItem('bottom_bar_' + position + '_svg', s);
+            iconEl.innerHTML = svgToSave;
+            localStorage.setItem('bottom_bar_' + position + '_svg', svgToSave);
             labelEl.textContent = n;
             localStorage.setItem('bottom_bar_' + position + '_name', n);
             if(overlay.parentNode) overlay.parentNode.removeChild(overlay);
@@ -292,10 +317,11 @@ Lampa.Platform.tv();
     reset.className = 'phone-menu-picker-reset';
     reset.textContent = 'Сбросить на стандарт';
     reset.addEventListener('click', function(){
+      var defaultSvgResolved = resolveSvgToInline(defaultSvg) || defaultSvg;
       div.setAttribute('data-action', defaultAction);
       localStorage.removeItem('bottom_bar_' + position + '_action');
-      iconEl.innerHTML = defaultSvg;
-      localStorage.removeItem('bottom_bar_' + position + '_svg');
+      iconEl.innerHTML = defaultSvgResolved;
+      localStorage.setItem('bottom_bar_' + position + '_svg', defaultSvgResolved);
       labelEl.textContent = defaultName;
       localStorage.removeItem('bottom_bar_' + position + '_name');
       if(overlay.parentNode) overlay.parentNode.removeChild(overlay);
@@ -334,6 +360,7 @@ Lampa.Platform.tv();
     var savedAction = localStorage.getItem('bottom_bar_' + position + '_action') || defaultAction;
     var savedSvg = localStorage.getItem('bottom_bar_' + position + '_svg') || defaultSvg;
     var savedName = localStorage.getItem('bottom_bar_' + position + '_name') || defaultName;
+    savedSvg = resolveSvgToInline(savedSvg) || savedSvg;
 
     var div = document.createElement('div');
     div.className = 'navigation-bar__item';
