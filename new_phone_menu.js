@@ -114,21 +114,93 @@ Lampa.Platform.tv();
     }
   }
 
-  function emulateSidebarClick(action){
-    var byAttr = $$('.menu__item[data-action], .menu__item[data-id], .selector[data-action], .selector[data-id], [data-action], [data-id]');
-    for(var a = 0; a < byAttr.length; a++){
-      var el = byAttr[a];
-      var v = (el.dataset && el.dataset.action) || (el.dataset && el.dataset.id) || el.getAttribute('data-action') || el.getAttribute('data-id');
-      if(v && v === action){ el.click(); return true; }
+  /** Пытается открыть боковое меню Lampa (клик по кнопке меню в шапке). */
+  function openSidebarIfClosed(){
+    var menuBtn = document.querySelector('.head__menu, .header__menu, [data-action="menu"], .sidebar__toggle, .drawer__toggle, .head__action[data-action="menu"], .drawer .head__action');
+    if(menuBtn){
+      triggerClick(menuBtn);
+      return true;
     }
-    var byText = $$('.menu__item, .selector');
-    for(var b = 0; b < byText.length; b++){
-      var el2 = byText[b];
-      var nameEl = el2.querySelector('.menu__text, .selector__text, .selector-title, [class*="text"]');
-      var text = (nameEl && nameEl.textContent && nameEl.textContent.trim()) || (el2.textContent || '').trim().replace(/\s+/g, ' ');
-      if(text && text === action){ el2.click(); return true; }
+    var headActions = document.querySelectorAll('.head__action');
+    for(var i = 0; i < headActions.length; i++){
+      var node = headActions[i];
+      if(node.className && node.className.indexOf('navigation-bar') !== -1) continue;
+      var act = node.getAttribute('data-action');
+      if(act === 'menu' || act === 'sidebar'){
+        triggerClick(node);
+        return true;
+      }
+    }
+    var firstHeadAction = document.querySelector('.head__actions .head__action:not(.navigation-bar__item)');
+    if(firstHeadAction){
+      triggerClick(firstHeadAction);
+      return true;
     }
     return false;
+  }
+
+  /** Симулирует реальный клик (для приложений, которые не реагируют на .click()). */
+  function triggerClick(el){
+    if(!el) return;
+    try{
+      el.click();
+    } catch(e){}
+    try{
+      var ev = document.createEvent('MouseEvents');
+      ev.initMouseEvent('click', true, true, window, 1, 0, 0, 0, 0, false, false, false, false, 0, null);
+      el.dispatchEvent(ev);
+    } catch(e){}
+  }
+
+  /** Находит пункт меню по action и кликает. Ищет только внутри левого меню (sidebar). */
+  function findAndClickMenuItem(action){
+    var root = getLeftMenuRoot();
+    var list = root ? root.querySelectorAll('.menu__item[data-action], .menu__item[data-id], .selector[data-action], .selector[data-id], .menu__item, .selector') : [];
+    for(var i = 0; i < list.length; i++){
+      var el = list[i];
+      var v = (el.getAttribute && el.getAttribute('data-action')) || (el.getAttribute && el.getAttribute('data-id'));
+      if(v && v === action){
+        triggerClick(el);
+        return true;
+      }
+    }
+    for(var j = 0; j < list.length; j++){
+      var el2 = list[j];
+      var nameEl = el2.querySelector('.menu__text, .selector__text, .selector-title');
+      var text = nameEl ? nameEl.textContent.trim() : (el2.textContent || '').trim().replace(/\s+/g, ' ');
+      if(text && text === action){
+        triggerClick(el2);
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function emulateSidebarClick(action){
+    if(!action) return false;
+    if(typeof Lampa !== 'undefined' && Lampa.Go){
+      try{ Lampa.Go(action); return true; } catch(e){}
+    }
+    if(findAndClickMenuItem(action)) return true;
+    openSidebarIfClosed();
+    setTimeout(function(){
+      if(!findAndClickMenuItem(action)){
+        var byAttr = document.querySelectorAll('.menu__item[data-action], .menu__item[data-id], .selector[data-action], .selector[data-id]');
+        for(var a = 0; a < byAttr.length; a++){
+          var el = byAttr[a];
+          var v = el.getAttribute('data-action') || el.getAttribute('data-id');
+          if(v && v === action){ triggerClick(el); return; }
+        }
+        var byText = document.querySelectorAll('.menu__item, .selector');
+        for(var b = 0; b < byText.length; b++){
+          var el2 = byText[b];
+          var nameEl = el2.querySelector('.menu__text, .selector__text, .selector-title');
+          var text = nameEl ? nameEl.textContent.trim() : (el2.textContent || '').trim().replace(/\s+/g, ' ');
+          if(text && text === action){ triggerClick(el2); return; }
+        }
+      }
+    }, 280);
+    return true;
   }
 
   /** Иконка-заглушка для пунктов без своей иконки (плагины) */
