@@ -31,8 +31,9 @@ Lampa.Platform.tv();
     '  background: linear-gradient(to top, rgba(100,100,100,0.45), rgba(40,40,45,0.35)) !important;',
     '  border-color: rgba(255,255,255,0.25) !important; box-shadow: inset 0 0 8px rgba(0,0,0,0.6) !important; transform: translateY(-3px);',
     '}',
-    '.navigation-bar__icon { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; margin-bottom: 2px !important; }',
-    '.navigation-bar__icon svg { width: 26px !important; height: 26px !important; }',
+    '.navigation-bar__icon { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; margin-bottom: 2px !important; color: rgba(255,255,255,0.9); }',
+    '.navigation-bar__icon svg { width: 26px !important; height: 26px !important; fill: currentColor; }',
+    '.navigation-bar__icon svg [fill="none"] { fill: none !important; }',
     '.navigation-bar__label {',
     '  font-size: 10px !important; color: #fff !important; opacity: 0.95 !important; white-space: nowrap !important;',
     '  overflow: hidden !important; text-overflow: ellipsis !important; width: 100% !important; text-align: center !important;',
@@ -56,8 +57,8 @@ Lampa.Platform.tv();
     '    background: transparent !important; border: none !important; box-shadow: none !important; border-radius: 0 !important;',
     '    margin: 0 10px !important; padding: 0 !important; transition: transform .2s ease !important; align-self: center !important; }',
     '  .navigation-bar__item:hover, .navigation-bar__item.active { background: transparent !important; transform: scale(1.15); }',
-    '  .navigation-bar__icon { width: 20px !important; height: 20px !important; margin-bottom: 0 !important; padding: 0 !important; }',
-    '  .navigation-bar__icon svg { width: 20px !important; height: 20px !important; }',
+    '  .navigation-bar__icon { width: 20px !important; height: 20px !important; margin-bottom: 0 !important; padding: 0 !important; color: rgba(255,255,255,0.9); }',
+    '  .navigation-bar__icon svg { width: 20px !important; height: 20px !important; fill: currentColor; }',
     '  .navigation-bar__label { display: none !important; }',
     '}',
     '.phone-menu-picker-overlay {',
@@ -76,8 +77,9 @@ Lampa.Platform.tv();
     '.phone-menu-picker-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; overflow-y: auto; padding: 4px; flex: 1; min-height: 100px; -webkit-overflow-scrolling: touch; }',
     '.phone-menu-picker-grid .picker-item { display: flex; flex-direction: column; align-items: center; cursor: pointer; padding: 8px; border-radius: 10px; transition: background 0.2s; }',
     '.phone-menu-picker-grid .picker-item:hover { background: rgba(255,255,255,0.1); }',
-    '.phone-menu-picker-grid .picker-icon-wrap { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; margin-bottom: 6px; }',
-    '.phone-menu-picker-grid .picker-icon-wrap svg { width: 40px; height: 40px; }',
+    '.phone-menu-picker-grid .picker-icon-wrap { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; margin-bottom: 6px; color: rgba(255,255,255,0.9); }',
+    '.phone-menu-picker-grid .picker-icon-wrap svg { width: 40px; height: 40px; fill: currentColor; }',
+    '.phone-menu-picker-grid .picker-icon-wrap svg [fill="none"] { fill: none !important; }',
     '.phone-menu-picker-grid .picker-name { font-size: 11px; color: #fff; text-align: center; word-break: break-word; }',
     '.phone-menu-picker-reset { grid-column: 1 / -1; text-align: center; padding: 12px; cursor: pointer; color: #ff5555; font-size: 14px; }',
     '@media (min-width: 360px) {',
@@ -116,23 +118,13 @@ Lampa.Platform.tv();
     try{ return decodeURIComponent(escape(atob(val.slice(4)))); } catch(e){ return val; }
   }
 
-  /** Внутри иконок — прозрачно (fill: none), обводка — цвет из меню Lampa. */
-  function applyMenuColorToSvg(svgString, iconElement){
-    if(!svgString || !iconElement) return svgString;
-    var color = '';
+  /** Цвет иконок из левого меню Lampa (для currentColor в SVG). */
+  function getMenuIconColor(){
     try{
-      color = window.getComputedStyle(iconElement).color;
-      if(!color && iconElement.querySelector) color = window.getComputedStyle(iconElement.querySelector('svg') || iconElement).color;
+      var ico = document.querySelector('.menu__ico, .selector__ico');
+      if(ico) return window.getComputedStyle(ico).color;
     } catch(e){}
-    var s = svgString
-      .replace(/\bfill=["']currentColor["']/gi, 'fill="none"')
-      .replace(/\bfill=currentColor\b/gi, 'fill="none"');
-    if(color){
-      s = s
-        .replace(/\bstroke=["']currentColor["']/gi, 'stroke="' + color + '"')
-        .replace(/\bstroke=currentColor\b/gi, 'stroke="' + color + '"');
-    }
-    return s;
+    return '';
   }
 
   /** Разворачивает <use xlink:href="#sprite-..."> в полный inline SVG. */
@@ -270,7 +262,6 @@ Lampa.Platform.tv();
       }
       if(!svg) return;
       svg = resolveSvgToInline(svg) || svg;
-      svg = applyMenuColorToSvg(svg, ico || el);
       out.push({ name: name || key, action: key, svg: svg });
     }
 
@@ -346,6 +337,8 @@ Lampa.Platform.tv();
 
     var grid = document.createElement('div');
     grid.className = 'phone-menu-picker-grid';
+    var pickerColor = getMenuIconColor();
+    if(pickerColor) grid.style.color = pickerColor;
     var options = collectMenuSections();
     if(options.length === 0) return;
     renderOptionsGrid(grid, options, position, div, iconEl, labelEl, overlay, defaultAction, defaultSvg, defaultName);
@@ -363,8 +356,6 @@ Lampa.Platform.tv();
     var savedSvg = svgFromStorage(localStorage.getItem('bottom_bar_' + position + '_svg') || defaultSvg);
     var savedName = localStorage.getItem('bottom_bar_' + position + '_name') || defaultName;
     savedSvg = resolveSvgToInline(savedSvg) || savedSvg;
-    var menuIco = document.querySelector('.menu__ico, .selector__ico');
-    if(menuIco) savedSvg = applyMenuColorToSvg(savedSvg, menuIco) || savedSvg;
 
     var div = document.createElement('div');
     div.className = 'navigation-bar__item';
@@ -373,6 +364,8 @@ Lampa.Platform.tv();
 
     var iconDiv = document.createElement('div');
     iconDiv.className = 'navigation-bar__icon';
+    var menuColor = getMenuIconColor();
+    if(menuColor) iconDiv.style.color = menuColor;
     iconDiv.innerHTML = savedSvg;
 
     var labelDiv = document.createElement('div');
