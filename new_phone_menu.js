@@ -116,7 +116,7 @@ Lampa.Platform.tv();
     try{ return decodeURIComponent(escape(atob(val.slice(4)))); } catch(e){ return val; }
   }
 
-  /** Подставляет цвет из меню Lampa вместо currentColor, чтобы иконка выглядела как в меню. */
+  /** Внутри иконок — прозрачно (fill: none), обводка — цвет из меню Lampa. */
   function applyMenuColorToSvg(svgString, iconElement){
     if(!svgString || !iconElement) return svgString;
     var color = '';
@@ -124,12 +124,15 @@ Lampa.Platform.tv();
       color = window.getComputedStyle(iconElement).color;
       if(!color && iconElement.querySelector) color = window.getComputedStyle(iconElement.querySelector('svg') || iconElement).color;
     } catch(e){}
-    if(!color) return svgString;
-    return svgString
-      .replace(/\bfill=["']currentColor["']/gi, 'fill="' + color + '"')
-      .replace(/\bstroke=["']currentColor["']/gi, 'stroke="' + color + '"')
-      .replace(/\bfill=currentColor\b/gi, 'fill="' + color + '"')
-      .replace(/\bstroke=currentColor\b/gi, 'stroke="' + color + '"');
+    var s = svgString
+      .replace(/\bfill=["']currentColor["']/gi, 'fill="none"')
+      .replace(/\bfill=currentColor\b/gi, 'fill="none"');
+    if(color){
+      s = s
+        .replace(/\bstroke=["']currentColor["']/gi, 'stroke="' + color + '"')
+        .replace(/\bstroke=currentColor\b/gi, 'stroke="' + color + '"');
+    }
+    return s;
   }
 
   /** Разворачивает <use xlink:href="#sprite-..."> в полный inline SVG. */
