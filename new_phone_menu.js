@@ -31,9 +31,8 @@ Lampa.Platform.tv();
     '  background: linear-gradient(to top, rgba(100,100,100,0.45), rgba(40,40,45,0.35)) !important;',
     '  border-color: rgba(255,255,255,0.25) !important; box-shadow: inset 0 0 8px rgba(0,0,0,0.6) !important; transform: translateY(-3px);',
     '}',
-    '.navigation-bar__icon { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; margin-bottom: 2px !important; color: #fff; }',
-    '.navigation-bar__icon svg { width: 26px !important; height: 26px !important; fill: currentColor; }',
-    '.navigation-bar__icon svg [fill="none"] { fill: none; }',
+    '.navigation-bar__icon { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; margin-bottom: 2px !important; }',
+    '.navigation-bar__icon svg { width: 26px !important; height: 26px !important; }',
     '.navigation-bar__label {',
     '  font-size: 10px !important; color: #fff !important; opacity: 0.95 !important; white-space: nowrap !important;',
     '  overflow: hidden !important; text-overflow: ellipsis !important; width: 100% !important; text-align: center !important;',
@@ -57,8 +56,8 @@ Lampa.Platform.tv();
     '    background: transparent !important; border: none !important; box-shadow: none !important; border-radius: 0 !important;',
     '    margin: 0 10px !important; padding: 0 !important; transition: transform .2s ease !important; align-self: center !important; }',
     '  .navigation-bar__item:hover, .navigation-bar__item.active { background: transparent !important; transform: scale(1.15); }',
-    '  .navigation-bar__icon { width: 20px !important; height: 20px !important; margin-bottom: 0 !important; padding: 0 !important; color: #fff; }',
-    '  .navigation-bar__icon svg { width: 20px !important; height: 20px !important; fill: currentColor; }',
+    '  .navigation-bar__icon { width: 20px !important; height: 20px !important; margin-bottom: 0 !important; padding: 0 !important; }',
+    '  .navigation-bar__icon svg { width: 20px !important; height: 20px !important; }',
     '  .navigation-bar__label { display: none !important; }',
     '}',
     '.phone-menu-picker-overlay {',
@@ -77,9 +76,8 @@ Lampa.Platform.tv();
     '.phone-menu-picker-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; overflow-y: auto; padding: 4px; flex: 1; min-height: 100px; -webkit-overflow-scrolling: touch; }',
     '.phone-menu-picker-grid .picker-item { display: flex; flex-direction: column; align-items: center; cursor: pointer; padding: 8px; border-radius: 10px; transition: background 0.2s; }',
     '.phone-menu-picker-grid .picker-item:hover { background: rgba(255,255,255,0.1); }',
-    '.phone-menu-picker-grid .picker-icon-wrap { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; margin-bottom: 6px; color: #fff; }',
-    '.phone-menu-picker-grid .picker-icon-wrap svg { width: 40px; height: 40px; fill: currentColor; }',
-    '.phone-menu-picker-grid .picker-icon-wrap svg [fill="none"] { fill: none; }',
+    '.phone-menu-picker-grid .picker-icon-wrap { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; margin-bottom: 6px; }',
+    '.phone-menu-picker-grid .picker-icon-wrap svg { width: 40px; height: 40px; }',
     '.phone-menu-picker-grid .picker-name { font-size: 11px; color: #fff; text-align: center; word-break: break-word; }',
     '.phone-menu-picker-reset { grid-column: 1 / -1; text-align: center; padding: 12px; cursor: pointer; color: #ff5555; font-size: 14px; }',
     '@media (min-width: 360px) {',
@@ -107,7 +105,34 @@ Lampa.Platform.tv();
   var $  = function(s,r){ r = r || document; return r.querySelector(s); };
   var $$ = function(s,r){ r = r || document; var n = r.querySelectorAll(s); return Array.prototype.slice.call(n); };
 
-  /** Разворачивает <use xlink:href="#sprite-..."> в полный inline SVG, чтобы иконка отображалась в Storage Manager и не заливалась белым. */
+  /** Сохраняем SVG в Storage в base64, чтобы в Storage Manager не отображалась сама иконка. */
+  function svgToStorage(svg){
+    if(!svg || typeof svg !== 'string') return svg;
+    try{ return 'b64:' + btoa(unescape(encodeURIComponent(svg))); } catch(e){ return svg; }
+  }
+  function svgFromStorage(val){
+    if(!val || typeof val !== 'string') return val;
+    if(val.indexOf('b64:') !== 0) return val;
+    try{ return decodeURIComponent(escape(atob(val.slice(4)))); } catch(e){ return val; }
+  }
+
+  /** Подставляет цвет из меню Lampa вместо currentColor, чтобы иконка выглядела как в меню. */
+  function applyMenuColorToSvg(svgString, iconElement){
+    if(!svgString || !iconElement) return svgString;
+    var color = '';
+    try{
+      color = window.getComputedStyle(iconElement).color;
+      if(!color && iconElement.querySelector) color = window.getComputedStyle(iconElement.querySelector('svg') || iconElement).color;
+    } catch(e){}
+    if(!color) return svgString;
+    return svgString
+      .replace(/\bfill=["']currentColor["']/gi, 'fill="' + color + '"')
+      .replace(/\bstroke=["']currentColor["']/gi, 'stroke="' + color + '"')
+      .replace(/\bfill=currentColor\b/gi, 'fill="' + color + '"')
+      .replace(/\bstroke=currentColor\b/gi, 'stroke="' + color + '"');
+  }
+
+  /** Разворачивает <use xlink:href="#sprite-..."> в полный inline SVG. */
   function resolveSvgToInline(svgString){
     if(!svgString || typeof svgString !== 'string') return svgString;
     if(svgString.indexOf('xlink:href') === -1 && svgString.indexOf('href="#') === -1) return svgString;
@@ -137,31 +162,6 @@ Lampa.Platform.tv();
       st.textContent = css;
       document.head.appendChild(st);
     }
-  }
-
-  /** Пытается открыть боковое меню Lampa (клик по кнопке меню в шапке). */
-  function openSidebarIfClosed(){
-    var menuBtn = document.querySelector('.head__menu, .header__menu, [data-action="menu"], .sidebar__toggle, .drawer__toggle, .head__action[data-action="menu"], .drawer .head__action');
-    if(menuBtn){
-      triggerClick(menuBtn);
-      return true;
-    }
-    var headActions = document.querySelectorAll('.head__action');
-    for(var i = 0; i < headActions.length; i++){
-      var node = headActions[i];
-      if(node.className && node.className.indexOf('navigation-bar') !== -1) continue;
-      var act = node.getAttribute('data-action');
-      if(act === 'menu' || act === 'sidebar'){
-        triggerClick(node);
-        return true;
-      }
-    }
-    var firstHeadAction = document.querySelector('.head__actions .head__action:not(.navigation-bar__item)');
-    if(firstHeadAction){
-      triggerClick(firstHeadAction);
-      return true;
-    }
-    return false;
   }
 
   /** Симулирует реальный клик (для приложений, которые не реагируют на .click()). */
@@ -207,7 +207,6 @@ Lampa.Platform.tv();
       try{ Lampa.Go(action); return true; } catch(e){}
     }
     if(findAndClickMenuItem(action)) return true;
-    openSidebarIfClosed();
     setTimeout(function(){
       if(!findAndClickMenuItem(action)){
         var byAttr = document.querySelectorAll('.menu__item[data-action], .menu__item[data-id], .selector[data-action], .selector[data-id]');
@@ -227,9 +226,6 @@ Lampa.Platform.tv();
     }, 280);
     return true;
   }
-
-  /** Иконка-заглушка для пунктов без своей иконки (плагины) */
-  var fallbackSvg = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm3.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>';
 
   /** Контейнер только левого меню Lampa (боковая панель). Не ищем в других разделах. */
   function getLeftMenuRoot(){
@@ -269,8 +265,9 @@ Lampa.Platform.tv();
         var firstSvg = el.querySelector('svg');
         if(firstSvg) svg = firstSvg.outerHTML;
       }
-      if(!svg) svg = fallbackSvg;
+      if(!svg) return;
       svg = resolveSvgToInline(svg) || svg;
+      svg = applyMenuColorToSvg(svg, ico || el);
       out.push({ name: name || key, action: key, svg: svg });
     }
 
@@ -303,7 +300,7 @@ Lampa.Platform.tv();
             div.setAttribute('data-action', a);
             localStorage.setItem('bottom_bar_' + position + '_action', a);
             iconEl.innerHTML = svgToSave;
-            localStorage.setItem('bottom_bar_' + position + '_svg', svgToSave);
+            localStorage.setItem('bottom_bar_' + position + '_svg', svgToStorage(svgToSave));
             labelEl.textContent = n;
             localStorage.setItem('bottom_bar_' + position + '_name', n);
             if(overlay.parentNode) overlay.parentNode.removeChild(overlay);
@@ -323,7 +320,7 @@ Lampa.Platform.tv();
       div.setAttribute('data-action', defaultAction);
       localStorage.removeItem('bottom_bar_' + position + '_action');
       iconEl.innerHTML = defaultSvgResolved;
-      localStorage.setItem('bottom_bar_' + position + '_svg', defaultSvgResolved);
+      localStorage.setItem('bottom_bar_' + position + '_svg', svgToStorage(defaultSvgResolved));
       labelEl.textContent = defaultName;
       localStorage.removeItem('bottom_bar_' + position + '_name');
       if(overlay.parentNode) overlay.parentNode.removeChild(overlay);
@@ -360,9 +357,11 @@ Lampa.Platform.tv();
     if(!bar || bar.querySelector('[data-position="' + position + '"]')) return;
 
     var savedAction = localStorage.getItem('bottom_bar_' + position + '_action') || defaultAction;
-    var savedSvg = localStorage.getItem('bottom_bar_' + position + '_svg') || defaultSvg;
+    var savedSvg = svgFromStorage(localStorage.getItem('bottom_bar_' + position + '_svg') || defaultSvg);
     var savedName = localStorage.getItem('bottom_bar_' + position + '_name') || defaultName;
     savedSvg = resolveSvgToInline(savedSvg) || savedSvg;
+    var menuIco = document.querySelector('.menu__ico, .selector__ico');
+    if(menuIco) savedSvg = applyMenuColorToSvg(savedSvg, menuIco) || savedSvg;
 
     var div = document.createElement('div');
     div.className = 'navigation-bar__item';
