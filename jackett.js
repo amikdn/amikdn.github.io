@@ -272,10 +272,10 @@
     ));
   }
 
-  // Общие данные для меню смены парсера
-  function getServerSelectItem(s) {
+  // Общие данные для меню смены парсера (overrideTitle — для строки «Проверка... имя»)
+  function getServerSelectItem(s, overrideTitle) {
     return {
-      title: s.title || s.name,
+      title: overrideTitle !== undefined ? overrideTitle : (s.title || s.name),
       url: s.baseUrl,
       url_two: s.id,
       jac_key: s.key,
@@ -284,16 +284,24 @@
     };
   }
 
-  // Меню смены парсера: сначала показываем окно, затем проверяем парсеры
+  // Несколько попыток добавить кнопку парсера после смены парсера (список торрентов обновляется асинхронно)
+  function scheduleParserButtonAfterChange() {
+    var delays = [2000, 3000, 4000, 5000, 6000, 8000];
+    delays.forEach(function (delay) {
+      setTimeout(addParserFilterButton, delay);
+    });
+  }
+
+  // Меню смены парсера: та же логика, что в настройках — сначала окно, затем проверка парсеров
   async function showServerSwitchMenu() {
     var currentActivity = Lampa.Storage.get('activity');
 
-    var showCheckedList = (checkedServers) => {
+    var showCheckedList = function (checkedServers) {
       Lampa.Select.show({
         title: 'Меню смены парсера',
-        items: checkedServers.map(s => getServerSelectItem(s)),
-        onBack: () => Lampa.Controller.toggle(Lampa.Controller.enabled().name),
-        onSelect: (item) => {
+        items: checkedServers.map(function (s) { return getServerSelectItem(s); }),
+        onBack: function () { Lampa.Controller.toggle(Lampa.Controller.enabled().name); },
+        onSelect: function (item) {
           Lampa.Storage.set('jackett_url', item.url);
           Lampa.Storage.set('jackett_urltwo', item.url_two);
           Lampa.Storage.set('jackett_key', item.jac_key);
@@ -304,19 +312,20 @@
           var nameEl = document.getElementById('current-parser-name');
           if (nameEl) nameEl.textContent = getCurrentParserName();
 
-          setTimeout(() => window.history.back(), 1000);
-          setTimeout(() => Lampa.Activity.push(currentActivity), 2000);
-          setTimeout(addParserFilterButton, 2500);
+          setTimeout(function () { window.history.back(); }, 1000);
+          setTimeout(function () { Lampa.Activity.push(currentActivity); }, 2000);
+          scheduleParserButtonAfterChange();
         },
       });
     };
 
+    // Та же логика, что и в настройках парсера: сначала окно, затем проверка
     // Сразу показываем окно со списком парсеров (без статусов)
     Lampa.Select.show({
       title: 'Меню смены парсера',
-      items: servers.map(s => getServerSelectItem({ ...s, title: `Проверка... ${s.name}` })),
-      onBack: () => Lampa.Controller.toggle(Lampa.Controller.enabled().name),
-      onSelect: (item) => {
+      items: servers.map(function (s) { return getServerSelectItem(s, 'Проверка... ' + s.name); }),
+      onBack: function () { Lampa.Controller.toggle(Lampa.Controller.enabled().name); },
+      onSelect: function (item) {
         Lampa.Storage.set('jackett_url', item.url);
         Lampa.Storage.set('jackett_urltwo', item.url_two);
         Lampa.Storage.set('jackett_key', item.jac_key);
@@ -327,9 +336,9 @@
         var nameEl = document.getElementById('current-parser-name');
         if (nameEl) nameEl.textContent = getCurrentParserName();
 
-        setTimeout(() => window.history.back(), 1000);
-        setTimeout(() => Lampa.Activity.push(currentActivity), 2000);
-        setTimeout(addParserFilterButton, 2500);
+        setTimeout(function () { window.history.back(); }, 1000);
+        setTimeout(function () { Lampa.Activity.push(currentActivity); }, 2000);
+        scheduleParserButtonAfterChange();
       },
     });
 
@@ -342,7 +351,7 @@
 
   function startEmptyObserver() {
     stopEmptyObserver();
-    emptyObserver = new MutationObserver(() => {
+    emptyObserver = new MutationObserver(function () {
       if ($('.empty__title').length && Lampa.Storage.field('parser_torrent_type') === 'jackett') {
         showServerSwitchMenu();
         stopEmptyObserver();
@@ -358,6 +367,27 @@
     }
   }
 
+  // Observer: если на экране торрентов есть .torrent-filter, но нет кнопки парсера — добавить кнопку
+  var parserButtonObserver = null;
+
+  function startParserButtonObserver() {
+    if (parserButtonObserver) return;
+    parserButtonObserver = new MutationObserver(function () {
+      if (Lampa.Activity.active().component !== 'torrents') return;
+      if (document.querySelector('.torrent-filter') && !document.querySelector('.filter--parser')) {
+        addParserFilterButton();
+      }
+    });
+    parserButtonObserver.observe(document.body, { childList: true, subtree: true });
+  }
+
+  function stopParserButtonObserver() {
+    if (parserButtonObserver) {
+      parserButtonObserver.disconnect();
+      parserButtonObserver = null;
+    }
+  }
+
   // Реакция на изменения
   Lampa.Storage.listener.follow('change', (e) => {
     // Показ/скрытие параметра
@@ -367,14 +397,16 @@
       else el.show().insertAfter('div[data-name="parser_torrent_type"]');
     }
 
-    // Вход в торренты — добавляем кнопку и observer (несколько попыток, чтобы кнопка не пропадала после смены парсера)
+    // Вход в торренты — добавляем кнопку и observers (кнопка не пропадает после смены парсера)
     if (e.name === 'activity') {
       if (Lampa.Activity.active().component === 'torrents') {
         startEmptyObserver();
+        startParserButtonObserver();
         setTimeout(addParserFilterButton, 100);
         setTimeout(addParserFilterButton, 800);
       } else {
         stopEmptyObserver();
+        stopParserButtonObserver();
       }
     }
 
