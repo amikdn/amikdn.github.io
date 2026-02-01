@@ -358,15 +358,29 @@
     }, 400);
   }
 
+  // Закрыть окно выбора парсера и восстановить навигацию (имя контроллера сохраняем до открытия Select)
+  function closeParserSelectAndRestore(controllerName) {
+    var name = controllerName || (Lampa.Controller.enabled() && Lampa.Controller.enabled().name);
+    if (name) {
+      Lampa.Controller.toggle(name);
+    } else if (typeof Lampa.Controller.back === 'function') {
+      Lampa.Controller.back();
+    } else {
+      window.history.back();
+    }
+  }
+
   // Меню смены парсера: та же логика, что в настройках — сначала окно, затем проверка парсеров
   async function showServerSwitchMenu() {
     var currentActivity = Lampa.Storage.get('activity');
+    var controllerBeforeSelect = (Lampa.Controller.enabled() && Lampa.Controller.enabled().name) || '';
 
     var showCheckedList = function (checkedServers) {
+      var backTo = controllerBeforeSelect || (Lampa.Controller.enabled() && Lampa.Controller.enabled().name);
       Lampa.Select.show({
         title: 'Меню смены парсера',
         items: checkedServers.map(function (s) { return getServerSelectItem(s); }),
-        onBack: function () { Lampa.Controller.toggle(Lampa.Controller.enabled().name); },
+        onBack: function () { closeParserSelectAndRestore(backTo); },
         onSelect: function (item) {
           applyParserAndRefreshTorrents(item, currentActivity);
         },
@@ -377,7 +391,7 @@
     Lampa.Select.show({
       title: 'Меню смены парсера',
       items: servers.map(function (s) { return getServerSelectItem(s); }),
-      onBack: function () { Lampa.Controller.toggle(Lampa.Controller.enabled().name); },
+      onBack: function () { closeParserSelectAndRestore(controllerBeforeSelect); },
       onSelect: function (item) {
         applyParserAndRefreshTorrents(item, currentActivity);
       },
