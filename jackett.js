@@ -303,7 +303,7 @@
     }, 400);
   }
 
-  // Сохранить новый парсер и обновить список торрентов: остаёмся на том же экране, принудительно вызываем обновление и добавляем кнопку
+  // Сохранить новый парсер и обновить список: закрыть модалку, один раз назад, затем открыть экран торрентов заново (без кэша) — навигация и список сохраняются
   function applyParserAndRefreshTorrents(item, currentActivity) {
     Lampa.Storage.set('jackett_url', item.url);
     Lampa.Storage.set('jackett_urltwo', item.url_two);
@@ -317,14 +317,27 @@
 
     Lampa.Controller.toggle(Lampa.Controller.enabled().name);
 
-    Lampa.Storage.set('jackett_urltwo', '__refresh__');
-    setTimeout(function () {
-      Lampa.Storage.set('jackett_urltwo', item.url_two);
-      Lampa.Storage.set('jackett_url', item.url);
-    }, 80);
+    var act = currentActivity && typeof currentActivity === 'object' ? currentActivity : Lampa.Storage.get('activity');
+    var cleanActivity = {};
+    var skipKeys = { torrents: 1, results: 1, list: 1, data: 1, items: 1, cache: 1 };
+    if (act && typeof act === 'object') {
+      for (var k in act) {
+        if (act.hasOwnProperty(k) && !skipKeys[k]) cleanActivity[k] = act[k];
+      }
+    }
+    var hasActivity = Object.keys(cleanActivity).length > 0;
 
-    addParserFilterButton();
-    scheduleParserButtonAfterChange();
+    if (hasActivity) {
+      window.history.back();
+      setTimeout(function () {
+        Lampa.Activity.push(cleanActivity);
+        setTimeout(addParserFilterButton, 200);
+        scheduleParserButtonAfterChange();
+      }, 300);
+    } else {
+      addParserFilterButton();
+      scheduleParserButtonAfterChange();
+    }
   }
 
   // Меню смены парсера: та же логика, что в настройках — сначала окно, затем проверка парсеров
