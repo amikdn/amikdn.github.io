@@ -156,8 +156,19 @@ Lampa.Platform.tv();
   }
 
   function emulateSidebarClick(action){
-    for(const el of $$('.menu__item[data-action], .selector')){
-      if(el.dataset.action === action){
+    const byAttr = $$('.menu__item[data-action], .menu__item[data-id], .selector[data-action], .selector[data-id], [data-action], [data-id]');
+    for(const el of byAttr){
+      const v = el.dataset?.action || el.dataset?.id || el.getAttribute('data-action') || el.getAttribute('data-id');
+      if(v && v === action){
+        el.click();
+        return true;
+      }
+    }
+    const byText = $$('.menu__item, .selector');
+    for(const el of byText){
+      const nameEl = el.querySelector('.menu__text, .selector__text, .selector-title, [class*="text"]');
+      const text = (nameEl && nameEl.textContent && nameEl.textContent.trim()) || (el.textContent || '').trim().replace(/\s+/g, ' ');
+      if(text && text === action){
         el.click();
         return true;
       }
@@ -165,59 +176,61 @@ Lampa.Platform.tv();
     return false;
   }
 
-  /** Собирает все пункты левого меню (и меню, и плагины — .menu__item и .selector) */
+  /** Иконка-заглушка для пунктов без своей иконки (плагины) */
+  const fallbackSvg = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm3.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>';
+
+  /** Собирает ВСЕ пункты левого меню: стандартные и от плагинов. Ищет по всему документу, несколько селекторов и атрибутов. */
   function collectMenuSections(){
     const out = [];
-    const seenActions = new Set();
-    const menuSelectors = ['.menu__item[data-action]', '.selector[data-action]', '.menu .selector', '.menu__item'];
-    const roots = [document];
-    const menu = $('.menu, .sidebar__menu, [class*="menu"]');
-    if(menu) roots.push(menu);
+    const seen = new Set();
+
+    function add(el){
+      const action = (el.dataset?.action || el.getAttribute('data-action') || el.dataset?.id || el.getAttribute('data-id') || '').trim();
+      const nameEl = el.querySelector('.menu__text, .selector__text, .selector-title, .text, [class*="text"]');
+      let name = (nameEl && nameEl.textContent && nameEl.textContent.trim()) || '';
+      if(!name) name = (el.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 50);
+      const key = action || name || ('item_' + seen.size);
+      if(!key || seen.has(key)) return;
+      if(action === 'main' || action === 'settings') return;
+      if(name && (name.includes('Редактировать') || name.includes('Настройки'))) return;
+      seen.add(key);
+
+      let ico = el.querySelector('.menu__ico, .selector__ico, .selector-icon, .ico, [class*="ico"]');
+      let svg = '';
+      if(ico){
+        const svgEl = ico.querySelector('svg');
+        if(svgEl) svg = svgEl.outerHTML;
+      }
+      if(!svg && el.querySelector('svg')) svg = el.querySelector('svg').outerHTML;
+      if(!svg) svg = fallbackSvg;
+      out.push({ name: name || key, action: key, svg });
+    }
+
+    const roots = [document, ...$$('.sidebar, .menu, .sidebar__body, [class*="sidebar"], [class*="menu__"]')];
+    const selectors = [
+      '.menu__item[data-action]', '.menu__item[data-id]', '.menu__item',
+      '.selector[data-action]', '.selector[data-id]', '.selector',
+      '[data-action][class*="item"]', '[data-action][class*="selector"]',
+      '.sidebar [data-action]', '.menu [data-action]',
+      '.sidebar [data-id]', '.menu [data-id]'
+    ];
 
     for(const root of roots){
-      for(const sel of menuSelectors){
-        $$(sel, root).forEach(el => {
-          const action = el.dataset?.action || el.getAttribute('data-action') || el.dataset?.id || '';
-          if(!action || seenActions.has(action)) return;
-          seenActions.add(action);
-
-          const nameEl = el.querySelector('.menu__text, .selector__text, .text');
-          const name = (nameEl && nameEl.textContent && nameEl.textContent.trim()) || el.textContent?.trim() || action;
-          if(action === 'main' || action === 'settings' || (name && name.includes('Редактировать'))) return;
-
-          const ico = el.querySelector('.menu__ico, .selector__ico, .ico');
-          let svg = '';
-          if(ico){
-            const svgEl = ico.querySelector('svg');
-            if(svgEl) svg = svgEl.outerHTML;
-          }
-          if(svg) out.push({ name, action, svg });
-        });
+      for(const sel of selectors){
+        try {
+          $$(sel, root).forEach(el => {
+            if(el.closest('.navigation-bar')) return;
+            add(el);
+          });
+        } catch(_) {}
       }
     }
+
     return out;
   }
 
-  function showIconPicker(position, div, iconEl, labelEl, defaultAction, defaultSvg, defaultName){
-    const options = collectMenuSections();
-
-    if(options.length === 0) return;
-
-    const overlay = document.createElement('div');
-    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);display:flex;align-items:center;justify-content:center;z-index:9999;';
-    overlay.addEventListener('click', e => { if(e.target === overlay) overlay.remove(); });
-
-    const modal = document.createElement('div');
-    modal.style.cssText = 'background:#1e1e24;padding:20px;border-radius:16px;max-width:95%;max-height:90%;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 10px 30px rgba(0,0,0,0.6);';
-
-    const title = document.createElement('h3');
-    title.textContent = 'Настройка кнопки';
-    title.style.cssText = 'text-align:center;color:#fff;margin:0 0 16px;font-size:18px;';
-    modal.appendChild(title);
-
-    const grid = document.createElement('div');
-    grid.style.cssText = 'display:grid;grid-template-columns:repeat(3,1fr);gap:16px;overflow-y:auto;padding:4px;flex:1;';
-
+  function renderOptionsGrid(grid, options, position, div, iconEl, labelEl, overlay, defaultAction, defaultSvg, defaultName){
+    grid.innerHTML = '';
     options.forEach(opt => {
       const item = document.createElement('div');
       item.style.cssText = 'display:flex;flex-direction:column;align-items:center;cursor:pointer;padding:10px;border-radius:12px;transition:background .2s;';
@@ -232,15 +245,20 @@ Lampa.Platform.tv();
         svgEl.style.width = '48px';
         svgEl.style.height = '48px';
       }
-      item.addEventListener('click', () => {
-        div.dataset.action = opt.action;
-        localStorage.setItem(`bottom_bar_${position}_action`, opt.action);
-        iconEl.innerHTML = opt.svg;
-        localStorage.setItem(`bottom_bar_${position}_svg`, opt.svg);
-        labelEl.textContent = opt.name;
-        localStorage.setItem(`bottom_bar_${position}_name`, opt.name);
-        overlay.remove();
-      });
+      if(opt.action !== '_'){
+        item.addEventListener('click', () => {
+          div.dataset.action = opt.action;
+          localStorage.setItem(`bottom_bar_${position}_action`, opt.action);
+          iconEl.innerHTML = opt.svg;
+          localStorage.setItem(`bottom_bar_${position}_svg`, opt.svg);
+          labelEl.textContent = opt.name;
+          localStorage.setItem(`bottom_bar_${position}_name`, opt.name);
+          overlay.remove();
+        });
+      } else {
+        item.style.pointerEvents = 'none';
+        item.style.opacity = '0.7';
+      }
       grid.appendChild(item);
     });
 
@@ -257,6 +275,48 @@ Lampa.Platform.tv();
       overlay.remove();
     });
     grid.appendChild(reset);
+  }
+
+  function showIconPicker(position, div, iconEl, labelEl, defaultAction, defaultSvg, defaultName){
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);display:flex;align-items:center;justify-content:center;z-index:9999;';
+    overlay.addEventListener('click', e => { if(e.target === overlay) overlay.remove(); });
+
+    const modal = document.createElement('div');
+    modal.style.cssText = 'background:#1e1e24;padding:20px;border-radius:16px;max-width:95%;max-height:90%;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 10px 30px rgba(0,0,0,0.6);';
+
+    const title = document.createElement('h3');
+    title.textContent = 'Настройка кнопки';
+    title.style.cssText = 'text-align:center;color:#fff;margin:0 0 8px;font-size:18px;';
+    modal.appendChild(title);
+
+    const hint = document.createElement('p');
+    hint.style.cssText = 'color:rgba(255,255,255,0.6);font-size:12px;margin:0 0 12px;text-align:center;';
+    hint.textContent = 'Если не видно разделов плагинов — откройте боковое меню и нажмите «Обновить список».';
+    modal.appendChild(hint);
+
+    const grid = document.createElement('div');
+    grid.style.cssText = 'display:grid;grid-template-columns:repeat(3,1fr);gap:16px;overflow-y:auto;padding:4px;flex:1;min-height:120px;';
+
+    const refreshRow = document.createElement('div');
+    refreshRow.style.cssText = 'display:flex;justify-content:center;margin-bottom:8px;';
+    const refreshBtn = document.createElement('button');
+    refreshBtn.textContent = 'Обновить список';
+    refreshBtn.style.cssText = 'padding:8px 16px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);border-radius:8px;color:#fff;cursor:pointer;font-size:13px;';
+    refreshBtn.addEventListener('click', () => {
+      const options = collectMenuSections();
+      if(options.length === 0) refreshBtn.textContent = 'Ничего не найдено. Откройте боковое меню и нажмите снова.';
+      else {
+        renderOptionsGrid(grid, options, position, div, iconEl, labelEl, overlay, defaultAction, defaultSvg, defaultName);
+        refreshBtn.textContent = 'Обновить список';
+      }
+    });
+    refreshRow.appendChild(refreshBtn);
+    modal.appendChild(refreshRow);
+
+    let options = collectMenuSections();
+    if(options.length === 0) options = [{ name: '(откройте боковое меню и нажмите «Обновить список»)', action: '_', svg: fallbackSvg }];
+    renderOptionsGrid(grid, options, position, div, iconEl, labelEl, overlay, defaultAction, defaultSvg, defaultName);
 
     modal.appendChild(grid);
     overlay.appendChild(modal);
