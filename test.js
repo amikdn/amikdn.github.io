@@ -417,7 +417,7 @@
         var id = item.id;
         var isHidden = !isFolder && getHiddenButtons().indexOf(id) !== -1;
 
-        var listItem = $('<div class="menu-edit-list__item' + (isFolder ? ' folder-item' : '') + (isHidden ? ' menu-edit-list__item-hidden' : '') + '"></div>');
+        var listItem = $('<div class="menu-edit-list__item selector' + (isFolder ? ' folder-item' : '') + (isHidden ? ' menu-edit-list__item-hidden' : '') + '"></div>');
         listItem.append('<div class="menu-edit-list__icon">' + iconSvg + '</div>');
         listItem.append('<div class="menu-edit-list__title">' + displayName + '</div>');
         listItem.append('<div class="menu-edit-list__move move-up selector"><svg width="22" height="14" viewBox="0 0 22 14" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2 12L11 3L20 12" stroke="currentColor" stroke-width="4" stroke-linecap="round"/></svg></div>');
@@ -439,6 +439,7 @@
                 currentItems[index] = temp;
                 listItem.insertBefore(listItem.prev());
                 saveOrder();
+                Lampa.Controller.toggle();
             }
         });
 
@@ -449,6 +450,7 @@
                 currentItems[index] = temp;
                 listItem.insertAfter(listItem.next());
                 saveOrder();
+                Lampa.Controller.toggle();
             }
         });
 
@@ -479,6 +481,7 @@
                             f[item.id] = newName;
                             setFolders(f);
                             listItem.find('.menu-edit-list__title').text(newName);
+                            Lampa.Controller.toggle();
                         }
                         Lampa.Modal.close();
                     },
@@ -493,6 +496,7 @@
                 delete f[item.id];
                 setFolders(f);
                 saveOrder();
+                Lampa.Controller.toggle();
             });
         }
 
@@ -545,8 +549,10 @@
                         setFolders(f);
                         var newFolder = { type: 'folder', id: folderId, name: name };
                         currentItems.push(newFolder);
-                        list.append(createListItem(newFolder));
+                        var newItem = createListItem(newFolder);
+                        list.append(newItem);
                         saveOrder();
+                        Lampa.Controller.toggle();
                     }
                     Lampa.Modal.close();
                 },
@@ -573,6 +579,7 @@
                 if (currentMode === 'icons') target.addClass('icons-only');
                 if (currentMode === 'always') target.addClass('always-text');
             }
+            Lampa.Controller.toggle();
         });
         list.append(modeBtn);
 
@@ -705,6 +712,7 @@
             '.menu-edit-list__item-hidden { opacity: 0.5; }' +
             '.full-start__section-title { width:100%; text-align:left; padding:0.5em 1em; font-size:1.2em; background:rgba(255,255,255,0.05); border-radius:0.5em; margin:1em 0 0.5em 0; opacity:0.8; }' +
             '.create-folder.focus { border:3px solid rgba(255,255,255,0.8); }' +
+            '.menu-edit-list__item.selector.focus { border: 2px solid rgba(255,255,255,0.8); border-radius: 0.3em; }' +
             '.menu-edit-list__edit, .menu-edit-list__delete { width:26px; height:26px; display:flex; align-items:center; justify-content:center; margin-left:5px; }' +
             '</style>');
         $('body').append(style);
