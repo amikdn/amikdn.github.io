@@ -111,7 +111,7 @@
 
     var LAMPAC_ICON = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><path d="M20.331 14.644l-13.794-13.831 17.55 10.075zM2.938 0c-0.813 0.425-1.356 1.2-1.356 2.206v27.581c0 1.006 0.544 1.781 1.356 2.206l16.038-16zM29.512 14.1l-3.681-2.131-4.106 4.031 4.106 4.031 3.756-2.131c1.125-0.893 1.125-2.906-0.075-3.8zM6.538 31.188l17.55-10.075-3.756-3.756z" fill="currentColor"></path></svg>';
 
-    var EXCLUDED_CLASSES = ['button--play', 'button--edit-order'];
+    var EXCLUDED_CLASSES = ['button--play', 'button--edit-order', 'button--folder'];
 
     var DEFAULT_GROUPS = [
         { name: 'online', patterns: ['online', 'lampac', 'modss', 'showy'], label: 'Онлайн' },
@@ -209,7 +209,7 @@
     }
 
     function categorizeButtons(container) {
-        var allButtons = container.find('.full-start__button').not('.button--edit-order, .button--play');
+        var allButtons = container.find('.full-start__button').not('.button--edit-order, .button--play, .button--folder');
         var categories = { online: [], torrent: [], trailer: [], favorite: [], subscribe: [], book: [], reaction: [], other: [] };
         var processedIds = {};
         allButtons.each(function() {
@@ -283,7 +283,7 @@
     }
 
     function renderButtons(targetContainer, sortedItems, allButtons) {
-        targetContainer.find('.full-start__button, .full-start__section-title').detach();
+        targetContainer.find('.full-start__button').detach();
 
         var groups = [];
         var currentGroup = { name: null, items: [] };
@@ -305,13 +305,13 @@
         var visibleButtons = [];
 
         groups.forEach(function(group) {
-            if (group.name) {
-                var title = $('<div class="full-start__section-title"></div>');
+            if (group.name && group.items.length > 0) {
+                var folderBtn = $('<div class="full-start__button button--folder">');
                 var icon = $(folderSvg);
-                icon.css({ width: '1.5em', height: '1.5em', flexShrink: 0 });
-                title.append(icon);
-                title.append('<span style="margin-left:0.5em;">' + group.name + '</span>');
-                targetContainer.append(title);
+                icon.css({ width: '1.8em', height: '1.8em', marginRight: '0.5em' });
+                folderBtn.append(icon);
+                folderBtn.append('<span>' + group.name + '</span>');
+                targetContainer.append(folderBtn);
             }
             group.items.forEach(function(btn) {
                 targetContainer.append(btn);
@@ -678,7 +678,6 @@
         var visibleButtons = renderButtons(targetContainer, sortedItems, allButtons);
 
         targetContainer.append(createEditButton());
-        visibleButtons.push(targetContainer.find('.button--edit-order').get(0));
 
         applyHiddenButtons(allButtons);
 
@@ -729,7 +728,7 @@
             '.create-folder.focus { border:3px solid rgba(255,255,255,0.8); }' +
             '.menu-edit-list__item.selector.focus { border: 2px solid rgba(255,255,255,0.8); border-radius: 0.3em; }' +
             '.menu-edit-list__edit, .menu-edit-list__delete { width:26px; height:26px; display:flex; align-items:center; justify-content:center; margin-left:5px; }' +
-            '.full-start__section-title { display: flex; align-items: center; width: 100%; padding: 0.5em 1em; font-size: 1.2em; background: rgba(255,255,255,0.05); border-radius: 0.5em; margin: 1em 0 0.5em 0; opacity: 0.8; pointer-events: none; tabindex: -1; }' +
+            '.full-start__button.button--folder { display: flex; align-items: center; width: 100%; background: rgba(255,255,255,0.05); border-radius: 0.5em; margin: 1em 0 0.5em 0; padding: 0.5em 1em; font-size: 1.2em; opacity: 0.8; }' +
             '</style>');
         $('body').append(style);
 
@@ -753,7 +752,7 @@
                     } else {
                         setTimeout(function() {
                             if (container.data('buttons-processed')) {
-                                var newButtons = targetContainer.find('.full-start__button').not('.button--edit-order, .button--play');
+                                var newButtons = targetContainer.find('.full-start__button').not('.button--edit-order, .button--play, .button--folder');
                                 var hasNewButtons = false;
                                 newButtons.each(function() {
                                     var $btn = $(this);
