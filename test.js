@@ -18,7 +18,7 @@
 (function() {
     'use strict';
 
-    // Polyfills
+    // Polyfills для совместимости со старыми устройствами
     if (!Array.prototype.forEach) {
         Array.prototype.forEach = function(callback, thisArg) {
             var T, k;
@@ -109,11 +109,10 @@
         };
     }
 
-    // Иконки
     var LAMPAC_ICON = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><path d="M20.331 14.644l-13.794-13.831 17.55 10.075zM2.938 0c-0.813 0.425-1.356 1.2-1.356 2.206v27.581c0 1.006 0.544 1.781 1.356 2.206l16.038-16zM29.512 14.1l-3.681-2.131-4.106 4.031 4.106 4.031 3.756-2.131c1.125-0.893 1.125-2.906-0.075-3.8zM6.538 31.188l17.55-10.075-3.756-3.756z" fill="currentColor"></path></svg>';
-    var FOLDER_ICON = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>';
-    var FOLDER_OPEN_ICON = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V8h16v10z"/></svg>';
+
     var EXCLUDED_CLASSES = ['button--play', 'button--edit-order'];
+
     var DEFAULT_GROUPS = [
         { name: 'online', patterns: ['online', 'lampac', 'modss', 'showy'], label: 'Онлайн' },
         { name: 'torrent', patterns: ['torrent'], label: 'Торренты' },
@@ -123,101 +122,23 @@
         { name: 'book', patterns: ['book'], label: 'Закладки' },
         { name: 'reaction', patterns: ['reaction'], label: 'Реакции' }
     ];
-    var currentButtons = [];
+
+    var currentItems = [];
     var allButtonsCache = [];
     var allButtonsOriginal = [];
     var currentContainer = null;
 
-    // --- Работа с папками ---
+    var folderSvg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M10 4H4c-1.11 0-2 .89-2 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>';
+    var editSvg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>';
+    var trashSvg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>';
+
     function getFolders() {
-        return Lampa.Storage.get('button_folders', []);
+        return Lampa.Storage.get('button_folders', {});
     }
 
-    function setFolders(folders) {
-        Lampa.Storage.set('button_folders', folders);
+    function setFolders(val) {
+        Lampa.Storage.set('button_folders', val);
     }
-
-    function isFolder(id) {
-        return id && id.toString().indexOf('folder_') === 0;
-    }
-
-    function getFolder(id) {
-        var folders = getFolders();
-        return folders.find(function(f) { return f.id === id; });
-    }
-
-    function createFolder(name) {
-        var folders = getFolders();
-        var newFolder = {
-            id: 'folder_' + Date.now(),
-            name: name || 'Новая папка',
-            items: []
-        };
-        folders.push(newFolder);
-        setFolders(folders);
-        
-        // Добавляем папку в конец общего порядка
-        var order = getCustomOrder();
-        order.push(newFolder.id);
-        setCustomOrder(order);
-        
-        return newFolder;
-    }
-
-    function addButtonsToFolder(folderId, btnIds) {
-        var folders = getFolders();
-        var folder = folders.find(function(f) { return f.id === folderId; });
-        if (folder) {
-            btnIds.forEach(function(id) {
-                if (folder.items.indexOf(id) === -1) {
-                    folder.items.push(id);
-                }
-            });
-            setFolders(folders);
-            // Удаляем из общего порядка, если были там
-            var order = getCustomOrder();
-            var newOrder = order.filter(function(id) { return btnIds.indexOf(id) === -1; });
-            setCustomOrder(newOrder);
-        }
-    }
-
-    function removeButtonFromFolder(folderId, btnId) {
-        var folders = getFolders();
-        var folder = folders.find(function(f) { return f.id === folderId; });
-        if (folder) {
-            folder.items = folder.items.filter(function(id) { return id !== btnId; });
-            setFolders(folders);
-            // Возвращаем в конец общего порядка
-            var order = getCustomOrder();
-            if (order.indexOf(btnId) === -1) {
-                order.push(btnId);
-                setCustomOrder(order);
-            }
-        }
-    }
-
-    function deleteFolder(folderId) {
-        var folders = getFolders();
-        var folder = folders.find(function(f) { return f.id === folderId; });
-        if (folder) {
-            // Возвращаем все кнопки на место
-            if (folder.items && folder.items.length) {
-                addButtonsToFolder('root_temp_placeholder', folder.items); // Хак для возврата через существующую логику
-                // Но так как addButtonsToFolder удаляет из общего порядка, а нам надо добавить, сделаем вручную для возврата
-                var order = getCustomOrder();
-                folder.items.forEach(function(id) {
-                    if (order.indexOf(id) === -1) order.push(id);
-                });
-                setCustomOrder(order);
-            }
-            // Удаляем папку из списка и порядка
-            var newFolders = folders.filter(function(f) { return f.id !== folderId; });
-            setFolders(newFolders);
-            var newOrder = getCustomOrder().filter(function(id) { return id !== folderId; });
-            setCustomOrder(newOrder);
-        }
-    }
-    // -----------------------------
 
     function findButton(btnId) {
         var btn = allButtonsOriginal.find(function(b) { return getButtonId(b) === btnId; });
@@ -316,53 +237,49 @@
         return categories;
     }
 
-    function sortByCustomOrder(buttons) {
+    function sortDefault(buttons) {
+        var priority = buttons.filter(function(b) { return getButtonId(b) === 'modss_online_button'; });
+        var regular = buttons.filter(function(b) { return getButtonId(b) !== 'modss_online_button'; });
+        regular.sort(function(a, b) {
+            var typeOrder = ['online', 'torrent', 'trailer', 'favorite', 'subscribe', 'book', 'reaction', 'other'];
+            var indexA = typeOrder.indexOf(getButtonType(a)) || 999;
+            var indexB = typeOrder.indexOf(getButtonType(b)) || 999;
+            return indexA - indexB;
+        });
+        return priority.concat(regular);
+    }
+
+    function getSortedItems(buttons) {
         var customOrder = getCustomOrder();
-        var priority = [];
-        var regular = [];
-        buttons.forEach(function(btn) {
-            var id = getButtonId(btn);
-            if (id === 'modss_online_button') {
-                priority.push(btn);
-            } else {
-                regular.push(btn);
-            }
-        });
-        priority.sort(function(a, b) {
-            var idA = getButtonId(a);
-            var idB = getButtonId(b);
-            if (idA === 'modss_online_button') return -1;
-            if (idB === 'modss_online_button') return 1;
-            return 0;
-        });
-        if (!customOrder.length) {
-            regular.sort(function(a, b) {
-                var typeOrder = ['online', 'torrent', 'trailer', 'favorite', 'subscribe', 'book', 'reaction', 'other'];
-                var typeA = getButtonType(a);
-                var typeB = getButtonType(b);
-                var indexA = typeOrder.indexOf(typeA);
-                var indexB = typeOrder.indexOf(typeB);
-                if (indexA === -1) indexA = 999;
-                if (indexB === -1) indexB = 999;
-                return indexA - indexB;
-            });
-            return priority.concat(regular);
-        }
+        var folders = getFolders();
         var sorted = [];
-        var remaining = regular.slice();
-        customOrder.forEach(function(id) {
-            // Пропускаем папки при сортировке обычных кнопок
-            if (isFolder(id)) return; 
-            
-            for (var i = 0; i < remaining.length; i++) {
-                if (getButtonId(remaining[i]) === id) {
-                    sorted.push(remaining[i]);
-                    remaining.splice(i, 1);
-                    break;
+        var remaining = buttons.slice();
+
+        if (customOrder.length === 0) {
+            return sortDefault(buttons).map(function(btn) {
+                return { type: 'button', btn: btn, id: getButtonId(btn) };
+            });
+        }
+
+        customOrder.forEach(function(entry) {
+            if (entry.startsWith('folder_') && folders[entry]) {
+                sorted.push({ type: 'folder', id: entry, name: folders[entry] });
+            } else {
+                var idx = remaining.findIndex(function(b) { return getButtonId(b) === entry; });
+                if (idx !== -1) {
+                    var btn = remaining[idx];
+                    sorted.push({ type: 'button', btn: btn, id: entry });
+                    remaining.splice(idx, 1);
                 }
             }
         });
-        return priority.concat(sorted).concat(remaining);
+
+        var remainingSorted = sortDefault(remaining);
+        remainingSorted.forEach(function(btn) {
+            sorted.push({ type: 'button', btn: btn, id: getButtonId(btn) });
+        });
+
+        return sorted;
     }
 
     function applyHiddenButtons(buttons) {
@@ -387,9 +304,7 @@
         var btn = $('<div class="full-start__button selector button--edit-order" style="order: 9999;">' +
             '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 29" fill="none"><use xlink:href="#sprite-edit"></use></svg>' +
             '</div>');
-        btn.on('hover:enter', function() {
-            openEditDialog();
-        });
+        btn.on('hover:enter', function() { openEditDialog(); });
         if (Lampa.Storage.get('buttons_editor_enabled') === false) {
             btn.hide();
         }
@@ -397,176 +312,62 @@
     }
 
     function saveOrder() {
-        var order = [];
-        // Сохраняем только ID, не объекты папок
-        currentButtons.forEach(function(item) {
-            if (typeof item === 'string') {
-                order.push(item);
-            } else if (item.jquery) {
-                order.push(getButtonId(item));
-            }
-        });
+        var order = currentItems.map(function(item) { return item.id; });
         setCustomOrder(order);
-    }
-
-    // --- Открытие содержимого папки на главном экране ---
-    function openFolderView(folderId) {
-        var folder = getFolder(folderId);
-        if (!folder) return;
-
-        var html = $('<div class="folder-view-modal"></div>');
-        var title = $('<div style="font-size: 1.4em; padding: 1em; text-align: center;">' + FOLDER_ICON + ' ' + folder.name + '</div>');
-        var list = $('<div class="simple-list"></div>');
-        
-        list.css({
-            'display': 'flex',
-            'flex-direction': 'column',
-            'gap': '0.5em'
-        });
-
-        // Собираем кнопки из папки
-        // Нужно найти реальные DOM элементы кнопок
-        var folderBtns = [];
-        folder.items.forEach(function(btnId) {
-            var btn = findButton(btnId);
-            if (btn) {
-                var clone = btn.clone(true, true);
-                clone.removeClass('hidden');
-                clone.css({'order': 'initial', 'opacity': '1', 'animation': 'none'});
-                // Убираем ненужные классы позиционирования
-                clone.css('margin', '0');
-                folderBtns.push(clone);
-            }
-        });
-
-        // Сортировка внутри папки (по порядку массива items)
-        // Но findButton может вернуть в любом порядке, используем порядок folder.items
-        var sortedFolderBtns = [];
-        folder.items.forEach(function(id) {
-            var b = folderBtns.find(function(cb) { return getButtonId(cb) === id; });
-            if (b) sortedFolderBtns.push(b);
-        });
-
-        sortedFolderBtns.forEach(function(b) {
-            list.append(b);
-        });
-
-        if (sortedFolderBtns.length === 0) {
-            list.append('<div style="text-align:center; padding: 2em; color: #777;">Папка пуста</div>');
-        }
-
-        html.append(title);
-        html.append(list);
-
-        Lampa.Modal.open({
-            title: '',
-            html: html,
-            size: 'medium',
-            onBack: function() {
-                Lampa.Modal.close();
-            }
-        });
     }
 
     function applyChanges() {
         if (!currentContainer) return;
-        
-        // Формируем список для отображения
-        var displayItems = [];
-        var folders = getFolders();
-        var customOrder = getCustomOrder();
 
-        // Собираем ID кнопок, которые находятся в папках, чтобы исключить их из корня
-        var idsInFolders = [];
-        folders.forEach(function(f) {
-            idsInFolders = idsInFolders.concat(f.items);
-        });
-
-        // 1. Обрабатываем элементы из CustomOrder (Это могут быть папки или кнопки)
-        customOrder.forEach(function(id) {
-            if (isFolder(id)) {
-                displayItems.push(id); // Это папка
-            } else if (idsInFolders.indexOf(id) === -1) {
-                // Это кнопка в корне
-                var btn = findButton(id);
-                if (btn) displayItems.push(btn);
-            }
-        });
-
-        // 2. Добавляем новые кнопки, которых нет в customOrder и не в папках
-        // (Стандартная логика обнаружения новых кнопок)
         var categories = categorizeButtons(currentContainer);
-        var allRealButtons = []
-            .concat(categories.online)
-            .concat(categories.torrent)
-            .concat(categories.trailer)
-            .concat(categories.favorite)
-            .concat(categories.subscribe)
-            .concat(categories.book)
-            .concat(categories.reaction)
-            .concat(categories.other);
+        var allButtons = [].concat(
+            categories.online,
+            categories.torrent,
+            categories.trailer,
+            categories.favorite,
+            categories.subscribe,
+            categories.book,
+            categories.reaction,
+            categories.other
+        );
 
-        allRealButtons.forEach(function(btn) {
-            var id = getButtonId(btn);
-            if (displayItems.indexOf(btn) === -1 && idsInFolders.indexOf(id) === -1) {
-                 // Проверяем, нет ли уже такой кнопки в displayItems (как объекта)
-                 var exists = displayItems.some(function(item) {
-                     return !isFolder(item) && getButtonId(item) === id;
-                 });
-                 if (!exists) displayItems.push(btn);
-            }
-        });
-
-        allButtonsCache = displayItems.filter(function(i) { return !isFolder(i); }); // Кэш только кнопок для старой логики
-        currentButtons = displayItems; // Полный список (кнопки и строки-папки)
+        var sortedItems = getSortedItems(allButtons);
+        currentItems = sortedItems;
+        allButtonsCache = allButtons;
 
         var targetContainer = currentContainer.find('.full-start-new__buttons');
         if (!targetContainer.length) return;
-        
-        targetContainer.find('.full-start__button').not('.button--edit-order').detach();
-        
-        var visibleButtons = [];
 
-        currentButtons.forEach(function(item) {
-            if (isFolder(item)) {
-                // Рендер папки
-                var folder = getFolder(item);
-                if (folder) {
-                    var folderBtn = $('<div class="full-start__button selector button-folder">' + 
-                        '<div class="full-start__button__icon">' + FOLDER_ICON + '</div>' +
-                        '<span>' + folder.name + '</span>' +
-                    '</div>');
-                    folderBtn.on('hover:enter', function() {
-                        openFolderView(item);
-                    });
-                    targetContainer.append(folderBtn);
-                    visibleButtons.push(folderBtn);
-                }
-            } else {
-                // Рендер кнопки
-                targetContainer.append(item);
-                if (!item.hasClass('hidden')) visibleButtons.push(item);
+        targetContainer.find('.full-start__button, .full-start__section-title').detach();
+
+        var visibleButtons = [];
+        sortedItems.forEach(function(item) {
+            if (item.type === 'button') {
+                targetContainer.append(item.btn);
+                if (!item.btn.hasClass('hidden')) visibleButtons.push(item.btn);
+            } else if (item.type === 'folder') {
+                var title = $('<div class="full-start__section-title">' + item.name + '</div>');
+                targetContainer.append(title);
             }
         });
 
         applyButtonAnimation(visibleButtons);
+
         var editBtn = targetContainer.find('.button--edit-order');
-        if (editBtn.length) {
-            editBtn.detach();
-            targetContainer.append(editBtn);
-        }
-        applyHiddenButtons(allButtonsCache); // Скрываем скрытые кнопки (скрытие внутри папки пока не реализовано через UI, но логика готова)
-        
+        if (editBtn.length) { editBtn.detach(); }
+        targetContainer.append(createEditButton());
+
+        applyHiddenButtons(allButtons);
+
         var viewmode = Lampa.Storage.get('buttons_viewmode', 'default');
         targetContainer.removeClass('icons-only always-text');
         if (viewmode === 'icons') targetContainer.addClass('icons-only');
         if (viewmode === 'always') targetContainer.addClass('always-text');
-        
+
         saveOrder();
+
         setTimeout(function() {
-            if (currentContainer) {
-                setupButtonNavigation(currentContainer);
-            }
+            if (currentContainer) setupButtonNavigation(currentContainer);
         }, 100);
     }
 
@@ -591,8 +392,7 @@
         }
         var sameTextCount = 0;
         allButtons.forEach(function(otherBtn) {
-            // Проверяем, что otherBtn это кнопка, а не папка (строка)
-            if (typeof otherBtn !== 'string' && otherBtn.find('span').text().trim() === text) {
+            if (otherBtn.find('span').text().trim() === text) {
                 sameTextCount++;
             }
         });
@@ -610,176 +410,154 @@
         return text;
     }
 
-    // --- Модальное окно редактирования содержимого папки ---
-    function openFolderEditModal(folderId) {
-        var folder = getFolder(folderId);
-        if (!folder) return;
+    function createListItem(item) {
+        var isFolder = item.type === 'folder';
+        var displayName = isFolder ? item.name : getButtonDisplayName(item.btn, currentItems.filter(function(i) { return i.type === 'button'; }).map(function(i) { return i.btn; }));
+        var iconSvg = isFolder ? folderSvg : item.btn.find('svg').clone().prop('outerHTML');
+        var id = item.id;
+        var isHidden = !isFolder && getHiddenButtons().indexOf(id) !== -1;
 
-        var list = $('<div class="menu-edit-list"></div>');
-        var header = $('<div style="text-align:center; padding:1em; font-weight:bold;">' + folder.name + ' <span style="opacity:0.7; font-weight:normal; font-size:0.8em">(Сортировка)</span></div>');
-        list.append(header);
+        var listItem = $('<div class="menu-edit-list__item' + (isFolder ? ' folder-item' : '') + (isHidden ? ' menu-edit-list__item-hidden' : '') + '"></div>');
+        listItem.append('<div class="menu-edit-list__icon">' + iconSvg + '</div>');
+        listItem.append('<div class="menu-edit-list__title">' + displayName + '</div>');
+        listItem.append('<div class="menu-edit-list__move move-up selector"><svg width="22" height="14" viewBox="0 0 22 14" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2 12L11 3L20 12" stroke="currentColor" stroke-width="4" stroke-linecap="round"/></svg></div>');
+        listItem.append('<div class="menu-edit-list__move move-down selector"><svg width="22" height="14" viewBox="0 0 22 14" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2 2L11 11L20 2" stroke="currentColor" stroke-width="4" stroke-linecap="round"/></svg></div>');
 
-        // Получаем кнопки внутри
-        var folderItemsBtns = [];
-        folder.items.forEach(function(id) {
-            var btn = findButton(id);
-            if (btn) folderItemsBtns.push(btn);
-        });
-
-        function createSubItem(btn) {
-            var displayName = getButtonDisplayName(btn, folderItemsBtns);
-            var icon = btn.find('svg').clone();
-            var btnId = getButtonId(btn);
-            
-            var item = $('<div class="menu-edit-list__item">' +
-                '<div class="menu-edit-list__icon"></div>' +
-                '<div class="menu-edit-list__title">' + displayName + '</div>' +
-                '<div class="menu-edit-list__move move-up selector">' +
-                '<svg width="22" height="14" viewBox="0 0 22 14" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2 12L11 3L20 12" stroke="currentColor" stroke-width="4" stroke-linecap="round"/></svg>' +
-                '</div>' +
-                '<div class="menu-edit-list__move move-down selector">' +
-                '<svg width="22" height="14" viewBox="0 0 22 14" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2 2L11 11L20 2" stroke="currentColor" stroke-width="4" stroke-linecap="round"/></svg>' +
-                '</div>' +
-                '<div class="menu-edit-list__action remove-from-folder selector" style="color: #ff6b6b">' +
-                '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>' +
-                '</div>' +
-                '</div>');
-            
-            item.find('.menu-edit-list__icon').append(icon);
-            item.data('buttonId', btnId);
-
-            item.find('.move-up').on('hover:enter', function() {
-                var idx = folder.items.indexOf(btnId);
-                if (idx > 0) {
-                    folder.items.splice(idx, 1);
-                    folder.items.splice(idx - 1, 0, btnId);
-                    setFolders(getFolders()); // save
-                    Lampa.Modal.close(); // Simple reload
-                    openFolderEditModal(folderId);
-                }
-            });
-
-            item.find('.move-down').on('hover:enter', function() {
-                var idx = folder.items.indexOf(btnId);
-                if (idx < folder.items.length - 1) {
-                    folder.items.splice(idx, 1);
-                    folder.items.splice(idx + 1, 0, btnId);
-                    setFolders(getFolders());
-                    Lampa.Modal.close();
-                    openFolderEditModal(folderId);
-                }
-            });
-
-            item.find('.remove-from-folder').on('hover:enter', function() {
-                removeButtonFromFolder(folderId, btnId);
-                Lampa.Modal.close();
-                openFolderEditModal(folderId);
-            });
-
-            return item;
+        if (!isFolder) {
+            listItem.append('<div class="menu-edit-list__toggle toggle selector"><svg width="26" height="26" viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1.89111" y="1.78369" width="21.793" height="21.793" rx="3.5" stroke="currentColor" stroke-width="3"/><path d="M7.44873 12.9658L10.8179 16.3349L18.1269 9.02588" stroke="currentColor" stroke-width="3" class="dot" opacity="' + (isHidden ? '0' : '1') + '" stroke-linecap="round"/></svg></div>');
+        } else {
+            listItem.append('<div class="menu-edit-list__edit selector">' + editSvg + '</div>');
+            listItem.append('<div class="menu-edit-list__delete selector">' + trashSvg + '</div>');
         }
 
-        folderItemsBtns.forEach(function(btn) {
-            list.append(createSubItem(btn));
-        });
-        
-        if (folderItemsBtns.length === 0) {
-             list.append('<div style="text-align:center; padding:1em; opacity:0.5">Пусто</div>');
-        }
+        var index = currentItems.indexOf(item);
 
-        Lampa.Modal.open({
-            title: '',
-            html: list,
-            size: 'small',
-            onBack: function() {
-                Lampa.Modal.close();
-                openEditDialog(); // Возврат к родительскому окну
+        listItem.find('.move-up').on('hover:enter', function() {
+            if (index > 0) {
+                var temp = currentItems[index - 1];
+                currentItems[index - 1] = currentItems[index];
+                currentItems[index] = temp;
+                listItem.insertBefore(listItem.prev());
+                saveOrder();
             }
         });
+
+        listItem.find('.move-down').on('hover:enter', function() {
+            if (index < currentItems.length - 1) {
+                var temp = currentItems[index + 1];
+                currentItems[index + 1] = currentItems[index];
+                currentItems[index] = temp;
+                listItem.insertAfter(listItem.next());
+                saveOrder();
+            }
+        });
+
+        if (!isFolder) {
+            listItem.find('.toggle').on('hover:enter', function() {
+                var nowHidden = !listItem.hasClass('menu-edit-list__item-hidden');
+                listItem.toggleClass('menu-edit-list__item-hidden', nowHidden);
+                item.btn.toggleClass('hidden', nowHidden);
+                listItem.find('.dot').attr('opacity', nowHidden ? '0' : '1');
+                var hidden = getHiddenButtons();
+                var idx = hidden.indexOf(id);
+                if (nowHidden && idx === -1) hidden.push(id);
+                if (!nowHidden && idx !== -1) hidden.splice(idx, 1);
+                setHiddenButtons(hidden);
+            });
+        } else {
+            listItem.find('.menu-edit-list__edit').on('hover:enter', function() {
+                var inputHtml = $('<div><div style="padding:1em;font-size:1.2em;">Название папки</div><div style="padding:0 1em 1em;"><input type="text" value="' + item.name + '" style="width:100%;padding:0.5em;box-sizing:border-box;background:rgba(0,0,0,0.5);color:white;border:none;border-radius:0.3em;"></div></div>');
+                Lampa.Modal.open({
+                    title: 'Переименовать папку',
+                    html: inputHtml,
+                    size: 'small',
+                    onSelect: function() {
+                        var newName = inputHtml.find('input').val().trim();
+                        if (newName && newName !== item.name) {
+                            item.name = newName;
+                            var f = getFolders();
+                            f[item.id] = newName;
+                            setFolders(f);
+                            listItem.find('.menu-edit-list__title').text(newName);
+                        }
+                        Lampa.Modal.close();
+                    },
+                    onBack: Lampa.Modal.close
+                });
+            });
+
+            listItem.find('.menu-edit-list__delete').on('hover:enter', function() {
+                currentItems.splice(index, 1);
+                listItem.remove();
+                var f = getFolders();
+                delete f[item.id];
+                setFolders(f);
+                saveOrder();
+            });
+        }
+
+        return listItem;
     }
 
     function openEditDialog() {
-        // Формируем плоский список для корневого меню
-        // Папки + Кнопки не в папках
-        
-        // Сначала обновим currentButtons, чтобы он был актуальным
-        // (Логика из applyChanges частично повторяется для получения списка)
-        var folders = getFolders();
-        var idsInFolders = [];
-        folders.forEach(function(f) { idsInFolders = idsInFolders.concat(f.items); });
-        
-        // Соберем все реальные кнопки
         if (currentContainer) {
             var categories = categorizeButtons(currentContainer);
-            var allRealButtons = []
-                .concat(categories.online)
-                .concat(categories.torrent)
-                .concat(categories.trailer)
-                .concat(categories.favorite)
-                .concat(categories.subscribe)
-                .concat(categories.book)
-                .concat(categories.reaction)
-                .concat(categories.other);
-            
-            // Фильтруем дубликаты
-            var uniqueRealButtons = [];
-            var seen = {};
-            allRealButtons.forEach(function(b) {
-                var id = getButtonId(b);
-                if(!seen[id]) { seen[id]=true; uniqueRealButtons.push(b); }
-            });
+            var allButtons = [].concat(
+                categories.online,
+                categories.torrent,
+                categories.trailer,
+                categories.favorite,
+                categories.subscribe,
+                categories.book,
+                categories.reaction,
+                categories.other
+            );
 
-            // Собираем currentButtons для отображения (смешиваем папки и кнопки)
-            var displayList = [];
-            var customOrder = getCustomOrder();
-
-            // 1. Элементы из порядка
-            customOrder.forEach(function(id) {
-                if (isFolder(id)) {
-                    displayList.push(id);
-                } else if (idsInFolders.indexOf(id) === -1) {
-                    var btn = uniqueRealButtons.find(function(b) { return getButtonId(b) === id; });
-                    if (btn) displayList.push(btn);
+            var uniqueButtons = [];
+            var seenIds = {};
+            allButtons.forEach(function(btn) {
+                var btnId = getButtonId(btn);
+                if (!seenIds[btnId]) {
+                    seenIds[btnId] = true;
+                    uniqueButtons.push(btn);
                 }
             });
 
-            // 2. Новые кнопки
-            uniqueRealButtons.forEach(function(btn) {
-                var id = getButtonId(btn);
-                if (displayList.indexOf(btn) === -1 && idsInFolders.indexOf(id) === -1) {
-                     // Проверяем, нет ли ID в displayList как строки (на всякий случай)
-                     var exists = displayList.some(function(i) { return !isFolder(i) && getButtonId(i) === id; });
-                     if (!exists) displayList.push(btn);
-                }
-            });
-            
-            allButtonsCache = displayList.filter(function(i){return !isFolder(i);});
-            currentButtons = displayList;
+            var sortedItems = getSortedItems(uniqueButtons);
+            currentItems = sortedItems;
         }
 
         var list = $('<div class="menu-edit-list"></div>');
-        var hidden = getHiddenButtons();
-        var modes = ['default', 'icons', 'always'];
-        var labels = {default: 'Стандартный', icons: 'Только иконки', always: 'С текстом'};
-        var currentMode = Lampa.Storage.get('buttons_viewmode', 'default');
 
-        // --- Кнопка "Создать папку" ---
-        var createFolderBtn = $('<div class="selector" style="background: rgba(100, 200, 100, 0.3); padding: 1em; text-align: center; margin-bottom: 0.5em; border-radius: 0.3em;">+ Создать папку</div>');
+        var createFolderBtn = $('<div class="selector create-folder" style="background:rgba(100,255,100,0.3);border-radius:0.3em;margin:0.5em 0;"><div style="text-align:center;padding:1em;">Создать папку</div></div>');
         createFolderBtn.on('hover:enter', function() {
-            Lampa.Input.edit({
-                value: '',
-                title: 'Название папки'
-            }, function(new_name) {
-                if (new_name) {
-                    createFolder(new_name);
+            var inputHtml = $('<div><div style="padding:1em;font-size:1.2em;">Название папки</div><div style="padding:0 1em 1em;"><input type="text" value="Новая папка" style="width:100%;padding:0.5em;box-sizing:border-box;background:rgba(0,0,0,0.5);color:white;border:none;border-radius:0.3em;"></div></div>');
+            Lampa.Modal.open({
+                title: 'Создать папку',
+                html: inputHtml,
+                size: 'small',
+                onSelect: function() {
+                    var name = inputHtml.find('input').val().trim();
+                    if (name) {
+                        var folderId = 'folder_' + Date.now();
+                        var f = getFolders();
+                        f[folderId] = name;
+                        setFolders(f);
+                        var newFolder = { type: 'folder', id: folderId, name: name };
+                        currentItems.push(newFolder);
+                        list.append(createListItem(newFolder));
+                        saveOrder();
+                    }
                     Lampa.Modal.close();
-                    setTimeout(openEditDialog, 100);
-                }
+                },
+                onBack: Lampa.Modal.close
             });
         });
         list.append(createFolderBtn);
 
-        // --- Кнопка "Вид кнопок" ---
+        var modes = ['default', 'icons', 'always'];
+        var labels = { default: 'Стандартный', icons: 'Только иконки', always: 'С текстом' };
+        var currentMode = Lampa.Storage.get('buttons_viewmode', 'default');
         var modeBtn = $('<div class="selector viewmode-switch">' +
             '<div style="text-align: center; padding: 1em;">Вид кнопок: ' + labels[currentMode] + '</div>' +
             '</div>');
@@ -798,202 +576,8 @@
         });
         list.append(modeBtn);
 
-        function createButtonItem(item) {
-            var isItFolder = isFolder(item);
-            var displayName, icon, itemEl;
-
-            if (isItFolder) {
-                var folder = getFolder(item);
-                displayName = folder.name;
-                icon = $(FOLDER_OPEN_ICON);
-                var count = folder.items ? folder.items.length : 0;
-                displayName += ' <span style="opacity:0.5; font-size:0.8em">(' + count + ')</span>';
-            } else {
-                displayName = getButtonDisplayName(item, currentButtons.filter(function(i){return !isFolder(i);}));
-                icon = item.find('svg').clone();
-            }
-
-            var itemHtml = '<div class="menu-edit-list__icon"></div><div class="menu-edit-list__title">' + displayName + '</div>';
-            
-            // Кнопки управления
-            var controls = '';
-            
-            if (isItFolder) {
-                 // Кнопка "Удалить папку"
-                 controls += '<div class="menu-edit-list__action delete-folder selector" style="color: #ff6b6b">' +
-                    '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>' +
-                    '</div>';
-                 // Кнопка Enter (сортировка внутри)
-                 controls += '<div class="menu-edit-list__action enter-folder selector" style="color: #4dabf7">' +
-                    '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>' +
-                    '</div>';
-            } else {
-                // Стандартные кнопки
-                var btnId = getButtonId(item);
-                var isHidden = hidden.indexOf(btnId) !== -1;
-                
-                controls += '<div class="menu-edit-list__move move-up selector">' +
-                    '<svg width="22" height="14" viewBox="0 0 22 14" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2 12L11 3L20 12" stroke="currentColor" stroke-width="4" stroke-linecap="round"/></svg>' +
-                    '</div>' +
-                    '<div class="menu-edit-list__move move-down selector">' +
-                    '<svg width="22" height="14" viewBox="0 0 22 14" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2 2L11 11L20 2" stroke="currentColor" stroke-width="4" stroke-linecap="round"/></svg>' +
-                    '</div>' +
-                    '<div class="menu-edit-list__toggle toggle selector">' +
-                    '<svg width="26" height="26" viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">' +
-                    '<rect x="1.89111" y="1.78369" width="21.793" height="21.793" rx="3.5" stroke="currentColor" stroke-width="3"/>' +
-                    '<path d="M7.44873 12.9658L10.8179 16.3349L18.1269 9.02588" stroke="currentColor" stroke-width="3" class="dot" opacity="' + (isHidden ? '0' : '1') + '" stroke-linecap="round"/>' +
-                    '</svg>' +
-                    '</div>';
-                
-                // Кнопка "В папку"
-                controls += '<div class="menu-edit-list__action move-to-folder selector" title="Переместить в папку">' +
-                    '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>' +
-                    '</div>';
-            }
-
-            itemEl = $('<div class="menu-edit-list__item">' + itemHtml + controls + '</div>');
-            itemEl.find('.menu-edit-list__icon').append(icon);
-            
-            if (isItFolder) {
-                itemEl.data('folderId', item);
-                
-                // Удалить папку
-                itemEl.find('.delete-folder').on('hover:enter', function() {
-                    Lampa.Confirm.show('Удалить папку?', 'Все кнопки из папки вернутся в общий список.', function(){
-                        deleteFolder(item);
-                        Lampa.Modal.close();
-                        setTimeout(openEditDialog, 100);
-                    });
-                });
-
-                // Войти в папку
-                itemEl.on('hover:enter', function(e) {
-                    // Предотвращаем срабатывание если кликнули на удаление
-                    if ($(e.target).closest('.delete-folder').length) return;
-                    Lampa.Modal.close();
-                    setTimeout(function(){
-                        openFolderEditModal(item);
-                    }, 100);
-                });
-                // Тоже самое для кнопки enter
-                itemEl.find('.enter-folder').on('hover:enter', function(e) {
-                     e.stopPropagation();
-                     Lampa.Modal.close();
-                     setTimeout(function(){
-                        openFolderEditModal(item);
-                    }, 100);
-                });
-
-            } else {
-                itemEl.data('button', item);
-                var btnId = getButtonId(item);
-                itemEl.toggleClass('menu-edit-list__item-hidden', hidden.indexOf(btnId) !== -1);
-
-                itemEl.find('.move-up').on('hover:enter', function() {
-                    var prev = itemEl.prev();
-                    while (prev.length && (prev.hasClass('viewmode-switch') || prev.hasClass('folder-create-btn') || prev.find('.delete-folder').length)) {
-                        prev = prev.prev();
-                    }
-                    if (prev.length && !prev.hasClass('viewmode-switch') && !prev.hasClass('folder-create-btn')) {
-                        itemEl.insertBefore(prev);
-                        var btnIndex = currentButtons.indexOf(item);
-                        if (btnIndex > 0) {
-                            currentButtons.splice(btnIndex, 1);
-                            currentButtons.splice(btnIndex - 1, 0, item);
-                        }
-                        saveOrder();
-                    }
-                });
-                
-                itemEl.find('.move-down').on('hover:enter', function() {
-                    var next = itemEl.next();
-                    while (next.length && next.hasClass('folder-reset-button')) {
-                        next = next.next();
-                    }
-                    if (next.length && !next.hasClass('folder-reset-button')) {
-                        itemEl.insertAfter(next);
-                        var btnIndex = currentButtons.indexOf(item);
-                        if (btnIndex < currentButtons.length - 1) {
-                            currentButtons.splice(btnIndex, 1);
-                            currentButtons.splice(btnIndex + 1, 0, item);
-                        }
-                        saveOrder();
-                    }
-                });
-
-                itemEl.find('.toggle').on('hover:enter', function() {
-                    var isNowHidden = !itemEl.hasClass('menu-edit-list__item-hidden');
-                    itemEl.toggleClass('menu-edit-list__item-hidden', isNowHidden);
-                    item.toggleClass('hidden', isNowHidden);
-                    itemEl.find('.dot').attr('opacity', isNowHidden ? '0' : '1');
-                    var hiddenList = getHiddenButtons();
-                    var index = hiddenList.indexOf(btnId);
-                    if (isNowHidden && index === -1) {
-                        hiddenList.push(btnId);
-                    } else if (!isNowHidden && index !== -1) {
-                        hiddenList.splice(index, 1);
-                    }
-                    setHiddenButtons(hiddenList);
-                });
-
-                // Логика "В папку"
-                itemEl.find('.move-to-folder').on('hover:enter', function() {
-                    var folders = getFolders();
-                    if (folders.length === 0) {
-                        Lampa.Noty.show('Сначала создайте папку');
-                        return;
-                    }
-
-                    var folderList = $('<div class="simple-list"></div>');
-                    
-                    // Вариант "В корень"
-                    var rootItem = $('<div class="selector" style="padding:1em; border-bottom:1px solid #333;">На главную (в корень)</div>');
-                    rootItem.on('hover:enter', function() {
-                        // Если кнопка уже была в папке, она вернется в customOrder в saveOrder
-                        // Но нам нужно удалить её из текущей папки
-                        // Находим папку, где эта кнопка
-                        var currentFolders = getFolders();
-                        var foundIn = false;
-                        currentFolders.forEach(function(f) {
-                            if (f.items.indexOf(btnId) !== -1) {
-                                removeButtonFromFolder(f.id, btnId);
-                                foundIn = true;
-                            }
-                        });
-                        if(!foundIn) {
-                            // Она была в корне, ничего не делаем
-                        }
-                        Lampa.Modal.close();
-                        setTimeout(openEditDialog, 100);
-                    });
-                    folderList.append(rootItem);
-
-                    folders.forEach(function(f) {
-                        var fItem = $('<div class="selector" style="padding:1em; display:flex; align-items:center;">' + 
-                            '<span style="margin-right:10px">' + FOLDER_ICON + '</span>' + 
-                            f.name + 
-                        '</div>');
-                        fItem.on('hover:enter', function() {
-                            addButtonsToFolder(f.id, [btnId]);
-                            Lampa.Modal.close();
-                            setTimeout(openEditDialog, 100);
-                        });
-                        folderList.append(fItem);
-                    });
-
-                    Lampa.Modal.open({
-                        title: 'Выберите папку',
-                        html: folderList,
-                        size: 'small',
-                        onBack: function() { Lampa.Modal.close(); }
-                    });
-                });
-            }
-            return itemEl;
-        }
-
-        currentButtons.forEach(function(btn) {
-            list.append(createButtonItem(btn));
+        currentItems.forEach(function(item) {
+            list.append(createListItem(item));
         });
 
         var resetBtn = $('<div class="selector folder-reset-button">' +
@@ -1002,30 +586,13 @@
         resetBtn.on('hover:enter', function() {
             Lampa.Storage.set('button_custom_order', []);
             Lampa.Storage.set('button_hidden', []);
-            Lampa.Storage.set('button_folders', []); // Сброс папок
             Lampa.Storage.set('buttons_viewmode', 'default');
+            Lampa.Storage.set('button_folders', {});
             Lampa.Modal.close();
             setTimeout(function() {
                 if (currentContainer) {
                     currentContainer.find('.button--play, .button--edit-order').remove();
                     currentContainer.data('buttons-processed', false);
-                    var targetContainer = currentContainer.find('.full-start-new__buttons');
-                    var existingButtons = targetContainer.find('.full-start__button').toArray();
-                    allButtonsOriginal.forEach(function(originalBtn) {
-                        var btnId = getButtonId(originalBtn);
-                        var exists = false;
-                        for (var i = 0; i < existingButtons.length; i++) {
-                            if (getButtonId($(existingButtons[i])) === btnId) {
-                                exists = true;
-                                break;
-                            }
-                        }
-                        if (!exists) {
-                            var clonedBtn = originalBtn.clone(true, true);
-                            clonedBtn.css({ 'opacity': '1', 'animation': 'none' });
-                            targetContainer.append(clonedBtn);
-                        }
-                    });
                     reorderButtons(currentContainer);
                     refreshController();
                 }
@@ -1049,106 +616,63 @@
     function reorderButtons(container) {
         var targetContainer = container.find('.full-start-new__buttons');
         if (!targetContainer.length) return false;
+
         currentContainer = container;
         container.find('.button--play, .button--edit-order').remove();
+
         var categories = categorizeButtons(container);
-        var allButtons = []
-            .concat(categories.online)
-            .concat(categories.torrent)
-            .concat(categories.trailer)
-            .concat(categories.favorite)
-            .concat(categories.subscribe)
-            .concat(categories.book)
-            .concat(categories.reaction)
-            .concat(categories.other);
-        allButtons = sortByCustomOrder(allButtons);
-        allButtonsCache = allButtons;
+        var allButtons = [].concat(
+            categories.online,
+            categories.torrent,
+            categories.trailer,
+            categories.favorite,
+            categories.subscribe,
+            categories.book,
+            categories.reaction,
+            categories.other
+        );
+
+        var sortedItems = getSortedItems(allButtons);
+        currentItems = sortedItems;
+
         if (allButtonsOriginal.length === 0) {
             allButtons.forEach(function(btn) {
                 allButtonsOriginal.push(btn.clone(true, true));
             });
         }
-        
-        // Важно: reorderButtons вызывается при первой инициализации.
-        // Мы не должны смешивать currentButtons с папками здесь, так как applyChanges сделает это правильно позже.
-        // Но для сохранения порядка кнопок в customOrder нам нужно оставить это как есть.
-        // Папки добавятся через applyChanges который вызывается потом.
-        
-        currentButtons = allButtons; // Временно только кнопки
-        
-        var existingButtons = targetContainer.find('.full-start__button').not('.button--edit-order').toArray();
-        var missingButtons = [];
-        existingButtons.forEach(function(existingBtn) {
-            var $existingBtn = $(existingBtn);
-            if (isExcluded($existingBtn)) return;
-            var existingId = getButtonId($existingBtn);
-            var found = false;
-            for (var i = 0; i < allButtons.length; i++) {
-                if (getButtonId(allButtons[i]) === existingId) {
-                    found = true;
-                    break;
-                }
-            }
-            if (!found) {
-                missingButtons.push($existingBtn);
+
+        targetContainer.children().detach();
+
+        var visibleButtons = [];
+        sortedItems.forEach(function(item) {
+            if (item.type === 'button') {
+                targetContainer.append(item.btn);
+                if (!item.btn.hasClass('hidden')) visibleButtons.push(item.btn);
+            } else if (item.type === 'folder') {
+                var title = $('<div class="full-start__section-title">' + item.name + '</div>');
+                targetContainer.append(title);
             }
         });
-        if (missingButtons.length > 0) {
-            var seenIds = {};
-            allButtons.forEach(function(btn) {
-                seenIds[getButtonId(btn)] = true;
-            });
-            missingButtons.forEach(function($btn) {
-                var btnId = getButtonId($btn);
-                if (seenIds[btnId]) return;
-                seenIds[btnId] = true;
-                var type = getButtonType($btn);
-                if (categories[type]) {
-                    categories[type].push($btn);
-                } else {
-                    categories.other.push($btn);
-                }
-                if (!$btn.hasClass('selector')) {
-                    $btn.addClass('selector');
-                }
-            });
-            var uniqueButtons = [];
-            seenIds = {};
-            var allButtonsNew = []
-                .concat(categories.online)
-                .concat(categories.torrent)
-                .concat(categories.trailer)
-                .concat(categories.favorite)
-                .concat(categories.subscribe)
-                .concat(categories.book)
-                .concat(categories.reaction)
-                .concat(categories.other);
-            allButtonsNew.forEach(function(btn) {
-                var btnId = getButtonId(btn);
-                if (!seenIds[btnId]) {
-                    seenIds[btnId] = true;
-                    uniqueButtons.push(btn);
-                }
-            });
-            allButtons = sortByCustomOrder(uniqueButtons);
-            currentButtons = allButtons;
-        }
-        
-        // Очистка и append делает applyChanges, мы здесь только готовим данные если нужно
-        // Но чтобы не дублировать логику, лучше просто вызвать applyChanges в конце
-        
-        applyChanges(); 
-        
+
+        targetContainer.append(createEditButton());
+        visibleButtons.push(targetContainer.find('.button--edit-order'));
+
+        applyHiddenButtons(allButtons);
+
+        var viewmode = Lampa.Storage.get('buttons_viewmode', 'default');
+        targetContainer.removeClass('icons-only always-text');
+        if (viewmode === 'icons') targetContainer.addClass('icons-only');
+        if (viewmode === 'always') targetContainer.addClass('always-text');
+
+        applyButtonAnimation(visibleButtons);
+
+        setTimeout(function() { setupButtonNavigation(container); }, 100);
         return true;
     }
 
-    window.reorderButtons = reorderButtons;
-
     function setupButtonNavigation(container) {
         if (Lampa.Controller && typeof Lampa.Controller.toggle === 'function') {
-            try {
-                Lampa.Controller.toggle('full_start');
-            } catch(e) {}
+            try { Lampa.Controller.toggle('full_start'); } catch(e) {}
         }
     }
 
@@ -1158,9 +682,7 @@
             try {
                 Lampa.Controller.toggle('full_start');
                 if (currentContainer) {
-                    setTimeout(function() {
-                        setupButtonNavigation(currentContainer);
-                    }, 100);
+                    setTimeout(function() { setupButtonNavigation(currentContainer); }, 100);
                 }
             } catch(e) {}
         }, 50);
@@ -1171,14 +693,7 @@
             '@keyframes button-fade-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }' +
             '.full-start-new__buttons .full-start__button { opacity: 0; }' +
             '.full-start__button.hidden { display: none !important; }' +
-            '.full-start__button.button-folder { flex-direction: column; justify-content: center; background: rgba(255,255,255,0.1); min-width: 80px; }' +
-            '.full-start__button.button-folder .full-start__button__icon { margin-bottom: 5px; }' +
-            '.full-start-new__buttons { ' +
-            'display: flex !important; ' +
-            'flex-direction: row !important; ' +
-            'flex-wrap: wrap !important; ' +
-            'gap: 0.5em !important; ' +
-            '}' +
+            '.full-start-new__buttons { display: flex !important; flex-direction: row !important; flex-wrap: wrap !important; gap: 0.5em !important; }' +
             '.full-start-new__buttons.buttons-loading .full-start__button { visibility: hidden !important; }' +
             '.folder-reset-button { background: rgba(200,100,100,0.3); margin-top: 1em; border-radius: 0.3em; }' +
             '.folder-reset-button.focus { border: 3px solid rgba(255,255,255,0.8); }' +
@@ -1188,8 +703,9 @@
             '.viewmode-switch { background: rgba(100,100,255,0.3); margin: 0.5em 0 1em 0; border-radius: 0.3em; }' +
             '.viewmode-switch.focus { border: 3px solid rgba(255,255,255,0.8); }' +
             '.menu-edit-list__item-hidden { opacity: 0.5; }' +
-            '.menu-edit-list__action { padding: 0.5em; display: flex; align-items: center; }' +
-            '.menu-edit-list__action svg { fill: currentColor; }' +
+            '.full-start__section-title { width:100%; text-align:left; padding:0.5em 1em; font-size:1.2em; background:rgba(255,255,255,0.05); border-radius:0.5em; margin:1em 0 0.5em 0; opacity:0.8; }' +
+            '.create-folder.focus { border:3px solid rgba(255,255,255,0.8); }' +
+            '.menu-edit-list__edit, .menu-edit-list__delete { width:26px; height:26px; display:flex; align-items:center; justify-content:center; margin-left:5px; }' +
             '</style>');
         $('body').append(style);
 
@@ -1213,19 +729,14 @@
                     } else {
                         setTimeout(function() {
                             if (container.data('buttons-processed')) {
-                                var newButtons = targetContainer.find('.full-start__button').not('.button--edit-order, .button--play, .button-folder');
+                                var newButtons = targetContainer.find('.full-start__button').not('.button--edit-order, .button--play');
                                 var hasNewButtons = false;
                                 newButtons.each(function() {
                                     var $btn = $(this);
                                     if (isExcluded($btn)) return;
-                                    var found = false;
-                                    for (var i = 0; i < currentButtons.length; i++) {
-                                        // Ищем только среди кнопок, не папок
-                                        if (typeof currentButtons[i] !== 'string' && getButtonId(currentButtons[i]) === getButtonId($btn)) {
-                                            found = true;
-                                            break;
-                                        }
-                                    }
+                                    var found = currentItems.some(function(item) {
+                                        return item.type === 'button' && getButtonId(item.btn) === getButtonId($btn);
+                                    });
                                     if (!found) {
                                         hasNewButtons = true;
                                     }
@@ -1243,29 +754,29 @@
                 }
             }, 400);
         });
-    }
 
-    if (Lampa.SettingsApi) {
-        Lampa.SettingsApi.addParam({
-            component: 'interface',
-            param: { name: 'buttons_editor_enabled', type: 'trigger', default: true },
-            field: { name: 'Редактор кнопок' },
-            onChange: function(value) {
-                setTimeout(function() {
-                    var currentValue = Lampa.Storage.get('buttons_editor_enabled', true);
-                    if (currentValue) {
-                        $('.button--edit-order').show();
-                    } else {
-                        $('.button--edit-order').hide();
-                    }
-                }, 100);
-            },
-            onRender: function(element) {
-                setTimeout(function() {
-                    $('div[data-name="interface_size"]').after(element);
-                }, 0);
-            }
-        });
+        if (Lampa.SettingsApi) {
+            Lampa.SettingsApi.addParam({
+                component: 'interface',
+                param: { name: 'buttons_editor_enabled', type: 'trigger', default: true },
+                field: { name: 'Редактор кнопок' },
+                onChange: function(value) {
+                    setTimeout(function() {
+                        var currentValue = Lampa.Storage.get('buttons_editor_enabled', true);
+                        if (currentValue) {
+                            $('.button--edit-order').show();
+                        } else {
+                            $('.button--edit-order').hide();
+                        }
+                    }, 100);
+                },
+                onRender: function(element) {
+                    setTimeout(function() {
+                        $('div[data-name="interface_size"]').after(element);
+                    }, 0);
+                }
+            });
+        }
     }
 
     init();
@@ -1274,8 +785,3 @@
         module.exports = {};
     }
 })();
-
-
-
-
-
