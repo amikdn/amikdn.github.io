@@ -307,7 +307,8 @@
         groups.forEach(function(group) {
             if (group.name && group.items.length > 0) {
                 var folderBtn = $('<div class="full-start__button button--folder">');
-                var icon = $(folderSvg);
+                var icon = group.items[0].find('svg').clone();
+                if (icon.length === 0) icon = $(folderSvg);
                 icon.css({ width: '1.8em', height: '1.8em', marginRight: '0.5em' });
                 folderBtn.append(icon);
                 folderBtn.append('<span>' + group.name + '</span>');
@@ -495,24 +496,18 @@
             });
         } else {
             listItem.find('.menu-edit-list__edit').on('hover:enter', function() {
-                var inputHtml = $('<div><div style="padding:1em;font-size:1.2em;">Название папки</div><div style="padding:0 1em 1em;"><input type="text" value="' + item.name + '" style="width:100%;padding:0.5em;box-sizing:border-box;background:rgba(0,0,0,0.5);color:white;border:none;border-radius:0.3em;"></div></div>');
-                Lampa.Modal.open({
-                    title: 'Переименовать папку',
-                    html: inputHtml,
-                    size: 'small',
-                    onSelect: function() {
-                        var newName = inputHtml.find('input').val().trim();
-                        if (newName && newName !== item.name) {
-                            item.name = newName;
-                            var f = getFolders();
-                            f[item.id] = newName;
-                            setFolders(f);
-                            listItem.find('.menu-edit-list__title').text(newName);
-                            Lampa.Controller.toggle();
-                        }
-                        Lampa.Modal.close();
-                    },
-                    onBack: Lampa.Modal.close
+                Lampa.Input.edit({
+                    title: 'Название папки',
+                    value: item.name
+                }, function(newName) {
+                    if (newName && newName !== item.name) {
+                        item.name = newName;
+                        var f = getFolders();
+                        f[item.id] = newName;
+                        setFolders(f);
+                        listItem.find('.menu-edit-list__title').text(newName);
+                        Lampa.Controller.toggle();
+                    }
                 });
             });
 
@@ -562,28 +557,21 @@
 
         var createFolderBtn = $('<div class="selector create-folder" style="background:rgba(100,255,100,0.3);border-radius:0.3em;margin:0.5em 0;"><div style="text-align:center;padding:1em;">Создать папку</div></div>');
         createFolderBtn.on('hover:enter', function() {
-            var inputHtml = $('<div><div style="padding:1em;font-size:1.2em;">Название папки</div><div style="padding:0 1em 1em;"><input type="text" value="Новая папка" style="width:100%;padding:0.5em;box-sizing:border-box;background:rgba(0,0,0,0.5);color:white;border:none;border-radius:0.3em;"></div></div>');
-            Lampa.Modal.open({
-                title: 'Создать папку',
-                html: inputHtml,
-                size: 'small',
-                onSelect: function() {
-                    var name = inputHtml.find('input').val().trim();
-                    if (name) {
-                        var folderId = 'folder_' + Date.now();
-                        var f = getFolders();
-                        f[folderId] = name;
-                        setFolders(f);
-                        var newFolder = { type: 'folder', id: folderId, name: name };
-                        currentItems.push(newFolder);
-                        var newItem = createListItem(newFolder);
-                        list.append(newItem);
-                        saveOrder();
-                        Lampa.Controller.toggle();
-                    }
-                    Lampa.Modal.close();
-                },
-                onBack: Lampa.Modal.close
+            Lampa.Input.edit({
+                title: 'Название папки',
+                value: 'Новая папка'
+            }, function(name) {
+                if (name) {
+                    var folderId = 'folder_' + Date.now();
+                    var f = getFolders();
+                    f[folderId] = name;
+                    setFolders(f);
+                    var newFolder = { type: 'folder', id: folderId, name: name };
+                    currentItems.push(newFolder);
+                    list.append(createListItem(newFolder));
+                    saveOrder();
+                    Lampa.Controller.toggle();
+                }
             });
         });
         list.append(createFolderBtn);
@@ -728,7 +716,7 @@
             '.create-folder.focus { border:3px solid rgba(255,255,255,0.8); }' +
             '.menu-edit-list__item.selector.focus { border: 2px solid rgba(255,255,255,0.8); border-radius: 0.3em; }' +
             '.menu-edit-list__edit, .menu-edit-list__delete { width:26px; height:26px; display:flex; align-items:center; justify-content:center; margin-left:5px; }' +
-            '.full-start__button.button--folder { display: flex; align-items: center; width: 100%; background: rgba(255,255,255,0.05); border-radius: 0.5em; margin: 1em 0 0.5em 0; padding: 0.5em 1em; font-size: 1.2em; opacity: 0.8; }' +
+            '.full-start__button.button--folder { display: flex; align-items: center; width: calc(100% - 1em); margin: 1em 0.5em 0.5em; padding: 0.7em 1em; background: rgba(255,255,255,0.08); border-radius: 0.8em; font-size: 1.1em; opacity: 0.9; pointer-events: none; }' +
             '</style>');
         $('body').append(style);
 
