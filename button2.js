@@ -469,7 +469,7 @@
         return str.charAt(0).toUpperCase() + str.slice(1);
     }
 
-    function getButtonDisplayName(btn, allButtons) {
+    function getButtonDisplayName(btn, allButtons, noParentheses) {
         var text = btn.find('span').text().trim();
         var classes = btn.attr('class') || '';
         var subtitle = btn.attr('data-subtitle') || '';
@@ -483,6 +483,7 @@
             }
             return text;
         }
+        if (noParentheses) return text;
         var sameTextCount = 0;
         allButtons.forEach(function(otherBtn) {
             if (otherBtn.find('span').text().trim() === text) {
@@ -587,12 +588,12 @@
         folder.buttons.forEach(function(btnId) {
             var btn = findButton(btnId);
             if (btn) {
-                var displayName = getButtonDisplayName(btn, allButtonsOriginal);
+                var displayName = getButtonDisplayName(btn, allButtonsOriginal, true);
                 var iconElement = btn.find('svg').first();
                 var icon = iconElement.length ? iconElement.prop('outerHTML') : '';
                 var subtitle = btn.attr('data-subtitle') || '';
                 var item = {
-                    title: displayName.replace(/<[^>]*>/g, ''),
+                    title: displayName,
                     button: btn,
                     btnId: btnId
                 };
@@ -631,7 +632,7 @@
         folder.buttons.forEach(function(btnId) {
             var btn = findButton(btnId);
             if (btn) {
-                var displayName = getButtonDisplayName(btn, allButtonsOriginal);
+                var displayName = getButtonDisplayName(btn, allButtonsOriginal, true);
                 var iconElement = btn.find('svg').first();
                 var icon = iconElement.length ? iconElement.clone() : $('<svg></svg>');
                 var item = $('<div class="menu-edit-list__item">' +
@@ -707,7 +708,7 @@
             if (buttonsInFolders.indexOf(btnId) !== -1) {
                 return;
             }
-            var displayName = getButtonDisplayName(btn, sortedButtons);
+            var displayName = getButtonDisplayName(btn, sortedButtons, true);
             var iconElement = btn.find('svg').first();
             var icon = iconElement.length ? iconElement.clone() : $('<svg></svg>');
             var item = $('<div class="menu-edit-list__item">' +
@@ -1394,7 +1395,7 @@
             '.full-start-new__buttons.buttons-loading .full-start__button { visibility: hidden !important; }' +
             '.button--folder { cursor: pointer; }' +
             '.menu-edit-list__item { min-height: 2.8em; box-sizing: border-box; }' +
-            '.menu-edit-list__create-folder { background: rgba(34,139,34,0.45) !important; color: #fff; border: 3px solid transparent; }' +
+            '.menu-edit-list__create-folder { background: rgba(34,139,34,0.45) !important; color: #fff; border: 3px solid transparent; padding-left: 0.35em !important; }' +
             '.menu-edit-list__create-folder.focus { background: rgba(34,139,34,0.6) !important; border-color: rgba(255,255,255,0.8); }' +
             '.menu-edit-list__delete { width: 2.4em; height: 2.4em; display: flex; align-items: center; justify-content: center; cursor: pointer; }' +
             '.menu-edit-list__delete svg { width: 1.2em !important; height: 1.2em !important; }' +
