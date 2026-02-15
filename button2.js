@@ -301,7 +301,7 @@
     }
 
     function createEditButton() {
-        var btn = $('<div class="full-start__button selector button--edit-order" style="order: 9999;">' +
+        var btn = $('<div class="full-start__button selector button--edit-order button--edit-order-visible" style="order: 9999;">' +
             '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 29" fill="none"><use xlink:href="#sprite-edit"></use></svg>' +
             '</div>');
         btn.on('hover:enter', function() {
@@ -309,6 +309,8 @@
         });
         if (Lampa.Storage.get('buttons_editor_enabled') === false) {
             btn.hide();
+        } else {
+            btn.show();
         }
         return btn;
     }
@@ -1205,12 +1207,15 @@
         allButtons = sortByCustomOrder(allButtons);
         allButtonsCache = allButtons;
         if (allButtons.length === 0) return false;
+        var folders = getFolders();
+        if (allButtons.length <= 2 && folders.length === 0) {
+            return false;
+        }
         if (allButtonsOriginal.length === 0) {
             allButtons.forEach(function(btn) {
                 allButtonsOriginal.push(btn.clone(true, true));
             });
         }
-        var folders = getFolders();
         var buttonsInFolders = getButtonsInFolders();
         var filteredButtons = allButtons.filter(function(btn) {
             return buttonsInFolders.indexOf(getButtonId(btn)) === -1;
@@ -1368,6 +1373,8 @@
         var style = $('<style>' +
             '@keyframes button-fade-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }' +
             '.full-start__button.hidden { display: none !important; }' +
+            '.full-start__button.button--edit-order { min-width: 2.5em; min-height: 2.5em; display: flex !important; align-items: center; justify-content: center; }' +
+            '.full-start__button.button--edit-order svg { width: 1.2em; height: 1.2em; }' +
             '.full-start-new__buttons { ' +
             'display: flex !important; ' +
             'flex-direction: row !important; ' +
@@ -1405,45 +1412,28 @@
             if (targetContainer.length) {
                 targetContainer.addClass('buttons-loading');
             }
-            setTimeout(function() {
+            function tryProcess() {
                 try {
-                    if (!container.data('buttons-processed')) {
+                    if (!container.data('buttons-processed') && reorderButtons(container)) {
                         container.data('buttons-processed', true);
-                        if (reorderButtons(container)) {
-                            if (targetContainer.length) {
-                                targetContainer.removeClass('buttons-loading');
-                            }
-                            refreshController();
+                        if (targetContainer.length) {
+                            targetContainer.removeClass('buttons-loading');
                         }
-                    } else {
+                        refreshController();
+                        return true;
+                    }
+                } catch(err) {}
+                return false;
+            }
+            setTimeout(function() {
+                if (!tryProcess() && targetContainer.length) {
+                    targetContainer.removeClass('buttons-loading');
+                    setTimeout(function() {
+                        tryProcess();
                         setTimeout(function() {
-                            if (container.data('buttons-processed')) {
-                                var newButtons = targetContainer.find('.full-start__button').not('.button--edit-order, .button--folder, .button--play');
-                                var hasNewButtons = false;
-                                newButtons.each(function() {
-                                    var $btn = $(this);
-                                    if (isExcluded($btn)) return;
-                                    var found = false;
-                                    for (var i = 0; i < currentButtons.length; i++) {
-                                        if (getButtonId(currentButtons[i]) === getButtonId($btn)) {
-                                            found = true;
-                                            break;
-                                        }
-                                    }
-                                    if (!found) {
-                                        hasNewButtons = true;
-                                    }
-                                });
-                                if (hasNewButtons) {
-                                    reorderButtons(container);
-                                }
-                            }
-                        }, 600);
-                    }
-                } catch(err) {
-                    if (targetContainer.length) {
-                        targetContainer.removeClass('buttons-loading');
-                    }
+                            tryProcess();
+                        }, 1300);
+                    }, 800);
                 }
             }, 400);
         });
