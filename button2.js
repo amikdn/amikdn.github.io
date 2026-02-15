@@ -292,6 +292,12 @@
                 'animation-delay': (index * 0.08) + 's'
             });
         });
+        var maxDelay = (buttons.length * 80) + 500;
+        setTimeout(function() {
+            buttons.forEach(function(btn) {
+                btn.css({ 'opacity': '1', 'animation': 'none' });
+            });
+        }, maxDelay);
     }
 
     function createEditButton() {
@@ -1198,6 +1204,7 @@
             .concat(categories.other);
         allButtons = sortByCustomOrder(allButtons);
         allButtonsCache = allButtons;
+        if (allButtons.length === 0) return false;
         if (allButtonsOriginal.length === 0) {
             allButtons.forEach(function(btn) {
                 allButtonsOriginal.push(btn.clone(true, true));
@@ -1360,7 +1367,6 @@
     function init() {
         var style = $('<style>' +
             '@keyframes button-fade-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }' +
-            '.full-start-new__buttons .full-start__button { opacity: 0; }' +
             '.full-start__button.hidden { display: none !important; }' +
             '.full-start-new__buttons { ' +
             'display: flex !important; ' +
