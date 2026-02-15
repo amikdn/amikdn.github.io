@@ -483,7 +483,9 @@
             }
             return text;
         }
-        if (noParentheses) return text;
+        if (noParentheses) {
+            return text.replace(/\s*\([^)]*\)\s*$/, '').trim() || text;
+        }
         var sameTextCount = 0;
         allButtons.forEach(function(otherBtn) {
             if (otherBtn.find('span').text().trim() === text) {
