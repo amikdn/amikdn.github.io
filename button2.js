@@ -849,7 +849,7 @@
         var labels = {default: 'Стандартный', icons: 'Только иконки', always: 'С текстом'};
         var currentMode = Lampa.Storage.get('buttons_viewmode', 'default');
         var modeBtn = $('<div class="selector viewmode-switch">' +
-            '<div style="text-align: center; padding: 1em;">Вид кнопок: ' + labels[currentMode] + '</div>' +
+            '<div class="menu-edit-list__title" style="text-align: center; padding: 1em; flex: 1;">Вид кнопок: ' + labels[currentMode] + '</div>' +
             '</div>');
         modeBtn.on('hover:enter', function() {
             var idx = modes.indexOf(currentMode);
@@ -1139,7 +1139,7 @@
         }
 
         var resetBtn = $('<div class="selector folder-reset-button">' +
-            '<div style="text-align: center; padding: 1em;">Сбросить по умолчанию</div>' +
+            '<div class="menu-edit-list__title" style="text-align: center; padding: 1em;">Сбросить по умолчанию</div>' +
             '</div>');
         resetBtn.on('hover:enter', function() {
             Lampa.Storage.set('button_custom_order', []);
@@ -1404,12 +1404,12 @@
             '.menu-edit-list__move { width: 2.4em; height: 2.4em; display: flex; align-items: center; justify-content: center; cursor: pointer; margin-right: 0.5em; }' +
             '.menu-edit-list__move svg { width: 1.2em !important; height: 1.2em !important; }' +
             '.menu-edit-list__move.focus { border: 2px solid rgba(255,255,255,0.8); border-radius: 0.3em; }' +
-            '.folder-reset-button { background: rgba(200,100,100,0.3); margin-top: 1em; border-radius: 0.3em; }' +
+            '.folder-reset-button { display: flex; align-items: center; background: rgba(200,100,100,0.3); margin-top: 1em; border-radius: 0.3em; }' +
             '.folder-reset-button.focus { border: 3px solid rgba(255,255,255,0.8); }' +
             '.menu-edit-list__toggle.focus { border: 2px solid rgba(255,255,255,0.8); border-radius: 0.3em; }' +
             '.full-start-new__buttons.icons-only .full-start__button span { display: none; }' +
             '.full-start-new__buttons.always-text .full-start__button span { display: block !important; }' +
-            '.viewmode-switch { background: rgba(30,60,180,0.5) !important; color: #fff; margin: 0.5em 0 1em 0; border-radius: 0.3em; }' +
+            '.viewmode-switch { display: flex; align-items: center; background: rgba(30,60,180,0.5) !important; color: #fff; margin: 0.5em 0 1em 0; border-radius: 0.3em; }' +
             '.viewmode-switch.focus { background: rgba(30,60,180,0.65) !important; border: 3px solid rgba(255,255,255,0.8); }' +
             '.menu-edit-list__item-hidden { opacity: 0.5; }' +
             '</style>');
