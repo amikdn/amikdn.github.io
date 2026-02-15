@@ -469,7 +469,7 @@
         return str.charAt(0).toUpperCase() + str.slice(1);
     }
 
-    function getButtonDisplayName(btn, allButtons, noParentheses) {
+    function getButtonDisplayName(btn, allButtons) {
         var text = btn.find('span').text().trim();
         var classes = btn.attr('class') || '';
         var subtitle = btn.attr('data-subtitle') || '';
@@ -482,9 +482,6 @@
                 text = 'Кнопка';
             }
             return text;
-        }
-        if (noParentheses) {
-            return text.replace(/\s*[(\（][^)\）]*[)\）]\s*/g, '').trim() || text;
         }
         var sameTextCount = 0;
         allButtons.forEach(function(otherBtn) {
@@ -594,8 +591,9 @@
                 var iconElement = btn.find('svg').first();
                 var icon = iconElement.length ? iconElement.prop('outerHTML') : '';
                 var subtitle = btn.attr('data-subtitle') || '';
+                var titleText = displayName.replace(/<[^>]*>/g, '').replace(/\s*\([^)]*\)\s*/g, '').trim();
                 var item = {
-                    title: displayName.replace(/<[^>]*>/g, ''),
+                    title: titleText || displayName.replace(/<[^>]*>/g, ''),
                     button: btn,
                     btnId: btnId
                 };
@@ -1037,7 +1035,7 @@
         }
 
         function createButtonItem(btn) {
-            var displayName = getButtonDisplayName(btn, currentButtons, true);
+            var displayName = getButtonDisplayName(btn, currentButtons);
             var icon = btn.find('svg').first().clone();
             var btnId = getButtonId(btn);
             var isHidden = hidden.indexOf(btnId) !== -1;
