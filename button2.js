@@ -588,12 +588,12 @@
         folder.buttons.forEach(function(btnId) {
             var btn = findButton(btnId);
             if (btn) {
-                var displayName = getButtonDisplayName(btn, allButtonsOriginal, true);
+                var displayName = getButtonDisplayName(btn, allButtonsOriginal);
                 var iconElement = btn.find('svg').first();
                 var icon = iconElement.length ? iconElement.prop('outerHTML') : '';
                 var subtitle = btn.attr('data-subtitle') || '';
                 var item = {
-                    title: displayName,
+                    title: displayName.replace(/<[^>]*>/g, ''),
                     button: btn,
                     btnId: btnId
                 };
@@ -632,7 +632,7 @@
         folder.buttons.forEach(function(btnId) {
             var btn = findButton(btnId);
             if (btn) {
-                var displayName = getButtonDisplayName(btn, allButtonsOriginal, true);
+                var displayName = getButtonDisplayName(btn, allButtonsOriginal);
                 var iconElement = btn.find('svg').first();
                 var icon = iconElement.length ? iconElement.clone() : $('<svg></svg>');
                 var item = $('<div class="menu-edit-list__item">' +
@@ -708,7 +708,7 @@
             if (buttonsInFolders.indexOf(btnId) !== -1) {
                 return;
             }
-            var displayName = getButtonDisplayName(btn, sortedButtons, true);
+            var displayName = getButtonDisplayName(btn, sortedButtons);
             var iconElement = btn.find('svg').first();
             var icon = iconElement.length ? iconElement.clone() : $('<svg></svg>');
             var item = $('<div class="menu-edit-list__item">' +
@@ -1035,7 +1035,7 @@
         }
 
         function createButtonItem(btn) {
-            var displayName = getButtonDisplayName(btn, currentButtons);
+            var displayName = getButtonDisplayName(btn, currentButtons, true);
             var icon = btn.find('svg').first().clone();
             var btnId = getButtonId(btn);
             var isHidden = hidden.indexOf(btnId) !== -1;
