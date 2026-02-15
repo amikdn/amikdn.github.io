@@ -484,7 +484,7 @@
             return text;
         }
         if (noParentheses) {
-            return text.replace(/\s*\([^)]*\)\s*$/, '').trim() || text;
+            return text.replace(/\s*[(\（][^)\）]*[)\）]\s*/g, '').trim() || text;
         }
         var sameTextCount = 0;
         allButtons.forEach(function(otherBtn) {
