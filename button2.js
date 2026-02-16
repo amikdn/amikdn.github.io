@@ -1393,7 +1393,8 @@
             '.menu-edit-list__delete { width: 2.4em; height: 2.4em; display: flex; align-items: center; justify-content: center; cursor: pointer; }' +
             '.menu-edit-list__delete svg { width: 1.2em !important; height: 1.2em !important; }' +
             '.menu-edit-list__delete.focus { border: 2px solid rgba(255,255,255,0.8); border-radius: 0.3em; }' +
-            '.folder-item .menu-edit-list__move { margin-right: 0; }' +
+            '.folder-item .menu-edit-list__move { margin-right: 0.5em; }' +
+            '.folder-item .menu-edit-list__move.move-up { margin-left: -2.9em; }' +
             '.folder-create-confirm { background: rgba(100,200,100,0.3); margin-top: 1em; border-radius: 0.3em; }' +
             '.folder-create-confirm.focus { border: 3px solid rgba(255,255,255,0.8); }' +
             '.menu-edit-list__move { width: 2.4em; height: 2.4em; display: flex; align-items: center; justify-content: center; cursor: pointer; margin-right: 0.5em; }' +
