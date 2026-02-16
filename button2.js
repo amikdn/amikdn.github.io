@@ -347,8 +347,15 @@
         setCustomOrder(order);
     }
 
-    function applyChanges() {
-        if (!currentContainer) return;
+    function applyChanges(skipFocus) {
+        var container;
+        if (skipFocus) {
+            container = getLiveFullStartContainer() || currentContainer;
+        } else {
+            container = currentContainer;
+        }
+        if (!container || !container.length) return;
+        currentContainer = container;
         var categories = categorizeButtons(currentContainer);
         var allButtons = []
             .concat(categories.online)
@@ -487,11 +494,13 @@
         if (viewmode === 'icons') targetContainer.addClass('icons-only');
         if (viewmode === 'always') targetContainer.addClass('always-text');
         saveOrder();
-        setTimeout(function() {
-            if (currentContainer) {
-                setupButtonNavigation(currentContainer);
-            }
-        }, 100);
+        if (!skipFocus) {
+            setTimeout(function() {
+                if (currentContainer) {
+                    setupButtonNavigation(currentContainer);
+                }
+            }, 100);
+        }
     }
 
     function capitalize(str) {
@@ -1178,11 +1187,7 @@
             });
         }
         setItemOrder(order);
-        var container = getLiveFullStartContainer() || currentContainer;
-        if (container) {
-            container.data('buttons-processed', false);
-            reorderButtons(container, { skipFocus: true, itemOrder: order });
-        }
+        applyChanges(true);
     }
 
     function openEditDialog() {
@@ -1797,7 +1802,7 @@
 
     function init() {
         // Увеличивать при изменениях в коде, чтобы старые настройки сбросились и применились новые
-        var DATA_VERSION = 9;
+        var DATA_VERSION = 10;
         if (Lampa.Storage.get('buttons_plugin_data_version', 0) < DATA_VERSION) {
             Lampa.Storage.set('button_custom_order', []);
             Lampa.Storage.set('button_item_order', []);
