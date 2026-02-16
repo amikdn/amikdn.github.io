@@ -2,7 +2,7 @@
 (function() {
     'use strict';
 
-    var PLUGIN_VERSION = '1.06';
+    var PLUGIN_VERSION = '1.07';
 
     // Polyfills для совместимости со старыми устройствами
     if (!Array.prototype.forEach) {
@@ -269,15 +269,13 @@
             if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.close) {
                 Lampa.Modal.close();
             }
-            setTimeout(function() {
-                if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.close) {
-                    Lampa.Modal.close();
+            if (listItem && listItem.length) {
+                var htmlToShow = isDefault ? defaultIconHtml : chosenHtml;
+                if (htmlToShow) {
+                    listItem.find('.menu-edit-list__icon').empty().append($(htmlToShow).clone());
                 }
-                applyChanges();
-                setTimeout(function() {
-                    openEditDialog();
-                }, 80);
-            }, 120);
+            }
+            applyCustomIcons(currentButtons);
         }
         defaultBlock.on('hover:enter', function() {
             applyChoice(true, null);
