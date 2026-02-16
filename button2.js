@@ -961,15 +961,16 @@
 
     function openFolderEditDialog(folder) {
         var list = $('<div class="menu-edit-list"></div>');
+        var pickIconSvg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>';
         folder.buttons.forEach(function(btnId) {
             var btn = findButton(btnId);
             if (btn) {
                 var displayName = getButtonDisplayName(btn, allButtonsOriginal);
-                var iconElement = btn.find('svg').first();
-                var icon = iconElement.length ? iconElement.clone() : $('<svg></svg>');
+                var iconHtml = getButtonIconHtml(btn);
                 var item = $('<div class="menu-edit-list__item">' +
                     '<div class="menu-edit-list__icon"></div>' +
                     '<div class="menu-edit-list__title">' + displayName + '</div>' +
+                    '<div class="menu-edit-list__btn-icon selector" title="Сменить иконку">' + pickIconSvg + '</div>' +
                     '<div class="menu-edit-list__move move-up selector">' +
                         '<svg width="22" height="14" viewBox="0 0 22 14" fill="none" xmlns="http://www.w3.org/2000/svg">' +
                             '<path d="M2 12L11 3L20 12" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>' +
@@ -981,8 +982,13 @@
                         '</svg>' +
                     '</div>' +
                 '</div>');
-                item.find('.menu-edit-list__icon').append(icon);
+                item.find('.menu-edit-list__icon').append(iconHtml);
                 item.data('btnId', btnId);
+                item.data('button', btn);
+                item.find('.menu-edit-list__btn-icon').on('hover:enter', function() {
+                    Lampa.Modal.close();
+                    openButtonIconPicker(btn, item);
+                });
                 item.find('.move-up').on('hover:enter', function() {
                     var prev = item.prev();
                     if (prev.length) {
@@ -1338,32 +1344,8 @@
                             currentButtons = allButtons.filter(function(btn) {
                                 return buttonsInFoldersNow.indexOf(getButtonId(btn)) === -1;
                             });
-                            folderButtons.forEach(function(btnId) {
-                                var btn = allButtons.find(function(b) { return getButtonId(b) === btnId; });
-                                if (btn) {
-                                    var btnItem = createButtonItem(btn);
-                                    var inserted = false;
-                                    list.find('.menu-edit-list__item').not('.menu-edit-list__create-folder, .folder-reset-button').each(function() {
-                                        var $existingItem = $(this);
-                                        if ($existingItem.data('itemType') === 'button') {
-                                            var existingBtnId = $existingItem.data('buttonId');
-                                            var existingIndex = updatedItemOrder.findIndex(function(it) { return it.type === 'button' && it.id === existingBtnId; });
-                                            var newIndex = updatedItemOrder.findIndex(function(it) { return it.type === 'button' && it.id === btnId; });
-                                            if (newIndex !== -1 && existingIndex !== -1 && newIndex < existingIndex) {
-                                                btnItem.insertBefore($existingItem);
-                                                inserted = true;
-                                                return false;
-                                            }
-                                        }
-                                    });
-                                    if (!inserted) {
-                                        var resetButton = list.find('.folder-reset-button');
-                                        if (resetButton.length) btnItem.insertBefore(resetButton);
-                                        else list.append(btnItem);
-                                    }
-                                }
-                            });
-                            try { Lampa.Controller.toggle('modal'); } catch(e) {}
+                            Lampa.Modal.close();
+                            openEditDialog();
                         }, 100);
                     }
                 }, 50);
@@ -1684,9 +1666,11 @@
                 if (!btn.hasClass('hidden')) visibleButtons.push(btn);
             });
         }
-        var editButton = createEditButton();
-        targetContainer.append(editButton);
-        visibleButtons.push(editButton);
+        if (Lampa.Storage.get('buttons_editor_enabled') !== false) {
+            var editButton = createEditButton();
+            targetContainer.append(editButton);
+            visibleButtons.push(editButton);
+        }
         applyHiddenButtons(currentButtons);
         var viewmode = Lampa.Storage.get('buttons_viewmode', 'default');
         targetContainer.removeClass('icons-only always-text');
@@ -1725,7 +1709,7 @@
 
     function init() {
         // Увеличивать при изменениях в коде, чтобы старые настройки сбросились и применились новые
-        var DATA_VERSION = 4;
+        var DATA_VERSION = 5;
         if (Lampa.Storage.get('buttons_plugin_data_version', 0) < DATA_VERSION) {
             Lampa.Storage.set('button_custom_order', []);
             Lampa.Storage.set('button_item_order', []);
@@ -1760,7 +1744,7 @@
             '.menu-edit-list__move svg, .menu-edit-list__delete svg, .menu-edit-list__toggle svg, .menu-edit-list__btn-icon svg, .menu-edit-list__btn-name svg, .folder-item .menu-edit-list__folder-name svg, .folder-item .menu-edit-list__folder-icon svg { width: 1.2em !important; height: 1.2em !important; display: block; flex-shrink: 0; }' +
             '.menu-edit-list__delete.focus { border: 2px solid rgba(255,255,255,0.8); border-radius: 0.3em; }' +
             '.folder-item .menu-edit-list__folder-name, .folder-item .menu-edit-list__folder-icon { margin-right: 0.5em; }' +
-            '.folder-item .menu-edit-list__folder-icon { margin-right: 1em; margin-left: 0.25em; }' +
+            '.folder-item .menu-edit-list__folder-icon { margin-left: 0; }' +
             '.folder-item .menu-edit-list__folder-name.focus, .folder-item .menu-edit-list__folder-icon.focus { border: 2px solid rgba(255,255,255,0.8); border-radius: 0.3em; }' +
             '.menu-edit-list__move { margin-right: 0.5em; }' +
             '.folder-item .menu-edit-list__move { margin-right: 0.5em; }' +
@@ -1830,9 +1814,14 @@
                 setTimeout(function() {
                     var currentValue = Lampa.Storage.get('buttons_editor_enabled', true);
                     if (currentValue) {
-                        $('.button--edit-order').show();
+                        if (currentContainer) {
+                            currentContainer.data('buttons-processed', false);
+                            reorderButtons(currentContainer);
+                        } else {
+                            $('.button--edit-order').show();
+                        }
                     } else {
-                        $('.button--edit-order').hide();
+                        $('.button--edit-order').remove();
                     }
                 }, 100);
             },
