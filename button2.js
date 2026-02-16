@@ -2,7 +2,7 @@
 (function() {
     'use strict';
 
-    var PLUGIN_VERSION = '1.02';
+    var PLUGIN_VERSION = '1.03';
 
     // Polyfills для совместимости со старыми устройствами
     if (!Array.prototype.forEach) {
@@ -227,6 +227,14 @@
                 }
             }
         }
+        var menuIcos = document.querySelectorAll('.menu .menu__ico svg');
+        for (var m = 0; m < menuIcos.length; m++) {
+            try {
+                var menuSvg = menuIcos[m];
+                var menuRaw = menuSvg.outerHTML;
+                addIcon(menuRaw, 'menu-' + m);
+            } catch (err) {}
+        }
         return result;
     }
 
@@ -246,29 +254,37 @@
         if (defaultIconHtml) {
             defaultBlock.find('.icon-picker-default__preview').append($(defaultIconHtml).clone());
         }
-        function closeIconPickerOnly(afterClose) {
-            if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.close) {
-                Lampa.Modal.close();
+        function applyChoice(isDefault, chosenHtml) {
+            var stored = getCustomIcons();
+            var custom = {};
+            for (var key in stored) {
+                if (stored.hasOwnProperty(key)) custom[key] = stored[key];
             }
-            if (typeof afterClose === 'function') {
-                setTimeout(afterClose, 250);
+            if (isDefault) {
+                delete custom[btnId];
+            } else {
+                custom[btnId] = chosenHtml;
             }
+            setCustomIcons(custom);
+            setTimeout(function() {
+                if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.close) {
+                    Lampa.Modal.close();
+                }
+            }, 50);
+            setTimeout(function() {
+                if (isDefault && defaultIconHtml) {
+                    var svgEl = btn.find('svg').first();
+                    if (svgEl.length) svgEl.replaceWith($(defaultIconHtml).clone());
+                    if (listItem && listItem.length) listItem.find('.menu-edit-list__icon').empty().append($(defaultIconHtml).clone());
+                } else if (!isDefault && chosenHtml) {
+                    var svgEl = btn.find('svg').first();
+                    if (svgEl.length) svgEl.replaceWith($(chosenHtml).clone());
+                    if (listItem && listItem.length) listItem.find('.menu-edit-list__icon').empty().append($(chosenHtml).clone());
+                }
+            }, 350);
         }
         defaultBlock.on('hover:enter', function() {
-            var custom = getCustomIcons();
-            delete custom[btnId];
-            setCustomIcons(custom);
-            closeIconPickerOnly(function() {
-                if (defaultIconHtml) {
-                    var svgEl = btn.find('svg').first();
-                    if (svgEl.length) {
-                        svgEl.replaceWith($(defaultIconHtml).clone());
-                    }
-                    if (listItem && listItem.length) {
-                        listItem.find('.menu-edit-list__icon').empty().append($(defaultIconHtml).clone());
-                    }
-                }
-            });
+            applyChoice(true, null);
         });
         wrap.append(defaultBlock);
         var grid = $('<div class="icon-picker-grid"></div>');
@@ -277,18 +293,7 @@
             cell.append($(entry.html).clone());
             var savedHtml = entry.html;
             cell.on('hover:enter', function() {
-                var custom = getCustomIcons();
-                custom[btnId] = savedHtml;
-                setCustomIcons(custom);
-                closeIconPickerOnly(function() {
-                    var svgEl = btn.find('svg').first();
-                    if (svgEl.length) {
-                        svgEl.replaceWith($(savedHtml).clone());
-                    }
-                    if (listItem && listItem.length) {
-                        listItem.find('.menu-edit-list__icon').empty().append($(savedHtml).clone());
-                    }
-                });
+                applyChoice(false, savedHtml);
             });
             grid.append(cell);
         });
@@ -299,7 +304,11 @@
             size: 'small',
             scroll_to_center: true,
             onBack: function() {
-                closeIconPickerOnly();
+                setTimeout(function() {
+                    if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.close) {
+                        Lampa.Modal.close();
+                    }
+                }, 0);
             }
         });
     }
@@ -589,6 +598,7 @@
             allButtonsCache = allButtons;
             currentButtons = allButtons;
         }
+        applyCustomIcons(currentButtons);
         var list = $('<div class="menu-edit-list"></div>');
         var hidden = getHiddenButtons();
         var modes = ['default', 'icons', 'always'];
