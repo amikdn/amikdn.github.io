@@ -1153,15 +1153,30 @@
 
     function saveItemOrder() {
         var order = [];
+        var seenButtonIds = {};
         $('.menu-edit-list .menu-edit-list__item').not('.menu-edit-list__create-folder, .viewmode-switch, .folder-reset-button').each(function() {
             var $item = $(this);
             var itemType = $item.data('itemType');
             if (itemType === 'folder') {
                 order.push({ type: 'folder', id: $item.data('folderId') });
             } else if (itemType === 'button') {
-                order.push({ type: 'button', id: $item.data('buttonId') });
+                var btnId = $item.data('buttonId');
+                if (btnId) {
+                    order.push({ type: 'button', id: btnId });
+                    seenButtonIds[btnId] = true;
+                }
             }
         });
+        if (currentButtons && currentButtons.length) {
+            currentButtons.forEach(function(btn) {
+                var sid = getButtonStableId(btn);
+                var gid = getButtonId(btn);
+                if (!seenButtonIds[sid] && !seenButtonIds[gid]) {
+                    order.push({ type: 'button', id: sid });
+                    seenButtonIds[sid] = true;
+                }
+            });
+        }
         setItemOrder(order);
         if (currentContainer) {
             currentContainer.data('buttons-processed', false);
@@ -1468,11 +1483,12 @@
                     var folder = folders.find(function(f) { return f.id === item.id; });
                     if (folder) list.append(createFolderItem(folder));
                 } else if (item.type === 'button') {
-                    if (addedButtonIds[item.id]) return;
                     var btn = currentButtons.find(function(b) { return getButtonStableId(b) === item.id || getButtonId(b) === item.id; });
                     if (btn) {
+                        var sid = getButtonStableId(btn);
+                        if (addedButtonIds[sid]) return;
                         addedButtonIds[item.id] = true;
-                        addedButtonIds[getButtonStableId(btn)] = true;
+                        addedButtonIds[sid] = true;
                         list.append(createButtonItem(btn));
                     }
                 }
@@ -1756,7 +1772,7 @@
 
     function init() {
         // Увеличивать при изменениях в коде, чтобы старые настройки сбросились и применились новые
-        var DATA_VERSION = 9.01;
+        var DATA_VERSION = 9.02;
         if (Lampa.Storage.get('buttons_plugin_data_version', 0) < DATA_VERSION) {
             Lampa.Storage.set('button_custom_order', []);
             Lampa.Storage.set('button_item_order', []);
