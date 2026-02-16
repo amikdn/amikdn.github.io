@@ -1548,8 +1548,13 @@
             scroll_to_center: true,
             onBack: function() {
                 Lampa.Modal.close();
-                applyChanges();
-                Lampa.Controller.toggle('full_start');
+                setTimeout(function() {
+                    if (currentContainer) {
+                        currentContainer.data('buttons-processed', false);
+                        reorderButtons(currentContainer);
+                        refreshController();
+                    }
+                }, 80);
             }
         });
     }
