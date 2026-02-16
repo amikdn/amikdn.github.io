@@ -506,9 +506,6 @@
     }
 
     function getButtonDisplayName(btn, allButtons) {
-        var btnId = getButtonStableId(btn);
-        var customNames = getButtonCustomNames();
-        if (customNames[btnId]) return customNames[btnId];
         var text = btn.find('span').text().trim();
         var classes = btn.attr('class') || '';
         var subtitle = btn.attr('data-subtitle') || '';
@@ -598,7 +595,6 @@
     function applyButtonCustomizations(btn) {
         var btnId = getButtonStableId(btn);
         var customIcons = getButtonCustomIcons();
-        var customNames = getButtonCustomNames();
         if (customIcons[btnId]) {
             var iconHtml = customIcons[btnId].indexOf('#') === 0
                 ? '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use xlink:href="' + customIcons[btnId] + '"></use></svg>'
@@ -606,10 +602,6 @@
             var $svg = btn.find('svg').first();
             if ($svg.length) $svg.replaceWith($(iconHtml));
             else btn.prepend(iconHtml);
-        }
-        if (customNames[btnId]) {
-            var span = btn.find('span').first();
-            if (span.length) span.text(customNames[btnId]);
         }
     }
 
@@ -773,6 +765,7 @@
             }
             setFolders(folders);
             Lampa.Modal.close();
+            openEditDialog();
         });
         defaultRow.append(defaultItem);
         var grid = $('<div class="folder-icon-picker__grid"></div>');
@@ -793,6 +786,7 @@
                 }
                 setFolders(folders);
                 Lampa.Modal.close();
+                openEditDialog();
             });
             grid.append(el);
         });
@@ -812,6 +806,7 @@
             onBack: function() {
                 clearInterval(scrollCheck);
                 Lampa.Modal.close();
+                openEditDialog();
             }
         });
         setTimeout(function() {
@@ -835,6 +830,7 @@
                         }
                         setFolders(folders);
                         Lampa.Modal.close();
+                        openEditDialog();
                     });
                     grid.append(el);
                 }
@@ -855,6 +851,7 @@
             clearInterval(scrollCheckBtn);
             setButtonCustomIcon(btnId, null);
             Lampa.Modal.close();
+            openEditDialog();
         });
         defaultRow.append(defaultItem);
         var grid = $('<div class="folder-icon-picker__grid"></div>');
@@ -870,6 +867,7 @@
                 var chosen = ico.type === 'sprite' ? '#' + ico.id : ico.html;
                 setButtonCustomIcon(btnId, chosen);
                 Lampa.Modal.close();
+                openEditDialog();
             });
             grid.append(el);
         });
@@ -889,6 +887,7 @@
             onBack: function() {
                 clearInterval(scrollCheckBtn);
                 Lampa.Modal.close();
+                openEditDialog();
             }
         });
         setTimeout(function() {
@@ -907,6 +906,7 @@
                         var chosen = '#' + ico.id;
                         setButtonCustomIcon(btnId, chosen);
                         Lampa.Modal.close();
+                        openEditDialog();
                     });
                     grid.append(el);
                 }
@@ -1222,11 +1222,9 @@
         function createFolderItem(folder) {
             var iconHtml = getFolderIconHtml(folder);
             var pickIconSvg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>';
-            var editNameSvg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
             var item = $('<div class="menu-edit-list__item folder-item">' +
                 '<div class="menu-edit-list__icon"></div>' +
                 '<div class="menu-edit-list__title folder-item-title">' + folder.name + ' <span style="opacity:0.5">(' + folder.buttons.length + ')</span></div>' +
-                '<div class="menu-edit-list__folder-name selector" title="Сменить название">' + editNameSvg + '</div>' +
                 '<div class="menu-edit-list__folder-icon selector" title="Сменить иконку">' + pickIconSvg + '</div>' +
                 '<div class="menu-edit-list__move move-up selector">' +
                     '<svg width="22" height="14" viewBox="0 0 22 14" fill="none" xmlns="http://www.w3.org/2000/svg">' +
@@ -1248,28 +1246,8 @@
             item.find('.menu-edit-list__icon').append(iconHtml);
             item.data('folderId', folder.id);
             item.data('itemType', 'folder');
-            item.find('.menu-edit-list__folder-name').on('hover:enter', function() {
-                Lampa.Modal.close();
-                Lampa.Input.edit({
-                    title: 'Название папки',
-                    value: folder.name,
-                    onSave: function(name) {
-                        if (name && name.trim()) {
-                            folder.name = name.trim();
-                            var folders = getFolders();
-                            for (var i = 0; i < folders.length; i++) {
-                                if (folders[i].id === folder.id) { folders[i].name = folder.name; break; }
-                            }
-                            setFolders(folders);
-                            var folderBtn = currentContainer && currentContainer.find('.button--folder[data-folder-id="' + folder.id + '"]');
-                            if (folderBtn.length) folderBtn.find('span').text(folder.name);
-                        }
-                        openEditDialog();
-                    },
-                    onBack: function() { openEditDialog(); }
-                });
-            });
             item.find('.menu-edit-list__folder-icon').on('hover:enter', function() {
+                Lampa.Modal.close();
                 openFolderIconPicker(folder, item);
             });
             item.find('.move-up').on('hover:enter', function() {
@@ -1399,12 +1377,10 @@
             var btnId = getButtonStableId(btn);
             var isHidden = hidden.indexOf(btnId) !== -1;
             var pickIconSvg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>';
-            var editNameSvg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
             var item = $('<div class="menu-edit-list__item">' +
                 '<div class="menu-edit-list__icon"></div>' +
                 '<div class="menu-edit-list__title">' + displayName + '</div>' +
                 '<div class="menu-edit-list__btn-icon selector" title="Сменить иконку">' + pickIconSvg + '</div>' +
-                '<div class="menu-edit-list__btn-name selector" title="Сменить название">' + editNameSvg + '</div>' +
                 '<div class="menu-edit-list__move move-up selector">' +
                 '<svg width="22" height="14" viewBox="0 0 22 14" fill="none" xmlns="http://www.w3.org/2000/svg">' +
                 '<path d="M2 12L11 3L20 12" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>' +
@@ -1428,25 +1404,8 @@
             item.data('buttonId', btnId);
             item.data('itemType', 'button');
             item.find('.menu-edit-list__btn-icon').on('hover:enter', function() {
-                openButtonIconPicker(btn, item);
-            });
-            item.find('.menu-edit-list__btn-name').on('hover:enter', function() {
-                var currentName = getButtonDisplayNamePlain(btn, currentButtons);
                 Lampa.Modal.close();
-                Lampa.Input.edit({
-                    title: 'Название кнопки',
-                    value: currentName,
-                    onSave: function(name) {
-                        var newName = (name && name.trim()) ? name.trim() : '';
-                        setButtonCustomName(btnId, newName || null);
-                        var span = btn.find('span').first();
-                        if (span.length) span.text(newName || currentName);
-                        openEditDialog();
-                    },
-                    onBack: function() {
-                        openEditDialog();
-                    }
-                });
+                openButtonIconPicker(btn, item);
             });
             item.find('.move-up').on('hover:enter', function() {
                 var prev = item.prev();
