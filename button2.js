@@ -1178,9 +1178,10 @@
             });
         }
         setItemOrder(order);
-        if (currentContainer) {
-            currentContainer.data('buttons-processed', false);
-            reorderButtons(currentContainer, { skipFocus: true, itemOrder: order });
+        var container = getLiveFullStartContainer() || currentContainer;
+        if (container) {
+            container.data('buttons-processed', false);
+            reorderButtons(container, { skipFocus: true, itemOrder: order });
         }
     }
 
@@ -1568,19 +1569,43 @@
             scroll_to_center: true,
             onBack: function() {
                 Lampa.Modal.close();
-                setTimeout(function() {
-                    if (currentContainer) {
-                        currentContainer.data('buttons-processed', false);
-                        reorderButtons(currentContainer);
+                var runUpdate = function() {
+                    var container = getLiveFullStartContainer() || currentContainer;
+                    if (container) {
+                        container.data('buttons-processed', false);
+                        reorderButtons(container);
                         refreshController();
                     }
-                }, 80);
+                };
+                setTimeout(runUpdate, 100);
+                setTimeout(runUpdate, 350);
             }
         });
     }
 
+    function getLiveFullStartContainer() {
+        var el = document.querySelector('.full-start-new__buttons');
+        if (!el) return null;
+        var $el = $(el);
+        var parent = $el.parent();
+        for (var i = 0; i < 15 && parent.length; i++) {
+            if (parent.find('.full-start-new__buttons').length === 1) {
+                return parent;
+            }
+            parent = parent.parent();
+        }
+        return $el.parent();
+    }
+
     function reorderButtons(container, opts) {
         opts = opts || {};
+        if (!container || !container.length) {
+            container = getLiveFullStartContainer();
+        }
+        if (!container) return false;
+        if (document.body && container[0] && !document.body.contains(container[0])) {
+            container = getLiveFullStartContainer() || container;
+        }
         var targetContainer = container.find('.full-start-new__buttons');
         if (!targetContainer.length) return false;
         currentContainer = container;
@@ -1772,7 +1797,7 @@
 
     function init() {
         // Увеличивать при изменениях в коде, чтобы старые настройки сбросились и применились новые
-        var DATA_VERSION = 10;
+        var DATA_VERSION = 9;
         if (Lampa.Storage.get('buttons_plugin_data_version', 0) < DATA_VERSION) {
             Lampa.Storage.set('button_custom_order', []);
             Lampa.Storage.set('button_item_order', []);
