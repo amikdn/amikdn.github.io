@@ -1163,6 +1163,10 @@
             }
         });
         setItemOrder(order);
+        if (currentContainer) {
+            currentContainer.data('buttons-processed', false);
+            reorderButtons(currentContainer);
+        }
     }
 
     function openEditDialog() {
