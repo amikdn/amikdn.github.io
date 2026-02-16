@@ -2,6 +2,8 @@
 (function() {
     'use strict';
 
+    var PLUGIN_VERSION = '1.0';
+
     // Polyfills для совместимости со старыми устройствами
     if (!Array.prototype.forEach) {
         Array.prototype.forEach = function(callback, thisArg) {
@@ -146,12 +148,27 @@
         return str.replace(/\s+/g, ' ').replace(/>\s+</g, '><').trim();
     }
 
+    function svgFingerprint(html) {
+        var s = normalizeSvgString(html);
+        var useMatch = s.match(/xlink:href\s*=\s*["']?#([^"'\s>]+)/);
+        if (useMatch) return 'use:' + useMatch[1];
+        var vb = s.match(/viewBox\s*=\s*["']([^"']+)["']/);
+        var viewBox = vb ? vb[1].replace(/\s+/g, ' ').trim() : '';
+        var pathMatch = s.match(/<path[^>]*\bd\s*=\s*["']([^"']+)["']/g);
+        var pathParts = pathMatch ? pathMatch.map(function(p) {
+            var d = p.match(/\bd\s*=\s*["']([^"']+)["']/);
+            return d ? d[1].replace(/\s+/g, ' ').trim() : '';
+        }) : [];
+        pathParts.sort();
+        return 'inline:' + viewBox + '|' + pathParts.join('|');
+    }
+
     function collectAllIcons() {
         var seen = {};
         var result = [];
         function addIcon(html, id) {
             if (!html) return;
-            var key = normalizeSvgString(html);
+            var key = svgFingerprint(html);
             if (seen[key]) return;
             seen[key] = true;
             result.push({ id: id || key.substring(0, 80), html: html });
@@ -164,25 +181,17 @@
             var svgHtml = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="' + viewBox + '" fill="currentColor"><use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#' + sid + '"></use></svg>';
             addIcon(svgHtml, 'sprite-' + sid);
         }
-        var buttonsToScan = allButtonsOriginal.length ? allButtonsOriginal : (allButtonsCache || []);
-        for (var j = 0; j < buttonsToScan.length; j++) {
-            var btn = buttonsToScan[j];
-            var $btn = btn && (btn.jquery ? btn : $(btn));
-            if (!$btn || !$btn.length) continue;
-            var svgEl = $btn.find('svg').first();
-            if (svgEl.length) {
-                var raw = svgEl.get(0).outerHTML;
-                addIcon(raw, 'btn-' + j);
+        var allButtonEls = document.querySelectorAll('.full-start__button');
+        for (var j = 0; j < allButtonEls.length; j++) {
+            var el = allButtonEls[j];
+            if (el.classList && (el.classList.contains('button--edit-order') || el.classList.contains('button--play'))) continue;
+            var svg = el.querySelector && el.querySelector('svg');
+            if (svg) {
+                try {
+                    var raw = svg.outerHTML;
+                    addIcon(raw, 'btn-' + j);
+                } catch (err) {}
             }
-        }
-        if (currentContainer && currentContainer.length) {
-            currentContainer.find('.full-start__button').not('.button--edit-order, .button--play').each(function(idx) {
-                var svgEl = $(this).find('svg').first();
-                if (svgEl.length) {
-                    var raw = svgEl.get(0).outerHTML;
-                    addIcon(raw, 'dom-' + idx);
-                }
-            });
         }
         return result;
     }
@@ -203,36 +212,51 @@
         if (defaultIconHtml) {
             defaultBlock.find('.icon-picker-default__preview').append($(defaultIconHtml).clone());
         }
+        function closeIconPickerAndRestore() {
+            setTimeout(function() {
+                if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.close) {
+                    Lampa.Modal.close();
+                }
+                setTimeout(function() {
+                    if (typeof Lampa.Controller !== 'undefined' && Lampa.Controller.toggle) {
+                        try { Lampa.Controller.toggle('full_start'); } catch (e) {}
+                    }
+                }, 50);
+            }, 0);
+        }
         defaultBlock.on('hover:enter', function() {
-            var svgEl = btn.find('svg').first();
-            if (svgEl.length && defaultIconHtml) {
-                svgEl.replaceWith($(defaultIconHtml).clone());
+            if (defaultIconHtml) {
+                var svgEl = btn.find('svg').first();
+                if (svgEl.length) {
+                    svgEl.replaceWith($(defaultIconHtml).clone());
+                }
+                if (listItem && listItem.length) {
+                    listItem.find('.menu-edit-list__icon').empty().append(btn.find('svg').first().clone());
+                }
             }
             var custom = getCustomIcons();
             delete custom[btnId];
             setCustomIcons(custom);
-            Lampa.Modal.close();
-            if (listItem && listItem.length) {
-                listItem.find('.menu-edit-list__icon').empty().append(btn.find('svg').first().clone());
-            }
+            closeIconPickerAndRestore();
         });
         wrap.append(defaultBlock);
         var grid = $('<div class="icon-picker-grid"></div>');
         icons.forEach(function(entry) {
             var cell = $('<div class="selector icon-picker-grid__cell"></div>');
             cell.append($(entry.html).clone());
+            var savedHtml = entry.html;
             cell.on('hover:enter', function() {
                 var svgEl = btn.find('svg').first();
                 if (svgEl.length) {
-                    svgEl.replaceWith($(entry.html).clone());
+                    svgEl.replaceWith($(savedHtml).clone());
                 }
-                var custom = getCustomIcons();
-                custom[btnId] = entry.html;
-                setCustomIcons(custom);
-                Lampa.Modal.close();
                 if (listItem && listItem.length) {
                     listItem.find('.menu-edit-list__icon').empty().append(btn.find('svg').first().clone());
                 }
+                var custom = getCustomIcons();
+                custom[btnId] = savedHtml;
+                setCustomIcons(custom);
+                closeIconPickerAndRestore();
             });
             grid.append(cell);
         });
@@ -243,7 +267,7 @@
             size: 'small',
             scroll_to_center: true,
             onBack: function() {
-                Lampa.Modal.close();
+                closeIconPickerAndRestore();
             }
         });
     }
@@ -820,6 +844,10 @@
     }
 
     function init() {
+        var storedVersion = Lampa.Storage.get('buttons_plugin_version', '');
+        if (storedVersion !== PLUGIN_VERSION) {
+            Lampa.Storage.set('buttons_plugin_version', PLUGIN_VERSION);
+        }
         var style = $('<style>' +
             '@keyframes button-fade-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }' +
             '.full-start-new__buttons .full-start__button { opacity: 0; }' +
@@ -845,6 +873,8 @@
             '.menu-edit-list__change-icon.focus { border: 2px solid rgba(255,255,255,0.8); border-radius: 0.3em; }' +
             '.icon-picker-default { display: flex; align-items: center; gap: 0.5em; padding: 0.75em; margin-bottom: 0.75em; border-radius: 0.3em; background: rgba(255,255,255,0.08); }' +
             '.icon-picker-default.focus { border: 3px solid rgba(255,255,255,0.8); }' +
+            '.icon-picker-default__preview { width: 2.5em; height: 2.5em; min-width: 2.5em; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }' +
+            '.icon-picker-default__preview svg { width: 1.5em; height: 1.5em; }' +
             '.icon-picker-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(2.5em, 1fr)); gap: 0.35em; max-height: 50vh; overflow-y: auto; }' +
             '.icon-picker-grid__cell { display: flex; align-items: center; justify-content: center; padding: 0.35em; min-height: 2.5em; }' +
             '.icon-picker-grid__cell.focus { border: 2px solid rgba(255,255,255,0.8); border-radius: 0.3em; }' +
