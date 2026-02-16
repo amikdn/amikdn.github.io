@@ -1165,7 +1165,7 @@
         setItemOrder(order);
         if (currentContainer) {
             currentContainer.data('buttons-processed', false);
-            reorderButtons(currentContainer);
+            reorderButtons(currentContainer, { skipFocus: true });
         }
     }
 
@@ -1563,7 +1563,8 @@
         });
     }
 
-    function reorderButtons(container) {
+    function reorderButtons(container, opts) {
+        opts = opts || {};
         var targetContainer = container.find('.full-start-new__buttons');
         if (!targetContainer.length) return false;
         currentContainer = container;
@@ -1721,9 +1722,11 @@
         if (viewmode === 'icons') targetContainer.addClass('icons-only');
         if (viewmode === 'always') targetContainer.addClass('always-text');
         applyButtonAnimation(visibleButtons);
-        setTimeout(function() {
-            setupButtonNavigation(container);
-        }, 100);
+        if (!opts.skipFocus) {
+            setTimeout(function() {
+                setupButtonNavigation(container);
+            }, 100);
+        }
         return true;
     }
 
