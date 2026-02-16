@@ -2,7 +2,7 @@
 (function() {
     'use strict';
 
-    var PLUGIN_VERSION = '1.09';
+    var PLUGIN_VERSION = '1.10';
 
     // Polyfills для совместимости со старыми устройствами
     if (!Array.prototype.forEach) {
@@ -716,6 +716,20 @@
                     currentContainer.find('.button--play, .button--edit-order').remove();
                     currentContainer.data('buttons-processed', false);
                     var targetContainer = currentContainer.find('.full-start-new__buttons');
+                    targetContainer.find('.full-start__button').not('.button--edit-order, .button--play').each(function() {
+                        var $btn = $(this);
+                        var btnId = getButtonId($btn);
+                        var orig = allButtonsOriginal.find(function(b) { return getButtonId(b) === btnId; });
+                        if (orig && orig.length) {
+                            var origSvg = orig.find('svg').first();
+                            if (origSvg.length) {
+                                var $btnSvg = $btn.find('svg').first();
+                                if ($btnSvg.length) {
+                                    $btnSvg.replaceWith(origSvg.clone());
+                                }
+                            }
+                        }
+                    });
                     var existingButtons = targetContainer.find('.full-start__button').toArray();
                     allButtonsOriginal.forEach(function(originalBtn) {
                         var btnId = getButtonId(originalBtn);
