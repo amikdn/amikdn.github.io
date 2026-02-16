@@ -2,7 +2,7 @@
 (function() {
     'use strict';
 
-    var PLUGIN_VERSION = '1.0';
+    var PLUGIN_VERSION = '1.01';
 
     // Polyfills для совместимости со старыми устройствами
     if (!Array.prototype.forEach) {
@@ -181,15 +181,32 @@
             var svgHtml = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="' + viewBox + '" fill="currentColor"><use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#' + sid + '"></use></svg>';
             addIcon(svgHtml, 'sprite-' + sid);
         }
+        var buttonArrays = [currentButtons, allButtonsCache, allButtonsOriginal];
+        for (var a = 0; a < buttonArrays.length; a++) {
+            var arr = buttonArrays[a];
+            if (!arr || !arr.length) continue;
+            for (var j = 0; j < arr.length; j++) {
+                var b = arr[j];
+                var $b = b && (b.jquery ? b : $(b));
+                if (!$b || !$b.length) continue;
+                var svgEl = $b.find('svg').first();
+                if (svgEl.length) {
+                    try {
+                        var raw = svgEl.get(0).outerHTML;
+                        addIcon(raw, 'list-' + a + '-' + j);
+                    } catch (err) {}
+                }
+            }
+        }
         var allButtonEls = document.querySelectorAll('.full-start__button');
-        for (var j = 0; j < allButtonEls.length; j++) {
-            var el = allButtonEls[j];
+        for (var k = 0; k < allButtonEls.length; k++) {
+            var el = allButtonEls[k];
             if (el.classList && (el.classList.contains('button--edit-order') || el.classList.contains('button--play'))) continue;
             var svg = el.querySelector && el.querySelector('svg');
             if (svg) {
                 try {
                     var raw = svg.outerHTML;
-                    addIcon(raw, 'btn-' + j);
+                    addIcon(raw, 'dom-' + k);
                 } catch (err) {}
             }
         }
@@ -212,16 +229,11 @@
         if (defaultIconHtml) {
             defaultBlock.find('.icon-picker-default__preview').append($(defaultIconHtml).clone());
         }
-        function closeIconPickerAndRestore() {
+        function closeIconPickerOnly() {
             setTimeout(function() {
                 if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.close) {
                     Lampa.Modal.close();
                 }
-                setTimeout(function() {
-                    if (typeof Lampa.Controller !== 'undefined' && Lampa.Controller.toggle) {
-                        try { Lampa.Controller.toggle('full_start'); } catch (e) {}
-                    }
-                }, 50);
             }, 0);
         }
         defaultBlock.on('hover:enter', function() {
@@ -231,13 +243,13 @@
                     svgEl.replaceWith($(defaultIconHtml).clone());
                 }
                 if (listItem && listItem.length) {
-                    listItem.find('.menu-edit-list__icon').empty().append(btn.find('svg').first().clone());
+                    listItem.find('.menu-edit-list__icon').empty().append($(defaultIconHtml).clone());
                 }
             }
             var custom = getCustomIcons();
             delete custom[btnId];
             setCustomIcons(custom);
-            closeIconPickerAndRestore();
+            closeIconPickerOnly();
         });
         wrap.append(defaultBlock);
         var grid = $('<div class="icon-picker-grid"></div>');
@@ -251,12 +263,12 @@
                     svgEl.replaceWith($(savedHtml).clone());
                 }
                 if (listItem && listItem.length) {
-                    listItem.find('.menu-edit-list__icon').empty().append(btn.find('svg').first().clone());
+                    listItem.find('.menu-edit-list__icon').empty().append($(savedHtml).clone());
                 }
                 var custom = getCustomIcons();
                 custom[btnId] = savedHtml;
                 setCustomIcons(custom);
-                closeIconPickerAndRestore();
+                closeIconPickerOnly();
             });
             grid.append(cell);
         });
@@ -267,7 +279,7 @@
             size: 'small',
             scroll_to_center: true,
             onBack: function() {
-                closeIconPickerAndRestore();
+                closeIconPickerOnly();
             }
         });
     }
