@@ -2,7 +2,7 @@
 (function() {
     'use strict';
 
-    var PLUGIN_VERSION = '1.03';
+    var PLUGIN_VERSION = '1.04';
 
     // Polyfills для совместимости со старыми устройствами
     if (!Array.prototype.forEach) {
@@ -266,22 +266,15 @@
                 custom[btnId] = chosenHtml;
             }
             setCustomIcons(custom);
-            setTimeout(function() {
-                if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.close) {
-                    Lampa.Modal.close();
-                }
-            }, 50);
-            setTimeout(function() {
-                if (isDefault && defaultIconHtml) {
-                    var svgEl = btn.find('svg').first();
-                    if (svgEl.length) svgEl.replaceWith($(defaultIconHtml).clone());
-                    if (listItem && listItem.length) listItem.find('.menu-edit-list__icon').empty().append($(defaultIconHtml).clone());
-                } else if (!isDefault && chosenHtml) {
-                    var svgEl = btn.find('svg').first();
-                    if (svgEl.length) svgEl.replaceWith($(chosenHtml).clone());
-                    if (listItem && listItem.length) listItem.find('.menu-edit-list__icon').empty().append($(chosenHtml).clone());
-                }
-            }, 350);
+            if (isDefault && defaultIconHtml) {
+                var svgEl = btn.find('svg').first();
+                if (svgEl.length) svgEl.replaceWith($(defaultIconHtml).clone());
+                if (listItem && listItem.length) listItem.find('.menu-edit-list__icon').empty().append($(defaultIconHtml).clone());
+            } else if (!isDefault && chosenHtml) {
+                var svgEl = btn.find('svg').first();
+                if (svgEl.length) svgEl.replaceWith($(chosenHtml).clone());
+                if (listItem && listItem.length) listItem.find('.menu-edit-list__icon').empty().append($(chosenHtml).clone());
+            }
         }
         defaultBlock.on('hover:enter', function() {
             applyChoice(true, null);
@@ -304,11 +297,9 @@
             size: 'small',
             scroll_to_center: true,
             onBack: function() {
-                setTimeout(function() {
-                    if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.close) {
-                        Lampa.Modal.close();
-                    }
-                }, 0);
+                if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.close) {
+                    Lampa.Modal.close();
+                }
             }
         });
     }
