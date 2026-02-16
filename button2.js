@@ -358,19 +358,27 @@
         }
         if (!container || !container.length) return;
         currentContainer = container;
-        var categories = categorizeButtons(currentContainer);
-        var allButtons = []
-            .concat(categories.online)
-            .concat(categories.torrent)
-            .concat(categories.trailer)
-            .concat(categories.favorite)
-            .concat(categories.subscribe)
-            .concat(categories.book)
-            .concat(categories.reaction)
-            .concat(categories.other);
-        allButtons = sortByCustomOrder(allButtons);
-        setButtonsStableIds(allButtons);
-        allButtonsCache = allButtons;
+        var allButtons;
+        if (skipFocus && allButtonsCache && allButtonsCache.length > 0) {
+            allButtons = allButtonsCache.slice();
+            setButtonsStableIds(allButtons);
+            allButtons = sortByCustomOrder(allButtons);
+            allButtonsCache = allButtons;
+        } else {
+            var categories = categorizeButtons(currentContainer);
+            allButtons = []
+                .concat(categories.online)
+                .concat(categories.torrent)
+                .concat(categories.trailer)
+                .concat(categories.favorite)
+                .concat(categories.subscribe)
+                .concat(categories.book)
+                .concat(categories.reaction)
+                .concat(categories.other);
+            allButtons = sortByCustomOrder(allButtons);
+            setButtonsStableIds(allButtons);
+            allButtonsCache = allButtons;
+        }
         var folders = getFolders();
         var foldersUpdated = false;
         folders.forEach(function(folder) {
@@ -636,8 +644,10 @@
     function saveFolderButtonOrder(folder, list) {
         var newOrder = [];
         list.find('.menu-edit-list__item').each(function() {
-            var btnId = $(this).data('btnId');
-            newOrder.push(btnId);
+            var $item = $(this);
+            var btn = $item.data('button');
+            var btnId = btn ? getButtonStableId(btn) : $item.data('btnId');
+            if (btnId) newOrder.push(btnId);
         });
         folder.buttons = newOrder;
         var folders = getFolders();
@@ -663,7 +673,12 @@
 
     function normalizeSvgKey(html) {
         if (!html) return '';
-        return html.replace(/\s+/g, ' ').replace(/>\s+</g, '><').trim();
+        var s = html.replace(/\s+/g, ' ').replace(/>\s+</g, '><').trim();
+        // Убрать атрибуты, которые часто отличаются у одной и той же иконки из разных мест DOM
+        s = s.replace(/\s+width="[^"]*"/gi, '').replace(/\s+height="[^"]*"/gi, '');
+        s = s.replace(/\s+xmlns="[^"]*"/gi, '').replace(/\s+xmlns:xlink="[^"]*"/gi, '');
+        s = s.replace(/\s+enable-background="[^"]*"/gi, '');
+        return s;
     }
 
     function collectSymbolsFromRoot(root) {
@@ -791,8 +806,14 @@
             openEditDialog();
         });
         defaultRow.append(defaultItem);
+        var defaultKey = normalizeSvgKey(DEFAULT_FOLDER_ICON);
+        var currentFolderIconKey = (folder.customIcon && folder.customIcon.indexOf('#') !== 0)
+            ? normalizeSvgKey(folder.customIcon) : '';
         var grid = $('<div class="folder-icon-picker__grid"></div>');
         icons.forEach(function(ico) {
+            var key = ico.type === 'html' ? normalizeSvgKey(ico.html) : '';
+            var skip = (key && key === defaultKey) || (key && currentFolderIconKey && key === currentFolderIconKey);
+            if (skip) return;
             var iconHtml = ico.type === 'sprite'
                 ? '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"><use xlink:href="#' + ico.id + '"></use></svg>'
                 : ico.html;
@@ -877,8 +898,14 @@
             openEditDialog();
         });
         defaultRow.append(defaultItem);
+        var defaultIconKey = defaultIconHtml ? normalizeSvgKey(defaultIconHtml) : '';
+        var customIcon = (getButtonCustomIcons())[btnId];
+        var currentBtnIconKey = (customIcon && customIcon.indexOf('#') !== 0) ? normalizeSvgKey(customIcon) : '';
         var grid = $('<div class="folder-icon-picker__grid"></div>');
         icons.forEach(function(ico) {
+            var key = ico.type === 'html' ? normalizeSvgKey(ico.html) : '';
+            var skip = (defaultIconKey && key === defaultIconKey) || (currentBtnIconKey && key === currentBtnIconKey);
+            if (skip) return;
             var iconHtml = ico.type === 'sprite'
                 ? '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"><use xlink:href="#' + ico.id + '"></use></svg>'
                 : ico.html;
@@ -987,6 +1014,7 @@
         folder.buttons.forEach(function(btnId) {
             var btn = findButton(btnId);
             if (btn) {
+                var stableId = getButtonStableId(btn);
                 var displayName = getButtonDisplayName(btn, allButtonsOriginal);
                 var iconHtml = getButtonIconHtml(btn);
                 var item = $('<div class="menu-edit-list__item">' +
@@ -1005,7 +1033,7 @@
                     '</div>' +
                 '</div>');
                 item.find('.menu-edit-list__icon').append(iconHtml);
-                item.data('btnId', btnId);
+                item.data('btnId', stableId);
                 item.data('button', btn);
                 item.find('.menu-edit-list__btn-icon').on('hover:enter', function() {
                     Lampa.Modal.close();
@@ -1355,17 +1383,19 @@
                         currentContainer.data('buttons-processed', false);
                         var targetContainer = currentContainer.find('.full-start-new__buttons');
                         var existingButtons = targetContainer.find('.full-start__button').toArray();
+                        var existingStableIds = {};
+                        for (var ei = 0; ei < existingButtons.length; ei++) {
+                            var sid = getButtonStableId($(existingButtons[ei]));
+                            if (sid) existingStableIds[sid] = true;
+                        }
                         allButtonsOriginal.forEach(function(originalBtn) {
-                            var btnId = getButtonId(originalBtn);
-                            var exists = false;
-                            for (var i = 0; i < existingButtons.length; i++) {
-                                if (getButtonId($(existingButtons[i])) === btnId) { exists = true; break; }
-                            }
-                            if (!exists) {
-                                var clonedBtn = originalBtn.clone(true, true);
-                                clonedBtn.css({ 'opacity': '1', 'animation': 'none' });
-                                targetContainer.append(clonedBtn);
-                            }
+                            var stableId = getButtonStableId(originalBtn);
+                            if (folderButtons.indexOf(stableId) === -1 && folderButtons.indexOf(getButtonId(originalBtn)) === -1) return;
+                            if (existingStableIds[stableId]) return;
+                            existingStableIds[stableId] = true;
+                            var clonedBtn = originalBtn.clone(true, true);
+                            clonedBtn.css({ 'opacity': '1', 'animation': 'none' });
+                            targetContainer.append(clonedBtn);
                         });
                         reorderButtons(currentContainer);
                         setTimeout(function() {
@@ -1390,7 +1420,9 @@
                             var buttonsInFoldersNow = [];
                             foldersNow.forEach(function(f) { buttonsInFoldersNow = buttonsInFoldersNow.concat(f.buttons); });
                             currentButtons = allButtons.filter(function(btn) {
-                                return buttonsInFoldersNow.indexOf(getButtonId(btn)) === -1;
+                                var sid = getButtonStableId(btn);
+                                var gid = getButtonId(btn);
+                                return buttonsInFoldersNow.indexOf(sid) === -1 && buttonsInFoldersNow.indexOf(gid) === -1;
                             });
                             Lampa.Modal.close();
                             openEditDialog();
@@ -1734,7 +1766,9 @@
             });
             currentButtons.forEach(function(btn) {
                 var btnId = getButtonStableId(btn);
-                if (addedButtons.indexOf(btnId) === -1 && !btn.hasClass('hidden')) {
+                var gid = getButtonId(btn);
+                if (addedButtons.indexOf(btnId) === -1 && !btn.hasClass('hidden') &&
+                    buttonsInFolders.indexOf(btnId) === -1 && buttonsInFolders.indexOf(gid) === -1) {
                     applyButtonCustomizations(btn);
                     targetContainer.append(btn);
                     visibleButtons.push(btn);
@@ -1802,7 +1836,7 @@
 
     function init() {
         // Увеличивать при изменениях в коде, чтобы старые настройки сбросились и применились новые
-        var DATA_VERSION = 11;
+        var DATA_VERSION = 15;
         if (Lampa.Storage.get('buttons_plugin_data_version', 0) < DATA_VERSION) {
             Lampa.Storage.set('button_custom_order', []);
             Lampa.Storage.set('button_item_order', []);
