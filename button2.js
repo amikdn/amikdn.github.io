@@ -363,7 +363,6 @@
             allButtons = allButtonsCache.slice();
             setButtonsStableIds(allButtons);
             allButtons = sortByCustomOrder(allButtons);
-            allButtonsCache = allButtons;
         } else {
             var categories = categorizeButtons(currentContainer);
             allButtons = []
@@ -377,8 +376,15 @@
                 .concat(categories.other);
             allButtons = sortByCustomOrder(allButtons);
             setButtonsStableIds(allButtons);
-            allButtonsCache = allButtons;
         }
+        var seenStableIds = {};
+        allButtons = allButtons.filter(function(btn) {
+            var sid = getButtonStableId(btn);
+            if (seenStableIds[sid]) return false;
+            seenStableIds[sid] = true;
+            return true;
+        });
+        allButtonsCache = allButtons;
         var folders = getFolders();
         var foldersUpdated = false;
         folders.forEach(function(folder) {
@@ -1193,16 +1199,21 @@
     function saveItemOrder() {
         var order = [];
         var seenButtonIds = {};
+        var seenFolderIds = {};
         $('.menu-edit-list .menu-edit-list__item').not('.menu-edit-list__create-folder, .viewmode-switch, .folder-reset-button').each(function() {
             var $item = $(this);
             var itemType = $item.data('itemType');
             if (itemType === 'folder') {
-                order.push({ type: 'folder', id: $item.data('folderId') });
+                var fid = $item.data('folderId');
+                if (fid && !seenFolderIds[fid]) {
+                    seenFolderIds[fid] = true;
+                    order.push({ type: 'folder', id: fid });
+                }
             } else if (itemType === 'button') {
                 var btnId = $item.data('buttonId');
-                if (btnId) {
-                    order.push({ type: 'button', id: btnId });
+                if (btnId && !seenButtonIds[btnId]) {
                     seenButtonIds[btnId] = true;
+                    order.push({ type: 'button', id: btnId });
                 }
             }
         });
@@ -1390,7 +1401,6 @@
                         }
                         allButtonsOriginal.forEach(function(originalBtn) {
                             var stableId = getButtonStableId(originalBtn);
-                            if (folderButtons.indexOf(stableId) === -1 && folderButtons.indexOf(getButtonId(originalBtn)) === -1) return;
                             if (existingStableIds[stableId]) return;
                             existingStableIds[stableId] = true;
                             var clonedBtn = originalBtn.clone(true, true);
@@ -1518,10 +1528,14 @@
 
         if (itemOrder.length > 0) {
             var addedButtonIds = {};
+            var addedFolderIds = {};
             itemOrder.forEach(function(item) {
                 if (item.type === 'folder') {
                     var folder = folders.find(function(f) { return f.id === item.id; });
-                    if (folder) list.append(createFolderItem(folder));
+                    if (folder && !addedFolderIds[folder.id]) {
+                        addedFolderIds[folder.id] = true;
+                        list.append(createFolderItem(folder));
+                    }
                 } else if (item.type === 'button') {
                     var btn = currentButtons.find(function(b) { return getButtonStableId(b) === item.id || getButtonId(b) === item.id; });
                     if (btn) {
@@ -1659,6 +1673,13 @@
             .concat(categories.other);
         setButtonsStableIds(allButtons);
         allButtons = sortByCustomOrder(allButtons);
+        var seenStableIds = {};
+        allButtons = allButtons.filter(function(btn) {
+            var sid = getButtonStableId(btn);
+            if (seenStableIds[sid]) return false;
+            seenStableIds[sid] = true;
+            return true;
+        });
         allButtonsCache = allButtons;
         if (allButtons.length === 0) return false;
         var folders = getFolders();
@@ -1836,7 +1857,7 @@
 
     function init() {
         // Увеличивать при изменениях в коде, чтобы старые настройки сбросились и применились новые
-        var DATA_VERSION = 15;
+        var DATA_VERSION = 16;
         if (Lampa.Storage.get('buttons_plugin_data_version', 0) < DATA_VERSION) {
             Lampa.Storage.set('button_custom_order', []);
             Lampa.Storage.set('button_item_order', []);
