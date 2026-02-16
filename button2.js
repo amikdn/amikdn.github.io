@@ -108,9 +108,9 @@
     var currentContainer = null;
 
     function findButton(btnId) {
-        var btn = allButtonsOriginal.find(function(b) { return getButtonId(b) === btnId; });
+        var btn = allButtonsOriginal.find(function(b) { return getButtonStableId(b) === btnId || getButtonId(b) === btnId; });
         if (!btn) {
-            btn = allButtonsCache.find(function(b) { return getButtonId(b) === btnId; });
+            btn = allButtonsCache.find(function(b) { return getButtonStableId(b) === btnId || getButtonId(b) === btnId; });
         }
         return btn;
     }
@@ -197,6 +197,23 @@
         return id;
     }
 
+    function setButtonsStableIds(buttons) {
+        if (!buttons || !buttons.length) return;
+        var classes, subtitle, vc, i;
+        for (i = 0; i < buttons.length; i++) {
+            classes = buttons[i].attr('class') || '';
+            subtitle = (buttons[i].attr('data-subtitle') || '').replace(/\s+/g, '_').substring(0, 30);
+            vc = classes.split(' ').filter(function(c) { return c.indexOf('view--') === 0 || c.indexOf('button--') === 0; }).join('_') || 'btn';
+            buttons[i].attr('data-stable-id', vc + '_' + (subtitle || '') + '_' + i);
+        }
+    }
+
+    function getButtonStableId(button) {
+        var sid = button.attr && button.attr('data-stable-id');
+        if (sid) return sid;
+        return getButtonId(button);
+    }
+
     function getButtonType(button) {
         var classes = button.attr('class') || '';
         for (var i = 0; i < DEFAULT_GROUPS.length; i++) {
@@ -279,7 +296,7 @@
         var remaining = regular.slice();
         customOrder.forEach(function(id) {
             for (var i = 0; i < remaining.length; i++) {
-                if (getButtonId(remaining[i]) === id) {
+                if (getButtonStableId(remaining[i]) === id || getButtonId(remaining[i]) === id) {
                     sorted.push(remaining[i]);
                     remaining.splice(i, 1);
                     break;
@@ -292,7 +309,7 @@
     function applyHiddenButtons(buttons) {
         var hidden = getHiddenButtons();
         buttons.forEach(function(btn) {
-            var id = getButtonId(btn);
+            var id = getButtonStableId(btn);
             btn.toggleClass('hidden', hidden.indexOf(id) !== -1);
         });
     }
@@ -331,7 +348,7 @@
     function saveOrder() {
         var order = [];
         currentButtons.forEach(function(btn) {
-            order.push(getButtonId(btn));
+            order.push(getButtonStableId(btn));
         });
         setCustomOrder(order);
     }
@@ -349,6 +366,7 @@
             .concat(categories.reaction)
             .concat(categories.other);
         allButtons = sortByCustomOrder(allButtons);
+        setButtonsStableIds(allButtons);
         allButtonsCache = allButtons;
         var folders = getFolders();
         var foldersUpdated = false;
@@ -359,9 +377,9 @@
                 var found = false;
                 for (var i = 0; i < allButtons.length; i++) {
                     var btn = allButtons[i];
-                    var newBtnId = getButtonId(btn);
+                    var newBtnId = getButtonStableId(btn);
                     if (usedButtons.indexOf(newBtnId) !== -1) continue;
-                    if (newBtnId === oldBtnId) {
+                    if (newBtnId === oldBtnId || getButtonId(btn) === oldBtnId) {
                         updatedButtons.push(newBtnId);
                         usedButtons.push(newBtnId);
                         found = true;
@@ -371,7 +389,7 @@
                 if (!found) {
                     for (var i = 0; i < allButtons.length; i++) {
                         var btn = allButtons[i];
-                        var newBtnId = getButtonId(btn);
+                        var newBtnId = getButtonStableId(btn);
                         if (usedButtons.indexOf(newBtnId) !== -1) continue;
                         var text = btn.find('span').text().trim();
                         var classes = btn.attr('class') || '';
@@ -401,7 +419,7 @@
         if (foldersUpdated) setFolders(folders);
         var buttonsInFolders = getButtonsInFolders();
         var filteredButtons = allButtons.filter(function(btn) {
-            return buttonsInFolders.indexOf(getButtonId(btn)) === -1;
+            return buttonsInFolders.indexOf(getButtonStableId(btn)) === -1;
         });
         currentButtons = filteredButtons;
         applyHiddenButtons(currentButtons);
@@ -425,7 +443,7 @@
                 } else if (item.type === 'button') {
                     var btnId = item.id;
                     if (buttonsInFolders.indexOf(btnId) === -1) {
-                        var btn = currentButtons.find(function(b) { return getButtonId(b) === btnId; });
+                        var btn = currentButtons.find(function(b) { return getButtonStableId(b) === btnId || getButtonId(b) === btnId; });
                         if (btn && !btn.hasClass('hidden')) {
                             applyButtonCustomizations(btn);
                             targetContainer.append(btn);
@@ -436,7 +454,7 @@
                 }
             });
             currentButtons.forEach(function(btn) {
-                var btnId = getButtonId(btn);
+                var btnId = getButtonStableId(btn);
                 if (addedButtons.indexOf(btnId) === -1 && !btn.hasClass('hidden') && buttonsInFolders.indexOf(btnId) === -1) {
                     applyButtonCustomizations(btn);
                     targetContainer.append(btn);
@@ -486,7 +504,7 @@
     }
 
     function getButtonDisplayName(btn, allButtons) {
-        var btnId = getButtonId(btn);
+        var btnId = getButtonStableId(btn);
         var customNames = getButtonCustomNames();
         if (customNames[btnId]) return customNames[btnId];
         var text = btn.find('span').text().trim();
@@ -563,7 +581,7 @@
     }
 
     function getButtonIconHtml(btn) {
-        var btnId = getButtonId(btn);
+        var btnId = getButtonStableId(btn);
         var custom = (getButtonCustomIcons())[btnId];
         if (custom) {
             if (custom.indexOf('#') === 0) {
@@ -576,7 +594,7 @@
     }
 
     function applyButtonCustomizations(btn) {
-        var btnId = getButtonId(btn);
+        var btnId = getButtonStableId(btn);
         var customIcons = getButtonCustomIcons();
         var customNames = getButtonCustomNames();
         if (customIcons[btnId]) {
@@ -753,8 +771,8 @@
                     if (folders[i].id === folder.id) { folders[i].customIcon = null; break; }
                 }
                 setFolders(folders);
-                updateFolderIcon(folder);
-            }, 100);
+                listItem.find('.menu-edit-list__icon').empty().append(getFolderIconHtml(folder));
+            }, 150);
         });
         defaultRow.append(defaultItem);
         var grid = $('<div class="folder-icon-picker__grid"></div>');
@@ -775,8 +793,8 @@
                         if (folders[i].id === folder.id) { folders[i].customIcon = folder.customIcon; break; }
                     }
                     setFolders(folders);
-                    updateFolderIcon(folder);
-                }, 100);
+                    listItem.find('.menu-edit-list__icon').empty().append(getFolderIconHtml(folder));
+                }, 150);
             });
             grid.append(el);
         });
@@ -810,8 +828,8 @@
                                 if (folders[i].id === folder.id) { folders[i].customIcon = folder.customIcon; break; }
                             }
                             setFolders(folders);
-                            updateFolderIcon(folder);
-                        }, 100);
+                            listItem.find('.menu-edit-list__icon').empty().append(getFolderIconHtml(folder));
+                        }, 150);
                     });
                     grid.append(el);
                 }
@@ -820,8 +838,8 @@
     }
 
     function openButtonIconPicker(btn, listItem) {
-        var btnId = getButtonId(btn);
-        var origBtn = allButtonsOriginal && allButtonsOriginal.filter(function(b) { return getButtonId(b) === btnId; })[0];
+        var btnId = getButtonStableId(btn);
+        var origBtn = allButtonsOriginal && allButtonsOriginal.filter(function(b) { return getButtonStableId(b) === btnId || getButtonId(b) === btnId; })[0];
         var defaultIconHtml = origBtn && origBtn.find('svg').first().length ? origBtn.find('svg').first().prop('outerHTML') : '';
         var icons = collectAppIcons();
         var defaultRow = $('<div class="folder-icon-picker__default-row"></div>');
@@ -832,13 +850,8 @@
             Lampa.Modal.close();
             setTimeout(function() {
                 setButtonCustomIcon(btnId, null);
-                if (defaultIconHtml) {
-                    var $svg = btn.find('svg').first();
-                    if ($svg.length) $svg.replaceWith($(defaultIconHtml));
-                    else btn.prepend(defaultIconHtml);
-                }
-                applyButtonCustomizations(btn);
-            }, 100);
+                listItem.find('.menu-edit-list__icon').empty().append(defaultIconHtml || getButtonIconHtml(btn));
+            }, 150);
         });
         defaultRow.append(defaultItem);
         var grid = $('<div class="folder-icon-picker__grid"></div>');
@@ -854,8 +867,8 @@
                 Lampa.Modal.close();
                 setTimeout(function() {
                     setButtonCustomIcon(btnId, chosen);
-                    applyButtonCustomizations(btn);
-                }, 100);
+                    listItem.find('.menu-edit-list__icon').empty().append(getButtonIconHtml(btn));
+                }, 150);
             });
             grid.append(el);
         });
@@ -884,8 +897,8 @@
                         Lampa.Modal.close();
                         setTimeout(function() {
                             setButtonCustomIcon(btnId, chosen);
-                            applyButtonCustomizations(btn);
-                        }, 100);
+                            listItem.find('.menu-edit-list__icon').empty().append(getButtonIconHtml(btn));
+                        }, 150);
                     });
                     grid.append(el);
                 }
@@ -1146,11 +1159,12 @@
                 }
             });
             allButtons = sortByCustomOrder(uniqueButtons);
+            setButtonsStableIds(allButtons);
             allButtonsCache = allButtons;
             var folders = getFolders();
             var buttonsInFolders = getButtonsInFolders();
             currentButtons = allButtons.filter(function(btn) {
-                return buttonsInFolders.indexOf(getButtonId(btn)) === -1;
+                return buttonsInFolders.indexOf(getButtonStableId(btn)) === -1;
             });
         }
         var list = $('<div class="menu-edit-list"></div>');
@@ -1371,7 +1385,7 @@
         function createButtonItem(btn) {
             var displayName = getButtonDisplayName(btn, currentButtons);
             var iconHtml = getButtonIconHtml(btn);
-            var btnId = getButtonId(btn);
+            var btnId = getButtonStableId(btn);
             var isHidden = hidden.indexOf(btnId) !== -1;
             var pickIconSvg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>';
             var editNameSvg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
@@ -1473,12 +1487,12 @@
                     var folder = folders.find(function(f) { return f.id === item.id; });
                     if (folder) list.append(createFolderItem(folder));
                 } else if (item.type === 'button') {
-                    var btn = currentButtons.find(function(b) { return getButtonId(b) === item.id; });
+                    var btn = currentButtons.find(function(b) { return getButtonStableId(b) === item.id || getButtonId(b) === item.id; });
                     if (btn) list.append(createButtonItem(btn));
                 }
             });
             currentButtons.forEach(function(btn) {
-                var btnId = getButtonId(btn);
+                var btnId = getButtonStableId(btn);
                 var found = itemOrder.some(function(item) { return item.type === 'button' && item.id === btnId; });
                 if (!found) list.append(createButtonItem(btn));
             });
@@ -1561,6 +1575,7 @@
             .concat(categories.book)
             .concat(categories.reaction)
             .concat(categories.other);
+        setButtonsStableIds(allButtons);
         allButtons = sortByCustomOrder(allButtons);
         allButtonsCache = allButtons;
         if (allButtons.length === 0) return false;
@@ -1575,7 +1590,7 @@
         }
         var buttonsInFolders = getButtonsInFolders();
         var filteredButtons = allButtons.filter(function(btn) {
-            return buttonsInFolders.indexOf(getButtonId(btn)) === -1;
+            return buttonsInFolders.indexOf(getButtonStableId(btn)) === -1;
         });
         currentButtons = filteredButtons;
         var existingButtons = targetContainer.find('.full-start__button').not('.button--edit-order, .button--folder').toArray();
@@ -1635,7 +1650,7 @@
             allButtons = sortByCustomOrder(uniqueButtons);
             buttonsInFolders = getButtonsInFolders();
             currentButtons = allButtons.filter(function(btn) {
-                return buttonsInFolders.indexOf(getButtonId(btn)) === -1;
+                return buttonsInFolders.indexOf(getButtonStableId(btn)) === -1;
             });
         }
         targetContainer.children().detach();
@@ -1654,17 +1669,17 @@
                         addedFolders.push(folder.id);
                     }
                 } else if (item.type === 'button') {
-                    var btn = currentButtons.find(function(b) { return getButtonId(b) === item.id; });
+                    var btn = currentButtons.find(function(b) { return getButtonStableId(b) === item.id || getButtonId(b) === item.id; });
                     if (btn && !btn.hasClass('hidden')) {
                         applyButtonCustomizations(btn);
                         targetContainer.append(btn);
                         visibleButtons.push(btn);
-                        addedButtons.push(getButtonId(btn));
+                        addedButtons.push(getButtonStableId(btn));
                     }
                 }
             });
             currentButtons.forEach(function(btn) {
-                var btnId = getButtonId(btn);
+                var btnId = getButtonStableId(btn);
                 if (addedButtons.indexOf(btnId) === -1 && !btn.hasClass('hidden')) {
                     applyButtonCustomizations(btn);
                     targetContainer.append(btn);
