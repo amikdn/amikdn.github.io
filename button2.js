@@ -338,7 +338,7 @@
             openEditDialog();
         });
         if (Lampa.Storage.get('buttons_editor_enabled') === false) {
-            btn.hide();
+            btn.addClass('button--edit-order-hidden');
         }
         return btn;
     }
@@ -1761,6 +1761,7 @@
             '@keyframes button-fade-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }' +
             '.full-start__button.hidden { display: none !important; }' +
             '.full-start__button.button--edit-order { min-width: 2.5em; min-height: 2.5em; display: flex !important; align-items: center; justify-content: center; }' +
+            '.full-start__button.button--edit-order.button--edit-order-hidden { display: none !important; }' +
             '.full-start__button.button--edit-order svg { width: 1.2em; height: 1.2em; }' +
             '.full-start-new__buttons { ' +
             'display: flex !important; ' +
@@ -1854,10 +1855,11 @@
             onChange: function(value) {
                 setTimeout(function() {
                     var currentValue = Lampa.Storage.get('buttons_editor_enabled', true);
+                    var editBtns = $('.button--edit-order');
                     if (currentValue) {
-                        $('.button--edit-order').show();
+                        editBtns.removeClass('button--edit-order-hidden');
                     } else {
-                        $('.button--edit-order').hide();
+                        editBtns.addClass('button--edit-order-hidden');
                     }
                 }, 100);
             },
