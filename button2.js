@@ -2,7 +2,7 @@
 (function() {
     'use strict';
 
-    var PLUGIN_VERSION = '1.08';
+    var PLUGIN_VERSION = '1.09';
 
     // Polyfills для совместимости со старыми устройствами
     if (!Array.prototype.forEach) {
@@ -254,12 +254,6 @@
         if (defaultIconHtml) {
             defaultBlock.find('.icon-picker-default__preview').append($(defaultIconHtml).clone());
         }
-        function reopenOrderModal() {
-            setTimeout(function() {
-                applyChanges();
-                openEditDialog();
-            }, 150);
-        }
         function applyChoice(isDefault, chosenHtml) {
             var stored = getCustomIcons();
             var custom = {};
@@ -275,7 +269,9 @@
             if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.close) {
                 Lampa.Modal.close();
             }
-            reopenOrderModal();
+            setTimeout(function() {
+                applyChanges();
+            }, 100);
         }
         defaultBlock.on('hover:enter', function() {
             applyChoice(true, null);
@@ -301,7 +297,6 @@
                 if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.close) {
                     Lampa.Modal.close();
                 }
-                reopenOrderModal();
             }
         });
     }
