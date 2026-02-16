@@ -633,17 +633,63 @@
         return html.replace(/\s+/g, ' ').replace(/>\s+</g, '><').trim();
     }
 
+    function collectSymbolsFromRoot(root) {
+        var list = [];
+        if (!root || !root.querySelectorAll) return list;
+        try {
+            var symbols = root.querySelectorAll('symbol[id]');
+            for (var i = 0; i < symbols.length; i++) {
+                var id = symbols[i].getAttribute('id');
+                if (id) list.push(id);
+            }
+        } catch (e) {}
+        return list;
+    }
+
     function collectAppIcons() {
         var icons = [];
         var seen = {};
-        var symbols = document.querySelectorAll('symbol[id]');
-        for (var i = 0; i < symbols.length; i++) {
-            var id = symbols[i].getAttribute('id');
+        function addSymbolId(id) {
             if (id && !seen[id]) {
                 seen[id] = true;
                 icons.push({ type: 'sprite', id: id });
             }
         }
+        var mainSymbols = document.querySelectorAll('symbol[id]');
+        for (var si = 0; si < mainSymbols.length; si++) {
+            var id = mainSymbols[si].getAttribute('id');
+            if (id) addSymbolId(id);
+        }
+        try {
+            var iframes = document.querySelectorAll('iframe');
+            for (var i = 0; i < iframes.length; i++) {
+                try {
+                    var doc = iframes[i].contentDocument;
+                    if (doc && doc.querySelectorAll) {
+                        var iframeSymbols = doc.querySelectorAll('symbol[id]');
+                        for (var isi = 0; isi < iframeSymbols.length; isi++) {
+                            var id = iframeSymbols[isi].getAttribute('id');
+                            if (id) addSymbolId(id);
+                        }
+                    }
+                } catch (e) {}
+            }
+        } catch (e) {}
+        try {
+            var allEls = document.getElementsByTagName('*');
+            for (var j = 0; j < allEls.length; j++) {
+                var el = allEls[j];
+                if (el.shadowRoot) {
+                    collectSymbolsFromRoot(el.shadowRoot).forEach(addSymbolId);
+                    var deep = el.shadowRoot.querySelectorAll('*');
+                    for (var k = 0; k < deep.length; k++) {
+                        if (deep[k].shadowRoot) {
+                            collectSymbolsFromRoot(deep[k].shadowRoot).forEach(addSymbolId);
+                        }
+                    }
+                }
+            }
+        } catch (e) {}
         if (allButtonsOriginal && allButtonsOriginal.length) {
             allButtonsOriginal.forEach(function(btn) {
                 var svg = btn.find ? btn.find('svg').first() : $(btn).find('svg').first();
@@ -657,18 +703,36 @@
                 }
             });
         }
+        try {
+            var pluginSvgs = document.querySelectorAll('[class*="button"] svg, [class*="icon"] svg, [class*="plugin"] svg, [data-icon] svg');
+            for (var psi = 0; psi < pluginSvgs.length; psi++) {
+                var svgEl = pluginSvgs[psi];
+                if (svgEl.closest && (svgEl.closest('.menu-edit-list') || svgEl.closest('.folder-icon-picker'))) continue;
+                var html = svgEl.outerHTML;
+                if (!html || html.length > 5000) continue;
+                var key = normalizeSvgKey(html);
+                if (key && !seen[key]) {
+                    seen[key] = true;
+                    icons.push({ type: 'html', html: html });
+                }
+            }
+        } catch (e) {}
+        icons.sort(function(a, b) {
+            if (a.type !== b.type) return a.type === 'sprite' ? -1 : 1;
+            if (a.type === 'sprite') return (a.id || '').localeCompare(b.id || '');
+            return 0;
+        });
         return icons;
     }
 
     function openFolderIconPicker(folder, listItem) {
         var icons = collectAppIcons();
-        var list = $('<div class="menu-edit-list folder-icon-picker"></div>');
+        var defaultRow = $('<div class="folder-icon-picker__default-row"></div>');
         var defaultItem = $('<div class="folder-icon-picker__item selector">' +
             '<div class="menu-edit-list__icon">' + DEFAULT_FOLDER_ICON + '</div>' +
             '<div class="menu-edit-list__title">По умолчанию</div></div>');
         defaultItem.on('hover:enter', function() {
-            Lampa.Modal.close();
-            setTimeout(function() {
+            var doUpdate = function() {
                 folder.customIcon = null;
                 var folders = getFolders();
                 for (var i = 0; i < folders.length; i++) {
@@ -677,9 +741,12 @@
                 setFolders(folders);
                 listItem.find('.menu-edit-list__icon').empty().append(getFolderIconHtml(folder));
                 updateFolderIcon(folder);
-            }, 0);
+            };
+            Lampa.Modal.close();
+            setTimeout(doUpdate, 300);
         });
-        list.append(defaultItem);
+        defaultRow.append(defaultItem);
+        var grid = $('<div class="folder-icon-picker__grid"></div>');
         icons.forEach(function(ico) {
             var iconHtml = ico.type === 'sprite'
                 ? '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"><use xlink:href="#' + ico.id + '"></use></svg>'
@@ -688,9 +755,8 @@
                 '<div class="menu-edit-list__icon"></div></div>');
             el.find('.menu-edit-list__icon').append(iconHtml);
             el.on('hover:enter', function() {
-                Lampa.Modal.close();
                 var chosen = ico.type === 'sprite' ? '#' + ico.id : ico.html;
-                setTimeout(function() {
+                var doUpdate = function() {
                     folder.customIcon = chosen;
                     var folders = getFolders();
                     for (var i = 0; i < folders.length; i++) {
@@ -699,10 +765,13 @@
                     setFolders(folders);
                     listItem.find('.menu-edit-list__icon').empty().append(getFolderIconHtml(folder));
                     updateFolderIcon(folder);
-                }, 0);
+                };
+                Lampa.Modal.close();
+                setTimeout(doUpdate, 300);
             });
-            list.append(el);
+            grid.append(el);
         });
+        var list = $('<div class="folder-icon-picker"></div>').append(defaultRow).append(grid);
         Lampa.Modal.open({
             title: 'Иконка папки',
             html: list,
@@ -717,13 +786,12 @@
         var origBtn = allButtonsOriginal && allButtonsOriginal.filter(function(b) { return getButtonId(b) === btnId; })[0];
         var defaultIconHtml = origBtn && origBtn.find('svg').first().length ? origBtn.find('svg').first().prop('outerHTML') : '';
         var icons = collectAppIcons();
-        var list = $('<div class="menu-edit-list folder-icon-picker"></div>');
+        var defaultRow = $('<div class="folder-icon-picker__default-row"></div>');
         var defaultItem = $('<div class="folder-icon-picker__item selector">' +
             '<div class="menu-edit-list__icon">' + defaultIconHtml + '</div>' +
             '<div class="menu-edit-list__title">По умолчанию</div></div>');
         defaultItem.on('hover:enter', function() {
-            Lampa.Modal.close();
-            setTimeout(function() {
+            var doUpdate = function() {
                 setButtonCustomIcon(btnId, null);
                 if (defaultIconHtml) {
                     var $svg = btn.find('svg').first();
@@ -731,9 +799,12 @@
                     else btn.prepend(defaultIconHtml);
                 }
                 listItem.find('.menu-edit-list__icon').empty().append(defaultIconHtml || getButtonIconHtml(btn));
-            }, 0);
+            };
+            Lampa.Modal.close();
+            setTimeout(doUpdate, 300);
         });
-        list.append(defaultItem);
+        defaultRow.append(defaultItem);
+        var grid = $('<div class="folder-icon-picker__grid"></div>');
         icons.forEach(function(ico) {
             var iconHtml = ico.type === 'sprite'
                 ? '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"><use xlink:href="#' + ico.id + '"></use></svg>'
@@ -742,16 +813,18 @@
                 '<div class="menu-edit-list__icon"></div></div>');
             el.find('.menu-edit-list__icon').append(iconHtml);
             el.on('hover:enter', function() {
-                Lampa.Modal.close();
                 var chosen = ico.type === 'sprite' ? '#' + ico.id : ico.html;
-                setTimeout(function() {
+                var doUpdate = function() {
                     setButtonCustomIcon(btnId, chosen);
                     listItem.find('.menu-edit-list__icon').empty().append(getButtonIconHtml(btn));
                     applyButtonCustomizations(btn);
-                }, 0);
+                };
+                Lampa.Modal.close();
+                setTimeout(doUpdate, 300);
             });
-            list.append(el);
+            grid.append(el);
         });
+        var list = $('<div class="folder-icon-picker"></div>').append(defaultRow).append(grid);
         Lampa.Modal.open({
             title: 'Иконка кнопки',
             html: list,
@@ -1065,9 +1138,11 @@
         function createFolderItem(folder) {
             var iconHtml = getFolderIconHtml(folder);
             var pickIconSvg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>';
+            var editNameSvg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
             var item = $('<div class="menu-edit-list__item folder-item">' +
                 '<div class="menu-edit-list__icon"></div>' +
-                '<div class="menu-edit-list__title">' + folder.name + ' <span style="opacity:0.5">(' + folder.buttons.length + ')</span></div>' +
+                '<div class="menu-edit-list__title folder-item-title">' + folder.name + ' <span style="opacity:0.5">(' + folder.buttons.length + ')</span></div>' +
+                '<div class="menu-edit-list__folder-name selector" title="Сменить название">' + editNameSvg + '</div>' +
                 '<div class="menu-edit-list__folder-icon selector" title="Сменить иконку">' + pickIconSvg + '</div>' +
                 '<div class="menu-edit-list__move move-up selector">' +
                     '<svg width="22" height="14" viewBox="0 0 22 14" fill="none" xmlns="http://www.w3.org/2000/svg">' +
@@ -1089,6 +1164,27 @@
             item.find('.menu-edit-list__icon').append(iconHtml);
             item.data('folderId', folder.id);
             item.data('itemType', 'folder');
+            item.find('.menu-edit-list__folder-name').on('hover:enter', function() {
+                Lampa.Modal.close();
+                Lampa.Input.edit({
+                    title: 'Название папки',
+                    value: folder.name,
+                    onSave: function(name) {
+                        if (name && name.trim()) {
+                            folder.name = name.trim();
+                            var folders = getFolders();
+                            for (var i = 0; i < folders.length; i++) {
+                                if (folders[i].id === folder.id) { folders[i].name = folder.name; break; }
+                            }
+                            setFolders(folders);
+                            var folderBtn = currentContainer && currentContainer.find('.button--folder[data-folder-id="' + folder.id + '"]');
+                            if (folderBtn.length) folderBtn.find('span').text(folder.name);
+                        }
+                        openEditDialog();
+                    },
+                    onBack: function() { openEditDialog(); }
+                });
+            });
             item.find('.menu-edit-list__folder-icon').on('hover:enter', function() {
                 openFolderIconPicker(folder, item);
             });
@@ -1251,16 +1347,18 @@
                 openButtonIconPicker(btn, item);
             });
             item.find('.menu-edit-list__btn-name').on('hover:enter', function() {
+                Lampa.Modal.close();
                 var currentName = getButtonDisplayName(btn, currentButtons);
                 Lampa.Input.edit({
                     title: 'Название кнопки',
                     value: currentName,
                     onSave: function(name) {
                         setButtonCustomName(btnId, name);
-                        item.find('.menu-edit-list__title').text(name || currentName);
                         var span = btn.find('span').first();
                         if (span.length) span.text(name || currentName);
-                    }
+                        openEditDialog();
+                    },
+                    onBack: function() { openEditDialog(); }
                 });
             });
             item.find('.move-up').on('hover:enter', function() {
@@ -1602,12 +1700,16 @@
             '.menu-edit-list__delete { width: 2.4em; height: 2.4em; display: flex; align-items: center; justify-content: center; cursor: pointer; }' +
             '.menu-edit-list__delete svg { width: 1.2em !important; height: 1.2em !important; }' +
             '.menu-edit-list__delete.focus { border: 2px solid rgba(255,255,255,0.8); border-radius: 0.3em; }' +
-            '.folder-item .menu-edit-list__folder-icon { width: 2.4em; height: 2.4em; display: flex; align-items: center; justify-content: center; cursor: pointer; margin-right: 1em; margin-left: 0.5em; flex-shrink: 0; }' +
-            '.folder-item .menu-edit-list__folder-icon svg { width: 1.2em !important; height: 1.2em !important; }' +
-            '.folder-item .menu-edit-list__folder-icon.focus { border: 2px solid rgba(255,255,255,0.8); border-radius: 0.3em; }' +
+            '.folder-item .menu-edit-list__folder-name, .folder-item .menu-edit-list__folder-icon { width: 2.4em; height: 2.4em; display: flex; align-items: center; justify-content: center; cursor: pointer; margin-right: 0.5em; flex-shrink: 0; }' +
+            '.folder-item .menu-edit-list__folder-icon { margin-right: 1em; margin-left: 0.25em; }' +
+            '.folder-item .menu-edit-list__folder-name svg, .folder-item .menu-edit-list__folder-icon svg { width: 1.2em !important; height: 1.2em !important; }' +
+            '.folder-item .menu-edit-list__folder-name.focus, .folder-item .menu-edit-list__folder-icon.focus { border: 2px solid rgba(255,255,255,0.8); border-radius: 0.3em; }' +
             '.folder-item .menu-edit-list__move { margin-right: 0.5em; }' +
-            '.folder-icon-picker { display: flex; flex-wrap: wrap; gap: 0.5em; padding: 0.5em; }' +
-            '.folder-icon-picker__item { display: flex; align-items: center; padding: 0.5em; border-radius: 0.3em; min-width: 8em; cursor: pointer; }' +
+            '.folder-icon-picker { padding: 0.5em; }' +
+            '.folder-icon-picker__default-row { width: 100%; margin-bottom: 0.75em; }' +
+            '.folder-icon-picker__default-row .folder-icon-picker__item { width: 100%; min-width: 100%; }' +
+            '.folder-icon-picker__grid { display: grid; grid-template-columns: repeat(6, minmax(2.8em, 1fr)); gap: 0.5em; max-height: 13em; overflow-y: auto; }' +
+            '.folder-icon-picker__item { display: flex; align-items: center; justify-content: center; padding: 0.5em; border-radius: 0.3em; min-width: 0; cursor: pointer; }' +
             '.folder-icon-picker__item.focus { border: 2px solid rgba(255,255,255,0.8); background: rgba(255,255,255,0.1); }' +
             '.folder-create-confirm { background: rgba(100,200,100,0.3); margin-top: 1em; border-radius: 0.3em; }' +
             '.folder-create-confirm.focus { border: 3px solid rgba(255,255,255,0.8); }' +
