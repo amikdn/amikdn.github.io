@@ -1722,12 +1722,15 @@
     }
 
     function init() {
-        var DATA_VERSION = 3;
+        // Увеличивать при изменениях в коде, чтобы старые настройки сбросились и применились новые
+        var DATA_VERSION = 4;
         if (Lampa.Storage.get('buttons_plugin_data_version', 0) < DATA_VERSION) {
             Lampa.Storage.set('button_custom_order', []);
             Lampa.Storage.set('button_item_order', []);
             Lampa.Storage.set('button_folders', []);
             Lampa.Storage.set('button_hidden', []);
+            Lampa.Storage.set('button_custom_icons', {});
+            Lampa.Storage.set('button_custom_names', {});
             Lampa.Storage.set('buttons_viewmode', 'default');
             Lampa.Storage.set('buttons_plugin_data_version', DATA_VERSION);
         }
