@@ -2,7 +2,7 @@
 (function() {
     'use strict';
 
-    var PLUGIN_VERSION = '1.10';
+    var PLUGIN_VERSION = '1.11';
 
     // Polyfills для совместимости со старыми устройствами
     if (!Array.prototype.forEach) {
@@ -297,6 +297,9 @@
                 if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.close) {
                     Lampa.Modal.close();
                 }
+                setTimeout(function() {
+                    refreshController();
+                }, 100);
             }
         });
     }
