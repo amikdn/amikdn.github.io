@@ -2,7 +2,7 @@
 (function() {
     'use strict';
 
-    var PLUGIN_VERSION = '1.07';
+    var PLUGIN_VERSION = '1.08';
 
     // Polyfills для совместимости со старыми устройствами
     if (!Array.prototype.forEach) {
@@ -254,6 +254,12 @@
         if (defaultIconHtml) {
             defaultBlock.find('.icon-picker-default__preview').append($(defaultIconHtml).clone());
         }
+        function reopenOrderModal() {
+            setTimeout(function() {
+                applyChanges();
+                openEditDialog();
+            }, 150);
+        }
         function applyChoice(isDefault, chosenHtml) {
             var stored = getCustomIcons();
             var custom = {};
@@ -269,13 +275,7 @@
             if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.close) {
                 Lampa.Modal.close();
             }
-            if (listItem && listItem.length) {
-                var htmlToShow = isDefault ? defaultIconHtml : chosenHtml;
-                if (htmlToShow) {
-                    listItem.find('.menu-edit-list__icon').empty().append($(htmlToShow).clone());
-                }
-            }
-            applyCustomIcons(currentButtons);
+            reopenOrderModal();
         }
         defaultBlock.on('hover:enter', function() {
             applyChoice(true, null);
@@ -301,6 +301,7 @@
                 if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.close) {
                     Lampa.Modal.close();
                 }
+                reopenOrderModal();
             }
         });
     }
@@ -647,8 +648,13 @@
             item.data('button', btn);
             item.data('buttonId', btnId);
             item.find('.menu-edit-list__change-icon').on('hover:enter', function() {
+                if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.close) {
+                    Lampa.Modal.close();
+                }
                 var defaultIcon = getDefaultIconForButton(btnId);
-                openIconPicker(btn, btnId, defaultIcon, item);
+                setTimeout(function() {
+                    openIconPicker(btn, btnId, defaultIcon, null);
+                }, 200);
             });
             item.find('.move-up').on('hover:enter', function() {
                 var prev = item.prev();
