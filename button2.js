@@ -2,7 +2,7 @@
 (function() {
     'use strict';
 
-    var PLUGIN_VERSION = '1.04';
+    var PLUGIN_VERSION = '1.05';
 
     // Polyfills для совместимости со старыми устройствами
     if (!Array.prototype.forEach) {
@@ -266,14 +266,9 @@
                 custom[btnId] = chosenHtml;
             }
             setCustomIcons(custom);
-            if (isDefault && defaultIconHtml) {
-                var svgEl = btn.find('svg').first();
-                if (svgEl.length) svgEl.replaceWith($(defaultIconHtml).clone());
-                if (listItem && listItem.length) listItem.find('.menu-edit-list__icon').empty().append($(defaultIconHtml).clone());
-            } else if (!isDefault && chosenHtml) {
-                var svgEl = btn.find('svg').first();
-                if (svgEl.length) svgEl.replaceWith($(chosenHtml).clone());
-                if (listItem && listItem.length) listItem.find('.menu-edit-list__icon').empty().append($(chosenHtml).clone());
+            var htmlToShow = isDefault ? defaultIconHtml : chosenHtml;
+            if (htmlToShow && listItem && listItem.length) {
+                listItem.find('.menu-edit-list__icon').empty().append($(htmlToShow).clone());
             }
         }
         defaultBlock.on('hover:enter', function() {
