@@ -350,7 +350,9 @@
     function applyChanges(skipFocus) {
         var container;
         if (skipFocus) {
-            container = getLiveFullStartContainer() || currentContainer;
+            // Всегда обновлять ту же карточку, из которой открыт редактор (иначе querySelector может взять другую карточку на странице)
+            var useCurrent = currentContainer && currentContainer.length && document.body.contains(currentContainer[0]);
+            container = useCurrent ? currentContainer : (getLiveFullStartContainer() || currentContainer);
         } else {
             container = currentContainer;
         }
@@ -1574,16 +1576,14 @@
             scroll_to_center: true,
             onBack: function() {
                 Lampa.Modal.close();
-                var runUpdate = function() {
+                setTimeout(function() {
                     var container = getLiveFullStartContainer() || currentContainer;
                     if (container) {
                         container.data('buttons-processed', false);
                         reorderButtons(container);
                         refreshController();
                     }
-                };
-                setTimeout(runUpdate, 100);
-                setTimeout(runUpdate, 350);
+                }, 150);
             }
         });
     }
@@ -1802,7 +1802,7 @@
 
     function init() {
         // Увеличивать при изменениях в коде, чтобы старые настройки сбросились и применились новые
-        var DATA_VERSION = 10;
+        var DATA_VERSION = 11;
         if (Lampa.Storage.get('buttons_plugin_data_version', 0) < DATA_VERSION) {
             Lampa.Storage.set('button_custom_order', []);
             Lampa.Storage.set('button_item_order', []);
