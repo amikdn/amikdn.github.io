@@ -1165,7 +1165,7 @@
         setItemOrder(order);
         if (currentContainer) {
             currentContainer.data('buttons-processed', false);
-            reorderButtons(currentContainer, { skipFocus: true });
+            reorderButtons(currentContainer, { skipFocus: true, itemOrder: order });
         }
     }
 
@@ -1663,7 +1663,7 @@
         }
         targetContainer.children().detach();
         var visibleButtons = [];
-        var itemOrder = getItemOrder();
+        var itemOrder = (opts && opts.itemOrder && opts.itemOrder.length) ? opts.itemOrder : getItemOrder();
         if (itemOrder.length > 0) {
             var addedFolders = [];
             var addedButtons = [];
