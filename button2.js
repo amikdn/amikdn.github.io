@@ -240,13 +240,9 @@
     function categorizeButtons(container) {
         var allButtons = container.find('.full-start__button').not('.button--edit-order, .button--folder, .button--play');
         var categories = { online: [], torrent: [], trailer: [], favorite: [], subscribe: [], book: [], reaction: [], other: [] };
-        var processedIds = {};
         allButtons.each(function() {
             var $btn = $(this);
             if (isExcluded($btn)) return;
-            var btnId = getButtonId($btn);
-            if (processedIds[btnId]) return;
-            processedIds[btnId] = true;
             var type = getButtonType($btn);
             if (categories[type]) {
                 categories[type].push($btn);
@@ -1181,16 +1177,7 @@
                 .concat(categories.book)
                 .concat(categories.reaction)
                 .concat(categories.other);
-            var uniqueButtons = [];
-            var seenIds = {};
-            allButtons.forEach(function(btn) {
-                var btnId = getButtonId(btn);
-                if (!seenIds[btnId]) {
-                    seenIds[btnId] = true;
-                    uniqueButtons.push(btn);
-                }
-            });
-            allButtons = sortByCustomOrder(uniqueButtons);
+            allButtons = sortByCustomOrder(allButtons);
             setButtonsStableIds(allButtons);
             allButtonsCache = allButtons;
             var folders = getFolders();
@@ -1200,6 +1187,18 @@
                 var gid = getButtonId(btn);
                 return buttonsInFolders.indexOf(sid) === -1 && buttonsInFolders.indexOf(gid) === -1;
             });
+        } else {
+            var folders = getFolders();
+            var buttonsInFolders = getButtonsInFolders();
+            var source = (allButtonsCache && allButtonsCache.length) ? allButtonsCache : (allButtonsOriginal || []);
+            if (source.length) {
+                setButtonsStableIds(source);
+                currentButtons = source.filter(function(btn) {
+                    var sid = getButtonStableId(btn);
+                    var gid = getButtonId(btn);
+                    return buttonsInFolders.indexOf(sid) === -1 && buttonsInFolders.indexOf(gid) === -1;
+                });
+            }
         }
         var list = $('<div class="menu-edit-list"></div>');
         var hidden = getHiddenButtons();
@@ -1745,7 +1744,7 @@
 
     function init() {
         // Увеличивать при изменениях в коде, чтобы старые настройки сбросились и применились новые
-        var DATA_VERSION = 8;
+        var DATA_VERSION = 9;
         if (Lampa.Storage.get('buttons_plugin_data_version', 0) < DATA_VERSION) {
             Lampa.Storage.set('button_custom_order', []);
             Lampa.Storage.set('button_item_order', []);
