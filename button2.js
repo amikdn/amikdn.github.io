@@ -2,7 +2,7 @@
 (function() {
     'use strict';
 
-    var PLUGIN_VERSION = '1.01';
+    var PLUGIN_VERSION = '1.02';
 
     // Polyfills для совместимости со старыми устройствами
     if (!Array.prototype.forEach) {
@@ -210,6 +210,23 @@
                 } catch (err) {}
             }
         }
+        var buttonsContainers = document.querySelectorAll('.full-start-new__buttons');
+        for (var c = 0; c < buttonsContainers.length; c++) {
+            var container = buttonsContainers[c];
+            var children = container.children || container.childNodes;
+            for (var n = 0; n < children.length; n++) {
+                var child = children[n];
+                if (!child || child.nodeType !== 1) continue;
+                if (child.classList && (child.classList.contains('button--edit-order') || child.classList.contains('button--play'))) continue;
+                var childSvg = child.querySelector && child.querySelector('svg');
+                if (childSvg) {
+                    try {
+                        var rawChild = childSvg.outerHTML;
+                        addIcon(rawChild, 'plugin-' + c + '-' + n);
+                    } catch (err) {}
+                }
+            }
+        }
         return result;
     }
 
@@ -229,27 +246,29 @@
         if (defaultIconHtml) {
             defaultBlock.find('.icon-picker-default__preview').append($(defaultIconHtml).clone());
         }
-        function closeIconPickerOnly() {
-            setTimeout(function() {
-                if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.close) {
-                    Lampa.Modal.close();
-                }
-            }, 0);
+        function closeIconPickerOnly(afterClose) {
+            if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.close) {
+                Lampa.Modal.close();
+            }
+            if (typeof afterClose === 'function') {
+                setTimeout(afterClose, 250);
+            }
         }
         defaultBlock.on('hover:enter', function() {
-            if (defaultIconHtml) {
-                var svgEl = btn.find('svg').first();
-                if (svgEl.length) {
-                    svgEl.replaceWith($(defaultIconHtml).clone());
-                }
-                if (listItem && listItem.length) {
-                    listItem.find('.menu-edit-list__icon').empty().append($(defaultIconHtml).clone());
-                }
-            }
             var custom = getCustomIcons();
             delete custom[btnId];
             setCustomIcons(custom);
-            closeIconPickerOnly();
+            closeIconPickerOnly(function() {
+                if (defaultIconHtml) {
+                    var svgEl = btn.find('svg').first();
+                    if (svgEl.length) {
+                        svgEl.replaceWith($(defaultIconHtml).clone());
+                    }
+                    if (listItem && listItem.length) {
+                        listItem.find('.menu-edit-list__icon').empty().append($(defaultIconHtml).clone());
+                    }
+                }
+            });
         });
         wrap.append(defaultBlock);
         var grid = $('<div class="icon-picker-grid"></div>');
@@ -258,17 +277,18 @@
             cell.append($(entry.html).clone());
             var savedHtml = entry.html;
             cell.on('hover:enter', function() {
-                var svgEl = btn.find('svg').first();
-                if (svgEl.length) {
-                    svgEl.replaceWith($(savedHtml).clone());
-                }
-                if (listItem && listItem.length) {
-                    listItem.find('.menu-edit-list__icon').empty().append($(savedHtml).clone());
-                }
                 var custom = getCustomIcons();
                 custom[btnId] = savedHtml;
                 setCustomIcons(custom);
-                closeIconPickerOnly();
+                closeIconPickerOnly(function() {
+                    var svgEl = btn.find('svg').first();
+                    if (svgEl.length) {
+                        svgEl.replaceWith($(savedHtml).clone());
+                    }
+                    if (listItem && listItem.length) {
+                        listItem.find('.menu-edit-list__icon').empty().append($(savedHtml).clone());
+                    }
+                });
             });
             grid.append(cell);
         });
