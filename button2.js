@@ -1293,7 +1293,12 @@
                 var itemOrderArr = getItemOrder();
                 var newItemOrder = [];
                 for (var i = 0; i < itemOrderArr.length; i++) {
-                    if (itemOrderArr[i].type === 'folder' && itemOrderArr[i].id === folderId) continue;
+                    if (itemOrderArr[i].type === 'folder' && itemOrderArr[i].id === folderId) {
+                        for (var k = 0; k < folderButtons.length; k++) {
+                            newItemOrder.push({ type: 'button', id: folderButtons[k] });
+                        }
+                        continue;
+                    }
                     if (itemOrderArr[i].type === 'button') {
                         var isInFolder = false;
                         for (var j = 0; j < folderButtons.length; j++) {
@@ -1726,7 +1731,7 @@
 
     function init() {
         // Увеличивать при изменениях в коде, чтобы старые настройки сбросились и применились новые
-        var DATA_VERSION = 6;
+        var DATA_VERSION = 7;
         if (Lampa.Storage.get('buttons_plugin_data_version', 0) < DATA_VERSION) {
             Lampa.Storage.set('button_custom_order', []);
             Lampa.Storage.set('button_item_order', []);
@@ -1818,6 +1823,11 @@
                         }, 1300);
                     }, 800);
                 }
+                setTimeout(function() {
+                    if (container && container.find('.full-start-new__buttons').length) {
+                        setupButtonNavigation(container);
+                    }
+                }, 600);
             }, 400);
         });
     }
@@ -1833,6 +1843,8 @@
                     if (currentValue) {
                         if (currentContainer) {
                             currentContainer.data('buttons-processed', false);
+                            reorderButtons(currentContainer);
+                            refreshController();
                         } else {
                             $('.button--edit-order').show();
                         }
