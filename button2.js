@@ -1722,7 +1722,7 @@
     }
 
     function init() {
-        var DATA_VERSION = 2;
+        var DATA_VERSION = 3;
         if (Lampa.Storage.get('buttons_plugin_data_version', 0) < DATA_VERSION) {
             Lampa.Storage.set('button_custom_order', []);
             Lampa.Storage.set('button_item_order', []);
