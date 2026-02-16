@@ -595,10 +595,21 @@
     function applyButtonCustomizations(btn) {
         var btnId = getButtonStableId(btn);
         var customIcons = getButtonCustomIcons();
+        var iconHtml;
         if (customIcons[btnId]) {
-            var iconHtml = customIcons[btnId].indexOf('#') === 0
+            iconHtml = customIcons[btnId].indexOf('#') === 0
                 ? '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use xlink:href="' + customIcons[btnId] + '"></use></svg>'
                 : customIcons[btnId];
+        } else {
+            var origBtn = allButtonsOriginal && allButtonsOriginal.find(function(b) { return getButtonStableId(b) === btnId || getButtonId(b) === btnId; });
+            if (origBtn) {
+                var origSvg = origBtn.find('svg').first();
+                iconHtml = origSvg.length ? origSvg.prop('outerHTML') : '';
+            } else {
+                iconHtml = '';
+            }
+        }
+        if (iconHtml) {
             var $svg = btn.find('svg').first();
             if ($svg.length) $svg.replaceWith($(iconHtml));
             else btn.prepend(iconHtml);
@@ -920,8 +931,7 @@
             var btn = findButton(btnId);
             if (btn) {
                 var displayName = getButtonDisplayName(btn, allButtonsOriginal);
-                var iconElement = btn.find('svg').first();
-                var icon = iconElement.length ? iconElement.prop('outerHTML') : '';
+                var icon = getButtonIconHtml(btn);
                 var subtitle = btn.attr('data-subtitle') || '';
                 var titleText = displayName.replace(/<[^>]*>/g, '').replace(/\s*\([^)]*\)\s*/g, '').trim();
                 var item = {
@@ -1327,7 +1337,7 @@
                                 if ($btn.hasClass('button--folder')) {
                                     updatedItemOrder.push({ type: 'folder', id: $btn.attr('data-folder-id') });
                                 } else {
-                                    updatedItemOrder.push({ type: 'button', id: getButtonId($btn) });
+                                    updatedItemOrder.push({ type: 'button', id: getButtonStableId($btn) });
                                 }
                             });
                             setItemOrder(updatedItemOrder);
@@ -1437,17 +1447,24 @@
         }
 
         if (itemOrder.length > 0) {
+            var addedButtonIds = {};
             itemOrder.forEach(function(item) {
                 if (item.type === 'folder') {
                     var folder = folders.find(function(f) { return f.id === item.id; });
                     if (folder) list.append(createFolderItem(folder));
                 } else if (item.type === 'button') {
+                    if (addedButtonIds[item.id]) return;
                     var btn = currentButtons.find(function(b) { return getButtonStableId(b) === item.id || getButtonId(b) === item.id; });
-                    if (btn) list.append(createButtonItem(btn));
+                    if (btn) {
+                        addedButtonIds[item.id] = true;
+                        addedButtonIds[getButtonStableId(btn)] = true;
+                        list.append(createButtonItem(btn));
+                    }
                 }
             });
             currentButtons.forEach(function(btn) {
                 var btnId = getButtonStableId(btn);
+                if (addedButtonIds[btnId]) return;
                 var found = itemOrder.some(function(item) { return item.type === 'button' && item.id === btnId; });
                 if (!found) list.append(createButtonItem(btn));
             });
@@ -1709,7 +1726,7 @@
 
     function init() {
         // Увеличивать при изменениях в коде, чтобы старые настройки сбросились и применились новые
-        var DATA_VERSION = 5;
+        var DATA_VERSION = 6;
         if (Lampa.Storage.get('buttons_plugin_data_version', 0) < DATA_VERSION) {
             Lampa.Storage.set('button_custom_order', []);
             Lampa.Storage.set('button_item_order', []);
@@ -1816,7 +1833,6 @@
                     if (currentValue) {
                         if (currentContainer) {
                             currentContainer.data('buttons-processed', false);
-                            reorderButtons(currentContainer);
                         } else {
                             $('.button--edit-order').show();
                         }
