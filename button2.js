@@ -1490,6 +1490,8 @@
             Lampa.Storage.set('button_hidden', []);
             Lampa.Storage.set('button_folders', []);
             Lampa.Storage.set('button_item_order', []);
+            Lampa.Storage.set('button_custom_icons', {});
+            Lampa.Storage.set('button_custom_names', {});
             Lampa.Storage.set('buttons_viewmode', 'default');
             Lampa.Modal.close();
             setTimeout(function() {
