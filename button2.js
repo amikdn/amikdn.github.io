@@ -1758,13 +1758,13 @@
             '.menu-edit-list__item .menu-edit-list__icon svg { width: 1.2em !important; height: 1.2em !important; display: block; }' +
             '.menu-edit-list__create-folder { background: rgba(34,139,34,0.45) !important; color: #fff; border: 3px solid transparent; padding-left: 0.35em !important; }' +
             '.menu-edit-list__create-folder.focus { background: rgba(34,139,34,0.6) !important; border-color: rgba(255,255,255,0.8); }' +
-            '.menu-edit-list__delete { width: 2.4em; height: 2.4em; display: flex; align-items: center; justify-content: center; cursor: pointer; }' +
-            '.menu-edit-list__delete svg { width: 1.2em !important; height: 1.2em !important; }' +
+            '.menu-edit-list__move, .menu-edit-list__delete, .menu-edit-list__toggle, .menu-edit-list__btn-icon, .menu-edit-list__btn-name, .folder-item .menu-edit-list__folder-name, .folder-item .menu-edit-list__folder-icon { width: 2.4em; min-width: 2.4em; height: 2.4em; min-height: 2.4em; display: flex; align-items: center; justify-content: center; flex-shrink: 0; cursor: pointer; box-sizing: border-box; }' +
+            '.menu-edit-list__move svg, .menu-edit-list__delete svg, .menu-edit-list__toggle svg, .menu-edit-list__btn-icon svg, .menu-edit-list__btn-name svg, .folder-item .menu-edit-list__folder-name svg, .folder-item .menu-edit-list__folder-icon svg { width: 1.2em !important; height: 1.2em !important; display: block; flex-shrink: 0; }' +
             '.menu-edit-list__delete.focus { border: 2px solid rgba(255,255,255,0.8); border-radius: 0.3em; }' +
-            '.folder-item .menu-edit-list__folder-name, .folder-item .menu-edit-list__folder-icon { width: 2.4em; height: 2.4em; display: flex; align-items: center; justify-content: center; cursor: pointer; margin-right: 0.5em; flex-shrink: 0; }' +
+            '.folder-item .menu-edit-list__folder-name, .folder-item .menu-edit-list__folder-icon { margin-right: 0.5em; }' +
             '.folder-item .menu-edit-list__folder-icon { margin-right: 1em; margin-left: 0.25em; }' +
-            '.folder-item .menu-edit-list__folder-name svg, .folder-item .menu-edit-list__folder-icon svg { width: 1.2em !important; height: 1.2em !important; }' +
             '.folder-item .menu-edit-list__folder-name.focus, .folder-item .menu-edit-list__folder-icon.focus { border: 2px solid rgba(255,255,255,0.8); border-radius: 0.3em; }' +
+            '.menu-edit-list__move { margin-right: 0.5em; }' +
             '.folder-item .menu-edit-list__move { margin-right: 0.5em; }' +
             '.folder-icon-picker { padding: 0.5em; }' +
             '.folder-icon-picker__default-row { width: 100%; margin-bottom: 0.75em; }' +
@@ -1775,11 +1775,8 @@
             '.folder-icon-picker__item.focus { border: 2px solid rgba(255,255,255,0.8); background: rgba(255,255,255,0.1); }' +
             '.folder-create-confirm { background: rgba(100,200,100,0.3); margin-top: 1em; border-radius: 0.3em; }' +
             '.folder-create-confirm.focus { border: 3px solid rgba(255,255,255,0.8); }' +
-            '.menu-edit-list__btn-icon, .menu-edit-list__btn-name { width: 2.4em; height: 2.4em; display: flex; align-items: center; justify-content: center; cursor: pointer; margin-right: 0.5em; flex-shrink: 0; }' +
-            '.menu-edit-list__btn-icon svg, .menu-edit-list__btn-name svg { width: 1.2em !important; height: 1.2em !important; }' +
+            '.menu-edit-list__btn-icon, .menu-edit-list__btn-name { margin-right: 0.5em; }' +
             '.menu-edit-list__btn-icon.focus, .menu-edit-list__btn-name.focus { border: 2px solid rgba(255,255,255,0.8); border-radius: 0.3em; }' +
-            '.menu-edit-list__move { width: 2.4em; height: 2.4em; display: flex; align-items: center; justify-content: center; cursor: pointer; margin-right: 0.5em; }' +
-            '.menu-edit-list__move svg { width: 1.2em !important; height: 1.2em !important; }' +
             '.menu-edit-list__move.focus { border: 2px solid rgba(255,255,255,0.8); border-radius: 0.3em; }' +
             '.folder-reset-button { display: flex; align-items: center; min-height: 2.8em; box-sizing: border-box; padding: 0 1em; background: rgba(200,100,100,0.3); margin-top: 1em; border-radius: 0.3em; border: 3px solid transparent; }' +
             '.folder-reset-button.focus { border-color: rgba(255,255,255,0.8); }' +
