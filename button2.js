@@ -766,15 +766,13 @@
             '<div class="menu-edit-list__title">По умолчанию</div></div>');
         defaultItem.on('hover:enter', function() {
             clearInterval(scrollCheck);
+            folder.customIcon = null;
+            var folders = getFolders();
+            for (var i = 0; i < folders.length; i++) {
+                if (folders[i].id === folder.id) { folders[i].customIcon = null; break; }
+            }
+            setFolders(folders);
             Lampa.Modal.close();
-            setTimeout(function() {
-                folder.customIcon = null;
-                var folders = getFolders();
-                for (var i = 0; i < folders.length; i++) {
-                    if (folders[i].id === folder.id) { folders[i].customIcon = null; break; }
-                }
-                setFolders(folders);
-            }, 80);
         });
         defaultRow.append(defaultItem);
         var grid = $('<div class="folder-icon-picker__grid"></div>');
@@ -788,15 +786,13 @@
             el.on('hover:enter', function() {
                 clearInterval(scrollCheck);
                 var chosen = ico.type === 'sprite' ? '#' + ico.id : ico.html;
+                folder.customIcon = chosen;
+                var folders = getFolders();
+                for (var i = 0; i < folders.length; i++) {
+                    if (folders[i].id === folder.id) { folders[i].customIcon = folder.customIcon; break; }
+                }
+                setFolders(folders);
                 Lampa.Modal.close();
-                setTimeout(function() {
-                    folder.customIcon = chosen;
-                    var folders = getFolders();
-                    for (var i = 0; i < folders.length; i++) {
-                        if (folders[i].id === folder.id) { folders[i].customIcon = folder.customIcon; break; }
-                    }
-                    setFolders(folders);
-                }, 80);
             });
             grid.append(el);
         });
@@ -832,15 +828,13 @@
                     el.on('hover:enter', function() {
                         try { clearInterval(scrollCheck); } catch(e) {}
                         var chosen = '#' + ico.id;
+                        folder.customIcon = chosen;
+                        var folders = getFolders();
+                        for (var i = 0; i < folders.length; i++) {
+                            if (folders[i].id === folder.id) { folders[i].customIcon = folder.customIcon; break; }
+                        }
+                        setFolders(folders);
                         Lampa.Modal.close();
-                        setTimeout(function() {
-                            folder.customIcon = chosen;
-                            var folders = getFolders();
-                            for (var i = 0; i < folders.length; i++) {
-                                if (folders[i].id === folder.id) { folders[i].customIcon = folder.customIcon; break; }
-                            }
-                            setFolders(folders);
-                        }, 80);
                     });
                     grid.append(el);
                 }
@@ -859,10 +853,8 @@
             '<div class="menu-edit-list__title">По умолчанию</div></div>');
         defaultItem.on('hover:enter', function() {
             clearInterval(scrollCheckBtn);
+            setButtonCustomIcon(btnId, null);
             Lampa.Modal.close();
-            setTimeout(function() {
-                setButtonCustomIcon(btnId, null);
-            }, 80);
         });
         defaultRow.append(defaultItem);
         var grid = $('<div class="folder-icon-picker__grid"></div>');
@@ -876,10 +868,8 @@
             el.on('hover:enter', function() {
                 clearInterval(scrollCheckBtn);
                 var chosen = ico.type === 'sprite' ? '#' + ico.id : ico.html;
+                setButtonCustomIcon(btnId, chosen);
                 Lampa.Modal.close();
-                setTimeout(function() {
-                    setButtonCustomIcon(btnId, chosen);
-                }, 80);
             });
             grid.append(el);
         });
@@ -915,10 +905,8 @@
                     el.on('hover:enter', function() {
                         try { clearInterval(scrollCheckBtn); } catch(e) {}
                         var chosen = '#' + ico.id;
+                        setButtonCustomIcon(btnId, chosen);
                         Lampa.Modal.close();
-                        setTimeout(function() {
-                            setButtonCustomIcon(btnId, chosen);
-                        }, 80);
                     });
                     grid.append(el);
                 }
@@ -1444,15 +1432,19 @@
             });
             item.find('.menu-edit-list__btn-name').on('hover:enter', function() {
                 var currentName = getButtonDisplayNamePlain(btn, currentButtons);
+                Lampa.Modal.close();
                 Lampa.Input.edit({
                     title: 'Название кнопки',
                     value: currentName,
                     onSave: function(name) {
-                        var newName = name && name.trim() ? name.trim() : '';
+                        var newName = (name && name.trim()) ? name.trim() : '';
                         setButtonCustomName(btnId, newName || null);
-                        if (item && item.length) item.find('.menu-edit-list__title').text(newName || currentName);
                         var span = btn.find('span').first();
                         if (span.length) span.text(newName || currentName);
+                        openEditDialog();
+                    },
+                    onBack: function() {
+                        openEditDialog();
                     }
                 });
             });
