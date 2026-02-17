@@ -2,7 +2,7 @@
 (function() {
     'use strict';
 
-    var PLUGIN_VERSION = '1.16';
+    var PLUGIN_VERSION = '1.17';
 
     // Polyfills для совместимости со старыми устройствами
     if (!Array.prototype.forEach) {
@@ -1013,17 +1013,17 @@
             '.viewmode-switch, .folder-reset-button { max-width: 100%; box-sizing: border-box; white-space: normal; word-break: break-word; }' +
             '.folder-reset-button { background: rgba(200,100,100,0.3); margin-top: 1em; border-radius: 0.3em; }' +
             '.folder-reset-button.focus { border: 3px solid rgba(255,255,255,0.8); }' +
+            '.menu-edit-list__move, .menu-edit-list__change-name, .menu-edit-list__change-icon { box-sizing: border-box; }' +
+            '.menu-edit-list__move.focus, .menu-edit-list__change-name.focus, .menu-edit-list__change-icon.focus { border: 2px solid rgba(255,255,255,0.8); border-radius: 0.3em; }' +
             '.menu-edit-list__toggle.focus { border: 2px solid rgba(255,255,255,0.8); border-radius: 0.3em; }' +
             '.full-start-new__buttons.icons-only .full-start__button span { display: none; }' +
             '.full-start-new__buttons.always-text .full-start__button span { display: block !important; }' +
             '.viewmode-switch { background: rgba(66, 133, 244, 0.5); color: #fff; margin: 0.5em 0 1em 0; border-radius: 0.3em; }' +
             '.viewmode-switch.focus { border: 3px solid rgba(255,255,255,0.8); }' +
             '.menu-edit-list__item-hidden { opacity: 0.5; }' +
-            '.menu-edit-list__change-name { display: flex; align-items: center; justify-content: center; padding: 0.25em; min-width: 1.8em; }' +
-            '.menu-edit-list__change-name.focus { border: 2px solid rgba(255,255,255,0.8); border-radius: 0.3em; }' +
+            '.menu-edit-list__change-name { display: flex; align-items: center; justify-content: center; padding: 0.25em; min-width: 1.8em; min-height: 2em; }' +
             '.menu-edit-list__change-icon.menu-edit-list__icon-cell { display: flex; align-items: center; justify-content: center; width: 2.5em; min-width: 2.5em; height: 2.5em; padding: 0.2em; box-sizing: border-box; }' +
             '.menu-edit-list__change-icon.menu-edit-list__icon-cell svg { width: 1.4em; height: 1.4em; }' +
-            '.menu-edit-list__change-icon.focus { border: 2px solid rgba(255,255,255,0.8); border-radius: 0.3em; }' +
             '.icon-picker-default { display: flex; align-items: center; gap: 0.5em; padding: 0.75em; margin-bottom: 0.75em; border-radius: 0.3em; background: rgba(255,255,255,0.08); }' +
             '.icon-picker-default.focus { border: 3px solid rgba(255,255,255,0.8); }' +
             '.icon-picker-default__preview { width: 2.5em; height: 2.5em; min-width: 2.5em; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }' +
