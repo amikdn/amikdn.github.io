@@ -2,7 +2,7 @@
 (function() {
     'use strict';
 
-    var PLUGIN_VERSION = '1.17';
+    var PLUGIN_VERSION = '1.18';
 
     // Polyfills для совместимости со старыми устройствами
     if (!Array.prototype.forEach) {
