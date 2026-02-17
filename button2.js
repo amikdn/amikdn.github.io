@@ -2,7 +2,7 @@
 (function() {
     'use strict';
 
-    var PLUGIN_VERSION = '1.11';
+    var PLUGIN_VERSION = '1.12';
 
     // Polyfills для совместимости со старыми устройствами
     if (!Array.prototype.forEach) {
@@ -173,6 +173,7 @@
             seen[key] = true;
             result.push({ id: id || key.substring(0, 80), html: html });
         }
+        addIcon(LAMPAC_ICON, 'lampac-online');
         var symbols = document.querySelectorAll('symbol[id]');
         for (var i = 0; i < symbols.length; i++) {
             var sym = symbols[i];
@@ -366,12 +367,6 @@
                 }
             }
             var type = getButtonType($btn);
-            if (type === 'online' && $btn.hasClass('lampac--button') && !$btn.hasClass('modss--button') && !$btn.hasClass('showy--button')) {
-                var svgElement = $btn.find('svg').first();
-                if (svgElement.length && !svgElement.hasClass('modss-online-icon')) {
-                    svgElement.replaceWith(LAMPAC_ICON);
-                }
-            }
             if (categories[type]) {
                 categories[type].push($btn);
             } else {
