@@ -2,7 +2,7 @@
 (function() {
     'use strict';
 
-    var PLUGIN_VERSION = '1.13';
+    var PLUGIN_VERSION = '1.14';
 
     // Polyfills для совместимости со старыми устройствами
     if (!Array.prototype.forEach) {
@@ -141,6 +141,14 @@
 
     function setCustomIcons(icons) {
         Lampa.Storage.set('button_custom_icons', icons);
+    }
+
+    function getCustomLabels() {
+        return Lampa.Storage.get('button_custom_labels', {});
+    }
+
+    function setCustomLabels(labels) {
+        Lampa.Storage.set('button_custom_labels', labels);
     }
 
     function normalizeSvgString(str) {
@@ -307,7 +315,8 @@
 
     function getButtonId(button) {
         var classes = button.attr('class') || '';
-        var text = button.find('span').text().trim().replace(/\s+/g, '_');
+        var span = button.find('span').first();
+        var text = (span.attr('data-original-text') || span.text() || '').trim().replace(/\s+/g, '_');
         var subtitle = button.attr('data-subtitle') || '';
         if (classes.indexOf('modss') !== -1 || text.indexOf('MODS') !== -1 || text.indexOf('MOD') !== -1) {
             return 'modss_online_button';
@@ -439,6 +448,28 @@
         });
     }
 
+    function getDefaultLabelForButton(btnId) {
+        var orig = allButtonsOriginal.find(function(b) { return getButtonId(b) === btnId; });
+        if (!orig || !orig.length) return '';
+        return orig.find('span').first().text().trim();
+    }
+
+    function applyCustomLabels(buttons) {
+        var customLabels = getCustomLabels();
+        buttons.forEach(function(btn) {
+            var id = getButtonId(btn);
+            if (customLabels[id]) {
+                var span = btn.find('span').first();
+                if (span.length) {
+                    if (!span.attr('data-original-text')) {
+                        span.attr('data-original-text', getDefaultLabelForButton(id) || span.text().trim());
+                    }
+                    span.text(customLabels[id]);
+                }
+            }
+        });
+    }
+
     function applyButtonAnimation(buttons) {
         buttons.forEach(function(btn, index) {
             btn.css({
@@ -501,6 +532,7 @@
         }
         applyHiddenButtons(currentButtons);
         applyCustomIcons(currentButtons);
+        applyCustomLabels(currentButtons);
         var viewmode = Lampa.Storage.get('buttons_viewmode', 'default');
         targetContainer.removeClass('icons-only always-text');
         if (viewmode === 'icons') targetContainer.addClass('icons-only');
@@ -519,6 +551,11 @@
     }
 
     function getButtonDisplayName(btn, allButtons) {
+        var customLabels = getCustomLabels();
+        var btnId = getButtonId(btn);
+        if (customLabels[btnId]) {
+            return customLabels[btnId];
+        }
         var text = btn.find('span').text().trim();
         var classes = btn.attr('class') || '';
         var subtitle = btn.attr('data-subtitle') || '';
@@ -578,6 +615,7 @@
             currentButtons = allButtons;
         }
         applyCustomIcons(currentButtons);
+        applyCustomLabels(currentButtons);
         var list = $('<div class="menu-edit-list"></div>');
         var hidden = getHiddenButtons();
         var modes = ['default', 'icons', 'always'];
@@ -601,6 +639,41 @@
         });
         list.append(modeBtn);
 
+        function openNamePicker(btn, btnId) {
+            var defaultLabel = getDefaultLabelForButton(btnId);
+            var currentLabel = getCustomLabels()[btnId] || defaultLabel || '';
+            var wrap = $('<div class="name-picker-wrap">' +
+                '<input type="text" class="name-picker-input" value="' + (currentLabel.replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')) + '" placeholder="Название кнопки" style="width:100%;padding:0.5em;margin:0.5em 0;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.3);border-radius:0.3em;color:#fff;font-size:1em;" />' +
+                '<div class="selector name-picker-ok" style="text-align:center;padding:0.75em;margin-top:0.5em;background:rgba(66,133,244,0.5);border-radius:0.3em;">Готово</div></div>');
+            var inputEl = wrap.find('input').get(0);
+            function applyName() {
+                var val = (inputEl && inputEl.value) ? inputEl.value.trim() : '';
+                if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.close) Lampa.Modal.close();
+                var stored = getCustomLabels();
+                var labels = {};
+                for (var k in stored) { if (stored.hasOwnProperty(k)) labels[k] = stored[k]; }
+                if (val === defaultLabel || val === '') {
+                    delete labels[btnId];
+                } else {
+                    labels[btnId] = val;
+                }
+                setCustomLabels(labels);
+                setTimeout(function() { applyChanges(); refreshController(); }, 100);
+            }
+            wrap.find('.name-picker-ok').on('hover:enter', applyName);
+            Lampa.Modal.open({
+                title: 'Название кнопки',
+                html: wrap,
+                size: 'small',
+                scroll_to_center: true,
+                onBack: function() {
+                    if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.close) Lampa.Modal.close();
+                    setTimeout(function() { refreshController(); }, 100);
+                }
+            });
+            setTimeout(function() { if (inputEl) inputEl.focus(); }, 150);
+        }
+
         function createButtonItem(btn) {
             var displayName = getButtonDisplayName(btn, currentButtons);
             var icon = btn.find('svg').clone();
@@ -608,7 +681,9 @@
             var isHidden = hidden.indexOf(btnId) !== -1;
             var item = $('<div class="menu-edit-list__item">' +
                 '<div class="menu-edit-list__icon"></div>' +
-                '<div class="menu-edit-list__title">' + displayName + '</div>' +
+                '<div class="menu-edit-list__title"></div>' +
+                '<div class="menu-edit-list__change-name selector" title="Сменить название">' +
+                '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" width="18" height="18"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" stroke="currentColor" stroke-width="1.5"/></svg></div>' +
                 '<div class="menu-edit-list__change-icon selector">' +
                 '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" width="20" height="20"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" stroke="currentColor" stroke-width="1.5"/>' +
                 '</svg></div>' +
@@ -631,8 +706,13 @@
                 '</div>');
             item.toggleClass('menu-edit-list__item-hidden', isHidden);
             item.find('.menu-edit-list__icon').append(icon);
+            item.find('.menu-edit-list__title').text(displayName);
             item.data('button', btn);
             item.data('buttonId', btnId);
+            item.find('.menu-edit-list__change-name').on('hover:enter', function() {
+                if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.close) Lampa.Modal.close();
+                setTimeout(function() { openNamePicker(btn, btnId); }, 200);
+            });
             item.find('.menu-edit-list__change-icon').on('hover:enter', function() {
                 if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.close) {
                     Lampa.Modal.close();
@@ -700,6 +780,7 @@
             Lampa.Storage.set('button_custom_order', []);
             Lampa.Storage.set('button_hidden', []);
             Lampa.Storage.set('button_custom_icons', {});
+            Lampa.Storage.set('button_custom_labels', {});
             Lampa.Storage.set('buttons_viewmode', 'default');
             Lampa.Modal.close();
             setTimeout(function() {
@@ -718,6 +799,11 @@
                                 if ($btnSvg.length) {
                                     $btnSvg.replaceWith(origSvg.clone());
                                 }
+                            }
+                            var span = $btn.find('span').first();
+                            if (span.length) {
+                                span.removeAttr('data-original-text');
+                                span.text(orig.find('span').first().text().trim());
                             }
                         }
                     });
@@ -848,6 +934,7 @@
         visibleButtons.push(editButton);
         applyHiddenButtons(currentButtons);
         applyCustomIcons(currentButtons);
+        applyCustomLabels(currentButtons);
         var viewmode = Lampa.Storage.get('buttons_viewmode', 'default');
         targetContainer.removeClass('icons-only always-text');
         if (viewmode === 'icons') targetContainer.addClass('icons-only');
@@ -909,6 +996,8 @@
             '.viewmode-switch { background: rgba(66, 133, 244, 0.5); color: #fff; margin: 0.5em 0 1em 0; border-radius: 0.3em; }' +
             '.viewmode-switch.focus { border: 3px solid rgba(255,255,255,0.8); }' +
             '.menu-edit-list__item-hidden { opacity: 0.5; }' +
+            '.menu-edit-list__change-name { display: flex; align-items: center; justify-content: center; padding: 0.25em; min-width: 1.8em; }' +
+            '.menu-edit-list__change-name.focus { border: 2px solid rgba(255,255,255,0.8); border-radius: 0.3em; }' +
             '.menu-edit-list__change-icon { display: flex; align-items: center; justify-content: center; padding: 0.25em; min-width: 2em; }' +
             '.menu-edit-list__change-icon.focus { border: 2px solid rgba(255,255,255,0.8); border-radius: 0.3em; }' +
             '.icon-picker-default { display: flex; align-items: center; gap: 0.5em; padding: 0.75em; margin-bottom: 0.75em; border-radius: 0.3em; background: rgba(255,255,255,0.08); }' +
