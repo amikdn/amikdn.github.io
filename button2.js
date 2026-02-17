@@ -2,7 +2,7 @@
 (function() {
     'use strict';
 
-    var PLUGIN_VERSION = '1.12';
+    var PLUGIN_VERSION = '1.13';
 
     // Polyfills для совместимости со старыми устройствами
     if (!Array.prototype.forEach) {
@@ -353,19 +353,12 @@
         var allButtons = container.find('.full-start__button').not('.button--edit-order, .button--play');
         var categories = { online: [], torrent: [], trailer: [], favorite: [], subscribe: [], book: [], reaction: [], other: [] };
         var processedIds = {};
-        var customIcons = getCustomIcons();
         allButtons.each(function() {
             var $btn = $(this);
             if (isExcluded($btn)) return;
             var btnId = getButtonId($btn);
             if (processedIds[btnId]) return;
             processedIds[btnId] = true;
-            if (customIcons[btnId]) {
-                var svgEl = $btn.find('svg').first();
-                if (svgEl.length) {
-                    svgEl.replaceWith($(customIcons[btnId]).clone());
-                }
-            }
             var type = getButtonType($btn);
             if (categories[type]) {
                 categories[type].push($btn);
