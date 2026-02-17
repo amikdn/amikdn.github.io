@@ -2,7 +2,7 @@
 (function() {
     'use strict';
 
-    var PLUGIN_VERSION = '1.14';
+    var PLUGIN_VERSION = '1.15';
 
     // Polyfills для совместимости со старыми устройствами
     if (!Array.prototype.forEach) {
@@ -577,13 +577,13 @@
         });
         if (sameTextCount > 1) {
             if (subtitle) {
-                return text + ' <span style="opacity:0.5">(' + subtitle.substring(0, 30) + ')</span>';
+                return text + ' (' + (subtitle.substring(0, 30).replace(/</g, '').replace(/>/g, '')) + ')';
             }
             var viewClass = classes.split(' ').find(function(c) { return c.indexOf('view--') === 0; });
             if (viewClass) {
                 var identifier = viewClass.replace('view--', '').replace(/_/g, ' ');
                 identifier = capitalize(identifier);
-                return text + ' <span style="opacity:0.5">(' + identifier + ')</span>';
+                return text + ' (' + identifier + ')';
             }
         }
         return text;
@@ -642,36 +642,49 @@
         function openNamePicker(btn, btnId) {
             var defaultLabel = getDefaultLabelForButton(btnId);
             var currentLabel = getCustomLabels()[btnId] || defaultLabel || '';
-            var wrap = $('<div class="name-picker-wrap">' +
-                '<input type="text" class="name-picker-input" value="' + (currentLabel.replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')) + '" placeholder="Название кнопки" style="width:100%;padding:0.5em;margin:0.5em 0;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.3);border-radius:0.3em;color:#fff;font-size:1em;" />' +
-                '<div class="selector name-picker-ok" style="text-align:center;padding:0.75em;margin-top:0.5em;background:rgba(66,133,244,0.5);border-radius:0.3em;">Готово</div></div>');
-            var inputEl = wrap.find('input').get(0);
-            function applyName() {
-                var val = (inputEl && inputEl.value) ? inputEl.value.trim() : '';
-                if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.close) Lampa.Modal.close();
+            function applyName(val) {
+                var v = (val && String(val).trim()) || '';
                 var stored = getCustomLabels();
                 var labels = {};
                 for (var k in stored) { if (stored.hasOwnProperty(k)) labels[k] = stored[k]; }
-                if (val === defaultLabel || val === '') {
+                if (v === defaultLabel || v === '') {
                     delete labels[btnId];
                 } else {
-                    labels[btnId] = val;
+                    labels[btnId] = v;
                 }
                 setCustomLabels(labels);
                 setTimeout(function() { applyChanges(); refreshController(); }, 100);
             }
-            wrap.find('.name-picker-ok').on('hover:enter', applyName);
-            Lampa.Modal.open({
-                title: 'Название кнопки',
-                html: wrap,
-                size: 'small',
-                scroll_to_center: true,
-                onBack: function() {
+            if (typeof Lampa.Keyboard !== 'undefined' && typeof Lampa.Keyboard.run === 'function') {
+                Lampa.Keyboard.run({ default: currentLabel, placeholder: 'Название кнопки' }, function(value) {
+                    applyName(value);
+                });
+            } else if (typeof Lampa.Request !== 'undefined' && typeof Lampa.Request.getString === 'function') {
+                Lampa.Request.getString(currentLabel, 'Название кнопки').then(function(value) {
+                    applyName(value);
+                }).catch(function() {});
+            } else {
+                var wrap = $('<div class="name-picker-wrap">' +
+                    '<input type="text" class="name-picker-input" value="' + (currentLabel.replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')) + '" placeholder="Название кнопки" style="width:100%;padding:0.5em;margin:0.5em 0;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.3);border-radius:0.3em;color:#fff;font-size:1em;" />' +
+                    '<div class="selector name-picker-ok" style="text-align:center;padding:0.75em;margin-top:0.5em;background:rgba(66,133,244,0.5);border-radius:0.3em;">Готово</div></div>');
+                var inputEl = wrap.find('input').get(0);
+                wrap.find('.name-picker-ok').on('hover:enter', function() {
+                    var val = (inputEl && inputEl.value) ? inputEl.value.trim() : '';
                     if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.close) Lampa.Modal.close();
-                    setTimeout(function() { refreshController(); }, 100);
-                }
-            });
-            setTimeout(function() { if (inputEl) inputEl.focus(); }, 150);
+                    applyName(val);
+                });
+                Lampa.Modal.open({
+                    title: 'Название кнопки',
+                    html: wrap,
+                    size: 'small',
+                    scroll_to_center: true,
+                    onBack: function() {
+                        if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.close) Lampa.Modal.close();
+                        setTimeout(function() { refreshController(); }, 100);
+                    }
+                });
+                setTimeout(function() { if (inputEl) inputEl.focus(); }, 150);
+            }
         }
 
         function createButtonItem(btn) {
@@ -684,9 +697,9 @@
                 '<div class="menu-edit-list__title"></div>' +
                 '<div class="menu-edit-list__change-name selector" title="Сменить название">' +
                 '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" width="18" height="18"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" stroke="currentColor" stroke-width="1.5"/></svg></div>' +
-                '<div class="menu-edit-list__change-icon selector">' +
-                '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" width="20" height="20"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" stroke="currentColor" stroke-width="1.5"/>' +
-                '</svg></div>' +
+                '<div class="menu-edit-list__change-icon selector menu-edit-list__icon-cell">' +
+                '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>' +
+                '</div>' +
                 '<div class="menu-edit-list__move move-up selector">' +
                 '<svg width="22" height="14" viewBox="0 0 22 14" fill="none" xmlns="http://www.w3.org/2000/svg">' +
                 '<path d="M2 12L11 3L20 12" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>' +
@@ -998,7 +1011,8 @@
             '.menu-edit-list__item-hidden { opacity: 0.5; }' +
             '.menu-edit-list__change-name { display: flex; align-items: center; justify-content: center; padding: 0.25em; min-width: 1.8em; }' +
             '.menu-edit-list__change-name.focus { border: 2px solid rgba(255,255,255,0.8); border-radius: 0.3em; }' +
-            '.menu-edit-list__change-icon { display: flex; align-items: center; justify-content: center; padding: 0.25em; min-width: 2em; }' +
+            '.menu-edit-list__change-icon.menu-edit-list__icon-cell { display: flex; align-items: center; justify-content: center; width: 2.5em; min-width: 2.5em; height: 2.5em; padding: 0.2em; box-sizing: border-box; }' +
+            '.menu-edit-list__change-icon.menu-edit-list__icon-cell svg { width: 1.4em; height: 1.4em; }' +
             '.menu-edit-list__change-icon.focus { border: 2px solid rgba(255,255,255,0.8); border-radius: 0.3em; }' +
             '.icon-picker-default { display: flex; align-items: center; gap: 0.5em; padding: 0.75em; margin-bottom: 0.75em; border-radius: 0.3em; background: rgba(255,255,255,0.08); }' +
             '.icon-picker-default.focus { border: 3px solid rgba(255,255,255,0.8); }' +
