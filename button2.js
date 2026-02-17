@@ -1,8 +1,5 @@
-
 (function() {
     'use strict';
-
-    var PLUGIN_VERSION = '1.16';
 
     // Polyfills для совместимости со старыми устройствами
     if (!Array.prototype.forEach) {
@@ -135,188 +132,9 @@
         Lampa.Storage.set('button_hidden', hidden);
     }
 
-    function getCustomIcons() {
-        return Lampa.Storage.get('button_custom_icons', {});
-    }
-
-    function setCustomIcons(icons) {
-        Lampa.Storage.set('button_custom_icons', icons);
-    }
-
-    function getCustomLabels() {
-        return Lampa.Storage.get('button_custom_labels', {});
-    }
-
-    function setCustomLabels(labels) {
-        Lampa.Storage.set('button_custom_labels', labels);
-    }
-
-    function normalizeSvgString(str) {
-        if (!str || typeof str !== 'string') return '';
-        return str.replace(/\s+/g, ' ').replace(/>\s+</g, '><').trim();
-    }
-
-    function svgFingerprint(html) {
-        var s = normalizeSvgString(html);
-        var useMatch = s.match(/xlink:href\s*=\s*["']?#([^"'\s>]+)/);
-        if (useMatch) return 'use:' + useMatch[1];
-        var vb = s.match(/viewBox\s*=\s*["']([^"']+)["']/);
-        var viewBox = vb ? vb[1].replace(/\s+/g, ' ').trim() : '';
-        var pathMatch = s.match(/<path[^>]*\bd\s*=\s*["']([^"']+)["']/g);
-        var pathParts = pathMatch ? pathMatch.map(function(p) {
-            var d = p.match(/\bd\s*=\s*["']([^"']+)["']/);
-            return d ? d[1].replace(/\s+/g, ' ').trim() : '';
-        }) : [];
-        pathParts.sort();
-        return 'inline:' + viewBox + '|' + pathParts.join('|');
-    }
-
-    function collectAllIcons() {
-        var seen = {};
-        var result = [];
-        function addIcon(html, id) {
-            if (!html) return;
-            var key = svgFingerprint(html);
-            if (seen[key]) return;
-            seen[key] = true;
-            result.push({ id: id || key.substring(0, 80), html: html });
-        }
-        addIcon(LAMPAC_ICON, 'lampac-online');
-        var symbols = document.querySelectorAll('symbol[id]');
-        for (var i = 0; i < symbols.length; i++) {
-            var sym = symbols[i];
-            var sid = sym.getAttribute('id') || '';
-            var viewBox = sym.getAttribute('viewBox') || '0 0 24 24';
-            var svgHtml = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="' + viewBox + '" fill="currentColor"><use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#' + sid + '"></use></svg>';
-            addIcon(svgHtml, 'sprite-' + sid);
-        }
-        var buttonArrays = [currentButtons, allButtonsCache, allButtonsOriginal];
-        for (var a = 0; a < buttonArrays.length; a++) {
-            var arr = buttonArrays[a];
-            if (!arr || !arr.length) continue;
-            for (var j = 0; j < arr.length; j++) {
-                var b = arr[j];
-                var $b = b && (b.jquery ? b : $(b));
-                if (!$b || !$b.length) continue;
-                var svgEl = $b.find('svg').first();
-                if (svgEl.length) {
-                    try {
-                        var raw = svgEl.get(0).outerHTML;
-                        addIcon(raw, 'list-' + a + '-' + j);
-                    } catch (err) {}
-                }
-            }
-        }
-        var allButtonEls = document.querySelectorAll('.full-start__button');
-        for (var k = 0; k < allButtonEls.length; k++) {
-            var el = allButtonEls[k];
-            if (el.classList && (el.classList.contains('button--edit-order') || el.classList.contains('button--play'))) continue;
-            var svg = el.querySelector && el.querySelector('svg');
-            if (svg) {
-                try {
-                    var raw = svg.outerHTML;
-                    addIcon(raw, 'dom-' + k);
-                } catch (err) {}
-            }
-        }
-        var buttonsContainers = document.querySelectorAll('.full-start-new__buttons');
-        for (var c = 0; c < buttonsContainers.length; c++) {
-            var container = buttonsContainers[c];
-            var children = container.children || container.childNodes;
-            for (var n = 0; n < children.length; n++) {
-                var child = children[n];
-                if (!child || child.nodeType !== 1) continue;
-                if (child.classList && (child.classList.contains('button--edit-order') || child.classList.contains('button--play'))) continue;
-                var childSvg = child.querySelector && child.querySelector('svg');
-                if (childSvg) {
-                    try {
-                        var rawChild = childSvg.outerHTML;
-                        addIcon(rawChild, 'plugin-' + c + '-' + n);
-                    } catch (err) {}
-                }
-            }
-        }
-        var menuIcos = document.querySelectorAll('.menu .menu__ico svg');
-        for (var m = 0; m < menuIcos.length; m++) {
-            try {
-                var menuSvg = menuIcos[m];
-                var menuRaw = menuSvg.outerHTML;
-                addIcon(menuRaw, 'menu-' + m);
-            } catch (err) {}
-        }
-        return result;
-    }
-
-    function getDefaultIconForButton(btnId) {
-        var orig = allButtonsOriginal.find(function(b) { return getButtonId(b) === btnId; });
-        if (!orig || !orig.length) return '';
-        var svg = orig.find('svg').first();
-        return svg.length ? svg.get(0).outerHTML : '';
-    }
-
-    function openIconPicker(btn, btnId, defaultIconHtml, listItem) {
-        var icons = collectAllIcons();
-        var wrap = $('<div class="icon-picker-wrap"></div>');
-        var defaultBlock = $('<div class="selector icon-picker-default">' +
-            '<div class="icon-picker-default__preview"></div>' +
-            '<span>По умолчанию</span></div>');
-        if (defaultIconHtml) {
-            defaultBlock.find('.icon-picker-default__preview').append($(defaultIconHtml).clone());
-        }
-        function applyChoice(isDefault, chosenHtml) {
-            var stored = getCustomIcons();
-            var custom = {};
-            for (var key in stored) {
-                if (stored.hasOwnProperty(key)) custom[key] = stored[key];
-            }
-            if (isDefault) {
-                delete custom[btnId];
-            } else {
-                custom[btnId] = chosenHtml;
-            }
-            setCustomIcons(custom);
-            if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.close) {
-                Lampa.Modal.close();
-            }
-            setTimeout(function() {
-                applyChanges();
-            }, 100);
-        }
-        defaultBlock.on('hover:enter', function() {
-            applyChoice(true, null);
-        });
-        wrap.append(defaultBlock);
-        var grid = $('<div class="icon-picker-grid"></div>');
-        icons.forEach(function(entry) {
-            var cell = $('<div class="selector icon-picker-grid__cell"></div>');
-            cell.append($(entry.html).clone());
-            var savedHtml = entry.html;
-            cell.on('hover:enter', function() {
-                applyChoice(false, savedHtml);
-            });
-            grid.append(cell);
-        });
-        wrap.append(grid);
-        Lampa.Modal.open({
-            title: 'Иконка кнопки',
-            html: wrap,
-            size: 'small',
-            scroll_to_center: true,
-            onBack: function() {
-                if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.close) {
-                    Lampa.Modal.close();
-                }
-                setTimeout(function() {
-                    refreshController();
-                }, 100);
-            }
-        });
-    }
-
     function getButtonId(button) {
         var classes = button.attr('class') || '';
-        var span = button.find('span').first();
-        var text = (span.attr('data-original-text') || span.text() || '').trim().replace(/\s+/g, '_');
+        var text = button.find('span').text().trim().replace(/\s+/g, '_');
         var subtitle = button.attr('data-subtitle') || '';
         if (classes.indexOf('modss') !== -1 || text.indexOf('MODS') !== -1 || text.indexOf('MOD') !== -1) {
             return 'modss_online_button';
@@ -369,6 +187,12 @@
             if (processedIds[btnId]) return;
             processedIds[btnId] = true;
             var type = getButtonType($btn);
+            if (type === 'online' && $btn.hasClass('lampac--button') && !$btn.hasClass('modss--button') && !$btn.hasClass('showy--button')) {
+                var svgElement = $btn.find('svg').first();
+                if (svgElement.length && !svgElement.hasClass('modss-online-icon')) {
+                    svgElement.replaceWith(LAMPAC_ICON);
+                }
+            }
             if (categories[type]) {
                 categories[type].push($btn);
             } else {
@@ -435,41 +259,6 @@
         });
     }
 
-    function applyCustomIcons(buttons) {
-        var customIcons = getCustomIcons();
-        buttons.forEach(function(btn) {
-            var id = getButtonId(btn);
-            if (customIcons[id]) {
-                var svgEl = btn.find('svg').first();
-                if (svgEl.length) {
-                    svgEl.replaceWith($(customIcons[id]).clone());
-                }
-            }
-        });
-    }
-
-    function getDefaultLabelForButton(btnId) {
-        var orig = allButtonsOriginal.find(function(b) { return getButtonId(b) === btnId; });
-        if (!orig || !orig.length) return '';
-        return orig.find('span').first().text().trim();
-    }
-
-    function applyCustomLabels(buttons) {
-        var customLabels = getCustomLabels();
-        buttons.forEach(function(btn) {
-            var id = getButtonId(btn);
-            if (customLabels[id]) {
-                var span = btn.find('span').first();
-                if (span.length) {
-                    if (!span.attr('data-original-text')) {
-                        span.attr('data-original-text', getDefaultLabelForButton(id) || span.text().trim());
-                    }
-                    span.text(customLabels[id]);
-                }
-            }
-        });
-    }
-
     function applyButtonAnimation(buttons) {
         buttons.forEach(function(btn, index) {
             btn.css({
@@ -531,8 +320,6 @@
             targetContainer.append(editBtn);
         }
         applyHiddenButtons(currentButtons);
-        applyCustomIcons(currentButtons);
-        applyCustomLabels(currentButtons);
         var viewmode = Lampa.Storage.get('buttons_viewmode', 'default');
         targetContainer.removeClass('icons-only always-text');
         if (viewmode === 'icons') targetContainer.addClass('icons-only');
@@ -551,11 +338,6 @@
     }
 
     function getButtonDisplayName(btn, allButtons) {
-        var customLabels = getCustomLabels();
-        var btnId = getButtonId(btn);
-        if (customLabels[btnId]) {
-            return customLabels[btnId];
-        }
         var text = btn.find('span').text().trim();
         var classes = btn.attr('class') || '';
         var subtitle = btn.attr('data-subtitle') || '';
@@ -577,13 +359,13 @@
         });
         if (sameTextCount > 1) {
             if (subtitle) {
-                return text + ' (' + (subtitle.substring(0, 30).replace(/</g, '').replace(/>/g, '')) + ')';
+                return text + ' <span style="opacity:0.5">(' + subtitle.substring(0, 30) + ')</span>';
             }
             var viewClass = classes.split(' ').find(function(c) { return c.indexOf('view--') === 0; });
             if (viewClass) {
                 var identifier = viewClass.replace('view--', '').replace(/_/g, ' ');
                 identifier = capitalize(identifier);
-                return text + ' (' + identifier + ')';
+                return text + ' <span style="opacity:0.5">(' + identifier + ')</span>';
             }
         }
         return text;
@@ -614,8 +396,6 @@
             allButtonsCache = allButtons;
             currentButtons = allButtons;
         }
-        applyCustomIcons(currentButtons);
-        applyCustomLabels(currentButtons);
         var list = $('<div class="menu-edit-list"></div>');
         var hidden = getHiddenButtons();
         var modes = ['default', 'icons', 'always'];
@@ -639,56 +419,6 @@
         });
         list.append(modeBtn);
 
-        function openNamePicker(btn, btnId) {
-            var defaultLabel = getDefaultLabelForButton(btnId);
-            var currentLabel = getCustomLabels()[btnId] || defaultLabel || '';
-            function applyName(val) {
-                var v = (val && String(val).trim()) || '';
-                var stored = getCustomLabels();
-                var labels = {};
-                for (var k in stored) { if (stored.hasOwnProperty(k)) labels[k] = stored[k]; }
-                if (v === defaultLabel || v === '') {
-                    delete labels[btnId];
-                } else {
-                    labels[btnId] = v;
-                }
-                setCustomLabels(labels);
-                setTimeout(function() { applyChanges(); refreshController(); }, 100);
-            }
-            if (typeof Lampa.Input !== 'undefined' && typeof Lampa.Input.edit === 'function') {
-                Lampa.Input.edit({
-                    free: true,
-                    title: 'Название кнопки',
-                    nosave: true,
-                    value: currentLabel,
-                    nomic: true
-                }, function(value) {
-                    applyName(value);
-                });
-            } else {
-                var wrap = $('<div class="name-picker-wrap">' +
-                    '<input type="text" class="name-picker-input" value="' + (currentLabel.replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')) + '" placeholder="Название кнопки" style="width:100%;padding:0.5em;margin:0.5em 0;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.3);border-radius:0.3em;color:#fff;font-size:1em;" />' +
-                    '<div class="selector name-picker-ok" style="text-align:center;padding:0.75em;margin-top:0.5em;background:rgba(66,133,244,0.5);border-radius:0.3em;">Готово</div></div>');
-                var inputEl = wrap.find('input').get(0);
-                wrap.find('.name-picker-ok').on('hover:enter', function() {
-                    var val = (inputEl && inputEl.value) ? inputEl.value.trim() : '';
-                    if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.close) Lampa.Modal.close();
-                    applyName(val);
-                });
-                Lampa.Modal.open({
-                    title: 'Название кнопки',
-                    html: wrap,
-                    size: 'small',
-                    scroll_to_center: true,
-                    onBack: function() {
-                        if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.close) Lampa.Modal.close();
-                        setTimeout(function() { refreshController(); }, 100);
-                    }
-                });
-                setTimeout(function() { if (inputEl) inputEl.focus(); }, 150);
-            }
-        }
-
         function createButtonItem(btn) {
             var displayName = getButtonDisplayName(btn, currentButtons);
             var icon = btn.find('svg').clone();
@@ -696,12 +426,7 @@
             var isHidden = hidden.indexOf(btnId) !== -1;
             var item = $('<div class="menu-edit-list__item">' +
                 '<div class="menu-edit-list__icon"></div>' +
-                '<div class="menu-edit-list__title"></div>' +
-                '<div class="menu-edit-list__change-name selector" title="Сменить название">' +
-                '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" width="18" height="18"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" stroke="currentColor" stroke-width="1.5"/></svg></div>' +
-                '<div class="menu-edit-list__change-icon selector menu-edit-list__icon-cell">' +
-                '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>' +
-                '</div>' +
+                '<div class="menu-edit-list__title">' + displayName + '</div>' +
                 '<div class="menu-edit-list__move move-up selector">' +
                 '<svg width="22" height="14" viewBox="0 0 22 14" fill="none" xmlns="http://www.w3.org/2000/svg">' +
                 '<path d="M2 12L11 3L20 12" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>' +
@@ -721,22 +446,8 @@
                 '</div>');
             item.toggleClass('menu-edit-list__item-hidden', isHidden);
             item.find('.menu-edit-list__icon').append(icon);
-            item.find('.menu-edit-list__title').text(displayName);
             item.data('button', btn);
             item.data('buttonId', btnId);
-            item.find('.menu-edit-list__change-name').on('hover:enter', function() {
-                if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.close) Lampa.Modal.close();
-                setTimeout(function() { openNamePicker(btn, btnId); }, 200);
-            });
-            item.find('.menu-edit-list__change-icon').on('hover:enter', function() {
-                if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.close) {
-                    Lampa.Modal.close();
-                }
-                var defaultIcon = getDefaultIconForButton(btnId);
-                setTimeout(function() {
-                    openIconPicker(btn, btnId, defaultIcon, null);
-                }, 200);
-            });
             item.find('.move-up').on('hover:enter', function() {
                 var prev = item.prev();
                 while (prev.length && prev.hasClass('viewmode-switch')) {
@@ -794,8 +505,6 @@
         resetBtn.on('hover:enter', function() {
             Lampa.Storage.set('button_custom_order', []);
             Lampa.Storage.set('button_hidden', []);
-            Lampa.Storage.set('button_custom_icons', {});
-            Lampa.Storage.set('button_custom_labels', {});
             Lampa.Storage.set('buttons_viewmode', 'default');
             Lampa.Modal.close();
             setTimeout(function() {
@@ -803,25 +512,6 @@
                     currentContainer.find('.button--play, .button--edit-order').remove();
                     currentContainer.data('buttons-processed', false);
                     var targetContainer = currentContainer.find('.full-start-new__buttons');
-                    targetContainer.find('.full-start__button').not('.button--edit-order, .button--play').each(function() {
-                        var $btn = $(this);
-                        var btnId = getButtonId($btn);
-                        var orig = allButtonsOriginal.find(function(b) { return getButtonId(b) === btnId; });
-                        if (orig && orig.length) {
-                            var origSvg = orig.find('svg').first();
-                            if (origSvg.length) {
-                                var $btnSvg = $btn.find('svg').first();
-                                if ($btnSvg.length) {
-                                    $btnSvg.replaceWith(origSvg.clone());
-                                }
-                            }
-                            var span = $btn.find('span').first();
-                            if (span.length) {
-                                span.removeAttr('data-original-text');
-                                span.text(orig.find('span').first().text().trim());
-                            }
-                        }
-                    });
                     var existingButtons = targetContainer.find('.full-start__button').toArray();
                     allButtonsOriginal.forEach(function(originalBtn) {
                         var btnId = getButtonId(originalBtn);
@@ -948,8 +638,6 @@
         targetContainer.append(editButton);
         visibleButtons.push(editButton);
         applyHiddenButtons(currentButtons);
-        applyCustomIcons(currentButtons);
-        applyCustomLabels(currentButtons);
         var viewmode = Lampa.Storage.get('buttons_viewmode', 'default');
         targetContainer.removeClass('icons-only always-text');
         if (viewmode === 'icons') targetContainer.addClass('icons-only');
@@ -986,10 +674,6 @@
     }
 
     function init() {
-        var storedVersion = Lampa.Storage.get('buttons_plugin_version', '');
-        if (storedVersion !== PLUGIN_VERSION) {
-            Lampa.Storage.set('buttons_plugin_version', PLUGIN_VERSION);
-        }
         var style = $('<style>' +
             '@keyframes button-fade-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }' +
             '.full-start-new__buttons .full-start__button { opacity: 0; }' +
@@ -1001,37 +685,14 @@
             'gap: 0.5em !important; ' +
             '}' +
             '.full-start-new__buttons.buttons-loading .full-start__button { visibility: hidden !important; }' +
-            '.menu-edit-list { max-width: 100%; overflow: hidden; box-sizing: border-box; }' +
-            '.menu-edit-list__item { display: grid; grid-template-columns: 2.5em minmax(0, 1fr) 2em 2.5em 2.2em 2.2em 2em; align-items: center; gap: 0.35em; padding: 0.2em 0; box-sizing: border-box; }' +
-            '.menu-edit-list__item .menu-edit-list__icon { width: 2.5em; min-width: 2.5em; height: 2.5em; display: flex; align-items: center; justify-content: center; box-sizing: border-box; }' +
-            '.menu-edit-list__item .menu-edit-list__icon svg { width: 1.4em; height: 1.4em; }' +
-            '.menu-edit-list__item .menu-edit-list__title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }' +
-            '.menu-edit-list__item .menu-edit-list__move { width: 2.2em; min-width: 2.2em; display: flex; align-items: center; justify-content: center; }' +
-            '.menu-edit-list__item .menu-edit-list__move svg { width: 1.2em; height: 0.75em; }' +
-            '.menu-edit-list__item .menu-edit-list__toggle { width: 2em; min-width: 2em; display: flex; align-items: center; justify-content: center; }' +
-            '.menu-edit-list__item .menu-edit-list__toggle svg { width: 1.2em; height: 1.2em; }' +
-            '.viewmode-switch, .folder-reset-button { max-width: 100%; box-sizing: border-box; white-space: normal; word-break: break-word; }' +
             '.folder-reset-button { background: rgba(200,100,100,0.3); margin-top: 1em; border-radius: 0.3em; }' +
             '.folder-reset-button.focus { border: 3px solid rgba(255,255,255,0.8); }' +
             '.menu-edit-list__toggle.focus { border: 2px solid rgba(255,255,255,0.8); border-radius: 0.3em; }' +
             '.full-start-new__buttons.icons-only .full-start__button span { display: none; }' +
             '.full-start-new__buttons.always-text .full-start__button span { display: block !important; }' +
-            '.viewmode-switch { background: rgba(66, 133, 244, 0.5); color: #fff; margin: 0.5em 0 1em 0; border-radius: 0.3em; }' +
+            '.viewmode-switch { background: rgba(100,100,255,0.3); margin: 0.5em 0 1em 0; border-radius: 0.3em; }' +
             '.viewmode-switch.focus { border: 3px solid rgba(255,255,255,0.8); }' +
             '.menu-edit-list__item-hidden { opacity: 0.5; }' +
-            '.menu-edit-list__change-name { display: flex; align-items: center; justify-content: center; padding: 0.25em; min-width: 1.8em; }' +
-            '.menu-edit-list__change-name.focus { border: 2px solid rgba(255,255,255,0.8); border-radius: 0.3em; }' +
-            '.menu-edit-list__change-icon.menu-edit-list__icon-cell { display: flex; align-items: center; justify-content: center; width: 2.5em; min-width: 2.5em; height: 2.5em; padding: 0.2em; box-sizing: border-box; }' +
-            '.menu-edit-list__change-icon.menu-edit-list__icon-cell svg { width: 1.4em; height: 1.4em; }' +
-            '.menu-edit-list__change-icon.focus { border: 2px solid rgba(255,255,255,0.8); border-radius: 0.3em; }' +
-            '.icon-picker-default { display: flex; align-items: center; gap: 0.5em; padding: 0.75em; margin-bottom: 0.75em; border-radius: 0.3em; background: rgba(255,255,255,0.08); }' +
-            '.icon-picker-default.focus { border: 3px solid rgba(255,255,255,0.8); }' +
-            '.icon-picker-default__preview { width: 2.5em; height: 2.5em; min-width: 2.5em; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }' +
-            '.icon-picker-default__preview svg { width: 1.5em; height: 1.5em; }' +
-            '.icon-picker-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(2.5em, 1fr)); gap: 0.35em; max-height: 50vh; overflow-y: auto; }' +
-            '.icon-picker-grid__cell { display: flex; align-items: center; justify-content: center; padding: 0.35em; min-height: 2.5em; }' +
-            '.icon-picker-grid__cell.focus { border: 2px solid rgba(255,255,255,0.8); border-radius: 0.3em; }' +
-            '.icon-picker-grid__cell svg { width: 1.5em; height: 1.5em; }' +
             '</style>');
         $('body').append(style);
 
