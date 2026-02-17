@@ -2,7 +2,7 @@
 (function() {
     'use strict';
 
-    var PLUGIN_VERSION = '1.15';
+    var PLUGIN_VERSION = '1.16';
 
     // Polyfills для совместимости со старыми устройствами
     if (!Array.prototype.forEach) {
@@ -655,14 +655,16 @@
                 setCustomLabels(labels);
                 setTimeout(function() { applyChanges(); refreshController(); }, 100);
             }
-            if (typeof Lampa.Keyboard !== 'undefined' && typeof Lampa.Keyboard.run === 'function') {
-                Lampa.Keyboard.run({ default: currentLabel, placeholder: 'Название кнопки' }, function(value) {
+            if (typeof Lampa.Input !== 'undefined' && typeof Lampa.Input.edit === 'function') {
+                Lampa.Input.edit({
+                    free: true,
+                    title: 'Название кнопки',
+                    nosave: true,
+                    value: currentLabel,
+                    nomic: true
+                }, function(value) {
                     applyName(value);
                 });
-            } else if (typeof Lampa.Request !== 'undefined' && typeof Lampa.Request.getString === 'function') {
-                Lampa.Request.getString(currentLabel, 'Название кнопки').then(function(value) {
-                    applyName(value);
-                }).catch(function() {});
             } else {
                 var wrap = $('<div class="name-picker-wrap">' +
                     '<input type="text" class="name-picker-input" value="' + (currentLabel.replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')) + '" placeholder="Название кнопки" style="width:100%;padding:0.5em;margin:0.5em 0;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.3);border-radius:0.3em;color:#fff;font-size:1em;" />' +
@@ -1000,6 +1002,14 @@
             '}' +
             '.full-start-new__buttons.buttons-loading .full-start__button { visibility: hidden !important; }' +
             '.menu-edit-list { max-width: 100%; overflow: hidden; box-sizing: border-box; }' +
+            '.menu-edit-list__item { display: grid; grid-template-columns: 2.5em minmax(0, 1fr) 2em 2.5em 2.2em 2.2em 2em; align-items: center; gap: 0.35em; padding: 0.2em 0; box-sizing: border-box; }' +
+            '.menu-edit-list__item .menu-edit-list__icon { width: 2.5em; min-width: 2.5em; height: 2.5em; display: flex; align-items: center; justify-content: center; box-sizing: border-box; }' +
+            '.menu-edit-list__item .menu-edit-list__icon svg { width: 1.4em; height: 1.4em; }' +
+            '.menu-edit-list__item .menu-edit-list__title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }' +
+            '.menu-edit-list__item .menu-edit-list__move { width: 2.2em; min-width: 2.2em; display: flex; align-items: center; justify-content: center; }' +
+            '.menu-edit-list__item .menu-edit-list__move svg { width: 1.2em; height: 0.75em; }' +
+            '.menu-edit-list__item .menu-edit-list__toggle { width: 2em; min-width: 2em; display: flex; align-items: center; justify-content: center; }' +
+            '.menu-edit-list__item .menu-edit-list__toggle svg { width: 1.2em; height: 1.2em; }' +
             '.viewmode-switch, .folder-reset-button { max-width: 100%; box-sizing: border-box; white-space: normal; word-break: break-word; }' +
             '.folder-reset-button { background: rgba(200,100,100,0.3); margin-top: 1em; border-radius: 0.3em; }' +
             '.folder-reset-button.focus { border: 3px solid rgba(255,255,255,0.8); }' +
