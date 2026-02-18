@@ -5,7 +5,7 @@
     var Q_CACHE_TIME = 24 * 60 * 60 * 1000; // Время кеширования качества
     var QUALITY_CACHE = 'maxsm_ratings_quality_cache';
     var JACRED_PROTOCOL = 'http://'; // Протокол JacRed
-    var JACRED_URL = Lampa.Storage.get('jr.maxvol.pro') || 'jr.maxvo.pro'; // Адрес JacRed
+    var JACRED_URL = Lampa.Storage.get('jr.maxvol.pro') || 'jr.maxvol.pro'; // Адрес JacRed
     var JACRED_API_KEY = Lampa.Storage.get(''); // api ключ JacRed
     var PROXY_TIMEOUT = 5000; // Таймаут прокси
     var PROXY_LIST = [
