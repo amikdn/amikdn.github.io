@@ -24,6 +24,13 @@
     return Lampa.Storage.get('animated_reactions_in_player', true)
   }
 
+  function resetReactionStylesToDefault() {
+    try {
+      $('.reaction__icon').css({ width: '', height: '' })
+      $('.full-start-new__reactions > div').css('padding', '')
+    } catch (err) {}
+  }
+
   function applyDefaultReactions() {
     try {
       REACTION_CONFIGS.forEach(function (config) {
@@ -31,6 +38,7 @@
           el.src = SVG_REACTIONS_BASE_URL + '/' + config.type + '.svg'
         })
       })
+      resetReactionStylesToDefault()
     } catch (err) {}
   }
 
