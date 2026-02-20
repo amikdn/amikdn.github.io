@@ -84,6 +84,11 @@
       setTimeout(reaction, 200)
     }
     if (storageChangeEvent.name === 'animated_reactions_in_player') {
+      if (!isAnimatedReactionsInPlayerEnabled()) {
+        applyDefaultReactions()
+        setTimeout(applyDefaultReactions, 150)
+        setTimeout(applyDefaultReactions, 400)
+      }
       setTimeout(reaction, 100)
     }
   })
@@ -98,6 +103,11 @@
       param: { name: 'animated_reactions_in_player', type: 'trigger', default: true },
       field: { name: 'Анимированные реакции' },
       onChange: function () {
+        if (!isAnimatedReactionsInPlayerEnabled()) {
+          applyDefaultReactions()
+          setTimeout(applyDefaultReactions, 150)
+          setTimeout(applyDefaultReactions, 400)
+        }
         setTimeout(reaction, 100)
       },
       onRender: function (element) {
