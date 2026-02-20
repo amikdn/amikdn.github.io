@@ -276,6 +276,18 @@
                 display: flex;
                 align-items: center !important;
             }
+            .card__vote img {
+                object-fit: contain;
+                flex-shrink: 0;
+                min-width: 1.25em;
+                min-height: 1.25em;
+            }
+            @media (max-width: 768px) {
+                .card__vote img {
+                    min-width: 20px;
+                    min-height: 20px;
+                }
+            }
         `;
         document.head.appendChild(style);
         setupCardListener();
@@ -290,7 +302,7 @@
             Lampa.SettingsApi.addParam({
                 component: 'interface',
                 param: { name: 'animated_reactions_on_posters', type: 'trigger', default: false },
-                field: { name: 'Анимированные реакции на постерах' },
+                field: { name: 'Аним. реакции на постерах' },
                 onChange: function () {
                     setTimeout(refreshReactionIconsOnCards, 100);
                 },
@@ -349,4 +361,3 @@
         });
     }
 })();
-
