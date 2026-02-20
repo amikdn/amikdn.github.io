@@ -295,12 +295,12 @@
                 min-width: 1em;
             }
             .rate--lampa.rate--lampa--animated .rate-icon {
-                margin-right: 0.08em;
-                min-width: 1.15em;
+                margin-right: 0;
+                min-width: 1em;
             }
             .rate--lampa.rate--lampa--animated .rate-icon img {
-                min-width: 1.15em;
-                min-height: 1.15em;
+                min-width: 1em;
+                min-height: 1em;
                 object-fit: contain;
             }
             @media (max-width: 768px) and (orientation: landscape) {
@@ -308,12 +308,12 @@
                     min-width: 1.1em;
                 }
                 .rate--lampa.rate--lampa--animated .rate-icon {
-                    margin-right: 0.1em;
-                    min-width: 1.2em;
+                    margin-right: 0;
+                    min-width: 1.1em;
                 }
                 .rate--lampa.rate--lampa--animated .rate-icon img {
-                    min-width: 1.2em;
-                    min-height: 1.2em;
+                    min-width: 1.1em;
+                    min-height: 1.1em;
                 }
             }
         `;
