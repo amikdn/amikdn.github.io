@@ -279,21 +279,21 @@
             .card__vote img {
                 object-fit: contain;
                 flex-shrink: 0;
-                min-width: 1.25em;
-                min-height: 1.25em;
             }
             .card__vote img[src*=".gif"] {
                 margin-left: 0.4em;
+                min-width: 1.25em;
+                min-height: 1.25em;
             }
             @media (max-width: 768px) {
-                .card__vote img {
+                .card__vote img[src*=".gif"] {
                     min-width: 20px;
                     min-height: 20px;
                 }
             }
             .rate--lampa.rate--lampa--animated .rate-icon {
-                margin-right: 0.5em;
-                min-width: 1.5em;
+                margin-right: 0.2em;
+                min-width: 1.25em;
             }
             .rate--lampa.rate--lampa--animated .rate-icon img {
                 min-width: 1.25em;
@@ -316,7 +316,12 @@
                 param: { name: 'animated_reactions_on_posters', type: 'trigger', default: false },
                 field: { name: 'Анимированные реакции на постерах' },
                 onChange: function () {
-                    setTimeout(refreshReactionIconsOnCards, 100);
+                    setTimeout(function () {
+                        if (!Lampa.Storage.get('animated_reactions_on_posters', false)) {
+                            $('.rate--lampa').removeClass('rate--lampa--animated');
+                        }
+                        refreshReactionIconsOnCards();
+                    }, 100);
                 },
                 onRender: function (element) {
                     setTimeout(function () {
