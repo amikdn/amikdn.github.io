@@ -290,7 +290,7 @@
             Lampa.SettingsApi.addParam({
                 component: 'interface',
                 param: { name: 'animated_reactions_on_posters', type: 'trigger', default: false },
-                field: { name: 'Аним. реакции на постерах' },
+                field: { name: 'Анимированные реакции на постерах' },
                 onChange: function () {
                     setTimeout(refreshReactionIconsOnCards, 100);
                 },
@@ -349,3 +349,4 @@
         });
     }
 })();
+
