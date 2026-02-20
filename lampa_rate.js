@@ -308,7 +308,7 @@
                     min-width: 1.1em;
                 }
                 .rate--lampa.rate--lampa--animated .rate-icon {
-                    margin-right: 0;
+                    margin-right: 0.05em;
                     min-width: 1.1em;
                 }
                 .rate--lampa.rate--lampa--animated .rate-icon img {
