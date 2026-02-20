@@ -26,12 +26,10 @@
 
   function applyDefaultReactions() {
     try {
-      if (Lampa.Activity.active().component !== 'full') return
-      const activityBlock = document.querySelector('.activity--active')
-      if (!activityBlock) return
       REACTION_CONFIGS.forEach(function (config) {
-        const el = activityBlock.querySelector(config.selector + ' img')
-        if (el) el.src = SVG_REACTIONS_BASE_URL + '/' + config.type + '.svg'
+        document.querySelectorAll(config.selector + ' img').forEach(function (el) {
+          el.src = SVG_REACTIONS_BASE_URL + '/' + config.type + '.svg'
+        })
       })
     } catch (err) {}
   }
