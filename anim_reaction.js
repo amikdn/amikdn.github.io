@@ -1,8 +1,9 @@
- (function () {
+(function () {
   'use strict'
   Lampa.Platform.tv()
 
   const REACTIONS_BASE_URL = 'https://amikdn.github.io/img'
+  const SVG_REACTIONS_BASE_URL = 'https://cubnotrip.top/img/reactions'
   const REACTION_IMAGE_PATHS = {
     shit: REACTIONS_BASE_URL + '/reaction-shit.gif',
     think: REACTIONS_BASE_URL + '/reaction-think.gif',
@@ -12,16 +13,36 @@
   }
 
   const REACTION_CONFIGS = [
-    { selector: '.reaction--shit', url: REACTION_IMAGE_PATHS.shit },
-    { selector: '.reaction--think', url: REACTION_IMAGE_PATHS.think },
-    { selector: '.reaction--bore', url: REACTION_IMAGE_PATHS.bore },
-    { selector: '.reaction--fire', url: REACTION_IMAGE_PATHS.fire },
-    { selector: '.reaction--nice', url: REACTION_IMAGE_PATHS.nice },
+    { selector: '.reaction--shit', url: REACTION_IMAGE_PATHS.shit, type: 'shit' },
+    { selector: '.reaction--think', url: REACTION_IMAGE_PATHS.think, type: 'think' },
+    { selector: '.reaction--bore', url: REACTION_IMAGE_PATHS.bore, type: 'bore' },
+    { selector: '.reaction--fire', url: REACTION_IMAGE_PATHS.fire, type: 'fire' },
+    { selector: '.reaction--nice', url: REACTION_IMAGE_PATHS.nice, type: 'nice' },
   ]
+
+  function isAnimatedReactionsInPlayerEnabled() {
+    return Lampa.Storage.get('animated_reactions_in_player', true)
+  }
+
+  function applyDefaultReactions() {
+    try {
+      if (Lampa.Activity.active().component !== 'full') return
+      const activityBlock = document.querySelector('.activity--active')
+      if (!activityBlock) return
+      REACTION_CONFIGS.forEach(function (config) {
+        const el = activityBlock.querySelector(config.selector + ' img')
+        if (el) el.src = SVG_REACTIONS_BASE_URL + '/' + config.type + '.svg'
+      })
+    } catch (err) {}
+  }
 
   function reaction() {
     try {
       if (Lampa.Activity.active().component !== 'full') return
+      if (!isAnimatedReactionsInPlayerEnabled()) {
+        applyDefaultReactions()
+        return
+      }
 
       function preloadReactionImage(reactionIndex) {
         if (reactionIndex >= REACTION_CONFIGS.length) return
@@ -64,9 +85,29 @@
     if (storageChangeEvent.name === 'mine_reactions') {
       setTimeout(reaction, 200)
     }
+    if (storageChangeEvent.name === 'animated_reactions_in_player') {
+      setTimeout(reaction, 100)
+    }
   })
 
   Lampa.Listener.follow('full', function (fullScreenEvent) {
     if (fullScreenEvent.type === 'complite') reaction()
   })
+
+  if (Lampa.SettingsApi) {
+    Lampa.SettingsApi.addParam({
+      component: 'interface',
+      param: { name: 'animated_reactions_in_player', type: 'trigger', default: true },
+      field: { name: 'Анимированные реакции' },
+      onChange: function () {
+        setTimeout(reaction, 100)
+      },
+      onRender: function (element) {
+        setTimeout(function () {
+          var anchor = $('div[data-name="interface_size"]')
+          if (anchor.length) anchor.after(element)
+        }, 0)
+      }
+    })
+  }
 })()
