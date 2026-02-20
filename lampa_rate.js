@@ -333,8 +333,19 @@
                 field: { name: 'Анимированные реакции на постерах' },
                 onChange: function () {
                     setTimeout(function () {
-                        if (!Lampa.Storage.get('animated_reactions_on_posters', false)) {
+                        const useAnimated = Lampa.Storage.get('animated_reactions_on_posters', false);
+                        if (!useAnimated) {
                             $('.rate--lampa').removeClass('rate--lampa--animated');
+                            $('.rate--lampa .rate-icon img[data-reaction-type]').each(function () {
+                                const type = this.getAttribute('data-reaction-type');
+                                if (type) this.src = SVG_REACTIONS_BASE_URL + '/' + type + '.svg';
+                            });
+                        } else {
+                            $('.rate--lampa .rate-icon img[data-reaction-type]').each(function () {
+                                const type = this.getAttribute('data-reaction-type');
+                                if (type) this.src = ANIMATED_REACTIONS_BASE_URL + '/reaction-' + type + '.gif';
+                            });
+                            $('.rate--lampa').addClass('rate--lampa--animated');
                         }
                         refreshReactionIconsOnCards();
                     }, 100);
@@ -361,7 +372,7 @@
                             rateValue.text(cached.rating);
                             if (cached.medianReaction) {
                                 const reactionSrc = getReactionImageSrc(cached.medianReaction);
-                                rateIcon.html('<img style="width:1em;height:1em;margin:0 0.2em;" src="' + reactionSrc + '">');
+                                rateIcon.html('<img style="width:1em;height:1em;margin:0 0.2em;" data-reaction-type="' + cached.medianReaction + '" src="' + reactionSrc + '">');
                                 if (Lampa.Storage.get('animated_reactions_on_posters', false)) {
                                     $(render).find('.rate--lampa').addClass('rate--lampa--animated');
                                 }
@@ -376,7 +387,7 @@
                                     rateValue.text(result.rating);
                                     if (result.medianReaction) {
                                         const reactionSrc = getReactionImageSrc(result.medianReaction);
-                                        rateIcon.html('<img style="width:1em;height:1em;margin:0 0.2em;" src="' + reactionSrc + '">');
+                                        rateIcon.html('<img style="width:1em;height:1em;margin:0 0.2em;" data-reaction-type="' + result.medianReaction + '" src="' + reactionSrc + '">');
                                         if (Lampa.Storage.get('animated_reactions_on_posters', false)) {
                                             $(render).find('.rate--lampa').addClass('rate--lampa--animated');
                                         }
