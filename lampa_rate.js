@@ -1,6 +1,18 @@
 (function () {
     'use strict';
 
+    const ANIMATED_REACTIONS_BASE_URL = 'https://amikdn.github.io/img';
+    const SVG_REACTIONS_BASE_URL = 'https://cubnotrip.top/img/reactions';
+
+    function getReactionImageSrc(medianReaction) {
+        if (!medianReaction) return '';
+        const useAnimated = Lampa.Storage.get('animated_reactions_on_posters', false);
+        if (useAnimated) {
+            return ANIMATED_REACTIONS_BASE_URL + '/reaction-' + medianReaction + '.gif';
+        }
+        return SVG_REACTIONS_BASE_URL + '/' + medianReaction + '.svg';
+    }
+
     const ratingCache = {
         caches: {},
         get(source, key) {
@@ -178,7 +190,7 @@
         if (cached && cached.rating !== 0 && cached.rating !== '0.0') {
             let html = cached.rating;
             if (cached.medianReaction) {
-                let reactionSrc = 'https://cubnotrip.top/img/reactions/' + cached.medianReaction + '.svg';
+                const reactionSrc = getReactionImageSrc(cached.medianReaction);
                 html += ` <img style="width:1em;height:1em;margin:0 0.2em;" src="${reactionSrc}">`;
             }
             voteEl.innerHTML = html;
@@ -189,7 +201,7 @@
                 if (voteEl.parentNode && voteEl.dataset.movieId === id.toString()) {
                     let html = result.rating !== null ? result.rating : '0.0';
                     if (result.medianReaction) {
-                        let reactionSrc = 'https://cubnotrip.top/img/reactions/' + result.medianReaction + '.svg';
+                        const reactionSrc = getReactionImageSrc(result.medianReaction);
                         html += ` <img style="width:1em;height:1em;margin:0 0.2em;" src="${reactionSrc}">`;
                     }
                     voteEl.innerHTML = html;
@@ -215,7 +227,7 @@
                     if (cached && cached.rating !== 0 && cached.rating !== '0.0' && ratingElement.innerHTML === '') {
                         let html = cached.rating;
                         if (cached.medianReaction) {
-                            let reactionSrc = 'https://cubnotrip.top/img/reactions/' + cached.medianReaction + '.svg';
+                            const reactionSrc = getReactionImageSrc(cached.medianReaction);
                             html += ` <img style="width:1em;height:1em;margin:0 0.2em;" src="${reactionSrc}">`;
                         }
                         ratingElement.innerHTML = html;
@@ -224,6 +236,22 @@
             }
         });
         setTimeout(pollCards, 500);
+    }
+
+    function refreshReactionIconsOnCards() {
+        document.querySelectorAll('.card').forEach(function (card) {
+            const voteEl = card.querySelector('.card__vote');
+            if (!voteEl || !voteEl.dataset.movieId) return;
+            const data = card.card_data || card.dataset || {};
+            const id = (data.id || card.getAttribute('data-id') || '0').toString().replace('movie_', '');
+            const type = (data.seasons || data.first_air_date || data.original_name) ? 'tv' : 'movie';
+            const ratingKey = type + '_' + id;
+            const cached = ratingCache.get('lampa_rating', ratingKey);
+            if (!cached || !cached.medianReaction || (cached.rating === 0 || cached.rating === '0.0')) return;
+            const reactionSrc = getReactionImageSrc(cached.medianReaction);
+            const html = cached.rating + ' <img style="width:1em;height:1em;margin:0 0.2em;" src="' + reactionSrc + '">';
+            voteEl.innerHTML = html;
+        });
     }
 
     function setupCardListener() {
@@ -257,6 +285,24 @@
                 insertCardRating(e.object.card, e);
             }
         });
+
+        if (Lampa.SettingsApi) {
+            Lampa.SettingsApi.addParam({
+                component: 'interface',
+                param: { name: 'animated_reactions_on_posters', type: 'trigger', default: false },
+                field: { name: 'Аним. реакции на постерах' },
+                onChange: function () {
+                    setTimeout(refreshReactionIconsOnCards, 100);
+                },
+                onRender: function (element) {
+                    setTimeout(function () {
+                        const anchor = $('div[data-name="interface_size"]');
+                        if (anchor.length) anchor.after(element);
+                    }, 0);
+                }
+            });
+        }
+
         Lampa.Listener.follow('full', (e) => {
             if (e.type === 'complite') {
                 let render = e.object.activity.render();
@@ -269,7 +315,7 @@
                             let rateIcon = $(render).find('.rate--lampa .rate-icon');
                             rateValue.text(cached.rating);
                             if (cached.medianReaction) {
-                                let reactionSrc = 'https://cubnotrip.top/img/reactions/' + cached.medianReaction + '.svg';
+                                const reactionSrc = getReactionImageSrc(cached.medianReaction);
                                 rateIcon.html('<img style="width:1em;height:1em;margin:0 0.2em;" src="' + reactionSrc + '">');
                             }
                             return;
@@ -281,7 +327,7 @@
                                 if (result.rating !== null && result.rating > 0) {
                                     rateValue.text(result.rating);
                                     if (result.medianReaction) {
-                                        let reactionSrc = 'https://cubnotrip.top/img/reactions/' + result.medianReaction + '.svg';
+                                        const reactionSrc = getReactionImageSrc(result.medianReaction);
                                         rateIcon.html('<img style="width:1em;height:1em;margin:0 0.2em;" src="' + reactionSrc + '">');
                                     }
                                 } else {
