@@ -282,11 +282,23 @@
                 min-width: 1.25em;
                 min-height: 1.25em;
             }
+            .card__vote img[src*=".gif"] {
+                margin-left: 0.4em;
+            }
             @media (max-width: 768px) {
                 .card__vote img {
                     min-width: 20px;
                     min-height: 20px;
                 }
+            }
+            .rate--lampa.rate--lampa--animated .rate-icon {
+                margin-right: 0.5em;
+                min-width: 1.5em;
+            }
+            .rate--lampa.rate--lampa--animated .rate-icon img {
+                min-width: 1.25em;
+                min-height: 1.25em;
+                object-fit: contain;
             }
         `;
         document.head.appendChild(style);
@@ -329,6 +341,9 @@
                             if (cached.medianReaction) {
                                 const reactionSrc = getReactionImageSrc(cached.medianReaction);
                                 rateIcon.html('<img style="width:1em;height:1em;margin:0 0.2em;" src="' + reactionSrc + '">');
+                                if (Lampa.Storage.get('animated_reactions_on_posters', false)) {
+                                    $(render).find('.rate--lampa').addClass('rate--lampa--animated');
+                                }
                             }
                             return;
                         }
@@ -341,6 +356,9 @@
                                     if (result.medianReaction) {
                                         const reactionSrc = getReactionImageSrc(result.medianReaction);
                                         rateIcon.html('<img style="width:1em;height:1em;margin:0 0.2em;" src="' + reactionSrc + '">');
+                                        if (Lampa.Storage.get('animated_reactions_on_posters', false)) {
+                                            $(render).find('.rate--lampa').addClass('rate--lampa--animated');
+                                        }
                                     }
                                 } else {
                                     $(render).find('.rate--lampa').hide();
@@ -361,4 +379,3 @@
         });
     }
 })();
-
