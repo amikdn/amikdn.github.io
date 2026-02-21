@@ -474,9 +474,9 @@
                     });
                     wrap.append(cell);
                 });
-                loadStatus.text('Загружено ' + newEntries.length + ' иконок');
+                loadStatus.text('Загружены альтернативные иконки (' + newEntries.length + ')');
             } else {
-                loadStatus.text('Новых иконок не найдено');
+                loadStatus.text('Альтернативные иконки не загружены');
             }
             openModal();
         });
