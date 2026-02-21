@@ -284,9 +284,13 @@
                 try {
                     arr = JSON.parse(text.replace(/[\u0000-\u001F]+/g, ' '));
                 } catch (e2) {
-                    try {
-                        arr = JSON.parse(text.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim());
-                    } catch (e3) {
+try {
+                    arr = JSON.parse(text.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim());
+                } catch (e3) {
+                    var svgList = text.match(/<svg[\s\S]*?<\/svg>/gi);
+                    if (svgList && svgList.length) {
+                        arr = svgList;
+                    } else {
                         callback(null, 'Неверный формат JSON');
                         return;
                     }
