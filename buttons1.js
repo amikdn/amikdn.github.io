@@ -405,8 +405,6 @@
         });
         wrap.append(defaultBlock);
         var defaultIconsUrl = 'https://amikdn.github.io/lampa-button-icons.json';
-        var gridLampa = $('<div class="icon-picker-grid icon-picker-grid--lampa"></div>');
-        var gridAlt = $('<div class="icon-picker-grid icon-picker-grid--alt icon-picker-grid--hidden"></div>');
         var loadStatus = $('<div class="icon-picker-load-status"></div>');
         var tabLampa = $('<div class="selector icon-picker-tab icon-picker-tab--active" tabindex="0">Иконки Lampa</div>');
         var tabAlt = $('<div class="selector icon-picker-tab" tabindex="0">Альтернативные иконки</div>');
@@ -415,14 +413,12 @@
         wrap.append(switchBlock);
         wrap.append(loadStatus);
         function showLampaGrid() {
-            gridLampa.removeClass('icon-picker-grid--hidden');
-            gridAlt.addClass('icon-picker-grid--hidden');
+            wrap.removeClass('icon-picker-view-alt').addClass('icon-picker-view-lampa');
             tabLampa.addClass('icon-picker-tab--active');
             tabAlt.removeClass('icon-picker-tab--active');
         }
         function showAltGrid() {
-            gridAlt.removeClass('icon-picker-grid--hidden');
-            gridLampa.addClass('icon-picker-grid--hidden');
+            wrap.removeClass('icon-picker-view-lampa').addClass('icon-picker-view-alt');
             tabAlt.addClass('icon-picker-tab--active');
             tabLampa.removeClass('icon-picker-tab--active');
         }
@@ -430,7 +426,7 @@
             showLampaGrid();
         });
         tabAlt.on('hover:enter', function() {
-            if (gridAlt.children().length === 0) {
+            if (wrap.find('.icon-picker-cell-alt').length === 0) {
                 loadStatus.text('Загрузка…');
                 loadIconsFromUrl(defaultIconsUrl, seen, function(newEntries, err) {
                     if (err) {
@@ -439,13 +435,13 @@
                     }
                     if (newEntries && newEntries.length) {
                         newEntries.forEach(function(entry) {
-                            var cell = $('<div class="selector icon-picker-grid__cell" tabindex="0"></div>');
+                            var cell = $('<div class="selector icon-picker-grid__cell icon-picker-cell-alt" tabindex="0"></div>');
                             cell.append($(entry.html).clone());
                             var savedHtml = entry.html;
                             cell.on('hover:enter', function() {
                                 applyChoice(false, savedHtml);
                             });
-                            gridAlt.append(cell);
+                            wrap.append(cell);
                         });
                         loadStatus.text('Загружено ' + newEntries.length + ' иконок');
                         showAltGrid();
@@ -457,17 +453,16 @@
                 showAltGrid();
             }
         });
+        wrap.addClass('icon-picker-view-lampa');
         icons.forEach(function(entry) {
-            var cell = $('<div class="selector icon-picker-grid__cell" tabindex="0"></div>');
+            var cell = $('<div class="selector icon-picker-grid__cell icon-picker-cell-lampa" tabindex="0"></div>');
             cell.append($(entry.html).clone());
             var savedHtml = entry.html;
             cell.on('hover:enter', function() {
                 applyChoice(false, savedHtml);
             });
-            gridLampa.append(cell);
+            wrap.append(cell);
         });
-        wrap.append(gridLampa);
-        wrap.append(gridAlt);
         Lampa.Modal.open({
             title: 'Иконка кнопки',
             html: wrap,
@@ -1201,14 +1196,15 @@
             '.icon-picker-default.focus { border: 3px solid rgba(255,255,255,0.8); }' +
             '.icon-picker-default__preview { width: 2.5em; height: 2.5em; min-width: 2.5em; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }' +
             '.icon-picker-default__preview svg { width: 1.5em; height: 1.5em; }' +
-            '.icon-picker-wrap { width: 100%; }' +
-            '.icon-picker-switch-wrap { display: flex; width: 100%; align-items: stretch; gap: 0.35em; margin-bottom: 0.75em; }' +
+            '.icon-picker-wrap { width: 100%; display: grid; grid-template-columns: repeat(auto-fill, minmax(2.5em, 1fr)); gap: 0.35em; align-content: start; }' +
+            '.icon-picker-wrap .icon-picker-default, .icon-picker-wrap .icon-picker-switch-wrap, .icon-picker-wrap .icon-picker-load-status { grid-column: 1 / -1; }' +
+            '.icon-picker-view-lampa .icon-picker-cell-alt { display: none !important; }' +
+            '.icon-picker-view-alt .icon-picker-cell-lampa { display: none !important; }' +
+            '.icon-picker-switch-wrap { display: flex; width: 100%; align-items: stretch; gap: 0.35em; margin-bottom: 0; }' +
             '.icon-picker-tab { flex: 1; display: flex; align-items: center; justify-content: center; padding: 0.75em; border-radius: 0.3em; background: rgba(255,255,255,0.08); text-align: center; min-width: 0; }' +
             '.icon-picker-tab--active { background: rgba(66, 133, 244, 0.6); }' +
             '.icon-picker-tab.focus { border: 3px solid rgba(255,255,255,0.8); }' +
-            '.icon-picker-load-status { width: 100%; font-size: 0.9em; color: rgba(255,255,255,0.7); margin-top: 0.25em; }' +
-            '.icon-picker-grid--hidden { display: none !important; }' +
-            '.icon-picker-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(2.5em, 1fr)); gap: 0.35em; }' +
+            '.icon-picker-load-status { font-size: 0.9em; color: rgba(255,255,255,0.7); margin-top: 0.25em; }' +
             '.icon-picker-grid__cell { display: flex; align-items: center; justify-content: center; padding: 0.35em; min-height: 2.5em; }' +
             '.icon-picker-grid__cell.focus { border: 2px solid rgba(255,255,255,0.8); border-radius: 0.3em; }' +
             '.icon-picker-grid__cell svg { width: 1.5em; height: 1.5em; }' +
