@@ -275,12 +275,22 @@
                 callback(null, 'По ссылке отдаётся не JSON (проверьте файл на сайте)');
                 return;
             }
+            text = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+            text = text.replace(/,(\s*)\]/, '$1]').replace(/,(\s*)\}/, '$1}');
             var arr;
             try {
                 arr = JSON.parse(text);
             } catch (e) {
-                callback(null, 'Неверный формат JSON');
-                return;
+                try {
+                    arr = JSON.parse(text.replace(/[\u0000-\u001F]+/g, ' '));
+                } catch (e2) {
+                    try {
+                        arr = JSON.parse(text.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim());
+                    } catch (e3) {
+                        callback(null, 'Неверный формат JSON');
+                        return;
+                    }
+                }
             }
             if (!Array.isArray(arr)) {
                 callback(null, 'Файл должен содержать массив');
@@ -351,6 +361,7 @@
         };
         try {
             xhr.open('GET', url, true);
+            xhr.responseType = 'text';
             xhr.send();
         } catch (e) {
             callback(null, 'Ошибка запроса');
