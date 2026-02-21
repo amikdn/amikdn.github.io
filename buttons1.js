@@ -460,7 +460,7 @@
             });
         }
         var openTimeout = setTimeout(openModal, 4000);
-        loadIconsFromUrl(defaultIconsUrl, seen, function(newEntries, err) {
+        loadIconsFromUrl(defaultIconsUrl, {}, function(newEntries, err) {
             clearTimeout(openTimeout);
             if (err) {
                 loadStatus.text(err);
