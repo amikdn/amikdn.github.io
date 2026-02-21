@@ -275,20 +275,68 @@
                 return;
             }
             if (!Array.isArray(arr)) {
-                callback(null, 'Файл должен содержать массив иконок');
+                callback(null, 'Файл должен содержать массив');
                 return;
             }
             var result = [];
-            for (var i = 0; i < arr.length; i++) {
-                var item = arr[i];
-                var html = item && (item.html != null) ? String(item.html).trim() : '';
-                if (!html || html.indexOf('<svg') === -1) continue;
-                var key = svgFingerprint(html);
-                if (seen[key]) continue;
-                seen[key] = true;
-                result.push({ id: (item.id && String(item.id)) || key.substring(0, 80), html: html });
+            var urlsToFetch = [];
+            var i, item, html, key;
+            for (i = 0; i < arr.length; i++) {
+                item = arr[i];
+                if (typeof item === 'string') {
+                    html = item.trim();
+                    if (html.indexOf('<svg') !== -1) {
+                        key = svgFingerprint(html);
+                        if (!seen[key]) {
+                            seen[key] = true;
+                            result.push({ id: 'icon-' + i, html: html });
+                        }
+                    } else if (html.indexOf('http://') === 0 || html.indexOf('https://') === 0) {
+                        urlsToFetch.push({ url: html, index: i });
+                    }
+                } else if (item && item.html != null) {
+                    html = String(item.html).trim();
+                    if (html && html.indexOf('<svg') !== -1) {
+                        key = svgFingerprint(html);
+                        if (!seen[key]) {
+                            seen[key] = true;
+                            result.push({ id: (item.id && String(item.id)) || key.substring(0, 80), html: html });
+                        }
+                    }
+                }
             }
-            callback(result, null);
+            if (urlsToFetch.length === 0) {
+                callback(result, null);
+                return;
+            }
+            var fetched = 0;
+            urlsToFetch.forEach(function(entry) {
+                var req = new XMLHttpRequest();
+                req.open('GET', entry.url, true);
+                req.onload = function() {
+                    if (req.status === 200 && req.responseText) {
+                        html = req.responseText.trim();
+                        if (html.indexOf('<svg') !== -1) {
+                            key = svgFingerprint(html);
+                            if (!seen[key]) {
+                                seen[key] = true;
+                                result.push({ id: 'icon-' + entry.index, html: html });
+                            }
+                        }
+                    }
+                    fetched++;
+                    if (fetched === urlsToFetch.length) {
+                        callback(result, null);
+                    }
+                };
+                req.onerror = function() {
+                    fetched++;
+                    if (fetched === urlsToFetch.length) {
+                        callback(result, null);
+                    }
+                };
+                req.send();
+            });
         };
         xhr.onerror = function() {
             callback(null, 'Ошибка сети');
@@ -351,18 +399,12 @@
             gridAlt.addClass('icon-picker-grid--hidden');
             tabLampa.addClass('icon-picker-tab--active');
             tabAlt.removeClass('icon-picker-tab--active');
-            if (typeof Lampa.Controller !== 'undefined' && typeof Lampa.Controller.toggle === 'function') {
-                try { Lampa.Controller.toggle('full_start'); } catch (e) {}
-            }
         }
         function showAltGrid() {
             gridAlt.removeClass('icon-picker-grid--hidden');
             gridLampa.addClass('icon-picker-grid--hidden');
             tabAlt.addClass('icon-picker-tab--active');
             tabLampa.removeClass('icon-picker-tab--active');
-            if (typeof Lampa.Controller !== 'undefined' && typeof Lampa.Controller.toggle === 'function') {
-                try { Lampa.Controller.toggle('full_start'); } catch (e) {}
-            }
         }
         tabLampa.on('hover:enter', function() {
             showLampaGrid();
