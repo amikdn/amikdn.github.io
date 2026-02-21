@@ -276,90 +276,20 @@
                 return;
             }
             text = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-            text = text.replace(/,(\s*)\]/, '$1]').replace(/,(\s*)\}/, '$1}');
-            var arr;
-            try {
-                arr = JSON.parse(text);
-            } catch (e) {
-                try {
-                    arr = JSON.parse(text.replace(/[\u0000-\u001F]+/g, ' '));
-                } catch (e2) {
-                    try {
-                        arr = JSON.parse(text.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim());
-                    } catch (e3) {
-                        var svgList = text.match(/<svg[\s\S]*?<\/svg>/gi);
-                        if (svgList && svgList.length) {
-                            arr = svgList;
-                        } else {
-                            callback(null, 'Неверный формат JSON');
-                            return;
-                        }
-                    }
-                }
-            }
-            if (!Array.isArray(arr)) {
-                callback(null, 'Файл должен содержать массив');
-                return;
-            }
+            var arr = text.match(/<svg[\s\S]*?<\/svg>/gi) || [];
             var result = [];
-            var urlsToFetch = [];
-            var i, item, html, key;
+            var i, html, key;
             for (i = 0; i < arr.length; i++) {
-                item = arr[i];
-                if (typeof item === 'string') {
-                    html = item.trim();
-                    if (html.indexOf('<svg') !== -1) {
-                        key = svgFingerprint(html);
-                        if (!seen[key]) {
-                            seen[key] = true;
-                            result.push({ id: 'icon-' + i, html: html });
-                        }
-                    } else if (html.indexOf('http://') === 0 || html.indexOf('https://') === 0) {
-                        urlsToFetch.push({ url: html, index: i });
-                    }
-                } else if (item && item.html != null) {
-                    html = String(item.html).trim();
-                    if (html && html.indexOf('<svg') !== -1) {
-                        key = svgFingerprint(html);
-                        if (!seen[key]) {
-                            seen[key] = true;
-                            result.push({ id: (item.id && String(item.id)) || key.substring(0, 80), html: html });
-                        }
+                html = arr[i].trim();
+                if (html.indexOf('<svg') !== -1) {
+                    key = svgFingerprint(html);
+                    if (!seen[key]) {
+                        seen[key] = true;
+                        result.push({ id: 'icon-' + i, html: html });
                     }
                 }
             }
-            if (urlsToFetch.length === 0) {
-                callback(result, null);
-                return;
-            }
-            var fetched = 0;
-            urlsToFetch.forEach(function(entry) {
-                var req = new XMLHttpRequest();
-                req.open('GET', entry.url, true);
-                req.onload = function() {
-                    if (req.status === 200 && req.responseText) {
-                        html = req.responseText.trim();
-                        if (html.indexOf('<svg') !== -1) {
-                            key = svgFingerprint(html);
-                            if (!seen[key]) {
-                                seen[key] = true;
-                                result.push({ id: 'icon-' + entry.index, html: html });
-                            }
-                        }
-                    }
-                    fetched++;
-                    if (fetched === urlsToFetch.length) {
-                        callback(result, null);
-                    }
-                };
-                req.onerror = function() {
-                    fetched++;
-                    if (fetched === urlsToFetch.length) {
-                        callback(result, null);
-                    }
-                };
-                req.send();
-            });
+            callback(result, null);
         };
         xhr.onerror = function() {
             callback(null, 'Ошибка сети');
