@@ -78,7 +78,8 @@
 
   function reaction() {
     try {
-      if (Lampa.Activity.active().component !== 'full') return
+      var active = Lampa.Activity && Lampa.Activity.active ? Lampa.Activity.active() : null
+      if (!active || active.component !== 'full') return
       if (!isAnimatedReactionsInPlayerEnabled()) {
         restoreOriginalReactions()
         applyReactionsToSelectbox()
@@ -145,7 +146,7 @@
 
   Lampa.Listener.follow('full', function (fullScreenEvent) {
     if (fullScreenEvent.type === 'complite') reaction()
-  })
+  });
 
   (function observeSelectbox() {
     var observer = new MutationObserver(function () {
