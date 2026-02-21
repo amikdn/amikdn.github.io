@@ -412,6 +412,28 @@
         switchBlock.append(tabLampa).append(tabAlt);
         wrap.append(switchBlock);
         wrap.append(loadStatus);
+        var gotoIconsBtn = $('<div class="selector icon-picker-goto-icons" tabindex="0">↓ К выбору иконок</div>');
+        function getFirstVisibleCell() {
+            if (wrap.hasClass('icon-picker-view-lampa')) {
+                return wrap.find('.icon-picker-cell-lampa').first();
+            }
+            return wrap.find('.icon-picker-cell-alt').first();
+        }
+        function focusFirstCell() {
+            var first = getFirstVisibleCell();
+            if (first.length) {
+                var el = first.get(0);
+                try {
+                    if (el.scrollIntoView) el.scrollIntoView(true);
+                    el.focus();
+                } catch (e) {}
+            }
+        }
+        gotoIconsBtn.on('hover:enter', focusFirstCell);
+        gotoIconsBtn.on('hover:down', focusFirstCell);
+        tabLampa.on('hover:down', focusFirstCell);
+        tabAlt.on('hover:down', focusFirstCell);
+        wrap.append(gotoIconsBtn);
         function showLampaGrid() {
             wrap.removeClass('icon-picker-view-alt').addClass('icon-picker-view-lampa');
             tabLampa.addClass('icon-picker-tab--active');
@@ -434,6 +456,7 @@
                         return;
                     }
                     if (newEntries && newEntries.length) {
+                        var isFirstAltCell = true;
                         newEntries.forEach(function(entry) {
                             var cell = $('<div class="selector icon-picker-grid__cell icon-picker-cell-alt" tabindex="0"></div>');
                             cell.append($(entry.html).clone());
@@ -441,6 +464,12 @@
                             cell.on('hover:enter', function() {
                                 applyChoice(false, savedHtml);
                             });
+                            if (isFirstAltCell) {
+                                cell.on('hover:up', function() {
+                                    try { gotoIconsBtn.get(0).focus(); } catch (e) {}
+                                });
+                                isFirstAltCell = false;
+                            }
                             wrap.append(cell);
                         });
                         loadStatus.text('Загружено ' + newEntries.length + ' иконок');
@@ -454,6 +483,7 @@
             }
         });
         wrap.addClass('icon-picker-view-lampa');
+        var isFirstLampaCell = true;
         icons.forEach(function(entry) {
             var cell = $('<div class="selector icon-picker-grid__cell icon-picker-cell-lampa" tabindex="0"></div>');
             cell.append($(entry.html).clone());
@@ -461,6 +491,12 @@
             cell.on('hover:enter', function() {
                 applyChoice(false, savedHtml);
             });
+            if (isFirstLampaCell) {
+                cell.on('hover:up', function() {
+                    try { gotoIconsBtn.get(0).focus(); } catch (e) {}
+                });
+                isFirstLampaCell = false;
+            }
             wrap.append(cell);
         });
         Lampa.Modal.open({
@@ -1197,7 +1233,9 @@
             '.icon-picker-default__preview { width: 2.5em; height: 2.5em; min-width: 2.5em; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }' +
             '.icon-picker-default__preview svg { width: 1.5em; height: 1.5em; }' +
             '.icon-picker-wrap { width: 100%; display: grid; grid-template-columns: repeat(auto-fill, minmax(2.5em, 1fr)); gap: 0.35em; align-content: start; }' +
-            '.icon-picker-wrap .icon-picker-default, .icon-picker-wrap .icon-picker-switch-wrap, .icon-picker-wrap .icon-picker-load-status { grid-column: 1 / -1; }' +
+            '.icon-picker-wrap .icon-picker-default, .icon-picker-wrap .icon-picker-switch-wrap, .icon-picker-wrap .icon-picker-load-status, .icon-picker-wrap .icon-picker-goto-icons { grid-column: 1 / -1; }' +
+            '.icon-picker-goto-icons { display: flex; align-items: center; justify-content: center; padding: 0.5em 0.75em; border-radius: 0.3em; background: rgba(255,255,255,0.06); margin-bottom: 0.25em; }' +
+            '.icon-picker-goto-icons.focus { border: 3px solid rgba(255,255,255,0.8); }' +
             '.icon-picker-view-lampa .icon-picker-cell-alt { display: none !important; }' +
             '.icon-picker-view-alt .icon-picker-cell-lampa { display: none !important; }' +
             '.icon-picker-switch-wrap { display: flex; width: 100%; align-items: stretch; gap: 0.35em; margin-bottom: 0; }' +
