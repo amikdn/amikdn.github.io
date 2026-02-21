@@ -356,7 +356,7 @@
             seen[svgFingerprint(icons[s].html)] = true;
         }
         var wrap = $('<div class="icon-picker-wrap"></div>');
-        var defaultBlock = $('<div class="selector icon-picker-default">' +
+        var defaultBlock = $('<div class="selector icon-picker-default" tabindex="0">' +
             '<div class="icon-picker-default__preview"></div>' +
             '<span>По умолчанию</span></div>');
         if (defaultIconHtml) {
@@ -389,11 +389,12 @@
         var gridLampa = $('<div class="icon-picker-grid icon-picker-grid--lampa"></div>');
         var gridAlt = $('<div class="icon-picker-grid icon-picker-grid--alt icon-picker-grid--hidden"></div>');
         var loadStatus = $('<div class="icon-picker-load-status"></div>');
-        var tabLampa = $('<div class="selector icon-picker-tab icon-picker-tab--active">Иконки Lampa</div>');
-        var tabAlt = $('<div class="selector icon-picker-tab">Альтернативные иконки</div>');
-        var switchBlock = $('<div class="icon-picker-switch"></div>');
-        switchBlock.append(tabLampa).append(tabAlt).append(loadStatus);
+        var tabLampa = $('<div class="selector icon-picker-tab icon-picker-tab--active" tabindex="0">Иконки Lampa</div>');
+        var tabAlt = $('<div class="selector icon-picker-tab" tabindex="0">Альтернативные иконки</div>');
+        var switchBlock = $('<div class="icon-picker-switch-wrap"></div>');
+        switchBlock.append(tabLampa).append(tabAlt);
         wrap.append(switchBlock);
+        wrap.append(loadStatus);
         function showLampaGrid() {
             gridLampa.removeClass('icon-picker-grid--hidden');
             gridAlt.addClass('icon-picker-grid--hidden');
@@ -419,7 +420,7 @@
                     }
                     if (newEntries && newEntries.length) {
                         newEntries.forEach(function(entry) {
-                            var cell = $('<div class="selector icon-picker-grid__cell"></div>');
+                            var cell = $('<div class="selector icon-picker-grid__cell" tabindex="0"></div>');
                             cell.append($(entry.html).clone());
                             var savedHtml = entry.html;
                             cell.on('hover:enter', function() {
@@ -438,7 +439,7 @@
             }
         });
         icons.forEach(function(entry) {
-            var cell = $('<div class="selector icon-picker-grid__cell"></div>');
+            var cell = $('<div class="selector icon-picker-grid__cell" tabindex="0"></div>');
             cell.append($(entry.html).clone());
             var savedHtml = entry.html;
             cell.on('hover:enter', function() {
@@ -1181,13 +1182,14 @@
             '.icon-picker-default.focus { border: 3px solid rgba(255,255,255,0.8); }' +
             '.icon-picker-default__preview { width: 2.5em; height: 2.5em; min-width: 2.5em; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }' +
             '.icon-picker-default__preview svg { width: 1.5em; height: 1.5em; }' +
-            '.icon-picker-switch { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5em; margin-bottom: 0.75em; }' +
-            '.icon-picker-tab { padding: 0.5em 0.75em; border-radius: 0.3em; background: rgba(255,255,255,0.1); }' +
+            '.icon-picker-wrap { width: 100%; }' +
+            '.icon-picker-switch-wrap { display: flex; width: 100%; align-items: stretch; gap: 0.35em; margin-bottom: 0.75em; }' +
+            '.icon-picker-tab { flex: 1; display: flex; align-items: center; justify-content: center; padding: 0.75em; border-radius: 0.3em; background: rgba(255,255,255,0.08); text-align: center; min-width: 0; }' +
             '.icon-picker-tab--active { background: rgba(66, 133, 244, 0.6); }' +
-            '.icon-picker-tab.focus { border: 2px solid rgba(255,255,255,0.8); }' +
-            '.icon-picker-load-status { font-size: 0.9em; color: rgba(255,255,255,0.7); }' +
+            '.icon-picker-tab.focus { border: 3px solid rgba(255,255,255,0.8); }' +
+            '.icon-picker-load-status { width: 100%; font-size: 0.9em; color: rgba(255,255,255,0.7); margin-top: 0.25em; }' +
             '.icon-picker-grid--hidden { display: none !important; }' +
-            '.icon-picker-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(2.5em, 1fr)); gap: 0.35em; max-height: 50vh; overflow-y: auto; }' +
+            '.icon-picker-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(2.5em, 1fr)); gap: 0.35em; }' +
             '.icon-picker-grid__cell { display: flex; align-items: center; justify-content: center; padding: 0.35em; min-height: 2.5em; }' +
             '.icon-picker-grid__cell.focus { border: 2px solid rgba(255,255,255,0.8); border-radius: 0.3em; }' +
             '.icon-picker-grid__cell svg { width: 1.5em; height: 1.5em; }' +
