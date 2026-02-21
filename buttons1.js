@@ -266,7 +266,15 @@
                 callback(null, 'Ошибка загрузки: ' + (xhr.status || 'сеть'));
                 return;
             }
-            var text = xhr.responseText || '';
+            var text = (xhr.responseText || '').replace(/^\uFEFF/, '').trim();
+            if (!text) {
+                callback(null, 'Пустой ответ');
+                return;
+            }
+            if (text.indexOf('<!') === 0 || text.indexOf('<html') !== -1) {
+                callback(null, 'По ссылке отдаётся не JSON (проверьте файл на сайте)');
+                return;
+            }
             var arr;
             try {
                 arr = JSON.parse(text);
