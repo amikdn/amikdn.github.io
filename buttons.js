@@ -2,7 +2,7 @@
 (function() {
     'use strict';
 
-    var PLUGIN_VERSION = '1.2';
+    var PLUGIN_VERSION = '1.3';
 
     // Polyfills для совместимости со старыми устройствами
     if (!Array.prototype.forEach) {
@@ -647,8 +647,8 @@
                 var stored = getCustomLabels();
                 var labels = {};
                 for (var k in stored) { if (stored.hasOwnProperty(k)) labels[k] = stored[k]; }
-                if (v === defaultLabel || v === '') {
-                    delete labels[btnId];
+                if (v === '') {
+                    labels[btnId] = defaultLabel || '';
                 } else {
                     labels[btnId] = v;
                 }
