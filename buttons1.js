@@ -338,35 +338,63 @@
         });
         wrap.append(defaultBlock);
         var defaultIconsUrl = 'https://amikdn.github.io/lampa-button-icons.json';
-        var loadBlock = $('<div class="icon-picker-load-block"></div>');
-        var loadBtn = $('<div class="selector icon-picker-load-btn">Альтернативные иконки</div>');
+        var gridLampa = $('<div class="icon-picker-grid icon-picker-grid--lampa"></div>');
+        var gridAlt = $('<div class="icon-picker-grid icon-picker-grid--alt icon-picker-grid--hidden"></div>');
         var loadStatus = $('<div class="icon-picker-load-status"></div>');
-        loadBlock.append(loadBtn).append(loadStatus);
-        loadBtn.on('hover:enter', function() {
-            loadStatus.text('');
-            loadIconsFromUrl(defaultIconsUrl, seen, function(newEntries, err) {
-                if (err) {
-                    loadStatus.text(err);
-                    return;
-                }
-                if (newEntries && newEntries.length) {
-                    newEntries.forEach(function(entry) {
-                        var cell = $('<div class="selector icon-picker-grid__cell"></div>');
-                        cell.append($(entry.html).clone());
-                        var savedHtml = entry.html;
-                        cell.on('hover:enter', function() {
-                            applyChoice(false, savedHtml);
-                        });
-                        grid.append(cell);
-                    });
-                    loadStatus.text('Загружено ' + newEntries.length + ' иконок');
-                } else {
-                    loadStatus.text('Новых иконок не найдено');
-                }
-            });
+        var tabLampa = $('<div class="selector icon-picker-tab icon-picker-tab--active">Иконки Lampa</div>');
+        var tabAlt = $('<div class="selector icon-picker-tab">Альтернативные иконки</div>');
+        var switchBlock = $('<div class="icon-picker-switch"></div>');
+        switchBlock.append(tabLampa).append(tabAlt).append(loadStatus);
+        wrap.append(switchBlock);
+        function showLampaGrid() {
+            gridLampa.removeClass('icon-picker-grid--hidden');
+            gridAlt.addClass('icon-picker-grid--hidden');
+            tabLampa.addClass('icon-picker-tab--active');
+            tabAlt.removeClass('icon-picker-tab--active');
+            if (typeof Lampa.Controller !== 'undefined' && typeof Lampa.Controller.toggle === 'function') {
+                try { Lampa.Controller.toggle('full_start'); } catch (e) {}
+            }
+        }
+        function showAltGrid() {
+            gridAlt.removeClass('icon-picker-grid--hidden');
+            gridLampa.addClass('icon-picker-grid--hidden');
+            tabAlt.addClass('icon-picker-tab--active');
+            tabLampa.removeClass('icon-picker-tab--active');
+            if (typeof Lampa.Controller !== 'undefined' && typeof Lampa.Controller.toggle === 'function') {
+                try { Lampa.Controller.toggle('full_start'); } catch (e) {}
+            }
+        }
+        tabLampa.on('hover:enter', function() {
+            showLampaGrid();
         });
-        wrap.append(loadBlock);
-        var grid = $('<div class="icon-picker-grid"></div>');
+        tabAlt.on('hover:enter', function() {
+            if (gridAlt.children().length === 0) {
+                loadStatus.text('Загрузка…');
+                loadIconsFromUrl(defaultIconsUrl, seen, function(newEntries, err) {
+                    if (err) {
+                        loadStatus.text(err);
+                        return;
+                    }
+                    if (newEntries && newEntries.length) {
+                        newEntries.forEach(function(entry) {
+                            var cell = $('<div class="selector icon-picker-grid__cell"></div>');
+                            cell.append($(entry.html).clone());
+                            var savedHtml = entry.html;
+                            cell.on('hover:enter', function() {
+                                applyChoice(false, savedHtml);
+                            });
+                            gridAlt.append(cell);
+                        });
+                        loadStatus.text('Загружено ' + newEntries.length + ' иконок');
+                        showAltGrid();
+                    } else {
+                        loadStatus.text('Новых иконок не найдено');
+                    }
+                });
+            } else {
+                showAltGrid();
+            }
+        });
         icons.forEach(function(entry) {
             var cell = $('<div class="selector icon-picker-grid__cell"></div>');
             cell.append($(entry.html).clone());
@@ -374,9 +402,10 @@
             cell.on('hover:enter', function() {
                 applyChoice(false, savedHtml);
             });
-            grid.append(cell);
+            gridLampa.append(cell);
         });
-        wrap.append(grid);
+        wrap.append(gridLampa);
+        wrap.append(gridAlt);
         Lampa.Modal.open({
             title: 'Иконка кнопки',
             html: wrap,
@@ -519,10 +548,14 @@
         var customIcons = getCustomIcons();
         buttons.forEach(function(btn) {
             var id = getButtonId(btn);
+            var svgEl = btn.find('svg').first();
+            if (!svgEl.length) return;
             if (customIcons[id]) {
-                var svgEl = btn.find('svg').first();
-                if (svgEl.length) {
-                    svgEl.replaceWith($(customIcons[id]).clone());
+                svgEl.replaceWith($(customIcons[id]).clone());
+            } else {
+                var defaultHtml = getDefaultIconForButton(id);
+                if (defaultHtml) {
+                    svgEl.replaceWith($(defaultHtml).clone());
                 }
             }
         });
@@ -1106,10 +1139,12 @@
             '.icon-picker-default.focus { border: 3px solid rgba(255,255,255,0.8); }' +
             '.icon-picker-default__preview { width: 2.5em; height: 2.5em; min-width: 2.5em; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }' +
             '.icon-picker-default__preview svg { width: 1.5em; height: 1.5em; }' +
-            '.icon-picker-load-block { margin-bottom: 0.75em; }' +
-            '.icon-picker-load-btn { display: inline-block; padding: 0.5em 0.75em; border-radius: 0.3em; background: rgba(66, 133, 244, 0.6); }' +
-            '.icon-picker-load-btn.focus { border: 2px solid rgba(255,255,255,0.8); }' +
-            '.icon-picker-load-status { width: 100%; font-size: 0.9em; color: rgba(255,255,255,0.7); margin-top: 0.25em; }' +
+            '.icon-picker-switch { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5em; margin-bottom: 0.75em; }' +
+            '.icon-picker-tab { padding: 0.5em 0.75em; border-radius: 0.3em; background: rgba(255,255,255,0.1); }' +
+            '.icon-picker-tab--active { background: rgba(66, 133, 244, 0.6); }' +
+            '.icon-picker-tab.focus { border: 2px solid rgba(255,255,255,0.8); }' +
+            '.icon-picker-load-status { font-size: 0.9em; color: rgba(255,255,255,0.7); }' +
+            '.icon-picker-grid--hidden { display: none !important; }' +
             '.icon-picker-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(2.5em, 1fr)); gap: 0.35em; max-height: 50vh; overflow-y: auto; }' +
             '.icon-picker-grid__cell { display: flex; align-items: center; justify-content: center; padding: 0.35em; min-height: 2.5em; }' +
             '.icon-picker-grid__cell.focus { border: 2px solid rgba(255,255,255,0.8); border-radius: 0.3em; }' +
