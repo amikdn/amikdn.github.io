@@ -24,19 +24,24 @@
         return last === -1 ? url : url.substring(0, last + 1);
     }
 
-    function parseM3u8(text, baseUrl) {
+    function resolveUrl(url, baseUrl) {
+        if (!url || url.indexOf('http') === 0) return url;
+        return baseUrl + (url.indexOf('/') === 0 ? url.substring(1) : url);
+    }
+
+    function parseM3u8Segments(text, baseUrl) {
         var lines = text.split(/\r?\n/);
         var segments = [];
         for (var i = 0; i < lines.length; i++) {
             var line = lines[i].trim();
             if (!line || line.indexOf('#') === 0) continue;
-            var segUrl = line;
-            if (segUrl.indexOf('http') !== 0) {
-                segUrl = baseUrl + (segUrl.indexOf('/') === 0 ? segUrl.substring(1) : segUrl);
-            }
-            segments.push(segUrl);
+            segments.push(resolveUrl(line, baseUrl));
         }
         return segments;
+    }
+
+    function isMasterPlaylist(text) {
+        return /#EXT-X-STREAM-INF\s*:/i.test(text);
     }
 
     function triggerSave(blob, filename) {
@@ -70,45 +75,71 @@
 
     function downloadM3u8(url, filename, onProgress, onDone) {
         var baseUrl = getBaseUrl(url);
-        fetch(url, { mode: 'cors' }).then(function(res) { return res.text(); }).then(function(text) {
-            var segments = parseM3u8(text, baseUrl);
-            if (!segments.length) {
-                if (onDone) onDone(false);
-                return;
-            }
-            var total = segments.length;
-            var abList = [];
-            var done = 0;
+
+        function doDownload(playlistText, base) {
+            var segments = parseM3u8Segments(playlistText, base);
+            var onlyTs = segments.filter(function(u) {
+                var lower = u.toLowerCase();
+                return lower.indexOf('.ts') !== -1 || lower.indexOf('.m4s') !== -1 || (lower.indexOf('segment') !== -1 && lower.indexOf('.m3u8') === -1);
+            });
+            if (onlyTs.length === 0) onlyTs = segments.filter(function(u) { return u.toLowerCase().indexOf('.m3u8') === -1; });
+            if (onlyTs.length === 0) onlyTs = segments;
+
+            var total = onlyTs.length;
+            var abList = new Array(total);
+            var doneCount = 0;
 
             function fetchNext(index) {
                 if (index >= total) {
                     var totalLen = 0;
-                    for (var i = 0; i < abList.length; i++) totalLen += abList[i].byteLength;
+                    for (var i = 0; i < abList.length; i++) {
+                        if (abList[i]) totalLen += abList[i].byteLength;
+                    }
+                    if (totalLen === 0) {
+                        if (onDone) onDone(false);
+                        return;
+                    }
                     var combined = new Uint8Array(totalLen);
                     var offset = 0;
                     for (var j = 0; j < abList.length; j++) {
-                        combined.set(new Uint8Array(abList[j]), offset);
-                        offset += abList[j].byteLength;
+                        if (abList[j]) {
+                            combined.set(new Uint8Array(abList[j]), offset);
+                            offset += abList[j].byteLength;
+                        }
                     }
                     var blob = new Blob([combined], { type: 'video/MP2T' });
-                    /* HLS (m3u8) — это плейлист сегментов .ts; склеиваем в один файл, сохраняем как .ts */
                     var ext = (filename && filename.indexOf('.') !== -1) ? '' : '.ts';
                     var ok = triggerSave(blob, (filename || 'video') + ext);
                     if (onDone) onDone(ok);
                     return;
                 }
-                fetch(segments[index], { mode: 'cors' }).then(function(r) { return r.arrayBuffer(); }).then(function(ab) {
+                fetch(onlyTs[index], { mode: 'cors' }).then(function(r) { return r.arrayBuffer(); }).then(function(ab) {
                     abList[index] = ab;
-                    done++;
-                    if (onProgress) onProgress(done, total);
+                    doneCount++;
+                    if (onProgress) onProgress(doneCount, total);
                     fetchNext(index + 1);
                 }).catch(function() {
-                    done++;
-                    if (onProgress) onProgress(done, total);
+                    doneCount++;
+                    if (onProgress) onProgress(doneCount, total);
                     fetchNext(index + 1);
                 });
             }
             fetchNext(0);
+        }
+
+        fetch(url, { mode: 'cors' }).then(function(res) { return res.text(); }).then(function(text) {
+            if (isMasterPlaylist(text)) {
+                var variantUrls = parseM3u8Segments(text, baseUrl).filter(function(u) { return u.toLowerCase().indexOf('.m3u8') !== -1; });
+                if (variantUrls.length === 0) {
+                    if (onDone) onDone(false);
+                    return;
+                }
+                fetch(variantUrls[0], { mode: 'cors' }).then(function(r) { return r.text(); }).then(function(variantText) {
+                    doDownload(variantText, getBaseUrl(variantUrls[0]));
+                }).catch(function() { if (onDone) onDone(false); });
+            } else {
+                doDownload(text, baseUrl);
+            }
         }).catch(function() {
             if (onDone) onDone(false);
         });
@@ -133,27 +164,33 @@
         showDownloadFromClipboardPrompt(copiedUrl);
     }
 
-    function showDownloadPromptAskClipboardOrPaste() {
+    function showDownloadPromptWithUrl(urlFromClipboard) {
         if (isSettingsOrPluginsPage()) return;
+        var url = urlFromClipboard ? fixUrl(String(urlFromClipboard).trim()) : '';
         var oldModal = document.getElementById('lampa-dl-after-copy');
         if (oldModal) oldModal.remove();
+
         var modal = document.createElement('div');
         modal.id = 'lampa-dl-after-copy';
-        modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);z-index:99995;display:flex;align-items:center;justify-content:center;font-family:sans-serif;';
+        modal.setAttribute('role', 'dialog');
+        modal.setAttribute('tabindex', '-1');
+        modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);z-index:99995;display:flex;align-items:center;justify-content:center;font-family:sans-serif;outline:none;';
         var box = document.createElement('div');
-        box.style.cssText = 'background:#222;padding:24px;border-radius:10px;box-shadow:0 0 30px rgba(0,0,0,0.6);min-width:280px;';
+        box.className = 'selector';
+        box.setAttribute('tabindex', '0');
+        box.style.cssText = 'background:#222;padding:24px;border-radius:10px;box-shadow:0 0 30px rgba(0,0,0,0.6);min-width:280px;outline:none;border:3px solid transparent;';
         box.innerHTML = '<p style="color:#fff;margin:0 0 16px;font-size:15px;">Скачать файл?</p>';
         var btnYes = document.createElement('div');
         btnYes.className = 'selector lampa-dl-after-btn';
         btnYes.setAttribute('data-action', 'yes');
         btnYes.setAttribute('tabindex', '0');
-        btnYes.style.cssText = 'flex:1;background:#2a9d8f;color:#fff;padding:12px;border-radius:8px;text-align:center;font-size:14px;cursor:pointer;border:3px solid transparent;';
-        btnYes.textContent = 'Да (из буфера)';
+        btnYes.style.cssText = 'flex:1;background:#2a9d8f;color:#fff;padding:12px;border-radius:8px;text-align:center;font-size:14px;cursor:pointer;border:3px solid transparent;outline:none;';
+        btnYes.textContent = 'Да';
         var btnNo = document.createElement('div');
         btnNo.className = 'selector lampa-dl-after-btn';
         btnNo.setAttribute('data-action', 'no');
         btnNo.setAttribute('tabindex', '0');
-        btnNo.style.cssText = 'flex:1;background:#444;color:#ddd;padding:12px;border-radius:8px;text-align:center;font-size:14px;cursor:pointer;border:3px solid transparent;';
+        btnNo.style.cssText = 'flex:1;background:#444;color:#ddd;padding:12px;border-radius:8px;text-align:center;font-size:14px;cursor:pointer;border:3px solid transparent;outline:none;';
         btnNo.textContent = 'Нет';
         var row = document.createElement('div');
         row.style.cssText = 'display:flex;gap:10px;';
@@ -163,68 +200,66 @@
         modal.appendChild(box);
         document.body.appendChild(modal);
 
-        function removeModalAndListener() {
+        var buttons = [btnYes, btnNo];
+        var currentIndex = 0;
+
+        function removeModalAndListeners() {
             if (modal.parentNode) modal.remove();
             document.removeEventListener('click', closeOut);
+            document.removeEventListener('keydown', onKeyDown);
         }
         function closeOut(e) {
-            if (modal.parentNode && e.target !== modal && !modal.contains(e.target)) removeModalAndListener();
+            if (modal.parentNode && e.target !== modal && !modal.contains(e.target)) removeModalAndListeners();
         }
-        function doYes() {
-            removeModalAndListener();
-            function tryClipboard() {
-                if (!navigator.clipboard || typeof navigator.clipboard.readText !== 'function') {
-                    showPasteInput();
-                    return;
-                }
-                navigator.clipboard.readText().then(function(text) {
-                    var t = (text && text.trim()) || '';
-                    if (t && isVideoUrl(t)) {
-                        startDownload(t, 'video', null);
-                    } else {
-                        showPasteInput();
-                    }
-                }).catch(function() { showPasteInput(); });
-            }
-            function showPasteInput() {
-                showNotify('Вставьте ссылку вручную');
-                var m2 = document.createElement('div');
-                m2.id = 'lampa-dl-paste';
-                m2.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:99996;display:flex;align-items:center;justify-content:center;font-family:sans-serif;';
-                var b2 = document.createElement('div');
-                b2.style.cssText = 'background:#222;padding:24px;border-radius:10px;min-width:320px;';
-                b2.innerHTML = '<p style="color:#fff;margin:0 0 12px;">Вставьте ссылку на видео</p><input type="text" id="lampa-dl-paste-input" placeholder="https://..." style="width:100%;padding:10px;margin-bottom:12px;background:#111;color:#fff;border:1px solid #444;border-radius:6px;box-sizing:border-box;"><div style="display:flex;gap:8px;"><div class="selector" data-dl="go" tabindex="0" style="flex:1;background:#2a9d8f;color:#fff;padding:12px;text-align:center;border-radius:8px;cursor:pointer;">Скачать</div><div class="selector" data-dl="cancel" tabindex="0" style="flex:1;background:#444;color:#ddd;padding:12px;text-align:center;border-radius:8px;cursor:pointer;">Отмена</div></div>';
-                m2.appendChild(b2);
-                document.body.appendChild(m2);
-                var inp = document.getElementById('lampa-dl-paste-input');
-                if (inp) {
-                    setTimeout(function() { inp.focus(); }, 100);
-                    inp.onkeydown = function(e) { if (e.key === 'Enter') b2.querySelector('[data-dl=go]').click(); };
-                }
-                b2.querySelector('[data-dl=go]').onclick = function() {
-                    var u = (inp && inp.value && inp.value.trim()) || '';
-                    m2.remove();
-                    if (u && isVideoUrl(u)) startDownload(u, 'video', null);
-                    else showNotify('Введите ссылку на видео');
-                };
-                b2.querySelector('[data-dl=cancel]').onclick = function() { m2.remove(); };
-            }
-            tryClipboard();
-        }
-        function doAction(btn) {
+        function activate(btn) {
             var action = btn.getAttribute('data-action');
-            removeModalAndListener();
-            if (action === 'yes') doYes();
+            removeModalAndListeners();
+            if (action === 'yes' && url && isVideoUrl(url)) {
+                startDownload(url, 'video', null);
+            } else if (action === 'yes' && !url) {
+                showNotify('Ссылка не найдена в буфере');
+            }
         }
-        btnYes.addEventListener('click', function() { doAction(btnYes); });
-        btnNo.addEventListener('click', function() { doAction(btnNo); });
+        function onKeyDown(e) {
+            if (!modal.parentNode || !document.body.contains(modal)) return;
+            if (e.key === 'Enter' || e.key === ' ') {
+                var active = document.activeElement;
+                if (active && (active === btnYes || active === btnNo)) {
+                    e.preventDefault();
+                    activate(active);
+                }
+            } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+                e.preventDefault();
+                currentIndex = currentIndex <= 0 ? 1 : 0;
+                buttons[currentIndex].focus();
+            } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+                e.preventDefault();
+                currentIndex = currentIndex >= 1 ? 0 : 1;
+                buttons[currentIndex].focus();
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                removeModalAndListeners();
+            }
+        }
+
+        btnYes.addEventListener('click', function() { activate(btnYes); });
+        btnNo.addEventListener('click', function() { activate(btnNo); });
         btnYes.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); doAction(btnYes); }
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); activate(btnYes); }
+            if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); btnNo.focus(); currentIndex = 1; }
         });
         btnNo.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); doAction(btnNo); }
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); activate(btnNo); }
+            if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); btnYes.focus(); currentIndex = 0; }
         });
-        setTimeout(function() { document.addEventListener('click', closeOut); }, 150);
+
+        document.addEventListener('click', closeOut, false);
+        document.addEventListener('keydown', onKeyDown, true);
+
+        setTimeout(function() {
+            btnYes.focus();
+            currentIndex = 0;
+        }, 100);
 
         if (typeof Lampa !== 'undefined' && Lampa.Controller) {
             try {
@@ -232,6 +267,45 @@
                 if (typeof Lampa.Controller.collectionFocus === 'function') Lampa.Controller.collectionFocus(btnYes);
             } catch (err) {}
         }
+    }
+
+    function showDownloadPromptAskClipboardOrPaste() {
+        if (isSettingsOrPluginsPage()) return;
+        function showWithUrl(url) {
+            showDownloadPromptWithUrl(url);
+        }
+        function showPasteInput() {
+            showNotify('Вставьте ссылку вручную');
+            var m2 = document.createElement('div');
+            m2.id = 'lampa-dl-paste';
+            m2.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:99996;display:flex;align-items:center;justify-content:center;font-family:sans-serif;';
+            var b2 = document.createElement('div');
+            b2.style.cssText = 'background:#222;padding:24px;border-radius:10px;min-width:320px;';
+            b2.innerHTML = '<p style="color:#fff;margin:0 0 12px;">Вставьте ссылку на видео</p><input type="text" id="lampa-dl-paste-input" placeholder="https://..." style="width:100%;padding:10px;margin-bottom:12px;background:#111;color:#fff;border:1px solid #444;border-radius:6px;box-sizing:border-box;"><div style="display:flex;gap:8px;"><div class="selector" data-dl="go" tabindex="0" style="flex:1;background:#2a9d8f;color:#fff;padding:12px;text-align:center;border-radius:8px;cursor:pointer;">Скачать</div><div class="selector" data-dl="cancel" tabindex="0" style="flex:1;background:#444;color:#ddd;padding:12px;text-align:center;border-radius:8px;cursor:pointer;">Отмена</div></div>';
+            m2.appendChild(b2);
+            document.body.appendChild(m2);
+            var inp = document.getElementById('lampa-dl-paste-input');
+            if (inp) setTimeout(function() { inp.focus(); }, 100);
+            b2.querySelector('[data-dl=go]').onclick = function() {
+                var u = (inp && inp.value && inp.value.trim()) || '';
+                m2.remove();
+                if (u && isVideoUrl(u)) startDownload(u, 'video', null);
+                else showNotify('Введите ссылку на видео');
+            };
+            b2.querySelector('[data-dl=cancel]').onclick = function() { m2.remove(); };
+        }
+        if (!navigator.clipboard || typeof navigator.clipboard.readText !== 'function') {
+            showPasteInput();
+            return;
+        }
+        navigator.clipboard.readText().then(function(text) {
+            var t = (text && text.trim()) || '';
+            if (t && isVideoUrl(t)) {
+                showWithUrl(t);
+            } else {
+                showPasteInput();
+            }
+        }).catch(function() { showPasteInput(); });
     }
 
     function showDownloadFromClipboardPrompt(copiedUrl) {
