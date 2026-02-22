@@ -1219,7 +1219,7 @@
             '.icon-picker-grid__cell svg { width: 1.5em; height: 1.5em; }' +
             '.name-picker-ok { font-family: var(--buttons-plugin-modal-font, inherit); font-size: var(--buttons-plugin-modal-font-size, inherit); }' +
             /* При выключенном «Показать постер»: сдвигаем блок вниз (отступ сверху в % экрана) */
-            'body.buttons-plugin--poster-off .full-start-new { margin-top: 45vh !important; }' +
+            'body.buttons-plugin--poster-off .full-start-new { margin-top: 28vh !important; }' +
             '</style>');
         $('body').append(style);
 
