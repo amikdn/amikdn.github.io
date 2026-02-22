@@ -1230,19 +1230,27 @@
             var showPoster = Lampa.Storage.get('card_interfice_poster', true);
             if (!showPoster) {
                 $('body').addClass('buttons-plugin--poster-off');
-                var fullStart = container.find('.full-start-new').first();
-                if (fullStart.length && !fullStart.parent().hasClass('buttons-plugin-poster-off-viewport')) {
-                    var viewport = $('<div class="buttons-plugin-poster-off-viewport">');
-                    fullStart.after(viewport);
-                    viewport.append(fullStart);
-                    var scrollBody = container.closest('.scroll__body');
-                    if (scrollBody.length) {
-                        viewport.prependTo(scrollBody);
+                var applyViewport = function() {
+                    var c = e.object.activity && e.object.activity.render && e.object.activity.render();
+                    if (!c || !c.length) return;
+                    var fullStart = c.find('.full-start-new').first();
+                    if (fullStart.length && !fullStart.parent().hasClass('buttons-plugin-poster-off-viewport')) {
+                        var viewport = $('<div class="buttons-plugin-poster-off-viewport">');
+                        viewport.append(fullStart);
+                        var scrollBody = c.find('.scroll__body').first();
+                        if (scrollBody.length) {
+                            viewport.prependTo(scrollBody);
+                        } else {
+                            viewport.prependTo(c);
+                        }
                     }
-                }
+                };
+                applyViewport();
+                setTimeout(applyViewport, 100);
+                setTimeout(applyViewport, 400);
             } else {
                 $('body').removeClass('buttons-plugin--poster-off');
-                var v = container.closest('.scroll__body').find('.buttons-plugin-poster-off-viewport').first();
+                var v = container.find('.buttons-plugin-poster-off-viewport').first();
                 if (v.length) {
                     var block = v.children().first();
                     block.prependTo(container);
