@@ -2,7 +2,7 @@
     'use strict';
 
     var PLUGIN_NAME = 'Скачивание с Lampa';
-    var PLUGIN_VERSION = '1.0';
+    var PLUGIN_VERSION = '1.01';
 
 
     function showNotify(msg) {
