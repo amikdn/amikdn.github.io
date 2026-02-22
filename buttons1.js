@@ -1223,7 +1223,7 @@
             /* При выключенном «Показать постер» — по аналогии с cardify: фиксированная высота верхнего блока, контент прижат к низу, прокрутка как в Lampa */
             'body.buttons-plugin--poster-off .full-start-new__body { height: 80vh !important; }' +
             'body.buttons-plugin--poster-off .full-start-new__right { display: flex !important; flex-direction: column !important; justify-content: flex-end !important; }' +
-            'body.buttons-plugin--poster-off .full-start-new__head { margin-top: 0.2em !important; }' +
+            'body.buttons-plugin--poster-off .full-start-new__head { margin-bottom: 0.2em !important; }' +
             'body.buttons-plugin--poster-off .scroll__body > .items-line:last-of-type { margin-bottom: 40vh !important; }' +
             '</style>');
         $('body').append(style);
