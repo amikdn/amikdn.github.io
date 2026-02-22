@@ -44,6 +44,48 @@
         return /#EXT-X-STREAM-INF\s*:/i.test(text);
     }
 
+    function parseMasterPlaylistVariants(text, baseUrl) {
+        var lines = text.split(/\r?\n/);
+        var variants = [];
+        for (var i = 0; i < lines.length; i++) {
+            var line = lines[i].trim();
+            if (line.indexOf('#EXT-X-STREAM-INF') === 0) {
+                var bw = 0;
+                var m = line.match(/BANDWIDTH\s*=\s*(\d+)/i);
+                if (m) bw = parseInt(m[1], 10);
+                var next = (i + 1) < lines.length ? lines[i + 1].trim() : '';
+                if (next && next.indexOf('#') !== 0) {
+                    variants.push({ bandwidth: bw, url: resolveUrl(next, baseUrl) });
+                }
+            }
+        }
+        variants.sort(function(a, b) { return b.bandwidth - a.bandwidth; });
+        return variants;
+    }
+
+    function fetchText(u) {
+        return fetch(u, { mode: 'cors', credentials: 'omit' }).then(function(r) {
+            if (!r.ok) throw new Error('HTTP ' + r.status);
+            return r.text();
+        }).catch(function() {
+            return fetch(u, { credentials: 'omit' }).then(function(r) {
+                if (!r.ok) throw new Error('HTTP ' + r.status);
+                return r.text();
+            });
+        });
+    }
+    function fetchBuffer(u) {
+        return fetch(u, { mode: 'cors', credentials: 'omit' }).then(function(r) {
+            if (!r.ok) throw new Error('HTTP ' + r.status);
+            return r.arrayBuffer();
+        }).catch(function() {
+            return fetch(u, { credentials: 'omit' }).then(function(r) {
+                if (!r.ok) throw new Error('HTTP ' + r.status);
+                return r.arrayBuffer();
+            });
+        });
+    }
+
     function triggerSave(blob, filename) {
         try {
             var a = document.createElement('a');
@@ -65,18 +107,64 @@
     }
 
     function downloadMp4(url, filename, onDone) {
-        fetch(url, { mode: 'cors' }).then(function(res) { return res.blob(); }).then(function(blob) {
+        fetch(url, { mode: 'cors', credentials: 'omit' }).then(function(res) {
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            return res.blob();
+        }).then(function(blob) {
             var ok = triggerSave(blob, filename);
             if (onDone) onDone(ok);
-        }).catch(function(err) {
-            if (onDone) onDone(false);
+        }).catch(function() {
+            fetch(url, { credentials: 'omit' }).then(function(res) {
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                return res.blob();
+            }).then(function(blob) {
+                var ok = triggerSave(blob, filename);
+                if (onDone) onDone(ok);
+            }).catch(function() { if (onDone) onDone(false); });
         });
     }
 
     function downloadM3u8(url, filename, onProgress, onDone) {
         var baseUrl = getBaseUrl(url);
+        var name = (filename || 'video') + ((filename && filename.indexOf('.') !== -1) ? '' : '.ts');
 
-        function doDownload(playlistText, base) {
+        function doDownloadStream(playlistText, base, fileHandle) {
+            var segments = parseM3u8Segments(playlistText, base);
+            var onlyTs = segments.filter(function(u) {
+                var lower = u.toLowerCase();
+                return lower.indexOf('.ts') !== -1 || lower.indexOf('.m4s') !== -1 || (lower.indexOf('segment') !== -1 && lower.indexOf('.m3u8') === -1);
+            });
+            if (onlyTs.length === 0) onlyTs = segments.filter(function(u) { return u.toLowerCase().indexOf('.m3u8') === -1; });
+            if (onlyTs.length === 0) onlyTs = segments;
+
+            var total = onlyTs.length;
+            var doneCount = 0;
+
+            fileHandle.createWritable().then(function(writer) {
+                function fetchNext(index) {
+                    if (index >= total) {
+                        writer.close().then(function() {
+                            if (onDone) onDone(true);
+                        }).catch(function() { if (onDone) onDone(false); });
+                        return;
+                    }
+                    fetchBuffer(onlyTs[index]).then(function(ab) {
+                        return writer.write(ab).then(function() {
+                            doneCount++;
+                            if (onProgress) onProgress(doneCount, total);
+                            fetchNext(index + 1);
+                        });
+                    }).catch(function() {
+                        doneCount++;
+                        if (onProgress) onProgress(doneCount, total);
+                        fetchNext(index + 1);
+                    });
+                }
+                fetchNext(0);
+            }).catch(function() { if (onDone) onDone(false); });
+        }
+
+        function doDownloadMemory(playlistText, base) {
             var segments = parseM3u8Segments(playlistText, base);
             var onlyTs = segments.filter(function(u) {
                 var lower = u.toLowerCase();
@@ -108,12 +196,11 @@
                         }
                     }
                     var blob = new Blob([combined], { type: 'video/MP2T' });
-                    var ext = (filename && filename.indexOf('.') !== -1) ? '' : '.ts';
-                    var ok = triggerSave(blob, (filename || 'video') + ext);
+                    var ok = triggerSave(blob, name);
                     if (onDone) onDone(ok);
                     return;
                 }
-                fetch(onlyTs[index], { mode: 'cors' }).then(function(r) { return r.arrayBuffer(); }).then(function(ab) {
+                fetchBuffer(onlyTs[index]).then(function(ab) {
                     abList[index] = ab;
                     doneCount++;
                     if (onProgress) onProgress(doneCount, total);
@@ -127,18 +214,32 @@
             fetchNext(0);
         }
 
-        fetch(url, { mode: 'cors' }).then(function(res) { return res.text(); }).then(function(text) {
+        function startDoDownload(playlistText, base) {
+            if (typeof window.showSaveFilePicker === 'function') {
+                window.showSaveFilePicker({ suggestedName: name }).then(function(handle) {
+                    doDownloadStream(playlistText, base, handle);
+                }).catch(function() {
+                    doDownloadMemory(playlistText, base);
+                });
+            } else {
+                doDownloadMemory(playlistText, base);
+            }
+        }
+
+        fetchText(url).then(function(text) {
             if (isMasterPlaylist(text)) {
-                var variantUrls = parseM3u8Segments(text, baseUrl).filter(function(u) { return u.toLowerCase().indexOf('.m3u8') !== -1; });
-                if (variantUrls.length === 0) {
+                var variants = parseMasterPlaylistVariants(text, baseUrl);
+                if (variants.length === 0) {
                     if (onDone) onDone(false);
                     return;
                 }
-                fetch(variantUrls[0], { mode: 'cors' }).then(function(r) { return r.text(); }).then(function(variantText) {
-                    doDownload(variantText, getBaseUrl(variantUrls[0]));
-                }).catch(function() { if (onDone) onDone(false); });
+                fetchText(variants[0].url).then(function(variantText) {
+                    startDoDownload(variantText, getBaseUrl(variants[0].url));
+                }).catch(function() {
+                    if (onDone) onDone(false);
+                });
             } else {
-                doDownload(text, baseUrl);
+                startDoDownload(text, baseUrl);
             }
         }).catch(function() {
             if (onDone) onDone(false);
