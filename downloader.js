@@ -97,13 +97,31 @@
                 if (len) total += parseInt(len, 10);
             }).catch(function() {});
         }
+        function done() {
+            if (total > 0) {
+                callback(total);
+                return;
+            }
+            var firstUrl = segmentUrls[0];
+            fetch(firstUrl, { method: 'GET', mode: 'cors', credentials: 'omit' }).then(function(r) {
+                var len = r.headers.get('Content-Length');
+                if (len) {
+                    var one = parseInt(len, 10);
+                    if (one > 0) total = one * segmentUrls.length;
+                }
+                if (r.body) r.body.cancel().catch(function() {});
+                callback(total);
+            }).catch(function() {
+                callback(0);
+            });
+        }
         function runBatch() {
             var end = Math.min(index + batchSize, segmentUrls.length);
             var batch = [];
             for (var i = index; i < end; i++) batch.push(headOne(segmentUrls[i]));
             index = end;
             Promise.all(batch).then(function() {
-                if (index >= segmentUrls.length) callback(total);
+                if (index >= segmentUrls.length) done();
                 else runBatch();
             });
         }
@@ -178,12 +196,16 @@
 
     function updateDownloadProgress(loadedBytes, totalBytes, segmentDone, segmentTotal) {
         if (!progressSizeEl) return;
-        progressSizeEl.textContent = 'Размер: ' + formatBytes(loadedBytes) + (totalBytes > 0 ? ' / ' + formatBytes(totalBytes) : '');
+        var displayTotal = totalBytes;
+        if ((displayTotal <= 0 || !displayTotal) && segmentTotal > 0 && segmentDone >= 1 && loadedBytes > 0) {
+            displayTotal = Math.round(loadedBytes * segmentTotal / segmentDone);
+        }
+        progressSizeEl.textContent = 'Размер: ' + formatBytes(loadedBytes) + (displayTotal > 0 ? ' / ~' + formatBytes(displayTotal) : '');
         var elapsed = (Date.now() - progressStartTime) / 1000;
         var speed = elapsed > 0 ? loadedBytes / elapsed : 0;
         if (progressSpeedEl) progressSpeedEl.textContent = 'Скорость: ' + formatBytes(Math.round(speed)) + '/s';
         if (progressBarEl) {
-            var pct = totalBytes > 0 ? Math.min(100, (loadedBytes / totalBytes) * 100) : (segmentTotal > 0 ? (segmentDone / segmentTotal) * 100 : 0);
+            var pct = displayTotal > 0 ? Math.min(100, (loadedBytes / displayTotal) * 100) : (segmentTotal > 0 ? (segmentDone / segmentTotal) * 100 : 0);
             progressBarEl.style.width = pct + '%';
         }
         if (progressSegmentsEl) {
@@ -195,15 +217,15 @@
             }
         }
         if (progressTimeEl) {
-            if (totalBytes > 0 && loadedBytes < totalBytes && speed > 0) {
-                var remaining = (totalBytes - loadedBytes) / speed;
+            if (displayTotal > 0 && loadedBytes < displayTotal && speed > 0) {
+                var remaining = (displayTotal - loadedBytes) / speed;
                 progressTimeEl.textContent = 'Осталось: ~' + formatTimeRemaining(remaining);
                 progressTimeEl.style.display = '';
-            } else if (totalBytes > 0 && loadedBytes >= totalBytes) {
+            } else if (displayTotal > 0 && loadedBytes >= displayTotal) {
                 progressTimeEl.textContent = 'Осталось: 0 сек';
                 progressTimeEl.style.display = '';
             } else {
-                progressTimeEl.style.display = totalBytes > 0 ? '' : 'none';
+                progressTimeEl.style.display = (displayTotal > 0 || segmentTotal > 0) ? '' : 'none';
             }
         }
     }
@@ -406,6 +428,11 @@
     function showDownloadPromptWithUrl(urlFromClipboard) {
         if (isSettingsOrPluginsPage()) return;
         var url = urlFromClipboard ? fixUrl(String(urlFromClipboard).trim()) : '';
+        if (!url || !isVideoUrl(url)) {
+            showNotify('Ссылка не найдена в буфере');
+            showPasteInputDialog();
+            return;
+        }
         var oldModal = document.getElementById('lampa-dl-after-copy');
         if (oldModal) oldModal.remove();
 
@@ -417,8 +444,9 @@
         var box = document.createElement('div');
         box.className = 'selector';
         box.setAttribute('tabindex', '0');
-        box.style.cssText = 'background:#222;padding:24px;border-radius:10px;box-shadow:0 0 30px rgba(0,0,0,0.6);min-width:280px;outline:none;border:3px solid transparent;';
-        box.innerHTML = '<p style="color:#fff;margin:0 0 16px;font-size:15px;">Скачать файл?</p>';
+        box.style.cssText = 'background:#222;padding:24px;border-radius:10px;box-shadow:0 0 30px rgba(0,0,0,0.6);min-width:280px;max-width:95vw;outline:none;border:3px solid transparent;';
+        var linkLabel = url ? ('<p style="color:#81c784;font-size:12px;margin:0 0 12px;word-break:break-all;">Ссылка подставлена: ' + (url.length > 55 ? url.substring(0, 55) + '…' : url) + '</p>') : '';
+        box.innerHTML = '<p style="color:#fff;margin:0 0 16px;font-size:15px;">Скачать файл?</p>' + linkLabel;
         var btnYes = document.createElement('div');
         btnYes.className = 'selector lampa-dl-after-btn';
         btnYes.setAttribute('data-action', 'yes');
@@ -508,43 +536,58 @@
         }
     }
 
+    function showPasteInputDialog() {
+        showNotify('Вставьте ссылку вручную');
+        var m2 = document.createElement('div');
+        m2.id = 'lampa-dl-paste';
+        m2.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:99996;display:flex;align-items:center;justify-content:center;font-family:sans-serif;';
+        var b2 = document.createElement('div');
+        b2.style.cssText = 'background:#222;padding:24px;border-radius:10px;min-width:320px;';
+        b2.innerHTML = '<p style="color:#fff;margin:0 0 12px;">Вставьте ссылку на видео</p><input type="text" id="lampa-dl-paste-input" placeholder="https://..." style="width:100%;padding:10px;margin-bottom:12px;background:#111;color:#fff;border:1px solid #444;border-radius:6px;box-sizing:border-box;"><div style="display:flex;gap:8px;"><div class="selector" data-dl="go" tabindex="0" style="flex:1;background:#2a9d8f;color:#fff;padding:12px;text-align:center;border-radius:8px;cursor:pointer;">Скачать</div><div class="selector" data-dl="cancel" tabindex="0" style="flex:1;background:#444;color:#ddd;padding:12px;text-align:center;border-radius:8px;cursor:pointer;">Отмена</div></div>';
+        m2.appendChild(b2);
+        document.body.appendChild(m2);
+        var inp = document.getElementById('lampa-dl-paste-input');
+        if (inp) setTimeout(function() { inp.focus(); }, 100);
+        b2.querySelector('[data-dl=go]').onclick = function() {
+            var u = (inp && inp.value && inp.value.trim()) || '';
+            m2.remove();
+            if (u && isVideoUrl(u)) startDownload(u, 'video', null);
+            else showNotify('Введите ссылку на видео');
+        };
+        b2.querySelector('[data-dl=cancel]').onclick = function() { m2.remove(); };
+    }
+
     function showDownloadPromptAskClipboardOrPaste() {
         if (isSettingsOrPluginsPage()) return;
         function showWithUrl(url) {
             showDownloadPromptWithUrl(url);
         }
-        function showPasteInput() {
-            showNotify('Вставьте ссылку вручную');
-            var m2 = document.createElement('div');
-            m2.id = 'lampa-dl-paste';
-            m2.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:99996;display:flex;align-items:center;justify-content:center;font-family:sans-serif;';
-            var b2 = document.createElement('div');
-            b2.style.cssText = 'background:#222;padding:24px;border-radius:10px;min-width:320px;';
-            b2.innerHTML = '<p style="color:#fff;margin:0 0 12px;">Вставьте ссылку на видео</p><input type="text" id="lampa-dl-paste-input" placeholder="https://..." style="width:100%;padding:10px;margin-bottom:12px;background:#111;color:#fff;border:1px solid #444;border-radius:6px;box-sizing:border-box;"><div style="display:flex;gap:8px;"><div class="selector" data-dl="go" tabindex="0" style="flex:1;background:#2a9d8f;color:#fff;padding:12px;text-align:center;border-radius:8px;cursor:pointer;">Скачать</div><div class="selector" data-dl="cancel" tabindex="0" style="flex:1;background:#444;color:#ddd;padding:12px;text-align:center;border-radius:8px;cursor:pointer;">Отмена</div></div>';
-            m2.appendChild(b2);
-            document.body.appendChild(m2);
-            var inp = document.getElementById('lampa-dl-paste-input');
-            if (inp) setTimeout(function() { inp.focus(); }, 100);
-            b2.querySelector('[data-dl=go]').onclick = function() {
-                var u = (inp && inp.value && inp.value.trim()) || '';
-                m2.remove();
-                if (u && isVideoUrl(u)) startDownload(u, 'video', null);
-                else showNotify('Введите ссылку на видео');
-            };
-            b2.querySelector('[data-dl=cancel]').onclick = function() { m2.remove(); };
-        }
         if (!navigator.clipboard || typeof navigator.clipboard.readText !== 'function') {
-            showPasteInput();
+            showPasteInputDialog();
             return;
         }
-        navigator.clipboard.readText().then(function(text) {
-            var t = (text && text.trim()) || '';
-            if (t && isVideoUrl(t)) {
-                showWithUrl(t);
-            } else {
-                showPasteInput();
+        var resolved = false;
+        var delays = [0, 150, 350, 600, 1000, 1500, 2200, 3000];
+        function tryRead() {
+            if (resolved) return;
+            navigator.clipboard.readText().then(function(text) {
+                if (resolved) return;
+                var t = (text && text.trim()) || '';
+                if (t && isVideoUrl(t)) {
+                    resolved = true;
+                    showWithUrl(t);
+                }
+            }).catch(function() {});
+        }
+        for (var d = 0; d < delays.length; d++) {
+            setTimeout(tryRead, delays[d]);
+        }
+        setTimeout(function() {
+            if (!resolved) {
+                resolved = true;
+                showPasteInputDialog();
             }
-        }).catch(function() { showPasteInput(); });
+        }, delays[delays.length - 1] + 500);
     }
 
     function showDownloadFromClipboardPrompt(copiedUrl) {
