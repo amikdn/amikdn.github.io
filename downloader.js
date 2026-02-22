@@ -117,9 +117,11 @@
     function isVideoUrl(text) {
         if (!text || typeof text !== 'string') return false;
         var t = text.trim();
-        return (t.indexOf('http://') === 0 || t.indexOf('https://') === 0) &&
-            (t.indexOf('.m3u8') !== -1 || t.indexOf('.mp4') !== -1 || t.indexOf('.ts') !== -1 ||
-             t.indexOf('m3u8') !== -1 || t.indexOf('video') !== -1 || t.indexOf('stream') !== -1 || t.length > 30);
+        if (t.indexOf('http://') !== 0 && t.indexOf('https://') !== 0) return false;
+        if (t.length < 15) return false;
+        return t.indexOf('.m3u8') !== -1 || t.indexOf('.mp4') !== -1 || t.indexOf('.ts') !== -1 ||
+            t.indexOf('m3u8') !== -1 || t.indexOf('video') !== -1 || t.indexOf('stream') !== -1 ||
+            t.indexOf('torrent') !== -1 || t.indexOf('play') !== -1 || t.length > 25;
     }
 
     function isSettingsOrPluginsPage() {
@@ -219,23 +221,51 @@
         }
     }
 
+    var lastPromptUrl = '';
+    var lastPromptTime = 0;
+    function onVideoLinkCopied(text) {
+        if (!text || !isVideoUrl(text)) return;
+        var now = Date.now();
+        if (text === lastPromptUrl && now - lastPromptTime < 2000) return;
+        lastPromptUrl = text;
+        lastPromptTime = now;
+        setTimeout(function() { showDownloadFromClipboardPrompt(text); }, 250);
+    }
+
     function hookClipboard() {
         try {
-            if (!navigator.clipboard || typeof navigator.clipboard.writeText !== 'function') return;
-            var nativeWrite = navigator.clipboard.writeText.bind(navigator.clipboard);
-            navigator.clipboard.writeText = function(text) {
-                var result = nativeWrite(text);
-                var show = function() {
-                    if (isVideoUrl(text)) showDownloadFromClipboardPrompt(text);
+            if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+                var nativeWrite = navigator.clipboard.writeText.bind(navigator.clipboard);
+                navigator.clipboard.writeText = function(text) {
+                    var result = nativeWrite(text);
+                    if (result && typeof result.then === 'function') {
+                        result.then(function() { onVideoLinkCopied(text); }).catch(function() {});
+                    } else {
+                        onVideoLinkCopied(text);
+                    }
+                    return result;
                 };
-                if (result && typeof result.then === 'function') {
-                    result.then(function() { setTimeout(show, 200); }).catch(function() {});
-                } else {
-                    setTimeout(show, 250);
-                }
-                return result;
-            };
+            }
         } catch (e) {}
+
+        document.addEventListener('copy', function(e) {
+            function check() {
+                try {
+                    var text = (e.clipboardData && e.clipboardData.getData('text/plain')) || '';
+                    if (text) onVideoLinkCopied(text);
+                } catch (err) {}
+            }
+            check();
+            setTimeout(function() {
+                try {
+                    if (navigator.clipboard && typeof navigator.clipboard.readText === 'function') {
+                        navigator.clipboard.readText().then(function(text) {
+                            if (text) onVideoLinkCopied(text);
+                        }).catch(function() {});
+                    }
+                } catch (err) {}
+            }, 400);
+        }, true);
     }
 
     function initPlugin() {
