@@ -1218,12 +1218,9 @@
             '.icon-picker-grid__cell.focus { border-color: rgba(255,255,255,0.8); }' +
             '.icon-picker-grid__cell svg { width: 1.5em; height: 1.5em; }' +
             '.name-picker-ok { font-family: var(--buttons-plugin-modal-font, inherit); font-size: var(--buttons-plugin-modal-font-size, inherit); }' +
-            /* При выключенном «Показать постер»: первый экран = блок с кнопками, кнопки внизу экрана, ниже — при прокрутке */
-            'body.buttons-plugin--poster-off .scroll__body { max-height: 100vh !important; overflow-y: auto !important; }' +
-            'body.buttons-plugin--poster-off .full-start-new { min-height: 100vh !important; display: flex !important; flex-direction: column !important; }' +
-            'body.buttons-plugin--poster-off .full-start-new__body { flex: 1 !important; min-height: 0 !important; display: flex !important; flex-direction: column !important; }' +
-            'body.buttons-plugin--poster-off .full-start-new__right { flex: 1 !important; min-height: 0 !important; display: flex !important; flex-direction: column !important; }' +
-            'body.buttons-plugin--poster-off .full-start-new__buttons { margin-top: auto !important; }' +
+            /* При выключенном «Показать постер»: обёртка 100vh, блок прижат к низу без растягивания; под кнопками — контент при прокрутке */
+            'body.buttons-plugin--poster-off .buttons-plugin-poster-off-viewport { min-height: 100vh !important; display: flex !important; flex-direction: column !important; }' +
+            'body.buttons-plugin--poster-off .buttons-plugin-poster-off-viewport .full-start-new { margin-top: auto !important; }' +
             '</style>');
         $('body').append(style);
 
@@ -1233,8 +1230,13 @@
             var showPoster = Lampa.Storage.get('card_interfice_poster', true);
             if (!showPoster) {
                 $('body').addClass('buttons-plugin--poster-off');
+                var fullStart = container.find('.full-start-new').first();
+                if (fullStart.length && !fullStart.parent().hasClass('buttons-plugin-poster-off-viewport')) {
+                    fullStart.wrap('<div class="buttons-plugin-poster-off-viewport">');
+                }
             } else {
                 $('body').removeClass('buttons-plugin--poster-off');
+                container.find('.buttons-plugin-poster-off-viewport').children().unwrap();
             }
             var targetContainer = container.find('.full-start-new__buttons');
             if (targetContainer.length) {
