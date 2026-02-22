@@ -1176,9 +1176,7 @@
         var style = $('<style>' +
             '@keyframes button-fade-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }' +
             '.full-start-new__body { align-items: stretch !important; }' +
-			'.full-start-new__rate-line { margin-bottom: 0.4em !important; }' +
-			'.full-start-new__details { margin-bottom: 0.2em !important; }' +
-            '.full-start-new__left { align-self: flex-start !important; }' +
+			'.full-start-new__left { align-self: flex-start !important; }' +
             '.full-start-new__right { display: flex !important; flex-direction: column !important; align-self: stretch !important; min-height: 0; }' +
             '.full-start-new__title { margin-top: auto !important; }' +
             '.full-start-new__buttons { display: flex !important; flex-direction: row !important; flex-wrap: wrap !important; gap: 0.5em !important; }' +
@@ -1220,10 +1218,12 @@
             '.icon-picker-grid__cell.focus { border-color: rgba(255,255,255,0.8); }' +
             '.icon-picker-grid__cell svg { width: 1.5em; height: 1.5em; }' +
             '.name-picker-ok { font-family: var(--buttons-plugin-modal-font, inherit); font-size: var(--buttons-plugin-modal-font-size, inherit); }' +
-            /* При выключенном «Показать постер» — по аналогии с cardify: фиксированная высота верхнего блока, контент прижат к низу, прокрутка как в Lampa */
+            /* При выключенном «Показать постер» — по аналогии с cardify: фиксированная высота верхнего блока, контент прижат к низу, отступы рейтингов/жанров только здесь */
             'body.buttons-plugin--poster-off .full-start-new__body { height: 80vh !important; }' +
             'body.buttons-plugin--poster-off .full-start-new__right { display: flex !important; flex-direction: column !important; justify-content: flex-end !important; }' +
             'body.buttons-plugin--poster-off .full-start-new__head { display: none !important; }' +
+            'body.buttons-plugin--poster-off .full-start-new__rate-line { margin-bottom: 0.4em !important; }' +
+            'body.buttons-plugin--poster-off .full-start-new__details { margin-bottom: 0.2em !important; }' +
             'body.buttons-plugin--poster-off .scroll__body > .items-line:last-of-type { margin-bottom: 40vh !important; }' +
             '</style>');
         $('body').append(style);
