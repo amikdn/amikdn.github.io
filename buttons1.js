@@ -1178,7 +1178,6 @@
             '.full-start-new__body { align-items: stretch !important; }' +
 			'.full-start-new__rate-line { margin-bottom: 0.4em !important; }' +
 			'.full-start-new__details { margin-bottom: 0.2em !important; }' +
-            '.full-start-new__head { margin-top: 0.2em !important; }' +
             '.full-start-new__left { align-self: flex-start !important; }' +
             '.full-start-new__right { display: flex !important; flex-direction: column !important; align-self: stretch !important; min-height: 0; }' +
             '.full-start-new__title { margin-top: auto !important; }' +
@@ -1224,6 +1223,7 @@
             /* При выключенном «Показать постер» — по аналогии с cardify: фиксированная высота верхнего блока, контент прижат к низу, прокрутка как в Lampa */
             'body.buttons-plugin--poster-off .full-start-new__body { height: 80vh !important; }' +
             'body.buttons-plugin--poster-off .full-start-new__right { display: flex !important; flex-direction: column !important; justify-content: flex-end !important; }' +
+            'body.buttons-plugin--poster-off .full-start-new__head { margin-top: 0.2em !important; }' +
             'body.buttons-plugin--poster-off .scroll__body > .items-line:last-of-type { margin-bottom: 40vh !important; }' +
             '</style>');
         $('body').append(style);
