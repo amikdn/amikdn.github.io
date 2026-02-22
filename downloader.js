@@ -157,6 +157,53 @@
         return Promise.resolve(false);
     }
 
+    function showSaveFileDialog(blob, filename, onDone) {
+        var name = filename || 'video';
+        var type = blob.type || 'video/mp4';
+        if (blob.type === 'video/MP2T') type = 'video/MP2T';
+        var hasShare = navigator.share && typeof navigator.canShare === 'function';
+        var file = null;
+        try {
+            file = new File([blob], name, { type: type });
+            if (hasShare) hasShare = navigator.canShare({ files: [file] });
+        } catch (e) {
+            hasShare = false;
+        }
+        var box = document.createElement('div');
+        box.id = 'lampa-dl-save-dialog';
+        box.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);z-index:99999;display:flex;align-items:center;justify-content:center;font-family:sans-serif;';
+        var inner = document.createElement('div');
+        inner.style.cssText = 'background:#222;padding:24px;border-radius:12px;max-width:340px;text-align:center;';
+        if (hasShare) {
+            inner.innerHTML = '<p style="color:#fff;font-size:16px;margin:0 0 12px;">Загрузка завершена</p><p style="color:#aaa;font-size:14px;margin:0 0 20px;">Нажмите кнопку ниже — откроется меню. Выберите приложение «Файлы» или «Загрузки» и папку для сохранения.</p><div class="selector" data-dl-save="share" tabindex="0" style="background:#2a9d8f;color:#fff;padding:16px 24px;border-radius:10px;cursor:pointer;font-size:15px;margin-bottom:10px;">Сохранить файл</div><div class="selector" data-dl-save="no" tabindex="0" style="color:#888;padding:12px;cursor:pointer;">Отмена</div>';
+        } else {
+            inner.innerHTML = '<p style="color:#fff;font-size:16px;margin:0 0 12px;">Загрузка завершена</p><p style="color:#f5a623;font-size:13px;margin:0 0 16px;">На этом устройстве сохранение через «Поделиться» недоступно.</p><div class="selector" data-dl-save="link" tabindex="0" style="background:#444;color:#ddd;padding:14px;border-radius:8px;cursor:pointer;margin-bottom:10px;">Попробовать сохранить по ссылке</div><div class="selector" data-dl-save="no" tabindex="0" style="color:#888;padding:12px;cursor:pointer;">Закрыть</div>';
+        }
+        box.appendChild(inner);
+        document.body.appendChild(box);
+        if (hasShare && file) {
+            inner.querySelector('[data-dl-save=share]').onclick = function() {
+                navigator.share({ files: [file] }).then(function() {
+                    box.remove();
+                    if (onDone) onDone(true);
+                }).catch(function() {
+                    box.remove();
+                    if (onDone) onDone(false);
+                });
+            };
+        } else {
+            inner.querySelector('[data-dl-save=link]').onclick = function() {
+                box.remove();
+                var ok = triggerSave(blob, name);
+                if (onDone) onDone(ok);
+            };
+        }
+        inner.querySelector('[data-dl-save=no]').onclick = function() {
+            box.remove();
+            if (onDone) onDone(false);
+        };
+    }
+
     function safeFilename(name) {
         if (!name || typeof name !== 'string') return 'video';
         return name.replace(/[<>:"/\\|?*]/g, '_').substring(0, 120).trim() || 'video';
@@ -220,12 +267,16 @@
 
     function updateDownloadProgress(loadedBytes, totalBytes, segmentDone, segmentTotal) {
         if (!progressSizeEl) return;
-        var displayTotal = totalBytes;
-        if ((displayTotal <= 0 || !displayTotal) && segmentTotal > 0 && segmentDone >= 1 && loadedBytes > 0) {
-            displayTotal = Math.round((loadedBytes / segmentDone) * segmentTotal);
+        var estimatedFromSegments = (segmentTotal > 0 && segmentDone >= 1 && loadedBytes > 0)
+            ? Math.round((loadedBytes / segmentDone) * segmentTotal)
+            : 0;
+        var displayTotal = totalBytes || 0;
+        if (estimatedFromSegments > 0) {
+            displayTotal = displayTotal > 0 ? Math.max(displayTotal, estimatedFromSegments) : estimatedFromSegments;
         }
         if (displayTotal > 0 && loadedBytes > displayTotal) displayTotal = loadedBytes;
-        var totalLabel = displayTotal > 0 ? ' / ' + (totalBytes > 0 ? '' : '~') + formatBytes(displayTotal) : '';
+        var isEstimate = totalBytes <= 0 || displayTotal > totalBytes;
+        var totalLabel = displayTotal > 0 ? ' / ' + (isEstimate ? '~' : '') + formatBytes(displayTotal) : '';
         progressSizeEl.textContent = 'Размер: ' + formatBytes(loadedBytes) + totalLabel;
         var elapsed = (Date.now() - progressStartTime) / 1000;
         var speed = elapsed > 0 ? loadedBytes / elapsed : 0;
@@ -290,19 +341,26 @@
                 return read();
             });
         }
-        tryFetch().then(function(blob) {
-            tryShareSave(blob, filename).then(function(shared) {
-                if (shared) { if (onDone) onDone(true); return; }
-                var ok = triggerSave(blob, filename);
-                if (onDone) onDone(ok);
-            });
-        }).catch(function() {
-            tryFetch({ credentials: 'omit' }).then(function(blob) {
+        function finishMp4(blob) {
+            if (typeof window.showSaveFilePicker !== 'function') {
+                showSaveFileDialog(blob, filename, function(ok) {
+                    if (ok) { if (onDone) onDone(true); return; }
+                    var saved = triggerSave(blob, filename);
+                    if (onDone) onDone(saved);
+                });
+            } else {
                 tryShareSave(blob, filename).then(function(shared) {
                     if (shared) { if (onDone) onDone(true); return; }
                     var ok = triggerSave(blob, filename);
                     if (onDone) onDone(ok);
                 });
+            }
+        }
+        tryFetch().then(function(blob) {
+            finishMp4(blob);
+        }).catch(function() {
+            tryFetch({ credentials: 'omit' }).then(function(blob) {
+                finishMp4(blob);
             }).catch(function() { if (onDone) onDone(false); });
         });
     }
@@ -388,13 +446,21 @@
                         try {
                             var blob = new Blob(parts, { type: 'video/MP2T' });
                             parts.length = 0;
-                            tryShareSave(blob, name).then(function(shared) {
-                                if (shared) { if (onDone) onDone(true); return; }
-                                var ok = triggerSave(blob, name);
-                                if (onDone) onDone(ok);
-                            }).catch(function() {
-                                if (onDone) onDone(false);
-                            });
+                            if (typeof window.showSaveFilePicker !== 'function') {
+                                showSaveFileDialog(blob, name, function(ok) {
+                                    if (ok) { if (onDone) onDone(true); return; }
+                                    var saved = triggerSave(blob, name);
+                                    if (onDone) onDone(saved);
+                                });
+                            } else {
+                                tryShareSave(blob, name).then(function(shared) {
+                                    if (shared) { if (onDone) onDone(true); return; }
+                                    var ok = triggerSave(blob, name);
+                                    if (onDone) onDone(ok);
+                                }).catch(function() {
+                                    if (onDone) onDone(false);
+                                });
+                            }
                         } catch (e) {
                             if (onDone) onDone(false);
                         }
@@ -721,44 +787,25 @@
         var useMemoryPath = typeof window.showSaveFilePicker !== 'function';
         if (useMemoryPath) {
             if (!isM3u8) {
-                var choiceEl = document.createElement('div');
-                choiceEl.id = 'lampa-dl-choice';
-                choiceEl.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:99998;display:flex;align-items:center;justify-content:center;font-family:sans-serif;';
-                var choiceBox = document.createElement('div');
-                choiceBox.style.cssText = 'background:#222;padding:20px;border-radius:10px;max-width:360px;text-align:center;';
-                choiceBox.innerHTML = '<p style="color:#fff;margin:0 0 8px;font-size:15px;">Куда сохранить MP4?</p><p style="color:#81c784;font-size:12px;margin:0 0 16px;">«В Загрузки» — сразу в папку Загрузки, без загрузки в память (рекомендуется).</p><p style="color:#aaa;font-size:12px;margin:0 0 16px;">«Через Поделиться» — если источник не даёт качать напрямую; файл попадёт в память.</p><div style="display:flex;flex-direction:column;gap:10px;"><div class="selector" data-dl-choice="downloads" tabindex="0" style="background:#2a9d8f;color:#fff;padding:14px;border-radius:8px;cursor:pointer;">В папку Загрузки</div><div class="selector" data-dl-choice="share" tabindex="0" style="background:#1976d2;color:#fff;padding:14px;border-radius:8px;cursor:pointer;">Через Поделиться</div><div class="selector" data-dl-choice="no" tabindex="0" style="background:#444;color:#ddd;padding:12px;border-radius:8px;cursor:pointer;">Отмена</div></div>';
-                choiceEl.appendChild(choiceBox);
-                document.body.appendChild(choiceEl);
-                choiceBox.querySelector('[data-dl-choice=downloads]').onclick = function() {
-                    choiceEl.remove();
-                    directDownloadToDownloads(url, filename);
+                var goEl = document.createElement('div');
+                goEl.id = 'lampa-dl-go';
+                goEl.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:99998;display:flex;align-items:center;justify-content:center;font-family:sans-serif;';
+                var goBox = document.createElement('div');
+                goBox.style.cssText = 'background:#222;padding:20px;border-radius:10px;max-width:360px;text-align:center;';
+                goBox.innerHTML = '<p style="color:#fff;margin:0 0 8px;font-size:15px;">Скачать MP4</p><p style="color:#aaa;font-size:13px;margin:0 0 18px;">После загрузки нажмите кнопку «Сохранить файл» и выберите папку (Файлы, Загрузки и т.д.).</p><div style="display:flex;flex-direction:column;gap:10px;"><div class="selector" data-dl-go="yes" tabindex="0" style="background:#2a9d8f;color:#fff;padding:14px;border-radius:8px;cursor:pointer;">Скачать</div><div class="selector" data-dl-go="no" tabindex="0" style="background:#444;color:#ddd;padding:12px;border-radius:8px;cursor:pointer;">Отмена</div></div>';
+                goEl.appendChild(goBox);
+                document.body.appendChild(goEl);
+                goBox.querySelector('[data-dl-go=yes]').onclick = function() {
+                    goEl.remove();
+                    doStartDownload();
                 };
-                choiceBox.querySelector('[data-dl-choice=share]').onclick = function() {
-                    choiceEl.remove();
-                    showMemoryPathWarningThenDownload();
-                };
-                choiceBox.querySelector('[data-dl-choice=no]').onclick = function() { choiceEl.remove(); };
+                goBox.querySelector('[data-dl-go=no]').onclick = function() { goEl.remove(); };
                 return;
             }
             showMemoryPathWarningThenDownload();
             return;
         }
         doStartDownload();
-
-        function directDownloadToDownloads(fileUrl, fileFilename) {
-            try {
-                var a = document.createElement('a');
-                a.href = fileUrl;
-                a.download = fileFilename || 'video.mp4';
-                a.rel = 'noopener';
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                showNotify('Загрузка в папку Загрузки. Если файл не появился — выберите «Через Поделиться».');
-            } catch (e) {
-                showNotify('Ошибка. Попробуйте «Через Поделиться».');
-            }
-        }
 
         function showMemoryPathWarningThenDownload() {
             var warnEl = document.createElement('div');
