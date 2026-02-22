@@ -4,8 +4,6 @@
     var PLUGIN_NAME = 'Скачивание с Lampa';
     var PLUGIN_VERSION = '1.0';
 
-    var originalPlayerPlay = null;
-    var playerHookApplied = false;
 
     function showNotify(msg) {
         if (typeof Lampa !== 'undefined') {
@@ -93,6 +91,7 @@
                         offset += abList[j].byteLength;
                     }
                     var blob = new Blob([combined], { type: 'video/MP2T' });
+                    /* HLS (m3u8) — это плейлист сегментов .ts; склеиваем в один файл, сохраняем как .ts */
                     var ext = (filename && filename.indexOf('.') !== -1) ? '' : '.ts';
                     var ok = triggerSave(blob, (filename || 'video') + ext);
                     if (onDone) onDone(ok);
@@ -136,15 +135,30 @@
         if (oldModal) oldModal.remove();
         var modal = document.createElement('div');
         modal.id = 'lampa-dl-after-copy';
-        modal.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#222;padding:24px;border-radius:10px;z-index:99995;box-shadow:0 0 30px rgba(0,0,0,0.6);font-family:sans-serif;min-width:280px;';
-        modal.innerHTML = [
-            '<p style="color:#fff;margin:0 0 16px;font-size:15px;">Ссылка скопирована. Скачать файл?</p>',
-            '<div style="display:flex;gap:10px;">',
-            '<button type="button" class="lampa-dl-after-btn" data-action="yes" style="flex:1;background:#2a9d8f;color:#fff;border:none;padding:12px;border-radius:8px;cursor:pointer;font-size:14px;">Да</button>',
-            '<button type="button" class="lampa-dl-after-btn" data-action="no" style="flex:1;background:#444;color:#ddd;border:none;padding:12px;border-radius:8px;cursor:pointer;font-size:14px;">Нет</button>',
-            '</div>'
-        ].join('');
+        modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);z-index:99995;display:flex;align-items:center;justify-content:center;font-family:sans-serif;';
+        var box = document.createElement('div');
+        box.style.cssText = 'background:#222;padding:24px;border-radius:10px;box-shadow:0 0 30px rgba(0,0,0,0.6);min-width:280px;';
+        box.innerHTML = '<p style="color:#fff;margin:0 0 16px;font-size:15px;">Ссылка скопирована. Скачать файл?</p>';
+        var btnYes = document.createElement('div');
+        btnYes.className = 'selector lampa-dl-after-btn';
+        btnYes.setAttribute('data-action', 'yes');
+        btnYes.setAttribute('tabindex', '0');
+        btnYes.style.cssText = 'flex:1;background:#2a9d8f;color:#fff;padding:12px;border-radius:8px;text-align:center;font-size:14px;cursor:pointer;border:3px solid transparent;';
+        btnYes.textContent = 'Да';
+        var btnNo = document.createElement('div');
+        btnNo.className = 'selector lampa-dl-after-btn';
+        btnNo.setAttribute('data-action', 'no');
+        btnNo.setAttribute('tabindex', '0');
+        btnNo.style.cssText = 'flex:1;background:#444;color:#ddd;padding:12px;border-radius:8px;text-align:center;font-size:14px;cursor:pointer;border:3px solid transparent;';
+        btnNo.textContent = 'Нет';
+        var row = document.createElement('div');
+        row.style.cssText = 'display:flex;gap:10px;';
+        row.appendChild(btnYes);
+        row.appendChild(btnNo);
+        box.appendChild(row);
+        modal.appendChild(box);
         document.body.appendChild(modal);
+
         function removeModalAndListener() {
             if (modal.parentNode) modal.remove();
             document.removeEventListener('click', closeOut);
@@ -152,16 +166,31 @@
         function closeOut(e) {
             if (modal.parentNode && e.target !== modal && !modal.contains(e.target)) removeModalAndListener();
         }
-        modal.addEventListener('click', function(e) {
-            if (!e.target.classList.contains('lampa-dl-after-btn')) return;
-            if (e.target.getAttribute('data-action') === 'yes') {
-                removeModalAndListener();
-                startDownload(copiedUrl, 'video', null);
-            } else {
-                removeModalAndListener();
-            }
+        function doAction(btn) {
+            var action = btn.getAttribute('data-action');
+            removeModalAndListener();
+            if (action === 'yes') startDownload(copiedUrl, 'video', null);
+        }
+        btnYes.addEventListener('click', function() { doAction(btnYes); });
+        btnNo.addEventListener('click', function() { doAction(btnNo); });
+        btnYes.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); doAction(btnYes); }
+        });
+        btnNo.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); doAction(btnNo); }
         });
         setTimeout(function() { document.addEventListener('click', closeOut); }, 150);
+
+        if (typeof Lampa !== 'undefined' && Lampa.Controller) {
+            try {
+                if (typeof Lampa.Controller.collectionAppend === 'function') {
+                    Lampa.Controller.collectionAppend(box);
+                }
+                if (typeof Lampa.Controller.collectionFocus === 'function') {
+                    Lampa.Controller.collectionFocus(btnYes);
+                }
+            } catch (err) {}
+        }
     }
 
     function startDownload(url, title, modalEl) {
@@ -190,60 +219,6 @@
         }
     }
 
-    function showDownloadChoiceModal(data) {
-        var url = data.url || data.stream_url || data.link || data.file;
-        url = fixUrl(url);
-        var title = data.title || data.name || 'video';
-
-        if (!url) {
-            if (originalPlayerPlay) originalPlayerPlay.call(Lampa.Player, data);
-            return;
-        }
-        if (url.indexOf('http') !== 0) url = 'http://' + url;
-
-        var oldModal = document.getElementById('lampa-download-modal');
-        if (oldModal) oldModal.remove();
-
-        var modal = document.createElement('div');
-        modal.id = 'lampa-download-modal';
-        modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:99990;display:flex;align-items:center;justify-content:center;font-family:sans-serif;';
-        modal.innerHTML = [
-            '<div style="background:#222;padding:25px;border-radius:10px;max-width:380px;width:85%;box-shadow:0 0 20px rgba(0,0,0,0.5);">',
-            '<h3 style="color:#fff;margin:0 0 20px;font-size:18px;text-align:center;">' + PLUGIN_NAME + '</h3>',
-            '<button type="button" class="lampa-dl-btn" data-action="play" style="width:100%;background:#2a9d8f;color:#fff;border:none;padding:14px;border-radius:8px;cursor:pointer;font-size:15px;margin-bottom:10px;">Воспроизвести</button>',
-            '<button type="button" class="lampa-dl-btn" data-action="download" style="width:100%;background:#e76f51;color:#fff;border:none;padding:14px;border-radius:8px;cursor:pointer;font-size:15px;margin-bottom:10px;">Скачать</button>',
-            '<button type="button" class="lampa-dl-btn" data-action="copy" style="width:100%;background:#444;color:#ddd;border:none;padding:12px;border-radius:8px;cursor:pointer;font-size:14px;">Копировать ссылку</button>',
-            '<button type="button" id="lampa-dl-cancel" style="width:100%;background:transparent;color:#888;border:1px solid #444;padding:12px;border-radius:8px;cursor:pointer;margin-top:12px;">Отмена</button>',
-            '</div>'
-        ].join('');
-
-        document.body.appendChild(modal);
-
-        function close() { modal.remove(); }
-
-        modal.addEventListener('click', function(e) {
-            if (e.target.id === 'lampa-dl-cancel' || e.target === modal) {
-                close();
-                return;
-            }
-            if (!e.target.classList.contains('lampa-dl-btn')) return;
-            var action = e.target.getAttribute('data-action');
-            if (action === 'play') {
-                close();
-                if (originalPlayerPlay) originalPlayerPlay.call(Lampa.Player, data);
-            } else if (action === 'copy') {
-                if (navigator.clipboard && navigator.clipboard.writeText) {
-                    navigator.clipboard.writeText(url).then(function() { showNotify('Ссылка скопирована'); }, function() { showNotify(url.substring(0, 60) + '…'); });
-                } else {
-                    showNotify(url.substring(0, 80) + '…');
-                }
-                close();
-            } else if (action === 'download') {
-                startDownload(url, title, modal);
-            }
-        });
-    }
-
     function hookClipboard() {
         try {
             if (!navigator.clipboard || typeof navigator.clipboard.writeText !== 'function') return;
@@ -266,28 +241,25 @@
     function initPlugin() {
         if (typeof Lampa === 'undefined') return;
 
-        /* Не регистрируемся в Lampa.Plugins.add — это создаёт пустые поля в настройках расширений и ошибки в Lampa */
+        /* Убираем себя из списка расширений, чтобы не было строки с url: "undefined" */
+        try {
+            if (Lampa.Plugins && typeof Lampa.Plugins.remove === 'function') {
+                Lampa.Plugins.remove('lampa_download');
+            }
+            var lists = [Lampa.Plugins && Lampa.Plugins.plugins, Lampa.Manifest && Lampa.Manifest.plugins];
+            for (var L = 0; L < lists.length; L++) {
+                var list = lists[L];
+                if (!Array.isArray(list)) continue;
+                for (var i = list.length - 1; i >= 0; i--) {
+                    if (list[i] && list[i].id === 'lampa_download') {
+                        list.splice(i, 1);
+                        break;
+                    }
+                }
+            }
+        } catch (e) {}
 
         hookClipboard();
-
-        function applyPlayerHook() {
-            if (playerHookApplied || typeof Lampa === 'undefined' || !Lampa.Player || typeof Lampa.Player.play !== 'function') return;
-            originalPlayerPlay = Lampa.Player.play;
-            Lampa.Player.play = function(playerData) {
-                var url = playerData && (playerData.url || playerData.stream_url || playerData.link || playerData.file);
-                if (url && typeof url === 'string' && url.match(/^https?:\/\//)) {
-                    showDownloadChoiceModal(playerData);
-                } else {
-                    originalPlayerPlay.call(this, playerData);
-                }
-            };
-            playerHookApplied = true;
-        }
-        applyPlayerHook();
-        setTimeout(applyPlayerHook, 800);
-        if (Lampa.Listener && Lampa.Listener.follow) {
-            Lampa.Listener.follow('full', function() { setTimeout(applyPlayerHook, 400); });
-        }
     }
 
     if (typeof window !== 'undefined') {
