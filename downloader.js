@@ -118,15 +118,12 @@
         if (!text || typeof text !== 'string') return false;
         var t = text.trim();
         if (t.indexOf('http://') !== 0 && t.indexOf('https://') !== 0) return false;
-        if (t.length < 15) return false;
-        return t.indexOf('.m3u8') !== -1 || t.indexOf('.mp4') !== -1 || t.indexOf('.ts') !== -1 ||
-            t.indexOf('m3u8') !== -1 || t.indexOf('video') !== -1 || t.indexOf('stream') !== -1 ||
-            t.indexOf('torrent') !== -1 || t.indexOf('play') !== -1 || t.length > 25;
+        return t.length >= 20;
     }
 
     function isSettingsOrPluginsPage() {
-        var h = (window.location.hash || '') + (window.location.pathname || '');
-        return /setting|plugin|extension|param|config/i.test(h);
+        var h = (window.location.hash || '').toLowerCase();
+        return h.indexOf('extension') !== -1 || h.indexOf('plugin') !== -1;
     }
 
     function showDownloadFromClipboardPrompt(copiedUrl) {
@@ -232,6 +229,25 @@
         setTimeout(function() { showDownloadFromClipboardPrompt(text); }, 250);
     }
 
+    var clipboardPollInterval = null;
+    var lastSeenClipboard = '';
+
+    function checkClipboardOnce() {
+        try {
+            if (!navigator.clipboard || typeof navigator.clipboard.readText !== 'function') return;
+            navigator.clipboard.readText().then(function(text) {
+                if (!text) return;
+                var t = text.trim();
+                if (t !== lastSeenClipboard && isVideoUrl(t)) {
+                    lastSeenClipboard = t;
+                    onVideoLinkCopied(t);
+                } else if (!isVideoUrl(t)) {
+                    lastSeenClipboard = t;
+                }
+            }).catch(function() {});
+        } catch (e) {}
+    }
+
     function hookClipboard() {
         try {
             if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
@@ -248,30 +264,27 @@
             }
         } catch (e) {}
 
-        document.addEventListener('copy', function(e) {
-            function check() {
-                try {
-                    var text = (e.clipboardData && e.clipboardData.getData('text/plain')) || '';
-                    if (text) onVideoLinkCopied(text);
-                } catch (err) {}
-            }
-            check();
-            setTimeout(function() {
-                try {
-                    if (navigator.clipboard && typeof navigator.clipboard.readText === 'function') {
-                        navigator.clipboard.readText().then(function(text) {
-                            if (text) onVideoLinkCopied(text);
-                        }).catch(function() {});
-                    }
-                } catch (err) {}
-            }, 400);
-        }, true);
+        function onCopy(e) {
+            try {
+                var text = (e.clipboardData && e.clipboardData.getData('text/plain')) || '';
+                if (text) onVideoLinkCopied(text);
+            } catch (err) {}
+            setTimeout(function() { checkClipboardOnce(); }, 350);
+        }
+        document.addEventListener('copy', onCopy, true);
+        window.addEventListener('copy', onCopy, true);
+
+        if (!clipboardPollInterval && typeof navigator.clipboard !== 'undefined') {
+            clipboardPollInterval = setInterval(checkClipboardOnce, 1500);
+        }
     }
 
+    var initDone = false;
     function initPlugin() {
         if (typeof Lampa === 'undefined') return;
+        if (initDone) return;
 
-        /* Убираем себя из списка расширений, чтобы не было строки с url: "undefined" */
+        /* Убираем себя из списка расширений */
         try {
             if (Lampa.Plugins && typeof Lampa.Plugins.remove === 'function') {
                 Lampa.Plugins.remove('lampa_download');
@@ -290,17 +303,25 @@
         } catch (e) {}
 
         hookClipboard();
+        initDone = true;
     }
 
     if (typeof window !== 'undefined') {
+        if (typeof Lampa !== 'undefined') {
+            initPlugin();
+        }
         if (window.appready) {
             initPlugin();
-        } else if (typeof Lampa !== 'undefined' && Lampa.Listener && Lampa.Listener.follow) {
-            Lampa.Listener.follow('app', function(e) {
-                if (e.type === 'ready') setTimeout(initPlugin, 100);
-            });
-        } else {
-            window.addEventListener('load', function() { setTimeout(initPlugin, 200); });
         }
+        if (typeof Lampa !== 'undefined' && Lampa.Listener && Lampa.Listener.follow) {
+            Lampa.Listener.follow('app', function(e) {
+                if (e.type === 'ready') setTimeout(initPlugin, 50);
+            });
+        }
+        window.addEventListener('load', function() {
+            setTimeout(initPlugin, 100);
+            setTimeout(initPlugin, 600);
+            setTimeout(initPlugin, 2000);
+        });
     }
 })();
