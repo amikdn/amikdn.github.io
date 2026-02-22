@@ -2,7 +2,7 @@
 (function() {
     'use strict';
 
-    var PLUGIN_VERSION = '1.3';
+    var PLUGIN_VERSION = '1.4';
 
     // Polyfills для совместимости со старыми устройствами
     if (!Array.prototype.forEach) {
@@ -1175,8 +1175,9 @@
         }
         var style = $('<style>' +
             '@keyframes button-fade-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }' +
-            '.full-start-new__body { align-items: flex-start !important; }' +
+            '.full-start-new__body { align-items: stretch !important; }' +
             '.full-start-new__left { align-self: flex-start !important; }' +
+            '.full-start-new__body > *:last-child { align-self: stretch !important; min-height: 0; }' +
             '.full-start-new__buttons .full-start__button { opacity: 0; }' +
             '.full-start__button.hidden { display: none !important; }' +
             '.full-start-new__buttons { ' +
