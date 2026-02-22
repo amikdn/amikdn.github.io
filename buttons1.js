@@ -1218,12 +1218,8 @@
             '.icon-picker-grid__cell.focus { border-color: rgba(255,255,255,0.8); }' +
             '.icon-picker-grid__cell svg { width: 1.5em; height: 1.5em; }' +
             '.name-picker-ok { font-family: var(--buttons-plugin-modal-font, inherit); font-size: var(--buttons-plugin-modal-font-size, inherit); }' +
-            /* При выключенном «Показать постер»: видна только верхняя часть, блок кнопок — внизу экрана */
-            'body.buttons-plugin--poster-off .scroll__body { max-height: 100vh !important; overflow-y: auto !important; }' +
-            'body.buttons-plugin--poster-off .full-start-new { min-height: 100vh !important; display: flex !important; flex-direction: column !important; }' +
-            'body.buttons-plugin--poster-off .full-start-new__body { flex: 1 !important; min-height: 0 !important; display: flex !important; flex-direction: column !important; }' +
-            'body.buttons-plugin--poster-off .full-start-new__right { flex: 1 !important; min-height: 0 !important; display: flex !important; flex-direction: column !important; }' +
-            'body.buttons-plugin--poster-off .full-start-new__buttons { margin-top: auto !important; }' +
+            /* При выключенном «Показать постер»: сдвигаем весь блок .full-start-new вниз (без обрезки контента ниже) */
+            'body.buttons-plugin--poster-off .full-start-new { margin-top: calc(100vh - 320px) !important; }' +
             '</style>');
         $('body').append(style);
 
