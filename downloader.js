@@ -131,16 +131,30 @@
     function triggerSave(blob, filename) {
         try {
             var a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
+            var url = URL.createObjectURL(blob);
+            a.href = url;
             a.download = filename || 'video';
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
-            URL.revokeObjectURL(a.href);
+            setTimeout(function() { URL.revokeObjectURL(url); }, 15000);
             return true;
         } catch (e) {
             return false;
         }
+    }
+
+    function tryShareSave(blob, filename) {
+        try {
+            var name = filename || 'video';
+            var type = blob.type || 'video/mp4';
+            if (blob.type === 'video/MP2T') type = 'video/MP2T';
+            var file = new File([blob], name, { type: type });
+            if (navigator.share && typeof navigator.canShare === 'function' && navigator.canShare({ files: [file] })) {
+                return navigator.share({ files: [file] }).then(function() { return true; }).catch(function() { return false; });
+            }
+        } catch (e) {}
+        return Promise.resolve(false);
     }
 
     function safeFilename(name) {
@@ -184,7 +198,8 @@
             '<div id="lampa-dl-progress-size" style="color:#aaa;font-size:13px;margin-bottom:8px;">Размер: 0 B</div>',
             '<div id="lampa-dl-progress-speed" style="color:#4fc3f7;font-size:13px;margin-bottom:8px;">Скорость: —</div>',
             '<div id="lampa-dl-progress-time" style="color:#81c784;font-size:13px;margin-bottom:10px;">Осталось: —</div>',
-            '<div style="height:6px;background:#333;border-radius:3px;overflow:hidden;"><div id="lampa-dl-progress-bar" style="height:100%;width:0%;background:#4fc3f7;transition:width 0.2s;"></div></div>'
+            '<div style="height:6px;background:#333;border-radius:3px;overflow:hidden;"><div id="lampa-dl-progress-bar" style="height:100%;width:0%;background:#4fc3f7;transition:width 0.2s;"></div></div>',
+            '<div id="lampa-dl-progress-where" style="color:#666;font-size:11px;margin-top:10px;">Куда: «Поделиться» → выбранная папка, иначе — Загрузки</div>'
         ].join('');
         document.body.appendChild(progressEl);
         progressSizeEl = document.getElementById('lampa-dl-progress-size');
@@ -265,12 +280,18 @@
             });
         }
         tryFetch().then(function(blob) {
-            var ok = triggerSave(blob, filename);
-            if (onDone) onDone(ok);
-        }).catch(function() {
-            tryFetch({ credentials: 'omit' }).then(function(blob) {
+            tryShareSave(blob, filename).then(function(shared) {
+                if (shared) { if (onDone) onDone(true); return; }
                 var ok = triggerSave(blob, filename);
                 if (onDone) onDone(ok);
+            });
+        }).catch(function() {
+            tryFetch({ credentials: 'omit' }).then(function(blob) {
+                tryShareSave(blob, filename).then(function(shared) {
+                    if (shared) { if (onDone) onDone(true); return; }
+                    var ok = triggerSave(blob, filename);
+                    if (onDone) onDone(ok);
+                });
             }).catch(function() { if (onDone) onDone(false); });
         });
     }
@@ -355,8 +376,11 @@
                         }
                     }
                     var blob = new Blob([combined], { type: 'video/MP2T' });
-                    var ok = triggerSave(blob, name);
-                    if (onDone) onDone(ok);
+                    tryShareSave(blob, name).then(function(shared) {
+                        if (shared) { if (onDone) onDone(true); return; }
+                        var ok = triggerSave(blob, name);
+                        if (onDone) onDone(ok);
+                    });
                     return;
                 }
                 fetchBuffer(onlyTs[index]).then(function(ab) {
@@ -543,11 +567,20 @@
         m2.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:99996;display:flex;align-items:center;justify-content:center;font-family:sans-serif;';
         var b2 = document.createElement('div');
         b2.style.cssText = 'background:#222;padding:24px;border-radius:10px;min-width:320px;';
-        b2.innerHTML = '<p style="color:#fff;margin:0 0 12px;">Вставьте ссылку на видео</p><input type="text" id="lampa-dl-paste-input" placeholder="https://..." style="width:100%;padding:10px;margin-bottom:12px;background:#111;color:#fff;border:1px solid #444;border-radius:6px;box-sizing:border-box;"><div style="display:flex;gap:8px;"><div class="selector" data-dl="go" tabindex="0" style="flex:1;background:#2a9d8f;color:#fff;padding:12px;text-align:center;border-radius:8px;cursor:pointer;">Скачать</div><div class="selector" data-dl="cancel" tabindex="0" style="flex:1;background:#444;color:#ddd;padding:12px;text-align:center;border-radius:8px;cursor:pointer;">Отмена</div></div>';
+        b2.innerHTML = '<p style="color:#fff;margin:0 0 12px;">Вставьте ссылку на видео</p><input type="text" id="lampa-dl-paste-input" placeholder="https://..." style="width:100%;padding:10px;margin-bottom:8px;background:#111;color:#fff;border:1px solid #444;border-radius:6px;box-sizing:border-box;"><div style="display:flex;gap:8px;margin-bottom:8px;"><div class="selector" data-dl="paste" tabindex="0" style="flex:1;background:#1976d2;color:#fff;padding:10px;text-align:center;border-radius:8px;cursor:pointer;font-size:13px;">Вставить из буфера</div></div><div style="display:flex;gap:8px;"><div class="selector" data-dl="go" tabindex="0" style="flex:1;background:#2a9d8f;color:#fff;padding:12px;text-align:center;border-radius:8px;cursor:pointer;">Скачать</div><div class="selector" data-dl="cancel" tabindex="0" style="flex:1;background:#444;color:#ddd;padding:12px;text-align:center;border-radius:8px;cursor:pointer;">Отмена</div></div>';
         m2.appendChild(b2);
         document.body.appendChild(m2);
         var inp = document.getElementById('lampa-dl-paste-input');
         if (inp) setTimeout(function() { inp.focus(); }, 100);
+        b2.querySelector('[data-dl=paste]').onclick = function() {
+            if (navigator.clipboard && typeof navigator.clipboard.readText === 'function') {
+                navigator.clipboard.readText().then(function(text) {
+                    if (inp && text && typeof text === 'string') inp.value = text.trim();
+                }).catch(function() { showNotify('Не удалось прочитать буфер'); });
+            } else {
+                showNotify('Буфер недоступен');
+            }
+        };
         b2.querySelector('[data-dl=go]').onclick = function() {
             var u = (inp && inp.value && inp.value.trim()) || '';
             m2.remove();
@@ -667,28 +700,98 @@
         var filename = safeFilename(title) + (isM3u8 ? '.ts' : '.mp4');
         if (modalEl) modalEl.remove();
 
-        showDownloadProgressWindow();
-
-        function onProgress(loadedBytes, totalBytes, segmentDone, segmentTotal) {
-            if (segmentDone === undefined) {
-                segmentDone = 0;
-                segmentTotal = 0;
+        var useMemoryPath = typeof window.showSaveFilePicker !== 'function';
+        if (useMemoryPath) {
+            if (!isM3u8) {
+                var choiceEl = document.createElement('div');
+                choiceEl.id = 'lampa-dl-choice';
+                choiceEl.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:99998;display:flex;align-items:center;justify-content:center;font-family:sans-serif;';
+                var choiceBox = document.createElement('div');
+                choiceBox.style.cssText = 'background:#222;padding:20px;border-radius:10px;max-width:360px;text-align:center;';
+                choiceBox.innerHTML = '<p style="color:#fff;margin:0 0 8px;font-size:15px;">Куда сохранить MP4?</p><p style="color:#81c784;font-size:12px;margin:0 0 16px;">«В Загрузки» — сразу в папку Загрузки, без загрузки в память (рекомендуется).</p><p style="color:#aaa;font-size:12px;margin:0 0 16px;">«Через Поделиться» — если источник не даёт качать напрямую; файл попадёт в память.</p><div style="display:flex;flex-direction:column;gap:10px;"><div class="selector" data-dl-choice="downloads" tabindex="0" style="background:#2a9d8f;color:#fff;padding:14px;border-radius:8px;cursor:pointer;">В папку Загрузки</div><div class="selector" data-dl-choice="share" tabindex="0" style="background:#1976d2;color:#fff;padding:14px;border-radius:8px;cursor:pointer;">Через Поделиться</div><div class="selector" data-dl-choice="no" tabindex="0" style="background:#444;color:#ddd;padding:12px;border-radius:8px;cursor:pointer;">Отмена</div></div>';
+                choiceEl.appendChild(choiceBox);
+                document.body.appendChild(choiceEl);
+                choiceBox.querySelector('[data-dl-choice=downloads]').onclick = function() {
+                    choiceEl.remove();
+                    directDownloadToDownloads(url, filename);
+                };
+                choiceBox.querySelector('[data-dl-choice=share]').onclick = function() {
+                    choiceEl.remove();
+                    showMemoryPathWarningThenDownload();
+                };
+                choiceBox.querySelector('[data-dl-choice=no]').onclick = function() { choiceEl.remove(); };
+                return;
             }
-            updateDownloadProgress(loadedBytes || 0, totalBytes || 0, segmentDone, segmentTotal || 0);
+            showMemoryPathWarningThenDownload();
+            return;
         }
-        function onDone(ok) {
-            hideDownloadProgressWindow();
-            showNotify(ok ? 'Сохранено: ' + filename : 'Ошибка загрузки');
+        doStartDownload();
+
+        function directDownloadToDownloads(fileUrl, fileFilename) {
+            try {
+                var a = document.createElement('a');
+                a.href = fileUrl;
+                a.download = fileFilename || 'video.mp4';
+                a.rel = 'noopener';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                showNotify('Загрузка в папку Загрузки. Если файл не появился — выберите «Через Поделиться».');
+            } catch (e) {
+                showNotify('Ошибка. Попробуйте «Через Поделиться».');
+            }
         }
 
-        if (isM3u8) {
-            downloadM3u8(url, safeFilename(title), function(done, total, loadedBytes, totalBytesEstimate) {
-                onProgress(loadedBytes || 0, totalBytesEstimate || 0, done, total);
-            }, onDone);
-        } else {
-            downloadMp4(url, filename, function(loaded, total) {
-                onProgress(loaded, total || 0, 0, 0);
-            }, onDone);
+        function showMemoryPathWarningThenDownload() {
+            var warnEl = document.createElement('div');
+            warnEl.id = 'lampa-dl-large-warn';
+            warnEl.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:99998;display:flex;align-items:center;justify-content:center;font-family:sans-serif;';
+            var warnBox = document.createElement('div');
+            warnBox.style.cssText = 'background:#222;padding:20px;border-radius:10px;max-width:360px;text-align:center;';
+            warnBox.innerHTML = '<p style="color:#fff;margin:0 0 12px;font-size:14px;">Куда сохраняется файл</p><p style="color:#aaa;font-size:13px;margin:0 0 16px;line-height:1.4;">При «Поделиться» — в папку, которую вы выберете. Иначе — в папку <b>Загрузки</b>.</p><p style="color:#f5a623;font-size:13px;margin:0 0 16px;line-height:1.4;">Файл загружается в память. При 2–4 ГБ и малом ОЗУ приложение может закрыться. Лучше качать на ПК.</p><p style="color:#fff;font-size:13px;margin:0 0 16px;">Продолжить?</p><div style="display:flex;gap:10px;justify-content:center;"><div class="selector" data-dl-warn="yes" tabindex="0" style="background:#2a9d8f;color:#fff;padding:12px 20px;border-radius:8px;cursor:pointer;">Продолжить</div><div class="selector" data-dl-warn="no" tabindex="0" style="background:#444;color:#ddd;padding:12px 20px;border-radius:8px;cursor:pointer;">Отмена</div></div>';
+            warnEl.appendChild(warnBox);
+            document.body.appendChild(warnEl);
+            warnBox.querySelector('[data-dl-warn=yes]').onclick = function() {
+                warnEl.remove();
+                doStartDownload();
+            };
+            warnBox.querySelector('[data-dl-warn=no]').onclick = function() { warnEl.remove(); };
+        }
+
+        function doStartDownload() {
+            showDownloadProgressWindow();
+
+            function onProgress(loadedBytes, totalBytes, segmentDone, segmentTotal) {
+                if (segmentDone === undefined) {
+                    segmentDone = 0;
+                    segmentTotal = 0;
+                }
+                updateDownloadProgress(loadedBytes || 0, totalBytes || 0, segmentDone, segmentTotal || 0);
+            }
+            function onDone(ok) {
+                if (ok && progressEl && progressEl.parentNode) {
+                    var sizeNode = progressEl.querySelector('#lampa-dl-progress-size');
+                    if (sizeNode) sizeNode.textContent = 'Готово. Сохранение файла…';
+                    if (progressSpeedEl) progressSpeedEl.style.display = 'none';
+                    if (progressTimeEl) progressTimeEl.style.display = 'none';
+                    if (progressBarEl) progressBarEl.style.width = '100%';
+                    showNotify('Сохранено: ' + filename);
+                    setTimeout(hideDownloadProgressWindow, 2500);
+                } else {
+                    hideDownloadProgressWindow();
+                    showNotify(ok ? 'Сохранено: ' + filename : 'Ошибка загрузки');
+                }
+            }
+
+            if (isM3u8) {
+                downloadM3u8(url, safeFilename(title), function(done, total, loadedBytes, totalBytesEstimate) {
+                    onProgress(loadedBytes || 0, totalBytesEstimate || 0, done, total);
+                }, onDone);
+            } else {
+                downloadMp4(url, filename, function(loaded, total) {
+                    onProgress(loaded, total || 0, 0, 0);
+                }, onDone);
+            }
         }
     }
 
