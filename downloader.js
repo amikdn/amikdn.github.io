@@ -171,10 +171,19 @@
     var progressTimeEl = null;
 
     function formatBytes(bytes) {
-        if (bytes >= 1073741824) return (bytes / 1073741824).toFixed(2) + ' GB';
-        if (bytes >= 1048576) return (bytes / 1048576).toFixed(2) + ' MB';
-        if (bytes >= 1024) return (bytes / 1024).toFixed(2) + ' KB';
-        return bytes + ' B';
+        if (bytes >= 1e9) return (bytes / 1e9).toFixed(2) + ' GB';
+        if (bytes >= 1e6) return (bytes / 1e6).toFixed(2) + ' MB';
+        if (bytes >= 1e3) return (bytes / 1e3).toFixed(2) + ' KB';
+        return (bytes || 0) + ' B';
+    }
+
+    function formatSpeedMbps(bytesPerSecond) {
+        if (!bytesPerSecond || !isFinite(bytesPerSecond)) return '—';
+        var bps = bytesPerSecond * 8;
+        if (bps >= 1e9) return (bps / 1e9).toFixed(2) + ' Gbps';
+        if (bps >= 1e6) return (bps / 1e6).toFixed(2) + ' Mbps';
+        if (bps >= 1e3) return (bps / 1e3).toFixed(2) + ' Kbps';
+        return Math.round(bps) + ' bps';
     }
 
     function formatTimeRemaining(seconds) {
@@ -213,12 +222,14 @@
         if (!progressSizeEl) return;
         var displayTotal = totalBytes;
         if ((displayTotal <= 0 || !displayTotal) && segmentTotal > 0 && segmentDone >= 1 && loadedBytes > 0) {
-            displayTotal = Math.round(loadedBytes * segmentTotal / segmentDone);
+            displayTotal = Math.round((loadedBytes / segmentDone) * segmentTotal);
         }
-        progressSizeEl.textContent = 'Размер: ' + formatBytes(loadedBytes) + (displayTotal > 0 ? ' / ~' + formatBytes(displayTotal) : '');
+        if (displayTotal > 0 && loadedBytes > displayTotal) displayTotal = loadedBytes;
+        var totalLabel = displayTotal > 0 ? ' / ' + (totalBytes > 0 ? '' : '~') + formatBytes(displayTotal) : '';
+        progressSizeEl.textContent = 'Размер: ' + formatBytes(loadedBytes) + totalLabel;
         var elapsed = (Date.now() - progressStartTime) / 1000;
         var speed = elapsed > 0 ? loadedBytes / elapsed : 0;
-        if (progressSpeedEl) progressSpeedEl.textContent = 'Скорость: ' + formatBytes(Math.round(speed)) + '/s';
+        if (progressSpeedEl) progressSpeedEl.textContent = 'Скорость: ' + formatSpeedMbps(speed);
         if (progressBarEl) {
             var pct = displayTotal > 0 ? Math.min(100, (loadedBytes / displayTotal) * 100) : (segmentTotal > 0 ? (segmentDone / segmentTotal) * 100 : 0);
             progressBarEl.style.width = pct + '%';
@@ -360,27 +371,34 @@
             function fetchNext(index) {
                 if (index >= total) {
                     var totalLen = 0;
+                    var parts = [];
                     for (var i = 0; i < abList.length; i++) {
-                        if (abList[i]) totalLen += abList[i].byteLength;
+                        if (abList[i]) {
+                            parts.push(abList[i]);
+                            totalLen += abList[i].byteLength;
+                        }
                     }
                     if (totalLen === 0) {
                         if (onDone) onDone(false);
                         return;
                     }
-                    var combined = new Uint8Array(totalLen);
-                    var offset = 0;
-                    for (var j = 0; j < abList.length; j++) {
-                        if (abList[j]) {
-                            combined.set(new Uint8Array(abList[j]), offset);
-                            offset += abList[j].byteLength;
+                    abList = null;
+                    if (onProgress) onProgress(total, total, totalLoaded, totalBytesRef.value);
+                    setTimeout(function() {
+                        try {
+                            var blob = new Blob(parts, { type: 'video/MP2T' });
+                            parts.length = 0;
+                            tryShareSave(blob, name).then(function(shared) {
+                                if (shared) { if (onDone) onDone(true); return; }
+                                var ok = triggerSave(blob, name);
+                                if (onDone) onDone(ok);
+                            }).catch(function() {
+                                if (onDone) onDone(false);
+                            });
+                        } catch (e) {
+                            if (onDone) onDone(false);
                         }
-                    }
-                    var blob = new Blob([combined], { type: 'video/MP2T' });
-                    tryShareSave(blob, name).then(function(shared) {
-                        if (shared) { if (onDone) onDone(true); return; }
-                        var ok = triggerSave(blob, name);
-                        if (onDone) onDone(ok);
-                    });
+                    }, 50);
                     return;
                 }
                 fetchBuffer(onlyTs[index]).then(function(ab) {
