@@ -1218,8 +1218,9 @@
             '.icon-picker-grid__cell.focus { border-color: rgba(255,255,255,0.8); }' +
             '.icon-picker-grid__cell svg { width: 1.5em; height: 1.5em; }' +
             '.name-picker-ok { font-family: var(--buttons-plugin-modal-font, inherit); font-size: var(--buttons-plugin-modal-font-size, inherit); }' +
-            /* При выключенном «Показать постер»: сдвигаем блок вниз */
+            /* При выключенном «Показать постер»: сдвигаем блок вниз; отступ только после последнего блока — видны подписи под постерами */
             'body.buttons-plugin--poster-off .full-start-new { margin-top: 25vh !important; }' +
+            'body.buttons-plugin--poster-off .scroll__body > .items-line:last-of-type { margin-bottom: 40vh !important; }' +
             '</style>');
         $('body').append(style);
 
@@ -1234,21 +1235,22 @@
             var itemsLine = $(target).closest('.items-line');
             if (!itemsLine.length) return;
             if (itemsLine.find('.items-line__title').text().trim() !== 'Подробно') return;
-            var scrollBody = itemsLine.closest('.scroll__body');
-            if (!scrollBody.length || scrollBody.find('.full-start-new').length === 0) return;
+            var scrollBody = itemsLine.parent();
+            if (!scrollBody.hasClass('scroll__body')) return;
             var sb = scrollBody[0];
             var il = itemsLine[0];
-            var offsetY = 0;
-            var node = il;
-            while (node && node !== sb) {
-                offsetY += node.offsetTop || 0;
-                node = node.offsetParent;
+            var offsetY = il.offsetTop;
+            var val = 'translate3d(0px, -' + Math.round(offsetY) + 'px, 0px)';
+            try {
+                sb.style.setProperty('transform', val, 'important');
+                sb.style.setProperty('-webkit-transform', val, 'important');
+            } catch (err) {
+                sb.style.transform = sb.style.webkitTransform = val;
             }
-            sb.style.webkitTransform = sb.style.transform = 'translate3d(0px, -' + Math.round(offsetY) + 'px, 0px)';
         }
         $(document).on('focusin', function(e) {
             var evt = e;
-            [50, 150, 300, 500].forEach(function(ms) {
+            [0, 80, 180, 350, 600].forEach(function(ms) {
                 setTimeout(function() { scrollDetailsBlockToTop(evt); }, ms);
             });
         });
