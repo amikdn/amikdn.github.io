@@ -1218,12 +1218,45 @@
             '.icon-picker-grid__cell.focus { border-color: rgba(255,255,255,0.8); }' +
             '.icon-picker-grid__cell svg { width: 1.5em; height: 1.5em; }' +
             '.name-picker-ok { font-family: var(--buttons-plugin-modal-font, inherit); font-size: var(--buttons-plugin-modal-font-size, inherit); }' +
+            /* При выключенном «Показать постер» скрываем контент ниже .full-start-new; блок «Подробнее» остаётся видимым */
+            'body.buttons-plugin--poster-off .full-start-new ~ *:not(.buttons-plugin-reveal-more) { display: none !important; }' +
+            '.buttons-plugin-reveal-more { padding: 0.6em 1em; text-align: center; color: rgba(255,255,255,0.85); font-size: 1em; border: 2px solid transparent; box-sizing: border-box; }' +
+            '.buttons-plugin-reveal-more.focus { border-color: rgba(255,255,255,0.9); border-radius: 0.3em; }' +
             '</style>');
         $('body').append(style);
 
         Lampa.Listener.follow('full', function(e) {
             if (e.type !== 'complite') return;
             var container = e.object.activity.render();
+            var showPoster = Lampa.Storage.get('card_interfice_poster', true);
+            if (!showPoster) {
+                $('body').addClass('buttons-plugin--poster-off');
+                var fullStart = container.find('.full-start-new');
+                if (fullStart.length && !fullStart.next('.buttons-plugin-reveal-more').length) {
+                    var revealEl = $('<div class="buttons-plugin-reveal-more selector" tabindex="-1">Подробнее</div>');
+                    fullStart.after(revealEl);
+                    (function observeReveal() {
+                        var el = revealEl[0];
+                        if (!el || !el.parentNode) return;
+                        var obs = new MutationObserver(function(mutations) {
+                            if (el.classList.contains('focus')) {
+                                $('body').removeClass('buttons-plugin--poster-off');
+                                obs.disconnect();
+                                if (typeof Lampa.Controller !== 'undefined' && Lampa.Controller.collectionFocus) {
+                                    var firstBelow = container.find('.items-line .selector, .full-descr .selector').first();
+                                    if (firstBelow.length) {
+                                        setTimeout(function() { Lampa.Controller.collectionFocus(firstBelow, container); }, 50);
+                                    }
+                                }
+                            }
+                        });
+                        obs.observe(el, { attributes: true, attributeFilter: ['class'] });
+                    })();
+                }
+            } else {
+                $('body').removeClass('buttons-plugin--poster-off');
+                container.find('.buttons-plugin-reveal-more').remove();
+            }
             var targetContainer = container.find('.full-start-new__buttons');
             if (targetContainer.length) {
                 targetContainer.addClass('buttons-loading');
