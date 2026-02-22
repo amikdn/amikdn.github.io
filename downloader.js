@@ -2,7 +2,7 @@
     'use strict';
 
     var PLUGIN_NAME = 'Скачивание с Lampa';
-    var PLUGIN_VERSION = '1.01';
+    var PLUGIN_VERSION = '1.0';
 
 
     function showNotify(msg) {
@@ -106,18 +106,99 @@
         return name.replace(/[<>:"/\\|?*]/g, '_').substring(0, 120).trim() || 'video';
     }
 
-    function downloadMp4(url, filename, onDone) {
-        fetch(url, { mode: 'cors', credentials: 'omit' }).then(function(res) {
-            if (!res.ok) throw new Error('HTTP ' + res.status);
-            return res.blob();
-        }).then(function(blob) {
+    var progressStartTime = 0;
+    var progressEl = null;
+    var progressSizeEl = null;
+    var progressSpeedEl = null;
+    var progressBarEl = null;
+    var progressSegmentsEl = null;
+
+    function formatBytes(bytes) {
+        if (bytes >= 1073741824) return (bytes / 1073741824).toFixed(2) + ' GB';
+        if (bytes >= 1048576) return (bytes / 1048576).toFixed(2) + ' MB';
+        if (bytes >= 1024) return (bytes / 1024).toFixed(2) + ' KB';
+        return bytes + ' B';
+    }
+
+    function showDownloadProgressWindow() {
+        if (progressEl && progressEl.parentNode) progressEl.remove();
+        progressStartTime = Date.now();
+        progressEl = document.createElement('div');
+        progressEl.id = 'lampa-dl-progress';
+        progressEl.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#1a1a1a;padding:24px;border-radius:12px;min-width:320px;max-width:90vw;z-index:99997;box-shadow:0 0 40px rgba(0,0,0,0.8);font-family:sans-serif;border:1px solid #333;';
+        progressEl.innerHTML = [
+            '<div style="color:#fff;font-size:16px;margin-bottom:12px;">Загрузка</div>',
+            '<div id="lampa-dl-progress-segments" style="color:#aaa;font-size:13px;margin-bottom:8px;">—</div>',
+            '<div id="lampa-dl-progress-size" style="color:#aaa;font-size:13px;margin-bottom:8px;">Размер: 0 B</div>',
+            '<div id="lampa-dl-progress-speed" style="color:#4fc3f7;font-size:13px;margin-bottom:10px;">Скорость: —</div>',
+            '<div style="height:6px;background:#333;border-radius:3px;overflow:hidden;"><div id="lampa-dl-progress-bar" style="height:100%;width:0%;background:#4fc3f7;transition:width 0.2s;"></div></div>'
+        ].join('');
+        document.body.appendChild(progressEl);
+        progressSizeEl = document.getElementById('lampa-dl-progress-size');
+        progressSpeedEl = document.getElementById('lampa-dl-progress-speed');
+        progressBarEl = document.getElementById('lampa-dl-progress-bar');
+        progressSegmentsEl = document.getElementById('lampa-dl-progress-segments');
+    }
+
+    function updateDownloadProgress(loadedBytes, totalBytes, segmentDone, segmentTotal) {
+        if (!progressSizeEl) return;
+        progressSizeEl.textContent = 'Размер: ' + formatBytes(loadedBytes) + (totalBytes > 0 ? ' / ' + formatBytes(totalBytes) : '');
+        var elapsed = (Date.now() - progressStartTime) / 1000;
+        var speed = elapsed > 0 ? loadedBytes / elapsed : 0;
+        if (progressSpeedEl) progressSpeedEl.textContent = 'Скорость: ' + formatBytes(Math.round(speed)) + '/s';
+        if (progressBarEl) {
+            var pct = totalBytes > 0 ? Math.min(100, (loadedBytes / totalBytes) * 100) : (segmentTotal > 0 ? (segmentDone / segmentTotal) * 100 : 0);
+            progressBarEl.style.width = pct + '%';
+        }
+        if (progressSegmentsEl) {
+            if (segmentTotal > 0) {
+                progressSegmentsEl.textContent = 'Сегменты: ' + segmentDone + ' / ' + segmentTotal;
+                progressSegmentsEl.style.display = '';
+            } else {
+                progressSegmentsEl.style.display = 'none';
+            }
+        }
+    }
+
+    function hideDownloadProgressWindow() {
+        if (progressEl && progressEl.parentNode) progressEl.remove();
+        progressEl = null;
+    }
+
+    function downloadMp4(url, filename, onProgress, onDone) {
+        function tryFetch(opts) {
+            return fetch(url, opts || { mode: 'cors', credentials: 'omit' }).then(function(res) {
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                var total = parseInt(res.headers.get('Content-Length') || '0', 10);
+                var reader = res.body && res.body.getReader();
+                if (!reader) {
+                    return res.blob().then(function(blob) {
+                        if (onProgress) onProgress(blob.size, blob.size);
+                        return blob;
+                    });
+                }
+                var chunks = [];
+                var loaded = 0;
+                function read() {
+                    return reader.read().then(function(result) {
+                        if (result.done) {
+                            var blob = new Blob(chunks);
+                            return blob;
+                        }
+                        chunks.push(result.value);
+                        loaded += result.value.length;
+                        if (onProgress) onProgress(loaded, total > 0 ? total : null);
+                        return read();
+                    });
+                }
+                return read();
+            });
+        }
+        tryFetch().then(function(blob) {
             var ok = triggerSave(blob, filename);
             if (onDone) onDone(ok);
         }).catch(function() {
-            fetch(url, { credentials: 'omit' }).then(function(res) {
-                if (!res.ok) throw new Error('HTTP ' + res.status);
-                return res.blob();
-            }).then(function(blob) {
+            tryFetch({ credentials: 'omit' }).then(function(blob) {
                 var ok = triggerSave(blob, filename);
                 if (onDone) onDone(ok);
             }).catch(function() { if (onDone) onDone(false); });
@@ -139,6 +220,7 @@
 
             var total = onlyTs.length;
             var doneCount = 0;
+            var totalLoaded = 0;
 
             fileHandle.createWritable().then(function(writer) {
                 function fetchNext(index) {
@@ -149,14 +231,16 @@
                         return;
                     }
                     fetchBuffer(onlyTs[index]).then(function(ab) {
+                        var len = ab.byteLength;
                         return writer.write(ab).then(function() {
                             doneCount++;
-                            if (onProgress) onProgress(doneCount, total);
+                            totalLoaded += len;
+                            if (onProgress) onProgress(doneCount, total, totalLoaded);
                             fetchNext(index + 1);
                         });
                     }).catch(function() {
                         doneCount++;
-                        if (onProgress) onProgress(doneCount, total);
+                        if (onProgress) onProgress(doneCount, total, totalLoaded);
                         fetchNext(index + 1);
                     });
                 }
@@ -176,6 +260,7 @@
             var total = onlyTs.length;
             var abList = new Array(total);
             var doneCount = 0;
+            var totalLoaded = 0;
 
             function fetchNext(index) {
                 if (index >= total) {
@@ -203,11 +288,12 @@
                 fetchBuffer(onlyTs[index]).then(function(ab) {
                     abList[index] = ab;
                     doneCount++;
-                    if (onProgress) onProgress(doneCount, total);
+                    totalLoaded += ab.byteLength;
+                    if (onProgress) onProgress(doneCount, total, totalLoaded);
                     fetchNext(index + 1);
                 }).catch(function() {
                     doneCount++;
-                    if (onProgress) onProgress(doneCount, total);
+                    if (onProgress) onProgress(doneCount, total, totalLoaded);
                     fetchNext(index + 1);
                 });
             }
@@ -486,18 +572,28 @@
         var filename = safeFilename(title) + (isM3u8 ? '.ts' : '.mp4');
         if (modalEl) modalEl.remove();
 
-        showNotify(isM3u8 ? 'Загрузка HLS…' : 'Загрузка…');
+        showDownloadProgressWindow();
 
+        function onProgress(loadedBytes, totalBytes, segmentDone, segmentTotal) {
+            if (segmentDone === undefined) {
+                segmentDone = 0;
+                segmentTotal = 0;
+            }
+            updateDownloadProgress(loadedBytes || 0, totalBytes || 0, segmentDone, segmentTotal || 0);
+        }
         function onDone(ok) {
+            hideDownloadProgressWindow();
             showNotify(ok ? 'Сохранено: ' + filename : 'Ошибка загрузки');
         }
 
         if (isM3u8) {
-            downloadM3u8(url, safeFilename(title), function(done, total) {
-                if (total > 3) showNotify('Загрузка ' + done + '/' + total);
+            downloadM3u8(url, safeFilename(title), function(done, total, loadedBytes) {
+                onProgress(loadedBytes || 0, 0, done, total);
             }, onDone);
         } else {
-            downloadMp4(url, filename, onDone);
+            downloadMp4(url, filename, function(loaded, total) {
+                onProgress(loaded, total || 0, 0, 0);
+            }, onDone);
         }
     }
 
