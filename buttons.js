@@ -254,10 +254,133 @@
         return svg.length ? svg.get(0).outerHTML : '';
     }
 
+    function loadIconsFromUrl(url, seen, callback) {
+        if (!url || typeof url !== 'string') {
+            callback(null, 'Введите ссылку на файл');
+            return;
+        }
+        var xhr = new XMLHttpRequest();
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState !== 4) return;
+            if (xhr.status !== 200) {
+                callback(null, 'Ошибка загрузки: ' + (xhr.status || 'сеть'));
+                return;
+            }
+            var text = (xhr.responseText || '').replace(/^\uFEFF/, '').trim();
+            if (!text) {
+                callback(null, 'Пустой ответ');
+                return;
+            }
+            if (text.indexOf('<!') === 0 || text.indexOf('<html') !== -1) {
+                callback(null, 'По ссылке отдаётся не JSON (проверьте файл на сайте)');
+                return;
+            }
+            text = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+            text = text.replace(/,(\s*)\]/, '$1]').replace(/,(\s*)\}/, '$1}');
+            var arr;
+            try {
+                arr = JSON.parse(text);
+            } catch (e) {
+                try {
+                    arr = JSON.parse(text.replace(/[\u0000-\u001F]+/g, ' '));
+                } catch (e2) {
+                    try {
+                        arr = JSON.parse(text.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim());
+                    } catch (e3) {
+                        var svgList = text.match(/<svg[\s\S]*?<\/svg>/gi);
+                        if (svgList && svgList.length) {
+                            arr = svgList;
+                        } else {
+                            callback(null, 'Неверный формат JSON');
+                            return;
+                        }
+                    }
+                }
+            }
+            if (!Array.isArray(arr)) {
+                callback(null, 'Файл должен содержать массив');
+                return;
+            }
+            var result = [];
+            var urlsToFetch = [];
+            var i, item, html, key;
+            for (i = 0; i < arr.length; i++) {
+                item = arr[i];
+                if (typeof item === 'string') {
+                    html = item.trim();
+                    if (html.indexOf('<svg') !== -1) {
+                        key = svgFingerprint(html);
+                        if (!seen[key]) {
+                            seen[key] = true;
+                            result.push({ id: 'icon-' + i, html: html });
+                        }
+                    } else if (html.indexOf('http://') === 0 || html.indexOf('https://') === 0) {
+                        urlsToFetch.push({ url: html, index: i });
+                    }
+                } else if (item && item.html != null) {
+                    html = String(item.html).trim();
+                    if (html && html.indexOf('<svg') !== -1) {
+                        key = svgFingerprint(html);
+                        if (!seen[key]) {
+                            seen[key] = true;
+                            result.push({ id: (item.id && String(item.id)) || key.substring(0, 80), html: html });
+                        }
+                    }
+                }
+            }
+            if (urlsToFetch.length === 0) {
+                callback(result, null);
+                return;
+            }
+            var fetched = 0;
+            urlsToFetch.forEach(function(entry) {
+                var req = new XMLHttpRequest();
+                req.open('GET', entry.url, true);
+                req.onload = function() {
+                    if (req.status === 200 && req.responseText) {
+                        html = req.responseText.trim();
+                        if (html.indexOf('<svg') !== -1) {
+                            key = svgFingerprint(html);
+                            if (!seen[key]) {
+                                seen[key] = true;
+                                result.push({ id: 'icon-' + entry.index, html: html });
+                            }
+                        }
+                    }
+                    fetched++;
+                    if (fetched === urlsToFetch.length) {
+                        callback(result, null);
+                    }
+                };
+                req.onerror = function() {
+                    fetched++;
+                    if (fetched === urlsToFetch.length) {
+                        callback(result, null);
+                    }
+                };
+                req.send();
+            });
+        };
+        xhr.onerror = function() {
+            callback(null, 'Ошибка сети');
+        };
+        try {
+            xhr.open('GET', url, true);
+            xhr.responseType = 'text';
+            xhr.send();
+        } catch (e) {
+            callback(null, 'Ошибка запроса');
+        }
+    }
+
     function openIconPicker(btn, btnId, defaultIconHtml, listItem) {
         var icons = collectAllIcons();
+        var seen = {};
+        for (var s = 0; s < icons.length; s++) {
+            seen[svgFingerprint(icons[s].html)] = true;
+        }
         var wrap = $('<div class="icon-picker-wrap"></div>');
-        var defaultBlock = $('<div class="selector icon-picker-default">' +
+        var defaultBlock = $('<div class="selector icon-picker-default" tabindex="0">' +
             '<div class="icon-picker-default__preview"></div>' +
             '<span>По умолчанию</span></div>');
         if (defaultIconHtml) {
@@ -286,30 +409,76 @@
             applyChoice(true, null);
         });
         wrap.append(defaultBlock);
-        var grid = $('<div class="icon-picker-grid"></div>');
+        var defaultIconsUrl = 'https://amikdn.github.io/lampa-button-icons.json';
+        var loadStatus = $('<div class="icon-picker-load-status"></div>');
+        var tabLampa = $('<div class="selector icon-picker-tab icon-picker-tab--active" tabindex="0">Иконки Lampa</div>');
+        var tabAlt = $('<div class="selector icon-picker-tab" tabindex="0">Альтернативные иконки</div>');
+        var switchBlock = $('<div class="icon-picker-switch-wrap"></div>');
+        switchBlock.append(tabLampa).append(tabAlt);
+        wrap.append(switchBlock);
+        wrap.append(loadStatus);
+        function showLampaGrid() {
+            wrap.removeClass('icon-picker-view-alt').addClass('icon-picker-view-lampa');
+            tabLampa.addClass('icon-picker-tab--active');
+            tabAlt.removeClass('icon-picker-tab--active');
+        }
+        function showAltGrid() {
+            wrap.removeClass('icon-picker-view-lampa').addClass('icon-picker-view-alt');
+            tabAlt.addClass('icon-picker-tab--active');
+            tabLampa.removeClass('icon-picker-tab--active');
+        }
+        tabLampa.on('hover:enter', showLampaGrid);
+        tabAlt.on('hover:enter', showAltGrid);
+        wrap.addClass('icon-picker-view-lampa');
         icons.forEach(function(entry) {
-            var cell = $('<div class="selector icon-picker-grid__cell"></div>');
+            var cell = $('<div class="selector icon-picker-grid__cell icon-picker-cell-lampa" tabindex="0"></div>');
             cell.append($(entry.html).clone());
             var savedHtml = entry.html;
             cell.on('hover:enter', function() {
                 applyChoice(false, savedHtml);
             });
-            grid.append(cell);
+            wrap.append(cell);
         });
-        wrap.append(grid);
-        Lampa.Modal.open({
-            title: 'Иконка кнопки',
-            html: wrap,
-            size: 'small',
-            scroll_to_center: true,
-            onBack: function() {
-                if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.close) {
-                    Lampa.Modal.close();
+        loadStatus.text('Загрузка…');
+        var modalOpened = false;
+        function openModal() {
+            if (modalOpened) return;
+            modalOpened = true;
+            Lampa.Modal.open({
+                title: 'Иконка кнопки',
+                html: wrap,
+                size: 'small',
+                scroll_to_center: true,
+                onBack: function() {
+                    if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.close) {
+                        Lampa.Modal.close();
+                    }
+                    setTimeout(function() {
+                        refreshController();
+                    }, 100);
                 }
-                setTimeout(function() {
-                    refreshController();
-                }, 100);
+            });
+        }
+        var openTimeout = setTimeout(openModal, 4000);
+        loadIconsFromUrl(defaultIconsUrl, {}, function(newEntries, err) {
+            clearTimeout(openTimeout);
+            if (err) {
+                loadStatus.text(err);
+            } else if (newEntries && newEntries.length) {
+                newEntries.forEach(function(entry) {
+                    var cell = $('<div class="selector icon-picker-grid__cell icon-picker-cell-alt" tabindex="0"></div>');
+                    cell.append($(entry.html).clone());
+                    var savedHtml = entry.html;
+                    cell.on('hover:enter', function() {
+                        applyChoice(false, savedHtml);
+                    });
+                    wrap.append(cell);
+                });
+                loadStatus.text('Загружены альтернативные иконки (' + newEntries.length + ')');
+            } else {
+                loadStatus.text('Альтернативные иконки не загружены');
             }
+            openModal();
         });
     }
 
@@ -439,10 +608,14 @@
         var customIcons = getCustomIcons();
         buttons.forEach(function(btn) {
             var id = getButtonId(btn);
+            var svgEl = btn.find('svg').first();
+            if (!svgEl.length) return;
             if (customIcons[id]) {
-                var svgEl = btn.find('svg').first();
-                if (svgEl.length) {
-                    svgEl.replaceWith($(customIcons[id]).clone());
+                svgEl.replaceWith($(customIcons[id]).clone());
+            } else {
+                var defaultHtml = getDefaultIconForButton(id);
+                if (defaultHtml) {
+                    svgEl.replaceWith($(defaultHtml).clone());
                 }
             }
         });
@@ -588,6 +761,15 @@
         }
         return text;
     }
+
+    function syncModalFont() {
+            var el = document.querySelector('.menu-edit-list__title');
+            if (el) {
+                var s = window.getComputedStyle(el);
+                document.body.style.setProperty('--buttons-plugin-modal-font', s.fontFamily);
+                document.body.style.setProperty('--buttons-plugin-modal-font-size', s.fontSize);
+            }
+        }
 
     function openEditDialog() {
         if (currentContainer) {
@@ -856,6 +1038,7 @@
                 Lampa.Controller.toggle('full_start');
             }
         });
+        setTimeout(syncModalFont, 250);
     }
 
     function reorderButtons(container) {
@@ -1007,29 +1190,37 @@
             '.menu-edit-list__item { display: grid; grid-template-columns: 2.5em minmax(0, 1fr) 2.4em 2.4em 2.4em 2.4em 2.4em; align-items: center; gap: 0.35em; padding: 0.2em 0; box-sizing: border-box; }' +
             '.menu-edit-list__item .menu-edit-list__icon { width: 2.5em; min-width: 2.5em; height: 2.5em; display: flex; align-items: center; justify-content: center; box-sizing: border-box; }' +
             '.menu-edit-list__item .menu-edit-list__icon svg { width: 1.4em; height: 1.4em; }' +
-            '.menu-edit-list__item .menu-edit-list__title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }' +
-            '.menu-edit-list__item .menu-edit-list__move, .menu-edit-list__item .menu-edit-list__change-name, .menu-edit-list__item .menu-edit-list__change-icon, .menu-edit-list__item .menu-edit-list__toggle { width: 2.4em; min-width: 2.4em; height: 2.4em; display: flex; align-items: center; justify-content: center; box-sizing: border-box; }' +
+            '.menu-edit-list__item .menu-edit-list__title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--buttons-plugin-modal-font, inherit); font-size: var(--buttons-plugin-modal-font-size, inherit); }' +
+            '.menu-edit-list__item .menu-edit-list__move, .menu-edit-list__item .menu-edit-list__change-name, .menu-edit-list__item .menu-edit-list__change-icon, .menu-edit-list__item .menu-edit-list__toggle { width: 2.4em; min-width: 2.4em; height: 2.4em; display: flex; align-items: center; justify-content: center; box-sizing: border-box; border: 2px solid transparent; border-radius: 0.3em; }' +
             '.menu-edit-list__item .menu-edit-list__move svg { width: 1.2em; height: 0.75em; }' +
             '.menu-edit-list__item .menu-edit-list__toggle svg { width: 1.2em; height: 1.2em; }' +
             '.menu-edit-list__item .menu-edit-list__change-name svg, .menu-edit-list__item .menu-edit-list__change-icon svg { width: 1.2em; height: 1.2em; }' +
-            '.viewmode-switch, .folder-reset-button { max-width: 100%; box-sizing: border-box; white-space: normal; word-break: break-word; }' +
-            '.folder-reset-button { background: rgba(200,100,100,0.3); margin-top: 1em; border-radius: 0.3em; }' +
-            '.folder-reset-button.focus { border: 3px solid rgba(255,255,255,0.8); }' +
-            '.menu-edit-list__move, .menu-edit-list__change-name, .menu-edit-list__change-icon { box-sizing: border-box; }' +
-            '.menu-edit-list__move.focus, .menu-edit-list__change-name.focus, .menu-edit-list__change-icon.focus, .menu-edit-list__toggle.focus { border: 2px solid rgba(255,255,255,0.8); border-radius: 0.3em; }' +
+            '.viewmode-switch, .folder-reset-button { max-width: 100%; box-sizing: border-box; white-space: normal; word-break: break-word; font-family: var(--buttons-plugin-modal-font, inherit); font-size: var(--buttons-plugin-modal-font-size, inherit); }' +
+            '.folder-reset-button { background: rgba(200,100,100,0.3); margin-top: 1em; border-radius: 0.3em; border: 3px solid transparent; }' +
+            '.folder-reset-button.focus { border-color: rgba(255,255,255,0.8); }' +
+            '.menu-edit-list__move.focus, .menu-edit-list__change-name.focus, .menu-edit-list__change-icon.focus, .menu-edit-list__toggle.focus { border-color: rgba(255,255,255,0.8); }' +
             '.full-start-new__buttons.icons-only .full-start__button span { display: none; }' +
             '.full-start-new__buttons.always-text .full-start__button span { display: block !important; }' +
-            '.viewmode-switch { background: rgba(66, 133, 244, 0.5); color: #fff; margin: 0.5em 0 1em 0; border-radius: 0.3em; }' +
-            '.viewmode-switch.focus { border: 3px solid rgba(255,255,255,0.8); }' +
+            '.viewmode-switch { background: rgba(66, 133, 244, 0.5); color: #fff; margin: 0.5em 0 1em 0; border-radius: 0.3em; border: 3px solid transparent; }' +
+            '.viewmode-switch.focus { border-color: rgba(255,255,255,0.8); }' +
             '.menu-edit-list__item-hidden { opacity: 0.5; }' +
-            '.icon-picker-default { display: flex; align-items: center; gap: 0.5em; padding: 0.75em; margin-bottom: 0.75em; border-radius: 0.3em; background: rgba(255,255,255,0.08); }' +
-            '.icon-picker-default.focus { border: 3px solid rgba(255,255,255,0.8); }' +
+            '.icon-picker-default { display: flex; align-items: center; gap: 0.5em; padding: 0.35em 0.5em; min-height: 2.5em; margin-bottom: 0.5em; border-radius: 0.3em; background: rgba(255,255,255,0.08); border: 3px solid transparent; box-sizing: border-box; font-family: var(--buttons-plugin-modal-font, inherit); font-size: var(--buttons-plugin-modal-font-size, inherit); }' +
+            '.icon-picker-default.focus { border-color: rgba(255,255,255,0.8); }' +
             '.icon-picker-default__preview { width: 2.5em; height: 2.5em; min-width: 2.5em; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }' +
             '.icon-picker-default__preview svg { width: 1.5em; height: 1.5em; }' +
-            '.icon-picker-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(2.5em, 1fr)); gap: 0.35em; max-height: 50vh; overflow-y: auto; }' +
-            '.icon-picker-grid__cell { display: flex; align-items: center; justify-content: center; padding: 0.35em; min-height: 2.5em; }' +
-            '.icon-picker-grid__cell.focus { border: 2px solid rgba(255,255,255,0.8); border-radius: 0.3em; }' +
+            '.icon-picker-wrap { width: 100%; display: grid; grid-template-columns: repeat(auto-fill, minmax(2.5em, 1fr)); gap: 0.35em; align-content: start; }' +
+            '.icon-picker-wrap .icon-picker-default, .icon-picker-wrap .icon-picker-switch-wrap, .icon-picker-wrap .icon-picker-load-status { grid-column: 1 / -1; }' +
+            '.icon-picker-view-lampa .icon-picker-cell-alt { display: none !important; }' +
+            '.icon-picker-view-alt .icon-picker-cell-lampa { display: none !important; }' +
+            '.icon-picker-switch-wrap { display: flex; width: 100%; align-items: stretch; gap: 0.35em; margin-bottom: 0; }' +
+            '.icon-picker-tab { flex: 1; display: flex; align-items: center; justify-content: center; padding: 0.75em; border-radius: 0.3em; background: rgba(255,255,255,0.08); text-align: center; min-width: 0; border: 3px solid transparent; box-sizing: border-box; font-family: var(--buttons-plugin-modal-font, inherit); font-size: var(--buttons-plugin-modal-font-size, inherit); }' +
+            '.icon-picker-tab--active { background: rgba(66, 133, 244, 0.6); }' +
+            '.icon-picker-tab.focus { border-color: rgba(255,255,255,0.8); }' +
+            '.icon-picker-load-status { font-size: 0.9em; color: rgba(255,255,255,0.7); margin-top: 0.25em; font-family: var(--buttons-plugin-modal-font, inherit); }' +
+            '.icon-picker-grid__cell { display: flex; align-items: center; justify-content: center; padding: 0.35em; min-height: 2.5em; border: 2px solid transparent; border-radius: 0.3em; box-sizing: border-box; }' +
+            '.icon-picker-grid__cell.focus { border-color: rgba(255,255,255,0.8); }' +
             '.icon-picker-grid__cell svg { width: 1.5em; height: 1.5em; }' +
+            '.name-picker-ok { font-family: var(--buttons-plugin-modal-font, inherit); font-size: var(--buttons-plugin-modal-font-size, inherit); }' +
             '</style>');
         $('body').append(style);
 
