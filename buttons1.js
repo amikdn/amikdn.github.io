@@ -458,7 +458,6 @@
                     }, 100);
                 }
             });
-            setTimeout(syncModalFont, 250);
         }
         var openTimeout = setTimeout(openModal, 4000);
         loadIconsFromUrl(defaultIconsUrl, {}, function(newEntries, err) {
@@ -764,7 +763,7 @@
     }
 
     function syncModalFont() {
-            var el = document.querySelector('.menu-edit-list__title') || document.querySelector('.icon-picker-tab');
+            var el = document.querySelector('.menu-edit-list__title');
             if (el) {
                 var s = window.getComputedStyle(el);
                 document.body.style.setProperty('--buttons-plugin-modal-font', s.fontFamily);
@@ -1186,8 +1185,6 @@
             'flex-wrap: wrap !important; ' +
             'gap: 0.5em !important; ' +
             '}' +
-            '.full-start-new__buttons .full-start__button { box-sizing: border-box; border: 2px solid transparent; border-radius: 0.3em; }' +
-            '.full-start-new__buttons .full-start__button.focus { border-color: rgba(255,255,255,0.8); }' +
             '.full-start-new__buttons.buttons-loading .full-start__button { visibility: hidden !important; }' +
             '.menu-edit-list { max-width: 100%; overflow: hidden; box-sizing: border-box; }' +
             '.menu-edit-list__item { display: grid; grid-template-columns: 2.5em minmax(0, 1fr) 2.4em 2.4em 2.4em 2.4em 2.4em; align-items: center; gap: 0.35em; padding: 0.2em 0; box-sizing: border-box; }' +
