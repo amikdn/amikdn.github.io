@@ -1175,6 +1175,8 @@
         }
         var style = $('<style>' +
             '@keyframes button-fade-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }' +
+            '.full-start-new__body { align-items: flex-start !important; }' +
+            '.full-start-new__left { align-self: flex-start !important; }' +
             '.full-start-new__buttons .full-start__button { opacity: 0; }' +
             '.full-start-new__buttons { ' +
             'display: flex !important; ' +
