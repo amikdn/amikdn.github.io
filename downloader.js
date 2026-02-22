@@ -86,6 +86,30 @@
         });
     }
 
+    function fetchSegmentTotalSize(segmentUrls, callback) {
+        if (!segmentUrls.length) { callback(0); return; }
+        var total = 0;
+        var index = 0;
+        var batchSize = 8;
+        function headOne(url) {
+            return fetch(url, { method: 'HEAD', mode: 'cors', credentials: 'omit' }).then(function(r) {
+                var len = r.headers.get('Content-Length');
+                if (len) total += parseInt(len, 10);
+            }).catch(function() {});
+        }
+        function runBatch() {
+            var end = Math.min(index + batchSize, segmentUrls.length);
+            var batch = [];
+            for (var i = index; i < end; i++) batch.push(headOne(segmentUrls[i]));
+            index = end;
+            Promise.all(batch).then(function() {
+                if (index >= segmentUrls.length) callback(total);
+                else runBatch();
+            });
+        }
+        runBatch();
+    }
+
     function triggerSave(blob, filename) {
         try {
             var a = document.createElement('a');
@@ -112,12 +136,22 @@
     var progressSpeedEl = null;
     var progressBarEl = null;
     var progressSegmentsEl = null;
+    var progressTimeEl = null;
 
     function formatBytes(bytes) {
         if (bytes >= 1073741824) return (bytes / 1073741824).toFixed(2) + ' GB';
         if (bytes >= 1048576) return (bytes / 1048576).toFixed(2) + ' MB';
         if (bytes >= 1024) return (bytes / 1024).toFixed(2) + ' KB';
         return bytes + ' B';
+    }
+
+    function formatTimeRemaining(seconds) {
+        if (!isFinite(seconds) || seconds < 0) return '—';
+        if (seconds < 60) return Math.round(seconds) + ' сек';
+        var m = Math.floor(seconds / 60);
+        var s = Math.round(seconds % 60);
+        if (m >= 60) return Math.floor(m / 60) + ' ч ' + (m % 60) + ' мин';
+        return m + ' мин' + (s > 0 ? ' ' + s + ' сек' : '');
     }
 
     function showDownloadProgressWindow() {
@@ -130,7 +164,8 @@
             '<div style="color:#fff;font-size:16px;margin-bottom:12px;">Загрузка</div>',
             '<div id="lampa-dl-progress-segments" style="color:#aaa;font-size:13px;margin-bottom:8px;">—</div>',
             '<div id="lampa-dl-progress-size" style="color:#aaa;font-size:13px;margin-bottom:8px;">Размер: 0 B</div>',
-            '<div id="lampa-dl-progress-speed" style="color:#4fc3f7;font-size:13px;margin-bottom:10px;">Скорость: —</div>',
+            '<div id="lampa-dl-progress-speed" style="color:#4fc3f7;font-size:13px;margin-bottom:8px;">Скорость: —</div>',
+            '<div id="lampa-dl-progress-time" style="color:#81c784;font-size:13px;margin-bottom:10px;">Осталось: —</div>',
             '<div style="height:6px;background:#333;border-radius:3px;overflow:hidden;"><div id="lampa-dl-progress-bar" style="height:100%;width:0%;background:#4fc3f7;transition:width 0.2s;"></div></div>'
         ].join('');
         document.body.appendChild(progressEl);
@@ -138,6 +173,7 @@
         progressSpeedEl = document.getElementById('lampa-dl-progress-speed');
         progressBarEl = document.getElementById('lampa-dl-progress-bar');
         progressSegmentsEl = document.getElementById('lampa-dl-progress-segments');
+        progressTimeEl = document.getElementById('lampa-dl-progress-time');
     }
 
     function updateDownloadProgress(loadedBytes, totalBytes, segmentDone, segmentTotal) {
@@ -156,6 +192,18 @@
                 progressSegmentsEl.style.display = '';
             } else {
                 progressSegmentsEl.style.display = 'none';
+            }
+        }
+        if (progressTimeEl) {
+            if (totalBytes > 0 && loadedBytes < totalBytes && speed > 0) {
+                var remaining = (totalBytes - loadedBytes) / speed;
+                progressTimeEl.textContent = 'Осталось: ~' + formatTimeRemaining(remaining);
+                progressTimeEl.style.display = '';
+            } else if (totalBytes > 0 && loadedBytes >= totalBytes) {
+                progressTimeEl.textContent = 'Осталось: 0 сек';
+                progressTimeEl.style.display = '';
+            } else {
+                progressTimeEl.style.display = totalBytes > 0 ? '' : 'none';
             }
         }
     }
@@ -221,6 +269,8 @@
             var total = onlyTs.length;
             var doneCount = 0;
             var totalLoaded = 0;
+            var totalBytesRef = { value: 0 };
+            fetchSegmentTotalSize(onlyTs, function(t) { totalBytesRef.value = t; });
 
             fileHandle.createWritable().then(function(writer) {
                 function fetchNext(index) {
@@ -235,12 +285,12 @@
                         return writer.write(ab).then(function() {
                             doneCount++;
                             totalLoaded += len;
-                            if (onProgress) onProgress(doneCount, total, totalLoaded);
+                            if (onProgress) onProgress(doneCount, total, totalLoaded, totalBytesRef.value);
                             fetchNext(index + 1);
                         });
                     }).catch(function() {
                         doneCount++;
-                        if (onProgress) onProgress(doneCount, total, totalLoaded);
+                        if (onProgress) onProgress(doneCount, total, totalLoaded, totalBytesRef.value);
                         fetchNext(index + 1);
                     });
                 }
@@ -261,6 +311,8 @@
             var abList = new Array(total);
             var doneCount = 0;
             var totalLoaded = 0;
+            var totalBytesRef = { value: 0 };
+            fetchSegmentTotalSize(onlyTs, function(t) { totalBytesRef.value = t; });
 
             function fetchNext(index) {
                 if (index >= total) {
@@ -289,11 +341,11 @@
                     abList[index] = ab;
                     doneCount++;
                     totalLoaded += ab.byteLength;
-                    if (onProgress) onProgress(doneCount, total, totalLoaded);
+                    if (onProgress) onProgress(doneCount, total, totalLoaded, totalBytesRef.value);
                     fetchNext(index + 1);
                 }).catch(function() {
                     doneCount++;
-                    if (onProgress) onProgress(doneCount, total, totalLoaded);
+                    if (onProgress) onProgress(doneCount, total, totalLoaded, totalBytesRef.value);
                     fetchNext(index + 1);
                 });
             }
@@ -587,8 +639,8 @@
         }
 
         if (isM3u8) {
-            downloadM3u8(url, safeFilename(title), function(done, total, loadedBytes) {
-                onProgress(loadedBytes || 0, 0, done, total);
+            downloadM3u8(url, safeFilename(title), function(done, total, loadedBytes, totalBytesEstimate) {
+                onProgress(loadedBytes || 0, totalBytesEstimate || 0, done, total);
             }, onDone);
         } else {
             downloadMp4(url, filename, function(loaded, total) {
