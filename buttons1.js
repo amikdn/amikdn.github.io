@@ -1235,29 +1235,26 @@
             if (!sel || !sel.closest) return;
             var itemsLine = $(sel).closest('.items-line');
             if (!itemsLine.length) return;
-            if (itemsLine.find('.items-line__title').text().trim() !== 'Подробно') return;
-            var scrollBody = itemsLine.parent();
-            if (!scrollBody.hasClass('scroll__body')) return;
+            var scrollBody = itemsLine.closest('.scroll__body');
+            if (!scrollBody.length || scrollBody.find('.full-start-new').length === 0) return;
+            var firstSection = scrollBody.children('.items-line').first();
+            if (!itemsLine.is(firstSection)) return;
             var sb = scrollBody[0];
             var il = itemsLine[0];
-            var style = sb.style.transform || sb.style.webkitTransform || '';
-            var match = style.match(/translate3d\([^,]+,\s*([^,\s]+)px?/);
-            var currentY = match ? parseFloat(match[1]) : 0;
+            var style = (sb.style && (sb.style.transform || sb.style.webkitTransform)) || '';
+            var match = style.match(/translate3d\s*\(\s*[^,]+,\s*([^,)]+)/);
+            var currentY = match ? parseFloat(String(match[1]).replace('px', '')) : 0;
             var lineTop = il.getBoundingClientRect().top;
             var newY = currentY - lineTop;
-            var val = 'translate3d(0px, ' + Math.round(newY) + 'px, 0px)';
-            try {
-                sb.style.setProperty('transform', val, 'important');
-                sb.style.setProperty('-webkit-transform', val, 'important');
-            } catch (err) {
-                sb.style.transform = sb.style.webkitTransform = val;
-            }
+            var val = 'translate3d(0px,' + Math.round(newY) + 'px,0px)';
+            sb.style.transform = val;
+            sb.style.webkitTransform = val;
         }
         function runDetailsScrollRepeatedly() {
             var n = 0;
             function tick() {
                 applyDetailsScrollToTop();
-                if (n < 12) { n++; requestAnimationFrame(tick); }
+                if (n < 15) { n++; requestAnimationFrame(tick); }
             }
             requestAnimationFrame(tick);
         }
@@ -1265,9 +1262,11 @@
             var target = e.target;
             var itemsLine = $(target).closest('.items-line');
             if (!itemsLine.length) return;
-            if (itemsLine.find('.items-line__title').text().trim() !== 'Подробно') return;
+            var scrollBody = itemsLine.closest('.scroll__body');
+            if (!scrollBody.length || scrollBody.find('.full-start-new').length === 0) return;
+            if (!itemsLine.is(scrollBody.children('.items-line').first())) return;
             runDetailsScrollRepeatedly();
-            [100, 300, 500, 800].forEach(function(ms) {
+            [50, 150, 300, 500, 900].forEach(function(ms) {
                 setTimeout(runDetailsScrollRepeatedly, ms);
             });
         });
