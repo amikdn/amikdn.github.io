@@ -1218,8 +1218,9 @@
             '.icon-picker-grid__cell.focus { border-color: rgba(255,255,255,0.8); }' +
             '.icon-picker-grid__cell svg { width: 1.5em; height: 1.5em; }' +
             '.name-picker-ok { font-family: var(--buttons-plugin-modal-font, inherit); font-size: var(--buttons-plugin-modal-font-size, inherit); }' +
-            /* При выключенном «Показать постер»: сдвигаем блок вниз; отступ только после последнего блока — видны подписи под постерами */
-            'body.buttons-plugin--poster-off .full-start-new { margin-top: 25vh !important; }' +
+            /* При выключенном «Показать постер» — по аналогии с cardify: фиксированная высота верхнего блока, контент прижат к низу, прокрутка как в Lampa */
+            'body.buttons-plugin--poster-off .full-start-new__body { height: 80vh !important; }' +
+            'body.buttons-plugin--poster-off .full-start-new__right { display: flex !important; flex-direction: column !important; justify-content: flex-end !important; }' +
             'body.buttons-plugin--poster-off .scroll__body > .items-line:last-of-type { margin-bottom: 40vh !important; }' +
             '</style>');
         $('body').append(style);
@@ -1229,47 +1230,6 @@
             $('body').toggleClass('buttons-plugin--poster-off', !showPoster);
         }
         setInterval(syncPosterOffClass, 1000);
-
-        function applyDetailsScrollToTop() {
-            var sel = document.activeElement;
-            if (!sel || !sel.closest) return;
-            var itemsLine = $(sel).closest('.items-line');
-            if (!itemsLine.length) return;
-            var scrollBody = itemsLine.closest('.scroll__body');
-            if (!scrollBody.length || scrollBody.find('.full-start-new').length === 0) return;
-            var firstSection = scrollBody.children('.items-line').first();
-            if (!itemsLine.is(firstSection)) return;
-            var sb = scrollBody[0];
-            var il = itemsLine[0];
-            var style = (sb.style && (sb.style.transform || sb.style.webkitTransform)) || '';
-            var match = style.match(/translate3d\s*\(\s*[^,]+,\s*([^,)]+)/);
-            var currentY = match ? parseFloat(String(match[1]).replace('px', '')) : 0;
-            var lineTop = il.getBoundingClientRect().top;
-            var newY = currentY - lineTop;
-            var val = 'translate3d(0px,' + Math.round(newY) + 'px,0px)';
-            sb.style.transform = val;
-            sb.style.webkitTransform = val;
-        }
-        function runDetailsScrollRepeatedly() {
-            var n = 0;
-            function tick() {
-                applyDetailsScrollToTop();
-                if (n < 15) { n++; requestAnimationFrame(tick); }
-            }
-            requestAnimationFrame(tick);
-        }
-        $(document).on('focusin', function(e) {
-            var target = e.target;
-            var itemsLine = $(target).closest('.items-line');
-            if (!itemsLine.length) return;
-            var scrollBody = itemsLine.closest('.scroll__body');
-            if (!scrollBody.length || scrollBody.find('.full-start-new').length === 0) return;
-            if (!itemsLine.is(scrollBody.children('.items-line').first())) return;
-            runDetailsScrollRepeatedly();
-            [50, 150, 300, 500, 900].forEach(function(ms) {
-                setTimeout(runDetailsScrollRepeatedly, ms);
-            });
-        });
 
         Lampa.Listener.follow('full', function(e) {
             if (e.type !== 'complite') return;
