@@ -1218,9 +1218,9 @@
             '.icon-picker-grid__cell.focus { border-color: rgba(255,255,255,0.8); }' +
             '.icon-picker-grid__cell svg { width: 1.5em; height: 1.5em; }' +
             '.name-picker-ok { font-family: var(--buttons-plugin-modal-font, inherit); font-size: var(--buttons-plugin-modal-font-size, inherit); }' +
-            /* При выключенном «Показать постер»: обёртка 100vh, блок прижат к низу без растягивания; под кнопками — контент при прокрутке */
-            'body.buttons-plugin--poster-off .buttons-plugin-poster-off-viewport { min-height: 100vh !important; display: flex !important; flex-direction: column !important; }' +
-            'body.buttons-plugin--poster-off .buttons-plugin-poster-off-viewport .full-start-new { margin-top: auto !important; }' +
+            /* При выключенном «Показать постер»: обёртка ровно 100vh, блок прижат к низу экрана */
+            'body.buttons-plugin--poster-off .buttons-plugin-poster-off-viewport { height: 100vh !important; min-height: 100vh !important; width: 100% !important; display: flex !important; flex-direction: column !important; flex-shrink: 0 !important; box-sizing: border-box !important; }' +
+            'body.buttons-plugin--poster-off .buttons-plugin-poster-off-viewport .full-start-new { margin-top: auto !important; flex-shrink: 0 !important; }' +
             '</style>');
         $('body').append(style);
 
@@ -1232,11 +1232,22 @@
                 $('body').addClass('buttons-plugin--poster-off');
                 var fullStart = container.find('.full-start-new').first();
                 if (fullStart.length && !fullStart.parent().hasClass('buttons-plugin-poster-off-viewport')) {
-                    fullStart.wrap('<div class="buttons-plugin-poster-off-viewport">');
+                    var viewport = $('<div class="buttons-plugin-poster-off-viewport">');
+                    fullStart.after(viewport);
+                    viewport.append(fullStart);
+                    var scrollBody = container.closest('.scroll__body');
+                    if (scrollBody.length) {
+                        viewport.prependTo(scrollBody);
+                    }
                 }
             } else {
                 $('body').removeClass('buttons-plugin--poster-off');
-                container.find('.buttons-plugin-poster-off-viewport').children().unwrap();
+                var v = container.closest('.scroll__body').find('.buttons-plugin-poster-off-viewport').first();
+                if (v.length) {
+                    var block = v.children().first();
+                    block.prependTo(container);
+                    v.remove();
+                }
             }
             var targetContainer = container.find('.full-start-new__buttons');
             if (targetContainer.length) {
