@@ -1178,6 +1178,7 @@
             '.full-start-new__body { align-items: stretch !important; }' +
             '.full-start-new__left { align-self: flex-start !important; }' +
             '.full-start-new__right { display: flex !important; flex-direction: column !important; align-self: stretch !important; min-height: 0; }' +
+            '.full-start-new__title { margin-top: auto !important; }' +
             '.full-start-new__buttons { margin-top: auto !important; display: flex !important; flex-direction: row !important; flex-wrap: wrap !important; gap: 0.5em !important; }' +
             '.full-start-new__buttons .full-start__button { opacity: 0; }' +
             '.full-start__button.hidden { display: none !important; }' +
