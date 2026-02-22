@@ -279,6 +279,34 @@
         }
     }
 
+    function hookLampaNotification() {
+        try {
+            var msgMatch = function(t) {
+                if (!t || typeof t !== 'string') return false;
+                var s = t.toLowerCase();
+                return s.indexOf('скопирован') !== -1 || s.indexOf('буфер') !== -1 || s.indexOf('copied') !== -1;
+            };
+            if (Lampa.Notification && typeof Lampa.Notification.show === 'function') {
+                var origNotif = Lampa.Notification.show.bind(Lampa.Notification);
+                Lampa.Notification.show = function(msg) {
+                    origNotif(msg);
+                    if (msgMatch(msg)) {
+                        setTimeout(function() { checkClipboardOnce(); }, 500);
+                    }
+                };
+            }
+            if (Lampa.Noty && typeof Lampa.Noty.show === 'function') {
+                var origNoty = Lampa.Noty.show.bind(Lampa.Noty);
+                Lampa.Noty.show = function(msg) {
+                    origNoty(msg);
+                    if (msgMatch(msg)) {
+                        setTimeout(function() { checkClipboardOnce(); }, 500);
+                    }
+                };
+            }
+        } catch (e) {}
+    }
+
     var initDone = false;
     function initPlugin() {
         if (typeof Lampa === 'undefined') return;
@@ -303,6 +331,7 @@
         } catch (e) {}
 
         hookClipboard();
+        hookLampaNotification();
         initDone = true;
     }
 
