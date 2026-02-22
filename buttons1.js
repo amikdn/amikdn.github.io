@@ -1219,19 +1219,20 @@
             '.icon-picker-grid__cell svg { width: 1.5em; height: 1.5em; }' +
             '.name-picker-ok { font-family: var(--buttons-plugin-modal-font, inherit); font-size: var(--buttons-plugin-modal-font-size, inherit); }' +
             /* При выключенном «Показать постер»: сдвигаем блок вниз (отступ сверху в % экрана) */
-            'body.buttons-plugin--poster-off .full-start-new { margin-top: 28vh !important; }' +
+            'body.buttons-plugin--poster-off .full-start-new { margin-top: 22vh !important; }' +
             '</style>');
         $('body').append(style);
 
+        function syncPosterOffClass() {
+            var showPoster = Lampa.Storage.get('card_interfice_poster', true);
+            $('body').toggleClass('buttons-plugin--poster-off', !showPoster);
+        }
+        setInterval(syncPosterOffClass, 1000);
+
         Lampa.Listener.follow('full', function(e) {
             if (e.type !== 'complite') return;
+            syncPosterOffClass();
             var container = e.object.activity.render();
-            var showPoster = Lampa.Storage.get('card_interfice_poster', true);
-            if (!showPoster) {
-                $('body').addClass('buttons-plugin--poster-off');
-            } else {
-                $('body').removeClass('buttons-plugin--poster-off');
-            }
             var targetContainer = container.find('.full-start-new__buttons');
             if (targetContainer.length) {
                 targetContainer.addClass('buttons-loading');
