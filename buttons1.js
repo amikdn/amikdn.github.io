@@ -1230,17 +1230,22 @@
         }
         setInterval(syncPosterOffClass, 1000);
 
-        function scrollDetailsBlockToTop(ev) {
-            var target = ev.target;
-            var itemsLine = $(target).closest('.items-line');
+        function applyDetailsScrollToTop() {
+            var sel = document.activeElement;
+            if (!sel || !sel.closest) return;
+            var itemsLine = $(sel).closest('.items-line');
             if (!itemsLine.length) return;
             if (itemsLine.find('.items-line__title').text().trim() !== 'Подробно') return;
             var scrollBody = itemsLine.parent();
             if (!scrollBody.hasClass('scroll__body')) return;
             var sb = scrollBody[0];
             var il = itemsLine[0];
-            var offsetY = il.offsetTop;
-            var val = 'translate3d(0px, -' + Math.round(offsetY) + 'px, 0px)';
+            var style = sb.style.transform || sb.style.webkitTransform || '';
+            var match = style.match(/translate3d\([^,]+,\s*([^,\s]+)px?/);
+            var currentY = match ? parseFloat(match[1]) : 0;
+            var lineTop = il.getBoundingClientRect().top;
+            var newY = currentY - lineTop;
+            var val = 'translate3d(0px, ' + Math.round(newY) + 'px, 0px)';
             try {
                 sb.style.setProperty('transform', val, 'important');
                 sb.style.setProperty('-webkit-transform', val, 'important');
@@ -1248,10 +1253,22 @@
                 sb.style.transform = sb.style.webkitTransform = val;
             }
         }
+        function runDetailsScrollRepeatedly() {
+            var n = 0;
+            function tick() {
+                applyDetailsScrollToTop();
+                if (n < 12) { n++; requestAnimationFrame(tick); }
+            }
+            requestAnimationFrame(tick);
+        }
         $(document).on('focusin', function(e) {
-            var evt = e;
-            [0, 80, 180, 350, 600].forEach(function(ms) {
-                setTimeout(function() { scrollDetailsBlockToTop(evt); }, ms);
+            var target = e.target;
+            var itemsLine = $(target).closest('.items-line');
+            if (!itemsLine.length) return;
+            if (itemsLine.find('.items-line__title').text().trim() !== 'Подробно') return;
+            runDetailsScrollRepeatedly();
+            [100, 300, 500, 800].forEach(function(ms) {
+                setTimeout(runDetailsScrollRepeatedly, ms);
             });
         });
 
