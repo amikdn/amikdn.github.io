@@ -1,6 +1,5 @@
-!function () {
+ function () {
     'use strict';
-    ;
     function e(n) {
         return n && !n.__destroyed;
     }
