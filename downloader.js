@@ -123,9 +123,15 @@
              t.indexOf('m3u8') !== -1 || t.indexOf('video') !== -1 || t.indexOf('stream') !== -1 || t.length > 30);
     }
 
+    function isSettingsOrPluginsPage() {
+        var h = (window.location.hash || '') + (window.location.pathname || '');
+        return /setting|plugin|extension|param|config/i.test(h);
+    }
+
     function showDownloadFromClipboardPrompt(copiedUrl) {
         copiedUrl = fixUrl(copiedUrl);
         if (!isVideoUrl(copiedUrl)) return;
+        if (isSettingsOrPluginsPage()) return;
         var oldModal = document.getElementById('lampa-dl-after-copy');
         if (oldModal) oldModal.remove();
         var modal = document.createElement('div');
@@ -139,22 +145,23 @@
             '</div>'
         ].join('');
         document.body.appendChild(modal);
+        function removeModalAndListener() {
+            if (modal.parentNode) modal.remove();
+            document.removeEventListener('click', closeOut);
+        }
+        function closeOut(e) {
+            if (modal.parentNode && e.target !== modal && !modal.contains(e.target)) removeModalAndListener();
+        }
         modal.addEventListener('click', function(e) {
             if (!e.target.classList.contains('lampa-dl-after-btn')) return;
             if (e.target.getAttribute('data-action') === 'yes') {
-                startDownload(copiedUrl, 'video', modal);
+                removeModalAndListener();
+                startDownload(copiedUrl, 'video', null);
             } else {
-                modal.remove();
+                removeModalAndListener();
             }
         });
-        setTimeout(function() {
-            document.addEventListener('click', function closeOut(e) {
-                if (modal.parentNode && e.target !== modal && !modal.contains(e.target)) {
-                    modal.remove();
-                    document.removeEventListener('click', closeOut);
-                }
-            });
-        }, 100);
+        setTimeout(function() { document.addEventListener('click', closeOut); }, 150);
     }
 
     function startDownload(url, title, modalEl) {
@@ -259,14 +266,7 @@
     function initPlugin() {
         if (typeof Lampa === 'undefined') return;
 
-        if (Lampa.Plugins && Lampa.Plugins.add) {
-            Lampa.Plugins.add({
-                id: 'lampa_download',
-                name: PLUGIN_NAME,
-                version: PLUGIN_VERSION,
-                description: 'Скачивание видео: после «Копировать ссылку» появляется «Скачать?», либо при нажатии Воспроизвести'
-            });
-        }
+        /* Не регистрируемся в Lampa.Plugins.add — это создаёт пустые поля в настройках расширений и ошибки в Lampa */
 
         hookClipboard();
 
