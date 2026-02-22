@@ -126,6 +126,114 @@
         return h.indexOf('extension') !== -1 || h.indexOf('plugin') !== -1;
     }
 
+    function showDownloadPromptWithUrl(copiedUrl) {
+        copiedUrl = fixUrl(copiedUrl);
+        if (!copiedUrl || copiedUrl.indexOf('http') !== 0) return;
+        if (isSettingsOrPluginsPage()) return;
+        showDownloadFromClipboardPrompt(copiedUrl);
+    }
+
+    function showDownloadPromptAskClipboardOrPaste() {
+        if (isSettingsOrPluginsPage()) return;
+        var oldModal = document.getElementById('lampa-dl-after-copy');
+        if (oldModal) oldModal.remove();
+        var modal = document.createElement('div');
+        modal.id = 'lampa-dl-after-copy';
+        modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);z-index:99995;display:flex;align-items:center;justify-content:center;font-family:sans-serif;';
+        var box = document.createElement('div');
+        box.style.cssText = 'background:#222;padding:24px;border-radius:10px;box-shadow:0 0 30px rgba(0,0,0,0.6);min-width:280px;';
+        box.innerHTML = '<p style="color:#fff;margin:0 0 16px;font-size:15px;">Скачать файл?</p>';
+        var btnYes = document.createElement('div');
+        btnYes.className = 'selector lampa-dl-after-btn';
+        btnYes.setAttribute('data-action', 'yes');
+        btnYes.setAttribute('tabindex', '0');
+        btnYes.style.cssText = 'flex:1;background:#2a9d8f;color:#fff;padding:12px;border-radius:8px;text-align:center;font-size:14px;cursor:pointer;border:3px solid transparent;';
+        btnYes.textContent = 'Да (из буфера)';
+        var btnNo = document.createElement('div');
+        btnNo.className = 'selector lampa-dl-after-btn';
+        btnNo.setAttribute('data-action', 'no');
+        btnNo.setAttribute('tabindex', '0');
+        btnNo.style.cssText = 'flex:1;background:#444;color:#ddd;padding:12px;border-radius:8px;text-align:center;font-size:14px;cursor:pointer;border:3px solid transparent;';
+        btnNo.textContent = 'Нет';
+        var row = document.createElement('div');
+        row.style.cssText = 'display:flex;gap:10px;';
+        row.appendChild(btnYes);
+        row.appendChild(btnNo);
+        box.appendChild(row);
+        modal.appendChild(box);
+        document.body.appendChild(modal);
+
+        function removeModalAndListener() {
+            if (modal.parentNode) modal.remove();
+            document.removeEventListener('click', closeOut);
+        }
+        function closeOut(e) {
+            if (modal.parentNode && e.target !== modal && !modal.contains(e.target)) removeModalAndListener();
+        }
+        function doYes() {
+            removeModalAndListener();
+            function tryClipboard() {
+                if (!navigator.clipboard || typeof navigator.clipboard.readText !== 'function') {
+                    showPasteInput();
+                    return;
+                }
+                navigator.clipboard.readText().then(function(text) {
+                    var t = (text && text.trim()) || '';
+                    if (t && isVideoUrl(t)) {
+                        startDownload(t, 'video', null);
+                    } else {
+                        showPasteInput();
+                    }
+                }).catch(function() { showPasteInput(); });
+            }
+            function showPasteInput() {
+                showNotify('Вставьте ссылку вручную');
+                var m2 = document.createElement('div');
+                m2.id = 'lampa-dl-paste';
+                m2.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:99996;display:flex;align-items:center;justify-content:center;font-family:sans-serif;';
+                var b2 = document.createElement('div');
+                b2.style.cssText = 'background:#222;padding:24px;border-radius:10px;min-width:320px;';
+                b2.innerHTML = '<p style="color:#fff;margin:0 0 12px;">Вставьте ссылку на видео</p><input type="text" id="lampa-dl-paste-input" placeholder="https://..." style="width:100%;padding:10px;margin-bottom:12px;background:#111;color:#fff;border:1px solid #444;border-radius:6px;box-sizing:border-box;"><div style="display:flex;gap:8px;"><div class="selector" data-dl="go" tabindex="0" style="flex:1;background:#2a9d8f;color:#fff;padding:12px;text-align:center;border-radius:8px;cursor:pointer;">Скачать</div><div class="selector" data-dl="cancel" tabindex="0" style="flex:1;background:#444;color:#ddd;padding:12px;text-align:center;border-radius:8px;cursor:pointer;">Отмена</div></div>';
+                m2.appendChild(b2);
+                document.body.appendChild(m2);
+                var inp = document.getElementById('lampa-dl-paste-input');
+                if (inp) {
+                    setTimeout(function() { inp.focus(); }, 100);
+                    inp.onkeydown = function(e) { if (e.key === 'Enter') b2.querySelector('[data-dl=go]').click(); };
+                }
+                b2.querySelector('[data-dl=go]').onclick = function() {
+                    var u = (inp && inp.value && inp.value.trim()) || '';
+                    m2.remove();
+                    if (u && isVideoUrl(u)) startDownload(u, 'video', null);
+                    else showNotify('Введите ссылку на видео');
+                };
+                b2.querySelector('[data-dl=cancel]').onclick = function() { m2.remove(); };
+            }
+            tryClipboard();
+        }
+        function doAction(btn) {
+            var action = btn.getAttribute('data-action');
+            removeModalAndListener();
+            if (action === 'yes') doYes();
+        }
+        btnYes.addEventListener('click', function() { doAction(btnYes); });
+        btnNo.addEventListener('click', function() { doAction(btnNo); });
+        btnYes.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); doAction(btnYes); }
+        });
+        btnNo.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); doAction(btnNo); }
+        });
+        setTimeout(function() { document.addEventListener('click', closeOut); }, 150);
+
+        if (typeof Lampa !== 'undefined' && Lampa.Controller) {
+            try {
+                if (typeof Lampa.Controller.collectionAppend === 'function') Lampa.Controller.collectionAppend(box);
+                if (typeof Lampa.Controller.collectionFocus === 'function') Lampa.Controller.collectionFocus(btnYes);
+            } catch (err) {}
+        }
+    }
+
     function showDownloadFromClipboardPrompt(copiedUrl) {
         copiedUrl = fixUrl(copiedUrl);
         if (!isVideoUrl(copiedUrl)) return;
@@ -281,27 +389,27 @@
 
     function hookLampaNotification() {
         try {
-            var msgMatch = function(t) {
+            var msgMatch = function(arg) {
+                var t = (typeof arg === 'string') ? arg : (arg && (arg.message || arg.text || arg.title || ''));
                 if (!t || typeof t !== 'string') return false;
                 var s = t.toLowerCase();
-                return s.indexOf('скопирован') !== -1 || s.indexOf('буфер') !== -1 || s.indexOf('copied') !== -1;
+                return s.indexOf('скопирован') !== -1 || s.indexOf('буфер') !== -1 || s.indexOf('copied') !== -1 || s.indexOf('clipboard') !== -1;
+            };
+            var onCopyNotification = function() {
+                setTimeout(function() { showDownloadPromptAskClipboardOrPaste(); }, 400);
             };
             if (Lampa.Notification && typeof Lampa.Notification.show === 'function') {
                 var origNotif = Lampa.Notification.show.bind(Lampa.Notification);
                 Lampa.Notification.show = function(msg) {
                     origNotif(msg);
-                    if (msgMatch(msg)) {
-                        setTimeout(function() { checkClipboardOnce(); }, 500);
-                    }
+                    if (msgMatch(msg)) onCopyNotification();
                 };
             }
             if (Lampa.Noty && typeof Lampa.Noty.show === 'function') {
                 var origNoty = Lampa.Noty.show.bind(Lampa.Noty);
                 Lampa.Noty.show = function(msg) {
                     origNoty(msg);
-                    if (msgMatch(msg)) {
-                        setTimeout(function() { checkClipboardOnce(); }, 500);
-                    }
+                    if (msgMatch(msg)) onCopyNotification();
                 };
             }
         } catch (e) {}
