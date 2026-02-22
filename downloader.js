@@ -793,11 +793,19 @@
                     if (progressSpeedEl) progressSpeedEl.style.display = 'none';
                     if (progressTimeEl) progressTimeEl.style.display = 'none';
                     if (progressBarEl) progressBarEl.style.width = '100%';
-                    showNotify('Сохранено: ' + filename);
+                    if (useMemoryPath) {
+                        showNotify('Готово. Проверьте Загрузки или папку из «Поделиться». Если файла нет — скачайте снова и выберите «Через Поделиться».');
+                    } else {
+                        showNotify('Сохранено: ' + filename);
+                    }
                     setTimeout(hideDownloadProgressWindow, 2500);
                 } else {
                     hideDownloadProgressWindow();
-                    showNotify(ok ? 'Сохранено: ' + filename : 'Ошибка загрузки');
+                    if (ok) {
+                        showNotify(useMemoryPath ? 'Проверьте Загрузки или «Поделиться».' : 'Сохранено: ' + filename);
+                    } else {
+                        showNotify('Ошибка загрузки');
+                    }
                 }
             }
 
