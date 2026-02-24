@@ -42,9 +42,11 @@
     var taskInterval = 300;
 
     var requestPool = [];
+
     function getRequest() {
         return requestPool.pop() || new Lampa.Reguest();
     }
+
     function releaseRequest(request) {
         request.clear();
         if (requestPool.length < 3) requestPool.push(request);
@@ -60,6 +62,7 @@
             processQueue();
         }, taskInterval);
     }
+
     function addToQueue(task) {
         taskQueue.push({ execute: task });
         processQueue();
@@ -127,6 +130,23 @@
         });
     }
 
+    function getTmdbRating(cardData) {
+        var rating = parseFloat((cardData.vote_average || cardData.cub_hundred_rating || 0) + '').toFixed(1);
+        return rating > 0 ? rating : null;
+    }
+
+    function formatRating(lampaRating, tmdbRating) {
+        var showTmdb = Lampa.Storage.get('lampa_rating_show_tmdb', false);
+        var parts = [];
+        if (showTmdb && tmdbRating && tmdbRating !== 0 && tmdbRating !== '0.0') {
+            parts.push(tmdbRating);
+        }
+        if (lampaRating && lampaRating !== 0 && lampaRating !== '0.0') {
+            parts.push(lampaRating);
+        }
+        return parts.join(' • ');
+    }
+
     function insertLampaBlock(render) {
         if (!render) return false;
         var rateLine = $(render).find('.full-start-new__rate-line');
@@ -160,6 +180,8 @@
         }
         var data = card.dataset || {};
         var cardData = event.object.data || {};
+        var showTmdb = Lampa.Storage.get('lampa_rating_show_tmdb', false);
+        var tmdbRating = showTmdb ? getTmdbRating(cardData) : null;
         var id = (cardData.id || data.id || card.getAttribute('data-id') || (card.getAttribute('data-card-id') || '0').replace('movie_', '') || '0').toString();
         var type = 'movie';
         if (cardData.seasons || cardData.first_air_date || cardData.original_name || data.seasons || data.firstAirDate || data.originalName) {
@@ -169,7 +191,7 @@
         voteEl.dataset.movieId = id;
         var cached = ratingCache.get('lampa_rating', ratingKey);
         if (cached && cached.rating !== 0 && cached.rating !== '0.0') {
-            var html = cached.rating;
+            var html = formatRating(cached.rating, tmdbRating);
             if (cached.medianReaction) {
                 var reactionSrc = getReactionImageSrc(cached.medianReaction);
                 html += ' <img style="width:1em;height:1em;margin:0 0.2em;" src="' + reactionSrc + '">';
@@ -180,14 +202,16 @@
         addToQueue(function () {
             getLampaRating(ratingKey).then(function (result) {
                 if (voteEl.parentNode && voteEl.dataset.movieId === id) {
-                    var html = result.rating !== null ? result.rating : '0.0';
+                    var html = formatRating(result.rating !== null ? result.rating : null, tmdbRating);
                     if (result.medianReaction) {
                         var reactionSrc = getReactionImageSrc(result.medianReaction);
                         html += ' <img style="width:1em;height:1em;margin:0 0.2em;" src="' + reactionSrc + '">';
                     }
                     voteEl.innerHTML = html;
-                    if (result.rating === 0 || result.rating === '0.0') {
-                        voteEl.style.display = 'none';
+                    if (!result.rating || result.rating === 0 || result.rating === '0.0') {
+                        if (!tmdbRating || tmdbRating === 0 || tmdbRating === '0.0') {
+                            voteEl.style.display = 'none';
+                        }
                     }
                 }
             });
@@ -195,6 +219,7 @@
     }
 
     function pollCards() {
+        var showTmdb = Lampa.Storage.get('lampa_rating_show_tmdb', false);
         var allCards = document.querySelectorAll('.card');
         allCards.forEach(function (card) {
             var data = card.card_data;
@@ -206,7 +231,8 @@
                     var ratingKey = (data.seasons || data.first_air_date || data.original_name) ? 'tv_' + data.id : 'movie_' + data.id;
                     var cached = ratingCache.get('lampa_rating', ratingKey);
                     if (cached && cached.rating !== 0 && cached.rating !== '0.0' && ratingElement.innerHTML === '') {
-                        var html = cached.rating;
+                        var tmdbRating = showTmdb ? getTmdbRating(data) : null;
+                        var html = formatRating(cached.rating, tmdbRating);
                         if (cached.medianReaction) {
                             var reactionSrc = getReactionImageSrc(cached.medianReaction);
                             html += ' <img style="width:1em;height:1em;margin:0 0.2em;" src="' + reactionSrc + '">';
@@ -220,6 +246,7 @@
     }
 
     function refreshReactionIconsOnCards() {
+        var showTmdb = Lampa.Storage.get('lampa_rating_show_tmdb', false);
         document.querySelectorAll('.card').forEach(function (card) {
             var voteEl = card.querySelector('.card__vote');
             if (!voteEl || !voteEl.dataset.movieId) return;
@@ -230,7 +257,8 @@
             var cached = ratingCache.get('lampa_rating', ratingKey);
             if (!cached || !cached.medianReaction || (cached.rating === 0 || cached.rating === '0.0')) return;
             var reactionSrc = getReactionImageSrc(cached.medianReaction);
-            var html = cached.rating + ' <img style="width:1em;height:1em;margin:0 0.2em;" src="' + reactionSrc + '">';
+            var tmdbRating = showTmdb ? getTmdbRating(data) : null;
+            var html = formatRating(cached.rating, tmdbRating) + ' <img style="width:1em;height:1em;margin:0 0.2em;" src="' + reactionSrc + '">';
             voteEl.innerHTML = html;
         });
     }
@@ -248,6 +276,21 @@
                 };
             }
         });
+    }
+
+    function refreshCardVoteFontSize() {
+        var value = Lampa.Storage.get('lampa_rating_font_size', '');
+        var styleId = 'lampa-card-vote-font-size-style';
+        var existing = document.getElementById(styleId);
+        if (existing) existing.remove();
+
+        if (value === 'normal' || value === 'small') {
+            var size = value === 'small' ? '1em' : 'unset';
+            var style = document.createElement('style');
+            style.id = styleId;
+            style.textContent = '.card__vote { font-size: ' + size + ' !important; }';
+            document.head.appendChild(style);
+        }
     }
 
     function initPlugin() {
@@ -300,6 +343,7 @@
             }
         `;
         document.head.appendChild(style);
+        refreshCardVoteFontSize();
         setupCardListener();
         pollCards();
         Lampa.Listener.follow('card', function (e) {
@@ -339,6 +383,49 @@
                     }, 0);
                 }
             });
+            Lampa.SettingsApi.addParam({
+                component: 'interface',
+                param: {name: 'lampa_rating_show_tmdb', type: 'trigger', default: false},
+                field: {name: 'Показывать рейтинг TMDB вместе с Lampa'},
+                onChange: function () {
+                    setTimeout(function () {
+                        refreshReactionIconsOnCards();
+                    }, 100);
+                },
+                onRender: function (element) {
+                    setTimeout(function () {
+                        var anchor = $('div[data-name="animated_reactions_on_posters"]');
+                        if (anchor.length) anchor.after(element);
+                    }, 0);
+                }
+            });
+            Lampa.SettingsApi.addParam({
+                component: 'interface',
+                param: {
+                    name: 'lampa_rating_font_size',
+                    type: 'select',
+                    values: {
+                        '': 'По-умолчанию',
+                        'small': 'Уменьшенный'
+                    },
+                    default: ''
+                },
+                field: {
+                    name: 'Размер шрифта рейтинга на карточках'
+                },
+                onChange: function () {
+                    setTimeout(function () {
+                        refreshCardVoteFontSize();
+                        refreshReactionIconsOnCards();
+                    }, 100);
+                },
+                onRender: function (element) {
+                    setTimeout(function () {
+                        var anchor = $('div[data-name="lampa_rating_show_tmdb"]');
+                        if (anchor.length) anchor.after(element);
+                    }, 0);
+                }
+            });
         }
 
         Lampa.Listener.follow('full', function (e) {
@@ -351,7 +438,7 @@
                         if (cached && cached.rating !== 0 && cached.rating !== '0.0') {
                             var rateValue = $(render).find('.rate--lampa .rate-value');
                             var rateIcon = $(render).find('.rate--lampa .rate-icon');
-                            rateValue.text(cached.rating);
+                            rateValue.text(cached.rating); // Только Lampa  
                             if (cached.medianReaction) {
                                 var reactionSrc = getReactionImageSrc(cached.medianReaction);
                                 rateIcon.html('<img style="width:1em;height:1em;margin:0 0.2em;" data-reaction-type="' + cached.medianReaction + '" src="' + reactionSrc + '">');
@@ -366,7 +453,7 @@
                                 var rateValue = $(render).find('.rate--lampa .rate-value');
                                 var rateIcon = $(render).find('.rate--lampa .rate-icon');
                                 if (result.rating !== null && result.rating > 0) {
-                                    rateValue.text(result.rating);
+                                    rateValue.text(result.rating); // Только Lampa  
                                     if (result.medianReaction) {
                                         var reactionSrc = getReactionImageSrc(result.medianReaction);
                                         rateIcon.html('<img style="width:1em;height:1em;margin:0 0.2em;" data-reaction-type="' + result.medianReaction + '" src="' + reactionSrc + '">');
