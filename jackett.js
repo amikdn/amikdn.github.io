@@ -18,8 +18,8 @@
     },
     {
       id: 'jacred_xyz',
-      name: 'Jacred.xyz',
-      baseUrl: 'www.jacred.xyz',
+      name: 'Jac.red',
+      baseUrl: 'jac.red',
       key: '',
       interview: 'healthy',
       lang: 'lg',
