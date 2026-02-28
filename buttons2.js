@@ -2,7 +2,7 @@
 (function() {
     'use strict';
 
-    var PLUGIN_VERSION = '1.39';
+    var PLUGIN_VERSION = '1.4';
 
     // Polyfills для совместимости со старыми устройствами
     if (!Array.prototype.forEach) {
@@ -643,11 +643,12 @@
         });
     }
 
-    function applyButtonAnimation(buttons) {
+    function applyButtonAnimation(buttons, opacityOnly) {
+        var animName = opacityOnly ? 'button-fade-in-opacity' : 'button-fade-in';
         buttons.forEach(function(btn, index) {
             btn.css({
                 'opacity': '0',
-                'animation': 'button-fade-in 0.4s ease forwards',
+                'animation': animName + ' 0.4s ease forwards',
                 'animation-delay': (index * 0.08) + 's'
             });
         });
@@ -697,7 +698,7 @@
             targetContainer.append(btn);
             if (!btn.hasClass('hidden')) visibleButtons.push(btn);
         });
-        applyButtonAnimation(visibleButtons);
+        applyButtonAnimation(visibleButtons, currentContainer.hasClass('applecation'));
         var editBtn = targetContainer.find('.button--edit-order');
         if (editBtn.length) {
             editBtn.detach();
@@ -1143,7 +1144,7 @@
         targetContainer.removeClass('icons-only always-text');
         if (viewmode === 'icons') targetContainer.addClass('icons-only');
         if (viewmode === 'always') targetContainer.addClass('always-text');
-        applyButtonAnimation(visibleButtons);
+        applyButtonAnimation(visibleButtons, isApplecation);
         setTimeout(function() {
             setupButtonNavigation(container);
         }, 100);
@@ -1181,7 +1182,9 @@
         }
         var style = $('<style>' +
             '@keyframes button-fade-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }' +
-            /* С applecation: только скрытие/иконки/загрузка, layout не трогаем — иначе меню смещается */
+            '@keyframes button-fade-in-opacity { from { opacity: 0; } to { opacity: 1; } }' +
+            /* С applecation: только opacity при появлении (без transform), чтобы сохранялась анимация фокуса при переходе на кнопку */
+            /* С applecation: только скрытие/иконки/загрузка, layout не трогаем */
             '.applecation .full-start-new__buttons .full-start__button { opacity: 0; }' +
             '.applecation .full-start__button.hidden { display: none !important; }' +
             '.applecation .full-start-new__buttons.buttons-loading .full-start__button { visibility: hidden !important; }' +
