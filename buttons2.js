@@ -2,7 +2,7 @@
 (function() {
     'use strict';
 
-    var PLUGIN_VERSION = '1.5';
+    var PLUGIN_VERSION = '1.51';
 
     // Polyfills для совместимости со старыми устройствами
     if (!Array.prototype.forEach) {
@@ -667,6 +667,9 @@
                         var enableTransition = function() {
                             $('body').removeClass('buttons-plugin-no-focus-transition');
                             container.addClass('buttons-appearance-done');
+                            container.find('.full-start__button').each(function() {
+                                this.style.removeProperty('transition');
+                            });
                         };
                         var arrowKeys = { 37: 1, 38: 1, 39: 1, 40: 1 };
                         var onKey = function(e) {
@@ -729,6 +732,11 @@
             targetContainer.append(btn);
             if (!btn.hasClass('hidden')) visibleButtons.push(btn);
         });
+        if (currentContainer.hasClass('applecation')) {
+            targetContainer.find('.full-start__button').each(function() {
+                this.style.setProperty('transition', 'none', 'important');
+            });
+        }
         applyButtonAnimation(visibleButtons, currentContainer.hasClass('applecation'));
         var editBtn = targetContainer.find('.button--edit-order');
         if (editBtn.length) {
@@ -1065,6 +1073,11 @@
             size: 'small',
             scroll_to_center: true,
             onBack: function() {
+                if (currentContainer && currentContainer.hasClass('applecation')) {
+                    currentContainer.find('.full-start-new__buttons .full-start__button').each(function() {
+                        this.style.setProperty('transition', 'none', 'important');
+                    });
+                }
                 Lampa.Modal.close();
                 applyChanges();
                 Lampa.Controller.toggle('full_start');
@@ -1175,6 +1188,11 @@
         targetContainer.removeClass('icons-only always-text');
         if (viewmode === 'icons') targetContainer.addClass('icons-only');
         if (viewmode === 'always') targetContainer.addClass('always-text');
+        if (isApplecation) {
+            targetContainer.find('.full-start__button').each(function() {
+                this.style.setProperty('transition', 'none', 'important');
+            });
+        }
         applyButtonAnimation(visibleButtons, isApplecation);
         setTimeout(function() {
             setupButtonNavigation(container);
