@@ -2,7 +2,7 @@
 (function() {
     'use strict';
 
-    var PLUGIN_VERSION = '1.44';
+    var PLUGIN_VERSION = '1.45';
 
     // Polyfills для совместимости со старыми устройствами
     if (!Array.prototype.forEach) {
@@ -663,9 +663,20 @@
                     ended++;
                     if (ended >= total) {
                         var container = $el.parent();
-                        setTimeout(function() {
-                            container.addClass('buttons-appearance-done');
-                        }, 250);
+                        var ticks = 0;
+                        var maxTicks = 50;
+                        var checkFocus = function() {
+                            ticks++;
+                            var btns = container.children('.full-start__button');
+                            for (var i = 1; i < btns.length; i++) {
+                                if ($(btns[i]).hasClass('focus')) {
+                                    container.addClass('buttons-appearance-done');
+                                    return;
+                                }
+                            }
+                            if (ticks < maxTicks) setTimeout(checkFocus, 100);
+                        };
+                        setTimeout(checkFocus, 100);
                     }
                 });
             }
