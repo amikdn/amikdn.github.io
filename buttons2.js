@@ -2,7 +2,7 @@
 (function() {
     'use strict';
 
-    var PLUGIN_VERSION = '1.37';
+    var PLUGIN_VERSION = '1.39';
 
     // Polyfills для совместимости со старыми устройствами
     if (!Array.prototype.forEach) {
@@ -1143,11 +1143,7 @@
         targetContainer.removeClass('icons-only always-text');
         if (viewmode === 'icons') targetContainer.addClass('icons-only');
         if (viewmode === 'always') targetContainer.addClass('always-text');
-        if (isApplecation) {
-            visibleButtons.forEach(function(btn) { btn.css({ 'opacity': '1', 'animation': 'none' }); });
-        } else {
-            applyButtonAnimation(visibleButtons);
-        }
+        applyButtonAnimation(visibleButtons);
         setTimeout(function() {
             setupButtonNavigation(container);
         }, 100);
