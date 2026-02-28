@@ -2,7 +2,7 @@
 (function() {
     'use strict';
 
-    var PLUGIN_VERSION = '1.45';
+    var PLUGIN_VERSION = '1.46';
 
     // Polyfills для совместимости со старыми устройствами
     if (!Array.prototype.forEach) {
@@ -663,20 +663,20 @@
                     ended++;
                     if (ended >= total) {
                         var container = $el.parent();
-                        var ticks = 0;
-                        var maxTicks = 50;
-                        var checkFocus = function() {
-                            ticks++;
-                            var btns = container.children('.full-start__button');
-                            for (var i = 1; i < btns.length; i++) {
-                                if ($(btns[i]).hasClass('focus')) {
-                                    container.addClass('buttons-appearance-done');
-                                    return;
-                                }
-                            }
-                            if (ticks < maxTicks) setTimeout(checkFocus, 100);
+                        var enableTransition = function() {
+                            container.addClass('buttons-appearance-done');
                         };
-                        setTimeout(checkFocus, 100);
+                        var arrowKeys = { 37: 1, 38: 1, 39: 1, 40: 1 };
+                        var onKey = function(e) {
+                            if (arrowKeys[e.keyCode]) {
+                                enableTransition();
+                                $(document).off('keydown.buttonsAppearance');
+                            }
+                        };
+                        $(document).on('keydown.buttonsAppearance', onKey);
+                        setTimeout(function() {
+                            $(document).off('keydown.buttonsAppearance');
+                        }, 10000);
                     }
                 });
             }
