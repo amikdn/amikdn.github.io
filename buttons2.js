@@ -2,7 +2,7 @@
 (function() {
     'use strict';
 
-    var PLUGIN_VERSION = '1.42';
+    var PLUGIN_VERSION = '1.43';
 
     // Polyfills для совместимости со старыми устройствами
     if (!Array.prototype.forEach) {
@@ -645,6 +645,11 @@
 
     function applyButtonAnimation(buttons, opacityOnly) {
         var animName = opacityOnly ? 'button-fade-in-opacity' : 'button-fade-in';
+        var total = opacityOnly ? buttons.length : 0;
+        var ended = 0;
+        if (opacityOnly && buttons.length) {
+            buttons[0].parent().removeClass('buttons-appearance-done');
+        }
         buttons.forEach(function(btn, index) {
             btn.css({
                 'opacity': '0',
@@ -653,7 +658,12 @@
             });
             if (opacityOnly) {
                 btn.one('animationend', function() {
-                    $(this).css({ 'opacity': '1', 'animation': '', 'animation-delay': '' });
+                    var $el = $(this);
+                    $el.css({ 'opacity': '1', 'animation': '', 'animation-delay': '' });
+                    ended++;
+                    if (ended >= total) {
+                        $el.parent().addClass('buttons-appearance-done');
+                    }
                 });
             }
         });
@@ -1190,7 +1200,8 @@
             '@keyframes button-fade-in-opacity { from { opacity: 0; } to { opacity: 1; } }' +
             /* С applecation: только opacity при появлении (без transform), чтобы сохранялась анимация фокуса при переходе на кнопку */
             /* С applecation: только скрытие/иконки/загрузка, layout не трогаем */
-            '.applecation .full-start-new__buttons .full-start__button { opacity: 0; transition: transform 0.2s ease, opacity 0.2s ease; }' +
+            '.applecation .full-start-new__buttons .full-start__button { opacity: 0; }' +
+            '.applecation .full-start-new__buttons.buttons-appearance-done .full-start__button { transition: transform 0.2s ease, opacity 0.2s ease; }' +
             '.applecation .full-start__button.hidden { display: none !important; }' +
             '.applecation .full-start-new__buttons.buttons-loading .full-start__button { visibility: hidden !important; }' +
             '.applecation .full-start-new__buttons.icons-only .full-start__button span { display: none; }' +
