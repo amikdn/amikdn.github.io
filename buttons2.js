@@ -2,7 +2,7 @@
 (function() {
     'use strict';
 
-    var PLUGIN_VERSION = '1.49';
+    var PLUGIN_VERSION = '1.5';
 
     // Polyfills для совместимости со старыми устройствами
     if (!Array.prototype.forEach) {
@@ -1218,6 +1218,8 @@
             /* С applecation: только скрытие/иконки/загрузка, layout не трогаем */
             '.applecation .full-start-new__buttons .full-start__button { opacity: 0; }' +
             'body.buttons-plugin-no-focus-transition .applecation .full-start-new__buttons .full-start__button { transition: none !important; }' +
+            'body.buttons-plugin-no-focus-transition .applecation .full-start-new__buttons .full-start__button.selector { transition: none !important; }' +
+            'body.buttons-plugin-no-focus-transition .applecation .full-start-new__buttons .full-start__button.focus { transition: none !important; }' +
             '.applecation .full-start-new__buttons.buttons-appearance-done .full-start__button { transition: transform 0.2s ease, opacity 0.2s ease !important; }' +
             '.applecation .full-start__button.hidden { display: none !important; }' +
             '.applecation .full-start-new__buttons.buttons-loading .full-start__button { visibility: hidden !important; }' +
@@ -1283,6 +1285,9 @@
             }
             setTimeout(function() {
                 try {
+                    if (container.hasClass('applecation')) {
+                        $('body').addClass('buttons-plugin-no-focus-transition');
+                    }
                     if (!container.data('buttons-processed')) {
                         container.data('buttons-processed', true);
                         if (reorderButtons(container)) {
