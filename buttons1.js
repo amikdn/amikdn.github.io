@@ -2,7 +2,7 @@
 (function() {
     'use strict';
 
-    var PLUGIN_VERSION = '1.52';
+    var PLUGIN_VERSION = '1.53';
 
     // Polyfills для совместимости со старыми устройствами
     if (!Array.prototype.forEach) {
@@ -1188,7 +1188,8 @@
         var style = $('<style>' +
             '@keyframes button-fade-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }' +
             '@keyframes button-fade-in-opacity { from { opacity: 0; } to { opacity: 1; } }' +
-            /* С applecation: только opacity при появлении (без transform), чтобы сохранялась анимация фокуса при переходе на кнопку */
+            /* Скрытие кнопок до применения плагина (и в Lampa, и в applecation) */
+            '.full-start-new__buttons.buttons-loading .full-start__button { visibility: hidden !important; }' +
             /* С applecation: только скрытие/иконки/загрузка, layout не трогаем */
             '.applecation .full-start-new__buttons .full-start__button { opacity: 0; }' +
             '.applecation .full-start__button.hidden { display: none !important; }' +
@@ -1235,7 +1236,19 @@
             '.icon-picker-grid__cell.focus { border-color: rgba(255,255,255,0.8); }' +
             '.icon-picker-grid__cell svg { width: 1.5em; height: 1.5em; }' +
             '.name-picker-ok { font-family: var(--buttons-plugin-modal-font, inherit); font-size: var(--buttons-plugin-modal-font-size, inherit); }' +
-            /* Режим «без постера» отключён при использовании с application.js — не меняем layout. */
+            /* Режим «без постера»: опускание кнопок (и в applecation, и без) */
+            'body.buttons-plugin--poster-off .applecation .full-start-new__body { height: 80vh !important; }' +
+            'body.buttons-plugin--poster-off .applecation .full-start-new__right { display: flex !important; flex-direction: column !important; justify-content: flex-end !important; }' +
+            'body.buttons-plugin--poster-off .applecation .full-start-new__head { display: none !important; }' +
+            'body.buttons-plugin--poster-off .applecation .full-start-new__rate-line { margin-bottom: 0.4em !important; }' +
+            'body.buttons-plugin--poster-off .applecation .full-start-new__details { margin-bottom: 0.2em !important; }' +
+            'body.buttons-plugin--poster-off .applecation .scroll__body > .items-line:last-of-type { margin-bottom: 40vh !important; }' +
+            'body.buttons-plugin--poster-off .buttons-plugin-scope .full-start-new__body { height: 80vh !important; }' +
+            'body.buttons-plugin--poster-off .buttons-plugin-scope .full-start-new__right { display: flex !important; flex-direction: column !important; justify-content: flex-end !important; }' +
+            'body.buttons-plugin--poster-off .buttons-plugin-scope .full-start-new__head { display: none !important; }' +
+            'body.buttons-plugin--poster-off .buttons-plugin-scope .full-start-new__rate-line { margin-bottom: 0.4em !important; }' +
+            'body.buttons-plugin--poster-off .buttons-plugin-scope .full-start-new__details { margin-bottom: 0.2em !important; }' +
+            'body.buttons-plugin--poster-off .buttons-plugin-scope .scroll__body > .items-line:last-of-type { margin-bottom: 40vh !important; }' +
             '</style>');
         $('body').append(style);
 
@@ -1253,6 +1266,10 @@
             if (targetContainer.length) {
                 targetContainer.addClass('buttons-loading');
             }
+            setTimeout(function() {
+                var tc = container.find('.full-start-new__buttons');
+                if (tc.length) tc.addClass('buttons-loading');
+            }, 0);
             setTimeout(function() {
                 try {
                     if (!container.data('buttons-processed')) {
