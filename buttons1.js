@@ -2,7 +2,7 @@
 (function() {
     'use strict';
 
-    var PLUGIN_VERSION = '1.54';
+    var PLUGIN_VERSION = '1.55';
 
     // Polyfills для совместимости со старыми устройствами
     if (!Array.prototype.forEach) {
@@ -1236,15 +1236,15 @@
             '.icon-picker-grid__cell.focus { border-color: rgba(255,255,255,0.8); }' +
             '.icon-picker-grid__cell svg { width: 1.5em; height: 1.5em; }' +
             '.name-picker-ok { font-family: var(--buttons-plugin-modal-font, inherit); font-size: var(--buttons-plugin-modal-font-size, inherit); }' +
-            /* Режим «без постера»: опускание кнопок, «Подробно» уезжает под кнопки при прокрутке (как в cardify) */
-            'body.buttons-plugin--poster-off .full-start-new__body { height: 80vh !important; min-height: 80vh !important; }' +
-            'body.buttons-plugin--poster-off .full-start-new__right { display: flex !important; flex-direction: column !important; justify-content: flex-end !important; }' +
-            'body.buttons-plugin--poster-off .full-start-new__head { display: none !important; }' +
-            'body.buttons-plugin--poster-off .full-start-new__rate-line { margin-bottom: 0.4em !important; }' +
-            'body.buttons-plugin--poster-off .full-start-new__details { margin-bottom: 0.2em !important; }' +
-            'body.buttons-plugin--poster-off .full .scroll__body, body.buttons-plugin--poster-off .full-start .scroll__body { padding-bottom: 50vh !important; }' +
-            'body.buttons-plugin--poster-off .full .scroll__body > .items-line:last-of-type, body.buttons-plugin--poster-off .full-start .scroll__body > .items-line:last-of-type { margin-bottom: 40vh !important; }' +
-            'body.buttons-plugin--poster-off .full [class*="description"], body.buttons-plugin--poster-off .full-start [class*="description"] { margin-bottom: 40vh !important; }' +
+            /* Режим «без постера»: только для не-applecation; опускание кнопок, «Подробно» под кнопки */
+            'body.buttons-plugin--poster-off .full:not(.applecation) .full-start-new__body { height: 80vh !important; min-height: 80vh !important; }' +
+            'body.buttons-plugin--poster-off .full:not(.applecation) .full-start-new__right { display: flex !important; flex-direction: column !important; justify-content: flex-end !important; }' +
+            'body.buttons-plugin--poster-off .full:not(.applecation) .full-start-new__head { display: none !important; }' +
+            'body.buttons-plugin--poster-off .full:not(.applecation) .full-start-new__rate-line { margin-bottom: 0.4em !important; }' +
+            'body.buttons-plugin--poster-off .full:not(.applecation) .full-start-new__details { margin-bottom: 0.2em !important; }' +
+            'body.buttons-plugin--poster-off .full:not(.applecation) .scroll__body, body.buttons-plugin--poster-off .full:not(.applecation) .full-start .scroll__body { padding-bottom: 50vh !important; }' +
+            'body.buttons-plugin--poster-off .full:not(.applecation) .scroll__body > .items-line:last-of-type, body.buttons-plugin--poster-off .full:not(.applecation) .full-start .scroll__body > .items-line:last-of-type { margin-bottom: 40vh !important; }' +
+            'body.buttons-plugin--poster-off .full:not(.applecation) [class*="description"], body.buttons-plugin--poster-off .full:not(.applecation) .full-start [class*="description"] { margin-bottom: 40vh !important; }' +
             '</style>');
         $('body').append(style);
 
