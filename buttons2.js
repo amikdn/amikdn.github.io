@@ -2,7 +2,7 @@
 (function() {
     'use strict';
 
-    var PLUGIN_VERSION = '1.36';
+    var PLUGIN_VERSION = '1.37';
 
     // Polyfills для совместимости со старыми устройствами
     if (!Array.prototype.forEach) {
@@ -1045,7 +1045,12 @@
         var targetContainer = container.find('.full-start-new__buttons');
         if (!targetContainer.length) return false;
         currentContainer = container;
-        container.addClass('buttons-plugin-scope');
+        var isApplecation = container.hasClass('applecation');
+        if (!isApplecation) {
+            var scopeEl = targetContainer.parent();
+            if (!scopeEl.length) scopeEl = container;
+            scopeEl.addClass('buttons-plugin-scope');
+        }
         container.find('.button--play, .button--edit-order').remove();
         var categories = categorizeButtons(container);
         var allButtons = []
@@ -1138,7 +1143,11 @@
         targetContainer.removeClass('icons-only always-text');
         if (viewmode === 'icons') targetContainer.addClass('icons-only');
         if (viewmode === 'always') targetContainer.addClass('always-text');
-        applyButtonAnimation(visibleButtons);
+        if (isApplecation) {
+            visibleButtons.forEach(function(btn) { btn.css({ 'opacity': '1', 'animation': 'none' }); });
+        } else {
+            applyButtonAnimation(visibleButtons);
+        }
         setTimeout(function() {
             setupButtonNavigation(container);
         }, 100);
@@ -1176,15 +1185,17 @@
         }
         var style = $('<style>' +
             '@keyframes button-fade-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }' +
-            /* Стили только внутри экрана карточки (.full и .buttons-plugin-scope), чтобы не смещать меню и интерфейс application.js */
-            '.full .full-start-new__body, .buttons-plugin-scope .full-start-new__body { align-items: stretch !important; }' +
-            '.full .full-start-new__left, .buttons-plugin-scope .full-start-new__left { align-self: flex-start !important; }' +
-            '.full .full-start-new__right, .buttons-plugin-scope .full-start-new__right { display: flex !important; flex-direction: column !important; align-self: stretch !important; min-height: 0; }' +
-            '.full .full-start-new__title, .buttons-plugin-scope .full-start-new__title { margin-top: auto !important; }' +
-            '.full .full-start-new__buttons, .buttons-plugin-scope .full-start-new__buttons { display: flex !important; flex-direction: row !important; flex-wrap: wrap !important; gap: 0.5em !important; }' +
-            '.full .full-start-new__buttons .full-start__button, .buttons-plugin-scope .full-start-new__buttons .full-start__button { opacity: 0; }' +
-            '.full .full-start__button.hidden, .buttons-plugin-scope .full-start__button.hidden { display: none !important; }' +
-            '.full .full-start-new__buttons.buttons-loading .full-start__button, .buttons-plugin-scope .full-start-new__buttons.buttons-loading .full-start__button { visibility: hidden !important; }' +
+            /* С applecation: только скрытие/иконки/загрузка, layout не трогаем — иначе меню смещается */
+            '.applecation .full-start-new__buttons .full-start__button { opacity: 0; }' +
+            '.applecation .full-start__button.hidden { display: none !important; }' +
+            '.applecation .full-start-new__buttons.buttons-loading .full-start__button { visibility: hidden !important; }' +
+            '.applecation .full-start-new__buttons.icons-only .full-start__button span { display: none; }' +
+            '.applecation .full-start-new__buttons.always-text .full-start__button span { display: block !important; }' +
+            /* Без applecation: полный layout контейнера кнопок */
+            '.buttons-plugin-scope .full-start-new__buttons { display: flex !important; flex-direction: row !important; flex-wrap: wrap !important; gap: 0.5em !important; }' +
+            '.buttons-plugin-scope .full-start-new__buttons .full-start__button { opacity: 0; }' +
+            '.buttons-plugin-scope .full-start__button.hidden { display: none !important; }' +
+            '.buttons-plugin-scope .full-start-new__buttons.buttons-loading .full-start__button { visibility: hidden !important; }' +
             '.menu-edit-list { max-width: 100%; overflow: hidden; box-sizing: border-box; }' +
             '.menu-edit-list__item { display: grid; grid-template-columns: 2.5em minmax(0, 1fr) 2.4em 2.4em 2.4em 2.4em 2.4em; align-items: center; gap: 0.35em; padding: 0.2em 0; box-sizing: border-box; }' +
             '.menu-edit-list__item .menu-edit-list__icon { width: 2.5em; min-width: 2.5em; height: 2.5em; display: flex; align-items: center; justify-content: center; box-sizing: border-box; }' +
@@ -1198,8 +1209,8 @@
             '.folder-reset-button { background: rgba(200,100,100,0.3); margin-top: 1em; border-radius: 0.3em; border: 3px solid transparent; }' +
             '.folder-reset-button.focus { border-color: rgba(255,255,255,0.8); }' +
             '.menu-edit-list__move.focus, .menu-edit-list__change-name.focus, .menu-edit-list__change-icon.focus, .menu-edit-list__toggle.focus { border-color: rgba(255,255,255,0.8); }' +
-            '.full .full-start-new__buttons.icons-only .full-start__button span, .buttons-plugin-scope .full-start-new__buttons.icons-only .full-start__button span { display: none; }' +
-            '.full .full-start-new__buttons.always-text .full-start__button span, .buttons-plugin-scope .full-start-new__buttons.always-text .full-start__button span { display: block !important; }' +
+            '.buttons-plugin-scope .full-start-new__buttons.icons-only .full-start__button span { display: none; }' +
+            '.buttons-plugin-scope .full-start-new__buttons.always-text .full-start__button span { display: block !important; }' +
             '.viewmode-switch { background: rgba(66, 133, 244, 0.5); color: #fff; margin: 0.5em 0 1em 0; border-radius: 0.3em; border: 3px solid transparent; }' +
             '.viewmode-switch.focus { border-color: rgba(255,255,255,0.8); }' +
             '.menu-edit-list__item-hidden { opacity: 0.5; }' +
@@ -1220,13 +1231,7 @@
             '.icon-picker-grid__cell.focus { border-color: rgba(255,255,255,0.8); }' +
             '.icon-picker-grid__cell svg { width: 1.5em; height: 1.5em; }' +
             '.name-picker-ok { font-family: var(--buttons-plugin-modal-font, inherit); font-size: var(--buttons-plugin-modal-font-size, inherit); }' +
-            /* При выключенном «Показать постер» — только внутри экрана карточки */
-            'body.buttons-plugin--poster-off .full .full-start-new__body, body.buttons-plugin--poster-off .buttons-plugin-scope .full-start-new__body { height: 80vh !important; }' +
-            'body.buttons-plugin--poster-off .full .full-start-new__right, body.buttons-plugin--poster-off .buttons-plugin-scope .full-start-new__right { display: flex !important; flex-direction: column !important; justify-content: flex-end !important; }' +
-            'body.buttons-plugin--poster-off .full .full-start-new__head, body.buttons-plugin--poster-off .buttons-plugin-scope .full-start-new__head { display: none !important; }' +
-            'body.buttons-plugin--poster-off .full .full-start-new__rate-line, body.buttons-plugin--poster-off .buttons-plugin-scope .full-start-new__rate-line { margin-bottom: 0.4em !important; }' +
-            'body.buttons-plugin--poster-off .full .full-start-new__details, body.buttons-plugin--poster-off .buttons-plugin-scope .full-start-new__details { margin-bottom: 0.2em !important; }' +
-            'body.buttons-plugin--poster-off .full .scroll__body > .items-line:last-of-type, body.buttons-plugin--poster-off .buttons-plugin-scope .scroll__body > .items-line:last-of-type { margin-bottom: 40vh !important; }' +
+            /* Режим «без постера» отключён при использовании с application.js — не меняем layout. */
             '</style>');
         $('body').append(style);
 
