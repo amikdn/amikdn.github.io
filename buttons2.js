@@ -2,7 +2,7 @@
 (function() {
     'use strict';
 
-    var PLUGIN_VERSION = '1.41';
+    var PLUGIN_VERSION = '1.42';
 
     // Polyfills для совместимости со старыми устройствами
     if (!Array.prototype.forEach) {
@@ -653,7 +653,7 @@
             });
             if (opacityOnly) {
                 btn.one('animationend', function() {
-                    $(this).css({ 'opacity': '', 'animation': '', 'animation-delay': '' });
+                    $(this).css({ 'opacity': '1', 'animation': '', 'animation-delay': '' });
                 });
             }
         });
