@@ -2,7 +2,7 @@
 (function() {
     'use strict';
 
-    var PLUGIN_VERSION = '1.4';
+    var PLUGIN_VERSION = '1.41';
 
     // Polyfills для совместимости со старыми устройствами
     if (!Array.prototype.forEach) {
@@ -651,6 +651,11 @@
                 'animation': animName + ' 0.4s ease forwards',
                 'animation-delay': (index * 0.08) + 's'
             });
+            if (opacityOnly) {
+                btn.one('animationend', function() {
+                    $(this).css({ 'opacity': '', 'animation': '', 'animation-delay': '' });
+                });
+            }
         });
     }
 
@@ -1185,7 +1190,7 @@
             '@keyframes button-fade-in-opacity { from { opacity: 0; } to { opacity: 1; } }' +
             /* С applecation: только opacity при появлении (без transform), чтобы сохранялась анимация фокуса при переходе на кнопку */
             /* С applecation: только скрытие/иконки/загрузка, layout не трогаем */
-            '.applecation .full-start-new__buttons .full-start__button { opacity: 0; }' +
+            '.applecation .full-start-new__buttons .full-start__button { opacity: 0; transition: transform 0.2s ease, opacity 0.2s ease; }' +
             '.applecation .full-start__button.hidden { display: none !important; }' +
             '.applecation .full-start-new__buttons.buttons-loading .full-start__button { visibility: hidden !important; }' +
             '.applecation .full-start-new__buttons.icons-only .full-start__button span { display: none; }' +
