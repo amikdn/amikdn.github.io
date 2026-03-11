@@ -112,49 +112,84 @@
         applyVisibility();
     }
 
-    var addedParams = {};
-
     function ensureParamsForDiscovered() {
         var current = scanActionClasses();
-        if (current.length === 0) return;
-
         var discovered = getDiscoveredList();
-        var added = false;
-        current.forEach(function (actionClass) {
-            if (discovered.indexOf(actionClass) === -1) {
-                discovered.push(actionClass);
-                added = true;
-            }
-        });
-        if (added) saveDiscoveredList(discovered);
-
-        discovered.forEach(function (actionClass) {
-            if (addedParams[actionClass]) return;
-            addedParams[actionClass] = true;
-
-            var paramName = STORAGE_PREFIX + actionClass;
-            Lampa.SettingsApi.addParam({
-                component: 'interface',
-                param: {
-                    name: paramName,
-                    type: 'checkbox',
-                    'default': false
-                },
-                field: {
-                    name: formatLabel(actionClass)
-                },
-                onChange: function () {
-                    run();
+        if (current.length > 0) {
+            var added = false;
+            current.forEach(function (actionClass) {
+                if (discovered.indexOf(actionClass) === -1) {
+                    discovered.push(actionClass);
+                    added = true;
                 }
             });
+            if (added) saveDiscoveredList(discovered);
+        } else if (discovered.length === 0) {
+            discovered = Object.keys(KNOWN_LABELS);
+            saveDiscoveredList(discovered);
+        }
+    }
+
+    function buildSettingsBlock() {
+        ensureParamsForDiscovered();
+        var discovered = getDiscoveredList();
+        var wrap = document.createElement('div');
+        wrap.className = 'head-actions-hide-settings';
+        wrap.style.marginBottom = '1.5rem';
+
+        var title = document.createElement('div');
+        title.className = 'selector__title';
+        title.style.cssText = 'padding: 0.5rem 0; font-weight: bold;';
+        title.textContent = 'Скрыть кнопки в шапке';
+        wrap.appendChild(title);
+
+        var hint = document.createElement('div');
+        hint.style.cssText = 'font-size: 0.9em; opacity: 0.8; margin-bottom: 0.5rem;';
+        hint.textContent = 'Отметьте, какие кнопки в верхней панели скрыть:';
+        wrap.appendChild(hint);
+
+        discovered.forEach(function (actionClass) {
+            var row = document.createElement('label');
+            row.style.cssText = 'display: flex; align-items: center; gap: 0.5rem; padding: 0.35rem 0; cursor: pointer;';
+            var input = document.createElement('input');
+            input.type = 'checkbox';
+            input.dataset.action = actionClass;
+            input.checked = !!Lampa.Storage.field(STORAGE_PREFIX + actionClass);
+            input.addEventListener('change', function () {
+                Lampa.Storage.set(STORAGE_PREFIX + actionClass, input.checked ? '1' : '');
+                run();
+            });
+            var span = document.createElement('span');
+            span.textContent = formatLabel(actionClass);
+            row.appendChild(input);
+            row.appendChild(span);
+            wrap.appendChild(row);
         });
+
+        if (discovered.length === 0) {
+            var empty = document.createElement('div');
+            empty.style.cssText = 'opacity: 0.8; padding: 0.5rem 0;';
+            empty.textContent = 'Кнопки пока не найдены. Зайдите на главный экран и снова откройте настройки.';
+            wrap.appendChild(empty);
+        }
+        return wrap;
+    }
+
+    function injectSettingsBlock(e) {
+        if (e.name !== 'interface') return;
+        var container = e.body && (e.body.jquery ? e.body[0] : e.body);
+        if (!container) return;
+        var existing = container.querySelector('.head-actions-hide-settings');
+        if (existing) existing.remove();
+        var block = buildSettingsBlock();
+        container.insertBefore(block, container.firstChild);
     }
 
     function startPlugin() {
         if (window[PLUGIN_NAME + '_loaded']) return;
         window[PLUGIN_NAME + '_loaded'] = true;
 
-        getDiscoveredList().forEach(function (c) { addedParams[c] = true; });
+        ensureParamsForDiscovered();
         run();
 
         var layerUpdate = Lampa.Layer.update;
@@ -169,7 +204,10 @@
         }
 
         Lampa.Settings.listener.follow('open', function (e) {
-            if (e.name === 'interface') ensureParamsForDiscovered();
+            if (e.name === 'interface') {
+                ensureParamsForDiscovered();
+                setTimeout(function () { injectSettingsBlock(e); }, 0);
+            }
         });
 
         var observer = new MutationObserver(function () {
