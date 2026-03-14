@@ -7,6 +7,7 @@
     var SVG_REACTIONS_BASE_URL = 'https://cubnotrip.top/img/reactions';
 
     function getRatingColor(value) {
+        if (!Lampa.Storage.get('colored_ratings_poster', true)) return '';
         var v = parseFloat(value);
         if (isNaN(v) || v <= 0) return '';
         if (v <= 3) return 'red';
@@ -675,6 +676,30 @@
             onRender: function (element) {
                 setTimeout(function () {
                     var anchor = $('div[data-name="rating_source"]');
+                    if (anchor.length) anchor.after(element);
+                }, 0);
+            }
+        });
+
+        Lampa.SettingsApi.addParam({
+            component: 'interface',
+            param: {
+                name: 'colored_ratings_poster',
+                type: 'trigger',
+                default: true
+            },
+            field: {
+                name: 'Цветные рейтинги на постерах',
+                description: 'Окрашивать рейтинг в зависимости от оценки'
+            },
+            onChange: function () {
+                setTimeout(function () {
+                    window.refreshAllRatings();
+                }, 100);
+            },
+            onRender: function (element) {
+                setTimeout(function () {
+                    var anchor = $('div[data-name="animated_reactions"]');
                     if (anchor.length) anchor.after(element);
                 }, 0);
             }
