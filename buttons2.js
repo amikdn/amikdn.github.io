@@ -1474,11 +1474,16 @@
                 var folderButtons = folder.buttons.slice();
                 deleteFolder(folderId);
                 var itemOrder = getItemOrder();
-                var newItemOrder = itemOrder.filter(function(it) {
-                    if (it.type === 'folder' && it.id === folderId) return false;
-                    if (it.type === 'button' && folderButtons.indexOf(it.id) !== -1) return false;
-                    return true;
-                });
+                var newItemOrder = [];
+                for (var i = 0; i < itemOrder.length; i++) {
+                    if (itemOrder[i].type === 'folder' && itemOrder[i].id === folderId) {
+                        folderButtons.forEach(function(btnId) {
+                            newItemOrder.push({ type: 'button', id: btnId });
+                        });
+                    } else {
+                        newItemOrder.push(itemOrder[i]);
+                    }
+                }
                 setItemOrder(newItemOrder);
                 item.remove();
                 Lampa.Noty.show('Папка удалена');
@@ -1489,6 +1494,19 @@
                     if (currentContainer) {
                         currentContainer.find('.button--play, .button--edit-order, .button--folder').remove();
                         currentContainer.data('buttons-processed', false);
+                        var targetContainer = currentContainer.find('.full-start-new__buttons');
+                        allButtonsOriginal.forEach(function(originalBtn) {
+                            var btnId = getButtonId(originalBtn);
+                            var exists = false;
+                            targetContainer.find('.full-start__button').each(function() {
+                                if (getButtonId($(this)) === btnId) { exists = true; return false; }
+                            });
+                            if (!exists) {
+                                var clonedBtn = originalBtn.clone(true, true);
+                                clonedBtn.css({ 'opacity': '1', 'animation': 'none' });
+                                targetContainer.append(clonedBtn);
+                            }
+                        });
                         reorderButtons(currentContainer);
                         refreshController();
                     }
@@ -1948,7 +1966,7 @@
             '.viewmode-switch, .folder-reset-button { max-width: 100%; box-sizing: border-box; white-space: normal; word-break: break-word; font-family: var(--buttons-plugin-modal-font, inherit); font-size: var(--buttons-plugin-modal-font-size, inherit); }' +
             '.folder-reset-button { background: rgba(200,100,100,0.3); margin-top: 1em; border-radius: 0.3em; border: 3px solid transparent; }' +
             '.folder-reset-button.focus { border-color: rgba(255,255,255,0.8); }' +
-            '.menu-edit-list__create-folder { display: flex; align-items: center; justify-content: center; gap: 0.5em; background: rgba(34, 139, 34, 0.6); margin-bottom: 0.5em; border: 3px solid transparent; border-radius: 0.3em; box-sizing: border-box; padding: 0.6em 1em; }' +
+            '.menu-edit-list__create-folder { display: flex !important; align-items: center; justify-content: center; gap: 0.5em; background: rgba(34, 139, 34, 0.6) !important; margin-bottom: 0.5em; border: 3px solid transparent; border-radius: 0.3em; box-sizing: border-box; padding: 0.6em 1em; }' +
             '.menu-edit-list__create-folder .menu-edit-list__icon { width: auto; min-width: auto; height: auto; }' +
             '.menu-edit-list__create-folder .menu-edit-list__title { text-align: center; }' +
             '.menu-edit-list__create-folder.focus { border-color: rgba(255,255,255,0.8); }' +
