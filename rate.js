@@ -651,7 +651,7 @@
                     lampa: 'Lampa',
                     kp: 'КиноПоиск',
                     imdb: 'IMDB',
-                    all: 'Все (как на полной карточке)'
+                    all: 'Все'
                 },
                 default: 'tmdb'
             },
