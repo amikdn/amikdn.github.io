@@ -90,12 +90,10 @@
     function getKinopoiskRating(item, callback) {
         const cached = ratingCache.get('kp_rating', item.id);
         if (cached) {
-            const source = Lampa.Storage.get('rating_source', 'tmdb');
+            const source = Lampa.Storage.get('rating_source', 'all');
             const rating = source === 'kp' ? cached.kp : cached.imdb;
-            if (rating && rating > 0) {
-                callback(parseFloat(rating).toFixed(1));
-                return;
-            }
+            callback(parseFloat(rating || 0).toFixed(1));
+            return;
         }
         addToQueue(() => {
             const request = getRequest();
@@ -105,7 +103,7 @@
             const api = {
                 url: 'https://kinopoiskapiunofficial.tech/',
                 rating_url: 'api/v2.2/films/',
-                headers: { 'X-API-KEY': Lampa.Storage.get('rate_api_key') || '2a4a0808-81a3-40ae-b0d3-e11335ede616' }
+                headers: { 'X-API-KEY': '2a4a0808-81a3-40ae-b0d3-e11335ede616' }
             };
 
             function searchMovies() {
@@ -115,7 +113,10 @@
                 }
                 request.timeout(15000);
                 request.silent(searchUrl, (data) => {
-                    const results = data.films || data.items || [];
+                    let results = data.films || data.items || [];
+                    if (!results.length && data && (data.kinopoiskId || data.filmId || data.kinopoisk_id)) {
+                        results = [data];
+                    }
                     processSearchResults(results);
                 }, () => {
                     releaseRequest(request);
@@ -154,11 +155,11 @@
                         request.timeout(15000);
                         request.silent(`${api.url}${api.rating_url}${movieId}`, (data) => {
                             const cachedData = ratingCache.set('kp_rating', item.id, {
-                                kp: data.ratingKinopoisk || 0,
-                                imdb: data.ratingImdb || 0,
+                                kp: data.ratingKinopoisk || data.rating_kinopoisk || 0,
+                                imdb: data.ratingImdb || data.rating_imdb || 0,
                                 timestamp: Date.now()
                             });
-                            const source = Lampa.Storage.get('rating_source', 'tmdb');
+                            const source = Lampa.Storage.get('rating_source', 'all');
                             const rating = source === 'kp' ? cachedData.kp : cachedData.imdb;
                             releaseRequest(request);
                             callback(rating ? parseFloat(rating).toFixed(1) : '0.0');
@@ -347,7 +348,7 @@
         if (!card || !card.querySelector || !document.body.contains(card)) return;
         const data = card.card_data || item.data || {};
         if (!data.id) return;
-        const source = Lampa.Storage.get('rating_source', 'tmdb');
+        const source = Lampa.Storage.get('rating_source', 'all');
         let ratingElement = card.querySelector('.card__vote');
 
         if (source === 'all') {
@@ -464,7 +465,7 @@
             const data = card.card_data;
             if (data && data.id) {
                 const ratingElement = card.querySelector('.card__vote');
-                const source = Lampa.Storage.get('rating_source', 'tmdb');
+                const source = Lampa.Storage.get('rating_source', 'all');
                 if (!ratingElement || ratingElement.dataset.source !== source || ratingElement.dataset.movieId !== data.id.toString()) {
                     updateCardRating({ card, data });
                 } else if (source === 'all' && ratingElement.classList.contains('card__vote-line')) {
@@ -521,25 +522,6 @@
     }
 
     function addSettings() {
-        Lampa.SettingsApi.addComponent({
-            component: 'rate_kp',
-            icon: '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 192 192" fill="none"><path d="M96.5 20 66.1 75.733V20H40.767v152H66.1v-55.733L96.5 172h35.467C116.767 153.422 95.2 133.578 80 115c28.711 16.889 63.789 35.044 92.5 51.933v-30.4C148.856 126.4 108.644 115.133 85 105c23.644 3.378 63.856 7.889 87.5 11.267v-30.4L85 90c27.022-11.822 60.478-22.711 87.5-34.533v-30.4C143.789 41.956 108.711 63.11 80 80l51.967-60z" stroke="#ffffff" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/></svg>',
-            name: 'Рейтинг КП API'
-        });
-
-        Lampa.SettingsApi.addParam({
-            component: 'rate_kp',
-            param: {
-                name: 'rate_api_key',
-                type: 'input',
-                values: '',
-                default: '2a4a0808-81a3-40ae-b0d3-e11335ede616'
-            },
-            field: {
-                name: 'API-KEY kinopoiskapiunofficial.tech'
-            }
-        });
-
         Lampa.SettingsApi.addParam({
             component: 'interface',
             param: {
@@ -552,7 +534,7 @@
                     imdb: 'IMDB',
                     all: 'Все (как на полной карточке)'
                 },
-                default: 'tmdb'
+                default: 'all'
             },
             field: {
                 name: 'Источник рейтинга на карточках',
