@@ -88,100 +88,133 @@
         return typeof str1 === 'string' && typeof str2 === 'string' && normalizeString(str1).indexOf(normalizeString(str2)) !== -1;
     }
 
+    const KP_API_URL = 'https://kinopoiskapiunofficial.tech/';
+    const KP_API_HEADERS = { 'X-API-KEY': '2a4a0808-81a3-40ae-b0d3-e11335ede616' };
+
+    function findBestKpMatch(results, title, originalTitle, releaseYear) {
+        if (!results || !results.length) return null;
+        results.forEach(function (r) {
+            r.tmp_year = parseInt(String(r.year || r.start_date || "0000").slice(0, 4));
+        });
+        var filtered = results;
+        if (originalTitle) {
+            var matched = results.filter(function (r) {
+                return containsString(r.orig_title || r.nameEn, originalTitle) ||
+                    containsString(r.en_title || r.nameOriginal, originalTitle) ||
+                    containsString(r.title || r.nameRu || r.name, originalTitle);
+            });
+            if (matched.length) filtered = matched;
+        }
+        if (filtered.length > 1 && releaseYear) {
+            var yearMatch = filtered.filter(function (r) { return r.tmp_year == releaseYear; });
+            if (!yearMatch.length) {
+                yearMatch = filtered.filter(function (r) { return r.tmp_year && r.tmp_year > releaseYear - 2 && r.tmp_year < releaseYear + 2; });
+            }
+            if (yearMatch.length) filtered = yearMatch;
+        }
+        return filtered[0] || null;
+    }
+
     function getKinopoiskRating(item, callback) {
-        const cached = ratingCache.get('kp_rating', item.id);
-        if (cached) {
-            const source = Lampa.Storage.get('rating_source', 'tmdb');
-            const rating = source === 'kp' ? cached.kp : cached.imdb;
-            callback(parseFloat(rating || 0).toFixed(1));
+        var cached = ratingCache.get('kp_rating', item.id);
+        if (cached && (cached.kp > 0 || cached.imdb > 0)) {
+            callback(cached);
+            return;
+        }
+        if (item.kp_rating > 0 || item.imdb_rating > 0) {
+            var result = ratingCache.set('kp_rating', item.id, {
+                kp: parseFloat(item.kp_rating) || 0,
+                imdb: parseFloat(item.imdb_rating) || 0,
+                timestamp: Date.now()
+            });
+            callback(result);
+            return;
+        }
+        if (item.kinopoisk_id) {
+            addToQueue(function () {
+                var request = getRequest();
+                request.timeout(8000);
+                request.silent(KP_API_URL + 'api/v2.2/films/' + item.kinopoisk_id, function (data) {
+                    var res = ratingCache.set('kp_rating', item.id, {
+                        kp: parseFloat(data.ratingKinopoisk) || 0,
+                        imdb: parseFloat(data.ratingImdb) || 0,
+                        timestamp: Date.now()
+                    });
+                    releaseRequest(request);
+                    callback(res);
+                }, function () {
+                    releaseRequest(request);
+                    callback({ kp: 0, imdb: 0 });
+                }, false, { headers: KP_API_HEADERS });
+            });
             return;
         }
         if (!(item.title || item.name) && !item.imdb_id) {
-            callback('0.0');
+            callback({ kp: 0, imdb: 0 });
             return;
         }
         addToQueue(function () {
-            const request = getRequest();
-            const title = cleanString(item.title || item.name || '');
-            const releaseYear = parseInt(String(item.release_date || item.first_air_date || item.last_air_date || "0000").slice(0, 4));
-            const originalTitle = item.original_title || item.original_name;
-            const api = {
-                url: 'https://kinopoiskapiunofficial.tech/',
-                rating_url: 'api/v2.2/films/',
-                headers: { 'X-API-KEY': '2a4a0808-81a3-40ae-b0d3-e11335ede616' }
-            };
+            var request = getRequest();
+            var title = cleanString(item.title || item.name || '');
+            var releaseYear = parseInt(String(item.release_date || item.first_air_date || item.last_air_date || "0000").slice(0, 4));
+            var originalTitle = item.original_title || item.original_name;
 
-            function searchMovies() {
-                let searchUrl = Lampa.Utils.addUrlComponent(api.url + 'api/v2.1/films/search-by-keyword', `keyword=${encodeURIComponent(title)}`);
-                if (item.imdb_id) {
-                    searchUrl = Lampa.Utils.addUrlComponent(api.url + 'api/v2.2/films', `imdbId=${encodeURIComponent(item.imdb_id)}`);
-                }
-                request.timeout(15000);
-                request.silent(searchUrl, (data) => {
-                    let results = data.films || data.items || [];
-                    if (!results.length && data && (data.kinopoiskId || data.filmId || data.kinopoisk_id)) {
-                        results = [data];
-                    }
-                    processSearchResults(results);
-                }, () => {
-                    releaseRequest(request);
-                    callback('0.0');
-                }, false, { headers: api.headers });
+            var searchUrl;
+            if (item.imdb_id) {
+                searchUrl = KP_API_URL + 'api/v2.2/films?imdbId=' + encodeURIComponent(item.imdb_id);
+            } else {
+                searchUrl = KP_API_URL + 'api/v2.1/films/search-by-keyword?keyword=' + encodeURIComponent(title);
             }
 
-            function processSearchResults(results) {
-                if (!results || !results.length) {
+            request.timeout(8000);
+            request.silent(searchUrl, function (data) {
+                var results = data.films || data.items || [];
+                if (!results.length && data && (data.kinopoiskId || data.filmId)) {
+                    results = [data];
+                }
+                var best = findBestKpMatch(results, title, originalTitle, releaseYear);
+                if (!best) {
                     releaseRequest(request);
-                    callback('0.0');
+                    callback({ kp: 0, imdb: 0 });
                     return;
                 }
-                results.forEach(result => {
-                    result.tmp_year = parseInt(String(result.year || result.start_date || "0000").slice(0, 4));
-                });
-                let filteredResults = results;
-                if (originalTitle) {
-                    const matched = results.filter(result =>
-                        containsString(result.orig_title || result.nameEn, originalTitle) ||
-                        containsString(result.en_title || result.nameOriginal, originalTitle) ||
-                        containsString(result.title || result.nameRu || result.name, originalTitle)
-                    );
-                    if (matched.length) filteredResults = matched;
+
+                var kpFromSearch = parseFloat(best.rating || best.ratingKinopoisk) || 0;
+                var imdbFromSearch = parseFloat(best.ratingImdb) || 0;
+                var movieId = best.kinopoiskId || best.filmId || best.kp_id || best.kinopoisk_id;
+
+                if (kpFromSearch > 0) {
+                    ratingCache.set('kp_rating', item.id, {
+                        kp: kpFromSearch,
+                        imdb: imdbFromSearch,
+                        timestamp: Date.now()
+                    });
+                    callback({ kp: kpFromSearch, imdb: imdbFromSearch });
                 }
-                if (filteredResults.length > 1 && releaseYear) {
-                    let yearMatched = filteredResults.filter(result => result.tmp_year == releaseYear);
-                    if (!yearMatched.length) {
-                        yearMatched = filteredResults.filter(result => result.tmp_year && result.tmp_year > releaseYear - 2 && result.tmp_year < releaseYear + 2);
-                    }
-                    if (yearMatched.length) filteredResults = yearMatched;
-                }
-                if (filteredResults.length >= 1) {
-                    const movieId = filteredResults[0].kp_id || filteredResults[0].kinopoisk_id || filteredResults[0].kinopoiskId || filteredResults[0].filmId;
-                    if (movieId) {
-                        request.timeout(15000);
-                        request.silent(`${api.url}${api.rating_url}${movieId}`, (data) => {
-                            const cachedData = ratingCache.set('kp_rating', item.id, {
-                                kp: data.ratingKinopoisk || data.rating_kinopoisk || 0,
-                                imdb: data.ratingImdb || data.rating_imdb || 0,
-                                timestamp: Date.now()
-                            });
-                            const source = Lampa.Storage.get('rating_source', 'tmdb');
-                            const rating = source === 'kp' ? cachedData.kp : cachedData.imdb;
-                            releaseRequest(request);
-                            callback(rating ? parseFloat(rating).toFixed(1) : '0.0');
-                        }, () => {
-                            releaseRequest(request);
-                            callback('0.0');
-                        }, false, { headers: api.headers });
-                    } else {
+
+                if (movieId && (kpFromSearch === 0 || imdbFromSearch === 0)) {
+                    request.timeout(8000);
+                    request.silent(KP_API_URL + 'api/v2.2/films/' + movieId, function (detail) {
+                        var fullKp = parseFloat(detail.ratingKinopoisk) || 0;
+                        var fullImdb = parseFloat(detail.ratingImdb) || 0;
+                        var res = ratingCache.set('kp_rating', item.id, {
+                            kp: fullKp > 0 ? fullKp : kpFromSearch,
+                            imdb: fullImdb > 0 ? fullImdb : imdbFromSearch,
+                            timestamp: Date.now()
+                        });
                         releaseRequest(request);
-                        callback('0.0');
-                    }
+                        callback(res);
+                    }, function () {
+                        releaseRequest(request);
+                        if (kpFromSearch === 0) callback({ kp: 0, imdb: 0 });
+                    }, false, { headers: KP_API_HEADERS });
                 } else {
                     releaseRequest(request);
-                    callback('0.0');
                 }
-            }
-            searchMovies();
+            }, function () {
+                releaseRequest(request);
+                callback({ kp: 0, imdb: 0 });
+            }, false, { headers: KP_API_HEADERS });
         });
     }
 
@@ -370,16 +403,13 @@
             ratingElement.dataset.movieId = data.id.toString();
             ratingElement.style.display = '';
             updateCardRatingLine(ratingElement, data);
-            if (!ratingElement.dataset.kpRequested && (data.title || data.name || data.imdb_id)) {
+            if (!ratingElement.dataset.kpRequested) {
                 ratingElement.dataset.kpRequested = String(Date.now());
-                var doRequest = function () {
-                    getKinopoiskRating(data, function () {
-                        if (ratingElement.parentNode && ratingElement.dataset.movieId === data.id.toString()) {
-                            updateCardRatingLine(ratingElement, data);
-                        }
-                    });
-                };
-                setTimeout(doRequest, 0);
+                getKinopoiskRating(data, function () {
+                    if (ratingElement.parentNode && ratingElement.dataset.movieId === data.id.toString()) {
+                        updateCardRatingLine(ratingElement, data);
+                    }
+                });
             }
             const lampaKey = (data.seasons || data.first_air_date || data.original_name) ? `tv_${data.id}` : `movie_${data.id}`;
             getLampaRating(lampaKey).then((result) => {
@@ -447,10 +477,11 @@
                 });
             });
         } else if (source === 'kp' || source === 'imdb') {
-            getKinopoiskRating(data, (rating) => {
+            getKinopoiskRating(data, function (res) {
                 if (ratingElement.parentNode && ratingElement.dataset.movieId === data.id.toString()) {
-                    if (rating !== '0.0') {
-                        ratingElement.innerHTML = `${rating} <span class="source--name"></span>`;
+                    var val = source === 'kp' ? res.kp : res.imdb;
+                    if (val && val > 0) {
+                        ratingElement.innerHTML = parseFloat(val).toFixed(1) + ' <span class="source--name"></span>';
                     } else {
                         ratingElement.style.display = 'none';
                     }
@@ -485,22 +516,6 @@
                     updateCardRating({ card, data });
                 } else if (source === 'all' && ratingElement.classList.contains('card__vote-line')) {
                     updateCardRatingLine(ratingElement, data);
-                    if (!ratingElement.dataset.kpRequested && (data.title || data.name || data.imdb_id)) {
-                        updateCardRating({ card, data });
-                    } else {
-                        var kpReq = ratingElement.dataset.kpRequested;
-                        if (kpReq) {
-                            var cachedKp = ratingCache.get('kp_rating', data.id);
-                            var hasKpImdb = cachedKp && (cachedKp.kp > 0 || cachedKp.imdb > 0);
-                            if (!hasKpImdb && (data.title || data.name || data.imdb_id)) {
-                                var age = parseInt(kpReq, 10) || 0;
-                                if (age && Date.now() - age > 15000) {
-                                    delete ratingElement.dataset.kpRequested;
-                                    updateCardRating({ card, data });
-                                }
-                            }
-                        }
-                    }
                 } else {
                     if (source === 'lampa') {
                         const ratingKey = (data.seasons || data.first_air_date || data.original_name) ? `tv_${data.id}` : `movie_${data.id}`;
