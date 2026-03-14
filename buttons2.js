@@ -1944,14 +1944,14 @@
             '.viewmode-switch, .folder-reset-button { max-width: 100%; box-sizing: border-box; white-space: normal; word-break: break-word; font-family: var(--buttons-plugin-modal-font, inherit); font-size: var(--buttons-plugin-modal-font-size, inherit); }' +
             '.folder-reset-button { background: rgba(200,100,100,0.3); margin-top: 1em; border-radius: 0.3em; border: 3px solid transparent; }' +
             '.folder-reset-button.focus { border-color: rgba(255,255,255,0.8); }' +
-            '.menu-edit-list__create-folder { background: rgba(34, 139, 34, 0.45); margin-bottom: 0.5em; border: 3px solid transparent; border-radius: 0.3em; box-sizing: border-box; }' +
+            '.menu-edit-list__create-folder { background: rgba(34, 139, 34, 0.5); margin-bottom: 0.5em; border: 3px solid transparent; border-radius: 0.3em; box-sizing: border-box; }' +
             '.menu-edit-list__create-folder .menu-edit-list__title { text-align: center; justify-self: center; }' +
             '.menu-edit-list__create-folder.focus { border-color: rgba(255,255,255,0.8); }' +
-            '.folder-item { background: rgba(34, 139, 34, 0.15); grid-template-columns: 2.5em minmax(0, 1fr) 2.4em 2.4em 2.4em 2.4em 2.4em; }' +
-            '.button--folder { cursor: pointer; background: rgba(34, 139, 34, 0.35); border-radius: 0.4em; }' +
-            '.button--folder:hover, .button--folder.focus { background: rgba(34, 139, 34, 0.5); }' +
-            '.menu-edit-list__delete { width: 2.4em; min-width: 2.4em; height: 2.4em; display: flex; align-items: center; justify-content: center; border: 2px solid transparent; border-radius: 0.3em; }' +
+            '.folder-item { grid-template-columns: 2.5em minmax(0, 1fr) 2.4em 2.4em 2.4em 2.4em 2.4em; align-items: start; min-height: 3.2em; }' +
+            '.button--folder { cursor: pointer; }' +
+            '.menu-edit-list__delete { width: 2.4em; min-width: 2.4em; height: 2.4em; display: flex; align-items: center; justify-content: center; border: 2px solid transparent; border-radius: 0.3em; box-sizing: border-box; }' +
             '.menu-edit-list__delete.focus { border-color: rgba(255,255,255,0.8); }' +
+            '.folder-item .menu-edit-list__delete { align-self: end; justify-self: end; }' +
             '.folder-item .menu-edit-list__move, .folder-item .menu-edit-list__change-name, .folder-item .menu-edit-list__change-icon { margin-right: 0; }' +
             '.folder-create-confirm { background: rgba(100,200,100,0.3); margin-top: 1em; border-radius: 0.3em; border: 3px solid transparent; }' +
             '.folder-create-confirm.focus { border-color: rgba(255,255,255,0.8); }' +
