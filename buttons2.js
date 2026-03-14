@@ -1439,7 +1439,9 @@
                 '<div class="menu-edit-list__move move-up selector"><svg width="22" height="14" viewBox="0 0 22 14" fill="none"><path d="M2 12L11 3L20 12" stroke="currentColor" stroke-width="4" stroke-linecap="round"/></svg></div>' +
                 '<div class="menu-edit-list__move move-down selector"><svg width="22" height="14" viewBox="0 0 22 14" fill="none"><path d="M2 2L11 11L20 2" stroke="currentColor" stroke-width="4" stroke-linecap="round"/></svg></div>' +
                 '<div class="menu-edit-list__delete selector">' +
-                '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></div></div>');
+                '<svg width="26" height="26" viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+                '<rect x="1.89111" y="1.78369" width="21.793" height="21.793" rx="3.5" stroke="currentColor" stroke-width="3"/>' +
+                '<path d="M9.5 9.5L16.5 16.5M16.5 9.5L9.5 16.5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg></div></div>');
             item.find('.menu-edit-list__icon').append(folderIcon);
             item.data('folderId', folder.id);
             item.data('itemType', 'folder');
@@ -1946,8 +1948,9 @@
             '.viewmode-switch, .folder-reset-button { max-width: 100%; box-sizing: border-box; white-space: normal; word-break: break-word; font-family: var(--buttons-plugin-modal-font, inherit); font-size: var(--buttons-plugin-modal-font-size, inherit); }' +
             '.folder-reset-button { background: rgba(200,100,100,0.3); margin-top: 1em; border-radius: 0.3em; border: 3px solid transparent; }' +
             '.folder-reset-button.focus { border-color: rgba(255,255,255,0.8); }' +
-            '.menu-edit-list__create-folder { background: rgba(34, 139, 34, 0.6); margin-bottom: 0.5em; border: 3px solid transparent; border-radius: 0.3em; box-sizing: border-box; }' +
-            '.menu-edit-list__create-folder .menu-edit-list__title { text-align: center; justify-self: center; }' +
+            '.menu-edit-list__create-folder { display: flex; align-items: center; justify-content: center; gap: 0.5em; background: rgba(34, 139, 34, 0.6); margin-bottom: 0.5em; border: 3px solid transparent; border-radius: 0.3em; box-sizing: border-box; padding: 0.6em 1em; }' +
+            '.menu-edit-list__create-folder .menu-edit-list__icon { width: auto; min-width: auto; height: auto; }' +
+            '.menu-edit-list__create-folder .menu-edit-list__title { text-align: center; }' +
             '.menu-edit-list__create-folder.focus { border-color: rgba(255,255,255,0.8); }' +
             '.folder-item { grid-template-columns: 2.5em minmax(0, 1fr) 2.4em 2.4em 2.4em 2.4em 2.4em; align-items: center; min-height: 3.2em; }' +
             '.folder-item .menu-edit-list__title { align-self: center; }' +
