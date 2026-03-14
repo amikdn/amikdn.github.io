@@ -25,11 +25,11 @@
         return SVG_REACTIONS_BASE_URL + '/' + medianReaction + '.svg';
     }
 
-    const ratingCache = {
+    var ratingCache = {
         caches: {},
-        get(source, key) {
-            const cache = this.caches[source] || (this.caches[source] = Lampa.Storage.cache(source, 500, {}));
-            const data = cache[key];
+        get: function (source, key) {
+            var cache = this.caches[source] || (this.caches[source] = Lampa.Storage.cache(source, 500, {}));
+            var data = cache[key];
             if (!data) return null;
             if (Date.now() - data.timestamp > 24 * 60 * 60 * 1000) {
                 delete cache[key];
@@ -38,9 +38,9 @@
             }
             return data;
         },
-        set(source, key, value) {
+        set: function (source, key, value) {
             if (value.kp === 0 && value.imdb === 0 && value.rating === 0 && value.vote_average === 0) return value;
-            const cache = this.caches[source] || (this.caches[source] = Lampa.Storage.cache(source, 500, {}));
+            var cache = this.caches[source] || (this.caches[source] = Lampa.Storage.cache(source, 500, {}));
             value.timestamp = Date.now();
             cache[key] = value;
             Lampa.Storage.set(source, cache);
@@ -48,13 +48,11 @@
         }
     };
 
-    const CACHE_TIME = 24 * 60 * 60 * 1000;
-    let taskQueue = [];
-    let isProcessing = false;
-    const taskInterval = 150;
-    const taskBatchSize = 2;
-
-    let requestPool = [];
+    var taskQueue = [];
+    var isProcessing = false;
+    var taskInterval = 150;
+    var taskBatchSize = 2;
+    var requestPool = [];
     function getRequest() {
         return requestPool.pop() || new Lampa.Reguest();
     }
@@ -67,8 +65,8 @@
     function processQueue() {
         if (isProcessing || !taskQueue.length) return;
         isProcessing = true;
-        const batch = taskQueue.splice(0, taskBatchSize);
-        batch.forEach(function (t) { t.execute(); });
+        var batch = taskQueue.splice(0, taskBatchSize);
+        for (var i = 0; i < batch.length; i++) { batch[i].execute(); }
         setTimeout(function () {
             isProcessing = false;
             processQueue();
@@ -80,10 +78,10 @@
         processQueue();
     }
 
-    const stringCache = {};
+    var stringCache = {};
     function normalizeString(str) {
         if (stringCache[str]) return stringCache[str];
-        const normalized = str
+        var normalized = str
             .replace(/[\s.,:;''`!?]+/g, ' ')
             .trim()
             .toLowerCase()
@@ -110,8 +108,8 @@
         return typeof str1 === 'string' && typeof str2 === 'string' && normalizeString(str1).indexOf(normalizeString(str2)) !== -1;
     }
 
-    const KP_API_URL = 'https://kinopoiskapiunofficial.tech/';
-    const KP_API_HEADERS = { 'X-API-KEY': '2a4a0808-81a3-40ae-b0d3-e11335ede616' };
+    var KP_API_URL = 'https://kinopoiskapiunofficial.tech/';
+    var KP_API_HEADERS = { 'X-API-KEY': '2a4a0808-81a3-40ae-b0d3-e11335ede616' };
 
     function findBestKpMatch(results, title, originalTitle, releaseYear) {
         if (!results || !results.length) return null;
@@ -241,27 +239,27 @@
     }
 
     function calculateLampaRating10(reactions) {
-        let weightedSum = 0;
-        let totalCount = 0;
-        let reactionCnt = {};
-        const reactionCoef = { fire: 5, nice: 4, think: 3, bore: 2, shit: 1 };
-        reactions.forEach(item => {
-            const count = parseInt(item.counter, 10) || 0;
-            const coef = reactionCoef[item.type] || 0;
+        var weightedSum = 0;
+        var totalCount = 0;
+        var reactionCnt = {};
+        var reactionCoef = { fire: 5, nice: 4, think: 3, bore: 2, shit: 1 };
+        for (var i = 0; i < reactions.length; i++) {
+            var item = reactions[i];
+            var count = parseInt(item.counter, 10) || 0;
+            var coef = reactionCoef[item.type] || 0;
             weightedSum += count * coef;
             totalCount += count;
             reactionCnt[item.type] = (reactionCnt[item.type] || 0) + count;
-        });
+        }
         if (totalCount === 0) return { rating: 0, medianReaction: '' };
-        const avgRating = weightedSum / totalCount;
-        const rating10 = (avgRating - 1) * 2.5;
-        const finalRating = rating10 >= 0 ? parseFloat(rating10.toFixed(1)) : 0;
-        let medianReaction = '';
-        const medianIndex = Math.ceil(totalCount / 2.0);
-        const sortedReactions = Object.entries(reactionCoef)
-            .sort((a, b) => a[1] - b[1])
-            .map(r => r[0]);
-        let cumulativeCount = 0;
+        var avgRating = weightedSum / totalCount;
+        var rating10 = (avgRating - 1) * 2.5;
+        var finalRating = rating10 >= 0 ? parseFloat(rating10.toFixed(1)) : 0;
+        var medianReaction = '';
+        var medianIndex = Math.ceil(totalCount / 2.0);
+        var keys = Object.keys(reactionCoef);
+        var sortedReactions = keys.sort(function (a, b) { return reactionCoef[a] - reactionCoef[b]; });
+        var cumulativeCount = 0;
         while (sortedReactions.length && cumulativeCount < medianIndex) {
             medianReaction = sortedReactions.pop();
             cumulativeCount += (reactionCnt[medianReaction] || 0);
@@ -270,104 +268,64 @@
     }
 
     function fetchLampaRating(ratingKey) {
-        return new Promise((resolve) => {
-            const request = getRequest();
-            let url = "https://cubnotrip.top/api/reactions/get/" + ratingKey;
+        return new Promise(function (resolve) {
+            var request = getRequest();
+            var url = "https://cubnotrip.top/api/reactions/get/" + ratingKey;
             request.timeout(10000);
-            request.silent(url, (data) => {
+            request.silent(url, function (data) {
                 try {
                     if (data && data.result && Array.isArray(data.result)) {
-                        let result = calculateLampaRating10(data.result);
+                        var result = calculateLampaRating10(data.result);
                         resolve(result);
                     } else {
                         resolve({ rating: 0, medianReaction: '' });
                     }
-                } catch {
+                } catch (e) {
                     resolve({ rating: 0, medianReaction: '' });
                 } finally {
                     releaseRequest(request);
                 }
-            }, () => {
+            }, function () {
                 releaseRequest(request);
                 resolve({ rating: 0, medianReaction: '' });
             }, false);
         });
     }
 
-    async function getLampaRating(ratingKey) {
-        const cached = ratingCache.get('lampa_rating', ratingKey);
-        if (cached) return cached;
-        try {
-            let result = await fetchLampaRating(ratingKey);
+    function getLampaRating(ratingKey) {
+        var cached = ratingCache.get('lampa_rating', ratingKey);
+        if (cached) return Promise.resolve(cached);
+        return fetchLampaRating(ratingKey).then(function (result) {
             return ratingCache.set('lampa_rating', ratingKey, result);
-        } catch {
+        }).catch(function () {
             return { rating: 0, medianReaction: '' };
-        }
+        });
     }
 
     function getTMDBRating(data) {
-        const ratingKey = data.id;
-        const cached = ratingCache.get('tmdb_rating', ratingKey);
+        var ratingKey = data.id;
+        var cached = ratingCache.get('tmdb_rating', ratingKey);
         if (cached) return cached.vote_average.toFixed(1);
-        const rating = data.vote_average ? data.vote_average.toFixed(1) : '0.0';
+        var rating = data.vote_average ? data.vote_average.toFixed(1) : '0.0';
         ratingCache.set('tmdb_rating', ratingKey, { vote_average: parseFloat(rating) });
         return rating;
     }
 
     function createRatingElement(card) {
-        const ratingElement = document.createElement('div');
+        var ratingElement = document.createElement('div');
         ratingElement.className = 'card__vote';
-        ratingElement.style.cssText = `
-            line-height: 1;
-            font-family: "SegoeUI", sans-serif;
-            cursor: pointer;
-            box-sizing: border-box;
-            outline: none;
-            user-select: none;
-            position: absolute;
-            right: 0.3em;
-            bottom: 0.3em;
-            background: rgba(0, 0, 0, 0.5);
-            color: #fff;
-            padding: 0.2em 0.5em;
-            border-radius: 1em;
-            display: flex;
-            align-items: center;
-        `;
-        const parent = card.querySelector('.card__view') || card;
+        ratingElement.style.cssText = 'line-height:1;font-family:"SegoeUI",sans-serif;cursor:pointer;box-sizing:border-box;outline:none;user-select:none;position:absolute;right:0.3em;bottom:0.3em;background:rgba(0,0,0,0.5);color:#fff;padding:0.2em 0.5em;border-radius:1em;display:-webkit-box;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;';
+        var parent = card.querySelector('.card__view') || card;
         parent.appendChild(ratingElement);
         return ratingElement;
     }
 
     function createRatingLineElement(card) {
-        const line = document.createElement('div');
+        var line = document.createElement('div');
         line.className = 'card__vote card__vote-line';
-        line.style.cssText = `
-            line-height: 1;
-            font-family: "SegoeUI", sans-serif;
-            cursor: pointer;
-            box-sizing: border-box;
-            outline: none;
-            user-select: none;
-            position: absolute;
-            right: 0.3em;
-            bottom: 0.3em;
-            background: rgba(0, 0, 0, 0.5);
-            color: #fff;
-            padding: 0.2em 0.5em;
-            border-radius: 1em;
-            display: flex;
-            flex-direction: column;
-            align-items: flex-end;
-            gap: 0.15em;
-        `;
-        line.innerHTML = `
-            <div class="card__rate-item rate--tmdb" style="display:none"><div>0.0</div><span class="source--name"></span></div>
-            <div class="card__rate-item rate--imdb" style="display:none"><div>0.0</div><span class="source--name"></span></div>
-            <div class="card__rate-item rate--kp" style="display:none"><div>0.0</div><span class="source--name"></span></div>
-            <div class="card__rate-item rate--lampa"><span class="rate-value">0.0</span><span class="source--name rate-icon-reaction"></span></div>
-        `;
-        const parent = card.querySelector('.card__view') || card;
+        line.style.cssText = 'line-height:1;font-family:"SegoeUI",sans-serif;cursor:pointer;box-sizing:border-box;outline:none;user-select:none;position:absolute;right:0.3em;bottom:0.3em;background:rgba(0,0,0,0.5);color:#fff;padding:0.2em 0.5em;border-radius:1em;display:-webkit-box;display:-webkit-flex;display:flex;-webkit-flex-direction:column;flex-direction:column;-webkit-align-items:flex-end;align-items:flex-end;';
+        line.innerHTML = '<div class="card__rate-item rate--tmdb" style="display:none"><div>0.0</div><span class="source--name"></span></div><div class="card__rate-item rate--imdb" style="display:none"><div>0.0</div><span class="source--name"></span></div><div class="card__rate-item rate--kp" style="display:none"><div>0.0</div><span class="source--name"></span></div><div class="card__rate-item rate--lampa"><span class="rate-value">0.0</span><span class="source--name rate-icon-reaction"></span></div>';
+        var parent = card.querySelector('.card__view') || card;
         parent.appendChild(line);
         return line;
     }
@@ -391,8 +349,8 @@
         } catch (e) {}
 
         try {
-            var kpFromData = data.kp_rating ?? data.ratingKinopoisk ?? 0;
-            var imdbFromData = data.imdb_rating ?? data.ratingImdb ?? 0;
+            var kpFromData = (data.kp_rating != null ? data.kp_rating : (data.ratingKinopoisk != null ? data.ratingKinopoisk : 0));
+            var imdbFromData = (data.imdb_rating != null ? data.imdb_rating : (data.ratingImdb != null ? data.ratingImdb : 0));
             var cachedKp = ratingCache.get('kp_rating', data.id);
             var kpVal = (kpFromData > 0 ? kpFromData : (cachedKp && cachedKp.kp)) || 0;
             var imdbVal = (imdbFromData > 0 ? imdbFromData : (cachedKp && cachedKp.imdb)) || 0;
@@ -482,12 +440,12 @@
     }
 
     function updateCardRating(item) {
-        const card = item.card || item;
+        var card = item.card || item;
         if (!card || !card.querySelector || !document.body.contains(card)) return;
-        const data = card.card_data || item.data || {};
+        var data = card.card_data || item.data || {};
         if (!data.id) return;
-        const source = Lampa.Storage.get('rating_source', 'tmdb');
-        let ratingElement = card.querySelector('.card__vote');
+        var source = Lampa.Storage.get('rating_source', 'tmdb');
+        var ratingElement = card.querySelector('.card__vote');
 
         if (source === 'all') {
             if (ratingElement && !ratingElement.classList.contains('card__vote-line')) {
@@ -507,8 +465,8 @@
                     }
                 });
             }
-            const lampaKey = (data.seasons || data.first_air_date || data.original_name) ? `tv_${data.id}` : `movie_${data.id}`;
-            getLampaRating(lampaKey).then(function (result) {
+            var lampaKey = (data.seasons || data.first_air_date || data.original_name) ? 'tv_' + data.id : 'movie_' + data.id;
+            getLampaRating(lampaKey).then(function () {
                 if (ratingElement.parentNode && ratingElement.dataset.movieId === data.id.toString()) {
                     updateCardRatingLine(ratingElement, data);
                 }
@@ -523,40 +481,40 @@
         if (!ratingElement) ratingElement = createRatingElement(card);
         ratingElement.dataset.source = source;
         ratingElement.dataset.movieId = data.id.toString();
-        ratingElement.className = `card__vote rate--${source}`;
+        ratingElement.className = 'card__vote rate--' + source;
         ratingElement.innerHTML = '';
         ratingElement.style.display = '';
         if (source === 'tmdb') {
-            const rating = getTMDBRating(data);
+            var rating = getTMDBRating(data);
             if (rating !== '0.0') {
                 var color = getRatingColor(rating);
-                ratingElement.innerHTML = `<span style="color:${color}">${rating}</span> <span class="source--name"></span>`;
+                ratingElement.innerHTML = '<span style="color:' + color + '">' + rating + '</span> <span class="source--name"></span>';
             } else {
                 showTmdbFallback(ratingElement, data);
             }
         } else if (source === 'lampa') {
-            let type = (data.seasons || data.first_air_date || data.original_name) ? 'tv' : 'movie';
-            let ratingKey = `${type}_${data.id}`;
-            const cached = ratingCache.get('lampa_rating', ratingKey);
+            var type = (data.seasons || data.first_air_date || data.original_name) ? 'tv' : 'movie';
+            var ratingKey = type + '_' + data.id;
+            var cached = ratingCache.get('lampa_rating', ratingKey);
             if (cached && cached.rating > 0) {
                 var color = getRatingColor(cached.rating);
-                let html = `<span style="color:${color}">${cached.rating}</span>`;
+                var html = '<span style="color:' + color + '">' + cached.rating + '</span>';
                 if (cached.medianReaction) {
-                    let reactionSrc = getReactionImageSrc(cached.medianReaction);
-                    html += ` <img style="width:1em;height:1em;margin:0 0.2em;" src="${reactionSrc}">`;
+                    var reactionSrc = getReactionImageSrc(cached.medianReaction);
+                    html += ' <img style="width:1em;height:1em;margin:0 0.2em;" src="' + reactionSrc + '">';
                 }
                 ratingElement.innerHTML = html;
                 return;
             }
-            addToQueue(() => {
-                getLampaRating(ratingKey).then(result => {
+            addToQueue(function () {
+                getLampaRating(ratingKey).then(function (result) {
                     if (ratingElement.parentNode && ratingElement.dataset.movieId === data.id.toString()) {
                         if (result.rating > 0) {
                             var color = getRatingColor(result.rating);
-                            let html = `<span style="color:${color}">${result.rating}</span>`;
+                            var html = '<span style="color:' + color + '">' + result.rating + '</span>';
                             if (result.medianReaction) {
-                                let reactionSrc = getReactionImageSrc(result.medianReaction);
-                                html += ` <img style="width:1em;height:1em;margin:0 0.2em;" src="${reactionSrc}">`;
+                                var reactionSrc = getReactionImageSrc(result.medianReaction);
+                                html += ' <img style="width:1em;height:1em;margin:0 0.2em;" src="' + reactionSrc + '">';
                             }
                             ratingElement.innerHTML = html;
                         } else {
@@ -581,80 +539,77 @@
         }
     }
 
-    window.refreshAllRatings = function() {
-        const allCards = document.querySelectorAll('.card');
-        allCards.forEach(card => {
-            const data = card.card_data;
+    window.refreshAllRatings = function () {
+        var allCards = document.querySelectorAll('.card');
+        for (var i = 0; i < allCards.length; i++) {
+            var card = allCards[i];
+            var data = card.card_data;
             if (data && data.id) {
-                const ratingElement = card.querySelector('.card__vote');
+                var ratingElement = card.querySelector('.card__vote');
                 if (ratingElement) {
                     delete ratingElement.dataset.source;
                     delete ratingElement.dataset.movieId;
                 }
-                updateCardRating({ card, data });
+                updateCardRating({ card: card, data: data });
             }
-        });
+        }
     };
 
     function pollCards() {
-        const allCards = document.querySelectorAll('.card');
-        allCards.forEach(card => {
-            const data = card.card_data;
+        var allCards = document.querySelectorAll('.card');
+        for (var i = 0; i < allCards.length; i++) {
+            var card = allCards[i];
+            var data = card.card_data;
             if (data && data.id) {
-                const ratingElement = card.querySelector('.card__vote');
-                const source = Lampa.Storage.get('rating_source', 'tmdb');
+                var ratingElement = card.querySelector('.card__vote');
+                var source = Lampa.Storage.get('rating_source', 'tmdb');
                 if (!ratingElement || ratingElement.dataset.source !== source || ratingElement.dataset.movieId !== data.id.toString()) {
-                    updateCardRating({ card, data });
+                    updateCardRating({ card: card, data: data });
                 } else if (source === 'all' && ratingElement.classList.contains('card__vote-line')) {
                     updateCardRatingLine(ratingElement, data);
                 } else {
                     if (source === 'lampa') {
-                        const ratingKey = (data.seasons || data.first_air_date || data.original_name) ? `tv_${data.id}` : `movie_${data.id}`;
-                        const cached = ratingCache.get('lampa_rating', ratingKey);
+                        var ratingKey = (data.seasons || data.first_air_date || data.original_name) ? 'tv_' + data.id : 'movie_' + data.id;
+                        var cached = ratingCache.get('lampa_rating', ratingKey);
                         if (cached && cached.rating > 0 && ratingElement.innerHTML === '') {
-                            let color = getRatingColor(cached.rating);
-                            let html = `<span style="color:${color}">${cached.rating}</span>`;
+                            var color = getRatingColor(cached.rating);
+                            var html = '<span style="color:' + color + '">' + cached.rating + '</span>';
                             if (cached.medianReaction) {
-                                let reactionSrc = getReactionImageSrc(cached.medianReaction);
-                                html += ` <img style="width:1em;height:1em;margin:0 0.2em;" src="${reactionSrc}">`;
+                                var reactionSrc = getReactionImageSrc(cached.medianReaction);
+                                html += ' <img style="width:1em;height:1em;margin:0 0.2em;" src="' + reactionSrc + '">';
                             }
                             ratingElement.innerHTML = html;
                         }
                     } else if (source === 'tmdb') {
-                        const ratingKey = data.id;
-                        const cached = ratingCache.get('tmdb_rating', ratingKey);
+                        var ratingKey = data.id;
+                        var cached = ratingCache.get('tmdb_rating', ratingKey);
                         if (cached && cached.vote_average > 0 && ratingElement.innerHTML === '') {
-                            let text = cached.vote_average.toFixed(1);
-                            let color = getRatingColor(text);
-                            ratingElement.innerHTML = `<span style="color:${color}">${text}</span> <span class="source--name"></span>`;
+                            var text = cached.vote_average.toFixed(1);
+                            var color = getRatingColor(text);
+                            ratingElement.innerHTML = '<span style="color:' + color + '">' + text + '</span> <span class="source--name"></span>';
                         }
                     } else if (source === 'kp' || source === 'imdb') {
-                        const cached = ratingCache.get('kp_rating', data.id);
+                        var cached = ratingCache.get('kp_rating', data.id);
                         if (cached && (cached.kp > 0 || cached.imdb > 0) && ratingElement.innerHTML === '') {
-                            const rating = source === 'kp' ? cached.kp : cached.imdb;
-                            let text = parseFloat(rating).toFixed(1);
-                            let color = getRatingColor(text);
-                            ratingElement.innerHTML = `<span style="color:${color}">${text}</span> <span class="source--name"></span>`;
+                            var rating = source === 'kp' ? cached.kp : cached.imdb;
+                            var text = parseFloat(rating).toFixed(1);
+                            var color = getRatingColor(text);
+                            ratingElement.innerHTML = '<span style="color:' + color + '">' + text + '</span> <span class="source--name"></span>';
                         }
                     }
                 }
             }
-        });
+        }
         setTimeout(pollCards, 500);
     }
 
     function insertLampaBlock(render) {
         if (!render) return false;
-        let rateLine = $(render).find('.full-start-new__rate-line');
+        var rateLine = $(render).find('.full-start-new__rate-line');
         if (rateLine.length === 0) return false;
         if (rateLine.find('.rate--lampa').length > 0) return true;
-        let lampaBlockHtml = `
-            <div class="full-start__rate rate--lampa">
-                <div class="rate-value">0.0</div>
-                <div class="rate-icon"></div>
-                <div class="source--name">LAMPA</div>
-            </div>`;
-        let kpBlock = rateLine.find('.rate--kp');
+        var lampaBlockHtml = '<div class="full-start__rate rate--lampa"><div class="rate-value">0.0</div><div class="rate-icon"></div><div class="source--name">LAMPA</div></div>';
+        var kpBlock = rateLine.find('.rate--kp');
         if (kpBlock.length > 0) {
             kpBlock.after(lampaBlockHtml);
         } else {
@@ -682,14 +637,14 @@
                 name: 'Источник рейтинга на карточках',
                 description: 'Выберите какой рейтинг отображать на карточках'
             },
-            onRender: (value) => {
-                setTimeout(() => {
+            onRender: function () {
+                setTimeout(function () {
                     $('.settings-param > div:contains("Источник рейтинга на карточках")').parent().insertAfter($('div[data-name="interface_size"]'));
                 }, 0);
             },
-            onChange: (value) => {
+            onChange: function (value) {
                 Lampa.Storage.set('rating_source', value);
-                setTimeout(() => {
+                setTimeout(function () {
                     window.refreshAllRatings();
                 }, 100);
             }
@@ -747,110 +702,61 @@
         if (window.lampa_listener_extensions) return;
         window.lampa_listener_extensions = true;
         Object.defineProperty(window.Lampa.Card.prototype, 'build', {
-            get() { return this._build; },
-            set(func) {
-                this._build = () => {
-                    func.apply(this);
-                    Lampa.Listener.send('card', { type: 'build', object: this });
+            get: function () { return this._build; },
+            set: function (func) {
+                var self = this;
+                this._build = function () {
+                    func.apply(self);
+                    Lampa.Listener.send('card', { type: 'build', object: self });
                 };
             }
         });
     }
 
     function initPlugin() {
-        const style = document.createElement('style');
+        var style = document.createElement('style');
         style.type = 'text/css';
-        style.textContent = `
-            .card__vote {
-                display: flex;
-                align-items: center !important;
-            }
-            .card__vote-line .card__rate-item {
-                display: flex;
-                align-items: center;
-                gap: 0.2em;
-                white-space: nowrap;
-            }
-            .card__vote-line .card__rate-item.rate--lampa {
-                display: flex !important;
-            }
-            .card__vote .source--name {
-                font-size: 0;
-                color: transparent;
-                width: 16px;
-                height: 16px;
-                background-repeat: no-repeat;
-                background-position: center;
-                background-size: contain;
-                margin-left: 4px;
-                flex-shrink: 0;
-            }
-            @media (min-width: 481px) {
-                .card__vote .source--name {
-                    width: 24px;
-                    height: 24px;
-                    margin-left: 6px;
-                }
-            }
-            .rate--kp .source--name {
-                background-image: url("data:image/svg+xml,%3Csvg width='300' height='300' viewBox='0 0 300 300' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cmask id='mask0_1_69' style='mask-type:alpha' maskUnits='userSpaceOnUse' x='0' y='0' width='300' height='300'%3E%3Ccircle cx='150' cy='150' r='150' fill='white'/%3E%3C/mask%3E%3Cg mask='url(%23mask0_1_69)'%3E%3Ccircle cx='150' cy='150' r='150' fill='black'/%3E%3Cpath d='M300 45L145.26 127.827L225.9 45H181.2L126.3 121.203V45H89.9999V255H126.3V178.92L181.2 255H225.9L147.354 174.777L300 255V216L160.776 160.146L300 169.5V130.5L161.658 139.494L300 84V45Z' fill='url(%23paint0_radial_1_69)'/%3E%3C/g%3E%3Cdefs%3E%3CradialGradient id='paint0_radial_1_69' cx='0' cy='0' r='1' gradientUnits='userSpaceOnUse' gradientTransform='translate(89.9999 45) rotate(45) scale(296.985)'%3E%3Cstop offset='0.5' stop-color='%23FF5500'/%3E%3Cstop offset='1' stop-color='%23BBFF00'/%3E%3C/radialGradient%3E%3C/defs%3E%3C/svg%3E");
-            }
-            .rate--tmdb .source--name {
-                background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 300' width='300' height='300'%3E%3Cdefs%3E%3ClinearGradient id='grad' x1='0' y1='0' x2='1' y2='0'%3E%3Cstop offset='0%25' stop-color='%2390cea1'/%3E%3Cstop offset='56%25' stop-color='%233cbec9'/%3E%3Cstop offset='100%25' stop-color='%2300b3e5'/%3E%3C/linearGradient%3E%3Cstyle%3E.text-style%7Bfont-weight:bold;fill:url(%23grad);text-anchor:start;dominant-baseline:middle;textLength:300;lengthAdjust:spacingAndGlyphs;font-size:120px;%7D%3C/style%3E%3C/defs%3E%3Ctext class='text-style' x='0' y='150' textLength='300' lengthAdjust='spacingAndGlyphs'%3ETMDB%3C/text%3E%3C/svg%3E");
-            }
-            .rate--lampa .rate-icon-reaction {
-                background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23e040fb'%3E%3Cpath d='M12 2C8.13 2 5 5.13 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.87-3.13-7-7-7zm2 14h-4v-1h4v1zm0-2h-4v-1h4v1zM9 20h6v1c0 .55-.45 1-1 1h-4c-.55 0-1-.45-1-1v-1z'/%3E%3C/svg%3E");
-            }
-            .rate-icon-reaction {
-                background-repeat: no-repeat;
-                background-position: center;
-                background-size: contain;
-            }
-            .card__vote img[src*=".gif"] {
-                object-fit: contain;
-                flex-shrink: 0;
-                min-width: 1.25em;
-                min-height: 1.25em;
-            }
-            .rate--lampa.rate--lampa--animated .rate-icon img {
-                min-width: 1em;
-                min-height: 1em;
-                object-fit: contain;
-            }
-            .rate--imdb .source--name {
-                background-image: url("data:image/svg+xml,%3Csvg fill='%23ffcc00' viewBox='0 0 32 32' xmlns='http://www.w3.org/2000/svg'%3E%3Cg id='SVGRepo_bgCarrier' stroke-width='0'%3E%3C/g%3E%3Cg id='SVGRepo_tracerCarrier' stroke-linecap='round' stroke-linejoin='round'%3E%3C/g%3E%3Cg id='SVGRepo_iconCarrier'%3E%3Cpath d='M 0 7 L 0 25 L 32 25 L 32 7 Z M 2 9 L 30 9 L 30 23 L 2 23 Z M 5 11.6875 L 5 20.3125 L 7 20.3125 L 7 11.6875 Z M 8.09375 11.6875 L 8.09375 20.3125 L 10 20.3125 L 10 15.5 L 10.90625 20.3125 L 12.1875 20.3125 L 13 15.5 L 13 20.3125 L 14.8125 20.3125 L 14.8125 11.6875 L 12 11.6875 L 11.5 15.8125 L 10.8125 11.6875 Z M 15.90625 11.6875 L 15.90625 20.1875 L 18.3125 20.1875 C 19.613281 20.1875 20.101563 19.988281 20.5 19.6875 C 20.898438 19.488281 21.09375 19 21.09375 18.5 L 21.09375 13.3125 C 21.09375 12.710938 20.898438 12.199219 20.5 12 C 20 11.800781 19.8125 11.6875 18.3125 11.6875 Z M 22.09375 11.8125 L 22.09375 20.3125 L 23.90625 20.3125 C 23.90625 20.3125 23.992188 19.710938 24.09375 19.8125 C 24.292969 19.8125 25.101563 20.1875 25.5 20.1875 C 26 20.1875 26.199219 20.195313 26.5 20.09375 C 26.898438 19.894531 27 19.613281 27 19.3125 L 27 14.3125 C 27 13.613281 26.289063 13.09375 25.6875 13.09375 C 25.085938 13.09375 24.511719 13.488281 24.3125 13.6875 L 24.3125 11.8125 Z M 18 13 C 18.398438 13 18.8125 13.007813 18.8125 13.40625 L 18.8125 18.40625 C 18.8125 18.804688 18.300781 18.8125 18 18.8125 Z M 24.59375 14 C 24.695313 14 24.8125 14.105469 24.8125 14.40625 L 24.8125 18.6875 C 24.8125 18.886719 24.792969 19.09375 24.59375 19.09375 C 24.492188 19.09375 24.40625 18.988281 24.40625 18.6875 L 24.40625 14.40625 C 24.40625 14.207031 24.394531 14 24.59375 14 Z'/%3E%3C/g%3E%3C/svg%3E");
-            }
-            @media (max-width: 480px) and (orientation: portrait) {
-                .full-start__rate.rate--lampa {
-                    min-width: 80px;
-                }
-            }
-        `;
+        style.textContent = (
+            '.card__vote{display:-webkit-box;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center!important}' +
+            '.card__vote-line .card__rate-item{display:-webkit-box;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;white-space:nowrap;margin-bottom:0.15em}' +
+            '.card__vote-line .card__rate-item:last-child{margin-bottom:0}' +
+            '.card__vote-line .card__rate-item.rate--lampa{display:-webkit-box!important;display:-webkit-flex!important;display:flex!important}' +
+            '.card__vote .source--name{font-size:0;color:transparent;width:16px;height:16px;background-repeat:no-repeat;background-position:center;background-size:contain;margin-left:4px;-webkit-flex-shrink:0;flex-shrink:0}' +
+            '@media (min-width:481px){.card__vote .source--name{width:24px;height:24px;margin-left:6px}}' +
+            '.rate--kp .source--name{background-image:url("data:image/svg+xml,%3Csvg width=\'300\' height=\'300\' viewBox=\'0 0 300 300\' fill=\'none\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cmask id=\'mask0_1_69\' style=\'mask-type:alpha\' maskUnits=\'userSpaceOnUse\' x=\'0\' y=\'0\' width=\'300\' height=\'300\'%3E%3Ccircle cx=\'150\' cy=\'150\' r=\'150\' fill=\'white\'/%3E%3C/mask%3E%3Cg mask=\'url(%23mask0_1_69)\'%3E%3Ccircle cx=\'150\' cy=\'150\' r=\'150\' fill=\'black\'/%3E%3Cpath d=\'M300 45L145.26 127.827L225.9 45H181.2L126.3 121.203V45H89.9999V255H126.3V178.92L181.2 255H225.9L147.354 174.777L300 255V216L160.776 160.146L300 169.5V130.5L161.658 139.494L300 84V45Z\' fill=\'url(%23paint0_radial_1_69)\'/%3E%3C/g%3E%3Cdefs%3E%3CradialGradient id=\'paint0_radial_1_69\' cx=\'0\' cy=\'0\' r=\'1\' gradientUnits=\'userSpaceOnUse\' gradientTransform=\'translate(89.9999 45) rotate(45) scale(296.985)\'%3E%3Cstop offset=\'0.5\' stop-color=\'%23FF5500\'/%3E%3Cstop offset=\'1\' stop-color=\'%23BBFF00\'/%3E%3C/radialGradient%3E%3C/defs%3E%3C/svg%3E")}' +
+            '.rate--tmdb .source--name{background-image:url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 300 300\' width=\'300\' height=\'300\'%3E%3Cdefs%3E%3ClinearGradient id=\'grad\' x1=\'0\' y1=\'0\' x2=\'1\' y2=\'0\'%3E%3Cstop offset=\'0%25\' stop-color=\'%2390cea1\'/%3E%3Cstop offset=\'56%25\' stop-color=\'%233cbec9\'/%3E%3Cstop offset=\'100%25\' stop-color=\'%2300b3e5\'/%3E%3C/linearGradient%3E%3Cstyle%3E.text-style%7Bfont-weight:bold;fill:url(%23grad);text-anchor:start;dominant-baseline:middle;textLength:300;lengthAdjust:spacingAndGlyphs;font-size:120px;%7D%3C/style%3E%3C/defs%3E%3Ctext class=\'text-style\' x=\'0\' y=\'150\' textLength=\'300\' lengthAdjust=\'spacingAndGlyphs\'%3ETMDB%3C/text%3E%3C/svg%3E")}' +
+            '.rate--lampa .rate-icon-reaction{background-image:url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'%23e040fb\'%3E%3Cpath d=\'M12 2C8.13 2 5 5.13 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.87-3.13-7-7-7zm2 14h-4v-1h4v1zm0-2h-4v-1h4v1zM9 20h6v1c0 .55-.45 1-1 1h-4c-.55 0-1-.45-1-1v-1z\'/%3E%3C/svg%3E")}' +
+            '.rate-icon-reaction{background-repeat:no-repeat;background-position:center;background-size:contain}' +
+            '.card__vote img[src*=".gif"]{object-fit:contain;-webkit-flex-shrink:0;flex-shrink:0;min-width:1.25em;min-height:1.25em}' +
+            '.rate--lampa.rate--lampa--animated .rate-icon img{min-width:1em;min-height:1em;object-fit:contain}' +
+            '.rate--imdb .source--name{background-image:url("data:image/svg+xml,%3Csvg fill=\'%23ffcc00\' viewBox=\'0 0 32 32\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg id=\'SVGRepo_bgCarrier\' stroke-width=\'0\'%3E%3C/g%3E%3Cg id=\'SVGRepo_tracerCarrier\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3E%3C/g%3E%3Cg id=\'SVGRepo_iconCarrier\'%3E%3Cpath d=\'M 0 7 L 0 25 L 32 25 L 32 7 Z M 2 9 L 30 9 L 30 23 L 2 23 Z M 5 11.6875 L 5 20.3125 L 7 20.3125 L 7 11.6875 Z M 8.09375 11.6875 L 8.09375 20.3125 L 10 20.3125 L 10 15.5 L 10.90625 20.3125 L 12.1875 20.3125 L 13 15.5 L 13 20.3125 L 14.8125 20.3125 L 14.8125 11.6875 L 12 11.6875 L 11.5 15.8125 L 10.8125 11.6875 Z M 15.90625 11.6875 L 15.90625 20.1875 L 18.3125 20.1875 C 19.613281 20.1875 20.101563 19.988281 20.5 19.6875 C 20.898438 19.488281 21.09375 19 21.09375 18.5 L 21.09375 13.3125 C 21.09375 12.710938 20.898438 12.199219 20.5 12 C 20 11.800781 19.8125 11.6875 18.3125 11.6875 Z M 22.09375 11.8125 L 22.09375 20.3125 L 23.90625 20.3125 C 23.90625 20.3125 23.992188 19.710938 24.09375 19.8125 C 24.292969 19.8125 25.101563 20.1875 25.5 20.1875 C 26 20.1875 26.199219 20.195313 26.5 20.09375 C 26.898438 19.894531 27 19.613281 27 19.3125 L 27 14.3125 C 27 13.613281 26.289063 13.09375 25.6875 13.09375 C 25.085938 13.09375 24.511719 13.488281 24.3125 13.6875 L 24.3125 11.8125 Z M 18 13 C 18.398438 13 18.8125 13.007813 18.8125 13.40625 L 18.8125 18.40625 C 18.8125 18.804688 18.300781 18.8125 18 18.8125 Z M 24.59375 14 C 24.695313 14 24.8125 14.105469 24.8125 14.40625 L 24.8125 18.6875 C 24.8125 18.886719 24.792969 19.09375 24.59375 19.09375 C 24.492188 19.09375 24.40625 18.988281 24.40625 18.6875 L 24.40625 14.40625 C 24.40625 14.207031 24.394531 14 24.59375 14 Z\'/%3E%3C/g%3E%3C/svg%3E")}' +
+            '@media (max-width:480px) and (orientation:portrait){.full-start__rate.rate--lampa{min-width:80px}}'
+        );
         document.head.appendChild(style);
         addSettings();
         setupCardListener();
         pollCards();
 
-        Lampa.Listener.follow('card', (event) => {
+        Lampa.Listener.follow('card', function (event) {
             if (event.type === 'build' && event.object.card) {
-                const data = event.object.card.card_data;
+                var data = event.object.card.card_data;
                 if (data && data.id) {
-                    updateCardRating({ card: event.object.card, data });
+                    updateCardRating({ card: event.object.card, data: data });
                 }
             }
         });
 
-        Lampa.Listener.follow('full', (event) => {
+        Lampa.Listener.follow('full', function (event) {
             if (event.type === 'complite') {
-                let render = event.object.activity.render();
+                var render = event.object.activity.render();
                 if (render && event.object.id) {
-                    const kpBlock = $(render).find('.rate--kp');
-                    const imdbBlock = $(render).find('.rate--imdb');
+                    var kpBlock = $(render).find('.rate--kp');
+                    var imdbBlock = $(render).find('.rate--imdb');
                     if (kpBlock.length || imdbBlock.length) {
-                        const kpVal = parseFloat(kpBlock.find('div').first().text().trim()) || 0;
-                        const imdbVal = parseFloat(imdbBlock.find('div').first().text().trim()) || 0;
+                        var kpVal = parseFloat(kpBlock.find('div').first().text().trim()) || 0;
+                        var imdbVal = parseFloat(imdbBlock.find('div').first().text().trim()) || 0;
                         if (kpVal > 0 || imdbVal > 0) {
-                            const existing = ratingCache.get('kp_rating', event.object.id) || {};
+                            var existing = ratingCache.get('kp_rating', event.object.id) || {};
                             ratingCache.set('kp_rating', event.object.id, {
                                 kp: kpVal > 0 ? kpVal : (existing.kp || 0),
                                 imdb: imdbVal > 0 ? imdbVal : (existing.imdb || 0),
@@ -861,27 +767,27 @@
                 }
                 if (render && insertLampaBlock(render)) {
                     if (event.object.method && event.object.id) {
-                        let ratingKey = event.object.method + "_" + event.object.id;
-                        const cached = ratingCache.get('lampa_rating', ratingKey);
+                        var ratingKey = event.object.method + "_" + event.object.id;
+                        var cached = ratingCache.get('lampa_rating', ratingKey);
                         if (cached && cached.rating > 0) {
-                            let rateValue = $(render).find('.rate--lampa .rate-value');
-                            let rateIcon = $(render).find('.rate--lampa .rate-icon');
+                            var rateValue = $(render).find('.rate--lampa .rate-value');
+                            var rateIcon = $(render).find('.rate--lampa .rate-icon');
                             rateValue.text(cached.rating);
                             if (cached.medianReaction) {
-                                let reactionSrc = getReactionImageSrc(cached.medianReaction);
+                                var reactionSrc = getReactionImageSrc(cached.medianReaction);
                                 rateIcon.html('<img style="width:1em;height:1em;margin:0 0.2em;" data-reaction-type="' + cached.medianReaction + '" src="' + reactionSrc + '">');
                                 if (Lampa.Storage.get('animated_reactions', false)) $(render).find('.rate--lampa').addClass('rate--lampa--animated');
                             }
                             return;
                         }
-                        addToQueue(() => {
-                            getLampaRating(ratingKey).then(result => {
-                                let rateValue = $(render).find('.rate--lampa .rate-value');
-                                let rateIcon = $(render).find('.rate--lampa .rate-icon');
+                        addToQueue(function () {
+                            getLampaRating(ratingKey).then(function (result) {
+                                var rateValue = $(render).find('.rate--lampa .rate-value');
+                                var rateIcon = $(render).find('.rate--lampa .rate-icon');
                                 if (result.rating !== null && result.rating > 0) {
                                     rateValue.text(result.rating);
                                     if (result.medianReaction) {
-                                        let reactionSrc = getReactionImageSrc(result.medianReaction);
+                                        var reactionSrc = getReactionImageSrc(result.medianReaction);
                                         rateIcon.html('<img style="width:1em;height:1em;margin:0 0.2em;" data-reaction-type="' + result.medianReaction + '" src="' + reactionSrc + '">');
                                         if (Lampa.Storage.get('animated_reactions', false)) $(render).find('.rate--lampa').addClass('rate--lampa--animated');
                                     }
@@ -899,7 +805,7 @@
     if (window.appready) {
         initPlugin();
     } else {
-        Lampa.Listener.follow('app', (event) => {
+        Lampa.Listener.follow('app', function (event) {
             if (event.type === 'ready') initPlugin();
         });
     }
