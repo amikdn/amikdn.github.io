@@ -6,6 +6,15 @@
     var ANIMATED_REACTIONS_BASE_URL = 'https://amikdn.github.io/img';
     var SVG_REACTIONS_BASE_URL = 'https://cubnotrip.top/img/reactions';
 
+    function getRatingColor(value) {
+        var v = parseFloat(value);
+        if (isNaN(v) || v <= 0) return '';
+        if (v <= 3) return 'red';
+        if (v < 6) return 'orange';
+        if (v < 8) return 'cornflowerblue';
+        return 'lawngreen';
+    }
+
     function getReactionImageSrc(medianReaction) {
         if (!medianReaction) return '';
         var useAnimated = Lampa.Storage.get('animated_reactions', false);
@@ -374,7 +383,9 @@
 
         var tmdbRating = getTMDBRating(data);
         if (tmdbItem) {
-            tmdbItem.querySelector('div').textContent = tmdbRating;
+            var tmdbDiv = tmdbItem.querySelector('div');
+            tmdbDiv.textContent = tmdbRating;
+            tmdbDiv.style.color = getRatingColor(tmdbRating);
             tmdbItem.style.display = (tmdbRating !== '0.0') ? '' : 'none';
         }
 
@@ -385,21 +396,31 @@
         var imdbVal = (imdbFromData > 0 ? imdbFromData : (cachedKp && cachedKp.imdb)) || 0;
 
         if (imdbItem) {
-            imdbItem.querySelector('div').textContent = imdbVal ? parseFloat(imdbVal).toFixed(1) : '0.0';
+            var imdbDiv = imdbItem.querySelector('div');
+            var imdbText = imdbVal ? parseFloat(imdbVal).toFixed(1) : '0.0';
+            imdbDiv.textContent = imdbText;
+            imdbDiv.style.color = getRatingColor(imdbText);
             imdbItem.style.display = (imdbVal > 0) ? '' : 'none';
         }
         if (kpItem) {
-            kpItem.querySelector('div').textContent = kpVal ? parseFloat(kpVal).toFixed(1) : '0.0';
+            var kpDiv = kpItem.querySelector('div');
+            var kpText = kpVal ? parseFloat(kpVal).toFixed(1) : '0.0';
+            kpDiv.textContent = kpText;
+            kpDiv.style.color = getRatingColor(kpText);
             kpItem.style.display = (kpVal > 0) ? '' : 'none';
         }
 
         var lampaKey = (data.seasons || data.first_air_date || data.original_name) ? 'tv_' + data.id : 'movie_' + data.id;
         var cachedLampa = ratingCache.get('lampa_rating', lampaKey);
         if (lampaItem) {
-            var lampaVal = lampaItem.querySelector('.rate-value');
+            var lampaValEl = lampaItem.querySelector('.rate-value');
             var lampaReactionIcon = lampaItem.querySelector('.rate-icon-reaction');
             var hasLampa = cachedLampa && cachedLampa.rating > 0;
-            if (lampaVal) lampaVal.textContent = hasLampa ? cachedLampa.rating : '0.0';
+            var lampaText = hasLampa ? cachedLampa.rating : '0.0';
+            if (lampaValEl) {
+                lampaValEl.textContent = lampaText;
+                lampaValEl.style.color = getRatingColor(lampaText);
+            }
             if (lampaReactionIcon) {
                 if (hasLampa && cachedLampa.medianReaction) {
                     lampaReactionIcon.style.backgroundImage = 'url(' + getReactionImageSrc(cachedLampa.medianReaction) + ')';
@@ -414,8 +435,9 @@
     function showTmdbFallback(ratingElement, data) {
         var tmdb = getTMDBRating(data);
         if (tmdb !== '0.0') {
+            var color = getRatingColor(tmdb);
             ratingElement.className = 'card__vote rate--tmdb';
-            ratingElement.innerHTML = tmdb + ' <span class="source--name"></span>';
+            ratingElement.innerHTML = '<span style="color:' + color + '">' + tmdb + '</span> <span class="source--name"></span>';
         } else {
             ratingElement.style.display = 'none';
         }
@@ -469,7 +491,8 @@
         if (source === 'tmdb') {
             const rating = getTMDBRating(data);
             if (rating !== '0.0') {
-                ratingElement.innerHTML = `${rating} <span class="source--name"></span>`;
+                var color = getRatingColor(rating);
+                ratingElement.innerHTML = `<span style="color:${color}">${rating}</span> <span class="source--name"></span>`;
             } else {
                 ratingElement.style.display = 'none';
             }
@@ -478,7 +501,8 @@
             let ratingKey = `${type}_${data.id}`;
             const cached = ratingCache.get('lampa_rating', ratingKey);
             if (cached && cached.rating > 0) {
-                let html = `${cached.rating}`;
+                var color = getRatingColor(cached.rating);
+                let html = `<span style="color:${color}">${cached.rating}</span>`;
                 if (cached.medianReaction) {
                     let reactionSrc = getReactionImageSrc(cached.medianReaction);
                     html += ` <img style="width:1em;height:1em;margin:0 0.2em;" src="${reactionSrc}">`;
@@ -490,7 +514,8 @@
                 getLampaRating(ratingKey).then(result => {
                     if (ratingElement.parentNode && ratingElement.dataset.movieId === data.id.toString()) {
                         if (result.rating > 0) {
-                            let html = `${result.rating}`;
+                            var color = getRatingColor(result.rating);
+                            let html = `<span style="color:${color}">${result.rating}</span>`;
                             if (result.medianReaction) {
                                 let reactionSrc = getReactionImageSrc(result.medianReaction);
                                 html += ` <img style="width:1em;height:1em;margin:0 0.2em;" src="${reactionSrc}">`;
@@ -507,7 +532,9 @@
                 if (ratingElement.parentNode && ratingElement.dataset.movieId === data.id.toString()) {
                     var val = source === 'kp' ? res.kp : res.imdb;
                     if (val && val > 0) {
-                        ratingElement.innerHTML = parseFloat(val).toFixed(1) + ' <span class="source--name"></span>';
+                        var text = parseFloat(val).toFixed(1);
+                        var color = getRatingColor(text);
+                        ratingElement.innerHTML = '<span style="color:' + color + '">' + text + '</span> <span class="source--name"></span>';
                     } else {
                         showTmdbFallback(ratingElement, data);
                     }
@@ -547,7 +574,8 @@
                         const ratingKey = (data.seasons || data.first_air_date || data.original_name) ? `tv_${data.id}` : `movie_${data.id}`;
                         const cached = ratingCache.get('lampa_rating', ratingKey);
                         if (cached && cached.rating > 0 && ratingElement.innerHTML === '') {
-                            let html = `${cached.rating}`;
+                            let color = getRatingColor(cached.rating);
+                            let html = `<span style="color:${color}">${cached.rating}</span>`;
                             if (cached.medianReaction) {
                                 let reactionSrc = getReactionImageSrc(cached.medianReaction);
                                 html += ` <img style="width:1em;height:1em;margin:0 0.2em;" src="${reactionSrc}">`;
@@ -558,13 +586,17 @@
                         const ratingKey = data.id;
                         const cached = ratingCache.get('tmdb_rating', ratingKey);
                         if (cached && cached.vote_average > 0 && ratingElement.innerHTML === '') {
-                            ratingElement.innerHTML = `${cached.vote_average.toFixed(1)} <span class="source--name"></span>`;
+                            let text = cached.vote_average.toFixed(1);
+                            let color = getRatingColor(text);
+                            ratingElement.innerHTML = `<span style="color:${color}">${text}</span> <span class="source--name"></span>`;
                         }
                     } else if (source === 'kp' || source === 'imdb') {
                         const cached = ratingCache.get('kp_rating', data.id);
                         if (cached && (cached.kp > 0 || cached.imdb > 0) && ratingElement.innerHTML === '') {
                             const rating = source === 'kp' ? cached.kp : cached.imdb;
-                            ratingElement.innerHTML = `${parseFloat(rating).toFixed(1)} <span class="source--name"></span>`;
+                            let text = parseFloat(rating).toFixed(1);
+                            let color = getRatingColor(text);
+                            ratingElement.innerHTML = `<span style="color:${color}">${text}</span> <span class="source--name"></span>`;
                         }
                     }
                 }
