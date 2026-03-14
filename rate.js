@@ -365,7 +365,7 @@
             <div class="card__rate-item rate--tmdb" style="display:none"><div>0.0</div><span class="source--name"></span></div>
             <div class="card__rate-item rate--imdb" style="display:none"><div>0.0</div><span class="source--name"></span></div>
             <div class="card__rate-item rate--kp" style="display:none"><div>0.0</div><span class="source--name"></span></div>
-            <div class="card__rate-item rate--lampa" style="display:none"><span class="rate-value">0.0</span><span class="source--name rate-icon-reaction"></span></div>
+            <div class="card__rate-item rate--lampa"><span class="rate-value">0.0</span><span class="source--name rate-icon-reaction"></span></div>
         `;
         const parent = card.querySelector('.card__view') || card;
         parent.appendChild(line);
@@ -377,60 +377,72 @@
         var idStr = data.id.toString();
         if (ratingLine.dataset.movieId !== idStr) return;
 
-        var tmdbItem = ratingLine.querySelector('.rate--tmdb');
-        var imdbItem = ratingLine.querySelector('.rate--imdb');
-        var kpItem = ratingLine.querySelector('.rate--kp');
-        var lampaItem = ratingLine.querySelector('.rate--lampa');
-
-        var tmdbRating = getTMDBRating(data);
-        if (tmdbItem) {
-            var tmdbDiv = tmdbItem.querySelector('div');
-            tmdbDiv.textContent = tmdbRating;
-            tmdbDiv.style.color = getRatingColor(tmdbRating);
-            tmdbItem.style.display = (tmdbRating !== '0.0') ? '' : 'none';
-        }
-
-        var kpFromData = data.kp_rating ?? data.ratingKinopoisk ?? 0;
-        var imdbFromData = data.imdb_rating ?? data.ratingImdb ?? 0;
-        var cachedKp = ratingCache.get('kp_rating', data.id);
-        var kpVal = (kpFromData > 0 ? kpFromData : (cachedKp && cachedKp.kp)) || 0;
-        var imdbVal = (imdbFromData > 0 ? imdbFromData : (cachedKp && cachedKp.imdb)) || 0;
-
-        if (imdbItem) {
-            var imdbDiv = imdbItem.querySelector('div');
-            var imdbText = imdbVal ? parseFloat(imdbVal).toFixed(1) : '0.0';
-            imdbDiv.textContent = imdbText;
-            imdbDiv.style.color = getRatingColor(imdbText);
-            imdbItem.style.display = (imdbVal > 0) ? '' : 'none';
-        }
-        if (kpItem) {
-            var kpDiv = kpItem.querySelector('div');
-            var kpText = kpVal ? parseFloat(kpVal).toFixed(1) : '0.0';
-            kpDiv.textContent = kpText;
-            kpDiv.style.color = getRatingColor(kpText);
-            kpItem.style.display = (kpVal > 0) ? '' : 'none';
-        }
-
-        var lampaKey = (data.seasons || data.first_air_date || data.original_name) ? 'tv_' + data.id : 'movie_' + data.id;
-        var cachedLampa = ratingCache.get('lampa_rating', lampaKey);
-        if (lampaItem) {
-            var lampaValEl = lampaItem.querySelector('.rate-value');
-            var lampaReactionIcon = lampaItem.querySelector('.rate-icon-reaction');
-            var hasLampa = cachedLampa && cachedLampa.rating > 0;
-            var lampaText = hasLampa ? cachedLampa.rating : '0.0';
-            if (lampaValEl) {
-                lampaValEl.textContent = lampaText;
-                lampaValEl.style.color = getRatingColor(lampaText);
-            }
-            if (lampaReactionIcon) {
-                if (hasLampa && cachedLampa.medianReaction) {
-                    lampaReactionIcon.style.backgroundImage = 'url(' + getReactionImageSrc(cachedLampa.medianReaction) + ')';
-                } else {
-                    lampaReactionIcon.style.backgroundImage = '';
+        try {
+            var tmdbItem = ratingLine.querySelector('.rate--tmdb');
+            if (tmdbItem) {
+                var tmdbRating = getTMDBRating(data);
+                var tmdbDiv = tmdbItem.querySelector('div');
+                if (tmdbDiv) {
+                    tmdbDiv.textContent = tmdbRating;
+                    tmdbDiv.style.color = getRatingColor(tmdbRating);
                 }
+                tmdbItem.style.display = (tmdbRating !== '0.0') ? '' : 'none';
             }
-            lampaItem.style.display = '';
-        }
+        } catch (e) {}
+
+        try {
+            var kpFromData = data.kp_rating ?? data.ratingKinopoisk ?? 0;
+            var imdbFromData = data.imdb_rating ?? data.ratingImdb ?? 0;
+            var cachedKp = ratingCache.get('kp_rating', data.id);
+            var kpVal = (kpFromData > 0 ? kpFromData : (cachedKp && cachedKp.kp)) || 0;
+            var imdbVal = (imdbFromData > 0 ? imdbFromData : (cachedKp && cachedKp.imdb)) || 0;
+
+            var imdbItem = ratingLine.querySelector('.rate--imdb');
+            if (imdbItem) {
+                var imdbDiv = imdbItem.querySelector('div');
+                var imdbText = imdbVal ? parseFloat(imdbVal).toFixed(1) : '0.0';
+                if (imdbDiv) {
+                    imdbDiv.textContent = imdbText;
+                    imdbDiv.style.color = getRatingColor(imdbText);
+                }
+                imdbItem.style.display = (imdbVal > 0) ? '' : 'none';
+            }
+
+            var kpItem = ratingLine.querySelector('.rate--kp');
+            if (kpItem) {
+                var kpDiv = kpItem.querySelector('div');
+                var kpText = kpVal ? parseFloat(kpVal).toFixed(1) : '0.0';
+                if (kpDiv) {
+                    kpDiv.textContent = kpText;
+                    kpDiv.style.color = getRatingColor(kpText);
+                }
+                kpItem.style.display = (kpVal > 0) ? '' : 'none';
+            }
+        } catch (e) {}
+
+        try {
+            var lampaKey = (data.seasons || data.first_air_date || data.original_name) ? 'tv_' + data.id : 'movie_' + data.id;
+            var cachedLampa = ratingCache.get('lampa_rating', lampaKey);
+            var lampaItem = ratingLine.querySelector('.rate--lampa');
+            if (lampaItem) {
+                var lampaValEl = lampaItem.querySelector('.rate-value');
+                var lampaReactionIcon = lampaItem.querySelector('.rate-icon-reaction');
+                var hasLampa = cachedLampa && cachedLampa.rating > 0;
+                var lampaText = hasLampa ? String(cachedLampa.rating) : '0.0';
+                if (lampaValEl) {
+                    lampaValEl.textContent = lampaText;
+                    lampaValEl.style.color = getRatingColor(lampaText);
+                }
+                if (lampaReactionIcon) {
+                    if (hasLampa && cachedLampa.medianReaction) {
+                        lampaReactionIcon.style.backgroundImage = 'url(' + getReactionImageSrc(cachedLampa.medianReaction) + ')';
+                    } else {
+                        lampaReactionIcon.style.backgroundImage = '';
+                    }
+                }
+                lampaItem.style.display = '';
+            }
+        } catch (e) {}
     }
 
     function showTmdbFallback(ratingElement, data) {
@@ -439,9 +451,34 @@
             var color = getRatingColor(tmdb);
             ratingElement.className = 'card__vote rate--tmdb';
             ratingElement.innerHTML = '<span style="color:' + color + '">' + tmdb + '</span> <span class="source--name"></span>';
-        } else {
-            ratingElement.style.display = 'none';
+            return;
         }
+        var lampaKey = (data.seasons || data.first_air_date || data.original_name) ? 'tv_' + data.id : 'movie_' + data.id;
+        var cachedLampa = ratingCache.get('lampa_rating', lampaKey);
+        if (cachedLampa && cachedLampa.rating > 0) {
+            var color = getRatingColor(cachedLampa.rating);
+            var html = '<span style="color:' + color + '">' + cachedLampa.rating + '</span>';
+            if (cachedLampa.medianReaction) {
+                html += ' <img style="width:1em;height:1em;margin:0 0.2em;" src="' + getReactionImageSrc(cachedLampa.medianReaction) + '">';
+            }
+            ratingElement.className = 'card__vote rate--lampa';
+            ratingElement.innerHTML = html;
+            return;
+        }
+        getLampaRating(lampaKey).then(function (result) {
+            if (!ratingElement.parentNode || ratingElement.dataset.movieId !== data.id.toString()) return;
+            if (result.rating > 0) {
+                var color = getRatingColor(result.rating);
+                var html = '<span style="color:' + color + '">' + result.rating + '</span>';
+                if (result.medianReaction) {
+                    html += ' <img style="width:1em;height:1em;margin:0 0.2em;" src="' + getReactionImageSrc(result.medianReaction) + '">';
+                }
+                ratingElement.className = 'card__vote rate--lampa';
+                ratingElement.innerHTML = html;
+            } else {
+                ratingElement.style.display = 'none';
+            }
+        });
     }
 
     function updateCardRating(item) {
@@ -495,7 +532,7 @@
                 var color = getRatingColor(rating);
                 ratingElement.innerHTML = `<span style="color:${color}">${rating}</span> <span class="source--name"></span>`;
             } else {
-                ratingElement.style.display = 'none';
+                showTmdbFallback(ratingElement, data);
             }
         } else if (source === 'lampa') {
             let type = (data.seasons || data.first_air_date || data.original_name) ? 'tv' : 'movie';
@@ -733,6 +770,9 @@
                 align-items: center;
                 gap: 0.2em;
                 white-space: nowrap;
+            }
+            .card__vote-line .card__rate-item.rate--lampa {
+                display: flex !important;
             }
             .card__vote .source--name {
                 font-size: 0;
