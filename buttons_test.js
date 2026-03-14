@@ -325,8 +325,14 @@
                 try {
                     arr = JSON.parse(text.replace(/[\u0000-\u001F]+/g, ' '));
                 } catch (e2) {
-                    callback(null, 'Неверный формат файла');
-                    return;
+                    /* Файл может быть массивом SVG с неэкранированными кавычками — извлекаем блоки <svg>...</svg> */
+                    var svgList = text.match(/<svg[\s\S]*?<\/svg>/gi);
+                    if (svgList && svgList.length) {
+                        arr = svgList;
+                    } else {
+                        callback(null, 'Неверный формат файла');
+                        return;
+                    }
                 }
             }
             if (!Array.isArray(arr)) {
