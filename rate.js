@@ -278,6 +278,70 @@
         return ratingElement;
     }
 
+    function createRatingLineElement(card) {
+        const line = document.createElement('div');
+        line.className = 'card__vote card__vote-line';
+        line.style.cssText = `
+            line-height: 1;
+            font-family: "SegoeUI", sans-serif;
+            cursor: pointer;
+            box-sizing: border-box;
+            outline: none;
+            user-select: none;
+            position: absolute;
+            right: 0.3em;
+            bottom: 0.3em;
+            background: rgba(0, 0, 0, 0.5);
+            color: #fff;
+            padding: 0.2em 0.3em;
+            border-radius: 0.4em;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.2em 0.4em;
+        `;
+        line.innerHTML = `
+            <div class="card__rate-item rate--tmdb"><div>0.0</div><span class="source--name"></span></div>
+            <div class="card__rate-item rate--imdb"><div>0.0</div><span class="source--name"></span></div>
+            <div class="card__rate-item rate--kp"><div>0.0</div><span class="source--name"></span></div>
+            <div class="card__rate-item rate--lampa"><span class="rate-value">0.0</span><span class="rate-icon"></span><span class="source--name"></span></div>
+        `;
+        const parent = card.querySelector('.card__view') || card;
+        parent.appendChild(line);
+        return line;
+    }
+
+    function updateCardRatingLine(ratingLine, data) {
+        if (!ratingLine || !ratingLine.parentNode) return;
+        const idStr = data.id.toString();
+        if (ratingLine.dataset.movieId !== idStr) return;
+
+        const tmdbEl = ratingLine.querySelector('.rate--tmdb > div');
+        const imdbEl = ratingLine.querySelector('.rate--imdb > div');
+        const kpEl = ratingLine.querySelector('.rate--kp > div');
+        const lampaBlock = ratingLine.querySelector('.rate--lampa');
+        const lampaVal = lampaBlock ? lampaBlock.querySelector('.rate-value') : null;
+        const lampaIcon = lampaBlock ? lampaBlock.querySelector('.rate-icon') : null;
+
+        const tmdbRating = getTMDBRating(data);
+        if (tmdbEl) tmdbEl.textContent = tmdbRating;
+
+        const cachedKp = ratingCache.get('kp_rating', data.id);
+        if (imdbEl) imdbEl.textContent = (cachedKp && cachedKp.imdb) ? parseFloat(cachedKp.imdb).toFixed(1) : '0.0';
+        if (kpEl) kpEl.textContent = (cachedKp && cachedKp.kp) ? parseFloat(cachedKp.kp).toFixed(1) : '0.0';
+
+        const lampaKey = (data.seasons || data.first_air_date || data.original_name) ? `tv_${data.id}` : `movie_${data.id}`;
+        const cachedLampa = ratingCache.get('lampa_rating', lampaKey);
+        if (lampaVal) lampaVal.textContent = (cachedLampa && cachedLampa.rating > 0) ? cachedLampa.rating : '0.0';
+        if (lampaIcon) {
+            if (cachedLampa && cachedLampa.medianReaction) {
+                lampaIcon.innerHTML = '<img style="width:1em;height:1em;margin:0 0.1em;" src="https://cubnotrip.top/img/reactions/' + cachedLampa.medianReaction + '.svg">';
+            } else {
+                lampaIcon.innerHTML = '';
+            }
+        }
+    }
+
     function updateCardRating(item) {
         const card = item.card || item;
         if (!card || !card.querySelector || !document.body.contains(card)) return;
@@ -285,6 +349,45 @@
         if (!data.id) return;
         const source = Lampa.Storage.get('rating_source', 'tmdb');
         let ratingElement = card.querySelector('.card__vote');
+
+        if (source === 'all') {
+            if (ratingElement && !ratingElement.classList.contains('card__vote-line')) {
+                ratingElement.remove();
+                ratingElement = null;
+            }
+            if (!ratingElement) ratingElement = createRatingLineElement(card);
+            ratingElement.dataset.source = 'all';
+            ratingElement.dataset.movieId = data.id.toString();
+            ratingElement.style.display = '';
+            updateCardRatingLine(ratingElement, data);
+            getKinopoiskRating(data, () => {
+                if (ratingElement.parentNode && ratingElement.dataset.movieId === data.id.toString()) {
+                    updateCardRatingLine(ratingElement, data);
+                }
+            });
+            const lampaKey = (data.seasons || data.first_air_date || data.original_name) ? `tv_${data.id}` : `movie_${data.id}`;
+            getLampaRating(lampaKey).then((result) => {
+                if (ratingElement.parentNode && ratingElement.dataset.movieId === data.id.toString()) {
+                    const lampaBlock = ratingElement.querySelector('.rate--lampa');
+                    const lampaVal = lampaBlock ? lampaBlock.querySelector('.rate-value') : null;
+                    const lampaIcon = lampaBlock ? lampaBlock.querySelector('.rate-icon') : null;
+                    if (lampaVal) lampaVal.textContent = result.rating > 0 ? result.rating : '0.0';
+                    if (lampaIcon) {
+                        if (result.medianReaction) {
+                            lampaIcon.innerHTML = '<img style="width:1em;height:1em;margin:0 0.1em;" src="https://cubnotrip.top/img/reactions/' + result.medianReaction + '.svg">';
+                        } else {
+                            lampaIcon.innerHTML = '';
+                        }
+                    }
+                }
+            });
+            return;
+        }
+
+        if (ratingElement && ratingElement.classList.contains('card__vote-line')) {
+            ratingElement.remove();
+            ratingElement = null;
+        }
         if (!ratingElement) ratingElement = createRatingElement(card);
         ratingElement.dataset.source = source;
         ratingElement.dataset.movieId = data.id.toString();
@@ -364,6 +467,8 @@
                 const source = Lampa.Storage.get('rating_source', 'tmdb');
                 if (!ratingElement || ratingElement.dataset.source !== source || ratingElement.dataset.movieId !== data.id.toString()) {
                     updateCardRating({ card, data });
+                } else if (source === 'all' && ratingElement.classList.contains('card__vote-line')) {
+                    updateCardRatingLine(ratingElement, data);
                 } else {
                     if (source === 'lampa') {
                         const ratingKey = (data.seasons || data.first_air_date || data.original_name) ? `tv_${data.id}` : `movie_${data.id}`;
@@ -444,7 +549,8 @@
                     tmdb: 'TMDB',
                     lampa: 'Lampa',
                     kp: 'КиноПоиск',
-                    imdb: 'IMDB'
+                    imdb: 'IMDB',
+                    all: 'Все (как на полной карточке)'
                 },
                 default: 'tmdb'
             },
@@ -487,6 +593,26 @@
             .card__vote {
                 display: flex;
                 align-items: center !important;
+            }
+            .card__vote-line .card__rate-item {
+                display: flex;
+                align-items: center;
+                font-size: 0.75em;
+                gap: 0.1em;
+            }
+            .card__vote-line .card__rate-item .source--name {
+                width: 12px;
+                height: 12px;
+                margin-left: 2px;
+            }
+            @media (min-width: 481px) {
+                .card__vote-line .card__rate-item {
+                    font-size: 0.85em;
+                }
+                .card__vote-line .card__rate-item .source--name {
+                    width: 16px;
+                    height: 16px;
+                }
             }
             .card__vote .source--name {
                 font-size: 0;
