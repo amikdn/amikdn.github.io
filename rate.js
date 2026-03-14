@@ -340,10 +340,10 @@
             gap: 0.15em;
         `;
         line.innerHTML = `
-            <div class="card__rate-item rate--tmdb"><div>0.0</div><span class="source--name"></span></div>
-            <div class="card__rate-item rate--imdb"><div>0.0</div><span class="source--name"></span></div>
-            <div class="card__rate-item rate--kp"><div>0.0</div><span class="source--name"></span></div>
-            <div class="card__rate-item rate--lampa"><span class="rate-value">0.0</span><span class="rate-icon"></span><span class="source--name"></span></div>
+            <div class="card__rate-item rate--tmdb" style="display:none"><div>0.0</div><span class="source--name"></span></div>
+            <div class="card__rate-item rate--imdb" style="display:none"><div>0.0</div><span class="source--name"></span></div>
+            <div class="card__rate-item rate--kp" style="display:none"><div>0.0</div><span class="source--name"></span></div>
+            <div class="card__rate-item rate--lampa" style="display:none"><span class="rate-value">0.0</span><span class="source--name rate-icon-reaction"></span></div>
         `;
         const parent = card.querySelector('.card__view') || card;
         parent.appendChild(line);
@@ -352,36 +352,60 @@
 
     function updateCardRatingLine(ratingLine, data) {
         if (!ratingLine || !ratingLine.parentNode) return;
-        const idStr = data.id.toString();
+        var idStr = data.id.toString();
         if (ratingLine.dataset.movieId !== idStr) return;
 
-        const tmdbEl = ratingLine.querySelector('.rate--tmdb > div');
-        const imdbEl = ratingLine.querySelector('.rate--imdb > div');
-        const kpEl = ratingLine.querySelector('.rate--kp > div');
-        const lampaBlock = ratingLine.querySelector('.rate--lampa');
-        const lampaVal = lampaBlock ? lampaBlock.querySelector('.rate-value') : null;
-        const lampaIcon = lampaBlock ? lampaBlock.querySelector('.rate-icon') : null;
+        var tmdbItem = ratingLine.querySelector('.rate--tmdb');
+        var imdbItem = ratingLine.querySelector('.rate--imdb');
+        var kpItem = ratingLine.querySelector('.rate--kp');
+        var lampaItem = ratingLine.querySelector('.rate--lampa');
 
-        const tmdbRating = getTMDBRating(data);
-        if (tmdbEl) tmdbEl.textContent = tmdbRating;
+        var tmdbRating = getTMDBRating(data);
+        if (tmdbItem) {
+            tmdbItem.querySelector('div').textContent = tmdbRating;
+            tmdbItem.style.display = (tmdbRating !== '0.0') ? '' : 'none';
+        }
 
-        const kpFromData = data.kp_rating ?? data.ratingKinopoisk ?? 0;
-        const imdbFromData = data.imdb_rating ?? data.ratingImdb ?? 0;
-        const cachedKp = ratingCache.get('kp_rating', data.id);
-        const kpVal = (kpFromData > 0 ? kpFromData : (cachedKp && cachedKp.kp)) || 0;
-        const imdbVal = (imdbFromData > 0 ? imdbFromData : (cachedKp && cachedKp.imdb)) || 0;
-        if (imdbEl) imdbEl.textContent = imdbVal ? parseFloat(imdbVal).toFixed(1) : '0.0';
-        if (kpEl) kpEl.textContent = kpVal ? parseFloat(kpVal).toFixed(1) : '0.0';
+        var kpFromData = data.kp_rating ?? data.ratingKinopoisk ?? 0;
+        var imdbFromData = data.imdb_rating ?? data.ratingImdb ?? 0;
+        var cachedKp = ratingCache.get('kp_rating', data.id);
+        var kpVal = (kpFromData > 0 ? kpFromData : (cachedKp && cachedKp.kp)) || 0;
+        var imdbVal = (imdbFromData > 0 ? imdbFromData : (cachedKp && cachedKp.imdb)) || 0;
 
-        const lampaKey = (data.seasons || data.first_air_date || data.original_name) ? `tv_${data.id}` : `movie_${data.id}`;
-        const cachedLampa = ratingCache.get('lampa_rating', lampaKey);
-        if (lampaVal) lampaVal.textContent = (cachedLampa && cachedLampa.rating > 0) ? cachedLampa.rating : '0.0';
-        if (lampaIcon) {
-            if (cachedLampa && cachedLampa.medianReaction) {
-                lampaIcon.innerHTML = '<img style="width:1em;height:1em;margin:0 0.1em;" src="https://cubnotrip.top/img/reactions/' + cachedLampa.medianReaction + '.svg">';
-            } else {
-                lampaIcon.innerHTML = '';
+        if (imdbItem) {
+            imdbItem.querySelector('div').textContent = imdbVal ? parseFloat(imdbVal).toFixed(1) : '0.0';
+            imdbItem.style.display = (imdbVal > 0) ? '' : 'none';
+        }
+        if (kpItem) {
+            kpItem.querySelector('div').textContent = kpVal ? parseFloat(kpVal).toFixed(1) : '0.0';
+            kpItem.style.display = (kpVal > 0) ? '' : 'none';
+        }
+
+        var lampaKey = (data.seasons || data.first_air_date || data.original_name) ? 'tv_' + data.id : 'movie_' + data.id;
+        var cachedLampa = ratingCache.get('lampa_rating', lampaKey);
+        if (lampaItem) {
+            var lampaVal = lampaItem.querySelector('.rate-value');
+            var lampaReactionIcon = lampaItem.querySelector('.rate-icon-reaction');
+            var hasLampa = cachedLampa && cachedLampa.rating > 0;
+            if (lampaVal) lampaVal.textContent = hasLampa ? cachedLampa.rating : '0.0';
+            if (lampaReactionIcon) {
+                if (hasLampa && cachedLampa.medianReaction) {
+                    lampaReactionIcon.style.backgroundImage = 'url(https://cubnotrip.top/img/reactions/' + cachedLampa.medianReaction + '.svg)';
+                } else {
+                    lampaReactionIcon.style.backgroundImage = '';
+                }
             }
+            lampaItem.style.display = hasLampa ? '' : 'none';
+        }
+    }
+
+    function showTmdbFallback(ratingElement, data) {
+        var tmdb = getTMDBRating(data);
+        if (tmdb !== '0.0') {
+            ratingElement.className = 'card__vote rate--tmdb';
+            ratingElement.innerHTML = tmdb + ' <span class="source--name"></span>';
+        } else {
+            ratingElement.style.display = 'none';
         }
     }
 
@@ -412,19 +436,9 @@
                 });
             }
             const lampaKey = (data.seasons || data.first_air_date || data.original_name) ? `tv_${data.id}` : `movie_${data.id}`;
-            getLampaRating(lampaKey).then((result) => {
+            getLampaRating(lampaKey).then(function (result) {
                 if (ratingElement.parentNode && ratingElement.dataset.movieId === data.id.toString()) {
-                    const lampaBlock = ratingElement.querySelector('.rate--lampa');
-                    const lampaVal = lampaBlock ? lampaBlock.querySelector('.rate-value') : null;
-                    const lampaIcon = lampaBlock ? lampaBlock.querySelector('.rate-icon') : null;
-                    if (lampaVal) lampaVal.textContent = result.rating > 0 ? result.rating : '0.0';
-                    if (lampaIcon) {
-                        if (result.medianReaction) {
-                            lampaIcon.innerHTML = '<img style="width:1em;height:1em;margin:0 0.1em;" src="https://cubnotrip.top/img/reactions/' + result.medianReaction + '.svg">';
-                        } else {
-                            lampaIcon.innerHTML = '';
-                        }
-                    }
+                    updateCardRatingLine(ratingElement, data);
                 }
             });
             return;
@@ -471,7 +485,7 @@
                             }
                             ratingElement.innerHTML = html;
                         } else {
-                            ratingElement.style.display = 'none';
+                            showTmdbFallback(ratingElement, data);
                         }
                     }
                 });
@@ -483,7 +497,7 @@
                     if (val && val > 0) {
                         ratingElement.innerHTML = parseFloat(val).toFixed(1) + ' <span class="source--name"></span>';
                     } else {
-                        ratingElement.style.display = 'none';
+                        showTmdbFallback(ratingElement, data);
                     }
                 }
             });
@@ -667,6 +681,11 @@
             }
             .rate--tmdb .source--name {
                 background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 300' width='300' height='300'%3E%3Cdefs%3E%3ClinearGradient id='grad' x1='0' y1='0' x2='1' y2='0'%3E%3Cstop offset='0%25' stop-color='%2390cea1'/%3E%3Cstop offset='56%25' stop-color='%233cbec9'/%3E%3Cstop offset='100%25' stop-color='%2300b3e5'/%3E%3C/linearGradient%3E%3Cstyle%3E.text-style%7Bfont-weight:bold;fill:url(%23grad);text-anchor:start;dominant-baseline:middle;textLength:300;lengthAdjust:spacingAndGlyphs;font-size:120px;%7D%3C/style%3E%3C/defs%3E%3Ctext class='text-style' x='0' y='150' textLength='300' lengthAdjust='spacingAndGlyphs'%3ETMDB%3C/text%3E%3C/svg%3E");
+            }
+            .rate-icon-reaction {
+                background-repeat: no-repeat;
+                background-position: center;
+                background-size: contain;
             }
             .rate--imdb .source--name {
                 background-image: url("data:image/svg+xml,%3Csvg fill='%23ffcc00' viewBox='0 0 32 32' xmlns='http://www.w3.org/2000/svg'%3E%3Cg id='SVGRepo_bgCarrier' stroke-width='0'%3E%3C/g%3E%3Cg id='SVGRepo_tracerCarrier' stroke-linecap='round' stroke-linejoin='round'%3E%3C/g%3E%3Cg id='SVGRepo_iconCarrier'%3E%3Cpath d='M 0 7 L 0 25 L 32 25 L 32 7 Z M 2 9 L 30 9 L 30 23 L 2 23 Z M 5 11.6875 L 5 20.3125 L 7 20.3125 L 7 11.6875 Z M 8.09375 11.6875 L 8.09375 20.3125 L 10 20.3125 L 10 15.5 L 10.90625 20.3125 L 12.1875 20.3125 L 13 15.5 L 13 20.3125 L 14.8125 20.3125 L 14.8125 11.6875 L 12 11.6875 L 11.5 15.8125 L 10.8125 11.6875 Z M 15.90625 11.6875 L 15.90625 20.1875 L 18.3125 20.1875 C 19.613281 20.1875 20.101563 19.988281 20.5 19.6875 C 20.898438 19.488281 21.09375 19 21.09375 18.5 L 21.09375 13.3125 C 21.09375 12.710938 20.898438 12.199219 20.5 12 C 20 11.800781 19.8125 11.6875 18.3125 11.6875 Z M 22.09375 11.8125 L 22.09375 20.3125 L 23.90625 20.3125 C 23.90625 20.3125 23.992188 19.710938 24.09375 19.8125 C 24.292969 19.8125 25.101563 20.1875 25.5 20.1875 C 26 20.1875 26.199219 20.195313 26.5 20.09375 C 26.898438 19.894531 27 19.613281 27 19.3125 L 27 14.3125 C 27 13.613281 26.289063 13.09375 25.6875 13.09375 C 25.085938 13.09375 24.511719 13.488281 24.3125 13.6875 L 24.3125 11.8125 Z M 18 13 C 18.398438 13 18.8125 13.007813 18.8125 13.40625 L 18.8125 18.40625 C 18.8125 18.804688 18.300781 18.8125 18 18.8125 Z M 24.59375 14 C 24.695313 14 24.8125 14.105469 24.8125 14.40625 L 24.8125 18.6875 C 24.8125 18.886719 24.792969 19.09375 24.59375 19.09375 C 24.492188 19.09375 24.40625 18.988281 24.40625 18.6875 L 24.40625 14.40625 C 24.40625 14.207031 24.394531 14 24.59375 14 Z'/%3E%3C/g%3E%3C/svg%3E");
