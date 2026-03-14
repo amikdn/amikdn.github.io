@@ -324,12 +324,20 @@
         return 'card__vote card__vote--' + pos + (extra ? ' ' + extra : '');
     }
 
+    function getRatingParent(card) {
+        var parent = card.querySelector && card.querySelector('.card__view');
+        if (!parent) parent = card;
+        parent.setAttribute('data-rate-anchor', '1');
+        parent.style.position = 'relative';
+        return parent;
+    }
+
     function createRatingElement(card) {
         var ratingElement = document.createElement('div');
         ratingElement.className = voteClass();
         var posCSS = getRatingPositionCSS();
         ratingElement.style.cssText = 'line-height:1;font-family:"SegoeUI",sans-serif;cursor:pointer;box-sizing:border-box;outline:none;user-select:none;position:absolute;z-index:1;' + posCSS + 'background:rgba(0,0,0,0.5);color:#fff;padding:0.2em 0.5em;border-radius:0.35em;display:-webkit-box;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;';
-        var parent = card.querySelector('.card__view') || card;
+        var parent = getRatingParent(card);
         parent.appendChild(ratingElement);
         return ratingElement;
     }
@@ -340,7 +348,7 @@
         var posCSS = getRatingPositionCSS();
         line.style.cssText = 'line-height:1;font-family:"SegoeUI",sans-serif;cursor:pointer;box-sizing:border-box;outline:none;user-select:none;position:absolute;z-index:1;' + posCSS + 'background:rgba(0,0,0,0.5);color:#fff;padding:0.2em 0.5em;border-radius:0.35em;display:-webkit-box;display:-webkit-flex;display:flex;-webkit-flex-direction:column;flex-direction:column;-webkit-align-items:flex-end;align-items:flex-end;';
         line.innerHTML = '<div class="card__rate-item rate--tmdb" style="display:none"><div>0.0</div><span class="source--name"></span></div><div class="card__rate-item rate--imdb" style="display:none"><div>0.0</div><span class="source--name"></span></div><div class="card__rate-item rate--kp" style="display:none"><div>0.0</div><span class="source--name"></span></div><div class="card__rate-item rate--lampa" style="display:none"><span class="rate-value">0.0</span><span class="source--name rate-icon-reaction"></span></div>';
-        var parent = card.querySelector('.card__view') || card;
+        var parent = getRatingParent(card);
         parent.appendChild(line);
         return line;
     }
@@ -643,7 +651,7 @@
                     lampa: 'Lampa',
                     kp: 'КиноПоиск',
                     imdb: 'IMDB',
-                    all: 'Все'
+                    all: 'Все (как на полной карточке)'
                 },
                 default: 'tmdb'
             },
@@ -760,7 +768,10 @@
         var style = document.createElement('style');
         style.type = 'text/css';
         style.textContent = (
-            '.card__vote{display:-webkit-box;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center!important;height:auto!important;max-height:none!important;overflow:visible!important}' +
+            '.card .card__view{position:relative!important}' +
+            '.card__vote{display:-webkit-box;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center!important;height:auto!important;max-height:none!important;overflow:visible!important;position:absolute!important;z-index:1!important}' +
+            '.card__vote--top{top:0.3em!important;right:0.3em!important;bottom:auto!important}' +
+            '.card__vote--bottom{top:auto!important;right:0.3em!important;bottom:0.3em!important}' +
             '.card__vote-line .card__rate-item{display:-webkit-box;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;white-space:nowrap;margin-bottom:0.15em}' +
             '.card__vote-line .card__rate-item:last-child{margin-bottom:0}' +
             '.card__vote .source--name{font-size:0;color:transparent;width:16px;height:16px;background-repeat:no-repeat;background-position:center;background-size:contain;margin-left:4px;-webkit-flex-shrink:0;flex-shrink:0}' +
