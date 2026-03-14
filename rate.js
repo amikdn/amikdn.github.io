@@ -311,10 +311,24 @@
         return rating;
     }
 
+    function getRatingPositionCSS() {
+        var pos = Lampa.Storage.get('rating_position', 'top');
+        if (pos === 'bottom') {
+            return 'top:auto;right:0;bottom:0;border-radius:0.4em 0 0 0;';
+        }
+        return 'top:0;right:0;bottom:auto;border-radius:0 0 0 0.4em;';
+    }
+
+    function voteClass(extra) {
+        var pos = Lampa.Storage.get('rating_position', 'top');
+        return 'card__vote card__vote--' + pos + (extra ? ' ' + extra : '');
+    }
+
     function createRatingElement(card) {
         var ratingElement = document.createElement('div');
-        ratingElement.className = 'card__vote';
-        ratingElement.style.cssText = 'line-height:1;font-family:"SegoeUI",sans-serif;cursor:pointer;box-sizing:border-box;outline:none;user-select:none;position:absolute;top:0;right:0;bottom:auto;background:rgba(0,0,0,0.5);color:#fff;padding:0.15em 0.3em;border-radius:0 0 0 0.4em;display:-webkit-box;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;';
+        ratingElement.className = voteClass();
+        var posCSS = getRatingPositionCSS();
+        ratingElement.style.cssText = 'line-height:1;font-family:"SegoeUI",sans-serif;cursor:pointer;box-sizing:border-box;outline:none;user-select:none;position:absolute;' + posCSS + 'background:rgba(0,0,0,0.5);color:#fff;padding:0.15em 0.3em;display:-webkit-box;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;';
         var parent = card.querySelector('.card__view') || card;
         parent.appendChild(ratingElement);
         return ratingElement;
@@ -322,8 +336,9 @@
 
     function createRatingLineElement(card) {
         var line = document.createElement('div');
-        line.className = 'card__vote card__vote-line';
-        line.style.cssText = 'line-height:1;font-family:"SegoeUI",sans-serif;cursor:pointer;box-sizing:border-box;outline:none;user-select:none;position:absolute;top:0;right:0;bottom:auto;background:rgba(0,0,0,0.5);color:#fff;padding:0.2em 0.3em;border-radius:0 0 0 0.4em;display:-webkit-box;display:-webkit-flex;display:flex;-webkit-flex-direction:column;flex-direction:column;-webkit-align-items:flex-end;align-items:flex-end;';
+        line.className = voteClass('card__vote-line');
+        var posCSS = getRatingPositionCSS();
+        line.style.cssText = 'line-height:1;font-family:"SegoeUI",sans-serif;cursor:pointer;box-sizing:border-box;outline:none;user-select:none;position:absolute;' + posCSS + 'background:rgba(0,0,0,0.5);color:#fff;padding:0.2em 0.3em;display:-webkit-box;display:-webkit-flex;display:flex;-webkit-flex-direction:column;flex-direction:column;-webkit-align-items:flex-end;align-items:flex-end;';
         line.innerHTML = '<div class="card__rate-item rate--tmdb" style="display:none"><div>0.0</div><span class="source--name"></span></div><div class="card__rate-item rate--imdb" style="display:none"><div>0.0</div><span class="source--name"></span></div><div class="card__rate-item rate--kp" style="display:none"><div>0.0</div><span class="source--name"></span></div><div class="card__rate-item rate--lampa" style="display:none"><span class="rate-value">0.0</span><span class="source--name rate-icon-reaction"></span></div>';
         var parent = card.querySelector('.card__view') || card;
         parent.appendChild(line);
@@ -407,7 +422,7 @@
         var tmdb = getTMDBRating(data);
         if (tmdb !== '0.0') {
             var color = getRatingColor(tmdb);
-            ratingElement.className = 'card__vote rate--tmdb';
+            ratingElement.className = voteClass('rate--tmdb');
             ratingElement.innerHTML = '<span style="color:' + color + '">' + tmdb + '</span> <span class="source--name"></span>';
             return;
         }
@@ -419,7 +434,7 @@
             if (cachedLampa.medianReaction) {
                 html += ' <img style="width:1em;height:1em;margin:0 0.2em;" src="' + getReactionImageSrc(cachedLampa.medianReaction) + '">';
             }
-            ratingElement.className = 'card__vote rate--lampa';
+            ratingElement.className = voteClass('rate--lampa');
             ratingElement.innerHTML = html;
             return;
         }
@@ -431,7 +446,7 @@
                 if (result.medianReaction) {
                     html += ' <img style="width:1em;height:1em;margin:0 0.2em;" src="' + getReactionImageSrc(result.medianReaction) + '">';
                 }
-                ratingElement.className = 'card__vote rate--lampa';
+                ratingElement.className = voteClass('rate--lampa');
                 ratingElement.innerHTML = html;
             } else {
                 ratingElement.style.display = 'none';
@@ -481,7 +496,7 @@
         if (!ratingElement) ratingElement = createRatingElement(card);
         ratingElement.dataset.source = source;
         ratingElement.dataset.movieId = data.id.toString();
-        ratingElement.className = 'card__vote rate--' + source;
+        ratingElement.className = voteClass('rate--' + source);
         ratingElement.innerHTML = '';
         ratingElement.style.display = '';
         if (source === 'tmdb') {
@@ -547,8 +562,7 @@
             if (data && data.id) {
                 var ratingElement = card.querySelector('.card__vote');
                 if (ratingElement) {
-                    delete ratingElement.dataset.source;
-                    delete ratingElement.dataset.movieId;
+                    ratingElement.remove();
                 }
                 updateCardRating({ card: card, data: data });
             }
@@ -696,6 +710,35 @@
                 }, 0);
             }
         });
+
+        Lampa.SettingsApi.addParam({
+            component: 'interface',
+            param: {
+                name: 'rating_position',
+                type: 'select',
+                values: {
+                    top: 'Сверху справа',
+                    bottom: 'Снизу справа'
+                },
+                default: 'top'
+            },
+            field: {
+                name: 'Позиция рейтинга на постере',
+                description: 'Выберите где отображать рейтинг на карточке'
+            },
+            onChange: function (value) {
+                Lampa.Storage.set('rating_position', value);
+                setTimeout(function () {
+                    window.refreshAllRatings();
+                }, 100);
+            },
+            onRender: function (element) {
+                setTimeout(function () {
+                    var anchor = $('div[data-name="colored_ratings_poster"]');
+                    if (anchor.length) anchor.after(element);
+                }, 0);
+            }
+        });
     }
 
     function setupCardListener() {
@@ -717,8 +760,10 @@
         var style = document.createElement('style');
         style.type = 'text/css';
         style.textContent = (
-            '.card .card__view{position:relative;overflow:hidden}' +
-            '.card__vote{display:-webkit-box;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center!important;bottom:auto!important;height:auto!important;max-height:none!important;overflow:visible!important}' +
+            '.card .card__view{position:relative;overflow:hidden;border-radius:inherit}' +
+            '.card__vote{display:-webkit-box;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center!important;height:auto!important;max-height:none!important;overflow:visible!important}' +
+            '.card__vote--top{top:0!important;bottom:auto!important}' +
+            '.card__vote--bottom{top:auto!important;bottom:0!important}' +
             '.card__vote-line .card__rate-item{display:-webkit-box;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;white-space:nowrap;margin-bottom:0.15em}' +
             '.card__vote-line .card__rate-item:last-child{margin-bottom:0}' +
             '.card__vote .source--name{font-size:0;color:transparent;width:16px;height:16px;background-repeat:no-repeat;background-position:center;background-size:contain;margin-left:4px;-webkit-flex-shrink:0;flex-shrink:0}' +
