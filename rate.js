@@ -7,13 +7,13 @@
     var SVG_REACTIONS_BASE_URL = 'https://cubnotrip.top/img/reactions';
 
     function getRatingColor(value) {
-        if (!Lampa.Storage.get('colored_ratings_poster', true)) return '';
-        var v = parseFloat(value);
-        if (isNaN(v) || v <= 0) return '';
-        if (v <= 3) return 'red';
-        if (v < 6) return 'orange';
-        if (v < 8) return 'cornflowerblue';
-        return 'lawngreen';
+        if (!Lampa.Storage.get('colored_ratings_poster', true)) return '#fff';
+        var v = parseFloat(String(value).replace(',', '.'));
+        if (isNaN(v) || v <= 0) return '#fff';
+        if (v <= 3) return '#f44336';
+        if (v < 6) return '#ff9800';
+        if (v < 8) return '#6495ed';
+        return '#7cfc00';
     }
 
     function getReactionImageSrc(medianReaction) {
