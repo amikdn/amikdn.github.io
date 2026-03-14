@@ -2,7 +2,48 @@
 (function() {
     'use strict';
 
-    var PLUGIN_VERSION = '1.56';
+    var PLUGIN_VERSION = '1.57';
+
+    /** Тип события открытия полной карточки (в Lampa используется "complite") */
+    var FULL_EVENT_TYPE = 'complite';
+    /** Задержка после применения изменений (ожидание layout) */
+    var DELAY_AFTER_APPLY_MS = 100;
+    /** Ожидание появления контейнера кнопок на карточке */
+    var DELAY_FULL_CARD_READY_MS = 400;
+    /** Таймаут открытия модалки выбора иконки (если загрузка альт. иконок затягивается) */
+    var DELAY_ICON_PICKER_MODAL_MS = 4000;
+    /** URL JSON с альтернативными иконками по умолчанию */
+    var DEFAULT_ICONS_URL = 'https://amikdn.github.io/lampa-button-icons.json';
+    /** Интервал опроса настройки постера (Lampa не даёт событие при смене настройки) */
+    var SYNC_POSTER_INTERVAL_MS = 3000;
+    /** Ключи Lampa.Storage для настроек плагина */
+    var STORAGE_KEYS = {
+        custom_order: 'button_custom_order',
+        hidden: 'button_hidden',
+        custom_icons: 'button_custom_icons',
+        custom_labels: 'button_custom_labels',
+        viewmode: 'buttons_viewmode',
+        editor_enabled: 'buttons_editor_enabled',
+        plugin_version: 'buttons_plugin_version'
+    };
+
+    /** Логирование в консоль при включённой отладке (Lampa.Storage: buttons_debug = true). */
+    function logDebug(msg, err) {
+        if (typeof Lampa !== 'undefined' && Lampa.Storage && Lampa.Storage.get('buttons_debug')) {
+            console.warn('[Buttons plugin]', msg, err !== undefined ? err : '');
+        }
+    }
+
+    /** Экранирование строки для безопасной подстановки в HTML (атрибуты и текст). */
+    function escapeHtml(str) {
+        if (str == null || typeof str !== 'string') return '';
+        return str
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
 
     // Polyfills для совместимости со старыми устройствами
     if (!Array.prototype.forEach) {
@@ -120,35 +161,35 @@
     }
 
     function getCustomOrder() {
-        return Lampa.Storage.get('button_custom_order', []);
+        return Lampa.Storage.get(STORAGE_KEYS.custom_order, []);
     }
 
     function setCustomOrder(order) {
-        Lampa.Storage.set('button_custom_order', order);
+        Lampa.Storage.set(STORAGE_KEYS.custom_order, order);
     }
 
     function getHiddenButtons() {
-        return Lampa.Storage.get('button_hidden', []);
+        return Lampa.Storage.get(STORAGE_KEYS.hidden, []);
     }
 
     function setHiddenButtons(hidden) {
-        Lampa.Storage.set('button_hidden', hidden);
+        Lampa.Storage.set(STORAGE_KEYS.hidden, hidden);
     }
 
     function getCustomIcons() {
-        return Lampa.Storage.get('button_custom_icons', {});
+        return Lampa.Storage.get(STORAGE_KEYS.custom_icons, {});
     }
 
     function setCustomIcons(icons) {
-        Lampa.Storage.set('button_custom_icons', icons);
+        Lampa.Storage.set(STORAGE_KEYS.custom_icons, icons);
     }
 
     function getCustomLabels() {
-        return Lampa.Storage.get('button_custom_labels', {});
+        return Lampa.Storage.get(STORAGE_KEYS.custom_labels, {});
     }
 
     function setCustomLabels(labels) {
-        Lampa.Storage.set('button_custom_labels', labels);
+        Lampa.Storage.set(STORAGE_KEYS.custom_labels, labels);
     }
 
     function normalizeSvgString(str) {
@@ -203,7 +244,7 @@
                     try {
                         var raw = svgEl.get(0).outerHTML;
                         addIcon(raw, 'list-' + a + '-' + j);
-                    } catch (err) {}
+                    } catch (err) { logDebug('collectAllIcons: button svg', err); }
                 }
             }
         }
@@ -216,7 +257,7 @@
                 try {
                     var raw = svg.outerHTML;
                     addIcon(raw, 'dom-' + k);
-                } catch (err) {}
+                } catch (err) { logDebug('collectAllIcons: dom button svg', err); }
             }
         }
         var buttonsContainers = document.querySelectorAll('.full-start-new__buttons');
@@ -232,7 +273,7 @@
                     try {
                         var rawChild = childSvg.outerHTML;
                         addIcon(rawChild, 'plugin-' + c + '-' + n);
-                    } catch (err) {}
+                    } catch (err) { logDebug('collectAllIcons: container svg', err); }
                 }
             }
         }
@@ -242,7 +283,7 @@
                 var menuSvg = menuIcos[m];
                 var menuRaw = menuSvg.outerHTML;
                 addIcon(menuRaw, 'menu-' + m);
-            } catch (err) {}
+            } catch (err) { logDebug('collectAllIcons: menu svg', err); }
         }
         return result;
     }
@@ -284,16 +325,13 @@
                 try {
                     arr = JSON.parse(text.replace(/[\u0000-\u001F]+/g, ' '));
                 } catch (e2) {
-                    try {
-                        arr = JSON.parse(text.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim());
-                    } catch (e3) {
-                        var svgList = text.match(/<svg[\s\S]*?<\/svg>/gi);
-                        if (svgList && svgList.length) {
-                            arr = svgList;
-                        } else {
-                            callback(null, 'Неверный формат JSON');
-                            return;
-                        }
+                    /* Файл может быть массивом с неэкранированными кавычками — извлекаем все блоки <svg>...</svg> */
+                    var svgList = text.match(/<svg[\s\S]*?<\s*\/\s*svg\s*>/gi);
+                    if (svgList && svgList.length > 0) {
+                        arr = svgList;
+                    } else {
+                        callback(null, 'Неверный формат файла');
+                        return;
                     }
                 }
             }
@@ -403,13 +441,13 @@
             }
             setTimeout(function() {
                 applyChanges();
-            }, 100);
+            }, DELAY_AFTER_APPLY_MS);
         }
         defaultBlock.on('hover:enter', function() {
             applyChoice(true, null);
         });
         wrap.append(defaultBlock);
-        var defaultIconsUrl = 'https://amikdn.github.io/lampa-button-icons.json';
+        var defaultIconsUrl = DEFAULT_ICONS_URL;
         var loadStatus = $('<div class="icon-picker-load-status"></div>');
         var tabLampa = $('<div class="selector icon-picker-tab icon-picker-tab--active" tabindex="0">Иконки Lampa</div>');
         var tabAlt = $('<div class="selector icon-picker-tab" tabindex="0">Альтернативные иконки</div>');
@@ -455,11 +493,11 @@
                     }
                     setTimeout(function() {
                         refreshController();
-                    }, 100);
+                    }, DELAY_AFTER_APPLY_MS);
                 }
             });
         }
-        var openTimeout = setTimeout(openModal, 4000);
+        var openTimeout = setTimeout(openModal, DELAY_ICON_PICKER_MODAL_MS);
         loadIconsFromUrl(defaultIconsUrl, {}, function(newEntries, err) {
             clearTimeout(openTimeout);
             if (err) {
@@ -548,6 +586,20 @@
             }
         });
         return categories;
+    }
+
+    /** Собирает единый массив кнопок из объекта категорий в фиксированном порядке. */
+    function getAllButtonsFromCategories(categories) {
+        return [].concat(
+            categories.online,
+            categories.torrent,
+            categories.trailer,
+            categories.favorite,
+            categories.subscribe,
+            categories.book,
+            categories.reaction,
+            categories.other
+        );
     }
 
     function sortByCustomOrder(buttons) {
@@ -666,7 +718,7 @@
         btn.on('hover:enter', function() {
             openEditDialog();
         });
-        if (Lampa.Storage.get('buttons_editor_enabled') === false) {
+        if (Lampa.Storage.get(STORAGE_KEYS.editor_enabled) === false) {
             btn.hide();
         }
         return btn;
@@ -683,16 +735,7 @@
     function applyChanges() {
         if (!currentContainer) return;
         var categories = categorizeButtons(currentContainer);
-        var allButtons = []
-            .concat(categories.online)
-            .concat(categories.torrent)
-            .concat(categories.trailer)
-            .concat(categories.favorite)
-            .concat(categories.subscribe)
-            .concat(categories.book)
-            .concat(categories.reaction)
-            .concat(categories.other);
-        allButtons = sortByCustomOrder(allButtons);
+        var allButtons = sortByCustomOrder(getAllButtonsFromCategories(categories));
         allButtonsCache = allButtons;
         currentButtons = allButtons;
         var targetContainer = currentContainer.find('.full-start-new__buttons');
@@ -712,7 +755,7 @@
         applyHiddenButtons(currentButtons);
         applyCustomIcons(currentButtons);
         applyCustomLabels(currentButtons);
-        var viewmode = Lampa.Storage.get('buttons_viewmode', 'default');
+        var viewmode = Lampa.Storage.get(STORAGE_KEYS.viewmode, 'default');
         targetContainer.removeClass('icons-only always-text');
         if (viewmode === 'icons') targetContainer.addClass('icons-only');
         if (viewmode === 'always') targetContainer.addClass('always-text');
@@ -721,7 +764,7 @@
             if (currentContainer) {
                 setupButtonNavigation(currentContainer);
             }
-        }, 100);
+        }, DELAY_AFTER_APPLY_MS);
     }
 
     function capitalize(str) {
@@ -780,15 +823,7 @@
     function openEditDialog() {
         if (currentContainer) {
             var categories = categorizeButtons(currentContainer);
-            var allButtons = []
-                .concat(categories.online)
-                .concat(categories.torrent)
-                .concat(categories.trailer)
-                .concat(categories.favorite)
-                .concat(categories.subscribe)
-                .concat(categories.book)
-                .concat(categories.reaction)
-                .concat(categories.other);
+            var allButtons = getAllButtonsFromCategories(categories);
             var uniqueButtons = [];
             var seenIds = {};
             allButtons.forEach(function(btn) {
@@ -808,7 +843,7 @@
         var hidden = getHiddenButtons();
         var modes = ['default', 'icons', 'always'];
         var labels = {default: 'Стандартный', icons: 'Только иконки', always: 'С текстом'};
-        var currentMode = Lampa.Storage.get('buttons_viewmode', 'default');
+        var currentMode = Lampa.Storage.get(STORAGE_KEYS.viewmode, 'default');
         var modeBtn = $('<div class="selector viewmode-switch">' +
             '<div style="text-align: center; padding: 1em;">Вид кнопок: ' + labels[currentMode] + '</div>' +
             '</div>');
@@ -816,7 +851,7 @@
             var idx = modes.indexOf(currentMode);
             idx = (idx + 1) % modes.length;
             currentMode = modes[idx];
-            Lampa.Storage.set('buttons_viewmode', currentMode);
+            Lampa.Storage.set(STORAGE_KEYS.viewmode, currentMode);
             $(this).find('div').text('Вид кнопок: ' + labels[currentMode]);
             if (currentContainer) {
                 var target = currentContainer.find('.full-start-new__buttons');
@@ -841,7 +876,7 @@
                     labels[btnId] = v;
                 }
                 setCustomLabels(labels);
-                setTimeout(function() { applyChanges(); refreshController(); }, 100);
+                setTimeout(function() { applyChanges(); refreshController(); }, DELAY_AFTER_APPLY_MS);
             }
             if (typeof Lampa.Input !== 'undefined' && typeof Lampa.Input.edit === 'function') {
                 Lampa.Input.edit({
@@ -855,7 +890,7 @@
                 });
             } else {
                 var wrap = $('<div class="name-picker-wrap">' +
-                    '<input type="text" class="name-picker-input" value="' + (currentLabel.replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')) + '" placeholder="Название кнопки" style="width:100%;padding:0.5em;margin:0.5em 0;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.3);border-radius:0.3em;color:#fff;font-size:1em;" />' +
+                    '<input type="text" class="name-picker-input" value="' + escapeHtml(currentLabel) + '" placeholder="Название кнопки" style="width:100%;padding:0.5em;margin:0.5em 0;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.3);border-radius:0.3em;color:#fff;font-size:1em;" />' +
                     '<div class="selector name-picker-ok" style="text-align:center;padding:0.75em;margin-top:0.5em;background:rgba(66,133,244,0.5);border-radius:0.3em;">Готово</div></div>');
                 var inputEl = wrap.find('input').get(0);
                 wrap.find('.name-picker-ok').on('hover:enter', function() {
@@ -870,7 +905,7 @@
                     scroll_to_center: true,
                     onBack: function() {
                         if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.close) Lampa.Modal.close();
-                        setTimeout(function() { refreshController(); }, 100);
+                        setTimeout(function() { refreshController(); }, DELAY_AFTER_APPLY_MS);
                     }
                 });
                 setTimeout(function() { if (inputEl) inputEl.focus(); }, 150);
@@ -980,11 +1015,11 @@
             '<div style="text-align: center; padding: 1em;">Сбросить по умолчанию</div>' +
             '</div>');
         resetBtn.on('hover:enter', function() {
-            Lampa.Storage.set('button_custom_order', []);
-            Lampa.Storage.set('button_hidden', []);
-            Lampa.Storage.set('button_custom_icons', {});
-            Lampa.Storage.set('button_custom_labels', {});
-            Lampa.Storage.set('buttons_viewmode', 'default');
+            Lampa.Storage.set(STORAGE_KEYS.custom_order, []);
+            Lampa.Storage.set(STORAGE_KEYS.hidden, []);
+            Lampa.Storage.set(STORAGE_KEYS.custom_icons, {});
+            Lampa.Storage.set(STORAGE_KEYS.custom_labels, {});
+            Lampa.Storage.set(STORAGE_KEYS.viewmode, 'default');
             Lampa.Modal.close();
             setTimeout(function() {
                 if (currentContainer) {
@@ -1029,7 +1064,7 @@
                     reorderButtons(currentContainer);
                     refreshController();
                 }
-            }, 100);
+            }, DELAY_AFTER_APPLY_MS);
         });
         list.append(resetBtn);
 
@@ -1059,16 +1094,7 @@
         }
         container.find('.button--play, .button--edit-order').remove();
         var categories = categorizeButtons(container);
-        var allButtons = []
-            .concat(categories.online)
-            .concat(categories.torrent)
-            .concat(categories.trailer)
-            .concat(categories.favorite)
-            .concat(categories.subscribe)
-            .concat(categories.book)
-            .concat(categories.reaction)
-            .concat(categories.other);
-        allButtons = sortByCustomOrder(allButtons);
+        var allButtons = sortByCustomOrder(getAllButtonsFromCategories(categories));
         allButtonsCache = allButtons;
         if (allButtonsOriginal.length === 0) {
             allButtons.forEach(function(btn) {
@@ -1114,15 +1140,7 @@
             });
             var uniqueButtons = [];
             seenIds = {};
-            var allButtonsNew = []
-                .concat(categories.online)
-                .concat(categories.torrent)
-                .concat(categories.trailer)
-                .concat(categories.favorite)
-                .concat(categories.subscribe)
-                .concat(categories.book)
-                .concat(categories.reaction)
-                .concat(categories.other);
+            var allButtonsNew = getAllButtonsFromCategories(categories);
             allButtonsNew.forEach(function(btn) {
                 var btnId = getButtonId(btn);
                 if (!seenIds[btnId]) {
@@ -1145,14 +1163,14 @@
         applyHiddenButtons(currentButtons);
         applyCustomIcons(currentButtons);
         applyCustomLabels(currentButtons);
-        var viewmode = Lampa.Storage.get('buttons_viewmode', 'default');
+        var viewmode = Lampa.Storage.get(STORAGE_KEYS.viewmode, 'default');
         targetContainer.removeClass('icons-only always-text');
         if (viewmode === 'icons') targetContainer.addClass('icons-only');
         if (viewmode === 'always') targetContainer.addClass('always-text');
         applyButtonAnimation(visibleButtons, isApplecation);
         setTimeout(function() {
             setupButtonNavigation(container);
-        }, 100);
+        }, DELAY_AFTER_APPLY_MS);
         return true;
     }
 
@@ -1162,7 +1180,7 @@
         if (Lampa.Controller && typeof Lampa.Controller.toggle === 'function') {
             try {
                 Lampa.Controller.toggle('full_start');
-            } catch(e) {}
+            } catch(e) { logDebug('setupButtonNavigation', e); }
         }
     }
 
@@ -1174,16 +1192,16 @@
                 if (currentContainer) {
                     setTimeout(function() {
                         setupButtonNavigation(currentContainer);
-                    }, 100);
+                    }, DELAY_AFTER_APPLY_MS);
                 }
-            } catch(e) {}
+            } catch(e) { logDebug('refreshController', e); }
         }, 50);
     }
 
     function init() {
-        var storedVersion = Lampa.Storage.get('buttons_plugin_version', '');
+        var storedVersion = Lampa.Storage.get(STORAGE_KEYS.plugin_version, '');
         if (storedVersion !== PLUGIN_VERSION) {
-            Lampa.Storage.set('buttons_plugin_version', PLUGIN_VERSION);
+            Lampa.Storage.set(STORAGE_KEYS.plugin_version, PLUGIN_VERSION);
         }
         var style = $('<style>' +
             '@keyframes button-fade-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }' +
@@ -1253,10 +1271,10 @@
             $('body').toggleClass('buttons-plugin--poster-off', !showPoster);
         }
         syncPosterOffClass();
-        setInterval(syncPosterOffClass, 1000);
+        setInterval(syncPosterOffClass, SYNC_POSTER_INTERVAL_MS);
 
         Lampa.Listener.follow('full', function(e) {
-            if (e.type !== 'complite') return;
+            if (e.type !== FULL_EVENT_TYPE) return;
             syncPosterOffClass();
             var container = e.object.activity.render();
             var targetContainer = container.find('.full-start-new__buttons');
@@ -1307,24 +1325,24 @@
                         targetContainer.removeClass('buttons-loading');
                     }
                 }
-            }, 400);
+            }, DELAY_FULL_CARD_READY_MS);
         });
     }
 
     if (Lampa.SettingsApi) {
         Lampa.SettingsApi.addParam({
             component: 'interface',
-            param: { name: 'buttons_editor_enabled', type: 'trigger', default: true },
+            param: { name: STORAGE_KEYS.editor_enabled, type: 'trigger', default: true },
             field: { name: 'Редактор кнопок' },
             onChange: function(value) {
                 setTimeout(function() {
-                    var currentValue = Lampa.Storage.get('buttons_editor_enabled', true);
+                    var currentValue = Lampa.Storage.get(STORAGE_KEYS.editor_enabled, true);
                     if (currentValue) {
                         $('.button--edit-order').show();
                     } else {
                         $('.button--edit-order').hide();
                     }
-                }, 100);
+                }, DELAY_AFTER_APPLY_MS);
             },
             onRender: function(element) {
                 setTimeout(function() {
