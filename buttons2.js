@@ -892,15 +892,19 @@
     }
 
     function createFolderButton(folder) {
-        var firstBtnId = folder.buttons[0];
-        var firstBtn = findButton(firstBtnId);
         var icon = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' +
             '<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>' +
             '</svg>';
-        if (firstBtn && firstBtn.length) {
-            var btnIcon = firstBtn.find('svg').first();
-            if (btnIcon.length) {
-                icon = btnIcon.prop('outerHTML');
+        if (folder.customIcon) {
+            icon = folder.customIcon;
+        } else {
+            var firstBtnId = folder.buttons[0];
+            var firstBtn = findButton(firstBtnId);
+            if (firstBtn && firstBtn.length) {
+                var btnIcon = firstBtn.find('svg').first();
+                if (btnIcon.length) {
+                    icon = btnIcon.prop('outerHTML');
+                }
             }
         }
         var btn = $('<div class="full-start__button selector button--folder" data-folder-id="' + escapeHtml(folder.id) + '">' +
@@ -1015,18 +1019,178 @@
         if (!folder.buttons || folder.buttons.length === 0) return;
         var folderBtn = currentContainer.find('.button--folder[data-folder-id="' + escapeHtml(folder.id) + '"]');
         if (folderBtn.length) {
-            var firstBtnId = folder.buttons[0];
-            var firstBtn = findButton(firstBtnId);
-            if (firstBtn && firstBtn.length) {
-                var iconElement = firstBtn.find('svg').first();
-                if (iconElement.length) {
-                    folderBtn.find('svg').replaceWith(iconElement.clone());
-                }
+            if (folder.customIcon) {
+                folderBtn.find('svg').replaceWith($(folder.customIcon));
             } else {
-                var defaultIcon = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>';
-                folderBtn.find('svg').replaceWith(defaultIcon);
+                var firstBtn = findButton(folder.buttons[0]);
+                if (firstBtn && firstBtn.length) {
+                    var iconEl = firstBtn.find('svg').first();
+                    if (iconEl.length) {
+                        folderBtn.find('svg').replaceWith(iconEl.clone());
+                    } else {
+                        setDefaultFolderIcon(folderBtn);
+                    }
+                } else {
+                    setDefaultFolderIcon(folderBtn);
+                }
             }
         }
+    }
+
+    function setDefaultFolderIcon(folderBtn) {
+        var defaultIcon = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>';
+        folderBtn.find('svg').replaceWith(defaultIcon);
+    }
+
+    function updateFolder(folderId, updates) {
+        var folders = getFolders();
+        for (var i = 0; i < folders.length; i++) {
+            if (folders[i].id === folderId) {
+                if (updates.name !== undefined) folders[i].name = updates.name;
+                if (updates.customIcon !== undefined) folders[i].customIcon = updates.customIcon;
+                setFolders(folders);
+                return folders[i];
+            }
+        }
+        return null;
+    }
+
+    function getDefaultIconForFolder(folder) {
+        if (folder.customIcon) return folder.customIcon;
+        var firstBtn = findButton(folder.buttons[0]);
+        if (!firstBtn || !firstBtn.length) return '';
+        var svg = firstBtn.find('svg').first();
+        return svg.length ? svg.get(0).outerHTML : '';
+    }
+
+    function openFolderNamePicker(folder, listItem) {
+        var currentName = folder.name || '';
+        function applyName(val) {
+            var v = (val && String(val).trim()) || '';
+            if (!v) return;
+            updateFolder(folder.id, { name: v });
+            if (listItem && listItem.length) {
+                listItem.find('.menu-edit-list__title').html(escapeHtml(v) + ' <span style="opacity:0.5">(' + folder.buttons.length + ')</span>');
+            }
+            setTimeout(function() { applyChanges(); refreshController(); }, DELAY_AFTER_APPLY_MS);
+        }
+        if (typeof Lampa.Input !== 'undefined' && typeof Lampa.Input.edit === 'function') {
+            Lampa.Input.edit({
+                free: true,
+                title: 'Название папки',
+                nosave: true,
+                value: currentName,
+                nomic: true
+            }, function(value) {
+                applyName(value);
+            });
+        } else {
+            var wrap = $('<div class="name-picker-wrap">' +
+                '<input type="text" class="name-picker-input" value="' + escapeHtml(currentName) + '" placeholder="Название папки" style="width:100%;padding:0.5em;margin:0.5em 0;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.3);border-radius:0.3em;color:#fff;font-size:1em;" />' +
+                '<div class="selector name-picker-ok" style="text-align:center;padding:0.75em;margin-top:0.5em;background:rgba(66,133,244,0.5);border-radius:0.3em;">Готово</div></div>');
+            var inputEl = wrap.find('input').get(0);
+            wrap.find('.name-picker-ok').on('hover:enter', function() {
+                var val = (inputEl && inputEl.value) ? String(inputEl.value).trim() : '';
+                if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.close) Lampa.Modal.close();
+                applyName(val);
+            });
+            Lampa.Modal.open({
+                title: 'Название папки',
+                html: wrap,
+                size: 'small',
+                scroll_to_center: true,
+                onBack: function() {
+                    if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.close) Lampa.Modal.close();
+                    setTimeout(function() { refreshController(); }, DELAY_AFTER_APPLY_MS);
+                }
+            });
+            setTimeout(function() { if (inputEl) inputEl.focus(); }, 150);
+        }
+    }
+
+    function openFolderIconPicker(folder, listItem) {
+        var defaultIconHtml = getDefaultIconForFolder(folder);
+        var icons = collectAllIcons();
+        var seen = {};
+        for (var s = 0; s < icons.length; s++) {
+            seen[svgFingerprint(icons[s].html)] = true;
+        }
+        var wrap = $('<div class="icon-picker-wrap"></div>');
+        var defaultBlock = $('<div class="selector icon-picker-default" tabindex="0">' +
+            '<div class="icon-picker-default__preview"></div>' +
+            '<span>По умолчанию</span></div>');
+        if (defaultIconHtml) {
+            defaultBlock.find('.icon-picker-default__preview').append($(defaultIconHtml).clone());
+        }
+        function applyChoice(isDefault, chosenHtml) {
+            updateFolder(folder.id, { customIcon: isDefault ? undefined : chosenHtml });
+            if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.close) Lampa.Modal.close();
+            setTimeout(function() {
+                applyChanges();
+                if (listItem && listItem.length) {
+                    var newIcon = isDefault ? (defaultIconHtml ? $(defaultIconHtml) : $('<svg></svg>')) : $(chosenHtml);
+                    listItem.find('.menu-edit-list__icon').empty().append(newIcon.clone());
+                }
+            }, DELAY_AFTER_APPLY_MS);
+        }
+        defaultBlock.on('hover:enter', function() {
+            applyChoice(true, null);
+        });
+        wrap.append(defaultBlock);
+        var tabLampa = $('<div class="selector icon-picker-tab icon-picker-tab--active" tabindex="0">Иконки Lampa</div>');
+        var tabAlt = $('<div class="selector icon-picker-tab" tabindex="0">Альтернативные иконки</div>');
+        var switchBlock = $('<div class="icon-picker-switch-wrap"></div>');
+        switchBlock.append(tabLampa).append(tabAlt);
+        wrap.append(switchBlock);
+        var loadStatus = $('<div class="icon-picker-load-status"></div>');
+        wrap.append(loadStatus);
+        wrap.addClass('icon-picker-view-lampa');
+        tabLampa.on('hover:enter', function() {
+            wrap.removeClass('icon-picker-view-alt').addClass('icon-picker-view-lampa');
+            tabLampa.addClass('icon-picker-tab--active');
+            tabAlt.removeClass('icon-picker-tab--active');
+        });
+        tabAlt.on('hover:enter', function() {
+            wrap.removeClass('icon-picker-view-lampa').addClass('icon-picker-view-alt');
+            tabAlt.addClass('icon-picker-tab--active');
+            tabLampa.removeClass('icon-picker-tab--active');
+        });
+        icons.forEach(function(entry) {
+            var cell = $('<div class="selector icon-picker-grid__cell icon-picker-cell-lampa" tabindex="0"></div>');
+            cell.append($(entry.html).clone());
+            var savedHtml = entry.html;
+            cell.on('hover:enter', function() {
+                applyChoice(false, savedHtml);
+            });
+            wrap.append(cell);
+        });
+        loadStatus.text('Загрузка…');
+        loadIconsFromUrl(DEFAULT_ICONS_URL, {}, function(newEntries, err) {
+            if (!err && newEntries && newEntries.length) {
+                newEntries.forEach(function(entry) {
+                    var cell = $('<div class="selector icon-picker-grid__cell icon-picker-cell-alt" tabindex="0"></div>');
+                    cell.append($(entry.html).clone());
+                    var savedHtml = entry.html;
+                    cell.on('hover:enter', function() {
+                        applyChoice(false, savedHtml);
+                    });
+                    wrap.append(cell);
+                });
+                loadStatus.text('Загружены альтернативные иконки (' + newEntries.length + ')');
+            } else {
+                loadStatus.text(err || 'Альтернативные иконки не загружены');
+            }
+        });
+        Lampa.Modal.open({
+            title: 'Иконка папки',
+            html: wrap,
+            size: 'small',
+            scroll_to_center: true,
+            onBack: function() {
+                if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.close) Lampa.Modal.close();
+                setTimeout(function() { refreshController(); }, DELAY_AFTER_APPLY_MS);
+            }
+        });
     }
 
     function createFolder(name, buttonIds) {
@@ -1263,21 +1427,34 @@
         list.append(createFolderBtn);
 
         function createFolderItem(folder) {
+            var folderIconHtml = folder.customIcon || (findButton(folder.buttons[0]) && findButton(folder.buttons[0]).find('svg').first().length ? findButton(folder.buttons[0]).find('svg').first().get(0).outerHTML : '');
+            var folderIcon = folderIconHtml ? $(folderIconHtml).clone() : $('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>');
             var item = $('<div class="menu-edit-list__item folder-item">' +
-                '<div class="menu-edit-list__icon">' +
-                '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' +
-                '<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg></div>' +
+                '<div class="menu-edit-list__icon"></div>' +
                 '<div class="menu-edit-list__title">' + escapeHtml(folder.name) + ' <span style="opacity:0.5">(' + folder.buttons.length + ')</span></div>' +
+                '<div class="menu-edit-list__change-name selector" title="Сменить название">' +
+                '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" width="18" height="18"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" stroke="currentColor" stroke-width="1.5"/></svg></div>' +
+                '<div class="menu-edit-list__change-icon selector">' +
+                '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg></div>' +
                 '<div class="menu-edit-list__move move-up selector"><svg width="22" height="14" viewBox="0 0 22 14" fill="none"><path d="M2 12L11 3L20 12" stroke="currentColor" stroke-width="4" stroke-linecap="round"/></svg></div>' +
                 '<div class="menu-edit-list__move move-down selector"><svg width="22" height="14" viewBox="0 0 22 14" fill="none"><path d="M2 2L11 11L20 2" stroke="currentColor" stroke-width="4" stroke-linecap="round"/></svg></div>' +
                 '<div class="menu-edit-list__delete selector">' +
                 '<svg width="26" height="26" viewBox="0 0 26 26" fill="none"><rect x="1.89111" y="1.78369" width="21.793" height="21.793" rx="3.5" stroke="currentColor" stroke-width="3"/>' +
                 '<path d="M9.5 9.5L16.5 16.5M16.5 9.5L9.5 16.5" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg></div></div>');
+            item.find('.menu-edit-list__icon').append(folderIcon);
             item.data('folderId', folder.id);
             item.data('itemType', 'folder');
+            item.find('.menu-edit-list__change-name').on('hover:enter', function() {
+                if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.close) Lampa.Modal.close();
+                setTimeout(function() { openFolderNamePicker(folder, item); }, 200);
+            });
+            item.find('.menu-edit-list__change-icon').on('hover:enter', function() {
+                if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.close) Lampa.Modal.close();
+                setTimeout(function() { openFolderIconPicker(folder, item); }, 200);
+            });
             item.find('.move-up').on('hover:enter', function() {
                 var prev = item.prev();
-                while (prev.length && prev.hasClass('menu-edit-list__create-folder')) prev = prev.prev();
+                while (prev.length && (prev.hasClass('menu-edit-list__create-folder') || prev.hasClass('viewmode-switch'))) prev = prev.prev();
                 if (prev.length) {
                     item.insertBefore(prev);
                     saveItemOrder();
@@ -1767,14 +1944,15 @@
             '.viewmode-switch, .folder-reset-button { max-width: 100%; box-sizing: border-box; white-space: normal; word-break: break-word; font-family: var(--buttons-plugin-modal-font, inherit); font-size: var(--buttons-plugin-modal-font-size, inherit); }' +
             '.folder-reset-button { background: rgba(200,100,100,0.3); margin-top: 1em; border-radius: 0.3em; border: 3px solid transparent; }' +
             '.folder-reset-button.focus { border-color: rgba(255,255,255,0.8); }' +
-            '.menu-edit-list__create-folder { background: rgba(100,200,100,0.2); margin-bottom: 0.5em; border: 3px solid transparent; border-radius: 0.3em; box-sizing: border-box; }' +
+            '.menu-edit-list__create-folder { background: rgba(34, 139, 34, 0.45); margin-bottom: 0.5em; border: 3px solid transparent; border-radius: 0.3em; box-sizing: border-box; }' +
             '.menu-edit-list__create-folder .menu-edit-list__title { text-align: center; justify-self: center; }' +
             '.menu-edit-list__create-folder.focus { border-color: rgba(255,255,255,0.8); }' +
-            '.button--folder { cursor: pointer; }' +
+            '.folder-item { background: rgba(34, 139, 34, 0.15); grid-template-columns: 2.5em minmax(0, 1fr) 2.4em 2.4em 2.4em 2.4em 2.4em; }' +
+            '.button--folder { cursor: pointer; background: rgba(34, 139, 34, 0.35); border-radius: 0.4em; }' +
+            '.button--folder:hover, .button--folder.focus { background: rgba(34, 139, 34, 0.5); }' +
             '.menu-edit-list__delete { width: 2.4em; min-width: 2.4em; height: 2.4em; display: flex; align-items: center; justify-content: center; border: 2px solid transparent; border-radius: 0.3em; }' +
             '.menu-edit-list__delete.focus { border-color: rgba(255,255,255,0.8); }' +
-            '.folder-item { grid-template-columns: 2.5em minmax(0, 1fr) 2.4em 2.4em 2.4em; }' +
-            '.folder-item .menu-edit-list__move { margin-right: 0; }' +
+            '.folder-item .menu-edit-list__move, .folder-item .menu-edit-list__change-name, .folder-item .menu-edit-list__change-icon { margin-right: 0; }' +
             '.folder-create-confirm { background: rgba(100,200,100,0.3); margin-top: 1em; border-radius: 0.3em; border: 3px solid transparent; }' +
             '.folder-create-confirm.focus { border-color: rgba(255,255,255,0.8); }' +
             '.menu-edit-list__move.focus, .menu-edit-list__change-name.focus, .menu-edit-list__change-icon.focus, .menu-edit-list__toggle.focus { border-color: rgba(255,255,255,0.8); }' +
