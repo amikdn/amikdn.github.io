@@ -1481,6 +1481,9 @@
                 setItemOrder(newItemOrder);
                 item.remove();
                 Lampa.Noty.show('Папка удалена');
+                if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.close) {
+                    Lampa.Modal.close();
+                }
                 setTimeout(function() {
                     if (currentContainer) {
                         currentContainer.find('.button--play, .button--edit-order, .button--folder').remove();
