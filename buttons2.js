@@ -1439,8 +1439,7 @@
                 '<div class="menu-edit-list__move move-up selector"><svg width="22" height="14" viewBox="0 0 22 14" fill="none"><path d="M2 12L11 3L20 12" stroke="currentColor" stroke-width="4" stroke-linecap="round"/></svg></div>' +
                 '<div class="menu-edit-list__move move-down selector"><svg width="22" height="14" viewBox="0 0 22 14" fill="none"><path d="M2 2L11 11L20 2" stroke="currentColor" stroke-width="4" stroke-linecap="round"/></svg></div>' +
                 '<div class="menu-edit-list__delete selector">' +
-                '<svg width="26" height="26" viewBox="0 0 26 26" fill="none"><rect x="1.89111" y="1.78369" width="21.793" height="21.793" rx="3.5" stroke="currentColor" stroke-width="3"/>' +
-                '<path d="M9.5 9.5L16.5 16.5M16.5 9.5L9.5 16.5" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg></div></div>');
+                '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></div></div>');
             item.find('.menu-edit-list__icon').append(folderIcon);
             item.data('folderId', folder.id);
             item.data('itemType', 'folder');
@@ -1947,14 +1946,16 @@
             '.viewmode-switch, .folder-reset-button { max-width: 100%; box-sizing: border-box; white-space: normal; word-break: break-word; font-family: var(--buttons-plugin-modal-font, inherit); font-size: var(--buttons-plugin-modal-font-size, inherit); }' +
             '.folder-reset-button { background: rgba(200,100,100,0.3); margin-top: 1em; border-radius: 0.3em; border: 3px solid transparent; }' +
             '.folder-reset-button.focus { border-color: rgba(255,255,255,0.8); }' +
-            '.menu-edit-list__create-folder { background: rgba(34, 139, 34, 0.5); margin-bottom: 0.5em; border: 3px solid transparent; border-radius: 0.3em; box-sizing: border-box; }' +
+            '.menu-edit-list__create-folder { background: rgba(34, 139, 34, 0.65) !important; margin-bottom: 0.5em; border: 3px solid transparent; border-radius: 0.3em; box-sizing: border-box; }' +
             '.menu-edit-list__create-folder .menu-edit-list__title { text-align: center; justify-self: center; }' +
             '.menu-edit-list__create-folder.focus { border-color: rgba(255,255,255,0.8); }' +
-            '.folder-item { grid-template-columns: 2.5em minmax(0, 1fr) 2.4em 2.4em 2.4em 2.4em 2.4em; align-items: start; min-height: 3.2em; }' +
+            '.folder-item { grid-template-columns: 2.5em minmax(0, 1fr) 2.4em 2.4em 2.4em 2.4em 2.4em; align-items: center; min-height: 3.2em; }' +
+            '.folder-item .menu-edit-list__title { align-self: center; display: flex; align-items: center; min-height: 2.5em; }' +
             '.button--folder { cursor: pointer; }' +
             '.menu-edit-list__delete { width: 2.4em; min-width: 2.4em; height: 2.4em; display: flex; align-items: center; justify-content: center; border: 2px solid transparent; border-radius: 0.3em; box-sizing: border-box; }' +
             '.menu-edit-list__delete.focus { border-color: rgba(255,255,255,0.8); }' +
-            '.folder-item .menu-edit-list__delete { align-self: end; justify-self: end; }' +
+            '.folder-item .menu-edit-list__delete { align-self: center; justify-self: end; }' +
+            '.folder-item .menu-edit-list__delete svg { width: 1.2em !important; height: 1.2em !important; }' +
             '.folder-item .menu-edit-list__move, .folder-item .menu-edit-list__change-name, .folder-item .menu-edit-list__change-icon { margin-right: 0; }' +
             '.folder-create-confirm { background: rgba(100,200,100,0.3); margin-top: 1em; border-radius: 0.3em; border: 3px solid transparent; }' +
             '.folder-create-confirm.focus { border-color: rgba(255,255,255,0.8); }' +
