@@ -283,7 +283,7 @@
         const line = document.createElement('div');
         line.className = 'card__vote card__vote-line';
         line.style.cssText = `
-            line-height: 1;
+            line-height: 1.2;
             font-family: "SegoeUI", sans-serif;
             cursor: pointer;
             box-sizing: border-box;
@@ -294,12 +294,12 @@
             bottom: 0.3em;
             background: rgba(0, 0, 0, 0.5);
             color: #fff;
-            padding: 0.2em 0.3em;
+            padding: 0.25em 0.4em;
             border-radius: 0.4em;
             display: flex;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 0.2em 0.4em;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 0.15em;
         `;
         line.innerHTML = `
             <div class="card__rate-item rate--tmdb"><div>0.0</div><span class="source--name"></span></div>
@@ -579,17 +579,19 @@
             .card__vote-line .card__rate-item {
                 display: flex;
                 align-items: center;
-                font-size: 0.75em;
-                gap: 0.1em;
+                font-size: 0.7em;
+                gap: 0.2em;
+                white-space: nowrap;
             }
             .card__vote-line .card__rate-item .source--name {
                 width: 12px;
                 height: 12px;
                 margin-left: 2px;
+                flex-shrink: 0;
             }
             @media (min-width: 481px) {
                 .card__vote-line .card__rate-item {
-                    font-size: 0.85em;
+                    font-size: 0.8em;
                 }
                 .card__vote-line .card__rate-item .source--name {
                     width: 16px;
@@ -646,6 +648,22 @@
         Lampa.Listener.follow('full', (event) => {
             if (event.type === 'complite') {
                 let render = event.object.activity.render();
+                if (render && event.object.id) {
+                    const kpBlock = $(render).find('.rate--kp');
+                    const imdbBlock = $(render).find('.rate--imdb');
+                    if (kpBlock.length || imdbBlock.length) {
+                        const kpVal = parseFloat(kpBlock.find('div').first().text().trim()) || 0;
+                        const imdbVal = parseFloat(imdbBlock.find('div').first().text().trim()) || 0;
+                        if (kpVal > 0 || imdbVal > 0) {
+                            const existing = ratingCache.get('kp_rating', event.object.id) || {};
+                            ratingCache.set('kp_rating', event.object.id, {
+                                kp: kpVal > 0 ? kpVal : (existing.kp || 0),
+                                imdb: imdbVal > 0 ? imdbVal : (existing.imdb || 0),
+                                timestamp: Date.now()
+                            });
+                        }
+                    }
+                }
                 if (render && insertLampaBlock(render)) {
                     if (event.object.method && event.object.id) {
                         let ratingKey = event.object.method + "_" + event.object.id;
