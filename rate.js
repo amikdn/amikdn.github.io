@@ -16,6 +16,13 @@
         return 'lawngreen';
     }
 
+    function formatRating(value) {
+        var n = parseFloat(value);
+        if (isNaN(n)) return '0.0';
+        if (n === 10) return '10';
+        return n.toFixed(1);
+    }
+
     function getReactionImageSrc(medianReaction) {
         if (!medianReaction) return '';
         var useAnimated = Lampa.Storage.get('animated_reactions', false);
@@ -364,7 +371,7 @@
                 var tmdbRating = getTMDBRating(data);
                 var tmdbDiv = tmdbItem.querySelector('div');
                 if (tmdbDiv) {
-                    tmdbDiv.textContent = tmdbRating;
+                    tmdbDiv.textContent = formatRating(tmdbRating);
                     tmdbDiv.style.color = getRatingColor(tmdbRating);
                 }
                 tmdbItem.style.display = (tmdbRating !== '0.0') ? '' : 'none';
@@ -381,7 +388,7 @@
             var imdbItem = ratingLine.querySelector('.rate--imdb');
             if (imdbItem) {
                 var imdbDiv = imdbItem.querySelector('div');
-                var imdbText = imdbVal ? parseFloat(imdbVal).toFixed(1) : '0.0';
+                var imdbText = imdbVal ? formatRating(imdbVal) : '0.0';
                 if (imdbDiv) {
                     imdbDiv.textContent = imdbText;
                     imdbDiv.style.color = getRatingColor(imdbText);
@@ -392,7 +399,7 @@
             var kpItem = ratingLine.querySelector('.rate--kp');
             if (kpItem) {
                 var kpDiv = kpItem.querySelector('div');
-                var kpText = kpVal ? parseFloat(kpVal).toFixed(1) : '0.0';
+                var kpText = kpVal ? formatRating(kpVal) : '0.0';
                 if (kpDiv) {
                     kpDiv.textContent = kpText;
                     kpDiv.style.color = getRatingColor(kpText);
@@ -409,7 +416,7 @@
                 var lampaValEl = lampaItem.querySelector('.rate-value');
                 var lampaReactionIcon = lampaItem.querySelector('.rate-icon-reaction');
                 var hasLampa = cachedLampa && cachedLampa.rating > 0;
-                var lampaText = hasLampa ? parseFloat(cachedLampa.rating).toFixed(1) : '0.0';
+                var lampaText = hasLampa ? formatRating(cachedLampa.rating) : '0.0';
                 if (lampaValEl) {
                     lampaValEl.textContent = lampaText;
                     lampaValEl.style.color = getRatingColor(lampaText);
@@ -431,14 +438,14 @@
         if (tmdb !== '0.0') {
             var color = getRatingColor(tmdb);
             ratingElement.className = voteClass('rate--tmdb');
-            ratingElement.innerHTML = '<span style="color:' + color + '">' + tmdb + '</span> <span class="source--name"></span>';
+            ratingElement.innerHTML = '<span style="color:' + color + '">' + formatRating(tmdb) + '</span> <span class="source--name"></span>';
             return;
         }
         var lampaKey = (data.seasons || data.first_air_date || data.original_name) ? 'tv_' + data.id : 'movie_' + data.id;
         var cachedLampa = ratingCache.get('lampa_rating', lampaKey);
         if (cachedLampa && cachedLampa.rating > 0) {
             var color = getRatingColor(cachedLampa.rating);
-            var html = '<span style="color:' + color + '">' + parseFloat(cachedLampa.rating).toFixed(1) + '</span>';
+            var html = '<span style="color:' + color + '">' + formatRating(cachedLampa.rating) + '</span>';
             if (cachedLampa.medianReaction) {
                 html += ' <img style="width:1em;height:1em;margin:0 0.2em;" src="' + getReactionImageSrc(cachedLampa.medianReaction) + '">';
             }
@@ -450,7 +457,7 @@
             if (!ratingElement.parentNode || ratingElement.dataset.movieId !== data.id.toString()) return;
             if (result.rating > 0) {
                 var color = getRatingColor(result.rating);
-                var html = '<span style="color:' + color + '">' + result.rating + '</span>';
+                var html = '<span style="color:' + color + '">' + formatRating(result.rating) + '</span>';
                 if (result.medianReaction) {
                     html += ' <img style="width:1em;height:1em;margin:0 0.2em;" src="' + getReactionImageSrc(result.medianReaction) + '">';
                 }
@@ -511,7 +518,7 @@
             var rating = getTMDBRating(data);
             if (rating !== '0.0') {
                 var color = getRatingColor(rating);
-                ratingElement.innerHTML = '<span style="color:' + color + '">' + rating + '</span> <span class="source--name"></span>';
+                ratingElement.innerHTML = '<span style="color:' + color + '">' + formatRating(rating) + '</span> <span class="source--name"></span>';
             } else {
                 showTmdbFallback(ratingElement, data);
             }
@@ -521,7 +528,7 @@
             var cached = ratingCache.get('lampa_rating', ratingKey);
             if (cached && cached.rating > 0) {
                 var color = getRatingColor(cached.rating);
-                var html = '<span style="color:' + color + '">' + parseFloat(cached.rating).toFixed(1) + '</span>';
+                var html = '<span style="color:' + color + '">' + formatRating(cached.rating) + '</span>';
                 if (cached.medianReaction) {
                     var reactionSrc = getReactionImageSrc(cached.medianReaction);
                     html += ' <img style="width:1em;height:1em;margin:0 0.2em;" src="' + reactionSrc + '">';
@@ -534,7 +541,7 @@
                     if (ratingElement.parentNode && ratingElement.dataset.movieId === data.id.toString()) {
                         if (result.rating > 0) {
                             var color = getRatingColor(result.rating);
-                            var html = '<span style="color:' + color + '">' + parseFloat(result.rating).toFixed(1) + '</span>';
+                            var html = '<span style="color:' + color + '">' + formatRating(result.rating) + '</span>';
                             if (result.medianReaction) {
                                 var reactionSrc = getReactionImageSrc(result.medianReaction);
                                 html += ' <img style="width:1em;height:1em;margin:0 0.2em;" src="' + reactionSrc + '">';
@@ -551,8 +558,8 @@
                 if (ratingElement.parentNode && ratingElement.dataset.movieId === data.id.toString()) {
                     var val = source === 'kp' ? res.kp : res.imdb;
                     if (val && val > 0) {
-                        var text = parseFloat(val).toFixed(1);
-                        var color = getRatingColor(text);
+                        var text = formatRating(val);
+                        var color = getRatingColor(val);
                         ratingElement.innerHTML = '<span style="color:' + color + '">' + text + '</span> <span class="source--name"></span>';
                     } else {
                         showTmdbFallback(ratingElement, data);
@@ -595,7 +602,7 @@
                         var cached = ratingCache.get('lampa_rating', ratingKey);
                         if (cached && cached.rating > 0 && ratingElement.innerHTML === '') {
                             var color = getRatingColor(cached.rating);
-                            var html = '<span style="color:' + color + '">' + parseFloat(cached.rating).toFixed(1) + '</span>';
+                            var html = '<span style="color:' + color + '">' + formatRating(cached.rating) + '</span>';
                             if (cached.medianReaction) {
                                 var reactionSrc = getReactionImageSrc(cached.medianReaction);
                                 html += ' <img style="width:1em;height:1em;margin:0 0.2em;" src="' + reactionSrc + '">';
@@ -606,16 +613,16 @@
                         var ratingKey = data.id;
                         var cached = ratingCache.get('tmdb_rating', ratingKey);
                         if (cached && cached.vote_average > 0 && ratingElement.innerHTML === '') {
-                            var text = cached.vote_average.toFixed(1);
-                            var color = getRatingColor(text);
+                            var text = formatRating(cached.vote_average);
+                            var color = getRatingColor(cached.vote_average);
                             ratingElement.innerHTML = '<span style="color:' + color + '">' + text + '</span> <span class="source--name"></span>';
                         }
                     } else if (source === 'kp' || source === 'imdb') {
                         var cached = ratingCache.get('kp_rating', data.id);
                         if (cached && (cached.kp > 0 || cached.imdb > 0) && ratingElement.innerHTML === '') {
                             var rating = source === 'kp' ? cached.kp : cached.imdb;
-                            var text = parseFloat(rating).toFixed(1);
-                            var color = getRatingColor(text);
+                            var text = formatRating(rating);
+                            var color = getRatingColor(rating);
                             ratingElement.innerHTML = '<span style="color:' + color + '">' + text + '</span> <span class="source--name"></span>';
                         }
                     }
@@ -841,7 +848,7 @@
                         if (cached && cached.rating > 0) {
                             var rateValue = $(render).find('.rate--lampa .rate-value');
                             var rateIcon = $(render).find('.rate--lampa .rate-icon');
-                            rateValue.text(parseFloat(cached.rating).toFixed(1));
+                            rateValue.text(formatRating(cached.rating));
                             if (cached.medianReaction) {
                                 var reactionSrc = getReactionImageSrc(cached.medianReaction);
                                 rateIcon.html('<img style="width:1em;height:1em;margin:0 0.2em;" data-reaction-type="' + cached.medianReaction + '" src="' + reactionSrc + '">');
@@ -855,7 +862,7 @@
                                 var rateValue = $(render).find('.rate--lampa .rate-value');
                                 var rateIcon = $(render).find('.rate--lampa .rate-icon');
                                 if (result.rating !== null && result.rating > 0) {
-                                    rateValue.text(parseFloat(result.rating).toFixed(1));
+                                    rateValue.text(formatRating(result.rating));
                                     if (result.medianReaction) {
                                         var reactionSrc = getReactionImageSrc(result.medianReaction);
                                         rateIcon.html('<img style="width:1em;height:1em;margin:0 0.2em;" data-reaction-type="' + result.medianReaction + '" src="' + reactionSrc + '">');
