@@ -325,14 +325,8 @@
                 try {
                     arr = JSON.parse(text.replace(/[\u0000-\u001F]+/g, ' '));
                 } catch (e2) {
-                    /* Файл может быть массивом SVG с неэкранированными кавычками — извлекаем блоки <svg>...</svg> */
-                    var svgList = text.match(/<svg[\s\S]*?<\/svg>/gi);
-                    if (svgList && svgList.length) {
-                        arr = svgList;
-                    } else {
-                        callback(null, 'Неверный формат файла');
-                        return;
-                    }
+                    callback(null, 'Неверный формат файла');
+                    return;
                 }
             }
             if (!Array.isArray(arr)) {
@@ -1255,82 +1249,22 @@
             '.icon-picker-grid__cell svg { width: 1.5em; height: 1.5em; }' +
             '.name-picker-ok { font-family: var(--buttons-plugin-modal-font, inherit); font-size: var(--buttons-plugin-modal-font-size, inherit); }' +
             /* Режим «без постера»: только когда карточка не applecation; опускание кнопок, «Подробно» под кнопки */
-            'body.buttons-plugin--poster-off .full-start-new:not(.applecation) .full-start-new__body, .full-start-new.buttons-plugin--poster-off:not(.applecation) .full-start-new__body { height: 80vh !important; min-height: 80vh !important; }' +
-            'body.buttons-plugin--poster-off .full-start-new:not(.applecation) .full-start-new__right, .full-start-new.buttons-plugin--poster-off:not(.applecation) .full-start-new__right { display: flex !important; flex-direction: column !important; justify-content: flex-end !important; }' +
-            'body.buttons-plugin--poster-off .full-start-new:not(.applecation) .full-start-new__head, .full-start-new.buttons-plugin--poster-off:not(.applecation) .full-start-new__head { display: none !important; }' +
-            'body.buttons-plugin--poster-off .full-start-new:not(.applecation) .full-start-new__rate-line, .full-start-new.buttons-plugin--poster-off:not(.applecation) .full-start-new__rate-line { margin-bottom: 0.4em !important; }' +
-            'body.buttons-plugin--poster-off .full-start-new:not(.applecation) .full-start-new__details, .full-start-new.buttons-plugin--poster-off:not(.applecation) .full-start-new__details { margin-bottom: 0.2em !important; }' +
-            'body.buttons-plugin--poster-off .full-start:not(.applecation) .scroll__body, body.buttons-plugin--poster-off .full:not(.applecation) .scroll__body, .full-start.buttons-plugin--poster-off:not(.applecation) .scroll__body, .full.buttons-plugin--poster-off:not(.applecation) .scroll__body { padding-bottom: 50vh !important; }' +
-            'body.buttons-plugin--poster-off .full-start:not(.applecation) .scroll__body > .items-line:last-of-type, body.buttons-plugin--poster-off .full:not(.applecation) .scroll__body > .items-line:last-of-type, .full-start.buttons-plugin--poster-off:not(.applecation) .scroll__body > .items-line:last-of-type, .full.buttons-plugin--poster-off:not(.applecation) .scroll__body > .items-line:last-of-type { margin-bottom: 40vh !important; }' +
-            'body.buttons-plugin--poster-off .full-start:not(.applecation) [class*="description"], body.buttons-plugin--poster-off .full:not(.applecation) [class*="description"], .full-start.buttons-plugin--poster-off:not(.applecation) [class*="description"], .full.buttons-plugin--poster-off:not(.applecation) [class*="description"] { margin-bottom: 40vh !important; }' +
+            'body.buttons-plugin--poster-off .full-start-new:not(.applecation) .full-start-new__body { height: 80vh !important; min-height: 80vh !important; }' +
+            'body.buttons-plugin--poster-off .full-start-new:not(.applecation) .full-start-new__right { display: flex !important; flex-direction: column !important; justify-content: flex-end !important; }' +
+            'body.buttons-plugin--poster-off .full-start-new:not(.applecation) .full-start-new__head { display: none !important; }' +
+            'body.buttons-plugin--poster-off .full-start-new:not(.applecation) .full-start-new__rate-line { margin-bottom: 0.4em !important; }' +
+            'body.buttons-plugin--poster-off .full-start-new:not(.applecation) .full-start-new__details { margin-bottom: 0.2em !important; }' +
+            'body.buttons-plugin--poster-off .full-start:not(.applecation) .scroll__body, body.buttons-plugin--poster-off .full:not(.applecation) .scroll__body { padding-bottom: 50vh !important; }' +
+            'body.buttons-plugin--poster-off .full-start:not(.applecation) .scroll__body > .items-line:last-of-type, body.buttons-plugin--poster-off .full:not(.applecation) .scroll__body > .items-line:last-of-type { margin-bottom: 40vh !important; }' +
+            'body.buttons-plugin--poster-off .full-start:not(.applecation) [class*="description"], body.buttons-plugin--poster-off .full:not(.applecation) [class*="description"] { margin-bottom: 40vh !important; }' +
             '</style>');
         $('body').append(style);
 
-        var posterStorageKeys = ['card_interface_poster', 'card_interfice_poster', 'card_poster', 'interface_poster'];
-        function getShowPosterFromStorage() {
-            var val;
-            if (Lampa.Storage) {
-                val = Lampa.Storage.get('card_interface_poster');
-                if (val === undefined) val = Lampa.Storage.get('card_interfice_poster');
-            }
-            if (val === undefined && typeof localStorage !== 'undefined') {
-                for (var pk = 0; pk < posterStorageKeys.length; pk++) {
-                    try {
-                        var raw = localStorage.getItem(posterStorageKeys[pk]);
-                        if (raw !== null && raw !== '') {
-                            if (raw === 'false' || raw === '0') val = false;
-                            else if (raw === 'true' || raw === '1') val = true;
-                            break;
-                        }
-                    } catch (e) {}
-                }
-            }
-            return val !== undefined ? val : true;
-        }
         function syncPosterOffClass() {
-            var showPoster = getShowPosterFromStorage();
+            var showPoster = Lampa.Storage.get('card_interface_poster', Lampa.Storage.get('card_interfice_poster', true));
             $('body').toggleClass('buttons-plugin--poster-off', !showPoster);
-            /* Принудительное пересчитывание разметки, чтобы стили применились сразу */
-            void document.body.offsetHeight;
-            if (typeof window.dispatchEvent === 'function') {
-                try { window.dispatchEvent(new Event('resize')); } catch (e) {}
-            }
-            /* Если открыта карточка — вешаем класс на контейнеры, чтобы стили применились без перезапуска */
-            var card = document.querySelector('.full-start-new, .full-start');
-            if (card) {
-                card.classList.toggle('buttons-plugin--poster-off', !showPoster);
-                var fullWrap = card.closest ? card.closest('.full, .full-start') : (function() {
-                    var el = card;
-                    while (el && el !== document.body) {
-                        if (el.classList && (el.classList.contains('full') || el.classList.contains('full-start'))) return el;
-                        el = el.parentElement;
-                    }
-                    return null;
-                })();
-                if (fullWrap && fullWrap !== card) {
-                    fullWrap.classList.toggle('buttons-plugin--poster-off', !showPoster);
-                }
-            }
         }
         syncPosterOffClass();
-        /* Реакция на смену настройки постера: перехват Lampa.Storage.set и localStorage */
-        function onPosterSettingChange() {
-            setTimeout(syncPosterOffClass, 0);
-        }
-        if (Lampa.Storage && typeof Lampa.Storage.set === 'function') {
-            var originalStorageSet = Lampa.Storage.set;
-            Lampa.Storage.set = function(key, value) {
-                originalStorageSet.apply(Lampa.Storage, arguments);
-                if (posterStorageKeys.indexOf(key) !== -1) onPosterSettingChange();
-            };
-        }
-        if (typeof localStorage !== 'undefined' && localStorage.setItem) {
-            var originalSetItem = localStorage.setItem;
-            localStorage.setItem = function(key, value) {
-                originalSetItem.apply(localStorage, arguments);
-                if (posterStorageKeys.indexOf(key) !== -1) onPosterSettingChange();
-            };
-        }
         setInterval(syncPosterOffClass, SYNC_POSTER_INTERVAL_MS);
 
         Lampa.Listener.follow('full', function(e) {
