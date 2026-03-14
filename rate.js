@@ -408,7 +408,20 @@
                 }
             }
             var hasAnyOther = (tmdbRating !== '0.0') || (imdbVal > 0) || (kpVal > 0);
-            lampaItem.style.display = (hasLampa || !hasAnyOther) ? '' : 'none';
+            if (hasLampa) {
+                lampaItem.style.display = '';
+            } else if (!hasAnyOther) {
+                lampaItem.style.display = '';
+                if (!ratingLine.dataset.lampaRequested) {
+                    ratingLine.dataset.lampaRequested = '1';
+                    var lKey = (data.seasons || data.first_air_date || data.original_name) ? 'tv_' + data.id : 'movie_' + data.id;
+                    getLampaRating(lKey).then(function () {
+                        updateCardRatingLine(ratingLine, data);
+                    });
+                }
+            } else {
+                lampaItem.style.display = 'none';
+            }
         }
     }
 
