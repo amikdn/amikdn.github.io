@@ -10,10 +10,10 @@
         if (!Lampa.Storage.get('colored_ratings_poster', true)) return '#fff';
         var v = parseFloat(String(value).replace(',', '.'));
         if (isNaN(v) || v <= 0) return '#fff';
-        if (v <= 3) return '#f44336';
-        if (v < 6) return '#ff9800';
-        if (v < 8) return '#6495ed';
-        return '#7cfc00';
+        if (v <= 3) return 'red';
+        if (v < 6) return 'orange';
+        if (v < 8) return 'cornflowerblue';
+        return 'lawngreen';
     }
 
     function getReactionImageSrc(medianReaction) {
@@ -627,17 +627,17 @@
 
     function colorizeFullCardRatings(render) {
         if (!Lampa.Storage.get('colored_ratings_poster', true)) return;
-        var rateLine = $(render).find('.full-start-new__rate-line');
-        if (rateLine.length === 0) return;
-        rateLine.find('.full-start__rate, .full-start-new__rate').each(function () {
-            var block = $(this);
-            var valueEl = block.find('.rate-value').length ? block.find('.rate-value') : block.find('div').first();
-            if (valueEl.length === 0) return;
-            var text = valueEl.text().trim();
-            var num = parseFloat(String(text).replace(',', '.'));
-            if (isNaN(num) || num <= 0) return;
-            var color = getRatingColor(num);
-            if (color && color !== '#fff') valueEl.css('color', color);
+        var scope = $(render).length ? $(render) : $(document);
+        scope.find('.full-start__rate, .full-start-new__rate, .info__rate, .card__imdb-rate, .card__kinopoisk-rate').each(function () {
+            var el = $(this);
+            if (el.closest('.explorer').length) return;
+            var text = el.text().trim();
+            var m = text.match(/(\d+[\.,]\d+|\d+)/);
+            if (!m) return;
+            var v = parseFloat(m[0].replace(',', '.'));
+            if (isNaN(v)) return;
+            var c = v <= 3 ? 'red' : v < 6 ? 'orange' : v < 8 ? 'cornflowerblue' : 'lawngreen';
+            el.css('color', c);
         });
     }
 
