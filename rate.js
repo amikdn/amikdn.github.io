@@ -314,9 +314,9 @@
     function getRatingPositionCSS() {
         var pos = Lampa.Storage.get('rating_position', 'top');
         if (pos === 'bottom') {
-            return 'top:auto;right:0;bottom:0;border-radius:0.35em 0 0 0;';
+            return 'right:0.3em;bottom:0.3em;top:auto;';
         }
-        return 'top:0;right:0;bottom:auto;border-radius:0 0 0 0.35em;';
+        return 'right:0.3em;top:0.3em;bottom:auto;';
     }
 
     function voteClass(extra) {
@@ -324,20 +324,12 @@
         return 'card__vote card__vote--' + pos + (extra ? ' ' + extra : '');
     }
 
-    function ensureParent(card) {
-        var parent = card.querySelector('.card__view') || card;
-        if (!parent.style.position || parent.style.position === 'static') {
-            parent.style.position = 'relative';
-        }
-        return parent;
-    }
-
     function createRatingElement(card) {
         var ratingElement = document.createElement('div');
         ratingElement.className = voteClass();
         var posCSS = getRatingPositionCSS();
-        ratingElement.style.cssText = 'line-height:1;font-family:"SegoeUI",sans-serif;cursor:pointer;box-sizing:border-box;outline:none;user-select:none;position:absolute;z-index:1;' + posCSS + 'background:rgba(0,0,0,0.5);color:#fff;padding:0.15em 0.3em;display:-webkit-box;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;';
-        var parent = ensureParent(card);
+        ratingElement.style.cssText = 'line-height:1;font-family:"SegoeUI",sans-serif;cursor:pointer;box-sizing:border-box;outline:none;user-select:none;position:absolute;z-index:1;' + posCSS + 'background:rgba(0,0,0,0.5);color:#fff;padding:0.2em 0.5em;border-radius:0.35em;display:-webkit-box;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;';
+        var parent = card.querySelector('.card__view') || card;
         parent.appendChild(ratingElement);
         return ratingElement;
     }
@@ -346,9 +338,9 @@
         var line = document.createElement('div');
         line.className = voteClass('card__vote-line');
         var posCSS = getRatingPositionCSS();
-        line.style.cssText = 'line-height:1;font-family:"SegoeUI",sans-serif;cursor:pointer;box-sizing:border-box;outline:none;user-select:none;position:absolute;z-index:1;' + posCSS + 'background:rgba(0,0,0,0.5);color:#fff;padding:0.2em 0.3em;display:-webkit-box;display:-webkit-flex;display:flex;-webkit-flex-direction:column;flex-direction:column;-webkit-align-items:flex-end;align-items:flex-end;';
+        line.style.cssText = 'line-height:1;font-family:"SegoeUI",sans-serif;cursor:pointer;box-sizing:border-box;outline:none;user-select:none;position:absolute;z-index:1;' + posCSS + 'background:rgba(0,0,0,0.5);color:#fff;padding:0.2em 0.5em;border-radius:0.35em;display:-webkit-box;display:-webkit-flex;display:flex;-webkit-flex-direction:column;flex-direction:column;-webkit-align-items:flex-end;align-items:flex-end;';
         line.innerHTML = '<div class="card__rate-item rate--tmdb" style="display:none"><div>0.0</div><span class="source--name"></span></div><div class="card__rate-item rate--imdb" style="display:none"><div>0.0</div><span class="source--name"></span></div><div class="card__rate-item rate--kp" style="display:none"><div>0.0</div><span class="source--name"></span></div><div class="card__rate-item rate--lampa" style="display:none"><span class="rate-value">0.0</span><span class="source--name rate-icon-reaction"></span></div>';
-        var parent = ensureParent(card);
+        var parent = card.querySelector('.card__view') || card;
         parent.appendChild(line);
         return line;
     }
@@ -768,10 +760,7 @@
         var style = document.createElement('style');
         style.type = 'text/css';
         style.textContent = (
-            '.card .card__view{position:relative}' +
             '.card__vote{display:-webkit-box;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center!important;height:auto!important;max-height:none!important;overflow:visible!important}' +
-            '.card__vote--top{top:0!important;bottom:auto!important}' +
-            '.card__vote--bottom{top:auto!important;bottom:0!important}' +
             '.card__vote-line .card__rate-item{display:-webkit-box;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;white-space:nowrap;margin-bottom:0.15em}' +
             '.card__vote-line .card__rate-item:last-child{margin-bottom:0}' +
             '.card__vote .source--name{font-size:0;color:transparent;width:16px;height:16px;background-repeat:no-repeat;background-position:center;background-size:contain;margin-left:4px;-webkit-flex-shrink:0;flex-shrink:0}' +
