@@ -1939,27 +1939,25 @@
             '.menu-edit-list__item .menu-edit-list__icon { width: 2.5em; min-width: 2.5em; height: 2.5em; display: flex; align-items: center; justify-content: center; box-sizing: border-box; }' +
             '.menu-edit-list__item .menu-edit-list__icon svg { width: 1.4em; height: 1.4em; }' +
             '.menu-edit-list__item .menu-edit-list__title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--buttons-plugin-modal-font, inherit); font-size: var(--buttons-plugin-modal-font-size, inherit); }' +
-            '.menu-edit-list__item .menu-edit-list__move, .menu-edit-list__item .menu-edit-list__change-name, .menu-edit-list__item .menu-edit-list__change-icon, .menu-edit-list__item .menu-edit-list__toggle { width: 2.4em; min-width: 2.4em; height: 2.4em; display: flex; align-items: center; justify-content: center; box-sizing: border-box; border: 2px solid transparent; border-radius: 0.3em; }' +
+            '.menu-edit-list__item .menu-edit-list__move, .menu-edit-list__item .menu-edit-list__change-name, .menu-edit-list__item .menu-edit-list__change-icon, .menu-edit-list__item .menu-edit-list__toggle, .menu-edit-list__item .menu-edit-list__delete { width: 2.4em; min-width: 2.4em; height: 2.4em; display: flex; align-items: center; justify-content: center; box-sizing: border-box; border: 2px solid transparent; border-radius: 0.3em; }' +
             '.menu-edit-list__item .menu-edit-list__move svg { width: 1.2em; height: 0.75em; }' +
             '.menu-edit-list__item .menu-edit-list__toggle svg { width: 1.2em; height: 1.2em; }' +
             '.menu-edit-list__item .menu-edit-list__change-name svg, .menu-edit-list__item .menu-edit-list__change-icon svg { width: 1.2em; height: 1.2em; }' +
             '.viewmode-switch, .folder-reset-button { max-width: 100%; box-sizing: border-box; white-space: normal; word-break: break-word; font-family: var(--buttons-plugin-modal-font, inherit); font-size: var(--buttons-plugin-modal-font-size, inherit); }' +
             '.folder-reset-button { background: rgba(200,100,100,0.3); margin-top: 1em; border-radius: 0.3em; border: 3px solid transparent; }' +
             '.folder-reset-button.focus { border-color: rgba(255,255,255,0.8); }' +
-            '.menu-edit-list__create-folder { background: rgba(34, 139, 34, 0.65) !important; margin-bottom: 0.5em; border: 3px solid transparent; border-radius: 0.3em; box-sizing: border-box; }' +
+            '.menu-edit-list__create-folder { background: rgba(34, 139, 34, 0.6); margin-bottom: 0.5em; border: 3px solid transparent; border-radius: 0.3em; box-sizing: border-box; }' +
             '.menu-edit-list__create-folder .menu-edit-list__title { text-align: center; justify-self: center; }' +
             '.menu-edit-list__create-folder.focus { border-color: rgba(255,255,255,0.8); }' +
             '.folder-item { grid-template-columns: 2.5em minmax(0, 1fr) 2.4em 2.4em 2.4em 2.4em 2.4em; align-items: center; min-height: 3.2em; }' +
-            '.folder-item .menu-edit-list__title { align-self: center; display: flex; align-items: center; min-height: 2.5em; }' +
+            '.folder-item .menu-edit-list__title { align-self: center; }' +
             '.button--folder { cursor: pointer; }' +
-            '.menu-edit-list__delete { width: 2.4em; min-width: 2.4em; height: 2.4em; display: flex; align-items: center; justify-content: center; border: 2px solid transparent; border-radius: 0.3em; box-sizing: border-box; }' +
-            '.menu-edit-list__delete.focus { border-color: rgba(255,255,255,0.8); }' +
             '.folder-item .menu-edit-list__delete { align-self: center; justify-self: end; }' +
-            '.folder-item .menu-edit-list__delete svg { width: 1.2em !important; height: 1.2em !important; }' +
+            '.menu-edit-list__item .menu-edit-list__delete svg { width: 1.2em; height: 1.2em; }' +
             '.folder-item .menu-edit-list__move, .folder-item .menu-edit-list__change-name, .folder-item .menu-edit-list__change-icon { margin-right: 0; }' +
             '.folder-create-confirm { background: rgba(100,200,100,0.3); margin-top: 1em; border-radius: 0.3em; border: 3px solid transparent; }' +
             '.folder-create-confirm.focus { border-color: rgba(255,255,255,0.8); }' +
-            '.menu-edit-list__move.focus, .menu-edit-list__change-name.focus, .menu-edit-list__change-icon.focus, .menu-edit-list__toggle.focus { border-color: rgba(255,255,255,0.8); }' +
+            '.menu-edit-list__move.focus, .menu-edit-list__change-name.focus, .menu-edit-list__change-icon.focus, .menu-edit-list__toggle.focus, .menu-edit-list__delete.focus { border-color: rgba(255,255,255,0.8); }' +
             '.buttons-plugin-scope .full-start-new__buttons.icons-only .full-start__button span { display: none; }' +
             '.buttons-plugin-scope .full-start-new__buttons.always-text .full-start__button span { display: block !important; }' +
             '.viewmode-switch { background: rgba(66, 133, 244, 0.5); color: #fff; margin: 0.5em 0 1em 0; border-radius: 0.3em; border: 3px solid transparent; }' +
