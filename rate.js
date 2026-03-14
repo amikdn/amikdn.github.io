@@ -90,7 +90,7 @@
     function getKinopoiskRating(item, callback) {
         const cached = ratingCache.get('kp_rating', item.id);
         if (cached) {
-            const source = Lampa.Storage.get('rating_source', 'all');
+            const source = Lampa.Storage.get('rating_source', 'tmdb');
             const rating = source === 'kp' ? cached.kp : cached.imdb;
             callback(parseFloat(rating || 0).toFixed(1));
             return;
@@ -159,7 +159,7 @@
                                 imdb: data.ratingImdb || data.rating_imdb || 0,
                                 timestamp: Date.now()
                             });
-                            const source = Lampa.Storage.get('rating_source', 'all');
+                            const source = Lampa.Storage.get('rating_source', 'tmdb');
                             const rating = source === 'kp' ? cachedData.kp : cachedData.imdb;
                             releaseRequest(request);
                             callback(rating ? parseFloat(rating).toFixed(1) : '0.0');
@@ -327,9 +327,13 @@
         const tmdbRating = getTMDBRating(data);
         if (tmdbEl) tmdbEl.textContent = tmdbRating;
 
+        const kpFromData = data.kp_rating ?? data.ratingKinopoisk ?? 0;
+        const imdbFromData = data.imdb_rating ?? data.ratingImdb ?? 0;
         const cachedKp = ratingCache.get('kp_rating', data.id);
-        if (imdbEl) imdbEl.textContent = (cachedKp && cachedKp.imdb) ? parseFloat(cachedKp.imdb).toFixed(1) : '0.0';
-        if (kpEl) kpEl.textContent = (cachedKp && cachedKp.kp) ? parseFloat(cachedKp.kp).toFixed(1) : '0.0';
+        const kpVal = (kpFromData > 0 ? kpFromData : (cachedKp && cachedKp.kp)) || 0;
+        const imdbVal = (imdbFromData > 0 ? imdbFromData : (cachedKp && cachedKp.imdb)) || 0;
+        if (imdbEl) imdbEl.textContent = imdbVal ? parseFloat(imdbVal).toFixed(1) : '0.0';
+        if (kpEl) kpEl.textContent = kpVal ? parseFloat(kpVal).toFixed(1) : '0.0';
 
         const lampaKey = (data.seasons || data.first_air_date || data.original_name) ? `tv_${data.id}` : `movie_${data.id}`;
         const cachedLampa = ratingCache.get('lampa_rating', lampaKey);
@@ -348,7 +352,7 @@
         if (!card || !card.querySelector || !document.body.contains(card)) return;
         const data = card.card_data || item.data || {};
         if (!data.id) return;
-        const source = Lampa.Storage.get('rating_source', 'all');
+        const source = Lampa.Storage.get('rating_source', 'tmdb');
         let ratingElement = card.querySelector('.card__vote');
 
         if (source === 'all') {
@@ -361,11 +365,14 @@
             ratingElement.dataset.movieId = data.id.toString();
             ratingElement.style.display = '';
             updateCardRatingLine(ratingElement, data);
-            getKinopoiskRating(data, () => {
-                if (ratingElement.parentNode && ratingElement.dataset.movieId === data.id.toString()) {
-                    updateCardRatingLine(ratingElement, data);
-                }
-            });
+            const hasKpImdbInData = (data.kp_rating > 0 || data.imdb_rating > 0 || data.ratingKinopoisk > 0 || data.ratingImdb > 0);
+            if (!hasKpImdbInData) {
+                getKinopoiskRating(data, () => {
+                    if (ratingElement.parentNode && ratingElement.dataset.movieId === data.id.toString()) {
+                        updateCardRatingLine(ratingElement, data);
+                    }
+                });
+            }
             const lampaKey = (data.seasons || data.first_air_date || data.original_name) ? `tv_${data.id}` : `movie_${data.id}`;
             getLampaRating(lampaKey).then((result) => {
                 if (ratingElement.parentNode && ratingElement.dataset.movieId === data.id.toString()) {
@@ -465,7 +472,7 @@
             const data = card.card_data;
             if (data && data.id) {
                 const ratingElement = card.querySelector('.card__vote');
-                const source = Lampa.Storage.get('rating_source', 'all');
+                const source = Lampa.Storage.get('rating_source', 'tmdb');
                 if (!ratingElement || ratingElement.dataset.source !== source || ratingElement.dataset.movieId !== data.id.toString()) {
                     updateCardRating({ card, data });
                 } else if (source === 'all' && ratingElement.classList.contains('card__vote-line')) {
@@ -534,7 +541,7 @@
                     imdb: 'IMDB',
                     all: 'Все (как на полной карточке)'
                 },
-                default: 'all'
+                default: 'tmdb'
             },
             field: {
                 name: 'Источник рейтинга на карточках',
