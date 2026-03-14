@@ -1165,7 +1165,24 @@
             wrap.append(cell);
         });
         loadStatus.text('Загрузка…');
+        var modalOpened = false;
+        function openFolderIconModal() {
+            if (modalOpened) return;
+            modalOpened = true;
+            Lampa.Modal.open({
+                title: 'Иконка папки',
+                html: wrap,
+                size: 'small',
+                scroll_to_center: true,
+                onBack: function() {
+                    if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.close) Lampa.Modal.close();
+                    setTimeout(function() { refreshController(); }, DELAY_AFTER_APPLY_MS);
+                }
+            });
+        }
+        var openFolderIconTimeout = setTimeout(openFolderIconModal, DELAY_ICON_PICKER_MODAL_MS);
         loadIconsFromUrl(DEFAULT_ICONS_URL, {}, function(newEntries, err) {
+            clearTimeout(openFolderIconTimeout);
             if (!err && newEntries && newEntries.length) {
                 newEntries.forEach(function(entry) {
                     var cell = $('<div class="selector icon-picker-grid__cell icon-picker-cell-alt" tabindex="0"></div>');
@@ -1180,16 +1197,7 @@
             } else {
                 loadStatus.text(err || 'Альтернативные иконки не загружены');
             }
-        });
-        Lampa.Modal.open({
-            title: 'Иконка папки',
-            html: wrap,
-            size: 'small',
-            scroll_to_center: true,
-            onBack: function() {
-                if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.close) Lampa.Modal.close();
-                setTimeout(function() { refreshController(); }, DELAY_AFTER_APPLY_MS);
-            }
+            openFolderIconModal();
         });
     }
 
@@ -1394,12 +1402,15 @@
         var list = $('<div class="menu-edit-list"></div>');
         var hidden = getHiddenButtons();
         var createFolderBtn = $('<div class="menu-edit-list__item menu-edit-list__create-folder selector">' +
+            '<span class="menu-edit-list__create-folder-spacer"></span>' +
+            '<div class="menu-edit-list__create-folder-inner">' +
             '<div class="menu-edit-list__icon">' +
             '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' +
             '<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>' +
             '<line x1="12" y1="11" x2="12" y2="17"></line><line x1="9" y1="14" x2="15" y2="14"></line>' +
             '</svg></div>' +
-            '<div class="menu-edit-list__title">Создать папку</div></div>');
+            '<div class="menu-edit-list__title">Создать папку</div></div>' +
+            '<span class="menu-edit-list__create-folder-spacer"></span></div>');
         createFolderBtn.on('hover:enter', function() {
             Lampa.Modal.close();
             openCreateFolderDialog();
@@ -1966,7 +1977,9 @@
             '.viewmode-switch, .folder-reset-button { max-width: 100%; box-sizing: border-box; white-space: normal; word-break: break-word; font-family: var(--buttons-plugin-modal-font, inherit); font-size: var(--buttons-plugin-modal-font-size, inherit); }' +
             '.folder-reset-button { background: rgba(200,100,100,0.3); margin-top: 1em; border-radius: 0.3em; border: 3px solid transparent; }' +
             '.folder-reset-button.focus { border-color: rgba(255,255,255,0.8); }' +
-            '.menu-edit-list__create-folder { display: flex !important; align-items: center; justify-content: center; gap: 0.5em; background: rgba(34, 139, 34, 0.6) !important; margin-bottom: 0.5em; border: 3px solid transparent; border-radius: 0.3em; box-sizing: border-box; padding: 0.6em 1em; }' +
+            '.menu-edit-list__create-folder { display: flex !important; align-items: center; justify-content: center; gap: 0; background: rgba(34, 139, 34, 0.6) !important; margin-bottom: 0.5em; border: 3px solid transparent; border-radius: 0.3em; box-sizing: border-box; padding: 0.6em 1em; }' +
+            '.menu-edit-list__create-folder-spacer { flex: 1; min-width: 0; }' +
+            '.menu-edit-list__create-folder-inner { display: flex; align-items: center; gap: 0.5em; flex-shrink: 0; }' +
             '.menu-edit-list__create-folder .menu-edit-list__icon { width: auto; min-width: auto; height: auto; }' +
             '.menu-edit-list__create-folder .menu-edit-list__title { text-align: center; }' +
             '.menu-edit-list__create-folder.focus { border-color: rgba(255,255,255,0.8); }' +
