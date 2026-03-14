@@ -311,27 +311,42 @@
         return rating;
     }
 
-    function getCardCornerRadius(card) {
-        var targets = [
-            card.querySelector('.card__img'),
-            card.querySelector('.card__view img'),
-            card.querySelector('.card__view')
-        ];
-        for (var i = 0; i < targets.length; i++) {
-            if (targets[i]) {
-                try {
-                    var cs = window.getComputedStyle(targets[i]);
-                    var r = cs.borderRadius || '';
-                    if (r && parseFloat(r) > 0) return r;
-                } catch (e) {}
-            }
+    var _cachedCardRadius = '';
+
+    function detectCardRadius() {
+        if (_cachedCardRadius) return;
+        var imgs = document.querySelectorAll('.card .card__img');
+        for (var i = 0; i < imgs.length; i++) {
+            try {
+                var cs = window.getComputedStyle(imgs[i]);
+                var r = cs.borderRadius || '';
+                if (r && parseFloat(r) > 0) {
+                    _cachedCardRadius = r;
+                    return;
+                }
+            } catch (e) {}
         }
-        return '5px';
+        var views = document.querySelectorAll('.card .card__view');
+        for (var j = 0; j < views.length; j++) {
+            try {
+                var cs2 = window.getComputedStyle(views[j]);
+                var r2 = cs2.borderRadius || '';
+                if (r2 && parseFloat(r2) > 0) {
+                    _cachedCardRadius = r2;
+                    return;
+                }
+            } catch (e) {}
+        }
     }
 
-    function getRatingPositionCSS(card) {
+    function getCardRadius() {
+        if (!_cachedCardRadius) detectCardRadius();
+        return _cachedCardRadius || '5px';
+    }
+
+    function getRatingPositionCSS() {
         var pos = Lampa.Storage.get('rating_position', 'top');
-        var r = getCardCornerRadius(card);
+        var r = getCardRadius();
         if (pos === 'bottom') {
             return 'top:auto;right:0;bottom:0;border-radius:0.4em 0 ' + r + ' 0;';
         }
@@ -346,7 +361,7 @@
     function createRatingElement(card) {
         var ratingElement = document.createElement('div');
         ratingElement.className = voteClass();
-        var posCSS = getRatingPositionCSS(card);
+        var posCSS = getRatingPositionCSS();
         ratingElement.style.cssText = 'line-height:1;font-family:"SegoeUI",sans-serif;cursor:pointer;box-sizing:border-box;outline:none;user-select:none;position:absolute;' + posCSS + 'background:rgba(0,0,0,0.5);color:#fff;padding:0.15em 0.3em;display:-webkit-box;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;';
         var parent = card.querySelector('.card__view') || card;
         parent.appendChild(ratingElement);
@@ -356,7 +371,7 @@
     function createRatingLineElement(card) {
         var line = document.createElement('div');
         line.className = voteClass('card__vote-line');
-        var posCSS = getRatingPositionCSS(card);
+        var posCSS = getRatingPositionCSS();
         line.style.cssText = 'line-height:1;font-family:"SegoeUI",sans-serif;cursor:pointer;box-sizing:border-box;outline:none;user-select:none;position:absolute;' + posCSS + 'background:rgba(0,0,0,0.5);color:#fff;padding:0.2em 0.3em;display:-webkit-box;display:-webkit-flex;display:flex;-webkit-flex-direction:column;flex-direction:column;-webkit-align-items:flex-end;align-items:flex-end;';
         line.innerHTML = '<div class="card__rate-item rate--tmdb" style="display:none"><div>0.0</div><span class="source--name"></span></div><div class="card__rate-item rate--imdb" style="display:none"><div>0.0</div><span class="source--name"></span></div><div class="card__rate-item rate--kp" style="display:none"><div>0.0</div><span class="source--name"></span></div><div class="card__rate-item rate--lampa" style="display:none"><span class="rate-value">0.0</span><span class="source--name rate-icon-reaction"></span></div>';
         var parent = card.querySelector('.card__view') || card;
@@ -800,6 +815,19 @@
         addSettings();
         setupCardListener();
         pollCards();
+
+        (function retryDetectRadius(attempt) {
+            if (attempt > 10) return;
+            setTimeout(function () {
+                var before = _cachedCardRadius;
+                detectCardRadius();
+                if (_cachedCardRadius && _cachedCardRadius !== before) {
+                    window.refreshAllRatings();
+                } else if (!_cachedCardRadius) {
+                    retryDetectRadius(attempt + 1);
+                }
+            }, attempt * 500);
+        })(1);
 
         Lampa.Listener.follow('card', function (event) {
             if (event.type === 'build' && event.object.card) {
