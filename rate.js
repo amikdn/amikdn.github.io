@@ -333,7 +333,7 @@
         const line = document.createElement('div');
         line.className = 'card__vote card__vote-line';
         line.style.cssText = `
-            line-height: 1.2;
+            line-height: 1;
             font-family: "SegoeUI", sans-serif;
             cursor: pointer;
             box-sizing: border-box;
@@ -344,8 +344,8 @@
             bottom: 0.3em;
             background: rgba(0, 0, 0, 0.5);
             color: #fff;
-            padding: 0.25em 0.4em;
-            border-radius: 0.4em;
+            padding: 0.2em 0.5em;
+            border-radius: 1em;
             display: flex;
             flex-direction: column;
             align-items: flex-end;
@@ -407,21 +407,7 @@
                     lampaReactionIcon.style.backgroundImage = '';
                 }
             }
-            var hasAnyOther = (tmdbRating !== '0.0') || (imdbVal > 0) || (kpVal > 0);
-            if (hasLampa) {
-                lampaItem.style.display = '';
-            } else if (!hasAnyOther) {
-                lampaItem.style.display = '';
-                if (!ratingLine.dataset.lampaRequested) {
-                    ratingLine.dataset.lampaRequested = '1';
-                    var lKey = (data.seasons || data.first_air_date || data.original_name) ? 'tv_' + data.id : 'movie_' + data.id;
-                    getLampaRating(lKey).then(function () {
-                        updateCardRatingLine(ratingLine, data);
-                    });
-                }
-            } else {
-                lampaItem.style.display = 'none';
-            }
+            lampaItem.style.display = '';
         }
     }
 
@@ -688,24 +674,8 @@
             .card__vote-line .card__rate-item {
                 display: flex;
                 align-items: center;
-                font-size: 0.7em;
                 gap: 0.2em;
                 white-space: nowrap;
-            }
-            .card__vote-line .card__rate-item .source--name {
-                width: 12px;
-                height: 12px;
-                margin-left: 2px;
-                flex-shrink: 0;
-            }
-            @media (min-width: 481px) {
-                .card__vote-line .card__rate-item {
-                    font-size: 0.8em;
-                }
-                .card__vote-line .card__rate-item .source--name {
-                    width: 16px;
-                    height: 16px;
-                }
             }
             .card__vote .source--name {
                 font-size: 0;
@@ -730,6 +700,9 @@
             }
             .rate--tmdb .source--name {
                 background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 300' width='300' height='300'%3E%3Cdefs%3E%3ClinearGradient id='grad' x1='0' y1='0' x2='1' y2='0'%3E%3Cstop offset='0%25' stop-color='%2390cea1'/%3E%3Cstop offset='56%25' stop-color='%233cbec9'/%3E%3Cstop offset='100%25' stop-color='%2300b3e5'/%3E%3C/linearGradient%3E%3Cstyle%3E.text-style%7Bfont-weight:bold;fill:url(%23grad);text-anchor:start;dominant-baseline:middle;textLength:300;lengthAdjust:spacingAndGlyphs;font-size:120px;%7D%3C/style%3E%3C/defs%3E%3Ctext class='text-style' x='0' y='150' textLength='300' lengthAdjust='spacingAndGlyphs'%3ETMDB%3C/text%3E%3C/svg%3E");
+            }
+            .rate--lampa .rate-icon-reaction {
+                background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23e040fb'%3E%3Cpath d='M12 2C8.13 2 5 5.13 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.87-3.13-7-7-7zm2 14h-4v-1h4v1zm0-2h-4v-1h4v1zM9 20h6v1c0 .55-.45 1-1 1h-4c-.55 0-1-.45-1-1v-1z'/%3E%3C/svg%3E");
             }
             .rate-icon-reaction {
                 background-repeat: no-repeat;
