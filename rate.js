@@ -386,7 +386,7 @@
                 var lampaValEl = lampaItem.querySelector('.rate-value');
                 var lampaReactionIcon = lampaItem.querySelector('.rate-icon-reaction');
                 var hasLampa = cachedLampa && cachedLampa.rating > 0;
-                var lampaText = hasLampa ? String(cachedLampa.rating) : '0.0';
+                var lampaText = hasLampa ? parseFloat(cachedLampa.rating).toFixed(1) : '0.0';
                 if (lampaValEl) {
                     lampaValEl.textContent = lampaText;
                     lampaValEl.style.color = getRatingColor(lampaText);
@@ -415,7 +415,7 @@
         var cachedLampa = ratingCache.get('lampa_rating', lampaKey);
         if (cachedLampa && cachedLampa.rating > 0) {
             var color = getRatingColor(cachedLampa.rating);
-            var html = '<span style="color:' + color + '">' + cachedLampa.rating + '</span>';
+            var html = '<span style="color:' + color + '">' + parseFloat(cachedLampa.rating).toFixed(1) + '</span>';
             if (cachedLampa.medianReaction) {
                 html += ' <img style="width:1em;height:1em;margin:0 0.2em;" src="' + getReactionImageSrc(cachedLampa.medianReaction) + '">';
             }
@@ -498,7 +498,7 @@
             var cached = ratingCache.get('lampa_rating', ratingKey);
             if (cached && cached.rating > 0) {
                 var color = getRatingColor(cached.rating);
-                var html = '<span style="color:' + color + '">' + cached.rating + '</span>';
+                var html = '<span style="color:' + color + '">' + parseFloat(cached.rating).toFixed(1) + '</span>';
                 if (cached.medianReaction) {
                     var reactionSrc = getReactionImageSrc(cached.medianReaction);
                     html += ' <img style="width:1em;height:1em;margin:0 0.2em;" src="' + reactionSrc + '">';
@@ -511,7 +511,7 @@
                     if (ratingElement.parentNode && ratingElement.dataset.movieId === data.id.toString()) {
                         if (result.rating > 0) {
                             var color = getRatingColor(result.rating);
-                            var html = '<span style="color:' + color + '">' + result.rating + '</span>';
+                            var html = '<span style="color:' + color + '">' + parseFloat(result.rating).toFixed(1) + '</span>';
                             if (result.medianReaction) {
                                 var reactionSrc = getReactionImageSrc(result.medianReaction);
                                 html += ' <img style="width:1em;height:1em;margin:0 0.2em;" src="' + reactionSrc + '">';
@@ -573,7 +573,7 @@
                         var cached = ratingCache.get('lampa_rating', ratingKey);
                         if (cached && cached.rating > 0 && ratingElement.innerHTML === '') {
                             var color = getRatingColor(cached.rating);
-                            var html = '<span style="color:' + color + '">' + cached.rating + '</span>';
+                            var html = '<span style="color:' + color + '">' + parseFloat(cached.rating).toFixed(1) + '</span>';
                             if (cached.medianReaction) {
                                 var reactionSrc = getReactionImageSrc(cached.medianReaction);
                                 html += ' <img style="width:1em;height:1em;margin:0 0.2em;" src="' + reactionSrc + '">';
@@ -771,7 +771,7 @@
                         if (cached && cached.rating > 0) {
                             var rateValue = $(render).find('.rate--lampa .rate-value');
                             var rateIcon = $(render).find('.rate--lampa .rate-icon');
-                            rateValue.text(cached.rating);
+                            rateValue.text(parseFloat(cached.rating).toFixed(1));
                             if (cached.medianReaction) {
                                 var reactionSrc = getReactionImageSrc(cached.medianReaction);
                                 rateIcon.html('<img style="width:1em;height:1em;margin:0 0.2em;" data-reaction-type="' + cached.medianReaction + '" src="' + reactionSrc + '">');
@@ -784,7 +784,7 @@
                                 var rateValue = $(render).find('.rate--lampa .rate-value');
                                 var rateIcon = $(render).find('.rate--lampa .rate-icon');
                                 if (result.rating !== null && result.rating > 0) {
-                                    rateValue.text(result.rating);
+                                    rateValue.text(parseFloat(result.rating).toFixed(1));
                                     if (result.medianReaction) {
                                         var reactionSrc = getReactionImageSrc(result.medianReaction);
                                         rateIcon.html('<img style="width:1em;height:1em;margin:0 0.2em;" data-reaction-type="' + result.medianReaction + '" src="' + reactionSrc + '">');
