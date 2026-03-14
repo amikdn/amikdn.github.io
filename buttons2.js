@@ -1240,7 +1240,6 @@
             Lampa.Modal.close();
             openCreateFolderDialog();
         });
-        list.append(createFolderBtn);
         var modes = ['default', 'icons', 'always'];
         var labels = {default: 'Стандартный', icons: 'Только иконки', always: 'С текстом'};
         var currentMode = Lampa.Storage.get(STORAGE_KEYS.viewmode, 'default');
@@ -1261,6 +1260,7 @@
             }
         });
         list.append(modeBtn);
+        list.append(createFolderBtn);
 
         function createFolderItem(folder) {
             var item = $('<div class="menu-edit-list__item folder-item">' +
@@ -1767,8 +1767,9 @@
             '.viewmode-switch, .folder-reset-button { max-width: 100%; box-sizing: border-box; white-space: normal; word-break: break-word; font-family: var(--buttons-plugin-modal-font, inherit); font-size: var(--buttons-plugin-modal-font-size, inherit); }' +
             '.folder-reset-button { background: rgba(200,100,100,0.3); margin-top: 1em; border-radius: 0.3em; border: 3px solid transparent; }' +
             '.folder-reset-button.focus { border-color: rgba(255,255,255,0.8); }' +
-            '.menu-edit-list__create-folder { background: rgba(100,200,100,0.2); margin-bottom: 0.5em; }' +
-            '.menu-edit-list__create-folder.focus { border: 3px solid rgba(255,255,255,0.8); border-radius: 0.3em; }' +
+            '.menu-edit-list__create-folder { background: rgba(100,200,100,0.2); margin-bottom: 0.5em; border: 3px solid transparent; border-radius: 0.3em; box-sizing: border-box; }' +
+            '.menu-edit-list__create-folder .menu-edit-list__title { text-align: center; justify-self: center; }' +
+            '.menu-edit-list__create-folder.focus { border-color: rgba(255,255,255,0.8); }' +
             '.button--folder { cursor: pointer; }' +
             '.menu-edit-list__delete { width: 2.4em; min-width: 2.4em; height: 2.4em; display: flex; align-items: center; justify-content: center; border: 2px solid transparent; border-radius: 0.3em; }' +
             '.menu-edit-list__delete.focus { border-color: rgba(255,255,255,0.8); }' +
