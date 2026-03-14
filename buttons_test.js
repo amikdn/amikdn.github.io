@@ -1271,6 +1271,17 @@
             $('body').toggleClass('buttons-plugin--poster-off', !showPoster);
         }
         syncPosterOffClass();
+        /* Реакция на смену настройки постера без перезапуска: перехват Storage.set */
+        var posterKeys = ['card_interface_poster', 'card_interfice_poster'];
+        if (Lampa.Storage && typeof Lampa.Storage.set === 'function') {
+            var originalStorageSet = Lampa.Storage.set;
+            Lampa.Storage.set = function(key, value) {
+                originalStorageSet.apply(Lampa.Storage, arguments);
+                if (posterKeys.indexOf(key) !== -1) {
+                    syncPosterOffClass();
+                }
+            };
+        }
         setInterval(syncPosterOffClass, SYNC_POSTER_INTERVAL_MS);
 
         Lampa.Listener.follow('full', function(e) {
