@@ -311,46 +311,12 @@
         return rating;
     }
 
-    var _cachedCardRadius = '';
-
-    function detectCardRadius() {
-        if (_cachedCardRadius) return;
-        var imgs = document.querySelectorAll('.card .card__img');
-        for (var i = 0; i < imgs.length; i++) {
-            try {
-                var cs = window.getComputedStyle(imgs[i]);
-                var r = cs.borderRadius || '';
-                if (r && parseFloat(r) > 0) {
-                    _cachedCardRadius = r;
-                    return;
-                }
-            } catch (e) {}
-        }
-        var views = document.querySelectorAll('.card .card__view');
-        for (var j = 0; j < views.length; j++) {
-            try {
-                var cs2 = window.getComputedStyle(views[j]);
-                var r2 = cs2.borderRadius || '';
-                if (r2 && parseFloat(r2) > 0) {
-                    _cachedCardRadius = r2;
-                    return;
-                }
-            } catch (e) {}
-        }
-    }
-
-    function getCardRadius() {
-        if (!_cachedCardRadius) detectCardRadius();
-        return _cachedCardRadius || '5px';
-    }
-
     function getRatingPositionCSS() {
         var pos = Lampa.Storage.get('rating_position', 'top');
-        var r = getCardRadius();
         if (pos === 'bottom') {
-            return 'top:auto;right:0;bottom:0;border-radius:0.4em 0 ' + r + ' 0;';
+            return 'top:auto;right:0;bottom:0;border-radius:0.4em 0 0 0;';
         }
-        return 'top:0;right:0;bottom:auto;border-radius:0 ' + r + ' 0 0.4em;';
+        return 'top:0;right:0;bottom:auto;border-radius:0 0 0 0.4em;';
     }
 
     function voteClass(extra) {
@@ -794,7 +760,7 @@
         var style = document.createElement('style');
         style.type = 'text/css';
         style.textContent = (
-            '.card .card__view{position:relative}' +
+            '.card .card__view{position:relative;overflow:hidden;border-radius:inherit}' +
             '.card__vote{display:-webkit-box;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center!important;height:auto!important;max-height:none!important;overflow:visible!important}' +
             '.card__vote--top{top:0!important;bottom:auto!important}' +
             '.card__vote--bottom{top:auto!important;bottom:0!important}' +
@@ -815,19 +781,6 @@
         addSettings();
         setupCardListener();
         pollCards();
-
-        (function retryDetectRadius(attempt) {
-            if (attempt > 10) return;
-            setTimeout(function () {
-                var before = _cachedCardRadius;
-                detectCardRadius();
-                if (_cachedCardRadius && _cachedCardRadius !== before) {
-                    window.refreshAllRatings();
-                } else if (!_cachedCardRadius) {
-                    retryDetectRadius(attempt + 1);
-                }
-            }, attempt * 500);
-        })(1);
 
         Lampa.Listener.follow('card', function (event) {
             if (event.type === 'build' && event.object.card) {
