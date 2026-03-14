@@ -29,7 +29,8 @@
     const CACHE_TIME = 24 * 60 * 60 * 1000;
     let taskQueue = [];
     let isProcessing = false;
-    const taskInterval = 300;
+    const taskInterval = 150;
+    const taskBatchSize = 2;
 
     let requestPool = [];
     function getRequest() {
@@ -38,15 +39,15 @@
 
     function releaseRequest(request) {
         request.clear();
-        if (requestPool.length < 3) requestPool.push(request);
+        if (requestPool.length < 5) requestPool.push(request);
     }
 
     function processQueue() {
         if (isProcessing || !taskQueue.length) return;
         isProcessing = true;
-        const task = taskQueue.shift();
-        task.execute();
-        setTimeout(() => {
+        const batch = taskQueue.splice(0, taskBatchSize);
+        batch.forEach(function (t) { t.execute(); });
+        setTimeout(function () {
             isProcessing = false;
             processQueue();
         }, taskInterval);
@@ -95,9 +96,13 @@
             callback(parseFloat(rating || 0).toFixed(1));
             return;
         }
-        addToQueue(() => {
+        if (!(item.title || item.name) && !item.imdb_id) {
+            callback('0.0');
+            return;
+        }
+        addToQueue(function () {
             const request = getRequest();
-            const title = cleanString(item.title || item.name);
+            const title = cleanString(item.title || item.name || '');
             const releaseYear = parseInt(String(item.release_date || item.first_air_date || item.last_air_date || "0000").slice(0, 4));
             const originalTitle = item.original_title || item.original_name;
             const api = {
@@ -365,11 +370,17 @@
             ratingElement.dataset.movieId = data.id.toString();
             ratingElement.style.display = '';
             updateCardRatingLine(ratingElement, data);
-            getKinopoiskRating(data, () => {
-                if (ratingElement.parentNode && ratingElement.dataset.movieId === data.id.toString()) {
-                    updateCardRatingLine(ratingElement, data);
-                }
-            });
+            if (!ratingElement.dataset.kpRequested && (data.title || data.name || data.imdb_id)) {
+                ratingElement.dataset.kpRequested = String(Date.now());
+                var doRequest = function () {
+                    getKinopoiskRating(data, function () {
+                        if (ratingElement.parentNode && ratingElement.dataset.movieId === data.id.toString()) {
+                            updateCardRatingLine(ratingElement, data);
+                        }
+                    });
+                };
+                setTimeout(doRequest, 0);
+            }
             const lampaKey = (data.seasons || data.first_air_date || data.original_name) ? `tv_${data.id}` : `movie_${data.id}`;
             getLampaRating(lampaKey).then((result) => {
                 if (ratingElement.parentNode && ratingElement.dataset.movieId === data.id.toString()) {
@@ -474,6 +485,22 @@
                     updateCardRating({ card, data });
                 } else if (source === 'all' && ratingElement.classList.contains('card__vote-line')) {
                     updateCardRatingLine(ratingElement, data);
+                    if (!ratingElement.dataset.kpRequested && (data.title || data.name || data.imdb_id)) {
+                        updateCardRating({ card, data });
+                    } else {
+                        var kpReq = ratingElement.dataset.kpRequested;
+                        if (kpReq) {
+                            var cachedKp = ratingCache.get('kp_rating', data.id);
+                            var hasKpImdb = cachedKp && (cachedKp.kp > 0 || cachedKp.imdb > 0);
+                            if (!hasKpImdb && (data.title || data.name || data.imdb_id)) {
+                                var age = parseInt(kpReq, 10) || 0;
+                                if (age && Date.now() - age > 15000) {
+                                    delete ratingElement.dataset.kpRequested;
+                                    updateCardRating({ card, data });
+                                }
+                            }
+                        }
+                    }
                 } else {
                     if (source === 'lampa') {
                         const ratingKey = (data.seasons || data.first_air_date || data.original_name) ? `tv_${data.id}` : `movie_${data.id}`;
