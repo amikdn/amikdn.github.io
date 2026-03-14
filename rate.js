@@ -365,14 +365,11 @@
             ratingElement.dataset.movieId = data.id.toString();
             ratingElement.style.display = '';
             updateCardRatingLine(ratingElement, data);
-            const hasKpImdbInData = (data.kp_rating > 0 || data.imdb_rating > 0 || data.ratingKinopoisk > 0 || data.ratingImdb > 0);
-            if (!hasKpImdbInData) {
-                getKinopoiskRating(data, () => {
-                    if (ratingElement.parentNode && ratingElement.dataset.movieId === data.id.toString()) {
-                        updateCardRatingLine(ratingElement, data);
-                    }
-                });
-            }
+            getKinopoiskRating(data, () => {
+                if (ratingElement.parentNode && ratingElement.dataset.movieId === data.id.toString()) {
+                    updateCardRatingLine(ratingElement, data);
+                }
+            });
             const lampaKey = (data.seasons || data.first_air_date || data.original_name) ? `tv_${data.id}` : `movie_${data.id}`;
             getLampaRating(lampaKey).then((result) => {
                 if (ratingElement.parentNode && ratingElement.dataset.movieId === data.id.toString()) {
