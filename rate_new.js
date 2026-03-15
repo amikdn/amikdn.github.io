@@ -581,6 +581,10 @@
             el.dataset.rateSource = sources[i];
             el.classList.add('card__vote--separate');
             el.style.display = 'none';
+            el.style.width = el.style.maxWidth = '3em';
+            el.style.minWidth = '0';
+            el.style.boxSizing = 'border-box';
+            el.style.overflow = 'hidden';
             wrapper.appendChild(el);
         }
         parent.appendChild(wrapper);
@@ -876,7 +880,7 @@
     function openRatingSettingsModal() {
         var $ = typeof window.$ !== 'undefined' ? window.$ : (typeof window.jQuery !== 'undefined' ? window.jQuery : null);
         if (!$) return;
-        if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.close) Lampa.Modal.close();
+        try { if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.close) Lampa.Modal.close(); } catch (err) {}
         setTimeout(function openRatingModalAfterClose() {
         var SOURCE_LABELS = { tmdb: 'TMDB', lampa: 'Lampa', kp: 'КиноПоиск', imdb: 'IMDB', all: 'Все (как на полной карточке)' };
         var POSITION_LABELS = { top: 'Сверху справа', bottom: 'Снизу справа' };
@@ -1253,9 +1257,9 @@
             '.card__vote{display:-webkit-box;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center!important;height:auto!important;max-height:none!important;overflow:visible!important;position:absolute!important;z-index:1!important;border-radius:0.35em!important;width:auto!important;min-width:3em!important;max-width:100%!important;box-sizing:border-box!important;transform:scale(var(--rating-scale,1))!important;padding:0.2em 0.4em!important}' +
             '.card__vote-line{width:3em!important;min-width:3em!important;max-width:100%!important;box-sizing:border-box!important;transform:scale(var(--rating-scale,1))!important;padding:0.2em 0.4em!important}' +
             '.card__vote-separate-wrap{background:transparent!important;padding:0!important;width:3em!important;min-width:3em!important;max-width:3em!important;overflow:hidden!important;transform:scale(var(--rating-scale,1))!important;display:-webkit-box!important;display:-webkit-flex!important;display:flex!important;-webkit-flex-direction:column!important;flex-direction:column!important;-webkit-align-items:stretch!important;align-items:stretch!important;gap:0.12em!important}' +
-            '.card__vote-separate-wrap .card__vote{position:static!important;width:3em!important;min-width:3em!important;max-width:3em!important;padding:0.2em 0.4em!important;white-space:nowrap!important;-webkit-flex-shrink:0!important;flex-shrink:0!important;box-sizing:border-box!important;transform:none!important;overflow:hidden!important}' +
-            '.card__vote-separate-wrap .card__vote .source--name{width:14px!important;height:14px!important;margin-left:3px!important;-webkit-flex-shrink:0!important;flex-shrink:0!important}' +
-            '@media (min-width:481px){.card__vote-separate-wrap .card__vote .source--name{width:18px!important;height:18px!important;margin-left:4px!important}}' +
+            '.card__vote-separate-wrap .card__vote{position:static!important;width:3em!important;min-width:0!important;max-width:3em!important;padding:0.2em 0.35em!important;white-space:nowrap!important;-webkit-flex-shrink:0!important;flex-shrink:0!important;box-sizing:border-box!important;transform:none!important;overflow:hidden!important;font-size:0.75em!important;line-height:1!important;min-height:auto!important;height:auto!important}' +
+            '.card__vote-separate-wrap .card__vote .source--name{width:12px!important;height:12px!important;margin-left:2px!important;-webkit-flex-shrink:0!important;flex-shrink:0!important;background-size:contain!important}' +
+            '@media (min-width:481px){.card__vote-separate-wrap .card__vote .source--name{width:14px!important;height:14px!important;margin-left:3px!important}}' +
             '.card__vote--top,.card__vote-line.card__vote--top,.card__vote-separate-wrap.card__vote--top{transform-origin:top right!important;transform:scale(var(--rating-scale,1))!important}' +
             '.card__vote--bottom,.card__vote-line.card__vote--bottom,.card__vote-separate-wrap.card__vote--bottom{transform-origin:bottom right!important;transform:scale(var(--rating-scale,1))!important}' +
             '.card__vote--top{top:0.3em!important;right:0.3em!important;bottom:auto!important}' +
