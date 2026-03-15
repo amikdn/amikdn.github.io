@@ -242,10 +242,10 @@
                         imdb: imdbFromSearch,
                         timestamp: Date.now()
                     });
-                    callback({ kp: kpFromSearch, imdb: imdbFromSearch });
                 }
 
                 if (movieId && (kpFromSearch === 0 || imdbFromSearch === 0)) {
+                    if (kpFromSearch > 0) callback({ kp: kpFromSearch, imdb: imdbFromSearch });
                     request.timeout(8000);
                     request.silent(KP_API_URL + 'api/v2.2/films/' + movieId, function (detail) {
                         var fullKp = parseFloat(detail.ratingKinopoisk) || 0;
@@ -259,10 +259,11 @@
                         callback(res);
                     }, function () {
                         releaseRequest(request);
-                        if (kpFromSearch === 0) callback({ kp: 0, imdb: 0 });
+                        callback({ kp: kpFromSearch, imdb: imdbFromSearch });
                     }, false, { headers: getKpHeaders() });
                 } else {
                     releaseRequest(request);
+                    callback({ kp: kpFromSearch, imdb: imdbFromSearch });
                 }
             }, function () {
                 releaseRequest(request);
@@ -702,17 +703,24 @@
         ratingElement = createRatingElement(card);
         ratingElement.dataset.source = source;
         ratingElement.dataset.movieId = data.id.toString();
-        ratingElement.className = voteClass('rate--' + source);
-        ratingElement.innerHTML = '';
         ratingElement.style.display = '';
+
+        function applyTmdbToElement(el) {
+            var tmdb = getTMDBRating(data);
+            if (tmdb !== '0.0') {
+                var color = getRatingColor(tmdb);
+                el.className = voteClass('rate--tmdb');
+                el.innerHTML = '<span style="color:' + color + '">' + formatRating(tmdb) + '</span> <span class="source--name"></span>';
+                var bg = getRatingBackgroundColor(tmdb);
+                el.style.background = bg || ('rgba(0,0,0,' + getRatingBackgroundAlpha() + ')');
+                return true;
+            }
+            return false;
+        }
+
         if (source === 'tmdb') {
-            var rating = getTMDBRating(data);
-            if (rating !== '0.0') {
-                var color = getRatingColor(rating);
-                ratingElement.innerHTML = '<span style="color:' + color + '">' + formatRating(rating) + '</span> <span class="source--name"></span>';
-                var bg = getRatingBackgroundColor(rating);
-                ratingElement.style.background = bg || ('rgba(0,0,0,' + getRatingBackgroundAlpha() + ')');
-            } else {
+            ratingElement.className = voteClass('rate--tmdb');
+            if (!applyTmdbToElement(ratingElement)) {
                 showTmdbFallback(ratingElement, data);
             }
         } else if (source === 'lampa') {
@@ -720,6 +728,7 @@
             var ratingKey = type + '_' + data.id;
             var cached = ratingCache.get('lampa_rating', ratingKey);
             if (cached && cached.rating > 0) {
+                ratingElement.className = voteClass('rate--lampa');
                 var color = getRatingColor(cached.rating);
                 var html = '<span style="color:' + color + '">' + formatRating(cached.rating) + '</span>';
                 if (cached.medianReaction) {
@@ -731,10 +740,12 @@
                 ratingElement.style.background = bg || ('rgba(0,0,0,' + getRatingBackgroundAlpha() + ')');
                 return;
             }
+            applyTmdbToElement(ratingElement);
             addToQueue(function () {
                 getLampaRating(ratingKey).then(function (result) {
                     if (ratingElement.parentNode && ratingElement.dataset.movieId === data.id.toString()) {
                         if (result.rating > 0) {
+                            ratingElement.className = voteClass('rate--lampa');
                             var color = getRatingColor(result.rating);
                             var html = '<span style="color:' + color + '">' + formatRating(result.rating) + '</span>';
                             if (result.medianReaction) {
@@ -744,24 +755,22 @@
                             ratingElement.innerHTML = html;
                             var bg = getRatingBackgroundColor(result.rating);
                             ratingElement.style.background = bg || ('rgba(0,0,0,' + getRatingBackgroundAlpha() + ')');
-                        } else {
-                            showTmdbFallback(ratingElement, data);
                         }
                     }
                 });
             });
         } else if (source === 'kp' || source === 'imdb') {
+            applyTmdbToElement(ratingElement);
             getKinopoiskRating(data, function (res) {
                 if (ratingElement.parentNode && ratingElement.dataset.movieId === data.id.toString()) {
                     var val = source === 'kp' ? res.kp : res.imdb;
                     if (val && val > 0) {
+                        ratingElement.className = voteClass('rate--' + source);
                         var text = formatRating(val);
                         var color = getRatingColor(val);
                         ratingElement.innerHTML = '<span style="color:' + color + '">' + text + '</span> <span class="source--name"></span>';
                         var bg = getRatingBackgroundColor(val);
                         ratingElement.style.background = bg || ('rgba(0,0,0,' + getRatingBackgroundAlpha() + ')');
-                    } else {
-                        showTmdbFallback(ratingElement, data);
                     }
                 }
             });
