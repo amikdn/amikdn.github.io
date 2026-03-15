@@ -821,7 +821,7 @@
             return { row: row, updateVal: function (text) { val.text(text); } };
         }
 
-        function addSelectRow(label, storageKey, options, defaultVal) {
+        function addCycleRow(label, storageKey, options, defaultVal) {
             var current = Lampa.Storage.get(storageKey, defaultVal);
             var labels = options.labels || options;
             var values = options.values || Object.keys(labels);
@@ -831,22 +831,14 @@
                 values = arr;
             }
             var r = makeRow(label, labels[current] || current, function (rowEl, valEl) {
-                if (typeof Lampa.Select !== 'undefined' && Lampa.Select.show) {
-                    var items = values.map(function (v) {
-                        return { title: labels[v] || v, value: v };
-                    });
-                    Lampa.Select.show({
-                        title: label,
-                        items: items,
-                        onSelect: function (item) {
-                            if (item && item.value != null) {
-                                Lampa.Storage.set(storageKey, item.value);
-                                valEl.text(labels[item.value] || item.value);
-                                applyRatingSettingsRefresh();
-                            }
-                        }
-                    });
-                }
+                var cur = Lampa.Storage.get(storageKey, defaultVal);
+                var idx = values.indexOf(cur);
+                if (idx < 0) idx = 0;
+                idx = (idx + 1) % values.length;
+                var next = values[idx];
+                Lampa.Storage.set(storageKey, next);
+                valEl.text(labels[next] || next);
+                applyRatingSettingsRefresh();
             });
             r.updateVal(labels[current] || current);
             list.append(r.row);
@@ -924,10 +916,10 @@
             return btn;
         }
 
-        addSelectRow('Источник рейтинга', 'rating_source', SOURCE_LABELS, 'tmdb');
+        addCycleRow('Источник рейтинга', 'rating_source', SOURCE_LABELS, 'tmdb');
         addTriggerRow('Анимированные реакции на постерах', 'animated_reactions', false);
         addTriggerRow('Цветные рейтинги на постерах', 'colored_ratings_poster', true);
-        addSelectRow('Позиция на постере', 'rating_position', POSITION_LABELS, 'top');
+        addCycleRow('Позиция на постере', 'rating_position', POSITION_LABELS, 'top');
         list.append($('<div class="menu-edit-list__item" style="padding:0.3em 0.4em;margin-bottom:0.1em;font-weight:bold;box-sizing:border-box;">Смещение (удерживайте кнопку)</div>'));
         list.append(addOffsetButton('Влево', -STEP, 0));
         list.append(addOffsetButton('Вправо', STEP, 0));
@@ -937,7 +929,7 @@
         addTriggerRow('Показывать IMDB (при «Все»)', 'rating_show_imdb', true);
         addTriggerRow('Показывать КиноПоиск (при «Все»)', 'rating_show_kp', true);
         addTriggerRow('Показывать Lampa (при «Все»)', 'rating_show_lampa', true);
-        addSelectRow('Режим отображения (все рейтинги)', 'rating_display_mode', DISPLAY_MODE_LABELS, 'single');
+        addCycleRow('Режим отображения (все рейтинги)', 'rating_display_mode', DISPLAY_MODE_LABELS, 'single');
         addNumberRow('Прозрачность (0=непрозрачное, 100=макс.)', 'rating_window_opacity', 0, 0, 100, 10, '%');
 
         var closeBtn = $('<div class="selector menu-edit-list__item rate-settings-close" tabindex="0">Готово (закрыть)</div>').css({
@@ -973,6 +965,12 @@
                     document.removeEventListener('keydown', backKeyHandler);
                 }
             };
+            if (typeof Lampa.Activity !== 'undefined' && typeof Lampa.Activity.back === 'function') {
+                try { Lampa.Activity.back(); } catch (err) {}
+            }
+            if (typeof Lampa.Controller !== 'undefined' && typeof Lampa.Controller.back === 'function') {
+                try { Lampa.Controller.back(); } catch (err) {}
+            }
             Lampa.Modal.open({
                 title: 'Настройки рейтингов на карточках',
                 html: list,
