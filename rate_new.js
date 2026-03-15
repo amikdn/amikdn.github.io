@@ -645,6 +645,18 @@
         });
     }
 
+    function hideDefaultVote(card) {
+        var view = card.querySelector && card.querySelector('.card__view');
+        if (!view) return;
+        var anchor = view.querySelector('[data-rate-anchor="1"]');
+        var votes = view.querySelectorAll('.card__vote');
+        for (var i = 0; i < votes.length; i++) {
+            if (!anchor || !anchor.contains(votes[i])) {
+                votes[i].style.display = 'none';
+            }
+        }
+    }
+
     function removeAllRatingElements(card) {
         var parent = card.querySelector && card.querySelector('[data-rate-anchor="1"]');
         if (!parent) return;
@@ -655,6 +667,7 @@
     function updateCardRating(item) {
         var card = item.card || item;
         if (!card || !card.querySelector || !document.body.contains(card)) return;
+        hideDefaultVote(card);
         var data = card.card_data || item.data || {};
         if (!data.id) return;
         var source = Lampa.Storage.get('rating_source', 'tmdb');
@@ -788,6 +801,7 @@
             var card = allCards[i];
             var data = card.card_data;
             if (!data || !data.id) continue;
+            hideDefaultVote(card);
             var idStr = data.id.toString();
             var lineEl = card.querySelector('.card__vote-line');
             var separateEls = card.querySelectorAll('.card__vote--separate');
@@ -1075,52 +1089,6 @@
         var rowOpacity = addNumberRowWithButtons('Прозрачность (0=непрозрачное, 100=макс.)', 'rating_window_opacity', 0, 0, 100, 10, '%');
         var rowScale = addNumberRowWithButtons('Масштаб окон рейтингов', 'rating_scale', 100, 60, 150, 5, '%');
 
-        var apiKeyRow = $('<div class="selector menu-edit-list__item rate-settings-row" tabindex="0"></div>').css({
-            display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'center', gap: '0.5em', padding: '0.5em 0.4em', marginBottom: '0.2em',
-            borderRadius: '0.3em', border: '3px solid transparent', boxSizing: 'border-box'
-        });
-        var apiKeyTitle = $('<div class="menu-edit-list__title"></div>').css({ minWidth: 0, overflow: 'hidden' }).text('API-KEY KinoPoisk');
-        var apiKeyVal = $('<div class="rate-settings-value"></div>').css({ whiteSpace: 'nowrap', opacity: 0.9 });
-        var currentKey = Lampa.Storage.get('rating_kp_api_key', '');
-        apiKeyVal.text(currentKey ? (currentKey.substring(0, 8) + '...') : '(по умолч.)');
-        apiKeyRow.append(apiKeyTitle).append(apiKeyVal);
-        apiKeyRow.on('hover:enter', function () {
-            Lampa.Modal.close();
-            setTimeout(function () {
-                var wrap = $('<div class="menu-edit-list"></div>');
-                var label = $('<div class="menu-edit-list__item" style="padding:0.5em;font-weight:bold;">Введите API-KEY kinopoiskapiunofficial.tech</div>');
-                var input = $('<input type="text" class="name-picker-input" placeholder="Оставьте пустым для ключа по умолчанию" style="width:100%;padding:0.5em;margin:0.5em 0;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.3);border-radius:0.3em;color:#fff;font-size:1em;" />');
-                input.val(Lampa.Storage.get('rating_kp_api_key', ''));
-                var saveBtn = $('<div class="selector menu-edit-list__item" tabindex="0" style="text-align:center;padding:0.6em;margin-top:0.3em;background:rgba(66,133,244,0.6);border-radius:0.3em;border:3px solid transparent;">Сохранить</div>');
-                saveBtn.on('hover:enter', function () {
-                    var val = input.val().trim();
-                    Lampa.Storage.set('rating_kp_api_key', val);
-                    Lampa.Modal.close();
-                    if (typeof Lampa.Noty !== 'undefined' && Lampa.Noty.show) {
-                        Lampa.Noty.show(val ? 'API-ключ сохранён' : 'Используется ключ по умолчанию');
-                    }
-                    setTimeout(function () { openRatingSettingsModal(); }, 100);
-                });
-                wrap.append(label).append(input).append(saveBtn);
-                Lampa.Modal.open({
-                    title: 'API-KEY KinoPoisk',
-                    html: wrap,
-                    size: 'small',
-                    onBack: function () {
-                        Lampa.Modal.close();
-                        setTimeout(function () { openRatingSettingsModal(); }, 100);
-                    }
-                });
-                setTimeout(function () { input.get(0) && input.get(0).focus(); }, 200);
-            }, 100);
-        });
-        apiKeyRow.on('click', function (e) {
-            if (e && e.preventDefault) e.preventDefault();
-            if (e && e.stopPropagation) e.stopPropagation();
-            blurActiveAfterMouseClick(e);
-        });
-        list.append(apiKeyRow);
-
         function resetAllToDefault() {
             Lampa.Storage.set('rating_source', 'tmdb');
             Lampa.Storage.set('animated_reactions', false);
@@ -1149,7 +1117,7 @@
             rowDisplayMode.updateVal(DISPLAY_MODE_LABELS.single);
             rowOpacity.updateVal('30%');
             rowScale.updateVal('100%');
-            apiKeyVal.text('(по умолч.)');
+            Lampa.Storage.set('rating_kp_api_key', '');
             applyRatingSettingsRefresh();
             if (typeof Lampa.Noty !== 'undefined' && Lampa.Noty.show) {
                 try { Lampa.Noty.show('Настройки рейтингов сброшены'); } catch (e) {}
@@ -1228,6 +1196,28 @@
                 openRatingSettingsModal();
             }
         });
+        Lampa.SettingsApi.addParam({
+            component: 'interface',
+            param: {
+                name: 'rating_kp_api_key',
+                type: 'input',
+                values: '',
+                default: ''
+            },
+            field: {
+                name: 'API-KEY KinoPoisk (рейтинги)',
+                description: 'Ключ kinopoiskapiunofficial.tech для рейтингов КП/IMDB. Пустое — ключ по умолчанию'
+            },
+            onRender: function (element) {
+                setTimeout(function () {
+                    var modalBtn = document.querySelector('div[data-name="rating_modal_open"]');
+                    var node = element && (element.nodeType === 1 ? element : (element[0] || element.get && element.get(0)));
+                    if (modalBtn && modalBtn.parentNode && node && node.nodeType === 1) {
+                        modalBtn.parentNode.insertBefore(node, modalBtn.nextSibling);
+                    }
+                }, 0);
+            }
+        });
     }
 
     function setupCardListener() {
@@ -1254,9 +1244,6 @@
             '.rate-settings-modal .selector:hover{background:rgba(255,255,255,0.06)}' +
             '[data-name="rating_modal_open"] .settings-param__value,[data-name="rating_modal_open"] .settings-param__control,[data-name="rating_modal_open"] input[type="checkbox"]{display:none!important}' +
             '.card .card__view{position:relative!important}' +
-            '.card .card__view > .card__vote:not([data-rate-anchor] .card__vote){display:none!important}' +
-            '.card .card__view > .card__vote--top:not([data-rate-anchor] .card__vote--top){display:none!important}' +
-            '.card .card__view > .card__vote--bottom:not([data-rate-anchor] .card__vote--bottom){display:none!important}' +
             '.card__vote{display:-webkit-box;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center!important;height:auto!important;overflow:visible!important;position:absolute!important;z-index:1!important;border-radius:0.35em!important;width:auto!important;min-width:0!important;max-width:100%!important;box-sizing:border-box!important;transform:scale(var(--rating-scale,1))!important;padding:0.2em 0.4em!important;line-height:1!important;white-space:nowrap!important}' +
             '.card__vote-line{width:auto!important;min-width:0!important;max-width:100%!important;box-sizing:border-box!important;transform:scale(var(--rating-scale,1))!important;padding:0.2em 0.4em!important;line-height:1!important;display:-webkit-box!important;display:-webkit-flex!important;display:flex!important;-webkit-flex-direction:column!important;flex-direction:column!important;-webkit-align-items:flex-end!important;align-items:flex-end!important;gap:0.1em!important}' +
             '.card__vote-separate-wrap{background:transparent!important;padding:0!important;width:auto!important;min-width:0!important;max-width:100%!important;overflow:visible!important;transform:scale(var(--rating-scale,1))!important;display:-webkit-box!important;display:-webkit-flex!important;display:flex!important;-webkit-flex-direction:column!important;flex-direction:column!important;-webkit-align-items:flex-end!important;align-items:flex-end!important;gap:0.1em!important}' +
