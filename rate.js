@@ -792,7 +792,7 @@
         style.type = 'text/css';
         style.textContent = (
             '.card .card__view{position:relative!important}' +
-            '.card__vote{display:-webkit-box;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center!important;height:auto!important;max-height:none!important;overflow:visible!important;position:absolute!important;z-index:1!important}' +
+            '.card__vote{display:-webkit-box;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center!important;height:auto!important;max-height:none!important;overflow:visible!important;position:absolute!important;z-index:1!important;border-radius:0.35em!important}' +
             '.card__vote--top{top:0.3em!important;right:0.3em!important;bottom:auto!important}' +
             '.card__vote--bottom{top:auto!important;right:0.3em!important;bottom:0.3em!important}' +
             '.card__vote-line .card__rate-item{display:-webkit-box;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;white-space:nowrap;margin-bottom:0.15em}' +
