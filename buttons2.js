@@ -736,11 +736,19 @@
 
     function applyButtonAnimation(buttons, opacityOnly) {
         var animName = opacityOnly ? 'button-fade-in-opacity' : 'button-fade-in';
+        var maxDelay = 0;
         buttons.forEach(function(btn, index) {
+            var delay = index * 0.08;
+            if (delay > maxDelay) maxDelay = delay;
+            btn.css({ 'opacity': '0', 'animation': 'none', 'animation-delay': '' });
+        });
+        buttons.forEach(function(btn, index) {
+            var delay = index * 0.08;
+            void (btn[0] && btn[0].offsetHeight);
             btn.css({
                 'opacity': '0',
                 'animation': animName + ' 0.4s ease forwards',
-                'animation-delay': (index * 0.08) + 's'
+                'animation-delay': delay + 's'
             });
             if (opacityOnly) {
                 btn.one('animationend', function() {
@@ -748,6 +756,11 @@
                 });
             }
         });
+        setTimeout(function() {
+            buttons.forEach(function(btn) {
+                btn.css({ 'opacity': '1', 'animation': 'none', 'animation-delay': '' });
+            });
+        }, 400 + maxDelay * 1000 + 50);
     }
 
     function createEditButton() {
