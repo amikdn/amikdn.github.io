@@ -525,7 +525,7 @@
         if (isRatingSourceVisible('imdb')) sources.push('imdb');
         if (isRatingSourceVisible('kp')) sources.push('kp');
         if (isRatingSourceVisible('lampa')) sources.push('lampa');
-        var step = 1.2;
+        var step = 2.2;
         for (var i = 0; i < sources.length; i++) {
             var el = createRatingElement(card, i * step);
             el.dataset.rateSource = sources[i];
@@ -794,39 +794,30 @@
     }
 
     function applyRatingSettingsRefresh() {
-        setTimeout(function () {
-            if (typeof window.refreshAllRatings === 'function') window.refreshAllRatings();
-        }, 100);
+        if (typeof window.refreshAllRatings === 'function') window.refreshAllRatings();
     }
 
     function openRatingSettingsModal() {
+        var $ = typeof window.$ !== 'undefined' ? window.$ : (typeof window.jQuery !== 'undefined' ? window.jQuery : null);
+        if (!$) return;
         var SOURCE_LABELS = { tmdb: 'TMDB', lampa: 'Lampa', kp: 'КиноПоиск', imdb: 'IMDB', all: 'Все (как на полной карточке)' };
         var POSITION_LABELS = { top: 'Сверху справа', bottom: 'Снизу справа' };
         var DISPLAY_MODE_LABELS = { single: 'Одно окно', separate: 'Каждый в отдельном окне' };
-        var list = document.createElement('div');
-        list.className = 'menu-edit-list rate-settings-modal';
-        list.style.cssText = 'max-width:100%;overflow:hidden;box-sizing:border-box;padding:0.5em 0;';
+        var list = $('<div class="menu-edit-list rate-settings-modal"></div>').css({ maxWidth: '100%', overflow: 'hidden', boxSizing: 'border-box', padding: '0.5em 0' });
 
         function makeRow(label, valueText, onClick) {
-            var row = document.createElement('div');
-            row.className = 'selector menu-edit-list__item rate-settings-row';
-            row.style.cssText = 'display:grid;grid-template-columns:1fr auto;align-items:center;gap:0.5em;padding:0.5em 0.4em;margin-bottom:0.2em;border-radius:0.3em;border:3px solid transparent;box-sizing:border-box;';
-            var title = document.createElement('div');
-            title.className = 'menu-edit-list__title';
-            title.style.cssText = 'min-width:0;overflow:hidden;';
-            title.textContent = label;
-            var val = document.createElement('div');
-            val.className = 'rate-settings-value';
-            val.textContent = valueText;
-            val.style.cssText = 'white-space:nowrap;opacity:0.9;';
-            row.appendChild(title);
-            row.appendChild(val);
-            if (onClick && typeof onClick === 'function') {
-                row.setAttribute('data-action', '1');
-                row.addEventListener('click', function () { onClick(row, val); });
-                if (typeof $ !== 'undefined') $(row).on('hover:enter', function () { onClick(row, val); });
+            var row = $('<div class="selector menu-edit-list__item rate-settings-row" tabindex="0"></div>').css({
+                display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'center', gap: '0.5em', padding: '0.5em 0.4em', marginBottom: '0.2em',
+                borderRadius: '0.3em', border: '3px solid transparent', boxSizing: 'border-box'
+            });
+            var title = $('<div class="menu-edit-list__title"></div>').css({ minWidth: 0, overflow: 'hidden' }).text(label);
+            var val = $('<div class="rate-settings-value"></div>').css({ whiteSpace: 'nowrap', opacity: 0.9 }).text(valueText);
+            row.append(title).append(val);
+            if (typeof onClick === 'function') {
+                row.on('hover:enter', function () { onClick(row, val); });
+                row.on('click', function () { onClick(row, val); });
             }
-            return { row: row, updateVal: function (text) { val.textContent = text; } };
+            return { row: row, updateVal: function (text) { val.text(text); } };
         }
 
         function addSelectRow(label, storageKey, options, defaultVal) {
@@ -849,7 +840,7 @@
                         onSelect: function (item) {
                             if (item && item.value != null) {
                                 Lampa.Storage.set(storageKey, item.value);
-                                valEl.textContent = labels[item.value] || item.value;
+                                valEl.text(labels[item.value] || item.value);
                                 applyRatingSettingsRefresh();
                             }
                         }
@@ -857,7 +848,7 @@
                 }
             });
             r.updateVal(labels[current] || current);
-            list.appendChild(r.row);
+            list.append(r.row);
             return r;
         }
 
@@ -866,11 +857,11 @@
             var r = makeRow(label, current ? 'Вкл' : 'Выкл', function (rowEl, valEl) {
                 var next = !Lampa.Storage.get(storageKey, defaultVal);
                 Lampa.Storage.set(storageKey, next);
-                valEl.textContent = next ? 'Вкл' : 'Выкл';
+                valEl.text(next ? 'Вкл' : 'Выкл');
                 applyRatingSettingsRefresh();
             });
             r.updateVal(current ? 'Вкл' : 'Выкл');
-            list.appendChild(r.row);
+            list.append(r.row);
             return r;
         }
 
@@ -885,26 +876,89 @@
                 if (next > max) next = min;
                 if (next < min) next = max;
                 Lampa.Storage.set(storageKey, String(next));
-                valEl.textContent = next + (suffix || '');
+                valEl.text(next + (suffix || ''));
                 applyRatingSettingsRefresh();
             });
             r.updateVal(val + (suffix || ''));
-            list.appendChild(r.row);
+            list.append(r.row);
             return r;
+        }
+
+        var STEP = 0.5;
+        var MIN_OFF = -5;
+        var MAX_OFF = 5;
+        function applyOffset(dx, dy) {
+            var x = parseFloat(Lampa.Storage.get('rating_offset_x', '0'));
+            var y = parseFloat(Lampa.Storage.get('rating_offset_y', '0'));
+            if (isNaN(x)) x = 0;
+            if (isNaN(y)) y = 0;
+            x = Math.max(MIN_OFF, Math.min(MAX_OFF, x + dx));
+            y = Math.max(MIN_OFF, Math.min(MAX_OFF, y + dy));
+            Lampa.Storage.set('rating_offset_x', String(x));
+            Lampa.Storage.set('rating_offset_y', String(y));
+            applyRatingSettingsRefresh();
+            return { x: x, y: y };
+        }
+        function addOffsetButton(text, dx, dy, updateInfo) {
+            var btn = $('<div class="selector menu-edit-list__item rate-settings-offset-btn" tabindex="0"></div>').text(text).css({
+                display: 'block', textAlign: 'center', padding: '0.5em 0.4em', marginBottom: '0.2em', borderRadius: '0.3em',
+                border: '3px solid transparent', boxSizing: 'border-box', background: 'rgba(255,255,255,0.08)'
+            });
+            btn.on('hover:enter', function () {
+                var pos = applyOffset(dx, dy);
+                if (typeof updateInfo === 'function') updateInfo(pos);
+            });
+            btn.on('click', function () {
+                var pos = applyOffset(dx, dy);
+                if (typeof updateInfo === 'function') updateInfo(pos);
+            });
+            return btn;
         }
 
         addSelectRow('Источник рейтинга', 'rating_source', SOURCE_LABELS, 'tmdb');
         addTriggerRow('Анимированные реакции на постерах', 'animated_reactions', false);
         addTriggerRow('Цветные рейтинги на постерах', 'colored_ratings_poster', true);
         addSelectRow('Позиция на постере', 'rating_position', POSITION_LABELS, 'top');
-        addNumberRow('Смещение влево‑вправо (em)', 'rating_offset_x', 0, -5, 5, 0.5, ' em');
-        addNumberRow('Смещение вверх‑вниз (em)', 'rating_offset_y', 0, -5, 5, 0.5, ' em');
+        var offsetInfoRow = $('<div class="menu-edit-list__item rate-settings-row" style="display:grid;grid-template-columns:1fr auto;align-items:center;gap:0.5em;padding:0.35em 0.4em;margin-bottom:0.15em;box-sizing:border-box;"></div>');
+        var offsetLabel = $('<div class="menu-edit-list__title"></div>').css({ minWidth: 0 }).text('Смещение окон рейтинга');
+        var offsetVal = $('<div class="rate-settings-value"></div>').css({ whiteSpace: 'nowrap', opacity: 0.9 });
+        function updateOffsetDisplay(pos) {
+            if (!pos) {
+                var x = parseFloat(Lampa.Storage.get('rating_offset_x', '0'));
+                var y = parseFloat(Lampa.Storage.get('rating_offset_y', '0'));
+                if (isNaN(x)) x = 0;
+                if (isNaN(y)) y = 0;
+                pos = { x: x, y: y };
+            }
+            offsetVal.text('X: ' + pos.x + ' em   Y: ' + pos.y + ' em');
+        }
+        offsetInfoRow.append(offsetLabel).append(offsetVal);
+        list.append(offsetInfoRow);
+        updateOffsetDisplay();
+        list.append(addOffsetButton('Влево', -STEP, 0, updateOffsetDisplay));
+        list.append(addOffsetButton('Вправо', STEP, 0, updateOffsetDisplay));
+        list.append(addOffsetButton('Вверх', 0, -STEP, updateOffsetDisplay));
+        list.append(addOffsetButton('Вниз', 0, STEP, updateOffsetDisplay));
         addTriggerRow('Показывать TMDB (при «Все»)', 'rating_show_tmdb', true);
         addTriggerRow('Показывать IMDB (при «Все»)', 'rating_show_imdb', true);
         addTriggerRow('Показывать КиноПоиск (при «Все»)', 'rating_show_kp', true);
         addTriggerRow('Показывать Lampa (при «Все»)', 'rating_show_lampa', true);
         addSelectRow('Режим отображения (все рейтинги)', 'rating_display_mode', DISPLAY_MODE_LABELS, 'single');
         addNumberRow('Прозрачность окна рейтинга (%)', 'rating_window_opacity', 100, 10, 100, 10, '%');
+
+        var closeBtn = $('<div class="selector menu-edit-list__item rate-settings-close" tabindex="0">Готово (закрыть)</div>').css({
+            display: 'block', textAlign: 'center', padding: '0.75em', marginTop: '0.5em', background: 'rgba(66,133,244,0.6)', borderRadius: '0.3em',
+            border: '3px solid transparent', boxSizing: 'border-box'
+        });
+        closeBtn.on('hover:enter', function () {
+            if (Lampa.Modal && Lampa.Modal.close) Lampa.Modal.close();
+            applyRatingSettingsRefresh();
+        });
+        closeBtn.on('click', function () {
+            if (Lampa.Modal && Lampa.Modal.close) Lampa.Modal.close();
+            applyRatingSettingsRefresh();
+        });
+        list.append(closeBtn);
 
         if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.open) {
             Lampa.Modal.open({
@@ -967,8 +1021,9 @@
         var style = document.createElement('style');
         style.type = 'text/css';
         style.textContent = (
-            '.rate-settings-modal .rate-settings-row.focus{border-color:rgba(255,255,255,0.8)}' +
-            '.rate-settings-modal .rate-settings-row:hover{background:rgba(255,255,255,0.06)}' +
+            '.rate-settings-modal .rate-settings-row.focus,.rate-settings-modal .rate-settings-close.focus,.rate-settings-modal .rate-settings-offset-btn.focus{border-color:rgba(255,255,255,0.8)}' +
+            '.rate-settings-modal .rate-settings-row:hover,.rate-settings-modal .rate-settings-close:hover,.rate-settings-modal .rate-settings-offset-btn:hover{background:rgba(255,255,255,0.06)}' +
+            '[data-name="rating_modal_open"] .settings-param__value,[data-name="rating_modal_open"] .settings-param__control,[data-name="rating_modal_open"] input[type="checkbox"]{display:none!important}' +
             '.card .card__view{position:relative!important}' +
             '.card__vote{display:-webkit-box;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center!important;height:auto!important;max-height:none!important;overflow:visible!important;position:absolute!important;z-index:1!important;border-radius:0.35em!important}' +
             '.card__vote--top{top:0.3em!important;right:0.3em!important;bottom:auto!important}' +
