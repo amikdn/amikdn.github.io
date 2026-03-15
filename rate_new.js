@@ -648,11 +648,16 @@
     function hideDefaultVote(card) {
         var view = card.querySelector && card.querySelector('.card__view');
         if (!view) return;
-        var anchor = view.querySelector('[data-rate-anchor="1"]');
         var votes = view.querySelectorAll('.card__vote');
         for (var i = 0; i < votes.length; i++) {
-            if (!anchor || !anchor.contains(votes[i])) {
-                votes[i].style.display = 'none';
+            var el = votes[i];
+            var isOurs = el.dataset.source || el.dataset.rateSource ||
+                el.classList.contains('card__vote-line') ||
+                el.classList.contains('card__vote--separate') ||
+                el.classList.contains('card__vote-separate-wrap') ||
+                el.dataset.movieId;
+            if (!isOurs) {
+                el.style.display = 'none';
             }
         }
     }
