@@ -827,10 +827,6 @@
             });
         }
         applyButtonAnimation(visibleButtons, currentContainer.hasClass('applecation'));
-        targetContainer.removeClass('buttons-visible');
-        setTimeout(function() {
-            if (targetContainer.length) targetContainer.addClass('buttons-visible');
-        }, 500);
         var editBtn = targetContainer.find('.button--edit-order');
         if (editBtn.length) {
             editBtn.detach();
@@ -1918,10 +1914,6 @@
         if (viewmode === 'icons') targetContainer.addClass('icons-only');
         if (viewmode === 'always') targetContainer.addClass('always-text');
         applyButtonAnimation(visibleButtons, isApplecation);
-        targetContainer.removeClass('buttons-visible');
-        setTimeout(function() {
-            if (targetContainer.length) targetContainer.addClass('buttons-visible');
-        }, 500);
         setTimeout(function() {
             setupButtonNavigation(container);
         }, DELAY_AFTER_APPLY_MS);
@@ -1971,7 +1963,6 @@
             /* Без applecation: полный layout контейнера кнопок */
             '.buttons-plugin-scope .full-start-new__buttons { display: flex !important; flex-direction: row !important; flex-wrap: wrap !important; gap: 0.5em !important; }' +
             '.buttons-plugin-scope .full-start-new__buttons .full-start__button { opacity: 0; }' +
-            '.buttons-plugin-scope .full-start-new__buttons.buttons-visible .full-start__button { opacity: 1 !important; animation: none !important; }' +
             '.buttons-plugin-scope .full-start__button.hidden { display: none !important; }' +
             '.buttons-plugin-scope .full-start-new__buttons.buttons-loading .full-start__button { visibility: hidden !important; }' +
             '.menu-edit-list { max-width: 100%; overflow: hidden; box-sizing: border-box; }' +
