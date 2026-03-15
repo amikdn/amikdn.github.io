@@ -499,6 +499,8 @@
         } catch (e) {}
         var lineBg = getRatingBackgroundColor(firstRating || '0');
         ratingLine.style.background = lineBg || ('rgba(0,0,0,' + getRatingBackgroundAlpha() + ')');
+        var anyVisible = (tmdbItem && tmdbItem.style.display !== 'none') || (imdbItem && imdbItem.style.display !== 'none') || (kpItem && kpItem.style.display !== 'none') || (lampaItem && lampaItem.style.display !== 'none');
+        ratingLine.style.display = anyVisible ? '' : 'none';
     }
 
     function getRatingDisplayMode() {
@@ -578,6 +580,7 @@
             var el = createRatingInnerBlock();
             el.dataset.rateSource = sources[i];
             el.classList.add('card__vote--separate');
+            el.style.display = 'none';
             wrapper.appendChild(el);
         }
         parent.appendChild(wrapper);
@@ -857,7 +860,16 @@
         return true;
     }
 
+    function applyRatingScale() {
+        var v = parseFloat(Lampa.Storage.get('rating_scale', '100'));
+        if (isNaN(v)) v = 100;
+        v = Math.max(60, Math.min(150, v)) / 100;
+        try {
+            document.body.style.setProperty('--rating-scale', String(v));
+        } catch (e) {}
+    }
     function applyRatingSettingsRefresh() {
+        applyRatingScale();
         if (typeof window.refreshAllRatings === 'function') window.refreshAllRatings();
     }
 
@@ -867,7 +879,7 @@
         var SOURCE_LABELS = { tmdb: 'TMDB', lampa: 'Lampa', kp: 'КиноПоиск', imdb: 'IMDB', all: 'Все (как на полной карточке)' };
         var POSITION_LABELS = { top: 'Сверху справа', bottom: 'Снизу справа' };
         var DISPLAY_MODE_LABELS = { single: 'Одно окно', separate: 'Каждый в отдельном окне' };
-        var list = $('<div class="menu-edit-list rate-settings-modal"></div>').css({ maxWidth: '100%', overflow: 'hidden', boxSizing: 'border-box', padding: '0.5em 0' });
+        var list = $('<div class="menu-edit-list rate-settings-modal"></div>').css({ maxWidth: '100%', overflow: 'hidden', boxSizing: 'border-box', padding: '0.5em 0', pointerEvents: 'auto', cursor: 'default' });
 
         function makeRow(label, valueText, onClick) {
             var row = $('<div class="selector menu-edit-list__item rate-settings-row" tabindex="0"></div>').css({
@@ -879,7 +891,11 @@
             row.append(title).append(val);
             if (typeof onClick === 'function') {
                 row.on('hover:enter', function () { onClick(row, val); });
-                row.on('click', function () { onClick(row, val); });
+                row.on('click', function (e) {
+                    if (e && e.preventDefault) e.preventDefault();
+                    if (e && e.stopPropagation) e.stopPropagation();
+                    onClick(row, val);
+                });
             }
             return { row: row, updateVal: function (text) { val.text(text); } };
         }
@@ -968,7 +984,11 @@
                 border: '3px solid transparent', boxSizing: 'border-box', background: 'rgba(255,255,255,0.08)'
             });
             btn.on('hover:enter', function () { applyOffset(dx, dy); });
-            btn.on('click', function () { applyOffset(dx, dy); });
+            btn.on('click', function (e) {
+                if (e && e.preventDefault) e.preventDefault();
+                if (e && e.stopPropagation) e.stopPropagation();
+                applyOffset(dx, dy);
+            });
             return btn;
         }
 
@@ -988,6 +1008,7 @@
         var rowShowLampa = addTriggerRow('Показывать Lampa (при «Все»)', 'rating_show_lampa', true);
         var rowDisplayMode = addCycleRow('Режим отображения (все рейтинги)', 'rating_display_mode', DISPLAY_MODE_LABELS, 'single');
         var rowOpacity = addNumberRow('Прозрачность (0=непрозрачное, 100=макс.)', 'rating_window_opacity', 0, 0, 100, 10, '%');
+        var rowScale = addNumberRow('Масштаб окон рейтингов', 'rating_scale', 100, 60, 150, 5, '%');
 
         function resetAllToDefault() {
             Lampa.Storage.set('rating_source', 'tmdb');
@@ -1003,6 +1024,7 @@
             Lampa.Storage.set('rating_show_lampa', true);
             Lampa.Storage.set('rating_display_mode', 'single');
             Lampa.Storage.set('rating_window_opacity', '0');
+            Lampa.Storage.set('rating_scale', '100');
             rowSource.updateVal(SOURCE_LABELS.tmdb);
             rowAnimated.updateVal('Выкл');
             rowColored.updateVal('Вкл');
@@ -1014,6 +1036,7 @@
             rowShowLampa.updateVal('Вкл');
             rowDisplayMode.updateVal(DISPLAY_MODE_LABELS.single);
             rowOpacity.updateVal('0%');
+            rowScale.updateVal('100%');
             applyRatingSettingsRefresh();
             if (typeof Lampa.Noty !== 'undefined' && Lampa.Noty.show) {
                 try { Lampa.Noty.show('Настройки рейтингов сброшены'); } catch (e) {}
@@ -1024,7 +1047,11 @@
             border: '3px solid transparent', boxSizing: 'border-box'
         });
         resetBtn.on('hover:enter', resetAllToDefault);
-        resetBtn.on('click', resetAllToDefault);
+        resetBtn.on('click', function (e) {
+            if (e && e.preventDefault) e.preventDefault();
+            if (e && e.stopPropagation) e.stopPropagation();
+            resetAllToDefault();
+        });
         list.append(resetBtn);
 
         var closeBtn = $('<div class="selector menu-edit-list__item rate-settings-close" tabindex="0">Готово (закрыть)</div>').css({
@@ -1040,7 +1067,11 @@
             }
         }
         closeBtn.on('hover:enter', closeModal);
-        closeBtn.on('click', closeModal);
+        closeBtn.on('click', function (e) {
+            if (e && e.preventDefault) e.preventDefault();
+            if (e && e.stopPropagation) e.stopPropagation();
+            closeModal();
+        });
         list.append(closeBtn);
 
         list.on('focus', '.selector', function () {
@@ -1119,17 +1150,18 @@
         var style = document.createElement('style');
         style.type = 'text/css';
         style.textContent = (
+            '.rate-settings-modal .selector{cursor:pointer!important;pointer-events:auto!important;-webkit-tap-highlight-color:transparent;user-select:none}' +
             '.rate-settings-modal .rate-settings-row.focus,.rate-settings-modal .rate-settings-close.focus,.rate-settings-modal .rate-settings-offset-btn.focus,.rate-settings-modal .rate-settings-reset.focus{border-color:rgba(255,255,255,0.95)!important;box-shadow:0 0 0 2px rgba(255,255,255,0.95)}' +
             '.rate-settings-modal .selector:focus{outline:3px solid rgba(255,255,255,0.95)!important;outline-offset:2px}' +
             '.rate-settings-modal .rate-settings-row:hover,.rate-settings-modal .rate-settings-close:hover,.rate-settings-modal .rate-settings-offset-btn:hover,.rate-settings-modal .rate-settings-reset:hover{background:rgba(255,255,255,0.06)}' +
             '[data-name="rating_modal_open"] .settings-param__value,[data-name="rating_modal_open"] .settings-param__control,[data-name="rating_modal_open"] input[type="checkbox"]{display:none!important}' +
             '.card .card__view{position:relative!important}' +
-            '.card__vote{display:-webkit-box;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center!important;height:auto!important;max-height:none!important;overflow:visible!important;position:absolute!important;z-index:1!important;border-radius:0.35em!important;width:2.6em!important;min-width:2.6em!important;box-sizing:border-box!important}' +
-            '.card__vote-line{width:2.6em!important;min-width:2.6em!important;box-sizing:border-box!important}' +
-            '.card__vote-separate-wrap{background:transparent!important;padding:0!important;min-width:0!important;width:2.6em!important;font-size:0.8em!important}' +
-            '.card__vote-separate-wrap .card__vote{position:static!important;width:100%!important;min-width:0!important;padding:0.15em 0.35em!important;font-size:1em!important}' +
-            '.card__vote-separate-wrap .card__vote .source--name{width:12px!important;height:12px!important;margin-left:2px!important}' +
-            '.card__vote-separate-wrap .card__vote img{max-width:1em!important;max-height:1em!important;min-width:0.8em!important;min-height:0.8em!important}' +
+            '.card__vote{display:-webkit-box;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center!important;height:auto!important;max-height:none!important;overflow:visible!important;position:absolute!important;z-index:1!important;border-radius:0.35em!important;width:2.6em!important;min-width:2.6em!important;box-sizing:border-box!important;transform:scale(var(--rating-scale,1))!important}' +
+            '.card__vote-line{width:2.6em!important;min-width:2.6em!important;box-sizing:border-box!important;transform:scale(var(--rating-scale,1))!important}' +
+            '.card__vote-separate-wrap{background:transparent!important;padding:0!important;min-width:0!important;width:2.6em!important;transform:scale(var(--rating-scale,1))!important;display:-webkit-box!important;display:-webkit-flex!important;display:flex!important;-webkit-flex-direction:column!important;flex-direction:column!important;-webkit-align-items:flex-end!important;align-items:flex-end!important;gap:0.25em!important}' +
+            '.card__vote-separate-wrap .card__vote{position:static!important;width:100%!important;min-width:0!important;padding:0.2em 0.5em!important}' +
+            '.card__vote--top,.card__vote-line.card__vote--top,.card__vote-separate-wrap.card__vote--top{transform-origin:top right!important;transform:scale(var(--rating-scale,1))!important}' +
+            '.card__vote--bottom,.card__vote-line.card__vote--bottom,.card__vote-separate-wrap.card__vote--bottom{transform-origin:bottom right!important;transform:scale(var(--rating-scale,1))!important}' +
             '.card__vote--top{top:0.3em!important;right:0.3em!important;bottom:auto!important}' +
             '.card__vote--bottom{top:auto!important;right:0.3em!important;bottom:0.3em!important}' +
             '.card__vote-line .card__rate-item{display:-webkit-box;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;white-space:nowrap;margin-bottom:0.15em}' +
@@ -1146,6 +1178,7 @@
             '@media (max-width:480px) and (orientation:portrait){.full-start__rate.rate--lampa{min-width:80px}}'
         );
         document.head.appendChild(style);
+        applyRatingScale();
         addSettings();
         setupCardListener();
         pollCards();
