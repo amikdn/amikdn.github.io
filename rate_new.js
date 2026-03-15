@@ -7,8 +7,11 @@
     var SVG_REACTIONS_BASE_URL = 'https://cubnotrip.top/img/reactions';
 
     function isColoredRatingsPosterOn() {
-        var v = Lampa.Storage.get('colored_ratings_poster', true);
-        return (v === true || v === 'true' || v === '1' || v === 1);
+        var v = Lampa.Storage.get('colored_ratings_poster', '1');
+        return (v === '1' || v === true || v === 'true' || v === 1);
+    }
+    function setColoredRatingsPoster(on) {
+        Lampa.Storage.set('colored_ratings_poster', on ? '1' : '0');
     }
     function getRatingColor(value) {
         if (Lampa.Storage.get('rating_colored_windows', false)) return '#fff';
@@ -913,7 +916,11 @@
             var current = isOn();
             var r = makeRow(label, current ? 'Вкл' : 'Выкл', function (rowEl, valEl) {
                 var next = !isOn();
-                Lampa.Storage.set(storageKey, next);
+                if (storageKey === 'colored_ratings_poster') {
+                    setColoredRatingsPoster(next);
+                } else {
+                    Lampa.Storage.set(storageKey, next);
+                }
                 valEl.text(next ? 'Вкл' : 'Выкл');
                 applyRatingSettingsRefresh();
             });
@@ -985,7 +992,7 @@
         function resetAllToDefault() {
             Lampa.Storage.set('rating_source', 'tmdb');
             Lampa.Storage.set('animated_reactions', false);
-            Lampa.Storage.set('colored_ratings_poster', true);
+            setColoredRatingsPoster(true);
             Lampa.Storage.set('rating_colored_windows', false);
             Lampa.Storage.set('rating_position', 'top');
             Lampa.Storage.set('rating_offset_x', '0');
@@ -1117,10 +1124,12 @@
             '.rate-settings-modal .rate-settings-row:hover,.rate-settings-modal .rate-settings-close:hover,.rate-settings-modal .rate-settings-offset-btn:hover,.rate-settings-modal .rate-settings-reset:hover{background:rgba(255,255,255,0.06)}' +
             '[data-name="rating_modal_open"] .settings-param__value,[data-name="rating_modal_open"] .settings-param__control,[data-name="rating_modal_open"] input[type="checkbox"]{display:none!important}' +
             '.card .card__view{position:relative!important}' +
-            '.card__vote{display:-webkit-box;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center!important;height:auto!important;max-height:none!important;overflow:visible!important;position:absolute!important;z-index:1!important;border-radius:0.35em!important;width:3.8em!important;min-width:3.8em!important;box-sizing:border-box!important}' +
-            '.card__vote-line{width:3.8em!important;min-width:3.8em!important;box-sizing:border-box!important}' +
-            '.card__vote-separate-wrap{background:transparent!important;padding:0!important;min-width:0!important;width:3.8em!important}' +
-            '.card__vote-separate-wrap .card__vote{position:static!important;width:100%!important;min-width:0!important}' +
+            '.card__vote{display:-webkit-box;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center!important;height:auto!important;max-height:none!important;overflow:visible!important;position:absolute!important;z-index:1!important;border-radius:0.35em!important;width:2.6em!important;min-width:2.6em!important;box-sizing:border-box!important}' +
+            '.card__vote-line{width:2.6em!important;min-width:2.6em!important;box-sizing:border-box!important}' +
+            '.card__vote-separate-wrap{background:transparent!important;padding:0!important;min-width:0!important;width:2.6em!important;font-size:0.8em!important}' +
+            '.card__vote-separate-wrap .card__vote{position:static!important;width:100%!important;min-width:0!important;padding:0.15em 0.35em!important;font-size:1em!important}' +
+            '.card__vote-separate-wrap .card__vote .source--name{width:12px!important;height:12px!important;margin-left:2px!important}' +
+            '.card__vote-separate-wrap .card__vote img{max-width:1em!important;max-height:1em!important;min-width:0.8em!important;min-height:0.8em!important}' +
             '.card__vote--top{top:0.3em!important;right:0.3em!important;bottom:auto!important}' +
             '.card__vote--bottom{top:auto!important;right:0.3em!important;bottom:0.3em!important}' +
             '.card__vote-line .card__rate-item{display:-webkit-box;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;white-space:nowrap;margin-bottom:0.15em}' +
