@@ -1022,7 +1022,7 @@
             };
         }
 
-        var STEP = 0.25;
+        var STEP = 0.1;
         var MIN_OFF = -5;
         var MAX_OFF = 5;
         function applyOffset(dx, dy) {
@@ -1117,13 +1117,13 @@
             border: '3px solid transparent', boxSizing: 'border-box'
         });
         function closeModal() {
-            if (Lampa.Modal && Lampa.Modal.close) Lampa.Modal.close();
+            Lampa.Modal.close();
             applyRatingSettingsRefresh();
-            document.removeEventListener('keydown', backKeyHandler, true);
-            document.removeEventListener('keydown', arrowKeyHandler, true);
-            if (typeof Lampa.Controller !== 'undefined' && typeof Lampa.Controller.toggle === 'function') {
-                try { setTimeout(function () { Lampa.Controller.toggle('settings'); }, 50); } catch (err) {}
-            }
+            setTimeout(function () {
+                if (typeof Lampa.Controller !== 'undefined' && typeof Lampa.Controller.toggle === 'function') {
+                    try { Lampa.Controller.toggle('settings'); } catch (err) {}
+                }
+            }, 50);
         }
         closeBtn.on('hover:enter', closeModal);
         closeBtn.on('click', function (e) {
@@ -1133,74 +1133,7 @@
         });
         list.append(closeBtn);
 
-        function syncFocusClass() {
-            list.find('.selector').removeClass('focus');
-            var a = document.activeElement;
-            if (a && list[0] && list[0].contains && list[0].contains(a)) $(a).addClass('focus');
-        }
-        list.on('mouseleave', function () {
-            try {
-                var a = document.activeElement;
-                if (a && list[0] && list[0].contains && list[0].contains(a)) a.blur();
-            } catch (err) {}
-        });
-        list.on('focus', '.selector', function () {
-            syncFocusClass();
-        });
-        list.on('keydown', '.selector', function (e) {
-            var k = e.keyCode || e.which;
-            if (k === 9) { setTimeout(syncFocusClass, 0); }
-        });
-
-        var backKeyHandler = function (e) {
-            var key = e.keyCode || e.which;
-            if (key === 27 || key === 10009 || key === 461) {
-                e.preventDefault();
-                closeModal();
-            }
-        };
-        var arrowKeyHandler = function (e) {
-            var modal = document.querySelector('.rate-settings-modal');
-            if (!modal || !document.body.contains(modal)) return;
-            var rect = modal.getBoundingClientRect && modal.getBoundingClientRect();
-            if (rect && (rect.width <= 0 || rect.height <= 0)) return;
-            var k = e.keyCode || e.which;
-            var code = (e.code || '').toLowerCase();
-            var isDown = (k === 40 || code === 'arrowdown');
-            var isUp = (k === 38 || code === 'arrowup');
-            var isRight = (k === 39 || code === 'arrowright');
-            var isLeft = (k === 37 || code === 'arrowleft');
-            if (!isDown && !isUp && !isRight && !isLeft) return;
-            var selectors = modal.querySelectorAll('.selector');
-            if (selectors.length === 0) return;
-            e.preventDefault();
-            e.stopPropagation();
-            var idx = -1;
-            for (var i = 0; i < selectors.length; i++) { if (selectors[i] === document.activeElement) { idx = i; break; } }
-            if (idx < 0) idx = 0;
-            if (isDown || isRight) { idx = (idx + 1) % selectors.length; } else { idx = idx - 1; if (idx < 0) idx = selectors.length - 1; }
-            selectors[idx].focus();
-            try { selectors.forEach(function (s) { s.classList.remove('focus'); }); selectors[idx].classList.add('focus'); } catch (err) {}
-            try {
-                var el = selectors[idx];
-                var scrollParent = el.closest('.modal__body') || el.closest('.scroll') || el.closest('.modal__content') || el.parentNode;
-                if (scrollParent && scrollParent.scrollHeight > scrollParent.clientHeight) {
-                    var elTop = el.offsetTop;
-                    var elH = el.offsetHeight;
-                    var sTop = scrollParent.scrollTop;
-                    var sH = scrollParent.clientHeight;
-                    if (elTop < sTop) {
-                        scrollParent.scrollTop = elTop;
-                    } else if (elTop + elH > sTop + sH) {
-                        scrollParent.scrollTop = elTop + elH - sH;
-                    }
-                }
-            } catch (err) {}
-        };
         if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.open) {
-            try {
-                if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
-            } catch (e) {}
             Lampa.Modal.open({
                 title: 'Настройки рейтингов на карточках',
                 html: list,
@@ -1210,29 +1143,6 @@
                     closeModal();
                 }
             });
-            function focusModalFirst() {
-                var modal = document.querySelector('.rate-settings-modal');
-                if (modal) {
-                    var first = modal.querySelector('.selector');
-                    if (first && typeof first.focus === 'function') {
-                        try { if (document.activeElement && document.activeElement !== first && document.activeElement.blur) document.activeElement.blur(); } catch (e) {}
-                        first.focus({ preventScroll: false });
-                        var listEl = list && list[0];
-                        if (listEl) {
-                            try { listEl.querySelectorAll('.selector').forEach(function (s) { s.classList.remove('focus'); }); } catch (e) {}
-                            first.classList.add('focus');
-                        }
-                    }
-                }
-            }
-            setTimeout(function () {
-                document.addEventListener('keydown', backKeyHandler, true);
-                document.addEventListener('keydown', arrowKeyHandler, true);
-                focusModalFirst();
-            }, 150);
-            setTimeout(focusModalFirst, 350);
-            setTimeout(focusModalFirst, 600);
-            setTimeout(focusModalFirst, 1000);
         }
         }, 200); // openRatingModalAfterClose
     }
@@ -1285,9 +1195,8 @@
         style.type = 'text/css';
         style.textContent = (
             '.rate-settings-modal .selector{cursor:pointer!important;pointer-events:auto!important;-webkit-tap-highlight-color:transparent;user-select:none}' +
-            '.rate-settings-modal .rate-settings-row.focus,.rate-settings-modal .rate-settings-close.focus,.rate-settings-modal .rate-settings-offset-btn.focus,.rate-settings-modal .rate-settings-reset.focus,.rate-settings-modal .rate-settings-plusminus-btn.focus{border-color:rgba(255,255,255,0.95)!important;box-shadow:0 0 0 2px rgba(255,255,255,0.95)}' +
-            '.rate-settings-modal .selector:focus{outline:none!important}' +
-            '.rate-settings-modal .rate-settings-row:hover,.rate-settings-modal .rate-settings-close:hover,.rate-settings-modal .rate-settings-offset-btn:hover,.rate-settings-modal .rate-settings-reset:hover,.rate-settings-modal .rate-settings-plusminus-btn:hover{background:rgba(255,255,255,0.06)}' +
+            '.rate-settings-modal .selector.focus{border-color:rgba(255,255,255,0.95)!important;box-shadow:0 0 0 2px rgba(255,255,255,0.95)}' +
+            '.rate-settings-modal .selector:hover{background:rgba(255,255,255,0.06)}' +
             '[data-name="rating_modal_open"] .settings-param__value,[data-name="rating_modal_open"] .settings-param__control,[data-name="rating_modal_open"] input[type="checkbox"]{display:none!important}' +
             '.card .card__view{position:relative!important}' +
             '.card__vote{display:-webkit-box;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center!important;height:auto!important;overflow:visible!important;position:absolute!important;z-index:1!important;border-radius:0.35em!important;width:auto!important;min-width:0!important;max-width:100%!important;box-sizing:border-box!important;transform:scale(var(--rating-scale,1))!important;padding:0.2em 0.4em!important;line-height:1!important;white-space:nowrap!important}' +
