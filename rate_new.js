@@ -575,7 +575,7 @@
         var wrapper = document.createElement('div');
         wrapper.className = voteClass('card__vote-separate-wrap');
         var posCSS = getRatingPositionCSS(0);
-        wrapper.style.cssText = 'position:absolute;z-index:1;display:-webkit-box;display:-webkit-flex;display:flex;-webkit-flex-direction:column;flex-direction:column;gap:0.12em;' + posCSS;
+        wrapper.style.cssText = 'position:absolute;z-index:1;display:-webkit-box;display:-webkit-flex;display:flex;-webkit-flex-direction:column;flex-direction:column;gap:0.12em;width:3em;min-width:3em;max-width:3em;overflow:hidden;box-sizing:border-box;' + posCSS;
         for (var i = 0; i < sources.length; i++) {
             var el = createRatingInnerBlock();
             el.dataset.rateSource = sources[i];
@@ -1158,6 +1158,9 @@
             }
         };
         if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.open) {
+            try {
+                if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+            } catch (e) {}
             Lampa.Modal.open({
                 title: 'Настройки рейтингов на карточках',
                 html: list,
@@ -1167,18 +1170,29 @@
                     closeModal();
                 }
             });
+            function focusModalFirst() {
+                var modal = document.querySelector('.rate-settings-modal');
+                if (modal) {
+                    var first = modal.querySelector('.selector');
+                    if (first && typeof first.focus === 'function') {
+                        first.focus();
+                        var listEl = list && list[0];
+                        if (listEl) {
+                            try { listEl.querySelectorAll('.selector').forEach(function (s) { s.classList.remove('focus'); }); } catch (e) {}
+                            first.classList.add('focus');
+                        }
+                    }
+                }
+            }
             setTimeout(function () {
                 document.addEventListener('keydown', backKeyHandler);
-                var firstEl = list.find('.selector').first();
-                firstEl.addClass('focus');
-                try {
-                    var domEl = firstEl[0];
-                    if (domEl && typeof domEl.focus === 'function') domEl.focus();
-                } catch (err) {}
+                focusModalFirst();
                 if (typeof Lampa.Controller !== 'undefined' && typeof Lampa.Controller.toggle === 'function') {
                     try { Lampa.Controller.toggle('settings'); } catch (err) {}
                 }
             }, 150);
+            setTimeout(focusModalFirst, 350);
+            setTimeout(focusModalFirst, 600);
         }
     }
 
@@ -1238,8 +1252,7 @@
             '.card__vote{display:-webkit-box;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center!important;height:auto!important;max-height:none!important;overflow:visible!important;position:absolute!important;z-index:1!important;border-radius:0.35em!important;width:auto!important;min-width:3em!important;max-width:100%!important;box-sizing:border-box!important;transform:scale(var(--rating-scale,1))!important;padding:0.2em 0.4em!important}' +
             '.card__vote-line{width:3em!important;min-width:3em!important;max-width:100%!important;box-sizing:border-box!important;transform:scale(var(--rating-scale,1))!important;padding:0.2em 0.4em!important}' +
             '.card__vote-separate-wrap{background:transparent!important;padding:0!important;width:3em!important;min-width:3em!important;max-width:3em!important;overflow:hidden!important;transform:scale(var(--rating-scale,1))!important;display:-webkit-box!important;display:-webkit-flex!important;display:flex!important;-webkit-flex-direction:column!important;flex-direction:column!important;-webkit-align-items:stretch!important;align-items:stretch!important;gap:0.12em!important}' +
-            '.card__vote-separate-wrap .card__vote{position:static!important;width:100%!important;min-width:0!important;max-width:100%!important;padding:0.2em 0.4em!important;white-space:nowrap!important;-webkit-flex-shrink:1!important;flex-shrink:1!important;box-sizing:border-box!important;transform:none!important;overflow:hidden!important}' +
-            '.card__vote-separate-wrap .card__vote.rate--lampa{min-width:0!important;-webkit-flex-shrink:1!important;flex-shrink:1!important}' +
+            '.card__vote-separate-wrap .card__vote{position:static!important;width:3em!important;min-width:3em!important;max-width:3em!important;padding:0.2em 0.4em!important;white-space:nowrap!important;-webkit-flex-shrink:0!important;flex-shrink:0!important;box-sizing:border-box!important;transform:none!important;overflow:hidden!important}' +
             '.card__vote-separate-wrap .card__vote .source--name{width:14px!important;height:14px!important;margin-left:3px!important;-webkit-flex-shrink:0!important;flex-shrink:0!important}' +
             '@media (min-width:481px){.card__vote-separate-wrap .card__vote .source--name{width:18px!important;height:18px!important;margin-left:4px!important}}' +
             '.card__vote--top,.card__vote-line.card__vote--top,.card__vote-separate-wrap.card__vote--top{transform-origin:top right!important;transform:scale(var(--rating-scale,1))!important}' +
@@ -1256,7 +1269,8 @@
             '.rate-icon-reaction{background-repeat:no-repeat;background-position:center;background-size:contain}' +
             '.card__vote.rate--lampa{line-height:1!important}' +
             '.card__vote.rate--lampa img{width:0.85em!important;height:0.85em!important;min-width:0!important;min-height:0!important;max-width:0.85em!important;max-height:0.85em!important;object-fit:contain!important;margin:0 0.15em!important;-webkit-flex-shrink:0;flex-shrink:0;vertical-align:middle}' +
-            '.card__vote-separate-wrap .card__vote.rate--lampa img{width:0.7em!important;height:0.7em!important;max-width:0.7em!important;max-height:0.7em!important;margin:0 0.1em!important}' +
+            '.card__vote-separate-wrap .card__vote.rate--lampa img{width:0.6em!important;height:0.6em!important;max-width:0.6em!important;max-height:0.6em!important;margin:0 0.08em!important;-webkit-flex-shrink:1!important;flex-shrink:1!important}' +
+            '.card__vote-separate-wrap .card__vote.rate--lampa span{-webkit-flex-shrink:1!important;flex-shrink:1!important;min-width:0!important;overflow:hidden!important;text-overflow:ellipsis!important}' +
             '.card__vote img[src*=".gif"]{object-fit:contain!important;-webkit-flex-shrink:0;flex-shrink:0}' +
             '.rate--lampa.rate--lampa--animated .rate-icon img{min-width:1em;min-height:1em;object-fit:contain}' +
             '.rate--imdb .source--name{background-image:url("data:image/svg+xml,%3Csvg fill=\'%23ffcc00\' viewBox=\'0 0 32 32\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg id=\'SVGRepo_bgCarrier\' stroke-width=\'0\'%3E%3C/g%3E%3Cg id=\'SVGRepo_tracerCarrier\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3E%3C/g%3E%3Cg id=\'SVGRepo_iconCarrier\'%3E%3Cpath d=\'M 0 7 L 0 25 L 32 25 L 32 7 Z M 2 9 L 30 9 L 30 23 L 2 23 Z M 5 11.6875 L 5 20.3125 L 7 20.3125 L 7 11.6875 Z M 8.09375 11.6875 L 8.09375 20.3125 L 10 20.3125 L 10 15.5 L 10.90625 20.3125 L 12.1875 20.3125 L 13 15.5 L 13 20.3125 L 14.8125 20.3125 L 14.8125 11.6875 L 12 11.6875 L 11.5 15.8125 L 10.8125 11.6875 Z M 15.90625 11.6875 L 15.90625 20.1875 L 18.3125 20.1875 C 19.613281 20.1875 20.101563 19.988281 20.5 19.6875 C 20.898438 19.488281 21.09375 19 21.09375 18.5 L 21.09375 13.3125 C 21.09375 12.710938 20.898438 12.199219 20.5 12 C 20 11.800781 19.8125 11.6875 18.3125 11.6875 Z M 22.09375 11.8125 L 22.09375 20.3125 L 23.90625 20.3125 C 23.90625 20.3125 23.992188 19.710938 24.09375 19.8125 C 24.292969 19.8125 25.101563 20.1875 25.5 20.1875 C 26 20.1875 26.199219 20.195313 26.5 20.09375 C 26.898438 19.894531 27 19.613281 27 19.3125 L 27 14.3125 C 27 13.613281 26.289063 13.09375 25.6875 13.09375 C 25.085938 13.09375 24.511719 13.488281 24.3125 13.6875 L 24.3125 11.8125 Z M 18 13 C 18.398438 13 18.8125 13.007813 18.8125 13.40625 L 18.8125 18.40625 C 18.8125 18.804688 18.300781 18.8125 18 18.8125 Z M 24.59375 14 C 24.695313 14 24.8125 14.105469 24.8125 14.40625 L 24.8125 18.6875 C 24.8125 18.886719 24.792969 19.09375 24.59375 19.09375 C 24.492188 19.09375 24.40625 18.988281 24.40625 18.6875 L 24.40625 14.40625 C 24.40625 14.207031 24.394531 14 24.59375 14 Z\'/%3E%3C/g%3E%3C/svg%3E")}' +
