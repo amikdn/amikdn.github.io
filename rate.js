@@ -54,7 +54,7 @@
     }
 
     var CACHE_TTL = 24 * 60 * 60 * 1000;
-    var CACHE_TTL_EMPTY = 4 * 60 * 60 * 1000;
+    var CACHE_TTL_EMPTY = 24 * 60 * 60 * 1000;
 
     var ratingCache = {
         caches: {},
