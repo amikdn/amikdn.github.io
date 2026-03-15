@@ -575,7 +575,7 @@
         var wrapper = document.createElement('div');
         wrapper.className = voteClass('card__vote-separate-wrap');
         var posCSS = getRatingPositionCSS(0);
-        wrapper.style.cssText = 'position:absolute;z-index:1;display:-webkit-box;display:-webkit-flex;display:flex;-webkit-flex-direction:column;flex-direction:column;gap:0.25em;' + posCSS;
+        wrapper.style.cssText = 'position:absolute;z-index:1;display:-webkit-box;display:-webkit-flex;display:flex;-webkit-flex-direction:column;flex-direction:column;gap:0.12em;' + posCSS;
         for (var i = 0; i < sources.length; i++) {
             var el = createRatingInnerBlock();
             el.dataset.rateSource = sources[i];
@@ -964,6 +964,50 @@
             return r;
         }
 
+        function addNumberRowWithButtons(label, storageKey, defaultVal, min, max, step, suffix) {
+            var current = parseFloat(Lampa.Storage.get(storageKey, defaultVal));
+            var val = isNaN(current) ? defaultVal : Math.max(min, Math.min(max, current));
+            Lampa.Storage.set(storageKey, String(val));
+            var valEl = $('<div class="rate-settings-value"></div>').css({ whiteSpace: 'nowrap', opacity: 0.9, minWidth: '2.5em', textAlign: 'center' }).text(val + (suffix || ''));
+            var btnMinus = $('<div class="selector menu-edit-list__item rate-settings-plusminus-btn" tabindex="0" aria-label="Уменьшить"></div>').text('−').css({
+                width: '2em', textAlign: 'center', padding: '0.35em 0.2em', borderRadius: '0.25em', border: '2px solid transparent', boxSizing: 'border-box', background: 'rgba(255,255,255,0.12)', fontSize: '1.1em', lineHeight: 1
+            });
+            var btnPlus = $('<div class="selector menu-edit-list__item rate-settings-plusminus-btn" tabindex="0" aria-label="Увеличить"></div>').text('+').css({
+                width: '2em', textAlign: 'center', padding: '0.35em 0.2em', borderRadius: '0.25em', border: '2px solid transparent', boxSizing: 'border-box', background: 'rgba(255,255,255,0.12)', fontSize: '1.1em', lineHeight: 1
+            });
+            function applyChange(delta) {
+                var num = parseFloat(Lampa.Storage.get(storageKey, defaultVal));
+                num = isNaN(num) ? defaultVal : num;
+                var next = Math.max(min, Math.min(max, num + delta));
+                Lampa.Storage.set(storageKey, String(next));
+                valEl.text(next + (suffix || ''));
+                applyRatingSettingsRefresh();
+            }
+            btnMinus.on('hover:enter', function () { applyChange(-(step || 1)); });
+            btnMinus.on('click', function (e) {
+                if (e && e.preventDefault) e.preventDefault();
+                if (e && e.stopPropagation) e.stopPropagation();
+                applyChange(-(step || 1));
+            });
+            btnPlus.on('hover:enter', function () { applyChange(step || 1); });
+            btnPlus.on('click', function (e) {
+                if (e && e.preventDefault) e.preventDefault();
+                if (e && e.stopPropagation) e.stopPropagation();
+                applyChange(step || 1);
+            });
+            var row = $('<div class="menu-edit-list__item rate-settings-row rate-settings-number-row"></div>').css({
+                display: 'grid', gridTemplateColumns: '1fr auto auto auto', alignItems: 'center', gap: '0.35em', padding: '0.5em 0.4em', marginBottom: '0.2em',
+                borderRadius: '0.3em', border: '3px solid transparent', boxSizing: 'border-box'
+            });
+            var title = $('<div class="menu-edit-list__title"></div>').css({ minWidth: 0, overflow: 'hidden' }).text(label);
+            row.append(title).append(btnMinus).append(valEl).append(btnPlus);
+            list.append(row);
+            return {
+                row: row,
+                updateVal: function (text) { valEl.text(text); }
+            };
+        }
+
         var STEP = 0.25;
         var MIN_OFF = -5;
         var MAX_OFF = 5;
@@ -1007,8 +1051,8 @@
         var rowShowKp = addTriggerRow('Показывать КиноПоиск (при «Все»)', 'rating_show_kp', true);
         var rowShowLampa = addTriggerRow('Показывать Lampa (при «Все»)', 'rating_show_lampa', true);
         var rowDisplayMode = addCycleRow('Режим отображения (все рейтинги)', 'rating_display_mode', DISPLAY_MODE_LABELS, 'single');
-        var rowOpacity = addNumberRow('Прозрачность (0=непрозрачное, 100=макс.)', 'rating_window_opacity', 0, 0, 100, 10, '%');
-        var rowScale = addNumberRow('Масштаб окон рейтингов', 'rating_scale', 100, 60, 150, 5, '%');
+        var rowOpacity = addNumberRowWithButtons('Прозрачность (0=непрозрачное, 100=макс.)', 'rating_window_opacity', 0, 0, 100, 10, '%');
+        var rowScale = addNumberRowWithButtons('Масштаб окон рейтингов', 'rating_scale', 100, 60, 150, 5, '%');
 
         function resetAllToDefault() {
             Lampa.Storage.set('rating_source', 'tmdb');
@@ -1151,15 +1195,17 @@
         style.type = 'text/css';
         style.textContent = (
             '.rate-settings-modal .selector{cursor:pointer!important;pointer-events:auto!important;-webkit-tap-highlight-color:transparent;user-select:none}' +
-            '.rate-settings-modal .rate-settings-row.focus,.rate-settings-modal .rate-settings-close.focus,.rate-settings-modal .rate-settings-offset-btn.focus,.rate-settings-modal .rate-settings-reset.focus{border-color:rgba(255,255,255,0.95)!important;box-shadow:0 0 0 2px rgba(255,255,255,0.95)}' +
+            '.rate-settings-modal .rate-settings-row.focus,.rate-settings-modal .rate-settings-close.focus,.rate-settings-modal .rate-settings-offset-btn.focus,.rate-settings-modal .rate-settings-reset.focus,.rate-settings-modal .rate-settings-plusminus-btn.focus{border-color:rgba(255,255,255,0.95)!important;box-shadow:0 0 0 2px rgba(255,255,255,0.95)}' +
             '.rate-settings-modal .selector:focus{outline:3px solid rgba(255,255,255,0.95)!important;outline-offset:2px}' +
-            '.rate-settings-modal .rate-settings-row:hover,.rate-settings-modal .rate-settings-close:hover,.rate-settings-modal .rate-settings-offset-btn:hover,.rate-settings-modal .rate-settings-reset:hover{background:rgba(255,255,255,0.06)}' +
+            '.rate-settings-modal .rate-settings-row:hover,.rate-settings-modal .rate-settings-close:hover,.rate-settings-modal .rate-settings-offset-btn:hover,.rate-settings-modal .rate-settings-reset:hover,.rate-settings-modal .rate-settings-plusminus-btn:hover{background:rgba(255,255,255,0.06)}' +
             '[data-name="rating_modal_open"] .settings-param__value,[data-name="rating_modal_open"] .settings-param__control,[data-name="rating_modal_open"] input[type="checkbox"]{display:none!important}' +
             '.card .card__view{position:relative!important}' +
             '.card__vote{display:-webkit-box;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center!important;height:auto!important;max-height:none!important;overflow:visible!important;position:absolute!important;z-index:1!important;border-radius:0.35em!important;width:2.6em!important;min-width:2.6em!important;box-sizing:border-box!important;transform:scale(var(--rating-scale,1))!important}' +
             '.card__vote-line{width:2.6em!important;min-width:2.6em!important;box-sizing:border-box!important;transform:scale(var(--rating-scale,1))!important}' +
-            '.card__vote-separate-wrap{background:transparent!important;padding:0!important;min-width:0!important;width:2.6em!important;transform:scale(var(--rating-scale,1))!important;display:-webkit-box!important;display:-webkit-flex!important;display:flex!important;-webkit-flex-direction:column!important;flex-direction:column!important;-webkit-align-items:flex-end!important;align-items:flex-end!important;gap:0.25em!important}' +
-            '.card__vote-separate-wrap .card__vote{position:static!important;width:100%!important;min-width:0!important;padding:0.2em 0.5em!important}' +
+            '.card__vote-separate-wrap{background:transparent!important;padding:0!important;min-width:0!important;width:auto!important;max-width:100%!important;transform:scale(var(--rating-scale,1))!important;display:-webkit-box!important;display:-webkit-flex!important;display:flex!important;-webkit-flex-direction:column!important;flex-direction:column!important;-webkit-align-items:flex-end!important;align-items:flex-end!important;gap:0.12em!important}' +
+            '.card__vote-separate-wrap .card__vote{position:static!important;width:auto!important;min-width:0!important;max-width:100%!important;padding:0.2em 0.4em!important;white-space:nowrap!important;-webkit-flex-shrink:0!important;flex-shrink:0!important}' +
+            '.card__vote-separate-wrap .card__vote .source--name{width:14px!important;height:14px!important;margin-left:3px!important;-webkit-flex-shrink:0!important;flex-shrink:0!important}' +
+            '@media (min-width:481px){.card__vote-separate-wrap .card__vote .source--name{width:18px!important;height:18px!important;margin-left:4px!important}}' +
             '.card__vote--top,.card__vote-line.card__vote--top,.card__vote-separate-wrap.card__vote--top{transform-origin:top right!important;transform:scale(var(--rating-scale,1))!important}' +
             '.card__vote--bottom,.card__vote-line.card__vote--bottom,.card__vote-separate-wrap.card__vote--bottom{transform-origin:bottom right!important;transform:scale(var(--rating-scale,1))!important}' +
             '.card__vote--top{top:0.3em!important;right:0.3em!important;bottom:auto!important}' +
