@@ -945,22 +945,22 @@
             return btn;
         }
 
-        addCycleRow('Источник рейтинга', 'rating_source', SOURCE_LABELS, 'tmdb');
-        addTriggerRow('Анимированные реакции на постерах', 'animated_reactions', false);
-        addTriggerRow('Цветные рейтинги (цифры)', 'colored_ratings_poster', true);
-        addTriggerRow('Цветные окна (цифры белые)', 'rating_colored_windows', false);
-        addCycleRow('Позиция на постере', 'rating_position', POSITION_LABELS, 'top');
-        list.append($('<div class="menu-edit-list__item" style="padding:0.3em 0.4em;margin-bottom:0.1em;font-weight:bold;box-sizing:border-box;">Смещение (нажатие — сдвиг)</div>'));
+        var rowSource = addCycleRow('Источник рейтинга', 'rating_source', SOURCE_LABELS, 'tmdb');
+        var rowAnimated = addTriggerRow('Анимированные реакции на постерах', 'animated_reactions', false);
+        var rowColored = addTriggerRow('Цветные рейтинги (цифры)', 'colored_ratings_poster', true);
+        var rowColoredWin = addTriggerRow('Цветные окна (цифры белые)', 'rating_colored_windows', false);
+        var rowPosition = addCycleRow('Позиция на постере', 'rating_position', POSITION_LABELS, 'top');
+        list.append($('<div class="menu-edit-list__item rate-settings-offset-label"></div>').css({ padding: '0.3em 0.4em', marginBottom: '0.1em', fontWeight: 'bold', boxSizing: 'border-box', whiteSpace: 'nowrap', overflow: 'hidden' }).text('Смещение (нажатие-сдвиг)'));
         list.append(addOffsetButton('Влево', -STEP, 0));
         list.append(addOffsetButton('Вправо', STEP, 0));
         list.append(addOffsetButton('Вверх', 0, -STEP));
         list.append(addOffsetButton('Вниз', 0, STEP));
-        addTriggerRow('Показывать TMDB (при «Все»)', 'rating_show_tmdb', true);
-        addTriggerRow('Показывать IMDB (при «Все»)', 'rating_show_imdb', true);
-        addTriggerRow('Показывать КиноПоиск (при «Все»)', 'rating_show_kp', true);
-        addTriggerRow('Показывать Lampa (при «Все»)', 'rating_show_lampa', true);
-        addCycleRow('Режим отображения (все рейтинги)', 'rating_display_mode', DISPLAY_MODE_LABELS, 'single');
-        addNumberRow('Прозрачность (0=непрозрачное, 100=макс.)', 'rating_window_opacity', 0, 0, 100, 10, '%');
+        var rowShowTmdb = addTriggerRow('Показывать TMDB (при «Все»)', 'rating_show_tmdb', true);
+        var rowShowImdb = addTriggerRow('Показывать IMDB (при «Все»)', 'rating_show_imdb', true);
+        var rowShowKp = addTriggerRow('Показывать КиноПоиск (при «Все»)', 'rating_show_kp', true);
+        var rowShowLampa = addTriggerRow('Показывать Lampa (при «Все»)', 'rating_show_lampa', true);
+        var rowDisplayMode = addCycleRow('Режим отображения (все рейтинги)', 'rating_display_mode', DISPLAY_MODE_LABELS, 'single');
+        var rowOpacity = addNumberRow('Прозрачность (0=непрозрачное, 100=макс.)', 'rating_window_opacity', 0, 0, 100, 10, '%');
 
         function resetAllToDefault() {
             Lampa.Storage.set('rating_source', 'tmdb');
@@ -976,6 +976,17 @@
             Lampa.Storage.set('rating_show_lampa', true);
             Lampa.Storage.set('rating_display_mode', 'single');
             Lampa.Storage.set('rating_window_opacity', '0');
+            rowSource.updateVal(SOURCE_LABELS.tmdb);
+            rowAnimated.updateVal('Выкл');
+            rowColored.updateVal('Вкл');
+            rowColoredWin.updateVal('Выкл');
+            rowPosition.updateVal(POSITION_LABELS.top);
+            rowShowTmdb.updateVal('Вкл');
+            rowShowImdb.updateVal('Вкл');
+            rowShowKp.updateVal('Вкл');
+            rowShowLampa.updateVal('Вкл');
+            rowDisplayMode.updateVal(DISPLAY_MODE_LABELS.single);
+            rowOpacity.updateVal('0%');
             applyRatingSettingsRefresh();
             if (typeof Lampa.Noty !== 'undefined' && Lampa.Noty.show) {
                 try { Lampa.Noty.show('Настройки рейтингов сброшены'); } catch (e) {}
@@ -1086,7 +1097,7 @@
             '.rate-settings-modal .rate-settings-row:hover,.rate-settings-modal .rate-settings-close:hover,.rate-settings-modal .rate-settings-offset-btn:hover,.rate-settings-modal .rate-settings-reset:hover{background:rgba(255,255,255,0.06)}' +
             '[data-name="rating_modal_open"] .settings-param__value,[data-name="rating_modal_open"] .settings-param__control,[data-name="rating_modal_open"] input[type="checkbox"]{display:none!important}' +
             '.card .card__view{position:relative!important}' +
-            '.card__vote{display:-webkit-box;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center!important;height:auto!important;max-height:none!important;overflow:visible!important;position:absolute!important;z-index:1!important;border-radius:0.35em!important}' +
+            '.card__vote{display:-webkit-box;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center!important;height:auto!important;max-height:none!important;overflow:visible!important;position:absolute!important;z-index:1!important;border-radius:0.35em!important;min-width:4.2em!important}' +
             '.card__vote--top{top:0.3em!important;right:0.3em!important;bottom:auto!important}' +
             '.card__vote--bottom{top:auto!important;right:0.3em!important;bottom:0.3em!important}' +
             '.card__vote-line .card__rate-item{display:-webkit-box;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;white-space:nowrap;margin-bottom:0.15em}' +
