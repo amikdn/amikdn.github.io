@@ -394,7 +394,9 @@
 
     function isRatingSourceVisible(source) {
         var key = 'rating_show_' + source;
-        return Lampa.Storage.get(key, true);
+        var v = Lampa.Storage.get(key, true);
+        if (v === false || v === 'false' || v === 0 || v === '0') return false;
+        return true;
     }
 
     function updateCardRatingLine(ratingLine, data) {
@@ -553,7 +555,7 @@
         if (isRatingSourceVisible('imdb')) sources.push('imdb');
         if (isRatingSourceVisible('kp')) sources.push('kp');
         if (isRatingSourceVisible('lampa')) sources.push('lampa');
-        var step = 2.5;
+        var step = 1.4;
         for (var i = 0; i < sources.length; i++) {
             var el = createRatingElement(card, i * step);
             el.dataset.rateSource = sources[i];
@@ -919,7 +921,7 @@
             return r;
         }
 
-        var STEP = 0.5;
+        var STEP = 0.25;
         var MIN_OFF = -5;
         var MAX_OFF = 5;
         function applyOffset(dx, dy) {
