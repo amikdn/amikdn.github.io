@@ -876,10 +876,13 @@
     function openRatingSettingsModal() {
         var $ = typeof window.$ !== 'undefined' ? window.$ : (typeof window.jQuery !== 'undefined' ? window.jQuery : null);
         if (!$) return;
+        if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.close) Lampa.Modal.close();
+        setTimeout(function openRatingModalAfterClose() {
         var SOURCE_LABELS = { tmdb: 'TMDB', lampa: 'Lampa', kp: 'КиноПоиск', imdb: 'IMDB', all: 'Все (как на полной карточке)' };
         var POSITION_LABELS = { top: 'Сверху справа', bottom: 'Снизу справа' };
         var DISPLAY_MODE_LABELS = { single: 'Одно окно', separate: 'Каждый в отдельном окне' };
         var list = $('<div class="menu-edit-list rate-settings-modal"></div>').css({ maxWidth: '100%', overflow: 'hidden', boxSizing: 'border-box', padding: '0.5em 0', pointerEvents: 'auto', cursor: 'default' });
+        list.on('click mousedown touchstart', function (e) { e.stopPropagation(); });
 
         function isMouseEvent(e) {
             return e && (e.pointerType === 'mouse' || (e.clientX !== undefined && e.clientY !== undefined));
@@ -1116,7 +1119,7 @@
         function closeModal() {
             if (Lampa.Modal && Lampa.Modal.close) Lampa.Modal.close();
             applyRatingSettingsRefresh();
-            document.removeEventListener('keydown', backKeyHandler);
+            document.removeEventListener('keydown', backKeyHandler, true);
             if (typeof Lampa.Controller !== 'undefined' && typeof Lampa.Controller.toggle === 'function') {
                 try { setTimeout(function () { Lampa.Controller.toggle('settings'); }, 50); } catch (err) {}
             }
@@ -1185,15 +1188,13 @@
                 }
             }
             setTimeout(function () {
-                document.addEventListener('keydown', backKeyHandler);
+                document.addEventListener('keydown', backKeyHandler, true);
                 focusModalFirst();
-                if (typeof Lampa.Controller !== 'undefined' && typeof Lampa.Controller.toggle === 'function') {
-                    try { Lampa.Controller.toggle('settings'); } catch (err) {}
-                }
             }, 150);
             setTimeout(focusModalFirst, 350);
             setTimeout(focusModalFirst, 600);
         }
+        }, 200); // openRatingModalAfterClose
     }
 
     function addSettings() {
