@@ -54,7 +54,16 @@
     }
 
     var CACHE_TTL = 24 * 60 * 60 * 1000;
-    var CACHE_TTL_EMPTY = 24 * 60 * 60 * 1000;
+
+    var _savePending = {};
+    function debouncedSave(source, cache) {
+        if (_savePending[source]) return;
+        _savePending[source] = true;
+        setTimeout(function () {
+            _savePending[source] = false;
+            try { Lampa.Storage.set(source, cache); } catch (e) {}
+        }, 2000);
+    }
 
     var ratingCache = {
         caches: {},
@@ -62,10 +71,9 @@
             var cache = this.caches[source] || (this.caches[source] = Lampa.Storage.cache(source, 500, {}));
             var data = cache[key];
             if (!data) return null;
-            var ttl = data._empty ? CACHE_TTL_EMPTY : CACHE_TTL;
-            if (Date.now() - data.timestamp > ttl) {
+            if (Date.now() - data.timestamp > CACHE_TTL) {
                 delete cache[key];
-                Lampa.Storage.set(source, cache);
+                debouncedSave(source, cache);
                 return null;
             }
             return data;
@@ -76,7 +84,7 @@
             var isEmpty = ((!value.kp || value.kp === 0) && (!value.imdb || value.imdb === 0) && (!value.rating || value.rating === 0) && (!value.vote_average || value.vote_average === 0));
             if (isEmpty) value._empty = true;
             cache[key] = value;
-            Lampa.Storage.set(source, cache);
+            debouncedSave(source, cache);
             return value;
         }
     };
@@ -580,7 +588,7 @@
                     var color = getRatingColor(result.rating);
                     var html = '<span style="color:' + color + '">' + formatRating(result.rating) + '</span>';
                     if (result.medianReaction) {
-                        html += ' <img style="width:16px;height:16px;margin-left:4px;object-fit:contain;vertical-align:middle;flex-shrink:0;" src="' + getReactionImageSrc(result.medianReaction) + '">';
+                        html += ' <img style="width:12px;height:12px;margin-left:3px;object-fit:contain;vertical-align:middle;flex-shrink:0;" src="' + getReactionImageSrc(result.medianReaction) + '">';
                     }
                     el.className = voteClass('rate--lampa');
                     el.innerHTML = html;
@@ -641,7 +649,7 @@
             var color = getRatingColor(cachedLampa.rating);
             var html = '<span style="color:' + color + '">' + formatRating(cachedLampa.rating) + '</span>';
             if (cachedLampa.medianReaction) {
-                html += ' <img style="width:16px;height:16px;margin-left:4px;object-fit:contain;vertical-align:middle;flex-shrink:0;" src="' + getReactionImageSrc(cachedLampa.medianReaction) + '">';
+                html += ' <img style="width:12px;height:12px;margin-left:3px;object-fit:contain;vertical-align:middle;flex-shrink:0;" src="' + getReactionImageSrc(cachedLampa.medianReaction) + '">';
             }
             ratingElement.className = voteClass('rate--lampa');
             ratingElement.innerHTML = html;
@@ -655,7 +663,7 @@
                 var color = getRatingColor(result.rating);
                 var html = '<span style="color:' + color + '">' + formatRating(result.rating) + '</span>';
                 if (result.medianReaction) {
-                    html += ' <img style="width:16px;height:16px;margin-left:4px;object-fit:contain;vertical-align:middle;flex-shrink:0;" src="' + getReactionImageSrc(result.medianReaction) + '">';
+                    html += ' <img style="width:12px;height:12px;margin-left:3px;object-fit:contain;vertical-align:middle;flex-shrink:0;" src="' + getReactionImageSrc(result.medianReaction) + '">';
                 }
                 ratingElement.className = voteClass('rate--lampa');
                 ratingElement.innerHTML = html;
@@ -754,7 +762,7 @@
                 var html = '<span style="color:' + color + '">' + formatRating(cached.rating) + '</span>';
                 if (cached.medianReaction) {
                     var reactionSrc = getReactionImageSrc(cached.medianReaction);
-                    html += ' <img style="width:16px;height:16px;margin-left:4px;object-fit:contain;vertical-align:middle;flex-shrink:0;" src="' + reactionSrc + '">';
+                    html += ' <img style="width:12px;height:12px;margin-left:3px;object-fit:contain;vertical-align:middle;flex-shrink:0;" src="' + reactionSrc + '">';
                 }
                 ratingElement.innerHTML = html;
                 var bg = getRatingBackgroundColor(cached.rating);
@@ -771,7 +779,7 @@
                             var html = '<span style="color:' + color + '">' + formatRating(result.rating) + '</span>';
                             if (result.medianReaction) {
                                 var reactionSrc = getReactionImageSrc(result.medianReaction);
-                                html += ' <img style="width:16px;height:16px;margin-left:4px;object-fit:contain;vertical-align:middle;flex-shrink:0;" src="' + reactionSrc + '">';
+                                html += ' <img style="width:12px;height:12px;margin-left:3px;object-fit:contain;vertical-align:middle;flex-shrink:0;" src="' + reactionSrc + '">';
                             }
                             ratingElement.innerHTML = html;
                             var bg = getRatingBackgroundColor(result.rating);
@@ -814,10 +822,13 @@
         var allCards = document.querySelectorAll('.card');
         var source = Lampa.Storage.get('rating_source', 'tmdb');
         var displayMode = getRatingDisplayMode();
+        var wH = window.innerHeight || 1000;
         for (var i = 0; i < allCards.length; i++) {
             var card = allCards[i];
             var data = card.card_data;
             if (!data || !data.id) continue;
+            var rect = card.getBoundingClientRect();
+            if (rect.bottom < -200 || rect.top > wH + 200) continue;
             var idStr = data.id.toString();
             var lineEl = card.querySelector('.card__vote-line');
             var separateEls = card.querySelectorAll('.card__vote--separate');
@@ -841,7 +852,7 @@
                             var color = getRatingColor(cached.rating);
                             var html = '<span style="color:' + color + '">' + formatRating(cached.rating) + '</span>';
                             if (cached.medianReaction) {
-                                html += ' <img style="width:16px;height:16px;margin-left:4px;object-fit:contain;vertical-align:middle;flex-shrink:0;" src="' + getReactionImageSrc(cached.medianReaction) + '">';
+                                html += ' <img style="width:12px;height:12px;margin-left:3px;object-fit:contain;vertical-align:middle;flex-shrink:0;" src="' + getReactionImageSrc(cached.medianReaction) + '">';
                             }
                             singleEl.innerHTML = html;
                         }
@@ -1334,14 +1345,14 @@
             'body:not(.rating-inline-mode) .rating-inline-param{display:none!important}' +
             '.card .card__view{position:relative!important}' +
             '.card__view > .card__vote:not(.card__vote--top):not(.card__vote--bottom):not(.card__vote-line):not(.card__vote-separate-wrap):not(.card__vote--separate){display:none!important}' +
-            '.card__vote{display:-webkit-box;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center!important;height:auto!important;overflow:visible!important;position:absolute!important;z-index:1!important;border-radius:0.35em!important;width:auto!important;min-width:0!important;max-width:100%!important;box-sizing:border-box!important;transform:scale(var(--rating-scale,1))!important;padding:0.2em 0.4em!important;line-height:1!important;white-space:nowrap!important}' +
-            '.card__vote-line{width:auto!important;min-width:0!important;max-width:100%!important;box-sizing:border-box!important;transform:scale(var(--rating-scale,1))!important;padding:0.2em 0.4em!important;line-height:1!important;display:-webkit-box!important;display:-webkit-flex!important;display:flex!important;-webkit-flex-direction:column!important;flex-direction:column!important;-webkit-align-items:flex-end!important;align-items:flex-end!important;gap:0.1em!important}' +
-            '.card__vote-separate-wrap{background:transparent!important;padding:0!important;width:auto!important;min-width:0!important;max-width:100%!important;overflow:visible!important;transform:scale(var(--rating-scale,1))!important;display:-webkit-box!important;display:-webkit-flex!important;display:flex!important;-webkit-flex-direction:column!important;flex-direction:column!important;-webkit-align-items:flex-end!important;align-items:flex-end!important;gap:0.1em!important}' +
-            '.card__vote-separate-wrap .card__vote{position:static!important;width:auto!important;min-width:0!important;max-width:100%!important;padding:0.2em 0.4em!important;white-space:nowrap!important;-webkit-flex-shrink:0!important;flex-shrink:0!important;box-sizing:border-box!important;transform:none!important;overflow:visible!important;line-height:1!important;font-size:inherit!important}' +
+            '.card__vote{display:-webkit-box;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center!important;height:auto!important;overflow:visible!important;position:absolute!important;z-index:1!important;border-radius:4px!important;width:auto!important;min-width:0!important;max-width:100%!important;box-sizing:border-box!important;transform:scale(var(--rating-scale,1))!important;padding:2px 5px!important;line-height:1!important;white-space:nowrap!important}' +
+            '.card__vote-line{width:auto!important;min-width:0!important;max-width:100%!important;box-sizing:border-box!important;transform:scale(var(--rating-scale,1))!important;padding:2px 5px!important;line-height:1!important;display:-webkit-box!important;display:-webkit-flex!important;display:flex!important;-webkit-flex-direction:column!important;flex-direction:column!important;-webkit-align-items:flex-end!important;align-items:flex-end!important;gap:1px!important}' +
+            '.card__vote-separate-wrap{background:transparent!important;padding:0!important;width:auto!important;min-width:0!important;max-width:100%!important;overflow:visible!important;transform:scale(var(--rating-scale,1))!important;display:-webkit-box!important;display:-webkit-flex!important;display:flex!important;-webkit-flex-direction:column!important;flex-direction:column!important;-webkit-align-items:flex-end!important;align-items:flex-end!important;gap:1px!important}' +
+            '.card__vote-separate-wrap .card__vote{position:static!important;width:auto!important;min-width:0!important;max-width:100%!important;padding:2px 5px!important;white-space:nowrap!important;-webkit-flex-shrink:0!important;flex-shrink:0!important;box-sizing:border-box!important;transform:none!important;overflow:visible!important;line-height:1!important;font-size:inherit!important}' +
             '.card__vote--top,.card__vote-line.card__vote--top,.card__vote-separate-wrap.card__vote--top{transform-origin:top right!important;transform:scale(var(--rating-scale,1))!important}' +
             '.card__vote--bottom,.card__vote-line.card__vote--bottom,.card__vote-separate-wrap.card__vote--bottom{transform-origin:bottom right!important;transform:scale(var(--rating-scale,1))!important}' +
-            '.card__vote--top{top:0.3em!important;right:0.3em!important;bottom:auto!important}' +
-            '.card__vote--bottom{top:auto!important;right:0.3em!important;bottom:0.3em!important}' +
+            '.card__vote--top{top:4px!important;right:4px!important;bottom:auto!important}' +
+            '.card__vote--bottom{top:auto!important;right:4px!important;bottom:4px!important}' +
             '.card__vote-line .card__rate-item{display:-webkit-box;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;white-space:nowrap;line-height:1!important}' +
             '.card__vote-line .card__rate-item:last-child{margin-bottom:0}' +
             '.card__vote .source--name{font-size:0;color:transparent;width:16px;height:16px;background-repeat:no-repeat;background-position:center;background-size:contain;margin-left:4px;-webkit-flex-shrink:0;flex-shrink:0}' +
@@ -1351,8 +1362,8 @@
             '.rate--lampa .rate-icon-reaction{background-image:url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'%23e040fb\'%3E%3Cpath d=\'M12 2C8.13 2 5 5.13 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.87-3.13-7-7-7zm2 14h-4v-1h4v1zm0-2h-4v-1h4v1zM9 20h6v1c0 .55-.45 1-1 1h-4c-.55 0-1-.45-1-1v-1z\'/%3E%3C/svg%3E")}' +
             '.rate-icon-reaction{background-repeat:no-repeat;background-position:center;background-size:contain}' +
             '.card__vote.rate--lampa{line-height:1!important}' +
-            '.card__vote.rate--lampa img{width:16px!important;height:16px!important;min-width:0!important;min-height:0!important;max-width:16px!important;max-height:16px!important;object-fit:contain!important;-webkit-flex-shrink:0;flex-shrink:0;vertical-align:middle;margin-left:4px!important}' +
-            '@media (min-width:481px){.card__vote.rate--lampa img{width:24px!important;height:24px!important;max-width:24px!important;max-height:24px!important;margin-left:6px!important}}' +
+            '.card__vote.rate--lampa img{width:12px!important;height:12px!important;min-width:0!important;min-height:0!important;max-width:12px!important;max-height:12px!important;object-fit:contain!important;-webkit-flex-shrink:0;flex-shrink:0;vertical-align:middle;margin-left:3px!important}' +
+            '@media (min-width:481px){.card__vote.rate--lampa img{width:16px!important;height:16px!important;max-width:16px!important;max-height:16px!important;margin-left:4px!important}}' +
             '.card__vote img[src*=".gif"]{object-fit:contain!important;-webkit-flex-shrink:0;flex-shrink:0}' +
             '.rate--lampa.rate--lampa--animated .rate-icon img{min-width:1em;min-height:1em;object-fit:contain}' +
             '.rate--imdb .source--name{background-image:url("data:image/svg+xml,%3Csvg fill=\'%23ffcc00\' viewBox=\'0 0 32 32\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg id=\'SVGRepo_bgCarrier\' stroke-width=\'0\'%3E%3C/g%3E%3Cg id=\'SVGRepo_tracerCarrier\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3E%3C/g%3E%3Cg id=\'SVGRepo_iconCarrier\'%3E%3Cpath d=\'M 0 7 L 0 25 L 32 25 L 32 7 Z M 2 9 L 30 9 L 30 23 L 2 23 Z M 5 11.6875 L 5 20.3125 L 7 20.3125 L 7 11.6875 Z M 8.09375 11.6875 L 8.09375 20.3125 L 10 20.3125 L 10 15.5 L 10.90625 20.3125 L 12.1875 20.3125 L 13 15.5 L 13 20.3125 L 14.8125 20.3125 L 14.8125 11.6875 L 12 11.6875 L 11.5 15.8125 L 10.8125 11.6875 Z M 15.90625 11.6875 L 15.90625 20.1875 L 18.3125 20.1875 C 19.613281 20.1875 20.101563 19.988281 20.5 19.6875 C 20.898438 19.488281 21.09375 19 21.09375 18.5 L 21.09375 13.3125 C 21.09375 12.710938 20.898438 12.199219 20.5 12 C 20 11.800781 19.8125 11.6875 18.3125 11.6875 Z M 22.09375 11.8125 L 22.09375 20.3125 L 23.90625 20.3125 C 23.90625 20.3125 23.992188 19.710938 24.09375 19.8125 C 24.292969 19.8125 25.101563 20.1875 25.5 20.1875 C 26 20.1875 26.199219 20.195313 26.5 20.09375 C 26.898438 19.894531 27 19.613281 27 19.3125 L 27 14.3125 C 27 13.613281 26.289063 13.09375 25.6875 13.09375 C 25.085938 13.09375 24.511719 13.488281 24.3125 13.6875 L 24.3125 11.8125 Z M 18 13 C 18.398438 13 18.8125 13.007813 18.8125 13.40625 L 18.8125 18.40625 C 18.8125 18.804688 18.300781 18.8125 18 18.8125 Z M 24.59375 14 C 24.695313 14 24.8125 14.105469 24.8125 14.40625 L 24.8125 18.6875 C 24.8125 18.886719 24.792969 19.09375 24.59375 19.09375 C 24.492188 19.09375 24.40625 18.988281 24.40625 18.6875 L 24.40625 14.40625 C 24.40625 14.207031 24.394531 14 24.59375 14 Z\'/%3E%3C/g%3E%3C/svg%3E")}' +
