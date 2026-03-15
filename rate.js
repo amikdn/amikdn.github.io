@@ -79,6 +79,14 @@
             return data;
         },
         set: function (source, key, value) {
+            if (source === 'lampa_rating' && (value.rating === 0 || value.rating === '0.0')) {
+                var cache = this.caches[source];
+                if (cache && cache[key]) {
+                    delete cache[key];
+                    debouncedSave(source, cache);
+                }
+                return value;
+            }
             var cache = this.caches[source] || (this.caches[source] = Lampa.Storage.cache(source, 500, {}));
             value.timestamp = Date.now();
             var isEmpty = ((!value.kp || value.kp === 0) && (!value.imdb || value.imdb === 0) && (!value.rating || value.rating === 0) && (!value.vote_average || value.vote_average === 0));
@@ -854,13 +862,10 @@
         var allCards = document.querySelectorAll('.card');
         var source = Lampa.Storage.get('rating_source', 'tmdb');
         var displayMode = getRatingDisplayMode();
-        var wH = window.innerHeight || 1000;
         for (var i = 0; i < allCards.length; i++) {
             var card = allCards[i];
             var data = card.card_data;
             if (!data || !data.id) continue;
-            var rect = card.getBoundingClientRect();
-            if (rect.bottom < -200 || rect.top > wH + 200) continue;
             var idStr = data.id.toString();
             var lineEl = card.querySelector('.card__vote-line');
             var separateEls = card.querySelectorAll('.card__vote--separate');
@@ -906,7 +911,7 @@
             }
             if (needFull) updateCardRating({ card: card, data: data });
         }
-        setTimeout(pollCards, 2000);
+        setTimeout(pollCards, 500);
     }
 
     function colorizeFullCardRatings(render) {
