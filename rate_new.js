@@ -409,8 +409,8 @@
 
     function isRatingSourceVisible(source) {
         var key = 'rating_show_' + source;
-        var v = Lampa.Storage.get(key, true);
-        if (v === false || v === 'false' || v === 0 || v === '0') return false;
+        var v = Lampa.Storage.get(key, '1');
+        if (v === false || v === 'false' || v === 0 || v === '0' || v === '' || v === null || v === undefined) return false;
         return true;
     }
 
@@ -881,6 +881,15 @@
         var DISPLAY_MODE_LABELS = { single: 'Одно окно', separate: 'Каждый в отдельном окне' };
         var list = $('<div class="menu-edit-list rate-settings-modal"></div>').css({ maxWidth: '100%', overflow: 'hidden', boxSizing: 'border-box', padding: '0.5em 0', pointerEvents: 'auto', cursor: 'default' });
 
+        function isMouseEvent(e) {
+            return e && (e.pointerType === 'mouse' || (e.clientX !== undefined && e.clientY !== undefined));
+        }
+        function blurActiveAfterMouseClick(e) {
+            if (isMouseEvent(e)) {
+                setTimeout(function () { try { var a = document.activeElement; if (a && a.blur) a.blur(); } catch (err) {} }, 0);
+            }
+        }
+
         function makeRow(label, valueText, onClick) {
             var row = $('<div class="selector menu-edit-list__item rate-settings-row" tabindex="0"></div>').css({
                 display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'center', gap: '0.5em', padding: '0.5em 0.4em', marginBottom: '0.2em',
@@ -894,7 +903,9 @@
                 row.on('click', function (e) {
                     if (e && e.preventDefault) e.preventDefault();
                     if (e && e.stopPropagation) e.stopPropagation();
+                    if (e && e.detail > 1) return;
                     onClick(row, val);
+                    blurActiveAfterMouseClick(e);
                 });
             }
             return { row: row, updateVal: function (text) { val.text(text); } };
@@ -935,7 +946,7 @@
                 if (storageKey === 'colored_ratings_poster') {
                     setColoredRatingsPoster(next);
                 } else {
-                    Lampa.Storage.set(storageKey, next);
+                    Lampa.Storage.set(storageKey, next ? '1' : '0');
                 }
                 valEl.text(next ? 'Вкл' : 'Выкл');
                 applyRatingSettingsRefresh();
@@ -991,7 +1002,7 @@
                 if (e && e.stopPropagation) e.stopPropagation();
                 if (e && e.detail > 1) return;
                 var now = Date.now();
-                if (now - lastApply < 400) return;
+                if (now - lastApply < 500) return;
                 lastApply = now;
                 applyChange(delta);
                 if (e && (e.pointerType === 'mouse' || e.clientX !== undefined)) {
@@ -1038,7 +1049,9 @@
             btn.on('click', function (e) {
                 if (e && e.preventDefault) e.preventDefault();
                 if (e && e.stopPropagation) e.stopPropagation();
+                if (e && e.detail > 1) return;
                 applyOffset(dx, dy);
+                blurActiveAfterMouseClick(e);
             });
             return btn;
         }
@@ -1069,12 +1082,12 @@
             Lampa.Storage.set('rating_position', 'top');
             Lampa.Storage.set('rating_offset_x', '0');
             Lampa.Storage.set('rating_offset_y', '0');
-            Lampa.Storage.set('rating_show_tmdb', true);
-            Lampa.Storage.set('rating_show_imdb', true);
-            Lampa.Storage.set('rating_show_kp', true);
-            Lampa.Storage.set('rating_show_lampa', true);
+            Lampa.Storage.set('rating_show_tmdb', '1');
+            Lampa.Storage.set('rating_show_imdb', '1');
+            Lampa.Storage.set('rating_show_kp', '1');
+            Lampa.Storage.set('rating_show_lampa', '1');
             Lampa.Storage.set('rating_display_mode', 'single');
-            Lampa.Storage.set('rating_window_opacity', '0');
+            Lampa.Storage.set('rating_window_opacity', '30');
             Lampa.Storage.set('rating_scale', '100');
             rowSource.updateVal(SOURCE_LABELS.tmdb);
             rowAnimated.updateVal('Выкл');
@@ -1086,7 +1099,7 @@
             rowShowKp.updateVal('Вкл');
             rowShowLampa.updateVal('Вкл');
             rowDisplayMode.updateVal(DISPLAY_MODE_LABELS.single);
-            rowOpacity.updateVal('0%');
+            rowOpacity.updateVal('30%');
             rowScale.updateVal('100%');
             applyRatingSettingsRefresh();
             if (typeof Lampa.Noty !== 'undefined' && Lampa.Noty.show) {
@@ -1101,7 +1114,9 @@
         resetBtn.on('click', function (e) {
             if (e && e.preventDefault) e.preventDefault();
             if (e && e.stopPropagation) e.stopPropagation();
+            if (e && e.detail > 1) return;
             resetAllToDefault();
+            blurActiveAfterMouseClick(e);
         });
         list.append(resetBtn);
 
@@ -1121,10 +1136,18 @@
         closeBtn.on('click', function (e) {
             if (e && e.preventDefault) e.preventDefault();
             if (e && e.stopPropagation) e.stopPropagation();
+            if (e && e.detail > 1) return;
             closeModal();
+            blurActiveAfterMouseClick(e);
         });
         list.append(closeBtn);
 
+        list.on('mouseenter', '.selector', function () {
+            var el = this;
+            if (document.activeElement && document.activeElement !== el) {
+                try { el.focus(); } catch (err) {}
+            }
+        });
         list.on('focus', '.selector', function () {
             list.find('.selector').removeClass('focus');
             $(this).addClass('focus');
@@ -1209,7 +1232,7 @@
             '.card .card__view{position:relative!important}' +
             '.card__vote{display:-webkit-box;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center!important;height:auto!important;max-height:none!important;overflow:visible!important;position:absolute!important;z-index:1!important;border-radius:0.35em!important;width:auto!important;min-width:3em!important;max-width:100%!important;box-sizing:border-box!important;transform:scale(var(--rating-scale,1))!important;padding:0.2em 0.4em!important}' +
             '.card__vote-line{width:auto!important;min-width:3em!important;max-width:100%!important;box-sizing:border-box!important;transform:scale(var(--rating-scale,1))!important;padding:0.2em 0.4em!important}' +
-            '.card__vote-separate-wrap{background:transparent!important;padding:0!important;min-width:0!important;width:auto!important;max-width:100%!important;transform:scale(var(--rating-scale,1))!important;display:-webkit-box!important;display:-webkit-flex!important;display:flex!important;-webkit-flex-direction:column!important;flex-direction:column!important;-webkit-align-items:stretch!important;align-items:stretch!important;gap:0.12em!important}' +
+            '.card__vote-separate-wrap{background:transparent!important;padding:0!important;width:3em!important;min-width:3em!important;max-width:100%!important;transform:scale(var(--rating-scale,1))!important;display:-webkit-box!important;display:-webkit-flex!important;display:flex!important;-webkit-flex-direction:column!important;flex-direction:column!important;-webkit-align-items:stretch!important;align-items:stretch!important;gap:0.12em!important}' +
             '.card__vote-separate-wrap .card__vote{position:static!important;width:100%!important;min-width:0!important;max-width:100%!important;padding:0.2em 0.4em!important;white-space:nowrap!important;-webkit-flex-shrink:0!important;flex-shrink:0!important;box-sizing:border-box!important;transform:none!important}' +
             '.card__vote-separate-wrap .card__vote .source--name{width:14px!important;height:14px!important;margin-left:3px!important;-webkit-flex-shrink:0!important;flex-shrink:0!important}' +
             '@media (min-width:481px){.card__vote-separate-wrap .card__vote .source--name{width:18px!important;height:18px!important;margin-left:4px!important}}' +
