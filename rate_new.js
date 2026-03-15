@@ -381,7 +381,7 @@
         ratingElement.className = voteClass();
         var posCSS = getRatingPositionCSS(verticalOffsetEm);
         var bgAlpha = getRatingBackgroundAlpha();
-        ratingElement.style.cssText = 'line-height:1;font-family:"SegoeUI",sans-serif;cursor:pointer;box-sizing:border-box;outline:none;user-select:none;position:absolute;z-index:1;' + posCSS + 'background:rgba(0,0,0,' + bgAlpha + ');color:#fff;padding:0.2em 0.5em;border-radius:0.35em;display:-webkit-box;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;';
+        ratingElement.style.cssText = 'line-height:1;font-family:"SegoeUI",sans-serif;cursor:pointer;box-sizing:border-box;outline:none;user-select:none;position:absolute;z-index:1;' + posCSS + 'background:rgba(0,0,0,' + bgAlpha + ');color:#fff;padding:0.25em 0.55em;border-radius:0.35em;display:-webkit-box;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;';
         var parent = getRatingParent(card);
         parent.appendChild(ratingElement);
         return ratingElement;
@@ -391,7 +391,7 @@
         var el = document.createElement('div');
         el.className = voteClass();
         var bgAlpha = getRatingBackgroundAlpha();
-        el.style.cssText = 'line-height:1;font-family:"SegoeUI",sans-serif;cursor:pointer;box-sizing:border-box;outline:none;user-select:none;background:rgba(0,0,0,' + bgAlpha + ');color:#fff;padding:0.2em 0.5em;border-radius:0.35em;display:-webkit-box;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;';
+        el.style.cssText = 'line-height:1;font-family:"SegoeUI",sans-serif;cursor:pointer;box-sizing:border-box;outline:none;user-select:none;background:rgba(0,0,0,' + bgAlpha + ');color:#fff;padding:0.25em 0.55em;border-radius:0.35em;display:-webkit-box;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;';
         return el;
     }
 
@@ -400,7 +400,7 @@
         line.className = voteClass('card__vote-line');
         var posCSS = getRatingPositionCSS();
         var bgAlpha = getRatingBackgroundAlpha();
-        line.style.cssText = 'line-height:1;font-family:"SegoeUI",sans-serif;cursor:pointer;box-sizing:border-box;outline:none;user-select:none;position:absolute;z-index:1;' + posCSS + 'background:rgba(0,0,0,' + bgAlpha + ');color:#fff;padding:0.2em 0.5em;border-radius:0.35em;display:-webkit-box;display:-webkit-flex;display:flex;-webkit-flex-direction:column;flex-direction:column;-webkit-align-items:flex-end;align-items:flex-end;';
+        line.style.cssText = 'line-height:1;font-family:"SegoeUI",sans-serif;cursor:pointer;box-sizing:border-box;outline:none;user-select:none;position:absolute;z-index:1;' + posCSS + 'background:rgba(0,0,0,' + bgAlpha + ');color:#fff;padding:0.25em 0.55em;border-radius:0.35em;display:-webkit-box;display:-webkit-flex;display:flex;-webkit-flex-direction:column;flex-direction:column;-webkit-align-items:flex-end;align-items:flex-end;';
         line.innerHTML = '<div class="card__rate-item rate--tmdb" style="display:none"><div>0.0</div><span class="source--name"></span></div><div class="card__rate-item rate--imdb" style="display:none"><div>0.0</div><span class="source--name"></span></div><div class="card__rate-item rate--kp" style="display:none"><div>0.0</div><span class="source--name"></span></div><div class="card__rate-item rate--lampa" style="display:none"><span class="rate-value">0.0</span><span class="source--name rate-icon-reaction"></span></div>';
         var parent = getRatingParent(card);
         parent.appendChild(line);
@@ -970,11 +970,14 @@
             Lampa.Storage.set(storageKey, String(val));
             var valEl = $('<div class="rate-settings-value"></div>').css({ whiteSpace: 'nowrap', opacity: 0.9, minWidth: '2.5em', textAlign: 'center' }).text(val + (suffix || ''));
             var btnMinus = $('<div class="selector menu-edit-list__item rate-settings-plusminus-btn" tabindex="0" aria-label="Уменьшить"></div>').text('−').css({
-                width: '2em', textAlign: 'center', padding: '0.35em 0.2em', borderRadius: '0.25em', border: '2px solid transparent', boxSizing: 'border-box', background: 'rgba(255,255,255,0.12)', fontSize: '1.1em', lineHeight: 1
+                width: '2em', minHeight: '2em', padding: 0, borderRadius: '0.25em', border: '2px solid transparent', boxSizing: 'border-box', background: 'rgba(255,255,255,0.12)', fontSize: '1.1em', lineHeight: 1,
+                display: 'flex', alignItems: 'center', justifyContent: 'center'
             });
             var btnPlus = $('<div class="selector menu-edit-list__item rate-settings-plusminus-btn" tabindex="0" aria-label="Увеличить"></div>').text('+').css({
-                width: '2em', textAlign: 'center', padding: '0.35em 0.2em', borderRadius: '0.25em', border: '2px solid transparent', boxSizing: 'border-box', background: 'rgba(255,255,255,0.12)', fontSize: '1.1em', lineHeight: 1
+                width: '2em', minHeight: '2em', padding: 0, borderRadius: '0.25em', border: '2px solid transparent', boxSizing: 'border-box', background: 'rgba(255,255,255,0.12)', fontSize: '1.1em', lineHeight: 1,
+                display: 'flex', alignItems: 'center', justifyContent: 'center'
             });
+            var lastApply = 0;
             function applyChange(delta) {
                 var num = parseFloat(Lampa.Storage.get(storageKey, defaultVal));
                 num = isNaN(num) ? defaultVal : num;
@@ -983,18 +986,22 @@
                 valEl.text(next + (suffix || ''));
                 applyRatingSettingsRefresh();
             }
+            function handleClick(delta, e) {
+                if (e && e.preventDefault) e.preventDefault();
+                if (e && e.stopPropagation) e.stopPropagation();
+                if (e && e.detail > 1) return;
+                var now = Date.now();
+                if (now - lastApply < 400) return;
+                lastApply = now;
+                applyChange(delta);
+                if (e && (e.pointerType === 'mouse' || e.clientX !== undefined)) {
+                    setTimeout(function () { try { document.activeElement && document.activeElement.blur(); } catch (err) {} }, 0);
+                }
+            }
             btnMinus.on('hover:enter', function () { applyChange(-(step || 1)); });
-            btnMinus.on('click', function (e) {
-                if (e && e.preventDefault) e.preventDefault();
-                if (e && e.stopPropagation) e.stopPropagation();
-                applyChange(-(step || 1));
-            });
+            btnMinus.on('click', function (e) { handleClick(-(step || 1), e); });
             btnPlus.on('hover:enter', function () { applyChange(step || 1); });
-            btnPlus.on('click', function (e) {
-                if (e && e.preventDefault) e.preventDefault();
-                if (e && e.stopPropagation) e.stopPropagation();
-                applyChange(step || 1);
-            });
+            btnPlus.on('click', function (e) { handleClick(step || 1, e); });
             var row = $('<div class="menu-edit-list__item rate-settings-row rate-settings-number-row"></div>').css({
                 display: 'grid', gridTemplateColumns: '1fr auto auto auto', alignItems: 'center', gap: '0.35em', padding: '0.5em 0.4em', marginBottom: '0.2em',
                 borderRadius: '0.3em', border: '3px solid transparent', boxSizing: 'border-box'
@@ -1196,14 +1203,15 @@
         style.textContent = (
             '.rate-settings-modal .selector{cursor:pointer!important;pointer-events:auto!important;-webkit-tap-highlight-color:transparent;user-select:none}' +
             '.rate-settings-modal .rate-settings-row.focus,.rate-settings-modal .rate-settings-close.focus,.rate-settings-modal .rate-settings-offset-btn.focus,.rate-settings-modal .rate-settings-reset.focus,.rate-settings-modal .rate-settings-plusminus-btn.focus{border-color:rgba(255,255,255,0.95)!important;box-shadow:0 0 0 2px rgba(255,255,255,0.95)}' +
-            '.rate-settings-modal .selector:focus{outline:3px solid rgba(255,255,255,0.95)!important;outline-offset:2px}' +
+            '.rate-settings-modal .selector.focus:not(:focus-visible),.rate-settings-modal .selector:focus:not(:focus-visible){outline:none!important;border-color:transparent!important;box-shadow:none!important}' +
+            '.rate-settings-modal .selector:focus-visible{outline:3px solid rgba(255,255,255,0.95)!important;outline-offset:2px}' +
             '.rate-settings-modal .rate-settings-row:hover,.rate-settings-modal .rate-settings-close:hover,.rate-settings-modal .rate-settings-offset-btn:hover,.rate-settings-modal .rate-settings-reset:hover,.rate-settings-modal .rate-settings-plusminus-btn:hover{background:rgba(255,255,255,0.06)}' +
             '[data-name="rating_modal_open"] .settings-param__value,[data-name="rating_modal_open"] .settings-param__control,[data-name="rating_modal_open"] input[type="checkbox"]{display:none!important}' +
             '.card .card__view{position:relative!important}' +
-            '.card__vote{display:-webkit-box;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center!important;height:auto!important;max-height:none!important;overflow:visible!important;position:absolute!important;z-index:1!important;border-radius:0.35em!important;width:2.6em!important;min-width:2.6em!important;box-sizing:border-box!important;transform:scale(var(--rating-scale,1))!important}' +
-            '.card__vote-line{width:2.6em!important;min-width:2.6em!important;box-sizing:border-box!important;transform:scale(var(--rating-scale,1))!important}' +
-            '.card__vote-separate-wrap{background:transparent!important;padding:0!important;min-width:0!important;width:auto!important;max-width:100%!important;transform:scale(var(--rating-scale,1))!important;display:-webkit-box!important;display:-webkit-flex!important;display:flex!important;-webkit-flex-direction:column!important;flex-direction:column!important;-webkit-align-items:flex-end!important;align-items:flex-end!important;gap:0.12em!important}' +
-            '.card__vote-separate-wrap .card__vote{position:static!important;width:auto!important;min-width:0!important;max-width:100%!important;padding:0.2em 0.4em!important;white-space:nowrap!important;-webkit-flex-shrink:0!important;flex-shrink:0!important}' +
+            '.card__vote{display:-webkit-box;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center!important;height:auto!important;max-height:none!important;overflow:visible!important;position:absolute!important;z-index:1!important;border-radius:0.35em!important;width:auto!important;min-width:3.2em!important;max-width:100%!important;box-sizing:border-box!important;transform:scale(var(--rating-scale,1))!important;padding:0.25em 0.55em!important}' +
+            '.card__vote-line{width:auto!important;min-width:3.2em!important;max-width:100%!important;box-sizing:border-box!important;transform:scale(var(--rating-scale,1))!important;padding:0.25em 0.55em!important}' +
+            '.card__vote-separate-wrap{background:transparent!important;padding:0!important;min-width:0!important;width:auto!important;max-width:100%!important;transform:scale(var(--rating-scale,1))!important;display:-webkit-box!important;display:-webkit-flex!important;display:flex!important;-webkit-flex-direction:column!important;flex-direction:column!important;-webkit-align-items:stretch!important;align-items:stretch!important;gap:0.12em!important}' +
+            '.card__vote-separate-wrap .card__vote{position:static!important;width:100%!important;min-width:0!important;max-width:100%!important;padding:0.25em 0.55em!important;white-space:nowrap!important;-webkit-flex-shrink:0!important;flex-shrink:0!important;box-sizing:border-box!important}' +
             '.card__vote-separate-wrap .card__vote .source--name{width:14px!important;height:14px!important;margin-left:3px!important;-webkit-flex-shrink:0!important;flex-shrink:0!important}' +
             '@media (min-width:481px){.card__vote-separate-wrap .card__vote .source--name{width:18px!important;height:18px!important;margin-left:4px!important}}' +
             '.card__vote--top,.card__vote-line.card__vote--top,.card__vote-separate-wrap.card__vote--top{transform-origin:top right!important;transform:scale(var(--rating-scale,1))!important}' +
