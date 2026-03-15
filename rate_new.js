@@ -936,8 +936,9 @@
             onRender: function (element) {
                 setTimeout(function () {
                     var anchor = document.querySelector('div[data-name="interface_size"]');
-                    if (anchor && anchor.parentNode && element) {
-                        anchor.parentNode.insertBefore(element, anchor.nextSibling);
+                    var node = element && (element.nodeType === 1 ? element : (element[0] || element.get && element.get(0)));
+                    if (anchor && anchor.parentNode && node && node.nodeType === 1) {
+                        anchor.parentNode.insertBefore(node, anchor.nextSibling);
                     }
                 }, 0);
             },
