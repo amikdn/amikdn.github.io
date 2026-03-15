@@ -559,9 +559,6 @@
             return 'showy_online_button';
         }
         var viewClasses = classes.split(' ').filter(function(c) { return c.indexOf('view--') === 0 || c.indexOf('button--') === 0; }).join('_');
-        if (classes.indexOf('lampac--button') !== -1 && subtitle) {
-            viewClasses = classes.split(' ').filter(function(c) { return c.indexOf('view--') === 0; }).join('_');
-        }
         if (!viewClasses && !text) {
             return 'button_unknown';
         }
@@ -603,18 +600,9 @@
             var $btn = $(this);
             if (isExcluded($btn)) return;
             var btnId = getButtonId($btn);
-            if (processedIds[btnId]) {
-                if ($btn.hasClass('button--priority') && !processedIds[btnId].button.hasClass('button--priority')) {
-                    var prev = processedIds[btnId];
-                    var arr = categories[prev.type];
-                    var idx = arr.indexOf(prev.button);
-                    if (idx !== -1) arr[idx] = $btn;
-                    processedIds[btnId] = { button: $btn, type: prev.type };
-                }
-                return;
-            }
+            if (processedIds[btnId]) return;
+            processedIds[btnId] = true;
             var type = getButtonType($btn);
-            processedIds[btnId] = { button: $btn, type: type };
             if (categories[type]) {
                 categories[type].push($btn);
             } else {
