@@ -1234,9 +1234,10 @@
         var style = document.createElement('style');
         style.type = 'text/css';
         style.textContent = (
-            '.rate-settings-modal .selector{cursor:pointer!important;pointer-events:auto!important;-webkit-tap-highlight-color:transparent;user-select:none}' +
+            '.rate-settings-modal .selector{cursor:pointer!important;pointer-events:auto!important;-webkit-tap-highlight-color:rgba(255,255,255,0.15);user-select:none;transition:background 0.12s,transform 0.1s,box-shadow 0.12s}' +
             '.rate-settings-modal .selector.focus{border-color:rgba(255,255,255,0.95)!important;box-shadow:0 0 0 2px rgba(255,255,255,0.95)}' +
             '.rate-settings-modal .selector:hover{background:rgba(255,255,255,0.06)}' +
+            '.rate-settings-modal .selector:active{background:rgba(255,255,255,0.18)!important;transform:scale(0.97)!important;transition:background 0.05s,transform 0.05s}' +
             '[data-name="rating_modal_open"] .settings-param__value,[data-name="rating_modal_open"] .settings-param__control,[data-name="rating_modal_open"] input[type="checkbox"]{display:none!important}' +
             '.card .card__view{position:relative!important}' +
             '.card__view > .card__vote:not(.card__vote--top):not(.card__vote--bottom):not(.card__vote-line):not(.card__vote-separate-wrap):not(.card__vote--separate){display:none!important}' +
