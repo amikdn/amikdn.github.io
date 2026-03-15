@@ -791,9 +791,9 @@
                     var btnId = item.id;
                     if (buttonsInFolders.indexOf(btnId) === -1) {
                         var btn = currentButtons.find(function(b) { return getButtonId(b) === btnId; });
-                        if (btn && !btn.hasClass('hidden')) {
+                        if (btn) {
                             targetContainer.append(btn);
-                            visibleButtons.push(btn);
+                            if (!btn.hasClass('hidden')) visibleButtons.push(btn);
                             addedButtons.push(btnId);
                         }
                     }
@@ -801,9 +801,9 @@
             });
             currentButtons.forEach(function(btn) {
                 var btnId = getButtonId(btn);
-                if (addedButtons.indexOf(btnId) === -1 && !btn.hasClass('hidden') && buttonsInFolders.indexOf(btnId) === -1) {
+                if (addedButtons.indexOf(btnId) === -1 && buttonsInFolders.indexOf(btnId) === -1) {
                     targetContainer.append(btn);
-                    visibleButtons.push(btn);
+                    if (!btn.hasClass('hidden')) visibleButtons.push(btn);
                 }
             });
             folders.forEach(function(folder) {
@@ -815,9 +815,9 @@
             });
         } else {
             currentButtons.forEach(function(btn) {
-                if (!btn.hasClass('hidden') && buttonsInFolders.indexOf(getButtonId(btn)) === -1) {
+                if (buttonsInFolders.indexOf(getButtonId(btn)) === -1) {
                     targetContainer.append(btn);
-                    visibleButtons.push(btn);
+                    if (!btn.hasClass('hidden')) visibleButtons.push(btn);
                 }
             });
             folders.forEach(function(folder) {
@@ -1871,18 +1871,18 @@
                     }
                 } else if (item.type === 'button') {
                     var btn = currentButtons.find(function(b) { return getButtonId(b) === item.id; });
-                    if (btn && !btn.hasClass('hidden')) {
+                    if (btn) {
                         targetContainer.append(btn);
-                        visibleButtons.push(btn);
+                        if (!btn.hasClass('hidden')) visibleButtons.push(btn);
                         addedButtons.push(getButtonId(btn));
                     }
                 }
             });
             currentButtons.forEach(function(btn) {
                 var btnId = getButtonId(btn);
-                if (addedButtons.indexOf(btnId) === -1 && !btn.hasClass('hidden')) {
+                if (addedButtons.indexOf(btnId) === -1) {
                     targetContainer.append(btn);
-                    visibleButtons.push(btn);
+                    if (!btn.hasClass('hidden')) visibleButtons.push(btn);
                 }
             });
             folders.forEach(function(folder) {
