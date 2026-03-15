@@ -645,23 +645,6 @@
         });
     }
 
-    function hideDefaultVote(card) {
-        var view = card.querySelector && card.querySelector('.card__view');
-        if (!view) return;
-        var votes = view.querySelectorAll('.card__vote');
-        for (var i = 0; i < votes.length; i++) {
-            var el = votes[i];
-            var isOurs = el.dataset.source || el.dataset.rateSource ||
-                el.classList.contains('card__vote-line') ||
-                el.classList.contains('card__vote--separate') ||
-                el.classList.contains('card__vote-separate-wrap') ||
-                el.dataset.movieId;
-            if (!isOurs) {
-                el.style.display = 'none';
-            }
-        }
-    }
-
     function removeAllRatingElements(card) {
         var parent = card.querySelector && card.querySelector('[data-rate-anchor="1"]');
         if (!parent) return;
@@ -672,7 +655,6 @@
     function updateCardRating(item) {
         var card = item.card || item;
         if (!card || !card.querySelector || !document.body.contains(card)) return;
-        hideDefaultVote(card);
         var data = card.card_data || item.data || {};
         if (!data.id) return;
         var source = Lampa.Storage.get('rating_source', 'tmdb');
@@ -806,7 +788,6 @@
             var card = allCards[i];
             var data = card.card_data;
             if (!data || !data.id) continue;
-            hideDefaultVote(card);
             var idStr = data.id.toString();
             var lineEl = card.querySelector('.card__vote-line');
             var separateEls = card.querySelectorAll('.card__vote--separate');
@@ -1249,6 +1230,7 @@
             '.rate-settings-modal .selector:hover{background:rgba(255,255,255,0.06)}' +
             '[data-name="rating_modal_open"] .settings-param__value,[data-name="rating_modal_open"] .settings-param__control,[data-name="rating_modal_open"] input[type="checkbox"]{display:none!important}' +
             '.card .card__view{position:relative!important}' +
+            '.card__view > .card__vote:not(.card__vote--top):not(.card__vote--bottom):not(.card__vote-line):not(.card__vote-separate-wrap):not(.card__vote--separate){display:none!important}' +
             '.card__vote{display:-webkit-box;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center!important;height:auto!important;overflow:visible!important;position:absolute!important;z-index:1!important;border-radius:0.35em!important;width:auto!important;min-width:0!important;max-width:100%!important;box-sizing:border-box!important;transform:scale(var(--rating-scale,1))!important;padding:0.2em 0.4em!important;line-height:1!important;white-space:nowrap!important}' +
             '.card__vote-line{width:auto!important;min-width:0!important;max-width:100%!important;box-sizing:border-box!important;transform:scale(var(--rating-scale,1))!important;padding:0.2em 0.4em!important;line-height:1!important;display:-webkit-box!important;display:-webkit-flex!important;display:flex!important;-webkit-flex-direction:column!important;flex-direction:column!important;-webkit-align-items:flex-end!important;align-items:flex-end!important;gap:0.1em!important}' +
             '.card__vote-separate-wrap{background:transparent!important;padding:0!important;width:auto!important;min-width:0!important;max-width:100%!important;overflow:visible!important;transform:scale(var(--rating-scale,1))!important;display:-webkit-box!important;display:-webkit-flex!important;display:flex!important;-webkit-flex-direction:column!important;flex-direction:column!important;-webkit-align-items:flex-end!important;align-items:flex-end!important;gap:0.1em!important}' +
