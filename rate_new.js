@@ -8,8 +8,7 @@
 
     function isColoredRatingsPosterOn() {
         var v = Lampa.Storage.get('colored_ratings_poster', true);
-        if (v === false || v === 'false' || v === 0 || v === '0') return false;
-        return true;
+        return (v === true || v === 'true' || v === '1' || v === 1);
     }
     function getRatingColor(value) {
         if (Lampa.Storage.get('rating_colored_windows', false)) return '#fff';
@@ -779,7 +778,7 @@
             var idStr = data.id.toString();
             var lineEl = card.querySelector('.card__vote-line');
             var separateEls = card.querySelectorAll('.card__vote--separate');
-            var singleEl = card.querySelector('.card__vote:not(.card__vote-line):not(.card__vote--separate)');
+            var singleEl = card.querySelector('.card__vote:not(.card__vote-line):not(.card__vote--separate):not(.card__vote-separate-wrap)');
             var needFull = false;
             if (source === 'all') {
                 if (displayMode === 'single') {
@@ -825,7 +824,7 @@
     }
 
     function colorizeFullCardRatings(render) {
-        if (!Lampa.Storage.get('colored_ratings_poster', true)) return;
+        if (!isColoredRatingsPosterOn()) return;
         var scope = $(render).length ? $(render) : $(document);
         scope.find('.full-start__rate, .full-start-new__rate, .info__rate, .card__imdb-rate, .card__kinopoisk-rate').each(function () {
             var el = $(this);
@@ -907,9 +906,13 @@
         }
 
         function addTriggerRow(label, storageKey, defaultVal) {
-            var current = Lampa.Storage.get(storageKey, defaultVal);
+            var isOn = function () {
+                var v = Lampa.Storage.get(storageKey, defaultVal);
+                return (v === true || v === 'true' || v === '1' || v === 1);
+            };
+            var current = isOn();
             var r = makeRow(label, current ? 'Вкл' : 'Выкл', function (rowEl, valEl) {
-                var next = !Lampa.Storage.get(storageKey, defaultVal);
+                var next = !isOn();
                 Lampa.Storage.set(storageKey, next);
                 valEl.text(next ? 'Вкл' : 'Выкл');
                 applyRatingSettingsRefresh();
@@ -1114,8 +1117,10 @@
             '.rate-settings-modal .rate-settings-row:hover,.rate-settings-modal .rate-settings-close:hover,.rate-settings-modal .rate-settings-offset-btn:hover,.rate-settings-modal .rate-settings-reset:hover{background:rgba(255,255,255,0.06)}' +
             '[data-name="rating_modal_open"] .settings-param__value,[data-name="rating_modal_open"] .settings-param__control,[data-name="rating_modal_open"] input[type="checkbox"]{display:none!important}' +
             '.card .card__view{position:relative!important}' +
-            '.card__vote{display:-webkit-box;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center!important;height:auto!important;max-height:none!important;overflow:visible!important;position:absolute!important;z-index:1!important;border-radius:0.35em!important;min-width:2.8em!important}' +
-            '.card__vote-separate-wrap{background:transparent!important;padding:0!important;min-width:0!important}' +
+            '.card__vote{display:-webkit-box;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center!important;height:auto!important;max-height:none!important;overflow:visible!important;position:absolute!important;z-index:1!important;border-radius:0.35em!important;width:3.8em!important;min-width:3.8em!important;box-sizing:border-box!important}' +
+            '.card__vote-line{width:3.8em!important;min-width:3.8em!important;box-sizing:border-box!important}' +
+            '.card__vote-separate-wrap{background:transparent!important;padding:0!important;min-width:0!important;width:3.8em!important}' +
+            '.card__vote-separate-wrap .card__vote{position:static!important;width:100%!important;min-width:0!important}' +
             '.card__vote--top{top:0.3em!important;right:0.3em!important;bottom:auto!important}' +
             '.card__vote--bottom{top:auto!important;right:0.3em!important;bottom:0.3em!important}' +
             '.card__vote-line .card__rate-item{display:-webkit-box;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;white-space:nowrap;margin-bottom:0.15em}' +
