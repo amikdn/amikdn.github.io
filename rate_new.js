@@ -327,10 +327,10 @@
         return isNaN(v) ? 0 : v;
     }
     function getRatingOpacity() {
-        var v = parseFloat(Lampa.Storage.get('rating_window_opacity', '100'));
+        var v = parseFloat(Lampa.Storage.get('rating_window_opacity', '0'));
         if (isNaN(v)) return 1;
         v = Math.max(0, Math.min(100, v));
-        return v / 100;
+        return 1 - (v / 100);
     }
     function getRatingPositionCSS(verticalOffsetEm) {
         var pos = Lampa.Storage.get('rating_position', 'top');
@@ -339,9 +339,9 @@
         var vo = (verticalOffsetEm == null || isNaN(verticalOffsetEm)) ? 0 : verticalOffsetEm;
         var rightVal = (0.3 - ox) + 'em';
         if (pos === 'bottom') {
-            return 'right:' + rightVal + ';bottom:' + (0.3 - oy + vo) + 'em;top:auto;left:auto;';
+            return 'right:' + rightVal + '!important;bottom:' + (0.3 - oy + vo) + 'em!important;top:auto!important;left:auto!important;';
         }
-        return 'right:' + rightVal + ';top:' + (0.3 + oy + vo) + 'em;bottom:auto;left:auto;';
+        return 'right:' + rightVal + '!important;top:' + (0.3 + oy + vo) + 'em!important;bottom:auto!important;left:auto!important;';
     }
 
     function voteClass(extra) {
@@ -525,10 +525,11 @@
         if (isRatingSourceVisible('imdb')) sources.push('imdb');
         if (isRatingSourceVisible('kp')) sources.push('kp');
         if (isRatingSourceVisible('lampa')) sources.push('lampa');
-        var step = 2.2;
+        var step = 2.5;
         for (var i = 0; i < sources.length; i++) {
             var el = createRatingElement(card, i * step);
             el.dataset.rateSource = sources[i];
+            el.setAttribute('data-vertical-offset', String(i * step));
             el.classList.add('card__vote--separate');
         }
     }
@@ -887,6 +888,7 @@
         var STEP = 0.5;
         var MIN_OFF = -5;
         var MAX_OFF = 5;
+        var moveIntervalId = null;
         function applyOffset(dx, dy) {
             var x = parseFloat(Lampa.Storage.get('rating_offset_x', '0'));
             var y = parseFloat(Lampa.Storage.get('rating_offset_y', '0'));
@@ -897,21 +899,28 @@
             Lampa.Storage.set('rating_offset_x', String(x));
             Lampa.Storage.set('rating_offset_y', String(y));
             applyRatingSettingsRefresh();
-            return { x: x, y: y };
         }
-        function addOffsetButton(text, dx, dy, updateInfo) {
+        function startMove(dx, dy) {
+            if (moveIntervalId) return;
+            applyOffset(dx, dy);
+            moveIntervalId = setInterval(function () { applyOffset(dx, dy); }, 120);
+        }
+        function stopMove() {
+            if (moveIntervalId) {
+                clearInterval(moveIntervalId);
+                moveIntervalId = null;
+            }
+        }
+        function addOffsetButton(text, dx, dy) {
             var btn = $('<div class="selector menu-edit-list__item rate-settings-offset-btn" tabindex="0"></div>').text(text).css({
                 display: 'block', textAlign: 'center', padding: '0.5em 0.4em', marginBottom: '0.2em', borderRadius: '0.3em',
                 border: '3px solid transparent', boxSizing: 'border-box', background: 'rgba(255,255,255,0.08)'
             });
-            btn.on('hover:enter', function () {
-                var pos = applyOffset(dx, dy);
-                if (typeof updateInfo === 'function') updateInfo(pos);
-            });
-            btn.on('click', function () {
-                var pos = applyOffset(dx, dy);
-                if (typeof updateInfo === 'function') updateInfo(pos);
-            });
+            btn.on('hover:enter', function () { startMove(dx, dy); });
+            btn.on('hover:leave', function () { stopMove(); });
+            btn.on('focusout', function () { stopMove(); });
+            btn.on('mousedown', function () { startMove(dx, dy); });
+            btn.on('mouseup mouseleave', function () { stopMove(); });
             return btn;
         }
 
@@ -919,58 +928,67 @@
         addTriggerRow('Анимированные реакции на постерах', 'animated_reactions', false);
         addTriggerRow('Цветные рейтинги на постерах', 'colored_ratings_poster', true);
         addSelectRow('Позиция на постере', 'rating_position', POSITION_LABELS, 'top');
-        var offsetInfoRow = $('<div class="menu-edit-list__item rate-settings-row" style="display:grid;grid-template-columns:1fr auto;align-items:center;gap:0.5em;padding:0.35em 0.4em;margin-bottom:0.15em;box-sizing:border-box;"></div>');
-        var offsetLabel = $('<div class="menu-edit-list__title"></div>').css({ minWidth: 0 }).text('Смещение окон рейтинга');
-        var offsetVal = $('<div class="rate-settings-value"></div>').css({ whiteSpace: 'nowrap', opacity: 0.9 });
-        function updateOffsetDisplay(pos) {
-            if (!pos) {
-                var x = parseFloat(Lampa.Storage.get('rating_offset_x', '0'));
-                var y = parseFloat(Lampa.Storage.get('rating_offset_y', '0'));
-                if (isNaN(x)) x = 0;
-                if (isNaN(y)) y = 0;
-                pos = { x: x, y: y };
-            }
-            offsetVal.text('X: ' + pos.x + ' em   Y: ' + pos.y + ' em');
-        }
-        offsetInfoRow.append(offsetLabel).append(offsetVal);
-        list.append(offsetInfoRow);
-        updateOffsetDisplay();
-        list.append(addOffsetButton('Влево', -STEP, 0, updateOffsetDisplay));
-        list.append(addOffsetButton('Вправо', STEP, 0, updateOffsetDisplay));
-        list.append(addOffsetButton('Вверх', 0, -STEP, updateOffsetDisplay));
-        list.append(addOffsetButton('Вниз', 0, STEP, updateOffsetDisplay));
+        list.append($('<div class="menu-edit-list__item" style="padding:0.3em 0.4em;margin-bottom:0.1em;font-weight:bold;box-sizing:border-box;">Смещение (удерживайте кнопку)</div>'));
+        list.append(addOffsetButton('Влево', -STEP, 0));
+        list.append(addOffsetButton('Вправо', STEP, 0));
+        list.append(addOffsetButton('Вверх', 0, -STEP));
+        list.append(addOffsetButton('Вниз', 0, STEP));
         addTriggerRow('Показывать TMDB (при «Все»)', 'rating_show_tmdb', true);
         addTriggerRow('Показывать IMDB (при «Все»)', 'rating_show_imdb', true);
         addTriggerRow('Показывать КиноПоиск (при «Все»)', 'rating_show_kp', true);
         addTriggerRow('Показывать Lampa (при «Все»)', 'rating_show_lampa', true);
         addSelectRow('Режим отображения (все рейтинги)', 'rating_display_mode', DISPLAY_MODE_LABELS, 'single');
-        addNumberRow('Прозрачность окна рейтинга (%)', 'rating_window_opacity', 100, 10, 100, 10, '%');
+        addNumberRow('Прозрачность (0=непрозрачное, 100=макс.)', 'rating_window_opacity', 0, 0, 100, 10, '%');
 
         var closeBtn = $('<div class="selector menu-edit-list__item rate-settings-close" tabindex="0">Готово (закрыть)</div>').css({
             display: 'block', textAlign: 'center', padding: '0.75em', marginTop: '0.5em', background: 'rgba(66,133,244,0.6)', borderRadius: '0.3em',
             border: '3px solid transparent', boxSizing: 'border-box'
         });
         closeBtn.on('hover:enter', function () {
+            stopMove();
             if (Lampa.Modal && Lampa.Modal.close) Lampa.Modal.close();
             applyRatingSettingsRefresh();
         });
         closeBtn.on('click', function () {
+            stopMove();
             if (Lampa.Modal && Lampa.Modal.close) Lampa.Modal.close();
             applyRatingSettingsRefresh();
         });
         list.append(closeBtn);
 
+        list.on('focus', '.selector', function () {
+            list.find('.selector').removeClass('focus');
+            $(this).addClass('focus');
+        });
+        list.on('focusout', function () { stopMove(); });
+
         if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.open) {
+            var backKeyHandler = function (e) {
+                var key = e.keyCode || e.which;
+                if (key === 27 || key === 10009 || key === 461) {
+                    e.preventDefault();
+                    stopMove();
+                    if (Lampa.Modal && Lampa.Modal.close) Lampa.Modal.close();
+                    applyRatingSettingsRefresh();
+                    document.removeEventListener('keydown', backKeyHandler);
+                }
+            };
             Lampa.Modal.open({
                 title: 'Настройки рейтингов на карточках',
                 html: list,
                 size: 'medium',
                 scroll_to_center: true,
                 onBack: function () {
+                    document.removeEventListener('keydown', backKeyHandler);
+                    stopMove();
                     if (Lampa.Modal && Lampa.Modal.close) Lampa.Modal.close();
                     applyRatingSettingsRefresh();
                 }
             });
+            setTimeout(function () {
+                document.addEventListener('keydown', backKeyHandler);
+                list.find('.selector').first().addClass('focus');
+            }, 150);
         }
     }
 
@@ -1021,7 +1039,8 @@
         var style = document.createElement('style');
         style.type = 'text/css';
         style.textContent = (
-            '.rate-settings-modal .rate-settings-row.focus,.rate-settings-modal .rate-settings-close.focus,.rate-settings-modal .rate-settings-offset-btn.focus{border-color:rgba(255,255,255,0.8)}' +
+            '.rate-settings-modal .rate-settings-row.focus,.rate-settings-modal .rate-settings-close.focus,.rate-settings-modal .rate-settings-offset-btn.focus{border-color:rgba(255,255,255,0.95)!important;box-shadow:0 0 0 2px rgba(255,255,255,0.95)}' +
+            '.rate-settings-modal .selector:focus{outline:3px solid rgba(255,255,255,0.95)!important;outline-offset:2px}' +
             '.rate-settings-modal .rate-settings-row:hover,.rate-settings-modal .rate-settings-close:hover,.rate-settings-modal .rate-settings-offset-btn:hover{background:rgba(255,255,255,0.06)}' +
             '[data-name="rating_modal_open"] .settings-param__value,[data-name="rating_modal_open"] .settings-param__control,[data-name="rating_modal_open"] input[type="checkbox"]{display:none!important}' +
             '.card .card__view{position:relative!important}' +
