@@ -551,7 +551,7 @@
                     var color = getRatingColor(result.rating);
                     var html = '<span style="color:' + color + '">' + formatRating(result.rating) + '</span>';
                     if (result.medianReaction) {
-                        html += ' <img class="source--name" style="width:1em;height:1em;" src="' + getReactionImageSrc(result.medianReaction) + '">';
+                        html += ' <img style="width:0.85em;height:0.85em;margin-left:4px;object-fit:contain;vertical-align:middle;flex-shrink:0;" src="' + getReactionImageSrc(result.medianReaction) + '">';
                     }
                     el.className = voteClass('rate--lampa');
                     el.innerHTML = html;
@@ -612,7 +612,7 @@
             var color = getRatingColor(cachedLampa.rating);
             var html = '<span style="color:' + color + '">' + formatRating(cachedLampa.rating) + '</span>';
             if (cachedLampa.medianReaction) {
-                html += ' <img class="source--name" style="width:1em;height:1em;" src="' + getReactionImageSrc(cachedLampa.medianReaction) + '">';
+                html += ' <img style="width:0.85em;height:0.85em;margin-left:4px;object-fit:contain;vertical-align:middle;flex-shrink:0;" src="' + getReactionImageSrc(cachedLampa.medianReaction) + '">';
             }
             ratingElement.className = voteClass('rate--lampa');
             ratingElement.innerHTML = html;
@@ -626,7 +626,7 @@
                 var color = getRatingColor(result.rating);
                 var html = '<span style="color:' + color + '">' + formatRating(result.rating) + '</span>';
                 if (result.medianReaction) {
-                    html += ' <img class="source--name" style="width:1em;height:1em;" src="' + getReactionImageSrc(result.medianReaction) + '">';
+                    html += ' <img style="width:0.85em;height:0.85em;margin-left:4px;object-fit:contain;vertical-align:middle;flex-shrink:0;" src="' + getReactionImageSrc(result.medianReaction) + '">';
                 }
                 ratingElement.className = voteClass('rate--lampa');
                 ratingElement.innerHTML = html;
@@ -717,7 +717,7 @@
                 var html = '<span style="color:' + color + '">' + formatRating(cached.rating) + '</span>';
                 if (cached.medianReaction) {
                     var reactionSrc = getReactionImageSrc(cached.medianReaction);
-                    html += ' <img class="source--name" style="width:1em;height:1em;" src="' + reactionSrc + '">';
+                    html += ' <img style="width:0.85em;height:0.85em;margin-left:4px;object-fit:contain;vertical-align:middle;flex-shrink:0;" src="' + reactionSrc + '">';
                 }
                 ratingElement.innerHTML = html;
                 var bg = getRatingBackgroundColor(cached.rating);
@@ -732,7 +732,7 @@
                             var html = '<span style="color:' + color + '">' + formatRating(result.rating) + '</span>';
                             if (result.medianReaction) {
                                 var reactionSrc = getReactionImageSrc(result.medianReaction);
-                                html += ' <img class="source--name" style="width:1em;height:1em;" src="' + reactionSrc + '">';
+                                html += ' <img style="width:0.85em;height:0.85em;margin-left:4px;object-fit:contain;vertical-align:middle;flex-shrink:0;" src="' + reactionSrc + '">';
                             }
                             ratingElement.innerHTML = html;
                             var bg = getRatingBackgroundColor(result.rating);
@@ -804,7 +804,7 @@
                             var color = getRatingColor(cached.rating);
                             var html = '<span style="color:' + color + '">' + formatRating(cached.rating) + '</span>';
                             if (cached.medianReaction) {
-                                html += ' <img class="source--name" style="width:1em;height:1em;" src="' + getReactionImageSrc(cached.medianReaction) + '">';
+                                html += ' <img style="width:0.85em;height:0.85em;margin-left:4px;object-fit:contain;vertical-align:middle;flex-shrink:0;" src="' + getReactionImageSrc(cached.medianReaction) + '">';
                             }
                             singleEl.innerHTML = html;
                         }
@@ -1181,7 +1181,21 @@
             if (isDown || isRight) { idx = (idx + 1) % selectors.length; } else { idx = idx - 1; if (idx < 0) idx = selectors.length - 1; }
             selectors[idx].focus();
             try { selectors.forEach(function (s) { s.classList.remove('focus'); }); selectors[idx].classList.add('focus'); } catch (err) {}
-            try { selectors[idx].scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } catch (err) {}
+            try {
+                var el = selectors[idx];
+                var scrollParent = el.closest('.modal__body') || el.closest('.scroll') || el.closest('.modal__content') || el.parentNode;
+                if (scrollParent && scrollParent.scrollHeight > scrollParent.clientHeight) {
+                    var elTop = el.offsetTop;
+                    var elH = el.offsetHeight;
+                    var sTop = scrollParent.scrollTop;
+                    var sH = scrollParent.clientHeight;
+                    if (elTop < sTop) {
+                        scrollParent.scrollTop = elTop;
+                    } else if (elTop + elH > sTop + sH) {
+                        scrollParent.scrollTop = elTop + elH - sH;
+                    }
+                }
+            } catch (err) {}
         };
         if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.open) {
             try {
@@ -1272,7 +1286,7 @@
         style.textContent = (
             '.rate-settings-modal .selector{cursor:pointer!important;pointer-events:auto!important;-webkit-tap-highlight-color:transparent;user-select:none}' +
             '.rate-settings-modal .rate-settings-row.focus,.rate-settings-modal .rate-settings-close.focus,.rate-settings-modal .rate-settings-offset-btn.focus,.rate-settings-modal .rate-settings-reset.focus,.rate-settings-modal .rate-settings-plusminus-btn.focus{border-color:rgba(255,255,255,0.95)!important;box-shadow:0 0 0 2px rgba(255,255,255,0.95)}' +
-            '.rate-settings-modal .selector:focus{outline:3px solid rgba(255,255,255,0.95)!important;outline-offset:2px}' +
+            '.rate-settings-modal .selector:focus{outline:none!important}' +
             '.rate-settings-modal .rate-settings-row:hover,.rate-settings-modal .rate-settings-close:hover,.rate-settings-modal .rate-settings-offset-btn:hover,.rate-settings-modal .rate-settings-reset:hover,.rate-settings-modal .rate-settings-plusminus-btn:hover{background:rgba(255,255,255,0.06)}' +
             '[data-name="rating_modal_open"] .settings-param__value,[data-name="rating_modal_open"] .settings-param__control,[data-name="rating_modal_open"] input[type="checkbox"]{display:none!important}' +
             '.card .card__view{position:relative!important}' +
