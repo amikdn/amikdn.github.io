@@ -7,6 +7,7 @@
     var SVG_REACTIONS_BASE_URL = 'https://cubnotrip.top/img/reactions';
 
     function getRatingColor(value) {
+        if (Lampa.Storage.get('rating_colored_windows', false)) return '#fff';
         if (!Lampa.Storage.get('colored_ratings_poster', true)) return '#fff';
         var v = parseFloat(String(value).replace(',', '.'));
         if (isNaN(v) || v <= 0) return '#fff';
@@ -14,6 +15,17 @@
         if (v < 6) return 'orange';
         if (v < 8) return 'cornflowerblue';
         return 'lawngreen';
+    }
+
+    function getRatingBackgroundColor(value) {
+        if (!Lampa.Storage.get('rating_colored_windows', false)) return '';
+        var alpha = getRatingBackgroundAlpha();
+        var v = parseFloat(String(value).replace(',', '.'));
+        if (isNaN(v) || v <= 0) return 'rgba(0,0,0,' + alpha + ')';
+        if (v <= 3) return 'rgba(180,0,0,' + alpha + ')';
+        if (v < 6) return 'rgba(200,120,0,' + alpha + ')';
+        if (v < 8) return 'rgba(70,130,180,' + alpha + ')';
+        return 'rgba(80,180,0,' + alpha + ')';
     }
 
     function formatRating(value) {
@@ -326,7 +338,7 @@
         var v = parseFloat(Lampa.Storage.get('rating_offset_y', '0'));
         return isNaN(v) ? 0 : v;
     }
-    function getRatingOpacity() {
+    function getRatingBackgroundAlpha() {
         var v = parseFloat(Lampa.Storage.get('rating_window_opacity', '0'));
         if (isNaN(v)) return 1;
         v = Math.max(0, Math.min(100, v));
@@ -361,8 +373,8 @@
         var ratingElement = document.createElement('div');
         ratingElement.className = voteClass();
         var posCSS = getRatingPositionCSS(verticalOffsetEm);
-        var opacity = getRatingOpacity();
-        ratingElement.style.cssText = 'line-height:1;font-family:"SegoeUI",sans-serif;cursor:pointer;box-sizing:border-box;outline:none;user-select:none;position:absolute;z-index:1;opacity:' + opacity + ';' + posCSS + 'background:rgba(0,0,0,0.5);color:#fff;padding:0.2em 0.5em;border-radius:0.35em;display:-webkit-box;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;';
+        var bgAlpha = getRatingBackgroundAlpha();
+        ratingElement.style.cssText = 'line-height:1;font-family:"SegoeUI",sans-serif;cursor:pointer;box-sizing:border-box;outline:none;user-select:none;position:absolute;z-index:1;' + posCSS + 'background:rgba(0,0,0,' + bgAlpha + ');color:#fff;padding:0.2em 0.5em;border-radius:0.35em;display:-webkit-box;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;';
         var parent = getRatingParent(card);
         parent.appendChild(ratingElement);
         return ratingElement;
@@ -372,8 +384,8 @@
         var line = document.createElement('div');
         line.className = voteClass('card__vote-line');
         var posCSS = getRatingPositionCSS();
-        var opacity = getRatingOpacity();
-        line.style.cssText = 'line-height:1;font-family:"SegoeUI",sans-serif;cursor:pointer;box-sizing:border-box;outline:none;user-select:none;position:absolute;z-index:1;opacity:' + opacity + ';' + posCSS + 'background:rgba(0,0,0,0.5);color:#fff;padding:0.2em 0.5em;border-radius:0.35em;display:-webkit-box;display:-webkit-flex;display:flex;-webkit-flex-direction:column;flex-direction:column;-webkit-align-items:flex-end;align-items:flex-end;';
+        var bgAlpha = getRatingBackgroundAlpha();
+        line.style.cssText = 'line-height:1;font-family:"SegoeUI",sans-serif;cursor:pointer;box-sizing:border-box;outline:none;user-select:none;position:absolute;z-index:1;' + posCSS + 'background:rgba(0,0,0,' + bgAlpha + ');color:#fff;padding:0.2em 0.5em;border-radius:0.35em;display:-webkit-box;display:-webkit-flex;display:flex;-webkit-flex-direction:column;flex-direction:column;-webkit-align-items:flex-end;align-items:flex-end;';
         line.innerHTML = '<div class="card__rate-item rate--tmdb" style="display:none"><div>0.0</div><span class="source--name"></span></div><div class="card__rate-item rate--imdb" style="display:none"><div>0.0</div><span class="source--name"></span></div><div class="card__rate-item rate--kp" style="display:none"><div>0.0</div><span class="source--name"></span></div><div class="card__rate-item rate--lampa" style="display:none"><span class="rate-value">0.0</span><span class="source--name rate-icon-reaction"></span></div>';
         var parent = getRatingParent(card);
         parent.appendChild(line);
@@ -460,6 +472,16 @@
                 lampaItem.style.display = show ? '' : 'none';
             }
         } catch (e) {}
+        var firstRating = null;
+        try {
+            var tmdbR = getTMDBRating(data);
+            if (tmdbR !== '0.0' && isRatingSourceVisible('tmdb')) firstRating = tmdbR;
+            if (!firstRating && imdbVal > 0 && isRatingSourceVisible('imdb')) firstRating = String(imdbVal);
+            if (!firstRating && kpVal > 0 && isRatingSourceVisible('kp')) firstRating = String(kpVal);
+            if (!firstRating && cachedLampa && cachedLampa.rating > 0 && isRatingSourceVisible('lampa')) firstRating = String(cachedLampa.rating);
+        } catch (e) {}
+        var lineBg = getRatingBackgroundColor(firstRating || '0');
+        ratingLine.style.background = lineBg || ('rgba(0,0,0,' + getRatingBackgroundAlpha() + ')');
     }
 
     function getRatingDisplayMode() {
@@ -477,6 +499,8 @@
                 el.className = voteClass('rate--tmdb');
                 el.innerHTML = '<span style="color:' + color + '">' + formatRating(rating) + '</span> <span class="source--name"></span>';
                 el.style.display = '';
+                var bg = getRatingBackgroundColor(rating);
+                el.style.background = bg || ('rgba(0,0,0,' + getRatingBackgroundAlpha() + ')');
             } else {
                 el.style.display = 'none';
             }
@@ -492,6 +516,8 @@
                     el.className = voteClass('rate--' + rateSource);
                     el.innerHTML = '<span style="color:' + color + '">' + text + '</span> <span class="source--name"></span>';
                     el.style.display = '';
+                    var bg = getRatingBackgroundColor(val);
+                    el.style.background = bg || ('rgba(0,0,0,' + getRatingBackgroundAlpha() + ')');
                 } else {
                     el.style.display = 'none';
                 }
@@ -511,6 +537,8 @@
                     el.className = voteClass('rate--lampa');
                     el.innerHTML = html;
                     el.style.display = '';
+                    var bg = getRatingBackgroundColor(result.rating);
+                    el.style.background = bg || ('rgba(0,0,0,' + getRatingBackgroundAlpha() + ')');
                 } else {
                     el.style.display = 'none';
                 }
@@ -550,6 +578,8 @@
             var color = getRatingColor(tmdb);
             ratingElement.className = voteClass('rate--tmdb');
             ratingElement.innerHTML = '<span style="color:' + color + '">' + formatRating(tmdb) + '</span> <span class="source--name"></span>';
+            var bg = getRatingBackgroundColor(tmdb);
+            ratingElement.style.background = bg || ('rgba(0,0,0,' + getRatingBackgroundAlpha() + ')');
             return;
         }
         var lampaKey = (data.seasons || data.first_air_date || data.original_name) ? 'tv_' + data.id : 'movie_' + data.id;
@@ -562,6 +592,8 @@
             }
             ratingElement.className = voteClass('rate--lampa');
             ratingElement.innerHTML = html;
+            var bg = getRatingBackgroundColor(cachedLampa.rating);
+            ratingElement.style.background = bg || ('rgba(0,0,0,' + getRatingBackgroundAlpha() + ')');
             return;
         }
         getLampaRating(lampaKey).then(function (result) {
@@ -574,6 +606,8 @@
                 }
                 ratingElement.className = voteClass('rate--lampa');
                 ratingElement.innerHTML = html;
+                var bg = getRatingBackgroundColor(result.rating);
+                ratingElement.style.background = bg || ('rgba(0,0,0,' + getRatingBackgroundAlpha() + ')');
             } else {
                 ratingElement.style.display = 'none';
             }
@@ -645,6 +679,8 @@
             if (rating !== '0.0') {
                 var color = getRatingColor(rating);
                 ratingElement.innerHTML = '<span style="color:' + color + '">' + formatRating(rating) + '</span> <span class="source--name"></span>';
+                var bg = getRatingBackgroundColor(rating);
+                ratingElement.style.background = bg || ('rgba(0,0,0,' + getRatingBackgroundAlpha() + ')');
             } else {
                 showTmdbFallback(ratingElement, data);
             }
@@ -660,6 +696,8 @@
                     html += ' <img style="width:1em;height:1em;margin:0 0.2em;" src="' + reactionSrc + '">';
                 }
                 ratingElement.innerHTML = html;
+                var bg = getRatingBackgroundColor(cached.rating);
+                ratingElement.style.background = bg || ('rgba(0,0,0,' + getRatingBackgroundAlpha() + ')');
                 return;
             }
             addToQueue(function () {
@@ -673,6 +711,8 @@
                                 html += ' <img style="width:1em;height:1em;margin:0 0.2em;" src="' + reactionSrc + '">';
                             }
                             ratingElement.innerHTML = html;
+                            var bg = getRatingBackgroundColor(result.rating);
+                            ratingElement.style.background = bg || ('rgba(0,0,0,' + getRatingBackgroundAlpha() + ')');
                         } else {
                             showTmdbFallback(ratingElement, data);
                         }
@@ -687,6 +727,8 @@
                         var text = formatRating(val);
                         var color = getRatingColor(val);
                         ratingElement.innerHTML = '<span style="color:' + color + '">' + text + '</span> <span class="source--name"></span>';
+                        var bg = getRatingBackgroundColor(val);
+                        ratingElement.style.background = bg || ('rgba(0,0,0,' + getRatingBackgroundAlpha() + ')');
                     } else {
                         showTmdbFallback(ratingElement, data);
                     }
@@ -880,7 +922,6 @@
         var STEP = 0.5;
         var MIN_OFF = -5;
         var MAX_OFF = 5;
-        var moveIntervalId = null;
         function applyOffset(dx, dy) {
             var x = parseFloat(Lampa.Storage.get('rating_offset_x', '0'));
             var y = parseFloat(Lampa.Storage.get('rating_offset_y', '0'));
@@ -892,35 +933,22 @@
             Lampa.Storage.set('rating_offset_y', String(y));
             applyRatingSettingsRefresh();
         }
-        function startMove(dx, dy) {
-            if (moveIntervalId) return;
-            applyOffset(dx, dy);
-            moveIntervalId = setInterval(function () { applyOffset(dx, dy); }, 120);
-        }
-        function stopMove() {
-            if (moveIntervalId) {
-                clearInterval(moveIntervalId);
-                moveIntervalId = null;
-            }
-        }
         function addOffsetButton(text, dx, dy) {
             var btn = $('<div class="selector menu-edit-list__item rate-settings-offset-btn" tabindex="0"></div>').text(text).css({
                 display: 'block', textAlign: 'center', padding: '0.5em 0.4em', marginBottom: '0.2em', borderRadius: '0.3em',
                 border: '3px solid transparent', boxSizing: 'border-box', background: 'rgba(255,255,255,0.08)'
             });
-            btn.on('hover:enter', function () { startMove(dx, dy); });
-            btn.on('hover:leave', function () { stopMove(); });
-            btn.on('focusout', function () { stopMove(); });
-            btn.on('mousedown', function () { startMove(dx, dy); });
-            btn.on('mouseup mouseleave', function () { stopMove(); });
+            btn.on('hover:enter', function () { applyOffset(dx, dy); });
+            btn.on('click', function () { applyOffset(dx, dy); });
             return btn;
         }
 
         addCycleRow('Источник рейтинга', 'rating_source', SOURCE_LABELS, 'tmdb');
         addTriggerRow('Анимированные реакции на постерах', 'animated_reactions', false);
-        addTriggerRow('Цветные рейтинги на постерах', 'colored_ratings_poster', true);
+        addTriggerRow('Цветные рейтинги (цифры)', 'colored_ratings_poster', true);
+        addTriggerRow('Цветные окна (цифры белые)', 'rating_colored_windows', false);
         addCycleRow('Позиция на постере', 'rating_position', POSITION_LABELS, 'top');
-        list.append($('<div class="menu-edit-list__item" style="padding:0.3em 0.4em;margin-bottom:0.1em;font-weight:bold;box-sizing:border-box;">Смещение (удерживайте кнопку)</div>'));
+        list.append($('<div class="menu-edit-list__item" style="padding:0.3em 0.4em;margin-bottom:0.1em;font-weight:bold;box-sizing:border-box;">Смещение (нажатие — сдвиг)</div>'));
         list.append(addOffsetButton('Влево', -STEP, 0));
         list.append(addOffsetButton('Вправо', STEP, 0));
         list.append(addOffsetButton('Вверх', 0, -STEP));
@@ -932,55 +960,69 @@
         addCycleRow('Режим отображения (все рейтинги)', 'rating_display_mode', DISPLAY_MODE_LABELS, 'single');
         addNumberRow('Прозрачность (0=непрозрачное, 100=макс.)', 'rating_window_opacity', 0, 0, 100, 10, '%');
 
+        function resetAllToDefault() {
+            Lampa.Storage.set('rating_source', 'tmdb');
+            Lampa.Storage.set('animated_reactions', false);
+            Lampa.Storage.set('colored_ratings_poster', true);
+            Lampa.Storage.set('rating_colored_windows', false);
+            Lampa.Storage.set('rating_position', 'top');
+            Lampa.Storage.set('rating_offset_x', '0');
+            Lampa.Storage.set('rating_offset_y', '0');
+            Lampa.Storage.set('rating_show_tmdb', true);
+            Lampa.Storage.set('rating_show_imdb', true);
+            Lampa.Storage.set('rating_show_kp', true);
+            Lampa.Storage.set('rating_show_lampa', true);
+            Lampa.Storage.set('rating_display_mode', 'single');
+            Lampa.Storage.set('rating_window_opacity', '0');
+            applyRatingSettingsRefresh();
+            if (typeof Lampa.Noty !== 'undefined' && Lampa.Noty.show) {
+                try { Lampa.Noty.show('Настройки рейтингов сброшены'); } catch (e) {}
+            }
+        }
+        var resetBtn = $('<div class="selector menu-edit-list__item rate-settings-reset" tabindex="0">Сбросить всё по умолчанию</div>').css({
+            display: 'block', textAlign: 'center', padding: '0.6em 0.4em', marginTop: '0.4em', background: 'rgba(200,100,80,0.5)', borderRadius: '0.3em',
+            border: '3px solid transparent', boxSizing: 'border-box'
+        });
+        resetBtn.on('hover:enter', resetAllToDefault);
+        resetBtn.on('click', resetAllToDefault);
+        list.append(resetBtn);
+
         var closeBtn = $('<div class="selector menu-edit-list__item rate-settings-close" tabindex="0">Готово (закрыть)</div>').css({
             display: 'block', textAlign: 'center', padding: '0.75em', marginTop: '0.5em', background: 'rgba(66,133,244,0.6)', borderRadius: '0.3em',
             border: '3px solid transparent', boxSizing: 'border-box'
         });
-        closeBtn.on('hover:enter', function () {
-            stopMove();
+        function closeModal() {
             if (Lampa.Modal && Lampa.Modal.close) Lampa.Modal.close();
             applyRatingSettingsRefresh();
-        });
-        closeBtn.on('click', function () {
-            stopMove();
-            if (Lampa.Modal && Lampa.Modal.close) Lampa.Modal.close();
-            applyRatingSettingsRefresh();
-        });
+            document.removeEventListener('keydown', backKeyHandler);
+            if (typeof Lampa.Controller !== 'undefined' && typeof Lampa.Controller.toggle === 'function') {
+                try { setTimeout(function () { Lampa.Controller.toggle('settings'); }, 50); } catch (err) {}
+            }
+        }
+        closeBtn.on('hover:enter', closeModal);
+        closeBtn.on('click', closeModal);
         list.append(closeBtn);
 
         list.on('focus', '.selector', function () {
             list.find('.selector').removeClass('focus');
             $(this).addClass('focus');
         });
-        list.on('focusout', function () { stopMove(); });
 
+        var backKeyHandler = function (e) {
+            var key = e.keyCode || e.which;
+            if (key === 27 || key === 10009 || key === 461) {
+                e.preventDefault();
+                closeModal();
+            }
+        };
         if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.open) {
-            var backKeyHandler = function (e) {
-                var key = e.keyCode || e.which;
-                if (key === 27 || key === 10009 || key === 461) {
-                    e.preventDefault();
-                    stopMove();
-                    if (Lampa.Modal && Lampa.Modal.close) Lampa.Modal.close();
-                    applyRatingSettingsRefresh();
-                    document.removeEventListener('keydown', backKeyHandler);
-                }
-            };
-            if (typeof Lampa.Activity !== 'undefined' && typeof Lampa.Activity.back === 'function') {
-                try { Lampa.Activity.back(); } catch (err) {}
-            }
-            if (typeof Lampa.Controller !== 'undefined' && typeof Lampa.Controller.back === 'function') {
-                try { Lampa.Controller.back(); } catch (err) {}
-            }
             Lampa.Modal.open({
                 title: 'Настройки рейтингов на карточках',
                 html: list,
                 size: 'medium',
                 scroll_to_center: true,
                 onBack: function () {
-                    document.removeEventListener('keydown', backKeyHandler);
-                    stopMove();
-                    if (Lampa.Modal && Lampa.Modal.close) Lampa.Modal.close();
-                    applyRatingSettingsRefresh();
+                    closeModal();
                 }
             });
             setTimeout(function () {
@@ -1037,9 +1079,9 @@
         var style = document.createElement('style');
         style.type = 'text/css';
         style.textContent = (
-            '.rate-settings-modal .rate-settings-row.focus,.rate-settings-modal .rate-settings-close.focus,.rate-settings-modal .rate-settings-offset-btn.focus{border-color:rgba(255,255,255,0.95)!important;box-shadow:0 0 0 2px rgba(255,255,255,0.95)}' +
+            '.rate-settings-modal .rate-settings-row.focus,.rate-settings-modal .rate-settings-close.focus,.rate-settings-modal .rate-settings-offset-btn.focus,.rate-settings-modal .rate-settings-reset.focus{border-color:rgba(255,255,255,0.95)!important;box-shadow:0 0 0 2px rgba(255,255,255,0.95)}' +
             '.rate-settings-modal .selector:focus{outline:3px solid rgba(255,255,255,0.95)!important;outline-offset:2px}' +
-            '.rate-settings-modal .rate-settings-row:hover,.rate-settings-modal .rate-settings-close:hover,.rate-settings-modal .rate-settings-offset-btn:hover{background:rgba(255,255,255,0.06)}' +
+            '.rate-settings-modal .rate-settings-row:hover,.rate-settings-modal .rate-settings-close:hover,.rate-settings-modal .rate-settings-offset-btn:hover,.rate-settings-modal .rate-settings-reset:hover{background:rgba(255,255,255,0.06)}' +
             '[data-name="rating_modal_open"] .settings-param__value,[data-name="rating_modal_open"] .settings-param__control,[data-name="rating_modal_open"] input[type="checkbox"]{display:none!important}' +
             '.card .card__view{position:relative!important}' +
             '.card__vote{display:-webkit-box;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center!important;height:auto!important;max-height:none!important;overflow:visible!important;position:absolute!important;z-index:1!important;border-radius:0.35em!important}' +
