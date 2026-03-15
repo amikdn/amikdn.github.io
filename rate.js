@@ -818,6 +818,38 @@
         }
     };
 
+    var _scrollRatingMaxCardsPerRun = 35;
+    function applyCachedRatingsToVisibleCards() {
+        var allCards = document.querySelectorAll('.card');
+        if (allCards.length > 200) return;
+        var wH = window.innerHeight || 1000;
+        var updated = 0;
+        for (var i = 0; i < allCards.length && updated < _scrollRatingMaxCardsPerRun; i++) {
+            var card = allCards[i];
+            var data = card.card_data;
+            if (!data || !data.id) continue;
+            var rect = card.getBoundingClientRect();
+            if (rect.bottom < -200 || rect.top > wH + 200) continue;
+            updateCardRating({ card: card, data: data });
+            updated++;
+        }
+    }
+
+    var _scrollRatingLastRun = 0;
+    var _scrollRatingThrottle = 220;
+    var _scrollRatingRafScheduled = false;
+    function onScrollApplyRatings() {
+        var now = Date.now();
+        if (now - _scrollRatingLastRun < _scrollRatingThrottle) return;
+        _scrollRatingLastRun = now;
+        if (_scrollRatingRafScheduled) return;
+        _scrollRatingRafScheduled = true;
+        requestAnimationFrame(function () {
+            _scrollRatingRafScheduled = false;
+            applyCachedRatingsToVisibleCards();
+        });
+    }
+
     function pollCards() {
         var allCards = document.querySelectorAll('.card');
         var source = Lampa.Storage.get('rating_source', 'tmdb');
@@ -1374,6 +1406,7 @@
         addSettings();
         setupCardListener();
         pollCards();
+        window.addEventListener('scroll', onScrollApplyRatings, { passive: true });
 
         Lampa.Listener.follow('card', function (event) {
             if (event.type === 'build' && event.object.card) {
