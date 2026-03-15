@@ -559,9 +559,6 @@
             return 'showy_online_button';
         }
         var viewClasses = classes.split(' ').filter(function(c) { return c.indexOf('view--') === 0 || c.indexOf('button--') === 0; }).join('_');
-        if (classes.indexOf('lampac--button') !== -1 && subtitle) {
-            viewClasses = classes.split(' ').filter(function(c) { return c.indexOf('view--') === 0; }).join('_');
-        }
         if (!viewClasses && !text) {
             return 'button_unknown';
         }
@@ -603,18 +600,9 @@
             var $btn = $(this);
             if (isExcluded($btn)) return;
             var btnId = getButtonId($btn);
-            if (processedIds[btnId]) {
-                if ($btn.hasClass('button--priority') && !processedIds[btnId].button.hasClass('button--priority')) {
-                    var prev = processedIds[btnId];
-                    var arr = categories[prev.type];
-                    var idx = arr.indexOf(prev.button);
-                    if (idx !== -1) arr[idx] = $btn;
-                    processedIds[btnId] = { button: $btn, type: prev.type };
-                }
-                return;
-            }
+            if (processedIds[btnId]) return;
+            processedIds[btnId] = true;
             var type = getButtonType($btn);
-            processedIds[btnId] = { button: $btn, type: type };
             if (categories[type]) {
                 categories[type].push($btn);
             } else {
@@ -736,19 +724,11 @@
 
     function applyButtonAnimation(buttons, opacityOnly) {
         var animName = opacityOnly ? 'button-fade-in-opacity' : 'button-fade-in';
-        var maxDelay = 0;
         buttons.forEach(function(btn, index) {
-            var delay = index * 0.08;
-            if (delay > maxDelay) maxDelay = delay;
-            btn.css({ 'opacity': '0', 'animation': 'none', 'animation-delay': '' });
-        });
-        buttons.forEach(function(btn, index) {
-            var delay = index * 0.08;
-            void (btn[0] && btn[0].offsetHeight);
             btn.css({
                 'opacity': '0',
                 'animation': animName + ' 0.4s ease forwards',
-                'animation-delay': delay + 's'
+                'animation-delay': (index * 0.08) + 's'
             });
             if (opacityOnly) {
                 btn.one('animationend', function() {
@@ -756,11 +736,6 @@
                 });
             }
         });
-        setTimeout(function() {
-            buttons.forEach(function(btn) {
-                btn.css({ 'opacity': '1', 'animation': 'none', 'animation-delay': '' });
-            });
-        }, 400 + maxDelay * 1000 + 50);
     }
 
     function createEditButton() {
@@ -852,6 +827,10 @@
             });
         }
         applyButtonAnimation(visibleButtons, currentContainer.hasClass('applecation'));
+        targetContainer.removeClass('buttons-visible');
+        setTimeout(function() {
+            if (targetContainer.length) targetContainer.addClass('buttons-visible');
+        }, 500);
         var editBtn = targetContainer.find('.button--edit-order');
         if (editBtn.length) {
             editBtn.detach();
@@ -1939,6 +1918,10 @@
         if (viewmode === 'icons') targetContainer.addClass('icons-only');
         if (viewmode === 'always') targetContainer.addClass('always-text');
         applyButtonAnimation(visibleButtons, isApplecation);
+        targetContainer.removeClass('buttons-visible');
+        setTimeout(function() {
+            if (targetContainer.length) targetContainer.addClass('buttons-visible');
+        }, 500);
         setTimeout(function() {
             setupButtonNavigation(container);
         }, DELAY_AFTER_APPLY_MS);
@@ -1988,6 +1971,7 @@
             /* Без applecation: полный layout контейнера кнопок */
             '.buttons-plugin-scope .full-start-new__buttons { display: flex !important; flex-direction: row !important; flex-wrap: wrap !important; gap: 0.5em !important; }' +
             '.buttons-plugin-scope .full-start-new__buttons .full-start__button { opacity: 0; }' +
+            '.buttons-plugin-scope .full-start-new__buttons.buttons-visible .full-start__button { opacity: 1 !important; animation: none !important; }' +
             '.buttons-plugin-scope .full-start__button.hidden { display: none !important; }' +
             '.buttons-plugin-scope .full-start-new__buttons.buttons-loading .full-start__button { visibility: hidden !important; }' +
             '.menu-edit-list { max-width: 100%; overflow: hidden; box-sizing: border-box; }' +
