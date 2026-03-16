@@ -17,10 +17,23 @@
         }
         return url;
     }
+    function ensureCountriesArray(obj) {
+        if (!obj || typeof obj !== 'object') return;
+        if (!Array.isArray(obj.countries)) {
+            var oc = obj.origin_country;
+            obj.countries = Array.isArray(oc) ? oc : (typeof oc === 'string' ? [oc] : (obj.countries != null ? [].concat(obj.countries) : []));
+        }
+    }
     function normalizeTmdbResponse(data) {
-        if (!data || typeof data !== 'object' || Array.isArray(data)) return data;
-        if (!Array.isArray(data.countries)) {
-            data.countries = Array.isArray(data.origin_country) ? data.origin_country : (data.countries != null ? [].concat(data.countries) : []);
+        if (!data || typeof data !== 'object') return data;
+        if (Array.isArray(data)) {
+            data.forEach(function (item) { normalizeTmdbResponse(item); });
+            return data;
+        }
+        ensureCountriesArray(data);
+        var k;
+        for (k in data) if (data.hasOwnProperty(k) && data[k] && typeof data[k] === 'object') {
+            normalizeTmdbResponse(data[k]);
         }
         return data;
     }
