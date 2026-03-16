@@ -38,8 +38,7 @@
         LOG('start', 'lampa_settings.dcma очищен');
 
         Lampa.Utils.dcma = function () { return undefined };
-        var defaultSource = Lampa.Storage.get('source', 'cub');
-        LOG('start', 'инициализация ок, defaultSource =', defaultSource);
+        LOG('start', 'инициализация ок');
 
         var bypassCooldownMs = 3000;
         var lastBypassTime = 0;
@@ -57,17 +56,8 @@
             LOG('bypass', 'блокировка → обход (раз в ' + (bypassCooldownMs / 1000) + ' сек)');
             window.lampa_settings.dcma = [];
             try {
-                var active = Lampa.Activity.active();
-                active.source = 'tmdb';
-                Lampa.Storage.set('source', 'tmdb', true);
                 setTimeout(function () {
                     try { Lampa.Controller.toggle('content'); } catch (e) {}
-                    setTimeout(function () {
-                        try {
-                            Lampa.Activity.replace(active);
-                            Lampa.Storage.set('source', defaultSource, true);
-                        } catch (e) {}
-                    }, 300);
                 }, 250);
             } catch (e) {}
         });
