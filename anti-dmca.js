@@ -10,30 +10,28 @@
     var tmdbProxyHost = 'apitmdb.cub.rip';
     var tmdbDirectHost = 'api.themoviedb.org';
 
-    function fixTmdbUrl(url) {
+    function fixUrl(url) {
         if (typeof url !== 'string') return url;
         if (url.indexOf(tmdbProxyHost) !== -1) url = url.replace(tmdbProxyHost, tmdbDirectHost);
-        if (url.indexOf('themoviedb.org') !== -1 && url.indexOf('/tv/') !== -1 && url.indexOf('/season/0') !== -1) {
-            url = url.replace(/\/season\/0\b/, '/season/1');
-        }
         return url;
     }
 
-    (function patchTmdbUrl() {
+    (function patchNetwork() {
         var origOpen = XMLHttpRequest.prototype.open;
         XMLHttpRequest.prototype.open = function () {
             var args = Array.prototype.slice.call(arguments);
-            if (typeof args[1] === 'string') args[1] = fixTmdbUrl(args[1]);
+            if (typeof args[1] === 'string') args[1] = fixUrl(args[1]);
             return origOpen.apply(this, args);
         };
         if (typeof fetch !== 'undefined') {
             var origFetch = window.fetch;
             window.fetch = function (url, opts) {
-                if (typeof url === 'string') url = fixTmdbUrl(url);
+                if (typeof url === 'string') url = fixUrl(url);
                 return origFetch.call(this, url, opts);
             };
         }
     })();
+
     LOG('init', 'скрипт загружен');
 
     function start() {
@@ -42,22 +40,12 @@
 
         window.anti_dmca_plugin = true;
 
-        var tmdbSource = Lampa.Api && Lampa.Api.sources && Lampa.Api.sources.tmdb;
-        if (tmdbSource && typeof tmdbSource.parseCountries === 'function') {
-            var origParseCountries = tmdbSource.parseCountries;
-            tmdbSource.parseCountries = function (movie) {
-                var result = origParseCountries.apply(this, arguments);
-                if (!Array.isArray(result)) return [];
-                return result;
-            };
-            LOG('start', 'TMDB.parseCountries пропатчен (всегда массив)');
-        }
+        // 1. Принудительно tmdb как источник
+        Lampa.Storage.set('source', 'tmdb');
+        LOG('start', 'источник переключён на tmdb');
 
-
-        // 3. dcma всегда пустой
-        var keepDcmaEmpty = function () {
-            Lampa.Utils.dcma = function () { return undefined };
-        };
+        // 2. dcma всегда пустой
+        Lampa.Utils.dcma = function () { return undefined };
         try {
             Object.defineProperty(window.lampa_settings, 'dcma', {
                 get: function () { return []; },
@@ -67,76 +55,32 @@
         } catch (e) {
             window.lampa_settings.dcma = [];
         }
-        keepDcmaEmpty();
-        setInterval(keepDcmaEmpty, 2000);
 
-        // 4. jQuery.ajax: подмена URL + удаление blocked из ответа
+        // 3. parseCountries — всегда массив
+        var tmdbSource = Lampa.Api && Lampa.Api.sources && Lampa.Api.sources.tmdb;
+        if (tmdbSource && typeof tmdbSource.parseCountries === 'function') {
+            var origPC = tmdbSource.parseCountries;
+            tmdbSource.parseCountries = function (movie) {
+                var r = origPC.apply(this, arguments);
+                return Array.isArray(r) ? r : [];
+            };
+            LOG('start', 'parseCountries пропатчен');
+        }
+
+        // 4. Перенаправление apitmdb.cub.rip → api.themoviedb.org в jQuery
         if (window.jQuery && window.jQuery.ajax) {
             var origAjax = window.jQuery.ajax;
             window.jQuery.ajax = function (urlOrSettings, options) {
-                var s = typeof urlOrSettings === 'object' && urlOrSettings !== null
-                    ? Object.assign({}, urlOrSettings)
-                    : (options ? Object.assign({ url: urlOrSettings }, options) : { url: urlOrSettings });
-                if (s.url && typeof s.url === 'string') {
-                    if (s.url.indexOf('/undefined/') !== -1 && Lampa.Activity && typeof Lampa.Activity.active === 'function') {
-                        try {
-                            var active = Lampa.Activity.active();
-                            var id = active && (active.id || active.movie_id || active.tv_id || (active.item && (active.item.id || active.item.movie_id || active.item.tv_id)));
-                            if (id != null && String(id).match(/^\d+$/)) {
-                                s.url = s.url.replace(/\/undefined\//g, '/' + id + '/');
-                            }
-                        } catch (e) {}
-                    }
-                    s.url = fixTmdbUrl(s.url);
+                if (typeof urlOrSettings === 'object' && urlOrSettings && typeof urlOrSettings.url === 'string') {
+                    urlOrSettings.url = fixUrl(urlOrSettings.url);
+                } else if (typeof urlOrSettings === 'string') {
+                    urlOrSettings = fixUrl(urlOrSettings);
                 }
-                if (typeof s.success === 'function') {
-                    var origSuccess = s.success;
-                    s.success = function (data) {
-                        var isObj = data && typeof data === 'object' && !Array.isArray(data);
-                        var isBlocked = isObj && data.blocked;
-                        var isEmpty = isObj && !data.id && !data.title && !data.name && !data.results;
-                        if (isBlocked || isEmpty) {
-                            LOG('bypass', 'ответ пустой/blocked', { blocked: !!data.blocked, keys: Object.keys(data || {}).slice(0, 10) });
-                            var active = null;
-                            try { active = Lampa.Activity.active(); } catch (e) {}
-                            var cardId = active && (active.id || (active.item && active.item.id));
-                            var cardType = null;
-                            if (active) {
-                                if (active.method === 'tv' || active.card_type === 'tv' || (active.item && active.item.name)) cardType = 'tv';
-                                else if (active.method === 'movie' || active.card_type === 'movie' || (active.item && active.item.title)) cardType = 'movie';
-                            }
-                            if (cardId && cardType) {
-                                var lang = Lampa.Storage.get('tmdb_lang', 'ru');
-                                var apiKey = '4ef0d7355d9ffb5151e987764708ce96';
-                                var tmdbUrl = 'https://' + tmdbDirectHost + '/3/' + cardType + '/' + cardId + '?api_key=' + apiKey + '&language=' + lang + '&append_to_response=credits,external_ids,videos';
-                                LOG('bypass', 'ответ blocked, перезапрос TMDB → ' + tmdbUrl);
-                                var self = this;
-                                var args = arguments;
-                                origAjax.call(window.jQuery, {
-                                    url: tmdbUrl,
-                                    dataType: 'json',
-                                    success: function (realData) {
-                                        LOG('bypass', 'TMDB вернул данные для ' + cardType + '/' + cardId);
-                                        origSuccess.call(self, realData, args[1], args[2]);
-                                    },
-                                    error: function () {
-                                        LOG('bypass', 'TMDB ошибка, передаём пустой объект');
-                                        delete data.blocked;
-                                        origSuccess.apply(self, args);
-                                    }
-                                });
-                                return;
-                            }
-                            delete data.blocked;
-                        }
-                        return origSuccess.apply(this, arguments);
-                    };
-                }
-                return origAjax.call(this, s);
+                return origAjax.call(this, urlOrSettings, options);
             };
         }
 
-        LOG('start', 'готово');
+        LOG('start', 'готово (tmdb напрямую, dcma пуст, countries safe)');
     }
 
     if (window.appready) {
