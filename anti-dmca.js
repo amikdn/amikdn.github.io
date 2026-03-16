@@ -42,52 +42,64 @@
         LOG('start', 'инициализация ок, defaultSource =', defaultSource);
 
         Lampa.Listener.follow('request_secuses', function (event) {
-            LOG('event', 'request_secuses вызван', {
-                hasData: !!event.data,
-                blocked: event.data ? event.data.blocked : 'нет event.data',
-                fullEvent: event
-            });
-
-            if (event.data && event.data.blocked) {
-                LOG('bypass', 'обнаружена блокировка, запуск обхода');
-
-                window.lampa_settings.dcma = [];
-                LOG('bypass', 'dcma снова очищен');
-
-                try {
-                    var active = Lampa.Activity.active();
-                    LOG('bypass', 'Activity.active()', active);
-
-                    active.source = 'tmdb';
-                    Lampa.Storage.set('source', 'tmdb', true);
-                    LOG('bypass', 'источник переключён на tmdb');
-
-                    setTimeout(function () {
-                        try {
-                            Lampa.Controller.toggle('content');
-                            LOG('bypass', 'Controller.toggle("content") выполнен');
-                        } catch (e) {
-                            LOG('bypass', 'ОШИБКА в toggle:', e);
-                        }
+            var data = event.data;
+            var isObject = data && typeof data === 'object' && !Array.isArray(data);
+            if (typeof data === 'string') {
+                LOG('event', 'request_secuses: data = строка (это загрузка плагина, не блокировка)');
+                return;
+            }
+            if (isObject) {
+                LOG('event', 'request_secuses: data = объект', Object.keys(data));
+                if (data.blocked) {
+                    LOG('bypass', 'обнаружена блокировка, запуск обхода');
+                    window.lampa_settings.dcma = [];
+                    try {
+                        var active = Lampa.Activity.active();
+                        active.source = 'tmdb';
+                        Lampa.Storage.set('source', 'tmdb', true);
                         setTimeout(function () {
-                            try {
-                                Lampa.Activity.replace(active);
-                                Lampa.Storage.set('source', defaultSource, true);
-                                LOG('bypass', 'Activity.replace и возврат источника выполнены');
-                            } catch (e) {
-                                LOG('bypass', 'ОШИБКА в replace:', e);
-                            }
-                        }, 300);
-                    }, 250);
-                } catch (e) {
-                    LOG('bypass', 'ОШИБКА в обходе:', e);
+                            try { Lampa.Controller.toggle('content'); } catch (e) { LOG('bypass', 'ОШИБКА toggle:', e); }
+                            setTimeout(function () {
+                                try {
+                                    Lampa.Activity.replace(active);
+                                    Lampa.Storage.set('source', defaultSource, true);
+                                    LOG('bypass', 'обход выполнен');
+                                } catch (e) { LOG('bypass', 'ОШИБКА replace:', e); }
+                            }, 300);
+                        }, 250);
+                    } catch (e) { LOG('bypass', 'ОШИБКА:', e); }
                 }
-            } else {
-                LOG('event', 'блокировка не сработала (нет event.data.blocked)');
             }
         });
 
-        LOG('start', 'подписка на request_secuses установлена');
+        var knownEvents = ['request_success', 'request_failed', 'content_blocked', 'dmca_blocked', 'blocked', 'error', 'content_error'];
+        knownEvents.forEach(function (name) {
+            try {
+                Lampa.Listener.follow(name, function (event) {
+                    LOG('event', 'другое событие: ' + name, event.data !== undefined ? (typeof event.data === 'object' ? Object.keys(event.data || {}) : event.data) : 'нет data');
+                });
+            } catch (e) {}
+        });
+
+        setInterval(function () {
+            if (window.lampa_settings && window.lampa_settings.dcma && window.lampa_settings.dcma.length > 0) {
+                window.lampa_settings.dcma = [];
+                LOG('interval', 'dcma снова заполнен — очищен (запасной обход)');
+            }
+        }, 2000);
+
+        if (typeof Lampa.Listener.send === 'function') {
+            var origSend = Lampa.Listener.send;
+            Lampa.Listener.send = function (type, data) {
+                if (typeof data === 'object' && data && (data.blocked || type.indexOf('block') !== -1 || type.indexOf('dmca') !== -1)) {
+                    LOG('event', 'Listener.send: ' + type, data);
+                }
+                return origSend.apply(this, arguments);
+            };
+            LOG('start', 'перехват Listener.send включён (логируем только block/dmca)');
+        }
+
+        LOG('start', 'подписка на request_secuses + запасная очистка dcma каждые 2 сек');
     }
 
     if (typeof Lampa === 'undefined') {
