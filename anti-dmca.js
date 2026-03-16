@@ -91,14 +91,35 @@
         if (window.jQuery && window.jQuery.ajax) {
             var origAjax = window.jQuery.ajax;
             window.jQuery.ajax = function (urlOrSettings, options) {
-                if (typeof urlOrSettings === 'object' && urlOrSettings && typeof urlOrSettings.url === 'string' && urlOrSettings.url.indexOf(tmdbProxyHost) !== -1) {
-                    urlOrSettings.url = urlOrSettings.url.replace(tmdbProxyHost, tmdbDirectHost);
-                } else if (typeof urlOrSettings === 'string' && urlOrSettings.indexOf(tmdbProxyHost) !== -1) {
-                    urlOrSettings = urlOrSettings.replace(tmdbProxyHost, tmdbDirectHost);
+                var s = typeof urlOrSettings === 'object' && urlOrSettings !== null
+                    ? Object.assign({}, urlOrSettings)
+                    : (options ? Object.assign({ url: urlOrSettings }, options) : { url: urlOrSettings });
+                if (s.url && typeof s.url === 'string' && s.url.indexOf(tmdbProxyHost) !== -1) {
+                    s.url = s.url.replace(tmdbProxyHost, tmdbDirectHost);
                 }
-                return origAjax.call(this, urlOrSettings, options);
+                if (typeof s.success === 'function') {
+                    var origSuccess = s.success;
+                    s.success = function (data, textStatus, jqXHR) {
+                        if (data && typeof data === 'object' && !Array.isArray(data) && data.blocked) {
+                            delete data.blocked;
+                        }
+                        return origSuccess.apply(this, arguments);
+                    };
+                }
+                return origAjax.call(this, s);
             };
-            LOG('start', 'jQuery.ajax перехвачен для TMDB');
+            LOG('start', 'jQuery.ajax перехвачен (TMDB URL + убираем blocked из success)');
+        }
+        if (window.jQuery && window.jQuery.ajaxPrefilter) {
+            window.jQuery.ajaxPrefilter(function (opts) {
+                var orig = opts.dataFilter;
+                opts.dataFilter = function (data, type) {
+                    if (orig) data = orig.apply(this, arguments);
+                    if (data && typeof data === 'object' && !Array.isArray(data) && data.blocked) delete data.blocked;
+                    return data;
+                };
+            });
+            LOG('start', 'jQuery ajaxPrefilter: blocked убирается из всех JSON-ответов');
         }
 
         LOG('start', 'готово (перехват blocked + пустой dcma + TMDB напрямую)');
