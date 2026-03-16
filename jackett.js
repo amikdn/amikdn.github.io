@@ -64,6 +64,14 @@
       interview: 'all',
       lang: 'lg',
     },
+        {
+      id: 'Myjacket',
+      name: 'Myjacket',
+      baseUrl: 'lampac.fun:8117',
+      key: 'cvy139co64s9pu791s2ao7egzzgogocw',
+      interview: 'all',
+      lang: 'lg',
+    },
   ];
 
   // Применение конфигурации выбранного сервера
