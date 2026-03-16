@@ -1,12 +1,6 @@
 (function () {
     'use strict';
 
-    var LOG = function (step, msg, data) {
-        var args = ['[anti-dmca] ' + step + ': ' + msg];
-        if (data !== undefined) args.push(data);
-        console.log.apply(console, args);
-    };
-
     var tmdbProxyHost = 'apitmdb.cub.rip';
     var tmdbDirectHost = 'api.themoviedb.org';
     var apiKey = '4ef0d7355d9ffb5151e987764708ce96';
@@ -33,15 +27,12 @@
         }
     })();
 
-    LOG('init', 'скрипт загружен');
-
     function start() {
         if (window.anti_dmca_plugin) return;
         if (typeof Lampa === 'undefined' || !window.lampa_settings) return;
 
         window.anti_dmca_plugin = true;
 
-        // 1. dcma всегда пустой
         Lampa.Utils.dcma = function () { return undefined };
         try {
             Object.defineProperty(window.lampa_settings, 'dcma', {
@@ -53,7 +44,6 @@
             window.lampa_settings.dcma = [];
         }
 
-        // 2. parseCountries — всегда массив
         var tmdbSource = Lampa.Api && Lampa.Api.sources && Lampa.Api.sources.tmdb;
         if (tmdbSource && typeof tmdbSource.parseCountries === 'function') {
             var origPC = tmdbSource.parseCountries;
@@ -61,10 +51,8 @@
                 var r = origPC.apply(this, arguments);
                 return Array.isArray(r) ? r : [];
             };
-            LOG('start', 'parseCountries пропатчен');
         }
 
-        // 3. jQuery.ajax: подмена URL + при blocked/пустом ответе — перезапрос через TMDB
         if (window.jQuery && window.jQuery.ajax) {
             var origAjax = window.jQuery.ajax;
 
@@ -72,16 +60,13 @@
                 var tmdbUrl = 'https://' + tmdbDirectHost + '/3/' + cardType + '/' + cardId
                     + '?api_key=' + apiKey + '&language=' + (lang || 'ru')
                     + '&append_to_response=credits,external_ids,videos,recommendations,similar';
-                LOG('bypass', cardType + '/' + cardId + ' → TMDB напрямую');
                 origAjax.call(window.jQuery, {
                     url: tmdbUrl,
                     dataType: 'json',
                     success: function (realData) {
-                        LOG('bypass', 'TMDB ответил ок для ' + cardType + '/' + cardId);
                         origSuccess.call(self, realData, args[1], args[2]);
                     },
                     error: function () {
-                        LOG('bypass', 'TMDB тоже ошибка');
                         if (origError) origError();
                     }
                 });
@@ -130,10 +115,7 @@
                 }
                 return origAjax.call(this, s);
             };
-            LOG('start', 'jQuery.ajax перехвачен');
         }
-
-        LOG('start', 'готово (источник не меняется, при блокировке → TMDB)');
     }
 
     if (window.appready) {
