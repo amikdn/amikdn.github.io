@@ -7,19 +7,16 @@
         console.log.apply(console, args);
     };
 
-    (function patchJoin() {
-        var origJoin = Array.prototype.join;
-        Array.prototype.join = function (separator) {
-            var self = this;
-            if (!Array.isArray(self)) {
-                self = self == null ? [] : (typeof self === 'string' ? [self] : (typeof self === 'object' && self !== null && !Array.isArray(self) ? [] : [].concat(self)));
-            }
-            return origJoin.call(self, separator);
-        };
-    })();
-
     var tmdbProxyHost = 'apitmdb.cub.rip';
     var tmdbDirectHost = 'api.themoviedb.org';
+
+    function toArr(v) {
+        if (Array.isArray(v)) return v;
+        if (v == null) return [];
+        if (typeof v === 'string') return [v];
+        try { return [].concat(v); } catch (e) { return []; }
+    }
+
     function fixTmdbUrl(url) {
         if (typeof url !== 'string') return url;
         if (url.indexOf(tmdbProxyHost) !== -1) url = url.replace(tmdbProxyHost, tmdbDirectHost);
@@ -28,48 +25,43 @@
         }
         return url;
     }
-    function toArr(v) {
-        if (Array.isArray(v)) return v;
-        if (v == null) return [];
-        if (typeof v === 'string') return [v];
-        try { return [].concat(v); } catch (e) { return []; }
-    }
-    function ensureCountriesArray(obj) {
-        if (!obj || typeof obj !== 'object') return;
-        var oc = obj.origin_country;
-        var c = obj.countries;
-        var single = obj.country;
-        var arr = Array.isArray(obj.countries) ? obj.countries : (Array.isArray(oc) ? oc : (typeof oc === 'string' ? [oc] : (typeof single === 'string' ? [single] : toArr(c))));
-        try {
-            obj.countries = arr;
-        } catch (e) {
-            try {
-                Object.defineProperty(obj, 'countries', { value: arr, writable: true, configurable: true });
-            } catch (e2) {}
+
+    var seen = null;
+    function deepProxy(obj) {
+        if (obj === null || typeof obj !== 'object') return obj;
+        if (Array.isArray(obj)) {
+            if (seen && seen.has(obj)) return obj;
+            if (!seen) seen = new WeakSet();
+            seen.add(obj);
+            var out = [];
+            for (var i = 0; i < obj.length; i++) out.push(deepProxy(obj[i]));
+            return out;
         }
-        if (!Array.isArray(obj.production_countries)) {
-            try {
-                obj.production_countries = obj.production_countries != null ? toArr(obj.production_countries) : [];
-            } catch (e) {}
-        }
+        if (seen && seen.has(obj)) return obj;
+        if (!seen) seen = new WeakSet();
+        seen.add(obj);
+        return new Proxy(obj, {
+            get: function (target, key) {
+                var v = target[key];
+                if (key === 'countries' || key === 'production_countries') {
+                    return toArr(v);
+                }
+                if (v !== null && typeof v === 'object') return deepProxy(v);
+                return v;
+            }
+        });
     }
-    function normalizeTmdbResponse(data) {
+
+    function wrapResponse(data) {
         if (!data || typeof data !== 'object') return data;
-        if (Array.isArray(data)) {
-            for (var i = 0; i < data.length; i++) normalizeTmdbResponse(data[i]);
+        seen = new WeakSet();
+        try {
+            return deepProxy(data);
+        } catch (e) {
             return data;
         }
-        ensureCountriesArray(data);
-        try {
-            for (var k in data) {
-                if (Object.prototype.hasOwnProperty.call(data, k)) {
-                    var v = data[k];
-                    if (v && typeof v === 'object') normalizeTmdbResponse(v);
-                }
-            }
-        } catch (e) {}
-        return data;
     }
+
     (function patchTmdbUrl() {
         var origOpen = XMLHttpRequest.prototype.open;
         XMLHttpRequest.prototype.open = function (method, url) {
@@ -89,27 +81,13 @@
 
     function start() {
         if (window.anti_dmca_plugin) {
-            LOG('start', 'уже инициализирован, выход');
+            LOG('start', 'уже инициализирован');
             return;
         }
-
-        if (typeof Lampa === 'undefined') {
-            LOG('start', 'ОШИБКА: Lampa не найдена');
+        if (typeof Lampa === 'undefined' || !window.lampa_settings) {
+            LOG('start', 'ОШИБКА: Lampa не готова');
             return;
         }
-
-        if (!window.lampa_settings) {
-            LOG('start', 'ОШИБКА: window.lampa_settings нет');
-            return;
-        }
-
-        LOG('start', 'проверка API Lampa', {
-            Utils: !!Lampa.Utils,
-            Listener: !!Lampa.Listener,
-            Storage: !!Lampa.Storage,
-            Activity: !!Lampa.Activity,
-            Controller: !!Lampa.Controller
-        });
 
         window.anti_dmca_plugin = true;
 
@@ -121,13 +99,12 @@
                 }
                 return origSend(type, data);
             };
-            LOG('start', 'перехват send: флаг blocked убирается из ответов');
+            LOG('start', 'перехват send: blocked убирается');
         }
 
-        var defaultSource = Lampa.Storage.get('source', 'cub');
         var keepDcmaEmpty = function () {
             Lampa.Utils.dcma = function () { return undefined };
-            if (window.lampa_settings && window.lampa_settings.dcma) window.lampa_settings.dcma.length = 0;
+            if (window.lampa_settings.dcma) window.lampa_settings.dcma.length = 0;
         };
         try {
             Object.defineProperty(window.lampa_settings, 'dcma', {
@@ -135,14 +112,10 @@
                 set: function () {},
                 configurable: true
             });
-            LOG('start', 'lampa_settings.dcma всегда пустой (перехват)');
         } catch (e) {
             window.lampa_settings.dcma = [];
-            LOG('start', 'lampa_settings.dcma очищен');
         }
         keepDcmaEmpty();
-        LOG('start', 'инициализация ок, источник по умолчанию:', defaultSource);
-
         setInterval(keepDcmaEmpty, 400);
 
         if (window.jQuery && window.jQuery.ajax) {
@@ -152,7 +125,7 @@
                     ? Object.assign({}, urlOrSettings)
                     : (options ? Object.assign({ url: urlOrSettings }, options) : { url: urlOrSettings });
                 if (s.url && typeof s.url === 'string') {
-                    if (s.url.indexOf('/undefined/') !== -1 && typeof Lampa !== 'undefined' && Lampa.Activity && typeof Lampa.Activity.active === 'function') {
+                    if (s.url.indexOf('/undefined/') !== -1 && Lampa && Lampa.Activity && typeof Lampa.Activity.active === 'function') {
                         try {
                             var active = Lampa.Activity.active();
                             var id = active && (active.id || active.movie_id || active.tv_id || (active.item && (active.item.id || active.item.movie_id || active.item.tv_id)));
@@ -168,15 +141,16 @@
                     s.success = function (data, textStatus, jqXHR) {
                         if (data && typeof data === 'object') {
                             if (!Array.isArray(data) && data.blocked) delete data.blocked;
-                            normalizeTmdbResponse(data);
+                            data = wrapResponse(data);
                         }
-                        return origSuccess.apply(this, arguments);
+                        return origSuccess.call(this, data, textStatus, jqXHR);
                     };
                 }
                 return origAjax.call(this, s);
             };
-            LOG('start', 'jQuery.ajax перехвачен (TMDB URL + убираем blocked из success)');
+            LOG('start', 'jQuery.ajax перехвачен (TMDB + Proxy для countries)');
         }
+
         if (window.jQuery && window.jQuery.ajaxPrefilter) {
             window.jQuery.ajaxPrefilter(function (opts) {
                 var orig = opts.dataFilter;
@@ -184,35 +158,21 @@
                     if (orig) data = orig.apply(this, arguments);
                     if (data && typeof data === 'object') {
                         if (!Array.isArray(data) && data.blocked) delete data.blocked;
-                        normalizeTmdbResponse(data);
+                        data = wrapResponse(data);
                     }
                     return data;
                 };
             });
-            LOG('start', 'jQuery ajaxPrefilter: blocked убирается из всех JSON-ответов');
         }
 
-        LOG('start', 'готово (перехват blocked + пустой dcma + TMDB напрямую)');
-    }
-
-    if (typeof Lampa === 'undefined') {
-        LOG('init', 'Lampa ещё нет, ждём app ready');
+        LOG('start', 'готово');
     }
 
     if (window.appready) {
-        LOG('init', 'appready=true, вызываем start()');
         start();
-    } else {
-        LOG('init', 'ждём событие app ready');
-        if (typeof Lampa !== 'undefined' && Lampa.Listener) {
-            Lampa.Listener.follow('app', function (event) {
-                LOG('app', 'событие app', event.type);
-                if (event.type === 'ready') {
-                    start();
-                }
-            });
-        } else {
-            LOG('init', 'ОШИБКА: нельзя подписаться на app — Lampa.Listener нет');
-        }
+    } else if (typeof Lampa !== 'undefined' && Lampa.Listener) {
+        Lampa.Listener.follow('app', function (event) {
+            if (event.type === 'ready') start();
+        });
     }
 })();
