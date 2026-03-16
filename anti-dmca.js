@@ -9,6 +9,7 @@
 
     var tmdbProxyHost = 'apitmdb.cub.rip';
     var tmdbDirectHost = 'api.themoviedb.org';
+    var apiKey = '4ef0d7355d9ffb5151e987764708ce96';
 
     function fixUrl(url) {
         if (typeof url !== 'string') return url;
@@ -40,11 +41,7 @@
 
         window.anti_dmca_plugin = true;
 
-        // 1. Принудительно tmdb как источник
-        Lampa.Storage.set('source', 'tmdb');
-        LOG('start', 'источник переключён на tmdb');
-
-        // 2. dcma всегда пустой
+        // 1. dcma всегда пустой
         Lampa.Utils.dcma = function () { return undefined };
         try {
             Object.defineProperty(window.lampa_settings, 'dcma', {
@@ -56,7 +53,7 @@
             window.lampa_settings.dcma = [];
         }
 
-        // 3. parseCountries — всегда массив
+        // 2. parseCountries — всегда массив
         var tmdbSource = Lampa.Api && Lampa.Api.sources && Lampa.Api.sources.tmdb;
         if (tmdbSource && typeof tmdbSource.parseCountries === 'function') {
             var origPC = tmdbSource.parseCountries;
@@ -67,20 +64,76 @@
             LOG('start', 'parseCountries пропатчен');
         }
 
-        // 4. Перенаправление apitmdb.cub.rip → api.themoviedb.org в jQuery
+        // 3. jQuery.ajax: подмена URL + при blocked/пустом ответе — перезапрос через TMDB
         if (window.jQuery && window.jQuery.ajax) {
             var origAjax = window.jQuery.ajax;
+
+            function fetchFromTmdb(cardId, cardType, lang, origSuccess, origError, self, args) {
+                var tmdbUrl = 'https://' + tmdbDirectHost + '/3/' + cardType + '/' + cardId
+                    + '?api_key=' + apiKey + '&language=' + (lang || 'ru')
+                    + '&append_to_response=credits,external_ids,videos,recommendations,similar';
+                LOG('bypass', cardType + '/' + cardId + ' → TMDB напрямую');
+                origAjax.call(window.jQuery, {
+                    url: tmdbUrl,
+                    dataType: 'json',
+                    success: function (realData) {
+                        LOG('bypass', 'TMDB ответил ок для ' + cardType + '/' + cardId);
+                        origSuccess.call(self, realData, args[1], args[2]);
+                    },
+                    error: function () {
+                        LOG('bypass', 'TMDB тоже ошибка');
+                        if (origError) origError();
+                    }
+                });
+            }
+
+            function getCardInfo() {
+                try {
+                    var active = Lampa.Activity.active();
+                    if (!active) return null;
+                    var id = active.id || (active.item && active.item.id);
+                    var type = null;
+                    if (active.method === 'tv' || active.card_type === 'tv' || (active.item && active.item.name && !active.item.title)) type = 'tv';
+                    else if (active.method === 'movie' || active.card_type === 'movie' || (active.item && active.item.title)) type = 'movie';
+                    if (id && type) return { id: id, type: type };
+                } catch (e) {}
+                return null;
+            }
+
             window.jQuery.ajax = function (urlOrSettings, options) {
-                if (typeof urlOrSettings === 'object' && urlOrSettings && typeof urlOrSettings.url === 'string') {
-                    urlOrSettings.url = fixUrl(urlOrSettings.url);
-                } else if (typeof urlOrSettings === 'string') {
-                    urlOrSettings = fixUrl(urlOrSettings);
+                var s = typeof urlOrSettings === 'object' && urlOrSettings !== null
+                    ? Object.assign({}, urlOrSettings)
+                    : (options ? Object.assign({ url: urlOrSettings }, options) : { url: urlOrSettings });
+
+                if (s.url && typeof s.url === 'string') {
+                    s.url = fixUrl(s.url);
                 }
-                return origAjax.call(this, urlOrSettings, options);
+
+                if (typeof s.success === 'function') {
+                    var origSuccess = s.success;
+                    var origError = s.error;
+                    s.success = function (data) {
+                        var isObj = data && typeof data === 'object' && !Array.isArray(data);
+                        var isBlocked = isObj && data.blocked;
+                        var isEmpty = isObj && !data.blocked && !data.id && !data.title && !data.name && !data.results && Object.keys(data).length < 3;
+
+                        if (isBlocked || isEmpty) {
+                            var card = getCardInfo();
+                            if (card) {
+                                var lang = Lampa.Storage.get('tmdb_lang', 'ru');
+                                fetchFromTmdb(card.id, card.type, lang, origSuccess, origError, this, arguments);
+                                return;
+                            }
+                        }
+                        return origSuccess.apply(this, arguments);
+                    };
+                }
+                return origAjax.call(this, s);
             };
+            LOG('start', 'jQuery.ajax перехвачен');
         }
 
-        LOG('start', 'готово (tmdb напрямую, dcma пуст, countries safe)');
+        LOG('start', 'готово (источник не меняется, при блокировке → TMDB)');
     }
 
     if (window.appready) {
