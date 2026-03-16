@@ -35,6 +35,17 @@
 
         window.anti_dmca_plugin = true;
 
+        if (typeof Lampa.Listener.send === 'function') {
+            var origSend = Lampa.Listener.send.bind(Lampa.Listener);
+            Lampa.Listener.send = function (type, data) {
+                if (type === 'request_secuses' && data && typeof data === 'object' && !Array.isArray(data) && data.blocked) {
+                    delete data.blocked;
+                }
+                return origSend(type, data);
+            };
+            LOG('start', 'перехват send: флаг blocked убирается из ответов');
+        }
+
         var defaultSource = Lampa.Storage.get('source', 'cub');
         var keepDcmaEmpty = function () {
             Lampa.Utils.dcma = function () { return undefined };
@@ -83,7 +94,28 @@
 
         setInterval(keepDcmaEmpty, 400);
 
-        LOG('start', 'готово (обход при blocked, cooldown ' + bypassCooldownMs / 1000 + ' сек)');
+        var lastAutoRefresh = 0;
+        var autoRefreshCooldown = 5000;
+        function tryClickRefresh() {
+            if (Date.now() - lastAutoRefresh < autoRefreshCooldown) return;
+            var el = document.body;
+            if (!el || !el.innerText || el.innerText.indexOf('Контент заблокирован') === -1) return;
+            var buttons = el.querySelectorAll('button, [role="button"], .button, a');
+            for (var i = 0; i < buttons.length; i++) {
+                var btn = buttons[i];
+                var t = (btn.textContent || btn.innerText || '').trim();
+                if (t === 'Обновить' || t.indexOf('Сменить источник') !== -1) {
+                    lastAutoRefresh = Date.now();
+                    keepDcmaEmpty();
+                    LOG('bypass', 'автоклик: ' + t);
+                    btn.click();
+                    return;
+                }
+            }
+        }
+        setInterval(tryClickRefresh, 1500);
+
+        LOG('start', 'готово (обход + автоклик Обновить при экране блокировки)');
     }
 
     if (typeof Lampa === 'undefined') {
