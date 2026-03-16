@@ -17,7 +17,7 @@
       lang: 'df',
     },
     {
-      id: 'jacred_xyz',
+      id: 'jac_red',
       name: 'Jac.red',
       baseUrl: 'jac.red',
       key: '',
@@ -147,7 +147,7 @@
       name: 'jackett_urltwo',
       type: 'select',
       values: selectValues,
-      default: 'jacred_xyz',
+      default: 'jac_red',
     },
     field: {
       name: `<div class="settings-folder" style="padding:0!important">
@@ -485,8 +485,8 @@
       clearInterval(initInterval);
       if (!Lampa.Storage.get('jack', false)) {
         Lampa.Storage.set('jack', true);
-        Lampa.Storage.set('jackett_url', 'www.jacred.xyz');
-        Lampa.Storage.set('jackett_urltwo', 'jacred_xyz');
+        Lampa.Storage.set('jackett_url', 'jac.red');
+        Lampa.Storage.set('jackett_urltwo', 'jac_red');
         Lampa.Storage.set('parse_in_search', true);
         Lampa.Storage.set('jackett_key', '');
         Lampa.Storage.set('jackett_interview', 'healthy');
