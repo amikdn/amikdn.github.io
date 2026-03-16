@@ -65,57 +65,30 @@
         keepDcmaEmpty();
         LOG('start', 'инициализация ок, источник по умолчанию:', defaultSource);
 
-        var bypassCooldownMs = 3000;
-        var lastBypassTime = 0;
-
-        Lampa.Listener.follow('request_secuses', function (event) {
-            var data = event.data;
-            if (typeof data === 'string') return;
-            var isObject = data && typeof data === 'object' && !Array.isArray(data);
-            if (!isObject || !data.blocked) return;
-
-            var now = Date.now();
-            if (now - lastBypassTime < bypassCooldownMs) return;
-            lastBypassTime = now;
-
-            LOG('bypass', 'блокировка → обход (раз в ' + (bypassCooldownMs / 1000) + ' сек)');
-            keepDcmaEmpty();
-            try {
-                Lampa.Storage.set('source', 'tmdb', true);
-                setTimeout(function () {
-                    try { Lampa.Controller.toggle('content'); } catch (e) {}
-                    setTimeout(function () {
-                        Lampa.Storage.set('source', defaultSource, true);
-                        keepDcmaEmpty();
-                    }, 400);
-                }, 300);
-            } catch (e) {}
-        });
-
         setInterval(keepDcmaEmpty, 400);
 
-        var lastAutoRefresh = 0;
-        var autoRefreshCooldown = 5000;
-        function tryClickRefresh() {
-            if (Date.now() - lastAutoRefresh < autoRefreshCooldown) return;
-            var el = document.body;
-            if (!el || !el.innerText || el.innerText.indexOf('Контент заблокирован') === -1) return;
-            var buttons = el.querySelectorAll('button, [role="button"], .button, a');
-            for (var i = 0; i < buttons.length; i++) {
-                var btn = buttons[i];
-                var t = (btn.textContent || btn.innerText || '').trim();
-                if (t === 'Обновить' || t.indexOf('Сменить источник') !== -1) {
-                    lastAutoRefresh = Date.now();
-                    keepDcmaEmpty();
-                    LOG('bypass', 'автоклик: ' + t);
-                    btn.click();
-                    return;
-                }
+        var tmdbProxyHost = 'apitmdb.cub.rip';
+        var tmdbDirectHost = 'api.themoviedb.org';
+        var origOpen = XMLHttpRequest.prototype.open;
+        XMLHttpRequest.prototype.open = function (method, url) {
+            var args = Array.prototype.slice.call(arguments);
+            if (typeof args[1] === 'string' && args[1].indexOf(tmdbProxyHost) !== -1) {
+                args[1] = args[1].replace(tmdbProxyHost, tmdbDirectHost);
             }
+            return origOpen.apply(this, args);
+        };
+        if (typeof fetch !== 'undefined') {
+            var origFetch = window.fetch;
+            window.fetch = function (url, opts) {
+                if (typeof url === 'string' && url.indexOf(tmdbProxyHost) !== -1) {
+                    url = url.replace(tmdbProxyHost, tmdbDirectHost);
+                }
+                return origFetch.call(this, url, opts);
+            };
         }
-        setInterval(tryClickRefresh, 1500);
+        LOG('start', 'запросы к ' + tmdbProxyHost + ' перенаправлены на ' + tmdbDirectHost);
 
-        LOG('start', 'готово (обход + автоклик Обновить при экране блокировки)');
+        LOG('start', 'готово (перехват blocked + пустой dcma + TMDB напрямую)');
     }
 
     if (typeof Lampa === 'undefined') {
