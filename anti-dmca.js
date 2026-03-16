@@ -7,6 +7,17 @@
         console.log.apply(console, args);
     };
 
+    (function patchJoin() {
+        var origJoin = Array.prototype.join;
+        Array.prototype.join = function (separator) {
+            var self = this;
+            if (!Array.isArray(self)) {
+                self = self == null ? [] : (typeof self === 'string' ? [self] : (typeof self === 'object' && self !== null && !Array.isArray(self) ? [] : [].concat(self)));
+            }
+            return origJoin.call(self, separator);
+        };
+    })();
+
     var tmdbProxyHost = 'apitmdb.cub.rip';
     var tmdbDirectHost = 'api.themoviedb.org';
     function fixTmdbUrl(url) {
