@@ -99,24 +99,34 @@
                     }
                     s.url = fixTmdbUrl(s.url);
                 }
-                var savedUrl = s.url;
                 if (typeof s.success === 'function') {
                     var origSuccess = s.success;
-                    var requestUrl = savedUrl;
                     s.success = function (data) {
                         if (data && typeof data === 'object' && !Array.isArray(data) && data.blocked) {
-                            var directUrl = requestUrl ? fixTmdbUrl(requestUrl.replace(tmdbProxyHost, tmdbDirectHost)) : null;
-                            if (directUrl && directUrl.indexOf(tmdbDirectHost) !== -1) {
-                                LOG('bypass', 'ответ blocked, перезапрос → ' + directUrl);
+                            var active = null;
+                            try { active = Lampa.Activity.active(); } catch (e) {}
+                            var cardId = active && (active.id || (active.item && active.item.id));
+                            var cardType = null;
+                            if (active) {
+                                if (active.method === 'tv' || active.card_type === 'tv' || (active.item && active.item.name)) cardType = 'tv';
+                                else if (active.method === 'movie' || active.card_type === 'movie' || (active.item && active.item.title)) cardType = 'movie';
+                            }
+                            if (cardId && cardType) {
+                                var lang = Lampa.Storage.get('tmdb_lang', 'ru');
+                                var apiKey = '4ef0d7355d9ffb5151e987764708ce96';
+                                var tmdbUrl = 'https://' + tmdbDirectHost + '/3/' + cardType + '/' + cardId + '?api_key=' + apiKey + '&language=' + lang + '&append_to_response=credits,external_ids,videos';
+                                LOG('bypass', 'ответ blocked, перезапрос TMDB → ' + tmdbUrl);
                                 var self = this;
                                 var args = arguments;
                                 origAjax.call(window.jQuery, {
-                                    url: directUrl,
+                                    url: tmdbUrl,
                                     dataType: 'json',
                                     success: function (realData) {
+                                        LOG('bypass', 'TMDB вернул данные для ' + cardType + '/' + cardId);
                                         origSuccess.call(self, realData, args[1], args[2]);
                                     },
                                     error: function () {
+                                        LOG('bypass', 'TMDB ошибка, передаём пустой объект');
                                         delete data.blocked;
                                         origSuccess.apply(self, args);
                                     }
