@@ -17,6 +17,13 @@
         }
         return url;
     }
+    function normalizeTmdbResponse(data) {
+        if (!data || typeof data !== 'object' || Array.isArray(data)) return data;
+        if (!Array.isArray(data.countries)) {
+            data.countries = Array.isArray(data.origin_country) ? data.origin_country : (data.countries != null ? [].concat(data.countries) : []);
+        }
+        return data;
+    }
     (function patchTmdbUrl() {
         var origOpen = XMLHttpRequest.prototype.open;
         XMLHttpRequest.prototype.open = function (method, url) {
@@ -113,8 +120,9 @@
                 if (typeof s.success === 'function') {
                     var origSuccess = s.success;
                     s.success = function (data, textStatus, jqXHR) {
-                        if (data && typeof data === 'object' && !Array.isArray(data) && data.blocked) {
-                            delete data.blocked;
+                        if (data && typeof data === 'object' && !Array.isArray(data)) {
+                            if (data.blocked) delete data.blocked;
+                            normalizeTmdbResponse(data);
                         }
                         return origSuccess.apply(this, arguments);
                     };
@@ -128,7 +136,10 @@
                 var orig = opts.dataFilter;
                 opts.dataFilter = function (data, type) {
                     if (orig) data = orig.apply(this, arguments);
-                    if (data && typeof data === 'object' && !Array.isArray(data) && data.blocked) delete data.blocked;
+                    if (data && typeof data === 'object' && !Array.isArray(data)) {
+                        if (data.blocked) delete data.blocked;
+                        normalizeTmdbResponse(data);
+                    }
                     return data;
                 };
             });
