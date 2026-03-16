@@ -17,24 +17,46 @@
         }
         return url;
     }
+    function toArr(v) {
+        if (Array.isArray(v)) return v;
+        if (v == null) return [];
+        if (typeof v === 'string') return [v];
+        try { return [].concat(v); } catch (e) { return []; }
+    }
     function ensureCountriesArray(obj) {
         if (!obj || typeof obj !== 'object') return;
-        if (!Array.isArray(obj.countries)) {
-            var oc = obj.origin_country;
-            obj.countries = Array.isArray(oc) ? oc : (typeof oc === 'string' ? [oc] : (obj.countries != null ? [].concat(obj.countries) : []));
+        var oc = obj.origin_country;
+        var c = obj.countries;
+        var single = obj.country;
+        var arr = Array.isArray(obj.countries) ? obj.countries : (Array.isArray(oc) ? oc : (typeof oc === 'string' ? [oc] : (typeof single === 'string' ? [single] : toArr(c))));
+        try {
+            obj.countries = arr;
+        } catch (e) {
+            try {
+                Object.defineProperty(obj, 'countries', { value: arr, writable: true, configurable: true });
+            } catch (e2) {}
+        }
+        if (!Array.isArray(obj.production_countries)) {
+            try {
+                obj.production_countries = obj.production_countries != null ? toArr(obj.production_countries) : [];
+            } catch (e) {}
         }
     }
     function normalizeTmdbResponse(data) {
         if (!data || typeof data !== 'object') return data;
         if (Array.isArray(data)) {
-            data.forEach(function (item) { normalizeTmdbResponse(item); });
+            for (var i = 0; i < data.length; i++) normalizeTmdbResponse(data[i]);
             return data;
         }
         ensureCountriesArray(data);
-        var k;
-        for (k in data) if (data.hasOwnProperty(k) && data[k] && typeof data[k] === 'object') {
-            normalizeTmdbResponse(data[k]);
-        }
+        try {
+            for (var k in data) {
+                if (Object.prototype.hasOwnProperty.call(data, k)) {
+                    var v = data[k];
+                    if (v && typeof v === 'object') normalizeTmdbResponse(v);
+                }
+            }
+        } catch (e) {}
         return data;
     }
     (function patchTmdbUrl() {
@@ -133,8 +155,8 @@
                 if (typeof s.success === 'function') {
                     var origSuccess = s.success;
                     s.success = function (data, textStatus, jqXHR) {
-                        if (data && typeof data === 'object' && !Array.isArray(data)) {
-                            if (data.blocked) delete data.blocked;
+                        if (data && typeof data === 'object') {
+                            if (!Array.isArray(data) && data.blocked) delete data.blocked;
                             normalizeTmdbResponse(data);
                         }
                         return origSuccess.apply(this, arguments);
@@ -149,8 +171,8 @@
                 var orig = opts.dataFilter;
                 opts.dataFilter = function (data, type) {
                     if (orig) data = orig.apply(this, arguments);
-                    if (data && typeof data === 'object' && !Array.isArray(data)) {
-                        if (data.blocked) delete data.blocked;
+                    if (data && typeof data === 'object') {
+                        if (!Array.isArray(data) && data.blocked) delete data.blocked;
                         normalizeTmdbResponse(data);
                     }
                     return data;
