@@ -10,13 +10,6 @@
     var tmdbProxyHost = 'apitmdb.cub.rip';
     var tmdbDirectHost = 'api.themoviedb.org';
 
-    function toArr(v) {
-        if (Array.isArray(v)) return v;
-        if (v == null) return [];
-        if (typeof v === 'string') return [v];
-        try { return [].concat(v); } catch (e) { return []; }
-    }
-
     function fixTmdbUrl(url) {
         if (typeof url !== 'string') return url;
         if (url.indexOf(tmdbProxyHost) !== -1) url = url.replace(tmdbProxyHost, tmdbDirectHost);
@@ -26,45 +19,9 @@
         return url;
     }
 
-    var seen = null;
-    function deepProxy(obj) {
-        if (obj === null || typeof obj !== 'object') return obj;
-        if (Array.isArray(obj)) {
-            if (seen && seen.has(obj)) return obj;
-            if (!seen) seen = new WeakSet();
-            seen.add(obj);
-            var out = [];
-            for (var i = 0; i < obj.length; i++) out.push(deepProxy(obj[i]));
-            return out;
-        }
-        if (seen && seen.has(obj)) return obj;
-        if (!seen) seen = new WeakSet();
-        seen.add(obj);
-        return new Proxy(obj, {
-            get: function (target, key) {
-                var v = target[key];
-                if (key === 'countries' || key === 'production_countries') {
-                    return toArr(v);
-                }
-                if (v !== null && typeof v === 'object') return deepProxy(v);
-                return v;
-            }
-        });
-    }
-
-    function wrapResponse(data) {
-        if (!data || typeof data !== 'object') return data;
-        seen = new WeakSet();
-        try {
-            return deepProxy(data);
-        } catch (e) {
-            return data;
-        }
-    }
-
     (function patchTmdbUrl() {
         var origOpen = XMLHttpRequest.prototype.open;
-        XMLHttpRequest.prototype.open = function (method, url) {
+        XMLHttpRequest.prototype.open = function () {
             var args = Array.prototype.slice.call(arguments);
             if (typeof args[1] === 'string') args[1] = fixTmdbUrl(args[1]);
             return origOpen.apply(this, args);
@@ -77,20 +34,26 @@
             };
         }
     })();
-    LOG('init', 'скрипт загружен (XHR/fetch → ' + tmdbDirectHost + ')');
+    LOG('init', 'скрипт загружен');
 
     function start() {
-        if (window.anti_dmca_plugin) {
-            LOG('start', 'уже инициализирован');
-            return;
-        }
-        if (typeof Lampa === 'undefined' || !window.lampa_settings) {
-            LOG('start', 'ОШИБКА: Lampa не готова');
-            return;
-        }
+        if (window.anti_dmca_plugin) return;
+        if (typeof Lampa === 'undefined' || !window.lampa_settings) return;
 
         window.anti_dmca_plugin = true;
 
+        // 1. Патч TMDB.parseCountries — возвращает [] вместо '' при отсутствии данных
+        if (typeof TMDB !== 'undefined' && typeof TMDB.parseCountries === 'function') {
+            var origParseCountries = TMDB.parseCountries;
+            TMDB.parseCountries = function (movie) {
+                var result = origParseCountries.apply(this, arguments);
+                if (!Array.isArray(result)) return [];
+                return result;
+            };
+            LOG('start', 'TMDB.parseCountries пропатчен (всегда массив)');
+        }
+
+        // 2. Перехват Listener.send: удаляем blocked
         if (typeof Lampa.Listener.send === 'function') {
             var origSend = Lampa.Listener.send.bind(Lampa.Listener);
             Lampa.Listener.send = function (type, data) {
@@ -99,12 +62,11 @@
                 }
                 return origSend(type, data);
             };
-            LOG('start', 'перехват send: blocked убирается');
         }
 
+        // 3. dcma всегда пустой
         var keepDcmaEmpty = function () {
             Lampa.Utils.dcma = function () { return undefined };
-            if (window.lampa_settings.dcma) window.lampa_settings.dcma.length = 0;
         };
         try {
             Object.defineProperty(window.lampa_settings, 'dcma', {
@@ -116,8 +78,9 @@
             window.lampa_settings.dcma = [];
         }
         keepDcmaEmpty();
-        setInterval(keepDcmaEmpty, 400);
+        setInterval(keepDcmaEmpty, 2000);
 
+        // 4. jQuery.ajax: подмена URL + удаление blocked из ответа
         if (window.jQuery && window.jQuery.ajax) {
             var origAjax = window.jQuery.ajax;
             window.jQuery.ajax = function (urlOrSettings, options) {
@@ -125,7 +88,7 @@
                     ? Object.assign({}, urlOrSettings)
                     : (options ? Object.assign({ url: urlOrSettings }, options) : { url: urlOrSettings });
                 if (s.url && typeof s.url === 'string') {
-                    if (s.url.indexOf('/undefined/') !== -1 && Lampa && Lampa.Activity && typeof Lampa.Activity.active === 'function') {
+                    if (s.url.indexOf('/undefined/') !== -1 && Lampa.Activity && typeof Lampa.Activity.active === 'function') {
                         try {
                             var active = Lampa.Activity.active();
                             var id = active && (active.id || active.movie_id || active.tv_id || (active.item && (active.item.id || active.item.movie_id || active.item.tv_id)));
@@ -138,31 +101,15 @@
                 }
                 if (typeof s.success === 'function') {
                     var origSuccess = s.success;
-                    s.success = function (data, textStatus, jqXHR) {
-                        if (data && typeof data === 'object') {
-                            if (!Array.isArray(data) && data.blocked) delete data.blocked;
-                            data = wrapResponse(data);
+                    s.success = function (data) {
+                        if (data && typeof data === 'object' && !Array.isArray(data) && data.blocked) {
+                            delete data.blocked;
                         }
-                        return origSuccess.call(this, data, textStatus, jqXHR);
+                        return origSuccess.apply(this, arguments);
                     };
                 }
                 return origAjax.call(this, s);
             };
-            LOG('start', 'jQuery.ajax перехвачен (TMDB + Proxy для countries)');
-        }
-
-        if (window.jQuery && window.jQuery.ajaxPrefilter) {
-            window.jQuery.ajaxPrefilter(function (opts) {
-                var orig = opts.dataFilter;
-                opts.dataFilter = function (data, type) {
-                    if (orig) data = orig.apply(this, arguments);
-                    if (data && typeof data === 'object') {
-                        if (!Array.isArray(data) && data.blocked) delete data.blocked;
-                        data = wrapResponse(data);
-                    }
-                    return data;
-                };
-            });
         }
 
         LOG('start', 'готово');
