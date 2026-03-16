@@ -9,21 +9,25 @@
 
     var tmdbProxyHost = 'apitmdb.cub.rip';
     var tmdbDirectHost = 'api.themoviedb.org';
+    function fixTmdbUrl(url) {
+        if (typeof url !== 'string') return url;
+        if (url.indexOf(tmdbProxyHost) !== -1) url = url.replace(tmdbProxyHost, tmdbDirectHost);
+        if (url.indexOf('themoviedb.org') !== -1 && url.indexOf('/tv/') !== -1 && url.indexOf('/season/0') !== -1) {
+            url = url.replace(/\/season\/0\b/, '/season/1');
+        }
+        return url;
+    }
     (function patchTmdbUrl() {
         var origOpen = XMLHttpRequest.prototype.open;
         XMLHttpRequest.prototype.open = function (method, url) {
             var args = Array.prototype.slice.call(arguments);
-            if (typeof args[1] === 'string' && args[1].indexOf(tmdbProxyHost) !== -1) {
-                args[1] = args[1].replace(tmdbProxyHost, tmdbDirectHost);
-            }
+            if (typeof args[1] === 'string') args[1] = fixTmdbUrl(args[1]);
             return origOpen.apply(this, args);
         };
         if (typeof fetch !== 'undefined') {
             var origFetch = window.fetch;
             window.fetch = function (url, opts) {
-                if (typeof url === 'string' && url.indexOf(tmdbProxyHost) !== -1) {
-                    url = url.replace(tmdbProxyHost, tmdbDirectHost);
-                }
+                if (typeof url === 'string') url = fixTmdbUrl(url);
                 return origFetch.call(this, url, opts);
             };
         }
@@ -95,9 +99,6 @@
                     ? Object.assign({}, urlOrSettings)
                     : (options ? Object.assign({ url: urlOrSettings }, options) : { url: urlOrSettings });
                 if (s.url && typeof s.url === 'string') {
-                    if (s.url.indexOf(tmdbProxyHost) !== -1) {
-                        s.url = s.url.replace(tmdbProxyHost, tmdbDirectHost);
-                    }
                     if (s.url.indexOf('/undefined/') !== -1 && typeof Lampa !== 'undefined' && Lampa.Activity && typeof Lampa.Activity.active === 'function') {
                         try {
                             var active = Lampa.Activity.active();
@@ -107,6 +108,7 @@
                             }
                         } catch (e) {}
                     }
+                    s.url = fixTmdbUrl(s.url);
                 }
                 if (typeof s.success === 'function') {
                     var origSuccess = s.success;
