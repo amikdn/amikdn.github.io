@@ -34,11 +34,25 @@
         });
 
         window.anti_dmca_plugin = true;
-        window.lampa_settings.dcma = [];
-        LOG('start', 'lampa_settings.dcma очищен');
 
-        Lampa.Utils.dcma = function () { return undefined };
-        LOG('start', 'инициализация ок');
+        var defaultSource = Lampa.Storage.get('source', 'cub');
+        var keepDcmaEmpty = function () {
+            Lampa.Utils.dcma = function () { return undefined };
+            if (window.lampa_settings && window.lampa_settings.dcma) window.lampa_settings.dcma.length = 0;
+        };
+        try {
+            Object.defineProperty(window.lampa_settings, 'dcma', {
+                get: function () { return []; },
+                set: function () {},
+                configurable: true
+            });
+            LOG('start', 'lampa_settings.dcma всегда пустой (перехват)');
+        } catch (e) {
+            window.lampa_settings.dcma = [];
+            LOG('start', 'lampa_settings.dcma очищен');
+        }
+        keepDcmaEmpty();
+        LOG('start', 'инициализация ок, источник по умолчанию:', defaultSource);
 
         var bypassCooldownMs = 3000;
         var lastBypassTime = 0;
@@ -54,19 +68,20 @@
             lastBypassTime = now;
 
             LOG('bypass', 'блокировка → обход (раз в ' + (bypassCooldownMs / 1000) + ' сек)');
-            window.lampa_settings.dcma = [];
+            keepDcmaEmpty();
             try {
+                Lampa.Storage.set('source', 'tmdb', true);
                 setTimeout(function () {
                     try { Lampa.Controller.toggle('content'); } catch (e) {}
-                }, 250);
+                    setTimeout(function () {
+                        Lampa.Storage.set('source', defaultSource, true);
+                        keepDcmaEmpty();
+                    }, 400);
+                }, 300);
             } catch (e) {}
         });
 
-        setInterval(function () {
-            if (window.lampa_settings && window.lampa_settings.dcma && window.lampa_settings.dcma.length > 0) {
-                window.lampa_settings.dcma = [];
-            }
-        }, 2000);
+        setInterval(keepDcmaEmpty, 400);
 
         LOG('start', 'готово (обход при blocked, cooldown ' + bypassCooldownMs / 1000 + ' сек)');
     }
