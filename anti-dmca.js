@@ -94,8 +94,19 @@
                 var s = typeof urlOrSettings === 'object' && urlOrSettings !== null
                     ? Object.assign({}, urlOrSettings)
                     : (options ? Object.assign({ url: urlOrSettings }, options) : { url: urlOrSettings });
-                if (s.url && typeof s.url === 'string' && s.url.indexOf(tmdbProxyHost) !== -1) {
-                    s.url = s.url.replace(tmdbProxyHost, tmdbDirectHost);
+                if (s.url && typeof s.url === 'string') {
+                    if (s.url.indexOf(tmdbProxyHost) !== -1) {
+                        s.url = s.url.replace(tmdbProxyHost, tmdbDirectHost);
+                    }
+                    if (s.url.indexOf('/undefined/') !== -1 && typeof Lampa !== 'undefined' && Lampa.Activity && typeof Lampa.Activity.active === 'function') {
+                        try {
+                            var active = Lampa.Activity.active();
+                            var id = active && (active.id || active.movie_id || active.tv_id || (active.item && (active.item.id || active.item.movie_id || active.item.tv_id)));
+                            if (id != null && String(id).match(/^\d+$/)) {
+                                s.url = s.url.replace(/\/undefined\//g, '/' + id + '/');
+                            }
+                        } catch (e) {}
+                    }
                 }
                 if (typeof s.success === 'function') {
                     var origSuccess = s.success;
