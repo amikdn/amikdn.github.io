@@ -99,10 +99,30 @@
                     }
                     s.url = fixTmdbUrl(s.url);
                 }
+                var savedUrl = s.url;
                 if (typeof s.success === 'function') {
                     var origSuccess = s.success;
+                    var requestUrl = savedUrl;
                     s.success = function (data) {
                         if (data && typeof data === 'object' && !Array.isArray(data) && data.blocked) {
+                            var directUrl = requestUrl ? fixTmdbUrl(requestUrl.replace(tmdbProxyHost, tmdbDirectHost)) : null;
+                            if (directUrl && directUrl.indexOf(tmdbDirectHost) !== -1) {
+                                LOG('bypass', 'ответ blocked, перезапрос → ' + directUrl);
+                                var self = this;
+                                var args = arguments;
+                                origAjax.call(window.jQuery, {
+                                    url: directUrl,
+                                    dataType: 'json',
+                                    success: function (realData) {
+                                        origSuccess.call(self, realData, args[1], args[2]);
+                                    },
+                                    error: function () {
+                                        delete data.blocked;
+                                        origSuccess.apply(self, args);
+                                    }
+                                });
+                                return;
+                            }
                             delete data.blocked;
                         }
                         return origSuccess.apply(this, arguments);
