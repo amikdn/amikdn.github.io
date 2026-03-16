@@ -42,10 +42,10 @@
 
         window.anti_dmca_plugin = true;
 
-        // 1. Патч TMDB.parseCountries — возвращает [] вместо '' при отсутствии данных
-        if (typeof TMDB !== 'undefined' && typeof TMDB.parseCountries === 'function') {
-            var origParseCountries = TMDB.parseCountries;
-            TMDB.parseCountries = function (movie) {
+        var tmdbSource = Lampa.Api && Lampa.Api.sources && Lampa.Api.sources.tmdb;
+        if (tmdbSource && typeof tmdbSource.parseCountries === 'function') {
+            var origParseCountries = tmdbSource.parseCountries;
+            tmdbSource.parseCountries = function (movie) {
                 var result = origParseCountries.apply(this, arguments);
                 if (!Array.isArray(result)) return [];
                 return result;
