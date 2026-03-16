@@ -53,16 +53,6 @@
             LOG('start', 'TMDB.parseCountries пропатчен (всегда массив)');
         }
 
-        // 2. Перехват Listener.send: удаляем blocked
-        if (typeof Lampa.Listener.send === 'function') {
-            var origSend = Lampa.Listener.send.bind(Lampa.Listener);
-            Lampa.Listener.send = function (type, data) {
-                if (type === 'request_secuses' && data && typeof data === 'object' && !Array.isArray(data) && data.blocked) {
-                    delete data.blocked;
-                }
-                return origSend(type, data);
-            };
-        }
 
         // 3. dcma всегда пустой
         var keepDcmaEmpty = function () {
@@ -102,7 +92,11 @@
                 if (typeof s.success === 'function') {
                     var origSuccess = s.success;
                     s.success = function (data) {
-                        if (data && typeof data === 'object' && !Array.isArray(data) && data.blocked) {
+                        var isObj = data && typeof data === 'object' && !Array.isArray(data);
+                        var isBlocked = isObj && data.blocked;
+                        var isEmpty = isObj && !data.id && !data.title && !data.name && !data.results;
+                        if (isBlocked || isEmpty) {
+                            LOG('bypass', 'ответ пустой/blocked', { blocked: !!data.blocked, keys: Object.keys(data || {}).slice(0, 10) });
                             var active = null;
                             try { active = Lampa.Activity.active(); } catch (e) {}
                             var cardId = active && (active.id || (active.item && active.item.id));
