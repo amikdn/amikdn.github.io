@@ -7,7 +7,28 @@
         console.log.apply(console, args);
     };
 
-    LOG('init', 'скрипт загружен');
+    var tmdbProxyHost = 'apitmdb.cub.rip';
+    var tmdbDirectHost = 'api.themoviedb.org';
+    (function patchTmdbUrl() {
+        var origOpen = XMLHttpRequest.prototype.open;
+        XMLHttpRequest.prototype.open = function (method, url) {
+            var args = Array.prototype.slice.call(arguments);
+            if (typeof args[1] === 'string' && args[1].indexOf(tmdbProxyHost) !== -1) {
+                args[1] = args[1].replace(tmdbProxyHost, tmdbDirectHost);
+            }
+            return origOpen.apply(this, args);
+        };
+        if (typeof fetch !== 'undefined') {
+            var origFetch = window.fetch;
+            window.fetch = function (url, opts) {
+                if (typeof url === 'string' && url.indexOf(tmdbProxyHost) !== -1) {
+                    url = url.replace(tmdbProxyHost, tmdbDirectHost);
+                }
+                return origFetch.call(this, url, opts);
+            };
+        }
+    })();
+    LOG('init', 'скрипт загружен (XHR/fetch → ' + tmdbDirectHost + ')');
 
     function start() {
         if (window.anti_dmca_plugin) {
@@ -67,26 +88,18 @@
 
         setInterval(keepDcmaEmpty, 400);
 
-        var tmdbProxyHost = 'apitmdb.cub.rip';
-        var tmdbDirectHost = 'api.themoviedb.org';
-        var origOpen = XMLHttpRequest.prototype.open;
-        XMLHttpRequest.prototype.open = function (method, url) {
-            var args = Array.prototype.slice.call(arguments);
-            if (typeof args[1] === 'string' && args[1].indexOf(tmdbProxyHost) !== -1) {
-                args[1] = args[1].replace(tmdbProxyHost, tmdbDirectHost);
-            }
-            return origOpen.apply(this, args);
-        };
-        if (typeof fetch !== 'undefined') {
-            var origFetch = window.fetch;
-            window.fetch = function (url, opts) {
-                if (typeof url === 'string' && url.indexOf(tmdbProxyHost) !== -1) {
-                    url = url.replace(tmdbProxyHost, tmdbDirectHost);
+        if (window.jQuery && window.jQuery.ajax) {
+            var origAjax = window.jQuery.ajax;
+            window.jQuery.ajax = function (urlOrSettings, options) {
+                if (typeof urlOrSettings === 'object' && urlOrSettings && typeof urlOrSettings.url === 'string' && urlOrSettings.url.indexOf(tmdbProxyHost) !== -1) {
+                    urlOrSettings.url = urlOrSettings.url.replace(tmdbProxyHost, tmdbDirectHost);
+                } else if (typeof urlOrSettings === 'string' && urlOrSettings.indexOf(tmdbProxyHost) !== -1) {
+                    urlOrSettings = urlOrSettings.replace(tmdbProxyHost, tmdbDirectHost);
                 }
-                return origFetch.call(this, url, opts);
+                return origAjax.call(this, urlOrSettings, options);
             };
+            LOG('start', 'jQuery.ajax перехвачен для TMDB');
         }
-        LOG('start', 'запросы к ' + tmdbProxyHost + ' перенаправлены на ' + tmdbDirectHost);
 
         LOG('start', 'готово (перехват blocked + пустой dcma + TMDB напрямую)');
     }
