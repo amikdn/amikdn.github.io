@@ -7,6 +7,13 @@
     var tmdbDirectHost = 'api.themoviedb.org';
     var apiKey = '4ef0d7355d9ffb5151e987764708ce96';
     var defaultCubMirrors = ['cub.rip', 'durex.monster', 'cubnotrip.top'];
+    /** true = запрос подмены с api.themoviedb.org, не перенаправлять на зеркало */
+    var directTmdbRequest = false;
+
+    function isTmdbUrl(url) {
+        if (typeof url !== 'string') return false;
+        return url.indexOf('api.themoviedb.org') !== -1 || url.indexOf('apitmdb.') !== -1 || url.indexOf('tmdb.') !== -1;
+    }
 
     function getCubDomain() {
         try {
@@ -36,6 +43,7 @@
 
     function fixUrl(url) {
         if (typeof url !== 'string') return url;
+        if (directTmdbRequest && url.indexOf(tmdbDirectHost) !== -1) return url;
         if (url.indexOf(tmdbDirectHost) !== -1) {
             var origin = getLampaTmdbOrigin();
             var was = url;
@@ -100,10 +108,12 @@
                     + '&append_to_response=credits,external_ids,videos,recommendations,similar';
                 var done = false;
                 var req = new XMLHttpRequest();
+                directTmdbRequest = true;
                 req.open('GET', tmdbUrl, true);
                 req.onreadystatechange = function () {
                     if (req.readyState !== 4 || done) return;
                     done = true;
+                    directTmdbRequest = false;
                     var realText = req.responseText;
                     var realData = null;
                     try { realData = realText ? JSON.parse(realText) : null; } catch (e) {}
@@ -116,6 +126,7 @@
                     }
                     if (origOnReady) origOnReady.call(xhr);
                 };
+                req.onerror = function () { directTmdbRequest = false; };
                 req.send();
             };
             return origSend.apply(this, arguments);
@@ -157,13 +168,16 @@
                 var tmdbUrl = 'https://' + tmdbDirectHost + '/3/' + cardType + '/' + cardId
                     + '?api_key=' + apiKey + '&language=' + (lang || 'ru')
                     + '&append_to_response=credits,external_ids,videos,recommendations,similar';
+                directTmdbRequest = true;
                 origAjax.call(window.jQuery, {
                     url: tmdbUrl,
                     dataType: 'json',
                     success: function (realData) {
+                        directTmdbRequest = false;
                         origSuccess.call(self, realData, args[1], args[2]);
                     },
                     error: function (jqXHR, textStatus, errorThrown) {
+                        directTmdbRequest = false;
                         if (origError) origError(jqXHR || {}, textStatus || 'error', errorThrown || '');
                     }
                 });
@@ -175,13 +189,16 @@
                 var tmdbUrl = 'https://' + tmdbDirectHost + '/3/' + cardType + '/' + cardId
                     + '?api_key=' + apiKey + '&language=' + (lang || 'ru')
                     + '&append_to_response=credits,external_ids,videos,recommendations,similar';
+                directTmdbRequest = true;
                 origAjax.call(window.jQuery, {
                     url: tmdbUrl,
                     dataType: 'json',
                     success: function (realData) {
+                        directTmdbRequest = false;
                         if (onSuccess) onSuccess(realData);
                     },
                     error: function (jqXHR, textStatus, errorThrown) {
+                        directTmdbRequest = false;
                         if (onError) onError(jqXHR || {}, textStatus || 'error', errorThrown || '');
                     }
                 });
@@ -222,6 +239,7 @@
                     var origError = s.error;
                     var requestUrl = s.url;
                     s.success = function (data) {
+                        if (!isTmdbUrl(requestUrl)) return origSuccess.apply(this, arguments);
                         var isObj = data && typeof data === 'object' && !Array.isArray(data);
                         var isBlocked = isObj && data.blocked;
                         var isEmpty = isObj && !data.blocked && !data.id && !data.title && !data.name && !data.results && Object.keys(data).length < 3;
@@ -285,9 +303,11 @@
                     var data = e.data;
                     var abort = e.abort;
                     if (!data || typeof data !== 'object' || Array.isArray(data)) return;
+                    var requestUrl = params && params.url ? (params.url + '') : '';
+                    if (!isTmdbUrl(requestUrl)) return;
                     var isBlocked = data.blocked;
                     var isEmpty = !data.blocked && !data.id && !data.title && !data.name && !data.results && Object.keys(data).length < 3;
-                    if (isBlocked || isEmpty) log('request_secuses: blocked/пустой', { keys: keys, hasParams: !!params, hasAbort: typeof abort === 'function', url: params && params.url ? (params.url + '').slice(0, 55) : '—' });
+                    if (isBlocked || isEmpty) log('request_secuses: blocked/пустой', { keys: keys, hasParams: !!params, hasAbort: typeof abort === 'function', url: requestUrl.slice(0, 55) });
                     if (!isBlocked && !isEmpty) return;
                     if (!params) { log('request_secuses: нет params, выходим'); return; }
                     var card = getCardInfoFromUrl(params.url) || getCardInfo();
