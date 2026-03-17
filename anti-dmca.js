@@ -158,11 +158,7 @@
         if (typeof url === 'string') this.__admca_url = url;
         var args = Array.prototype.slice.call(arguments);
         if (typeof args[1] === 'string' && !ownXhrs.has(this)) {
-            var fixed = fixUrl(args[1]);
-            if (fixed !== args[1] && fixed.indexOf(TMDB_HOST) !== -1) {
-                this.__admca_direct = true;
-            }
-            args[1] = fixed;
+            args[1] = fixUrl(args[1]);
         }
         return origOpen.apply(this, args);
     };
@@ -172,7 +168,6 @@
     XMLHttpRequest.prototype.send = function () {
         var xhr = this;
         if (ownXhrs.has(xhr)) return origSend.apply(this, arguments);
-        if (xhr.__admca_direct) return origSend.apply(this, arguments);
 
         var reqUrl = xhr.__admca_url || '';
         if (!cardPathRe.test(reqUrl) && !isMirrorTmdb(reqUrl)) {
@@ -182,6 +177,7 @@
         var origOnReady = xhr.onreadystatechange;
         var origOnLoad = xhr.onload;
         var origOnError = xhr.onerror;
+        var origOnAbort = xhr.onabort;
         var handled = false;
 
         function handleBlocked() {
@@ -236,18 +232,115 @@
             }
         };
         xhr.onerror = function () {
-            if (origOnError) origOnError.call(xhr);
+            if (handled) { if (origOnError) origOnError.call(xhr); return; }
+            if (!cardPathRe.test(reqUrl)) { if (origOnError) origOnError.call(xhr); return; }
+            var me = reqUrl.match(cardPathRe);
+            if (!me) { if (origOnError) origOnError.call(xhr); return; }
+            handled = true;
+            var type = me[1], id = me[2];
+            var smer = reqUrl.match(subPathRe);
+            var sub = smer ? smer[1] : null;
+            blockedCards[type + '_' + id] = true;
+            function doneErr() {
+                if (origOnReady) origOnReady.call(xhr);
+                if (origOnLoad) origOnLoad.call(xhr);
+            }
+            if (sub === 'images') {
+                fetchImages(id, type).then(function (data) {
+                    patchXhr(xhr, data, null);
+                    log('подмена images (error)', type, id);
+                    doneErr();
+                }, function () { doneErr(); });
+            } else {
+                fetchCard(id, type).then(function (data) {
+                    patchXhr(xhr, data, sub);
+                    log('подмена', sub || 'main', '(error)', type, id);
+                    doneErr();
+                }, function () { doneErr(); });
+            }
+        };
+        xhr.onabort = function () {
+            if (handled) { if (origOnAbort) origOnAbort.call(xhr); return; }
+            if (!cardPathRe.test(reqUrl)) { if (origOnAbort) origOnAbort.call(xhr); return; }
+            var m = reqUrl.match(cardPathRe);
+            if (!m) { if (origOnAbort) origOnAbort.call(xhr); return; }
+            handled = true;
+            var type = m[1], id = m[2];
+            var sm = reqUrl.match(subPathRe);
+            var sub = sm ? sm[1] : null;
+            blockedCards[type + '_' + id] = true;
+            function doneAbort() {
+                if (origOnReady) origOnReady.call(xhr);
+                if (origOnLoad) origOnLoad.call(xhr);
+            }
+            if (sub === 'images') {
+                fetchImages(id, type).then(function (data) {
+                    patchXhr(xhr, data, null);
+                    log('подмена images (abort)', type, id);
+                    doneAbort();
+                }, function () { doneAbort(); });
+            } else {
+                fetchCard(id, type).then(function (data) {
+                    patchXhr(xhr, data, sub);
+                    log('подмена', sub || 'main', '(abort)', type, id);
+                    doneAbort();
+                }, function () { doneAbort(); });
+            }
         };
 
         return origSend.apply(this, arguments);
     };
 
-    // --- fetch ---
+    // --- fetch: перехват ответов blocked/failed и подмена (для мобильной Lampa) ---
     if (typeof fetch !== 'undefined') {
         var origFetch = window.fetch;
         window.fetch = function (url, opts) {
-            if (typeof url === 'string') url = fixUrl(url);
-            return origFetch.call(this, url, opts);
+            var inputUrl = typeof url === 'string' ? url : '';
+            url = fixUrl(url);
+            var requestedUrl = typeof url === 'string' ? url : inputUrl;
+            return origFetch.call(this, url, opts).then(function (response) {
+                if (!cardPathRe.test(requestedUrl)) return response;
+                return response.clone().text().then(function (text) {
+                    var t = (text || '').trim();
+                    var isBlocked = blockedRe.test(t);
+                    var isFailed = !response.ok || response.status === 0 || !t;
+                    if (!isBlocked && !isFailed) return response;
+                    var m = requestedUrl.match(cardPathRe);
+                    if (!m) return response;
+                    var type = m[1], id = m[2];
+                    var sm = requestedUrl.match(subPathRe);
+                    var sub = sm ? sm[1] : null;
+                    blockedCards[type + '_' + id] = true;
+                    log('fetch: подмена', sub || 'main', type, id);
+                    if (sub === 'images') {
+                        return fetchImages(id, type).then(function (data) {
+                            return new Response(JSON.stringify(data), { status: 200, headers: { 'Content-Type': 'application/json' } });
+                        }).catch(function () { return response; });
+                    }
+                    return fetchCard(id, type).then(function (data) {
+                        var out = sub && data[sub] !== undefined ? data[sub] : data;
+                        return new Response(JSON.stringify(out), { status: 200, headers: { 'Content-Type': 'application/json' } });
+                    }).catch(function () { return response; });
+                }).catch(function () { return response; });
+            }).catch(function (err) {
+                if (!cardPathRe.test(requestedUrl)) throw err;
+                var m = requestedUrl.match(cardPathRe);
+                if (!m) throw err;
+                var type = m[1], id = m[2];
+                var sm = requestedUrl.match(subPathRe);
+                var sub = sm ? sm[1] : null;
+                blockedCards[type + '_' + id] = true;
+                log('fetch: подмена при ошибке', sub || 'main', type, id);
+                if (sub === 'images') {
+                    return fetchImages(id, type).then(function (data) {
+                        return new Response(JSON.stringify(data), { status: 200, headers: { 'Content-Type': 'application/json' } });
+                    });
+                }
+                return fetchCard(id, type).then(function (data) {
+                    var out = sub && data[sub] !== undefined ? data[sub] : data;
+                    return new Response(JSON.stringify(out), { status: 200, headers: { 'Content-Type': 'application/json' } });
+                });
+            });
         };
     }
 
