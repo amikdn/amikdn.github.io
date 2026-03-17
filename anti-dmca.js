@@ -202,6 +202,7 @@
             function fetchTmdbCard(cardId, cardType, lang) {
                 var key = cardId + '_' + cardType;
                 if (tmdbFetchPromises[key]) return tmdbFetchPromises[key];
+                log('fetchTmdbCard: один запрос к api.themoviedb.org для карточки', { cardId: cardId, cardType: cardType });
                 var tmdbUrl = 'https://' + tmdbDirectHost + '/3/' + cardType + '/' + cardId
                     + '?api_key=' + apiKey + '&language=' + (lang || 'ru')
                     + '&append_to_response=credits,external_ids,videos,recommendations,similar';
@@ -255,7 +256,6 @@
             window.__anti_dmca_fetchImages = fetchTmdbImages;
 
             function fetchFromTmdb(cardId, cardType, lang, origSuccess, origError, self, args) {
-                log('fetchFromTmdb вызван (для $.ajax)', { cardId: cardId, cardType: cardType });
                 fetchTmdbCard(cardId, cardType, lang).then(
                     function (realData) { origSuccess.call(self, realData, args[1], args[2]); },
                     function (err) {
@@ -266,7 +266,6 @@
 
             /** Подмена при вызове complite(data) — для слоя Network.silent (в т.ч. ответы из кэша) */
             function fetchFromTmdbThenCall(onSuccess, onError, cardId, cardType, lang) {
-                log('fetchFromTmdbThenCall вызван (Network.silent или request_secuses)', { cardId: cardId, cardType: cardType });
                 fetchTmdbCard(cardId, cardType, lang).then(
                     function (realData) { if (onSuccess) onSuccess(realData); },
                     function (err) {
@@ -317,23 +316,19 @@
 
                         if (isBlocked || isEmpty) {
                             var card = getCardInfo() || getCardInfoFromUrl(requestUrl);
-                            log('$.ajax success: blocked или пустой ответ', { url: requestUrl.slice(0, 60), isBlocked: isBlocked, isEmpty: isEmpty, card: card });
                             if (card) {
                                 var lang = Lampa.Storage.get('tmdb_lang', 'ru');
                                 if (requestUrl.indexOf('/images') !== -1) {
                                     var self = this, args = arguments;
-                                    log('$.ajax success: запрос /images, вызываем fetchTmdbImages', card);
                                     fetchTmdbImages(card.id, card.type).then(
                                         function (imagesData) { origSuccess.call(self, imagesData, args[1], args[2]); },
                                         function (err) { if (origError) origError(err.jqXHR || {}, err.textStatus || 'error', err.errorThrown || ''); }
                                     );
                                 } else {
-                                    log('$.ajax success: вызываем fetchFromTmdb', card);
                                     fetchFromTmdb(card.id, card.type, lang, origSuccess, origError, this, arguments);
                                 }
                                 return;
                             }
-                            log('$.ajax success: карточку не определили, вызываем origError');
                             if (origError) origError({}, 'blocked', 'Content blocked');
                             else return origSuccess.apply(this, arguments);
                             return;
