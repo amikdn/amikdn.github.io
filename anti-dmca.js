@@ -159,7 +159,13 @@
     XMLHttpRequest.prototype.open = function (method, url) {
         if (typeof url === 'string') this.__admca_url = url;
         var args = Array.prototype.slice.call(arguments);
-        if (typeof args[1] === 'string' && !ownXhrs.has(this)) args[1] = fixUrl(args[1]);
+        if (typeof args[1] === 'string' && !ownXhrs.has(this)) {
+            var fixed = fixUrl(args[1]);
+            if (fixed !== args[1] && fixed.indexOf(TMDB_HOST) !== -1) {
+                this.__admca_direct = true;
+            }
+            args[1] = fixed;
+        }
         return origOpen.apply(this, args);
     };
 
@@ -167,7 +173,7 @@
     var origSend = XMLHttpRequest.prototype.send;
     XMLHttpRequest.prototype.send = function () {
         var xhr = this;
-        if (ownXhrs.has(xhr)) return origSend.apply(this, arguments);
+        if (ownXhrs.has(xhr) || xhr.__admca_direct) return origSend.apply(this, arguments);
 
         var reqUrl = xhr.__admca_url || '';
         if (!cardPathRe.test(reqUrl) && !isMirrorTmdb(reqUrl)) {
