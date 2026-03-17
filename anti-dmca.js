@@ -34,48 +34,7 @@
         return typeof url === 'string' && (url.indexOf('apitmdb.') !== -1 || url.indexOf('tmdb.') !== -1) && url.indexOf(TMDB_HOST) === -1;
     }
 
-    function getCubDomain() {
-        try {
-            if (typeof Lampa !== 'undefined' && Lampa.Manifest && Lampa.Manifest.cub_domain)
-                return Lampa.Manifest.cub_domain;
-            var use = typeof localStorage !== 'undefined' && localStorage.getItem('cub_domain');
-            if (use) return use;
-        } catch (e) {}
-        return 'cub.rip';
-    }
-
-    function getLampaTmdbOrigin() {
-        try {
-            var protocol = (typeof Lampa !== 'undefined' && Lampa.Utils && typeof Lampa.Utils.protocol === 'function')
-                ? Lampa.Utils.protocol() : ((typeof localStorage !== 'undefined' && localStorage.getItem('protocol')) || 'https') + '://';
-            return (protocol.replace(/\/+$/, '') || 'https:') + '//apitmdb.' + getCubDomain();
-        } catch (e) {}
-        return 'https://apitmdb.cub.rip';
-    }
-
-    function fixUrl(url) {
-        if (typeof url !== 'string') return url;
-        var urlBefore = url;
-
-        var bm = url.match(cardPathRe);
-        if (bm && blockedCards[bm[1] + '_' + bm[2]]) {
-            if (url.indexOf(TMDB_HOST) !== -1) return url;
-            if (isMirrorTmdb(url)) {
-                url = url.replace(/https?:\/\/[^\/]+/, 'https://' + TMDB_HOST);
-                var sm = url.match(subPathRe);
-                log('fixUrl: зеркало→TMDB для заблокированного', bm[1], bm[2], sm ? sm[1] : 'main');
-                logUrl('fixUrl ссылка', urlBefore, url);
-                return url;
-            }
-        }
-
-        if (url.indexOf(TMDB_HOST) !== -1) {
-            var origin = getLampaTmdbOrigin();
-            url = url.replace('https://' + TMDB_HOST, origin).replace('http://' + TMDB_HOST, origin);
-            logUrl('fixUrl TMDB→зеркало', urlBefore, url);
-        }
-        return url;
-    }
+    /* Запросы зеркал не трогаем — Lampa сама подставляет нужное зеркало. Только подменяем ответ при blocked/ошибке. */
 
     function directTmdbUrl(type, id, suffix, params) {
         return 'https://' + TMDB_HOST + '/3/' + type + '/' + id + (suffix || '') + '?' + params;
@@ -250,18 +209,13 @@
     log('скрипт загружен, применяю патчи XHR/fetch', isLikelyWebView ? '(WebView/Android)' : '');
     if (isLikelyWebView && nativeFetch) log('внутренние запросы к TMDB через native fetch');
 
-    // --- XHR.open: сохраняем URL для быстрой проверки в send, заменяем api.themoviedb.org на зеркало ---
+    // --- XHR.open: сохраняем URL для проверки в send, запросы не меняем ---
     var origOpen = XMLHttpRequest.prototype.open;
     XMLHttpRequest.prototype.open = function (method, url) {
         if (typeof url === 'string') this.__admca_url = url;
-        var args = Array.prototype.slice.call(arguments);
-        if (typeof args[1] === 'string' && !ownXhrs.has(this)) {
-            var urlBefore = args[1];
-            args[1] = fixUrl(args[1]);
-            if (LOG_URLS && (cardPathRe.test(urlBefore) || isMirrorTmdb(urlBefore)))
-                logUrl('XHR.open запрос ' + (args[0] || 'GET'), urlBefore, args[1]);
-        }
-        return origOpen.apply(this, args);
+        if (LOG_URLS && !ownXhrs.has(this) && typeof url === 'string' && (cardPathRe.test(url) || isMirrorTmdb(url)))
+            log('XHR.open', (arguments[0] || 'GET'), url);
+        return origOpen.apply(this, arguments);
     };
 
     // --- XHR.send: перехватываем blocked только для TMDB movie/tv ---
@@ -433,11 +387,9 @@
     if (typeof fetch !== 'undefined') {
         var origFetch = window.fetch;
         window.fetch = function (url, opts) {
-            var inputUrl = typeof url === 'string' ? url : '';
-            url = fixUrl(url);
-            var requestedUrl = typeof url === 'string' ? url : inputUrl;
-            if (LOG_URLS && (cardPathRe.test(inputUrl) || cardPathRe.test(requestedUrl)))
-                logUrl('fetch запрос', inputUrl, requestedUrl !== inputUrl ? requestedUrl : undefined);
+            var requestedUrl = typeof url === 'string' ? url : '';
+            if (LOG_URLS && cardPathRe.test(requestedUrl))
+                log('fetch запрос', requestedUrl);
             return origFetch.call(this, url, opts).then(function (response) {
                 if (!cardPathRe.test(requestedUrl)) return response;
                 return response.clone().text().then(function (text) {
