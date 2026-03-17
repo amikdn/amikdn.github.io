@@ -114,6 +114,13 @@
                 return null;
             }
 
+            function getCardInfoFromUrl(url) {
+                if (typeof url !== 'string') return null;
+                var m = url.match(/\/(movie|tv)\/(\d+)(?:\/|$|\?)/);
+                if (m) return { id: m[2], type: m[1] };
+                return null;
+            }
+
             window.jQuery.ajax = function (urlOrSettings, options) {
                 var s = typeof urlOrSettings === 'object' && urlOrSettings !== null
                     ? Object.assign({}, urlOrSettings)
@@ -126,13 +133,14 @@
                 if (typeof s.success === 'function') {
                     var origSuccess = s.success;
                     var origError = s.error;
+                    var requestUrl = s.url;
                     s.success = function (data) {
                         var isObj = data && typeof data === 'object' && !Array.isArray(data);
                         var isBlocked = isObj && data.blocked;
                         var isEmpty = isObj && !data.blocked && !data.id && !data.title && !data.name && !data.results && Object.keys(data).length < 3;
 
                         if (isBlocked || isEmpty) {
-                            var card = getCardInfo();
+                            var card = getCardInfo() || getCardInfoFromUrl(requestUrl);
                             if (card) {
                                 var lang = Lampa.Storage.get('tmdb_lang', 'ru');
                                 fetchFromTmdb(card.id, card.type, lang, origSuccess, origError, this, arguments);
