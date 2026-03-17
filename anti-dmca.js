@@ -117,9 +117,13 @@
                             var outText = typeof imagesData === 'object' ? JSON.stringify(imagesData) : (imagesData || '');
                             try { Object.defineProperty(xhr, 'responseText', { get: function () { return outText; }, configurable: true }); } catch (e) {}
                             try { Object.defineProperty(xhr, 'response', { get: function () { return imagesData; }, configurable: true }); } catch (e) {}
-                            log('XHR.send: подмена выполнена (кэш images)', { cardId: cardId });
+                            try { Object.defineProperty(xhr, 'status', { value: 200, configurable: true }); } catch (e) {}
+                            log('XHR.send: подмена выполнена (кэш images)', { cardId: cardId, hasLogos: !!(imagesData && imagesData.logos && imagesData.logos.length) });
                             if (origOnReady) origOnReady.call(xhr);
-                        }, function () { if (origOnReady) origOnReady.call(xhr); });
+                        }, function (err) {
+                            log('XHR.send: запрос images к api.themoviedb.org не удался', { cardId: cardId, err: err && err.textStatus });
+                            if (origOnReady) origOnReady.call(xhr);
+                        });
                         return;
                     }
                     fetchCard(cardId, cardType, lang).then(function (realData) {
@@ -233,7 +237,8 @@
                 var key = cardId + '_' + cardType + '_images';
                 if (tmdbImagesPromises[key]) return tmdbImagesPromises[key];
                 var lang = (typeof Lampa !== 'undefined' && Lampa.Storage && Lampa.Storage.get('language')) || (typeof localStorage !== 'undefined' && localStorage.getItem('language')) || 'ru';
-                var tmdbUrl = 'https://' + tmdbDirectHost + '/3/' + cardType + '/' + cardId + '/images?api_key=' + apiKey + '&include_image_language=' + lang + ',en,null';
+                var keyForImages = (typeof Lampa !== 'undefined' && Lampa.TMDB && typeof Lampa.TMDB.key === 'function') ? Lampa.TMDB.key() : apiKey;
+                var tmdbUrl = 'https://' + tmdbDirectHost + '/3/' + cardType + '/' + cardId + '/images?api_key=' + keyForImages + '&include_image_language=' + lang + ',en,null';
                 directTmdbRequest = true;
                 var p = new Promise(function (resolve, reject) {
                     origAjax.call(window.jQuery, {
