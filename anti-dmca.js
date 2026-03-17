@@ -44,10 +44,15 @@
     function fixUrl(url) {
         if (typeof url !== 'string') return url;
         if (directTmdbRequest && url.indexOf(tmdbDirectHost) !== -1) return url;
-        if (url.indexOf(tmdbDirectHost) !== -1) return url;
-        if ((url.indexOf('apitmdb.') !== -1 || url.indexOf('tmdb.') !== -1) && url.indexOf('/3/') !== -1) {
-            url = url.replace(/^https?:\/\/[^\/]+/, 'https://' + tmdbDirectHost);
-            log('fixUrl: зеркало → api.themoviedb.org', url.slice(0, 55) + '...');
+        // Меняем зеркало на api.themoviedb.org ТОЛЬКО для карточек и связанных с ними данных,
+        // чтобы не ломать глобальные списки (person/popular, discover и т.д.)
+        if ((url.indexOf('apitmdb.') !== -1 || url.indexOf('tmdb.') !== -1) &&
+            /\/3\/(movie|tv)\//.test(url)) {
+            if (url.indexOf(tmdbDirectHost) === -1) {
+                url = url.replace(/^https?:\/\/[^\/]+/, 'https://' + tmdbDirectHost);
+                log('fixUrl: зеркало → api.themoviedb.org (movie/tv)', url.slice(0, 70) + '...');
+            }
+            return url;
         }
         return url;
     }
