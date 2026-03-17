@@ -1,6 +1,9 @@
 (function () {
     'use strict';
 
+    var LOG = true; // false — отключить логи в консоль
+    function log() { if (LOG && typeof console !== 'undefined' && console.log) console.log.apply(console, ['[anti-dmca]'].concat(Array.prototype.slice.call(arguments))); }
+
     var tmdbDirectHost = 'api.themoviedb.org';
     var apiKey = '4ef0d7355d9ffb5151e987764708ce96';
     var defaultCubMirrors = ['cub.rip', 'durex.monster', 'cubnotrip.top'];
@@ -35,16 +38,23 @@
         if (typeof url !== 'string') return url;
         if (url.indexOf(tmdbDirectHost) !== -1) {
             var origin = getLampaTmdbOrigin();
+            var was = url;
             url = url.replace('https://' + tmdbDirectHost, origin).replace('http://' + tmdbDirectHost, origin);
+            log('fixUrl: подмена api.themoviedb.org -> зеркало', { from: was.slice(0, 60) + '...', to: url.slice(0, 60) + '...' });
         }
         return url;
     }
 
+    log('скрипт загружен, применяю патчи XHR/fetch');
     (function patchNetwork() {
         var origOpen = XMLHttpRequest.prototype.open;
-        XMLHttpRequest.prototype.open = function () {
+        XMLHttpRequest.prototype.open = function (method, url) {
             var args = Array.prototype.slice.call(arguments);
-            if (typeof args[1] === 'string') args[1] = fixUrl(args[1]);
+            if (typeof args[1] === 'string') {
+                var u = args[1];
+                args[1] = fixUrl(args[1]);
+                if (args[1] !== u) log('XHR.open: URL заменён', args[1].slice(0, 80));
+            }
             return origOpen.apply(this, args);
         };
         if (typeof fetch !== 'undefined') {
@@ -54,12 +64,69 @@
                 return origFetch.call(this, url, opts);
             };
         }
+
+        /** Подмена ответа {"blocked":true} на уровне XHR — срабатывает до разбора в приложении (в т.ч. при source=cub и кэше) */
+        var tmdbCardPath = /\/3\/(movie|tv)\/(\d+)(?:\/|$|\?)/;
+        var blockedBody = /^\s*\{\s*"blocked"\s*:\s*true\s*\}\s*$/;
+        var origSend = XMLHttpRequest.prototype.send;
+        XMLHttpRequest.prototype.send = function () {
+            var xhr = this;
+            var origOnReady = xhr.onreadystatechange;
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState !== 4) {
+                    if (origOnReady) origOnReady.call(xhr);
+                    return;
+                }
+                var url = xhr.responseURL || '';
+                var text = (xhr.responseText || '').trim();
+                var isBlockedResp = blockedBody.test(text);
+                var isCardUrl = tmdbCardPath.test(url);
+                if (isCardUrl) log('XHR.send: readyState=4', { url: url.slice(0, 70), isBlockedResp: isBlockedResp, responsePreview: text.slice(0, 50) });
+                if (!isBlockedResp || !isCardUrl) {
+                    if (origOnReady) origOnReady.call(xhr);
+                    return;
+                }
+                var m = url.match(tmdbCardPath);
+                if (!m) {
+                    log('XHR.send: blocked, но не удалось извлечь id из URL', url);
+                    if (origOnReady) origOnReady.call(xhr);
+                    return;
+                }
+                var cardType = m[1], cardId = m[2];
+                log('XHR.send: обнаружен blocked, подмена через api.themoviedb.org', { cardType: cardType, cardId: cardId });
+                var lang = (typeof localStorage !== 'undefined' && localStorage.getItem('tmdb_lang')) || 'ru';
+                var tmdbUrl = 'https://' + tmdbDirectHost + '/3/' + cardType + '/' + cardId
+                    + '?api_key=' + apiKey + '&language=' + lang
+                    + '&append_to_response=credits,external_ids,videos,recommendations,similar';
+                var done = false;
+                var req = new XMLHttpRequest();
+                req.open('GET', tmdbUrl, true);
+                req.onreadystatechange = function () {
+                    if (req.readyState !== 4 || done) return;
+                    done = true;
+                    var realText = req.responseText;
+                    var realData = null;
+                    try { realData = realText ? JSON.parse(realText) : null; } catch (e) {}
+                    if (realData && realData.id) {
+                        try { Object.defineProperty(xhr, 'responseText', { get: function () { return realText; }, configurable: true }); } catch (e) {}
+                        try { Object.defineProperty(xhr, 'response', { get: function () { return realData; }, configurable: true }); } catch (e) {}
+                        log('XHR.send: подмена выполнена, отдаём данные в приложение', { id: realData.id });
+                    } else {
+                        log('XHR.send: запрос к TMDB не вернул данные, отдаём исходный ответ', { status: req.status });
+                    }
+                    if (origOnReady) origOnReady.call(xhr);
+                };
+                req.send();
+            };
+            return origSend.apply(this, arguments);
+        };
     })();
 
     function start() {
         if (window.anti_dmca_plugin) return;
         if (typeof Lampa === 'undefined' || !window.lampa_settings) return;
 
+        log('start: плагин инициализируется');
         window.anti_dmca_plugin = true;
 
         Lampa.Utils.dcma = function () { return undefined };
@@ -86,6 +153,7 @@
             var origAjax = window.jQuery.ajax;
 
             function fetchFromTmdb(cardId, cardType, lang, origSuccess, origError, self, args) {
+                log('fetchFromTmdb вызван (для $.ajax)', { cardId: cardId, cardType: cardType });
                 var tmdbUrl = 'https://' + tmdbDirectHost + '/3/' + cardType + '/' + cardId
                     + '?api_key=' + apiKey + '&language=' + (lang || 'ru')
                     + '&append_to_response=credits,external_ids,videos,recommendations,similar';
@@ -103,6 +171,7 @@
 
             /** Подмена при вызове complite(data) — для слоя Network.silent (в т.ч. ответы из кэша) */
             function fetchFromTmdbThenCall(onSuccess, onError, cardId, cardType, lang) {
+                log('fetchFromTmdbThenCall вызван (Network.silent или request_secuses)', { cardId: cardId, cardType: cardType });
                 var tmdbUrl = 'https://' + tmdbDirectHost + '/3/' + cardType + '/' + cardId
                     + '?api_key=' + apiKey + '&language=' + (lang || 'ru')
                     + '&append_to_response=credits,external_ids,videos,recommendations,similar';
@@ -159,11 +228,14 @@
 
                         if (isBlocked || isEmpty) {
                             var card = getCardInfo() || getCardInfoFromUrl(requestUrl);
+                            log('$.ajax success: blocked или пустой ответ', { url: requestUrl.slice(0, 60), isBlocked: isBlocked, isEmpty: isEmpty, card: card });
                             if (card) {
                                 var lang = Lampa.Storage.get('tmdb_lang', 'ru');
+                                log('$.ajax success: вызываем fetchFromTmdb', card);
                                 fetchFromTmdb(card.id, card.type, lang, origSuccess, origError, this, arguments);
                                 return;
                             }
+                            log('$.ajax success: карточку не определили, вызываем origError');
                             if (origError) origError({}, 'blocked', 'Content blocked');
                             else return origSuccess.apply(this, arguments);
                             return;
@@ -177,6 +249,7 @@
             /** Перехват на уровне Lampa.Network.silent — ловит запросы через любой экземпляр Reguest */
             var network = Lampa.Network || (Lampa.Api && Lampa.Api.network);
             if (network && typeof network.silent === 'function') {
+                log('патч Network.silent применён', network === Lampa.Network ? 'Lampa.Network' : 'Lampa.Api.network');
                 var origSilent = network.silent.bind(network);
                 network.silent = function (url, complite, error, post_data, params) {
                     var wrappedComplite = function (data) {
@@ -185,6 +258,7 @@
                         var isEmpty = isObj && !data.blocked && !data.id && !data.title && !data.name && !data.results && Object.keys(data).length < 3;
                         if (isBlocked || isEmpty) {
                             var card = getCardInfoFromUrl(url) || getCardInfo();
+                            log('Network.silent complite: blocked/пустой', { url: (url || '').slice(0, 60), card: card });
                             if (card) {
                                 var lang = Lampa.Storage.get('tmdb_lang', 'ru');
                                 fetchFromTmdbThenCall(complite, error, card.id, card.type, lang);
@@ -198,22 +272,29 @@
                     };
                     return origSilent(url, wrappedComplite, error, post_data, params);
                 };
+            } else {
+                log('Network.silent не найден (Lampa.Network и Api.network)', { hasNetwork: !!Lampa.Network, hasApi: !!(Lampa.Api && Lampa.Api.network) });
             }
 
             /** Перехват через событие request_secuses — срабатывает и при ответе из кэша (минуя $.ajax) */
             if (Lampa.Listener && typeof Lampa.Listener.follow === 'function') {
+                log('подписка на событие request_secuses');
                 Lampa.Listener.follow('request_secuses', function (e) {
+                    var keys = e && typeof e === 'object' ? Object.keys(e) : [];
                     var params = e.params;
                     var data = e.data;
                     var abort = e.abort;
-                    if (!params || !data || typeof data !== 'object' || Array.isArray(data)) return;
+                    if (!data || typeof data !== 'object' || Array.isArray(data)) return;
                     var isBlocked = data.blocked;
                     var isEmpty = !data.blocked && !data.id && !data.title && !data.name && !data.results && Object.keys(data).length < 3;
+                    if (isBlocked || isEmpty) log('request_secuses: blocked/пустой', { keys: keys, hasParams: !!params, hasAbort: typeof abort === 'function', url: params && params.url ? (params.url + '').slice(0, 55) : '—' });
                     if (!isBlocked && !isEmpty) return;
+                    if (!params) { log('request_secuses: нет params, выходим'); return; }
                     var card = getCardInfoFromUrl(params.url) || getCardInfo();
-                    if (!card) return;
+                    if (!card) { log('request_secuses: карточку не определили', { url: (params.url + '').slice(0, 55) }); return; }
                     var sendSecuses = typeof abort === 'function' ? abort() : null;
-                    if (typeof sendSecuses !== 'function') return;
+                    if (typeof sendSecuses !== 'function') { log('request_secuses: abort() не вернул функцию'); return; }
+                    log('request_secuses: перехват, вызываем fetchFromTmdbThenCall', card);
                     var lang = Lampa.Storage.get('tmdb_lang', 'ru');
                     fetchFromTmdbThenCall(
                         function (realData) { sendSecuses(realData); },
@@ -224,15 +305,21 @@
                         card.id, card.type, lang
                     );
                 });
+            } else {
+                log('Lampa.Listener.follow недоступен');
             }
         }
     }
 
     if (window.appready) {
+        log('appready уже true, вызываю start()');
         start();
     } else if (typeof Lampa !== 'undefined' && Lampa.Listener) {
+        log('ожидаю событие app ready');
         Lampa.Listener.follow('app', function (event) {
-            if (event.type === 'ready') start();
+            if (event.type === 'ready') { log('событие app ready'); start(); }
         });
+    } else {
+        log('Lampa/Listener не найден при загрузке');
     }
 })();
