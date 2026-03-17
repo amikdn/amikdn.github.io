@@ -140,7 +140,7 @@
     XMLHttpRequest.prototype.open = function (method, url) {
         if (typeof url === 'string') this.__admca_url = url;
         var args = Array.prototype.slice.call(arguments);
-        if (typeof args[1] === 'string') args[1] = fixUrl(args[1]);
+        if (typeof args[1] === 'string' && !ownXhrs.has(this)) args[1] = fixUrl(args[1]);
         return origOpen.apply(this, args);
     };
 
