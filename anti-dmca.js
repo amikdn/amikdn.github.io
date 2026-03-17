@@ -156,38 +156,61 @@
         }
 
         var origOnReady = xhr.onreadystatechange;
-        xhr.onreadystatechange = function () {
-            if (xhr.readyState !== 4) { if (origOnReady) origOnReady.call(xhr); return; }
+        var origOnLoad = xhr.onload;
+        var origOnError = xhr.onerror;
+        var handled = false;
 
+        function handleBlocked() {
+            if (handled) return true;
             var respUrl = xhr.responseURL || reqUrl;
-            if (!cardPathRe.test(respUrl)) { if (origOnReady) origOnReady.call(xhr); return; }
+            if (!cardPathRe.test(respUrl)) return false;
 
             var text = '';
             try { text = (xhr.responseText || '').trim(); } catch (e) {}
-            if (!blockedRe.test(text)) { if (origOnReady) origOnReady.call(xhr); return; }
+            if (!blockedRe.test(text)) return false;
 
             var m = respUrl.match(cardPathRe);
-            if (!m) { if (origOnReady) origOnReady.call(xhr); return; }
+            if (!m) return false;
 
+            handled = true;
             var type = m[1], id = m[2];
             var sm = respUrl.match(subPathRe);
             var sub = sm ? sm[1] : null;
+
+            function done() {
+                if (origOnReady) origOnReady.call(xhr);
+                if (origOnLoad) origOnLoad.call(xhr);
+            }
 
             if (sub === 'images') {
                 fetchImages(id, type).then(function (data) {
                     patchXhr(xhr, data, null);
                     log('подмена images', type, id);
-                    if (origOnReady) origOnReady.call(xhr);
-                }, function () { if (origOnReady) origOnReady.call(xhr); });
-                return;
+                    done();
+                }, function () { log('fetchImages не удался', type, id); done(); });
+            } else {
+                fetchCard(id, type).then(function (data) {
+                    patchXhr(xhr, data, sub);
+                    log('подмена', sub || 'main', type, id);
+                    done();
+                }, function () { log('fetchCard не удался', type, id); done(); });
             }
+            return true;
+        }
 
-            fetchCard(id, type).then(function (data) {
-                patchXhr(xhr, data, sub);
-                log('подмена', sub || 'main', type, id);
-                if (origOnReady) origOnReady.call(xhr);
-            }, function () { if (origOnReady) origOnReady.call(xhr); });
+        xhr.onreadystatechange = function () {
+            if (xhr.readyState !== 4) { if (origOnReady) origOnReady.call(xhr); return; }
+            if (!handleBlocked()) { if (origOnReady) origOnReady.call(xhr); }
         };
+        xhr.onload = function () {
+            if (!handled) {
+                if (!handleBlocked()) { if (origOnLoad) origOnLoad.call(xhr); }
+            }
+        };
+        xhr.onerror = function () {
+            if (origOnError) origOnError.call(xhr);
+        };
+
         return origSend.apply(this, arguments);
     };
 
