@@ -113,6 +113,7 @@
                     var path = subMatch ? subMatch[2] : null;
                     var fetchImages = window.__anti_dmca_fetchImages;
                     if (path === 'images' && typeof fetchImages === 'function') {
+                        log('XHR.send: запрашиваем images с api.themoviedb.org', { cardId: cardId });
                         fetchImages(cardId, cardType).then(function (imagesData) {
                             var outText = typeof imagesData === 'object' ? JSON.stringify(imagesData) : (imagesData || '');
                             try { Object.defineProperty(xhr, 'responseText', { get: function () { return outText; }, configurable: true }); } catch (e) {}
@@ -231,7 +232,7 @@
             }
             window.__anti_dmca_fetchCard = fetchTmdbCard;
 
-            /** Отдельный запрос только для /images (логотипы) — не раздувает основной ответ карточки */
+            /** Отдельный запрос только для /images (логотипы) — нативный XHR, без jQuery, чтобы не зависеть от патчей */
             var tmdbImagesPromises = {};
             function fetchTmdbImages(cardId, cardType) {
                 var key = cardId + '_' + cardType + '_images';
@@ -239,21 +240,42 @@
                 var lang = (typeof Lampa !== 'undefined' && Lampa.Storage && Lampa.Storage.get('language')) || (typeof localStorage !== 'undefined' && localStorage.getItem('language')) || 'ru';
                 var keyForImages = (typeof Lampa !== 'undefined' && Lampa.TMDB && typeof Lampa.TMDB.key === 'function') ? Lampa.TMDB.key() : apiKey;
                 var tmdbUrl = 'https://' + tmdbDirectHost + '/3/' + cardType + '/' + cardId + '/images?api_key=' + keyForImages + '&include_image_language=' + lang + ',en,null';
-                directTmdbRequest = true;
                 var p = new Promise(function (resolve, reject) {
-                    origAjax.call(window.jQuery, {
-                        url: tmdbUrl,
-                        dataType: 'json',
-                        success: function (data) {
-                            directTmdbRequest = false;
+                    var req = new XMLHttpRequest();
+                    var done = false;
+                    var timeout = setTimeout(function () {
+                        if (done) return;
+                        done = true;
+                        directTmdbRequest = false;
+                        delete tmdbImagesPromises[key];
+                        log('XHR.send: запрос images — таймаут');
+                        reject({ textStatus: 'timeout' });
+                    }, 12000);
+                    directTmdbRequest = true;
+                    req.open('GET', tmdbUrl, true);
+                    req.onreadystatechange = function () {
+                        if (req.readyState !== 4 || done) return;
+                        done = true;
+                        directTmdbRequest = false;
+                        clearTimeout(timeout);
+                        var data = null;
+                        try { data = req.responseText ? JSON.parse(req.responseText) : null; } catch (e) {}
+                        if (req.status === 200 && data && (data.logos || data.backdrops || data.posters)) {
                             resolve(data);
-                        },
-                        error: function (jqXHR, textStatus, errorThrown) {
-                            directTmdbRequest = false;
+                        } else {
                             delete tmdbImagesPromises[key];
-                            reject({ jqXHR: jqXHR, textStatus: textStatus, errorThrown: errorThrown });
+                            reject({ textStatus: 'error', status: req.status });
                         }
-                    });
+                    };
+                    req.onerror = function () {
+                        if (done) return;
+                        done = true;
+                        directTmdbRequest = false;
+                        clearTimeout(timeout);
+                        delete tmdbImagesPromises[key];
+                        reject({ textStatus: 'error' });
+                    };
+                    req.send();
                 });
                 tmdbImagesPromises[key] = p;
                 return p;
