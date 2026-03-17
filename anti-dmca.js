@@ -101,6 +101,23 @@
                 });
             }
 
+            /** Подмена при вызове complite(data) — для слоя Network.silent (в т.ч. ответы из кэша) */
+            function fetchFromTmdbThenCall(onSuccess, onError, cardId, cardType, lang) {
+                var tmdbUrl = 'https://' + tmdbDirectHost + '/3/' + cardType + '/' + cardId
+                    + '?api_key=' + apiKey + '&language=' + (lang || 'ru')
+                    + '&append_to_response=credits,external_ids,videos,recommendations,similar';
+                origAjax.call(window.jQuery, {
+                    url: tmdbUrl,
+                    dataType: 'json',
+                    success: function (realData) {
+                        if (onSuccess) onSuccess(realData);
+                    },
+                    error: function (jqXHR, textStatus, errorThrown) {
+                        if (onError) onError(jqXHR || {}, textStatus || 'error', errorThrown || '');
+                    }
+                });
+            }
+
             function getCardInfo() {
                 try {
                     var active = Lampa.Activity.active();
@@ -114,6 +131,7 @@
                 return null;
             }
 
+            /** Извлекает id и тип (movie/tv) из URL запроса к любому зеркалу Lampa (tmdb.cub.rip, tmdb.durex.monster и т.д.) */
             function getCardInfoFromUrl(url) {
                 if (typeof url !== 'string') return null;
                 var m = url.match(/\/(movie|tv)\/(\d+)(?:\/|$|\?)/);
@@ -155,6 +173,58 @@
                 }
                 return origAjax.call(this, s);
             };
+
+            /** Перехват на уровне Lampa.Network.silent — ловит запросы через любой экземпляр Reguest */
+            var network = Lampa.Network || (Lampa.Api && Lampa.Api.network);
+            if (network && typeof network.silent === 'function') {
+                var origSilent = network.silent.bind(network);
+                network.silent = function (url, complite, error, post_data, params) {
+                    var wrappedComplite = function (data) {
+                        var isObj = data && typeof data === 'object' && !Array.isArray(data);
+                        var isBlocked = isObj && data.blocked;
+                        var isEmpty = isObj && !data.blocked && !data.id && !data.title && !data.name && !data.results && Object.keys(data).length < 3;
+                        if (isBlocked || isEmpty) {
+                            var card = getCardInfoFromUrl(url) || getCardInfo();
+                            if (card) {
+                                var lang = Lampa.Storage.get('tmdb_lang', 'ru');
+                                fetchFromTmdbThenCall(complite, error, card.id, card.type, lang);
+                                return;
+                            }
+                            if (error) error({}, 'blocked', 'Content blocked');
+                            else if (complite) complite(data);
+                            return;
+                        }
+                        if (complite) complite(data);
+                    };
+                    return origSilent(url, wrappedComplite, error, post_data, params);
+                };
+            }
+
+            /** Перехват через событие request_secuses — срабатывает и при ответе из кэша (минуя $.ajax) */
+            if (Lampa.Listener && typeof Lampa.Listener.follow === 'function') {
+                Lampa.Listener.follow('request_secuses', function (e) {
+                    var params = e.params;
+                    var data = e.data;
+                    var abort = e.abort;
+                    if (!params || !data || typeof data !== 'object' || Array.isArray(data)) return;
+                    var isBlocked = data.blocked;
+                    var isEmpty = !data.blocked && !data.id && !data.title && !data.name && !data.results && Object.keys(data).length < 3;
+                    if (!isBlocked && !isEmpty) return;
+                    var card = getCardInfoFromUrl(params.url) || getCardInfo();
+                    if (!card) return;
+                    var sendSecuses = typeof abort === 'function' ? abort() : null;
+                    if (typeof sendSecuses !== 'function') return;
+                    var lang = Lampa.Storage.get('tmdb_lang', 'ru');
+                    fetchFromTmdbThenCall(
+                        function (realData) { sendSecuses(realData); },
+                        function () {
+                            if (params.error) params.error({}, 'blocked', 'Content blocked');
+                            if (params.end) params.end();
+                        },
+                        card.id, card.type, lang
+                    );
+                });
+            }
         }
     }
 
