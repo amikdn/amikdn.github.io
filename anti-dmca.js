@@ -16,8 +16,12 @@
     var TMDB_HOST = 'api.themoviedb.org';
     var API_KEY = '4ef0d7355d9ffb5151e987764708ce96';
 
+    /** Нативный fetch до патча — для запросов к TMDB на Android WebView часто работает надёжнее XHR */
+    var nativeFetch = typeof window !== 'undefined' && typeof window.fetch === 'function' ? window.fetch.bind(window) : null;
+
     var cardPathRe = /\/3\/(movie|tv)\/(\d+)(?:\/|$|\?)/;
     var subPathRe = /\/3\/(?:movie|tv)\/\d+\/([^\/\?]+)/;
+    var seasonNumRe = /\/season\/(\d+)(?:\/|$|\?)/;
     var blockedRe = /^\s*\{\s*"blocked"\s*:\s*true\s*\}\s*$/;
 
     /** Набор XHR, которые плагин сам создал для подмены — не перехватываются повторно */
@@ -90,6 +94,7 @@
     /** Кэш Promise по ключу */
     var cardCache = {};
     var imagesCache = {};
+    var seasonCache = {};
 
     function fetchCard(id, type) {
         var key = type + '_' + id;
@@ -101,22 +106,31 @@
         var url = directTmdbUrl(type, id, '', 'api_key=' + getApiKey() + '&language=' + lang + '&append_to_response=' + append);
         log('fetchCard →', type, id);
         if (LOG_URLS) logUrl('fetchCard ссылка', url, undefined);
-        var p = new Promise(function (resolve, reject) {
-            var xhr = new XMLHttpRequest();
-            ownXhrs.add(xhr);
-            xhr.open('GET', url, true);
-            xhr.onreadystatechange = function () {
-                if (xhr.readyState !== 4) return;
-                try {
-                    var data = JSON.parse(xhr.responseText);
-                    if (data && data.id) { resolve(data); return; }
-                } catch (e) {}
+        var p;
+        if (nativeFetch) {
+            p = nativeFetch(url).then(function (r) { return r.json(); }).then(function (data) {
+                if (data && data.id) return data;
                 delete cardCache[key];
-                reject();
-            };
-            xhr.onerror = function () { delete cardCache[key]; reject(); };
-            xhr.send();
-        });
+                return Promise.reject();
+            }).catch(function () { delete cardCache[key]; return Promise.reject(); });
+        } else {
+            p = new Promise(function (resolve, reject) {
+                var xhr = new XMLHttpRequest();
+                ownXhrs.add(xhr);
+                xhr.open('GET', url, true);
+                xhr.onreadystatechange = function () {
+                    if (xhr.readyState !== 4) return;
+                    try {
+                        var data = JSON.parse(xhr.responseText);
+                        if (data && data.id) { resolve(data); return; }
+                    } catch (e) {}
+                    delete cardCache[key];
+                    reject();
+                };
+                xhr.onerror = function () { delete cardCache[key]; reject(); };
+                xhr.send();
+            });
+        }
         cardCache[key] = p;
         return p;
     }
@@ -128,41 +142,93 @@
         var url = directTmdbUrl(type, id, '/images', 'api_key=' + getApiKey() + '&include_image_language=' + lang + ',en,null');
         log('fetchImages →', type, id, isRetry ? '(retry)' : '');
         if (LOG_URLS) logUrl('fetchImages ссылка', url, undefined);
-        var p = new Promise(function (resolve, reject) {
-            var xhr = new XMLHttpRequest();
-            ownXhrs.add(xhr);
-            var done = false;
-            var t = setTimeout(function () {
-                if (done) return;
-                done = true;
-                xhr.abort();
-                if (!isRetry) {
-                    delete imagesCache[key];
-                    fetchImages(id, type, true).then(resolve, reject);
-                } else reject();
-            }, 15000);
-            xhr.open('GET', url, true);
-            xhr.onreadystatechange = function () {
-                if (xhr.readyState !== 4 || done) return;
-                done = true;
-                clearTimeout(t);
-                try {
-                    var data = JSON.parse(xhr.responseText);
-                    if (data && (data.logos || data.backdrops || data.posters)) { resolve(data); return; }
-                } catch (e) {}
-                if (!isRetry) { delete imagesCache[key]; fetchImages(id, type, true).then(resolve, reject); }
-                else { delete imagesCache[key]; reject(); }
-            };
-            xhr.onerror = function () {
-                if (done) return;
-                done = true;
-                clearTimeout(t);
-                if (!isRetry) { delete imagesCache[key]; fetchImages(id, type, true).then(resolve, reject); }
-                else { delete imagesCache[key]; reject(); }
-            };
-            xhr.send();
-        });
+        var p;
+        if (nativeFetch) {
+            var timeoutMs = 15000;
+            p = Promise.race([
+                nativeFetch(url).then(function (r) { return r.json(); }).then(function (data) {
+                    if (data && (data.logos || data.backdrops || data.posters)) return data;
+                    return Promise.reject();
+                }),
+                new Promise(function (_, rej) { setTimeout(function () { rej(new Error('timeout')); }, timeoutMs); })
+            ]).catch(function () {
+                delete imagesCache[key];
+                if (!isRetry) return fetchImages(id, type, true);
+                return Promise.reject();
+            });
+        } else {
+            p = new Promise(function (resolve, reject) {
+                var xhr = new XMLHttpRequest();
+                ownXhrs.add(xhr);
+                var done = false;
+                var t = setTimeout(function () {
+                    if (done) return;
+                    done = true;
+                    xhr.abort();
+                    if (!isRetry) {
+                        delete imagesCache[key];
+                        fetchImages(id, type, true).then(resolve, reject);
+                    } else reject();
+                }, 15000);
+                xhr.open('GET', url, true);
+                xhr.onreadystatechange = function () {
+                    if (xhr.readyState !== 4 || done) return;
+                    done = true;
+                    clearTimeout(t);
+                    try {
+                        var data = JSON.parse(xhr.responseText);
+                        if (data && (data.logos || data.backdrops || data.posters)) { resolve(data); return; }
+                    } catch (e) {}
+                    if (!isRetry) { delete imagesCache[key]; fetchImages(id, type, true).then(resolve, reject); }
+                    else { delete imagesCache[key]; reject(); }
+                };
+                xhr.onerror = function () {
+                    if (done) return;
+                    done = true;
+                    clearTimeout(t);
+                    if (!isRetry) { delete imagesCache[key]; fetchImages(id, type, true).then(resolve, reject); }
+                    else { delete imagesCache[key]; reject(); }
+                };
+                xhr.send();
+            });
+        }
         if (!isRetry) imagesCache[key] = p;
+        return p;
+    }
+
+    function fetchSeason(tvId, seasonNum) {
+        var key = 'tv_' + tvId + '_s' + seasonNum;
+        if (seasonCache[key]) return seasonCache[key];
+        var lang = getLang();
+        var url = directTmdbUrl('tv', tvId, '/season/' + seasonNum, 'api_key=' + getApiKey() + '&language=' + lang);
+        log('fetchSeason → tv', tvId, 'season', seasonNum);
+        if (LOG_URLS) logUrl('fetchSeason ссылка', url, undefined);
+        var p;
+        if (nativeFetch) {
+            p = nativeFetch(url).then(function (r) { return r.json(); }).then(function (data) {
+                if (data && (data.id !== undefined || data.episodes)) return data;
+                delete seasonCache[key];
+                return Promise.reject();
+            }).catch(function () { delete seasonCache[key]; return Promise.reject(); });
+        } else {
+            p = new Promise(function (resolve, reject) {
+                var xhr = new XMLHttpRequest();
+                ownXhrs.add(xhr);
+                xhr.open('GET', url, true);
+                xhr.onreadystatechange = function () {
+                    if (xhr.readyState !== 4) return;
+                    try {
+                        var data = JSON.parse(xhr.responseText);
+                        if (data && (data.id !== undefined || data.episodes)) { resolve(data); return; }
+                    } catch (e) {}
+                    delete seasonCache[key];
+                    reject();
+                };
+                xhr.onerror = function () { delete seasonCache[key]; reject(); };
+                xhr.send();
+            });
+        }
+        seasonCache[key] = p;
         return p;
     }
 
@@ -180,7 +246,9 @@
         try { Object.defineProperty(xhr, 'status', { value: 200, configurable: true }); } catch (e) {}
     }
 
-    log('скрипт загружен, применяю патчи XHR/fetch');
+    var isLikelyWebView = typeof navigator !== 'undefined' && /Android|webview|Lampa/i.test(navigator.userAgent || '');
+    log('скрипт загружен, применяю патчи XHR/fetch', isLikelyWebView ? '(WebView/Android)' : '');
+    if (isLikelyWebView && nativeFetch) log('внутренние запросы к TMDB через native fetch');
 
     // --- XHR.open: сохраняем URL для быстрой проверки в send, заменяем api.themoviedb.org на зеркало ---
     var origOpen = XMLHttpRequest.prototype.open;
@@ -245,7 +313,19 @@
                     patchXhr(xhr, data, null);
                     log('подмена images', type, id);
                     done();
-                }, function () { log('fetchImages не удался', type, id); done(); });
+                }, function () {
+                    log('fetchImages не удался', type, id);
+                    patchXhr(xhr, { id: parseInt(id, 10), logos: [], backdrops: [], posters: [] }, null);
+                    done();
+                });
+            } else if (sub === 'season' && type === 'tv') {
+                var sn = respUrl.match(seasonNumRe);
+                var seasonNum = sn ? parseInt(sn[1], 10) : 1;
+                fetchSeason(id, seasonNum).then(function (data) {
+                    patchXhr(xhr, data, null);
+                    log('подмена season', type, id, 's' + seasonNum);
+                    done();
+                }, function () { log('fetchSeason не удался', type, id); done(); });
             } else {
                 fetchCard(id, type).then(function (data) {
                     patchXhr(xhr, data, sub);
@@ -285,6 +365,17 @@
                     patchXhr(xhr, data, null);
                     log('подмена images (error)', type, id);
                     doneErr();
+                }, function () {
+                    patchXhr(xhr, { id: parseInt(id, 10), logos: [], backdrops: [], posters: [] }, null);
+                    doneErr();
+                });
+            } else if (sub === 'season' && type === 'tv') {
+                var sne = reqUrl.match(seasonNumRe);
+                var seasonNumE = sne ? parseInt(sne[1], 10) : 1;
+                fetchSeason(id, seasonNumE).then(function (data) {
+                    patchXhr(xhr, data, null);
+                    log('подмена season (error)', type, id);
+                    doneErr();
                 }, function () { doneErr(); });
             } else {
                 fetchCard(id, type).then(function (data) {
@@ -313,6 +404,17 @@
                 fetchImages(id, type).then(function (data) {
                     patchXhr(xhr, data, null);
                     log('подмена images (abort)', type, id);
+                    doneAbort();
+                }, function () {
+                    patchXhr(xhr, { id: parseInt(id, 10), logos: [], backdrops: [], posters: [] }, null);
+                    doneAbort();
+                });
+            } else if (sub === 'season' && type === 'tv') {
+                var sna = reqUrl.match(seasonNumRe);
+                var seasonNumA = sna ? parseInt(sna[1], 10) : 1;
+                fetchSeason(id, seasonNumA).then(function (data) {
+                    patchXhr(xhr, data, null);
+                    log('подмена season (abort)', type, id);
                     doneAbort();
                 }, function () { doneAbort(); });
             } else {
@@ -356,6 +458,13 @@
                             return new Response(JSON.stringify(data), { status: 200, headers: { 'Content-Type': 'application/json' } });
                         }).catch(function () { return response; });
                     }
+                    if (sub === 'season' && type === 'tv') {
+                        var snf = requestedUrl.match(seasonNumRe);
+                        var seasonNumF = snf ? parseInt(snf[1], 10) : 1;
+                        return fetchSeason(id, seasonNumF).then(function (data) {
+                            return new Response(JSON.stringify(data), { status: 200, headers: { 'Content-Type': 'application/json' } });
+                        }).catch(function () { return response; });
+                    }
                     return fetchCard(id, type).then(function (data) {
                         var out = sub && data[sub] !== undefined ? data[sub] : data;
                         return new Response(JSON.stringify(out), { status: 200, headers: { 'Content-Type': 'application/json' } });
@@ -373,6 +482,13 @@
                 if (LOG_URLS) log('fetch подмена при ошибке по запросу', requestedUrl);
                 if (sub === 'images') {
                     return fetchImages(id, type).then(function (data) {
+                        return new Response(JSON.stringify(data), { status: 200, headers: { 'Content-Type': 'application/json' } });
+                    });
+                }
+                if (sub === 'season' && type === 'tv') {
+                    var snfc = requestedUrl.match(seasonNumRe);
+                    var seasonNumFc = snfc ? parseInt(snfc[1], 10) : 1;
+                    return fetchSeason(id, seasonNumFc).then(function (data) {
                         return new Response(JSON.stringify(data), { status: 200, headers: { 'Content-Type': 'application/json' } });
                     });
                 }
