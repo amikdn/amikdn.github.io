@@ -53,8 +53,9 @@
         return url;
     }
 
-    /** Вызывается из start(): один запрос на карточку, результат переиспользуется для main/credits/videos/similar */
+    /** Вызываются из start(): один запрос на карточку и отдельно на images (логотипы) */
     window.__anti_dmca_fetchCard = null;
+    window.__anti_dmca_fetchImages = null;
 
     log('скрипт загружен, применяю патчи XHR/fetch');
     (function patchNetwork() {
@@ -108,13 +109,25 @@
                 var lang = (typeof localStorage !== 'undefined' && localStorage.getItem('tmdb_lang')) || 'ru';
                 var fetchCard = window.__anti_dmca_fetchCard;
                 if (typeof fetchCard === 'function') {
+                    var subMatch = url.match(/\/(movie|tv)\/\d+\/([^\/\?]+)/);
+                    var path = subMatch ? subMatch[2] : null;
+                    var fetchImages = window.__anti_dmca_fetchImages;
+                    if (path === 'images' && typeof fetchImages === 'function') {
+                        fetchImages(cardId, cardType).then(function (imagesData) {
+                            var outText = typeof imagesData === 'object' ? JSON.stringify(imagesData) : (imagesData || '');
+                            try { Object.defineProperty(xhr, 'responseText', { get: function () { return outText; }, configurable: true }); } catch (e) {}
+                            try { Object.defineProperty(xhr, 'response', { get: function () { return imagesData; }, configurable: true }); } catch (e) {}
+                            log('XHR.send: подмена выполнена (кэш images)', { cardId: cardId });
+                            if (origOnReady) origOnReady.call(xhr);
+                        }, function () { if (origOnReady) origOnReady.call(xhr); });
+                        return;
+                    }
                     fetchCard(cardId, cardType, lang).then(function (realData) {
-                        var subMatch = url.match(/\/(movie|tv)\/\d+\/([^\/\?]+)/);
                         var out = subMatch && realData[subMatch[2]] !== undefined ? realData[subMatch[2]] : realData;
                         var outText = typeof out === 'object' ? JSON.stringify(out) : (out || '');
                         try { Object.defineProperty(xhr, 'responseText', { get: function () { return outText; }, configurable: true }); } catch (e) {}
                         try { Object.defineProperty(xhr, 'response', { get: function () { return out; }, configurable: true }); } catch (e) {}
-                        log('XHR.send: подмена выполнена (кэш)', { id: realData.id, path: subMatch ? subMatch[2] : 'main' });
+                        log('XHR.send: подмена выполнена (кэш)', { id: realData.id, path: path || 'main' });
                         if (origOnReady) origOnReady.call(xhr);
                     }, function () {
                         if (origOnReady) origOnReady.call(xhr);
@@ -123,7 +136,7 @@
                 }
                 var tmdbUrl = 'https://' + tmdbDirectHost + '/3/' + cardType + '/' + cardId
                     + '?api_key=' + apiKey + '&language=' + lang
-                    + '&append_to_response=credits,external_ids,videos,recommendations,similar,images';
++ '&append_to_response=credits,external_ids,videos,recommendations,similar';
                 var done = false;
                 var req = new XMLHttpRequest();
                 directTmdbRequest = true;
@@ -191,7 +204,7 @@
                 if (tmdbFetchPromises[key]) return tmdbFetchPromises[key];
                 var tmdbUrl = 'https://' + tmdbDirectHost + '/3/' + cardType + '/' + cardId
                     + '?api_key=' + apiKey + '&language=' + (lang || 'ru')
-                    + '&append_to_response=credits,external_ids,videos,recommendations,similar,images';
+                    + '&append_to_response=credits,external_ids,videos,recommendations,similar';
                 directTmdbRequest = true;
                 var p = new Promise(function (resolve, reject) {
                     origAjax.call(window.jQuery, {
@@ -212,6 +225,34 @@
                 return p;
             }
             window.__anti_dmca_fetchCard = fetchTmdbCard;
+
+            /** Отдельный запрос только для /images (логотипы) — не раздувает основной ответ карточки */
+            var tmdbImagesPromises = {};
+            function fetchTmdbImages(cardId, cardType) {
+                var key = cardId + '_' + cardType + '_images';
+                if (tmdbImagesPromises[key]) return tmdbImagesPromises[key];
+                var lang = (typeof Lampa !== 'undefined' && Lampa.Storage && Lampa.Storage.get('language')) || (typeof localStorage !== 'undefined' && localStorage.getItem('language')) || 'ru';
+                var tmdbUrl = 'https://' + tmdbDirectHost + '/3/' + cardType + '/' + cardId + '/images?api_key=' + apiKey + '&include_image_language=' + lang + ',en,null';
+                directTmdbRequest = true;
+                var p = new Promise(function (resolve, reject) {
+                    origAjax.call(window.jQuery, {
+                        url: tmdbUrl,
+                        dataType: 'json',
+                        success: function (data) {
+                            directTmdbRequest = false;
+                            resolve(data);
+                        },
+                        error: function (jqXHR, textStatus, errorThrown) {
+                            directTmdbRequest = false;
+                            delete tmdbImagesPromises[key];
+                            reject({ jqXHR: jqXHR, textStatus: textStatus, errorThrown: errorThrown });
+                        }
+                    });
+                });
+                tmdbImagesPromises[key] = p;
+                return p;
+            }
+            window.__anti_dmca_fetchImages = fetchTmdbImages;
 
             function fetchFromTmdb(cardId, cardType, lang, origSuccess, origError, self, args) {
                 log('fetchFromTmdb вызван (для $.ajax)', { cardId: cardId, cardType: cardType });
@@ -279,8 +320,17 @@
                             log('$.ajax success: blocked или пустой ответ', { url: requestUrl.slice(0, 60), isBlocked: isBlocked, isEmpty: isEmpty, card: card });
                             if (card) {
                                 var lang = Lampa.Storage.get('tmdb_lang', 'ru');
-                                log('$.ajax success: вызываем fetchFromTmdb', card);
-                                fetchFromTmdb(card.id, card.type, lang, origSuccess, origError, this, arguments);
+                                if (requestUrl.indexOf('/images') !== -1) {
+                                    var self = this, args = arguments;
+                                    log('$.ajax success: запрос /images, вызываем fetchTmdbImages', card);
+                                    fetchTmdbImages(card.id, card.type).then(
+                                        function (imagesData) { origSuccess.call(self, imagesData, args[1], args[2]); },
+                                        function (err) { if (origError) origError(err.jqXHR || {}, err.textStatus || 'error', err.errorThrown || ''); }
+                                    );
+                                } else {
+                                    log('$.ajax success: вызываем fetchFromTmdb', card);
+                                    fetchFromTmdb(card.id, card.type, lang, origSuccess, origError, this, arguments);
+                                }
                                 return;
                             }
                             log('$.ajax success: карточку не определили, вызываем origError');
