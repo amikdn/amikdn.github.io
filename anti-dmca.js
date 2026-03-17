@@ -2,7 +2,16 @@
     'use strict';
 
     var LOG = true;
+    var LOG_URLS = true;
     function log() { if (LOG && typeof console !== 'undefined' && console.log) console.log.apply(console, ['[anti-dmca]'].concat(Array.prototype.slice.call(arguments))); }
+    function logUrl(label, urlBefore, urlAfter) {
+        if (!LOG_URLS || typeof console === 'undefined' || !console.log) return;
+        if (urlAfter === undefined || urlAfter === urlBefore) {
+            if (urlBefore) console.log('[anti-dmca]', label, urlBefore);
+        } else {
+            console.log('[anti-dmca]', label, urlBefore, '→', urlAfter);
+        }
+    }
 
     var TMDB_HOST = 'api.themoviedb.org';
     var API_KEY = '4ef0d7355d9ffb5151e987764708ce96';
@@ -42,19 +51,24 @@
 
     function fixUrl(url) {
         if (typeof url !== 'string') return url;
+        var urlBefore = url;
 
         var bm = url.match(cardPathRe);
-        if (bm && isMirrorTmdb(url)) {
-            url = url.replace(/https?:\/\/[^\/]+/, 'https://' + TMDB_HOST);
-            var sm = url.match(subPathRe);
-            log('fixUrl: зеркало→TMDB', bm[1], bm[2], sm ? sm[1] : 'main');
-            return url;
+        if (bm && blockedCards[bm[1] + '_' + bm[2]]) {
+            if (url.indexOf(TMDB_HOST) !== -1) return url;
+            if (isMirrorTmdb(url)) {
+                url = url.replace(/https?:\/\/[^\/]+/, 'https://' + TMDB_HOST);
+                var sm = url.match(subPathRe);
+                log('fixUrl: зеркало→TMDB для заблокированного', bm[1], bm[2], sm ? sm[1] : 'main');
+                logUrl('fixUrl ссылка', urlBefore, url);
+                return url;
+            }
         }
-        if (bm && url.indexOf(TMDB_HOST) !== -1) return url;
 
         if (url.indexOf(TMDB_HOST) !== -1) {
             var origin = getLampaTmdbOrigin();
             url = url.replace('https://' + TMDB_HOST, origin).replace('http://' + TMDB_HOST, origin);
+            logUrl('fixUrl TMDB→зеркало', urlBefore, url);
         }
         return url;
     }
@@ -86,6 +100,7 @@
             : 'credits,external_ids,videos,recommendations,similar';
         var url = directTmdbUrl(type, id, '', 'api_key=' + getApiKey() + '&language=' + lang + '&append_to_response=' + append);
         log('fetchCard →', type, id);
+        if (LOG_URLS) logUrl('fetchCard ссылка', url, undefined);
         var p = new Promise(function (resolve, reject) {
             var xhr = new XMLHttpRequest();
             ownXhrs.add(xhr);
@@ -112,6 +127,7 @@
         var lang = getLang();
         var url = directTmdbUrl(type, id, '/images', 'api_key=' + getApiKey() + '&include_image_language=' + lang + ',en,null');
         log('fetchImages →', type, id, isRetry ? '(retry)' : '');
+        if (LOG_URLS) logUrl('fetchImages ссылка', url, undefined);
         var p = new Promise(function (resolve, reject) {
             var xhr = new XMLHttpRequest();
             ownXhrs.add(xhr);
@@ -172,7 +188,10 @@
         if (typeof url === 'string') this.__admca_url = url;
         var args = Array.prototype.slice.call(arguments);
         if (typeof args[1] === 'string' && !ownXhrs.has(this)) {
+            var urlBefore = args[1];
             args[1] = fixUrl(args[1]);
+            if (LOG_URLS && (cardPathRe.test(urlBefore) || isMirrorTmdb(urlBefore)))
+                logUrl('XHR.open запрос ' + (args[0] || 'GET'), urlBefore, args[1]);
         }
         return origOpen.apply(this, args);
     };
@@ -214,6 +233,7 @@
             var sub = sm ? sm[1] : null;
 
             blockedCards[type + '_' + id] = true;
+            if (LOG_URLS) log('подмена по запросу (blocked/failed)', respUrl);
 
             function done() {
                 if (origOnReady) origOnReady.call(xhr);
@@ -255,6 +275,7 @@
             var smer = reqUrl.match(subPathRe);
             var sub = smer ? smer[1] : null;
             blockedCards[type + '_' + id] = true;
+            if (LOG_URLS) log('подмена по запросу (error)', reqUrl);
             function doneErr() {
                 if (origOnReady) origOnReady.call(xhr);
                 if (origOnLoad) origOnLoad.call(xhr);
@@ -283,6 +304,7 @@
             var sm = reqUrl.match(subPathRe);
             var sub = sm ? sm[1] : null;
             blockedCards[type + '_' + id] = true;
+            if (LOG_URLS) log('подмена по запросу (abort)', reqUrl);
             function doneAbort() {
                 if (origOnReady) origOnReady.call(xhr);
                 if (origOnLoad) origOnLoad.call(xhr);
@@ -312,6 +334,8 @@
             var inputUrl = typeof url === 'string' ? url : '';
             url = fixUrl(url);
             var requestedUrl = typeof url === 'string' ? url : inputUrl;
+            if (LOG_URLS && (cardPathRe.test(inputUrl) || cardPathRe.test(requestedUrl)))
+                logUrl('fetch запрос', inputUrl, requestedUrl !== inputUrl ? requestedUrl : undefined);
             return origFetch.call(this, url, opts).then(function (response) {
                 if (!cardPathRe.test(requestedUrl)) return response;
                 return response.clone().text().then(function (text) {
@@ -326,6 +350,7 @@
                     var sub = sm ? sm[1] : null;
                     blockedCards[type + '_' + id] = true;
                     log('fetch: подмена', sub || 'main', type, id);
+                    if (LOG_URLS) log('fetch подмена по запросу', requestedUrl);
                     if (sub === 'images') {
                         return fetchImages(id, type).then(function (data) {
                             return new Response(JSON.stringify(data), { status: 200, headers: { 'Content-Type': 'application/json' } });
@@ -345,6 +370,7 @@
                 var sub = sm ? sm[1] : null;
                 blockedCards[type + '_' + id] = true;
                 log('fetch: подмена при ошибке', sub || 'main', type, id);
+                if (LOG_URLS) log('fetch подмена при ошибке по запросу', requestedUrl);
                 if (sub === 'images') {
                     return fetchImages(id, type).then(function (data) {
                         return new Response(JSON.stringify(data), { status: 200, headers: { 'Content-Type': 'application/json' } });
