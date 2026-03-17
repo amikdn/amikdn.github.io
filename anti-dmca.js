@@ -50,6 +50,7 @@
             return url;
         }
         if (url.indexOf(tmdbDirectHost) !== -1) {
+            if (url.indexOf('/images') !== -1) return url;
             var origin = getLampaTmdbOrigin();
             url = url.replace('https://' + tmdbDirectHost, origin).replace('http://' + tmdbDirectHost, origin);
         }
