@@ -43,18 +43,16 @@
     function fixUrl(url) {
         if (typeof url !== 'string') return url;
 
-        if (url.indexOf('/images') !== -1) {
-            var bm = url.match(cardPathRe);
-            if (bm && blockedCards[bm[1] + '_' + bm[2]]) {
-                if (url.indexOf(TMDB_HOST) !== -1) {
-                    log('fixUrl: /images для заблокированного', bm[1], bm[2], '→ оставляем TMDB');
-                    return url;
-                }
-                if (isMirrorTmdb(url)) {
-                    url = url.replace(/https?:\/\/[^\/]+/, 'https://' + TMDB_HOST);
-                    log('fixUrl: /images зеркало для заблокированного', bm[1], bm[2], '→ TMDB');
-                    return url;
-                }
+        var bm = url.match(cardPathRe);
+        if (bm && blockedCards[bm[1] + '_' + bm[2]]) {
+            if (url.indexOf(TMDB_HOST) !== -1) {
+                return url;
+            }
+            if (isMirrorTmdb(url)) {
+                url = url.replace(/https?:\/\/[^\/]+/, 'https://' + TMDB_HOST);
+                var sm = url.match(subPathRe);
+                log('fixUrl: зеркало→TMDB для заблокированного', bm[1], bm[2], sm ? sm[1] : 'main');
+                return url;
             }
         }
 
@@ -173,7 +171,8 @@
     var origSend = XMLHttpRequest.prototype.send;
     XMLHttpRequest.prototype.send = function () {
         var xhr = this;
-        if (ownXhrs.has(xhr) || xhr.__admca_direct) return origSend.apply(this, arguments);
+        if (ownXhrs.has(xhr)) return origSend.apply(this, arguments);
+        if (xhr.__admca_direct) return origSend.apply(this, arguments);
 
         var reqUrl = xhr.__admca_url || '';
         if (!cardPathRe.test(reqUrl) && !isMirrorTmdb(reqUrl)) {
@@ -192,7 +191,9 @@
 
             var text = '';
             try { text = (xhr.responseText || '').trim(); } catch (e) {}
-            if (!blockedRe.test(text)) return false;
+            var isBlocked = blockedRe.test(text);
+            var isFailed = !isBlocked && (xhr.status === 0 || xhr.status >= 400 || !text);
+            if (!isBlocked && !isFailed) return false;
 
             var m = respUrl.match(cardPathRe);
             if (!m) return false;
