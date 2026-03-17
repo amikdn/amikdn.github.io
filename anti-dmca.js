@@ -43,7 +43,13 @@
 
     function fixUrl(url) {
         if (typeof url !== 'string') return url;
-        if (url.indexOf('/images') !== -1) return url;
+        if (url.indexOf('/images') !== -1) {
+            if (url.indexOf(tmdbDirectHost) === -1 && (url.indexOf('apitmdb.') !== -1 || url.indexOf('tmdb.') !== -1)) {
+                url = url.replace(/^https?:\/\/[^\/]+/, 'https://' + tmdbDirectHost);
+                log('fixUrl: /images → запрос на api.themoviedb.org (логотипы)', url.slice(0, 55) + '...');
+            }
+            return url;
+        }
         if (directTmdbRequest && url.indexOf(tmdbDirectHost) !== -1) return url;
         if (url.indexOf(tmdbDirectHost) !== -1) {
             var origin = getLampaTmdbOrigin();
@@ -127,9 +133,10 @@
                     });
                     return;
                 }
+                var appendFallback = cardType === 'tv' ? 'credits,external_ids,videos,recommendations,similar,content_ratings' : 'credits,external_ids,videos,recommendations,similar';
                 var tmdbUrl = 'https://' + tmdbDirectHost + '/3/' + cardType + '/' + cardId
                     + '?api_key=' + apiKey + '&language=' + lang
-+ '&append_to_response=credits,external_ids,videos,recommendations,similar';
+                    + '&append_to_response=' + appendFallback;
                 var done = false;
                 var req = new XMLHttpRequest();
                 directTmdbRequest = true;
@@ -196,9 +203,12 @@
                 var key = cardId + '_' + cardType;
                 if (tmdbFetchPromises[key]) return tmdbFetchPromises[key];
                 log('fetchTmdbCard: один запрос к api.themoviedb.org для карточки', { cardId: cardId, cardType: cardType });
+                var append = cardType === 'tv'
+                    ? 'credits,external_ids,videos,recommendations,similar,content_ratings'
+                    : 'credits,external_ids,videos,recommendations,similar';
                 var tmdbUrl = 'https://' + tmdbDirectHost + '/3/' + cardType + '/' + cardId
                     + '?api_key=' + apiKey + '&language=' + (lang || 'ru')
-                    + '&append_to_response=credits,external_ids,videos,recommendations,similar';
+                    + '&append_to_response=' + append;
                 directTmdbRequest = true;
                 var p = new Promise(function (resolve, reject) {
                     origAjax.call(window.jQuery, {
