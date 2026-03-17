@@ -53,6 +53,9 @@
         return url;
     }
 
+    /** Вызывается из start(): один запрос на карточку, результат переиспользуется для main/credits/videos/similar */
+    window.__anti_dmca_fetchCard = null;
+
     log('скрипт загружен, применяю патчи XHR/fetch');
     (function patchNetwork() {
         var origOpen = XMLHttpRequest.prototype.open;
@@ -73,7 +76,7 @@
             };
         }
 
-        /** Подмена ответа {"blocked":true} на уровне XHR — срабатывает до разбора в приложении (в т.ч. при source=cub и кэше) */
+        /** Подмена ответа {"blocked":true} на уровне XHR — использует общий кэш fetchCard при наличии */
         var tmdbCardPath = /\/3\/(movie|tv)\/(\d+)(?:\/|$|\?)/;
         var blockedBody = /^\s*\{\s*"blocked"\s*:\s*true\s*\}\s*$/;
         var origSend = XMLHttpRequest.prototype.send;
@@ -103,6 +106,21 @@
                 var cardType = m[1], cardId = m[2];
                 log('XHR.send: обнаружен blocked, подмена через api.themoviedb.org', { cardType: cardType, cardId: cardId });
                 var lang = (typeof localStorage !== 'undefined' && localStorage.getItem('tmdb_lang')) || 'ru';
+                var fetchCard = window.__anti_dmca_fetchCard;
+                if (typeof fetchCard === 'function') {
+                    fetchCard(cardId, cardType, lang).then(function (realData) {
+                        var subMatch = url.match(/\/(movie|tv)\/\d+\/([^\/\?]+)/);
+                        var out = subMatch && realData[subMatch[2]] !== undefined ? realData[subMatch[2]] : realData;
+                        var outText = typeof out === 'object' ? JSON.stringify(out) : (out || '');
+                        try { Object.defineProperty(xhr, 'responseText', { get: function () { return outText; }, configurable: true }); } catch (e) {}
+                        try { Object.defineProperty(xhr, 'response', { get: function () { return out; }, configurable: true }); } catch (e) {}
+                        log('XHR.send: подмена выполнена (кэш)', { id: realData.id, path: subMatch ? subMatch[2] : 'main' });
+                        if (origOnReady) origOnReady.call(xhr);
+                    }, function () {
+                        if (origOnReady) origOnReady.call(xhr);
+                    });
+                    return;
+                }
                 var tmdbUrl = 'https://' + tmdbDirectHost + '/3/' + cardType + '/' + cardId
                     + '?api_key=' + apiKey + '&language=' + lang
                     + '&append_to_response=credits,external_ids,videos,recommendations,similar';
@@ -118,8 +136,11 @@
                     var realData = null;
                     try { realData = realText ? JSON.parse(realText) : null; } catch (e) {}
                     if (realData && realData.id) {
-                        try { Object.defineProperty(xhr, 'responseText', { get: function () { return realText; }, configurable: true }); } catch (e) {}
-                        try { Object.defineProperty(xhr, 'response', { get: function () { return realData; }, configurable: true }); } catch (e) {}
+                        var subMatch = url.match(/\/(movie|tv)\/\d+\/([^\/\?]+)/);
+                        var out = subMatch && realData[subMatch[2]] !== undefined ? realData[subMatch[2]] : realData;
+                        var outText = typeof out === 'object' ? JSON.stringify(out) : (realText || '');
+                        try { Object.defineProperty(xhr, 'responseText', { get: function () { return outText; }, configurable: true }); } catch (e) {}
+                        try { Object.defineProperty(xhr, 'response', { get: function () { return out; }, configurable: true }); } catch (e) {}
                         log('XHR.send: подмена выполнена, отдаём данные в приложение', { id: realData.id });
                     } else {
                         log('XHR.send: запрос к TMDB не вернул данные, отдаём исходный ответ', { status: req.status });
@@ -162,46 +183,55 @@
 
         if (window.jQuery && window.jQuery.ajax) {
             var origAjax = window.jQuery.ajax;
+            /** Один запрос на карточку: ключ cardId_cardType → Promise<realData> */
+            var tmdbFetchPromises = {};
 
-            function fetchFromTmdb(cardId, cardType, lang, origSuccess, origError, self, args) {
-                log('fetchFromTmdb вызван (для $.ajax)', { cardId: cardId, cardType: cardType });
+            function fetchTmdbCard(cardId, cardType, lang) {
+                var key = cardId + '_' + cardType;
+                if (tmdbFetchPromises[key]) return tmdbFetchPromises[key];
                 var tmdbUrl = 'https://' + tmdbDirectHost + '/3/' + cardType + '/' + cardId
                     + '?api_key=' + apiKey + '&language=' + (lang || 'ru')
                     + '&append_to_response=credits,external_ids,videos,recommendations,similar';
                 directTmdbRequest = true;
-                origAjax.call(window.jQuery, {
-                    url: tmdbUrl,
-                    dataType: 'json',
-                    success: function (realData) {
-                        directTmdbRequest = false;
-                        origSuccess.call(self, realData, args[1], args[2]);
-                    },
-                    error: function (jqXHR, textStatus, errorThrown) {
-                        directTmdbRequest = false;
-                        if (origError) origError(jqXHR || {}, textStatus || 'error', errorThrown || '');
-                    }
+                var p = new Promise(function (resolve, reject) {
+                    origAjax.call(window.jQuery, {
+                        url: tmdbUrl,
+                        dataType: 'json',
+                        success: function (realData) {
+                            directTmdbRequest = false;
+                            resolve(realData);
+                        },
+                        error: function (jqXHR, textStatus, errorThrown) {
+                            directTmdbRequest = false;
+                            delete tmdbFetchPromises[key];
+                            reject({ jqXHR: jqXHR, textStatus: textStatus, errorThrown: errorThrown });
+                        }
+                    });
                 });
+                tmdbFetchPromises[key] = p;
+                return p;
+            }
+            window.__anti_dmca_fetchCard = fetchTmdbCard;
+
+            function fetchFromTmdb(cardId, cardType, lang, origSuccess, origError, self, args) {
+                log('fetchFromTmdb вызван (для $.ajax)', { cardId: cardId, cardType: cardType });
+                fetchTmdbCard(cardId, cardType, lang).then(
+                    function (realData) { origSuccess.call(self, realData, args[1], args[2]); },
+                    function (err) {
+                        if (origError) origError(err.jqXHR || {}, err.textStatus || 'error', err.errorThrown || '');
+                    }
+                );
             }
 
             /** Подмена при вызове complite(data) — для слоя Network.silent (в т.ч. ответы из кэша) */
             function fetchFromTmdbThenCall(onSuccess, onError, cardId, cardType, lang) {
                 log('fetchFromTmdbThenCall вызван (Network.silent или request_secuses)', { cardId: cardId, cardType: cardType });
-                var tmdbUrl = 'https://' + tmdbDirectHost + '/3/' + cardType + '/' + cardId
-                    + '?api_key=' + apiKey + '&language=' + (lang || 'ru')
-                    + '&append_to_response=credits,external_ids,videos,recommendations,similar';
-                directTmdbRequest = true;
-                origAjax.call(window.jQuery, {
-                    url: tmdbUrl,
-                    dataType: 'json',
-                    success: function (realData) {
-                        directTmdbRequest = false;
-                        if (onSuccess) onSuccess(realData);
-                    },
-                    error: function (jqXHR, textStatus, errorThrown) {
-                        directTmdbRequest = false;
-                        if (onError) onError(jqXHR || {}, textStatus || 'error', errorThrown || '');
+                fetchTmdbCard(cardId, cardType, lang).then(
+                    function (realData) { if (onSuccess) onSuccess(realData); },
+                    function (err) {
+                        if (onError) onError(err.jqXHR || {}, err.textStatus || 'error', err.errorThrown || '');
                     }
-                });
+                );
             }
 
             function getCardInfo() {
