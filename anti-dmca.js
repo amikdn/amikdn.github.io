@@ -1,13 +1,42 @@
 (function () {
     'use strict';
 
-    var tmdbProxyHost = 'apitmdb.cub.rip';
     var tmdbDirectHost = 'api.themoviedb.org';
     var apiKey = '4ef0d7355d9ffb5151e987764708ce96';
+    var defaultCubMirrors = ['cub.rip', 'durex.monster', 'cubnotrip.top'];
+
+    function getCubDomain() {
+        try {
+            if (typeof Lampa !== 'undefined' && Lampa.Manifest && Lampa.Manifest.cub_domain)
+                return Lampa.Manifest.cub_domain;
+            var use = typeof localStorage !== 'undefined' && localStorage.getItem('cub_domain');
+            var mirrors = defaultCubMirrors.slice();
+            try {
+                var user = localStorage.getItem('cub_mirrors');
+                if (user) { user = JSON.parse(user); if (Array.isArray(user)) mirrors = mirrors.concat(user); }
+            } catch (e) {}
+            if (use && mirrors.indexOf(use) !== -1) return use;
+            return mirrors[0] || 'cub.rip';
+        } catch (e) {}
+        return 'cub.rip';
+    }
+
+    function getLampaTmdbOrigin() {
+        try {
+            var protocol = (typeof Lampa !== 'undefined' && Lampa.Utils && typeof Lampa.Utils.protocol === 'function')
+                ? Lampa.Utils.protocol() : ((typeof localStorage !== 'undefined' && localStorage.getItem('protocol')) || 'https') + '://';
+            var domain = getCubDomain();
+            return (protocol.replace(/\/+$/, '') || 'https:') + '//apitmdb.' + domain;
+        } catch (e) {}
+        return 'https://apitmdb.cub.rip';
+    }
 
     function fixUrl(url) {
         if (typeof url !== 'string') return url;
-        if (url.indexOf(tmdbProxyHost) !== -1) url = url.replace(tmdbProxyHost, tmdbDirectHost);
+        if (url.indexOf(tmdbDirectHost) !== -1) {
+            var origin = getLampaTmdbOrigin();
+            url = url.replace('https://' + tmdbDirectHost, origin).replace('http://' + tmdbDirectHost, origin);
+        }
         return url;
     }
 
