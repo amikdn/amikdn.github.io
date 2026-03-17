@@ -66,8 +66,8 @@
                     success: function (realData) {
                         origSuccess.call(self, realData, args[1], args[2]);
                     },
-                    error: function () {
-                        if (origError) origError();
+                    error: function (jqXHR, textStatus, errorThrown) {
+                        if (origError) origError(jqXHR || {}, textStatus || 'error', errorThrown || '');
                     }
                 });
             }
@@ -109,6 +109,9 @@
                                 fetchFromTmdb(card.id, card.type, lang, origSuccess, origError, this, arguments);
                                 return;
                             }
+                            if (origError) origError({}, 'blocked', 'Content blocked');
+                            else return origSuccess.apply(this, arguments);
+                            return;
                         }
                         return origSuccess.apply(this, arguments);
                     };
