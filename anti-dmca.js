@@ -44,11 +44,6 @@
     function fixUrl(url) {
         if (typeof url !== 'string') return url;
         if (directTmdbRequest && url.indexOf(tmdbDirectHost) !== -1) return url;
-        if (url.indexOf('/images') !== -1 && url.indexOf(tmdbDirectHost) === -1 && (url.indexOf('apitmdb.') !== -1 || url.indexOf('tmdb.') !== -1)) {
-            url = url.replace(/^https?:\/\/[^\/]+/, 'https://' + tmdbDirectHost);
-            log('fixUrl: /images → api.themoviedb.org (логотипы)', url.slice(0, 55) + '...');
-            return url;
-        }
         if (url.indexOf(tmdbDirectHost) !== -1) {
             if (url.indexOf('/images') !== -1) return url;
             var origin = getLampaTmdbOrigin();
@@ -57,8 +52,9 @@
         return url;
     }
 
-    /** Вызывается из start(): один запрос на карточку (без /images — логотипы не трогаем) */
+    /** Вызываются из start(): запрос карточки и при blocked — запрос /images для логотипов */
     window.__anti_dmca_fetchCard = null;
+    window.__anti_dmca_fetchImages = null;
 
     log('скрипт загружен, применяю патчи XHR/fetch');
     (function patchNetwork() {
@@ -109,11 +105,21 @@
                 }
                 var subMatch = url.match(/\/(movie|tv)\/\d+\/([^\/\?]+)/);
                 var path = subMatch ? subMatch[2] : null;
+                var cardType = m[1], cardId = m[2];
                 if (path === 'images') {
-                    if (origOnReady) origOnReady.call(xhr);
+                    var fetchImages = window.__anti_dmca_fetchImages;
+                    if (isBlockedResp && typeof fetchImages === 'function') {
+                        fetchImages(cardId, cardType).then(function (imagesData) {
+                            var outText = typeof imagesData === 'object' ? JSON.stringify(imagesData) : (imagesData || '');
+                            try { Object.defineProperty(xhr, 'responseText', { get: function () { return outText; }, configurable: true }); } catch (e) {}
+                            try { Object.defineProperty(xhr, 'response', { get: function () { return imagesData; }, configurable: true }); } catch (e) {}
+                            if (origOnReady) origOnReady.call(xhr);
+                        }, function () { if (origOnReady) origOnReady.call(xhr); });
+                    } else {
+                        if (origOnReady) origOnReady.call(xhr);
+                    }
                     return;
                 }
-                var cardType = m[1], cardId = m[2];
                 log('XHR.send: обнаружен blocked, подмена через api.themoviedb.org', { cardType: cardType, cardId: cardId });
                 var lang = (typeof localStorage !== 'undefined' && localStorage.getItem('tmdb_lang')) || 'ru';
                 var fetchCard = window.__anti_dmca_fetchCard;
@@ -227,6 +233,34 @@
             }
             window.__anti_dmca_fetchCard = fetchTmdbCard;
 
+            var tmdbImagesPromises = {};
+            function fetchTmdbImages(cardId, cardType) {
+                var key = cardId + '_' + cardType + '_images';
+                if (tmdbImagesPromises[key]) return tmdbImagesPromises[key];
+                var lang = (typeof Lampa !== 'undefined' && Lampa.Storage && Lampa.Storage.get('language')) || (typeof localStorage !== 'undefined' && localStorage.getItem('language')) || 'ru';
+                var keyForImages = (typeof Lampa !== 'undefined' && Lampa.TMDB && typeof Lampa.TMDB.key === 'function') ? Lampa.TMDB.key() : apiKey;
+                var tmdbUrl = 'https://' + tmdbDirectHost + '/3/' + cardType + '/' + cardId + '/images?api_key=' + keyForImages + '&include_image_language=' + lang + ',en,null';
+                directTmdbRequest = true;
+                var p = new Promise(function (resolve, reject) {
+                    origAjax.call(window.jQuery, {
+                        url: tmdbUrl,
+                        dataType: 'json',
+                        success: function (data) {
+                            directTmdbRequest = false;
+                            resolve(data);
+                        },
+                        error: function (jqXHR, textStatus, errorThrown) {
+                            directTmdbRequest = false;
+                            delete tmdbImagesPromises[key];
+                            reject({ jqXHR: jqXHR, textStatus: textStatus, errorThrown: errorThrown });
+                        }
+                    });
+                });
+                tmdbImagesPromises[key] = p;
+                return p;
+            }
+            window.__anti_dmca_fetchImages = fetchTmdbImages;
+
             function fetchFromTmdb(cardId, cardType, lang, origSuccess, origError, self, args) {
                 fetchTmdbCard(cardId, cardType, lang).then(
                     function (realData) { origSuccess.call(self, realData, args[1], args[2]); },
@@ -281,11 +315,23 @@
                     var origError = s.error;
                     var requestUrl = s.url;
                     s.success = function (data) {
-                        if (!isTmdbUrl(requestUrl) || requestUrl.indexOf('/images') !== -1) return origSuccess.apply(this, arguments);
+                        if (!isTmdbUrl(requestUrl)) return origSuccess.apply(this, arguments);
                         var isObj = data && typeof data === 'object' && !Array.isArray(data);
                         var isBlocked = isObj && data.blocked;
                         var isEmpty = isObj && !data.blocked && !data.id && !data.title && !data.name && !data.results && Object.keys(data).length < 3;
 
+                        if (requestUrl.indexOf('/images') !== -1) {
+                            if ((isBlocked || isEmpty) && (getCardInfoFromUrl(requestUrl) || getCardInfo())) {
+                                var cardImg = getCardInfoFromUrl(requestUrl) || getCardInfo();
+                                var selfImg = this, argsImg = arguments;
+                                fetchTmdbImages(cardImg.id, cardImg.type).then(
+                                    function (imagesData) { origSuccess.call(selfImg, imagesData, argsImg[1], argsImg[2]); },
+                                    function () { if (origError) origError({}, 'error', ''); else origSuccess.apply(selfImg, argsImg); }
+                                );
+                                return;
+                            }
+                            return origSuccess.apply(this, arguments);
+                        }
                         if (isBlocked || isEmpty) {
                             var card = getCardInfo() || getCardInfoFromUrl(requestUrl);
                             if (card) {
