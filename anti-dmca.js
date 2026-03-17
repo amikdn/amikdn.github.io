@@ -14,6 +14,9 @@
     /** Набор XHR, которые плагин сам создал для подмены — не перехватываются повторно */
     var ownXhrs = new WeakSet();
 
+    /** ID карточек, для которых зеркало вернуло blocked — /images для них идёт напрямую на TMDB */
+    var blockedCards = {};
+
     function isMirrorTmdb(url) {
         return typeof url === 'string' && (url.indexOf('apitmdb.') !== -1 || url.indexOf('tmdb.') !== -1) && url.indexOf(TMDB_HOST) === -1;
     }
@@ -40,6 +43,13 @@
     function fixUrl(url) {
         if (typeof url !== 'string') return url;
         if (url.indexOf(TMDB_HOST) !== -1) {
+            if (url.indexOf('/images') !== -1) {
+                var bm = url.match(cardPathRe);
+                if (bm && blockedCards[bm[1] + '_' + bm[2]]) {
+                    log('fixUrl: /images для заблокированного', bm[1], bm[2], '→ напрямую на TMDB');
+                    return url;
+                }
+            }
             var origin = getLampaTmdbOrigin();
             url = url.replace('https://' + TMDB_HOST, origin).replace('http://' + TMDB_HOST, origin);
         }
@@ -176,6 +186,8 @@
             var type = m[1], id = m[2];
             var sm = respUrl.match(subPathRe);
             var sub = sm ? sm[1] : null;
+
+            blockedCards[type + '_' + id] = true;
 
             function done() {
                 if (origOnReady) origOnReady.call(xhr);
