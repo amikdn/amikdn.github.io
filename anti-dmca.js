@@ -123,7 +123,7 @@
                 }
                 var tmdbUrl = 'https://' + tmdbDirectHost + '/3/' + cardType + '/' + cardId
                     + '?api_key=' + apiKey + '&language=' + lang
-                    + '&append_to_response=credits,external_ids,videos,recommendations,similar';
+                    + '&append_to_response=credits,external_ids,videos,recommendations,similar,images';
                 var done = false;
                 var req = new XMLHttpRequest();
                 directTmdbRequest = true;
@@ -191,7 +191,7 @@
                 if (tmdbFetchPromises[key]) return tmdbFetchPromises[key];
                 var tmdbUrl = 'https://' + tmdbDirectHost + '/3/' + cardType + '/' + cardId
                     + '?api_key=' + apiKey + '&language=' + (lang || 'ru')
-                    + '&append_to_response=credits,external_ids,videos,recommendations,similar';
+                    + '&append_to_response=credits,external_ids,videos,recommendations,similar,images';
                 directTmdbRequest = true;
                 var p = new Promise(function (resolve, reject) {
                     origAjax.call(window.jQuery, {
