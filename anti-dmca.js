@@ -44,17 +44,13 @@
         if (typeof url !== 'string') return url;
 
         var bm = url.match(cardPathRe);
-        if (bm && blockedCards[bm[1] + '_' + bm[2]]) {
-            if (url.indexOf(TMDB_HOST) !== -1) {
-                return url;
-            }
-            if (isMirrorTmdb(url)) {
-                url = url.replace(/https?:\/\/[^\/]+/, 'https://' + TMDB_HOST);
-                var sm = url.match(subPathRe);
-                log('fixUrl: зеркало→TMDB для заблокированного', bm[1], bm[2], sm ? sm[1] : 'main');
-                return url;
-            }
+        if (bm && isMirrorTmdb(url)) {
+            url = url.replace(/https?:\/\/[^\/]+/, 'https://' + TMDB_HOST);
+            var sm = url.match(subPathRe);
+            log('fixUrl: зеркало→TMDB', bm[1], bm[2], sm ? sm[1] : 'main');
+            return url;
         }
+        if (bm && url.indexOf(TMDB_HOST) !== -1) return url;
 
         if (url.indexOf(TMDB_HOST) !== -1) {
             var origin = getLampaTmdbOrigin();
@@ -110,29 +106,47 @@
         return p;
     }
 
-    function fetchImages(id, type) {
+    function fetchImages(id, type, isRetry) {
         var key = type + '_' + id;
-        if (imagesCache[key]) return imagesCache[key];
+        if (!isRetry && imagesCache[key]) return imagesCache[key];
         var lang = getLang();
         var url = directTmdbUrl(type, id, '/images', 'api_key=' + getApiKey() + '&include_image_language=' + lang + ',en,null');
-        log('fetchImages →', type, id);
+        log('fetchImages →', type, id, isRetry ? '(retry)' : '');
         var p = new Promise(function (resolve, reject) {
             var xhr = new XMLHttpRequest();
             ownXhrs.add(xhr);
+            var done = false;
+            var t = setTimeout(function () {
+                if (done) return;
+                done = true;
+                xhr.abort();
+                if (!isRetry) {
+                    delete imagesCache[key];
+                    fetchImages(id, type, true).then(resolve, reject);
+                } else reject();
+            }, 15000);
             xhr.open('GET', url, true);
             xhr.onreadystatechange = function () {
-                if (xhr.readyState !== 4) return;
+                if (xhr.readyState !== 4 || done) return;
+                done = true;
+                clearTimeout(t);
                 try {
                     var data = JSON.parse(xhr.responseText);
                     if (data && (data.logos || data.backdrops || data.posters)) { resolve(data); return; }
                 } catch (e) {}
-                delete imagesCache[key];
-                reject();
+                if (!isRetry) { delete imagesCache[key]; fetchImages(id, type, true).then(resolve, reject); }
+                else { delete imagesCache[key]; reject(); }
             };
-            xhr.onerror = function () { delete imagesCache[key]; reject(); };
+            xhr.onerror = function () {
+                if (done) return;
+                done = true;
+                clearTimeout(t);
+                if (!isRetry) { delete imagesCache[key]; fetchImages(id, type, true).then(resolve, reject); }
+                else { delete imagesCache[key]; reject(); }
+            };
             xhr.send();
         });
-        imagesCache[key] = p;
+        if (!isRetry) imagesCache[key] = p;
         return p;
     }
 
