@@ -43,19 +43,11 @@
 
     function fixUrl(url) {
         if (typeof url !== 'string') return url;
-        if (url.indexOf('/images') !== -1) {
-            if (url.indexOf(tmdbDirectHost) === -1 && (url.indexOf('apitmdb.') !== -1 || url.indexOf('tmdb.') !== -1)) {
-                url = url.replace(/^https?:\/\/[^\/]+/, 'https://' + tmdbDirectHost);
-                log('fixUrl: /images → запрос на api.themoviedb.org (логотипы)', url.slice(0, 55) + '...');
-            }
-            return url;
-        }
         if (directTmdbRequest && url.indexOf(tmdbDirectHost) !== -1) return url;
-        if (url.indexOf(tmdbDirectHost) !== -1) {
-            var origin = getLampaTmdbOrigin();
-            var was = url;
-            url = url.replace('https://' + tmdbDirectHost, origin).replace('http://' + tmdbDirectHost, origin);
-            log('fixUrl: подмена api.themoviedb.org -> зеркало', { from: was.slice(0, 60) + '...', to: url.slice(0, 60) + '...' });
+        if (url.indexOf(tmdbDirectHost) !== -1) return url;
+        if ((url.indexOf('apitmdb.') !== -1 || url.indexOf('tmdb.') !== -1) && url.indexOf('/3/') !== -1) {
+            url = url.replace(/^https?:\/\/[^\/]+/, 'https://' + tmdbDirectHost);
+            log('fixUrl: зеркало → api.themoviedb.org', url.slice(0, 55) + '...');
         }
         return url;
     }
