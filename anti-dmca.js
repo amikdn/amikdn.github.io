@@ -42,14 +42,23 @@
 
     function fixUrl(url) {
         if (typeof url !== 'string') return url;
-        if (url.indexOf(TMDB_HOST) !== -1) {
-            if (url.indexOf('/images') !== -1) {
-                var bm = url.match(cardPathRe);
-                if (bm && blockedCards[bm[1] + '_' + bm[2]]) {
-                    log('fixUrl: /images для заблокированного', bm[1], bm[2], '→ напрямую на TMDB');
+
+        if (url.indexOf('/images') !== -1) {
+            var bm = url.match(cardPathRe);
+            if (bm && blockedCards[bm[1] + '_' + bm[2]]) {
+                if (url.indexOf(TMDB_HOST) !== -1) {
+                    log('fixUrl: /images для заблокированного', bm[1], bm[2], '→ оставляем TMDB');
+                    return url;
+                }
+                if (isMirrorTmdb(url)) {
+                    url = url.replace(/https?:\/\/[^\/]+/, 'https://' + TMDB_HOST);
+                    log('fixUrl: /images зеркало для заблокированного', bm[1], bm[2], '→ TMDB');
                     return url;
                 }
             }
+        }
+
+        if (url.indexOf(TMDB_HOST) !== -1) {
             var origin = getLampaTmdbOrigin();
             url = url.replace('https://' + TMDB_HOST, origin).replace('http://' + TMDB_HOST, origin);
         }
