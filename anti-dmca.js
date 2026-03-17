@@ -44,15 +44,14 @@
     function fixUrl(url) {
         if (typeof url !== 'string') return url;
         if (directTmdbRequest && url.indexOf(tmdbDirectHost) !== -1) return url;
-        // Меняем зеркало на api.themoviedb.org ТОЛЬКО для карточек и связанных с ними данных,
-        // чтобы не ломать глобальные списки (person/popular, discover и т.д.)
-        if ((url.indexOf('apitmdb.') !== -1 || url.indexOf('tmdb.') !== -1) &&
-            /\/3\/(movie|tv)\//.test(url)) {
-            if (url.indexOf(tmdbDirectHost) === -1) {
-                url = url.replace(/^https?:\/\/[^\/]+/, 'https://' + tmdbDirectHost);
-                log('fixUrl: зеркало → api.themoviedb.org (movie/tv)', url.slice(0, 70) + '...');
-            }
+        if (url.indexOf('/images') !== -1 && url.indexOf(tmdbDirectHost) === -1 && (url.indexOf('apitmdb.') !== -1 || url.indexOf('tmdb.') !== -1)) {
+            url = url.replace(/^https?:\/\/[^\/]+/, 'https://' + tmdbDirectHost);
+            log('fixUrl: /images → api.themoviedb.org (логотипы)', url.slice(0, 55) + '...');
             return url;
+        }
+        if (url.indexOf(tmdbDirectHost) !== -1) {
+            var origin = getLampaTmdbOrigin();
+            url = url.replace('https://' + tmdbDirectHost, origin).replace('http://' + tmdbDirectHost, origin);
         }
         return url;
     }
