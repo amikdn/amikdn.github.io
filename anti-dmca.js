@@ -113,8 +113,13 @@
                             var outText = typeof imagesData === 'object' ? JSON.stringify(imagesData) : (imagesData || '');
                             try { Object.defineProperty(xhr, 'responseText', { get: function () { return outText; }, configurable: true }); } catch (e) {}
                             try { Object.defineProperty(xhr, 'response', { get: function () { return imagesData; }, configurable: true }); } catch (e) {}
+                            try { Object.defineProperty(xhr, 'status', { value: 200, configurable: true }); } catch (e) {}
+                            log('XHR.send: подмена выполнена (images)', { cardId: cardId, hasLogos: !!(imagesData && imagesData.logos && imagesData.logos.length) });
                             if (origOnReady) origOnReady.call(xhr);
-                        }, function () { if (origOnReady) origOnReady.call(xhr); });
+                        }, function () {
+                            log('XHR.send: запрос images не удался', { cardId: cardId });
+                            if (origOnReady) origOnReady.call(xhr);
+                        });
                     } else {
                         if (origOnReady) origOnReady.call(xhr);
                     }
