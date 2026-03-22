@@ -36,8 +36,27 @@
 
     /* Запросы зеркал не трогаем — Lampa сама подставляет нужное зеркало. Только подменяем ответ при blocked/ошибке. */
 
+    /** Как в proxy.js: tmdb.abmsx.tech при proxy_tmdb, иначе api.themoviedb.org — в обоих случаях одинаковая схема. */
+    var PROXY_API_HOST = 'tmdb.abmsx.tech';
+
+    /**
+     * URL подмены заблокированных карточек: всегда как proxy.js (и при proxy_tmdb вкл., и при выкл.).
+     * Путь без префикса /3/ — как в Lampa.TMDB.api('movie/123?...').
+     */
     function directTmdbUrl(type, id, suffix, params) {
-        return 'https://' + TMDB_HOST + '/3/' + type + '/' + id + (suffix || '') + '?' + params;
+        var path = type + '/' + id + (suffix || '') + '?' + params;
+        try {
+            if (typeof Lampa !== 'undefined' && Lampa.TMDB && typeof Lampa.TMDB.api === 'function') {
+                return Lampa.TMDB.api(path);
+            }
+        } catch (e) {}
+        try {
+            var proto = (typeof Lampa !== 'undefined' && Lampa.Utils && typeof Lampa.Utils.protocol === 'function')
+                ? Lampa.Utils.protocol() : 'https://';
+            var useProxy = Lampa.Storage && typeof Lampa.Storage.field === 'function' && Lampa.Storage.field('proxy_tmdb');
+            return (useProxy ? proto + PROXY_API_HOST + '/3/' : proto + TMDB_HOST + '/3/') + path;
+        } catch (e2) {}
+        return 'https://' + TMDB_HOST + '/3/' + path;
     }
 
     function getLang() {
