@@ -211,9 +211,9 @@
 
     function getRatingOffsetX() {
         var raw = Lampa.Storage.get('rating_offset_x', null);
-        if (raw === null || raw === undefined || raw === '') return -0.2;
+        if (raw === null || raw === undefined || raw === '') return 0.2;
         var v = parseFloat(raw);
-        return isNaN(v) ? -0.2 : v;
+        return isNaN(v) ? 0.2 : v;
     }
     function getRatingOffsetY() {
         var defaultY = 1;
@@ -846,9 +846,9 @@
         var MIN_OFF = -5;
         var MAX_OFF = 5;
         function applyOffset(dx, dy) {
-            var x = parseFloat(Lampa.Storage.get('rating_offset_x', '-0.2'));
+            var x = parseFloat(Lampa.Storage.get('rating_offset_x', '0.2'));
             var y = parseFloat(Lampa.Storage.get('rating_offset_y', '1'));
-            if (isNaN(x)) x = -0.2;
+            if (isNaN(x)) x = 0.2;
             if (isNaN(y)) y = 1;
             x = Math.max(MIN_OFF, Math.min(MAX_OFF, x + dx));
             y = Math.max(MIN_OFF, Math.min(MAX_OFF, y + dy));
@@ -892,7 +892,7 @@
             setColoredRatingsPoster(false);
             Lampa.Storage.set('rating_colored_windows', 'false');
             Lampa.Storage.set('rating_position', 'top');
-            Lampa.Storage.set('rating_offset_x', '-0.2');
+            Lampa.Storage.set('rating_offset_x', '0.2');
             Lampa.Storage.set('rating_offset_y', '1');
             Lampa.Storage.set('rating_show_tmdb', 'true');
             Lampa.Storage.set('rating_show_lampa', 'true');
@@ -1009,7 +1009,7 @@
     function applyRequiredDefaults() {
         Lampa.Storage.set('colored_ratings_poster', 'false');
         Lampa.Storage.set('rating_window_opacity', '40');
-        Lampa.Storage.set('rating_offset_x', '-0.2');
+        Lampa.Storage.set('rating_offset_x', '0.2');
         Lampa.Storage.set('rating_offset_y', '1');
     }
 
