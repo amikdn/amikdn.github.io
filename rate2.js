@@ -347,7 +347,7 @@
     }
 
     function getRatingDisplayMode() {
-        return Lampa.Storage.get('rating_display_mode', 'single');
+        return Lampa.Storage.get('rating_display_mode', 'separate');
     }
 
     function fillSingleRatingElement(el, data, rateSource) {
@@ -888,7 +888,7 @@
         list.append(addOffsetButton('Вниз', 0, STEP));
         var rowShowTmdb = addTriggerRow('Показывать TMDB (режим «Оба»)', 'rating_show_tmdb', true);
         var rowShowLampa = addTriggerRow('Показывать Lampa (режим «Оба»)', 'rating_show_lampa', true);
-        var rowDisplayMode = addCycleRow('Режим отображения (режим «Оба»)', 'rating_display_mode', DISPLAY_MODE_LABELS, 'single');
+        var rowDisplayMode = addCycleRow('Режим отображения (режим «Оба»)', 'rating_display_mode', DISPLAY_MODE_LABELS, 'separate');
         var rowOpacity = addNumberRowWithButtons('Прозрачность (0=непрозрачное, 100=макс.)', 'rating_window_opacity', 40, 0, 100, 10, '%');
         var rowScale = addNumberRowWithButtons('Масштаб окон рейтингов', 'rating_scale', 100, 60, 150, 5, '%');
 
@@ -902,7 +902,7 @@
             Lampa.Storage.set('rating_offset_y', '');
             Lampa.Storage.set('rating_show_tmdb', 'true');
             Lampa.Storage.set('rating_show_lampa', 'true');
-            Lampa.Storage.set('rating_display_mode', 'single');
+            Lampa.Storage.set('rating_display_mode', 'separate');
             Lampa.Storage.set('rating_window_opacity', '40');
             Lampa.Storage.set('rating_scale', '100');
             rowSource.updateVal(SOURCE_LABELS.tmdb);
@@ -912,7 +912,7 @@
             rowPosition.updateVal(POSITION_LABELS.top);
             rowShowTmdb.updateVal('Вкл');
             rowShowLampa.updateVal('Вкл');
-            rowDisplayMode.updateVal(DISPLAY_MODE_LABELS.single);
+            rowDisplayMode.updateVal(DISPLAY_MODE_LABELS.separate);
             rowOpacity.updateVal('40%');
             rowScale.updateVal('100%');
             applyRatingSettingsRefresh();
@@ -1017,6 +1017,7 @@
         Lampa.Storage.set('rating_window_opacity', '40');
         Lampa.Storage.set('rating_offset_x', '0.2');
         Lampa.Storage.set('rating_offset_y', '');
+        Lampa.Storage.set('rating_display_mode', 'separate');
     }
 
     function addSettings() {
@@ -1078,9 +1079,10 @@
             '.rate--tmdb .source--name{background-image:url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 300 300\' width=\'300\' height=\'300\'%3E%3Cdefs%3E%3ClinearGradient id=\'grad\' x1=\'0\' y1=\'0\' x2=\'1\' y2=\'0\'%3E%3Cstop offset=\'0%25\' stop-color=\'%2390cea1\'/%3E%3Cstop offset=\'56%25\' stop-color=\'%233cbec9\'/%3E%3Cstop offset=\'100%25\' stop-color=\'%2300b3e5\'/%3E%3C/linearGradient%3E%3Cstyle%3E.text-style%7Bfont-weight:bold;fill:url(%23grad);text-anchor:start;dominant-baseline:middle;textLength:300;lengthAdjust:spacingAndGlyphs;font-size:120px;%7D%3C/style%3E%3C/defs%3E%3Ctext class=\'text-style\' x=\'0\' y=\'150\' textLength=\'300\' lengthAdjust=\'spacingAndGlyphs\'%3ETMDB%3C/text%3E%3C/svg%3E")}' +
             '.rate--lampa .rate-icon-reaction{background-image:url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'%23e040fb\'%3E%3Cpath d=\'M12 2C8.13 2 5 5.13 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.87-3.13-7-7-7zm2 14h-4v-1h4v1zm0-2h-4v-1h4v1zM9 20h6v1c0 .55-.45 1-1 1h-4c-.55 0-1-.45-1-1v-1z\'/%3E%3C/svg%3E")}' +
             '.rate-icon-reaction{background-repeat:no-repeat;background-position:center;background-size:contain}' +
+            '.rate--lampa .source--name.rate-icon-reaction{width:14px;height:14px}' +
             '.card__vote.rate--lampa{line-height:1!important}' +
-            '.card__vote.rate--lampa img{width:16px!important;height:16px!important;min-width:0!important;min-height:0!important;max-width:16px!important;max-height:16px!important;object-fit:contain!important;-webkit-flex-shrink:0;flex-shrink:0;vertical-align:middle;margin-left:4px!important}' +
-            '@media (min-width:481px){.card__vote.rate--lampa img{width:24px!important;height:24px!important;max-width:24px!important;max-height:24px!important;margin-left:6px!important}}' +
+            '.card__vote.rate--lampa img{width:14px!important;height:14px!important;min-width:0!important;min-height:0!important;max-width:14px!important;max-height:14px!important;object-fit:contain!important;-webkit-flex-shrink:0;flex-shrink:0;vertical-align:middle;margin-left:4px!important}' +
+            '@media (min-width:481px){.rate--lampa .source--name.rate-icon-reaction{width:20px;height:20px}.card__vote.rate--lampa img{width:20px!important;height:20px!important;max-width:20px!important;max-height:20px!important;margin-left:6px!important}}' +
             '.card__vote img[src*=".gif"]{object-fit:contain!important;-webkit-flex-shrink:0;flex-shrink:0}' +
             '.rate--lampa.rate--lampa--animated .rate-icon img{min-width:1em;min-height:1em;object-fit:contain}' +
             '@media (max-width:480px) and (orientation:portrait){.full-start__rate.rate--lampa{min-width:80px}}'
