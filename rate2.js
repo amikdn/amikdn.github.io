@@ -687,8 +687,8 @@
     }
 
     function applyRatingScale() {
-        var v = parseFloat(Lampa.Storage.get('rating_scale', '100'));
-        if (isNaN(v)) v = 100;
+        var v = parseFloat(Lampa.Storage.get('rating_scale', '120'));
+        if (isNaN(v)) v = 120;
         v = Math.max(60, Math.min(150, v)) / 100;
         try {
             document.body.style.setProperty('--rating-scale', String(v));
@@ -890,7 +890,7 @@
         var rowShowLampa = addTriggerRow('Показывать Lampa (режим «Оба»)', 'rating_show_lampa', true);
         var rowDisplayMode = addCycleRow('Режим отображения (режим «Оба»)', 'rating_display_mode', DISPLAY_MODE_LABELS, 'separate');
         var rowOpacity = addNumberRowWithButtons('Прозрачность (0=непрозрачное, 100=макс.)', 'rating_window_opacity', 40, 0, 100, 10, '%');
-        var rowScale = addNumberRowWithButtons('Масштаб окон рейтингов', 'rating_scale', 100, 60, 150, 5, '%');
+        var rowScale = addNumberRowWithButtons('Масштаб окон рейтингов', 'rating_scale', 120, 60, 150, 5, '%');
 
         function resetAllToDefault() {
             Lampa.Storage.set('rating_source', 'tmdb');
@@ -904,7 +904,7 @@
             Lampa.Storage.set('rating_show_lampa', 'true');
             Lampa.Storage.set('rating_display_mode', 'separate');
             Lampa.Storage.set('rating_window_opacity', '40');
-            Lampa.Storage.set('rating_scale', '100');
+            Lampa.Storage.set('rating_scale', '120');
             rowSource.updateVal(SOURCE_LABELS.tmdb);
             rowAnimated.updateVal('Выкл');
             rowColored.updateVal('Выкл');
@@ -914,7 +914,7 @@
             rowShowLampa.updateVal('Вкл');
             rowDisplayMode.updateVal(DISPLAY_MODE_LABELS.separate);
             rowOpacity.updateVal('40%');
-            rowScale.updateVal('100%');
+            rowScale.updateVal('120%');
             applyRatingSettingsRefresh();
             if (typeof Lampa.Noty !== 'undefined' && Lampa.Noty.show) {
                 try { Lampa.Noty.show('Настройки рейтингов сброшены'); } catch (e) {}
@@ -1018,6 +1018,7 @@
         Lampa.Storage.set('rating_offset_x', '0.2');
         Lampa.Storage.set('rating_offset_y', '');
         Lampa.Storage.set('rating_display_mode', 'separate');
+        Lampa.Storage.set('rating_scale', '120');
     }
 
     function addSettings() {
