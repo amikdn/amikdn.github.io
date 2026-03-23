@@ -211,13 +211,12 @@
 
     function getRatingOffsetX() {
         var raw = Lampa.Storage.get('rating_offset_x', null);
-        if (raw === null || raw === undefined || raw === '') return 0.2;
+        if (raw === null || raw === undefined || raw === '') return -0.2;
         var v = parseFloat(raw);
-        return isNaN(v) ? 0.2 : v;
+        return isNaN(v) ? -0.2 : v;
     }
     function getRatingOffsetY() {
-        var pos = Lampa.Storage.get('rating_position', 'top');
-        var defaultY = pos === 'bottom' ? -1 : 1;
+        var defaultY = 1;
         var raw = Lampa.Storage.get('rating_offset_y', null);
         if (raw === null || raw === undefined || raw === '') return defaultY;
         var v = parseFloat(raw);
@@ -847,10 +846,10 @@
         var MIN_OFF = -5;
         var MAX_OFF = 5;
         function applyOffset(dx, dy) {
-            var x = parseFloat(Lampa.Storage.get('rating_offset_x', '0'));
-            var y = parseFloat(Lampa.Storage.get('rating_offset_y', '0'));
-            if (isNaN(x)) x = 0;
-            if (isNaN(y)) y = 0;
+            var x = parseFloat(Lampa.Storage.get('rating_offset_x', '-0.2'));
+            var y = parseFloat(Lampa.Storage.get('rating_offset_y', '1'));
+            if (isNaN(x)) x = -0.2;
+            if (isNaN(y)) y = 1;
             x = Math.max(MIN_OFF, Math.min(MAX_OFF, x + dx));
             y = Math.max(MIN_OFF, Math.min(MAX_OFF, y + dy));
             Lampa.Storage.set('rating_offset_x', String(x));
@@ -873,7 +872,7 @@
 
         var rowSource = addCycleRow('Источник', 'rating_source', SOURCE_LABELS, 'tmdb');
         var rowAnimated = addTriggerRow('Анимированные реакции на постерах', 'animated_reactions', false);
-        var rowColored = addTriggerRow('Цветные рейтинги (цифры)', 'colored_ratings_poster', true);
+        var rowColored = addTriggerRow('Цветные рейтинги (цифры)', 'colored_ratings_poster', false);
         var rowColoredWin = addTriggerRow('Цветные окна (цифры белые)', 'rating_colored_windows', false);
         var rowPosition = addCycleRow('Позиция на постере', 'rating_position', POSITION_LABELS, 'top');
         list.append($('<div class="menu-edit-list__item rate-settings-offset-label"></div>').css({ padding: '0.3em 0.4em', marginBottom: '0.1em', fontWeight: 'bold', boxSizing: 'border-box', whiteSpace: 'nowrap', overflow: 'hidden' }).text('Смещение (нажатие-сдвиг)'));
@@ -884,31 +883,31 @@
         var rowShowTmdb = addTriggerRow('Показывать TMDB (режим «Оба»)', 'rating_show_tmdb', true);
         var rowShowLampa = addTriggerRow('Показывать Lampa (режим «Оба»)', 'rating_show_lampa', true);
         var rowDisplayMode = addCycleRow('Режим отображения (режим «Оба»)', 'rating_display_mode', DISPLAY_MODE_LABELS, 'single');
-        var rowOpacity = addNumberRowWithButtons('Прозрачность (0=непрозрачное, 100=макс.)', 'rating_window_opacity', 0, 0, 100, 10, '%');
+        var rowOpacity = addNumberRowWithButtons('Прозрачность (0=непрозрачное, 100=макс.)', 'rating_window_opacity', 40, 0, 100, 10, '%');
         var rowScale = addNumberRowWithButtons('Масштаб окон рейтингов', 'rating_scale', 100, 60, 150, 5, '%');
 
         function resetAllToDefault() {
             Lampa.Storage.set('rating_source', 'tmdb');
             Lampa.Storage.set('animated_reactions', 'false');
-            setColoredRatingsPoster(true);
+            setColoredRatingsPoster(false);
             Lampa.Storage.set('rating_colored_windows', 'false');
             Lampa.Storage.set('rating_position', 'top');
-            Lampa.Storage.set('rating_offset_x', '0');
-            Lampa.Storage.set('rating_offset_y', '0');
+            Lampa.Storage.set('rating_offset_x', '-0.2');
+            Lampa.Storage.set('rating_offset_y', '1');
             Lampa.Storage.set('rating_show_tmdb', 'true');
             Lampa.Storage.set('rating_show_lampa', 'true');
             Lampa.Storage.set('rating_display_mode', 'single');
-            Lampa.Storage.set('rating_window_opacity', '30');
+            Lampa.Storage.set('rating_window_opacity', '40');
             Lampa.Storage.set('rating_scale', '100');
             rowSource.updateVal(SOURCE_LABELS.tmdb);
             rowAnimated.updateVal('Выкл');
-            rowColored.updateVal('Вкл');
+            rowColored.updateVal('Выкл');
             rowColoredWin.updateVal('Выкл');
             rowPosition.updateVal(POSITION_LABELS.top);
             rowShowTmdb.updateVal('Вкл');
             rowShowLampa.updateVal('Вкл');
             rowDisplayMode.updateVal(DISPLAY_MODE_LABELS.single);
-            rowOpacity.updateVal('30%');
+            rowOpacity.updateVal('40%');
             rowScale.updateVal('100%');
             applyRatingSettingsRefresh();
             if (typeof Lampa.Noty !== 'undefined' && Lampa.Noty.show) {
@@ -1007,6 +1006,13 @@
         }
     }
 
+    function applyRequiredDefaults() {
+        Lampa.Storage.set('colored_ratings_poster', 'false');
+        Lampa.Storage.set('rating_window_opacity', '40');
+        Lampa.Storage.set('rating_offset_x', '-0.2');
+        Lampa.Storage.set('rating_offset_y', '1');
+    }
+
     function addSettings() {
         if (!Lampa.SettingsApi) return;
         migrateStorageFormat();
@@ -1037,6 +1043,7 @@
     }
 
     function initPlugin() {
+        applyRequiredDefaults();
         var style = document.createElement('style');
         style.type = 'text/css';
         style.textContent = (
