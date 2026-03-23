@@ -1011,8 +1011,14 @@
         if (!Lampa.SettingsApi) return;
         migrateStorageFormat();
         applyInlineMode();
-        // Настройки рейтингов отключены в меню по запросу.
-        return;
+
+        Lampa.SettingsApi.addParam({
+            component: 'interface',
+            param: { name: 'rating_modal_open', type: 'trigger', default: false },
+            field: { name: 'Настройки рейтингов (модальное окно)', description: 'Открыть окно настроек рейтингов' },
+            onRender: function (element) { positionAfter(element, 'interface_size'); },
+            onChange: function () { openRatingSettingsModal(); }
+        });
     }
 
     function setupCardListener() {
