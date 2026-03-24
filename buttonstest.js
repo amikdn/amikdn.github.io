@@ -3,23 +3,13 @@
     'use strict';
 
     var PLUGIN_VERSION = '1.71';
-
-    /** Стабильный id для цвета/иконки кнопки «карандаш» (редактор порядка) */
     var EDIT_ORDER_BUTTON_ID = 'buttons_plugin_edit_order';
-
-    /** Тип события открытия полной карточки (в Lampa используется "complite") */
     var FULL_EVENT_TYPE = 'complite';
-    /** Задержка после применения изменений (ожидание layout) */
     var DELAY_AFTER_APPLY_MS = 100;
-    /** Ожидание появления контейнера кнопок на карточке */
     var DELAY_FULL_CARD_READY_MS = 400;
-    /** Таймаут открытия модалки выбора иконки (если загрузка альт. иконок затягивается) */
     var DELAY_ICON_PICKER_MODAL_MS = 4000;
-    /** URL JSON с альтернативными иконками по умолчанию */
     var DEFAULT_ICONS_URL = 'https://amikdn.github.io/lampa-button-icons.json';
-    /** Интервал опроса настройки постера (Lampa не даёт событие при смене настройки) */
     var SYNC_POSTER_INTERVAL_MS = 3000;
-    /** Ключи Lampa.Storage для настроек плагина */
     var STORAGE_KEYS = {
         custom_order: 'button_custom_order',
         hidden: 'button_hidden',
@@ -36,14 +26,6 @@
 
     var colorPickerPaletteHexes = ['#ef5350', '#f44336', '#e53935', '#c62828', '#ff9800', '#fb8c00', '#f57c00', '#e65100', '#ffeb3b', '#fdd835', '#fbc02d', '#f57f17', '#66bb6a', '#4caf50', '#43a047', '#2e7d32', '#3da18d', '#26c6da', '#00bcd4', '#00acc1', '#00838f', '#42a5f5', '#2196f3', '#1e88e5', '#1565c0', '#8b5cf6', '#ab47bc', '#9c27b0', '#8e24aa', '#6a1b9a', '#ec407a', '#e91e63', '#d81b60', '#ad1457', '#ffffff', '#e0e0e0', '#000000'];
 
-    /** Логирование в консоль при включённой отладке (Lampa.Storage: buttons_debug = true). */
-    function logDebug(msg, err) {
-        if (typeof Lampa !== 'undefined' && Lampa.Storage && Lampa.Storage.get('buttons_debug')) {
-            console.warn('[Buttons plugin]', msg, err !== undefined ? err : '');
-        }
-    }
-
-    /** Экранирование строки для безопасной подстановки в HTML (атрибуты и текст). */
     function escapeHtml(str) {
         if (str == null || typeof str !== 'string') return '';
         return str
@@ -54,7 +36,6 @@
             .replace(/'/g, '&#39;');
     }
 
-    // Polyfills для совместимости со старыми устройствами
     if (!Array.prototype.forEach) {
         Array.prototype.forEach = function(callback, thisArg) {
             var T, k;
@@ -1036,7 +1017,6 @@
         return categories;
     }
 
-    /** Собирает единый массив кнопок из объекта категорий в фиксированном порядке. */
     function getAllButtonsFromCategories(categories) {
         return [].concat(
             categories.online,
@@ -1800,11 +1780,6 @@
             }
         });
         setItemOrder(order);
-    }
-
-    function syncModalFont() {
-        /* Раньше сюда писали CSS‑переменные на body после открытия модалки — шрифт/размер
-         * пересчитывались и окно визуально «прыгало». Наследуем шрифт от модалки Lampa (inherit). */
     }
 
     function openEditDialog() {
