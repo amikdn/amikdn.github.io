@@ -2,7 +2,7 @@
 (function() {
     'use strict';
 
-    var PLUGIN_VERSION = '1.61';
+    var PLUGIN_VERSION = '1.62';
 
     /** Тип события открытия полной карточки (в Lampa используется "complite") */
     var FULL_EVENT_TYPE = 'complite';
@@ -342,7 +342,7 @@
         var isGlobal = !targetId;
         var perColors = getPerButtonIconColors();
         var currentHex = isGlobal ? getGlobalIconColor() : (perColors[targetId] || '');
-        var wrap = $('<div class="ci-color-picker-wrap"></div>');
+        var wrap = $('<div class="ci-color-picker-wrap buttons-plugin-color-modal"></div>');
         var isUnset = !currentHex;
         var defaultRingStyle = isUnset ? 'box-shadow: inset 0 0 0 2px #fff;' : '';
         var defaultRow = $('<div class="selector color-picker-default" tabindex="0" style="display: flex; align-items: center; gap: 1em; padding: 0 1em; min-height: 3.8em; background: rgba(255,255,255,0.05); border-radius: 0.5em; box-sizing: border-box; border: 2px solid transparent; ' + defaultRingStyle + '">' +
@@ -421,7 +421,7 @@
                 title: 'Цвет иконок',
                 html: wrap,
                 size: 'medium',
-                scroll_to_center: true,
+                scroll_to_center: false,
                 onBack: function() {
                     closeModalSafe();
                     setTimeout(function() {
@@ -1808,7 +1808,7 @@
                 applyIconsAndColorsToButtons(editToolbar.find('.full-start__button').not('.button--edit-order'));
             }
         }
-        var list = $('<div class="menu-edit-list"></div>');
+        var list = $('<div class="menu-edit-list buttons-plugin-order-modal"></div>');
         var hidden = getHiddenButtons();
         var createFolderBtn = $('<div class="menu-edit-list__create-folder menu-edit-list__toolbar-block selector">' +
             '<span class="menu-edit-list__create-folder-spacer"></span>' +
@@ -2208,8 +2208,8 @@
         Lampa.Modal.open({
             title: 'Порядок кнопок',
             html: list,
-            size: 'small',
-            scroll_to_center: true,
+            size: 'medium',
+            scroll_to_center: false,
             onBack: function() {
                 Lampa.Modal.close();
                 applyChanges();
@@ -2412,7 +2412,9 @@
             '.buttons-plugin-scope .full-start-new__buttons .full-start__button { opacity: 0; }' +
             '.buttons-plugin-scope .full-start__button.hidden { display: none !important; }' +
             '.buttons-plugin-scope .full-start-new__buttons.buttons-loading .full-start__button { visibility: hidden !important; }' +
-            '.menu-edit-list { max-width: 100%; overflow: hidden; box-sizing: border-box; }' +
+            '.menu-edit-list { max-width: 100%; width: 100%; overflow: hidden; box-sizing: border-box; }' +
+            '.buttons-plugin-order-modal { min-width: 22em; width: 100%; box-sizing: border-box; }' +
+            '.ci-color-picker-wrap.buttons-plugin-color-modal { min-width: 22em; box-sizing: border-box; }' +
             '.menu-edit-list__item { display: grid; grid-template-columns: 2.5em minmax(0, 1fr) 2.4em 2.4em 2.4em 2.4em 2.4em 2.4em; align-items: center; gap: 0.35em; padding: 0.2em 0; box-sizing: border-box; }' +
             '.menu-edit-list__item .menu-edit-list__icon { width: 2.5em; min-width: 2.5em; height: 2.5em; display: flex; align-items: center; justify-content: center; box-sizing: border-box; }' +
             '.menu-edit-list__item .menu-edit-list__icon svg { width: 1.4em; height: 1.4em; }' +
@@ -2424,14 +2426,15 @@
             '.viewmode-switch, .folder-reset-button { max-width: 100%; box-sizing: border-box; white-space: normal; word-break: break-word; font-family: var(--buttons-plugin-modal-font, inherit); font-size: var(--buttons-plugin-modal-font-size, inherit); }' +
             '.folder-reset-button { background: rgba(200,100,100,0.3); margin-top: 1em; border-radius: 0.3em; border: 3px solid transparent; }' +
             '.folder-reset-button.focus { border-color: rgba(255,255,255,0.8); }' +
-            '.menu-edit-list__toolbar-stack { display: flex; flex-direction: column; gap: 0.55em; margin-bottom: 0.65em; width: 100%; max-width: 100%; box-sizing: border-box; }' +
-            '.menu-edit-list__toolbar-stack > .menu-edit-list__toolbar-block, .menu-edit-list__toolbar-stack > .menu-edit-list__create-folder { margin-bottom: 0 !important; }' +
-            '.menu-edit-list__toolbar-block { border-radius: 0.35em; border: 3px solid transparent; box-sizing: border-box; padding: 0.65em 1em; min-height: 3em; display: flex !important; align-items: center; justify-content: center; }' +
-            '.menu-edit-list__create-folder { gap: 0; background: rgba(34, 139, 34, 0.6) !important; }' +
+            '.menu-edit-list__toolbar-stack { display: flex; flex-direction: column; gap: 0.55em; margin-bottom: 0.65em; width: 100%; max-width: 100%; box-sizing: border-box; align-items: stretch; }' +
+            '.menu-edit-list__toolbar-stack > .menu-edit-list__toolbar-block, .menu-edit-list__toolbar-stack > .menu-edit-list__create-folder { margin-bottom: 0 !important; flex: 0 0 auto; }' +
+            '.menu-edit-list__toolbar-block { border-radius: 0.35em; border: 3px solid transparent; box-sizing: border-box; padding: 0 1em; min-height: 3.5em; height: 3.5em; display: flex !important; align-items: center; justify-content: center; }' +
+            '.menu-edit-list__create-folder { gap: 0; background: rgba(34, 139, 34, 0.6) !important; min-height: 3.5em !important; height: 3.5em !important; padding: 0 1em !important; }' +
             '.menu-edit-list__create-folder-spacer { flex: 1; min-width: 0; }' +
             '.menu-edit-list__create-folder-inner { display: flex; align-items: center; gap: 0.5em; flex-shrink: 0; }' +
-            '.menu-edit-list__create-folder .menu-edit-list__icon { width: auto; min-width: auto; height: auto; }' +
-            '.menu-edit-list__create-folder .menu-edit-list__title { text-align: center; }' +
+            '.menu-edit-list__create-folder .menu-edit-list__icon { width: 1.5em; min-width: 1.5em; height: 1.5em; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }' +
+            '.menu-edit-list__create-folder .menu-edit-list__icon svg { width: 1.35em; height: 1.35em; display: block; }' +
+            '.menu-edit-list__create-folder .menu-edit-list__title { text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.3; }' +
             '.menu-edit-list__create-folder.focus { border-color: rgba(255,255,255,0.8); }' +
             '.folder-item { grid-template-columns: 2.5em minmax(0, 1fr) 2.4em 2.4em 2.4em 2.4em 2.4em 2.4em; align-items: center; min-height: 3.2em; }' +
             '.folder-item .menu-edit-list__title { align-self: center; }' +
@@ -2454,7 +2457,8 @@
             '.ci-color-picker-wrap .color-picker-tile--light.ci-picker-selected { box-shadow: inset 0 0 0 1px rgba(0,0,0,0.4), 0 0 0 2px rgba(20,30,40,0.92), 0 0 0 5px rgba(38, 198, 218, 0.92), 0 0.15em 0.5em rgba(0,0,0,0.3) !important; }' +
             '.buttons-plugin-scope .full-start-new__buttons.icons-only .full-start__button span { display: none; }' +
             '.buttons-plugin-scope .full-start-new__buttons.always-text .full-start__button span { display: block !important; }' +
-            '.viewmode-switch { background: rgba(66, 133, 244, 0.5); color: #fff; margin: 0 !important; border-radius: 0.3em; border: 3px solid transparent; width: 100%; max-width: 100%; }' +
+            '.viewmode-switch { background: rgba(66, 133, 244, 0.5); color: #fff; margin: 0 !important; border-radius: 0.3em; border: 3px solid transparent; width: 100%; max-width: 100%; min-height: 3.5em !important; height: 3.5em !important; box-sizing: border-box; }' +
+            '.menu-edit-list__toolbar-stack .viewmode-switch > div { width: 100%; padding: 0 0.35em; box-sizing: border-box; text-align: center; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }' +
             '.viewmode-switch.focus { border-color: rgba(255,255,255,0.8); }' +
             '.menu-edit-list__item-hidden { opacity: 0.5; }' +
             '.icon-picker-default { display: flex; align-items: center; gap: 0.5em; padding: 0.35em 0.5em; min-height: 2.5em; margin-bottom: 0.5em; border-radius: 0.3em; background: rgba(255,255,255,0.08); border: 3px solid transparent; box-sizing: border-box; font-family: var(--buttons-plugin-modal-font, inherit); font-size: var(--buttons-plugin-modal-font-size, inherit); }' +
