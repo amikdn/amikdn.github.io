@@ -2,7 +2,7 @@
 (function() {
     'use strict';
 
-    var PLUGIN_VERSION = '1.60';
+    var PLUGIN_VERSION = '1.61';
 
     /** Тип события открытия полной карточки (в Lampa используется "complite") */
     var FULL_EVENT_TYPE = 'complite';
@@ -333,6 +333,11 @@
         }, 280);
     }
 
+    function isLightPaletteHex(hex) {
+        var h = String(hex || '').replace(/\s/g, '').toLowerCase();
+        return h === '#ffffff' || h === '#fff' || h === '#e0e0e0';
+    }
+
     function openColorPickerModal(targetId) {
         var isGlobal = !targetId;
         var perColors = getPerButtonIconColors();
@@ -372,10 +377,13 @@
         });
         wrap.append(hexRow);
 
-        var swatchGrid = $('<div class="color-picker-grid-swatches"></div>');
+        var swatchGrid = $('<div class="color-picker-tiles"></div>');
         colorPickerPaletteHexes.forEach(function(paletteHex) {
-            var cell = $('<div class="selector color-picker-swatch-cell" tabindex="0"></div>');
+            var cell = $('<div class="selector color-picker-tile" tabindex="0"></div>');
             cell.css('background-color', paletteHex);
+            if (isLightPaletteHex(paletteHex)) {
+                cell.addClass('color-picker-tile--light');
+            }
             if (currentHex && paletteHex.toLowerCase() === String(currentHex).toLowerCase()) {
                 cell.addClass('ci-picker-selected');
             }
@@ -1802,7 +1810,7 @@
         }
         var list = $('<div class="menu-edit-list"></div>');
         var hidden = getHiddenButtons();
-        var createFolderBtn = $('<div class="menu-edit-list__item menu-edit-list__create-folder menu-edit-list__toolbar-block selector">' +
+        var createFolderBtn = $('<div class="menu-edit-list__create-folder menu-edit-list__toolbar-block selector">' +
             '<span class="menu-edit-list__create-folder-spacer"></span>' +
             '<div class="menu-edit-list__create-folder-inner">' +
             '<div class="menu-edit-list__icon">' +
@@ -1844,9 +1852,11 @@
                 if (currentMode === 'always') target.addClass('always-text');
             }
         });
-        list.append(modeBtn);
-        list.append(createFolderBtn);
-        list.append(globalIconColorBtn);
+        var toolbarStack = $('<div class="menu-edit-list__toolbar-stack"></div>');
+        toolbarStack.append(modeBtn);
+        toolbarStack.append(createFolderBtn);
+        toolbarStack.append(globalIconColorBtn);
+        list.append(toolbarStack);
 
         function createFolderItem(folder) {
             var folderIconHtml = folder.customIcon || (findButton(folder.buttons[0]) && findButton(folder.buttons[0]).find('svg').first().length ? findButton(folder.buttons[0]).find('svg').first().get(0).outerHTML : '');
@@ -1886,7 +1896,9 @@
             });
             item.find('.move-up').on('hover:enter', function() {
                 var prev = item.prev();
-                while (prev.length && (prev.hasClass('menu-edit-list__create-folder') || prev.hasClass('viewmode-switch'))) prev = prev.prev();
+                while (prev.length && (prev.hasClass('menu-edit-list__toolbar-stack') || prev.hasClass('menu-edit-list__create-folder') || prev.hasClass('viewmode-switch'))) {
+                    prev = prev.prev();
+                }
                 if (prev.length) {
                     item.insertBefore(prev);
                     saveItemOrder();
@@ -2056,10 +2068,10 @@
             });
             item.find('.move-up').on('hover:enter', function() {
                 var prev = item.prev();
-                while (prev.length && (prev.hasClass('viewmode-switch') || prev.hasClass('menu-edit-list__create-folder'))) {
+                while (prev.length && (prev.hasClass('menu-edit-list__toolbar-stack') || prev.hasClass('viewmode-switch') || prev.hasClass('menu-edit-list__create-folder'))) {
                     prev = prev.prev();
                 }
-                if (prev.length && !prev.hasClass('viewmode-switch') && !prev.hasClass('menu-edit-list__create-folder')) {
+                if (prev.length && !prev.hasClass('menu-edit-list__toolbar-stack') && !prev.hasClass('viewmode-switch') && !prev.hasClass('menu-edit-list__create-folder')) {
                     item.insertBefore(prev);
                     var btnIndex = currentButtons.indexOf(btn);
                     if (btnIndex > 0) {
@@ -2412,7 +2424,9 @@
             '.viewmode-switch, .folder-reset-button { max-width: 100%; box-sizing: border-box; white-space: normal; word-break: break-word; font-family: var(--buttons-plugin-modal-font, inherit); font-size: var(--buttons-plugin-modal-font-size, inherit); }' +
             '.folder-reset-button { background: rgba(200,100,100,0.3); margin-top: 1em; border-radius: 0.3em; border: 3px solid transparent; }' +
             '.folder-reset-button.focus { border-color: rgba(255,255,255,0.8); }' +
-            '.menu-edit-list__toolbar-block { margin-bottom: 0.5em !important; border-radius: 0.3em; border: 3px solid transparent; box-sizing: border-box; padding: 0.6em 1em; min-height: 2.75em; display: flex !important; align-items: center; justify-content: center; }' +
+            '.menu-edit-list__toolbar-stack { display: flex; flex-direction: column; gap: 0.55em; margin-bottom: 0.65em; width: 100%; max-width: 100%; box-sizing: border-box; }' +
+            '.menu-edit-list__toolbar-stack > .menu-edit-list__toolbar-block, .menu-edit-list__toolbar-stack > .menu-edit-list__create-folder { margin-bottom: 0 !important; }' +
+            '.menu-edit-list__toolbar-block { border-radius: 0.35em; border: 3px solid transparent; box-sizing: border-box; padding: 0.65em 1em; min-height: 3em; display: flex !important; align-items: center; justify-content: center; }' +
             '.menu-edit-list__create-folder { gap: 0; background: rgba(34, 139, 34, 0.6) !important; }' +
             '.menu-edit-list__create-folder-spacer { flex: 1; min-width: 0; }' +
             '.menu-edit-list__create-folder-inner { display: flex; align-items: center; gap: 0.5em; flex-shrink: 0; }' +
@@ -2428,13 +2442,16 @@
             '.folder-create-confirm { background: rgba(100,200,100,0.3); margin-top: 1em; border-radius: 0.3em; border: 3px solid transparent; }' +
             '.folder-create-confirm.focus { border-color: rgba(255,255,255,0.8); }' +
             '.menu-edit-list__move.focus, .menu-edit-list__change-name.focus, .menu-edit-list__change-icon.focus, .menu-edit-list__change-color.focus, .menu-edit-list__toggle.focus, .menu-edit-list__delete.focus { border-color: rgba(255,255,255,0.8); }' +
-            '.viewmode-switch--icon-color { background: rgba(155, 89, 182, 0.35) !important; }' +
+            '.viewmode-switch--icon-color { background: rgba(0, 131, 143, 0.52) !important; }' +
             '.ci-color-picker-wrap { width: 100%; max-width: 100%; padding: 0 0.25em 0.75em; box-sizing: border-box; display: flex; flex-direction: column; gap: 0.45em; font-family: var(--buttons-plugin-modal-font, inherit); font-size: var(--buttons-plugin-modal-font-size, inherit); }' +
             '.ci-color-picker-wrap .color-picker-default.focus, .ci-color-picker-wrap .color-picker-hex.focus { border-color: rgba(255,255,255,0.85) !important; }' +
-            '.color-picker-grid-swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(3.5em, 1fr)); justify-items: center; gap: 0.8em; padding: 0 0.15em 0.5em; box-sizing: border-box; width: 100%; max-width: 100%; }' +
-            '.color-picker-swatch-cell { width: 3.5em; height: 3.5em; border-radius: 50%; border: 2px solid transparent; box-sizing: border-box; flex-shrink: 0; }' +
-            '.ci-color-picker-wrap .color-picker-swatch-cell.focus { border-color: rgba(255,255,255,0.9) !important; }' +
-            '.ci-picker-selected { box-shadow: inset 0 0 0 2px #fff !important; }' +
+            '.color-picker-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(2.85em, 1fr)); justify-items: center; gap: 0.65em; padding: 0.35em 0.1em 0.65em; box-sizing: border-box; width: 100%; max-width: 100%; }' +
+            '.color-picker-tile { width: 2.85em; height: 2.85em; max-width: 100%; border-radius: 0.55em; border: none; box-sizing: border-box; position: relative; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.22), 0 0.12em 0.45em rgba(0,0,0,0.35); transition: transform 0.12s ease, box-shadow 0.12s ease; }' +
+            '.color-picker-tile--light { box-shadow: inset 0 0 0 1px rgba(0,0,0,0.38), 0 0.12em 0.45em rgba(0,0,0,0.28) !important; }' +
+            '.ci-color-picker-wrap .color-picker-tile.focus { transform: scale(1.06); z-index: 1; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.45), 0 0 0 2px rgba(10,20,30,0.95), 0 0 0 4px rgba(77, 208, 225, 0.95), 0 0.2em 0.55em rgba(0,0,0,0.45) !important; }' +
+            '.ci-color-picker-wrap .color-picker-tile--light.focus { box-shadow: inset 0 0 0 1px rgba(0,0,0,0.42), 0 0 0 2px rgba(10,20,30,0.95), 0 0 0 4px rgba(77, 208, 225, 0.95), 0 0.2em 0.55em rgba(0,0,0,0.35) !important; }' +
+            '.ci-color-picker-wrap .color-picker-tile.ci-picker-selected { box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5), 0 0 0 2px rgba(255,255,255,0.95), 0 0 0 5px rgba(38, 198, 218, 0.9), 0 0.15em 0.5em rgba(0,0,0,0.4) !important; }' +
+            '.ci-color-picker-wrap .color-picker-tile--light.ci-picker-selected { box-shadow: inset 0 0 0 1px rgba(0,0,0,0.4), 0 0 0 2px rgba(20,30,40,0.92), 0 0 0 5px rgba(38, 198, 218, 0.92), 0 0.15em 0.5em rgba(0,0,0,0.3) !important; }' +
             '.buttons-plugin-scope .full-start-new__buttons.icons-only .full-start__button span { display: none; }' +
             '.buttons-plugin-scope .full-start-new__buttons.always-text .full-start__button span { display: block !important; }' +
             '.viewmode-switch { background: rgba(66, 133, 244, 0.5); color: #fff; margin: 0 !important; border-radius: 0.3em; border: 3px solid transparent; width: 100%; max-width: 100%; }' +
