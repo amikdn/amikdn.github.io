@@ -2,7 +2,7 @@
 (function() {
     'use strict';
 
-    var PLUGIN_VERSION = '1.63';
+    var PLUGIN_VERSION = '1.66';
 
     /** Тип события открытия полной карточки (в Lampa используется "complite") */
     var FULL_EVENT_TYPE = 'complite';
@@ -237,6 +237,26 @@
         return '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8 10.5C8 11.3284 7.32843 12 6.5 12C5.67157 12 5 11.3284 5 10.5C5 9.67157 5.67157 9 6.5 9C7.32843 9 8 9.67157 8 10.5Z" fill="currentColor"></path><path d="M10.5 8C11.3284 8 12 7.32843 12 6.5C12 5.67157 11.3284 5 10.5 5C9.67157 5 9 5.67157 9 6.5C9 7.32843 9.67157 8 10.5 8Z" fill="currentColor"></path><path d="M17 6.5C17 7.32843 16.3284 8 15.5 8C14.6716 8 14 7.32843 14 6.5C14 5.67157 14.6716 5 15.5 5C16.3284 5 17 5.67157 17 6.5Z" fill="currentColor"></path><path d="M7.5 17C8.32843 17 9 16.3284 9 15.5C9 14.6716 8.32843 14 7.5 14C6.67157 14 6 14.6716 6 15.5C6 16.3284 6.67157 17 7.5 17Z" fill="currentColor"></path><path fill-rule="evenodd" clip-rule="evenodd" d="M1 12C1 5.92487 5.92487 1 12 1C17.9712 1 23 5.34921 23 11V11.0146C23 11.543 23.0001 12.4458 22.6825 13.4987C21.8502 16.2575 18.8203 16.9964 16.4948 16.4024C16.011 16.2788 15.5243 16.145 15.0568 16.0107C14.2512 15.7791 13.5177 16.4897 13.6661 17.2315L13.9837 18.8197L14.0983 19.5068C14.3953 21.289 13.0019 23.1015 11.0165 22.8498C7.65019 22.423 5.11981 21.1007 3.43595 19.1329C1.75722 17.171 1 14.6613 1 12ZM12 3C7.02944 3 3 7.02944 3 12C3 14.2854 3.64673 16.303 4.95555 17.8326C6.25924 19.3561 8.3 20.4894 11.2681 20.8657C11.7347 20.9249 12.2348 20.4915 12.1255 19.8356L12.0163 19.1803L11.7049 17.6237C11.2467 15.3325 13.4423 13.4657 15.6093 14.0885C16.0619 14.2186 16.529 14.3469 16.9897 14.4646C18.7757 14.9208 20.3744 14.2249 20.7677 12.921C20.997 12.161 21 11.5059 21 11C21 6.65079 17.0745 3 12 3Z" fill="currentColor"></path></svg>';
     }
 
+    function toolbarSvgViewMode() {
+        return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>';
+    }
+
+    function toolbarSvgIconColorGlobal() {
+        return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="10.5" r="2.5"/><circle cx="12" cy="6.5" r="2.5"/><circle cx="16.5" cy="10.5" r="2.5"/><path d="M12 22a10 10 0 0 0 10-10c0-5-4-9-9-9-1.5 0-2.5.5-3.5 1.5L12 22z"/></svg>';
+    }
+
+    function toolbarSvgReset() {
+        return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>';
+    }
+
+    function toolbarSvgFolderConfirm() {
+        return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/><path d="m9 12 2 2 4-4"/></svg>';
+    }
+
+    function toolbarSvgCheck() {
+        return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+    }
+
     function folderPlaceholderSvgStr() {
         return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1.5em; height:1.5em;"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path><line x1="8" y1="11" x2="16" y2="11"></line><line x1="8" y1="15" x2="16" y2="15"></line></svg>';
     }
@@ -344,17 +364,20 @@
         var currentHex = isGlobal ? getGlobalIconColor() : (perColors[targetId] || '');
         var wrap = $('<div class="ci-color-picker-wrap buttons-plugin-color-modal"></div>');
         var isUnset = !currentHex;
-        var defaultRingStyle = isUnset ? 'box-shadow: inset 0 0 0 2px #fff;' : '';
-        var defaultRow = $('<div class="selector color-picker-default" tabindex="0" style="display: flex; align-items: center; gap: 1em; padding: 0 1em; min-height: 3.8em; background: rgba(255,255,255,0.05); border-radius: 0.5em; box-sizing: border-box; border: 2px solid transparent; ' + defaultRingStyle + '">' +
-            '<div style="width: 1.5em; height: 1.5em; border-radius: 50%; background: #ccc; flex-shrink: 0;"></div>' +
-            '<span style="font-weight:bold; font-size: 1.05em;">Стандартный</span></div>');
+        var defaultRow = $('<div class="selector color-picker-default buttons-plugin-modal-row" tabindex="0">' +
+            '<div class="color-picker-default-swatch"></div>' +
+            '<span class="buttons-plugin-ui-text">Стандартный</span></div>');
+        if (isUnset) {
+            defaultRow.addClass('color-picker-default--ring');
+        }
         defaultRow.on('hover:enter', function() {
             applyPickedColor(targetId, '');
         });
         wrap.append(defaultRow);
 
-        var hexRow = $('<div class="selector color-picker-hex" tabindex="0" style="display: flex; align-items: center; justify-content: space-between; padding: 0 1em; min-height: 3.8em; background: rgba(255,255,255,0.05); border-radius: 0.5em; box-sizing: border-box; border: 2px solid transparent;"><span style="font-weight:bold; font-size: 1.05em;">Код цвета (HEX)</span>' +
-            '<span class="hex-value" style="opacity: 0.7; font-size: 1.1em;">' + (currentHex || '#') + '</span></div>');
+        var hexRow = $('<div class="selector color-picker-hex buttons-plugin-modal-row buttons-plugin-modal-row--between" tabindex="0">' +
+            '<span class="buttons-plugin-ui-text">Код цвета (HEX)</span>' +
+            '<span class="hex-value buttons-plugin-ui-text">' + escapeHtml(currentHex || '#') + '</span></div>');
         hexRow.on('hover:enter', function() {
             closeModalSafe();
             setTimeout(function() {
@@ -838,7 +861,7 @@
         var wrap = $('<div class="icon-picker-wrap buttons-plugin-icon-picker"></div>');
         var defaultBlock = $('<div class="selector icon-picker-default" tabindex="0">' +
             '<div class="icon-picker-default__preview"></div>' +
-            '<span>По умолчанию</span></div>');
+            '<span class="buttons-plugin-ui-text">По умолчанию</span></div>');
         if (defaultIconHtml) {
             defaultBlock.find('.icon-picker-default__preview').append($(defaultIconHtml).clone());
         }
@@ -865,9 +888,9 @@
             applyChoice(true, null);
         });
         wrap.append(defaultBlock);
-        var loadStatus = $('<div class="icon-picker-load-status"></div>');
-        var tabLampa = $('<div class="selector icon-picker-tab icon-picker-tab--active" tabindex="0">Иконки Lampa</div>');
-        var tabAlt = $('<div class="selector icon-picker-tab" tabindex="0">Альтернативные иконки</div>');
+        var loadStatus = $('<div class="icon-picker-load-status buttons-plugin-ui-text"></div>');
+        var tabLampa = $('<div class="selector icon-picker-tab icon-picker-tab--active buttons-plugin-ui-text" tabindex="0">Иконки Lampa</div>');
+        var tabAlt = $('<div class="selector icon-picker-tab buttons-plugin-ui-text" tabindex="0">Альтернативные иконки</div>');
         var switchBlock = $('<div class="icon-picker-switch-wrap"></div>');
         switchBlock.append(tabLampa).append(tabAlt);
         wrap.append(switchBlock);
@@ -1485,7 +1508,12 @@
         } else {
             var wrap = $('<div class="name-picker-wrap">' +
                 '<input type="text" class="name-picker-input" value="' + escapeHtml(currentName) + '" placeholder="Название папки" style="width:100%;padding:0.5em;margin:0.5em 0;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.3);border-radius:0.3em;color:#fff;font-size:1em;" />' +
-                '<div class="selector name-picker-ok" style="text-align:center;padding:0.75em;margin-top:0.5em;background:rgba(66,133,244,0.5);border-radius:0.3em;">Готово</div></div>');
+                '<div class="selector name-picker-ok">' +
+                '<span class="menu-edit-list__create-folder-spacer"></span>' +
+                '<div class="menu-edit-list__create-folder-inner">' +
+                '<div class="menu-edit-list__icon">' + toolbarSvgCheck() + '</div>' +
+                '<span class="buttons-plugin-ui-text">Готово</span>' +
+                '</div><span class="menu-edit-list__create-folder-spacer"></span></div></div>');
             var inputEl = wrap.find('input').get(0);
             wrap.find('.name-picker-ok').on('hover:enter', function() {
                 var val = (inputEl && inputEl.value) ? String(inputEl.value).trim() : '';
@@ -1512,7 +1540,7 @@
         var wrap = $('<div class="icon-picker-wrap buttons-plugin-icon-picker"></div>');
         var defaultBlock = $('<div class="selector icon-picker-default" tabindex="0">' +
             '<div class="icon-picker-default__preview"></div>' +
-            '<span>По умолчанию</span></div>');
+            '<span class="buttons-plugin-ui-text">По умолчанию</span></div>');
         if (defaultIconHtml) {
             defaultBlock.find('.icon-picker-default__preview').append($(defaultIconHtml).clone());
         }
@@ -1531,12 +1559,12 @@
             applyChoice(true, null);
         });
         wrap.append(defaultBlock);
-        var tabLampa = $('<div class="selector icon-picker-tab icon-picker-tab--active" tabindex="0">Иконки Lampa</div>');
-        var tabAlt = $('<div class="selector icon-picker-tab" tabindex="0">Альтернативные иконки</div>');
+        var tabLampa = $('<div class="selector icon-picker-tab icon-picker-tab--active buttons-plugin-ui-text" tabindex="0">Иконки Lampa</div>');
+        var tabAlt = $('<div class="selector icon-picker-tab buttons-plugin-ui-text" tabindex="0">Альтернативные иконки</div>');
         var switchBlock = $('<div class="icon-picker-switch-wrap"></div>');
         switchBlock.append(tabLampa).append(tabAlt);
         wrap.append(switchBlock);
-        var loadStatus = $('<div class="icon-picker-load-status"></div>');
+        var loadStatus = $('<div class="icon-picker-load-status buttons-plugin-ui-text"></div>');
         wrap.append(loadStatus);
         wrap.addClass('icon-picker-view-lampa');
         tabLampa.on('hover:enter', function() {
@@ -1637,7 +1665,12 @@
         } else {
             var wrap = $('<div class="name-picker-wrap">' +
                 '<input type="text" class="name-picker-input" value="" placeholder="Название папки" style="width:100%;padding:0.5em;margin:0.5em 0;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.3);border-radius:0.3em;color:#fff;font-size:1em;" />' +
-                '<div class="selector name-picker-ok" style="text-align:center;padding:0.75em;margin-top:0.5em;background:rgba(66,133,244,0.5);border-radius:0.3em;">Готово</div></div>');
+                '<div class="selector name-picker-ok">' +
+                '<span class="menu-edit-list__create-folder-spacer"></span>' +
+                '<div class="menu-edit-list__create-folder-inner">' +
+                '<div class="menu-edit-list__icon">' + toolbarSvgCheck() + '</div>' +
+                '<span class="buttons-plugin-ui-text">Готово</span>' +
+                '</div><span class="menu-edit-list__create-folder-spacer"></span></div></div>');
             var inputEl = wrap.find('input').get(0);
             wrap.find('.name-picker-ok').on('hover:enter', function() {
                 var val = (inputEl && inputEl.value) ? String(inputEl.value).trim() : '';
@@ -1696,7 +1729,12 @@
             list.append(item);
         });
         var createBtn = $('<div class="selector folder-create-confirm">' +
-            '<div style="text-align: center; padding: 1em;">Создать папку "' + escapeHtml(folderName) + '"</div></div>');
+            '<span class="menu-edit-list__create-folder-spacer"></span>' +
+            '<div class="menu-edit-list__create-folder-inner">' +
+            '<div class="menu-edit-list__icon">' + toolbarSvgFolderConfirm() + '</div>' +
+            '<div class="buttons-plugin-ui-text menu-edit-list__toolbar-label">Создать папку "' + escapeHtml(folderName) + '"</div>' +
+            '</div>' +
+            '<span class="menu-edit-list__create-folder-spacer"></span></div>');
         createBtn.on('hover:enter', function() {
             if (selectedButtons.length < 2) {
                 Lampa.Noty.show('Выберите минимум 2 кнопки');
@@ -1814,13 +1852,19 @@
             '<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>' +
             '<line x1="12" y1="11" x2="12" y2="17"></line><line x1="9" y1="14" x2="15" y2="14"></line>' +
             '</svg></div>' +
-            '<div class="menu-edit-list__title">Создать папку</div></div>' +
+            '<div class="menu-edit-list__title buttons-plugin-ui-text">Создать папку</div></div>' +
             '<span class="menu-edit-list__create-folder-spacer"></span></div>');
         createFolderBtn.on('hover:enter', function() {
             Lampa.Modal.close();
             openCreateFolderDialog();
         });
-        var globalIconColorBtn = $('<div class="selector viewmode-switch viewmode-switch--icon-color menu-edit-list__toolbar-block"><div style="text-align: center;">Цвет иконок (для всех)</div></div>');
+        var globalIconColorBtn = $('<div class="selector viewmode-switch viewmode-switch--icon-color menu-edit-list__toolbar-block">' +
+            '<span class="menu-edit-list__create-folder-spacer"></span>' +
+            '<div class="menu-edit-list__create-folder-inner">' +
+            '<div class="menu-edit-list__icon">' + toolbarSvgIconColorGlobal() + '</div>' +
+            '<div class="menu-edit-list__title buttons-plugin-ui-text">Цвет иконок (для всех)</div>' +
+            '</div>' +
+            '<span class="menu-edit-list__create-folder-spacer"></span></div>');
         globalIconColorBtn.on('hover:enter', function() {
             if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.close) {
                 Lampa.Modal.close();
@@ -1833,14 +1877,18 @@
         var labels = {default: 'Стандартный', icons: 'Только иконки', always: 'С текстом'};
         var currentMode = Lampa.Storage.get(STORAGE_KEYS.viewmode, 'default');
         var modeBtn = $('<div class="selector viewmode-switch menu-edit-list__toolbar-block">' +
-            '<div style="text-align: center;">Вид кнопок: ' + labels[currentMode] + '</div>' +
-            '</div>');
+            '<span class="menu-edit-list__create-folder-spacer"></span>' +
+            '<div class="menu-edit-list__create-folder-inner">' +
+            '<div class="menu-edit-list__icon">' + toolbarSvgViewMode() + '</div>' +
+            '<div class="menu-edit-list__title menu-edit-list__toolbar-label buttons-plugin-ui-text">Вид кнопок: ' + labels[currentMode] + '</div>' +
+            '</div>' +
+            '<span class="menu-edit-list__create-folder-spacer"></span></div>');
         modeBtn.on('hover:enter', function() {
             var idx = modes.indexOf(currentMode);
             idx = (idx + 1) % modes.length;
             currentMode = modes[idx];
             Lampa.Storage.set(STORAGE_KEYS.viewmode, currentMode);
-            $(this).find('div').text('Вид кнопок: ' + labels[currentMode]);
+            $(this).find('.menu-edit-list__toolbar-label').text('Вид кнопок: ' + labels[currentMode]);
             if (currentContainer) {
                 var target = currentContainer.find('.full-start-new__buttons');
                 target.removeClass('icons-only always-text');
@@ -1850,8 +1898,8 @@
         });
         var toolbarStack = $('<div class="menu-edit-list__toolbar-stack"></div>');
         toolbarStack.append(modeBtn);
-        toolbarStack.append(createFolderBtn);
         toolbarStack.append(globalIconColorBtn);
+        toolbarStack.append(createFolderBtn);
         list.append(toolbarStack);
 
         function createFolderItem(folder) {
@@ -1983,7 +2031,12 @@
             } else {
                 var wrap = $('<div class="name-picker-wrap">' +
                     '<input type="text" class="name-picker-input" value="' + escapeHtml(currentLabel) + '" placeholder="Название кнопки" style="width:100%;padding:0.5em;margin:0.5em 0;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.3);border-radius:0.3em;color:#fff;font-size:1em;" />' +
-                    '<div class="selector name-picker-ok" style="text-align:center;padding:0.75em;margin-top:0.5em;background:rgba(66,133,244,0.5);border-radius:0.3em;">Готово</div></div>');
+                    '<div class="selector name-picker-ok">' +
+                    '<span class="menu-edit-list__create-folder-spacer"></span>' +
+                    '<div class="menu-edit-list__create-folder-inner">' +
+                    '<div class="menu-edit-list__icon">' + toolbarSvgCheck() + '</div>' +
+                    '<span class="buttons-plugin-ui-text">Готово</span>' +
+                    '</div><span class="menu-edit-list__create-folder-spacer"></span></div></div>');
                 var inputEl = wrap.find('input').get(0);
                 wrap.find('.name-picker-ok').on('hover:enter', function() {
                     var val = (inputEl && inputEl.value) ? inputEl.value.trim() : '';
@@ -2141,8 +2194,12 @@
         }
 
         var resetBtn = $('<div class="selector folder-reset-button">' +
-            '<div style="text-align: center; padding: 1em;">Сбросить по умолчанию</div>' +
-            '</div>');
+            '<span class="menu-edit-list__create-folder-spacer"></span>' +
+            '<div class="menu-edit-list__create-folder-inner">' +
+            '<div class="menu-edit-list__icon">' + toolbarSvgReset() + '</div>' +
+            '<div class="buttons-plugin-ui-text menu-edit-list__toolbar-label">Сбросить по умолчанию</div>' +
+            '</div>' +
+            '<span class="menu-edit-list__create-folder-spacer"></span></div>');
         resetBtn.on('hover:enter', function() {
             Lampa.Storage.set(STORAGE_KEYS.custom_order, []);
             Lampa.Storage.set(STORAGE_KEYS.hidden, []);
@@ -2411,6 +2468,7 @@
             '.menu-edit-list { max-width: 100%; width: 100%; overflow: hidden; box-sizing: border-box; }' +
             '.buttons-plugin-order-modal { min-width: 22em; width: 100%; box-sizing: border-box; }' +
             '.ci-color-picker-wrap.buttons-plugin-color-modal { min-width: 22em; box-sizing: border-box; }' +
+            '.buttons-plugin-ui-text, .menu-edit-list .menu-edit-list__title { font-family: inherit !important; font-size: inherit !important; font-weight: normal !important; font-style: normal !important; }' +
             '.menu-edit-list__item { display: grid; grid-template-columns: 2.5em minmax(0, 1fr) 2.4em 2.4em 2.4em 2.4em 2.4em 2.4em; align-items: center; gap: 0.35em; padding: 0.2em 0; box-sizing: border-box; }' +
             '.menu-edit-list__item .menu-edit-list__icon { width: 2.5em; min-width: 2.5em; height: 2.5em; display: flex; align-items: center; justify-content: center; box-sizing: border-box; }' +
             '.menu-edit-list__item .menu-edit-list__icon svg { width: 1.4em; height: 1.4em; }' +
@@ -2420,19 +2478,20 @@
             '.menu-edit-list__item .menu-edit-list__toggle svg { width: 1.2em; height: 1.2em; }' +
             '.menu-edit-list__item .menu-edit-list__change-name svg, .menu-edit-list__item .menu-edit-list__change-icon svg, .menu-edit-list__item .menu-edit-list__change-color svg { width: 1.2em; height: 1.2em; }' +
             '.viewmode-switch:not(.menu-edit-list__toolbar-block), .folder-reset-button { max-width: 100%; box-sizing: border-box; white-space: normal; word-break: break-word; font-family: inherit; font-size: inherit; }' +
-            '.folder-reset-button { background: rgba(200,100,100,0.3); margin-top: 1em; border-radius: 0.3em; border: 3px solid transparent; }' +
+            '.folder-reset-button { background: rgba(255,255,255,0.1); margin-top: 1em; border-radius: 0.35em; border: 3px solid transparent; display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 0; min-height: 3.5em; padding: 0 0.5em; box-sizing: border-box; width: 100%; max-width: 100%; }' +
             '.folder-reset-button.focus { border-color: rgba(255,255,255,0.8); }' +
             '.menu-edit-list__toolbar-stack { display: flex; flex-direction: column; gap: 0.55em; margin-bottom: 0.65em; width: 100%; max-width: 100%; box-sizing: border-box; align-items: stretch; }' +
             '.menu-edit-list__toolbar-stack > .menu-edit-list__toolbar-block, .menu-edit-list__toolbar-stack > .menu-edit-list__create-folder { margin-bottom: 0 !important; flex: 0 0 auto; }' +
             '.menu-edit-list__toolbar-stack > .menu-edit-list__toolbar-block, .menu-edit-list__toolbar-stack > .menu-edit-list__create-folder { height: 3.5em; min-height: 3.5em !important; max-height: 3.5em !important; overflow: hidden; line-height: 1.25; }' +
             '.menu-edit-list__toolbar-block { border-radius: 0.35em; border: 3px solid transparent; box-sizing: border-box; padding: 0 1em; display: flex !important; align-items: center; justify-content: center; }' +
-            '.menu-edit-list__create-folder { gap: 0; background: rgba(34, 139, 34, 0.6) !important; padding: 0 1em !important; }' +
+            '.menu-edit-list__create-folder { gap: 0; background: rgba(255,255,255,0.1) !important; padding: 0 0.5em !important; }' +
             '.menu-edit-list__toolbar-block.viewmode-switch { white-space: nowrap !important; word-break: normal !important; }' +
             '.menu-edit-list__create-folder-spacer { flex: 1; min-width: 0; }' +
             '.menu-edit-list__create-folder-inner { display: flex; align-items: center; gap: 0.5em; flex-shrink: 0; }' +
-            '.menu-edit-list__create-folder .menu-edit-list__icon { width: 1.5em; min-width: 1.5em; height: 1.5em; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }' +
-            '.menu-edit-list__create-folder .menu-edit-list__icon svg { width: 1.35em; height: 1.35em; display: block; }' +
-            '.menu-edit-list__create-folder .menu-edit-list__title { text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.3; }' +
+            '.menu-edit-list__toolbar-stack .viewmode-switch .menu-edit-list__create-folder-inner { flex: 1 1 auto; min-width: 0; max-width: 100%; }' +
+            '.menu-edit-list__create-folder .menu-edit-list__icon, .menu-edit-list__toolbar-stack .viewmode-switch .menu-edit-list__icon { width: 1.5em; min-width: 1.5em; height: 1.5em; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }' +
+            '.menu-edit-list__create-folder .menu-edit-list__icon svg, .menu-edit-list__toolbar-stack .viewmode-switch .menu-edit-list__icon svg { width: 1.35em; height: 1.35em; display: block; }' +
+            '.menu-edit-list__create-folder .menu-edit-list__title, .menu-edit-list__toolbar-stack .viewmode-switch .menu-edit-list__title { text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.3; min-width: 0; flex: 1; }' +
             '.menu-edit-list__create-folder.focus { border-color: rgba(255,255,255,0.8); }' +
             '.folder-item { grid-template-columns: 2.5em minmax(0, 1fr) 2.4em 2.4em 2.4em 2.4em 2.4em 2.4em; align-items: center; min-height: 3.2em; }' +
             '.folder-item .menu-edit-list__title { align-self: center; }' +
@@ -2440,11 +2499,17 @@
             '.folder-item .menu-edit-list__delete { align-self: center; justify-self: end; }' +
             '.menu-edit-list__item .menu-edit-list__delete svg { width: 1.2em; height: 1.2em; }' +
             '.folder-item .menu-edit-list__move, .folder-item .menu-edit-list__change-name, .folder-item .menu-edit-list__change-icon, .folder-item .menu-edit-list__change-color { margin-right: 0; }' +
-            '.folder-create-confirm { background: rgba(100,200,100,0.3); margin-top: 1em; border-radius: 0.3em; border: 3px solid transparent; }' +
+            '.folder-create-confirm { background: rgba(255,255,255,0.1); margin-top: 1em; border-radius: 0.35em; border: 3px solid transparent; display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 0; min-height: 3.5em; padding: 0 0.5em; box-sizing: border-box; width: 100%; max-width: 100%; }' +
             '.folder-create-confirm.focus { border-color: rgba(255,255,255,0.8); }' +
             '.menu-edit-list__move.focus, .menu-edit-list__change-name.focus, .menu-edit-list__change-icon.focus, .menu-edit-list__change-color.focus, .menu-edit-list__toggle.focus, .menu-edit-list__delete.focus { border-color: rgba(255,255,255,0.8); }' +
-            '.viewmode-switch--icon-color { background: rgba(0, 131, 143, 0.52) !important; }' +
+            '.menu-edit-list__toolbar-stack .viewmode-switch--icon-color { background: rgba(255,255,255,0.1) !important; }' +
             '.ci-color-picker-wrap { width: 100%; max-width: 100%; padding: 0 0.25em 0.75em; box-sizing: border-box; display: flex; flex-direction: column; gap: 0.45em; font-family: inherit; font-size: inherit; }' +
+            '.ci-color-picker-wrap .buttons-plugin-modal-row { display: flex; align-items: center; box-sizing: border-box; width: 100%; max-width: 100%; height: 3.5em; min-height: 3.5em; max-height: 3.5em; padding: 0 1em; border-radius: 0.35em; border: 3px solid transparent; background: rgba(255,255,255,0.05); overflow: hidden; line-height: 1.25; }' +
+            '.ci-color-picker-wrap .buttons-plugin-modal-row--between { justify-content: space-between; gap: 0.75em; }' +
+            '.ci-color-picker-wrap .color-picker-default:not(.buttons-plugin-modal-row--between) { gap: 1em; }' +
+            '.color-picker-default-swatch { width: 1.5em; height: 1.5em; border-radius: 50%; background: #ccc; flex-shrink: 0; }' +
+            '.color-picker-default--ring .color-picker-default-swatch { box-shadow: inset 0 0 0 2px #fff; }' +
+            '.ci-color-picker-wrap .hex-value { opacity: 0.85; min-width: 0; }' +
             '.ci-color-picker-wrap .color-picker-default.focus, .ci-color-picker-wrap .color-picker-hex.focus { border-color: rgba(255,255,255,0.85) !important; }' +
             '.color-picker-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(2.85em, 1fr)); justify-items: center; gap: 0.65em; padding: 0.35em 0.1em 0.65em; box-sizing: border-box; width: 100%; max-width: 100%; }' +
             '.color-picker-tile { width: 2.85em; height: 2.85em; max-width: 100%; border-radius: 0.55em; border: none; box-sizing: border-box; position: relative; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.22), 0 0.12em 0.45em rgba(0,0,0,0.35); transition: transform 0.12s ease, box-shadow 0.12s ease; }' +
@@ -2455,9 +2520,11 @@
             '.ci-color-picker-wrap .color-picker-tile--light.ci-picker-selected { box-shadow: inset 0 0 0 1px rgba(0,0,0,0.4), 0 0 0 2px rgba(20,30,40,0.92), 0 0 0 5px rgba(38, 198, 218, 0.92), 0 0.15em 0.5em rgba(0,0,0,0.3) !important; }' +
             '.buttons-plugin-scope .full-start-new__buttons.icons-only .full-start__button span { display: none; }' +
             '.buttons-plugin-scope .full-start-new__buttons.always-text .full-start__button span { display: block !important; }' +
-            '.viewmode-switch { background: rgba(66, 133, 244, 0.5); color: #fff; margin: 0 !important; border-radius: 0.3em; border: 3px solid transparent; width: 100%; max-width: 100%; box-sizing: border-box; }' +
-            '.menu-edit-list__toolbar-stack .viewmode-switch { height: 3.5em !important; min-height: 3.5em !important; max-height: 3.5em !important; overflow: hidden; }' +
-            '.menu-edit-list__toolbar-stack .viewmode-switch > div { width: 100%; padding: 0 0.35em; box-sizing: border-box; text-align: center; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-height: 100%; }' +
+            '.viewmode-switch { background: rgba(255,255,255,0.1); color: #fff; margin: 0 !important; border-radius: 0.35em; border: 3px solid transparent; width: 100%; max-width: 100%; box-sizing: border-box; }' +
+            '.menu-edit-list__toolbar-stack .viewmode-switch { height: 3.5em !important; min-height: 3.5em !important; max-height: 3.5em !important; overflow: hidden; gap: 0; padding: 0 0.5em !important; flex-direction: row !important; }' +
+            '.folder-reset-button .menu-edit-list__icon, .folder-create-confirm .menu-edit-list__icon, .name-picker-ok .menu-edit-list__icon { width: 1.5em; min-width: 1.5em; height: 1.5em; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }' +
+            '.folder-reset-button .menu-edit-list__icon svg, .folder-create-confirm .menu-edit-list__icon svg, .name-picker-ok .menu-edit-list__icon svg { width: 1.35em; height: 1.35em; display: block; }' +
+            '.folder-reset-button .menu-edit-list__toolbar-label, .folder-create-confirm .menu-edit-list__toolbar-label { text-align: center; white-space: normal; word-break: break-word; line-height: 1.25; min-width: 0; flex: 1; }' +
             '.viewmode-switch.focus { border-color: rgba(255,255,255,0.8); }' +
             '.menu-edit-list__item-hidden { opacity: 0.5; }' +
             '.icon-picker-default { display: flex; align-items: center; gap: 0.5em; padding: 0 1em; margin-bottom: 0.55em; border-radius: 0.35em; background: rgba(255,255,255,0.08); border: 3px solid transparent; box-sizing: border-box; font-family: inherit; font-size: inherit; }' +
@@ -2475,11 +2542,13 @@
             '.buttons-plugin-icon-picker .icon-picker-tab { height: 3.5em; min-height: 3.5em; max-height: 3.5em; }' +
             '.icon-picker-tab--active { background: rgba(66, 133, 244, 0.6); }' +
             '.icon-picker-tab.focus { border-color: rgba(255,255,255,0.8); }' +
-            '.icon-picker-load-status { font-size: 0.9em; color: rgba(255,255,255,0.7); margin-top: 0.25em; font-family: inherit; min-height: 1.2em; }' +
+            '.icon-picker-load-status { font-size: inherit; font-weight: normal; color: rgba(255,255,255,0.7); margin-top: 0.25em; font-family: inherit; min-height: 1.2em; }' +
             '.icon-picker-grid__cell { display: flex; align-items: center; justify-content: center; padding: 0.35em; min-height: 2.5em; border: 2px solid transparent; border-radius: 0.3em; box-sizing: border-box; }' +
             '.icon-picker-grid__cell.focus { border-color: rgba(255,255,255,0.8); }' +
             '.icon-picker-grid__cell svg { width: 1.5em; height: 1.5em; }' +
-            '.name-picker-ok { font-family: inherit; font-size: inherit; }' +
+            '.name-picker-ok { font-family: inherit; font-size: inherit; display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 0; min-height: 3.5em; margin-top: 0.5em; border-radius: 0.35em; border: 3px solid transparent; background: rgba(255,255,255,0.1); padding: 0 0.5em; box-sizing: border-box; width: 100%; max-width: 100%; }' +
+            '.name-picker-ok .menu-edit-list__create-folder-inner { min-width: 0; flex: 0 1 auto; max-width: 100%; }' +
+            '.name-picker-ok.focus { border-color: rgba(255,255,255,0.8); }' +
             /* Режим «без постера»: только когда карточка не applecation; опускание кнопок, «Подробно» под кнопки */
             'body.buttons-plugin--poster-off .full-start-new:not(.applecation) .full-start-new__body { height: 80vh !important; min-height: 80vh !important; }' +
             'body.buttons-plugin--poster-off .full-start-new:not(.applecation) .full-start-new__right { display: flex !important; flex-direction: column !important; justify-content: flex-end !important; }' +
