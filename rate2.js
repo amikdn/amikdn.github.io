@@ -284,13 +284,6 @@
         return line;
     }
 
-    function isRatingSourceVisible(source) {
-        var key = 'rating_show_' + source;
-        var v = Lampa.Storage.get(key, '1');
-        if (v === false || v === 'false' || v === 0 || v === '0' || v === '' || v === null || v === undefined) return false;
-        return true;
-    }
-
     function updateCardRatingLine(ratingLine, data) {
         if (!ratingLine || !ratingLine.parentNode) return;
         var idStr = data.id.toString();
@@ -305,7 +298,7 @@
                     tmdbDiv.textContent = formatRating(tmdbRating);
                     tmdbDiv.style.color = getRatingColor(tmdbRating);
                 }
-                var show = (tmdbRating !== '0.0') && isRatingSourceVisible('tmdb');
+                var show = (tmdbRating !== '0.0');
                 tmdbItem.style.display = show ? '' : 'none';
             }
         } catch (e) {}
@@ -330,15 +323,15 @@
                         lampaReactionIcon.style.backgroundImage = '';
                     }
                 }
-                var show = hasLampa && isRatingSourceVisible('lampa');
+                var show = hasLampa;
                 lampaItem.style.display = show ? '' : 'none';
             }
         } catch (e) {}
         var firstRating = null;
         try {
             var tmdbR = getTMDBRating(data);
-            if (tmdbR !== '0.0' && isRatingSourceVisible('tmdb')) firstRating = tmdbR;
-            if (!firstRating && cachedLampa && cachedLampa.rating > 0 && isRatingSourceVisible('lampa')) firstRating = String(cachedLampa.rating);
+            if (tmdbR !== '0.0') firstRating = tmdbR;
+            if (!firstRating && cachedLampa && cachedLampa.rating > 0) firstRating = String(cachedLampa.rating);
         } catch (e) {}
         var lineBg = getRatingBackgroundColor(firstRating || '0');
         ratingLine.style.background = lineBg || ('rgba(0,0,0,' + getRatingBackgroundAlpha() + ')');
@@ -392,9 +385,7 @@
 
     function createRatingSeparateElements(card) {
         var parent = getRatingParent(card);
-        var sources = [];
-        if (isRatingSourceVisible('tmdb')) sources.push('tmdb');
-        if (isRatingSourceVisible('lampa')) sources.push('lampa');
+        var sources = ['tmdb', 'lampa'];
         var wrapper = document.createElement('div');
         wrapper.className = voteClass('card__vote-separate-wrap');
         var posCSS = getRatingPositionCSS(0);
@@ -886,8 +877,6 @@
         list.append(addOffsetButton('Вправо', STEP, 0));
         list.append(addOffsetButton('Вверх', 0, -STEP));
         list.append(addOffsetButton('Вниз', 0, STEP));
-        var rowShowTmdb = addTriggerRow('Показывать TMDB (режим TMDB+Lampa)', 'rating_show_tmdb', true);
-        var rowShowLampa = addTriggerRow('Показывать Lampa (режим TMDB+Lampa)', 'rating_show_lampa', true);
         var rowDisplayMode = addCycleRow('Режим отображения (режим TMDB+Lampa)', 'rating_display_mode', DISPLAY_MODE_LABELS, 'separate');
         var rowOpacity = addNumberRowWithButtons('Прозрачность (0=непрозрачное, 100=макс.)', 'rating_window_opacity', 40, 0, 100, 10, '%');
         var rowScale = addNumberRowWithButtons('Масштаб окон рейтингов', 'rating_scale', 120, 60, 150, 5, '%');
@@ -900,8 +889,6 @@
             Lampa.Storage.set('rating_position', 'top');
             Lampa.Storage.set('rating_offset_x', '0.2');
             Lampa.Storage.set('rating_offset_y', '');
-            Lampa.Storage.set('rating_show_tmdb', 'true');
-            Lampa.Storage.set('rating_show_lampa', 'true');
             Lampa.Storage.set('rating_display_mode', 'separate');
             Lampa.Storage.set('rating_window_opacity', '40');
             Lampa.Storage.set('rating_scale', '120');
@@ -910,8 +897,6 @@
             rowColored.updateVal('Выкл');
             rowColoredWin.updateVal('Выкл');
             rowPosition.updateVal(POSITION_LABELS.top);
-            rowShowTmdb.updateVal('Вкл');
-            rowShowLampa.updateVal('Вкл');
             rowDisplayMode.updateVal(DISPLAY_MODE_LABELS.separate);
             rowOpacity.updateVal('40%');
             rowScale.updateVal('120%');
@@ -1004,7 +989,7 @@
     }
 
     function migrateStorageFormat() {
-        var keys = ['animated_reactions', 'colored_ratings_poster', 'rating_colored_windows', 'rating_show_tmdb', 'rating_show_lampa'];
+        var keys = ['animated_reactions', 'colored_ratings_poster', 'rating_colored_windows'];
         for (var i = 0; i < keys.length; i++) {
             var v = Lampa.Storage.get(keys[i], undefined);
             if (v === '1' || v === 1) Lampa.Storage.set(keys[i], 'true');
