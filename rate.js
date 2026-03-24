@@ -948,7 +948,19 @@
         if (rateLine.length === 0) return false;
         if (rateLine.find('.rate--lampa').length > 0) return true;
         var lampaBlockHtml = '<div class="full-start-new__rate full-start__rate rate--lampa"><div class="rate-value">0.0</div><div class="rate-icon"></div><div class="source--name">LAMPA</div></div>';
-        rateLine.append(lampaBlockHtml);
+        var $line = rateLine.first();
+        var $anchor = $line.find('.full-start-new__rate.rate--tmdb, .full-start-new__rate.rate--kp, .full-start-new__rate.rate--imdb, .full-start__rate.rate--tmdb, .full-start__rate.rate--kp, .full-start__rate.rate--imdb').last();
+        if (!$anchor.length) {
+            $anchor = $line.find('.rate--tmdb, .rate--kp, .rate--imdb').last().closest('.full-start-new__rate, .full-start__rate');
+        }
+        if (!$anchor.length) {
+            $anchor = $line.find('.full-start-new__rate:not(.rate--lampa), .full-start__rate:not(.rate--lampa)').last();
+        }
+        if ($anchor.length) {
+            $anchor.after(lampaBlockHtml);
+        } else {
+            $line.append(lampaBlockHtml);
+        }
         return true;
     }
 
