@@ -704,7 +704,7 @@
         if (!$) return;
         try { if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.close) Lampa.Modal.close(); } catch (err) {}
         setTimeout(function openRatingModalAfterClose() {
-        var SOURCE_LABELS = { tmdb: 'TMDB', lampa: 'Lampa', all: 'Оба' };
+        var SOURCE_LABELS = { tmdb: 'TMDB', lampa: 'Lampa', all: 'tmdb+lampa' };
         var POSITION_LABELS = { top: 'Сверху справа', bottom: 'Снизу справа' };
         var DISPLAY_MODE_LABELS = { single: 'Одно окно', separate: 'Каждый в отдельном окне' };
         var list = $('<div class="menu-edit-list rate-settings-modal"></div>').css({ maxWidth: '100%', overflow: 'hidden', boxSizing: 'border-box', padding: '0.5em 0', pointerEvents: 'auto', cursor: 'default' });
@@ -722,7 +722,7 @@
         function makeRow(label, valueText, onClick) {
             var row = $('<div class="selector menu-edit-list__item rate-settings-row" tabindex="0"></div>').css({
                 display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'center', gap: '0.5em', padding: '0.5em 0.4em', marginBottom: '0.2em',
-                borderRadius: '0.3em', border: '3px solid transparent', boxSizing: 'border-box'
+                borderRadius: '0.35em', border: '3px solid transparent', boxSizing: 'border-box'
             });
             var title = $('<div class="menu-edit-list__title"></div>').css({ minWidth: 0, overflow: 'hidden' }).text(label);
             var val = $('<div class="rate-settings-value"></div>').css({ whiteSpace: 'nowrap', opacity: 0.9 }).text(valueText);
@@ -808,11 +808,11 @@
             Lampa.Storage.set(storageKey, String(val));
             var valEl = $('<div class="rate-settings-value"></div>').css({ whiteSpace: 'nowrap', opacity: 0.9, minWidth: '2.5em', textAlign: 'center' }).text(val + (suffix || ''));
             var btnMinus = $('<div class="selector menu-edit-list__item rate-settings-plusminus-btn" tabindex="0" aria-label="Уменьшить"></div>').text('−').css({
-                width: '2em', minHeight: '2em', padding: 0, borderRadius: '0.25em', border: '2px solid transparent', boxSizing: 'border-box', background: 'rgba(255,255,255,0.12)', fontSize: '1.1em', lineHeight: 1,
+                width: '2em', minHeight: '2em', padding: 0, borderRadius: '0.35em', border: '3px solid transparent', boxSizing: 'border-box', background: 'rgba(255,255,255,0.12)', fontSize: '1.1em', lineHeight: 1,
                 display: 'flex', alignItems: 'center', justifyContent: 'center'
             });
             var btnPlus = $('<div class="selector menu-edit-list__item rate-settings-plusminus-btn" tabindex="0" aria-label="Увеличить"></div>').text('+').css({
-                width: '2em', minHeight: '2em', padding: 0, borderRadius: '0.25em', border: '2px solid transparent', boxSizing: 'border-box', background: 'rgba(255,255,255,0.12)', fontSize: '1.1em', lineHeight: 1,
+                width: '2em', minHeight: '2em', padding: 0, borderRadius: '0.35em', border: '3px solid transparent', boxSizing: 'border-box', background: 'rgba(255,255,255,0.12)', fontSize: '1.1em', lineHeight: 1,
                 display: 'flex', alignItems: 'center', justifyContent: 'center'
             });
             function applyChange(delta) {
@@ -837,7 +837,7 @@
             });
             var row = $('<div class="menu-edit-list__item rate-settings-row rate-settings-number-row"></div>').css({
                 display: 'grid', gridTemplateColumns: '1fr auto auto auto', alignItems: 'center', gap: '0.35em', padding: '0.5em 0.4em', marginBottom: '0.2em',
-                borderRadius: '0.3em', border: '3px solid transparent', boxSizing: 'border-box'
+                borderRadius: '0.35em', border: '3px solid transparent', boxSizing: 'border-box'
             });
             var title = $('<div class="menu-edit-list__title"></div>').css({ minWidth: 0, overflow: 'hidden' }).text(label);
             row.append(title).append(btnMinus).append(valEl).append(btnPlus);
@@ -864,7 +864,7 @@
         }
         function addOffsetButton(text, dx, dy) {
             var btn = $('<div class="selector menu-edit-list__item rate-settings-offset-btn" tabindex="0"></div>').text(text).css({
-                display: 'block', textAlign: 'center', padding: '0.5em 0.4em', marginBottom: '0.2em', borderRadius: '0.3em',
+                display: 'block', textAlign: 'center', padding: '0.5em 0.4em', marginBottom: '0.2em', borderRadius: '0.35em',
                 border: '3px solid transparent', boxSizing: 'border-box', background: 'rgba(255,255,255,0.08)'
             });
             btn.on('hover:enter', function () { applyOffset(dx, dy); });
@@ -886,9 +886,9 @@
         list.append(addOffsetButton('Вправо', STEP, 0));
         list.append(addOffsetButton('Вверх', 0, -STEP));
         list.append(addOffsetButton('Вниз', 0, STEP));
-        var rowShowTmdb = addTriggerRow('Показывать TMDB (режим «Оба»)', 'rating_show_tmdb', true);
-        var rowShowLampa = addTriggerRow('Показывать Lampa (режим «Оба»)', 'rating_show_lampa', true);
-        var rowDisplayMode = addCycleRow('Режим отображения (режим «Оба»)', 'rating_display_mode', DISPLAY_MODE_LABELS, 'separate');
+        var rowShowTmdb = addTriggerRow('Показывать TMDB (режим tmdb+lampa)', 'rating_show_tmdb', true);
+        var rowShowLampa = addTriggerRow('Показывать Lampa (режим tmdb+lampa)', 'rating_show_lampa', true);
+        var rowDisplayMode = addCycleRow('Режим отображения (режим tmdb+lampa)', 'rating_display_mode', DISPLAY_MODE_LABELS, 'separate');
         var rowOpacity = addNumberRowWithButtons('Прозрачность (0=непрозрачное, 100=макс.)', 'rating_window_opacity', 40, 0, 100, 10, '%');
         var rowScale = addNumberRowWithButtons('Масштаб окон рейтингов', 'rating_scale', 120, 60, 150, 5, '%');
 
@@ -921,7 +921,7 @@
             }
         }
         var resetBtn = $('<div class="selector menu-edit-list__item rate-settings-reset" tabindex="0">Сбросить всё по умолчанию</div>').css({
-            display: 'block', textAlign: 'center', padding: '0.6em 0.4em', marginTop: '0.4em', background: 'rgba(200,100,80,0.5)', borderRadius: '0.3em',
+            display: 'block', textAlign: 'center', padding: '0.6em 0.4em', marginTop: '0.4em', background: 'rgba(200,100,80,0.5)', borderRadius: '0.35em',
             border: '3px solid transparent', boxSizing: 'border-box'
         });
         resetBtn.on('hover:enter', resetAllToDefault);
@@ -933,7 +933,7 @@
         list.append(resetBtn);
 
         var closeBtn = $('<div class="selector menu-edit-list__item rate-settings-close" tabindex="0">Готово (закрыть)</div>').css({
-            display: 'block', textAlign: 'center', padding: '0.75em', marginTop: '0.5em', background: 'rgba(66,133,244,0.6)', borderRadius: '0.3em',
+            display: 'block', textAlign: 'center', padding: '0.75em', marginTop: '0.5em', background: 'rgba(66,133,244,0.6)', borderRadius: '0.35em',
             border: '3px solid transparent', boxSizing: 'border-box'
         });
         function closeModal() {
@@ -1015,8 +1015,7 @@
     function applyRequiredDefaults() {
         Lampa.Storage.set('colored_ratings_poster', 'false');
         Lampa.Storage.set('rating_window_opacity', '40');
-        Lampa.Storage.set('rating_offset_x', '0.2');
-        Lampa.Storage.set('rating_offset_y', '');
+        /* Смещения rating_offset_x / rating_offset_y не трогаем — иначе сбрасываются при каждой загрузке Lampa */
         Lampa.Storage.set('rating_display_mode', 'separate');
         Lampa.Storage.set('rating_scale', '120');
     }
@@ -1055,8 +1054,8 @@
         var style = document.createElement('style');
         style.type = 'text/css';
         style.textContent = (
-            '.rate-settings-modal .selector{cursor:pointer!important;pointer-events:auto!important;-webkit-tap-highlight-color:rgba(255,255,255,0.15);user-select:none}' +
-            '.rate-settings-modal .selector.focus{border-color:rgba(255,255,255,0.95)!important;box-shadow:0 0 0 2px rgba(255,255,255,0.95)}' +
+            '.rate-settings-modal .selector{cursor:pointer!important;pointer-events:auto!important;-webkit-tap-highlight-color:rgba(255,255,255,0.15);user-select:none;border:3px solid transparent;box-sizing:border-box;border-radius:0.35em}' +
+            '.rate-settings-modal .selector.focus{border-color:rgba(255,255,255,0.8)!important;box-shadow:none!important}' +
             '.rate-settings-modal .selector:hover{background:rgba(255,255,255,0.08)}' +
             '.rate-settings-modal .selector:active{background:rgba(255,255,255,0.22)!important}' +
             '[data-name="rating_modal_open"] .settings-param__value,[data-name="rating_modal_open"] .settings-param__control,[data-name="rating_modal_open"] input[type="checkbox"]{display:none!important}' +
