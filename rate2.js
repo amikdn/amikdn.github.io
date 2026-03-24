@@ -672,7 +672,8 @@
         var rateLine = $(render).find('.full-start-new__rate-line');
         if (rateLine.length === 0) return false;
         if (rateLine.find('.rate--lampa').length > 0) return true;
-        var lampaBlockHtml = '<div class="full-start__rate rate--lampa"><div class="rate-value">0.0</div><div class="rate-icon"></div><div class="source--name">LAMPA</div></div>';
+        /* full-start-new__rate — как у TMDB/KP/IMDB в новой карточке; иначе блок не в одной flex-строке с остальными */
+        var lampaBlockHtml = '<div class="full-start-new__rate full-start__rate rate--lampa"><div class="rate-value">0.0</div><div class="rate-icon"></div><div class="source--name">LAMPA</div></div>';
         rateLine.append(lampaBlockHtml);
         return true;
     }
@@ -997,12 +998,26 @@
         }
     }
 
+    /** true, если в хранилище ещё нет значения для ключа (нельзя вызывать Storage.set с дефолтами на каждом старте — иначе сбрасываются настройки пользователя). */
+    function isRatingSettingUnset(key) {
+        var sentinel = '__RATE2_NO_VALUE__';
+        return Lampa.Storage.get(key, sentinel) === sentinel;
+    }
+
     function applyRequiredDefaults() {
-        Lampa.Storage.set('colored_ratings_poster', 'false');
-        Lampa.Storage.set('rating_window_opacity', '40');
-        /* Смещения rating_offset_x / rating_offset_y не трогаем — иначе сбрасываются при каждой загрузке Lampa */
-        Lampa.Storage.set('rating_display_mode', 'separate');
-        Lampa.Storage.set('rating_scale', '120');
+        if (isRatingSettingUnset('colored_ratings_poster')) {
+            Lampa.Storage.set('colored_ratings_poster', 'false');
+        }
+        if (isRatingSettingUnset('rating_window_opacity')) {
+            Lampa.Storage.set('rating_window_opacity', '40');
+        }
+        /* Смещения rating_offset_x / rating_offset_y не задаём здесь — пользователь настраивает в модалке */
+        if (isRatingSettingUnset('rating_display_mode')) {
+            Lampa.Storage.set('rating_display_mode', 'separate');
+        }
+        if (isRatingSettingUnset('rating_scale')) {
+            Lampa.Storage.set('rating_scale', '120');
+        }
     }
 
     function addSettings() {
@@ -1070,7 +1085,7 @@
             '@media (min-width:481px){.rate--lampa .source--name.rate-icon-reaction{background-size:72%}.card__vote.rate--lampa img{width:24px!important;height:24px!important;max-width:24px!important;max-height:24px!important;margin-left:6px!important;transform:scale(0.75)!important}}' +
             '.card__vote img[src*=".gif"]{object-fit:contain!important;-webkit-flex-shrink:0;flex-shrink:0}' +
             '.rate--lampa.rate--lampa--animated .rate-icon img{min-width:1em;min-height:1em;object-fit:contain}' +
-            '@media (max-width:480px) and (orientation:portrait){.full-start__rate.rate--lampa{min-width:80px}}'
+            '@media (max-width:480px) and (orientation:portrait){.full-start-new__rate.rate--lampa,.full-start__rate.rate--lampa{min-width:80px}}'
         );
         document.head.appendChild(style);
         applyRatingScale();
