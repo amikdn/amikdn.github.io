@@ -159,13 +159,17 @@
     }
 
     var KP_API_URL = 'https://kinopoiskapiunofficial.tech/';
-    var KP_DEFAULT_KEY = '2a4a0808-81a3-40ae-b0d3-e11335ede616';
     function getKpApiKey() {
-        return Lampa.Storage.get('rating_kp_api_key', '') || Lampa.Storage.get('source_api_key', '') || KP_DEFAULT_KEY;
+        var k = Lampa.Storage.get('rating_kp_api_key', '') || Lampa.Storage.get('source_api_key', '');
+        return String(k || '').trim();
     }
-    // KP_API_HEADERS removed, use getKpHeaders()
+    function canUseKinopoiskApi() {
+        return getKpApiKey().length > 0;
+    }
     function getKpHeaders() {
-        return { 'X-API-KEY': getKpApiKey() };
+        var k = getKpApiKey();
+        if (!k) return {};
+        return { 'X-API-KEY': k };
     }
 
     function findBestKpMatch(results, title, originalTitle, releaseYear) {
@@ -220,6 +224,10 @@
                 return;
             }
         } catch (e) {}
+        if (!canUseKinopoiskApi()) {
+            callback({ kp: 0, imdb: 0 });
+            return;
+        }
         if (item.kinopoisk_id) {
             addToQueue(function () {
                 var request = getRequest();
@@ -614,8 +622,10 @@
         var parent = getRatingParent(card);
         var sources = [];
         if (isRatingSourceVisible('tmdb')) sources.push('tmdb');
-        if (isRatingSourceVisible('imdb')) sources.push('imdb');
-        if (isRatingSourceVisible('kp')) sources.push('kp');
+        if (canUseKinopoiskApi()) {
+            if (isRatingSourceVisible('imdb')) sources.push('imdb');
+            if (isRatingSourceVisible('kp')) sources.push('kp');
+        }
         if (isRatingSourceVisible('lampa')) sources.push('lampa');
         var wrapper = document.createElement('div');
         wrapper.className = voteClass('card__vote-separate-wrap');
@@ -705,9 +715,11 @@
             if (isSeparate) {
                 createRatingSeparateElements(card);
                 updateCardRatingSeparate(card, data);
-                getKinopoiskRating(data, function () {
-                    if (card.parentNode && document.body.contains(card)) updateCardRatingSeparate(card, data);
-                });
+                if (canUseKinopoiskApi()) {
+                    getKinopoiskRating(data, function () {
+                        if (card.parentNode && document.body.contains(card)) updateCardRatingSeparate(card, data);
+                    });
+                }
                 var lampaKey = (data.seasons || data.first_air_date || data.original_name) ? 'tv_' + data.id : 'movie_' + data.id;
                 getLampaRating(lampaKey).then(function () {
                     if (card.parentNode && document.body.contains(card)) updateCardRatingSeparate(card, data);
@@ -718,7 +730,7 @@
                 ratingElement.dataset.movieId = data.id.toString();
                 ratingElement.style.display = '';
                 updateCardRatingLine(ratingElement, data);
-                if (!ratingElement.dataset.kpRequested) {
+                if (canUseKinopoiskApi() && !ratingElement.dataset.kpRequested) {
                     ratingElement.dataset.kpRequested = String(Date.now());
                     getKinopoiskRating(data, function () {
                         if (ratingElement.parentNode && ratingElement.dataset.movieId === data.id.toString()) {
@@ -981,7 +993,7 @@
         function makeRow(label, valueText, onClick) {
             var row = $('<div class="selector menu-edit-list__item rate-settings-row" tabindex="0"></div>').css({
                 display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'center', gap: '0.5em', padding: '0.5em 0.4em', marginBottom: '0.2em',
-                borderRadius: '0.3em', border: '3px solid transparent', boxSizing: 'border-box'
+                borderRadius: '0.35em', border: '3px solid transparent', boxSizing: 'border-box'
             });
             var title = $('<div class="menu-edit-list__title"></div>').css({ minWidth: 0, overflow: 'hidden' }).text(label);
             var val = $('<div class="rate-settings-value"></div>').css({ whiteSpace: 'nowrap', opacity: 0.9 }).text(valueText);
@@ -1067,11 +1079,11 @@
             Lampa.Storage.set(storageKey, String(val));
             var valEl = $('<div class="rate-settings-value"></div>').css({ whiteSpace: 'nowrap', opacity: 0.9, minWidth: '2.5em', textAlign: 'center' }).text(val + (suffix || ''));
             var btnMinus = $('<div class="selector menu-edit-list__item rate-settings-plusminus-btn" tabindex="0" aria-label="Уменьшить"></div>').text('−').css({
-                width: '2em', minHeight: '2em', padding: 0, borderRadius: '0.25em', border: '2px solid transparent', boxSizing: 'border-box', background: 'rgba(255,255,255,0.12)', fontSize: '1.1em', lineHeight: 1,
+                width: '2em', minHeight: '2em', padding: 0, borderRadius: '0.35em', border: '3px solid transparent', boxSizing: 'border-box', background: 'rgba(255,255,255,0.12)', fontSize: '1.1em', lineHeight: 1,
                 display: 'flex', alignItems: 'center', justifyContent: 'center'
             });
             var btnPlus = $('<div class="selector menu-edit-list__item rate-settings-plusminus-btn" tabindex="0" aria-label="Увеличить"></div>').text('+').css({
-                width: '2em', minHeight: '2em', padding: 0, borderRadius: '0.25em', border: '2px solid transparent', boxSizing: 'border-box', background: 'rgba(255,255,255,0.12)', fontSize: '1.1em', lineHeight: 1,
+                width: '2em', minHeight: '2em', padding: 0, borderRadius: '0.35em', border: '3px solid transparent', boxSizing: 'border-box', background: 'rgba(255,255,255,0.12)', fontSize: '1.1em', lineHeight: 1,
                 display: 'flex', alignItems: 'center', justifyContent: 'center'
             });
             function applyChange(delta) {
@@ -1096,7 +1108,7 @@
             });
             var row = $('<div class="menu-edit-list__item rate-settings-row rate-settings-number-row"></div>').css({
                 display: 'grid', gridTemplateColumns: '1fr auto auto auto', alignItems: 'center', gap: '0.35em', padding: '0.5em 0.4em', marginBottom: '0.2em',
-                borderRadius: '0.3em', border: '3px solid transparent', boxSizing: 'border-box'
+                borderRadius: '0.35em', border: '3px solid transparent', boxSizing: 'border-box'
             });
             var title = $('<div class="menu-edit-list__title"></div>').css({ minWidth: 0, overflow: 'hidden' }).text(label);
             row.append(title).append(btnMinus).append(valEl).append(btnPlus);
@@ -1123,7 +1135,7 @@
         }
         function addOffsetButton(text, dx, dy) {
             var btn = $('<div class="selector menu-edit-list__item rate-settings-offset-btn" tabindex="0"></div>').text(text).css({
-                display: 'block', textAlign: 'center', padding: '0.5em 0.4em', marginBottom: '0.2em', borderRadius: '0.3em',
+                display: 'block', textAlign: 'center', padding: '0.5em 0.4em', marginBottom: '0.2em', borderRadius: '0.35em',
                 border: '3px solid transparent', boxSizing: 'border-box', background: 'rgba(255,255,255,0.08)'
             });
             btn.on('hover:enter', function () { applyOffset(dx, dy); });
@@ -1153,6 +1165,29 @@
         var rowOpacity = addNumberRowWithButtons('Прозрачность (0=непрозрачное, 100=макс.)', 'rating_window_opacity', 0, 0, 100, 10, '%');
         var rowScale = addNumberRowWithButtons('Масштаб окон рейтингов', 'rating_scale', 100, 60, 150, 5, '%');
 
+        function kpApiKeyRowText() {
+            var k = String(Lampa.Storage.get('rating_kp_api_key', '') || Lampa.Storage.get('source_api_key', '') || '').trim();
+            if (!k) return 'не задан';
+            return 'задан · ' + k.slice(0, 4) + '…';
+        }
+        var rowKpKey = makeRow('API-ключ КиноПоиск', kpApiKeyRowText(), function (rowEl, valEl) {
+            if (typeof Lampa.Input !== 'undefined' && typeof Lampa.Input.edit === 'function') {
+                Lampa.Input.edit({
+                    free: true,
+                    title: 'API-ключ kinopoiskapiunofficial.tech',
+                    nosave: true,
+                    value: String(Lampa.Storage.get('rating_kp_api_key', '') || ''),
+                    nomic: true
+                }, function (raw) {
+                    Lampa.Storage.set('rating_kp_api_key', (raw || '').trim());
+                    valEl.text(kpApiKeyRowText());
+                    applyRatingSettingsRefresh();
+                });
+            }
+        });
+        rowKpKey.updateVal(kpApiKeyRowText());
+        list.append(rowKpKey.row);
+
         function resetAllToDefault() {
             Lampa.Storage.set('rating_source', 'tmdb');
             Lampa.Storage.set('animated_reactions', 'false');
@@ -1181,14 +1216,14 @@
             rowDisplayMode.updateVal(DISPLAY_MODE_LABELS.single);
             rowOpacity.updateVal('30%');
             rowScale.updateVal('100%');
-            Lampa.Storage.set('rating_kp_api_key', '');
+            rowKpKey.updateVal(kpApiKeyRowText());
             applyRatingSettingsRefresh();
             if (typeof Lampa.Noty !== 'undefined' && Lampa.Noty.show) {
                 try { Lampa.Noty.show('Настройки рейтингов сброшены'); } catch (e) {}
             }
         }
         var resetBtn = $('<div class="selector menu-edit-list__item rate-settings-reset" tabindex="0">Сбросить всё по умолчанию</div>').css({
-            display: 'block', textAlign: 'center', padding: '0.6em 0.4em', marginTop: '0.4em', background: 'rgba(200,100,80,0.5)', borderRadius: '0.3em',
+            display: 'block', textAlign: 'center', padding: '0.6em 0.4em', marginTop: '0.4em', background: 'rgba(200,100,80,0.5)', borderRadius: '0.35em',
             border: '3px solid transparent', boxSizing: 'border-box'
         });
         resetBtn.on('hover:enter', resetAllToDefault);
@@ -1200,7 +1235,7 @@
         list.append(resetBtn);
 
         var closeBtn = $('<div class="selector menu-edit-list__item rate-settings-close" tabindex="0">Готово (закрыть)</div>').css({
-            display: 'block', textAlign: 'center', padding: '0.75em', marginTop: '0.5em', background: 'rgba(66,133,244,0.6)', borderRadius: '0.3em',
+            display: 'block', textAlign: 'center', padding: '0.75em', marginTop: '0.5em', background: 'rgba(66,133,244,0.6)', borderRadius: '0.35em',
             border: '3px solid transparent', boxSizing: 'border-box'
         });
         function closeModal() {
@@ -1238,19 +1273,6 @@
         return element && (element.nodeType === 1 ? element : (element[0] || (element.get && element.get(0))));
     }
 
-    function isInlineMode() {
-        var v = Lampa.Storage.get('rating_settings_inline', false);
-        return (v === true || v === 'true' || v === '1' || v === 1);
-    }
-
-    function applyInlineMode() {
-        if (isInlineMode()) {
-            document.body.classList.add('rating-inline-mode');
-        } else {
-            document.body.classList.remove('rating-inline-mode');
-        }
-    }
-
     function positionAfter(element, anchorName) {
         setTimeout(function () {
             var node = getNode(element);
@@ -1259,15 +1281,6 @@
                 anchor.parentNode.insertBefore(node, anchor.nextSibling);
             }
         }, 0);
-    }
-
-    function generateSelectValues(min, max, step, suffix) {
-        var vals = {};
-        for (var i = min; i <= max; i += step) {
-            var k = String(Math.round(i * 100) / 100);
-            vals[k] = k + (suffix || '');
-        }
-        return vals;
     }
 
     function migrateStorageFormat() {
@@ -1282,74 +1295,13 @@
     function addSettings() {
         if (!Lampa.SettingsApi) return;
         migrateStorageFormat();
-        applyInlineMode();
-
-        Lampa.SettingsApi.addParam({
-            component: 'interface',
-            param: { name: 'rating_settings_inline', type: 'trigger', default: false },
-            field: { name: 'Настройки рейтингов в меню Lampa', description: 'Вкл — настройки прямо здесь. Выкл — в модальном окне' },
-            onRender: function (element) { positionAfter(element, 'interface_size'); },
-            onChange: function () { applyInlineMode(); }
-        });
 
         Lampa.SettingsApi.addParam({
             component: 'interface',
             param: { name: 'rating_modal_open', type: 'trigger', default: false },
             field: { name: 'Настройки рейтингов (модальное окно)', description: 'Открыть окно настроек рейтингов' },
-            onRender: function (element) { positionAfter(element, 'rating_settings_inline'); },
+            onRender: function (element) { positionAfter(element, 'interface_size'); },
             onChange: function () { openRatingSettingsModal(); }
-        });
-
-        var inlineParams = [
-            { param: { name: 'rating_source', type: 'select', values: { tmdb: 'TMDB', lampa: 'Lampa', kp: 'КиноПоиск', imdb: 'IMDB', all: 'Все' }, default: 'tmdb' }, field: { name: 'Источник рейтинга' } },
-            { param: { name: 'rating_display_mode', type: 'select', values: { single: 'Одно окно', separate: 'Каждый в отдельном окне' }, default: 'single' }, field: { name: 'Режим отображения (при «Все»)' } },
-            { param: { name: 'rating_position', type: 'select', values: { top: 'Сверху справа', bottom: 'Снизу справа' }, default: 'top' }, field: { name: 'Позиция на постере' } },
-            { param: { name: 'animated_reactions', type: 'trigger', default: false }, field: { name: 'Анимированные реакции на постерах' } },
-            { param: { name: 'colored_ratings_poster', type: 'trigger', default: true }, field: { name: 'Цветные рейтинги (цифры)' } },
-            { param: { name: 'rating_colored_windows', type: 'trigger', default: false }, field: { name: 'Цветные окна (цифры белые)' } },
-            { param: { name: 'rating_show_tmdb', type: 'trigger', default: true }, field: { name: 'Показывать TMDB (при «Все»)' } },
-            { param: { name: 'rating_show_imdb', type: 'trigger', default: true }, field: { name: 'Показывать IMDB (при «Все»)' } },
-            { param: { name: 'rating_show_kp', type: 'trigger', default: true }, field: { name: 'Показывать КиноПоиск (при «Все»)' } },
-            { param: { name: 'rating_show_lampa', type: 'trigger', default: true }, field: { name: 'Показывать Lampa (при «Все»)' } },
-            { param: { name: 'rating_window_opacity', type: 'select', values: generateSelectValues(0, 100, 10, '%'), default: '0' }, field: { name: 'Прозрачность окон' } },
-            { param: { name: 'rating_scale', type: 'select', values: generateSelectValues(60, 150, 5, '%'), default: '100' }, field: { name: 'Масштаб окон рейтингов' } },
-            { param: { name: 'rating_offset_x', type: 'input', values: '', default: '0' }, field: { name: 'Смещение по горизонтали (−5…5)', description: 'Введите число' } },
-            { param: { name: 'rating_offset_y', type: 'input', values: '', default: '0' }, field: { name: 'Смещение по вертикали (−5…5)', description: 'Введите число' } }
-        ];
-
-        var prevName = 'rating_modal_open';
-        for (var i = 0; i < inlineParams.length; i++) {
-            (function (p, after) {
-                Lampa.SettingsApi.addParam({
-                    component: 'interface',
-                    param: p.param,
-                    field: p.field,
-                    onRender: function (element) {
-                        var node = getNode(element);
-                        if (node) node.classList.add('rating-inline-param');
-                        positionAfter(element, after);
-                    },
-                    onChange: function (value) {
-                        if (p.param.name === 'colored_ratings_poster') {
-                            setColoredRatingsPoster(value === 'true' || value === true);
-                        }
-                        applyRatingSettingsRefresh();
-                    }
-                });
-            })(inlineParams[i], prevName);
-            prevName = inlineParams[i].param.name;
-        }
-
-        var lastInlineParam = prevName;
-        Lampa.SettingsApi.addParam({
-            component: 'interface',
-            param: { name: 'rating_kp_api_key', type: 'input', values: '', default: '' },
-            field: { name: 'API-KEY KinoPoisk (рейтинги)', description: 'Ключ kinopoiskapiunofficial.tech. Пустое — ключ по умолчанию' },
-            onRender: function (element) {
-                var node = getNode(element);
-                if (node) node.classList.add('rating-inline-param');
-                positionAfter(element, lastInlineParam);
-            }
         });
     }
 
@@ -1372,14 +1324,11 @@
         var style = document.createElement('style');
         style.type = 'text/css';
         style.textContent = (
-            '.rate-settings-modal .selector{cursor:pointer!important;pointer-events:auto!important;-webkit-tap-highlight-color:rgba(255,255,255,0.15);user-select:none}' +
-            '.rate-settings-modal .selector.focus{border-color:rgba(255,255,255,0.95)!important;box-shadow:0 0 0 2px rgba(255,255,255,0.95)}' +
+            '.rate-settings-modal .selector{cursor:pointer!important;pointer-events:auto!important;-webkit-tap-highlight-color:rgba(255,255,255,0.15);user-select:none;border:3px solid transparent;box-sizing:border-box;border-radius:0.35em}' +
+            '.rate-settings-modal .selector.focus{border-color:rgba(255,255,255,0.8)!important;box-shadow:none!important}' +
             '.rate-settings-modal .selector:hover{background:rgba(255,255,255,0.08)}' +
             '.rate-settings-modal .selector:active{background:rgba(255,255,255,0.22)!important}' +
             '[data-name="rating_modal_open"] .settings-param__value,[data-name="rating_modal_open"] .settings-param__control,[data-name="rating_modal_open"] input[type="checkbox"]{display:none!important}' +
-            '[data-name="rating_settings_inline"] .settings-param__value{pointer-events:none}' +
-            '.rating-inline-mode [data-name="rating_modal_open"]{display:none!important}' +
-            'body:not(.rating-inline-mode) .rating-inline-param{display:none!important}' +
             '.card .card__view{position:relative!important}' +
             '.card__view > .card__vote:not(.card__vote--top):not(.card__vote--bottom):not(.card__vote-line):not(.card__vote-separate-wrap):not(.card__vote--separate){display:none!important}' +
             '.card__vote{display:-webkit-box;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center!important;height:auto!important;overflow:visible!important;position:absolute!important;z-index:1!important;border-radius:4px!important;width:auto!important;min-width:0!important;max-width:100%!important;box-sizing:border-box!important;transform:scale(var(--rating-scale,1))!important;padding:2px 5px!important;line-height:1!important;white-space:nowrap!important;font-size:12px!important}' +
