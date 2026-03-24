@@ -2,7 +2,7 @@
 (function() {
     'use strict';
 
-    var PLUGIN_VERSION = '1.58';
+    var PLUGIN_VERSION = '1.59';
 
     /** Тип события открытия полной карточки (в Lampa используется "complite") */
     var FULL_EVENT_TYPE = 'complite';
@@ -256,23 +256,46 @@
         return map;
     }
 
+    function focusModalController() {
+        setTimeout(function() {
+            try {
+                if (Lampa.Controller && typeof Lampa.Controller.toggle === 'function') {
+                    Lampa.Controller.toggle('modal');
+                }
+            } catch (e) {
+                logDebug('focusModalController', e);
+            }
+        }, 120);
+    }
+
+    function closeModalSafe() {
+        try {
+            if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.close) {
+                Lampa.Modal.close();
+            }
+        } catch (e) {
+            logDebug('closeModalSafe', e);
+        }
+    }
+
     function reopenButtonEditorAfterColorPicker(refreshLayoutFirst) {
+        closeModalSafe();
         if (refreshLayoutFirst) {
             applyChanges();
         }
         setTimeout(function() {
             openEditDialog();
-        }, 250);
+        }, 280);
     }
 
     function openColorPickerModal(targetId) {
         var isGlobal = !targetId;
         var perColors = getPerButtonIconColors();
         var currentHex = isGlobal ? getGlobalIconColor() : (perColors[targetId] || '');
-        var wrap = $('<div class="ci-color-picker-wrap" style="padding: 0 1em 1em 1em;"></div>');
+        var wrap = $('<div class="ci-color-picker-wrap"></div>');
         var isUnset = !currentHex;
         var defaultRingStyle = isUnset ? 'box-shadow: inset 0 0 0 2px #fff;' : '';
-        var defaultRow = $('<div class="selector color-picker-default" style="display: flex; align-items: center; gap: 1em; padding: 0 1em; height: 3.8em; background: rgba(255,255,255,0.05); border-radius: 0.5em; margin-bottom: 1em; box-sizing: border-box; ' + defaultRingStyle + '">' +
+        var defaultRow = $('<div class="selector color-picker-default" tabindex="0" style="display: flex; align-items: center; gap: 1em; padding: 0 1em; min-height: 3.8em; background: rgba(255,255,255,0.05); border-radius: 0.5em; box-sizing: border-box; border: 2px solid transparent; ' + defaultRingStyle + '">' +
             '<div style="width: 1.5em; height: 1.5em; border-radius: 50%; background: #ccc; flex-shrink: 0;"></div>' +
             '<span style="font-weight:bold; font-size: 1.05em;">Стандартный</span></div>');
         defaultRow.on('hover:enter', function() {
@@ -280,12 +303,10 @@
         });
         wrap.append(defaultRow);
 
-        var hexRow = $('<div class="selector color-picker-hex" style="display: flex; align-items: center; justify-content: space-between; padding: 0 1em; height: 3.8em; background: rgba(255,255,255,0.05); border-radius: 0.5em; margin-bottom: 1em; box-sizing: border-box;"><span style="font-weight:bold; font-size: 1.05em;">Код цвета (HEX)</span>' +
+        var hexRow = $('<div class="selector color-picker-hex" tabindex="0" style="display: flex; align-items: center; justify-content: space-between; padding: 0 1em; min-height: 3.8em; background: rgba(255,255,255,0.05); border-radius: 0.5em; box-sizing: border-box; border: 2px solid transparent;"><span style="font-weight:bold; font-size: 1.05em;">Код цвета (HEX)</span>' +
             '<span class="hex-value" style="opacity: 0.7; font-size: 1.1em;">' + (currentHex || '#') + '</span></div>');
         hexRow.on('hover:enter', function() {
-            if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.close) {
-                Lampa.Modal.close();
-            }
+            closeModalSafe();
             setTimeout(function() {
                 if (typeof Lampa.Input !== 'undefined' && typeof Lampa.Input.edit === 'function') {
                     Lampa.Input.edit({
@@ -302,22 +323,22 @@
                         applyPickedColor(targetId, trimmedHex);
                     });
                 }
-            }, 250);
+            }, 280);
         });
         wrap.append(hexRow);
 
-        var grid = $('<div class="color-picker-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(3.5em, 1fr)); justify-items: center; gap: 0.8em; padding-bottom: 1em;"></div>');
         colorPickerPaletteHexes.forEach(function(paletteHex) {
-            var cell = $('<div class="selector color-picker-cell" style="width: 3.5em; height: 3.5em; flex-shrink: 0; border-radius: 50%; background-color: ' + paletteHex + ' !important; border: 2px solid transparent; transition: transform 0.2s;"></div>');
+            var row = $('<div class="selector color-picker-swatch-row" tabindex="0" style="display: flex; align-items: center; gap: 1em; padding: 0 1em; min-height: 3.6em; width: 100%; max-width: 100%; box-sizing: border-box; background: rgba(255,255,255,0.05); border-radius: 0.5em; border: 2px solid transparent;">' +
+                '<div class="color-picker-swatch-dot" style="width: 2em; height: 2em; border-radius: 50%; flex-shrink: 0; background-color: ' + paletteHex + ' !important;"></div>' +
+                '<span style="font-size: 1.05em; opacity: 0.95;">' + paletteHex + '</span></div>');
             if (currentHex && paletteHex.toLowerCase() === String(currentHex).toLowerCase()) {
-                cell.addClass('ci-picker-selected');
+                row.addClass('ci-picker-selected');
             }
-            cell.on('hover:enter', function() {
+            row.on('hover:enter', function() {
                 applyPickedColor(targetId, paletteHex);
             });
-            grid.append(cell);
+            wrap.append(row);
         });
-        wrap.append(grid);
 
         function applyPickedColor(buttonId, hex) {
             if (isGlobal) {
@@ -336,24 +357,25 @@
                     $(this).data('ci_force_reset', true);
                 });
             }
-            if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.close) {
-                Lampa.Modal.close();
-            }
+            closeModalSafe();
             reopenButtonEditorAfterColorPicker(true);
         }
 
-        if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.close) {
-            Lampa.Modal.close();
-        }
+        closeModalSafe();
         setTimeout(function() {
             Lampa.Modal.open({
                 title: 'Цвет иконок',
                 html: wrap,
                 size: 'medium',
+                scroll_to_center: true,
                 onBack: function() {
-                    reopenButtonEditorAfterColorPicker(false);
+                    closeModalSafe();
+                    setTimeout(function() {
+                        reopenButtonEditorAfterColorPicker(false);
+                    }, 200);
                 }
             });
+            focusModalController();
         }, 250);
     }
 
@@ -1726,7 +1748,7 @@
             Lampa.Modal.close();
             openCreateFolderDialog();
         });
-        var globalIconColorBtn = $('<div class="selector viewmode-switch" style="background: rgba(155, 89, 182, 0.35); margin: 0.5em 0 0 0;"><div style="text-align: center; padding: 1em;">Цвет иконок (для всех)</div></div>');
+        var globalIconColorBtn = $('<div class="selector viewmode-switch viewmode-switch--icon-color"><div style="text-align: center; padding: 1em;">Цвет иконок (для всех)</div></div>');
         globalIconColorBtn.on('hover:enter', function() {
             if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.close) {
                 Lampa.Modal.close();
@@ -1766,7 +1788,7 @@
                 '<div class="menu-edit-list__title">' + escapeHtml(folder.name) + ' <span style="opacity:0.5">(' + folder.buttons.length + ')</span></div>' +
                 '<div class="menu-edit-list__change-name selector" title="Сменить название">' +
                 '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" width="18" height="18"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" stroke="currentColor" stroke-width="1.5"/></svg></div>' +
-                '<div class="menu-edit-list__change-icon selector">' +
+                '<div class="menu-edit-list__change-icon selector" title="Сменить иконку">' +
                 '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg></div>' +
                 '<div class="menu-edit-list__change-color selector" title="Цвет иконки">' + iconSvgPalette() + '</div>' +
                 '<div class="menu-edit-list__move move-up selector"><svg width="22" height="14" viewBox="0 0 22 14" fill="none"><path d="M2 12L11 3L20 12" stroke="currentColor" stroke-width="4" stroke-linecap="round"/></svg></div>' +
@@ -1916,7 +1938,7 @@
                 '<div class="menu-edit-list__title"></div>' +
                 '<div class="menu-edit-list__change-name selector" title="Сменить название">' +
                 '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" width="18" height="18"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" stroke="currentColor" stroke-width="1.5"/></svg></div>' +
-                '<div class="menu-edit-list__change-icon selector menu-edit-list__icon-cell">' +
+                '<div class="menu-edit-list__change-icon selector menu-edit-list__icon-cell" title="Сменить иконку">' +
                 '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>' +
                 '</div>' +
                 '<div class="menu-edit-list__change-color selector" title="Цвет иконки">' + iconSvgPalette() + '</div>' +
@@ -2114,7 +2136,10 @@
                 Lampa.Controller.toggle('full_start');
             }
         });
-        setTimeout(syncModalFont, 250);
+        setTimeout(function() {
+            syncModalFont();
+            focusModalController();
+        }, 250);
     }
 
     function reorderButtons(container) {
@@ -2334,6 +2359,9 @@
             '.folder-create-confirm { background: rgba(100,200,100,0.3); margin-top: 1em; border-radius: 0.3em; border: 3px solid transparent; }' +
             '.folder-create-confirm.focus { border-color: rgba(255,255,255,0.8); }' +
             '.menu-edit-list__move.focus, .menu-edit-list__change-name.focus, .menu-edit-list__change-icon.focus, .menu-edit-list__change-color.focus, .menu-edit-list__toggle.focus, .menu-edit-list__delete.focus { border-color: rgba(255,255,255,0.8); }' +
+            '.viewmode-switch--icon-color { background: rgba(155, 89, 182, 0.35) !important; }' +
+            '.ci-color-picker-wrap { width: 100%; max-width: 100%; padding: 0 0.25em 0.75em; box-sizing: border-box; display: flex; flex-direction: column; gap: 0.45em; font-family: var(--buttons-plugin-modal-font, inherit); font-size: var(--buttons-plugin-modal-font-size, inherit); }' +
+            '.ci-color-picker-wrap .color-picker-default.focus, .ci-color-picker-wrap .color-picker-hex.focus, .ci-color-picker-wrap .color-picker-swatch-row.focus { border-color: rgba(255,255,255,0.85) !important; }' +
             '.ci-picker-selected { box-shadow: inset 0 0 0 2px #fff !important; }' +
             '.buttons-plugin-scope .full-start-new__buttons.icons-only .full-start__button span { display: none; }' +
             '.buttons-plugin-scope .full-start-new__buttons.always-text .full-start__button span { display: block !important; }' +
