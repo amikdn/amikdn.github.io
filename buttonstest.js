@@ -2,7 +2,7 @@
 (function() {
     'use strict';
 
-    var PLUGIN_VERSION = '1.62';
+    var PLUGIN_VERSION = '1.63';
 
     /** Тип события открытия полной карточки (в Lampa используется "complite") */
     var FULL_EVENT_TYPE = 'complite';
@@ -835,7 +835,7 @@
 
     function openIconPicker(btn, btnId, defaultIconHtml, listItem) {
         var seenForJsonDedupe = {};
-        var wrap = $('<div class="icon-picker-wrap"></div>');
+        var wrap = $('<div class="icon-picker-wrap buttons-plugin-icon-picker"></div>');
         var defaultBlock = $('<div class="selector icon-picker-default" tabindex="0">' +
             '<div class="icon-picker-default__preview"></div>' +
             '<span>По умолчанию</span></div>');
@@ -893,8 +893,8 @@
             Lampa.Modal.open({
                 title: 'Иконка кнопки',
                 html: wrap,
-                size: 'small',
-                scroll_to_center: true,
+                size: 'medium',
+                scroll_to_center: false,
                 onBack: function() {
                     if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.close) {
                         Lampa.Modal.close();
@@ -1509,7 +1509,7 @@
     function openFolderIconPicker(folder, listItem) {
         var defaultIconHtml = getDefaultIconForFolder(folder);
         var seenForJsonDedupe = {};
-        var wrap = $('<div class="icon-picker-wrap"></div>');
+        var wrap = $('<div class="icon-picker-wrap buttons-plugin-icon-picker"></div>');
         var defaultBlock = $('<div class="selector icon-picker-default" tabindex="0">' +
             '<div class="icon-picker-default__preview"></div>' +
             '<span>По умолчанию</span></div>');
@@ -1557,8 +1557,8 @@
             Lampa.Modal.open({
                 title: 'Иконка папки',
                 html: wrap,
-                size: 'small',
-                scroll_to_center: true,
+                size: 'medium',
+                scroll_to_center: false,
                 onBack: function() {
                     if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.close) Lampa.Modal.close();
                     setTimeout(function() { refreshController(); }, DELAY_AFTER_APPLY_MS);
@@ -1771,13 +1771,9 @@
     }
 
     function syncModalFont() {
-            var el = document.querySelector('.menu-edit-list__title');
-            if (el) {
-                var s = window.getComputedStyle(el);
-                document.body.style.setProperty('--buttons-plugin-modal-font', s.fontFamily);
-                document.body.style.setProperty('--buttons-plugin-modal-font-size', s.fontSize);
-            }
-        }
+        /* Раньше сюда писали CSS‑переменные на body после открытия модалки — шрифт/размер
+         * пересчитывались и окно визуально «прыгало». Наследуем шрифт от модалки Lampa (inherit). */
+    }
 
     function openEditDialog() {
         var folders = getFolders();
@@ -2418,18 +2414,20 @@
             '.menu-edit-list__item { display: grid; grid-template-columns: 2.5em minmax(0, 1fr) 2.4em 2.4em 2.4em 2.4em 2.4em 2.4em; align-items: center; gap: 0.35em; padding: 0.2em 0; box-sizing: border-box; }' +
             '.menu-edit-list__item .menu-edit-list__icon { width: 2.5em; min-width: 2.5em; height: 2.5em; display: flex; align-items: center; justify-content: center; box-sizing: border-box; }' +
             '.menu-edit-list__item .menu-edit-list__icon svg { width: 1.4em; height: 1.4em; }' +
-            '.menu-edit-list__item .menu-edit-list__title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--buttons-plugin-modal-font, inherit); font-size: var(--buttons-plugin-modal-font-size, inherit); }' +
+            '.menu-edit-list__item .menu-edit-list__title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: inherit; font-size: inherit; }' +
             '.menu-edit-list__item .menu-edit-list__move, .menu-edit-list__item .menu-edit-list__change-name, .menu-edit-list__item .menu-edit-list__change-icon, .menu-edit-list__item .menu-edit-list__change-color, .menu-edit-list__item .menu-edit-list__toggle, .menu-edit-list__item .menu-edit-list__delete { width: 2.4em; min-width: 2.4em; height: 2.4em; display: flex; align-items: center; justify-content: center; box-sizing: border-box; border: 2px solid transparent; border-radius: 0.3em; }' +
             '.menu-edit-list__item .menu-edit-list__move svg { width: 1.2em; height: 0.75em; }' +
             '.menu-edit-list__item .menu-edit-list__toggle svg { width: 1.2em; height: 1.2em; }' +
             '.menu-edit-list__item .menu-edit-list__change-name svg, .menu-edit-list__item .menu-edit-list__change-icon svg, .menu-edit-list__item .menu-edit-list__change-color svg { width: 1.2em; height: 1.2em; }' +
-            '.viewmode-switch, .folder-reset-button { max-width: 100%; box-sizing: border-box; white-space: normal; word-break: break-word; font-family: var(--buttons-plugin-modal-font, inherit); font-size: var(--buttons-plugin-modal-font-size, inherit); }' +
+            '.viewmode-switch:not(.menu-edit-list__toolbar-block), .folder-reset-button { max-width: 100%; box-sizing: border-box; white-space: normal; word-break: break-word; font-family: inherit; font-size: inherit; }' +
             '.folder-reset-button { background: rgba(200,100,100,0.3); margin-top: 1em; border-radius: 0.3em; border: 3px solid transparent; }' +
             '.folder-reset-button.focus { border-color: rgba(255,255,255,0.8); }' +
             '.menu-edit-list__toolbar-stack { display: flex; flex-direction: column; gap: 0.55em; margin-bottom: 0.65em; width: 100%; max-width: 100%; box-sizing: border-box; align-items: stretch; }' +
             '.menu-edit-list__toolbar-stack > .menu-edit-list__toolbar-block, .menu-edit-list__toolbar-stack > .menu-edit-list__create-folder { margin-bottom: 0 !important; flex: 0 0 auto; }' +
-            '.menu-edit-list__toolbar-block { border-radius: 0.35em; border: 3px solid transparent; box-sizing: border-box; padding: 0 1em; min-height: 3.5em; height: 3.5em; display: flex !important; align-items: center; justify-content: center; }' +
-            '.menu-edit-list__create-folder { gap: 0; background: rgba(34, 139, 34, 0.6) !important; min-height: 3.5em !important; height: 3.5em !important; padding: 0 1em !important; }' +
+            '.menu-edit-list__toolbar-stack > .menu-edit-list__toolbar-block, .menu-edit-list__toolbar-stack > .menu-edit-list__create-folder { height: 3.5em; min-height: 3.5em !important; max-height: 3.5em !important; overflow: hidden; line-height: 1.25; }' +
+            '.menu-edit-list__toolbar-block { border-radius: 0.35em; border: 3px solid transparent; box-sizing: border-box; padding: 0 1em; display: flex !important; align-items: center; justify-content: center; }' +
+            '.menu-edit-list__create-folder { gap: 0; background: rgba(34, 139, 34, 0.6) !important; padding: 0 1em !important; }' +
+            '.menu-edit-list__toolbar-block.viewmode-switch { white-space: nowrap !important; word-break: normal !important; }' +
             '.menu-edit-list__create-folder-spacer { flex: 1; min-width: 0; }' +
             '.menu-edit-list__create-folder-inner { display: flex; align-items: center; gap: 0.5em; flex-shrink: 0; }' +
             '.menu-edit-list__create-folder .menu-edit-list__icon { width: 1.5em; min-width: 1.5em; height: 1.5em; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }' +
@@ -2446,7 +2444,7 @@
             '.folder-create-confirm.focus { border-color: rgba(255,255,255,0.8); }' +
             '.menu-edit-list__move.focus, .menu-edit-list__change-name.focus, .menu-edit-list__change-icon.focus, .menu-edit-list__change-color.focus, .menu-edit-list__toggle.focus, .menu-edit-list__delete.focus { border-color: rgba(255,255,255,0.8); }' +
             '.viewmode-switch--icon-color { background: rgba(0, 131, 143, 0.52) !important; }' +
-            '.ci-color-picker-wrap { width: 100%; max-width: 100%; padding: 0 0.25em 0.75em; box-sizing: border-box; display: flex; flex-direction: column; gap: 0.45em; font-family: var(--buttons-plugin-modal-font, inherit); font-size: var(--buttons-plugin-modal-font-size, inherit); }' +
+            '.ci-color-picker-wrap { width: 100%; max-width: 100%; padding: 0 0.25em 0.75em; box-sizing: border-box; display: flex; flex-direction: column; gap: 0.45em; font-family: inherit; font-size: inherit; }' +
             '.ci-color-picker-wrap .color-picker-default.focus, .ci-color-picker-wrap .color-picker-hex.focus { border-color: rgba(255,255,255,0.85) !important; }' +
             '.color-picker-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(2.85em, 1fr)); justify-items: center; gap: 0.65em; padding: 0.35em 0.1em 0.65em; box-sizing: border-box; width: 100%; max-width: 100%; }' +
             '.color-picker-tile { width: 2.85em; height: 2.85em; max-width: 100%; border-radius: 0.55em; border: none; box-sizing: border-box; position: relative; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.22), 0 0.12em 0.45em rgba(0,0,0,0.35); transition: transform 0.12s ease, box-shadow 0.12s ease; }' +
@@ -2457,27 +2455,31 @@
             '.ci-color-picker-wrap .color-picker-tile--light.ci-picker-selected { box-shadow: inset 0 0 0 1px rgba(0,0,0,0.4), 0 0 0 2px rgba(20,30,40,0.92), 0 0 0 5px rgba(38, 198, 218, 0.92), 0 0.15em 0.5em rgba(0,0,0,0.3) !important; }' +
             '.buttons-plugin-scope .full-start-new__buttons.icons-only .full-start__button span { display: none; }' +
             '.buttons-plugin-scope .full-start-new__buttons.always-text .full-start__button span { display: block !important; }' +
-            '.viewmode-switch { background: rgba(66, 133, 244, 0.5); color: #fff; margin: 0 !important; border-radius: 0.3em; border: 3px solid transparent; width: 100%; max-width: 100%; min-height: 3.5em !important; height: 3.5em !important; box-sizing: border-box; }' +
-            '.menu-edit-list__toolbar-stack .viewmode-switch > div { width: 100%; padding: 0 0.35em; box-sizing: border-box; text-align: center; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }' +
+            '.viewmode-switch { background: rgba(66, 133, 244, 0.5); color: #fff; margin: 0 !important; border-radius: 0.3em; border: 3px solid transparent; width: 100%; max-width: 100%; box-sizing: border-box; }' +
+            '.menu-edit-list__toolbar-stack .viewmode-switch { height: 3.5em !important; min-height: 3.5em !important; max-height: 3.5em !important; overflow: hidden; }' +
+            '.menu-edit-list__toolbar-stack .viewmode-switch > div { width: 100%; padding: 0 0.35em; box-sizing: border-box; text-align: center; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-height: 100%; }' +
             '.viewmode-switch.focus { border-color: rgba(255,255,255,0.8); }' +
             '.menu-edit-list__item-hidden { opacity: 0.5; }' +
-            '.icon-picker-default { display: flex; align-items: center; gap: 0.5em; padding: 0.35em 0.5em; min-height: 2.5em; margin-bottom: 0.5em; border-radius: 0.3em; background: rgba(255,255,255,0.08); border: 3px solid transparent; box-sizing: border-box; font-family: var(--buttons-plugin-modal-font, inherit); font-size: var(--buttons-plugin-modal-font-size, inherit); }' +
+            '.icon-picker-default { display: flex; align-items: center; gap: 0.5em; padding: 0 1em; margin-bottom: 0.55em; border-radius: 0.35em; background: rgba(255,255,255,0.08); border: 3px solid transparent; box-sizing: border-box; font-family: inherit; font-size: inherit; }' +
+            '.buttons-plugin-icon-picker .icon-picker-default { height: 3.5em; min-height: 3.5em; max-height: 3.5em; overflow: hidden; }' +
             '.icon-picker-default.focus { border-color: rgba(255,255,255,0.8); }' +
-            '.icon-picker-default__preview { width: 2.5em; height: 2.5em; min-width: 2.5em; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }' +
-            '.icon-picker-default__preview svg { width: 1.5em; height: 1.5em; }' +
+            '.icon-picker-default__preview { width: 2.2em; height: 2.2em; min-width: 2.2em; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }' +
+            '.icon-picker-default__preview svg { width: 1.4em; height: 1.4em; }' +
+            '.buttons-plugin-icon-picker.icon-picker-wrap { min-width: 22em; width: 100%; min-height: 11em; box-sizing: border-box; }' +
             '.icon-picker-wrap { width: 100%; display: grid; grid-template-columns: repeat(auto-fill, minmax(2.5em, 1fr)); gap: 0.35em; align-content: start; }' +
             '.icon-picker-wrap .icon-picker-default, .icon-picker-wrap .icon-picker-switch-wrap, .icon-picker-wrap .icon-picker-load-status { grid-column: 1 / -1; }' +
             '.icon-picker-view-lampa .icon-picker-cell-alt { display: none !important; }' +
             '.icon-picker-view-alt .icon-picker-cell-lampa { display: none !important; }' +
-            '.icon-picker-switch-wrap { display: flex; width: 100%; align-items: stretch; gap: 0.35em; margin-bottom: 0; }' +
-            '.icon-picker-tab { flex: 1; display: flex; align-items: center; justify-content: center; padding: 0.75em; border-radius: 0.3em; background: rgba(255,255,255,0.08); text-align: center; min-width: 0; border: 3px solid transparent; box-sizing: border-box; font-family: var(--buttons-plugin-modal-font, inherit); font-size: var(--buttons-plugin-modal-font-size, inherit); }' +
+            '.icon-picker-switch-wrap { display: flex; width: 100%; align-items: stretch; gap: 0.55em; margin-bottom: 0.55em; }' +
+            '.icon-picker-tab { flex: 1; display: flex; align-items: center; justify-content: center; padding: 0 0.65em; border-radius: 0.35em; background: rgba(255,255,255,0.08); text-align: center; min-width: 0; border: 3px solid transparent; box-sizing: border-box; font-family: inherit; font-size: inherit; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }' +
+            '.buttons-plugin-icon-picker .icon-picker-tab { height: 3.5em; min-height: 3.5em; max-height: 3.5em; }' +
             '.icon-picker-tab--active { background: rgba(66, 133, 244, 0.6); }' +
             '.icon-picker-tab.focus { border-color: rgba(255,255,255,0.8); }' +
-            '.icon-picker-load-status { font-size: 0.9em; color: rgba(255,255,255,0.7); margin-top: 0.25em; font-family: var(--buttons-plugin-modal-font, inherit); }' +
+            '.icon-picker-load-status { font-size: 0.9em; color: rgba(255,255,255,0.7); margin-top: 0.25em; font-family: inherit; min-height: 1.2em; }' +
             '.icon-picker-grid__cell { display: flex; align-items: center; justify-content: center; padding: 0.35em; min-height: 2.5em; border: 2px solid transparent; border-radius: 0.3em; box-sizing: border-box; }' +
             '.icon-picker-grid__cell.focus { border-color: rgba(255,255,255,0.8); }' +
             '.icon-picker-grid__cell svg { width: 1.5em; height: 1.5em; }' +
-            '.name-picker-ok { font-family: var(--buttons-plugin-modal-font, inherit); font-size: var(--buttons-plugin-modal-font-size, inherit); }' +
+            '.name-picker-ok { font-family: inherit; font-size: inherit; }' +
             /* Режим «без постера»: только когда карточка не applecation; опускание кнопок, «Подробно» под кнопки */
             'body.buttons-plugin--poster-off .full-start-new:not(.applecation) .full-start-new__body { height: 80vh !important; min-height: 80vh !important; }' +
             'body.buttons-plugin--poster-off .full-start-new:not(.applecation) .full-start-new__right { display: flex !important; flex-direction: column !important; justify-content: flex-end !important; }' +
