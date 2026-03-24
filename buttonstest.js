@@ -2,7 +2,7 @@
 (function() {
     'use strict';
 
-    var PLUGIN_VERSION = '1.59';
+    var PLUGIN_VERSION = '1.60';
 
     /** Тип события открытия полной карточки (в Lampa используется "complite") */
     var FULL_EVENT_TYPE = 'complite';
@@ -14,6 +14,8 @@
     var DELAY_ICON_PICKER_MODAL_MS = 4000;
     /** URL JSON с альтернативными иконками по умолчанию */
     var DEFAULT_ICONS_URL = 'https://amikdn.github.io/lampa-button-icons.json';
+    /** Имя локального JSON с доп. иконками (рядом с buttons.js), формат как у lampa-button-icons.json */
+    var EXTRA_ICONS_FILE = 'lampa-button-icons-extra.json';
     /** Интервал опроса настройки постера (Lampa не даёт событие при смене настройки) */
     var SYNC_POSTER_INTERVAL_MS = 3000;
     /** Ключи Lampa.Storage для настроек плагина */
@@ -268,6 +270,49 @@
         }, 120);
     }
 
+    function getExtraIconsUrl() {
+        try {
+            var scripts = document.getElementsByTagName('script');
+            var si;
+            for (si = scripts.length - 1; si >= 0; si--) {
+                var src = scripts[si].src || '';
+                if (src.indexOf('buttons.js') !== -1) {
+                    var last = Math.max(src.lastIndexOf('/'), src.lastIndexOf('\\'));
+                    return last >= 0 ? src.slice(0, last + 1) + EXTRA_ICONS_FILE : '';
+                }
+            }
+        } catch (e) {
+            logDebug('getExtraIconsUrl', e);
+        }
+        return '';
+    }
+
+    function loadIconsFromUrlChain(urls, seen, callback) {
+        var allResults = [];
+        var idx = 0;
+        function next() {
+            if (idx >= urls.length) {
+                callback(allResults, null);
+                return;
+            }
+            var u = urls[idx++];
+            if (!u || typeof u !== 'string') {
+                next();
+                return;
+            }
+            loadIconsFromUrl(u, seen, function(entries) {
+                if (entries && entries.length) {
+                    var r;
+                    for (r = 0; r < entries.length; r++) {
+                        allResults.push(entries[r]);
+                    }
+                }
+                next();
+            });
+        }
+        next();
+    }
+
     function closeModalSafe() {
         try {
             if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.close) {
@@ -327,18 +372,19 @@
         });
         wrap.append(hexRow);
 
+        var swatchGrid = $('<div class="color-picker-grid-swatches"></div>');
         colorPickerPaletteHexes.forEach(function(paletteHex) {
-            var row = $('<div class="selector color-picker-swatch-row" tabindex="0" style="display: flex; align-items: center; gap: 1em; padding: 0 1em; min-height: 3.6em; width: 100%; max-width: 100%; box-sizing: border-box; background: rgba(255,255,255,0.05); border-radius: 0.5em; border: 2px solid transparent;">' +
-                '<div class="color-picker-swatch-dot" style="width: 2em; height: 2em; border-radius: 50%; flex-shrink: 0; background-color: ' + paletteHex + ' !important;"></div>' +
-                '<span style="font-size: 1.05em; opacity: 0.95;">' + paletteHex + '</span></div>');
+            var cell = $('<div class="selector color-picker-swatch-cell" tabindex="0"></div>');
+            cell.css('background-color', paletteHex);
             if (currentHex && paletteHex.toLowerCase() === String(currentHex).toLowerCase()) {
-                row.addClass('ci-picker-selected');
+                cell.addClass('ci-picker-selected');
             }
-            row.on('hover:enter', function() {
+            cell.on('hover:enter', function() {
                 applyPickedColor(targetId, paletteHex);
             });
-            wrap.append(row);
+            swatchGrid.append(cell);
         });
+        wrap.append(swatchGrid);
 
         function applyPickedColor(buttonId, hex) {
             if (isGlobal) {
@@ -565,8 +611,16 @@
         return 'inline:' + viewBox + '|' + pathParts.join('|');
     }
 
-    function collectAllIcons() {
+    function collectAllIcons(preloadSeen) {
         var seen = {};
+        var pk;
+        if (preloadSeen) {
+            for (pk in preloadSeen) {
+                if (preloadSeen.hasOwnProperty(pk)) {
+                    seen[pk] = true;
+                }
+            }
+        }
         var result = [];
         function addIcon(html, id) {
             if (!html) return;
@@ -608,6 +662,10 @@
             var svg = el.querySelector && el.querySelector('svg');
             if (svg) {
                 try {
+                    var colorAttr = svg.getAttribute && svg.getAttribute('data-ci-color');
+                    if (colorAttr) {
+                        continue;
+                    }
                     var raw = svg.outerHTML;
                     addIcon(raw, 'dom-' + k);
                 } catch (err) { logDebug('collectAllIcons: dom button svg', err); }
@@ -624,6 +682,9 @@
                 var childSvg = child.querySelector && child.querySelector('svg');
                 if (childSvg) {
                     try {
+                        if (childSvg.getAttribute && childSvg.getAttribute('data-ci-color')) {
+                            continue;
+                        }
                         var rawChild = childSvg.outerHTML;
                         addIcon(rawChild, 'plugin-' + c + '-' + n);
                     } catch (err) { logDebug('collectAllIcons: container svg', err); }
@@ -765,11 +826,7 @@
     }
 
     function openIconPicker(btn, btnId, defaultIconHtml, listItem) {
-        var icons = collectAllIcons();
-        var seen = {};
-        for (var s = 0; s < icons.length; s++) {
-            seen[svgFingerprint(icons[s].html)] = true;
-        }
+        var seenForJsonDedupe = {};
         var wrap = $('<div class="icon-picker-wrap"></div>');
         var defaultBlock = $('<div class="selector icon-picker-default" tabindex="0">' +
             '<div class="icon-picker-default__preview"></div>' +
@@ -800,7 +857,6 @@
             applyChoice(true, null);
         });
         wrap.append(defaultBlock);
-        var defaultIconsUrl = DEFAULT_ICONS_URL;
         var loadStatus = $('<div class="icon-picker-load-status"></div>');
         var tabLampa = $('<div class="selector icon-picker-tab icon-picker-tab--active" tabindex="0">Иконки Lampa</div>');
         var tabAlt = $('<div class="selector icon-picker-tab" tabindex="0">Альтернативные иконки</div>');
@@ -821,15 +877,6 @@
         tabLampa.on('hover:enter', showLampaGrid);
         tabAlt.on('hover:enter', showAltGrid);
         wrap.addClass('icon-picker-view-lampa');
-        icons.forEach(function(entry) {
-            var cell = $('<div class="selector icon-picker-grid__cell icon-picker-cell-lampa" tabindex="0"></div>');
-            cell.append($(entry.html).clone());
-            var savedHtml = entry.html;
-            cell.on('hover:enter', function() {
-                applyChoice(false, savedHtml);
-            });
-            wrap.append(cell);
-        });
         loadStatus.text('Загрузка…');
         var modalOpened = false;
         function openModal() {
@@ -851,23 +898,39 @@
             });
         }
         var openTimeout = setTimeout(openModal, DELAY_ICON_PICKER_MODAL_MS);
-        loadIconsFromUrl(defaultIconsUrl, {}, function(newEntries, err) {
+        var chainUrls = [DEFAULT_ICONS_URL];
+        var extraIconsUrl = getExtraIconsUrl();
+        if (extraIconsUrl) {
+            chainUrls.push(extraIconsUrl);
+        }
+        loadIconsFromUrlChain(chainUrls, seenForJsonDedupe, function(newEntries, err) {
             clearTimeout(openTimeout);
-            if (err) {
-                loadStatus.text(err);
-            } else if (newEntries && newEntries.length) {
-                newEntries.forEach(function(entry) {
-                    var cell = $('<div class="selector icon-picker-grid__cell icon-picker-cell-alt" tabindex="0"></div>');
-                    cell.append($(entry.html).clone());
-                    var savedHtml = entry.html;
-                    cell.on('hover:enter', function() {
-                        applyChoice(false, savedHtml);
-                    });
-                    wrap.append(cell);
+            var icons = collectAllIcons(seenForJsonDedupe);
+            icons.forEach(function(entry) {
+                var lampaCell = $('<div class="selector icon-picker-grid__cell icon-picker-cell-lampa" tabindex="0"></div>');
+                lampaCell.append($(entry.html).clone());
+                var lampaHtml = entry.html;
+                lampaCell.on('hover:enter', function() {
+                    applyChoice(false, lampaHtml);
                 });
-                loadStatus.text('Загружены альтернативные иконки (' + newEntries.length + ')');
+                wrap.append(lampaCell);
+            });
+            if (newEntries && newEntries.length) {
+                newEntries.forEach(function(entry) {
+                    var altCell = $('<div class="selector icon-picker-grid__cell icon-picker-cell-alt" tabindex="0"></div>');
+                    altCell.append($(entry.html).clone());
+                    var altHtml = entry.html;
+                    altCell.on('hover:enter', function() {
+                        applyChoice(false, altHtml);
+                    });
+                    wrap.append(altCell);
+                });
+                loadStatus.text('Альтернативные: ' + newEntries.length + ' · вкладка Lampa: ' + icons.length);
             } else {
-                loadStatus.text('Альтернативные иконки не загружены');
+                loadStatus.text(
+                    'Вкладка Lampa: ' + icons.length +
+                    (extraIconsUrl ? ' · файл ' + EXTRA_ICONS_FILE + ' не загружен' : '')
+                );
             }
             openModal();
         });
@@ -1437,11 +1500,7 @@
 
     function openFolderIconPicker(folder, listItem) {
         var defaultIconHtml = getDefaultIconForFolder(folder);
-        var icons = collectAllIcons();
-        var seen = {};
-        for (var s = 0; s < icons.length; s++) {
-            seen[svgFingerprint(icons[s].html)] = true;
-        }
+        var seenForJsonDedupe = {};
         var wrap = $('<div class="icon-picker-wrap"></div>');
         var defaultBlock = $('<div class="selector icon-picker-default" tabindex="0">' +
             '<div class="icon-picker-default__preview"></div>' +
@@ -1482,15 +1541,6 @@
             tabAlt.addClass('icon-picker-tab--active');
             tabLampa.removeClass('icon-picker-tab--active');
         });
-        icons.forEach(function(entry) {
-            var cell = $('<div class="selector icon-picker-grid__cell icon-picker-cell-lampa" tabindex="0"></div>');
-            cell.append($(entry.html).clone());
-            var savedHtml = entry.html;
-            cell.on('hover:enter', function() {
-                applyChoice(false, savedHtml);
-            });
-            wrap.append(cell);
-        });
         loadStatus.text('Загрузка…');
         var modalOpened = false;
         function openFolderIconModal() {
@@ -1508,21 +1558,39 @@
             });
         }
         var openFolderIconTimeout = setTimeout(openFolderIconModal, DELAY_ICON_PICKER_MODAL_MS);
-        loadIconsFromUrl(DEFAULT_ICONS_URL, {}, function(newEntries, err) {
+        var folderChainUrls = [DEFAULT_ICONS_URL];
+        var folderExtraUrl = getExtraIconsUrl();
+        if (folderExtraUrl) {
+            folderChainUrls.push(folderExtraUrl);
+        }
+        loadIconsFromUrlChain(folderChainUrls, seenForJsonDedupe, function(newEntries, err) {
             clearTimeout(openFolderIconTimeout);
-            if (!err && newEntries && newEntries.length) {
-                newEntries.forEach(function(entry) {
-                    var cell = $('<div class="selector icon-picker-grid__cell icon-picker-cell-alt" tabindex="0"></div>');
-                    cell.append($(entry.html).clone());
-                    var savedHtml = entry.html;
-                    cell.on('hover:enter', function() {
-                        applyChoice(false, savedHtml);
-                    });
-                    wrap.append(cell);
+            var icons = collectAllIcons(seenForJsonDedupe);
+            icons.forEach(function(entry) {
+                var lampaCell = $('<div class="selector icon-picker-grid__cell icon-picker-cell-lampa" tabindex="0"></div>');
+                lampaCell.append($(entry.html).clone());
+                var lampaHtml = entry.html;
+                lampaCell.on('hover:enter', function() {
+                    applyChoice(false, lampaHtml);
                 });
-                loadStatus.text('Загружены альтернативные иконки (' + newEntries.length + ')');
+                wrap.append(lampaCell);
+            });
+            if (newEntries && newEntries.length) {
+                newEntries.forEach(function(entry) {
+                    var altCell = $('<div class="selector icon-picker-grid__cell icon-picker-cell-alt" tabindex="0"></div>');
+                    altCell.append($(entry.html).clone());
+                    var altHtml = entry.html;
+                    altCell.on('hover:enter', function() {
+                        applyChoice(false, altHtml);
+                    });
+                    wrap.append(altCell);
+                });
+                loadStatus.text('Альтернативные: ' + newEntries.length + ' · вкладка Lampa: ' + icons.length);
             } else {
-                loadStatus.text(err || 'Альтернативные иконки не загружены');
+                loadStatus.text(
+                    'Вкладка Lampa: ' + icons.length +
+                    (folderExtraUrl ? ' · файл ' + EXTRA_ICONS_FILE + ' не загружен' : '')
+                );
             }
             openFolderIconModal();
         });
@@ -1734,7 +1802,7 @@
         }
         var list = $('<div class="menu-edit-list"></div>');
         var hidden = getHiddenButtons();
-        var createFolderBtn = $('<div class="menu-edit-list__item menu-edit-list__create-folder selector">' +
+        var createFolderBtn = $('<div class="menu-edit-list__item menu-edit-list__create-folder menu-edit-list__toolbar-block selector">' +
             '<span class="menu-edit-list__create-folder-spacer"></span>' +
             '<div class="menu-edit-list__create-folder-inner">' +
             '<div class="menu-edit-list__icon">' +
@@ -1748,7 +1816,7 @@
             Lampa.Modal.close();
             openCreateFolderDialog();
         });
-        var globalIconColorBtn = $('<div class="selector viewmode-switch viewmode-switch--icon-color"><div style="text-align: center; padding: 1em;">Цвет иконок (для всех)</div></div>');
+        var globalIconColorBtn = $('<div class="selector viewmode-switch viewmode-switch--icon-color menu-edit-list__toolbar-block"><div style="text-align: center;">Цвет иконок (для всех)</div></div>');
         globalIconColorBtn.on('hover:enter', function() {
             if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.close) {
                 Lampa.Modal.close();
@@ -1760,8 +1828,8 @@
         var modes = ['default', 'icons', 'always'];
         var labels = {default: 'Стандартный', icons: 'Только иконки', always: 'С текстом'};
         var currentMode = Lampa.Storage.get(STORAGE_KEYS.viewmode, 'default');
-        var modeBtn = $('<div class="selector viewmode-switch">' +
-            '<div style="text-align: center; padding: 1em;">Вид кнопок: ' + labels[currentMode] + '</div>' +
+        var modeBtn = $('<div class="selector viewmode-switch menu-edit-list__toolbar-block">' +
+            '<div style="text-align: center;">Вид кнопок: ' + labels[currentMode] + '</div>' +
             '</div>');
         modeBtn.on('hover:enter', function() {
             var idx = modes.indexOf(currentMode);
@@ -2344,7 +2412,8 @@
             '.viewmode-switch, .folder-reset-button { max-width: 100%; box-sizing: border-box; white-space: normal; word-break: break-word; font-family: var(--buttons-plugin-modal-font, inherit); font-size: var(--buttons-plugin-modal-font-size, inherit); }' +
             '.folder-reset-button { background: rgba(200,100,100,0.3); margin-top: 1em; border-radius: 0.3em; border: 3px solid transparent; }' +
             '.folder-reset-button.focus { border-color: rgba(255,255,255,0.8); }' +
-            '.menu-edit-list__create-folder { display: flex !important; align-items: center; justify-content: center; gap: 0; background: rgba(34, 139, 34, 0.6) !important; margin-bottom: 0.5em; border: 3px solid transparent; border-radius: 0.3em; box-sizing: border-box; padding: 0.6em 1em; }' +
+            '.menu-edit-list__toolbar-block { margin-bottom: 0.5em !important; border-radius: 0.3em; border: 3px solid transparent; box-sizing: border-box; padding: 0.6em 1em; min-height: 2.75em; display: flex !important; align-items: center; justify-content: center; }' +
+            '.menu-edit-list__create-folder { gap: 0; background: rgba(34, 139, 34, 0.6) !important; }' +
             '.menu-edit-list__create-folder-spacer { flex: 1; min-width: 0; }' +
             '.menu-edit-list__create-folder-inner { display: flex; align-items: center; gap: 0.5em; flex-shrink: 0; }' +
             '.menu-edit-list__create-folder .menu-edit-list__icon { width: auto; min-width: auto; height: auto; }' +
@@ -2361,11 +2430,14 @@
             '.menu-edit-list__move.focus, .menu-edit-list__change-name.focus, .menu-edit-list__change-icon.focus, .menu-edit-list__change-color.focus, .menu-edit-list__toggle.focus, .menu-edit-list__delete.focus { border-color: rgba(255,255,255,0.8); }' +
             '.viewmode-switch--icon-color { background: rgba(155, 89, 182, 0.35) !important; }' +
             '.ci-color-picker-wrap { width: 100%; max-width: 100%; padding: 0 0.25em 0.75em; box-sizing: border-box; display: flex; flex-direction: column; gap: 0.45em; font-family: var(--buttons-plugin-modal-font, inherit); font-size: var(--buttons-plugin-modal-font-size, inherit); }' +
-            '.ci-color-picker-wrap .color-picker-default.focus, .ci-color-picker-wrap .color-picker-hex.focus, .ci-color-picker-wrap .color-picker-swatch-row.focus { border-color: rgba(255,255,255,0.85) !important; }' +
+            '.ci-color-picker-wrap .color-picker-default.focus, .ci-color-picker-wrap .color-picker-hex.focus { border-color: rgba(255,255,255,0.85) !important; }' +
+            '.color-picker-grid-swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(3.5em, 1fr)); justify-items: center; gap: 0.8em; padding: 0 0.15em 0.5em; box-sizing: border-box; width: 100%; max-width: 100%; }' +
+            '.color-picker-swatch-cell { width: 3.5em; height: 3.5em; border-radius: 50%; border: 2px solid transparent; box-sizing: border-box; flex-shrink: 0; }' +
+            '.ci-color-picker-wrap .color-picker-swatch-cell.focus { border-color: rgba(255,255,255,0.9) !important; }' +
             '.ci-picker-selected { box-shadow: inset 0 0 0 2px #fff !important; }' +
             '.buttons-plugin-scope .full-start-new__buttons.icons-only .full-start__button span { display: none; }' +
             '.buttons-plugin-scope .full-start-new__buttons.always-text .full-start__button span { display: block !important; }' +
-            '.viewmode-switch { background: rgba(66, 133, 244, 0.5); color: #fff; margin: 0.5em 0 1em 0; border-radius: 0.3em; border: 3px solid transparent; }' +
+            '.viewmode-switch { background: rgba(66, 133, 244, 0.5); color: #fff; margin: 0 !important; border-radius: 0.3em; border: 3px solid transparent; width: 100%; max-width: 100%; }' +
             '.viewmode-switch.focus { border-color: rgba(255,255,255,0.8); }' +
             '.menu-edit-list__item-hidden { opacity: 0.5; }' +
             '.icon-picker-default { display: flex; align-items: center; gap: 0.5em; padding: 0.35em 0.5em; min-height: 2.5em; margin-bottom: 0.5em; border-radius: 0.3em; background: rgba(255,255,255,0.08); border: 3px solid transparent; box-sizing: border-box; font-family: var(--buttons-plugin-modal-font, inherit); font-size: var(--buttons-plugin-modal-font-size, inherit); }' +
