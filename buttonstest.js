@@ -2450,8 +2450,10 @@
             '.applecation .full-start-new__buttons.buttons-loading .full-start__button { visibility: hidden !important; }' +
             '.applecation .full-start-new__buttons.icons-only .full-start__button span { display: none; }' +
             '.applecation .full-start-new__buttons.always-text .full-start__button span { display: block !important; }' +
+            /* Как в buttonstest.js: межкнопочный интервал в строке кнопок карточки фильма */
+            '.applecation .full-start-new__buttons { gap: 0.4em 0.1em !important; }' +
             /* Без applecation: полный layout контейнера кнопок */
-            '.buttons-plugin-scope .full-start-new__buttons { display: flex !important; flex-direction: row !important; flex-wrap: wrap !important; gap: 0.5em !important; }' +
+            '.buttons-plugin-scope .full-start-new__buttons { display: flex !important; flex-direction: row !important; flex-wrap: wrap !important; gap: 0.4em 0.1em !important; }' +
             '.buttons-plugin-scope .full-start-new__buttons .full-start__button { opacity: 0; }' +
             '.buttons-plugin-scope .full-start__button.hidden { display: none !important; }' +
             '.buttons-plugin-scope .full-start-new__buttons.buttons-loading .full-start__button { visibility: hidden !important; }' +
