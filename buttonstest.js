@@ -2,7 +2,10 @@
 (function() {
     'use strict';
 
-    var PLUGIN_VERSION = '1.70';
+    var PLUGIN_VERSION = '1.71';
+
+    /** Стабильный id для цвета/иконки кнопки «карандаш» (редактор порядка) */
+    var EDIT_ORDER_BUTTON_ID = 'buttons_plugin_edit_order';
 
     /** Тип события открытия полной карточки (в Lampa используется "complite") */
     var FULL_EVENT_TYPE = 'complite';
@@ -495,11 +498,16 @@
             if (!btn || !btn.length) {
                 return;
             }
-            if (btn.hasClass('button--edit-order')) {
-                return;
-            }
             var isFolder = btn.hasClass('button--folder');
-            var targetId = isFolder ? btn.attr('data-folder-id') : getButtonId(btn);
+            var isEditOrder = btn.hasClass('button--edit-order');
+            var targetId;
+            if (isFolder) {
+                targetId = btn.attr('data-folder-id');
+            } else if (isEditOrder) {
+                targetId = EDIT_ORDER_BUTTON_ID;
+            } else {
+                targetId = getButtonId(btn);
+            }
             if (!targetId) {
                 return;
             }
@@ -507,6 +515,8 @@
             var fallbackSvg = null;
             if (isFolder) {
                 fallbackSvg = $(folderPlaceholderSvgStr());
+            } else if (isEditOrder) {
+                fallbackSvg = getDefaultEditButtonSvg();
             } else {
                 var cloneBtn = allButtonsOriginal.find(function(candidate) {
                     return getButtonId(candidate) === targetId;
@@ -901,12 +911,7 @@
                 custom[btnId] = chosenHtml;
             }
             setCustomIcons(custom);
-            if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.close) {
-                Lampa.Modal.close();
-            }
-            setTimeout(function() {
-                applyChanges();
-            }, DELAY_AFTER_APPLY_MS);
+            reopenButtonEditorAfterColorPicker(true);
         }
         defaultBlock.on('hover:enter', function() {
             applyChoice(true, null);
@@ -943,12 +948,10 @@
                 size: 'medium',
                 scroll_to_center: false,
                 onBack: function() {
-                    if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.close) {
-                        Lampa.Modal.close();
-                    }
+                    closeModalSafe();
                     setTimeout(function() {
-                        refreshController();
-                    }, DELAY_AFTER_APPLY_MS);
+                        reopenButtonEditorAfterColorPicker(false);
+                    }, 200);
                 }
             });
         }
@@ -1182,10 +1185,15 @@
         });
     }
 
+    function getDefaultEditButtonSvg() {
+        return $('<div style="display:none"></div>').html(
+            '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 30 29" fill="none"><use xlink:href="#sprite-edit"></use></svg>'
+        ).find('svg').first();
+    }
+
     function createEditButton() {
-        var btn = $('<div class="full-start__button selector button--edit-order" style="order: 9999;">' +
-            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 29" fill="none"><use xlink:href="#sprite-edit"></use></svg>' +
-            '</div>');
+        var btn = $('<div class="full-start__button selector button--edit-order" style="order: 9999;"></div>');
+        btn.append(getDefaultEditButtonSvg().clone());
         btn.on('hover:enter', function() {
             openEditDialog();
         });
@@ -1279,7 +1287,7 @@
         applyHiddenButtons(currentButtons);
         applyCustomIcons(currentButtons);
         applyCustomLabels(currentButtons);
-        applyIconsAndColorsToButtons(targetContainer.find('.full-start__button').not('.button--edit-order'));
+        applyIconsAndColorsToButtons(targetContainer.find('.full-start__button'));
         var viewmode = Lampa.Storage.get(STORAGE_KEYS.viewmode, 'default');
         targetContainer.removeClass('icons-only always-text');
         if (viewmode === 'icons') targetContainer.addClass('icons-only');
@@ -1570,14 +1578,7 @@
         }
         function applyChoice(isDefault, chosenHtml) {
             updateFolder(folder.id, { customIcon: isDefault ? undefined : chosenHtml });
-            if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.close) Lampa.Modal.close();
-            setTimeout(function() {
-                applyChanges();
-                if (listItem && listItem.length) {
-                    var newIcon = isDefault ? (defaultIconHtml ? $(defaultIconHtml) : $('<svg></svg>')) : $(chosenHtml);
-                    listItem.find('.menu-edit-list__icon').empty().append(newIcon.clone());
-                }
-            }, DELAY_AFTER_APPLY_MS);
+            reopenButtonEditorAfterColorPicker(true);
         }
         defaultBlock.on('hover:enter', function() {
             applyChoice(true, null);
@@ -1612,8 +1613,10 @@
                 size: 'medium',
                 scroll_to_center: false,
                 onBack: function() {
-                    if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.close) Lampa.Modal.close();
-                    setTimeout(function() { refreshController(); }, DELAY_AFTER_APPLY_MS);
+                    closeModalSafe();
+                    setTimeout(function() {
+                        reopenButtonEditorAfterColorPicker(false);
+                    }, 200);
                 }
             });
         }
@@ -1863,7 +1866,7 @@
         if (currentContainer) {
             var editToolbar = currentContainer.find('.full-start-new__buttons');
             if (editToolbar.length) {
-                applyIconsAndColorsToButtons(editToolbar.find('.full-start__button').not('.button--edit-order'));
+                applyIconsAndColorsToButtons(editToolbar.find('.full-start__button'));
             }
         }
         var list = $('<div class="menu-edit-list buttons-plugin-order-modal"></div>');
@@ -2434,7 +2437,7 @@
         applyHiddenButtons(currentButtons);
         applyCustomIcons(currentButtons);
         applyCustomLabels(currentButtons);
-        applyIconsAndColorsToButtons(targetContainer.find('.full-start__button').not('.button--edit-order'));
+        applyIconsAndColorsToButtons(targetContainer.find('.full-start__button'));
         var viewmode = Lampa.Storage.get(STORAGE_KEYS.viewmode, 'default');
         targetContainer.removeClass('icons-only always-text');
         if (viewmode === 'icons') targetContainer.addClass('icons-only');
