@@ -2,7 +2,7 @@
 (function() {
     'use strict';
 
-    var PLUGIN_VERSION = '1.66';
+    var PLUGIN_VERSION = '1.69';
 
     /** Тип события открытия полной карточки (в Lampa используется "complite") */
     var FULL_EVENT_TYPE = 'complite';
@@ -237,12 +237,36 @@
         return '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8 10.5C8 11.3284 7.32843 12 6.5 12C5.67157 12 5 11.3284 5 10.5C5 9.67157 5.67157 9 6.5 9C7.32843 9 8 9.67157 8 10.5Z" fill="currentColor"></path><path d="M10.5 8C11.3284 8 12 7.32843 12 6.5C12 5.67157 11.3284 5 10.5 5C9.67157 5 9 5.67157 9 6.5C9 7.32843 9.67157 8 10.5 8Z" fill="currentColor"></path><path d="M17 6.5C17 7.32843 16.3284 8 15.5 8C14.6716 8 14 7.32843 14 6.5C14 5.67157 14.6716 5 15.5 5C16.3284 5 17 5.67157 17 6.5Z" fill="currentColor"></path><path d="M7.5 17C8.32843 17 9 16.3284 9 15.5C9 14.6716 8.32843 14 7.5 14C6.67157 14 6 14.6716 6 15.5C6 16.3284 6.67157 17 7.5 17Z" fill="currentColor"></path><path fill-rule="evenodd" clip-rule="evenodd" d="M1 12C1 5.92487 5.92487 1 12 1C17.9712 1 23 5.34921 23 11V11.0146C23 11.543 23.0001 12.4458 22.6825 13.4987C21.8502 16.2575 18.8203 16.9964 16.4948 16.4024C16.011 16.2788 15.5243 16.145 15.0568 16.0107C14.2512 15.7791 13.5177 16.4897 13.6661 17.2315L13.9837 18.8197L14.0983 19.5068C14.3953 21.289 13.0019 23.1015 11.0165 22.8498C7.65019 22.423 5.11981 21.1007 3.43595 19.1329C1.75722 17.171 1 14.6613 1 12ZM12 3C7.02944 3 3 7.02944 3 12C3 14.2854 3.64673 16.303 4.95555 17.8326C6.25924 19.3561 8.3 20.4894 11.2681 20.8657C11.7347 20.9249 12.2348 20.4915 12.1255 19.8356L12.0163 19.1803L11.7049 17.6237C11.2467 15.3325 13.4423 13.4657 15.6093 14.0885C16.0619 14.2186 16.529 14.3469 16.9897 14.4646C18.7757 14.9208 20.3744 14.2249 20.7677 12.921C20.997 12.161 21 11.5059 21 11C21 6.65079 17.0745 3 12 3Z" fill="currentColor"></path></svg>';
     }
 
-    function toolbarSvgViewMode() {
+    function toolbarSvgViewModeDefault() {
         return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>';
     }
 
+    function toolbarSvgViewModeIconsOnly() {
+        return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="12" r="2.5"/><circle cx="12" cy="12" r="2.5"/><circle cx="17" cy="12" r="2.5"/></svg>';
+    }
+
+    function toolbarSvgViewModeWithText() {
+        return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="5" height="5" rx="1"/><line x1="12" y1="7.5" x2="21" y2="7.5"/><rect x="3" y="14" width="5" height="5" rx="1"/><line x1="12" y1="16.5" x2="21" y2="16.5"/></svg>';
+    }
+
+    function getViewModeToolbarSvg(mode) {
+        if (mode === 'icons') {
+            return toolbarSvgViewModeIconsOnly();
+        }
+        if (mode === 'always') {
+            return toolbarSvgViewModeWithText();
+        }
+        return toolbarSvgViewModeDefault();
+    }
+
     function toolbarSvgIconColorGlobal() {
-        return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="10.5" r="2.5"/><circle cx="12" cy="6.5" r="2.5"/><circle cx="16.5" cy="10.5" r="2.5"/><path d="M12 22a10 10 0 0 0 10-10c0-5-4-9-9-9-1.5 0-2.5.5-3.5 1.5L12 22z"/></svg>';
+        return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+            '<circle cx="13.5" cy="6.5" r="1" fill="currentColor" stroke="none"/>' +
+            '<circle cx="17.5" cy="10.5" r="1" fill="currentColor" stroke="none"/>' +
+            '<circle cx="8.5" cy="7.5" r="1" fill="currentColor" stroke="none"/>' +
+            '<circle cx="6.5" cy="12.5" r="1" fill="currentColor" stroke="none"/>' +
+            '<path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.93 0 1.68-.75 1.68-1.68 0-.39-.15-.74-.4-1.01-.23-.26-.37-.6-.37-.98 0-.56.45-1.01 1.01-1.01H16c3.31 0 6-2.69 6-6 0-4.96-4.5-9.31-10-9.31z"/>' +
+            '</svg>';
     }
 
     function toolbarSvgReset() {
@@ -1374,7 +1398,7 @@
     }
 
     function openFolderEditDialog(folder) {
-        var list = $('<div class="menu-edit-list"></div>');
+        var list = $('<div class="menu-edit-list buttons-plugin-order-modal"></div>');
         folder.buttons.forEach(function(btnId) {
             var btn = findButton(btnId);
             if (btn && btn.length) {
@@ -1409,8 +1433,8 @@
         Lampa.Modal.open({
             title: 'Порядок кнопок в папке',
             html: list,
-            size: 'small',
-            scroll_to_center: true,
+            size: 'medium',
+            scroll_to_center: false,
             onBack: function() {
                 Lampa.Modal.close();
                 updateFolderIcon(folder);
@@ -1876,19 +1900,19 @@
         var modes = ['default', 'icons', 'always'];
         var labels = {default: 'Стандартный', icons: 'Только иконки', always: 'С текстом'};
         var currentMode = Lampa.Storage.get(STORAGE_KEYS.viewmode, 'default');
-        var modeBtn = $('<div class="selector viewmode-switch menu-edit-list__toolbar-block">' +
-            '<span class="menu-edit-list__create-folder-spacer"></span>' +
+        var modeBtn = $('<div class="selector viewmode-switch menu-edit-list__toolbar-block menu-edit-list__toolbar-block--viewmode">' +
             '<div class="menu-edit-list__create-folder-inner">' +
-            '<div class="menu-edit-list__icon">' + toolbarSvgViewMode() + '</div>' +
+            '<div class="menu-edit-list__icon menu-edit-list__icon--viewmode">' + getViewModeToolbarSvg(currentMode) + '</div>' +
             '<div class="menu-edit-list__title menu-edit-list__toolbar-label buttons-plugin-ui-text">Вид кнопок: ' + labels[currentMode] + '</div>' +
-            '</div>' +
-            '<span class="menu-edit-list__create-folder-spacer"></span></div>');
+            '</div></div>');
         modeBtn.on('hover:enter', function() {
             var idx = modes.indexOf(currentMode);
             idx = (idx + 1) % modes.length;
             currentMode = modes[idx];
             Lampa.Storage.set(STORAGE_KEYS.viewmode, currentMode);
-            $(this).find('.menu-edit-list__toolbar-label').text('Вид кнопок: ' + labels[currentMode]);
+            var $row = $(this);
+            $row.find('.menu-edit-list__toolbar-label').text('Вид кнопок: ' + labels[currentMode]);
+            $row.find('.menu-edit-list__icon--viewmode').html(getViewModeToolbarSvg(currentMode));
             if (currentContainer) {
                 var target = currentContainer.find('.full-start-new__buttons');
                 target.removeClass('icons-only always-text');
@@ -2488,10 +2512,14 @@
             '.menu-edit-list__toolbar-block.viewmode-switch { white-space: nowrap !important; word-break: normal !important; }' +
             '.menu-edit-list__create-folder-spacer { flex: 1; min-width: 0; }' +
             '.menu-edit-list__create-folder-inner { display: flex; align-items: center; gap: 0.5em; flex-shrink: 0; }' +
-            '.menu-edit-list__toolbar-stack .viewmode-switch .menu-edit-list__create-folder-inner { flex: 1 1 auto; min-width: 0; max-width: 100%; }' +
+            '.menu-edit-list__toolbar-stack .viewmode-switch .menu-edit-list__create-folder-inner { flex: 0 1 auto; min-width: 0; max-width: 100%; justify-content: flex-start; }' +
+            '.menu-edit-list__toolbar-stack .viewmode-switch.menu-edit-list__toolbar-block--viewmode { justify-content: flex-start !important; padding: 0 0.75em 0 1em !important; }' +
+            '.menu-edit-list__toolbar-stack .viewmode-switch.menu-edit-list__toolbar-block--viewmode .menu-edit-list__create-folder-inner { flex: 1 1 auto; width: 100%; max-width: 100%; min-width: 0; }' +
+            '.menu-edit-list__toolbar-stack .viewmode-switch .menu-edit-list__icon--viewmode { flex-shrink: 0; }' +
             '.menu-edit-list__create-folder .menu-edit-list__icon, .menu-edit-list__toolbar-stack .viewmode-switch .menu-edit-list__icon { width: 1.5em; min-width: 1.5em; height: 1.5em; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }' +
             '.menu-edit-list__create-folder .menu-edit-list__icon svg, .menu-edit-list__toolbar-stack .viewmode-switch .menu-edit-list__icon svg { width: 1.35em; height: 1.35em; display: block; }' +
-            '.menu-edit-list__create-folder .menu-edit-list__title, .menu-edit-list__toolbar-stack .viewmode-switch .menu-edit-list__title { text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.3; min-width: 0; flex: 1; }' +
+            '.menu-edit-list__create-folder .menu-edit-list__title { text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.3; }' +
+            '.menu-edit-list__toolbar-stack .viewmode-switch .menu-edit-list__title, .menu-edit-list__toolbar-stack .viewmode-switch .menu-edit-list__toolbar-label { text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.3; min-width: 0; flex: 1 1 auto; }' +
             '.menu-edit-list__create-folder.focus { border-color: rgba(255,255,255,0.8); }' +
             '.folder-item { grid-template-columns: 2.5em minmax(0, 1fr) 2.4em 2.4em 2.4em 2.4em 2.4em 2.4em; align-items: center; min-height: 3.2em; }' +
             '.folder-item .menu-edit-list__title { align-self: center; }' +
