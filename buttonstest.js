@@ -296,6 +296,25 @@
         }, 120);
     }
 
+    /** Подгоняет шрифт открытой модалки под интерфейс Lampa (настройки / экран), чтобы наследование inherit работало корректно. */
+    function syncModalFont() {
+        try {
+            var ref = document.querySelector('.settings-param') || document.querySelector('.settings');
+            if (!ref) ref = document.body;
+            var cs = window.getComputedStyle(ref);
+            var modalRoot = document.querySelector('.modal__content') || document.querySelector('.modal .modal__body') || document.querySelector('.modal .modal__html');
+            if (!modalRoot && typeof window.$ !== 'undefined' && window.$) {
+                var $inner = $('.modal').last().find('.modal__body, .modal__content, .modal__html').first();
+                if ($inner.length) modalRoot = $inner[0];
+            }
+            if (!modalRoot) return;
+            if (cs.fontFamily) modalRoot.style.fontFamily = cs.fontFamily;
+            if (cs.fontSize) modalRoot.style.fontSize = cs.fontSize;
+        } catch (e) {
+            logDebug('syncModalFont', e);
+        }
+    }
+
     function loadIconsFromUrlChain(urls, seen, callback) {
         var allResults = [];
         var idx = 0;
