@@ -17,8 +17,6 @@
     var DELAY_ICON_PICKER_MODAL_MS = 4000;
     /** URL JSON с альтернативными иконками по умолчанию */
     var DEFAULT_ICONS_URL = 'https://amikdn.github.io/lampa-button-icons.json';
-    /** Имя локального JSON с доп. иконками (рядом с buttons.js), формат как у lampa-button-icons.json */
-    var EXTRA_ICONS_FILE = 'lampa-button-icons-extra.json';
     /** Интервал опроса настройки постера (Lampa не даёт событие при смене настройки) */
     var SYNC_POSTER_INTERVAL_MS = 3000;
     /** Ключи Lampa.Storage для настроек плагина */
@@ -315,23 +313,6 @@
                 logDebug('focusModalController', e);
             }
         }, 120);
-    }
-
-    function getExtraIconsUrl() {
-        try {
-            var scripts = document.getElementsByTagName('script');
-            var si;
-            for (si = scripts.length - 1; si >= 0; si--) {
-                var src = scripts[si].src || '';
-                if (src.indexOf('buttons.js') !== -1) {
-                    var last = Math.max(src.lastIndexOf('/'), src.lastIndexOf('\\'));
-                    return last >= 0 ? src.slice(0, last + 1) + EXTRA_ICONS_FILE : '';
-                }
-            }
-        } catch (e) {
-            logDebug('getExtraIconsUrl', e);
-        }
-        return '';
     }
 
     function loadIconsFromUrlChain(urls, seen, callback) {
@@ -957,10 +938,6 @@
         }
         var openTimeout = setTimeout(openModal, DELAY_ICON_PICKER_MODAL_MS);
         var chainUrls = [DEFAULT_ICONS_URL];
-        var extraIconsUrl = getExtraIconsUrl();
-        if (extraIconsUrl) {
-            chainUrls.push(extraIconsUrl);
-        }
         loadIconsFromUrlChain(chainUrls, seenForJsonDedupe, function(newEntries, err) {
             clearTimeout(openTimeout);
             var icons = collectAllIcons(seenForJsonDedupe);
@@ -985,10 +962,7 @@
                 });
                 loadStatus.text('Альтернативные: ' + newEntries.length + ' · вкладка Lampa: ' + icons.length);
             } else {
-                loadStatus.text(
-                    'Вкладка Lampa: ' + icons.length +
-                    (extraIconsUrl ? ' · файл ' + EXTRA_ICONS_FILE + ' не загружен' : '')
-                );
+                loadStatus.text('Вкладка Lampa: ' + icons.length);
             }
             openModal();
         });
@@ -1622,10 +1596,6 @@
         }
         var openFolderIconTimeout = setTimeout(openFolderIconModal, DELAY_ICON_PICKER_MODAL_MS);
         var folderChainUrls = [DEFAULT_ICONS_URL];
-        var folderExtraUrl = getExtraIconsUrl();
-        if (folderExtraUrl) {
-            folderChainUrls.push(folderExtraUrl);
-        }
         loadIconsFromUrlChain(folderChainUrls, seenForJsonDedupe, function(newEntries, err) {
             clearTimeout(openFolderIconTimeout);
             var icons = collectAllIcons(seenForJsonDedupe);
@@ -1650,10 +1620,7 @@
                 });
                 loadStatus.text('Альтернативные: ' + newEntries.length + ' · вкладка Lampa: ' + icons.length);
             } else {
-                loadStatus.text(
-                    'Вкладка Lampa: ' + icons.length +
-                    (folderExtraUrl ? ' · файл ' + EXTRA_ICONS_FILE + ' не загружен' : '')
-                );
+                loadStatus.text('Вкладка Lampa: ' + icons.length);
             }
             openFolderIconModal();
         });
