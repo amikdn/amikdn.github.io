@@ -704,7 +704,7 @@
         if (!$) return;
         try { if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.close) Lampa.Modal.close(); } catch (err) {}
         setTimeout(function openRatingModalAfterClose() {
-        var SOURCE_LABELS = { tmdb: 'TMDB', lampa: 'Lampa', all: 'tmdb+lampa' };
+        var SOURCE_LABELS = { tmdb: 'TMDB', lampa: 'Lampa', all: 'TMDB+Lampa' };
         var POSITION_LABELS = { top: 'Сверху справа', bottom: 'Снизу справа' };
         var DISPLAY_MODE_LABELS = { single: 'Одно окно', separate: 'Каждый в отдельном окне' };
         var list = $('<div class="menu-edit-list rate-settings-modal"></div>').css({ maxWidth: '100%', overflow: 'hidden', boxSizing: 'border-box', padding: '0.5em 0', pointerEvents: 'auto', cursor: 'default' });
@@ -886,9 +886,9 @@
         list.append(addOffsetButton('Вправо', STEP, 0));
         list.append(addOffsetButton('Вверх', 0, -STEP));
         list.append(addOffsetButton('Вниз', 0, STEP));
-        var rowShowTmdb = addTriggerRow('Показывать TMDB (режим tmdb+lampa)', 'rating_show_tmdb', true);
-        var rowShowLampa = addTriggerRow('Показывать Lampa (режим tmdb+lampa)', 'rating_show_lampa', true);
-        var rowDisplayMode = addCycleRow('Режим отображения (режим tmdb+lampa)', 'rating_display_mode', DISPLAY_MODE_LABELS, 'separate');
+        var rowShowTmdb = addTriggerRow('Показывать TMDB (режим TMDB+Lampa)', 'rating_show_tmdb', true);
+        var rowShowLampa = addTriggerRow('Показывать Lampa (режим TMDB+Lampa)', 'rating_show_lampa', true);
+        var rowDisplayMode = addCycleRow('Режим отображения (режим TMDB+Lampa)', 'rating_display_mode', DISPLAY_MODE_LABELS, 'separate');
         var rowOpacity = addNumberRowWithButtons('Прозрачность (0=непрозрачное, 100=макс.)', 'rating_window_opacity', 40, 0, 100, 10, '%');
         var rowScale = addNumberRowWithButtons('Масштаб окон рейтингов', 'rating_scale', 120, 60, 150, 5, '%');
 
