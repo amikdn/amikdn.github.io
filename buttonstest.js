@@ -2,7 +2,7 @@
 (function() {
     'use strict';
 
-    var PLUGIN_VERSION = '1.69';
+    var PLUGIN_VERSION = '1.70';
 
     /** Тип события открытия полной карточки (в Lampa используется "complite") */
     var FULL_EVENT_TYPE = 'complite';
@@ -1900,11 +1900,13 @@
         var modes = ['default', 'icons', 'always'];
         var labels = {default: 'Стандартный', icons: 'Только иконки', always: 'С текстом'};
         var currentMode = Lampa.Storage.get(STORAGE_KEYS.viewmode, 'default');
-        var modeBtn = $('<div class="selector viewmode-switch menu-edit-list__toolbar-block menu-edit-list__toolbar-block--viewmode">' +
+        var modeBtn = $('<div class="selector viewmode-switch menu-edit-list__toolbar-block">' +
+            '<span class="menu-edit-list__create-folder-spacer"></span>' +
             '<div class="menu-edit-list__create-folder-inner">' +
             '<div class="menu-edit-list__icon menu-edit-list__icon--viewmode">' + getViewModeToolbarSvg(currentMode) + '</div>' +
             '<div class="menu-edit-list__title menu-edit-list__toolbar-label buttons-plugin-ui-text">Вид кнопок: ' + labels[currentMode] + '</div>' +
-            '</div></div>');
+            '</div>' +
+            '<span class="menu-edit-list__create-folder-spacer"></span></div>');
         modeBtn.on('hover:enter', function() {
             var idx = modes.indexOf(currentMode);
             idx = (idx + 1) % modes.length;
@@ -2513,9 +2515,6 @@
             '.menu-edit-list__create-folder-spacer { flex: 1; min-width: 0; }' +
             '.menu-edit-list__create-folder-inner { display: flex; align-items: center; gap: 0.5em; flex-shrink: 0; }' +
             '.menu-edit-list__toolbar-stack .viewmode-switch .menu-edit-list__create-folder-inner { flex: 0 1 auto; min-width: 0; max-width: 100%; justify-content: flex-start; }' +
-            '.menu-edit-list__toolbar-stack .viewmode-switch.menu-edit-list__toolbar-block--viewmode { justify-content: flex-start !important; padding: 0 0.75em 0 1em !important; }' +
-            '.menu-edit-list__toolbar-stack .viewmode-switch.menu-edit-list__toolbar-block--viewmode .menu-edit-list__create-folder-inner { flex: 1 1 auto; width: 100%; max-width: 100%; min-width: 0; }' +
-            '.menu-edit-list__toolbar-stack .viewmode-switch .menu-edit-list__icon--viewmode { flex-shrink: 0; }' +
             '.menu-edit-list__create-folder .menu-edit-list__icon, .menu-edit-list__toolbar-stack .viewmode-switch .menu-edit-list__icon { width: 1.5em; min-width: 1.5em; height: 1.5em; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }' +
             '.menu-edit-list__create-folder .menu-edit-list__icon svg, .menu-edit-list__toolbar-stack .viewmode-switch .menu-edit-list__icon svg { width: 1.35em; height: 1.35em; display: block; }' +
             '.menu-edit-list__create-folder .menu-edit-list__title { text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.3; }' +
