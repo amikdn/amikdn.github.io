@@ -104,7 +104,7 @@
       category.use({
         onCreate: function () {
           var self = this;
-          this.body.addClass('mapping--grid cols--5');
+          this.body.addClass('mapping--grid cols--4');
 
           setTimeout(function() {
             var data = {
