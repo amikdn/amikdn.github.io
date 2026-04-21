@@ -26,6 +26,38 @@
         if (parent.lastElementChild !== node) parent.appendChild(node);
     }
 
+    function focusSearchInput(searchRoot) {
+        if (!searchRoot) return;
+
+        var input = searchRoot.querySelector('.simple-keyboard-input');
+        if (!input) return;
+
+        var mic = searchRoot.querySelector('.simple-keyboard-mic');
+        if (mic) {
+            mic.classList.remove('focus');
+            mic.classList.remove('hover');
+            mic.classList.remove('active');
+        }
+
+        input.classList.add('focus');
+        input.classList.add('hover');
+
+        if (typeof input.focus === 'function') input.focus();
+        if (typeof input.click === 'function') input.click();
+    }
+
+    function scheduleSearchFocus(searchRoot) {
+        var attempts = 8;
+
+        function run() {
+            focusSearchInput(searchRoot);
+            attempts -= 1;
+            if (attempts > 0) setTimeout(run, 50);
+        }
+
+        requestAnimationFrame(run);
+    }
+
     function patchMicButton(node) {
         if (!node || node.nodeType !== 1 || node.dataset[PATCH_FLAG]) return;
 
@@ -52,6 +84,9 @@
 
         var nodes = document.querySelectorAll('.simple-keyboard-mic');
         for (var i = 0; i < nodes.length; i++) patchMicButton(nodes[i]);
+
+        var searchRoot = document.querySelector('.search');
+        if (searchRoot) scheduleSearchFocus(searchRoot);
     }
 
     function observeMicButton() {
@@ -67,9 +102,14 @@
 
                     if (node.matches && node.matches('.simple-keyboard-mic')) patchMicButton(node);
 
+                    if (node.matches && node.matches('.search')) scheduleSearchFocus(node);
+
                     if (node.querySelectorAll) {
                         var nested = node.querySelectorAll('.simple-keyboard-mic');
                         for (var k = 0; k < nested.length; k++) patchMicButton(nested[k]);
+
+                        var searches = node.querySelectorAll('.search');
+                        for (var n = 0; n < searches.length; n++) scheduleSearchFocus(searches[n]);
                     }
                 }
             }
