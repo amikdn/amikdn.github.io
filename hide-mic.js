@@ -6,7 +6,11 @@
 
         var style = document.createElement('style');
         style.id = 'hide-mic-button-style';
-        style.textContent = '.selector.simple-keyboard-mic{display:none !important;visibility:hidden !important;pointer-events:none !important;}';
+        style.textContent = [
+            '.selector.simple-keyboard-mic{color:transparent !important;}',
+            '.selector.simple-keyboard-mic svg{opacity:0 !important;}',
+            '.selector.simple-keyboard-mic svg *{fill:transparent !important;stroke:transparent !important;}'
+        ].join('');
         document.head.appendChild(style);
     }
 
