@@ -32,11 +32,29 @@
         if (svg) svg.setAttribute('focusable', 'false');
     }
 
+    function redirectFocusFromMic() {
+        var active = document.querySelector('.simple-keyboard-mic.focus, .simple-keyboard-mic.hover, .simple-keyboard-mic.active');
+        if (!active) return;
+
+        var keyboard = active.parentElement || document;
+        var target = keyboard.querySelector('.selector:not(.simple-keyboard-mic)');
+        if (!target) return;
+
+        active.classList.remove('focus');
+        active.classList.remove('hover');
+        active.classList.remove('active');
+
+        target.classList.add('focus');
+        if (typeof target.focus === 'function') target.focus();
+    }
+
     function patchAll() {
         ensureStyle();
 
         var nodes = document.querySelectorAll('.selector.simple-keyboard-mic');
         for (var i = 0; i < nodes.length; i++) patchMicButton(nodes[i]);
+
+        redirectFocusFromMic();
     }
 
     function observeMicButton() {
@@ -64,6 +82,8 @@
             childList: true,
             subtree: true
         });
+
+        setInterval(redirectFocusFromMic, 150);
 
         document.addEventListener('click', function (event) {
             var button = event.target && event.target.closest ? event.target.closest('.selector.simple-keyboard-mic') : null;
