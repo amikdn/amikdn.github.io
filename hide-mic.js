@@ -10,10 +10,10 @@
         var style = document.createElement('style');
         style.id = STYLE_ID;
         style.textContent = [
-            '.selector.simple-keyboard-mic{position:relative !important;overflow:hidden !important;}',
-            '.selector.simple-keyboard-mic svg{opacity:0 !important;}',
-            '.selector.simple-keyboard-mic svg *{fill:transparent !important;stroke:transparent !important;}',
-            '.selector.simple-keyboard-mic:before{content:"";display:block;width:100%;height:100%;}'
+            '.simple-keyboard-mic{position:relative !important;overflow:hidden !important;}',
+            '.simple-keyboard-mic svg{opacity:0 !important;}',
+            '.simple-keyboard-mic svg *{fill:transparent !important;stroke:transparent !important;}',
+            '.simple-keyboard-mic:before{content:"";display:block;width:100%;height:100%;}'
         ].join('');
         document.head.appendChild(style);
     }
@@ -22,6 +22,7 @@
         if (!node || node.nodeType !== 1 || node.dataset[PATCH_FLAG]) return;
 
         node.dataset[PATCH_FLAG] = 'true';
+        node.classList.remove('selector');
         node.setAttribute('aria-hidden', 'true');
         node.setAttribute('title', '');
         node.setAttribute('data-action', '');
