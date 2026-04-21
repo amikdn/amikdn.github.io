@@ -3,7 +3,6 @@
 
     var STYLE_ID = 'hide-mic-button-style';
     var PATCH_FLAG = 'hideMicPatched';
-    var OBSERVER_FLAG = 'hideMicObserved';
 
     function ensureStyle() {
         if (document.getElementById(STYLE_ID)) return;
@@ -20,62 +19,11 @@
         document.head.appendChild(style);
     }
 
-    function isMicFocused(node) {
-        return !!node && (
-            node.classList.contains('focus') ||
-            node.classList.contains('hover') ||
-            node.classList.contains('active')
-        );
-    }
+    function moveMicToEnd(node) {
+        var parent = node.parentElement;
+        if (!parent) return;
 
-    function findTarget(node) {
-        var next = node.nextElementSibling;
-        while (next) {
-            if (next.classList && next.classList.contains('selector') && !next.classList.contains('simple-keyboard-mic')) return next;
-            next = next.nextElementSibling;
-        }
-
-        var prev = node.previousElementSibling;
-        while (prev) {
-            if (prev.classList && prev.classList.contains('selector') && !prev.classList.contains('simple-keyboard-mic')) return prev;
-            prev = prev.previousElementSibling;
-        }
-
-        var scope = node.parentElement || document;
-        return scope.querySelector('.selector:not(.simple-keyboard-mic)');
-    }
-
-    function moveFocusFromMic(node) {
-        if (!isMicFocused(node)) return;
-
-        var target = findTarget(node);
-        if (!target) return;
-
-        node.classList.remove('focus');
-        node.classList.remove('hover');
-        node.classList.remove('active');
-
-        target.classList.add('focus');
-        if (typeof target.focus === 'function') target.focus();
-    }
-
-    function observeMicState(node) {
-        if (!node || node.nodeType !== 1 || node.dataset[OBSERVER_FLAG]) return;
-
-        node.dataset[OBSERVER_FLAG] = 'true';
-
-        var observer = new MutationObserver(function (mutations) {
-            for (var i = 0; i < mutations.length; i++) {
-                if (mutations[i].attributeName === 'class') {
-                    moveFocusFromMic(node);
-                }
-            }
-        });
-
-        observer.observe(node, {
-            attributes: true,
-            attributeFilter: ['class']
-        });
+        if (parent.lastElementChild !== node) parent.appendChild(node);
     }
 
     function patchMicButton(node) {
@@ -91,12 +39,12 @@
         node.style.margin = '0';
         node.style.padding = '0';
         node.style.border = '0';
+        node.tabIndex = -1;
 
         var svg = node.querySelector('svg');
         if (svg) svg.setAttribute('focusable', 'false');
 
-        observeMicState(node);
-        moveFocusFromMic(node);
+        moveMicToEnd(node);
     }
 
     function patchAll() {
@@ -104,11 +52,6 @@
 
         var nodes = document.querySelectorAll('.simple-keyboard-mic');
         for (var i = 0; i < nodes.length; i++) patchMicButton(nodes[i]);
-
-        requestAnimationFrame(function () {
-            var active = document.querySelector('.simple-keyboard-mic');
-            if (active) moveFocusFromMic(active);
-        });
     }
 
     function observeMicButton() {
