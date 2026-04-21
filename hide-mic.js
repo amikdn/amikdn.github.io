@@ -3,6 +3,7 @@
 
     var STYLE_ID = 'hide-mic-button-style';
     var PATCH_FLAG = 'hideMicPatched';
+    var redirectTimer = null;
 
     function ensureStyle() {
         if (document.getElementById(STYLE_ID)) return;
@@ -56,13 +57,28 @@
         if (typeof target.focus === 'function') target.focus();
     }
 
+    function scheduleRedirectFocus() {
+        if (redirectTimer) clearTimeout(redirectTimer);
+
+        var attempts = 8;
+
+        function run() {
+            redirectFocusFromMic();
+            attempts -= 1;
+            if (attempts > 0) redirectTimer = setTimeout(run, 60);
+            else redirectTimer = null;
+        }
+
+        run();
+    }
+
     function patchAll() {
         ensureStyle();
 
         var nodes = document.querySelectorAll('.simple-keyboard-mic');
         for (var i = 0; i < nodes.length; i++) patchMicButton(nodes[i]);
 
-        redirectFocusFromMic();
+        scheduleRedirectFocus();
     }
 
     function observeMicButton() {
@@ -76,11 +92,15 @@
                     var node = added[j];
                     if (!node || node.nodeType !== 1) continue;
 
-                    if (node.matches && node.matches('.simple-keyboard-mic')) patchMicButton(node);
+                    if (node.matches && node.matches('.simple-keyboard-mic')) {
+                        patchMicButton(node);
+                        scheduleRedirectFocus();
+                    }
 
                     if (node.querySelectorAll) {
                         var nested = node.querySelectorAll('.simple-keyboard-mic');
                         for (var k = 0; k < nested.length; k++) patchMicButton(nested[k]);
+                        if (nested.length) scheduleRedirectFocus();
                     }
                 }
             }
@@ -90,8 +110,6 @@
             childList: true,
             subtree: true
         });
-
-        setInterval(redirectFocusFromMic, 150);
 
         document.addEventListener('click', function (event) {
             var button = event.target && event.target.closest ? event.target.closest('.simple-keyboard-mic') : null;
