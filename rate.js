@@ -876,6 +876,7 @@
     var _scrollRatingMaxCardsPerRun = 35;
     var _ratingUpdateTimer = 0;
     var _ratingUpdateRafScheduled = false;
+    var _ratingObserver = null;
     function isCardNearViewport(card, windowHeight) {
         var rect = card.getBoundingClientRect();
         return !(rect.bottom < -200 || rect.top > windowHeight + 200);
@@ -952,6 +953,24 @@
                 updateVisibleCards();
             });
         }, delay || 0);
+    }
+    function startRatingsObserver() {
+        if (_ratingObserver || typeof MutationObserver === 'undefined' || !document.body) return;
+        _ratingObserver = new MutationObserver(function (mutations) {
+            for (var i = 0; i < mutations.length; i++) {
+                var mutation = mutations[i];
+                if (!mutation.addedNodes || !mutation.addedNodes.length) continue;
+                for (var j = 0; j < mutation.addedNodes.length; j++) {
+                    var node = mutation.addedNodes[j];
+                    if (!node || node.nodeType !== 1) continue;
+                    if ((node.matches && node.matches('.card')) || (node.querySelector && node.querySelector('.card'))) {
+                        scheduleVisibleRatingsUpdate(50);
+                        return;
+                    }
+                }
+            }
+        });
+        _ratingObserver.observe(document.body, { childList: true, subtree: true });
     }
 
     var _scrollRatingLastRun = 0;
@@ -1436,8 +1455,10 @@
         applyRatingScale();
         addSettings();
         setupCardListener();
+        startRatingsObserver();
         scheduleVisibleRatingsUpdate(0);
         setTimeout(function () { scheduleVisibleRatingsUpdate(250); }, 250);
+        setTimeout(function () { scheduleVisibleRatingsUpdate(700); }, 700);
         window.addEventListener('scroll', onScrollApplyRatings, { passive: true });
         document.addEventListener('visibilitychange', function () {
             if (!document.hidden) scheduleVisibleRatingsUpdate(0);
