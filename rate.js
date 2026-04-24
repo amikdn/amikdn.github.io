@@ -79,14 +79,6 @@
             return data;
         },
         set: function (source, key, value) {
-            if (source === 'lampa_rating' && (value.rating === 0 || value.rating === '0.0')) {
-                var cache = this.caches[source];
-                if (cache && cache[key]) {
-                    delete cache[key];
-                    debouncedSave(source, cache);
-                }
-                return value;
-            }
             var cache = this.caches[source] || (this.caches[source] = Lampa.Storage.cache(source, 500, {}));
             value.timestamp = Date.now();
             var isEmpty = ((!value.kp || value.kp === 0) && (!value.imdb || value.imdb === 0) && (!value.rating || value.rating === 0) && (!value.vote_average || value.vote_average === 0));
@@ -382,14 +374,23 @@
         });
     }
 
+    var pendingLampaRequests = {};
     function getLampaRating(ratingKey) {
         var cached = ratingCache.get('lampa_rating', ratingKey);
         if (cached) return Promise.resolve(cached);
-        return fetchLampaRating(ratingKey).then(function (result) {
+        if (pendingLampaRequests[ratingKey]) return pendingLampaRequests[ratingKey];
+        pendingLampaRequests[ratingKey] = fetchLampaRating(ratingKey).then(function (result) {
             return ratingCache.set('lampa_rating', ratingKey, result);
         }).catch(function () {
             return { rating: 0, medianReaction: '' };
+        }).then(function (result) {
+            delete pendingLampaRequests[ratingKey];
+            return result;
+        }, function (error) {
+            delete pendingLampaRequests[ratingKey];
+            throw error;
         });
+        return pendingLampaRequests[ratingKey];
     }
 
     function getTMDBRating(data) {
