@@ -585,6 +585,7 @@
         if (!el || !data || !rateSource) return;
         var idStr = data.id.toString();
         if (el.dataset.movieId !== idStr) return;
+        el.classList.add('card__vote--separate');
         if (rateSource === 'tmdb') {
             var rating = getTMDBRating(data);
             if (rating !== '0.0') {
@@ -662,7 +663,7 @@
 
     function updateCardRatingSeparate(card, data) {
         var idStr = data.id.toString();
-        var elements = card.querySelectorAll('.card__vote.card__vote--separate');
+        var elements = card.querySelectorAll('.card__vote-separate-wrap [data-rate-source]');
         for (var i = 0; i < elements.length; i++) {
             var el = elements[i];
             el.dataset.movieId = idStr;
@@ -915,7 +916,7 @@
             if (!data || !data.id) continue;
             var idStr = data.id.toString();
             var lineEl = card.querySelector('.card__vote-line');
-            var separateEls = card.querySelectorAll('.card__vote--separate');
+            var separateEls = card.querySelectorAll('.card__vote-separate-wrap [data-rate-source]');
             var singleEl = card.querySelector('.card__vote:not(.card__vote-line):not(.card__vote--separate):not(.card__vote-separate-wrap)');
             var needFull = false;
             if (source === 'all') {
