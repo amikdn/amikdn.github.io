@@ -416,7 +416,7 @@
         return 1 - (v / 100);
     }
     function getRatingPositionCSS(verticalOffsetEm) {
-        var pos = Lampa.Storage.get('rating_position', 'top');
+        var pos = Lampa.Storage.get('rating_position', 'bottom');
         var ox = getRatingOffsetX();
         var oy = getRatingOffsetY();
         var vo = (verticalOffsetEm == null || isNaN(verticalOffsetEm)) ? 0 : verticalOffsetEm;
@@ -428,7 +428,7 @@
     }
 
     function voteClass(extra) {
-        var pos = Lampa.Storage.get('rating_position', 'top');
+        var pos = Lampa.Storage.get('rating_position', 'bottom');
         return 'card__vote card__vote--' + pos + (extra ? ' ' + extra : '');
     }
 
@@ -568,7 +568,7 @@
     }
 
     function getRatingDisplayMode() {
-        return Lampa.Storage.get('rating_display_mode', 'single');
+        return Lampa.Storage.get('rating_display_mode', 'separate');
     }
 
     function fillSingleRatingElement(el, data, rateSource) {
@@ -633,10 +633,8 @@
         var parent = getRatingParent(card);
         var sources = [];
         if (isRatingSourceVisible('tmdb')) sources.push('tmdb');
-        if (canUseKinopoiskApi()) {
-            if (isRatingSourceVisible('imdb')) sources.push('imdb');
-            if (isRatingSourceVisible('kp')) sources.push('kp');
-        }
+        if (isRatingSourceVisible('imdb')) sources.push('imdb');
+        if (isRatingSourceVisible('kp')) sources.push('kp');
         if (isRatingSourceVisible('lampa')) sources.push('lampa');
         var wrapper = document.createElement('div');
         wrapper.className = voteClass('card__vote-separate-wrap');
@@ -717,7 +715,7 @@
         var data = card.card_data || item.data || {};
         if (!data.id) return;
         var idStr = data.id.toString();
-        var source = Lampa.Storage.get('rating_source', 'tmdb');
+        var source = Lampa.Storage.get('rating_source', 'all');
         var ratingElement = card.querySelector('.card__vote');
         var displayMode = getRatingDisplayMode();
 
@@ -899,7 +897,7 @@
 
     function pollCards() {
         var allCards = document.querySelectorAll('.card');
-        var source = Lampa.Storage.get('rating_source', 'tmdb');
+        var source = Lampa.Storage.get('rating_source', 'all');
         var displayMode = getRatingDisplayMode();
         for (var i = 0; i < allCards.length; i++) {
             var card = allCards[i];
@@ -1205,11 +1203,11 @@
             return btn;
         }
 
-        var rowSource = addCycleRow('Источник рейтинга', 'rating_source', SOURCE_LABELS, 'tmdb');
+        var rowSource = addCycleRow('Источник рейтинга', 'rating_source', SOURCE_LABELS, 'all');
         var rowAnimated = addTriggerRow('Анимированные реакции на постерах', 'animated_reactions', false);
         var rowColored = addTriggerRow('Цветные рейтинги (цифры)', 'colored_ratings_poster', true);
         var rowColoredWin = addTriggerRow('Цветные окна (цифры белые)', 'rating_colored_windows', false);
-        var rowPosition = addCycleRow('Позиция на постере', 'rating_position', POSITION_LABELS, 'top');
+        var rowPosition = addCycleRow('Позиция на постере', 'rating_position', POSITION_LABELS, 'bottom');
         list.append($('<div class="menu-edit-list__item rate-settings-offset-label"></div>').css({ display: 'block', width: '100%', padding: '0.3em 0.4em', marginBottom: '0.1em', fontWeight: 'bold', boxSizing: 'border-box', whiteSpace: 'nowrap', overflow: 'hidden', textAlign: 'center' }).text('Смещение (нажатие-сдвиг)'));
         list.append(addOffsetButton('Влево', -STEP, 0));
         list.append(addOffsetButton('Вправо', STEP, 0));
@@ -1219,7 +1217,7 @@
         var rowShowImdb = addTriggerRow('Показывать IMDB (при «Все»)', 'rating_show_imdb', true);
         var rowShowKp = addTriggerRow('Показывать КиноПоиск (при «Все»)', 'rating_show_kp', true);
         var rowShowLampa = addTriggerRow('Показывать Lampa (при «Все»)', 'rating_show_lampa', true);
-        var rowDisplayMode = addCycleRow('Режим отображения (все рейтинги)', 'rating_display_mode', DISPLAY_MODE_LABELS, 'single');
+        var rowDisplayMode = addCycleRow('Режим отображения (все рейтинги)', 'rating_display_mode', DISPLAY_MODE_LABELS, 'separate');
         var rowOpacity = addNumberRowWithButtons('Прозрачность (0=непрозрачное, 100=макс.)', 'rating_window_opacity', 0, 0, 100, 10, '%');
         var rowScale = addNumberRowWithButtons('Масштаб окон рейтингов', 'rating_scale', 100, 60, 150, 5, '%');
 
@@ -1229,7 +1227,8 @@
             if (k.length <= 10) return 'указан: ' + k;
             return 'указан: ' + k.slice(0, 4) + '...' + k.slice(-4);
         }
-        list.append($('<div class="menu-edit-list__item rate-settings-note"></div>').css({ padding: '0.45em 0.4em', marginBottom: '0.2em', opacity: 0.92, lineHeight: 1.35, boxSizing: 'border-box', textAlign: 'center', whiteSpace: 'nowrap' }).html('API-ключ можно получить на сайте <a class="rate-settings-site" href="https://kinopoiskapiunofficial.tech/" target="_blank" rel="noopener noreferrer">kinopoiskapiunofficial.tech</a>'));
+        list.append($('<div class="menu-edit-list__item rate-settings-note"></div>').css({ padding: '0.45em 0.4em 0.1em', marginBottom: '0', opacity: 0.92, lineHeight: 1.35, boxSizing: 'border-box', textAlign: 'center', whiteSpace: 'nowrap' }).text('API-ключ можно получить на сайте'));
+        list.append($('<div class="menu-edit-list__item rate-settings-note rate-settings-note-link"></div>').css({ padding: '0 0.4em 0.45em', marginBottom: '0.2em', opacity: 0.98, lineHeight: 1.35, boxSizing: 'border-box', textAlign: 'center' }).html('<a class="rate-settings-site" href="https://kinopoiskapiunofficial.tech/" target="_blank" rel="noopener noreferrer">kinopoiskapiunofficial.tech</a>'));
         var rowKpKey = makeRow('API-ключ КиноПоиск', kpApiKeyRowText(), function (rowEl, valEl) {
             if (typeof Lampa.Input !== 'undefined' && typeof Lampa.Input.edit === 'function') {
                 Lampa.Input.edit({
@@ -1250,31 +1249,31 @@
         list.append(rowKpKey.row);
 
         function resetAllToDefault() {
-            Lampa.Storage.set('rating_source', 'tmdb');
+            Lampa.Storage.set('rating_source', 'all');
             Lampa.Storage.set('animated_reactions', 'false');
             setColoredRatingsPoster(true);
             Lampa.Storage.set('rating_colored_windows', 'false');
-            Lampa.Storage.set('rating_position', 'top');
+            Lampa.Storage.set('rating_position', 'bottom');
             Lampa.Storage.set('rating_offset_x', '0');
             Lampa.Storage.set('rating_offset_y', '0');
             Lampa.Storage.set('rating_show_tmdb', 'true');
             Lampa.Storage.set('rating_show_imdb', 'true');
             Lampa.Storage.set('rating_show_kp', 'true');
             Lampa.Storage.set('rating_show_lampa', 'true');
-            Lampa.Storage.set('rating_display_mode', 'single');
+            Lampa.Storage.set('rating_display_mode', 'separate');
             Lampa.Storage.set('rating_window_opacity', '30');
             Lampa.Storage.set('rating_scale', '100');
             Lampa.Storage.set('rating_kp_api_key', '');
-            rowSource.updateVal(SOURCE_LABELS.tmdb);
+            rowSource.updateVal(SOURCE_LABELS.all);
             rowAnimated.updateVal('Выкл');
             rowColored.updateVal('Вкл');
             rowColoredWin.updateVal('Выкл');
-            rowPosition.updateVal(POSITION_LABELS.top);
+            rowPosition.updateVal(POSITION_LABELS.bottom);
             rowShowTmdb.updateVal('Вкл');
             rowShowImdb.updateVal('Вкл');
             rowShowKp.updateVal('Вкл');
             rowShowLampa.updateVal('Вкл');
-            rowDisplayMode.updateVal(DISPLAY_MODE_LABELS.single);
+            rowDisplayMode.updateVal(DISPLAY_MODE_LABELS.separate);
             rowOpacity.updateVal('30%');
             rowScale.updateVal('100%');
             rowKpKey.updateVal(kpApiKeyRowText());
