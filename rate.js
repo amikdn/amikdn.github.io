@@ -54,6 +54,22 @@
     }
 
     var CACHE_TTL = 24 * 60 * 60 * 1000;
+    function getPersistentCacheKey(source) {
+        return 'rating_cache_' + source;
+    }
+    function loadPersistentCache(source) {
+        var stored = null;
+        try {
+            stored = Lampa.Storage.get(getPersistentCacheKey(source), null);
+        } catch (e) {}
+        if (stored && typeof stored === 'object') return stored;
+        try {
+            stored = Lampa.Storage.cache(source, 500, {});
+        } catch (e2) {
+            stored = null;
+        }
+        return stored && typeof stored === 'object' ? stored : {};
+    }
 
     var _savePending = {};
     function debouncedSave(source, cache) {
@@ -61,14 +77,14 @@
         _savePending[source] = true;
         setTimeout(function () {
             _savePending[source] = false;
-            try { Lampa.Storage.set(source, cache); } catch (e) {}
+            try { Lampa.Storage.set(getPersistentCacheKey(source), cache); } catch (e) {}
         }, 2000);
     }
 
     var ratingCache = {
         caches: {},
         get: function (source, key) {
-            var cache = this.caches[source] || (this.caches[source] = Lampa.Storage.cache(source, 500, {}));
+            var cache = this.caches[source] || (this.caches[source] = loadPersistentCache(source));
             var data = cache[key];
             if (!data) return null;
             if (Date.now() - data.timestamp > CACHE_TTL) {
@@ -79,7 +95,7 @@
             return data;
         },
         set: function (source, key, value) {
-            var cache = this.caches[source] || (this.caches[source] = Lampa.Storage.cache(source, 500, {}));
+            var cache = this.caches[source] || (this.caches[source] = loadPersistentCache(source));
             value.timestamp = Date.now();
             var isEmpty = ((!value.kp || value.kp === 0) && (!value.imdb || value.imdb === 0) && (!value.rating || value.rating === 0) && (!value.vote_average || value.vote_average === 0));
             if (isEmpty) value._empty = true;
