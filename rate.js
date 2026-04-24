@@ -1227,8 +1227,8 @@
             if (k.length <= 10) return 'указан: ' + k;
             return 'указан: ' + k.slice(0, 4) + '...' + k.slice(-4);
         }
-        list.append($('<div class="menu-edit-list__item rate-settings-note"></div>').css({ padding: '0.45em 0.4em 0.1em', marginBottom: '0', opacity: 0.92, lineHeight: 1.35, boxSizing: 'border-box', textAlign: 'center', whiteSpace: 'nowrap' }).text('API-ключ можно получить на сайте'));
-        list.append($('<div class="menu-edit-list__item rate-settings-note rate-settings-note-link"></div>').css({ padding: '0 0.4em 0.45em', marginBottom: '0.2em', opacity: 0.98, lineHeight: 1.35, boxSizing: 'border-box', textAlign: 'center' }).html('<a class="rate-settings-site" href="https://kinopoiskapiunofficial.tech/" target="_blank" rel="noopener noreferrer">kinopoiskapiunofficial.tech</a>'));
+        list.append($('<div class="rate-settings-note rate-settings-note-text"></div>').css({ display: 'block', width: '100%', padding: '0.45em 0.4em 0.1em', marginBottom: '0', opacity: 0.92, lineHeight: 1.35, boxSizing: 'border-box', textAlign: 'center', whiteSpace: 'nowrap' }).text('API-ключ можно получить на сайте'));
+        list.append($('<div class="rate-settings-note rate-settings-note-link"></div>').css({ display: 'block', width: '100%', padding: '0 0.4em 0.45em', marginBottom: '0.2em', opacity: 0.98, lineHeight: 1.35, boxSizing: 'border-box', textAlign: 'center' }).html('<a class="rate-settings-site" href="https://kinopoiskapiunofficial.tech/" target="_blank" rel="noopener noreferrer">kinopoiskapiunofficial.tech</a>'));
         var rowKpKey = makeRow('API-ключ КиноПоиск', kpApiKeyRowText(), function (rowEl, valEl) {
             if (typeof Lampa.Input !== 'undefined' && typeof Lampa.Input.edit === 'function') {
                 Lampa.Input.edit({
@@ -1388,7 +1388,8 @@
             '.rate-settings-modal .selector.focus{border-color:rgba(255,255,255,0.8)!important;box-shadow:none!important}' +
             '.rate-settings-modal .selector:hover{background:rgba(255,255,255,0.08)}' +
             '.rate-settings-modal .selector:active{background:rgba(255,255,255,0.22)!important}' +
-            '.rate-settings-note{white-space:normal!important;overflow:visible!important}' +
+            '.rate-settings-note{display:block!important;width:100%!important;overflow:visible!important;box-sizing:border-box!important}' +
+            '.rate-settings-note-text{text-align:center!important;white-space:nowrap!important;word-break:keep-all!important;overflow-wrap:normal!important}' +
             '.rate-settings-site{display:inline-block;color:#8ab4ff!important;text-decoration:underline!important;white-space:nowrap!important;word-break:normal!important;overflow-wrap:normal!important}' +
             '[data-name="rating_modal_open"] .settings-param__value,[data-name="rating_modal_open"] .settings-param__control,[data-name="rating_modal_open"] input[type="checkbox"]{display:none!important}' +
             '.card .card__view{position:relative!important}' +
