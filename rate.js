@@ -589,7 +589,7 @@
             var rating = getTMDBRating(data);
             if (rating !== '0.0') {
                 var color = getRatingColor(rating);
-                el.className = voteClass('rate--tmdb');
+                el.className = voteClass('rate--tmdb card__vote--separate');
                 el.innerHTML = '<span style="color:' + color + '">' + formatRating(rating) + '</span> <span class="source--name"></span>';
                 el.style.display = '';
                 var bg = getRatingBackgroundColor(rating);
@@ -606,7 +606,7 @@
                 if (val && val > 0) {
                     var text = formatRating(val);
                     var color = getRatingColor(val);
-                    el.className = voteClass('rate--' + rateSource);
+                    el.className = voteClass('rate--' + rateSource + ' card__vote--separate');
                     el.innerHTML = '<span style="color:' + color + '">' + text + '</span> <span class="source--name"></span>';
                     el.style.display = '';
                     var bg = getRatingBackgroundColor(val);
@@ -627,7 +627,7 @@
                     if (result.medianReaction) {
                         html += ' <img style="width:16px;height:16px;margin-left:4px;object-fit:contain;vertical-align:middle;flex-shrink:0;" src="' + getReactionImageSrc(result.medianReaction) + '">';
                     }
-                    el.className = voteClass('rate--lampa');
+                    el.className = voteClass('rate--lampa card__vote--separate');
                     el.innerHTML = html;
                     el.style.display = '';
                     var bg = getRatingBackgroundColor(result.rating);
