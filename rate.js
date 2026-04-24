@@ -1210,7 +1210,7 @@
         var rowColored = addTriggerRow('Цветные рейтинги (цифры)', 'colored_ratings_poster', true);
         var rowColoredWin = addTriggerRow('Цветные окна (цифры белые)', 'rating_colored_windows', false);
         var rowPosition = addCycleRow('Позиция на постере', 'rating_position', POSITION_LABELS, 'top');
-        list.append($('<div class="menu-edit-list__item rate-settings-offset-label"></div>').css({ padding: '0.3em 0.4em', marginBottom: '0.1em', fontWeight: 'bold', boxSizing: 'border-box', whiteSpace: 'nowrap', overflow: 'hidden' }).text('Смещение (нажатие-сдвиг)'));
+        list.append($('<div class="menu-edit-list__item rate-settings-offset-label"></div>').css({ padding: '0.3em 0.4em', marginBottom: '0.1em', fontWeight: 'bold', boxSizing: 'border-box', whiteSpace: 'nowrap', overflow: 'hidden', textAlign: 'center' }).text('Смещение (нажатие-сдвиг)'));
         list.append(addOffsetButton('Влево', -STEP, 0));
         list.append(addOffsetButton('Вправо', STEP, 0));
         list.append(addOffsetButton('Вверх', 0, -STEP));
@@ -1226,9 +1226,10 @@
         function kpApiKeyRowText() {
             var k = String(Lampa.Storage.get('rating_kp_api_key', '') || Lampa.Storage.get('source_api_key', '') || '').trim();
             if (!k) return 'не задан';
-            return 'задан · ' + k.slice(0, 4) + '…';
+            if (k.length <= 10) return 'указан: ' + k;
+            return 'указан: ' + k.slice(0, 4) + '...' + k.slice(-4);
         }
-        list.append($('<div class="menu-edit-list__item rate-settings-note"></div>').css({ padding: '0.45em 0.4em', marginBottom: '0.2em', opacity: 0.85, lineHeight: 1.35, boxSizing: 'border-box' }).html('Получить API-ключ можно на сайте <span class="rate-settings-site">kinopoiskapiunofficial.tech</span>'));
+        list.append($('<div class="menu-edit-list__item rate-settings-note"></div>').css({ padding: '0.45em 0.4em', marginBottom: '0.2em', opacity: 0.92, lineHeight: 1.35, boxSizing: 'border-box', textAlign: 'center' }).html('API-ключ можно получить на сайте <a class="rate-settings-site" href="https://kinopoiskapiunofficial.tech/" target="_blank" rel="noopener noreferrer">kinopoiskapiunofficial.tech</a>'));
         var rowKpKey = makeRow('API-ключ КиноПоиск', kpApiKeyRowText(), function (rowEl, valEl) {
             if (typeof Lampa.Input !== 'undefined' && typeof Lampa.Input.edit === 'function') {
                 Lampa.Input.edit({
@@ -1388,6 +1389,8 @@
             '.rate-settings-modal .selector.focus{border-color:rgba(255,255,255,0.8)!important;box-shadow:none!important}' +
             '.rate-settings-modal .selector:hover{background:rgba(255,255,255,0.08)}' +
             '.rate-settings-modal .selector:active{background:rgba(255,255,255,0.22)!important}' +
+            '.rate-settings-note{white-space:normal!important;overflow:visible!important}' +
+            '.rate-settings-site{display:inline-block;color:#8ab4ff!important;text-decoration:underline!important;white-space:nowrap!important;word-break:normal!important;overflow-wrap:normal!important}' +
             '[data-name="rating_modal_open"] .settings-param__value,[data-name="rating_modal_open"] .settings-param__control,[data-name="rating_modal_open"] input[type="checkbox"]{display:none!important}' +
             '.card .card__view{position:relative!important}' +
             '.card__view > .card__vote:not(.card__vote--top):not(.card__vote--bottom):not(.card__vote-line):not(.card__vote-separate-wrap):not(.card__vote--separate){display:none!important}' +
