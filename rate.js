@@ -192,11 +192,6 @@
     }
 
     function getKinopoiskRating(item, callback) {
-        var cached = ratingCache.get('kp_rating', item.id);
-        if (cached) {
-            callback(cached);
-            return;
-        }
         if (item.kp_rating > 0 || item.imdb_rating > 0) {
             var result = ratingCache.set('kp_rating', item.id, {
                 kp: parseFloat(item.kp_rating) || 0,
@@ -204,6 +199,20 @@
                 timestamp: Date.now()
             });
             callback(result);
+            return;
+        }
+        if (item.ratingKinopoisk > 0 || item.ratingImdb > 0) {
+            var result = ratingCache.set('kp_rating', item.id, {
+                kp: parseFloat(item.ratingKinopoisk) || 0,
+                imdb: parseFloat(item.ratingImdb) || 0,
+                timestamp: Date.now()
+            });
+            callback(result);
+            return;
+        }
+        var cached = ratingCache.get('kp_rating', item.id);
+        if (cached) {
+            callback(cached);
             return;
         }
         try {
