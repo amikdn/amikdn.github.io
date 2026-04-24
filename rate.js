@@ -884,7 +884,6 @@
     function updateVisibleCards(limit) {
         if (document.hidden) return;
         var allCards = document.querySelectorAll('.card');
-        if (allCards.length > 200) return;
         var maxCards = typeof limit === 'number' && limit > 0 ? limit : allCards.length;
         var wH = window.innerHeight || 1000;
         var updated = 0;
@@ -950,7 +949,7 @@
             _ratingUpdateRafScheduled = true;
             requestAnimationFrame(function () {
                 _ratingUpdateRafScheduled = false;
-                updateVisibleCards();
+                updateVisibleCards(_scrollRatingMaxCardsPerRun);
             });
         }, delay || 0);
     }
@@ -964,7 +963,7 @@
                     var node = mutation.addedNodes[j];
                     if (!node || node.nodeType !== 1) continue;
                     if ((node.matches && node.matches('.card')) || (node.querySelector && node.querySelector('.card'))) {
-                        scheduleVisibleRatingsUpdate(50);
+                        scheduleVisibleRatingsUpdate(0);
                         return;
                     }
                 }
@@ -974,7 +973,7 @@
     }
 
     var _scrollRatingLastRun = 0;
-    var _scrollRatingThrottle = 220;
+    var _scrollRatingThrottle = 80;
     function onScrollApplyRatings() {
         var now = Date.now();
         if (now - _scrollRatingLastRun < _scrollRatingThrottle) return;
@@ -1457,8 +1456,8 @@
         setupCardListener();
         startRatingsObserver();
         scheduleVisibleRatingsUpdate(0);
-        setTimeout(function () { scheduleVisibleRatingsUpdate(250); }, 250);
-        setTimeout(function () { scheduleVisibleRatingsUpdate(700); }, 700);
+        setTimeout(function () { scheduleVisibleRatingsUpdate(120); }, 120);
+        setTimeout(function () { scheduleVisibleRatingsUpdate(350); }, 350);
         window.addEventListener('scroll', onScrollApplyRatings, { passive: true });
         document.addEventListener('visibilitychange', function () {
             if (!document.hidden) scheduleVisibleRatingsUpdate(0);
