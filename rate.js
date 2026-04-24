@@ -889,7 +889,7 @@
         }
     };
 
-    var _scrollRatingMaxCardsPerRun = 35;
+    var _scrollRatingMaxCardsPerRun = 80;
     var _ratingUpdateTimer = 0;
     var _ratingUpdateRafScheduled = false;
     var _ratingObserver = null;
@@ -1003,6 +1003,13 @@
         if (now - _scrollRatingLastRun < _scrollRatingThrottle) return;
         _scrollRatingLastRun = now;
         scheduleVisibleRatingsUpdate(0);
+    }
+    function onNavigationApplyRatings(e) {
+        var code = e && (e.code || e.key);
+        if (code === 'ArrowUp' || code === 'ArrowDown' || code === 'ArrowLeft' || code === 'ArrowRight' || code === 'PageUp' || code === 'PageDown') {
+            scheduleVisibleRatingsUpdate(0);
+            scheduleVisibleRatingsUpdate(120);
+        }
     }
 
     function colorizeFullCardRatings(render) {
@@ -1485,6 +1492,7 @@
         setTimeout(function () { scheduleVisibleRatingsUpdate(350); }, 350);
         setTimeout(function () { scheduleVisibleRatingsUpdate(900); }, 900);
         window.addEventListener('scroll', onScrollApplyRatings, { passive: true });
+        window.addEventListener('keydown', onNavigationApplyRatings, { passive: true });
         window.addEventListener('resize', function () { scheduleVisibleRatingsUpdate(0); }, { passive: true });
         document.addEventListener('visibilitychange', function () {
             if (!document.hidden) scheduleVisibleRatingsUpdate(0);
