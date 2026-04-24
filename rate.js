@@ -1210,7 +1210,7 @@
         var rowColored = addTriggerRow('Цветные рейтинги (цифры)', 'colored_ratings_poster', true);
         var rowColoredWin = addTriggerRow('Цветные окна (цифры белые)', 'rating_colored_windows', false);
         var rowPosition = addCycleRow('Позиция на постере', 'rating_position', POSITION_LABELS, 'top');
-        list.append($('<div class="menu-edit-list__item rate-settings-offset-label"></div>').css({ padding: '0.3em 0.4em', marginBottom: '0.1em', fontWeight: 'bold', boxSizing: 'border-box', whiteSpace: 'nowrap', overflow: 'hidden', textAlign: 'center' }).text('Смещение (нажатие-сдвиг)'));
+        list.append($('<div class="menu-edit-list__item rate-settings-offset-label"></div>').css({ display: 'block', width: '100%', padding: '0.3em 0.4em', marginBottom: '0.1em', fontWeight: 'bold', boxSizing: 'border-box', whiteSpace: 'nowrap', overflow: 'hidden', textAlign: 'center' }).text('Смещение (нажатие-сдвиг)'));
         list.append(addOffsetButton('Влево', -STEP, 0));
         list.append(addOffsetButton('Вправо', STEP, 0));
         list.append(addOffsetButton('Вверх', 0, -STEP));
@@ -1229,7 +1229,7 @@
             if (k.length <= 10) return 'указан: ' + k;
             return 'указан: ' + k.slice(0, 4) + '...' + k.slice(-4);
         }
-        list.append($('<div class="menu-edit-list__item rate-settings-note"></div>').css({ padding: '0.45em 0.4em', marginBottom: '0.2em', opacity: 0.92, lineHeight: 1.35, boxSizing: 'border-box', textAlign: 'center' }).html('API-ключ можно получить на сайте <a class="rate-settings-site" href="https://kinopoiskapiunofficial.tech/" target="_blank" rel="noopener noreferrer">kinopoiskapiunofficial.tech</a>'));
+        list.append($('<div class="menu-edit-list__item rate-settings-note"></div>').css({ padding: '0.45em 0.4em', marginBottom: '0.2em', opacity: 0.92, lineHeight: 1.35, boxSizing: 'border-box', textAlign: 'center', whiteSpace: 'nowrap' }).html('API-ключ можно получить на сайте <a class="rate-settings-site" href="https://kinopoiskapiunofficial.tech/" target="_blank" rel="noopener noreferrer">kinopoiskapiunofficial.tech</a>'));
         var rowKpKey = makeRow('API-ключ КиноПоиск', kpApiKeyRowText(), function (rowEl, valEl) {
             if (typeof Lampa.Input !== 'undefined' && typeof Lampa.Input.edit === 'function') {
                 Lampa.Input.edit({
