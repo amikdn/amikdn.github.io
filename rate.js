@@ -868,52 +868,32 @@
             var card = allCards[i];
             var data = card.card_data;
             if (data && data.id) {
-                removeAllRatingElements(card);
                 updateCardRating({ card: card, data: data });
             }
         }
     };
 
     var _scrollRatingMaxCardsPerRun = 35;
-    function applyCachedRatingsToVisibleCards() {
+    var _ratingUpdateTimer = 0;
+    var _ratingUpdateRafScheduled = false;
+    function isCardNearViewport(card, windowHeight) {
+        var rect = card.getBoundingClientRect();
+        return !(rect.bottom < -200 || rect.top > windowHeight + 200);
+    }
+    function updateVisibleCards(limit) {
+        if (document.hidden) return;
         var allCards = document.querySelectorAll('.card');
         if (allCards.length > 200) return;
+        var maxCards = typeof limit === 'number' && limit > 0 ? limit : allCards.length;
         var wH = window.innerHeight || 1000;
         var updated = 0;
-        for (var i = 0; i < allCards.length && updated < _scrollRatingMaxCardsPerRun; i++) {
-            var card = allCards[i];
-            var data = card.card_data;
-            if (!data || !data.id) continue;
-            var rect = card.getBoundingClientRect();
-            if (rect.bottom < -200 || rect.top > wH + 200) continue;
-            updateCardRating({ card: card, data: data });
-            updated++;
-        }
-    }
-
-    var _scrollRatingLastRun = 0;
-    var _scrollRatingThrottle = 220;
-    var _scrollRatingRafScheduled = false;
-    function onScrollApplyRatings() {
-        var now = Date.now();
-        if (now - _scrollRatingLastRun < _scrollRatingThrottle) return;
-        _scrollRatingLastRun = now;
-        if (_scrollRatingRafScheduled) return;
-        _scrollRatingRafScheduled = true;
-        requestAnimationFrame(function () {
-            _scrollRatingRafScheduled = false;
-            applyCachedRatingsToVisibleCards();
-        });
-    }
-
-    function pollCards() {
-        var allCards = document.querySelectorAll('.card');
         var source = Lampa.Storage.get('rating_source', 'all');
         var displayMode = getRatingDisplayMode();
-        for (var i = 0; i < allCards.length; i++) {
+        for (var i = 0; i < allCards.length && updated < maxCards; i++) {
             var card = allCards[i];
             var data = card.card_data;
             if (!data || !data.id) continue;
+            if (!isCardNearViewport(card, wH)) continue;
             var idStr = data.id.toString();
             var lineEl = card.querySelector('.card__vote-line');
             var separateEls = card.querySelectorAll('.card__vote-separate-wrap [data-rate-source]');
@@ -932,34 +912,55 @@
                 else if (singleEl.innerHTML === '') {
                     if (source === 'lampa') {
                         var ratingKey = (data.seasons || data.first_air_date || data.original_name) ? 'tv_' + data.id : 'movie_' + data.id;
-                        var cached = ratingCache.get('lampa_rating', ratingKey);
-                        if (cached && cached.rating > 0) {
-                            var color = getRatingColor(cached.rating);
-                            var html = '<span style="color:' + color + '">' + formatRating(cached.rating) + '</span>';
-                            if (cached.medianReaction) {
-                                html += ' <img style="width:16px;height:16px;margin-left:4px;object-fit:contain;vertical-align:middle;flex-shrink:0;" src="' + getReactionImageSrc(cached.medianReaction) + '">';
+                        var cachedLampa = ratingCache.get('lampa_rating', ratingKey);
+                        if (cachedLampa && cachedLampa.rating > 0) {
+                            var color = getRatingColor(cachedLampa.rating);
+                            var html = '<span style="color:' + color + '">' + formatRating(cachedLampa.rating) + '</span>';
+                            if (cachedLampa.medianReaction) {
+                                html += ' <img style="width:16px;height:16px;margin-left:4px;object-fit:contain;vertical-align:middle;flex-shrink:0;" src="' + getReactionImageSrc(cachedLampa.medianReaction) + '">';
                             }
                             singleEl.innerHTML = html;
                         }
                     } else if (source === 'tmdb') {
-                        var cached = ratingCache.get('tmdb_rating', data.id);
-                        if (cached && cached.vote_average > 0) {
-                            var text = formatRating(cached.vote_average);
-                            var color = getRatingColor(cached.vote_average);
-                            singleEl.innerHTML = '<span style="color:' + color + '">' + text + '</span> <span class="source--name"></span>';
+                        var cachedTmdb = ratingCache.get('tmdb_rating', data.id);
+                        if (cachedTmdb && cachedTmdb.vote_average > 0) {
+                            var text = formatRating(cachedTmdb.vote_average);
+                            var tmdbColor = getRatingColor(cachedTmdb.vote_average);
+                            singleEl.innerHTML = '<span style="color:' + tmdbColor + '">' + text + '</span> <span class="source--name"></span>';
                         }
                     } else if (source === 'kp' || source === 'imdb') {
-                        var cached = ratingCache.get('kp_rating', data.id);
-                        if (cached && (cached.kp > 0 || cached.imdb > 0)) {
-                            var rating = source === 'kp' ? cached.kp : cached.imdb;
+                        var cachedKp = ratingCache.get('kp_rating', data.id);
+                        if (cachedKp && (cachedKp.kp > 0 || cachedKp.imdb > 0)) {
+                            var rating = source === 'kp' ? cachedKp.kp : cachedKp.imdb;
                             singleEl.innerHTML = '<span style="color:' + getRatingColor(rating) + '">' + formatRating(rating) + '</span> <span class="source--name"></span>';
                         }
                     }
                 }
             }
             if (needFull) updateCardRating({ card: card, data: data });
+            updated++;
         }
-        setTimeout(pollCards, 500);
+    }
+    function scheduleVisibleRatingsUpdate(delay) {
+        if (_ratingUpdateTimer) clearTimeout(_ratingUpdateTimer);
+        _ratingUpdateTimer = setTimeout(function () {
+            _ratingUpdateTimer = 0;
+            if (_ratingUpdateRafScheduled) return;
+            _ratingUpdateRafScheduled = true;
+            requestAnimationFrame(function () {
+                _ratingUpdateRafScheduled = false;
+                updateVisibleCards();
+            });
+        }, delay || 0);
+    }
+
+    var _scrollRatingLastRun = 0;
+    var _scrollRatingThrottle = 220;
+    function onScrollApplyRatings() {
+        var now = Date.now();
+        if (now - _scrollRatingLastRun < _scrollRatingThrottle) return;
+        _scrollRatingLastRun = now;
+        scheduleVisibleRatingsUpdate(0);
     }
 
     function colorizeFullCardRatings(render) {
@@ -1011,6 +1012,7 @@
     function applyRatingSettingsRefresh() {
         applyRatingScale();
         if (typeof window.refreshAllRatings === 'function') window.refreshAllRatings();
+        scheduleVisibleRatingsUpdate(0);
     }
 
     function openRatingSettingsModal() {
@@ -1434,14 +1436,19 @@
         applyRatingScale();
         addSettings();
         setupCardListener();
-        pollCards();
+        scheduleVisibleRatingsUpdate(0);
+        setTimeout(function () { scheduleVisibleRatingsUpdate(250); }, 250);
         window.addEventListener('scroll', onScrollApplyRatings, { passive: true });
+        document.addEventListener('visibilitychange', function () {
+            if (!document.hidden) scheduleVisibleRatingsUpdate(0);
+        });
 
         Lampa.Listener.follow('card', function (event) {
             if (event.type === 'build' && event.object.card) {
                 var data = event.object.card.card_data;
                 if (data && data.id) {
                     updateCardRating({ card: event.object.card, data: data });
+                    scheduleVisibleRatingsUpdate(0);
                 }
             }
         });
@@ -1479,6 +1486,7 @@
                                 if (isTriggerOn('animated_reactions', false)) $(render).find('.rate--lampa').addClass('rate--lampa--animated');
                             }
                             colorizeFullCardRatings(render);
+                            scheduleVisibleRatingsUpdate(0);
                             return;
                         }
                         addToQueue(function () {
@@ -1496,10 +1504,12 @@
                                     $(render).find('.rate--lampa').hide();
                                 }
                                 colorizeFullCardRatings(render);
+                                scheduleVisibleRatingsUpdate(0);
                             });
                         });
                     }
                 }
+                scheduleVisibleRatingsUpdate(0);
                 setTimeout(function () { colorizeFullCardRatings(render); }, 100);
             }
         });
