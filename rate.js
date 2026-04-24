@@ -171,6 +171,9 @@
         if (!k) return {};
         return { 'X-API-KEY': k };
     }
+    function cacheEmptyKpRating(itemId) {
+        return ratingCache.set('kp_rating', itemId, { kp: 0, imdb: 0 });
+    }
 
     function findBestKpMatch(results, title, originalTitle, releaseYear) {
         if (!results || !results.length) return null;
@@ -225,7 +228,7 @@
             }
         } catch (e) {}
         if (!canUseKinopoiskApi()) {
-            callback({ kp: 0, imdb: 0 });
+            callback(cacheEmptyKpRating(item.id));
             return;
         }
         if (item.kinopoisk_id) {
@@ -242,13 +245,13 @@
                     callback(res);
                 }, function () {
                     releaseRequest(request);
-                    callback({ kp: 0, imdb: 0 });
+                    callback(cacheEmptyKpRating(item.id));
                 }, false, { headers: getKpHeaders() });
             });
             return;
         }
         if (!(item.title || item.name) && !item.imdb_id) {
-            callback({ kp: 0, imdb: 0 });
+            callback(cacheEmptyKpRating(item.id));
             return;
         }
         addToQueue(function () {
@@ -273,7 +276,7 @@
                 var best = findBestKpMatch(results, title, originalTitle, releaseYear);
                 if (!best) {
                     releaseRequest(request);
-                    callback({ kp: 0, imdb: 0 });
+                    callback(cacheEmptyKpRating(item.id));
                     return;
                 }
 
@@ -304,15 +307,23 @@
                         callback(res);
                     }, function () {
                         releaseRequest(request);
-                        callback({ kp: kpFromSearch, imdb: imdbFromSearch });
+                        callback(ratingCache.set('kp_rating', item.id, {
+                            kp: kpFromSearch,
+                            imdb: imdbFromSearch,
+                            timestamp: Date.now()
+                        }));
                     }, false, { headers: getKpHeaders() });
                 } else {
                     releaseRequest(request);
-                    callback({ kp: kpFromSearch, imdb: imdbFromSearch });
+                    callback(ratingCache.set('kp_rating', item.id, {
+                        kp: kpFromSearch,
+                        imdb: imdbFromSearch,
+                        timestamp: Date.now()
+                    }));
                 }
             }, function () {
                 releaseRequest(request);
-                callback({ kp: 0, imdb: 0 });
+                callback(cacheEmptyKpRating(item.id));
             }, false, { headers: getKpHeaders() });
         });
     }
@@ -705,15 +716,24 @@
         if (!card || !card.querySelector || !document.body.contains(card)) return;
         var data = card.card_data || item.data || {};
         if (!data.id) return;
+        var idStr = data.id.toString();
         var source = Lampa.Storage.get('rating_source', 'tmdb');
         var ratingElement = card.querySelector('.card__vote');
         var displayMode = getRatingDisplayMode();
 
         if (source === 'all') {
             var isSeparate = displayMode === 'separate';
-            removeAllRatingElements(card);
             if (isSeparate) {
-                createRatingSeparateElements(card);
+                var separateWrap = card.querySelector('.card__vote-separate-wrap');
+                if (!separateWrap || separateWrap.dataset.movieId !== idStr || separateWrap.dataset.source !== 'all') {
+                    removeAllRatingElements(card);
+                    createRatingSeparateElements(card);
+                    separateWrap = card.querySelector('.card__vote-separate-wrap');
+                }
+                if (separateWrap) {
+                    separateWrap.dataset.movieId = idStr;
+                    separateWrap.dataset.source = 'all';
+                }
                 updateCardRatingSeparate(card, data);
                 if (canUseKinopoiskApi()) {
                     getKinopoiskRating(data, function () {
@@ -725,22 +745,26 @@
                     if (card.parentNode && document.body.contains(card)) updateCardRatingSeparate(card, data);
                 });
             } else {
-                ratingElement = createRatingLineElement(card);
+                ratingElement = card.querySelector('.card__vote-line');
+                if (!ratingElement || ratingElement.dataset.movieId !== idStr || ratingElement.dataset.source !== 'all') {
+                    removeAllRatingElements(card);
+                    ratingElement = createRatingLineElement(card);
+                }
                 ratingElement.dataset.source = 'all';
-                ratingElement.dataset.movieId = data.id.toString();
+                ratingElement.dataset.movieId = idStr;
                 ratingElement.style.display = '';
                 updateCardRatingLine(ratingElement, data);
                 if (canUseKinopoiskApi() && !ratingElement.dataset.kpRequested) {
                     ratingElement.dataset.kpRequested = String(Date.now());
                     getKinopoiskRating(data, function () {
-                        if (ratingElement.parentNode && ratingElement.dataset.movieId === data.id.toString()) {
+                        if (ratingElement.parentNode && ratingElement.dataset.movieId === idStr) {
                             updateCardRatingLine(ratingElement, data);
                         }
                     });
                 }
                 var lampaKey = (data.seasons || data.first_air_date || data.original_name) ? 'tv_' + data.id : 'movie_' + data.id;
                 getLampaRating(lampaKey).then(function () {
-                    if (ratingElement.parentNode && ratingElement.dataset.movieId === data.id.toString()) {
+                    if (ratingElement.parentNode && ratingElement.dataset.movieId === idStr) {
                         updateCardRatingLine(ratingElement, data);
                     }
                 });
@@ -748,10 +772,13 @@
             return;
         }
 
-        removeAllRatingElements(card);
-        ratingElement = createRatingElement(card);
+        ratingElement = card.querySelector('.card__vote:not(.card__vote-line):not(.card__vote--separate):not(.card__vote-separate-wrap)');
+        if (!ratingElement || ratingElement.dataset.source !== source || ratingElement.dataset.movieId !== idStr) {
+            removeAllRatingElements(card);
+            ratingElement = createRatingElement(card);
+        }
         ratingElement.dataset.source = source;
-        ratingElement.dataset.movieId = data.id.toString();
+        ratingElement.dataset.movieId = idStr;
         ratingElement.style.display = '';
 
         function applyTmdbToElement(el) {
@@ -792,7 +819,7 @@
             applyTmdbToElement(ratingElement);
             addToQueue(function () {
                 getLampaRating(ratingKey).then(function (result) {
-                    if (ratingElement.parentNode && ratingElement.dataset.movieId === data.id.toString()) {
+                    if (ratingElement.parentNode && ratingElement.dataset.movieId === idStr) {
                         if (result.rating > 0) {
                             ratingElement.className = voteClass('rate--lampa');
                             var color = getRatingColor(result.rating);
@@ -811,7 +838,7 @@
         } else if (source === 'kp' || source === 'imdb') {
             applyTmdbToElement(ratingElement);
             getKinopoiskRating(data, function (res) {
-                if (ratingElement.parentNode && ratingElement.dataset.movieId === data.id.toString()) {
+                if (ratingElement.parentNode && ratingElement.dataset.movieId === idStr) {
                     var val = source === 'kp' ? res.kp : res.imdb;
                     if (val && val > 0) {
                         ratingElement.className = voteClass('rate--' + source);
@@ -990,6 +1017,30 @@
 
         function isMouseEvent(e) {
             return e && (e.pointerType === 'mouse' || (e.clientX !== undefined && e.clientY !== undefined));
+        }
+        function getBodyLevelNode(node) {
+            while (node && node.parentNode && node.parentNode !== document.body) node = node.parentNode;
+            return node && node.nodeType === 1 ? node : null;
+        }
+        function liftInputAboveSettings(anchor) {
+            var settingsRoot = getBodyLevelNode(anchor && anchor[0] ? anchor[0] : anchor);
+            var tries = 0;
+            function applyLayering() {
+                tries++;
+                var active = document.activeElement;
+                var inputRoot = getBodyLevelNode(active);
+                if ((!inputRoot || inputRoot === settingsRoot) && document.body && document.body.children.length > 1) {
+                    inputRoot = document.body.lastElementChild;
+                    if (inputRoot === settingsRoot) inputRoot = document.body.children[document.body.children.length - 2] || inputRoot;
+                }
+                if (settingsRoot && inputRoot && inputRoot !== settingsRoot) {
+                    settingsRoot.style.zIndex = '10000';
+                    inputRoot.style.zIndex = '10001';
+                    return;
+                }
+                if (tries < 8) setTimeout(applyLayering, 60);
+            }
+            setTimeout(applyLayering, 0);
         }
         function blurActiveAfterMouseClick(e) {
             if (isMouseEvent(e)) {
@@ -1177,6 +1228,7 @@
             if (!k) return 'не задан';
             return 'задан · ' + k.slice(0, 4) + '…';
         }
+        list.append($('<div class="menu-edit-list__item rate-settings-note"></div>').css({ padding: '0.45em 0.4em', marginBottom: '0.2em', opacity: 0.85, lineHeight: 1.35, boxSizing: 'border-box' }).html('Получить API-ключ можно на сайте <span class="rate-settings-site">kinopoiskapiunofficial.tech</span>'));
         var rowKpKey = makeRow('API-ключ КиноПоиск', kpApiKeyRowText(), function (rowEl, valEl) {
             if (typeof Lampa.Input !== 'undefined' && typeof Lampa.Input.edit === 'function') {
                 Lampa.Input.edit({
@@ -1190,6 +1242,7 @@
                     valEl.text(kpApiKeyRowText());
                     applyRatingSettingsRefresh();
                 });
+                liftInputAboveSettings(rowEl);
             }
         });
         rowKpKey.updateVal(kpApiKeyRowText());
