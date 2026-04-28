@@ -5,7 +5,7 @@
     var CACHE_DURATION = 24 * 60 * 60 * 1000; // Срок хранения кэша качества
     var CACHE_STORAGE_KEY = 'qualview_quality_cache';
     var PROTOCOL_JACRED = 'https://';
-    var DOMAIN_JACRED = 'ru.jacred.pro';
+    var DOMAIN_JACRED = 'jr.maxvol.pro';
     var API_KEY_JACRED = ''; // Введите ключ при необходимости
 
     // Функция преобразования качества
