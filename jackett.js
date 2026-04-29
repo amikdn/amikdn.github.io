@@ -64,15 +64,15 @@
       interview: 'all',
       lang: 'lg',
     },
+  //  {
+  //    id: 'jac_black',
+  //    name: 'Jac Black',
+  //    baseUrl: 'jacblack.ru:9117',
+  //    key: '',
+  //    interview: 'all',
+  //    lang: 'lg',
+  //  },
     {
-      id: 'jac_black',
-      name: 'Jac Black',
-      baseUrl: 'jacblack.ru:9117',
-      key: '',
-      interview: 'all',
-      lang: 'lg',
-    },
-        {
       id: 'Myjacket',
       name: 'Myjacket',
       baseUrl: 'lampac.fun:8117',
