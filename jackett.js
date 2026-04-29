@@ -52,6 +52,7 @@
       id: 'ru_jacred_stream',
       name: 'RU Jacred Stream',
       baseUrl: 'ru.jacred.stream',
+      protocol: 'https://',
       key: '',
       interview: 'all',
       lang: 'lg',
@@ -82,6 +83,10 @@
     },
   ];
 
+  function getServerUrl(server) {
+    return (server.protocol || '') + server.baseUrl;
+  }
+
   // Применение конфигурации выбранного сервера
   function applyServerConfig() {
     var selected = Lampa.Storage.get('jackett_urltwo');
@@ -97,7 +102,7 @@
 
     var server = servers.find(s => s.id === selected);
     if (server) {
-      Lampa.Storage.set('jackett_url', server.baseUrl);
+      Lampa.Storage.set('jackett_url', getServerUrl(server));
       Lampa.Storage.set('jackett_key', server.key);
       Lampa.Storage.set('jackett_interview', server.interview);
       Lampa.Storage.set('parse_in_search', true);
@@ -111,7 +116,7 @@
       callback(server, true, 200);
       return;
     }
-    var protocol = server.baseUrl === 'jr.maxvol.pro' ? 'https://' : 'http://';
+    var protocol = server.protocol || (server.baseUrl === 'jr.maxvol.pro' ? 'https://' : 'http://');
     var url = `${protocol}${server.baseUrl}/api/v2.0/indexers/status:healthy/results?apikey=${server.key}`;
 
     var xhr = new XMLHttpRequest();
@@ -291,7 +296,7 @@
   function getServerSelectItem(s, overrideTitle) {
     return {
       title: overrideTitle !== undefined ? overrideTitle : (s.title || s.name),
-      url: s.baseUrl,
+      url: getServerUrl(s),
       url_two: s.id,
       jac_key: s.key,
       jac_int: s.interview,
