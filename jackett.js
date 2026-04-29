@@ -49,6 +49,14 @@
       lang: 'lg',
     },
     {
+      id: 'ru_jacred_stream',
+      name: 'RU Jacred Stream',
+      baseUrl: 'ru.jacred.stream',
+      key: '',
+      interview: 'all',
+      lang: 'lg',
+    },
+    {
       id: 'freebie_tom_ru',
       name: 'Freebie',
       baseUrl: 'jacred.freebie.tom.ru',
@@ -97,9 +105,9 @@
     }
   }
 
-  // Проверка статуса сервера (freebie_tom_ru всегда считается рабочим)
+  // Проверка статуса сервера (freebie_tom_ru и Myjacket всегда считаются рабочими)
   function checkServerStatus(server, callback) {
-    if (server.id === 'freebie_tom_ru') {
+    if (server.id === 'freebie_tom_ru' || server.id === 'Myjacket') {
       callback(server, true, 200);
       return;
     }
@@ -128,7 +136,7 @@
         var element = $(selector);
 
         if (element.text().trim() === server.name) {
-          if (server.id === 'freebie_tom_ru') {
+          if (server.id === 'freebie_tom_ru' || server.id === 'Myjacket') {
             element.html('✓&nbsp;&nbsp;' + server.name).css('color', '64e364');
             return;
           }
@@ -265,7 +273,7 @@
     return server ? server.name : 'Не выбран';
   }
 
-  // Проверка статуса всех серверов для меню (freebie_tom_ru всегда зелёный)
+  // Проверка статуса всех серверов для меню (freebie_tom_ru и Myjacket всегда зелёные)
   async function checkAllServers() {
     return Promise.all(servers.map(server =>
       new Promise(resolve => {
