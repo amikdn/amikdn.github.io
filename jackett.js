@@ -49,10 +49,9 @@
       lang: 'lg',
     },
     {
-      id: 'jacred_stream',
-      name: 'Jacred Stream',
-      baseUrl: 'jacred.stream',
-    //  protocol: 'https://',
+      id: 'tribal',
+      name: 'Tribal',
+      baseUrl: '11.307407.xyz',
       key: '',
       interview: 'all',
       lang: 'lg',
