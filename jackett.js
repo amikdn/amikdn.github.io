@@ -52,6 +52,7 @@
       id: 'tribal',
       name: 'Tribal',
       baseUrl: '11.307407.xyz',
+      protocol: 'https://',
       key: '',
       interview: 'all',
       lang: 'lg',
