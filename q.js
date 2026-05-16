@@ -4,7 +4,7 @@
     // Определение констант
     var CACHE_DURATION = 24 * 60 * 60 * 1000; // Срок хранения кэша качества
     var CACHE_STORAGE_KEY = 'qualview_quality_cache';
-    var PROTOCOL_JACRED = 'https://';
+    var PROTOCOL_JACRED = 'http://';
     var DOMAIN_JACRED = '5.252.116.77:11212';
     var API_KEY_JACRED = '1'; // Введите ключ при необходимости
 
