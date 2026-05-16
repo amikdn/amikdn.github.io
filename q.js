@@ -5,8 +5,8 @@
     var CACHE_DURATION = 24 * 60 * 60 * 1000; // Срок хранения кэша качества
     var CACHE_STORAGE_KEY = 'qualview_quality_cache';
     var PROTOCOL_JACRED = 'https://';
-    var DOMAIN_JACRED = '89.110.85.48';
-    var API_KEY_JACRED = '1'; // Введите ключ при необходимости
+    var DOMAIN_JACRED = 'jac-red.ru';
+    var API_KEY_JACRED = ''; // Введите ключ при необходимости
 
     // Функция преобразования качества
     function convertQuality(resolution) {
