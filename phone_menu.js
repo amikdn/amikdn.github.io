@@ -489,7 +489,8 @@ Lampa.Platform.tv();
 
       var action = item.getAttribute('data-action') || '';
       var position = item.getAttribute('data-position') || '';
-      var btnId = position || action || ('idx_' + i);
+      var btnId = position || ('baridx_' + i);
+      var isOurButton = !!position;
 
       var iconEl = item.querySelector('.navigation-bar__icon');
       var labelEl = item.querySelector('.navigation-bar__label');
@@ -497,7 +498,11 @@ Lampa.Platform.tv();
       if(iconEl){
         var svg = iconEl.querySelector('svg');
         if(svg && !getDefaultSvg(btnId)){
-          saveDefaultSvg(btnId, svg.outerHTML);
+          if(isOurButton && defaults[position] && defaults[position].svg){
+            saveDefaultSvg(btnId, defaults[position].svg);
+          } else {
+            saveDefaultSvg(btnId, svg.outerHTML);
+          }
         }
         var cicons = getCustomIcons();
         if(cicons[btnId]){
@@ -513,7 +518,7 @@ Lampa.Platform.tv();
         timer = setTimeout(function(){
           var defSvg = getDefaultSvg(btnId) || '';
           var defName = labelEl ? labelEl.textContent : '';
-          showIconPicker(btnId, item, iconEl, labelEl, action || btnId, defSvg, defName);
+          showIconPicker(btnId, item, iconEl, labelEl, action || btnId, defSvg, defName, isOurButton);
         }, 700);
       }
       function cancel(){ clearTimeout(timer); }
@@ -532,7 +537,7 @@ Lampa.Platform.tv();
     }
   }
 
-  function renderOptionsGrid(grid, options, btnId, div, iconEl, labelEl, overlay, defaultAction, defaultSvg, defaultName){
+  function renderOptionsGrid(grid, options, btnId, div, iconEl, labelEl, overlay, defaultAction, defaultSvg, defaultName, isOurButton){
     grid.innerHTML = '';
     for(var i = 0; i < options.length; i++){
       var opt = options[i];
@@ -545,15 +550,23 @@ Lampa.Platform.tv();
         (function(o, a, s, n){
           item.addEventListener('click', function(){
             var svgToSave = resolveSvgToInline(s) || s;
-            div.setAttribute('data-action', a);
-            localStorage.setItem('bottom_bar_' + btnId + '_action', a);
-            iconEl.innerHTML = svgToSave;
-            localStorage.setItem('bottom_bar_' + btnId + '_svg', svgToStorage(svgToSave));
-            labelEl.textContent = n;
-            localStorage.setItem('bottom_bar_' + btnId + '_name', n);
-            var cicons = getCustomIcons();
-            delete cicons[btnId];
-            setCustomIcons(cicons);
+            if(isOurButton){
+              div.setAttribute('data-action', a);
+              localStorage.setItem('bottom_bar_' + btnId + '_action', a);
+              iconEl.innerHTML = svgToSave;
+              localStorage.setItem('bottom_bar_' + btnId + '_svg', svgToStorage(svgToSave));
+              labelEl.textContent = n;
+              localStorage.setItem('bottom_bar_' + btnId + '_name', n);
+              var cicons = getCustomIcons();
+              delete cicons[btnId];
+              setCustomIcons(cicons);
+            } else {
+              iconEl.innerHTML = svgToSave;
+              var cicons = getCustomIcons();
+              cicons[btnId] = svgToSave;
+              setCustomIcons(cicons);
+              applyColorToIcon(iconEl, getGlobalIconColor());
+            }
             applyGlobalColorToAll();
             if(overlay.parentNode) overlay.parentNode.removeChild(overlay);
           });
@@ -569,23 +582,26 @@ Lampa.Platform.tv();
     reset.textContent = 'Сбросить на стандарт';
     reset.addEventListener('click', function(){
       var defaultSvgResolved = resolveSvgToInline(defaultSvg) || defaultSvg;
-      div.setAttribute('data-action', defaultAction);
-      localStorage.removeItem('bottom_bar_' + btnId + '_action');
-      iconEl.innerHTML = defaultSvgResolved;
-      localStorage.setItem('bottom_bar_' + btnId + '_svg', svgToStorage(defaultSvgResolved));
-      labelEl.textContent = defaultName;
-      localStorage.removeItem('bottom_bar_' + btnId + '_name');
+      if(isOurButton){
+        div.setAttribute('data-action', defaultAction);
+        localStorage.removeItem('bottom_bar_' + btnId + '_action');
+        iconEl.innerHTML = defaultSvgResolved;
+        localStorage.setItem('bottom_bar_' + btnId + '_svg', svgToStorage(defaultSvgResolved));
+        labelEl.textContent = defaultName;
+        localStorage.removeItem('bottom_bar_' + btnId + '_name');
+      } else {
+        if(defaultSvgResolved) iconEl.innerHTML = defaultSvgResolved;
+      }
       var cicons = getCustomIcons();
       delete cicons[btnId];
       setCustomIcons(cicons);
-      setGlobalIconColor('');
-      resetGlobalColorOnAll();
+      applyGlobalColorToAll();
       if(overlay.parentNode) overlay.parentNode.removeChild(overlay);
     });
     grid.appendChild(reset);
   }
 
-  function showIconPicker(btnId, div, iconEl, labelEl, defaultAction, defaultSvg, defaultName){
+  function showIconPicker(btnId, div, iconEl, labelEl, defaultAction, defaultSvg, defaultName, isOurButton){
     var overlay = document.createElement('div');
     overlay.className = 'phone-menu-picker-overlay';
     overlay.addEventListener('click', function(e){ if(e.target === overlay) overlay.parentNode && overlay.parentNode.removeChild(overlay); });
@@ -629,7 +645,7 @@ Lampa.Platform.tv();
 
     function showMenuTab(){
       setActiveTab(tabMenu);
-      renderOptionsGrid(grid, collectMenuSections(), btnId, div, iconEl, labelEl, overlay, defaultAction, defaultSvg, defaultName);
+      renderOptionsGrid(grid, collectMenuSections(), btnId, div, iconEl, labelEl, overlay, defaultAction, defaultSvg, defaultName, isOurButton);
     }
 
     function showCustomTab(){
