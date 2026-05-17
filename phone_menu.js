@@ -67,10 +67,17 @@ Lampa.Platform.tv();
     '}',
     '@media (orientation: landscape) {',
     '  .navigation-bar__body { display: none !important; }',
-    '  .navigation-bar__item { flex: none !important; width: auto !important; height: auto !important; min-width: 0 !important; min-height: 0 !important;',
-    '    background: transparent !important; border: none !important; box-shadow: none !important; border-radius: 0 !important;',
-    '    margin: 0 10px !important; padding: 0 !important; transition: transform .2s ease !important; align-self: center !important; }',
-    '  .navigation-bar__item:hover, .navigation-bar__item.active { background: transparent !important; transform: scale(1.15); }',
+    '  .head__actions .navigation-bar__item,',
+    '  .head__actions .navigation-bar__item.selector,',
+    '  .head__actions .navigation-bar__item.focus,',
+    '  .head__actions .navigation-bar__item:hover,',
+    '  .head__actions .navigation-bar__item.active,',
+    '  .head__actions .navigation-bar__item::before,',
+    '  .head__actions .navigation-bar__item::after {',
+    '    background: transparent !important; border: none !important; box-shadow: none !important;',
+    '    border-radius: 0 !important; margin: 0 10px !important; padding: 0 !important;',
+    '    transition: transform .2s ease !important; align-self: center !important; }',
+    '  .navigation-bar__item:hover, .navigation-bar__item.active { transform: scale(1.15); }',
     '  .navigation-bar__icon { width: 20px !important; height: 20px !important; margin-bottom: 0 !important; padding: 0 !important; }',
     '  .navigation-bar__icon svg { width: 20px !important; height: 20px !important; }',
     '  .navigation-bar__label { display: none !important; }',
@@ -161,6 +168,47 @@ Lampa.Platform.tv();
     for(var k = 0; k < sym.childNodes.length; k++) children.push(sym.childNodes[k]);
     for(var k = 0; k < children.length; k++) svg.appendChild(children[k].cloneNode(true));
     return svg.outerHTML;
+  }
+
+  function injectPhoneMenuStyleToOtherPlugins(){
+    if($('#phone-menu-plugin-style')) return;
+    var st = document.createElement('style');
+    st.id = 'phone-menu-plugin-style';
+    st.textContent = [
+      '/* buttonstest.js buttons — only portrait */',
+      '@media (orientation: portrait) {',
+      '  .full-start-new__buttons .full-start__button {',
+      '    background: linear-gradient(to top, rgba(80,80,80,0.35), rgba(30,30,35,0.25)) !important;',
+      '    border: 1px solid rgba(255,255,255,0.12) !important;',
+      '    box-shadow: inset 0 0 6px rgba(0,0,0,0.5) !important;',
+      '    border-radius: 14px !important;',
+      '    transition: background .3s ease, transform .2s ease, border-color .3s ease, box-shadow .3s ease !important;',
+      '  }',
+      '  .full-start-new__buttons .full-start__button:hover,',
+      '  .full-start-new__buttons .full-start__button.active {',
+      '    background: linear-gradient(to top, rgba(100,100,100,0.45), rgba(40,40,45,0.35)) !important;',
+      '    border-color: rgba(255,255,255,0.25) !important;',
+      '    box-shadow: inset 0 0 8px rgba(0,0,0,0.6) !important;',
+      '    transform: translateY(-3px);',
+      '  }',
+      '}',
+      '/* anim_reaction.js reactions — only portrait */',
+      '@media (orientation: portrait) {',
+      '  .full-start-new__reactions {',
+      '    gap: 2px !important;',
+      '    flex-wrap: nowrap !important;',
+      '  }',
+      '  .full-start-new__reactions .reaction {',
+      '    margin: 0 !important;',
+      '    background: linear-gradient(to top, rgba(80,80,80,0.35), rgba(30,30,35,0.25)) !important;',
+      '    border: 1px solid rgba(255,255,255,0.12) !important;',
+      '    box-shadow: inset 0 0 6px rgba(0,0,0,0.5) !important;',
+      '    border-radius: 14px !important;',
+      '    padding: 4px !important;',
+      '  }',
+      '}'
+    ].join('\n');
+    document.head.appendChild(st);
   }
 
   function injectCSS(){
@@ -848,6 +896,7 @@ Lampa.Platform.tv();
 
   function init(){
     injectCSS();
+    injectPhoneMenuStyleToOtherPlugins();
     addItem('1', defaults[1].action, defaults[1].svg, defaults[1].name);
     addItem('2', defaults[2].action, defaults[2].svg, defaults[2].name);
     addItem('3', defaults[3].action, defaults[3].svg, defaults[3].name);
