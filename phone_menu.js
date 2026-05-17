@@ -584,21 +584,21 @@ Lampa.Platform.tv();
     reset.className = 'phone-menu-picker-reset';
     reset.textContent = 'Сбросить на стандарт';
     reset.addEventListener('click', function(){
-      var defaultSvgResolved = resolveSvgToInline(defaultSvg) || defaultSvg;
       if(isOurButton){
         div.setAttribute('data-action', defaultAction);
         localStorage.removeItem('bottom_bar_' + btnId + '_action');
-        iconEl.innerHTML = defaultSvgResolved;
-        localStorage.setItem('bottom_bar_' + btnId + '_svg', svgToStorage(defaultSvgResolved));
+        iconEl.innerHTML = defaultSvg;
+        localStorage.setItem('bottom_bar_' + btnId + '_svg', svgToStorage(defaultSvg));
         labelEl.textContent = defaultName;
         localStorage.removeItem('bottom_bar_' + btnId + '_name');
       } else {
-        if(defaultSvgResolved) iconEl.innerHTML = defaultSvgResolved;
+        if(defaultSvg) iconEl.innerHTML = defaultSvg;
       }
       var cicons = getCustomIcons();
       delete cicons[btnId];
       setCustomIcons(cicons);
-      applyGlobalColorToAll();
+      resetColorOnIcon(iconEl);
+      applyColorToIcon(iconEl, getGlobalIconColor());
       if(overlay.parentNode) overlay.parentNode.removeChild(overlay);
     });
     grid.appendChild(reset);
@@ -667,11 +667,11 @@ Lampa.Platform.tv();
         reset.className = 'phone-menu-picker-reset';
         reset.textContent = 'Сбросить на стандарт';
         reset.addEventListener('click', function(){
-          var defaultSvgResolved = resolveSvgToInline(defaultSvg) || defaultSvg;
-          if(defaultSvgResolved) iconEl.innerHTML = defaultSvgResolved;
+          if(defaultSvg) iconEl.innerHTML = defaultSvg;
           var cicons = getCustomIcons();
           delete cicons[btnId];
           setCustomIcons(cicons);
+          resetColorOnIcon(iconEl);
           applyColorToIcon(iconEl, getGlobalIconColor());
           overlay.parentNode && overlay.parentNode.removeChild(overlay);
         });
