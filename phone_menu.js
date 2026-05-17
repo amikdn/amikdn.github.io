@@ -489,7 +489,7 @@ Lampa.Platform.tv();
 
       var action = item.getAttribute('data-action') || '';
       var position = item.getAttribute('data-position') || '';
-      var btnId = position || ('baridx_' + i);
+      var btnId = position || action || ('baridx_' + i);
       var isOurButton = !!position;
 
       var iconEl = item.querySelector('.navigation-bar__icon');
@@ -622,10 +622,10 @@ Lampa.Platform.tv();
       btn.textContent = text;
       return btn;
     }
-    var tabMenu = makeTab('Меню', true);
-    var tabCustom = makeTab('Иконки', false);
+    var tabMenu = isOurButton ? makeTab('Меню', true) : null;
+    var tabCustom = makeTab('Иконки', !isOurButton);
     var tabColor = makeTab('Цвет', false);
-    toolbar.appendChild(tabMenu);
+    if(tabMenu) toolbar.appendChild(tabMenu);
     toolbar.appendChild(tabCustom);
     toolbar.appendChild(tabColor);
     modal.appendChild(toolbar);
@@ -637,7 +637,7 @@ Lampa.Platform.tv();
     document.body.appendChild(overlay);
 
     function setActiveTab(el){
-      tabMenu.classList.remove('active');
+      if(tabMenu) tabMenu.classList.remove('active');
       tabCustom.classList.remove('active');
       tabColor.classList.remove('active');
       el.classList.add('active');
@@ -753,11 +753,12 @@ Lampa.Platform.tv();
       grid.appendChild(hexBtn);
     }
 
-    tabMenu.addEventListener('click', showMenuTab);
+    if(tabMenu) tabMenu.addEventListener('click', showMenuTab);
     tabCustom.addEventListener('click', showCustomTab);
     tabColor.addEventListener('click', showColorTab);
 
-    showMenuTab();
+    if(isOurButton) showMenuTab();
+    else showCustomTab();
   }
 
   function addItem(position, defaultAction, defaultSvg, defaultName){
