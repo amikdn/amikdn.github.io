@@ -4,334 +4,741 @@ Lampa.Platform.tv();
   'use strict';
 
   /** Дефолтные настройки для трёх кнопок (позиции 1-3 слева направо) */
-  const defaults = {
-    1: { action: 'movie',   svg: `<svg><use xlink:href="#sprite-movie"></use></svg>`,   name: 'Фильмы' },
-    2: { action: 'tv',      svg: `<svg><use xlink:href="#sprite-tv"></use></svg>`,      name: 'Сериалы' },
-    3: { action: 'cartoon', svg: `<svg><use xlink:href="#sprite-cartoon"></use></svg>`, name: 'Мультфильмы' }
+  var defaults = {
+    1: { action: 'movie',   svg: '<svg><use xlink:href="#sprite-movie"></use></svg>',   name: 'Фильмы' },
+    2: { action: 'tv',      svg: '<svg><use xlink:href="#sprite-tv"></use></svg>',      name: 'Сериалы' },
+    3: { action: 'cartoon', svg: '<svg><use xlink:href="#sprite-cartoon"></use></svg>', name: 'Мультфильмы' }
   };
 
-  /** CSS — чёрная внутренняя тень + белая обводка, фон бара полностью прозрачный, иконки в landscape меньше */
-  const css = `
-  .navigation-bar__body {
-      display: flex !important;
-      justify-content: center !important;
-      align-items: center !important;
-      width: 100% !important;
-      padding: 6px 2px !important;
-      background: transparent !important;
-      border-top: none !important;
-      overflow-x: auto !important;
-      overflow-y: hidden !important;
-      box-sizing: border-box;
-      scrollbar-width: none;
-  }
-  .navigation-bar__body::-webkit-scrollbar { display: none; }
+  var DEFAULT_ICONS_URL = 'https://amikdn.github.io/lampa-button-icons.json';
+  var colorPickerPaletteHexes = ['#ef5350','#f44336','#e53935','#c62828','#ff9800','#fb8c00','#f57c00','#e65100','#ffeb3b','#fdd835','#fbc02d','#f57f17','#66bb6a','#4caf50','#43a047','#2e7d32','#3da18d','#26c6da','#00bcd4','#00acc1','#00838f','#42a5f5','#2196f3','#1e88e5','#1565c0','#8b5cf6','#ab47bc','#9c27b0','#8e24aa','#6a1b9a','#ec407a','#e91e63','#d81b60','#ad1457','#ffffff','#e0e0e0','#000000'];
 
-  .navigation-bar__item {
-      flex: 1 1 0 !important;
-      min-width: 55px !important;
-      display: flex !important;
-      flex-direction: column !important;
-      align-items: center;
-      justify-content: center;
-      height: 64px !important;
-      margin: 0 3px !important;
-      background: linear-gradient(to top, rgba(80,80,80,0.35), rgba(30,30,35,0.25)) !important;
-      border: 1px solid rgba(255,255,255,0.12) !important;
-      box-shadow: inset 0 0 6px rgba(0,0,0,0.5) !important;
-      border-radius: 14px !important;
-      transition: background .3s ease, transform .2s ease, border-color .3s ease, box-shadow .3s ease !important;
-      box-sizing: border-box;
-      overflow: hidden !important;
+  /** CSS: нижняя панель и окно выбора. Многострочная строка через конкатенацию для старых движков. */
+  var css = [
+    '.navigation-bar__body {',
+    '  display: flex !important; justify-content: center !important; align-items: center !important;',
+    '  width: 100% !important; max-width: 100vw !important; padding: 6px 4px !important; background: transparent !important;',
+    '  border-top: none !important; overflow-x: auto !important; overflow-y: hidden !important;',
+    '  box-sizing: border-box !important; scrollbar-width: none; gap: 4px !important;',
+    '}',
+    '.navigation-bar__body::-webkit-scrollbar { display: none; }',
+    '.navigation-bar__item {',
+    '  flex: 1 1 0 !important; min-width: 0 !important; max-width: 33.333% !important; display: flex !important; flex-direction: column !important;',
+    '  align-items: center; justify-content: center; height: 64px !important; margin: 0 !important;',
+    '  background: linear-gradient(to top, rgba(80,80,80,0.35), rgba(30,30,35,0.25)) !important;',
+    '  border: 1px solid rgba(255,255,255,0.12) !important; box-shadow: inset 0 0 6px rgba(0,0,0,0.5) !important;',
+    '  border-radius: 14px !important; transition: background .3s ease, transform .2s ease, border-color .3s ease, box-shadow .3s ease !important;',
+    '  box-sizing: border-box; overflow: hidden !important;',
+    '}',
+    '.navigation-bar__item:hover, .navigation-bar__item.active {',
+    '  background: linear-gradient(to top, rgba(100,100,100,0.45), rgba(40,40,45,0.35)) !important;',
+    '  border-color: rgba(255,255,255,0.25) !important; box-shadow: inset 0 0 8px rgba(0,0,0,0.6) !important; transform: translateY(-3px);',
+    '}',
+    '.navigation-bar__icon { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; margin-bottom: 2px !important; }',
+    '.navigation-bar__icon svg { width: 26px !important; height: 26px !important; }',
+    '.navigation-bar__label {',
+    '  font-size: 10px !important; color: #fff !important; opacity: 0.95 !important; white-space: nowrap !important;',
+    '  overflow: hidden !important; text-overflow: ellipsis !important; width: 100% !important; max-width: 100% !important; text-align: center !important;',
+    '  padding: 0 6px !important; margin-top: -2px !important; box-sizing: border-box !important;',
+    '}',
+    '@media (max-width: 900px) {',
+    '  .navigation-bar__body { gap: 3px !important; padding: 6px 3px !important; }',
+    '  .navigation-bar__item { height: 60px !important; margin: 0 !important; }',
+    '  .navigation-bar__icon svg { width: 24px !important; height: 24px !important; }',
+    '  .navigation-bar__label { font-size: 9.5px !important; padding: 0 4px !important; }',
+    '}',
+    '@media (max-width: 600px) {',
+    '  .navigation-bar__body { padding: 6px 2px !important; gap: 2px !important; }',
+    '  .navigation-bar__item { height: 56px !important; margin: 0 !important; }',
+    '  .navigation-bar__icon { width: 26px; height: 26px; margin-bottom: 1px !important; }',
+    '  .navigation-bar__icon svg { width: 24px !important; height: 24px !important; }',
+    '  .navigation-bar__label { font-size: 9px !important; margin-top: -1px !important; padding: 0 3px !important; }',
+    '}',
+    '@media (max-width: 400px) {',
+    '  .navigation-bar__body { padding: 4px 2px !important; gap: 2px !important; }',
+    '  .navigation-bar__item { height: 54px !important; }',
+    '  .navigation-bar__label { font-size: 8.5px !important; padding: 0 2px !important; }',
+    '}',
+    '@media (max-width: 360px) {',
+    '  .navigation-bar__body { padding: 4px 1px !important; gap: 1px !important; }',
+    '  .navigation-bar__item { height: 52px !important; }',
+    '  .navigation-bar__icon svg { width: 22px !important; height: 22px !important; }',
+    '  .navigation-bar__label { font-size: 8px !important; }',
+    '}',
+    '@media (orientation: landscape) {',
+    '  .navigation-bar__body { display: none !important; }',
+    '  .navigation-bar__item { flex: none !important; width: auto !important; height: auto !important; min-width: 0 !important; min-height: 0 !important;',
+    '    background: transparent !important; border: none !important; box-shadow: none !important; border-radius: 0 !important;',
+    '    margin: 0 10px !important; padding: 0 !important; transition: transform .2s ease !important; align-self: center !important; }',
+    '  .navigation-bar__item:hover, .navigation-bar__item.active { background: transparent !important; transform: scale(1.15); }',
+    '  .navigation-bar__icon { width: 20px !important; height: 20px !important; margin-bottom: 0 !important; padding: 0 !important; }',
+    '  .navigation-bar__icon svg { width: 20px !important; height: 20px !important; }',
+    '  .navigation-bar__label { display: none !important; }',
+    '}',
+    '.phone-menu-picker-toolbar { display: flex; gap: 6px; margin-bottom: 10px; justify-content: center; flex-wrap: wrap; }',
+    '.phone-menu-picker-tab { padding: 6px 10px; border-radius: 8px; background: rgba(255,255,255,0.1); color: #fff; font-size: 13px; cursor: pointer; white-space: nowrap; user-select: none; transition: background .2s; text-align: center; }',
+    '.phone-menu-picker-tab:hover { background: rgba(255,255,255,0.2); }',
+    '.phone-menu-picker-tab.active { background: rgba(255,255,255,0.3); }',
+    '.phone-menu-picker-overlay {',
+    '  position: fixed; left: 0; top: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.75);',
+    '  display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 10px; box-sizing: border-box;',
+    '}',
+    '@supports (padding: constant(safe-area-inset-top)) {',
+    '  .phone-menu-picker-overlay { padding: constant(safe-area-inset-top) constant(safe-area-inset-right) constant(safe-area-inset-bottom) constant(safe-area-inset-left); }',
+    '}',
+    '@supports (padding: env(safe-area-inset-top)) {',
+    '  .phone-menu-picker-overlay { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }',
+    '}',
+    '.phone-menu-picker-modal { background: #1e1e24; padding: 12px; border-radius: 12px; max-width: 96%; max-height: 88vh; overflow: hidden;',
+    '  display: flex; flex-direction: column; box-shadow: 0 10px 30px rgba(0,0,0,0.6); box-sizing: border-box; width: 100%; }',
+    '.phone-menu-picker-title { text-align: center; color: #fff; margin: 0 0 10px; font-size: 16px; font-weight: 600; }',
+    '.phone-menu-picker-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; overflow-y: auto; padding: 4px; flex: 1; min-height: 100px; -webkit-overflow-scrolling: touch; }',
+    '.phone-menu-picker-grid .picker-item { display: flex; flex-direction: column; align-items: center; cursor: pointer; padding: 8px; border-radius: 10px; transition: background 0.2s; }',
+    '.phone-menu-picker-grid .picker-item:hover { background: rgba(255,255,255,0.1); }',
+    '.phone-menu-picker-grid .picker-icon-wrap { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; margin-bottom: 6px; }',
+    '.phone-menu-picker-grid .picker-icon-wrap svg { width: 40px; height: 40px; }',
+    '.phone-menu-picker-grid .picker-name { font-size: 11px; color: #fff; text-align: center; word-break: break-word; }',
+    '.phone-menu-picker-reset { grid-column: 1 / -1; text-align: center; padding: 12px; cursor: pointer; color: #ff5555; font-size: 14px; }',
+    '@media (min-width: 360px) {',
+    '  .phone-menu-picker-modal { padding: 16px; border-radius: 14px; }',
+    '  .phone-menu-picker-title { font-size: 17px; margin-bottom: 12px; }',
+    '  .phone-menu-picker-grid { gap: 12px; min-height: 120px; }',
+    '  .phone-menu-picker-grid .picker-icon-wrap { width: 50px; height: 50px; margin-bottom: 8px; }',
+    '  .phone-menu-picker-grid .picker-icon-wrap svg { width: 46px; height: 46px; }',
+    '  .phone-menu-picker-grid .picker-name { font-size: 12px; }',
+    '}',
+    '@media (min-width: 480px) {',
+    '  .phone-menu-picker-modal { padding: 20px; border-radius: 16px; max-width: 420px; }',
+    '  .phone-menu-picker-title { font-size: 18px; }',
+    '  .phone-menu-picker-grid { gap: 16px; min-height: 140px; }',
+    '  .phone-menu-picker-grid .picker-icon-wrap { width: 56px; height: 56px; }',
+    '  .phone-menu-picker-grid .picker-icon-wrap svg { width: 48px; height: 48px; }',
+    '  .phone-menu-picker-grid .picker-name { font-size: 13px; }',
+    '}',
+    '@media (min-width: 768px) {',
+    '  .phone-menu-picker-overlay { padding: 20px; }',
+    '  .phone-menu-picker-modal { max-width: 480px; max-height: 85vh; }',
+    '}'
+  ].join('\n');
+
+  var $  = function(s,r){ r = r || document; return r.querySelector(s); };
+  var $$ = function(s,r){ r = r || document; var n = r.querySelectorAll(s); return Array.prototype.slice.call(n); };
+
+  /** Сохраняем SVG в Storage в base64, чтобы в Storage Manager не отображалась сама иконка. */
+  function svgToStorage(svg){
+    if(!svg || typeof svg !== 'string') return svg;
+    try{ return 'b64:' + btoa(unescape(encodeURIComponent(svg))); } catch(e){ return svg; }
+  }
+  function svgFromStorage(val){
+    if(!val || typeof val !== 'string') return val;
+    if(val.indexOf('b64:') !== 0) return val;
+    try{ return decodeURIComponent(escape(atob(val.slice(4)))); } catch(e){ return val; }
   }
 
-  .navigation-bar__item:hover,
-  .navigation-bar__item.active {
-      background: linear-gradient(to top, rgba(100,100,100,0.45), rgba(40,40,45,0.35)) !important;
-      border-color: rgba(255,255,255,0.25) !important;
-      box-shadow: inset 0 0 8px rgba(0,0,0,0.6) !important;
-      transform: translateY(-3px);
+  function escapeHtml(str){
+    if(str == null || typeof str !== 'string') return '';
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
   }
 
-  .navigation-bar__icon {
-      width: 28px;
-      height: 28px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-bottom: 2px !important;
+  /** Разворачивает <use xlink:href="#sprite-..."> в полный inline SVG. */
+  function resolveSvgToInline(svgString){
+    if(!svgString || typeof svgString !== 'string') return svgString;
+    if(svgString.indexOf('xlink:href') === -1 && svgString.indexOf('href="#') === -1) return svgString;
+    var div = document.createElement('div');
+    div.innerHTML = svgString;
+    var useEl = div.querySelector('use');
+    if(!useEl) return svgString;
+    var href = useEl.getAttribute('xlink:href') || useEl.getAttribute('href') || '';
+    if(href.indexOf('#') !== 0) return svgString;
+    var id = href.slice(1);
+    var sym = document.getElementById(id);
+    if(!sym) return svgString;
+    var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    var vb = sym.getAttribute('viewBox') || '0 0 24 24';
+    svg.setAttribute('viewBox', vb);
+    svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+    var children = [];
+    for(var k = 0; k < sym.childNodes.length; k++) children.push(sym.childNodes[k]);
+    for(var k = 0; k < children.length; k++) svg.appendChild(children[k].cloneNode(true));
+    return svg.outerHTML;
   }
-
-  .navigation-bar__icon svg {
-      width: 26px !important;
-      height: 26px !important;
-      fill: currentColor;
-  }
-
-  .navigation-bar__label {
-      font-size: 10px !important;
-      color: #fff !important;
-      opacity: 0.95 !important;
-      white-space: nowrap !important;
-      overflow: hidden !important;
-      text-overflow: ellipsis !important;
-      width: 100% !important;
-      text-align: center !important;
-      padding: 0 4px !important;
-      margin-top: -2px !important;
-      box-sizing: border-box !important;
-  }
-
-  @media (max-width: 900px) {
-      .navigation-bar__item { 
-          height: 60px !important; 
-          min-width: 50px !important;
-          margin: 0 2px !important;
-      }
-      .navigation-bar__icon svg { width: 24px !important; height: 24px !important; }
-      .navigation-bar__label { font-size: 9.5px !important; }
-  }
-  @media (max-width: 600px) {
-      .navigation-bar__body { padding: 6px 1px !important; }
-      .navigation-bar__item { 
-          height: 56px !important; 
-          min-width: 45px !important;
-          margin: 0 2px !important;
-      }
-      .navigation-bar__icon { width: 26px; height: 26px; margin-bottom: 1px !important; }
-      .navigation-bar__icon svg { width: 24px !important; height: 24px !important; }
-      .navigation-bar__label { font-size: 9px !important; margin-top: -1px !important; }
-  }
-
-  /* Уменьшено до 20×20px (контейнер .navigation-bar__icon и svg внутри в горизонтальном режиме) */
-  @media (orientation: landscape) {
-      .navigation-bar__body {
-          display: none !important;
-      }
-      .navigation-bar__item {
-          flex: none !important;
-          width: auto !important;
-          height: auto !important;
-          min-width: 0 !important;
-          min-height: 0 !important;
-          background: transparent !important;
-          border: none !important;
-          box-shadow: none !important;
-          border-radius: 0 !important;
-          margin: 0 10px !important;
-          padding: 0 !important;
-          transition: transform .2s ease !important;
-          align-self: center !important;
-      }
-      .navigation-bar__item:hover,
-      .navigation-bar__item.active {
-          background: transparent !important;
-          transform: scale(1.15);
-      }
-      .navigation-bar__icon {
-          width: 20px !important;  /* ← размер контейнера иконки */
-          height: 20px !important; /* ← размер контейнера иконки */
-          margin-bottom: 0 !important;
-          padding: 0 !important;
-      }
-      .navigation-bar__icon svg {
-          width: 20px !important;  /* ← размер самой SVG-иконки */
-          height: 20px !important; /* ← размер самой SVG-иконки */
-      }
-      .navigation-bar__label {
-          display: none !important;
-      }
-  }`;
-
-  const $  = (s,r=document)=>r.querySelector(s);
-  const $$ = (s,r=document)=>Array.from(r.querySelectorAll(s));
 
   function injectCSS(){
     if(!$('#menu-glass-auto-style')){
-      const st=document.createElement('style');
-      st.id='menu-glass-auto-style';
-      st.textContent=css;
+      var st = document.createElement('style');
+      st.id = 'menu-glass-auto-style';
+      st.textContent = css;
       document.head.appendChild(st);
     }
   }
 
-  function emulateSidebarClick(action){
-    for(const el of $$('.menu__item[data-action], .selector')){
-      if(el.dataset.action === action){
-        el.click();
-        return true;
+  /** Симулирует реальный клик (для приложений, которые не реагируют на .click()). */
+  function triggerClick(el){
+    if(!el) return;
+    try{
+      el.click();
+    } catch(e){}
+    try{
+      var ev = document.createEvent('MouseEvents');
+      ev.initMouseEvent('click', true, true, window, 1, 0, 0, 0, 0, false, false, false, false, 0, null);
+      el.dispatchEvent(ev);
+    } catch(e){}
+  }
+
+  /** Находит пункт меню по action и кликает. Ищет только внутри левого меню (sidebar). */
+  function findAndClickMenuItem(action){
+    try{
+      var root = getLeftMenuRoot();
+      var list = root && root.querySelectorAll ? root.querySelectorAll('.menu__item[data-action], .menu__item[data-id], .selector[data-action], .selector[data-id], .menu__item, .selector') : [];
+      for(var i = 0; i < list.length; i++){
+        var el = list[i];
+        var v = (el && el.getAttribute && (el.getAttribute('data-action') || el.getAttribute('data-id'))) || '';
+        if(v && v === action){ triggerClick(el); return true; }
       }
-    }
+      for(var j = 0; j < list.length; j++){
+        var el2 = list[j];
+        var nameEl = el2 && el2.querySelector ? el2.querySelector('.menu__text, .selector__text, .selector-title') : null;
+        var text = (nameEl && nameEl.textContent ? nameEl.textContent.trim() : (el2.textContent || '').trim().replace(/\s+/g, ' ')) || '';
+        if(text && text === action){ triggerClick(el2); return true; }
+      }
+    } catch(e){}
     return false;
   }
 
-  function showIconPicker(position, div, iconEl, labelEl, defaultAction, defaultSvg, defaultName){
-    const options = [];
-    const seenActions = new Set();
+  function emulateSidebarClick(action){
+    try{
+      if(!action) return false;
+      if(typeof Lampa !== 'undefined' && Lampa.Go){
+        try{ Lampa.Go(action); return true; } catch(e){}
+      }
+      if(findAndClickMenuItem(action)) return true;
+      setTimeout(function(){
+        try{
+          if(findAndClickMenuItem(action)) return;
+          var byAttr = document.querySelectorAll('.menu__item[data-action], .menu__item[data-id], .selector[data-action], .selector[data-id]');
+          for(var a = 0; a < byAttr.length; a++){
+            var el = byAttr[a];
+            if(!el || !el.getAttribute) continue;
+            var v = el.getAttribute('data-action') || el.getAttribute('data-id');
+            if(v && v === action){ triggerClick(el); return; }
+          }
+          var byText = document.querySelectorAll('.menu__item, .selector');
+          for(var b = 0; b < byText.length; b++){
+            var el2 = byText[b];
+            if(!el2) continue;
+            var nameEl = el2.querySelector ? el2.querySelector('.menu__text, .selector__text, .selector-title') : null;
+            var text = (nameEl && nameEl.textContent ? nameEl.textContent.trim() : (el2.textContent || '').trim().replace(/\s+/g, ' ')) || '';
+            if(text && text === action){ triggerClick(el2); return; }
+          }
+        } catch(e){}
+      }, 280);
+      return true;
+    } catch(e){ return false; }
+  }
 
-    $$('.menu__item[data-action]').forEach(el => {
-      const action = el.dataset.action;
-      if(action && !seenActions.has(action)){
-        seenActions.add(action);
+  /** Контейнер только левого меню Lampa (боковая панель). Не ищем в других разделах. */
+  function getLeftMenuRoot(){
+    try{
+      var sidebarMenu = document.querySelector('.sidebar .menu, .sidebar .selector');
+      if(sidebarMenu && sidebarMenu.parentElement) return sidebarMenu.parentElement;
+      var sidebar = document.querySelector('.sidebar, .sidebar__body');
+      if(sidebar) return sidebar;
+      var menu = document.querySelector('.menu');
+      return menu || null;
+    } catch(e){ return null; }
+  }
 
-        const nameEl = el.querySelector('.menu__text');
-        const name = nameEl ? nameEl.textContent.trim() : action;
+  /** Собирает пункты только из левого меню Lampa (sidebar). Другие разделы не сканируются. */
+  function collectMenuSections(){
+    var out = [];
+    var seen = {};
+    var root = getLeftMenuRoot();
+    if(!root) return out;
 
-        if(action === 'main' || action === 'settings' || name === 'Редактировать'){
-          return;
+    function add(el){
+      var action = (el.getAttribute('data-action') || el.getAttribute('data-id') || '').trim();
+      var nameEl = el.querySelector('.menu__text, .selector__text, .selector-title, .text');
+      var name = (nameEl && nameEl.textContent) ? nameEl.textContent.trim() : '';
+      if(!name) name = (el.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 50);
+      var key = action || name || ('item_' + out.length);
+      if(!key || seen[key]) return;
+      if(action === 'main' || action === 'settings') return;
+      if(name && (name.indexOf('Редактировать') !== -1 || name.indexOf('Настройки') !== -1)) return;
+      seen[key] = true;
+
+      var ico = el.querySelector('.menu__ico, .selector__ico, .selector-icon, .ico');
+      var svg = '';
+      if(ico){
+        var svgEl = ico.querySelector('svg');
+        if(svgEl) svg = svgEl.outerHTML;
+      }
+      if(!svg){
+        var firstSvg = el.querySelector('svg');
+        if(firstSvg) svg = firstSvg.outerHTML;
+      }
+      if(!svg) return;
+      svg = resolveSvgToInline(svg) || svg;
+      out.push({ name: name || key, action: key, svg: svg });
+    }
+
+    var selectors = [
+      '.menu__item[data-action]', '.menu__item[data-id]', '.menu__item',
+      '.selector[data-action]', '.selector[data-id]', '.selector'
+    ];
+    for(var i = 0; i < selectors.length; i++){
+      var list = root.querySelectorAll(selectors[i]);
+      for(var j = 0; j < list.length; j++){
+        add(list[j]);
+      }
+    }
+    return out;
+  }
+
+  /** Хранение кастомных иконок и цветов */
+  function getCustomIcons(){
+    try{ var raw = localStorage.getItem('phone_menu_custom_icons'); return raw ? JSON.parse(raw) : {}; } catch(e){ return {}; }
+  }
+  function setCustomIcons(map){ localStorage.setItem('phone_menu_custom_icons', JSON.stringify(map || {})); }
+  function getIconColors(){
+    try{ var raw = localStorage.getItem('phone_menu_icon_colors'); return raw ? JSON.parse(raw) : {}; } catch(e){ return {}; }
+  }
+  function setIconColors(map){ localStorage.setItem('phone_menu_icon_colors', JSON.stringify(map || {})); }
+
+  function normalizeSvgString(str){ if(!str || typeof str !== 'string') return ''; return str.replace(/\s+/g,' ').replace(/>\s+</g,'><').trim(); }
+  function svgFingerprint(html){
+    var s = normalizeSvgString(html);
+    var useMatch = s.match(/xlink:href\s*=\s*["']?#([^"'\s>]+)/);
+    if(useMatch) return 'use:' + useMatch[1];
+    var vb = s.match(/viewBox\s*=\s*["']([^"']+)["']/);
+    var viewBox = vb ? vb[1].replace(/\s+/g,' ').trim() : '';
+    var pathMatch = s.match(/<path[^>]*\bd\s*=\s*["']([^"']+)["']/g);
+    var pathParts = pathMatch ? pathMatch.map(function(p){ var d = p.match(/\bd\s*=\s*["']([^"']+)["']/); return d ? d[1].replace(/\s+/g,' ').trim() : ''; }) : [];
+    pathParts.sort();
+    return 'inline:' + viewBox + '|' + pathParts.join('|');
+  }
+  function collectAllIcons(preloadSeen){
+    var seen = {};
+    var pk;
+    if(preloadSeen){ for(pk in preloadSeen){ if(preloadSeen.hasOwnProperty(pk)) seen[pk] = true; } }
+    var result = [];
+    function addIcon(html, id){
+      if(!html) return;
+      var key = svgFingerprint(html);
+      if(seen[key]) return;
+      seen[key] = true;
+      result.push({ id: id || key.substring(0,80), html: html });
+    }
+    var sections = collectMenuSections();
+    for(var i = 0; i < sections.length; i++){
+      if(sections[i].svg) addIcon(sections[i].svg, 'menu-' + i);
+    }
+    var defaultsKeys = Object.keys(defaults);
+    for(var d = 0; d < defaultsKeys.length; d++){
+      var def = defaults[defaultsKeys[d]];
+      if(def && def.svg) addIcon(def.svg, 'default-' + defaultsKeys[d]);
+    }
+    var barItems = document.querySelectorAll('.navigation-bar__item');
+    for(var b = 0; b < barItems.length; b++){
+      var svgEl = barItems[b].querySelector('svg');
+      if(svgEl){ try{ addIcon(svgEl.outerHTML, 'bar-' + b); } catch(e){} }
+    }
+    var menuIcos = document.querySelectorAll('.menu .menu__ico svg');
+    for(var m = 0; m < menuIcos.length; m++){ try{ addIcon(menuIcos[m].outerHTML, 'menuico-' + m); } catch(e){} }
+    return result;
+  }
+  function loadIconsFromUrl(url, seen, callback){
+    if(!url || typeof url !== 'string'){ callback(null, 'Введите ссылку на файл'); return; }
+    var xhr = new XMLHttpRequest();
+    xhr.onreadystatechange = function(){
+      if(xhr.readyState !== 4) return;
+      if(xhr.status !== 200){ callback(null, 'Ошибка загрузки: ' + (xhr.status || 'сеть')); return; }
+      var text = (xhr.responseText || '').replace(/^\uFEFF/,'').trim();
+      if(!text){ callback(null, 'Пустой ответ'); return; }
+      if(text.indexOf('<!') === 0 || text.indexOf('<html') !== -1){ callback(null, 'По ссылке отдаётся не JSON'); return; }
+      text = text.replace(/\r\n/g,'\n').replace(/\r/g,'\n');
+      text = text.replace(/,(\s*)\]/,'$1]').replace(/,(\s*)\}/,'$1}');
+      var arr;
+      try{ arr = JSON.parse(text); } catch(e){
+        try{ arr = JSON.parse(text.replace(/[\u0000-\u001F]+/g,' ')); } catch(e2){
+          var svgList = text.match(/<svg[\s\S]*?<\s*\/\s*svg\s*>/gi);
+          if(svgList && svgList.length > 0){ arr = svgList; } else { callback(null, 'Неверный формат файла'); return; }
         }
-
-        const ico = el.querySelector('.menu__ico');
-        let svg = '';
-
-        if(ico){
-          const svgEl = ico.querySelector('svg');
-          if(svgEl){
-            svg = svgEl.outerHTML;
+      }
+      if(!Array.isArray(arr)){ callback(null, 'Файл должен содержать массив'); return; }
+      var result = [];
+      var urlsToFetch = [];
+      var i, item, html, key;
+      for(i = 0; i < arr.length; i++){
+        item = arr[i];
+        if(typeof item === 'string'){
+          html = item.trim();
+          if(html.indexOf('<svg') !== -1){
+            key = svgFingerprint(html);
+            if(!seen[key]){ seen[key] = true; result.push({ id: 'icon-' + i, html: html }); }
+          } else if(html.indexOf('http://') === 0 || html.indexOf('https://') === 0){
+            urlsToFetch.push({ url: html, index: i });
+          }
+        } else if(item && item.html != null){
+          html = String(item.html).trim();
+          if(html && html.indexOf('<svg') !== -1){
+            key = svgFingerprint(html);
+            if(!seen[key]){ seen[key] = true; result.push({ id: (item.id && String(item.id)) || key.substring(0,80), html: html }); }
           }
         }
-
-        if(svg){
-          options.push({name, action, svg});
-        }
       }
-    });
-
-    if(options.length === 0) return;
-
-    const overlay = document.createElement('div');
-    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);display:flex;align-items:center;justify-content:center;z-index:9999;';
-    overlay.addEventListener('click', e => { if(e.target === overlay) overlay.remove(); });
-
-    const modal = document.createElement('div');
-    modal.style.cssText = 'background:#1e1e24;padding:20px;border-radius:16px;max-width:95%;max-height:90%;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 10px 30px rgba(0,0,0,0.6);';
-
-    const title = document.createElement('h3');
-    title.textContent = 'Настройка кнопки';
-    title.style.cssText = 'text-align:center;color:#fff;margin:0 0 16px;font-size:18px;';
-    modal.appendChild(title);
-
-    const grid = document.createElement('div');
-    grid.style.cssText = 'display:grid;grid-template-columns:repeat(3,1fr);gap:16px;overflow-y:auto;padding:4px;flex:1;';
-
-    options.forEach(opt => {
-      const item = document.createElement('div');
-      item.style.cssText = 'display:flex;flex-direction:column;align-items:center;cursor:pointer;padding:10px;border-radius:12px;transition:background .2s;';
-      item.innerHTML = `
-        <div style="width:56px;height:56px;display:flex;align-items:center;justify-content:center;margin-bottom:8px;">
-          ${opt.svg}
-        </div>
-        <span style="font-size:13px;color:#fff;text-align:center;word-break:break-word;">${opt.name}</span>
-      `;
-      const svgEl = item.querySelector('svg');
-      if(svgEl){
-        svgEl.style.width = '48px';
-        svgEl.style.height = '48px';
-      }
-      item.addEventListener('click', () => {
-        div.dataset.action = opt.action;
-        localStorage.setItem(`bottom_bar_${position}_action`, opt.action);
-        iconEl.innerHTML = opt.svg;
-        localStorage.setItem(`bottom_bar_${position}_svg`, opt.svg);
-        labelEl.textContent = opt.name;
-        localStorage.setItem(`bottom_bar_${position}_name`, opt.name);
-        overlay.remove();
+      if(urlsToFetch.length === 0){ callback(result, null); return; }
+      var fetched = 0;
+      urlsToFetch.forEach(function(entry){
+        var req = new XMLHttpRequest();
+        req.open('GET', entry.url, true);
+        req.onload = function(){
+          if(req.status === 200 && req.responseText){
+            html = req.responseText.trim();
+            if(html.indexOf('<svg') !== -1){
+              key = svgFingerprint(html);
+              if(!seen[key]){ seen[key] = true; result.push({ id: 'icon-' + entry.index, html: html }); }
+            }
+          }
+          fetched++;
+          if(fetched === urlsToFetch.length) callback(result, null);
+        };
+        req.onerror = function(){ fetched++; if(fetched === urlsToFetch.length) callback(result, null); };
+        req.send();
       });
-      grid.appendChild(item);
-    });
+    };
+    xhr.onerror = function(){ callback(null, 'Ошибка сети'); };
+    try{ xhr.open('GET', url, true); xhr.responseType = 'text'; xhr.send(); } catch(e){ callback(null, 'Ошибка запроса'); }
+  }
+  function loadIconsFromUrlChain(urls, seen, callback){
+    var allResults = [];
+    var idx = 0;
+    function next(){
+      if(idx >= urls.length){ callback(allResults, null); return; }
+      var u = urls[idx++];
+      if(!u || typeof u !== 'string'){ next(); return; }
+      loadIconsFromUrl(u, seen, function(entries){
+        if(entries && entries.length){ for(var r = 0; r < entries.length; r++) allResults.push(entries[r]); }
+        next();
+      });
+    }
+    next();
+  }
+  function applyStoredColor(position, iconEl){
+    var colors = getIconColors();
+    var color = colors[position];
+    if(!color) return;
+    var svg = iconEl.querySelector('svg');
+    if(!svg) return;
+    svg.style.setProperty('color', color, 'important');
+    if(svg.getAttribute('fill') !== 'none' && svg.getAttribute('fill') !== 'transparent'){
+      svg.style.setProperty('fill', color, 'important');
+    }
+    var all = svg.querySelectorAll('*');
+    for(var i = 0; i < all.length; i++){
+      var el = all[i];
+      var fillAttr = (el.getAttribute('fill') || '').trim();
+      var strokeAttr = (el.getAttribute('stroke') || '').trim();
+      if(fillAttr && fillAttr.toLowerCase() !== 'none' && fillAttr.toLowerCase() !== 'transparent'){
+        el.style.setProperty('fill', color, 'important');
+      }
+      if(strokeAttr && strokeAttr.toLowerCase() !== 'none' && strokeAttr.toLowerCase() !== 'transparent'){
+        el.style.setProperty('stroke', color, 'important');
+      }
+    }
+  }
 
-    const reset = document.createElement('div');
-    reset.style.cssText = 'grid-column:1/-1;display:flex;align-items:center;justify-content:center;padding:16px;cursor:pointer;';
-    reset.innerHTML = `<span style="color:#ff5555;font-size:16px;">Сбросить на стандарт</span>`;
-    reset.addEventListener('click', () => {
-      div.dataset.action = defaultAction;
-      localStorage.removeItem(`bottom_bar_${position}_action`);
-      iconEl.innerHTML = defaultSvg;
-      localStorage.removeItem(`bottom_bar_${position}_svg`);
+  function renderOptionsGrid(grid, options, position, div, iconEl, labelEl, overlay, defaultAction, defaultSvg, defaultName){
+    grid.innerHTML = '';
+    for(var i = 0; i < options.length; i++){
+      var opt = options[i];
+      var item = document.createElement('div');
+      item.className = 'picker-item';
+      item.innerHTML = '<div class="picker-icon-wrap">' + opt.svg + '</div><span class="picker-name">' + (opt.name || '') + '</span>';
+      var svgEl = item.querySelector('svg');
+      if(svgEl){ svgEl.style.width = '48px'; svgEl.style.height = '48px'; }
+      if(opt.action !== '_'){
+        (function(o, a, s, n){
+          item.addEventListener('click', function(){
+            var svgToSave = resolveSvgToInline(s) || s;
+            div.setAttribute('data-action', a);
+            localStorage.setItem('bottom_bar_' + position + '_action', a);
+            iconEl.innerHTML = svgToSave;
+            localStorage.setItem('bottom_bar_' + position + '_svg', svgToStorage(svgToSave));
+            labelEl.textContent = n;
+            localStorage.setItem('bottom_bar_' + position + '_name', n);
+            var cicons = getCustomIcons();
+            delete cicons[position];
+            setCustomIcons(cicons);
+            applyStoredColor(position, iconEl);
+            if(overlay.parentNode) overlay.parentNode.removeChild(overlay);
+          });
+        })(opt, opt.action, opt.svg, opt.name);
+      } else {
+        item.style.pointerEvents = 'none';
+        item.style.opacity = '0.7';
+      }
+      grid.appendChild(item);
+    }
+    var reset = document.createElement('div');
+    reset.className = 'phone-menu-picker-reset';
+    reset.textContent = 'Сбросить на стандарт';
+    reset.addEventListener('click', function(){
+      var defaultSvgResolved = resolveSvgToInline(defaultSvg) || defaultSvg;
+      div.setAttribute('data-action', defaultAction);
+      localStorage.removeItem('bottom_bar_' + position + '_action');
+      iconEl.innerHTML = defaultSvgResolved;
+      localStorage.setItem('bottom_bar_' + position + '_svg', svgToStorage(defaultSvgResolved));
       labelEl.textContent = defaultName;
-      localStorage.removeItem(`bottom_bar_${position}_name`);
-      overlay.remove();
+      localStorage.removeItem('bottom_bar_' + position + '_name');
+      var cicons = getCustomIcons();
+      delete cicons[position];
+      setCustomIcons(cicons);
+      var ccolors = getIconColors();
+      delete ccolors[position];
+      setIconColors(ccolors);
+      if(overlay.parentNode) overlay.parentNode.removeChild(overlay);
     });
     grid.appendChild(reset);
+  }
 
+  function showIconPicker(position, div, iconEl, labelEl, defaultAction, defaultSvg, defaultName){
+    var overlay = document.createElement('div');
+    overlay.className = 'phone-menu-picker-overlay';
+    overlay.addEventListener('click', function(e){ if(e.target === overlay) overlay.parentNode && overlay.parentNode.removeChild(overlay); });
+
+    var modal = document.createElement('div');
+    modal.className = 'phone-menu-picker-modal';
+
+    var title = document.createElement('h3');
+    title.textContent = 'Настройка кнопки';
+    title.className = 'phone-menu-picker-title';
+    modal.appendChild(title);
+
+    var toolbar = document.createElement('div');
+    toolbar.className = 'phone-menu-picker-toolbar';
+    function makeTab(text, active){
+      var btn = document.createElement('div');
+      btn.className = 'phone-menu-picker-tab' + (active ? ' active' : '');
+      btn.textContent = text;
+      return btn;
+    }
+    var tabMenu = makeTab('Меню', true);
+    var tabCustom = makeTab('Кастомные', false);
+    var tabColor = makeTab('Цвет', false);
+    toolbar.appendChild(tabMenu);
+    toolbar.appendChild(tabCustom);
+    toolbar.appendChild(tabColor);
+    modal.appendChild(toolbar);
+
+    var grid = document.createElement('div');
+    grid.className = 'phone-menu-picker-grid';
     modal.appendChild(grid);
     overlay.appendChild(modal);
     document.body.appendChild(overlay);
+
+    function setActiveTab(el){
+      tabMenu.classList.remove('active');
+      tabCustom.classList.remove('active');
+      tabColor.classList.remove('active');
+      el.classList.add('active');
+    }
+
+    function showMenuTab(){
+      setActiveTab(tabMenu);
+      renderOptionsGrid(grid, collectMenuSections(), position, div, iconEl, labelEl, overlay, defaultAction, defaultSvg, defaultName);
+    }
+
+    function showCustomTab(){
+      setActiveTab(tabCustom);
+      grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#aaa;padding:20px;">Загрузка…</div>';
+      var seen = {};
+      var chainUrls = [DEFAULT_ICONS_URL];
+      loadIconsFromUrlChain(chainUrls, seen, function(newEntries, err){
+        var allIcons = [];
+        var lampaIcons = collectAllIcons(seen);
+        lampaIcons.forEach(function(entry){ allIcons.push(entry); });
+        if(newEntries && newEntries.length){ newEntries.forEach(function(entry){ allIcons.push(entry); }); }
+        grid.innerHTML = '';
+        if(allIcons.length === 0){
+          grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#aaa;padding:20px;">Иконки не найдены</div>';
+          return;
+        }
+        for(var i = 0; i < allIcons.length; i++){
+          (function(entry, idx){
+            var item = document.createElement('div');
+            item.className = 'picker-item';
+            item.innerHTML = '<div class="picker-icon-wrap">' + entry.html + '</div><span class="picker-name">Иконка ' + (idx+1) + '</span>';
+            var svgEl = item.querySelector('svg');
+            if(svgEl){ svgEl.style.width = '48px'; svgEl.style.height = '48px'; }
+            item.addEventListener('click', function(){
+              var cicons = getCustomIcons();
+              cicons[position] = entry.html;
+              setCustomIcons(cicons);
+              iconEl.innerHTML = entry.html;
+              applyStoredColor(position, iconEl);
+              overlay.parentNode && overlay.parentNode.removeChild(overlay);
+            });
+            grid.appendChild(item);
+          })(allIcons[i], i);
+        }
+      });
+    }
+
+    function showColorTab(){
+      setActiveTab(tabColor);
+      grid.innerHTML = '';
+      var colors = getIconColors();
+      var currentColor = colors[position] || '';
+
+      var defBtn = document.createElement('div');
+      defBtn.className = 'picker-item';
+      defBtn.style.gridColumn = '1 / -1';
+      defBtn.innerHTML = '<div class="picker-icon-wrap" style="border:2px dashed #fff;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;">Сброс</div><span class="picker-name">Стандартный</span>';
+      defBtn.addEventListener('click', function(){
+        var c = getIconColors();
+        delete c[position];
+        setIconColors(c);
+        var svg = iconEl.querySelector('svg');
+        if(svg){
+          svg.style.removeProperty('color');
+          svg.style.removeProperty('fill');
+          var all = svg.querySelectorAll('*');
+          for(var i = 0; i < all.length; i++){
+            all[i].style.removeProperty('fill');
+            all[i].style.removeProperty('stroke');
+          }
+        }
+        overlay.parentNode && overlay.parentNode.removeChild(overlay);
+      });
+      grid.appendChild(defBtn);
+
+      for(var i = 0; i < colorPickerPaletteHexes.length; i++){
+        (function(hex){
+          var cell = document.createElement('div');
+          cell.className = 'picker-item';
+          cell.innerHTML = '<div class="picker-icon-wrap" style="background:' + escapeHtml(hex) + ';border-radius:50%;border:2px solid ' + (currentColor === hex ? '#fff' : 'transparent') + ';"></div><span class="picker-name" style="font-size:10px;">' + escapeHtml(hex) + '</span>';
+          cell.addEventListener('click', function(){
+            var c = getIconColors();
+            c[position] = hex;
+            setIconColors(c);
+            applyStoredColor(position, iconEl);
+            overlay.parentNode && overlay.parentNode.removeChild(overlay);
+          });
+          grid.appendChild(cell);
+        })(colorPickerPaletteHexes[i]);
+      }
+
+      var hexBtn = document.createElement('div');
+      hexBtn.className = 'picker-item';
+      hexBtn.style.gridColumn = '1 / -1';
+      hexBtn.innerHTML = '<div class="picker-icon-wrap" style="border:2px solid #fff;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;">HEX</div><span class="picker-name">Ввести код</span>';
+      hexBtn.addEventListener('click', function(){
+        var raw = prompt('Код цвета (HEX):', currentColor || '#');
+        if(raw === null) return;
+        var trimmed = raw.trim();
+        if(trimmed && trimmed.charAt(0) !== '#') trimmed = '#' + trimmed;
+        if(trimmed){
+          var c = getIconColors();
+          c[position] = trimmed;
+          setIconColors(c);
+          applyStoredColor(position, iconEl);
+        }
+        overlay.parentNode && overlay.parentNode.removeChild(overlay);
+      });
+      grid.appendChild(hexBtn);
+    }
+
+    tabMenu.addEventListener('click', showMenuTab);
+    tabCustom.addEventListener('click', showCustomTab);
+    tabColor.addEventListener('click', showColorTab);
+
+    showMenuTab();
   }
 
   function addItem(position, defaultAction, defaultSvg, defaultName){
-    const bar = $('.navigation-bar__body');
-    if(!bar || bar.querySelector(`[data-position="${position}"]`)) return;
+    var bar = $('.navigation-bar__body');
+    if(!bar || bar.querySelector('[data-position="' + position + '"]')) return;
 
-    const savedAction = localStorage.getItem(`bottom_bar_${position}_action`) || defaultAction;
-    const savedSvg = localStorage.getItem(`bottom_bar_${position}_svg`) || defaultSvg;
-    const savedName = localStorage.getItem(`bottom_bar_${position}_name`) || defaultName;
+    var savedAction = localStorage.getItem('bottom_bar_' + position + '_action') || defaultAction;
+    var savedSvg = svgFromStorage(localStorage.getItem('bottom_bar_' + position + '_svg') || defaultSvg);
+    var savedName = localStorage.getItem('bottom_bar_' + position + '_name') || defaultName;
+    savedSvg = resolveSvgToInline(savedSvg) || savedSvg;
 
-    const div = document.createElement('div');
+    var customIcons = getCustomIcons();
+    if(customIcons[position]){
+      savedSvg = customIcons[position];
+    }
+
+    var div = document.createElement('div');
     div.className = 'navigation-bar__item';
-    div.dataset.action = savedAction;
-    div.dataset.position = position;
+    div.setAttribute('data-action', savedAction);
+    div.setAttribute('data-position', position);
 
-    const iconDiv = document.createElement('div');
+    var iconDiv = document.createElement('div');
     iconDiv.className = 'navigation-bar__icon';
     iconDiv.innerHTML = savedSvg;
 
-    const labelDiv = document.createElement('div');
+    var labelDiv = document.createElement('div');
     labelDiv.className = 'navigation-bar__label';
     labelDiv.textContent = savedName;
 
     div.appendChild(iconDiv);
     div.appendChild(labelDiv);
 
-    const search = bar.querySelector('.navigation-bar__item[data-action="search"]');
+    var search = bar.querySelector('.navigation-bar__item[data-action="search"]');
     if(search) bar.insertBefore(div, search);
     else bar.appendChild(div);
 
-    div.addEventListener('click', () => emulateSidebarClick(div.dataset.action));
+    setTimeout(function(){ applyStoredColor(position, iconDiv); }, 50);
 
-    // Long press
-    let timer;
-    const start = () => {
-      timer = setTimeout(() => showIconPicker(position, div, iconDiv, labelDiv, defaultAction, defaultSvg, defaultName), 700);
-    };
-    const cancel = () => clearTimeout(timer);
+    div.addEventListener('click', function(){
+      try{ emulateSidebarClick(div.getAttribute('data-action')); } catch(e){}
+    });
+
+    var timer;
+    function start(){
+      timer = setTimeout(function(){ showIconPicker(position, div, iconDiv, labelDiv, defaultAction, defaultSvg, defaultName); }, 700);
+    }
+    function cancel(){ clearTimeout(timer); }
 
     div.addEventListener('touchstart', start);
     div.addEventListener('touchend', cancel);
     div.addEventListener('touchmove', cancel);
     div.addEventListener('touchcancel', cancel);
 
-    div.addEventListener('mousedown', e => {
+    div.addEventListener('mousedown', function(e){
       if(e.button === 0){
         start();
-        const up = () => { cancel(); document.removeEventListener('mouseup', up); };
+        function up(){ cancel(); document.removeEventListener('mouseup', up); }
         document.addEventListener('mouseup', up);
       }
     });
   }
 
   function adjustPosition() {
-    const isLandscape = window.matchMedia('(orientation: landscape)').matches;
-    const bar = $('.navigation-bar__body');
-    const actions = $('.head__actions');
+    var mq = window.matchMedia && window.matchMedia('(orientation: landscape)');
+    var isLandscape = mq ? mq.matches : (window.orientation === 90 || window.orientation === -90);
+    var bar = $('.navigation-bar__body');
+    var actions = $('.head__actions');
     if (!bar || !actions) return;
 
-    const items = $$('.navigation-bar__item');
+    var items = $$('.navigation-bar__item');
+    var i, target;
 
     if (isLandscape) {
-      items.forEach(item => {
-        if (!actions.contains(item)) {
-          const target = actions.querySelector('.head__action.open--search') || actions.firstChild;
-          actions.insertBefore(item, target);
+      for (i = 0; i < items.length; i++) {
+        if (!actions.contains(items[i])) {
+          target = actions.querySelector('.head__action.open--search') || actions.firstChild;
+          actions.insertBefore(items[i], target);
         }
-      });
+      }
     } else {
-      items.forEach(item => {
-        if (!bar.contains(item)) {
-          const target = bar.querySelector('.navigation-bar__item[data-action="search"]') || null;
-          bar.insertBefore(item, target);
+      for (i = 0; i < items.length; i++) {
+        if (!bar.contains(items[i])) {
+          target = bar.querySelector('.navigation-bar__item[data-action="search"]') || null;
+          bar.insertBefore(items[i], target);
         }
-      });
+      }
     }
   }
 
@@ -343,23 +750,22 @@ Lampa.Platform.tv();
 
     adjustPosition();
 
-    const mql = window.matchMedia('(orientation: landscape)');
-    mql.addEventListener('change', adjustPosition);
+    var mql = window.matchMedia && window.matchMedia('(orientation: landscape)');
+    if(mql && mql.addEventListener) mql.addEventListener('change', adjustPosition);
     window.addEventListener('orientationchange', adjustPosition);
     window.addEventListener('resize', adjustPosition);
   }
 
-  const mo = new MutationObserver(() => {
-    const bar = $('.navigation-bar__body');
-    if(bar){
-      mo.disconnect();
-      init();
-    }
-  });
+  var mo = typeof MutationObserver !== 'undefined' ? new MutationObserver(function() {
+    var bar = $('.navigation-bar__body');
+    if(bar){ mo.disconnect(); init(); }
+  }) : null;
 
-  mo.observe(document.documentElement, {childList: true, subtree: true});
+  if(mo){
+    mo.observe(document.documentElement, {childList: true, subtree: true});
+  }
   if($('.navigation-bar__body')){
-    mo.disconnect();
+    if(mo) mo.disconnect();
     init();
   }
 })();
