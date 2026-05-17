@@ -484,57 +484,60 @@ Lampa.Platform.tv();
   function processAllBarItems(){
     var items = document.querySelectorAll('.navigation-bar__item');
     for(var i = 0; i < items.length; i++){
-      var item = items[i];
-      if(item.getAttribute('data-picker-init') === '1') continue;
-
-      var action = item.getAttribute('data-action') || '';
-      var position = item.getAttribute('data-position') || '';
-      var btnId = position || action || ('baridx_' + i);
-      var isOurButton = !!position;
-
-      var iconEl = item.querySelector('.navigation-bar__icon');
-      var labelEl = item.querySelector('.navigation-bar__label');
-
-      if(iconEl){
-        var svg = iconEl.querySelector('svg');
-        if(svg && !getDefaultSvg(btnId)){
-          if(isOurButton && defaults[position] && defaults[position].svg){
-            saveDefaultSvg(btnId, defaults[position].svg);
-          } else {
-            saveDefaultSvg(btnId, svg.outerHTML);
-          }
-        }
-        var cicons = getCustomIcons();
-        if(cicons[btnId]){
-          iconEl.innerHTML = cicons[btnId];
-        }
-        applyColorToIcon(iconEl, getGlobalIconColor());
-      }
-
-      item.setAttribute('data-picker-init', '1');
-
-      var timer;
-      function start(){
-        timer = setTimeout(function(){
-          var defSvg = getDefaultSvg(btnId) || '';
-          var defName = labelEl ? labelEl.textContent : '';
-          showIconPicker(btnId, item, iconEl, labelEl, action || btnId, defSvg, defName, isOurButton);
-        }, 700);
-      }
-      function cancel(){ clearTimeout(timer); }
-
-      item.addEventListener('touchstart', start);
-      item.addEventListener('touchend', cancel);
-      item.addEventListener('touchmove', cancel);
-      item.addEventListener('touchcancel', cancel);
-      item.addEventListener('mousedown', function(e){
-        if(e.button === 0){
-          start();
-          function up(){ cancel(); document.removeEventListener('mouseup', up); }
-          document.addEventListener('mouseup', up);
-        }
-      });
+      initSingleBarItem(items[i], i);
     }
+  }
+
+  function initSingleBarItem(item, index){
+    if(item.getAttribute('data-picker-init') === '1') return;
+
+    var action = item.getAttribute('data-action') || '';
+    var position = item.getAttribute('data-position') || '';
+    var btnId = position || action || ('baridx_' + index);
+    var isOurButton = !!position;
+
+    var iconEl = item.querySelector('.navigation-bar__icon');
+    var labelEl = item.querySelector('.navigation-bar__label');
+
+    if(iconEl){
+      var svg = iconEl.querySelector('svg');
+      if(svg && !getDefaultSvg(btnId)){
+        if(isOurButton && defaults[position] && defaults[position].svg){
+          saveDefaultSvg(btnId, defaults[position].svg);
+        } else {
+          saveDefaultSvg(btnId, svg.outerHTML);
+        }
+      }
+      var cicons = getCustomIcons();
+      if(cicons[btnId]){
+        iconEl.innerHTML = cicons[btnId];
+      }
+      applyColorToIcon(iconEl, getGlobalIconColor());
+    }
+
+    item.setAttribute('data-picker-init', '1');
+
+    var timer = null;
+    function start(){
+      timer = setTimeout(function(){
+        var defSvg = getDefaultSvg(btnId) || '';
+        var defName = labelEl ? labelEl.textContent : '';
+        showIconPicker(btnId, item, iconEl, labelEl, action || btnId, defSvg, defName, isOurButton);
+      }, 700);
+    }
+    function cancel(){ clearTimeout(timer); }
+
+    item.addEventListener('touchstart', start);
+    item.addEventListener('touchend', cancel);
+    item.addEventListener('touchmove', cancel);
+    item.addEventListener('touchcancel', cancel);
+    item.addEventListener('mousedown', function(e){
+      if(e.button === 0){
+        start();
+        function up(){ cancel(); document.removeEventListener('mouseup', up); }
+        document.addEventListener('mouseup', up);
+      }
+    });
   }
 
   function renderOptionsGrid(grid, options, btnId, div, iconEl, labelEl, overlay, defaultAction, defaultSvg, defaultName, isOurButton){
@@ -659,6 +662,21 @@ Lampa.Platform.tv();
         lampaIcons.forEach(function(entry){ allIcons.push(entry); });
         if(newEntries && newEntries.length){ newEntries.forEach(function(entry){ allIcons.push(entry); }); }
         grid.innerHTML = '';
+
+        var reset = document.createElement('div');
+        reset.className = 'phone-menu-picker-reset';
+        reset.textContent = 'Сбросить на стандарт';
+        reset.addEventListener('click', function(){
+          var defaultSvgResolved = resolveSvgToInline(defaultSvg) || defaultSvg;
+          if(defaultSvgResolved) iconEl.innerHTML = defaultSvgResolved;
+          var cicons = getCustomIcons();
+          delete cicons[btnId];
+          setCustomIcons(cicons);
+          applyColorToIcon(iconEl, getGlobalIconColor());
+          overlay.parentNode && overlay.parentNode.removeChild(overlay);
+        });
+        grid.appendChild(reset);
+
         if(allIcons.length === 0){
           grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#aaa;padding:20px;">Иконки не найдены</div>';
           return;
