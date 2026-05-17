@@ -440,7 +440,7 @@ Lampa.Platform.tv();
     if(!svg) return;
     svg.style.setProperty('color', color, 'important');
     var svgFill = (svg.getAttribute('fill') || '').trim().toLowerCase();
-    if(svgFill !== 'none' && svgFill !== 'transparent'){
+    if(svgFill && svgFill !== 'none' && svgFill !== 'transparent'){
       svg.style.setProperty('fill', color, 'important');
     }
     var all = svg.querySelectorAll('*');
