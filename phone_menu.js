@@ -299,10 +299,10 @@ Lampa.Platform.tv();
     try{ var raw = localStorage.getItem('phone_menu_custom_icons'); return raw ? JSON.parse(raw) : {}; } catch(e){ return {}; }
   }
   function setCustomIcons(map){ localStorage.setItem('phone_menu_custom_icons', JSON.stringify(map || {})); }
-  function getIconColors(){
-    try{ var raw = localStorage.getItem('phone_menu_icon_colors'); return raw ? JSON.parse(raw) : {}; } catch(e){ return {}; }
+  function getGlobalIconColor(){
+    try{ var raw = localStorage.getItem('phone_menu_icon_color'); return raw || ''; } catch(e){ return ''; }
   }
-  function setIconColors(map){ localStorage.setItem('phone_menu_icon_colors', JSON.stringify(map || {})); }
+  function setGlobalIconColor(hex){ localStorage.setItem('phone_menu_icon_color', hex || ''); }
 
   function normalizeSvgString(str){ if(!str || typeof str !== 'string') return ''; return str.replace(/\s+/g,' ').replace(/>\s+</g,'><').trim(); }
   function svgFingerprint(html){
@@ -423,14 +423,24 @@ Lampa.Platform.tv();
     }
     next();
   }
-  function applyStoredColor(position, iconEl){
-    var colors = getIconColors();
-    var color = colors[position];
+  function resetColorOnIcon(iconEl){
+    var svg = iconEl.querySelector('svg');
+    if(!svg) return;
+    svg.style.removeProperty('color');
+    svg.style.removeProperty('fill');
+    var all = svg.querySelectorAll('*');
+    for(var i = 0; i < all.length; i++){
+      all[i].style.removeProperty('fill');
+      all[i].style.removeProperty('stroke');
+    }
+  }
+  function applyColorToIcon(iconEl, color){
     if(!color) return;
     var svg = iconEl.querySelector('svg');
     if(!svg) return;
     svg.style.setProperty('color', color, 'important');
-    if(svg.getAttribute('fill') !== 'none' && svg.getAttribute('fill') !== 'transparent'){
+    var svgFill = (svg.getAttribute('fill') || '').trim().toLowerCase();
+    if(svgFill !== 'none' && svgFill !== 'transparent'){
       svg.style.setProperty('fill', color, 'important');
     }
     var all = svg.querySelectorAll('*');
@@ -446,8 +456,83 @@ Lampa.Platform.tv();
       }
     }
   }
+  function resetGlobalColorOnAll(){
+    var items = document.querySelectorAll('.navigation-bar__item');
+    for(var i = 0; i < items.length; i++){
+      var iconEl = items[i].querySelector('.navigation-bar__icon');
+      if(iconEl) resetColorOnIcon(iconEl);
+    }
+  }
+  function applyGlobalColorToAll(){
+    var color = getGlobalIconColor();
+    if(!color) return;
+    var items = document.querySelectorAll('.navigation-bar__item');
+    for(var i = 0; i < items.length; i++){
+      var iconEl = items[i].querySelector('.navigation-bar__icon');
+      if(iconEl) applyColorToIcon(iconEl, color);
+    }
+  }
 
-  function renderOptionsGrid(grid, options, position, div, iconEl, labelEl, overlay, defaultAction, defaultSvg, defaultName){
+  function getDefaultSvgKey(btnId){ return 'phone_menu_default_svg_' + btnId; }
+  function saveDefaultSvg(btnId, svgHtml){
+    localStorage.setItem(getDefaultSvgKey(btnId), svgToStorage(svgHtml));
+  }
+  function getDefaultSvg(btnId){
+    return svgFromStorage(localStorage.getItem(getDefaultSvgKey(btnId))) || '';
+  }
+
+  function processAllBarItems(){
+    var items = document.querySelectorAll('.navigation-bar__item');
+    for(var i = 0; i < items.length; i++){
+      var item = items[i];
+      if(item.getAttribute('data-picker-init') === '1') continue;
+
+      var action = item.getAttribute('data-action') || '';
+      var position = item.getAttribute('data-position') || '';
+      var btnId = position || action || ('idx_' + i);
+
+      var iconEl = item.querySelector('.navigation-bar__icon');
+      var labelEl = item.querySelector('.navigation-bar__label');
+
+      if(iconEl){
+        var svg = iconEl.querySelector('svg');
+        if(svg && !getDefaultSvg(btnId)){
+          saveDefaultSvg(btnId, svg.outerHTML);
+        }
+        var cicons = getCustomIcons();
+        if(cicons[btnId]){
+          iconEl.innerHTML = cicons[btnId];
+        }
+        applyColorToIcon(iconEl, getGlobalIconColor());
+      }
+
+      item.setAttribute('data-picker-init', '1');
+
+      var timer;
+      function start(){
+        timer = setTimeout(function(){
+          var defSvg = getDefaultSvg(btnId) || '';
+          var defName = labelEl ? labelEl.textContent : '';
+          showIconPicker(btnId, item, iconEl, labelEl, action || btnId, defSvg, defName);
+        }, 700);
+      }
+      function cancel(){ clearTimeout(timer); }
+
+      item.addEventListener('touchstart', start);
+      item.addEventListener('touchend', cancel);
+      item.addEventListener('touchmove', cancel);
+      item.addEventListener('touchcancel', cancel);
+      item.addEventListener('mousedown', function(e){
+        if(e.button === 0){
+          start();
+          function up(){ cancel(); document.removeEventListener('mouseup', up); }
+          document.addEventListener('mouseup', up);
+        }
+      });
+    }
+  }
+
+  function renderOptionsGrid(grid, options, btnId, div, iconEl, labelEl, overlay, defaultAction, defaultSvg, defaultName){
     grid.innerHTML = '';
     for(var i = 0; i < options.length; i++){
       var opt = options[i];
@@ -461,15 +546,15 @@ Lampa.Platform.tv();
           item.addEventListener('click', function(){
             var svgToSave = resolveSvgToInline(s) || s;
             div.setAttribute('data-action', a);
-            localStorage.setItem('bottom_bar_' + position + '_action', a);
+            localStorage.setItem('bottom_bar_' + btnId + '_action', a);
             iconEl.innerHTML = svgToSave;
-            localStorage.setItem('bottom_bar_' + position + '_svg', svgToStorage(svgToSave));
+            localStorage.setItem('bottom_bar_' + btnId + '_svg', svgToStorage(svgToSave));
             labelEl.textContent = n;
-            localStorage.setItem('bottom_bar_' + position + '_name', n);
+            localStorage.setItem('bottom_bar_' + btnId + '_name', n);
             var cicons = getCustomIcons();
-            delete cicons[position];
+            delete cicons[btnId];
             setCustomIcons(cicons);
-            applyStoredColor(position, iconEl);
+            applyGlobalColorToAll();
             if(overlay.parentNode) overlay.parentNode.removeChild(overlay);
           });
         })(opt, opt.action, opt.svg, opt.name);
@@ -485,23 +570,22 @@ Lampa.Platform.tv();
     reset.addEventListener('click', function(){
       var defaultSvgResolved = resolveSvgToInline(defaultSvg) || defaultSvg;
       div.setAttribute('data-action', defaultAction);
-      localStorage.removeItem('bottom_bar_' + position + '_action');
+      localStorage.removeItem('bottom_bar_' + btnId + '_action');
       iconEl.innerHTML = defaultSvgResolved;
-      localStorage.setItem('bottom_bar_' + position + '_svg', svgToStorage(defaultSvgResolved));
+      localStorage.setItem('bottom_bar_' + btnId + '_svg', svgToStorage(defaultSvgResolved));
       labelEl.textContent = defaultName;
-      localStorage.removeItem('bottom_bar_' + position + '_name');
+      localStorage.removeItem('bottom_bar_' + btnId + '_name');
       var cicons = getCustomIcons();
-      delete cicons[position];
+      delete cicons[btnId];
       setCustomIcons(cicons);
-      var ccolors = getIconColors();
-      delete ccolors[position];
-      setIconColors(ccolors);
+      setGlobalIconColor('');
+      resetGlobalColorOnAll();
       if(overlay.parentNode) overlay.parentNode.removeChild(overlay);
     });
     grid.appendChild(reset);
   }
 
-  function showIconPicker(position, div, iconEl, labelEl, defaultAction, defaultSvg, defaultName){
+  function showIconPicker(btnId, div, iconEl, labelEl, defaultAction, defaultSvg, defaultName){
     var overlay = document.createElement('div');
     overlay.className = 'phone-menu-picker-overlay';
     overlay.addEventListener('click', function(e){ if(e.target === overlay) overlay.parentNode && overlay.parentNode.removeChild(overlay); });
@@ -523,7 +607,7 @@ Lampa.Platform.tv();
       return btn;
     }
     var tabMenu = makeTab('Меню', true);
-    var tabCustom = makeTab('Кастомные', false);
+    var tabCustom = makeTab('Иконки', false);
     var tabColor = makeTab('Цвет', false);
     toolbar.appendChild(tabMenu);
     toolbar.appendChild(tabCustom);
@@ -545,7 +629,7 @@ Lampa.Platform.tv();
 
     function showMenuTab(){
       setActiveTab(tabMenu);
-      renderOptionsGrid(grid, collectMenuSections(), position, div, iconEl, labelEl, overlay, defaultAction, defaultSvg, defaultName);
+      renderOptionsGrid(grid, collectMenuSections(), btnId, div, iconEl, labelEl, overlay, defaultAction, defaultSvg, defaultName);
     }
 
     function showCustomTab(){
@@ -572,10 +656,10 @@ Lampa.Platform.tv();
             if(svgEl){ svgEl.style.width = '48px'; svgEl.style.height = '48px'; }
             item.addEventListener('click', function(){
               var cicons = getCustomIcons();
-              cicons[position] = entry.html;
+              cicons[btnId] = entry.html;
               setCustomIcons(cicons);
               iconEl.innerHTML = entry.html;
-              applyStoredColor(position, iconEl);
+              applyColorToIcon(iconEl, getGlobalIconColor());
               overlay.parentNode && overlay.parentNode.removeChild(overlay);
             });
             grid.appendChild(item);
@@ -587,27 +671,15 @@ Lampa.Platform.tv();
     function showColorTab(){
       setActiveTab(tabColor);
       grid.innerHTML = '';
-      var colors = getIconColors();
-      var currentColor = colors[position] || '';
+      var currentColor = getGlobalIconColor();
 
       var defBtn = document.createElement('div');
       defBtn.className = 'picker-item';
       defBtn.style.gridColumn = '1 / -1';
       defBtn.innerHTML = '<div class="picker-icon-wrap" style="border:2px dashed #fff;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;">Сброс</div><span class="picker-name">Стандартный</span>';
       defBtn.addEventListener('click', function(){
-        var c = getIconColors();
-        delete c[position];
-        setIconColors(c);
-        var svg = iconEl.querySelector('svg');
-        if(svg){
-          svg.style.removeProperty('color');
-          svg.style.removeProperty('fill');
-          var all = svg.querySelectorAll('*');
-          for(var i = 0; i < all.length; i++){
-            all[i].style.removeProperty('fill');
-            all[i].style.removeProperty('stroke');
-          }
-        }
+        setGlobalIconColor('');
+        resetGlobalColorOnAll();
         overlay.parentNode && overlay.parentNode.removeChild(overlay);
       });
       grid.appendChild(defBtn);
@@ -618,10 +690,8 @@ Lampa.Platform.tv();
           cell.className = 'picker-item';
           cell.innerHTML = '<div class="picker-icon-wrap" style="background:' + escapeHtml(hex) + ';border-radius:50%;border:2px solid ' + (currentColor === hex ? '#fff' : 'transparent') + ';"></div><span class="picker-name" style="font-size:10px;">' + escapeHtml(hex) + '</span>';
           cell.addEventListener('click', function(){
-            var c = getIconColors();
-            c[position] = hex;
-            setIconColors(c);
-            applyStoredColor(position, iconEl);
+            setGlobalIconColor(hex);
+            applyGlobalColorToAll();
             overlay.parentNode && overlay.parentNode.removeChild(overlay);
           });
           grid.appendChild(cell);
@@ -633,17 +703,36 @@ Lampa.Platform.tv();
       hexBtn.style.gridColumn = '1 / -1';
       hexBtn.innerHTML = '<div class="picker-icon-wrap" style="border:2px solid #fff;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;">HEX</div><span class="picker-name">Ввести код</span>';
       hexBtn.addEventListener('click', function(){
-        var raw = prompt('Код цвета (HEX):', currentColor || '#');
-        if(raw === null) return;
-        var trimmed = raw.trim();
-        if(trimmed && trimmed.charAt(0) !== '#') trimmed = '#' + trimmed;
-        if(trimmed){
-          var c = getIconColors();
-          c[position] = trimmed;
-          setIconColors(c);
-          applyStoredColor(position, iconEl);
+        function applyHexAndClose(val){
+          var trimmed = (val || '').trim();
+          if(trimmed && trimmed.charAt(0) !== '#') trimmed = '#' + trimmed;
+          if(trimmed && trimmed !== '#'){
+            setGlobalIconColor(trimmed);
+            applyGlobalColorToAll();
+          }
+          overlay.parentNode && overlay.parentNode.removeChild(overlay);
         }
-        overlay.parentNode && overlay.parentNode.removeChild(overlay);
+        if(typeof Lampa !== 'undefined' && Lampa.Input && typeof Lampa.Input.edit === 'function'){
+          overlay.parentNode && overlay.parentNode.removeChild(overlay);
+          setTimeout(function(){
+            Lampa.Input.edit({
+              title: 'Код цвета (HEX)',
+              value: currentColor || '',
+              free: true,
+              nosave: true,
+              nomic: true
+            }, function(val){
+              applyHexAndClose(val || '');
+            });
+          }, 100);
+        } else {
+          var raw = prompt('Код цвета (HEX):', currentColor || '#');
+          if(raw === null){
+            overlay.parentNode && overlay.parentNode.removeChild(overlay);
+            return;
+          }
+          applyHexAndClose(raw);
+        }
       });
       grid.appendChild(hexBtn);
     }
@@ -689,29 +778,8 @@ Lampa.Platform.tv();
     if(search) bar.insertBefore(div, search);
     else bar.appendChild(div);
 
-    setTimeout(function(){ applyStoredColor(position, iconDiv); }, 50);
-
     div.addEventListener('click', function(){
       try{ emulateSidebarClick(div.getAttribute('data-action')); } catch(e){}
-    });
-
-    var timer;
-    function start(){
-      timer = setTimeout(function(){ showIconPicker(position, div, iconDiv, labelDiv, defaultAction, defaultSvg, defaultName); }, 700);
-    }
-    function cancel(){ clearTimeout(timer); }
-
-    div.addEventListener('touchstart', start);
-    div.addEventListener('touchend', cancel);
-    div.addEventListener('touchmove', cancel);
-    div.addEventListener('touchcancel', cancel);
-
-    div.addEventListener('mousedown', function(e){
-      if(e.button === 0){
-        start();
-        function up(){ cancel(); document.removeEventListener('mouseup', up); }
-        document.addEventListener('mouseup', up);
-      }
     });
   }
 
@@ -740,6 +808,7 @@ Lampa.Platform.tv();
         }
       }
     }
+    setTimeout(processAllBarItems, 50);
   }
 
   function init(){
@@ -749,6 +818,7 @@ Lampa.Platform.tv();
     addItem('3', defaults[3].action, defaults[3].svg, defaults[3].name);
 
     adjustPosition();
+    processAllBarItems();
 
     var mql = window.matchMedia && window.matchMedia('(orientation: landscape)');
     if(mql && mql.addEventListener) mql.addEventListener('change', adjustPosition);
