@@ -10,6 +10,9 @@ Lampa.Platform.tv();
     3: { action: 'cartoon', svg: '<svg><use xlink:href="#sprite-cartoon"></use></svg>', name: 'Мультфильмы' }
   };
 
+  var DEFAULT_ICONS_URL = 'https://amikdn.github.io/lampa-button-icons.json';
+  var colorPickerPaletteHexes = ['#ef5350','#f44336','#e53935','#c62828','#ff9800','#fb8c00','#f57c00','#e65100','#ffeb3b','#fdd835','#fbc02d','#f57f17','#66bb6a','#4caf50','#43a047','#2e7d32','#3da18d','#26c6da','#00bcd4','#00acc1','#00838f','#42a5f5','#2196f3','#1e88e5','#1565c0','#8b5cf6','#ab47bc','#9c27b0','#8e24aa','#6a1b9a','#ec407a','#e91e63','#d81b60','#ad1457','#ffffff','#e0e0e0','#000000'];
+
   /** CSS: нижняя панель и окно выбора. Многострочная строка через конкатенацию для старых движков. */
   var css = [
     '.navigation-bar__body {',
@@ -72,6 +75,10 @@ Lampa.Platform.tv();
     '  .navigation-bar__icon svg { width: 20px !important; height: 20px !important; }',
     '  .navigation-bar__label { display: none !important; }',
     '}',
+    '.phone-menu-picker-toolbar { display: flex; gap: 6px; margin-bottom: 10px; justify-content: center; flex-wrap: wrap; }',
+    '.phone-menu-picker-tab { padding: 6px 10px; border-radius: 8px; background: rgba(255,255,255,0.1); color: #fff; font-size: 13px; cursor: pointer; white-space: nowrap; user-select: none; transition: background .2s; text-align: center; }',
+    '.phone-menu-picker-tab:hover { background: rgba(255,255,255,0.2); }',
+    '.phone-menu-picker-tab.active { background: rgba(255,255,255,0.3); }',
     '.phone-menu-picker-overlay {',
     '  position: fixed; left: 0; top: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.75);',
     '  display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 10px; box-sizing: border-box;',
@@ -128,6 +135,11 @@ Lampa.Platform.tv();
     try{ return decodeURIComponent(escape(atob(val.slice(4)))); } catch(e){ return val; }
   }
 
+  function escapeHtml(str){
+    if(str == null || typeof str !== 'string') return '';
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
+
   /** Разворачивает <use xlink:href="#sprite-..."> в полный inline SVG. */
   function resolveSvgToInline(svgString){
     if(!svgString || typeof svgString !== 'string') return svgString;
@@ -149,6 +161,45 @@ Lampa.Platform.tv();
     for(var k = 0; k < sym.childNodes.length; k++) children.push(sym.childNodes[k]);
     for(var k = 0; k < children.length; k++) svg.appendChild(children[k].cloneNode(true));
     return svg.outerHTML;
+  }
+
+  function injectPhoneMenuStyleToOtherPlugins(){
+    if($('#phone-menu-plugin-style')) return;
+    var st = document.createElement('style');
+    st.id = 'phone-menu-plugin-style';
+    st.textContent = [
+      '/* buttonstest.js buttons */',
+      '.full-start-new__buttons .full-start__button {',
+      '  background: linear-gradient(to top, rgba(80,80,80,0.35), rgba(30,30,35,0.25)) !important;',
+      '  border: 1px solid rgba(255,255,255,0.12) !important;',
+      '  box-shadow: inset 0 0 6px rgba(0,0,0,0.5) !important;',
+      '  border-radius: 14px !important;',
+      '  transition: background .3s ease, transform .2s ease, border-color .3s ease, box-shadow .3s ease !important;',
+      '}',
+      '.full-start-new__buttons .full-start__button:hover,',
+      '.full-start-new__buttons .full-start__button.active {',
+      '  background: linear-gradient(to top, rgba(100,100,100,0.45), rgba(40,40,45,0.35)) !important;',
+      '  border-color: rgba(255,255,255,0.25) !important;',
+      '  box-shadow: inset 0 0 8px rgba(0,0,0,0.6) !important;',
+      '  transform: translateY(-3px);',
+      '}',
+      '/* anim_reaction.js reactions */',
+      '.full-start-new__reactions .reaction {',
+      '  background: linear-gradient(to top, rgba(80,80,80,0.35), rgba(30,30,35,0.25)) !important;',
+      '  border: 1px solid rgba(255,255,255,0.12) !important;',
+      '  box-shadow: inset 0 0 6px rgba(0,0,0,0.5) !important;',
+      '  border-radius: 14px !important;',
+      '  padding: 6px !important;',
+      '  transition: background .3s ease, transform .2s ease, border-color .3s ease, box-shadow .3s ease !important;',
+      '}',
+      '.full-start-new__reactions .reaction:hover {',
+      '  background: linear-gradient(to top, rgba(100,100,100,0.45), rgba(40,40,45,0.35)) !important;',
+      '  border-color: rgba(255,255,255,0.25) !important;',
+      '  box-shadow: inset 0 0 8px rgba(0,0,0,0.6) !important;',
+      '  transform: translateY(-3px);',
+      '}'
+    ].join('\n');
+    document.head.appendChild(st);
   }
 
   function injectCSS(){
@@ -282,7 +333,253 @@ Lampa.Platform.tv();
     return out;
   }
 
-  function renderOptionsGrid(grid, options, position, div, iconEl, labelEl, overlay, defaultAction, defaultSvg, defaultName){
+  /** Хранение кастомных иконок и цветов */
+  function getCustomIcons(){
+    try{ var raw = localStorage.getItem('phone_menu_custom_icons'); return raw ? JSON.parse(raw) : {}; } catch(e){ return {}; }
+  }
+  function setCustomIcons(map){ localStorage.setItem('phone_menu_custom_icons', JSON.stringify(map || {})); }
+  function getGlobalIconColor(){
+    try{ var raw = localStorage.getItem('phone_menu_icon_color'); return raw || ''; } catch(e){ return ''; }
+  }
+  function setGlobalIconColor(hex){ localStorage.setItem('phone_menu_icon_color', hex || ''); }
+
+  function normalizeSvgString(str){ if(!str || typeof str !== 'string') return ''; return str.replace(/\s+/g,' ').replace(/>\s+</g,'><').trim(); }
+  function svgFingerprint(html){
+    var s = normalizeSvgString(html);
+    var useMatch = s.match(/xlink:href\s*=\s*["']?#([^"'\s>]+)/);
+    if(useMatch) return 'use:' + useMatch[1];
+    var vb = s.match(/viewBox\s*=\s*["']([^"']+)["']/);
+    var viewBox = vb ? vb[1].replace(/\s+/g,' ').trim() : '';
+    var pathMatch = s.match(/<path[^>]*\bd\s*=\s*["']([^"']+)["']/g);
+    var pathParts = pathMatch ? pathMatch.map(function(p){ var d = p.match(/\bd\s*=\s*["']([^"']+)["']/); return d ? d[1].replace(/\s+/g,' ').trim() : ''; }) : [];
+    pathParts.sort();
+    return 'inline:' + viewBox + '|' + pathParts.join('|');
+  }
+  function collectAllIcons(preloadSeen){
+    var seen = {};
+    var pk;
+    if(preloadSeen){ for(pk in preloadSeen){ if(preloadSeen.hasOwnProperty(pk)) seen[pk] = true; } }
+    var result = [];
+    function addIcon(html, id){
+      if(!html) return;
+      var key = svgFingerprint(html);
+      if(seen[key]) return;
+      seen[key] = true;
+      result.push({ id: id || key.substring(0,80), html: html });
+    }
+    var sections = collectMenuSections();
+    for(var i = 0; i < sections.length; i++){
+      if(sections[i].svg) addIcon(sections[i].svg, 'menu-' + i);
+    }
+    var defaultsKeys = Object.keys(defaults);
+    for(var d = 0; d < defaultsKeys.length; d++){
+      var def = defaults[defaultsKeys[d]];
+      if(def && def.svg) addIcon(def.svg, 'default-' + defaultsKeys[d]);
+    }
+    var barItems = document.querySelectorAll('.navigation-bar__item');
+    for(var b = 0; b < barItems.length; b++){
+      var svgEl = barItems[b].querySelector('svg');
+      if(svgEl){ try{ addIcon(svgEl.outerHTML, 'bar-' + b); } catch(e){} }
+    }
+    var menuIcos = document.querySelectorAll('.menu .menu__ico svg');
+    for(var m = 0; m < menuIcos.length; m++){ try{ addIcon(menuIcos[m].outerHTML, 'menuico-' + m); } catch(e){} }
+    return result;
+  }
+  function loadIconsFromUrl(url, seen, callback){
+    if(!url || typeof url !== 'string'){ callback(null, 'Введите ссылку на файл'); return; }
+    var xhr = new XMLHttpRequest();
+    xhr.onreadystatechange = function(){
+      if(xhr.readyState !== 4) return;
+      if(xhr.status !== 200){ callback(null, 'Ошибка загрузки: ' + (xhr.status || 'сеть')); return; }
+      var text = (xhr.responseText || '').replace(/^\uFEFF/,'').trim();
+      if(!text){ callback(null, 'Пустой ответ'); return; }
+      if(text.indexOf('<!') === 0 || text.indexOf('<html') !== -1){ callback(null, 'По ссылке отдаётся не JSON'); return; }
+      text = text.replace(/\r\n/g,'\n').replace(/\r/g,'\n');
+      text = text.replace(/,(\s*)\]/,'$1]').replace(/,(\s*)\}/,'$1}');
+      var arr;
+      try{ arr = JSON.parse(text); } catch(e){
+        try{ arr = JSON.parse(text.replace(/[\u0000-\u001F]+/g,' ')); } catch(e2){
+          var svgList = text.match(/<svg[\s\S]*?<\s*\/\s*svg\s*>/gi);
+          if(svgList && svgList.length > 0){ arr = svgList; } else { callback(null, 'Неверный формат файла'); return; }
+        }
+      }
+      if(!Array.isArray(arr)){ callback(null, 'Файл должен содержать массив'); return; }
+      var result = [];
+      var urlsToFetch = [];
+      var i, item, html, key;
+      for(i = 0; i < arr.length; i++){
+        item = arr[i];
+        if(typeof item === 'string'){
+          html = item.trim();
+          if(html.indexOf('<svg') !== -1){
+            key = svgFingerprint(html);
+            if(!seen[key]){ seen[key] = true; result.push({ id: 'icon-' + i, html: html }); }
+          } else if(html.indexOf('http://') === 0 || html.indexOf('https://') === 0){
+            urlsToFetch.push({ url: html, index: i });
+          }
+        } else if(item && item.html != null){
+          html = String(item.html).trim();
+          if(html && html.indexOf('<svg') !== -1){
+            key = svgFingerprint(html);
+            if(!seen[key]){ seen[key] = true; result.push({ id: (item.id && String(item.id)) || key.substring(0,80), html: html }); }
+          }
+        }
+      }
+      if(urlsToFetch.length === 0){ callback(result, null); return; }
+      var fetched = 0;
+      urlsToFetch.forEach(function(entry){
+        var req = new XMLHttpRequest();
+        req.open('GET', entry.url, true);
+        req.onload = function(){
+          if(req.status === 200 && req.responseText){
+            html = req.responseText.trim();
+            if(html.indexOf('<svg') !== -1){
+              key = svgFingerprint(html);
+              if(!seen[key]){ seen[key] = true; result.push({ id: 'icon-' + entry.index, html: html }); }
+            }
+          }
+          fetched++;
+          if(fetched === urlsToFetch.length) callback(result, null);
+        };
+        req.onerror = function(){ fetched++; if(fetched === urlsToFetch.length) callback(result, null); };
+        req.send();
+      });
+    };
+    xhr.onerror = function(){ callback(null, 'Ошибка сети'); };
+    try{ xhr.open('GET', url, true); xhr.responseType = 'text'; xhr.send(); } catch(e){ callback(null, 'Ошибка запроса'); }
+  }
+  function loadIconsFromUrlChain(urls, seen, callback){
+    var allResults = [];
+    var idx = 0;
+    function next(){
+      if(idx >= urls.length){ callback(allResults, null); return; }
+      var u = urls[idx++];
+      if(!u || typeof u !== 'string'){ next(); return; }
+      loadIconsFromUrl(u, seen, function(entries){
+        if(entries && entries.length){ for(var r = 0; r < entries.length; r++) allResults.push(entries[r]); }
+        next();
+      });
+    }
+    next();
+  }
+  function resetColorOnIcon(iconEl){
+    var svg = iconEl.querySelector('svg');
+    if(!svg) return;
+    svg.style.removeProperty('color');
+    svg.style.removeProperty('fill');
+    var all = svg.querySelectorAll('*');
+    for(var i = 0; i < all.length; i++){
+      all[i].style.removeProperty('fill');
+      all[i].style.removeProperty('stroke');
+    }
+  }
+  function applyColorToIcon(iconEl, color){
+    if(!color) return;
+    var svg = iconEl.querySelector('svg');
+    if(!svg) return;
+    svg.style.setProperty('color', color, 'important');
+    var svgFill = (svg.getAttribute('fill') || '').trim().toLowerCase();
+    if(svgFill && svgFill !== 'none' && svgFill !== 'transparent'){
+      svg.style.setProperty('fill', color, 'important');
+    }
+    var all = svg.querySelectorAll('*');
+    for(var i = 0; i < all.length; i++){
+      var el = all[i];
+      var fillAttr = (el.getAttribute('fill') || '').trim();
+      var strokeAttr = (el.getAttribute('stroke') || '').trim();
+      if(fillAttr && fillAttr.toLowerCase() !== 'none' && fillAttr.toLowerCase() !== 'transparent'){
+        el.style.setProperty('fill', color, 'important');
+      }
+      if(strokeAttr && strokeAttr.toLowerCase() !== 'none' && strokeAttr.toLowerCase() !== 'transparent'){
+        el.style.setProperty('stroke', color, 'important');
+      }
+    }
+  }
+  function resetGlobalColorOnAll(){
+    var items = document.querySelectorAll('.navigation-bar__item');
+    for(var i = 0; i < items.length; i++){
+      var iconEl = items[i].querySelector('.navigation-bar__icon');
+      if(iconEl) resetColorOnIcon(iconEl);
+    }
+  }
+  function applyGlobalColorToAll(){
+    var color = getGlobalIconColor();
+    if(!color) return;
+    var items = document.querySelectorAll('.navigation-bar__item');
+    for(var i = 0; i < items.length; i++){
+      var iconEl = items[i].querySelector('.navigation-bar__icon');
+      if(iconEl) applyColorToIcon(iconEl, color);
+    }
+  }
+
+  function getDefaultSvgKey(btnId){ return 'phone_menu_default_svg_' + btnId; }
+  function saveDefaultSvg(btnId, svgHtml){
+    localStorage.setItem(getDefaultSvgKey(btnId), svgToStorage(svgHtml));
+  }
+  function getDefaultSvg(btnId){
+    return svgFromStorage(localStorage.getItem(getDefaultSvgKey(btnId))) || '';
+  }
+
+  function processAllBarItems(){
+    var items = document.querySelectorAll('.navigation-bar__item');
+    for(var i = 0; i < items.length; i++){
+      initSingleBarItem(items[i], i);
+    }
+  }
+
+  function initSingleBarItem(item, index){
+    if(item.getAttribute('data-picker-init') === '1') return;
+
+    var action = item.getAttribute('data-action') || '';
+    var position = item.getAttribute('data-position') || '';
+    var btnId = position || action || ('baridx_' + index);
+    var isOurButton = !!position;
+
+    var iconEl = item.querySelector('.navigation-bar__icon');
+    var labelEl = item.querySelector('.navigation-bar__label');
+
+    if(iconEl){
+      var svg = iconEl.querySelector('svg');
+      if(svg && !getDefaultSvg(btnId)){
+        if(isOurButton && defaults[position] && defaults[position].svg){
+          saveDefaultSvg(btnId, defaults[position].svg);
+        } else {
+          saveDefaultSvg(btnId, svg.outerHTML);
+        }
+      }
+      var cicons = getCustomIcons();
+      if(cicons[btnId]){
+        iconEl.innerHTML = cicons[btnId];
+      }
+      applyColorToIcon(iconEl, getGlobalIconColor());
+    }
+
+    item.setAttribute('data-picker-init', '1');
+
+    var timer = null;
+    function start(){
+      timer = setTimeout(function(){
+        var defSvg = getDefaultSvg(btnId) || '';
+        var defName = labelEl ? labelEl.textContent : '';
+        showIconPicker(btnId, item, iconEl, labelEl, action || btnId, defSvg, defName, isOurButton);
+      }, 700);
+    }
+    function cancel(){ clearTimeout(timer); }
+
+    item.addEventListener('touchstart', start);
+    item.addEventListener('touchend', cancel);
+    item.addEventListener('touchmove', cancel);
+    item.addEventListener('touchcancel', cancel);
+    item.addEventListener('mousedown', function(e){
+      if(e.button === 0){
+        start();
+        function up(){ cancel(); document.removeEventListener('mouseup', up); }
+        document.addEventListener('mouseup', up);
+      }
+    });
+  }
+
+  function renderOptionsGrid(grid, options, btnId, div, iconEl, labelEl, overlay, defaultAction, defaultSvg, defaultName, isOurButton){
     grid.innerHTML = '';
     for(var i = 0; i < options.length; i++){
       var opt = options[i];
@@ -295,12 +592,24 @@ Lampa.Platform.tv();
         (function(o, a, s, n){
           item.addEventListener('click', function(){
             var svgToSave = resolveSvgToInline(s) || s;
-            div.setAttribute('data-action', a);
-            localStorage.setItem('bottom_bar_' + position + '_action', a);
-            iconEl.innerHTML = svgToSave;
-            localStorage.setItem('bottom_bar_' + position + '_svg', svgToStorage(svgToSave));
-            labelEl.textContent = n;
-            localStorage.setItem('bottom_bar_' + position + '_name', n);
+            if(isOurButton){
+              div.setAttribute('data-action', a);
+              localStorage.setItem('bottom_bar_' + btnId + '_action', a);
+              iconEl.innerHTML = svgToSave;
+              localStorage.setItem('bottom_bar_' + btnId + '_svg', svgToStorage(svgToSave));
+              labelEl.textContent = n;
+              localStorage.setItem('bottom_bar_' + btnId + '_name', n);
+              var cicons = getCustomIcons();
+              delete cicons[btnId];
+              setCustomIcons(cicons);
+            } else {
+              iconEl.innerHTML = svgToSave;
+              var cicons = getCustomIcons();
+              cicons[btnId] = svgToSave;
+              setCustomIcons(cicons);
+              applyColorToIcon(iconEl, getGlobalIconColor());
+            }
+            applyGlobalColorToAll();
             if(overlay.parentNode) overlay.parentNode.removeChild(overlay);
           });
         })(opt, opt.action, opt.svg, opt.name);
@@ -314,19 +623,27 @@ Lampa.Platform.tv();
     reset.className = 'phone-menu-picker-reset';
     reset.textContent = 'Сбросить на стандарт';
     reset.addEventListener('click', function(){
-      var defaultSvgResolved = resolveSvgToInline(defaultSvg) || defaultSvg;
-      div.setAttribute('data-action', defaultAction);
-      localStorage.removeItem('bottom_bar_' + position + '_action');
-      iconEl.innerHTML = defaultSvgResolved;
-      localStorage.setItem('bottom_bar_' + position + '_svg', svgToStorage(defaultSvgResolved));
-      labelEl.textContent = defaultName;
-      localStorage.removeItem('bottom_bar_' + position + '_name');
+      if(isOurButton){
+        div.setAttribute('data-action', defaultAction);
+        localStorage.removeItem('bottom_bar_' + btnId + '_action');
+        iconEl.innerHTML = defaultSvg;
+        localStorage.setItem('bottom_bar_' + btnId + '_svg', svgToStorage(defaultSvg));
+        labelEl.textContent = defaultName;
+        localStorage.removeItem('bottom_bar_' + btnId + '_name');
+      } else {
+        if(defaultSvg) iconEl.innerHTML = defaultSvg;
+      }
+      var cicons = getCustomIcons();
+      delete cicons[btnId];
+      setCustomIcons(cicons);
+      resetColorOnIcon(iconEl);
+      applyColorToIcon(iconEl, getGlobalIconColor());
       if(overlay.parentNode) overlay.parentNode.removeChild(overlay);
     });
     grid.appendChild(reset);
   }
 
-  function showIconPicker(position, div, iconEl, labelEl, defaultAction, defaultSvg, defaultName){
+  function showIconPicker(btnId, div, iconEl, labelEl, defaultAction, defaultSvg, defaultName, isOurButton){
     var overlay = document.createElement('div');
     overlay.className = 'phone-menu-picker-overlay';
     overlay.addEventListener('click', function(e){ if(e.target === overlay) overlay.parentNode && overlay.parentNode.removeChild(overlay); });
@@ -339,15 +656,166 @@ Lampa.Platform.tv();
     title.className = 'phone-menu-picker-title';
     modal.appendChild(title);
 
+    var toolbar = document.createElement('div');
+    toolbar.className = 'phone-menu-picker-toolbar';
+    function makeTab(text, active){
+      var btn = document.createElement('div');
+      btn.className = 'phone-menu-picker-tab' + (active ? ' active' : '');
+      btn.textContent = text;
+      return btn;
+    }
+    var tabMenu = isOurButton ? makeTab('Меню', true) : null;
+    var tabCustom = makeTab('Иконки', !isOurButton);
+    var tabColor = makeTab('Цвет', false);
+    if(tabMenu) toolbar.appendChild(tabMenu);
+    toolbar.appendChild(tabCustom);
+    toolbar.appendChild(tabColor);
+    modal.appendChild(toolbar);
+
     var grid = document.createElement('div');
     grid.className = 'phone-menu-picker-grid';
-    var options = collectMenuSections();
-    if(options.length === 0) return;
-    renderOptionsGrid(grid, options, position, div, iconEl, labelEl, overlay, defaultAction, defaultSvg, defaultName);
-
     modal.appendChild(grid);
     overlay.appendChild(modal);
     document.body.appendChild(overlay);
+
+    function setActiveTab(el){
+      if(tabMenu) tabMenu.classList.remove('active');
+      tabCustom.classList.remove('active');
+      tabColor.classList.remove('active');
+      el.classList.add('active');
+    }
+
+    function showMenuTab(){
+      setActiveTab(tabMenu);
+      renderOptionsGrid(grid, collectMenuSections(), btnId, div, iconEl, labelEl, overlay, defaultAction, defaultSvg, defaultName, isOurButton);
+    }
+
+    function showCustomTab(){
+      setActiveTab(tabCustom);
+      grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#aaa;padding:20px;">Загрузка…</div>';
+      var seen = {};
+      var chainUrls = [DEFAULT_ICONS_URL];
+      loadIconsFromUrlChain(chainUrls, seen, function(newEntries, err){
+        var allIcons = [];
+        var lampaIcons = collectAllIcons(seen);
+        lampaIcons.forEach(function(entry){ allIcons.push(entry); });
+        if(newEntries && newEntries.length){ newEntries.forEach(function(entry){ allIcons.push(entry); }); }
+        grid.innerHTML = '';
+
+        var reset = document.createElement('div');
+        reset.className = 'phone-menu-picker-reset';
+        reset.textContent = 'Сбросить на стандарт';
+        reset.addEventListener('click', function(){
+          if(defaultSvg) iconEl.innerHTML = defaultSvg;
+          var cicons = getCustomIcons();
+          delete cicons[btnId];
+          setCustomIcons(cicons);
+          resetColorOnIcon(iconEl);
+          applyColorToIcon(iconEl, getGlobalIconColor());
+          overlay.parentNode && overlay.parentNode.removeChild(overlay);
+        });
+        grid.appendChild(reset);
+
+        if(allIcons.length === 0){
+          grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#aaa;padding:20px;">Иконки не найдены</div>';
+          return;
+        }
+        for(var i = 0; i < allIcons.length; i++){
+          (function(entry, idx){
+            var item = document.createElement('div');
+            item.className = 'picker-item';
+            item.innerHTML = '<div class="picker-icon-wrap">' + entry.html + '</div><span class="picker-name">Иконка ' + (idx+1) + '</span>';
+            var svgEl = item.querySelector('svg');
+            if(svgEl){ svgEl.style.width = '48px'; svgEl.style.height = '48px'; }
+            item.addEventListener('click', function(){
+              var cicons = getCustomIcons();
+              cicons[btnId] = entry.html;
+              setCustomIcons(cicons);
+              iconEl.innerHTML = entry.html;
+              applyColorToIcon(iconEl, getGlobalIconColor());
+              overlay.parentNode && overlay.parentNode.removeChild(overlay);
+            });
+            grid.appendChild(item);
+          })(allIcons[i], i);
+        }
+      });
+    }
+
+    function showColorTab(){
+      setActiveTab(tabColor);
+      grid.innerHTML = '';
+      var currentColor = getGlobalIconColor();
+
+      var defBtn = document.createElement('div');
+      defBtn.className = 'picker-item';
+      defBtn.style.gridColumn = '1 / -1';
+      defBtn.innerHTML = '<div class="picker-icon-wrap" style="border:2px dashed #fff;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;">Сброс</div><span class="picker-name">Стандартный</span>';
+      defBtn.addEventListener('click', function(){
+        setGlobalIconColor('');
+        resetGlobalColorOnAll();
+        overlay.parentNode && overlay.parentNode.removeChild(overlay);
+      });
+      grid.appendChild(defBtn);
+
+      for(var i = 0; i < colorPickerPaletteHexes.length; i++){
+        (function(hex){
+          var cell = document.createElement('div');
+          cell.className = 'picker-item';
+          cell.innerHTML = '<div class="picker-icon-wrap" style="background:' + escapeHtml(hex) + ';border-radius:50%;border:2px solid ' + (currentColor === hex ? '#fff' : 'transparent') + ';"></div><span class="picker-name" style="font-size:10px;">' + escapeHtml(hex) + '</span>';
+          cell.addEventListener('click', function(){
+            setGlobalIconColor(hex);
+            applyGlobalColorToAll();
+            overlay.parentNode && overlay.parentNode.removeChild(overlay);
+          });
+          grid.appendChild(cell);
+        })(colorPickerPaletteHexes[i]);
+      }
+
+      var hexBtn = document.createElement('div');
+      hexBtn.className = 'picker-item';
+      hexBtn.style.gridColumn = '1 / -1';
+      hexBtn.innerHTML = '<div class="picker-icon-wrap" style="border:2px solid #fff;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;">HEX</div><span class="picker-name">Ввести код</span>';
+      hexBtn.addEventListener('click', function(){
+        function applyHexAndClose(val){
+          var trimmed = (val || '').trim();
+          if(trimmed && trimmed.charAt(0) !== '#') trimmed = '#' + trimmed;
+          if(trimmed && trimmed !== '#'){
+            setGlobalIconColor(trimmed);
+            applyGlobalColorToAll();
+          }
+          overlay.parentNode && overlay.parentNode.removeChild(overlay);
+        }
+        if(typeof Lampa !== 'undefined' && Lampa.Input && typeof Lampa.Input.edit === 'function'){
+          overlay.parentNode && overlay.parentNode.removeChild(overlay);
+          setTimeout(function(){
+            Lampa.Input.edit({
+              title: 'Код цвета (HEX)',
+              value: currentColor || '',
+              free: true,
+              nosave: true,
+              nomic: true
+            }, function(val){
+              applyHexAndClose(val || '');
+            });
+          }, 100);
+        } else {
+          var raw = prompt('Код цвета (HEX):', currentColor || '#');
+          if(raw === null){
+            overlay.parentNode && overlay.parentNode.removeChild(overlay);
+            return;
+          }
+          applyHexAndClose(raw);
+        }
+      });
+      grid.appendChild(hexBtn);
+    }
+
+    if(tabMenu) tabMenu.addEventListener('click', showMenuTab);
+    tabCustom.addEventListener('click', showCustomTab);
+    tabColor.addEventListener('click', showColorTab);
+
+    if(isOurButton) showMenuTab();
+    else showCustomTab();
   }
 
   function addItem(position, defaultAction, defaultSvg, defaultName){
@@ -358,6 +826,11 @@ Lampa.Platform.tv();
     var savedSvg = svgFromStorage(localStorage.getItem('bottom_bar_' + position + '_svg') || defaultSvg);
     var savedName = localStorage.getItem('bottom_bar_' + position + '_name') || defaultName;
     savedSvg = resolveSvgToInline(savedSvg) || savedSvg;
+
+    var customIcons = getCustomIcons();
+    if(customIcons[position]){
+      savedSvg = customIcons[position];
+    }
 
     var div = document.createElement('div');
     div.className = 'navigation-bar__item';
@@ -381,25 +854,6 @@ Lampa.Platform.tv();
 
     div.addEventListener('click', function(){
       try{ emulateSidebarClick(div.getAttribute('data-action')); } catch(e){}
-    });
-
-    var timer;
-    function start(){
-      timer = setTimeout(function(){ showIconPicker(position, div, iconDiv, labelDiv, defaultAction, defaultSvg, defaultName); }, 700);
-    }
-    function cancel(){ clearTimeout(timer); }
-
-    div.addEventListener('touchstart', start);
-    div.addEventListener('touchend', cancel);
-    div.addEventListener('touchmove', cancel);
-    div.addEventListener('touchcancel', cancel);
-
-    div.addEventListener('mousedown', function(e){
-      if(e.button === 0){
-        start();
-        function up(){ cancel(); document.removeEventListener('mouseup', up); }
-        document.addEventListener('mouseup', up);
-      }
     });
   }
 
@@ -428,15 +882,18 @@ Lampa.Platform.tv();
         }
       }
     }
+    setTimeout(processAllBarItems, 50);
   }
 
   function init(){
     injectCSS();
+    injectPhoneMenuStyleToOtherPlugins();
     addItem('1', defaults[1].action, defaults[1].svg, defaults[1].name);
     addItem('2', defaults[2].action, defaults[2].svg, defaults[2].name);
     addItem('3', defaults[3].action, defaults[3].svg, defaults[3].name);
 
     adjustPosition();
+    processAllBarItems();
 
     var mql = window.matchMedia && window.matchMedia('(orientation: landscape)');
     if(mql && mql.addEventListener) mql.addEventListener('change', adjustPosition);
