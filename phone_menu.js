@@ -761,7 +761,6 @@ Lampa.Platform.tv();
 
       var defBtn = document.createElement('div');
       defBtn.className = 'picker-item';
-      defBtn.style.gridColumn = '1 / -1';
       defBtn.innerHTML = '<div class="picker-icon-wrap" style="border:2px dashed #fff;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;">Сброс</div><span class="picker-name">Стандартный</span>';
       defBtn.addEventListener('click', function(){
         setGlobalIconColor('');
@@ -770,24 +769,9 @@ Lampa.Platform.tv();
       });
       grid.appendChild(defBtn);
 
-      for(var i = 0; i < colorPickerPaletteHexes.length; i++){
-        (function(hex){
-          var cell = document.createElement('div');
-          cell.className = 'picker-item';
-          cell.innerHTML = '<div class="picker-icon-wrap" style="background:' + escapeHtml(hex) + ';border-radius:50%;border:2px solid ' + (currentColor === hex ? '#fff' : 'transparent') + ';"></div><span class="picker-name" style="font-size:10px;">' + escapeHtml(hex) + '</span>';
-          cell.addEventListener('click', function(){
-            setGlobalIconColor(hex);
-            applyGlobalColorToAll();
-            overlay.parentNode && overlay.parentNode.removeChild(overlay);
-          });
-          grid.appendChild(cell);
-        })(colorPickerPaletteHexes[i]);
-      }
-
       var hexBtn = document.createElement('div');
       hexBtn.className = 'picker-item';
-      hexBtn.style.gridColumn = '1 / -1';
-      hexBtn.innerHTML = '<div class="picker-icon-wrap" style="border:2px solid #fff;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;">HEX</div><span class="picker-name">Ввести код</span>';
+      hexBtn.innerHTML = '<div class="picker-icon-wrap" style="border:2px solid #fff;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;">HEX</div><span class="picker-name">Ввести код цвета</span>';
       hexBtn.addEventListener('click', function(){
         function applyHexAndClose(val){
           var trimmed = (val || '').trim();
@@ -821,6 +805,20 @@ Lampa.Platform.tv();
         }
       });
       grid.appendChild(hexBtn);
+
+      for(var i = 0; i < colorPickerPaletteHexes.length; i++){
+        (function(hex){
+          var cell = document.createElement('div');
+          cell.className = 'picker-item';
+          cell.innerHTML = '<div class="picker-icon-wrap" style="background:' + escapeHtml(hex) + ';border-radius:50%;border:2px solid ' + (currentColor === hex ? '#fff' : 'transparent') + ';"></div><span class="picker-name" style="font-size:10px;">' + escapeHtml(hex) + '</span>';
+          cell.addEventListener('click', function(){
+            setGlobalIconColor(hex);
+            applyGlobalColorToAll();
+            overlay.parentNode && overlay.parentNode.removeChild(overlay);
+          });
+          grid.appendChild(cell);
+        })(colorPickerPaletteHexes[i]);
+      }
     }
 
     if(tabMenu) tabMenu.addEventListener('click', showMenuTab);
@@ -877,23 +875,32 @@ Lampa.Platform.tv();
     var actions = $('.head__actions');
     if (!bar || !actions) return;
 
-    var items = $$('.navigation-bar__item');
-    var i, target;
-
     if (isLandscape) {
-      for (i = 0; i < items.length; i++) {
+      var items = $$('.navigation-bar__item');
+      for (var i = 0; i < items.length; i++) {
         if (!actions.contains(items[i])) {
-          target = actions.querySelector('.head__action.open--search') || actions.firstChild;
+          var target = actions.querySelector('.head__action.open--search') || actions.firstChild;
           actions.insertBefore(items[i], target);
         }
       }
     } else {
-      for (i = 0; i < items.length; i++) {
-        if (!bar.contains(items[i])) {
-          target = bar.querySelector('.navigation-bar__item[data-action="search"]') || null;
-          bar.insertBefore(items[i], target);
+      var all = $$('.navigation-bar__item');
+      var our = [], searchBtn = null, others = [];
+      for (var i = 0; i < all.length; i++) {
+        var el = all[i];
+        var pos = el.getAttribute('data-position');
+        if (pos) {
+          our.push({ el: el, pos: parseInt(pos) });
+        } else if (el.getAttribute('data-action') === 'search') {
+          searchBtn = el;
+        } else {
+          others.push(el);
         }
       }
+      our.sort(function(a, b){ return a.pos - b.pos; });
+      for (var i = 0; i < our.length; i++) bar.appendChild(our[i].el);
+      if (searchBtn) bar.appendChild(searchBtn);
+      for (var i = 0; i < others.length; i++) bar.appendChild(others[i]);
     }
     setTimeout(processAllBarItems, 50);
   }
