@@ -868,6 +868,17 @@ Lampa.Platform.tv();
     });
   }
 
+  function getItemPriority(el){
+    var action = (el.getAttribute('data-action') || '').trim();
+    var pos = el.getAttribute('data-position');
+    if(pos) return 10 + parseInt(pos);
+    if(action === 'back' || action === 'prev') return 1;
+    if(action === 'main' || action === 'home') return 2;
+    if(action === 'search') return 20;
+    if(action === 'settings') return 30;
+    return 50;
+  }
+
   function adjustPosition() {
     var mq = window.matchMedia && window.matchMedia('(orientation: landscape)');
     var isLandscape = mq ? mq.matches : (window.orientation === 90 || window.orientation === -90);
@@ -885,22 +896,10 @@ Lampa.Platform.tv();
       }
     } else {
       var all = $$('.navigation-bar__item');
-      var our = [], searchBtn = null, others = [];
+      all.sort(function(a, b){ return getItemPriority(a) - getItemPriority(b); });
       for (var i = 0; i < all.length; i++) {
-        var el = all[i];
-        var pos = el.getAttribute('data-position');
-        if (pos) {
-          our.push({ el: el, pos: parseInt(pos) });
-        } else if (el.getAttribute('data-action') === 'search') {
-          searchBtn = el;
-        } else {
-          others.push(el);
-        }
+        bar.appendChild(all[i]);
       }
-      our.sort(function(a, b){ return a.pos - b.pos; });
-      for (var i = 0; i < our.length; i++) bar.appendChild(our[i].el);
-      if (searchBtn) bar.appendChild(searchBtn);
-      for (var i = 0; i < others.length; i++) bar.appendChild(others[i]);
     }
     setTimeout(processAllBarItems, 50);
   }
