@@ -193,12 +193,6 @@ Lampa.Platform.tv();
       '  box-shadow: inset 0 0 6px rgba(0,0,0,0.5) !important;',
       '  border-radius: 14px !important;',
       '  padding: 4px !important;',
-      '  transition: background .3s ease, border-color .3s ease, box-shadow .3s ease !important;',
-      '}',
-      '.full-start-new__reactions .reaction:hover {',
-      '  background: linear-gradient(to top, rgba(100,100,100,0.45), rgba(40,40,45,0.35)) !important;',
-      '  border-color: rgba(255,255,255,0.25) !important;',
-      '  box-shadow: inset 0 0 8px rgba(0,0,0,0.6) !important;',
       '}'
     ].join('\n');
     document.head.appendChild(st);
