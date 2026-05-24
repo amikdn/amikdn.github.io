@@ -303,7 +303,7 @@
     /*** 3) ТИП КОНТЕНТА ***/
     function changeMovieTypeLabels() {
         var style = $(`<style id="movie_type_styles">
-            .content-label { position: absolute!important; top: 1.4em!important; left: -0.8em!important; color: white!important; padding: 0.4em 0.4em!important; border-radius: 0.3em!important; font-size: 0.8em!important; z-index: 10!important; }
+            .content-label { position: absolute!important; left: 0!important; top: 0!important; color: white!important; padding: 0.2em 0.45em!important; border-radius: 0.75em 0!important; font-size: 1.3em!important; z-index: 10!important; }
             .serial-label { background-color: #3498db!important; }
             .movie-label  { background-color: #2ecc71!important; }
             body[data-movie-labels="on"] .card--tv .card__type { display: none!important; }
@@ -384,9 +384,9 @@
                     poster.find('.content-label').remove();
                     
                     var lbl = $('<div class="content-label"></div>').css({
-                        position: 'absolute', top: '1.4em', left: '-0.8em',
-                        color: 'white', padding: '0.4em', borderRadius: '0.3em',
-                        fontSize: '0.8em', zIndex: 10
+                        position: 'absolute', left: '0', top: '0',
+                        color: 'white', padding: '0.2em 0.45em', borderRadius: '0.75em 0',
+                        fontSize: '1.3em', zIndex: 10
                     });
                     if (isTV) {
                         lbl.addClass('serial-label').text('Сериал').css('backgroundColor', '#3498db');
@@ -709,12 +709,7 @@ function colorizeAgeRating() {
         Lampa.SettingsApi.addComponent({
             component: 'season_info',
             name: 'Интерфейс мод',
-                icon: ''
-     + '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">'
-     +   '<path d="M4 5C4 4.44772 4.44772 4 5 4H19C19.5523 4 20 4.44772 20 5V7C20 7.55228 19.5523 8 19 8H5C4.44772 8 4 7.55228 4 7V5Z" fill="currentColor"/>'
-     +   '<path d="M4 11C4 10.4477 4.44772 10 5 10H19C19.5523 10 20 10.4477 20 11V13C20 13.5523 19.5523 14 19 14H5C4.44772 14 4 13.5523 4 13V11Z" fill="currentColor"/>'
-     +   '<path d="M4 17C4 16.4477 4.44772 16 5 16H19C19.5523 16 20 16.4477 20 17V19C20 19.5523 19.5523 20 19 20H5C4.44772 20 4 19.5523 4 19V17Z" fill="currentColor"/>'
-     + '</svg>'
+                icon: '<svg viewBox="1 1 22 22" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="4" y="4" width="16" height="16" rx="3" stroke="currentColor" stroke-width="2"/><path d="M12 15V9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M16 15V11" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 15V11" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
         });
 
         // режим серий
