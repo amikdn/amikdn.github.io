@@ -288,6 +288,10 @@
     function initializePlugin() {
         window.qualviewQualityPlugin = true;
 
+        var style = document.createElement('style');
+        style.innerHTML = '.card__quality { position: absolute!important; left: 0!important; bottom: 0!important; padding: 0.2em 0.45em!important; border-radius: 0 0.75em!important; background: rgba(0, 0, 0, 0.5)!important; color: white!important; font-size: 1.3em!important; z-index: 10!important; white-space: nowrap!important; }';
+        document.head.appendChild(style);
+
         domWatcher.observe(document.body, { childList: true, subtree: true });
 
         Lampa.Listener.follow('full', function(event) {
