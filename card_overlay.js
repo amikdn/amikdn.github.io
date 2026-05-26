@@ -11,6 +11,7 @@
         { url: 'https://upn.stull.xyz', token: 'd317441359e505c343c2063edc97e7' }
     ];
     var CACHE_TTL = 24 * 60 * 60 * 1000;
+    var CARD_OVERLAY_CACHE_VERSION = '2';
 
     function isTriggerOn(key, def) {
         var v = Lampa.Storage.get(key, def);
@@ -60,6 +61,25 @@
         if (v < 8) return 'rgba(70,130,180,' + alpha + ')';
         return 'rgba(80,180,0,' + alpha + ')';
     }
+    function getYearPositionCSS() {
+        var pos = Lampa.Storage.get('rating_position', 'bottom');
+        if (pos === 'bottom') return 'right:0!important;top:0!important;bottom:auto!important;left:auto!important;border-radius:0 0.75em!important;';
+        return 'right:0!important;bottom:0!important;top:auto!important;left:auto!important;border-radius:0.75em 0!important;';
+    }
+    function addYearBadge(card) {
+        if (!card || !card.querySelector) return;
+        var view = card.querySelector('.card__view');
+        var age = card.querySelector('.card__age');
+        if (!view || !age) return;
+        if (age.parentNode !== view) view.appendChild(age);
+        age.classList.add('card__year-badge');
+        age.style.cssText = 'position:absolute;z-index:1;line-height:1;font-family:"SegoeUI",sans-serif;box-sizing:border-box;user-select:none;padding:0.25em 0.45em;background:rgba(0,0,0,' + getOverlayAlpha() + ');color:#fff;font-size:1.1em;white-space:nowrap;margin-top:0;' + getYearPositionCSS();
+    }
+    function refreshAllYearBadges() {
+        var allCards = document.querySelectorAll('.card');
+        for (var i = 0; i < allCards.length; i++) addYearBadge(allCards[i]);
+    }
+
     function getQualityBackground(quality) {
         var alpha = getOverlayAlpha();
         if (!isQualityColoredOn()) return 'rgba(0,0,0,' + alpha + ')';
@@ -270,6 +290,22 @@
         pendingLampaRequests[ratingKey] = fetchLampaRating(ratingKey).then(function (result) { return ratingCache.set('lampa_rating', ratingKey, result); }).catch(function () { return { rating: 0, medianReaction: '' }; }).then(function (result) { delete pendingLampaRequests[ratingKey]; return result; }, function (error) { delete pendingLampaRequests[ratingKey]; throw error; });
         return pendingLampaRequests[ratingKey];
     }
+    function renderLampaPosterIcon(target, medianReaction) {
+        if (!target) return;
+        var icon = target.querySelector('.rate-icon-reaction');
+        if (!icon) {
+            icon = document.createElement('span');
+            icon.className = 'source--name rate-icon-reaction';
+            target.appendChild(icon);
+        }
+        icon.style.backgroundImage = medianReaction ? 'url(' + getReactionImageSrc(medianReaction) + ')' : '';
+    }
+    function renderLampaFullIcon($scope, medianReaction) {
+        var icon = $scope.find('.rate--lampa .rate-icon');
+        if (!icon.length) return;
+        if (medianReaction) icon.html('<img style="width:1em;height:1em;margin:0 0.15em;object-fit:contain;" data-reaction-type="' + medianReaction + '" src="' + getReactionImageSrc(medianReaction) + '">');
+        else icon.empty();
+    }
     function getTMDBRating(data) {
         var ratingKey = data.id;
         var cached = ratingCache.get('tmdb_rating', ratingKey);
@@ -300,6 +336,9 @@
         return !(v === false || v === 'false' || v === 0 || v === '0' || v === '' || v === null || v === undefined);
     }
 
+    function isAnyKinopoiskSourceVisible() {
+        return isRatingSourceVisible('kp') || isRatingSourceVisible('imdb');
+    }
     function createRatingElement(card) {
         var ratingElement = document.createElement('div');
         ratingElement.className = voteClass();
@@ -372,7 +411,7 @@
                 var hasLampa = cachedLampa && cachedLampa.rating > 0;
                 var lampaText = hasLampa ? formatRating(cachedLampa.rating) : '0.0';
                 if (lampaValEl) { lampaValEl.textContent = lampaText; lampaValEl.style.color = getRatingColor(lampaText); }
-                if (lampaReactionIcon) { lampaReactionIcon.style.backgroundImage = (hasLampa && cachedLampa.medianReaction) ? 'url(' + getReactionImageSrc(cachedLampa.medianReaction) + ')' : ''; }
+                if (lampaReactionIcon) lampaReactionIcon.style.backgroundImage = (hasLampa && cachedLampa.medianReaction) ? 'url(' + getReactionImageSrc(cachedLampa.medianReaction) + ')' : '';
                 lampaItem.style.display = hasLampa && isRatingSourceVisible('lampa') ? '' : 'none';
             }
         } catch (e) {}
@@ -426,13 +465,10 @@
                 if (!el.parentNode || el.dataset.movieId !== idStr) return;
                 if (result.rating > 0) {
                     el.className = voteClass('rate--lampa card__vote--separate');
-                    var html = '<span style="color:' + getRatingColor(result.rating) + '">' + formatRating(result.rating) + '</span><span class="source--name rate-icon-reaction"></span>';
-                    el.innerHTML = html; el.style.display = ''; el.classList.remove('card__vote--hidden');
+                    el.innerHTML = '<span style="color:' + getRatingColor(result.rating) + '">' + formatRating(result.rating) + '</span>';
+                    renderLampaPosterIcon(el, result.medianReaction);
+                    el.style.display = ''; el.classList.remove('card__vote--hidden');
                     el.style.background = getRatingBackgroundColor(result.rating) || ('rgba(0,0,0,' + getOverlayAlpha() + ')');
-                    if (result.medianReaction) {
-                        var iconEl = el.querySelector('.rate-icon-reaction');
-                        if (iconEl) iconEl.style.backgroundImage = 'url(' + getReactionImageSrc(result.medianReaction) + ')';
-                    }
                 } else { el.classList.add('card__vote--hidden'); }
                 refreshBR();
             });
@@ -485,20 +521,18 @@
         var lampaKey = (data.seasons || data.first_air_date || data.original_name) ? 'tv_' + data.id : 'movie_' + data.id;
         var cachedLampa = ratingCache.get('lampa_rating', lampaKey);
         if (cachedLampa && cachedLampa.rating > 0) {
-            var html = '<span style="color:' + getRatingColor(cachedLampa.rating) + '">' + formatRating(cachedLampa.rating) + '</span>';
-            if (cachedLampa.medianReaction) html += '<img style="max-height:12px;max-width:12px;object-fit:contain;flex-shrink:0;margin-left:auto;" src="' + getReactionImageSrc(cachedLampa.medianReaction) + '">';
             ratingElement.className = voteClass('rate--lampa');
-            ratingElement.innerHTML = html;
+            ratingElement.innerHTML = '<span style="color:' + getRatingColor(cachedLampa.rating) + '">' + formatRating(cachedLampa.rating) + '</span>';
+            renderLampaPosterIcon(ratingElement, cachedLampa.medianReaction);
             ratingElement.style.background = getRatingBackgroundColor(cachedLampa.rating) || ('rgba(0,0,0,' + getOverlayAlpha() + ')');
             return;
         }
         getLampaRating(lampaKey).then(function (result) {
             if (!ratingElement.parentNode || ratingElement.dataset.movieId !== data.id.toString()) return;
             if (result.rating > 0) {
-                var html = '<span style="color:' + getRatingColor(result.rating) + '">' + formatRating(result.rating) + '</span>';
-                if (result.medianReaction) html += '<img style="max-height:12px;max-width:12px;object-fit:contain;flex-shrink:0;margin-left:auto;" src="' + getReactionImageSrc(result.medianReaction) + '">';
                 ratingElement.className = voteClass('rate--lampa');
-                ratingElement.innerHTML = html;
+                ratingElement.innerHTML = '<span style="color:' + getRatingColor(result.rating) + '">' + formatRating(result.rating) + '</span>';
+                renderLampaPosterIcon(ratingElement, result.medianReaction);
                 ratingElement.style.background = getRatingBackgroundColor(result.rating) || ('rgba(0,0,0,' + getOverlayAlpha() + ')');
             } else { ratingElement.classList.add('card__vote--hidden'); }
         });
@@ -530,7 +564,7 @@
                 }
                 if (separateWrap) { separateWrap.dataset.movieId = idStr; separateWrap.dataset.source = 'all'; }
                 updateCardRatingSeparate(card, data);
-                if (canUseKinopoiskApi()) getKinopoiskRating(data, function () { if (card.parentNode && document.body.contains(card)) updateCardRatingSeparate(card, data); });
+                if (canUseKinopoiskApi() && isAnyKinopoiskSourceVisible()) getKinopoiskRating(data, function () { if (card.parentNode && document.body.contains(card)) updateCardRatingSeparate(card, data); });
                 var lampaKey = (data.seasons || data.first_air_date || data.original_name) ? 'tv_' + data.id : 'movie_' + data.id;
                 getLampaRating(lampaKey).then(function () { if (card.parentNode && document.body.contains(card)) updateCardRatingSeparate(card, data); });
             } else {
@@ -539,7 +573,7 @@
                 ratingElement.dataset.source = 'all'; ratingElement.dataset.movieId = idStr;
                 ratingElement.style.display = ''; ratingElement.classList.remove('card__vote--hidden');
                 updateCardRatingLine(ratingElement, data);
-                if (canUseKinopoiskApi() && !ratingElement.dataset.kpRequested) {
+                if (canUseKinopoiskApi() && isAnyKinopoiskSourceVisible() && !ratingElement.dataset.kpRequested) {
                     ratingElement.dataset.kpRequested = String(Date.now());
                     getKinopoiskRating(data, function () { if (ratingElement.parentNode && ratingElement.dataset.movieId === idStr) updateCardRatingLine(ratingElement, data); });
                 }
@@ -569,8 +603,8 @@
             var cached = ratingCache.get('lampa_rating', ratingKey);
             if (cached && cached.rating > 0) {
                 ratingElement.className = voteClass('rate--lampa card__vote--separate');
-                ratingElement.innerHTML = '<span style="color:' + getRatingColor(cached.rating) + '">' + formatRating(cached.rating) + '</span><span class="source--name rate-icon-reaction"></span>';
-                if (cached.medianReaction) { var iconEl = ratingElement.querySelector('.rate-icon-reaction'); if (iconEl) iconEl.style.backgroundImage = 'url(' + getReactionImageSrc(cached.medianReaction) + ')'; }
+                ratingElement.innerHTML = '<span style="color:' + getRatingColor(cached.rating) + '">' + formatRating(cached.rating) + '</span>';
+                renderLampaPosterIcon(ratingElement, cached.medianReaction);
                 ratingElement.style.background = getRatingBackgroundColor(cached.rating) || ('rgba(0,0,0,' + getOverlayAlpha() + ')');
                 return;
             }
@@ -579,8 +613,8 @@
                 getLampaRating(ratingKey).then(function (result) {
                     if (ratingElement.parentNode && ratingElement.dataset.movieId === idStr && result.rating > 0) {
                         ratingElement.className = voteClass('rate--lampa card__vote--separate');
-                        ratingElement.innerHTML = '<span style="color:' + getRatingColor(result.rating) + '">' + formatRating(result.rating) + '</span><span class="source--name rate-icon-reaction"></span>';
-                        if (result.medianReaction) { var iconEl = ratingElement.querySelector('.rate-icon-reaction'); if (iconEl) iconEl.style.backgroundImage = 'url(' + getReactionImageSrc(result.medianReaction) + ')'; }
+                        ratingElement.innerHTML = '<span style="color:' + getRatingColor(result.rating) + '">' + formatRating(result.rating) + '</span>';
+                        renderLampaPosterIcon(ratingElement, result.medianReaction);
                         ratingElement.style.background = getRatingBackgroundColor(result.rating) || ('rgba(0,0,0,' + getOverlayAlpha() + ')');
                     }
                 });
@@ -612,10 +646,22 @@
     var _ratingUpdateTimer = 0;
     var _ratingUpdateRafScheduled = false;
     var _mainObserver = null;
+    var _cardIntersectionObserver = null;
+    function isCardUpdatesBlocked() {
+        try {
+            var selectors = ['.modal', '.settings-input__content', '.selectbox__content', '.menu-edit-list'];
+            for (var i = 0; i < selectors.length; i++) {
+                var node = document.querySelector(selectors[i]);
+                if (node && node.offsetParent !== null) return true;
+            }
+        } catch (e) {}
+        return false;
+    }
     function isCardNearViewport(card, windowHeight) { var rect = card.getBoundingClientRect(); return !(rect.bottom < -200 || rect.top > windowHeight + 200); }
     function updateVisibleCards(limit) {
-        if (document.hidden) return;
-        var allCards = document.querySelectorAll('.card');
+        if (document.hidden || isCardUpdatesBlocked()) return;
+        var allCards = document.querySelectorAll('.card[data-rating-visible="1"]');
+        if (!allCards.length) allCards = document.querySelectorAll('.card');
         var maxCards = typeof limit === 'number' && limit > 0 ? limit : allCards.length;
         var wH = window.innerHeight || 1000;
         var updated = 0;
@@ -640,7 +686,8 @@
                         var ratingKey = (data.seasons || data.first_air_date || data.original_name) ? 'tv_' + data.id : 'movie_' + data.id;
                         var cachedLampa = ratingCache.get('lampa_rating', ratingKey);
                         if (cachedLampa && cachedLampa.rating > 0) {
-                            singleEl.innerHTML = '<span style="color:' + getRatingColor(cachedLampa.rating) + '">' + formatRating(cachedLampa.rating) + '</span>' + (cachedLampa.medianReaction ? '<img style="max-height:12px;max-width:12px;object-fit:contain;flex-shrink:0;margin-left:auto;" src="' + getReactionImageSrc(cachedLampa.medianReaction) + '">' : '');
+                            singleEl.innerHTML = '<span style="color:' + getRatingColor(cachedLampa.rating) + '">' + formatRating(cachedLampa.rating) + '</span>';
+                            renderLampaPosterIcon(singleEl, cachedLampa.medianReaction);
                         }
                     } else if (source === 'tmdb') {
                         var cachedTmdb = ratingCache.get('tmdb_rating', data.id);
@@ -659,8 +706,27 @@
         if (_ratingUpdateTimer) clearTimeout(_ratingUpdateTimer);
         _ratingUpdateTimer = setTimeout(function () { _ratingUpdateTimer = 0; if (_ratingUpdateRafScheduled) return; _ratingUpdateRafScheduled = true; requestAnimationFrame(function () { _ratingUpdateRafScheduled = false; updateVisibleCards(_scrollRatingMaxCardsPerRun); }); }, delay || 0);
     }
+    function observeCardVisibility(card) {
+        if (!_cardIntersectionObserver || !card || !card.nodeType || card.nodeType !== 1) return;
+        try { _cardIntersectionObserver.observe(card); } catch (e) {}
+    }
     function startMainObserver() {
         if (_mainObserver) return;
+        if (!_cardIntersectionObserver && typeof IntersectionObserver !== 'undefined') {
+            _cardIntersectionObserver = new IntersectionObserver(function (entries) {
+                for (var i = 0; i < entries.length; i++) {
+                    if (entries[i].target) entries[i].target.setAttribute('data-rating-visible', entries[i].isIntersecting ? '1' : '0');
+                    if (entries[i].isIntersecting && entries[i].target && entries[i].target.card_data && !isCardUpdatesBlocked()) {
+                        updateCardRating({ card: entries[i].target, data: entries[i].target.card_data });
+                        if (isQualityShowOn()) processQualityForCards([entries[i].target]);
+                        addTypeLabel(entries[i].target);
+                        addYearBadge(entries[i].target);
+                    }
+                }
+            }, { root: null, rootMargin: '250px 0px 250px 0px', threshold: 0.01 });
+            var existingCards = document.querySelectorAll('.card');
+            for (var ci = 0; ci < existingCards.length; ci++) observeCardVisibility(existingCards[ci]);
+        }
         _mainObserver = new MutationObserver(function (mutations) {
             var needRatings = false;
             var needCards = false;
@@ -671,11 +737,15 @@
                     for (var j = 0; j < m.addedNodes.length; j++) {
                         var node = m.addedNodes[j];
                         if (!node || node.nodeType !== 1) continue;
-                        if ((node.matches && node.matches('.card')) || (node.querySelector && node.querySelector('.card'))) { needRatings = true; needCards = true; }
+                        if (node.matches && node.matches('.card')) { observeCardVisibility(node); needRatings = true; needCards = true; }
+                        else if (node.querySelector && node.querySelector('.card')) {
+                            needRatings = true; needCards = true;
+                            var nestedCards = node.querySelectorAll('.card');
+                            for (var ni = 0; ni < nestedCards.length; ni++) observeCardVisibility(nestedCards[ni]);
+                        }
                         if (node.querySelector && (node.querySelector('.selectbox-item__icon') || node.querySelector('.selectbox-item__icon img'))) needSelectbox = true;
                     }
                 }
-                if (m.type === 'attributes' && m.attributeName === 'class' && m.target && m.target.classList && m.target.classList.contains('card')) needCards = true;
             }
             if (needRatings) scheduleVisibleRatingsUpdate(50);
             if (needCards) {
@@ -683,6 +753,7 @@
                 for (var k = 0; k < allCards.length; k++) {
                     if (!allCards[k].hasAttribute('data-type-label-checked')) {
                         addTypeLabel(allCards[k]);
+                        addYearBadge(allCards[k]);
                         if (!isQualityShowOn()) { $(allCards[k]).find('.card__quality').remove(); allCards[k].removeAttribute('data-quality-added'); }
                     }
                 }
@@ -696,7 +767,7 @@
             }
             if (needSelectbox && document.querySelector('.selectbox-item__icon img')) applyReactionsToSelectbox();
         });
-        _mainObserver.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+        _mainObserver.observe(document.body, { childList: true, subtree: true });
     }
 
 
@@ -727,6 +798,11 @@
         v = Math.max(60, Math.min(150, v)) / 100;
         try { document.body.style.setProperty('--rating-scale', String(v)); } catch (e) {}
     }
+    var _settingsRefreshTimer = 0;
+    function scheduleSettingsRefresh(delay) {
+        if (_settingsRefreshTimer) clearTimeout(_settingsRefreshTimer);
+        _settingsRefreshTimer = setTimeout(function () { _settingsRefreshTimer = 0; applyRatingSettingsRefresh(); }, delay == null ? 180 : delay);
+    }
     function applyRatingSettingsRefresh() {
         applyRatingScale();
         var allCards = document.querySelectorAll('.card');
@@ -735,6 +811,7 @@
         scheduleVisibleRatingsUpdate(0);
         refreshAllQualityLabels();
         refreshAllTypeLabels();
+        refreshAllYearBadges();
     }
 
     // ===== QUALITY SYSTEM =====
@@ -1082,7 +1159,7 @@
                 var r = makeRow(label, labels[current] || current, function (rowEl, valEl) {
                     var cur = Lampa.Storage.get(storageKey, defaultVal); var idx = values.indexOf(cur); if (idx < 0) idx = 0;
                     idx = (idx + 1) % values.length; var next = values[idx];
-                    Lampa.Storage.set(storageKey, next); valEl.text(labels[next] || next); applyRatingSettingsRefresh();
+                    Lampa.Storage.set(storageKey, next); valEl.text(labels[next] || next); scheduleSettingsRefresh();
                 });
                 r.updateVal(labels[current] || current); list.append(r.row); return r;
             }
@@ -1092,7 +1169,7 @@
                     var next = !isOn();
                     if (storageKey === 'colored_ratings_poster') setColoredRatingsPoster(next);
                     else Lampa.Storage.set(storageKey, next ? 'true' : 'false');
-                    valEl.text(next ? 'Вкл' : 'Выкл'); applyRatingSettingsRefresh();
+                    valEl.text(next ? 'Вкл' : 'Выкл'); scheduleSettingsRefresh();
                 });
                 list.append(r.row); return r;
             }
@@ -1103,7 +1180,7 @@
                 var valEl = $('<div class="rate-settings-value"></div>').css({ whiteSpace: 'nowrap', opacity: 0.9, minWidth: '2.5em', textAlign: 'center' }).text(val + (suffix || ''));
                 var btnMinus = $('<div class="selector menu-edit-list__item rate-settings-plusminus-btn" tabindex="0" aria-label="Уменьшить"></div>').text('−').css({ width: '2em', minHeight: '2em', padding: 0, borderRadius: '0.35em', border: '3px solid transparent', boxSizing: 'border-box', background: 'rgba(255,255,255,0.12)', fontSize: '1.1em', lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' });
                 var btnPlus = $('<div class="selector menu-edit-list__item rate-settings-plusminus-btn" tabindex="0" aria-label="Увеличить"></div>').text('+').css({ width: '2em', minHeight: '2em', padding: 0, borderRadius: '0.35em', border: '3px solid transparent', boxSizing: 'border-box', background: 'rgba(255,255,255,0.12)', fontSize: '1.1em', lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' });
-                function applyChange(delta) { var num = parseFloat(Lampa.Storage.get(storageKey, defaultVal)); num = isNaN(num) ? defaultVal : num; var next = Math.max(min, Math.min(max, num + delta)); Lampa.Storage.set(storageKey, String(next)); valEl.text(next + (suffix || '')); applyRatingSettingsRefresh(); }
+                function applyChange(delta) { var num = parseFloat(Lampa.Storage.get(storageKey, defaultVal)); num = isNaN(num) ? defaultVal : num; var next = Math.max(min, Math.min(max, num + delta)); Lampa.Storage.set(storageKey, String(next)); valEl.text(next + (suffix || '')); scheduleSettingsRefresh(); }
                 btnMinus.on('hover:enter', function () { applyChange(-(step || 1)); }); btnMinus.on('click', function (e) { if (e && e.preventDefault) e.preventDefault(); if (e && e.stopPropagation) e.stopPropagation(); blurActiveAfterMouseClick(e); });
                 btnPlus.on('hover:enter', function () { applyChange(step || 1); }); btnPlus.on('click', function (e) { if (e && e.preventDefault) e.preventDefault(); if (e && e.stopPropagation) e.stopPropagation(); blurActiveAfterMouseClick(e); });
                 var row = $('<div class="menu-edit-list__item rate-settings-row rate-settings-number-row"></div>').css({ display: 'grid', gridTemplateColumns: '1fr auto auto auto', alignItems: 'center', gap: '0.35em', padding: '0.5em 0.4em', marginBottom: '0.2em', borderRadius: '0.35em', border: '3px solid transparent', boxSizing: 'border-box' });
@@ -1141,7 +1218,7 @@
                 if (typeof Lampa.Input !== 'undefined' && typeof Lampa.Input.edit === 'function') {
                     closeModalSafe();
                     setTimeout(function () {
-                        Lampa.Input.edit({ free: true, title: 'API-ключ kinopoiskapiunofficial.tech', nosave: true, value: String(Lampa.Storage.get('rating_kp_api_key', '') || ''), nomic: true }, function (raw) { Lampa.Storage.set('rating_kp_api_key', (raw || '').trim()); valEl.text(kpApiKeyRowText()); applyRatingSettingsRefresh(); setTimeout(function () { openRatingSettingsModal(); }, 300); });
+                        Lampa.Input.edit({ free: true, title: 'API-ключ kinopoiskapiunofficial.tech', nosave: true, value: String(Lampa.Storage.get('rating_kp_api_key', '') || ''), nomic: true }, function (raw) { Lampa.Storage.set('rating_kp_api_key', (raw || '').trim()); valEl.text(kpApiKeyRowText()); scheduleSettingsRefresh(50); setTimeout(function () { openRatingSettingsModal(); }, 300); });
                     }, 300);
                 }
             });
@@ -1165,7 +1242,7 @@
                 rowOpacity.updateVal('40%'); rowScale.updateVal('100%'); rowKpKey.updateVal(kpApiKeyRowText());
                 rowQualityShow.updateVal('Вкл'); rowQualityColored.updateVal('Выкл');
                 rowTypeLabelsShow.updateVal('Вкл'); rowTypeLabelsColored.updateVal('Выкл');
-                applyRatingSettingsRefresh();
+                scheduleSettingsRefresh(50);
                 try { Lampa.Noty.show('Настройки сброшены'); } catch (e) {}
             }
             var resetBtn = $('<div class="selector menu-edit-list__item rate-settings-reset" tabindex="0">Сбросить всё по умолчанию</div>').css({ display: 'block', textAlign: 'center', padding: '0.6em 0.4em', marginTop: '0.4em', background: 'rgba(200,100,80,0.5)', borderRadius: '0.35em', border: '3px solid transparent', boxSizing: 'border-box' });
@@ -1189,6 +1266,17 @@
         }, 0);
     }
     function migrateStorageFormat() {
+        var storedVersion = String(Lampa.Storage.get('card_overlay_cache_version', '0'));
+        if (storedVersion !== CARD_OVERLAY_CACHE_VERSION) {
+            try {
+                Lampa.Storage.set('rating_cache_tmdb_rating', {});
+                Lampa.Storage.set('rating_cache_kp_rating', {});
+                Lampa.Storage.set('rating_cache_lampa_rating', {});
+                Lampa.Storage.set(QUALITY_CACHE_KEY, {});
+                ratingCache.caches = {};
+            } catch (e) {}
+            Lampa.Storage.set('card_overlay_cache_version', CARD_OVERLAY_CACHE_VERSION);
+        }
         var keys = ['animated_reactions', 'colored_ratings_poster', 'rating_colored_windows', 'rating_show_tmdb', 'rating_show_imdb', 'rating_show_kp', 'rating_show_lampa', 'quality_show', 'quality_colored', 'type_labels_show', 'type_labels_colored'];
         for (var i = 0; i < keys.length; i++) { var v = Lampa.Storage.get(keys[i], undefined); if (v === '1' || v === 1) Lampa.Storage.set(keys[i], 'true'); else if (v === '0' || v === 0) Lampa.Storage.set(keys[i], 'false'); }
     }
@@ -1247,6 +1335,40 @@
                 Lampa.Settings.update();
                 if (isTriggerOn('colored_elements', true)) { colorizeSeriesStatus(); colorizeAgeRating(); }
                 else { $('.full-start__status').css({ backgroundColor: '', color: '', borderRadius: '', display: '' }); $('.full-start__pg').css({ backgroundColor: '', color: '' }); }
+            }
+        });
+
+        Lampa.SettingsApi.addParam({
+            component: 'card_overlay',
+            param: { name: 'clear_ratings_cache', type: 'trigger', default: false },
+            field: { name: 'Очистить кэш рейтингов', description: 'Одноразовое действие' },
+            onChange: function (v) {
+                if (!(v === true || v === 'true' || v === '1' || v === 1)) return;
+                try {
+                    Lampa.Storage.set('rating_cache_tmdb_rating', {});
+                    Lampa.Storage.set('rating_cache_kp_rating', {});
+                    Lampa.Storage.set('rating_cache_lampa_rating', {});
+                    ratingCache.caches = {};
+                    Lampa.Storage.set('clear_ratings_cache', 'false');
+                } catch (e) {}
+                Lampa.Noty.show('Кэш рейтингов очищен');
+                Lampa.Settings.update();
+                applyRatingSettingsRefresh();
+            }
+        });
+        Lampa.SettingsApi.addParam({
+            component: 'card_overlay',
+            param: { name: 'clear_quality_cache', type: 'trigger', default: false },
+            field: { name: 'Очистить кэш качества', description: 'Одноразовое действие' },
+            onChange: function (v) {
+                if (!(v === true || v === 'true' || v === '1' || v === 1)) return;
+                try {
+                    Lampa.Storage.set(QUALITY_CACHE_KEY, {});
+                    Lampa.Storage.set('clear_quality_cache', 'false');
+                } catch (e) {}
+                Lampa.Noty.show('Кэш качества очищен');
+                Lampa.Settings.update();
+                refreshAllQualityLabels();
             }
         });
 
@@ -1365,7 +1487,7 @@
             '.rate-settings-modal .selector:active{background:rgba(255,255,255,0.22)!important}' +
             '.rate-settings-note{display:block!important;width:100%!important;overflow:visible!important;box-sizing:border-box!important}' +
             '.rate-settings-site{display:inline-block;color:#8ab4ff!important;text-decoration:underline!important;white-space:nowrap!important}' +
-            '[data-name="rating_modal_open"] .settings-param__value,[data-name="rating_modal_open"] .settings-param__control,[data-name="rating_modal_open"] input[type="checkbox"]{display:none!important}' +
+            '[data-name="rating_modal_open"] .settings-param__value,[data-name="rating_modal_open"] .settings-param__control,[data-name="rating_modal_open"] input[type="checkbox"],[data-name="clear_ratings_cache"] .settings-param__value,[data-name="clear_ratings_cache"] .settings-param__control,[data-name="clear_ratings_cache"] input[type="checkbox"],[data-name="clear_quality_cache"] .settings-param__value,[data-name="clear_quality_cache"] .settings-param__control,[data-name="clear_quality_cache"] input[type="checkbox"]{display:none!important}' +
             '.card .card__view{position:relative!important}' +
             '.card__view > .card__vote:not(.card__vote--top):not(.card__vote--bottom):not(.card__vote-line):not(.card__vote-separate-wrap){display:none!important}' +
             '.card__vote,.card__vote-separate-wrap .card__vote{display:flex!important;align-items:center!important;justify-content:flex-start!important;position:absolute!important;z-index:1!important;width:auto!important;min-width:2.8em!important;max-width:100%!important;box-sizing:border-box!important;transform:scale(var(--rating-scale,1))!important;padding:0.2em 0.1em 0.2em 0.7em!important;white-space:nowrap!important;font-size:1.1em!important;line-height:1!important;height:auto!important;border:none!important;margin:0!important}' +
@@ -1379,11 +1501,9 @@
             '.card__vote--top{top:0!important;right:0!important;bottom:auto!important;border-radius:0 0.75em!important}' +
             '.card__vote--bottom{top:auto!important;right:0!important;bottom:0!important;border-radius:0.75em 0!important}' +
             '.card__vote-separate-wrap.card__vote--bottom .card__vote{border-radius:0.75em 0 0 0.75em!important}' +
-            '.card__vote-separate-wrap.card__vote--bottom .card__vote:last-child{border-radius:0.75em 0!important}' +
             '.card__vote-separate-wrap.card__vote--bottom .card__vote.visible-last{border-radius:0.75em 0!important}' +
             '.card__vote-separate-wrap.card__vote--bottom .card__vote.visible-only{border-radius:0.75em 0!important}' +
             '.card__vote-separate-wrap.card__vote--top .card__vote{border-radius:0.75em 0 0 0.75em!important}' +
-            '.card__vote-separate-wrap.card__vote--top .card__vote:first-child{border-radius:0 0.75em!important}' +
             '.card__vote-separate-wrap.card__vote--top .card__vote.visible-first{border-radius:0 0.75em!important}' +
             '.card__vote-separate-wrap.card__vote--top .card__vote.visible-only{border-radius:0 0.75em!important}' +
             '.card__vote-line .card__rate-item{display:-webkit-box;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;white-space:nowrap}' +
@@ -1411,14 +1531,14 @@
         addSettings();
         setupCardListener();
         startMainObserver();
-        scheduleVisibleRatingsUpdate(0);
-        setTimeout(function () { scheduleVisibleRatingsUpdate(120); }, 120);
-        setTimeout(function () { scheduleVisibleRatingsUpdate(350); }, 350);
-        setTimeout(function () { scheduleVisibleRatingsUpdate(900); }, 900);
-        window.addEventListener('scroll', function () { scheduleVisibleRatingsUpdate(0); }, { passive: true });
+        scheduleVisibleRatingsUpdate(120);
+        setTimeout(function () { scheduleVisibleRatingsUpdate(250); }, 250);
+        setTimeout(function () { scheduleVisibleRatingsUpdate(600); }, 600);
+        window.addEventListener('scroll', function () { scheduleVisibleRatingsUpdate(120); }, { passive: true });
         window.addEventListener('keydown', function (e) {
+            if (isCardUpdatesBlocked()) return;
             var code = e && (e.code || e.key);
-            if (code === 'ArrowUp' || code === 'ArrowDown' || code === 'ArrowLeft' || code === 'ArrowRight' || code === 'PageUp' || code === 'PageDown') scheduleVisibleRatingsUpdate(0);
+            if (code === 'PageUp' || code === 'PageDown') scheduleVisibleRatingsUpdate(120);
         }, { passive: true });
         window.addEventListener('resize', function () { scheduleVisibleRatingsUpdate(0); }, { passive: true });
         document.addEventListener('visibilitychange', function () { if (!document.hidden) scheduleVisibleRatingsUpdate(0); });
@@ -1430,6 +1550,7 @@
                     updateCardRating({ card: event.object.card, data: data });
                     if (isQualityShowOn()) processQualityForCards([event.object.card]);
                     addTypeLabel(event.object.card);
+                    addYearBadge(event.object.card);
                     scheduleVisibleRatingsUpdate(0);
                 }
             }
@@ -1456,10 +1577,8 @@
                         var cached = ratingCache.get('lampa_rating', ratingKey);
                         if (cached && cached.rating > 0) {
                             $(render).find('.rate--lampa .rate-value').text(formatRating(cached.rating));
-                            if (cached.medianReaction) {
-                                $(render).find('.rate--lampa .rate-icon').html('<img style="width:1em;height:1em;margin:0 0.15em;object-fit:contain;" data-reaction-type="' + cached.medianReaction + '" src="' + getReactionImageSrc(cached.medianReaction) + '">');
-                                if (isTriggerOn('animated_reactions', false)) $(render).find('.rate--lampa').addClass('rate--lampa--animated');
-                            }
+                            renderLampaFullIcon($(render), cached.medianReaction);
+                            if (cached.medianReaction && isTriggerOn('animated_reactions', false)) $(render).find('.rate--lampa').addClass('rate--lampa--animated');
                             colorizeFullCardRatings(render);
                             scheduleVisibleRatingsUpdate(0);
                             return;
@@ -1468,10 +1587,8 @@
                             getLampaRating(ratingKey).then(function (result) {
                                 if (result.rating !== null && result.rating > 0) {
                                     $(render).find('.rate--lampa .rate-value').text(formatRating(result.rating));
-                                    if (result.medianReaction) {
-                                        $(render).find('.rate--lampa .rate-icon').html('<img style="width:1em;height:1em;margin:0 0.15em;object-fit:contain;" data-reaction-type="' + result.medianReaction + '" src="' + getReactionImageSrc(result.medianReaction) + '">');
-                                        if (isTriggerOn('animated_reactions', false)) $(render).find('.rate--lampa').addClass('rate--lampa--animated');
-                                    }
+                                    renderLampaFullIcon($(render), result.medianReaction);
+                                    if (result.medianReaction && isTriggerOn('animated_reactions', false)) $(render).find('.rate--lampa').addClass('rate--lampa--animated');
                                 } else { $(render).find('.rate--lampa').hide(); }
                                 colorizeFullCardRatings(render);
                                 scheduleVisibleRatingsUpdate(0);
