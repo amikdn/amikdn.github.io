@@ -1236,33 +1236,22 @@
     // ===== COLORED ELEMENTS =====
     function isColoredElementsOn() { return isTriggerOn('colored_elements', true); }
     function colorizeSeriesStatus(render) {
-        if (!isColoredElementsOn()) return;
-        var map = { completed: { bg: 'rgba(46,204,113,0.8)', text: 'white' }, canceled: { bg: 'rgba(231,76,60,0.8)', text: 'white' }, ongoing: { bg: 'rgba(243,156,18,0.8)', text: 'black' }, production: { bg: 'rgba(52,152,219,0.8)', text: 'white' }, planned: { bg: 'rgba(155,89,182,0.8)', text: 'white' }, pilot: { bg: 'rgba(230,126,34,0.8)', text: 'white' }, released: { bg: 'rgba(26,188,156,0.8)', text: 'white' }, rumored: { bg: 'rgba(149,165,166,0.8)', text: 'white' }, post: { bg: 'rgba(0,188,212,0.8)', text: 'white' } };
+        var map = { completed: ['завершён','завершен','ended'], canceled: ['отменён','отменен','canceled'], ongoing: ['выходит','в эфире','ongoing'], production: ['в производстве','production'], planned: ['запланирован','planned'], pilot: ['пилотный','pilot'], released: ['выпущен','вышел','released'], rumored: ['слухи','rumored'], post: ['скоро','post'] };
         function apply(el) {
-            var t = $(el).text().trim().toLowerCase(); var cfg = null;
-            if (t.includes('завершён') || t.includes('завершен') || t.includes('ended')) cfg = map.completed;
-            else if (t.includes('отменён') || t.includes('отменен') || t.includes('canceled')) cfg = map.canceled;
-            else if (t.includes('выходит') || t.includes('в эфире') || t.includes('ongoing')) cfg = map.ongoing;
-            else if (t.includes('в производстве') || t.includes('production')) cfg = map.production;
-            else if (t.includes('запланирован') || t.includes('planned')) cfg = map.planned;
-            else if (t.includes('пилотный') || t.includes('pilot')) cfg = map.pilot;
-            else if (t.includes('выпущен') || t.includes('вышел') || t.includes('released')) cfg = map.released;
-            else if (t.includes('слухи') || t.includes('rumored')) cfg = map.rumored;
-            else if (t.includes('скоро') || t.includes('post')) cfg = map.post;
-            if (cfg) $(el).css({ backgroundColor: cfg.bg, color: cfg.text, borderRadius: '0.3em', padding: '0.2em 0.4em', display: 'inline-block', lineHeight: '1', whiteSpace: 'nowrap' });
+            var t = $(el).text().trim().toLowerCase(); var cls = null;
+            for (var key in map) { for (var i = 0; i < map[key].length; i++) { if (t.includes(map[key][i])) { cls = 'status-' + key; break; } } if (cls) break; }
+            if (cls && !$(el).hasClass(cls)) { $(el).removeClass('status-completed status-canceled status-ongoing status-production status-planned status-pilot status-released status-rumored status-post').addClass(cls); }
         }
         var scope = render ? $(render) : $(document);
         scope.find('.full-start__status').each(function () { apply(this); });
     }
     function colorizeAgeRating(render) {
-        if (!isColoredElementsOn()) return;
-        var groups = { kids: ['G', 'TV-Y', '0+', '3+'], children: ['PG', 'TV-PG', '6+', '7+'], teens: ['PG-13', 'TV-14', '12+', '13+', '14+'], almostAdult: ['R', '16+', '17+'], adult: ['NC-17', '18+', 'X'] };
-        var colors = { kids: { bg: '#2ecc71', text: 'white' }, children: { bg: '#3498db', text: 'white' }, teens: { bg: '#f1c40f', text: 'black' }, almostAdult: { bg: '#e67e22', text: 'white' }, adult: { bg: '#e74c3c', text: 'white' } };
+        var groups = { kids: ['G','TV-Y','0+','3+'], children: ['PG','TV-PG','6+','7+'], teens: ['PG-13','TV-14','12+','13+','14+'], almostAdult: ['R','16+','17+'], adult: ['NC-17','18+','X'] };
         function apply(el) {
             if ($(el).closest('.explorer').length) return;
             var t = $(el).text().trim(); var grp = null;
-            for (var key in groups) { groups[key].forEach(function (r) { if (t.includes(r)) grp = key; }); if (grp) break; }
-            if (grp) $(el).css({ backgroundColor: colors[grp].bg, color: colors[grp].text, borderRadius: '0.3em', padding: '0.2em 0.4em', display: 'inline-block', lineHeight: '1', whiteSpace: 'nowrap' });
+            for (var key in groups) { for (var i = 0; i < groups[key].length; i++) { if (t.includes(groups[key][i])) { grp = 'age-' + key; break; } } if (grp) break; }
+            if (grp && !$(el).hasClass(grp)) { $(el).removeClass('age-kids age-children age-teens age-almost-adult age-adult').addClass(grp); }
         }
         var scope = render ? $(render) : $(document);
         scope.find('.full-start__pg').each(function () { apply(this); });
@@ -1499,12 +1488,8 @@
             field: { name: 'Цветные элементы', description: 'Статусы сериалов и возрастные ограничения цветными' },
             onChange: function (v) {
                 Lampa.Settings.update();
-                if (isTriggerOn('colored_elements', true)) { colorizeSeriesStatus(); colorizeAgeRating(); colorizeDetailQuality(); }
-                else {
-                    $('.full-start__status').not('.qualview-quality').css({ backgroundColor: '', color: '', borderRadius: '', display: '', padding: '', lineHeight: '', whiteSpace: '' });
-                    $('.full-start__pg').css({ backgroundColor: '', color: '', borderRadius: '', padding: '', lineHeight: '', whiteSpace: '' });
-                    colorizeDetailQuality();
-                }
+                if (isTriggerOn('colored_elements', true)) { $('body').addClass('colored-elements-on'); colorizeSeriesStatus(); colorizeAgeRating(); colorizeDetailQuality(); }
+                else { $('body').removeClass('colored-elements-on'); colorizeDetailQuality(); }
             }
         });
 
@@ -1695,6 +1680,20 @@
             '.card__quality{position:absolute!important;left:0!important;bottom:0!important;padding:0.25em 0.45em!important;border-radius:0 0.75em!important;color:white!important;font-size:1.1em!important;line-height:1!important;z-index:10!important;white-space:nowrap!important}' +
             '.content-label{position:absolute!important;left:0!important;top:0!important;color:white!important;padding:0.25em 0.45em!important;border-radius:0.75em 0!important;font-size:1.1em!important;line-height:1!important;z-index:10!important;display:flex!important;align-items:center!important;justify-content:center!important}' +
             '.full-start-new__rate-line .full-start__status,.full-start-new__rate-line .full-start__pg:not(.hide),.full-start-new__meta-line .full-start__status,.full-start-new__meta-line .full-start__pg:not(.hide){border-radius:0.3em!important;padding:0.2em 0.4em!important;display:inline-block!important;line-height:1!important;white-space:nowrap!important}' +
+            'body.colored-elements-on .full-start__pg.age-kids{background:#2ecc71!important;color:white!important}' +
+            'body.colored-elements-on .full-start__pg.age-children{background:#3498db!important;color:white!important}' +
+            'body.colored-elements-on .full-start__pg.age-teens{background:#f1c40f!important;color:black!important}' +
+            'body.colored-elements-on .full-start__pg.age-almost-adult{background:#e67e22!important;color:white!important}' +
+            'body.colored-elements-on .full-start__pg.age-adult{background:#e74c3c!important;color:white!important}' +
+            'body.colored-elements-on .full-start__status.status-completed{background:rgba(46,204,113,0.8)!important;color:white!important}' +
+            'body.colored-elements-on .full-start__status.status-canceled{background:rgba(231,76,60,0.8)!important;color:white!important}' +
+            'body.colored-elements-on .full-start__status.status-ongoing{background:rgba(243,156,18,0.8)!important;color:black!important}' +
+            'body.colored-elements-on .full-start__status.status-production{background:rgba(52,152,219,0.8)!important;color:white!important}' +
+            'body.colored-elements-on .full-start__status.status-planned{background:rgba(155,89,182,0.8)!important;color:white!important}' +
+            'body.colored-elements-on .full-start__status.status-pilot{background:rgba(230,126,34,0.8)!important;color:white!important}' +
+            'body.colored-elements-on .full-start__status.status-released{background:rgba(26,188,156,0.8)!important;color:white!important}' +
+            'body.colored-elements-on .full-start__status.status-rumored{background:rgba(149,165,166,0.8)!important;color:white!important}' +
+            'body.colored-elements-on .full-start__status.status-post{background:rgba(0,188,212,0.8)!important;color:white!important}' +
             '.full-start__pg.hide{display:none!important}' +
             '.full-start-new__meta-line{display:none!important}' +
             '.season-info-label{position:absolute!important;color:#fff!important;padding:0.25em 0.45em!important;font-size:1.1em!important;line-height:1!important;z-index:10!important;white-space:nowrap!important}' +
@@ -1778,7 +1777,10 @@
                     setTimeout(function () { moveDetailMetaToSecondLine(render); }, 150);
                 }
                 scheduleVisibleRatingsUpdate(0);
-                setTimeout(function () { colorizeFullCardRatings(render); colorizeSeriesStatus(render); colorizeAgeRating(render); colorizeDetailQuality(); }, 100);
+                if (isColoredElementsOn()) $('body').addClass('colored-elements-on'); else $('body').removeClass('colored-elements-on');
+                setTimeout(function () { colorizeFullCardRatings(render); colorizeDetailQuality(); }, 100);
+                colorizeSeriesStatus(render);
+                colorizeAgeRating(render);
             }
         });
 
@@ -1787,7 +1789,8 @@
         addSeasonInfo();
 
 
-        if (isColoredElementsOn()) { colorizeSeriesStatus(); colorizeAgeRating(); colorizeDetailQuality(); }
+        if (isColoredElementsOn()) { $('body').addClass('colored-elements-on'); colorizeSeriesStatus(); colorizeAgeRating(); colorizeDetailQuality(); }
+        else { $('body').removeClass('colored-elements-on'); }
 
         processAllTypeLabels();
 
