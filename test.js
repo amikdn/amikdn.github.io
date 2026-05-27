@@ -955,6 +955,7 @@
             if (!ratingSection.length) return;
             ratingSection.append('<div class="full-start__status qualview-quality" style="' + qualityBadgeStyle + 'background-color:' + getQualityBackground(resQuality) + '">' + resQuality + '</div>');
         }
+        if (isMobilePortrait()) moveDetailMetaToSecondLine(viewRenderer);
     }
     function displayQualityLoader(viewRenderer) {
         if (!viewRenderer) return;
@@ -962,6 +963,7 @@
         if (ratingSection.length && !$('.full-start__status.qualview-quality', viewRenderer).length) {
             ratingSection.append('<div class="full-start__status qualview-quality" style="' + qualityBadgeStyle + 'opacity:0.7">...</div>');
         }
+        if (isMobilePortrait()) moveDetailMetaToSecondLine(viewRenderer);
     }
     function removeQualityElements(viewRenderer) {
         if (viewRenderer) $('.full-start__status.qualview-quality', viewRenderer).remove();
