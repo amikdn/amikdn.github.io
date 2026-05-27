@@ -92,6 +92,17 @@
             default: return 'rgba(0,0,0,' + alpha + ')';
         }
     }
+    function getDetailQualityColor(quality) {
+        if (!isColoredElementsOn()) return null;
+        switch (quality) {
+            case '4K': return { bg: 'rgba(46,204,113,0.8)', text: 'white' };
+            case 'FHD': return { bg: 'rgba(52,152,219,0.8)', text: 'white' };
+            case 'HD': return { bg: 'rgba(243,156,18,0.8)', text: 'white' };
+            case 'SD': return { bg: 'rgba(231,76,60,0.8)', text: 'white' };
+            case 'TS': return { bg: 'rgba(180,0,0,0.8)', text: 'white' };
+            default: return null;
+        }
+    }
     function getTypeLabelBackground(isTV) {
         var alpha = getOverlayAlpha();
         if (isTypeLabelsColoredOn()) {
@@ -901,13 +912,21 @@
 
     function fetchOptimalRelease(normalizedItem, itemId, onComplete) {
         var source = Lampa.Storage.get('quality_source', 'both');
-        if (source === 'alloha') { fetchAllohaQuality(normalizedItem, onComplete); }
-        else if (source === 'jacred') { fetchJacRed(normalizedItem, itemId, onComplete); }
-        else {
+        function completeWithFallback(result) {
+            if (result && result.quality) onComplete(result);
+            else fetchAllohaQuality(normalizedItem, onComplete);
+        }
+        if (source === 'alloha') {
+            fetchAllohaQuality(normalizedItem, onComplete);
+        }
+        else if (source === 'jacred') {
             fetchJacRed(normalizedItem, itemId, function (result) {
                 if (result && result.quality) onComplete(result);
                 else fetchAllohaQuality(normalizedItem, onComplete);
             });
+        }
+        else {
+            fetchJacRed(normalizedItem, itemId, completeWithFallback);
         }
     }
     function retrieveQualityCache(entryKey) {
@@ -921,26 +940,61 @@
         Lampa.Storage.set(QUALITY_CACHE_KEY, storedCache);
     }
     function loadQualityForDetail(item, viewRenderer) {
-        var standardizedItem = { id: item.id, title: item.title || item.name || '', original_title: item.original_title || item.original_name || '', release_date: item.release_date || item.first_air_date || '', type: determineType(item) };
+        var standardizedItem = {
+            id: item.id,
+            title: item.title || item.name || '',
+            original_title: item.original_title || item.original_name || '',
+            release_date: item.release_date || item.first_air_date || '',
+            type: determineType(item),
+            kinopoisk_id: item.kinopoisk_id || item.kp_id || item.kinopoiskId || '',
+            imdb_id: item.imdb_id || item.imdbId || ''
+        };
         var cacheEntryKey = standardizedItem.type + '_' + standardizedItem.id;
         var cachedQuality = retrieveQualityCache(cacheEntryKey);
         if (cachedQuality) { refreshDetailQuality(cachedQuality.quality, viewRenderer); }
         else { displayQualityLoader(viewRenderer); fetchOptimalRelease(standardizedItem, standardizedItem.id, function (releaseResult) { var q = (releaseResult && releaseResult.quality) || null; if (q && q !== 'NO') { storeQualityCache(cacheEntryKey, { quality: q }); refreshDetailQuality(q, viewRenderer); } else { removeQualityElements(viewRenderer); } }); }
     }
+    var badgeBaseStyle = 'border-radius:0.3em;padding:0.2em 0.4em;display:inline-block;line-height:1;white-space:nowrap;';
+    var qualityBadgeStyle = badgeBaseStyle + 'color:white;';
     function refreshDetailQuality(resQuality, viewRenderer) {
         if (!viewRenderer) return;
-        var ratingSection = $('.full-start-new__rate-line', viewRenderer);
-        if (!ratingSection.length) return;
+        var colors = getDetailQualityColor(resQuality);
         var qualityDisplay = $('.full-start__status.qualview-quality', viewRenderer);
-        if (qualityDisplay.length) { qualityDisplay.text(resQuality).css('opacity', '1'); }
-        else { ratingSection.append('<div class="full-start__status qualview-quality">' + resQuality + '</div>'); }
+        if (qualityDisplay.length) {
+            qualityDisplay.text(resQuality).css({ opacity: '1' });
+            if (colors) qualityDisplay.css({ backgroundColor: colors.bg, color: colors.text });
+            else qualityDisplay.css({ backgroundColor: '', color: '' });
+        }
+        else {
+            var ratingSection = $('.full-start-new__rate-line', viewRenderer);
+            if (!ratingSection.length) return;
+            var newEl = $('<div class="full-start__status qualview-quality">' + resQuality + '</div>');
+            if (colors) newEl.css({ backgroundColor: colors.bg, color: colors.text });
+            ratingSection.append(newEl);
+        }
+        var detailsSection = $('.full-start-new__details', viewRenderer);
+        if (detailsSection.length) {
+            var qualitySpan = detailsSection.find('span').filter(function () {
+                var t = $(this).text();
+                return t.indexOf('Качество:') === 0 || t.indexOf('качество:') === 0;
+            });
+            qualitySpan.prev('.full-start-new__split').addBack().remove();
+        }
+        if (isMobilePortrait()) moveDetailMetaToSecondLine(viewRenderer);
     }
     function displayQualityLoader(viewRenderer) {
         if (!viewRenderer) return;
         var ratingSection = $('.full-start-new__rate-line', viewRenderer);
-        if (ratingSection.length && !$('.full-start__status.qualview-quality', viewRenderer).length) { ratingSection.append('<div class="full-start__status qualview-quality" style="opacity:0.7">...</div>'); }
+        if (ratingSection.length && !$('.full-start__status.qualview-quality', viewRenderer).length) {
+            var loaderEl = $('<div class="full-start__status qualview-quality">...</div>');
+            loaderEl.css({ opacity: '0.7' });
+            ratingSection.append(loaderEl);
+        }
+        if (isMobilePortrait()) moveDetailMetaToSecondLine(viewRenderer);
     }
-    function removeQualityElements(viewRenderer) { if (viewRenderer) $('.full-start__status.qualview-quality', viewRenderer).remove(); }
+    function removeQualityElements(viewRenderer) {
+        if (viewRenderer) $('.full-start__status.qualview-quality', viewRenderer).remove();
+    }
 
     function applyQualityToItem(itemElement, resQuality) {
         if (!document.body.contains(itemElement)) return;
@@ -965,7 +1019,15 @@
             if (itemElement.hasAttribute('data-quality-added')) continue;
             var itemInfo = itemElement.card_data;
             if (!itemInfo) continue;
-            var stdInfo = { id: itemInfo.id || '', title: itemInfo.title || itemInfo.name || '', original_title: itemInfo.original_title || itemInfo.original_name || '', release_date: itemInfo.release_date || itemInfo.first_air_date || '', type: determineType(itemInfo) };
+            var stdInfo = {
+                id: itemInfo.id || '',
+                title: itemInfo.title || itemInfo.name || '',
+                original_title: itemInfo.original_title || itemInfo.original_name || '',
+                release_date: itemInfo.release_date || itemInfo.first_air_date || '',
+                type: determineType(itemInfo),
+                kinopoisk_id: itemInfo.kinopoisk_id || itemInfo.kp_id || itemInfo.kinopoiskId || '',
+                imdb_id: itemInfo.imdb_id || itemInfo.imdbId || ''
+            };
             (function (currElement, sInfo, entryKey) {
                 var cachedEntry = retrieveQualityCache(entryKey);
                 if (cachedEntry) { applyQualityToItem(currElement, cachedEntry.quality); }
@@ -981,6 +1043,67 @@
             for (var j = 0; j < existing.length; j++) existing[j].remove();
         }
         if (isQualityShowOn()) processQualityForCards(allCards);
+    }
+
+    function ensureDetailMetaLine(viewRenderer) {
+        if (!viewRenderer) return $();
+        var render = $(viewRenderer);
+        var ratingSection = render.find('.full-start-new__rate-line');
+        if (!ratingSection.length) return $();
+        var metaLine = ratingSection.siblings('.full-start-new__meta-line');
+        if (!metaLine.length) {
+            metaLine = $('<div class="full-start-new__meta-line"></div>');
+            ratingSection.after(metaLine);
+        }
+        return metaLine;
+    }
+    function isMobilePortrait() {
+        return Lampa.Platform.screen('mobile') && window.matchMedia && window.matchMedia('(orientation: portrait)').matches;
+    }
+    function repositionDetailMeta() {
+        if (isMobilePortrait()) {
+            var fullRender = document.querySelector('.full-start, .full-start-new');
+            if (fullRender) moveDetailMetaToSecondLine(fullRender);
+        } else {
+            $('.full-start-new__meta-line').each(function () {
+                var metaLine = $(this);
+                var rateLine = metaLine.prev('.full-start-new__rate-line');
+                metaLine.children().each(function () { rateLine.append(this); });
+                metaLine.remove();
+            });
+        }
+    }
+    function moveDetailMetaToSecondLine(viewRenderer) {
+        if (!isMobilePortrait()) return;
+        var metaLine = ensureDetailMetaLine(viewRenderer);
+        if (!metaLine.length) return;
+        var age = $(viewRenderer).find('.full-start__pg').filter(function () {
+            var el = $(this);
+            if (el.hasClass('hide')) return false;
+            return $.trim(el.text()).length > 0;
+        }).first();
+        var nativeStatus = $(viewRenderer).find('.full-start__status').filter(function () {
+            var el = $(this);
+            if (el.closest('.full-start-new__rate, .full-start__rate, .full-start-new__meta-line').length) return false;
+            if (el.hasClass('qualview-quality')) return false;
+            return true;
+        }).first();
+        var quality = $(viewRenderer).find('.full-start__status.qualview-quality').first();
+        if (age.length) metaLine.append(age);
+        if (nativeStatus.length) metaLine.append(nativeStatus);
+        if (quality.length) metaLine.append(quality);
+        if (!metaLine.children().length) metaLine.remove();
+    }
+
+    function colorizeDetailQuality() {
+        $('.full-start__status.qualview-quality').each(function () {
+            var el = $(this);
+            var text = el.text().trim();
+            if (!text || text === '...') return;
+            var colors = getDetailQualityColor(text);
+            if (colors) el.css({ backgroundColor: colors.bg, color: colors.text });
+            else el.css({ backgroundColor: '', color: '' });
+        });
     }
 
     // ===== TYPE LABELS =====
@@ -1072,7 +1195,7 @@
                 if (!airedEpisodes) airedEpisodes = totalEpisodes;
                 if (totalEpisodes > 0 && airedEpisodes > totalEpisodes) airedEpisodes = totalEpisodes;
                 function plural(n, one, two, five) { var m = Math.abs(n) % 100; if (m >= 5 && m <= 20) return five; m %= 10; if (m === 1) return one; if (m >= 2 && m <= 4) return two; return five; }
-                function getStatusText(st) { if (st === 'Ended') return 'Завершён'; if (st === 'Canceled') return 'Отменён'; if (st === 'Returning Series') return 'Выходит'; if (st === 'In Production') return 'В производстве'; return st || 'Неизвестно'; }
+                function getStatusText(st) { if (st === 'Ended') return 'Завершён'; if (st === 'Canceled') return 'Отменён'; if (st === 'Returning Series') return 'Онгоинг'; if (st === 'In Production') return 'В производстве'; return st || 'Неизвестно'; }
                 var displaySeasons, displayEpisodes;
                 if (seasonInfoSettings.seasons_info_mode === 'aired') { displaySeasons = airedSeasons; displayEpisodes = airedEpisodes; }
                 else { displaySeasons = totalSeasons; displayEpisodes = totalEpisodes; }
@@ -1080,17 +1203,31 @@
                 var episodesText = plural(displayEpisodes, 'серия', 'серии', 'серий');
                 var isCompleted = (status === 'Ended' || status === 'Canceled');
                 var bgColor = isCompleted ? 'rgba(33,150,243,0.8)' : 'rgba(244,67,54,0.8)';
-                var info = $('<div class="season-info-label"></div>');
-                if (isCompleted) { info.append($('<div>').text(displaySeasons + ' ' + seasonsText + ' ' + displayEpisodes + ' ' + episodesText)); info.append($('<div>').text(getStatusText(status))); }
-                else {
-                    var txt = displaySeasons + ' ' + seasonsText + ' ' + displayEpisodes + ' ' + episodesText;
-                    if (seasonInfoSettings.seasons_info_mode === 'aired' && totalEpisodes > 0 && airedEpisodes < totalEpisodes && airedEpisodes > 0) txt = displaySeasons + ' ' + seasonsText + ' ' + airedEpisodes + ' ' + episodesText + ' из ' + totalEpisodes;
-                    info.append($('<div>').text(txt));
-                }
-                var positions = { 'top-right': { top: '1.4em', right: '-0.8em' }, 'top-left': { top: '1.4em', left: '-0.8em' }, 'bottom-right': { bottom: '1.4em', right: '-0.8em' }, 'bottom-left': { bottom: '1.4em', left: '-0.8em' } };
+                var statusText = getStatusText(status);
+                var txt = displaySeasons + ' ' + seasonsText + ' ' + displayEpisodes + ' ' + episodesText;
+                if (seasonInfoSettings.seasons_info_mode === 'aired' && totalEpisodes > 0 && airedEpisodes < totalEpisodes && airedEpisodes > 0) txt = displaySeasons + ' ' + seasonsText + ' ' + airedEpisodes + ' ' + episodesText + ' из ' + totalEpisodes;
+                var info = $('<div class="season-info-label"></div>').text(txt);
+                var statusLabel = $('<div class="full-start__status season-info-status"></div>').text(statusText);
+                var metaLine;
+                var positions = { 'top-right': { top: '0', right: '0', borderRadius: '0 0.75em', textAlign: 'right' }, 'top-left': { top: '0', left: '0', borderRadius: '0.75em 0', textAlign: 'left' }, 'bottom-right': { bottom: '0', right: '0', borderRadius: '0.75em 0', textAlign: 'right' }, 'bottom-left': { bottom: '0', left: '0', borderRadius: '0 0.75em', textAlign: 'left' } };
                 var pos = positions[seasonInfoSettings.label_position] || positions['top-right'];
-                info.css($.extend({ position: 'absolute', backgroundColor: bgColor, color: 'white', padding: '0.4em 0.6em', borderRadius: '0.3em', fontSize: '0.8em', zIndex: 999, textAlign: 'center', whiteSpace: 'nowrap', lineHeight: '1.2em', backdropFilter: 'blur(2px)', boxShadow: '0 2px 5px rgba(0,0,0,0.2)' }, pos));
-                setTimeout(function () { var poster = $(data.object.activity.render()).find('.full-start-new__poster'); if (poster.length) poster.css('position', 'relative').append(info); }, 100);
+                info.css($.extend({ position: 'absolute', backgroundColor: bgColor, color: 'white', padding: '0.25em 0.45em', fontSize: '1.1em', zIndex: 10, whiteSpace: 'nowrap', lineHeight: '1', boxShadow: 'none' }, pos));
+                setTimeout(function () {
+                    var poster = $(data.object.activity.render()).find('.full-start-new__poster');
+                    if (poster.length) poster.css('position', 'relative').append(info);
+                    metaLine = ensureDetailMetaLine(data.object.activity.render());
+                    if (metaLine.length) {
+                        metaLine.find('.season-info-status').remove();
+                        var nativeStatus = $(data.object.activity.render()).find('.full-start__status').filter(function () {
+                            var el = $(this);
+                            if (el.hasClass('qualview-quality')) return false;
+                            return !el.closest('.full-start-new__rate, .full-start__rate, .full-start-new__meta-line').length;
+                        }).first();
+                        if (nativeStatus.length) nativeStatus.addClass('season-info-status');
+                        else if (isMobilePortrait()) metaLine.append(statusLabel);
+                        moveDetailMetaToSecondLine(data.object.activity.render());
+                    }
+                }, 100);
             }
         });
     }
@@ -1098,7 +1235,7 @@
     // ===== THEMES =====
     // ===== COLORED ELEMENTS =====
     function isColoredElementsOn() { return isTriggerOn('colored_elements', true); }
-    function colorizeSeriesStatus() {
+    function colorizeSeriesStatus(render) {
         if (!isColoredElementsOn()) return;
         var map = { completed: { bg: 'rgba(46,204,113,0.8)', text: 'white' }, canceled: { bg: 'rgba(231,76,60,0.8)', text: 'white' }, ongoing: { bg: 'rgba(243,156,18,0.8)', text: 'black' }, production: { bg: 'rgba(52,152,219,0.8)', text: 'white' }, planned: { bg: 'rgba(155,89,182,0.8)', text: 'white' }, pilot: { bg: 'rgba(230,126,34,0.8)', text: 'white' }, released: { bg: 'rgba(26,188,156,0.8)', text: 'white' }, rumored: { bg: 'rgba(149,165,166,0.8)', text: 'white' }, post: { bg: 'rgba(0,188,212,0.8)', text: 'white' } };
         function apply(el) {
@@ -1112,12 +1249,12 @@
             else if (t.includes('выпущен') || t.includes('вышел') || t.includes('released')) cfg = map.released;
             else if (t.includes('слухи') || t.includes('rumored')) cfg = map.rumored;
             else if (t.includes('скоро') || t.includes('post')) cfg = map.post;
-            if (cfg) $(el).css({ backgroundColor: cfg.bg, color: cfg.text, borderRadius: '0.3em', display: 'inline-block' });
+            if (cfg) $(el).css({ backgroundColor: cfg.bg, color: cfg.text, borderRadius: '0.3em', padding: '0.2em 0.4em', display: 'inline-block', lineHeight: '1', whiteSpace: 'nowrap' });
         }
-        $('.full-start__status').each(function () { apply(this); });
-        Lampa.Listener.follow('full', function (d) { if (d.type === 'complite') setTimeout(function () { $(d.object.activity.render()).find('.full-start__status').each(function () { apply(this); }); }, 100); });
+        var scope = render ? $(render) : $(document);
+        scope.find('.full-start__status').each(function () { apply(this); });
     }
-    function colorizeAgeRating() {
+    function colorizeAgeRating(render) {
         if (!isColoredElementsOn()) return;
         var groups = { kids: ['G', 'TV-Y', '0+', '3+'], children: ['PG', 'TV-PG', '6+', '7+'], teens: ['PG-13', 'TV-14', '12+', '13+', '14+'], almostAdult: ['R', '16+', '17+'], adult: ['NC-17', '18+', 'X'] };
         var colors = { kids: { bg: '#2ecc71', text: 'white' }, children: { bg: '#3498db', text: 'white' }, teens: { bg: '#f1c40f', text: 'black' }, almostAdult: { bg: '#e67e22', text: 'white' }, adult: { bg: '#e74c3c', text: 'white' } };
@@ -1125,10 +1262,10 @@
             if ($(el).closest('.explorer').length) return;
             var t = $(el).text().trim(); var grp = null;
             for (var key in groups) { groups[key].forEach(function (r) { if (t.includes(r)) grp = key; }); if (grp) break; }
-            if (grp) $(el).css({ backgroundColor: colors[grp].bg, color: colors[grp].text, borderRadius: '0.3em', padding: '0.2em 0.4em', display: 'inline-block' });
+            if (grp) $(el).css({ backgroundColor: colors[grp].bg, color: colors[grp].text, borderRadius: '0.3em', padding: '0.2em 0.4em', display: 'inline-block', lineHeight: '1', whiteSpace: 'nowrap' });
         }
-        $('.full-start__pg').each(function () { apply(this); });
-        Lampa.Listener.follow('full', function (d) { if (d.type === 'complite') setTimeout(function () { $(d.object.activity.render()).find('.full-start__pg').each(function () { apply(this); }); }, 100); });
+        var scope = render ? $(render) : $(document);
+        scope.find('.full-start__pg').each(function () { apply(this); });
     }
 
     // ===== SETTINGS MODAL =====
@@ -1333,8 +1470,12 @@
             field: { name: 'Цветные элементы', description: 'Статусы сериалов и возрастные ограничения цветными' },
             onChange: function (v) {
                 Lampa.Settings.update();
-                if (isTriggerOn('colored_elements', true)) { colorizeSeriesStatus(); colorizeAgeRating(); }
-                else { $('.full-start__status').css({ backgroundColor: '', color: '', borderRadius: '', display: '' }); $('.full-start__pg').css({ backgroundColor: '', color: '' }); }
+                if (isTriggerOn('colored_elements', true)) { colorizeSeriesStatus(); colorizeAgeRating(); colorizeDetailQuality(); }
+                else {
+                    $('.full-start__status').not('.qualview-quality').css({ backgroundColor: '', color: '', borderRadius: '', display: '', padding: '', lineHeight: '', whiteSpace: '' });
+                    $('.full-start__pg').css({ backgroundColor: '', color: '', borderRadius: '', padding: '', lineHeight: '', whiteSpace: '' });
+                    colorizeDetailQuality();
+                }
             }
         });
 
@@ -1524,6 +1665,11 @@
             '@media (max-width:480px) and (orientation:portrait){.full-start-new__rate.rate--lampa,.full-start__rate.rate--lampa{min-width:80px}}' +
             '.card__quality{position:absolute!important;left:0!important;bottom:0!important;padding:0.25em 0.45em!important;border-radius:0 0.75em!important;color:white!important;font-size:1.1em!important;line-height:1!important;z-index:10!important;white-space:nowrap!important}' +
             '.content-label{position:absolute!important;left:0!important;top:0!important;color:white!important;padding:0.25em 0.45em!important;border-radius:0.75em 0!important;font-size:1.1em!important;line-height:1!important;z-index:10!important;display:flex!important;align-items:center!important;justify-content:center!important}' +
+            '.full-start-new__rate-line .full-start__status,.full-start-new__rate-line .full-start__pg:not(.hide),.full-start-new__meta-line .full-start__status,.full-start-new__meta-line .full-start__pg:not(.hide){border-radius:0.3em!important;padding:0.2em 0.4em!important;display:inline-block!important;line-height:1!important;white-space:nowrap!important}' +
+            '.full-start__pg.hide{display:none!important}' +
+            '.full-start-new__meta-line{display:none!important}' +
+            '.season-info-label{position:absolute!important;color:#fff!important;padding:0.25em 0.45em!important;font-size:1.1em!important;line-height:1!important;z-index:10!important;white-space:nowrap!important}' +
+            '@media (max-width:480px) and (orientation:portrait){.full-start-new__rate-line{display:flex!important;flex-wrap:wrap!important;align-items:center!important;justify-content:center!important;gap:0.2em!important}.full-start-new__meta-line{display:flex!important;flex-wrap:wrap!important;align-items:center!important;justify-content:center!important;gap:0.5em!important;width:100%!important;line-height:1!important;font-size:1em!important;margin-top:0.3em!important}.full-start-new__meta-line .full-start__status,.full-start-new__meta-line .full-start__pg{margin:0!important;display:inline-flex!important;align-items:center!important;line-height:1!important;white-space:nowrap!important}.full-start-new__details{margin-top:0.3em!important;display:flex!important;flex-wrap:wrap!important;justify-content:center!important;gap:0.1em!important}.full-start-new__reactions{justify-content:center!important}.full-start-new__buttons{justify-content:center!important;text-align:center!important}}' +
             'body[data-movie-labels="on"] .card--tv .card__type{display:none!important}';
         document.head.appendChild(style);
 
@@ -1540,8 +1686,9 @@
             var code = e && (e.code || e.key);
             if (code === 'PageUp' || code === 'PageDown') scheduleVisibleRatingsUpdate(120);
         }, { passive: true });
-        window.addEventListener('resize', function () { scheduleVisibleRatingsUpdate(0); }, { passive: true });
-        document.addEventListener('visibilitychange', function () { if (!document.hidden) scheduleVisibleRatingsUpdate(0); });
+        window.addEventListener('resize', function () { scheduleVisibleRatingsUpdate(0); repositionDetailMeta(); }, { passive: true });
+        window.addEventListener('orientationchange', function () { setTimeout(repositionDetailMeta, 150); }, { passive: true });
+        document.addEventListener('visibilitychange', function () { if (!document.hidden) { scheduleVisibleRatingsUpdate(0); repositionDetailMeta(); } });
 
         Lampa.Listener.follow('card', function (event) {
             if (event.type === 'build' && event.object.card) {
@@ -1581,28 +1728,28 @@
                             if (cached.medianReaction && isTriggerOn('animated_reactions', false)) $(render).find('.rate--lampa').addClass('rate--lampa--animated');
                             colorizeFullCardRatings(render);
                             scheduleVisibleRatingsUpdate(0);
-                            return;
-                        }
-                        addToQueue(function () {
-                            getLampaRating(ratingKey).then(function (result) {
-                                if (result.rating !== null && result.rating > 0) {
-                                    $(render).find('.rate--lampa .rate-value').text(formatRating(result.rating));
-                                    renderLampaFullIcon($(render), result.medianReaction);
-                                    if (result.medianReaction && isTriggerOn('animated_reactions', false)) $(render).find('.rate--lampa').addClass('rate--lampa--animated');
-                                } else { $(render).find('.rate--lampa').hide(); }
-                                colorizeFullCardRatings(render);
-                                scheduleVisibleRatingsUpdate(0);
+                        } else {
+                            addToQueue(function () {
+                                getLampaRating(ratingKey).then(function (result) {
+                                    if (result.rating !== null && result.rating > 0) {
+                                        $(render).find('.rate--lampa .rate-value').text(formatRating(result.rating));
+                                        renderLampaFullIcon($(render), result.medianReaction);
+                                        if (result.medianReaction && isTriggerOn('animated_reactions', false)) $(render).find('.rate--lampa').addClass('rate--lampa--animated');
+                                    } else { $(render).find('.rate--lampa').hide(); }
+                                    colorizeFullCardRatings(render);
+                                    scheduleVisibleRatingsUpdate(0);
+                                });
                             });
-                        });
+                        }
                     }
                 }
                 if (render && event.data.movie) {
                     if (isQualityShowOn()) loadQualityForDetail(event.data.movie, render);
-                    var poster = $(render).find('.full-start-new__poster');
-                    if (poster.length) addTypeLabelToDetail(poster, event.data.movie);
+                    moveDetailMetaToSecondLine(render);
+                    setTimeout(function () { moveDetailMetaToSecondLine(render); }, 150);
                 }
                 scheduleVisibleRatingsUpdate(0);
-                setTimeout(function () { colorizeFullCardRatings(render); }, 100);
+                setTimeout(function () { colorizeFullCardRatings(render); colorizeSeriesStatus(render); colorizeAgeRating(render); colorizeDetailQuality(); }, 100);
             }
         });
 
@@ -1611,7 +1758,7 @@
         addSeasonInfo();
 
 
-        if (isColoredElementsOn()) { colorizeSeriesStatus(); colorizeAgeRating(); }
+        if (isColoredElementsOn()) { colorizeSeriesStatus(); colorizeAgeRating(); colorizeDetailQuality(); }
 
         processAllTypeLabels();
 
