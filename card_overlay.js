@@ -1269,24 +1269,50 @@
     }
 
     // ===== SETTINGS MODAL =====
+    function injectModalStyle() {
+        if (window.__card_overlay_modal_style__) return;
+        window.__card_overlay_modal_style__ = true;
+        var css =
+            ".comodal{display:flex;flex-direction:column;gap:.7em;padding-right:1em}\n" +
+            ".comodal__section{font-size:.85em;opacity:.55;text-align:center;padding:.2em 0}\n" +
+            ".comodal__divider{border-top:1px solid rgba(255,255,255,.08);margin-top:.2em}\n" +
+            ".comodal__item{display:flex;align-items:center;justify-content:space-between;gap:1em;padding:.7em 1em .7em 1em;border-radius:.7em;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);cursor:pointer;user-select:none;box-sizing:border-box}\n" +
+            ".comodal__item.focus{border-color:#fff!important;background:rgba(255,255,255,.1)}\n" +
+            ".comodal__label{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:1em}\n" +
+            ".comodal__value{font-size:.95em;opacity:.85;white-space:nowrap;flex-shrink:0}\n" +
+            ".comodal__num-row{display:flex;align-items:center;gap:.4em;padding:.7em 1em .7em 1em;border-radius:.7em;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);box-sizing:border-box}\n" +
+            ".comodal__num-row .comodal__label{flex:1}\n" +
+            ".comodal__btn{padding:.55em .9em;border-radius:.6em;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);cursor:pointer;user-select:none;font-size:.95em;line-height:1;box-sizing:border-box}\n" +
+            ".comodal__btn.focus{border-color:#fff!important}\n" +
+            ".comodal__num-val{min-width:2.5em;text-align:center;opacity:.9}\n" +
+            ".comodal__action{display:block;text-align:center;padding:.6em 1em;border-radius:.7em;cursor:pointer;user-select:none;font-size:1em;box-sizing:border-box}\n" +
+            ".comodal__action--reset{background:rgba(200,100,80,.45);border:1px solid rgba(255,255,255,.15)}\n" +
+            ".comodal__action--reset.focus{border-color:#fff!important}\n" +
+            ".comodal__action--close{background:rgba(66,133,244,.55);border:1px solid rgba(255,255,255,.15)}\n" +
+            ".comodal__action--close.focus{border-color:#fff!important}\n" +
+            ".comodal__note{text-align:center;opacity:.85;font-size:.85em;line-height:1.35;padding:.1em .4em}\n" +
+            ".comodal__link{color:#8ab4ff!important;text-decoration:underline!important}\n";
+        var s = document.createElement('style'); s.type = 'text/css'; s.appendChild(document.createTextNode(css)); document.head.appendChild(s);
+    }
     function openRatingSettingsModal() {
         var $ = typeof window.$ !== 'undefined' ? window.$ : (typeof window.jQuery !== 'undefined' ? window.jQuery : null);
         if (!$) return;
         try { if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.close) Lampa.Modal.close(); } catch (err) {}
         setTimeout(function () {
+            injectModalStyle();
             var SOURCE_LABELS = { tmdb: 'TMDB', lampa: 'Lampa', kp: 'КиноПоиск', imdb: 'IMDB', all: 'Все' };
             var POSITION_LABELS = { top: 'Сверху справа', bottom: 'Снизу справа' };
             var DISPLAY_MODE_LABELS = { single: 'Одно окно', separate: 'Каждый в отдельном окне' };
-            var list = $('<div class="menu-edit-list rate-settings-modal"></div>').css({ maxWidth: '100%', overflow: 'hidden', boxSizing: 'border-box', padding: '0.5em 0', pointerEvents: 'auto', cursor: 'default' });
-            list.on('click mousedown touchstart', function (e) { e.stopPropagation(); });
+            var modal = $('<div class="comodal"></div>');
+            modal.on('click mousedown touchstart', function (e) { e.stopPropagation(); });
             function isMouseEvent(e) { return e && (e.pointerType === 'mouse' || (e.clientX !== undefined && e.clientY !== undefined)); }
-            function blurActiveAfterMouseClick(e) { if (isMouseEvent(e)) setTimeout(function () { try { var a = document.activeElement; if (a && a.blur) a.blur(); } catch (err) {} }, 0); }
+            function blurAfterMouse(e) { if (isMouseEvent(e)) setTimeout(function () { try { var a = document.activeElement; if (a && a.blur) a.blur(); } catch (err) {} }, 0); }
             function makeRow(label, valueText, onClick) {
-                var row = $('<div class="selector menu-edit-list__item rate-settings-row" tabindex="0"></div>').css({ display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'center', gap: '0.5em', padding: '0.5em 0.4em', marginBottom: '0.2em', borderRadius: '0.35em', border: '3px solid transparent', boxSizing: 'border-box' });
-                var title = $('<div class="menu-edit-list__title"></div>').css({ minWidth: 0, overflow: 'hidden' }).text(label);
-                var val = $('<div class="rate-settings-value"></div>').css({ whiteSpace: 'nowrap', opacity: 0.9 }).text(valueText);
-                row.append(title).append(val);
-                if (typeof onClick === 'function') { row.on('hover:enter', function () { onClick(row, val); }); row.on('click', function (e) { if (e && e.preventDefault) e.preventDefault(); if (e && e.stopPropagation) e.stopPropagation(); blurActiveAfterMouseClick(e); }); }
+                var row = $('<div class="comodal__item selector" tabindex="0"></div>');
+                row.append($('<div class="comodal__label"></div>').text(label));
+                var val = $('<div class="comodal__value"></div>').text(valueText);
+                row.append(val);
+                if (typeof onClick === 'function') { row.on('hover:enter', function () { onClick(row, val); }); row.on('click', function (e) { if (e && e.preventDefault) e.preventDefault(); if (e && e.stopPropagation) e.stopPropagation(); blurAfterMouse(e); }); }
                 return { row: row, updateVal: function (text) { val.text(text); } };
             }
             function addCycleRow(label, storageKey, options, defaultVal) {
@@ -1298,7 +1324,7 @@
                     idx = (idx + 1) % values.length; var next = values[idx];
                     Lampa.Storage.set(storageKey, next); valEl.text(labels[next] || next); scheduleSettingsRefresh();
                 });
-                r.updateVal(labels[current] || current); list.append(r.row); return r;
+                r.updateVal(labels[current] || current); modal.append(r.row); return r;
             }
             function addTriggerRow(label, storageKey, defaultVal) {
                 var isOn = function () { var v = Lampa.Storage.get(storageKey, defaultVal); return (v === true || v === 'true' || v === '1' || v === 1); };
@@ -1308,24 +1334,25 @@
                     else Lampa.Storage.set(storageKey, next ? 'true' : 'false');
                     valEl.text(next ? 'Вкл' : 'Выкл'); scheduleSettingsRefresh();
                 });
-                list.append(r.row); return r;
+                modal.append(r.row); return r;
             }
-            function addNumberRowWithButtons(label, storageKey, defaultVal, min, max, step, suffix) {
+            function addNumberRow(label, storageKey, defaultVal, min, max, step, suffix) {
                 var current = parseFloat(Lampa.Storage.get(storageKey, defaultVal));
                 var val = isNaN(current) ? defaultVal : Math.max(min, Math.min(max, current));
                 Lampa.Storage.set(storageKey, String(val));
-                var valEl = $('<div class="rate-settings-value"></div>').css({ whiteSpace: 'nowrap', opacity: 0.9, minWidth: '2.5em', textAlign: 'center' }).text(val + (suffix || ''));
-                var btnMinus = $('<div class="selector menu-edit-list__item rate-settings-plusminus-btn" tabindex="0" aria-label="Уменьшить"></div>').text('−').css({ width: '2em', minHeight: '2em', padding: 0, borderRadius: '0.35em', border: '3px solid transparent', boxSizing: 'border-box', background: 'rgba(255,255,255,0.12)', fontSize: '1.1em', lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' });
-                var btnPlus = $('<div class="selector menu-edit-list__item rate-settings-plusminus-btn" tabindex="0" aria-label="Увеличить"></div>').text('+').css({ width: '2em', minHeight: '2em', padding: 0, borderRadius: '0.35em', border: '3px solid transparent', boxSizing: 'border-box', background: 'rgba(255,255,255,0.12)', fontSize: '1.1em', lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' });
+                var row = $('<div class="comodal__num-row"></div>');
+                row.append($('<div class="comodal__label"></div>').text(label));
+                var valEl = $('<div class="comodal__num-val"></div>').text(val + (suffix || ''));
+                var btnMinus = $('<div class="comodal__btn selector" tabindex="0">−</div>');
+                var btnPlus = $('<div class="comodal__btn selector" tabindex="0">+</div>');
+                row.append(btnMinus).append(valEl).append(btnPlus);
                 function applyChange(delta) { var num = parseFloat(Lampa.Storage.get(storageKey, defaultVal)); num = isNaN(num) ? defaultVal : num; var next = Math.max(min, Math.min(max, num + delta)); Lampa.Storage.set(storageKey, String(next)); valEl.text(next + (suffix || '')); scheduleSettingsRefresh(); }
-                btnMinus.on('hover:enter', function () { applyChange(-(step || 1)); }); btnMinus.on('click', function (e) { if (e && e.preventDefault) e.preventDefault(); if (e && e.stopPropagation) e.stopPropagation(); blurActiveAfterMouseClick(e); });
-                btnPlus.on('hover:enter', function () { applyChange(step || 1); }); btnPlus.on('click', function (e) { if (e && e.preventDefault) e.preventDefault(); if (e && e.stopPropagation) e.stopPropagation(); blurActiveAfterMouseClick(e); });
-                var row = $('<div class="menu-edit-list__item rate-settings-row rate-settings-number-row"></div>').css({ display: 'grid', gridTemplateColumns: '1fr auto auto auto', alignItems: 'center', gap: '0.35em', padding: '0.5em 0.4em', marginBottom: '0.2em', borderRadius: '0.35em', border: '3px solid transparent', boxSizing: 'border-box' });
-                row.append($('<div class="menu-edit-list__title"></div>').css({ minWidth: 0, overflow: 'hidden' }).text(label)).append(btnMinus).append(valEl).append(btnPlus);
-                list.append(row); return { row: row, updateVal: function (text) { valEl.text(text); } };
+                btnMinus.on('hover:enter', function () { applyChange(-(step || 1)); }); btnMinus.on('click', function (e) { if (e && e.preventDefault) e.preventDefault(); if (e && e.stopPropagation) e.stopPropagation(); blurAfterMouse(e); });
+                btnPlus.on('hover:enter', function () { applyChange(step || 1); }); btnPlus.on('click', function (e) { if (e && e.preventDefault) e.preventDefault(); if (e && e.stopPropagation) e.stopPropagation(); blurAfterMouse(e); });
+                modal.append(row); return { row: row, updateVal: function (text) { valEl.text(text); } };
             }
 
-            list.append($('<div style="padding:0.3em 0.4em 0.2em;opacity:0.6;font-size:0.85em;text-align:center">— Рейтинги —</div>'));
+            modal.append($('<div class="comodal__section">Рейтинги</div>'));
             var rowSource = addCycleRow('Источник рейтинга', 'rating_source', SOURCE_LABELS, 'all');
             var rowDisplayMode = addCycleRow('Режим отображения', 'rating_display_mode', DISPLAY_MODE_LABELS, 'separate');
             var rowPosition = addCycleRow('Позиция на постере', 'rating_position', POSITION_LABELS, 'bottom');
@@ -1336,21 +1363,24 @@
             var rowShowImdb = addTriggerRow('Показывать IMDB', 'rating_show_imdb', true);
             var rowShowKp = addTriggerRow('Показывать КиноПоиск', 'rating_show_kp', true);
             var rowShowLampa = addTriggerRow('Показывать Lampa', 'rating_show_lampa', true);
-            var rowOpacity = addNumberRowWithButtons('Прозрачность окон (0=нет, 100=макс)', 'rating_window_opacity', 40, 0, 100, 10, '%');
-            var rowScale = addNumberRowWithButtons('Масштаб окон', 'rating_scale', 100, 60, 150, 5, '%');
+            var rowOpacity = addNumberRow('Прозрачность окон (0–100)', 'rating_window_opacity', 40, 0, 100, 10, '%');
+            var rowScale = addNumberRow('Масштаб окон', 'rating_scale', 100, 60, 150, 5, '%');
 
-            list.append($('<div style="padding:0.5em 0.4em 0.2em;opacity:0.6;font-size:0.85em;text-align:center;border-top:1px solid rgba(255,255,255,0.1);margin-top:0.3em">— Качество —</div>'));
+            modal.append($('<div class="comodal__divider"></div>'));
+            modal.append($('<div class="comodal__section">Качество</div>'));
             var rowQualityShow = addTriggerRow('Показывать качество', 'quality_show', true);
             var rowQualityColored = addTriggerRow('Цветные окна качества', 'quality_colored', false);
 
-            list.append($('<div style="padding:0.5em 0.4em 0.2em;opacity:0.6;font-size:0.85em;text-align:center;border-top:1px solid rgba(255,255,255,0.1);margin-top:0.3em">— Лейблы типа —</div>'));
+            modal.append($('<div class="comodal__divider"></div>'));
+            modal.append($('<div class="comodal__section">Лейблы типа</div>'));
             var rowTypeLabelsShow = addTriggerRow('Показывать «Фильм»/«Сериал»', 'type_labels_show', true);
             var rowTypeLabelsColored = addTriggerRow('Цветные лейблы типа', 'type_labels_colored', false);
 
-            list.append($('<div style="padding:0.5em 0.4em 0.2em;opacity:0.6;font-size:0.85em;text-align:center;border-top:1px solid rgba(255,255,255,0.1);margin-top:0.3em">— API —</div>'));
+            modal.append($('<div class="comodal__divider"></div>'));
+            modal.append($('<div class="comodal__section">API</div>'));
+            modal.append($('<div class="comodal__note">API-ключ можно получить на сайте</div>'));
+            modal.append($('<div class="comodal__note"><a class="comodal__link" href="https://kinopoiskapiunofficial.tech/" target="_blank" rel="noopener noreferrer">kinopoiskapiunofficial.tech</a></div>'));
             function kpApiKeyRowText() { var k = String(Lampa.Storage.get('rating_kp_api_key', '') || Lampa.Storage.get('source_api_key', '') || '').trim(); if (!k) return 'не задан'; if (k.length <= 10) return 'указан: ' + k; return 'указан: ' + k.slice(0, 4) + '...' + k.slice(-4); }
-            list.append($('<div class="rate-settings-note rate-settings-note-text"></div>').css({ display: 'block', width: '100%', padding: '0.45em 0.4em 0.1em', opacity: 0.92, lineHeight: 1.35, boxSizing: 'border-box', textAlign: 'center', whiteSpace: 'nowrap' }).text('API-ключ можно получить на сайте'));
-            list.append($('<div class="rate-settings-note rate-settings-note-link"></div>').css({ display: 'block', width: '100%', padding: '0 0.4em 0.45em', marginBottom: '0.2em', opacity: 0.98, lineHeight: 1.35, boxSizing: 'border-box', textAlign: 'center' }).html('<a class="rate-settings-site" href="https://kinopoiskapiunofficial.tech/" target="_blank" rel="noopener noreferrer">kinopoiskapiunofficial.tech</a>'));
             var rowKpKey = makeRow('API-ключ КиноПоиск', kpApiKeyRowText(), function (rowEl, valEl) {
                 if (typeof Lampa.Input !== 'undefined' && typeof Lampa.Input.edit === 'function') {
                     closeModalSafe();
@@ -1360,7 +1390,7 @@
                 }
             });
             rowKpKey.updateVal(kpApiKeyRowText());
-            list.append(rowKpKey.row);
+            modal.append(rowKpKey.row);
 
             function resetAllToDefault() {
                 Lampa.Storage.set('rating_source', 'all'); Lampa.Storage.set('animated_reactions', 'false'); setColoredRatingsPoster(false);
@@ -1371,7 +1401,6 @@
                 Lampa.Storage.set('rating_scale', '100'); Lampa.Storage.set('rating_kp_api_key', '');
                 Lampa.Storage.set('quality_show', 'true'); Lampa.Storage.set('quality_colored', 'false');
                 Lampa.Storage.set('type_labels_show', 'true'); Lampa.Storage.set('type_labels_colored', 'false');
-
                 rowSource.updateVal(SOURCE_LABELS.all); rowDisplayMode.updateVal(DISPLAY_MODE_LABELS.separate);
                 rowPosition.updateVal(POSITION_LABELS.bottom); rowColored.updateVal('Выкл'); rowColoredWin.updateVal('Выкл');
                 rowAnimated.updateVal('Выкл'); rowShowTmdb.updateVal('Вкл'); rowShowImdb.updateVal('Вкл');
@@ -1382,15 +1411,15 @@
                 scheduleSettingsRefresh(50);
                 try { Lampa.Noty.show('Настройки сброшены'); } catch (e) {}
             }
-            var resetBtn = $('<div class="selector menu-edit-list__item rate-settings-reset" tabindex="0">Сбросить всё по умолчанию</div>').css({ display: 'block', textAlign: 'center', padding: '0.6em 0.4em', marginTop: '0.4em', background: 'rgba(200,100,80,0.5)', borderRadius: '0.35em', border: '3px solid transparent', boxSizing: 'border-box' });
-            resetBtn.on('hover:enter', resetAllToDefault); resetBtn.on('click', function (e) { if (e && e.preventDefault) e.preventDefault(); if (e && e.stopPropagation) e.stopPropagation(); blurActiveAfterMouseClick(e); });
-            list.append(resetBtn);
-            var closeBtn = $('<div class="selector menu-edit-list__item rate-settings-close" tabindex="0">Готово</div>').css({ display: 'block', textAlign: 'center', padding: '0.75em', marginTop: '0.5em', background: 'rgba(66,133,244,0.6)', borderRadius: '0.35em', border: '3px solid transparent', boxSizing: 'border-box' });
+            var resetBtn = $('<div class="comodal__action comodal__action--reset selector" tabindex="0">Сбросить всё по умолчанию</div>');
+            resetBtn.on('hover:enter', resetAllToDefault); resetBtn.on('click', function (e) { if (e && e.preventDefault) e.preventDefault(); if (e && e.stopPropagation) e.stopPropagation(); blurAfterMouse(e); });
+            modal.append(resetBtn);
+            var closeBtn = $('<div class="comodal__action comodal__action--close selector" tabindex="0">Готово</div>');
             function closeModal() { Lampa.Modal.close(); applyRatingSettingsRefresh(); setTimeout(function () { try { Lampa.Controller.toggle('settings'); } catch (err) {} }, 50); }
-            closeBtn.on('hover:enter', closeModal); closeBtn.on('click', function (e) { if (e && e.preventDefault) e.preventDefault(); if (e && e.stopPropagation) e.stopPropagation(); blurActiveAfterMouseClick(e); });
-            list.append(closeBtn);
+            closeBtn.on('hover:enter', closeModal); closeBtn.on('click', function (e) { if (e && e.preventDefault) e.preventDefault(); if (e && e.stopPropagation) e.stopPropagation(); blurAfterMouse(e); });
+            modal.append(closeBtn);
             if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.open) {
-                Lampa.Modal.open({ title: 'Настройки карточек', html: list, size: 'medium', scroll_to_center: true, onBack: function () { closeModal(); } });
+                Lampa.Modal.open({ title: 'Настройки карточек', html: modal, size: 'medium', scroll_to_center: true, onBack: function () { closeModal(); } });
             }
         }, 200);
     }
