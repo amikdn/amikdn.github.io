@@ -93,14 +93,14 @@
         }
     }
     function getDetailQualityColor(quality) {
-        if (!isColoredElementsOn()) return { bg: 'rgba(100,100,100,0.8)', text: 'white' };
+        if (!isColoredElementsOn()) return null;
         switch (quality) {
             case '4K': return { bg: 'rgba(46,204,113,0.8)', text: 'white' };
             case 'FHD': return { bg: 'rgba(52,152,219,0.8)', text: 'white' };
             case 'HD': return { bg: 'rgba(243,156,18,0.8)', text: 'white' };
             case 'SD': return { bg: 'rgba(231,76,60,0.8)', text: 'white' };
             case 'TS': return { bg: 'rgba(180,0,0,0.8)', text: 'white' };
-            default: return { bg: 'rgba(100,100,100,0.8)', text: 'white' };
+            default: return null;
         }
     }
     function getTypeLabelBackground(isTV) {
@@ -961,13 +961,15 @@
         var colors = getDetailQualityColor(resQuality);
         var qualityDisplay = $('.full-start__status.qualview-quality', viewRenderer);
         if (qualityDisplay.length) {
-            qualityDisplay.text(resQuality).css({ backgroundColor: colors.bg, color: colors.text, opacity: '1' });
+            qualityDisplay.text(resQuality).css({ opacity: '1' });
+            if (colors) qualityDisplay.css({ backgroundColor: colors.bg, color: colors.text });
+            else qualityDisplay.css({ backgroundColor: '', color: '' });
         }
         else {
             var ratingSection = $('.full-start-new__rate-line', viewRenderer);
             if (!ratingSection.length) return;
             var newEl = $('<div class="full-start__status qualview-quality">' + resQuality + '</div>');
-            newEl.css({ backgroundColor: colors.bg, color: colors.text });
+            if (colors) newEl.css({ backgroundColor: colors.bg, color: colors.text });
             ratingSection.append(newEl);
         }
         var detailsSection = $('.full-start-new__details', viewRenderer);
@@ -1066,7 +1068,9 @@
         var metaLine = ensureDetailMetaLine(viewRenderer);
         if (!metaLine.length) return;
         var age = $(viewRenderer).find('.full-start__pg').filter(function () {
-            return $.trim($(this).text()).length > 0;
+            var el = $(this);
+            if (el.hasClass('hide')) return false;
+            return $.trim(el.text()).length > 0;
         }).first();
         var nativeStatus = $(viewRenderer).find('.full-start__status').filter(function () {
             var el = $(this);
@@ -1087,7 +1091,8 @@
             var text = el.text().trim();
             if (!text || text === '...') return;
             var colors = getDetailQualityColor(text);
-            el.css({ backgroundColor: colors.bg, color: colors.text });
+            if (colors) el.css({ backgroundColor: colors.bg, color: colors.text });
+            else el.css({ backgroundColor: '', color: '' });
         });
     }
 
