@@ -931,35 +931,23 @@
         if (!viewRenderer) return;
         var ratingSection = $('.full-start-new__rate-line', viewRenderer);
         if (!ratingSection.length) return;
-        var metaLine = ratingSection.siblings('.full-start-new__meta-line');
-        if (!metaLine.length) {
-            metaLine = $('<div class="full-start-new__meta-line"></div>');
-            ratingSection.after(metaLine);
-        }
-        var qualityDisplay = metaLine.find('.full-start__status.qualview-quality');
+        var qualityDisplay = $('.full-start__status.qualview-quality', viewRenderer);
         if (qualityDisplay.length) {
             qualityDisplay.text(resQuality).css('opacity', '1');
         }
         else {
-            metaLine.append('<div class="full-start__status qualview-quality">' + resQuality + '</div>');
+            ratingSection.append('<div class="full-start__status qualview-quality">' + resQuality + '</div>');
         }
     }
     function displayQualityLoader(viewRenderer) {
         if (!viewRenderer) return;
         var ratingSection = $('.full-start-new__rate-line', viewRenderer);
-        if (!ratingSection.length) return;
-        var metaLine = ratingSection.siblings('.full-start-new__meta-line');
-        if (!metaLine.length) {
-            metaLine = $('<div class="full-start-new__meta-line"></div>');
-            ratingSection.after(metaLine);
-        }
-        if (!metaLine.find('.full-start__status.qualview-quality').length) {
-            metaLine.append('<div class="full-start__status qualview-quality" style="opacity:0.7">...</div>');
+        if (ratingSection.length && !$('.full-start__status.qualview-quality', viewRenderer).length) {
+            ratingSection.append('<div class="full-start__status qualview-quality" style="opacity:0.7">...</div>');
         }
     }
     function removeQualityElements(viewRenderer) {
-        if (!viewRenderer) return;
-        $('.full-start-new__meta-line .full-start__status.qualview-quality', viewRenderer).remove();
+        if (viewRenderer) $('.full-start__status.qualview-quality', viewRenderer).remove();
     }
 
     function applyQualityToItem(itemElement, resQuality) {
@@ -1005,18 +993,24 @@
         }
         return metaLine;
     }
+    function isMobilePortraitMode() {
+        return Lampa.Platform.screen('mobile') && window.matchMedia && window.matchMedia('(orientation: portrait)').matches;
+    }
     function moveDetailMetaToSecondLine(viewRenderer) {
+        if (!isMobilePortraitMode()) return;
         var metaLine = ensureDetailMetaLine(viewRenderer);
         if (!metaLine.length) return;
         var age = $(viewRenderer).find('.full-start__pg').first();
-        var statuses = $(viewRenderer).find('.full-start__status').filter(function () {
+        var nativeStatus = $(viewRenderer).find('.full-start__status').filter(function () {
             var el = $(this);
-            if (el.closest('.full-start-new__rate, .full-start__rate').length) return false;
-            if (el.hasClass('season-info-status')) return false;
+            if (el.closest('.full-start-new__rate, .full-start__rate, .full-start-new__meta-line').length) return false;
+            if (el.hasClass('qualview-quality')) return false;
             return true;
-        });
+        }).first();
+        var quality = $(viewRenderer).find('.full-start__status.qualview-quality').first();
         if (age.length) metaLine.append(age);
-        if (statuses.length) metaLine.append(statuses);
+        if (nativeStatus.length) metaLine.append(nativeStatus);
+        if (quality.length) metaLine.append(quality);
     }
 
     // ===== TYPE LABELS =====
@@ -1132,10 +1126,12 @@
                     if (metaLine.length) {
                         metaLine.find('.season-info-status').remove();
                         var nativeStatus = $(data.object.activity.render()).find('.full-start__status').filter(function () {
-                            return !$(this).closest('.full-start-new__rate, .full-start__rate, .full-start-new__meta-line').length;
+                            var el = $(this);
+                            if (el.hasClass('qualview-quality')) return false;
+                            return !el.closest('.full-start-new__rate, .full-start__rate, .full-start-new__meta-line').length;
                         }).first();
                         if (nativeStatus.length) nativeStatus.addClass('season-info-status');
-                        else metaLine.append(statusLabel);
+                        else if (isMobilePortraitMode()) metaLine.append(statusLabel);
                         moveDetailMetaToSecondLine(data.object.activity.render());
                     }
                 }, 100);
@@ -1572,10 +1568,9 @@
             '@media (max-width:480px) and (orientation:portrait){.full-start-new__rate.rate--lampa,.full-start__rate.rate--lampa{min-width:80px}}' +
             '.card__quality{position:absolute!important;left:0!important;bottom:0!important;padding:0.25em 0.45em!important;border-radius:0 0.75em!important;color:white!important;font-size:1.1em!important;line-height:1!important;z-index:10!important;white-space:nowrap!important}' +
             '.content-label{position:absolute!important;left:0!important;top:0!important;color:white!important;padding:0.25em 0.45em!important;border-radius:0.75em 0!important;font-size:1.1em!important;line-height:1!important;z-index:10!important;display:flex!important;align-items:center!important;justify-content:center!important}' +
-            '.full-start-new__meta-line{display:flex!important;flex-wrap:wrap!important;align-items:center!important;gap:0.35em!important;margin-top:0.35em!important}' +
-            '.full-start-new__meta-line .full-start__status,.full-start-new__meta-line .full-start__pg{margin:0!important;display:inline-flex!important;align-items:center!important;line-height:1!important;white-space:nowrap!important}' +
+            '.full-start-new__meta-line{display:none!important}' +
             '.season-info-label{position:absolute!important;color:#fff!important;padding:0.25em 0.45em!important;font-size:1.1em!important;line-height:1!important;z-index:10!important;white-space:nowrap!important}' +
-            '@media (max-width:480px) and (orientation:portrait){.full-start-new__rate-line{display:flex!important;flex-wrap:wrap!important;row-gap:0.3em!important}.full-start-new__meta-line{display:flex!important;flex-wrap:wrap!important;width:100%!important}.full-start-new__meta-line .full-start__status,.full-start-new__meta-line .full-start__pg{font-size:.95em!important}}' +
+            '@media (max-width:480px) and (orientation:portrait){.full-start-new__rate-line{display:flex!important;flex-wrap:wrap!important;row-gap:0.3em!important}.full-start-new__meta-line{display:flex!important;flex-wrap:wrap!important;align-items:center!important;gap:0.35em!important;width:100%!important;margin-top:0.35em!important}.full-start-new__meta-line .full-start__status,.full-start-new__meta-line .full-start__pg{margin:0!important;display:inline-flex!important;align-items:center!important;line-height:1!important;white-space:nowrap!important;font-size:.95em!important}}' +
             'body[data-movie-labels="on"] .card--tv .card__type{display:none!important}';
         document.head.appendChild(style);
 
