@@ -901,13 +901,21 @@
 
     function fetchOptimalRelease(normalizedItem, itemId, onComplete) {
         var source = Lampa.Storage.get('quality_source', 'both');
-        if (source === 'alloha') { fetchAllohaQuality(normalizedItem, onComplete); }
-        else if (source === 'jacred') { fetchJacRed(normalizedItem, itemId, onComplete); }
-        else {
+        function completeWithFallback(result) {
+            if (result && result.quality) onComplete(result);
+            else fetchAllohaQuality(normalizedItem, onComplete);
+        }
+        if (source === 'alloha') {
+            fetchAllohaQuality(normalizedItem, onComplete);
+        }
+        else if (source === 'jacred') {
             fetchJacRed(normalizedItem, itemId, function (result) {
                 if (result && result.quality) onComplete(result);
                 else fetchAllohaQuality(normalizedItem, onComplete);
             });
+        }
+        else {
+            fetchJacRed(normalizedItem, itemId, completeWithFallback);
         }
     }
     function retrieveQualityCache(entryKey) {
@@ -921,7 +929,15 @@
         Lampa.Storage.set(QUALITY_CACHE_KEY, storedCache);
     }
     function loadQualityForDetail(item, viewRenderer) {
-        var standardizedItem = { id: item.id, title: item.title || item.name || '', original_title: item.original_title || item.original_name || '', release_date: item.release_date || item.first_air_date || '', type: determineType(item) };
+        var standardizedItem = {
+            id: item.id,
+            title: item.title || item.name || '',
+            original_title: item.original_title || item.original_name || '',
+            release_date: item.release_date || item.first_air_date || '',
+            type: determineType(item),
+            kinopoisk_id: item.kinopoisk_id || item.kp_id || item.kinopoiskId || '',
+            imdb_id: item.imdb_id || item.imdbId || ''
+        };
         var cacheEntryKey = standardizedItem.type + '_' + standardizedItem.id;
         var cachedQuality = retrieveQualityCache(cacheEntryKey);
         if (cachedQuality) { refreshDetailQuality(cachedQuality.quality, viewRenderer); }
@@ -973,7 +989,15 @@
             if (itemElement.hasAttribute('data-quality-added')) continue;
             var itemInfo = itemElement.card_data;
             if (!itemInfo) continue;
-            var stdInfo = { id: itemInfo.id || '', title: itemInfo.title || itemInfo.name || '', original_title: itemInfo.original_title || itemInfo.original_name || '', release_date: itemInfo.release_date || itemInfo.first_air_date || '', type: determineType(itemInfo) };
+            var stdInfo = {
+                id: itemInfo.id || '',
+                title: itemInfo.title || itemInfo.name || '',
+                original_title: itemInfo.original_title || itemInfo.original_name || '',
+                release_date: itemInfo.release_date || itemInfo.first_air_date || '',
+                type: determineType(itemInfo),
+                kinopoisk_id: itemInfo.kinopoisk_id || itemInfo.kp_id || itemInfo.kinopoiskId || '',
+                imdb_id: itemInfo.imdb_id || itemInfo.imdbId || ''
+            };
             (function (currElement, sInfo, entryKey) {
                 var cachedEntry = retrieveQualityCache(entryKey);
                 if (cachedEntry) { applyQualityToItem(currElement, cachedEntry.quality); }
