@@ -1273,20 +1273,19 @@
         if (window.__card_overlay_modal_style__) return;
         window.__card_overlay_modal_style__ = true;
         var css =
-            ".comodal{display:flex;flex-direction:column;gap:.7em}\n" +
+            ".comodal{display:flex;flex-direction:column;gap:.7em;padding-right:1em}\n" +
             ".comodal__section{font-size:.85em;opacity:.55;text-align:center;padding:.2em 0}\n" +
             ".comodal__divider{border-top:1px solid rgba(255,255,255,.08);margin-top:.2em}\n" +
-            ".comodal__item{display:flex;align-items:center;justify-content:space-between;gap:1em;padding:.7em 1em;border-radius:.7em;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);cursor:pointer;user-select:none}\n" +
+            ".comodal__item{display:flex;align-items:center;justify-content:space-between;gap:1em;padding:.7em 1em .7em 1em;border-radius:.7em;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);cursor:pointer;user-select:none;box-sizing:border-box}\n" +
             ".comodal__item.focus{border-color:#fff!important;background:rgba(255,255,255,.1)}\n" +
             ".comodal__label{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:1em}\n" +
             ".comodal__value{font-size:.95em;opacity:.85;white-space:nowrap;flex-shrink:0}\n" +
-            ".comodal__num-row{display:flex;align-items:center;gap:.4em;padding:.7em 1em;border-radius:.7em;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08)}\n" +
-            ".comodal__num-row.focus{border-color:#fff!important;background:rgba(255,255,255,.1)}\n" +
+            ".comodal__num-row{display:flex;align-items:center;gap:.4em;padding:.7em 1em .7em 1em;border-radius:.7em;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);box-sizing:border-box}\n" +
             ".comodal__num-row .comodal__label{flex:1}\n" +
-            ".comodal__btn{padding:.55em .9em;border-radius:.6em;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);cursor:pointer;user-select:none;font-size:.95em;line-height:1}\n" +
+            ".comodal__btn{padding:.55em .9em;border-radius:.6em;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);cursor:pointer;user-select:none;font-size:.95em;line-height:1;box-sizing:border-box}\n" +
             ".comodal__btn.focus{border-color:#fff!important}\n" +
             ".comodal__num-val{min-width:2.5em;text-align:center;opacity:.9}\n" +
-            ".comodal__action{display:block;text-align:center;padding:.6em 1em;border-radius:.7em;cursor:pointer;user-select:none;font-size:1em}\n" +
+            ".comodal__action{display:block;text-align:center;padding:.6em 1em;border-radius:.7em;cursor:pointer;user-select:none;font-size:1em;box-sizing:border-box}\n" +
             ".comodal__action--reset{background:rgba(200,100,80,.45);border:1px solid rgba(255,255,255,.15)}\n" +
             ".comodal__action--reset.focus{border-color:#fff!important}\n" +
             ".comodal__action--close{background:rgba(66,133,244,.55);border:1px solid rgba(255,255,255,.15)}\n" +
@@ -1341,10 +1340,10 @@
                 var current = parseFloat(Lampa.Storage.get(storageKey, defaultVal));
                 var val = isNaN(current) ? defaultVal : Math.max(min, Math.min(max, current));
                 Lampa.Storage.set(storageKey, String(val));
-                var row = $('<div class="comodal__num-row selector" tabindex="0"></div>');
+                var row = $('<div class="comodal__num-row"></div>');
                 row.append($('<div class="comodal__label"></div>').text(label));
-                var btnMinus = $('<div class="comodal__btn selector" tabindex="0">−</div>');
                 var valEl = $('<div class="comodal__num-val"></div>').text(val + (suffix || ''));
+                var btnMinus = $('<div class="comodal__btn selector" tabindex="0">−</div>');
                 var btnPlus = $('<div class="comodal__btn selector" tabindex="0">+</div>');
                 row.append(btnMinus).append(valEl).append(btnPlus);
                 function applyChange(delta) { var num = parseFloat(Lampa.Storage.get(storageKey, defaultVal)); num = isNaN(num) ? defaultVal : num; var next = Math.max(min, Math.min(max, num + delta)); Lampa.Storage.set(storageKey, String(next)); valEl.text(next + (suffix || '')); scheduleSettingsRefresh(); }
