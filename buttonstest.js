@@ -2461,11 +2461,11 @@
             '.menu-edit-list__item .menu-edit-list__icon{width:2.5em;min-width:2.5em;height:2.5em;display:flex;align-items:center;justify-content:center;box-sizing:border-box}' +
             '.menu-edit-list__item .menu-edit-list__icon svg{width:1.4em;height:1.4em}' +
             '.menu-edit-list__item .menu-edit-list__title{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:inherit;font-size:inherit}' +
-            '.menu-edit-list__item .menu-edit-list__move,.menu-edit-list__item .menu-edit-list__change-name,.menu-edit-list__item .menu-edit-list__change-icon,.menu-edit-list__item .menu-edit-list__change-color,.menu-edit-list__item .menu-edit-list__toggle,.menu-edit-list__item .menu-edit-list__delete{width:2.4em;min-width:2.4em;height:2.4em;display:flex;align-items:center;justify-content:center;box-sizing:border-box;border:1px solid rgba(255,255,255,.2);border-radius:.6em;background:rgba(255,255,255,.1)}' +
+            '.menu-edit-list__item .menu-edit-list__move,.menu-edit-list__item .menu-edit-list__change-name,.menu-edit-list__item .menu-edit-list__change-icon,.menu-edit-list__item .menu-edit-list__change-color,.menu-edit-list__item .menu-edit-list__toggle,.menu-edit-list__item .menu-edit-list__delete{width:2.4em;min-width:2.4em;height:2.4em;display:flex;align-items:center;justify-content:center;box-sizing:border-box;border:none;border-radius:.55em;background:rgba(255,255,255,.08);cursor:pointer;user-select:none;position:relative;box-shadow:inset 0 0 0 1px rgba(255,255,255,.22),0 .12em .45em rgba(0,0,0,.35);transition:transform .12s ease,box-shadow .12s ease}' +
             '.menu-edit-list__item .menu-edit-list__move svg{width:1.2em;height:.75em}' +
             '.menu-edit-list__item .menu-edit-list__toggle svg{width:1.2em;height:1.2em}' +
             '.menu-edit-list__item .menu-edit-list__change-name svg,.menu-edit-list__item .menu-edit-list__change-icon svg,.menu-edit-list__item .menu-edit-list__change-color svg{width:1.2em;height:1.2em}' +
-            '.menu-edit-list__move.focus,.menu-edit-list__change-name.focus,.menu-edit-list__change-icon.focus,.menu-edit-list__change-color.focus,.menu-edit-list__toggle.focus,.menu-edit-list__delete.focus{border-color:#fff!important}' +
+            '.menu-edit-list__move.focus,.menu-edit-list__change-name.focus,.menu-edit-list__change-icon.focus,.menu-edit-list__change-color.focus,.menu-edit-list__toggle.focus,.menu-edit-list__delete.focus{transform:scale(1.06);z-index:1;border:none;box-shadow:inset 0 0 0 1px rgba(0,0,0,.45),0 0 0 2px rgba(10,20,30,.95),0 0 0 4px rgba(77,208,225,.95),0 .2em .55em rgba(0,0,0,.45)!important}' +
             '.viewmode-switch:not(.menu-edit-list__toolbar-block),.folder-reset-button{max-width:100%;box-sizing:border-box;white-space:normal;word-break:break-word;font-family:inherit;font-size:inherit}' +
             '.folder-reset-button{background:rgba(200,100,80,.45);margin-top:.5em;border-radius:.7em;border:1px solid rgba(255,255,255,.15);display:flex;flex-direction:row;align-items:center;justify-content:center;gap:0;min-height:3.2em;padding:.6em 1em;box-sizing:border-box;width:100%;max-width:100%;cursor:pointer;user-select:none}' +
             '.folder-reset-button.focus{border-color:#fff!important}' +
@@ -2523,8 +2523,8 @@
             '.icon-picker-default.focus{border-color:#fff!important;background:rgba(255,255,255,.1)}' +
             '.icon-picker-default__preview{width:2.2em;height:2.2em;min-width:2.2em;display:flex;align-items:center;justify-content:center;flex-shrink:0}' +
             '.icon-picker-default__preview svg{width:1.4em;height:1.4em}' +
-            '.buttons-plugin-icon-picker.icon-picker-wrap{min-width:22em;width:100%;min-height:11em;box-sizing:border-box;padding-right:1em}' +
-            '.icon-picker-wrap{width:100%;display:grid;grid-template-columns:repeat(auto-fill,minmax(2.5em,1fr));gap:.35em;align-content:start}' +
+            '.buttons-plugin-icon-picker.icon-picker-wrap{min-width:22em;width:100%;min-height:11em;box-sizing:border-box;padding-right:1em;overflow:visible}' +
+            '.icon-picker-wrap{width:100%;display:grid;grid-template-columns:repeat(auto-fill,minmax(2.5em,1fr));gap:.35em;align-content:start;padding:0 .35em;overflow:visible}' +
             '.icon-picker-wrap .icon-picker-default,.icon-picker-wrap .icon-picker-switch-wrap,.icon-picker-wrap .icon-picker-load-status{grid-column:1/-1}' +
             '.icon-picker-view-lampa .icon-picker-cell-alt{display:none!important}' +
             '.icon-picker-view-alt .icon-picker-cell-lampa{display:none!important}' +
