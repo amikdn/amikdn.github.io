@@ -1220,7 +1220,7 @@
     // ===== THEMES =====
     // ===== COLORED ELEMENTS =====
     function isColoredElementsOn() { return isTriggerOn('colored_elements', true); }
-    function colorizeSeriesStatus() {
+    function colorizeSeriesStatus(render) {
         if (!isColoredElementsOn()) return;
         var map = { completed: { bg: 'rgba(46,204,113,0.8)', text: 'white' }, canceled: { bg: 'rgba(231,76,60,0.8)', text: 'white' }, ongoing: { bg: 'rgba(243,156,18,0.8)', text: 'black' }, production: { bg: 'rgba(52,152,219,0.8)', text: 'white' }, planned: { bg: 'rgba(155,89,182,0.8)', text: 'white' }, pilot: { bg: 'rgba(230,126,34,0.8)', text: 'white' }, released: { bg: 'rgba(26,188,156,0.8)', text: 'white' }, rumored: { bg: 'rgba(149,165,166,0.8)', text: 'white' }, post: { bg: 'rgba(0,188,212,0.8)', text: 'white' } };
         function apply(el) {
@@ -1236,10 +1236,10 @@
             else if (t.includes('скоро') || t.includes('post')) cfg = map.post;
             if (cfg) $(el).css({ backgroundColor: cfg.bg, color: cfg.text, borderRadius: '0.3em', padding: '0.2em 0.4em', display: 'inline-block', lineHeight: '1', whiteSpace: 'nowrap' });
         }
-        $('.full-start__status').each(function () { apply(this); });
-        Lampa.Listener.follow('full', function (d) { if (d.type === 'complite') setTimeout(function () { $(d.object.activity.render()).find('.full-start__status').each(function () { apply(this); }); }, 100); });
+        var scope = render ? $(render) : $(document);
+        scope.find('.full-start__status').each(function () { apply(this); });
     }
-    function colorizeAgeRating() {
+    function colorizeAgeRating(render) {
         if (!isColoredElementsOn()) return;
         var groups = { kids: ['G', 'TV-Y', '0+', '3+'], children: ['PG', 'TV-PG', '6+', '7+'], teens: ['PG-13', 'TV-14', '12+', '13+', '14+'], almostAdult: ['R', '16+', '17+'], adult: ['NC-17', '18+', 'X'] };
         var colors = { kids: { bg: '#2ecc71', text: 'white' }, children: { bg: '#3498db', text: 'white' }, teens: { bg: '#f1c40f', text: 'black' }, almostAdult: { bg: '#e67e22', text: 'white' }, adult: { bg: '#e74c3c', text: 'white' } };
@@ -1249,8 +1249,8 @@
             for (var key in groups) { groups[key].forEach(function (r) { if (t.includes(r)) grp = key; }); if (grp) break; }
             if (grp) $(el).css({ backgroundColor: colors[grp].bg, color: colors[grp].text, borderRadius: '0.3em', padding: '0.2em 0.4em', display: 'inline-block', lineHeight: '1', whiteSpace: 'nowrap' });
         }
-        $('.full-start__pg').each(function () { apply(this); });
-        Lampa.Listener.follow('full', function (d) { if (d.type === 'complite') setTimeout(function () { $(d.object.activity.render()).find('.full-start__pg').each(function () { apply(this); }); }, 100); });
+        var scope = render ? $(render) : $(document);
+        scope.find('.full-start__pg').each(function () { apply(this); });
     }
 
     // ===== SETTINGS MODAL =====
@@ -1456,7 +1456,11 @@
             onChange: function (v) {
                 Lampa.Settings.update();
                 if (isTriggerOn('colored_elements', true)) { colorizeSeriesStatus(); colorizeAgeRating(); colorizeDetailQuality(); }
-                else { $('.full-start__status').css({ backgroundColor: '', color: '', borderRadius: '', display: '' }); $('.full-start__pg').css({ backgroundColor: '', color: '' }); }
+                else {
+                    $('.full-start__status').not('.qualview-quality').css({ backgroundColor: '', color: '', borderRadius: '', display: '', padding: '', lineHeight: '', whiteSpace: '' });
+                    $('.full-start__pg').css({ backgroundColor: '', color: '', borderRadius: '', padding: '', lineHeight: '', whiteSpace: '' });
+                    colorizeDetailQuality();
+                }
             }
         });
 
@@ -1729,7 +1733,7 @@
                     setTimeout(function () { moveDetailMetaToSecondLine(render); }, 150);
                 }
                 scheduleVisibleRatingsUpdate(0);
-                setTimeout(function () { colorizeFullCardRatings(render); colorizeDetailQuality(); }, 100);
+                setTimeout(function () { colorizeFullCardRatings(render); colorizeSeriesStatus(render); colorizeAgeRating(render); colorizeDetailQuality(); }, 100);
             }
         });
 
