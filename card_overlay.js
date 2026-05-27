@@ -56,10 +56,10 @@
         var alpha = getOverlayAlpha();
         var v = parseFloat(String(value).replace(',', '.'));
         if (isNaN(v) || v <= 0) return 'rgba(0,0,0,' + alpha + ')';
-        if (v <= 3) return 'rgba(180,0,0,' + alpha + ')';
-        if (v < 6) return 'rgba(200,120,0,' + alpha + ')';
-        if (v < 8) return 'rgba(70,130,180,' + alpha + ')';
-        return 'rgba(80,180,0,' + alpha + ')';
+        if (v <= 3) return 'rgba(231,76,60,' + alpha + ')';
+        if (v < 6) return 'rgba(243,156,18,' + alpha + ')';
+        if (v < 8) return 'rgba(52,152,219,' + alpha + ')';
+        return 'rgba(46,204,113,' + alpha + ')';
     }
     function getYearPositionCSS() {
         var pos = Lampa.Storage.get('rating_position', 'bottom');
