@@ -46,10 +46,10 @@
         if (!isColoredRatingsPosterOn()) return '#fff';
         var v = parseFloat(String(value).replace(',', '.'));
         if (isNaN(v) || v <= 0) return '#fff';
-        if (v <= 3) return 'red';
-        if (v < 6) return 'orange';
-        if (v < 8) return 'cornflowerblue';
-        return 'lawngreen';
+        if (v <= 3) return 'rgba(231,76,60,0.8)';
+        if (v < 6) return 'rgba(243,156,18,0.8)';
+        if (v < 8) return 'rgba(52,152,219,0.8)';
+        return 'rgba(46,204,113,0.8)';
     }
     function getRatingBackgroundColor(value) {
         if (!isTriggerOn('rating_colored_windows', false)) return '';
@@ -789,7 +789,7 @@
             var el = $(this); if (el.closest('.explorer').length) return;
             var text = el.text().trim(); var m = text.match(/(\d+[\.,]\d+|\d+)/); if (!m) return;
             var v = parseFloat(m[0].replace(',', '.')); if (isNaN(v)) return;
-            el.css('color', v <= 3 ? 'red' : v < 6 ? 'orange' : v < 8 ? 'cornflowerblue' : 'lawngreen');
+            el.css('color', v <= 3 ? 'rgba(231,76,60,0.8)' : v < 6 ? 'rgba(243,156,18,0.8)' : v < 8 ? 'rgba(52,152,219,0.8)' : 'rgba(46,204,113,0.8)');
         });
     }
     function insertLampaBlock(render) {
