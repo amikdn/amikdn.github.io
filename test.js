@@ -1035,6 +1035,16 @@
             })(itemElement, stdInfo, stdInfo.type + '_' + stdInfo.id);
         }
     }
+    function refreshAllQualityLabels() {
+        var allCards = document.querySelectorAll('.card');
+        for (var i = 0; i < allCards.length; i++) {
+            allCards[i].removeAttribute('data-quality-added');
+            var existing = allCards[i].querySelectorAll('.card__quality');
+            for (var j = 0; j < existing.length; j++) existing[j].remove();
+        }
+        if (isQualityShowOn()) processQualityForCards(allCards);
+    }
+
     function ensureDetailMetaLine(viewRenderer) {
         if (!viewRenderer) return $();
         var render = $(viewRenderer);
