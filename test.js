@@ -1672,19 +1672,19 @@
                             if (cached.medianReaction && isTriggerOn('animated_reactions', false)) $(render).find('.rate--lampa').addClass('rate--lampa--animated');
                             colorizeFullCardRatings(render);
                             scheduleVisibleRatingsUpdate(0);
-                            return;
-                        }
-                        addToQueue(function () {
-                            getLampaRating(ratingKey).then(function (result) {
-                                if (result.rating !== null && result.rating > 0) {
-                                    $(render).find('.rate--lampa .rate-value').text(formatRating(result.rating));
-                                    renderLampaFullIcon($(render), result.medianReaction);
-                                    if (result.medianReaction && isTriggerOn('animated_reactions', false)) $(render).find('.rate--lampa').addClass('rate--lampa--animated');
-                                } else { $(render).find('.rate--lampa').hide(); }
-                                colorizeFullCardRatings(render);
-                                scheduleVisibleRatingsUpdate(0);
+                        } else {
+                            addToQueue(function () {
+                                getLampaRating(ratingKey).then(function (result) {
+                                    if (result.rating !== null && result.rating > 0) {
+                                        $(render).find('.rate--lampa .rate-value').text(formatRating(result.rating));
+                                        renderLampaFullIcon($(render), result.medianReaction);
+                                        if (result.medianReaction && isTriggerOn('animated_reactions', false)) $(render).find('.rate--lampa').addClass('rate--lampa--animated');
+                                    } else { $(render).find('.rate--lampa').hide(); }
+                                    colorizeFullCardRatings(render);
+                                    scheduleVisibleRatingsUpdate(0);
+                                });
                             });
-                        });
+                        }
                     }
                 }
                 if (render && event.data.movie) {
