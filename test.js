@@ -1017,14 +1017,29 @@
         }
         return metaLine;
     }
-    function isMobilePortraitMode() {
-        return Lampa.Platform.screen('mobile') && window.matchMedia && window.matchMedia('(orientation: portrait)').matches;
+    function isMobileDevice() {
+        return Lampa.Platform.screen('mobile');
+    }
+    function repositionDetailMeta() {
+        if (!isMobileDevice()) {
+            $('.full-start-new__meta-line').each(function () {
+                var metaLine = $(this);
+                var rateLine = metaLine.prev('.full-start-new__rate-line');
+                metaLine.children().each(function () { rateLine.append(this); });
+                metaLine.remove();
+            });
+            return;
+        }
+        var fullRender = document.querySelector('.full-start, .full-start-new');
+        if (fullRender) moveDetailMetaToSecondLine(fullRender);
     }
     function moveDetailMetaToSecondLine(viewRenderer) {
-        if (!isMobilePortraitMode()) return;
+        if (!isMobileDevice()) return;
         var metaLine = ensureDetailMetaLine(viewRenderer);
         if (!metaLine.length) return;
-        var age = $(viewRenderer).find('.full-start__pg').first();
+        var age = $(viewRenderer).find('.full-start__pg').filter(function () {
+            return $.trim($(this).text()).length > 0;
+        }).first();
         var nativeStatus = $(viewRenderer).find('.full-start__status').filter(function () {
             var el = $(this);
             if (el.closest('.full-start-new__rate, .full-start__rate, .full-start-new__meta-line').length) return false;
@@ -1035,6 +1050,7 @@
         if (age.length) metaLine.append(age);
         if (nativeStatus.length) metaLine.append(nativeStatus);
         if (quality.length) metaLine.append(quality);
+        if (!metaLine.children().length) metaLine.remove();
     }
 
     // ===== TYPE LABELS =====
@@ -1155,7 +1171,7 @@
                             return !el.closest('.full-start-new__rate, .full-start__rate, .full-start-new__meta-line').length;
                         }).first();
                         if (nativeStatus.length) nativeStatus.addClass('season-info-status');
-                        else if (isMobilePortraitMode()) metaLine.append(statusLabel);
+                        else if (isMobileDevice()) metaLine.append(statusLabel);
                         moveDetailMetaToSecondLine(data.object.activity.render());
                     }
                 }, 100);
@@ -1594,7 +1610,7 @@
             '.content-label{position:absolute!important;left:0!important;top:0!important;color:white!important;padding:0.25em 0.45em!important;border-radius:0.75em 0!important;font-size:1.1em!important;line-height:1!important;z-index:10!important;display:flex!important;align-items:center!important;justify-content:center!important}' +
             '.full-start-new__meta-line{display:none!important}' +
             '.season-info-label{position:absolute!important;color:#fff!important;padding:0.25em 0.45em!important;font-size:1.1em!important;line-height:1!important;z-index:10!important;white-space:nowrap!important}' +
-            '@media (max-width:480px) and (orientation:portrait){.full-start-new__rate-line{display:flex!important;flex-wrap:wrap!important;row-gap:0.3em!important}.full-start-new__meta-line{display:flex!important;flex-wrap:wrap!important;align-items:center!important;gap:0.35em!important;width:100%!important;margin-top:0.35em!important}.full-start-new__meta-line .full-start__status,.full-start-new__meta-line .full-start__pg{margin:0!important;display:inline-flex!important;align-items:center!important;line-height:1!important;white-space:nowrap!important;font-size:.95em!important}}' +
+            '@media (max-width:1024px){.full-start-new__rate-line{display:flex!important;flex-wrap:wrap!important;align-items:center!important;gap:0.25em!important}.full-start-new__meta-line{display:flex!important;flex-wrap:wrap!important;align-items:center!important;gap:0.25em!important;width:100%!important;margin-top:0.1em!important}.full-start-new__meta-line .full-start__status,.full-start-new__meta-line .full-start__pg{margin:0!important;display:inline-flex!important;align-items:center!important;line-height:1!important;white-space:nowrap!important;font-size:.9em!important}}' +
             'body[data-movie-labels="on"] .card--tv .card__type{display:none!important}';
         document.head.appendChild(style);
 
@@ -1611,8 +1627,9 @@
             var code = e && (e.code || e.key);
             if (code === 'PageUp' || code === 'PageDown') scheduleVisibleRatingsUpdate(120);
         }, { passive: true });
-        window.addEventListener('resize', function () { scheduleVisibleRatingsUpdate(0); }, { passive: true });
-        document.addEventListener('visibilitychange', function () { if (!document.hidden) scheduleVisibleRatingsUpdate(0); });
+        window.addEventListener('resize', function () { scheduleVisibleRatingsUpdate(0); repositionDetailMeta(); }, { passive: true });
+        window.addEventListener('orientationchange', function () { setTimeout(repositionDetailMeta, 150); }, { passive: true });
+        document.addEventListener('visibilitychange', function () { if (!document.hidden) { scheduleVisibleRatingsUpdate(0); repositionDetailMeta(); } });
 
         Lampa.Listener.follow('card', function (event) {
             if (event.type === 'build' && event.object.card) {
