@@ -945,21 +945,21 @@
     }
     function refreshDetailQuality(resQuality, viewRenderer) {
         if (!viewRenderer) return;
-        var ratingSection = $('.full-start-new__rate-line', viewRenderer);
-        if (!ratingSection.length) return;
         var qualityDisplay = $('.full-start__status.qualview-quality', viewRenderer);
         if (qualityDisplay.length) {
-            qualityDisplay.text(resQuality).css('opacity', '1');
+            qualityDisplay.text(resQuality).css({ opacity: '1', backgroundColor: getQualityBackground(resQuality) });
         }
         else {
-            ratingSection.append('<div class="full-start__status qualview-quality">' + resQuality + '</div>');
+            var ratingSection = $('.full-start-new__rate-line', viewRenderer);
+            if (!ratingSection.length) return;
+            ratingSection.append('<div class="full-start__status qualview-quality" style="background-color:' + getQualityBackground(resQuality) + ';color:white;border-radius:0.3em;padding:0.2em 0.4em;display:inline-block;line-height:1;white-space:nowrap">' + resQuality + '</div>');
         }
     }
     function displayQualityLoader(viewRenderer) {
         if (!viewRenderer) return;
         var ratingSection = $('.full-start-new__rate-line', viewRenderer);
         if (ratingSection.length && !$('.full-start__status.qualview-quality', viewRenderer).length) {
-            ratingSection.append('<div class="full-start__status qualview-quality" style="opacity:0.7">...</div>');
+            ratingSection.append('<div class="full-start__status qualview-quality" style="opacity:0.7;border-radius:0.3em;padding:0.2em 0.4em;display:inline-block;line-height:1;white-space:nowrap">...</div>');
         }
     }
     function removeQualityElements(viewRenderer) {
@@ -1017,24 +1017,24 @@
         }
         return metaLine;
     }
-    function isMobileDevice() {
-        return Lampa.Platform.screen('mobile');
+    function isMobilePortrait() {
+        return Lampa.Platform.screen('mobile') && window.matchMedia && window.matchMedia('(orientation: portrait)').matches;
     }
     function repositionDetailMeta() {
-        if (!isMobileDevice()) {
+        if (isMobilePortrait()) {
+            var fullRender = document.querySelector('.full-start, .full-start-new');
+            if (fullRender) moveDetailMetaToSecondLine(fullRender);
+        } else {
             $('.full-start-new__meta-line').each(function () {
                 var metaLine = $(this);
                 var rateLine = metaLine.prev('.full-start-new__rate-line');
                 metaLine.children().each(function () { rateLine.append(this); });
                 metaLine.remove();
             });
-            return;
         }
-        var fullRender = document.querySelector('.full-start, .full-start-new');
-        if (fullRender) moveDetailMetaToSecondLine(fullRender);
     }
     function moveDetailMetaToSecondLine(viewRenderer) {
-        if (!isMobileDevice()) return;
+        if (!isMobilePortrait()) return;
         var metaLine = ensureDetailMetaLine(viewRenderer);
         if (!metaLine.length) return;
         var age = $(viewRenderer).find('.full-start__pg').filter(function () {
@@ -1171,7 +1171,7 @@
                             return !el.closest('.full-start-new__rate, .full-start__rate, .full-start-new__meta-line').length;
                         }).first();
                         if (nativeStatus.length) nativeStatus.addClass('season-info-status');
-                        else if (isMobileDevice()) metaLine.append(statusLabel);
+                        else if (isMobilePortrait()) metaLine.append(statusLabel);
                         moveDetailMetaToSecondLine(data.object.activity.render());
                     }
                 }, 100);
@@ -1610,7 +1610,7 @@
             '.content-label{position:absolute!important;left:0!important;top:0!important;color:white!important;padding:0.25em 0.45em!important;border-radius:0.75em 0!important;font-size:1.1em!important;line-height:1!important;z-index:10!important;display:flex!important;align-items:center!important;justify-content:center!important}' +
             '.full-start-new__meta-line{display:none!important}' +
             '.season-info-label{position:absolute!important;color:#fff!important;padding:0.25em 0.45em!important;font-size:1.1em!important;line-height:1!important;z-index:10!important;white-space:nowrap!important}' +
-            '@media (max-width:1024px){.full-start-new__rate-line{display:flex!important;flex-wrap:wrap!important;align-items:center!important;gap:0.25em!important}.full-start-new__meta-line{display:flex!important;flex-wrap:wrap!important;align-items:center!important;gap:0.25em!important;width:100%!important;margin-top:0.1em!important}.full-start-new__meta-line .full-start__status,.full-start-new__meta-line .full-start__pg{margin:0!important;display:inline-flex!important;align-items:center!important;line-height:1!important;white-space:nowrap!important;font-size:.9em!important}}' +
+            '@media (max-width:480px) and (orientation:portrait){.full-start-new__rate-line{display:flex!important;flex-wrap:wrap!important;align-items:center!important;gap:0.2em!important}.full-start-new__meta-line{display:flex!important;flex-wrap:wrap!important;align-items:center!important;gap:0.2em!important;width:100%!important;line-height:1!important;font-size:1em!important}.full-start-new__meta-line .full-start__status,.full-start-new__meta-line .full-start__pg{margin:0!important;display:inline-flex!important;align-items:center!important;line-height:1!important;white-space:nowrap!important}}' +
             'body[data-movie-labels="on"] .card--tv .card__type{display:none!important}';
         document.head.appendChild(style);
 
