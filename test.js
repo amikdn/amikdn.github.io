@@ -943,23 +943,24 @@
         if (cachedQuality) { refreshDetailQuality(cachedQuality.quality, viewRenderer); }
         else { displayQualityLoader(viewRenderer); fetchOptimalRelease(standardizedItem, standardizedItem.id, function (releaseResult) { var q = (releaseResult && releaseResult.quality) || null; if (q && q !== 'NO') { storeQualityCache(cacheEntryKey, { quality: q }); refreshDetailQuality(q, viewRenderer); } else { removeQualityElements(viewRenderer); } }); }
     }
+    var qualityBadgeStyle = 'border-radius:0.3em;padding:0.2em 0.4em;display:inline-block;line-height:1;white-space:nowrap;color:white;';
     function refreshDetailQuality(resQuality, viewRenderer) {
         if (!viewRenderer) return;
         var qualityDisplay = $('.full-start__status.qualview-quality', viewRenderer);
         if (qualityDisplay.length) {
-            qualityDisplay.text(resQuality).css({ opacity: '1', backgroundColor: getQualityBackground(resQuality) });
+            qualityDisplay.text(resQuality).attr('style', qualityBadgeStyle + 'background-color:' + getQualityBackground(resQuality));
         }
         else {
             var ratingSection = $('.full-start-new__rate-line', viewRenderer);
             if (!ratingSection.length) return;
-            ratingSection.append('<div class="full-start__status qualview-quality" style="background-color:' + getQualityBackground(resQuality) + ';color:white;border-radius:0.3em;padding:0.2em 0.4em;display:inline-block;line-height:1;white-space:nowrap">' + resQuality + '</div>');
+            ratingSection.append('<div class="full-start__status qualview-quality" style="' + qualityBadgeStyle + 'background-color:' + getQualityBackground(resQuality) + '">' + resQuality + '</div>');
         }
     }
     function displayQualityLoader(viewRenderer) {
         if (!viewRenderer) return;
         var ratingSection = $('.full-start-new__rate-line', viewRenderer);
         if (ratingSection.length && !$('.full-start__status.qualview-quality', viewRenderer).length) {
-            ratingSection.append('<div class="full-start__status qualview-quality" style="opacity:0.7;border-radius:0.3em;padding:0.2em 0.4em;display:inline-block;line-height:1;white-space:nowrap">...</div>');
+            ratingSection.append('<div class="full-start__status qualview-quality" style="' + qualityBadgeStyle + 'opacity:0.7">...</div>');
         }
     }
     function removeQualityElements(viewRenderer) {
