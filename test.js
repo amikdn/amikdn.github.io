@@ -82,7 +82,7 @@
 
     function getQualityBackground(quality) {
         var alpha = getOverlayAlpha();
-        if (!isQualityColoredOn() && !isColoredElementsOn()) return 'rgba(0,0,0,' + alpha + ')';
+        if (!isQualityColoredOn()) return 'rgba(0,0,0,' + alpha + ')';
         switch (quality) {
             case '4K': return 'rgba(46,204,113,' + alpha + ')';
             case 'FHD': return 'rgba(52,152,219,' + alpha + ')';
@@ -90,6 +90,17 @@
             case 'SD': return 'rgba(231,76,60,' + alpha + ')';
             case 'TS': return 'rgba(180,0,0,' + alpha + ')';
             default: return 'rgba(0,0,0,' + alpha + ')';
+        }
+    }
+    function getDetailQualityColor(quality) {
+        if (!isColoredElementsOn()) return { bg: 'rgba(100,100,100,0.8)', text: 'white' };
+        switch (quality) {
+            case '4K': return { bg: 'rgba(46,204,113,0.8)', text: 'white' };
+            case 'FHD': return { bg: 'rgba(52,152,219,0.8)', text: 'white' };
+            case 'HD': return { bg: 'rgba(243,156,18,0.8)', text: 'white' };
+            case 'SD': return { bg: 'rgba(231,76,60,0.8)', text: 'white' };
+            case 'TS': return { bg: 'rgba(180,0,0,0.8)', text: 'white' };
+            default: return { bg: 'rgba(100,100,100,0.8)', text: 'white' };
         }
     }
     function getTypeLabelBackground(isTV) {
@@ -947,15 +958,16 @@
     var qualityBadgeStyle = badgeBaseStyle + 'color:white;';
     function refreshDetailQuality(resQuality, viewRenderer) {
         if (!viewRenderer) return;
+        var colors = getDetailQualityColor(resQuality);
         var qualityDisplay = $('.full-start__status.qualview-quality', viewRenderer);
         if (qualityDisplay.length) {
-            qualityDisplay.text(resQuality).css({ backgroundColor: getQualityBackground(resQuality), color: 'white', opacity: '1' });
+            qualityDisplay.text(resQuality).css({ backgroundColor: colors.bg, color: colors.text, opacity: '1' });
         }
         else {
             var ratingSection = $('.full-start-new__rate-line', viewRenderer);
             if (!ratingSection.length) return;
             var newEl = $('<div class="full-start__status qualview-quality">' + resQuality + '</div>');
-            newEl.css({ backgroundColor: getQualityBackground(resQuality), color: 'white' });
+            newEl.css({ backgroundColor: colors.bg, color: colors.text });
             ratingSection.append(newEl);
         }
         var detailsSection = $('.full-start-new__details', viewRenderer);
@@ -1074,7 +1086,8 @@
             var el = $(this);
             var text = el.text().trim();
             if (!text || text === '...') return;
-            el.css({ backgroundColor: getQualityBackground(text), color: 'white' });
+            var colors = getDetailQualityColor(text);
+            el.css({ backgroundColor: colors.bg, color: colors.text });
         });
     }
 
@@ -1712,8 +1725,6 @@
                 }
                 if (render && event.data.movie) {
                     if (isQualityShowOn()) loadQualityForDetail(event.data.movie, render);
-                    var poster = $(render).find('.full-start-new__poster');
-                    if (poster.length) addTypeLabelToDetail(poster, event.data.movie);
                     moveDetailMetaToSecondLine(render);
                     setTimeout(function () { moveDetailMetaToSecondLine(render); }, 150);
                 }
