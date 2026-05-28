@@ -314,9 +314,11 @@
     function renderLampaFullIcon($scope, medianReaction) {
         var icon = $scope.find('.rate--lampa .rate-icon');
         if (!icon.length) return;
+        if (medianReaction) icon.attr('data-median-reaction', medianReaction);
         if (!isTriggerOn('lampa_rating_icon', true)) { icon.empty().hide(); return; }
         icon.show();
-        if (medianReaction) icon.html('<img style="width:1em;height:1em;margin:0 0.15em;object-fit:contain;" data-reaction-type="' + medianReaction + '" src="' + getReactionImageSrc(medianReaction) + '">');
+        var reaction = medianReaction || icon.attr('data-median-reaction');
+        if (reaction) icon.html('<img style="width:1em;height:1em;margin:0 0.15em;object-fit:contain;" data-reaction-type="' + reaction + '" src="' + getReactionImageSrc(reaction) + '">');
         else icon.empty();
     }
     function getTMDBRating(data) {
@@ -1502,11 +1504,14 @@
             field: { name: 'Иконка в рейтинге Lampa', description: 'Показывать иконку реакции рядом с рейтингом Lampa на странице фильма' },
             onChange: function (v) {
                 Lampa.Settings.update();
-                if (isTriggerOn('lampa_rating_icon', true)) $('body').attr('data-lampa-icon-on', '1'); else $('body').removeAttr('data-lampa-icon-on');
+                if (isTriggerOn('lampa_rating_icon', true)) { $('body').attr('data-lampa-icon-on', '1'); } else { $('body').removeAttr('data-lampa-icon-on'); }
                 $('.rate--lampa .rate-icon').each(function () {
                     var icon = $(this);
-                    if (isTriggerOn('lampa_rating_icon', true)) { icon.show(); var img = icon.find('img'); if (img.length) img.show(); }
-                    else { icon.empty().hide(); }
+                    if (isTriggerOn('lampa_rating_icon', true)) {
+                        icon.show();
+                        var reaction = icon.attr('data-median-reaction');
+                        if (reaction) icon.html('<img style="width:1em;height:1em;margin:0 0.15em;object-fit:contain;" data-reaction-type="' + reaction + '" src="' + getReactionImageSrc(reaction) + '">');
+                    } else { icon.empty().hide(); }
                 });
             }
         });
