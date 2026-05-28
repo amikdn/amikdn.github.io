@@ -1493,7 +1493,21 @@
             field: { name: 'Анимированная иконка рейтинга Lampa', description: 'Показывать анимированную иконку реакции в рейтинге Lampa' },
             onChange: function () {
                 Lampa.Settings.update();
-                if (isTriggerOn('animated_reactions', false)) { $('.rate--lampa').addClass('rate--lampa--animated'); } else { $('.rate--lampa').removeClass('rate--lampa--animated'); }
+                if (isTriggerOn('animated_reactions', false)) {
+                    $('.rate--lampa').addClass('rate--lampa--animated');
+                    $('.rate--lampa .rate-icon').each(function () {
+                        var icon = $(this);
+                        var reaction = icon.attr('data-median-reaction');
+                        if (reaction) icon.html('<img style="width:1em;height:1em;margin:0 0.15em;object-fit:contain;" data-reaction-type="' + reaction + '" src="' + getReactionImageSrc(reaction) + '">');
+                    });
+                } else {
+                    $('.rate--lampa').removeClass('rate--lampa--animated');
+                    $('.rate--lampa .rate-icon').each(function () {
+                        var icon = $(this);
+                        var reaction = icon.attr('data-median-reaction');
+                        if (reaction) icon.html('<img style="width:1em;height:1em;margin:0 0.15em;object-fit:contain;" data-reaction-type="' + reaction + '" src="' + getReactionImageSrc(reaction) + '">');
+                    });
+                }
             }
         });
         Lampa.SettingsApi.addParam({
