@@ -1361,7 +1361,7 @@
             var rowPosition = addCycleRow('Позиция на постере', 'rating_position', POSITION_LABELS, 'bottom');
             var rowColored = addTriggerRow('Цветные цифры рейтингов', 'colored_ratings_poster', false);
             var rowColoredWin = addTriggerRow('Цветные окна (цифры белые)', 'rating_colored_windows', false);
-            var rowAnimated = addTriggerRow('Анимированные реакции на постерах', 'animated_reactions', false);
+            
             var rowShowTmdb = addTriggerRow('Показывать TMDB', 'rating_show_tmdb', true);
             var rowShowImdb = addTriggerRow('Показывать IMDB', 'rating_show_imdb', true);
             var rowShowKp = addTriggerRow('Показывать КиноПоиск', 'rating_show_kp', true);
@@ -1396,7 +1396,7 @@
             modal.append(rowKpKey.row);
 
             function resetAllToDefault() {
-                Lampa.Storage.set('rating_source', 'all'); Lampa.Storage.set('animated_reactions', 'false'); setColoredRatingsPoster(false);
+                Lampa.Storage.set('rating_source', 'all'); setColoredRatingsPoster(false);
                 Lampa.Storage.set('rating_colored_windows', 'false'); Lampa.Storage.set('rating_position', 'bottom');
                 Lampa.Storage.set('rating_show_tmdb', 'true'); Lampa.Storage.set('rating_show_imdb', 'true');
                 Lampa.Storage.set('rating_show_kp', 'true'); Lampa.Storage.set('rating_show_lampa', 'true');
@@ -1406,7 +1406,7 @@
                 Lampa.Storage.set('type_labels_show', 'true'); Lampa.Storage.set('type_labels_colored', 'false');
                 rowSource.updateVal(SOURCE_LABELS.all); rowDisplayMode.updateVal(DISPLAY_MODE_LABELS.separate);
                 rowPosition.updateVal(POSITION_LABELS.bottom); rowColored.updateVal('Выкл'); rowColoredWin.updateVal('Выкл');
-                rowAnimated.updateVal('Выкл'); rowShowTmdb.updateVal('Вкл'); rowShowImdb.updateVal('Вкл');
+                rowShowTmdb.updateVal('Вкл'); rowShowImdb.updateVal('Вкл');
                 rowShowKp.updateVal('Вкл'); rowShowLampa.updateVal('Вкл');
                 rowOpacity.updateVal('40%'); rowScale.updateVal('100%'); rowKpKey.updateVal(kpApiKeyRowText());
                 rowQualityShow.updateVal('Вкл'); rowQualityColored.updateVal('Выкл');
@@ -1486,6 +1486,15 @@
             param: { name: 'quality_source', type: 'select', values: { 'jacred': 'JacRed (парсер)', 'alloha': 'Alloha (API)', 'both': 'Сначала JacRed, потом Alloha' }, default: 'both' },
             field: { name: 'Источник качества', description: 'Откуда получать информацию о качестве видео' },
             onChange: function () { Lampa.Settings.update(); refreshAllQualityLabels(); }
+        });
+        Lampa.SettingsApi.addParam({
+            component: 'card_overlay',
+            param: { name: 'animated_reactions', type: 'trigger', default: false },
+            field: { name: 'Анимированная иконка рейтинга Lampa', description: 'Показывать анимированную иконку реакции в рейтинге Lampa' },
+            onChange: function () {
+                Lampa.Settings.update();
+                if (isTriggerOn('animated_reactions', false)) { $('.rate--lampa').addClass('rate--lampa--animated'); } else { $('.rate--lampa').removeClass('rate--lampa--animated'); }
+            }
         });
         Lampa.SettingsApi.addParam({
             component: 'card_overlay',
