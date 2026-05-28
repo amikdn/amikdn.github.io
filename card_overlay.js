@@ -314,6 +314,8 @@
     function renderLampaFullIcon($scope, medianReaction) {
         var icon = $scope.find('.rate--lampa .rate-icon');
         if (!icon.length) return;
+        if (!isTriggerOn('lampa_rating_icon', true)) { icon.empty().hide(); return; }
+        icon.show();
         if (medianReaction) icon.html('<img style="width:1em;height:1em;margin:0 0.15em;object-fit:contain;" data-reaction-type="' + medianReaction + '" src="' + getReactionImageSrc(medianReaction) + '">');
         else icon.empty();
     }
@@ -816,6 +818,7 @@
     }
     function applyRatingSettingsRefresh() {
         applyRatingScale();
+        if (isTriggerOn('lampa_rating_icon', true)) $('body').attr('data-lampa-icon-on', '1'); else $('body').removeAttr('data-lampa-icon-on');
         var allCards = document.querySelectorAll('.card');
         for (var i = 0; i < allCards.length; i++) removeAllRatingElements(allCards[i]);
         if (typeof window.refreshAllRatings === 'function') window.refreshAllRatings();
@@ -1236,7 +1239,7 @@
     // ===== COLORED ELEMENTS =====
     function isColoredElementsOn() { return isTriggerOn('colored_elements', true); }
     function colorizeSeriesStatus(render) {
-        var map = { completed: ['завершён','завершен','ended'], canceled: ['отменён','отменен','canceled'], ongoing: ['выходит','в эфире','ongoing'], production: ['в производстве','production'], planned: ['запланирован','planned'], pilot: ['пилотный','pilot'], released: ['выпущен','вышел','released'], rumored: ['слухи','rumored'], post: ['скоро','post'] };
+        var map = { completed: ['завершён','завершен','ended'], canceled: ['отменён','отменен','canceled'], ongoing: ['онгоинг','выходит','в эфире','ongoing','returning series'], production: ['в производстве','production'], planned: ['запланирован','planned'], pilot: ['пилотный','pilot'], released: ['выпущен','вышел','released'], rumored: ['слухи','rumored'], post: ['скоро','post'] };
         function apply(el) {
             var t = $(el).text().trim().toLowerCase(); var cls = null;
             for (var key in map) { for (var i = 0; i < map[key].length; i++) { if (t.includes(map[key][i])) { cls = 'status-' + key; break; } } if (cls) break; }
@@ -1432,7 +1435,7 @@
             } catch (e) {}
             Lampa.Storage.set('card_overlay_cache_version', CARD_OVERLAY_CACHE_VERSION);
         }
-        var keys = ['animated_reactions', 'colored_ratings_poster', 'rating_colored_windows', 'rating_show_tmdb', 'rating_show_imdb', 'rating_show_kp', 'rating_show_lampa', 'quality_show', 'quality_colored', 'type_labels_show', 'type_labels_colored'];
+        var keys = ['animated_reactions', 'colored_ratings_poster', 'rating_colored_windows', 'rating_show_tmdb', 'rating_show_imdb', 'rating_show_kp', 'rating_show_lampa', 'lampa_rating_icon', 'quality_show', 'quality_colored', 'type_labels_show', 'type_labels_colored'];
         for (var i = 0; i < keys.length; i++) { var v = Lampa.Storage.get(keys[i], undefined); if (v === '1' || v === 1) Lampa.Storage.set(keys[i], 'true'); else if (v === '0' || v === 0) Lampa.Storage.set(keys[i], 'false'); }
     }
     function closeModalSafe() {
@@ -1490,6 +1493,21 @@
                 Lampa.Settings.update();
                 if (isTriggerOn('colored_elements', true)) { $('body').addClass('colored-elements-on'); colorizeSeriesStatus(); colorizeAgeRating(); colorizeDetailQuality(); }
                 else { $('body').removeClass('colored-elements-on'); colorizeDetailQuality(); }
+            }
+        });
+
+        Lampa.SettingsApi.addParam({
+            component: 'card_overlay',
+            param: { name: 'lampa_rating_icon', type: 'trigger', default: true },
+            field: { name: 'Иконка в рейтинге Lampa', description: 'Показывать иконку реакции рядом с рейтингом Lampa на странице фильма' },
+            onChange: function (v) {
+                Lampa.Settings.update();
+                if (isTriggerOn('lampa_rating_icon', true)) $('body').attr('data-lampa-icon-on', '1'); else $('body').removeAttr('data-lampa-icon-on');
+                $('.rate--lampa .rate-icon').each(function () {
+                    var icon = $(this);
+                    if (isTriggerOn('lampa_rating_icon', true)) { icon.show(); var img = icon.find('img'); if (img.length) img.show(); }
+                    else { icon.empty().hide(); }
+                });
             }
         });
 
@@ -1671,6 +1689,7 @@
             '.rate--lampa .rate-icon-reaction{background-image:url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'%23e040fb\'%3E%3Cpath d=\'M12 2C8.13 2 5 5.13 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.87-3.13-7-7-7zm2 14h-4v-1h4v1zm0-2h-4v-1h4v1zM9 20h6v1c0 .55-.45 1-1 1h-4c-.55 0-1-.45-1-1v-1z\'/%3E%3C/svg%3E")}' +
             '.rate-icon-reaction{background-repeat:no-repeat;background-position:center;background-size:contain}' +
             '.card .rate--lampa .rate-icon{font-size:0!important}' +
+            'body:not([data-lampa-icon-on]) .full-start-new__rate.rate--lampa .rate-icon,body:not([data-lampa-icon-on]) .full-start__rate.rate--lampa .rate-icon{display:none!important}' +
             '.card__vote img[src*=".gif"]{object-fit:contain!important}' +
             '.card__vote.rate--lampa img{display:block!important;max-height:12px!important;max-width:12px!important;min-width:0!important;min-height:0!important;object-fit:contain!important;margin-left:auto!important;height:auto!important;width:auto!important;flex-shrink:0!important}' +
             '@media (min-width:481px){.card__vote.rate--lampa img{max-height:18px!important;max-width:18px!important}}' +
@@ -1687,7 +1706,7 @@
             'body.colored-elements-on .full-start__pg.age-adult{background:#e74c3c!important;color:white!important}' +
             'body.colored-elements-on .full-start__status.status-completed{background:rgba(46,204,113,0.8)!important;color:white!important}' +
             'body.colored-elements-on .full-start__status.status-canceled{background:rgba(231,76,60,0.8)!important;color:white!important}' +
-            'body.colored-elements-on .full-start__status.status-ongoing{background:rgba(243,156,18,0.8)!important;color:black!important}' +
+            'body.colored-elements-on .full-start__status.status-ongoing{background:rgba(243,156,18,0.8)!important;color:white!important}' +
             'body.colored-elements-on .full-start__status.status-production{background:rgba(52,152,219,0.8)!important;color:white!important}' +
             'body.colored-elements-on .full-start__status.status-planned{background:rgba(155,89,182,0.8)!important;color:white!important}' +
             'body.colored-elements-on .full-start__status.status-pilot{background:rgba(230,126,34,0.8)!important;color:white!important}' +
@@ -1697,11 +1716,12 @@
             '.full-start__pg.hide{display:none!important}' +
             '.full-start-new__meta-line{display:none!important}' +
             '.season-info-label{position:absolute!important;color:#fff!important;padding:0.25em 0.45em!important;font-size:1.1em!important;line-height:1!important;z-index:10!important;white-space:nowrap!important}' +
-            '@media (max-width:480px) and (orientation:portrait){.full-start-new__rate-line{display:flex!important;flex-wrap:wrap!important;align-items:center!important;justify-content:center!important;gap:0.2em!important}.full-start-new__meta-line{display:flex!important;flex-wrap:wrap!important;align-items:center!important;justify-content:center!important;gap:0.5em!important;width:100%!important;line-height:1!important;font-size:1em!important;margin-top:0.3em!important}.full-start-new__meta-line .full-start__status,.full-start-new__meta-line .full-start__pg{margin:0!important;display:inline-flex!important;align-items:center!important;line-height:1!important;white-space:nowrap!important}.full-start-new__details{margin-top:0.3em!important;display:flex!important;flex-wrap:wrap!important;justify-content:center!important;gap:0.1em!important}.full-start-new__reactions{justify-content:center!important}.full-start-new__buttons{justify-content:center!important;text-align:center!important}}' +
+            '@media (max-width:480px) and (orientation:portrait){.full-start-new__rate-line{display:flex!important;flex-wrap:wrap!important;align-items:center!important;justify-content:center!important;gap:0.2em!important}.full-start-new__meta-line{display:flex!important;flex-wrap:wrap!important;align-items:center!important;justify-content:center!important;gap:0.5em!important;width:100%!important;line-height:1!important;font-size:1em!important;margin-top:0.3em!important}.full-start-new__meta-line .full-start__status,.full-start-new__meta-line .full-start__pg{margin:0!important;display:inline-flex!important;align-items:center!important;line-height:1!important;white-space:nowrap!important}.full-start-new__details{margin-top:0.3em!important;display:flex!important;flex-wrap:wrap!important;justify-content:center!important;gap:0.1em!important}.full-start-new__reactions{justify-content:center!important}.full-start-new__buttons{justify-content:center!important;text-align:center!important}.full-start-new__name,.full-start__name{text-align:center!important}.season-info-label{display:none!important}}' +
             'body[data-movie-labels="on"] .card--tv .card__type{display:none!important}';
         document.head.appendChild(style);
 
         applyRatingScale();
+        if (isTriggerOn('lampa_rating_icon', true)) $('body').attr('data-lampa-icon-on', '1'); else $('body').removeAttr('data-lampa-icon-on');
         addSettings();
         setupCardListener();
         startMainObserver();
