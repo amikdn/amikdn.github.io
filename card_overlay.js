@@ -116,11 +116,10 @@
         if (n === 10) return '10';
         return n.toFixed(1);
     }
-    function getReactionImageSrc(medianReaction) {
+    function getReactionImageSrc(medianReaction, forDetail) {
         if (!medianReaction) return '';
-        if (isTriggerOn('animated_reactions', false)) {
-            return ANIMATED_REACTIONS_BASE_URL + '/reaction-' + medianReaction + '.gif';
-        }
+        var animated = forDetail ? isTriggerOn('lampa_rating_animated', false) : isTriggerOn('animated_reactions', false);
+        if (animated) return ANIMATED_REACTIONS_BASE_URL + '/reaction-' + medianReaction + '.gif';
         return SVG_REACTIONS_BASE_URL + '/' + medianReaction + '.svg';
     }
 
@@ -318,7 +317,7 @@
         if (!isTriggerOn('lampa_rating_icon', true)) { icon.empty().hide(); return; }
         icon.show();
         var reaction = medianReaction || icon.attr('data-median-reaction');
-        if (reaction) icon.html('<img style="width:1em;height:1em;margin:0 0.15em;object-fit:contain;" data-reaction-type="' + reaction + '" src="' + getReactionImageSrc(reaction) + '">');
+        if (reaction) icon.html('<img style="width:1.4em;height:1.4em;margin:0 0.15em;object-fit:contain;" data-reaction-type="' + reaction + '" src="' + getReactionImageSrc(reaction, true) + '">');
         else icon.empty();
     }
     function getTMDBRating(data) {
@@ -1361,7 +1360,8 @@
             var rowPosition = addCycleRow('Позиция на постере', 'rating_position', POSITION_LABELS, 'bottom');
             var rowColored = addTriggerRow('Цветные цифры рейтингов', 'colored_ratings_poster', false);
             var rowColoredWin = addTriggerRow('Цветные окна (цифры белые)', 'rating_colored_windows', false);
-            
+            var rowAnimated = addTriggerRow('Анимированные реакции на постерах', 'animated_reactions', false);
+
             var rowShowTmdb = addTriggerRow('Показывать TMDB', 'rating_show_tmdb', true);
             var rowShowImdb = addTriggerRow('Показывать IMDB', 'rating_show_imdb', true);
             var rowShowKp = addTriggerRow('Показывать КиноПоиск', 'rating_show_kp', true);
@@ -1396,7 +1396,7 @@
             modal.append(rowKpKey.row);
 
             function resetAllToDefault() {
-                Lampa.Storage.set('rating_source', 'all'); setColoredRatingsPoster(false);
+                Lampa.Storage.set('rating_source', 'all'); Lampa.Storage.set('animated_reactions', 'false'); setColoredRatingsPoster(false);
                 Lampa.Storage.set('rating_colored_windows', 'false'); Lampa.Storage.set('rating_position', 'bottom');
                 Lampa.Storage.set('rating_show_tmdb', 'true'); Lampa.Storage.set('rating_show_imdb', 'true');
                 Lampa.Storage.set('rating_show_kp', 'true'); Lampa.Storage.set('rating_show_lampa', 'true');
@@ -1406,7 +1406,7 @@
                 Lampa.Storage.set('type_labels_show', 'true'); Lampa.Storage.set('type_labels_colored', 'false');
                 rowSource.updateVal(SOURCE_LABELS.all); rowDisplayMode.updateVal(DISPLAY_MODE_LABELS.separate);
                 rowPosition.updateVal(POSITION_LABELS.bottom); rowColored.updateVal('Выкл'); rowColoredWin.updateVal('Выкл');
-                rowShowTmdb.updateVal('Вкл'); rowShowImdb.updateVal('Вкл');
+                rowAnimated.updateVal('Выкл'); rowShowTmdb.updateVal('Вкл'); rowShowImdb.updateVal('Вкл');
                 rowShowKp.updateVal('Вкл'); rowShowLampa.updateVal('Вкл');
                 rowOpacity.updateVal('40%'); rowScale.updateVal('100%'); rowKpKey.updateVal(kpApiKeyRowText());
                 rowQualityShow.updateVal('Вкл'); rowQualityColored.updateVal('Выкл');
@@ -1446,7 +1446,7 @@
             } catch (e) {}
             Lampa.Storage.set('card_overlay_cache_version', CARD_OVERLAY_CACHE_VERSION);
         }
-        var keys = ['animated_reactions', 'colored_ratings_poster', 'rating_colored_windows', 'rating_show_tmdb', 'rating_show_imdb', 'rating_show_kp', 'rating_show_lampa', 'lampa_rating_show', 'lampa_rating_icon', 'quality_show', 'quality_colored', 'type_labels_show', 'type_labels_colored'];
+        var keys = ['animated_reactions', 'lampa_rating_animated', 'colored_ratings_poster', 'rating_colored_windows', 'rating_show_tmdb', 'rating_show_imdb', 'rating_show_kp', 'rating_show_lampa', 'lampa_rating_show', 'lampa_rating_icon', 'quality_show', 'quality_colored', 'type_labels_show', 'type_labels_colored'];
         for (var i = 0; i < keys.length; i++) { var v = Lampa.Storage.get(keys[i], undefined); if (v === '1' || v === 1) Lampa.Storage.set(keys[i], 'true'); else if (v === '0' || v === 0) Lampa.Storage.set(keys[i], 'false'); }
     }
     function closeModalSafe() {
@@ -1489,25 +1489,20 @@
         });
         Lampa.SettingsApi.addParam({
             component: 'card_overlay',
-            param: { name: 'animated_reactions', type: 'trigger', default: false },
-            field: { name: 'Анимированная иконка рейтинга Lampa', description: 'Показывать анимированную иконку реакции в рейтинге Lampa' },
+            param: { name: 'lampa_rating_animated', type: 'trigger', default: false },
+            field: { name: 'Анимированная иконка рейтинга Lampa', description: 'Анимированная иконка реакции в рейтинге Lampa на странице фильма' },
             onChange: function () {
                 Lampa.Settings.update();
-                if (isTriggerOn('animated_reactions', false)) {
+                if (isTriggerOn('lampa_rating_animated', false)) {
                     $('.rate--lampa').addClass('rate--lampa--animated');
-                    $('.rate--lampa .rate-icon').each(function () {
-                        var icon = $(this);
-                        var reaction = icon.attr('data-median-reaction');
-                        if (reaction) icon.html('<img style="width:1em;height:1em;margin:0 0.15em;object-fit:contain;" data-reaction-type="' + reaction + '" src="' + getReactionImageSrc(reaction) + '">');
-                    });
                 } else {
                     $('.rate--lampa').removeClass('rate--lampa--animated');
-                    $('.rate--lampa .rate-icon').each(function () {
-                        var icon = $(this);
-                        var reaction = icon.attr('data-median-reaction');
-                        if (reaction) icon.html('<img style="width:1em;height:1em;margin:0 0.15em;object-fit:contain;" data-reaction-type="' + reaction + '" src="' + getReactionImageSrc(reaction) + '">');
-                    });
                 }
+                $('.rate--lampa .rate-icon').each(function () {
+                    var icon = $(this);
+                    var reaction = icon.attr('data-median-reaction');
+                    if (reaction) icon.html('<img style="width:1.4em;height:1.4em;margin:0 0.15em;object-fit:contain;" data-reaction-type="' + reaction + '" src="' + getReactionImageSrc(reaction, true) + '">');
+                });
             }
         });
         Lampa.SettingsApi.addParam({
@@ -1553,7 +1548,7 @@
                     if (isTriggerOn('lampa_rating_icon', true)) {
                         icon.show();
                         var reaction = icon.attr('data-median-reaction');
-                        if (reaction) icon.html('<img style="width:1em;height:1em;margin:0 0.15em;object-fit:contain;" data-reaction-type="' + reaction + '" src="' + getReactionImageSrc(reaction) + '">');
+                        if (reaction) icon.html('<img style="width:1.4em;height:1.4em;margin:0 0.15em;object-fit:contain;" data-reaction-type="' + reaction + '" src="' + getReactionImageSrc(reaction, true) + '">');
                     } else { icon.empty().hide(); }
                 });
             }
@@ -1823,7 +1818,7 @@
                         if (cached && cached.rating > 0) {
                             $(render).find('.rate--lampa .rate-value').text(formatRating(cached.rating));
                             renderLampaFullIcon($(render), cached.medianReaction);
-                            if (cached.medianReaction && isTriggerOn('animated_reactions', false)) $(render).find('.rate--lampa').addClass('rate--lampa--animated');
+                            if (cached.medianReaction && isTriggerOn('lampa_rating_animated', false)) $(render).find('.rate--lampa').addClass('rate--lampa--animated');
                             colorizeFullCardRatings(render);
                             scheduleVisibleRatingsUpdate(0);
                         } else {
@@ -1832,7 +1827,7 @@
                                     if (result.rating !== null && result.rating > 0) {
                                         $(render).find('.rate--lampa .rate-value').text(formatRating(result.rating));
                                         renderLampaFullIcon($(render), result.medianReaction);
-                                        if (result.medianReaction && isTriggerOn('animated_reactions', false)) $(render).find('.rate--lampa').addClass('rate--lampa--animated');
+                                        if (result.medianReaction && isTriggerOn('lampa_rating_animated', false)) $(render).find('.rate--lampa').addClass('rate--lampa--animated');
                                     } else { $(render).find('.rate--lampa').hide(); }
                                     colorizeFullCardRatings(render);
                                     scheduleVisibleRatingsUpdate(0);
