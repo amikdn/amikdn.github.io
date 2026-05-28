@@ -1080,24 +1080,41 @@
     }
     function moveDetailMetaToSecondLine(viewRenderer) {
         if (!isMobilePortrait()) return;
-        var metaLine = ensureDetailMetaLine(viewRenderer);
-        if (!metaLine.length) return;
-        var age = $(viewRenderer).find('.full-start__pg').filter(function () {
+        var render = $(viewRenderer);
+        var rateLine = render.find('.full-start-new__rate-line');
+        if (!rateLine.length) return;
+        var ratingCount = rateLine.find('.full-start-new__rate, .full-start__rate').length;
+        var twoRatingsMode = ratingCount <= 2;
+        var age = render.find('.full-start__pg').filter(function () {
             var el = $(this);
             if (el.hasClass('hide')) return false;
             return $.trim(el.text()).length > 0;
         }).first();
-        var nativeStatus = $(viewRenderer).find('.full-start__status').filter(function () {
+        var nativeStatus = render.find('.full-start__status').filter(function () {
             var el = $(this);
             if (el.closest('.full-start-new__rate, .full-start__rate, .full-start-new__meta-line').length) return false;
             if (el.hasClass('qualview-quality')) return false;
             return true;
         }).first();
-        var quality = $(viewRenderer).find('.full-start__status.qualview-quality').first();
-        if (age.length) metaLine.append(age);
-        if (nativeStatus.length) metaLine.append(nativeStatus);
-        if (quality.length) metaLine.append(quality);
-        if (!metaLine.children().length) metaLine.remove();
+        var quality = render.find('.full-start__status.qualview-quality').first();
+        var metaItems = [];
+        if (age.length) metaItems.push(age);
+        if (nativeStatus.length) metaItems.push(nativeStatus);
+        if (quality.length) metaItems.push(quality);
+        if (!metaItems.length) {
+            rateLine.siblings('.full-start-new__meta-line').remove();
+            return;
+        }
+        if (twoRatingsMode) {
+            rateLine.siblings('.full-start-new__meta-line').remove();
+            metaItems.forEach(function (el) { rateLine.append(el); });
+            rateLine.addClass('meta-inline');
+        } else {
+            var metaLine = ensureDetailMetaLine(viewRenderer);
+            if (!metaLine.length) return;
+            metaItems.forEach(function (el) { metaLine.append(el); });
+            rateLine.removeClass('meta-inline');
+        }
     }
 
     function colorizeDetailQuality() {
@@ -1254,7 +1271,9 @@
         var groups = { kids: ['G','TV-Y','0+','3+'], children: ['PG','TV-PG','6+','7+'], teens: ['PG-13','TV-14','12+','13+','14+'], almostAdult: ['R','16+','17+'], adult: ['NC-17','18+','X'] };
         function apply(el) {
             if ($(el).closest('.explorer').length) return;
-            var t = $(el).text().trim(); var grp = null;
+            var t = $(el).text().trim();
+            if (t.toUpperCase() === 'NR') { $(el).addClass('nr'); return; }
+            var grp = null;
             for (var key in groups) { for (var i = 0; i < groups[key].length; i++) { if (t.includes(groups[key][i])) { grp = 'age-' + key; break; } } if (grp) break; }
             if (grp && !$(el).hasClass(grp)) { $(el).removeClass('age-kids age-children age-teens age-almost-adult age-adult').addClass(grp); }
         }
@@ -1718,10 +1737,10 @@
             'body.colored-elements-on .full-start__status.status-released{background:rgba(26,188,156,0.8)!important;color:white!important}' +
             'body.colored-elements-on .full-start__status.status-rumored{background:rgba(149,165,166,0.8)!important;color:white!important}' +
             'body.colored-elements-on .full-start__status.status-post{background:rgba(0,188,212,0.8)!important;color:white!important}' +
-            '.full-start__pg.hide{display:none!important}' +
+            '.full-start__pg.hide,.full-start__pg.nr{display:none!important}' +
             '.full-start-new__meta-line{display:none!important}' +
             '.season-info-label{position:absolute!important;color:#fff!important;padding:0.25em 0.45em!important;font-size:1.1em!important;line-height:1!important;z-index:10!important;white-space:nowrap!important}' +
-            '@media (max-width:480px) and (orientation:portrait){.full-start-new__rate-line{display:flex!important;flex-wrap:wrap!important;align-items:center!important;justify-content:center!important;gap:0.2em!important}.full-start-new__meta-line{display:flex!important;flex-wrap:wrap!important;align-items:center!important;justify-content:center!important;gap:0.5em!important;width:100%!important;line-height:1!important;font-size:1em!important;margin-top:0.3em!important}.full-start-new__meta-line .full-start__status,.full-start-new__meta-line .full-start__pg{margin:0!important;display:inline-flex!important;align-items:center!important;line-height:1!important;white-space:nowrap!important}.full-start-new__details{margin-top:0.3em!important;display:flex!important;flex-wrap:wrap!important;justify-content:center!important;gap:0.1em!important}.full-start-new__reactions{justify-content:center!important}.full-start-new__buttons{justify-content:center!important;text-align:center!important}.full-start-new__right,.full-start__right{text-align:center!important}.full-start-new__right h1,.full-start__right h1,.full-start-new__right .name,.full-start__right .name,.full-start__name{text-align:center!important;width:100%!important}.season-info-label{display:none!important}}' +
+            '@media (max-width:480px) and (orientation:portrait){.full-start-new__rate-line{display:flex!important;flex-wrap:wrap!important;align-items:center!important;justify-content:center!important;gap:0.2em!important}.full-start-new__rate-line.meta-inline{gap:0.4em!important}.full-start-new__meta-line{display:flex!important;flex-wrap:wrap!important;align-items:center!important;justify-content:center!important;gap:0.5em!important;width:100%!important;line-height:1!important;font-size:1em!important;margin-top:0.3em!important}.full-start-new__meta-line .full-start__status,.full-start-new__meta-line .full-start__pg{margin:0!important;display:inline-flex!important;align-items:center!important;line-height:1!important;white-space:nowrap!important}.full-start-new__details{margin-top:0.3em!important;display:flex!important;flex-wrap:wrap!important;justify-content:center!important;gap:0.1em!important}.full-start-new__reactions{justify-content:center!important}.full-start-new__buttons{justify-content:center!important;text-align:center!important}.full-start-new__right,.full-start__right{text-align:center!important}.full-start-new__right h1,.full-start__right h1,.full-start-new__right .name,.full-start__right .name,.full-start__name{text-align:center!important;width:100%!important}.season-info-label{display:none!important}}' +
             'body[data-movie-labels="on"] .card--tv .card__type{display:none!important}';
         document.head.appendChild(style);
 
