@@ -1524,7 +1524,7 @@
             field: { name: 'Иконка в рейтинге Lampa', description: 'Показывать иконку реакции рядом с рейтингом Lampa на странице фильма' },
             onChange: function (v) {
                 Lampa.Settings.update();
-                if (isTriggerOn('lampa_rating_icon', true)) { $('body').attr('data-lampa-icon-on', '1'); } else { $('body').removeAttr('data-lampa-icon-on'); }
+                if (isTriggerOn('lampa_rating_icon', true)) { $('body').attr('data-lampa-icon-on', '1'); $('.rate--lampa').removeClass('lampa-no-icon'); } else { $('body').removeAttr('data-lampa-icon-on'); $('.rate--lampa').addClass('lampa-no-icon'); }
                 $('.rate--lampa .rate-icon').each(function () {
                     var icon = $(this);
                     if (isTriggerOn('lampa_rating_icon', true)) {
@@ -1735,6 +1735,7 @@
             '.card .rate--lampa .rate-icon{font-size:0!important}' +
             'body:not([data-lampa-icon-on]) .full-start-new__rate.rate--lampa .rate-icon,body:not([data-lampa-icon-on]) .full-start__rate.rate--lampa .rate-icon{display:none!important}' +
             'body[data-lampa-rating-off] .full-start-new__rate.rate--lampa,body[data-lampa-rating-off] .full-start__rate.rate--lampa{display:none!important}' +
+            '.rate--lampa.lampa-no-icon{min-width:0!important;padding-left:.4em!important;padding-right:.4em!important}' +
             '.card__vote img[src*=".gif"]{object-fit:contain!important}' +
             '.card__vote.rate--lampa img{display:block!important;max-height:12px!important;max-width:12px!important;min-width:0!important;min-height:0!important;object-fit:contain!important;margin-left:auto!important;height:auto!important;width:auto!important;flex-shrink:0!important}' +
             '@media (min-width:481px){.card__vote.rate--lampa img{max-height:18px!important;max-width:18px!important}}' +
