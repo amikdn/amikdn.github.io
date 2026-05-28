@@ -1239,7 +1239,7 @@
     // ===== COLORED ELEMENTS =====
     function isColoredElementsOn() { return isTriggerOn('colored_elements', true); }
     function colorizeSeriesStatus(render) {
-        var map = { completed: ['завершён','завершен','ended'], canceled: ['отменён','отменен','canceled'], ongoing: ['выходит','в эфире','ongoing'], production: ['в производстве','production'], planned: ['запланирован','planned'], pilot: ['пилотный','pilot'], released: ['выпущен','вышел','released'], rumored: ['слухи','rumored'], post: ['скоро','post'] };
+        var map = { completed: ['завершён','завершен','ended'], canceled: ['отменён','отменен','canceled'], ongoing: ['онгоинг','выходит','в эфире','ongoing','returning series'], production: ['в производстве','production'], planned: ['запланирован','planned'], pilot: ['пилотный','pilot'], released: ['выпущен','вышел','released'], rumored: ['слухи','rumored'], post: ['скоро','post'] };
         function apply(el) {
             var t = $(el).text().trim().toLowerCase(); var cls = null;
             for (var key in map) { for (var i = 0; i < map[key].length; i++) { if (t.includes(map[key][i])) { cls = 'status-' + key; break; } } if (cls) break; }
@@ -1355,7 +1355,6 @@
             var rowShowImdb = addTriggerRow('Показывать IMDB', 'rating_show_imdb', true);
             var rowShowKp = addTriggerRow('Показывать КиноПоиск', 'rating_show_kp', true);
             var rowShowLampa = addTriggerRow('Показывать Lampa', 'rating_show_lampa', true);
-            var rowLampaIcon = addTriggerRow('Иконка в рейтинге Lampa', 'lampa_rating_icon', true);
             var rowOpacity = addNumberRow('Прозрачность окон (0–100)', 'rating_window_opacity', 40, 0, 100, 10, '%');
             var rowScale = addNumberRow('Масштаб окон', 'rating_scale', 100, 60, 150, 5, '%');
 
@@ -1494,6 +1493,17 @@
                 Lampa.Settings.update();
                 if (isTriggerOn('colored_elements', true)) { $('body').addClass('colored-elements-on'); colorizeSeriesStatus(); colorizeAgeRating(); colorizeDetailQuality(); }
                 else { $('body').removeClass('colored-elements-on'); colorizeDetailQuality(); }
+            }
+        });
+
+        Lampa.SettingsApi.addParam({
+            component: 'card_overlay',
+            param: { name: 'lampa_rating_icon', type: 'trigger', default: true },
+            field: { name: 'Иконка в рейтинге Lampa', description: 'Показывать иконку реакции рядом с рейтингом Lampa на странице фильма' },
+            onChange: function (v) {
+                Lampa.Settings.update();
+                if (isTriggerOn('lampa_rating_icon', true)) $('body').attr('data-lampa-icon-on', '1'); else $('body').removeAttr('data-lampa-icon-on');
+                scheduleSettingsRefresh(50);
             }
         });
 
@@ -1823,3 +1833,4 @@
     if (window.appready) { initPlugin(); }
     else { Lampa.Listener.follow('app', function (e) { if (e.type === 'ready') initPlugin(); }); }
 })();
+
