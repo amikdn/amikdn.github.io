@@ -1489,24 +1489,6 @@
         });
         Lampa.SettingsApi.addParam({
             component: 'card_overlay',
-            param: { name: 'lampa_rating_animated', type: 'trigger', default: false },
-            field: { name: 'Анимированная иконка рейтинга Lampa', description: 'Анимированная иконка реакции в рейтинге Lampa на странице фильма' },
-            onChange: function () {
-                Lampa.Settings.update();
-                if (isTriggerOn('lampa_rating_animated', false)) {
-                    $('.rate--lampa').addClass('rate--lampa--animated');
-                } else {
-                    $('.rate--lampa').removeClass('rate--lampa--animated');
-                }
-                $('.rate--lampa .rate-icon').each(function () {
-                    var icon = $(this);
-                    var reaction = icon.attr('data-median-reaction');
-                    if (reaction) icon.html('<img style="width:1.4em;height:1.4em;margin:0 0.15em;object-fit:contain;" data-reaction-type="' + reaction + '" src="' + getReactionImageSrc(reaction, true) + '">');
-                });
-            }
-        });
-        Lampa.SettingsApi.addParam({
-            component: 'card_overlay',
             param: { name: 'animated_reactions_in_player', type: 'trigger', default: true },
             field: { name: 'Анимированные реакции на странице фильма', description: 'Заменять иконки реакций на анимированные GIF в карточке фильма' },
             onChange: function () {
@@ -1550,6 +1532,25 @@
                         var reaction = icon.attr('data-median-reaction');
                         if (reaction) icon.html('<img style="width:1em;height:1em;margin:0 0.15em;object-fit:contain;" data-reaction-type="' + reaction + '" src="' + getReactionImageSrc(reaction, true) + '">');
                     } else { icon.empty().hide(); }
+                });
+            }
+        });
+
+        Lampa.SettingsApi.addParam({
+            component: 'card_overlay',
+            param: { name: 'lampa_rating_animated', type: 'trigger', default: false },
+            field: { name: 'Анимированная иконка рейтинга Lampa', description: 'Анимированная иконка реакции в рейтинге Lampa на странице фильма' },
+            onChange: function () {
+                Lampa.Settings.update();
+                if (isTriggerOn('lampa_rating_animated', false)) {
+                    $('.rate--lampa').addClass('rate--lampa--animated');
+                } else {
+                    $('.rate--lampa').removeClass('rate--lampa--animated');
+                }
+                $('.rate--lampa .rate-icon').each(function () {
+                    var icon = $(this);
+                    var reaction = icon.attr('data-median-reaction');
+                    if (reaction) icon.html('<img style="width:1em;height:1em;margin:0 0.15em;object-fit:contain;" data-reaction-type="' + reaction + '" src="' + getReactionImageSrc(reaction, true) + '">');
                 });
             }
         });
