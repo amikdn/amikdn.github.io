@@ -798,6 +798,7 @@
     }
     function insertLampaBlock(render) {
         if (!render) return false;
+        if (!isTriggerOn('lampa_rating_show', true)) return false;
         var rateLine = $(render).find('.full-start-new__rate-line');
         if (!rateLine.length || rateLine.find('.rate--lampa').length > 0) return false;
         var html = '<div class="full-start-new__rate full-start__rate rate--lampa"><div class="rate-value">0.0</div><div class="rate-icon"></div><div class="source--name" style="margin-left:-0.2em">LAMPA</div></div>';
@@ -1084,17 +1085,15 @@
         var rateLine = render.find('.full-start-new__rate-line');
         if (!rateLine.length) return;
         var ratingCount = rateLine.find('.full-start-new__rate, .full-start__rate').length;
-        var twoRatingsMode = ratingCount <= 2;
+        var fewRatings = ratingCount <= 2;
         var age = render.find('.full-start__pg').filter(function () {
             var el = $(this);
-            if (el.hasClass('hide')) return false;
+            if (el.hasClass('hide') || el.hasClass('nr')) return false;
             return $.trim(el.text()).length > 0;
         }).first();
-        var nativeStatus = render.find('.full-start__status').filter(function () {
+        var nativeStatus = render.find('.full-start__status').not('.qualview-quality').not('.season-info-status').filter(function () {
             var el = $(this);
-            if (el.closest('.full-start-new__rate, .full-start__rate, .full-start-new__meta-line').length) return false;
-            if (el.hasClass('qualview-quality')) return false;
-            return true;
+            return !el.closest('.full-start-new__rate, .full-start__rate').length;
         }).first();
         var quality = render.find('.full-start__status.qualview-quality').first();
         var metaItems = [];
@@ -1103,17 +1102,18 @@
         if (quality.length) metaItems.push(quality);
         if (!metaItems.length) {
             rateLine.siblings('.full-start-new__meta-line').remove();
+            rateLine.removeClass('meta-inline');
             return;
         }
-        if (twoRatingsMode) {
+        if (fewRatings) {
             rateLine.siblings('.full-start-new__meta-line').remove();
-            metaItems.forEach(function (el) { rateLine.append(el); });
             rateLine.addClass('meta-inline');
+            metaItems.forEach(function (el) { rateLine.append(el); });
         } else {
+            rateLine.removeClass('meta-inline');
             var metaLine = ensureDetailMetaLine(viewRenderer);
             if (!metaLine.length) return;
             metaItems.forEach(function (el) { metaLine.append(el); });
-            rateLine.removeClass('meta-inline');
         }
     }
 
@@ -1456,7 +1456,7 @@
             } catch (e) {}
             Lampa.Storage.set('card_overlay_cache_version', CARD_OVERLAY_CACHE_VERSION);
         }
-        var keys = ['animated_reactions', 'colored_ratings_poster', 'rating_colored_windows', 'rating_show_tmdb', 'rating_show_imdb', 'rating_show_kp', 'rating_show_lampa', 'lampa_rating_icon', 'quality_show', 'quality_colored', 'type_labels_show', 'type_labels_colored'];
+        var keys = ['animated_reactions', 'colored_ratings_poster', 'rating_colored_windows', 'rating_show_tmdb', 'rating_show_imdb', 'rating_show_kp', 'rating_show_lampa', 'lampa_rating_show', 'lampa_rating_icon', 'quality_show', 'quality_colored', 'type_labels_show', 'type_labels_colored'];
         for (var i = 0; i < keys.length; i++) { var v = Lampa.Storage.get(keys[i], undefined); if (v === '1' || v === 1) Lampa.Storage.set(keys[i], 'true'); else if (v === '0' || v === 0) Lampa.Storage.set(keys[i], 'false'); }
     }
     function closeModalSafe() {
@@ -1514,6 +1514,17 @@
                 Lampa.Settings.update();
                 if (isTriggerOn('colored_elements', true)) { $('body').addClass('colored-elements-on'); colorizeSeriesStatus(); colorizeAgeRating(); colorizeDetailQuality(); }
                 else { $('body').removeClass('colored-elements-on'); colorizeDetailQuality(); }
+            }
+        });
+
+        Lampa.SettingsApi.addParam({
+            component: 'card_overlay',
+            param: { name: 'lampa_rating_show', type: 'trigger', default: true },
+            field: { name: 'Рейтинг Lampa', description: 'Показывать рейтинг Lampa на странице фильма' },
+            onChange: function (v) {
+                Lampa.Settings.update();
+                if (isTriggerOn('lampa_rating_show', true)) { $('body').removeAttr('data-lampa-rating-off'); $('.rate--lampa').show(); }
+                else { $('body').attr('data-lampa-rating-off', '1'); $('.rate--lampa').hide(); }
             }
         });
 
@@ -1714,6 +1725,7 @@
             '.rate-icon-reaction{background-repeat:no-repeat;background-position:center;background-size:contain}' +
             '.card .rate--lampa .rate-icon{font-size:0!important}' +
             'body:not([data-lampa-icon-on]) .full-start-new__rate.rate--lampa .rate-icon,body:not([data-lampa-icon-on]) .full-start__rate.rate--lampa .rate-icon{display:none!important}' +
+            'body[data-lampa-rating-off] .full-start-new__rate.rate--lampa,body[data-lampa-rating-off] .full-start__rate.rate--lampa{display:none!important}' +
             '.card__vote img[src*=".gif"]{object-fit:contain!important}' +
             '.card__vote.rate--lampa img{display:block!important;max-height:12px!important;max-width:12px!important;min-width:0!important;min-height:0!important;object-fit:contain!important;margin-left:auto!important;height:auto!important;width:auto!important;flex-shrink:0!important}' +
             '@media (min-width:481px){.card__vote.rate--lampa img{max-height:18px!important;max-width:18px!important}}' +
@@ -1740,12 +1752,13 @@
             '.full-start__pg.hide,.full-start__pg.nr{display:none!important}' +
             '.full-start-new__meta-line{display:none!important}' +
             '.season-info-label{position:absolute!important;color:#fff!important;padding:0.25em 0.45em!important;font-size:1.1em!important;line-height:1!important;z-index:10!important;white-space:nowrap!important}' +
-            '@media (max-width:480px) and (orientation:portrait){.full-start-new__rate-line{display:flex!important;flex-wrap:wrap!important;align-items:center!important;justify-content:center!important;gap:0.2em!important}.full-start-new__rate-line.meta-inline{gap:0.4em!important}.full-start-new__meta-line{display:flex!important;flex-wrap:wrap!important;align-items:center!important;justify-content:center!important;gap:0.5em!important;width:100%!important;line-height:1!important;font-size:1em!important;margin-top:0.3em!important}.full-start-new__meta-line .full-start__status,.full-start-new__meta-line .full-start__pg{margin:0!important;display:inline-flex!important;align-items:center!important;line-height:1!important;white-space:nowrap!important}.full-start-new__details{margin-top:0.3em!important;display:flex!important;flex-wrap:wrap!important;justify-content:center!important;gap:0.1em!important}.full-start-new__reactions{justify-content:center!important}.full-start-new__buttons{justify-content:center!important;text-align:center!important}.full-start-new__right,.full-start__right{text-align:center!important}.full-start-new__right h1,.full-start__right h1,.full-start-new__right .name,.full-start__right .name,.full-start__name{text-align:center!important;width:100%!important}.season-info-label{display:none!important}}' +
+            '@media (max-width:480px) and (orientation:portrait){.full-start-new__rate-line{display:flex!important;flex-wrap:wrap!important;align-items:center!important;justify-content:center!important;gap:0.2em!important}.full-start-new__rate-line.meta-inline{flex-wrap:nowrap!important;gap:0.4em!important;overflow:visible!important}.full-start-new__meta-line{display:flex!important;flex-wrap:wrap!important;align-items:center!important;justify-content:center!important;gap:0.5em!important;width:100%!important;line-height:1!important;font-size:1em!important;margin-top:0.3em!important}.full-start-new__meta-line .full-start__status,.full-start-new__meta-line .full-start__pg{margin:0!important;display:inline-flex!important;align-items:center!important;line-height:1!important;white-space:nowrap!important}.full-start-new__details{margin-top:0.3em!important;display:flex!important;flex-wrap:wrap!important;justify-content:center!important;gap:0.1em!important}.full-start-new__reactions{justify-content:center!important}.full-start-new__buttons{justify-content:center!important;text-align:center!important}.full-start-new__right,.full-start__right{text-align:center!important}.full-start-new__right h1,.full-start__right h1,.full-start-new__right .name,.full-start__right .name,.full-start__name{text-align:center!important;width:100%!important}.season-info-label{display:none!important}}' +
             'body[data-movie-labels="on"] .card--tv .card__type{display:none!important}';
         document.head.appendChild(style);
 
         applyRatingScale();
         if (isTriggerOn('lampa_rating_icon', true)) $('body').attr('data-lampa-icon-on', '1'); else $('body').removeAttr('data-lampa-icon-on');
+        if (!isTriggerOn('lampa_rating_show', true)) $('body').attr('data-lampa-rating-off', '1'); else $('body').removeAttr('data-lampa-rating-off');
         addSettings();
         setupCardListener();
         startMainObserver();
