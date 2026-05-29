@@ -375,9 +375,15 @@
           Lampa.Controller.collectionSet(html);
           Lampa.Controller.collectionFocus(false, html);
         },
-        up:    function () { if (Navigator.canmove('up')) Navigator.move('up'); },
+        up:    function () {
+          if (Navigator.canmove('up')) Navigator.move('up');
+          else Lampa.Controller.toggle('head');
+        },
         down:  function () { if (Navigator.canmove('down')) Navigator.move('down'); },
-        left:  function () { if (Navigator.canmove('left')) Navigator.move('left'); },
+        left:  function () {
+          if (Navigator.canmove('left')) Navigator.move('left');
+          else Lampa.Controller.toggle('menu');
+        },
         right: function () { if (Navigator.canmove('right')) Navigator.move('right'); },
         back:  function () { Lampa.Activity.backward(); }
       });
@@ -646,9 +652,15 @@
           Lampa.Controller.collectionSet(html);
           Lampa.Controller.collectionFocus(false, html);
         },
-        up:    function () { if (Navigator.canmove('up')) Navigator.move('up'); },
+        up:    function () {
+          if (Navigator.canmove('up')) Navigator.move('up');
+          else Lampa.Controller.toggle('head');
+        },
         down:  function () { if (Navigator.canmove('down')) Navigator.move('down'); },
-        left:  function () { if (Navigator.canmove('left')) Navigator.move('left'); },
+        left:  function () {
+          if (Navigator.canmove('left')) Navigator.move('left');
+          else Lampa.Controller.toggle('menu');
+        },
         right: function () { if (Navigator.canmove('right')) Navigator.move('right'); },
         back:  function () { Lampa.Activity.backward(); }
       });
