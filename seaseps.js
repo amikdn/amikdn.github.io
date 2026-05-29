@@ -15,10 +15,6 @@
         line-height: 1;
         box-shadow: none;
     }
-    .content-label { position: absolute!important; top: 0!important; left: 0!important; color: white!important; padding: 0.25em 0.45em!important; border-radius: 0.75em 0!important; font-size: 1.1em!important; z-index: 10!important; line-height: 1!important; }
-    .serial-label { background-color: rgba(52,152,219,0.8)!important; }
-    .movie-label  { background-color: rgba(46,204,113,0.8)!important; }
-    body[data-movie-labels="on"] .card--tv .card__type { display: none!important; }
     `;
     document.head.appendChild(style);
     var _seasonListenerActive = false;
@@ -95,102 +91,6 @@
             }
         }
     }
-    function changeMovieTypeLabels() {
-        $('body').attr('data-movie-labels', true ? 'on' : 'off');
-        function addLabel(card) {
-            if ($(card).find('.content-label').length) return;
-            var view = $(card).find('.card__view');
-            if (!view.length) return;
-            var meta = {}, tmp;
-            try {
-                tmp = $(card).attr('data-card');
-                if (tmp) meta = JSON.parse(tmp);
-                tmp = $(card).data();
-                if (tmp && Object.keys(tmp).length) meta = Object.assign(meta, tmp);
-                if (Lampa.Card && $(card).attr('id')) {
-                    var c = Lampa.Card.get($(card).attr('id'));
-                    if (c) meta = Object.assign(meta, c);
-                }
-                var id = $(card).data('id') || $(card).attr('data-id') || meta.id;
-                if (id && Lampa.Storage.cache('card_' + id)) {
-                    meta = Object.assign(meta, Lampa.Storage.cache('card_' + id));
-                }
-            } catch (e) {
-            }
-            var isTV = false;
-            if (meta.type === 'tv' || meta.card_type === 'tv' ||
-                meta.seasons || meta.number_of_seasons > 0 ||
-                meta.episodes || meta.number_of_episodes > 0 ||
-                meta.is_series) {
-                isTV = true;
-            }
-            if (!isTV) {
-                if ($(card).hasClass('card--tv') || $(card).data('type') === 'tv') isTV = true;
-                else if ($(card).find('.card__type, .card__temp').text().match(/(сезон|серия|эпизод|ТВ|TV)/i)) isTV = true;
-            }
-            var lbl = document.createElement('div');
-            lbl.className = 'content-label';
-            if (isTV) {
-                lbl.classList.add('serial-label');
-                lbl.textContent = 'Сериал';
-                lbl.dataset.type = 'serial';
-            } else {
-                lbl.classList.add('movie-label');
-                lbl.textContent = 'Фильм';
-                lbl.dataset.type = 'movie';
-            }
-            view[0].appendChild(lbl);
-        }
-        function processAll() {
-            document.querySelectorAll('.card').forEach(addLabel);
-        }
-        Lampa.Listener.follow('full', function (e) {
-            if (e.type === 'complite' && e.data.movie) {
-                var poster = e.object.activity.render().querySelector('.full-start__poster, .full-start-new__poster');
-                if (!poster) return;
-                var m = e.data.movie;
-                var isTV = m.number_of_seasons > 0 || m.seasons || m.type === 'tv';
-                poster.querySelectorAll('.content-label').forEach(el => el.remove());
-                var lbl = document.createElement('div');
-                lbl.className = 'content-label';
-                lbl.style.position = 'absolute';
-                lbl.style.top = '0';
-                lbl.style.left = '0';
-                lbl.style.color = 'white';
-                lbl.style.padding = '0.25em 0.45em';
-                lbl.style.borderRadius = '0.75em 0';
-                lbl.style.fontSize = '1.1em';
-                lbl.style.zIndex = 10;
-                lbl.style.lineHeight = '1';
-                if (isTV) {
-                    lbl.classList.add('serial-label');
-                    lbl.textContent = 'Сериал';
-                    lbl.style.backgroundColor = 'rgba(52,152,219,0.8)';
-                } else {
-                    lbl.classList.add('movie-label');
-                    lbl.textContent = 'Фильм';
-                    lbl.style.backgroundColor = 'rgba(46,204,113,0.8)';
-                }
-                poster.style.position = 'relative';
-                poster.appendChild(lbl);
-            }
-        });
-        new MutationObserver(function (muts) {
-            muts.forEach(function (m) {
-                if (m.addedNodes) {
-                    m.addedNodes.forEach(node => {
-                        if (node.nodeType === 1 && node.classList.contains('card')) addLabel(node);
-                        if (node.querySelectorAll) node.querySelectorAll('.card').forEach(addLabel);
-                    });
-                }
-                if (m.type === 'attributes' && ['class', 'data-card', 'data-type'].includes(m.attributeName) && m.target.classList.contains('card')) {
-                    addLabel(m.target);
-                }
-            });
-        }).observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'data-card', 'data-type'] });
-        processAll();
-        setInterval(processAll, 2000);
-    }
     function applySeasonSetting() {
         if (isSeasonEnabled()) {
             if (!_seasonListenerActive) {
@@ -208,7 +108,6 @@
     function initPlugin() {
         Lampa.SettingsApi.addParam({ component: "interface", param: { name: "season_and_episode", type: "trigger", default: true, }, field: { name: "Отображение состояния сериала (сезон/серия)", }, onRender: function (element) { setTimeout(function () { $("div[data-name='season_and_episode']").insertAfter("div[data-name='card_interface_reactions']"); }, 0); }, onChange: function () { applySeasonSetting(); } });
         applySeasonSetting();
-        changeMovieTypeLabels();
     }
     if (window.appready) {
         initPlugin();
