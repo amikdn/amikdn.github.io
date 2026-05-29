@@ -372,8 +372,8 @@
     this.start = function () {
       Lampa.Controller.add('cherry_grid', {
         toggle: function () {
-          Lampa.Controller.collectionSet(html);
-          Lampa.Controller.collectionFocus(false, html);
+          Lampa.Controller.collectionSet(scroll.render());
+          Lampa.Controller.collectionFocus(false, scroll.render());
         },
         up:    function () {
           if (Navigator.canmove('up')) Navigator.move('up');
@@ -434,7 +434,7 @@
           totalPages = result.total_pages || 1;
           html.find('.cherry-grid__empty').hide();
           renderCards(result.items, scroll.body());
-          Lampa.Controller.collectionSet(html);
+          Lampa.Controller.collectionSet(scroll.render());
         } else if (page === 1) {
           html.find('.cherry-grid__empty').show();
         } else {
