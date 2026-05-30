@@ -2,33 +2,6 @@
   'use strict';
 
   var GUEST_UID = 'guest';
-  var STORAGE_KEY = 'lampac_unic_id';
-
-  function patchGuestUidStorage() {
-    if (!window.Lampa || !Lampa.Storage || typeof Lampa.Storage.get !== 'function' || typeof Lampa.Storage.set !== 'function') return;
-    if (Lampa.Storage.__onlineVipGuestPatched) {
-      Lampa.Storage.set(STORAGE_KEY, GUEST_UID);
-      return;
-    }
-
-    var originalGet = Lampa.Storage.get;
-    var originalSet = Lampa.Storage.set;
-
-    Lampa.Storage.get = function(name) {
-      if (name === STORAGE_KEY) return GUEST_UID;
-      return originalGet.apply(this, arguments);
-    };
-
-    Lampa.Storage.set = function(name, value) {
-      if (name === STORAGE_KEY) arguments[1] = GUEST_UID;
-      return originalSet.apply(this, arguments);
-    };
-
-    Lampa.Storage.set(STORAGE_KEY, GUEST_UID);
-    Lampa.Storage.__onlineVipGuestPatched = true;
-  }
-
-  patchGuestUidStorage();
 
   var Defined = {
     api: 'lampac',
@@ -39,7 +12,6 @@
   var balansers_with_search;
   
   var unic_id = GUEST_UID;
-  Lampa.Storage.set(STORAGE_KEY, unic_id);
   
     function getAndroidVersion() {
   if (Lampa.Platform.is('android')) {
