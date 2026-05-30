@@ -9,7 +9,13 @@
 
         var title = $('<div class="player-info__title"></div>');
             var value = $('<div class="value--name"><span></span></div>');
-            render.find('.player-panel__center').find('.button:not(.player-panel__playpause)').remove();
+            var center_panel = render.find('.player-panel__center');
+            var playpause = center_panel.find('.player-panel__playpause');
+            var prev_button = render.find('.player-panel__prev');
+            var next_button = render.find('.player-panel__next');
+            if (prev_button.length) playpause.before(prev_button);
+            if (next_button.length) playpause.after(next_button);
+            center_panel.find('.button').not('.player-panel__playpause, .player-panel__prev, .player-panel__next').remove();
             render.find('.player-panel__timeline').before(render.find('.player-panel__line-one'));
             render.find('.player-info .player-info__line').before(title);
             render.find('.value--size').after(value);
@@ -23,7 +29,7 @@
             right_panel.append(right_box_audio);
             right_panel.append(right_box_quality);
             right_panel.append(right_box_main);
-            right_box_main.append(right_panel.find('.button'));
+            right_box_main.append(right_panel.find('.button').not('.player-panel__quality, .player-panel__flow, .player-panel__subs, .player-panel__tracks'));
             right_box_quality.append(right_panel.find('.player-panel__quality'));
             right_box_audio.append(right_panel.find('.player-panel__flow'));
             right_box_audio.append(right_panel.find('.player-panel__subs'));
@@ -39,6 +45,12 @@
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'flex-start'
+            });
+            render.find('.player-panel__quality').css({
+                width: '3em',
+                height: '3em',
+                padding: '.9em',
+                borderRadius: '50%'
             });
             Lampa.Player.listener.follow('start', function (data) {
                 var name = data.title;
