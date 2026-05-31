@@ -52,14 +52,16 @@
             '.player:not(.iptv) .player-panel__box-buttons{display:-webkit-box!important;display:-webkit-flex!important;display:-moz-box!important;display:-ms-flexbox!important;display:flex!important;-webkit-box-align:center!important;-webkit-align-items:center!important;-moz-box-align:center!important;-ms-flex-align:center!important;align-items:center!important;-webkit-box-pack:center!important;-webkit-justify-content:center!important;-moz-box-pack:center!important;-ms-flex-pack:center!important;justify-content:center!important;-webkit-flex-wrap:nowrap!important;-ms-flex-wrap:nowrap!important;flex-wrap:nowrap!important;-webkit-flex-shrink:1!important;-ms-flex-negative:1!important;flex-shrink:1!important;min-width:0!important;margin:0 .06em!important;padding:0!important;-webkit-border-radius:5em!important;border-radius:5em!important;overflow:visible!important}',
             '.player:not(.iptv) .player-panel__box-buttons:empty{display:none!important}',
             '.player:not(.iptv) .player-panel__box-buttons+.player-panel__box-buttons{margin-left:.12em!important}',
-            '.player:not(.iptv) .player-panel .button{box-sizing:border-box!important;display:-webkit-box!important;display:-webkit-flex!important;display:-moz-box!important;display:-ms-flexbox!important;display:flex!important;-webkit-box-align:center!important;-webkit-align-items:center!important;-moz-box-align:center!important;-ms-flex-align:center!important;align-items:center!important;-webkit-box-pack:center!important;-webkit-justify-content:center!important;-moz-box-pack:center!important;-ms-flex-pack:center!important;justify-content:center!important;-webkit-flex-shrink:0!important;-ms-flex-negative:0!important;flex-shrink:0!important;width:2.3em!important;min-width:2.3em!important;max-width:2.3em!important;height:2.3em!important;min-height:2.3em!important;max-height:2.3em!important;margin:0!important;padding:.62em!important;-webkit-border-radius:50%!important;border-radius:50%!important;line-height:1!important}',
+            '.player:not(.iptv) .player-panel .button{box-sizing:border-box!important;-webkit-flex-shrink:0!important;-ms-flex-negative:0!important;flex-shrink:0!important;width:2.3em!important;min-width:2.3em!important;max-width:2.3em!important;height:2.3em!important;min-height:2.3em!important;max-height:2.3em!important;margin:0!important;padding:.62em!important;-webkit-border-radius:50%!important;border-radius:50%!important;line-height:1!important}',
             '.player:not(.iptv) .player-panel__center .button{width:2.5em!important;min-width:2.5em!important;max-width:2.5em!important;height:2.5em!important;min-height:2.5em!important;max-height:2.5em!important;padding:.68em!important}',
             '.player:not(.iptv) .player-panel__center .button+.button{margin-left:.16em!important}',
             '.player:not(.iptv) .player-panel__playpause{width:2.95em!important;min-width:2.95em!important;max-width:2.95em!important;height:2.95em!important;min-height:2.95em!important;max-height:2.95em!important;padding:.88em!important;margin:0 .16em!important}',
-            '.player:not(.iptv) .player-panel__prev,.player:not(.iptv) .player-panel__next{display:-webkit-box!important;display:-webkit-flex!important;display:-moz-box!important;display:-ms-flexbox!important;display:flex!important;visibility:visible!important;opacity:1!important}',
+            '.player:not(.iptv) .player-panel__prev:not(.hide),.player:not(.iptv) .player-panel__next:not(.hide){visibility:visible!important;opacity:1!important}',
             '.player:not(.iptv) .player-panel .button>svg{width:.92em!important;height:.92em!important}',
             '.player:not(.iptv) .player-panel__playpause>svg{width:1.12em!important;height:1.12em!important}',
             '.player:not(.iptv) .player-panel__quality{box-sizing:border-box!important;width:2.3em!important;min-width:2.3em!important;max-width:2.3em!important;height:2.3em!important;min-height:2.3em!important;max-height:2.3em!important;padding:0!important;-webkit-border-radius:50%!important;border-radius:50%!important;text-align:center!important;line-height:1!important;overflow:hidden!important;font-size:.72em!important;white-space:nowrap!important}',
+            '.player:not(.iptv) .player-panel .button.hide,.player:not(.iptv) .player-panel .button.disabled,.player:not(.iptv) .player-panel .button.inactive,.player:not(.iptv) .player-panel .button[hidden],.player:not(.iptv) .player-panel .button[disabled],.player:not(.iptv) .player-panel .button[aria-disabled="true"],.player:not(.iptv) .player-panel .button[style*="display: none"]{display:none!important}',
+            '.player:not(.iptv) .player-panel__flow.hide,.player:not(.iptv) .player-panel__subs.hide,.player:not(.iptv) .player-panel__tracks.hide,.player:not(.iptv) .player-panel__quality.hide{display:none!important}',
             '.player:not(.iptv) .player-panel__timeline{margin-bottom:.55em!important}',
             '.player:not(.iptv) .player-info__title{font-size:1.28em!important;width:86%!important}',
             '.player:not(.iptv) .player-info__time{top:.15em!important}',
@@ -88,6 +90,8 @@
         var playpause = center_panel.find('.player-panel__playpause');
         var center_prev = center_panel.find('.player-panel__prev').detach();
         var center_next = center_panel.find('.player-panel__next').detach();
+        var center_prev_allowed = center_prev.length && !center_prev.hasClass('hide') && !center_prev.hasClass('disabled') && !center_prev.hasClass('inactive') && !center_prev.is('[hidden],[disabled],[aria-disabled="true"]');
+        var center_next_allowed = center_next.length && !center_next.hasClass('hide') && !center_next.hasClass('disabled') && !center_next.hasClass('inactive') && !center_next.is('[hidden],[disabled],[aria-disabled="true"]');
 
         center_panel.find('.button:not(.player-panel__playpause)').remove();
         render.find('.player-panel__timeline').before(render.find('.player-panel__line-one'));
@@ -121,8 +125,8 @@
             if (!playpause.length) return;
 
             if (isPortrait()) {
-                if (center_prev.length && !center_prev.parent().length) playpause.before(center_prev);
-                if (center_next.length && !center_next.parent().length) playpause.after(center_next);
+                if (center_prev_allowed && !center_prev.parent().length) playpause.before(center_prev);
+                if (center_next_allowed && !center_next.parent().length) playpause.after(center_next);
             } else {
                 center_prev.detach();
                 center_next.detach();
