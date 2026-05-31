@@ -69,28 +69,6 @@
         if (v < 8) return 'rgba(52,152,219,' + alpha + ')';
         return 'rgba(46,204,113,' + alpha + ')';
     }
-    function getOverlayHost(card) {
-        if (!card || !card.querySelector) return null;
-        var img = card.querySelector('.card__img, .card__image, img');
-        var host = img && img.parentNode && img.parentNode.nodeType === 1 ? img.parentNode : null;
-        if (!host || (host.classList && host.classList.contains('card__view'))) host = card.querySelector('.card__view');
-        if (host) host.style.position = 'relative';
-        return host;
-    }
-    function moveOverlayChildrenToHost(card) {
-        var host = getOverlayHost(card);
-        if (!host) return;
-        var view = card.querySelector && card.querySelector('.card__view');
-        var selectors = ['.card__vote', '.card__vote-line', '.card__vote-separate-wrap', '.card__quality', '.content-label'];
-        for (var s = 0; s < selectors.length; s++) {
-            var nodes = card.querySelectorAll(selectors[s]);
-            for (var i = 0; i < nodes.length; i++) {
-                if (nodes[i].parentNode !== host && nodes[i] !== host && (!view || nodes[i].parentNode === view || nodes[i].closest('.card') === card)) host.appendChild(nodes[i]);
-            }
-        }
-        var age = card.querySelector('.card__age.card__year-badge');
-        if (age && age.parentNode !== host) host.appendChild(age);
-    }
     function getYearPositionCSS() {
         var pos = Lampa.Storage.get('rating_position', 'bottom');
         if (pos === 'bottom') return 'right:0!important;top:0!important;bottom:auto!important;left:auto!important;border-radius:0 0.75em!important;';
@@ -98,7 +76,7 @@
     }
     function addYearBadge(card) {
         if (!card || !card.querySelector) return;
-        var view = getOverlayHost(card) || card.querySelector('.card__view');
+        var view = card.querySelector('.card__view');
         var age = card.querySelector('.card__age');
         if (!view || !age) return;
         if (age.parentNode !== view) view.appendChild(age);
@@ -502,7 +480,7 @@
         return 'card__vote card__vote--' + pos + (extra ? ' ' + extra : '');
     }
     function getRatingParent(card) {
-        var parent = getOverlayHost(card) || (card.querySelector && card.querySelector('.card__view'));
+        var parent = card.querySelector && card.querySelector('.card__view');
         if (!parent) parent = card;
         parent.setAttribute('data-rate-anchor', '1');
         parent.style.position = 'relative';
@@ -724,7 +702,6 @@
     function updateCardRating(item) {
         var card = item.card || item;
         if (!card || !card.querySelector || !document.body.contains(card)) return;
-        moveOverlayChildrenToHost(card);
         var data = card.card_data || item.data || {};
         if (!data.id) return;
         var idStr = data.id.toString();
@@ -1035,8 +1012,8 @@
     function applyRatingScale() {
         var v = parseFloat(Lampa.Storage.get('rating_scale', '100'));
         if (isNaN(v)) v = 100;
-        v = Math.max(60, Math.min(150, v)) / 100;
-        try { document.body.style.setProperty('--rating-scale', String(v)); } catch (e) {}
+        v = Math.max(60, Math.min(150, v));
+        try { document.body.style.setProperty('--rating-font-size', (1.1 * v / 100) + 'em'); } catch (e) {}
     }
     var _settingsRefreshTimer = 0;
     function scheduleSettingsRefresh(delay) {
@@ -1230,7 +1207,7 @@
     function applyQualityToItem(itemElement, resQuality) {
         if (!document.body.contains(itemElement)) return;
         itemElement.setAttribute('data-quality-added', 'true');
-        var viewSection = getOverlayHost(itemElement) || itemElement.querySelector('.card__view');
+        var viewSection = itemElement.querySelector('.card__view');
         if (!viewSection) return;
         var existing = viewSection.querySelectorAll('.card__quality');
         for (var i = 0; i < existing.length; i++) existing[i].remove();
@@ -1243,7 +1220,6 @@
             qualityContainer.style.background = getQualityBackground(resQuality);
             viewSection.appendChild(qualityContainer);
         }
-        moveOverlayChildrenToHost(itemElement);
     }
     function processQualityForCards(itemsList) {
         for (var idx = 0; idx < itemsList.length; idx++) {
@@ -1349,8 +1325,7 @@
         if (!isTypeLabelsShowOn()) return;
         if ($(card).closest('.explorer, .layer--online, .select-box').length) { $(card).find('.content-label').remove(); return; }
         if ($(card).find('.content-label').length) return;
-        var host = getOverlayHost(card);
-        var view = host ? $(host) : $(card).find('.card__view');
+        var view = $(card).find('.card__view');
         if (!view.length) return;
         var meta = {}, tmp;
         try {
@@ -1372,7 +1347,6 @@
         lbl.css({ backgroundColor: getTypeLabelBackground(isTV) });
         if (isTypeLabelsColoredOn()) { lbl.addClass(isTV ? 'serial-label' : 'movie-label'); }
         view.append(lbl);
-        moveOverlayChildrenToHost(card);
         if (isTV) $('body[data-movie-labels="on"] .card--tv .card__type').css('display', 'none!important');
     }
     function processAllTypeLabels() {
@@ -1985,17 +1959,15 @@
             '.rate-settings-site{display:inline-block;color:#8ab4ff!important;text-decoration:underline!important;white-space:nowrap!important}' +
             '[data-name="rating_modal_open"] .settings-param__value,[data-name="rating_modal_open"] .settings-param__control,[data-name="rating_modal_open"] input[type="checkbox"],[data-name="clear_ratings_cache"] .settings-param__value,[data-name="clear_ratings_cache"] .settings-param__control,[data-name="clear_ratings_cache"] input[type="checkbox"],[data-name="clear_quality_cache"] .settings-param__value,[data-name="clear_quality_cache"] .settings-param__control,[data-name="clear_quality_cache"] input[type="checkbox"]{display:none!important}' +
             '.card .card__view{position:relative!important}' +
-            '.card__img,.card__image,.card__view>img,.card__view>*:has(>img){position:relative!important}' +
-            '.card__view:has(.card__vote),.card__view:has(.card__vote-line){image-rendering:auto!important;-webkit-font-smoothing:antialiased!important;backface-visibility:hidden!important;-webkit-backface-visibility:hidden!important;filter:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}' +
             '.card__view > .card__vote:not(.card__vote--top):not(.card__vote--bottom):not(.card__vote-line):not(.card__vote-separate-wrap){display:none!important}' +
-            '.card__vote,.card__vote-separate-wrap .card__vote{display:flex!important;align-items:center!important;justify-content:flex-start!important;position:absolute!important;z-index:1!important;width:auto!important;min-width:2.8em!important;max-width:100%!important;box-sizing:border-box!important;transform:none!important;padding:0.2em 0.1em 0.2em 0.7em!important;white-space:nowrap!important;font-size:calc(1.1em * var(--rating-scale,1))!important;line-height:1!important;height:auto!important;border:none!important;margin:0!important;-webkit-font-smoothing:antialiased!important;text-rendering:geometricPrecision!important;filter:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}' +
+            '.card__vote,.card__vote-separate-wrap .card__vote{display:flex!important;align-items:center!important;justify-content:flex-start!important;position:absolute!important;z-index:1!important;width:auto!important;min-width:2.8em!important;max-width:100%!important;box-sizing:border-box!important;padding:0.2em 0.1em 0.2em 0.7em!important;white-space:nowrap!important;font-size:var(--rating-font-size,1.1em)!important;line-height:1!important;height:auto!important;border:none!important;margin:0!important}' +
             '.card__vote-separate-wrap .card__vote{position:static!important;transform:none!important;flex-shrink:0!important}' +
             '.card__vote.card__vote--hidden,.card__vote-separate-wrap .card__vote.card__vote--hidden{display:none!important;height:0!important;padding:0!important;margin:0!important;overflow:hidden!important;min-width:0!important;min-height:0!important;border:none!important;width:0!important;position:absolute!important;opacity:0!important;pointer-events:none!important}' +
-            '.card__vote-line{display:flex!important;flex-direction:column!important;align-items:flex-start!important;position:absolute!important;width:auto!important;min-width:2.8em!important;max-width:100%!important;box-sizing:border-box!important;transform:none!important;padding:0.2em 0.1em 0.2em 0.7em!important;font-size:calc(1.1em * var(--rating-scale,1))!important;line-height:1!important;height:auto!important;border:none!important;margin:0!important;-webkit-font-smoothing:antialiased!important;text-rendering:geometricPrecision!important;filter:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}' +
-            '.card__vote-separate-wrap{background:transparent!important;padding:0!important;width:auto!important;min-width:2.8em!important;max-width:100%!important;overflow:visible!important;transform:none!important;display:flex!important;flex-direction:column!important;align-items:stretch!important;gap:0.15em!important;font-size:calc(1.1em * var(--rating-scale,1))!important;filter:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}' +
+            '.card__vote-line{display:flex!important;flex-direction:column!important;align-items:flex-start!important;position:absolute!important;width:auto!important;min-width:2.8em!important;max-width:100%!important;box-sizing:border-box!important;padding:0.2em 0.1em 0.2em 0.7em!important;font-size:var(--rating-font-size,1.1em)!important;line-height:1!important;height:auto!important;border:none!important;margin:0!important}' +
+            '.card__vote-separate-wrap{background:transparent!important;padding:0!important;width:auto!important;min-width:2.8em!important;max-width:100%!important;overflow:visible!important;display:flex!important;flex-direction:column!important;align-items:stretch!important;gap:0.15em!important;font-size:var(--rating-font-size,1.1em)!important}' +
             '.card__vote > span:first-child,.card__vote-line .card__rate-item > div,.card__vote-line .card__rate-item > .rate-value{display:inline-block!important;min-width:3ch!important;text-align:left!important}' +
-            '.card__vote--top,.card__vote-line.card__vote--top,.card__vote-separate-wrap.card__vote--top{transform-origin:top right!important;transform:none!important}' +
-            '.card__vote--bottom,.card__vote-line.card__vote--bottom,.card__vote-separate-wrap.card__vote--bottom{transform-origin:bottom right!important;transform:none!important}' +
+            '.card__vote--top,.card__vote-line.card__vote--top,.card__vote-separate-wrap.card__vote--top{transform-origin:top right!important}' +
+            '.card__vote--bottom,.card__vote-line.card__vote--bottom,.card__vote-separate-wrap.card__vote--bottom{transform-origin:bottom right!important}' +
             '.card__vote--top{top:0!important;right:0!important;bottom:auto!important;border-radius:0 0.75em!important}' +
             '.card__vote--bottom{top:auto!important;right:0!important;bottom:0!important;border-radius:0.75em 0!important}' +
             '.card__vote-separate-wrap.card__vote--bottom .card__vote{border-radius:0.75em 0 0 0.75em!important}' +
