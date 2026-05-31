@@ -935,21 +935,30 @@
             if (!card || !isCardNearViewport(card, wH)) continue;
             var overlays = card.querySelectorAll('.card__vote, .card__vote-line, .card__vote-separate-wrap, .card__quality, .content-label, .card__year-badge');
             if (!overlays.length) continue;
-            for (var j = 0; j < overlays.length; j++) overlays[j].style.textShadow = '0 0 0 rgba(255,255,255,0.01)';
-            touched.push(overlays);
+            card.classList.add('card-overlay-repaint');
+            touched.push(card);
         }
         if (touched.length) requestAnimationFrame(function () {
-            for (var a = 0; a < touched.length; a++) {
-                for (var b = 0; b < touched[a].length; b++) touched[a][b].style.textShadow = '';
-            }
+            requestAnimationFrame(function () {
+                for (var a = 0; a < touched.length; a++) touched[a].classList.remove('card-overlay-repaint');
+            });
         });
     }
     function scheduleCardOverlayRepaint(delay) {
         if (_cardOverlayRepaintTimer) clearTimeout(_cardOverlayRepaintTimer);
         _cardOverlayRepaintTimer = setTimeout(function () { _cardOverlayRepaintTimer = 0; repaintCardOverlays(); }, delay || 0);
     }
+    function bindCardImageRepaint(card) {
+        if (!card || card.dataset.cardOverlayImageRepaintBound) return;
+        card.dataset.cardOverlayImageRepaintBound = '1';
+        try {
+            var img = card.querySelector('.card__img');
+            if (img) img.addEventListener('load', function () { scheduleCardOverlayRepaint(30); }, false);
+        } catch (e) {}
+    }
     function observeCardVisibility(card) {
         if (!_cardIntersectionObserver || !card || !card.nodeType || card.nodeType !== 1) return;
+        bindCardImageRepaint(card);
         try { _cardIntersectionObserver.observe(card); } catch (e) {}
     }
     function startMainObserver() {
@@ -2109,6 +2118,7 @@
             '.card .card__view{position:relative!important}' +
             '.card .card__view>.card__img{z-index:0!important}' +
             '.card .card__vote,.card .card__vote-line,.card .card__vote-separate-wrap,.card .card__vote-separate-wrap .card__vote,.card .card__quality,.card .content-label,.card .card__year-badge{z-index:2!important;opacity:1!important;-webkit-filter:none!important;filter:none!important;will-change:auto!important;-webkit-transform:none!important;transform:none!important}' +
+            '.card.card-overlay-repaint .card__view{will-change:transform!important;-webkit-transform:translate3d(0,0,0)!important;transform:translate3d(0,0,0)!important}' +
             '.card__view > .card__vote:not(.card__vote--top):not(.card__vote--bottom):not(.card__vote-line):not(.card__vote-separate-wrap){display:none!important}' +
             '.card__vote,.card__vote-separate-wrap .card__vote{position:absolute!important;right:0!important;bottom:0!important;padding:0.2em 0.45em!important;border-radius:0.75em 0!important;white-space:nowrap!important;font-size:var(--rating-font-size,1.1em)!important;line-height:1!important;height:auto!important;border:none!important;margin:0!important}' +
             '.card__vote-separate-wrap .card__vote{position:static!important;margin:0!important}' +
@@ -2189,8 +2199,11 @@
         setupCardListener();
         startMainObserver();
         scheduleVisibleRatingsUpdate(120);
+        scheduleCardOverlayRepaint(180);
         setTimeout(function () { scheduleVisibleRatingsUpdate(250); }, 250);
+        setTimeout(function () { scheduleCardOverlayRepaint(450); }, 450);
         setTimeout(function () { scheduleVisibleRatingsUpdate(600); }, 600);
+        setTimeout(function () { scheduleCardOverlayRepaint(900); }, 900);
         window.addEventListener('scroll', function () { scheduleVisibleRatingsUpdate(120); }, { passive: true });
         window.addEventListener('keydown', function (e) {
             if (isCardUpdatesBlocked()) return;
