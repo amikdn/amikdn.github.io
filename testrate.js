@@ -499,7 +499,7 @@
         ratingElement.className = voteClass();
         var posCSS = getRatingPositionCSS();
         var bgAlpha = getOverlayAlpha();
-        ratingElement.style.cssText = 'line-height:1;cursor:pointer;box-sizing:border-box;outline:none;user-select:none;position:absolute;z-index:10;display:flex;align-items:center;opacity:1;filter:none;' + posCSS + 'background:rgba(0,0,0,' + bgAlpha + ');color:#fff;padding:0.2em 0.1em 0.2em 0.7em;';
+        ratingElement.style.cssText = 'line-height:1;cursor:pointer;box-sizing:border-box;outline:none;user-select:none;position:absolute;display:block;opacity:1;filter:none;' + posCSS + 'background:rgba(0,0,0,' + bgAlpha + ');color:#fff;padding:0.2em 0.45em;';
         getRatingParent(card).appendChild(ratingElement);
         return ratingElement;
     }
@@ -507,7 +507,7 @@
         var el = document.createElement('div');
         el.className = voteClass();
         var bgAlpha = getOverlayAlpha();
-        el.style.cssText = 'line-height:1;cursor:pointer;box-sizing:border-box;outline:none;user-select:none;display:flex;align-items:center;background:rgba(0,0,0,' + bgAlpha + ');color:#fff;padding:0.2em 0.1em 0.2em 0.7em;opacity:1;filter:none;';
+        el.style.cssText = 'line-height:1;cursor:pointer;box-sizing:border-box;outline:none;user-select:none;display:block;background:rgba(0,0,0,' + bgAlpha + ');color:#fff;padding:0.2em 0.45em;opacity:1;filter:none;';
         return el;
     }
     function createRatingLineElement(card) {
@@ -515,7 +515,7 @@
         line.className = voteClass('card__vote-line');
         var posCSS = getRatingPositionCSS();
         var bgAlpha = getOverlayAlpha();
-        line.style.cssText = 'line-height:1;cursor:pointer;box-sizing:border-box;outline:none;user-select:none;position:absolute;z-index:10;display:flex;flex-direction:column;align-items:flex-start;opacity:1;filter:none;' + posCSS + 'background:rgba(0,0,0,' + bgAlpha + ');color:#fff;padding:0.2em 0.1em 0.2em 0.7em;';
+        line.style.cssText = 'line-height:1;cursor:pointer;box-sizing:border-box;outline:none;user-select:none;position:absolute;display:block;opacity:1;filter:none;' + posCSS + 'background:rgba(0,0,0,' + bgAlpha + ');color:#fff;padding:0.2em 0.45em;';
         line.innerHTML = '<div class="card__rate-item rate--tmdb" style="display:none"><div>0.0</div><span class="source--name"></span></div><div class="card__rate-item rate--imdb" style="display:none"><div>0.0</div><span class="source--name"></span></div><div class="card__rate-item rate--kp" style="display:none"><div>0.0</div><span class="source--name"></span></div><div class="card__rate-item rate--lampa" style="display:none"><span class="rate-value">0.0</span><span class="source--name rate-icon-reaction"></span></div>';
         getRatingParent(card).appendChild(line);
         return line;
@@ -639,7 +639,7 @@
         var wrapper = document.createElement('div');
         wrapper.className = voteClass('card__vote-separate-wrap');
         var posCSS = getRatingPositionCSS();
-        wrapper.style.cssText = 'position:absolute;z-index:10;display:flex;flex-direction:column;align-items:stretch;gap:0.15em;box-sizing:border-box;opacity:1;filter:none;' + posCSS;
+        wrapper.style.cssText = 'position:absolute;display:block;box-sizing:border-box;opacity:1;filter:none;' + posCSS;
         for (var i = 0; i < sources.length; i++) {
             var el = createRatingInnerBlock();
             el.dataset.rateSource = sources[i];
@@ -1982,12 +1982,12 @@
             '[data-name="rating_modal_open"] .settings-param__value,[data-name="rating_modal_open"] .settings-param__control,[data-name="rating_modal_open"] input[type="checkbox"],[data-name="clear_ratings_cache"] .settings-param__value,[data-name="clear_ratings_cache"] .settings-param__control,[data-name="clear_ratings_cache"] input[type="checkbox"],[data-name="clear_quality_cache"] .settings-param__value,[data-name="clear_quality_cache"] .settings-param__control,[data-name="clear_quality_cache"] input[type="checkbox"]{display:none!important}' +
             '.card .card__view{position:relative!important}' +
             '.card__view > .card__vote:not(.card__vote--top):not(.card__vote--bottom):not(.card__vote-line):not(.card__vote-separate-wrap){display:none!important}' +
-            '.card__vote,.card__vote-separate-wrap .card__vote{display:flex!important;align-items:center!important;justify-content:flex-start!important;position:absolute!important;z-index:10!important;width:auto!important;min-width:2.8em!important;max-width:100%!important;box-sizing:border-box!important;padding:0.2em 0.1em 0.2em 0.7em!important;white-space:nowrap!important;font-size:var(--rating-font-size,1.1em)!important;line-height:1!important;height:auto!important;border:none!important;margin:0!important;opacity:1!important;filter:none!important}' +
-            '.card__vote-separate-wrap .card__vote{position:static!important;transform:none!important;flex-shrink:0!important}' +
+            '.card__vote,.card__vote-separate-wrap .card__vote{position:absolute!important;right:0!important;bottom:0!important;width:auto!important;min-width:0!important;max-width:100%!important;box-sizing:border-box!important;padding:0.2em 0.45em!important;white-space:nowrap!important;font-size:var(--rating-font-size,1.1em)!important;line-height:1!important;height:auto!important;border:none!important;margin:0!important;opacity:1!important;filter:none!important}' +
+            '.card__vote-separate-wrap .card__vote{position:static!important;transform:none!important;display:block!important;margin-bottom:0.15em!important}' +
             '.card__vote.card__vote--hidden,.card__vote-separate-wrap .card__vote.card__vote--hidden{display:none!important;height:0!important;padding:0!important;margin:0!important;overflow:hidden!important;min-width:0!important;min-height:0!important;border:none!important;width:0!important;position:absolute!important;opacity:0!important;pointer-events:none!important}' +
-            '.card__vote-line{display:flex!important;flex-direction:column!important;align-items:flex-start!important;position:absolute!important;z-index:10!important;width:auto!important;min-width:2.8em!important;max-width:100%!important;box-sizing:border-box!important;padding:0.2em 0.1em 0.2em 0.7em!important;font-size:var(--rating-font-size,1.1em)!important;line-height:1!important;height:auto!important;border:none!important;margin:0!important;opacity:1!important;filter:none!important}' +
-            '.card__vote-separate-wrap{background:transparent!important;padding:0!important;width:auto!important;min-width:2.8em!important;max-width:100%!important;overflow:visible!important;display:flex!important;flex-direction:column!important;align-items:stretch!important;gap:0.15em!important;font-size:var(--rating-font-size,1.1em)!important;z-index:10!important;opacity:1!important;filter:none!important}' +
-            '.card__vote > span:first-child,.card__vote-line .card__rate-item > div,.card__vote-line .card__rate-item > .rate-value{display:inline-block!important;min-width:3ch!important;text-align:left!important}' +
+            '.card__vote-line{display:block!important;position:absolute!important;right:0!important;bottom:0!important;width:auto!important;min-width:0!important;max-width:100%!important;box-sizing:border-box!important;padding:0.2em 0.45em!important;font-size:var(--rating-font-size,1.1em)!important;line-height:1!important;height:auto!important;border:none!important;margin:0!important;opacity:1!important;filter:none!important}' +
+            '.card__vote-separate-wrap{background:transparent!important;padding:0!important;width:auto!important;min-width:0!important;max-width:100%!important;overflow:visible!important;display:block!important;font-size:var(--rating-font-size,1.1em)!important;opacity:1!important;filter:none!important}' +
+            '.card__vote > span:first-child,.card__vote-line .card__rate-item > div,.card__vote-line .card__rate-item > .rate-value{display:inline-block!important;min-width:3ch!important;text-align:left!important;vertical-align:middle!important}' +
             '.card__vote--top,.card__vote-line.card__vote--top,.card__vote-separate-wrap.card__vote--top{transform-origin:top right!important}' +
             '.card__vote--bottom,.card__vote-line.card__vote--bottom,.card__vote-separate-wrap.card__vote--bottom{transform-origin:bottom right!important}' +
             '.card__vote--top{top:0!important;right:0!important;bottom:auto!important;border-radius:0 0.75em!important}' +
@@ -1998,9 +1998,9 @@
             '.card__vote-separate-wrap.card__vote--top .card__vote{border-radius:0.75em 0 0 0.75em!important}' +
             '.card__vote-separate-wrap.card__vote--top .card__vote.visible-first{border-radius:0 0.75em!important}' +
             '.card__vote-separate-wrap.card__vote--top .card__vote.visible-only{border-radius:0 0.75em!important}' +
-            '.card__vote-line .card__rate-item{display:-webkit-box;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;white-space:nowrap}' +
+            '.card__vote-line .card__rate-item{display:block!important;white-space:nowrap}' +
             '.card__vote-line .card__rate-item:last-child{margin-bottom:0}' +
-            '.card__vote .source--name{font-size:0!important;display:block!important;color:transparent!important;width:12px!important;height:12px!important;overflow:hidden!important;background-repeat:no-repeat!important;background-position:center!important;background-size:contain!important;margin-left:auto!important;padding:0!important;border:none!important;flex-shrink:0!important}' +
+            '.card__vote .source--name{font-size:0!important;display:inline-block!important;color:transparent!important;width:12px!important;height:12px!important;overflow:hidden!important;background-repeat:no-repeat!important;background-position:center!important;background-size:contain!important;margin-left:0.25em!important;padding:0!important;border:none!important;vertical-align:middle!important}' +
             '@media (min-width:481px){.card__vote .source--name{width:18px!important;height:18px!important}}' +
             '@media (min-width:481px){.card__vote,.card__vote-line,.card__vote-separate-wrap,.card__vote-separate-wrap .card__vote{font-size:var(--rating-font-size,1.1em)!important}}' +
             '.rate--kp .source--name{background-image:url("data:image/svg+xml,%3Csvg width=\'300\' height=\'300\' viewBox=\'0 0 300 300\' fill=\'none\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cmask id=\'mask0_1_69\' style=\'mask-type:alpha\' maskUnits=\'userSpaceOnUse\' x=\'0\' y=\'0\' width=\'300\' height=\'300\'%3E%3Ccircle cx=\'150\' cy=\'150\' r=\'150\' fill=\'white\'/%3E%3C/mask%3E%3Cg mask=\'url(%23mask0_1_69)\'%3E%3Ccircle cx=\'150\' cy=\'150\' r=\'150\' fill=\'black\'/%3E%3Cpath d=\'M300 45L145.26 127.827L225.9 45H181.2L126.3 121.203V45H89.9999V255H126.3V178.92L181.2 255H225.9L147.354 174.777L300 255V216L160.776 160.146L300 169.5V130.5L161.658 139.494L300 84V45Z\' fill=\'url(%23paint0_radial_1_69)\'/%3E%3C/g%3E%3Cdefs%3E%3CradialGradient id=\'paint0_radial_1_69\' cx=\'0\' cy=\'0\' r=\'1\' gradientUnits=\'userSpaceOnUse\' gradientTransform=\'translate(89.9999 45) rotate(45) scale(296.985)\'%3E%3Cstop offset=\'0.5\' stop-color=\'%23FF5500\'/%3E%3Cstop offset=\'1\' stop-color=\'%23BBFF00\'/%3E%3C/radialGradient%3E%3C/defs%3E%3C/svg%3E")}' +
