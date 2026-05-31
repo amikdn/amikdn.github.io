@@ -1650,6 +1650,50 @@
         try { if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.close) Lampa.Modal.close(); } catch (e) {}
     }
 
+    function findSettingsScrollElement() {
+        var selectors = ['.settings__content', '.settings__body', '.settings .scroll__content', '.settings'];
+        for (var i = 0; i < selectors.length; i++) {
+            var el = document.querySelector(selectors[i]);
+            if (el && el.scrollHeight > el.clientHeight) return el;
+        }
+        return document.querySelector('.settings') || null;
+    }
+    function getFocusedSettingsName(fallbackName) {
+        try {
+            var active = document.activeElement;
+            var row = active && active.closest ? active.closest('[data-name]') : null;
+            if (!row) row = document.querySelector('.settings-param.focus[data-name], .settings-param.hover[data-name], .settings-param.traverse[data-name]');
+            return (row && row.getAttribute('data-name')) || fallbackName || '';
+        } catch (e) { return fallbackName || ''; }
+    }
+    function restoreSettingsFocus(name, scrollTop) {
+        function restore() {
+            if (scrollTop != null) {
+                var sc = findSettingsScrollElement();
+                if (sc) try { sc.scrollTop = scrollTop; } catch (e) {}
+            }
+            if (!name) return;
+            var target = document.querySelector('div[data-name="' + String(name).replace(/"/g, '\\"') + '"]');
+            if (!target) return;
+            try {
+                var settings = document.querySelector('.settings') || target.closest('.settings') || document.body;
+                if (Lampa.Controller && Lampa.Controller.collectionSet) Lampa.Controller.collectionSet($(settings));
+                if (Lampa.Controller && Lampa.Controller.collectionFocus) Lampa.Controller.collectionFocus(target, settings);
+            } catch (e) {}
+            try { if (target.focus) target.focus(); } catch (e2) {}
+        }
+        setTimeout(restore, 0);
+        setTimeout(restore, 80);
+        setTimeout(restore, 180);
+    }
+    function updateSettingsKeepFocus(fallbackName) {
+        var focusName = getFocusedSettingsName(fallbackName);
+        var sc = findSettingsScrollElement();
+        var scrollTop = sc ? sc.scrollTop : null;
+        try { Lampa.Settings.update(); } catch (e) {}
+        restoreSettingsFocus(focusName || fallbackName, scrollTop);
+    }
+
 
 
     function addSettings() {
@@ -1670,19 +1714,19 @@
             component: 'card_overlay',
             param: { name: 'seasons_info_mode', type: 'select', values: { none: 'Выключить', aired: 'Актуальная информация', total: 'Полное количество' }, default: 'none' },
             field: { name: 'Информация о сериях', description: 'Как отображать информацию о сериях и сезонах' },
-            onChange: function (v) { seasonInfoSettings.seasons_info_mode = v; Lampa.Settings.update(); }
+            onChange: function (v) { seasonInfoSettings.seasons_info_mode = v; updateSettingsKeepFocus('seasons_info_mode'); }
         });
         Lampa.SettingsApi.addParam({
             component: 'card_overlay',
             param: { name: 'label_position', type: 'select', values: { 'top-right': 'Верхний правый', 'top-left': 'Верхний левый', 'bottom-right': 'Нижний правый', 'bottom-left': 'Нижний левый' }, default: 'top-right' },
             field: { name: 'Позиция лейбла о сериях', description: 'Позиция лейбла на постере детальной страницы' },
-            onChange: function (v) { seasonInfoSettings.label_position = v; Lampa.Settings.update(); Lampa.Noty.show('Откройте карточку заново'); }
+            onChange: function (v) { seasonInfoSettings.label_position = v; updateSettingsKeepFocus('label_position'); Lampa.Noty.show('Откройте карточку заново'); }
         });
         Lampa.SettingsApi.addParam({
             component: 'card_overlay',
             param: { name: 'quality_source', type: 'select', values: { 'jacred': 'JacRed (парсер)', 'alloha': 'Alloha (API)', 'both': 'Сначала JacRed, потом Alloha' }, default: 'both' },
             field: { name: 'Источник качества', description: 'Откуда получать информацию о качестве видео' },
-            onChange: function () { Lampa.Settings.update(); refreshAllQualityLabels(); }
+            onChange: function () { updateSettingsKeepFocus('quality_source'); refreshAllQualityLabels(); }
         });
         Lampa.SettingsApi.addParam({
             component: 'card_overlay',
@@ -1698,7 +1742,7 @@
             param: { name: 'colored_elements', type: 'trigger', default: false },
             field: { name: 'Цветные элементы', description: 'Статусы сериалов и возрастные ограничения цветными' },
             onChange: function (v) {
-                Lampa.Settings.update();
+                updateSettingsKeepFocus('colored_elements');
                 if (isTriggerOn('colored_elements', true)) { $('body').addClass('colored-elements-on'); colorizeSeriesStatus(); colorizeAgeRating(); colorizeDetailQuality(); }
                 else { $('body').removeClass('colored-elements-on'); colorizeDetailQuality(); }
             }
@@ -1709,7 +1753,7 @@
             param: { name: 'lampa_rating_show', type: 'trigger', default: true },
             field: { name: 'Рейтинг Lampa', description: 'Показывать рейтинг Lampa на странице фильма' },
             onChange: function (v) {
-                Lampa.Settings.update();
+                updateSettingsKeepFocus('lampa_rating_show');
                 if (isTriggerOn('lampa_rating_show', true)) { $('body').removeAttr('data-lampa-rating-off'); $('.rate--lampa').show(); }
                 else { $('body').attr('data-lampa-rating-off', '1'); $('.rate--lampa').hide(); }
             }
@@ -1720,7 +1764,7 @@
             param: { name: 'lampa_rating_icon', type: 'trigger', default: true },
             field: { name: 'Иконка в рейтинге Lampa', description: 'Показывать иконку реакции рядом с рейтингом Lampa на странице фильма' },
             onChange: function (v) {
-                Lampa.Settings.update();
+                updateSettingsKeepFocus('lampa_rating_icon');
                 if (isTriggerOn('lampa_rating_icon', true)) { $('body').attr('data-lampa-icon-on', '1'); } else { $('body').removeAttr('data-lampa-icon-on'); }
                 $('.rate--lampa .rate-icon').each(function () {
                     var icon = $(this);
@@ -1738,7 +1782,7 @@
             param: { name: 'detail_rating_icons', type: 'trigger', default: true },
             field: { name: 'Значки рейтингов', description: 'Показывать иконки TMDB, IMDB, КП и звезду Lampa на странице фильма' },
             onChange: function () {
-                Lampa.Settings.update();
+                updateSettingsKeepFocus('detail_rating_icons');
                 try {
                     var active = Lampa.Activity && Lampa.Activity.active ? Lampa.Activity.active() : null;
                     var render = active && active.activity && active.activity.render ? active.activity.render() : null;
@@ -1752,7 +1796,7 @@
             param: { name: 'lampa_rating_animated', type: 'trigger', default: false },
             field: { name: 'Анимированная иконка рейтинга Lampa', description: 'Анимированная иконка реакции в рейтинге Lampa на странице фильма' },
             onChange: function () {
-                Lampa.Settings.update();
+                updateSettingsKeepFocus('lampa_rating_animated');
                 if (isTriggerOn('lampa_rating_animated', false)) {
                     $('.rate--lampa').addClass('rate--lampa--animated');
                 } else {
@@ -1775,7 +1819,7 @@
                 clearRatingCaches(false);
                 try { Lampa.Storage.set('clear_ratings_cache', 'false'); } catch (e) {}
                 Lampa.Noty.show('Кэш рейтингов очищен');
-                Lampa.Settings.update();
+                updateSettingsKeepFocus('clear_ratings_cache');
                 applyRatingSettingsRefresh();
             }
         });
@@ -1790,7 +1834,7 @@
                     Lampa.Storage.set('clear_quality_cache', 'false');
                 } catch (e) {}
                 Lampa.Noty.show('Кэш качества очищен');
-                Lampa.Settings.update();
+                updateSettingsKeepFocus('clear_quality_cache');
                 refreshAllQualityLabels();
             }
         });
@@ -1951,7 +1995,7 @@
             'body[data-detail-rating-icons="on"] .full-start-new__rate.rate--imdb .source--name:not(.card-overlay-detail-icon-target),body[data-detail-rating-icons="on"] .full-start__rate.rate--imdb .source--name:not(.card-overlay-detail-icon-target){font-size:0!important;color:transparent!important;background:url("data:image/svg+xml,' + detailImdbSvgCss + '") no-repeat center/contain!important;display:inline-flex!important;min-width:1.45em!important;width:1.45em!important;height:1.45em!important;padding:0!important}' +
             'body[data-detail-rating-icons="on"] .full-start-new__rate.rate--kp .source--name:not(.card-overlay-detail-icon-target),body[data-detail-rating-icons="on"] .full-start__rate.rate--kp .source--name:not(.card-overlay-detail-icon-target){font-size:0!important;color:transparent!important;background:url("data:image/svg+xml,' + detailKpSvgCss + '") no-repeat center/contain!important;display:inline-flex!important;min-width:1.45em!important;width:1.45em!important;height:1.45em!important;padding:0!important}' +
             '.full-start-new__rate.rate--lampa .card-overlay-lampa-star,.full-start__rate.rate--lampa .card-overlay-lampa-star{line-height:1!important}' +
-            'body[data-detail-rating-icons="off"] .full-start-new__rate.rate--lampa .source--name,body[data-detail-rating-icons="off"] .full-start__rate.rate--lampa .source--name{font-size:1em!important;line-height:1!important;padding:0.2em 0.4em!important;min-width:0!important;width:auto!important;height:auto!important;margin-left:0!important;display:block!important}' +
+            'body[data-detail-rating-icons="off"] .full-start-new__rate.rate--lampa .source--name,body[data-detail-rating-icons="off"] .full-start__rate.rate--lampa .source--name{font-size:.72em!important;font-weight:400!important;letter-spacing:0!important;text-transform:none!important;line-height:1!important;padding:0.2em 0.4em!important;min-width:0!important;width:auto!important;height:auto!important;margin-left:0!important;display:block!important}' +
             '.card .rate--lampa .rate-icon{font-size:0!important}' +
             'body:not([data-lampa-icon-on]) .full-start-new__rate.rate--lampa .rate-icon,body:not([data-lampa-icon-on]) .full-start__rate.rate--lampa .rate-icon{display:none!important}' +
             'body[data-lampa-rating-off] .full-start-new__rate.rate--lampa,body[data-lampa-rating-off] .full-start__rate.rate--lampa{display:none!important}' +
