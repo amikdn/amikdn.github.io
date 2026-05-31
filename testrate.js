@@ -866,7 +866,6 @@
     var _scrollRatingMaxCardsPerRun = 80;
     var _ratingUpdateTimer = 0;
     var _ratingUpdateRafScheduled = false;
-    var _cardOverlayRepaintTimer = 0;
     var _mainObserver = null;
     var _cardIntersectionObserver = null;
     function isCardUpdatesBlocked() {
@@ -928,37 +927,14 @@
     }
     function scheduleVisibleRatingsUpdate(delay) {
         if (_ratingUpdateTimer) clearTimeout(_ratingUpdateTimer);
-        _ratingUpdateTimer = setTimeout(function () { _ratingUpdateTimer = 0; if (_ratingUpdateRafScheduled) return; _ratingUpdateRafScheduled = true; requestAnimationFrame(function () { _ratingUpdateRafScheduled = false; updateVisibleCards(_scrollRatingMaxCardsPerRun); scheduleCardOverlayRepaint(40); }); }, delay || 0);
-    }
-    function repaintCardOverlays() {
-        var cards = document.querySelectorAll('.card[data-rating-visible="1"]');
-        if (!cards.length) cards = document.querySelectorAll('.card');
-        var wH = window.innerHeight || 1000;
-        var touched = [];
-        for (var i = 0; i < cards.length && touched.length < 24; i++) {
-            var card = cards[i];
-            if (!card || !isCardNearViewport(card, wH)) continue;
-            var overlays = card.querySelectorAll('.card__vote, .card__vote-line, .card__vote-separate-wrap, .card__quality, .content-label, .card__year-badge');
-            if (!overlays.length) continue;
-            card.classList.add('card-overlay-repaint');
-            touched.push(card);
-        }
-        if (touched.length) requestAnimationFrame(function () {
-            requestAnimationFrame(function () {
-                for (var a = 0; a < touched.length; a++) touched[a].classList.remove('card-overlay-repaint');
-            });
-        });
-    }
-    function scheduleCardOverlayRepaint(delay) {
-        if (_cardOverlayRepaintTimer) clearTimeout(_cardOverlayRepaintTimer);
-        _cardOverlayRepaintTimer = setTimeout(function () { _cardOverlayRepaintTimer = 0; repaintCardOverlays(); }, delay || 0);
+        _ratingUpdateTimer = setTimeout(function () { _ratingUpdateTimer = 0; if (_ratingUpdateRafScheduled) return; _ratingUpdateRafScheduled = true; requestAnimationFrame(function () { _ratingUpdateRafScheduled = false; updateVisibleCards(_scrollRatingMaxCardsPerRun); }); }, delay || 0);
     }
     function bindCardImageRepaint(card) {
         if (!card || card.dataset.cardOverlayImageRepaintBound) return;
         card.dataset.cardOverlayImageRepaintBound = '1';
         try {
             var img = card.querySelector('.card__img');
-            if (img) img.addEventListener('load', function () { scheduleCardOverlayRepaint(30); }, false);
+            if (img) img.addEventListener('load', function () { scheduleVisibleRatingsUpdate(30); }, false);
         } catch (e) {}
     }
     function observeCardVisibility(card) {
@@ -2123,11 +2099,8 @@
             '.rate-settings-site{display:inline-block;color:#8ab4ff!important;text-decoration:underline!important;white-space:nowrap!important}' +
             '[data-name="rating_modal_open"] .settings-param__value,[data-name="rating_modal_open"] .settings-param__control,[data-name="rating_modal_open"] input[type="checkbox"],[data-name="clear_ratings_cache"] .settings-param__value,[data-name="clear_ratings_cache"] .settings-param__control,[data-name="clear_ratings_cache"] input[type="checkbox"],[data-name="clear_quality_cache"] .settings-param__value,[data-name="clear_quality_cache"] .settings-param__control,[data-name="clear_quality_cache"] input[type="checkbox"]{display:none!important}' +
             '.card .card__view{position:relative!important}' +
-            '.card.card-overlay-has-overlays{will-change:auto!important}' +
-            '.card.card-overlay-has-overlays .card__view{-webkit-transform:translate3d(0,0,0)!important;transform:translate3d(0,0,0)!important;-webkit-transform-style:preserve-3d!important;transform-style:preserve-3d!important}' +
             '.card .card__view>.card__img{z-index:0!important}' +
-            '.card .card__vote,.card .card__vote-line,.card .card__vote-separate-wrap,.card .card__vote-separate-wrap .card__vote,.card .card__quality,.card .content-label,.card .card__year-badge{z-index:2!important;opacity:1!important;-webkit-filter:none!important;filter:none!important;will-change:auto!important;-webkit-transform:translateZ(0.01px)!important;transform:translateZ(0.01px)!important}' +
-            '.card.card-overlay-repaint .card__view{will-change:transform!important;-webkit-transform:translate3d(0,0,0)!important;transform:translate3d(0,0,0)!important}' +
+            '.card .card__vote,.card .card__vote-line,.card .card__vote-separate-wrap,.card .card__vote-separate-wrap .card__vote,.card .card__quality,.card .content-label,.card .card__year-badge{z-index:2!important;opacity:1!important;-webkit-filter:none!important;filter:none!important}' +
             '.card__view > .card__vote:not(.card__vote--top):not(.card__vote--bottom):not(.card__vote-line):not(.card__vote-separate-wrap){display:none!important}' +
             '.card__vote,.card__vote-separate-wrap .card__vote{position:absolute!important;right:0!important;bottom:0!important;padding:0.2em 0.45em!important;border-radius:0.75em 0!important;white-space:nowrap!important;font-size:var(--rating-font-size,1.1em)!important;line-height:1!important;height:auto!important;border:none!important;margin:0!important}' +
             '.card__vote-separate-wrap .card__vote{position:static!important;margin:0!important}' +
@@ -2208,11 +2181,8 @@
         setupCardListener();
         startMainObserver();
         scheduleVisibleRatingsUpdate(120);
-        scheduleCardOverlayRepaint(180);
         setTimeout(function () { scheduleVisibleRatingsUpdate(250); }, 250);
-        setTimeout(function () { scheduleCardOverlayRepaint(450); }, 450);
         setTimeout(function () { scheduleVisibleRatingsUpdate(600); }, 600);
-        setTimeout(function () { scheduleCardOverlayRepaint(900); }, 900);
         window.addEventListener('scroll', function () { scheduleVisibleRatingsUpdate(120); }, { passive: true });
         window.addEventListener('keydown', function (e) {
             if (isCardUpdatesBlocked()) return;
