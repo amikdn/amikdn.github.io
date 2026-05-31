@@ -181,12 +181,16 @@
     var _savePending = {};
     var _saveVersion = {};
     function debouncedSave(source, cache) {
+        _saveVersion[source] = (_saveVersion[source] || 0) + 1;
+        var version = _saveVersion[source];
         if (_savePending[source]) return;
         _savePending[source] = true;
-        var version = _saveVersion[source] || 0;
         setTimeout(function () {
             _savePending[source] = false;
-            if (version !== (_saveVersion[source] || 0)) return;
+            if (version !== (_saveVersion[source] || 0)) {
+                debouncedSave(source, cache);
+                return;
+            }
             try { Lampa.Storage.set(getPersistentCacheKey(source), cache); } catch (e) {}
         }, 2000);
     }
@@ -806,7 +810,8 @@
                 ratingElement.style.background = getRatingBackgroundColor(cached.rating) || ('rgba(0,0,0,' + getOverlayAlpha() + ')');
                 return;
             }
-            applyTmdbToElement(ratingElement);
+            ratingElement.className = voteClass('rate--lampa card__vote--separate card__vote--hidden');
+            ratingElement.innerHTML = '';
             addToQueue(function () {
                 getLampaRating(ratingKey).then(function (result) {
                     if (ratingElement.parentNode && ratingElement.dataset.movieId === idStr && result.rating > 0) {
@@ -818,7 +823,8 @@
                 });
             });
         } else if (source === 'kp' || source === 'imdb') {
-            applyTmdbToElement(ratingElement);
+            ratingElement.className = voteClass('rate--' + source + ' card__vote--separate card__vote--hidden');
+            ratingElement.innerHTML = '';
             getKinopoiskRating(data, function (res) {
                 if (ratingElement.parentNode && ratingElement.dataset.movieId === idStr) {
                     var val = source === 'kp' ? res.kp : res.imdb;
@@ -1416,7 +1422,6 @@
     function addTypeLabel(card) {
         if (!isTypeLabelsShowOn()) return;
         if ($(card).closest('.explorer, .layer--online, .select-box').length) { $(card).find('.content-label').remove(); return; }
-        if ($(card).find('.content-label').length) return;
         var view = $(card).find('.card__view');
         if (!view.length) return;
         var meta = {}, tmp;
@@ -1434,11 +1439,15 @@
         if (isPerson) return;
         var hasMovieTraits = $(card).find('.card__age').length > 0 || $(card).find('.card__vote').length > 0 || /\b(19|20)\d{2}\b/.test($(card).text());
         if (!isTV && !hasMovieTraits) return;
-        var lbl = $('<div class="content-label"></div>');
+        var lbl = view.find('.content-label').first();
+        if (!lbl.length) {
+            lbl = $('<div class="content-label"></div>');
+            view.append(lbl);
+        }
+        lbl.removeClass('serial-label movie-label');
         lbl.text(isTV ? 'Сериал' : 'Фильм');
         lbl.css({ backgroundColor: getTypeLabelBackground(isTV) });
-        if (isTypeLabelsColoredOn()) { lbl.addClass(isTV ? 'serial-label' : 'movie-label'); }
-        view.append(lbl);
+        if (isTypeLabelsColoredOn()) lbl.addClass(isTV ? 'serial-label' : 'movie-label');
         if (isTV) $('body[data-movie-labels="on"] .card--tv .card__type').css('display', 'none!important');
     }
     function processAllTypeLabels() {
@@ -1981,13 +1990,15 @@
                 }
             }
         } catch (e) {}
-        Object.defineProperty(window.Lampa.Card.prototype, 'build', {
-            get: function () { return this._build; },
-            set: function (func) {
-                var self = this;
-                this._build = function () { func.apply(self); Lampa.Listener.send('card', { type: 'build', object: self }); };
-            }
-        });
+        if (window.Lampa && Lampa.Card && Lampa.Card.prototype) {
+            Object.defineProperty(window.Lampa.Card.prototype, 'build', {
+                get: function () { return this._build; },
+                set: function (func) {
+                    var self = this;
+                    this._build = function () { func.apply(self); Lampa.Listener.send('card', { type: 'build', object: self }); };
+                }
+            });
+        }
     }
 
     // ===== ANIMATED REACTIONS IN PLAYER =====
