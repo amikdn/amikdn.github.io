@@ -518,12 +518,13 @@
         return isRatingSourceVisible('kp') || isRatingSourceVisible('imdb');
     }
     function createRatingElement(card) {
-        var ratingElement = document.createElement('div');
+        var parent = getRatingParent(card);
+        var ratingElement = parent.querySelector(':scope > .card__vote:not(.card__vote-line):not(.card__vote-separate-wrap)') || card.querySelector('.card__vote:not(.card__vote-line):not(.card__vote-separate-wrap)') || document.createElement('div');
         ratingElement.className = voteClass();
         var posCSS = getRatingPositionCSS();
         var bgAlpha = getOverlayAlpha();
         ratingElement.style.cssText = 'line-height:1;cursor:pointer;box-sizing:border-box;outline:none;user-select:none;position:absolute;' + posCSS + 'background:rgba(0,0,0,' + bgAlpha + ');color:#fff;padding:0.2em 0.45em;';
-        getRatingParent(card).appendChild(ratingElement);
+        if (ratingElement.parentNode !== parent) parent.appendChild(ratingElement);
         return ratingElement;
     }
     function createRatingInnerBlock() {
@@ -534,13 +535,14 @@
         return el;
     }
     function createRatingLineElement(card) {
-        var line = document.createElement('div');
+        var parent = getRatingParent(card);
+        var line = parent.querySelector(':scope > .card__vote-line') || parent.querySelector(':scope > .card__vote:not(.card__vote-separate-wrap)') || card.querySelector('.card__vote:not(.card__vote-separate-wrap)') || document.createElement('div');
         line.className = voteClass('card__vote-line');
         var posCSS = getRatingPositionCSS();
         var bgAlpha = getOverlayAlpha();
         line.style.cssText = 'line-height:1;cursor:pointer;box-sizing:border-box;outline:none;user-select:none;position:absolute;' + posCSS + 'background:rgba(0,0,0,' + bgAlpha + ');color:#fff;padding:0.2em 0.45em;';
         line.innerHTML = '<div class="card__rate-item rate--tmdb card__rate-item--hidden" style="display:none"><div>0.0</div><span class="source--name"></span></div><div class="card__rate-item rate--imdb card__rate-item--hidden" style="display:none"><div>0.0</div><span class="source--name"></span></div><div class="card__rate-item rate--kp card__rate-item--hidden" style="display:none"><div>0.0</div><span class="source--name"></span></div><div class="card__rate-item rate--lampa card__rate-item--hidden" style="display:none"><span class="rate-value">0.0</span><span class="source--name rate-icon-reaction"></span></div>';
-        getRatingParent(card).appendChild(line);
+        if (line.parentNode !== parent) parent.appendChild(line);
         return line;
     }
 
@@ -1441,19 +1443,20 @@
         if (meta.type === 'tv' || meta.card_type === 'tv' || meta.seasons || meta.number_of_seasons > 0 || meta.episodes || meta.number_of_episodes > 0 || meta.is_series) isTV = true;
         if (!isTV) { if ($(card).hasClass('card--tv') || $(card).data('type') === 'tv') isTV = true; else if ($(card).find('.card__type, .card__temp').text().match(/(сезон|серия|эпизод|ТВ|TV)/i)) isTV = true; }
         var isPerson = $(card).hasClass('card--person') || $(card).closest('.scroll--persons, .items--persons, .crew').length > 0;
-        if (isPerson) { view.find('.content-label').remove(); return; }
+        if (isPerson) { view.find('.content-label').remove(); view.find('.card__type[data-card-overlay-type-label="1"]').remove(); return; }
         var hasMovieTraits = $(card).find('.card__age').length > 0 || $(card).find('.card__vote').length > 0 || /\b(19|20)\d{2}\b/.test($(card).text());
-        if (!isTV && !hasMovieTraits) { view.find('.content-label').remove(); return; }
-        var lbl = view.find('.content-label').first();
+        if (!isTV && !hasMovieTraits) { view.find('.content-label').remove(); view.find('.card__type[data-card-overlay-type-label="1"]').remove(); return; }
+        view.find('.content-label').remove();
+        var lbl = view.find('.card__type[data-card-overlay-type-label="1"], .card__type').first();
         if (!lbl.length) {
-            lbl = $('<div class="content-label"></div>');
+            lbl = $('<div class="card__type"></div>');
             view.append(lbl);
         }
+        lbl.attr('data-card-overlay-type-label', '1').show();
         lbl.removeClass('serial-label movie-label');
         lbl.text(isTV ? 'Сериал' : 'Фильм');
         lbl.css({ backgroundColor: getTypeLabelBackground(isTV) });
         if (isTypeLabelsColoredOn()) lbl.addClass(isTV ? 'serial-label' : 'movie-label');
-        if (isTV) $('body[data-movie-labels="on"] .card--tv .card__type').css('display', 'none!important');
     }
     function processAllTypeLabels() {
         if (!isTypeLabelsShowOn()) { $('.card .content-label').remove(); return; }
@@ -1462,6 +1465,7 @@
     }
     function refreshAllTypeLabels() {
         $('.card .content-label').remove();
+        $('.card .card__type[data-card-overlay-type-label="1"]').remove();
         processAllTypeLabels();
     }
     function addTypeLabelToDetail(poster, movie) {
@@ -2100,7 +2104,7 @@
             '[data-name="rating_modal_open"] .settings-param__value,[data-name="rating_modal_open"] .settings-param__control,[data-name="rating_modal_open"] input[type="checkbox"],[data-name="clear_ratings_cache"] .settings-param__value,[data-name="clear_ratings_cache"] .settings-param__control,[data-name="clear_ratings_cache"] input[type="checkbox"],[data-name="clear_quality_cache"] .settings-param__value,[data-name="clear_quality_cache"] .settings-param__control,[data-name="clear_quality_cache"] input[type="checkbox"]{display:none!important}' +
             '.card .card__view{position:relative!important}' +
             '.card .card__view>.card__img{z-index:0!important}' +
-            '.card .card__vote,.card .card__vote-line,.card .card__vote-separate-wrap,.card .card__vote-separate-wrap .card__vote,.card .card__quality,.card .content-label,.card .card__year-badge{z-index:2!important;opacity:1!important;-webkit-filter:none!important;filter:none!important}' +
+            '.card .card__vote,.card .card__vote-line,.card .card__vote-separate-wrap,.card .card__vote-separate-wrap .card__vote,.card .card__quality,.card .card__type[data-card-overlay-type-label="1"],.card .content-label,.card .card__year-badge{z-index:2!important;opacity:1!important;-webkit-filter:none!important;filter:none!important}' +
             '.card__view > .card__vote:not(.card__vote--top):not(.card__vote--bottom):not(.card__vote-line):not(.card__vote-separate-wrap){display:none!important}' +
             '.card__vote,.card__vote-separate-wrap .card__vote{position:absolute!important;right:0!important;bottom:0!important;padding:0.2em 0.45em!important;border-radius:0.75em 0!important;white-space:nowrap!important;font-size:var(--rating-font-size,1.1em)!important;line-height:1!important;height:auto!important;border:none!important;margin:0!important}' +
             '.card__vote-separate-wrap .card__vote{position:static!important;margin:0!important}' +
@@ -2150,7 +2154,7 @@
             '.rate--imdb .source--name{background-image:url("data:image/svg+xml,%3Csvg fill=\'%23ffcc00\' viewBox=\'0 0 32 32\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg id=\'SVGRepo_bgCarrier\' stroke-width=\'0\'%3E%3C/g%3E%3Cg id=\'SVGRepo_tracerCarrier\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3E%3C/g%3E%3Cg id=\'SVGRepo_iconCarrier\'%3E%3Cpath d=\'M 0 7 L 0 25 L 32 25 L 32 7 Z M 2 9 L 30 9 L 30 23 L 2 23 Z M 5 11.6875 L 5 20.3125 L 7 20.3125 L 7 11.6875 Z M 8.09375 11.6875 L 8.09375 20.3125 L 10 20.3125 L 10 15.5 L 10.90625 20.3125 L 12.1875 20.3125 L 13 15.5 L 13 20.3125 L 14.8125 20.3125 L 14.8125 11.6875 L 12 11.6875 L 11.5 15.8125 L 10.8125 11.6875 Z M 15.90625 11.6875 L 15.90625 20.1875 L 18.3125 20.1875 C 19.613281 20.1875 20.101563 19.988281 20.5 19.6875 C 20.898438 19.488281 21.09375 19 21.09375 18.5 L 21.09375 13.3125 C 21.09375 12.710938 20.898438 12.199219 20.5 12 C 20 11.800781 19.8125 11.6875 18.3125 11.6875 Z M 22.09375 11.8125 L 22.09375 20.3125 L 23.90625 20.3125 C 23.90625 20.3125 23.992188 19.710938 24.09375 19.8125 C 24.292969 19.8125 25.101563 20.1875 25.5 20.1875 C 26 20.1875 26.199219 20.195313 26.5 20.09375 C 26.898438 19.894531 27 19.613281 27 19.3125 L 27 14.3125 C 27 13.613281 26.289063 13.09375 25.6875 13.09375 C 25.085938 13.09375 24.511719 13.488281 24.3125 13.6875 L 24.3125 11.8125 Z M 18 13 C 18.398438 13 18.8125 13.007813 18.8125 13.40625 L 18.8125 18.40625 C 18.8125 18.804688 18.300781 18.8125 18 18.8125 Z M 24.59375 14 C 24.695313 14 24.8125 14.105469 24.8125 14.40625 L 24.8125 18.6875 C 24.8125 18.886719 24.792969 19.09375 24.59375 19.09375 C 24.492188 19.09375 24.40625 18.988281 24.40625 18.6875 L 24.40625 14.40625 C 24.40625 14.207031 24.394531 14 24.59375 14 Z\'/%3E%3C/g%3E%3C/svg%3E")}' +
             '@media (max-width:480px) and (orientation:portrait){.full-start-new__rate.rate--lampa,.full-start__rate.rate--lampa{min-width:0!important}body:not([data-lampa-icon-on]) .full-start-new__rate.rate--lampa,body:not([data-lampa-icon-on]) .full-start__rate.rate--lampa{min-width:0!important}}' +
             '.card__quality{position:absolute!important;left:0!important;bottom:0!important;padding:0.25em 0.45em!important;border-radius:0 0.75em!important;color:white!important;font-size:1.1em!important;line-height:1!important;z-index:10!important;white-space:nowrap!important}' +
-            '.content-label{position:absolute!important;left:0!important;top:0!important;color:white!important;padding:0.25em 0.45em!important;border-radius:0.75em 0!important;font-size:1.1em!important;line-height:1!important;z-index:10!important;display:flex!important;align-items:center!important;justify-content:center!important}' +
+            '.content-label,.card__type[data-card-overlay-type-label="1"]{position:absolute!important;left:0!important;top:0!important;color:white!important;padding:0.25em 0.45em!important;border-radius:0.75em 0!important;font-size:1.1em!important;line-height:1!important;z-index:10!important;display:flex!important;align-items:center!important;justify-content:center!important}' +
             '.full-start-new__rate-line .full-start__status,.full-start-new__rate-line .full-start__pg:not(.hide),.full-start-new__meta-line .full-start__status,.full-start-new__meta-line .full-start__pg:not(.hide){border-radius:0.3em!important;padding:0.2em 0.4em!important;display:inline-block!important;line-height:1!important;white-space:nowrap!important}' +
             'body.colored-elements-on .full-start__pg.age-kids{background:#2ecc71!important;color:white!important}' +
             'body.colored-elements-on .full-start__pg.age-children{background:#3498db!important;color:white!important}' +
@@ -2170,7 +2174,7 @@
             '.full-start-new__meta-line{display:none!important}' +
             '.season-info-label{position:absolute!important;color:#fff!important;padding:0.25em 0.45em!important;font-size:1.1em!important;line-height:1!important;z-index:10!important;white-space:nowrap!important}' +
             '@media (max-width:480px) and (orientation:portrait){.full-start-new__rate-line{display:flex!important;flex-wrap:wrap!important;align-items:center!important;justify-content:center!important;align-content:center!important;gap:0.35em!important;width:100%!important;max-width:100%!important;margin-left:auto!important;margin-right:auto!important;text-align:center!important}.full-start-new__rate-line>*{margin:0!important}.full-start-new__rate-line .full-start-new__rate:not(.hide):not([style*="display: none"]),.full-start-new__rate-line .full-start__rate:not(.hide):not([style*="display: none"]){display:inline-flex;align-items:center!important;justify-content:center!important;flex:0 0 auto!important;margin:0!important}.full-start-new__rate-line .full-start-new__rate.hide,.full-start-new__rate-line .full-start__rate.hide,.full-start-new__rate-line .full-start-new__rate[style*="display: none"],.full-start-new__rate-line .full-start__rate[style*="display: none"]{display:none!important}.full-start-new__rate-line.card-overlay-mobile-rate-line[data-card-overlay-rating-count="1"]{max-width:9em!important}.full-start-new__rate-line.card-overlay-mobile-rate-line[data-card-overlay-rating-count="2"]{max-width:18em!important}.full-start-new__rate-line.card-overlay-mobile-rate-line[data-card-overlay-rating-count="3"],.full-start-new__rate-line.card-overlay-mobile-rate-line[data-card-overlay-rating-count="4"]{max-width:100%!important}.full-start-new__meta-line{display:flex!important;flex-wrap:wrap!important;align-items:center!important;justify-content:center!important;gap:0.5em!important;width:100%!important;line-height:1!important;font-size:1em!important;margin-top:0.3em!important}.full-start-new__meta-line .full-start__status,.full-start-new__meta-line .full-start__pg{margin:0!important;display:inline-flex!important;align-items:center!important;line-height:1!important;white-space:nowrap!important}.full-start-new__details{margin-top:0.3em!important;display:flex!important;flex-wrap:wrap!important;justify-content:center!important;gap:0.1em!important}.full-start-new__reactions{justify-content:center!important}.full-start-new__buttons{justify-content:center!important;text-align:center!important}.full-start-new__right,.full-start__right{text-align:center!important}.full-start-new__right h1,.full-start__right h1,.full-start-new__right .name,.full-start__right .name,.full-start__name{text-align:center!important;width:100%!important}.season-info-label{display:none!important}}' +
-            'body[data-movie-labels="on"] .card--tv .card__type{display:none!important}';
+            'body[data-movie-labels="on"] .card--tv .card__type:not([data-card-overlay-type-label="1"]){display:none!important}';
         document.head.appendChild(style);
 
         applyRatingScale();
