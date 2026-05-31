@@ -131,6 +131,20 @@
         return SVG_REACTIONS_BASE_URL + '/' + medianReaction + '.svg';
     }
 
+    var _lampaIconDataUrl = '';
+    function getLampaIconDataUrl() {
+        if (!_lampaIconDataUrl) _lampaIconDataUrl = 'data:image/svg+xml,' + encodeURIComponent(DETAIL_STAR_SVG).replace(/'/g, '%27').replace(/"/g, '%22');
+        return _lampaIconDataUrl;
+    }
+    function getLampaPosterIconMode() {
+        var mode = Lampa.Storage.get('lampa_poster_icon_mode', 'reaction');
+        return mode === 'lamp' ? 'lamp' : 'reaction';
+    }
+    function getLampaPosterIconBackground(medianReaction) {
+        if (getLampaPosterIconMode() === 'lamp' || !medianReaction) return 'url("' + getLampaIconDataUrl() + '")';
+        return 'url(' + getReactionImageSrc(medianReaction) + ')';
+    }
+
     var ratingCache = {
         caches: {},
         get: function (source, key) {
@@ -344,7 +358,7 @@
             icon.className = 'source--name rate-icon-reaction';
             target.appendChild(icon);
         }
-        icon.style.backgroundImage = medianReaction ? 'url(' + getReactionImageSrc(medianReaction) + ')' : '';
+        icon.style.backgroundImage = getLampaPosterIconBackground(medianReaction);
     }
     function renderLampaFullIcon($scope, medianReaction) {
         var icon = $scope.find('.rate--lampa .rate-icon');
@@ -581,7 +595,7 @@
                 var hasLampa = cachedLampa && cachedLampa.rating > 0;
                 var lampaText = hasLampa ? formatRating(cachedLampa.rating) : '0.0';
                 if (lampaValEl) { lampaValEl.textContent = lampaText; lampaValEl.style.color = getRatingColor(lampaText); }
-                if (lampaReactionIcon) lampaReactionIcon.style.backgroundImage = (hasLampa && cachedLampa.medianReaction) ? 'url(' + getReactionImageSrc(cachedLampa.medianReaction) + ')' : '';
+                if (lampaReactionIcon) lampaReactionIcon.style.backgroundImage = hasLampa ? getLampaPosterIconBackground(cachedLampa.medianReaction) : '';
                 setRatingLineItemVisible(lampaItem, hasLampa && isRatingSourceVisible('lampa'));
             }
         } catch (e) {}
@@ -1523,6 +1537,7 @@
             var SOURCE_LABELS = { tmdb: 'TMDB', lampa: 'Lampa', kp: 'КиноПоиск', imdb: 'IMDB', all: 'Все' };
             var POSITION_LABELS = { top: 'Сверху справа', bottom: 'Снизу справа' };
             var DISPLAY_MODE_LABELS = { single: 'Одно окно', separate: 'Каждый в отдельном окне' };
+            var LAMPA_POSTER_ICON_LABELS = { reaction: 'Реакция', lamp: 'Иконка Lampa' };
             var modal = $('<div class="comodal"></div>');
             modal.on('click mousedown touchstart', function (e) { e.stopPropagation(); });
             function isMouseEvent(e) { return e && (e.pointerType === 'mouse' || (e.clientX !== undefined && e.clientY !== undefined)); }
@@ -1579,6 +1594,7 @@
             var rowColored = addTriggerRow('Цветные цифры рейтингов', 'colored_ratings_poster', false);
             var rowColoredWin = addTriggerRow('Цветные окна (цифры белые)', 'rating_colored_windows', false);
             var rowAnimated = addTriggerRow('Анимированные реакции на постерах', 'animated_reactions', false);
+            var rowLampaPosterIcon = addCycleRow('Иконка Lampa на постере', 'lampa_poster_icon_mode', LAMPA_POSTER_ICON_LABELS, 'reaction');
 
             var rowShowTmdb = addTriggerRow('Показывать TMDB', 'rating_show_tmdb', true);
             var rowShowImdb = addTriggerRow('Показывать IMDB', 'rating_show_imdb', true);
@@ -1618,13 +1634,14 @@
                 Lampa.Storage.set('rating_colored_windows', 'false'); Lampa.Storage.set('rating_position', 'bottom');
                 Lampa.Storage.set('rating_show_tmdb', 'true'); Lampa.Storage.set('rating_show_imdb', 'true');
                 Lampa.Storage.set('rating_show_kp', 'true'); Lampa.Storage.set('rating_show_lampa', 'true');
+                Lampa.Storage.set('lampa_poster_icon_mode', 'reaction');
                 Lampa.Storage.set('rating_display_mode', 'separate'); Lampa.Storage.set('rating_window_opacity', '40');
                 Lampa.Storage.set('rating_scale', '100'); Lampa.Storage.set('rating_kp_api_key', '');
                 Lampa.Storage.set('quality_show', 'true'); Lampa.Storage.set('quality_colored', 'false');
                 Lampa.Storage.set('type_labels_show', 'true'); Lampa.Storage.set('type_labels_colored', 'false');
                 rowSource.updateVal(SOURCE_LABELS.all); rowDisplayMode.updateVal(DISPLAY_MODE_LABELS.separate);
                 rowPosition.updateVal(POSITION_LABELS.bottom); rowColored.updateVal('Выкл'); rowColoredWin.updateVal('Выкл');
-                rowAnimated.updateVal('Выкл'); rowShowTmdb.updateVal('Вкл'); rowShowImdb.updateVal('Вкл');
+                rowAnimated.updateVal('Выкл'); rowLampaPosterIcon.updateVal(LAMPA_POSTER_ICON_LABELS.reaction); rowShowTmdb.updateVal('Вкл'); rowShowImdb.updateVal('Вкл');
                 rowShowKp.updateVal('Вкл'); rowShowLampa.updateVal('Вкл');
                 rowOpacity.updateVal('40%'); rowScale.updateVal('100%'); rowKpKey.updateVal(kpApiKeyRowText());
                 rowQualityShow.updateVal('Вкл'); rowQualityColored.updateVal('Выкл');
@@ -1660,6 +1677,8 @@
         }
         var keys = ['animated_reactions', 'lampa_rating_animated', 'colored_ratings_poster', 'rating_colored_windows', 'rating_show_tmdb', 'rating_show_imdb', 'rating_show_kp', 'rating_show_lampa', 'lampa_rating_show', 'lampa_rating_icon', 'detail_rating_icons', 'quality_show', 'quality_colored', 'type_labels_show', 'type_labels_colored'];
         for (var i = 0; i < keys.length; i++) { var v = Lampa.Storage.get(keys[i], undefined); if (v === '1' || v === 1) Lampa.Storage.set(keys[i], 'true'); else if (v === '0' || v === 0) Lampa.Storage.set(keys[i], 'false'); }
+        var lampaPosterIconMode = Lampa.Storage.get('lampa_poster_icon_mode', 'reaction');
+        if (lampaPosterIconMode !== 'reaction' && lampaPosterIconMode !== 'lamp') Lampa.Storage.set('lampa_poster_icon_mode', 'reaction');
     }
     function closeModalSafe() {
         try { if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.close) Lampa.Modal.close(); } catch (e) {}
