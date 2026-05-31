@@ -59,8 +59,8 @@
             '.player:not(.iptv) .player-panel__prev:not(.hide),.player:not(.iptv) .player-panel__next:not(.hide){visibility:visible!important;opacity:1!important}',
             '.player:not(.iptv) .player-panel .button>svg{width:.92em!important;height:.92em!important}',
             '.player:not(.iptv) .player-panel__playpause>svg{width:1.12em!important;height:1.12em!important}',
-            '.player:not(.iptv) .player-panel__quality{box-sizing:border-box!important;width:2.3em!important;min-width:2.3em!important;max-width:2.3em!important;height:2.3em!important;min-height:2.3em!important;max-height:2.3em!important;padding:0!important;-webkit-border-radius:50%!important;border-radius:50%!important;text-align:center!important;line-height:2.3em!important;overflow:hidden!important;font-size:1em!important;white-space:nowrap!important}.player:not(.iptv) .player-panel__quality>*{font-size:.72em!important;line-height:1!important}',
-            '.player:not(.iptv) .player-panel .button.hide,.player:not(.iptv) .player-panel .button.disabled,.player:not(.iptv) .player-panel .button.inactive,.player:not(.iptv) .player-panel .button[hidden],.player:not(.iptv) .player-panel .button[disabled],.player:not(.iptv) .player-panel .button[aria-disabled="true"],.player:not(.iptv) .player-panel .button[style*="display: none"]{display:none!important}',
+            '.player:not(.iptv) .player-panel__quality,.player:not(.iptv) .player-panel .button.youtube-player-text-button,.player:not(.iptv) .player-video__next .button,.player:not(.iptv) .player-skip .button{box-sizing:border-box!important;display:-webkit-inline-box!important;display:-webkit-inline-flex!important;display:-moz-inline-box!important;display:-ms-inline-flexbox!important;display:inline-flex!important;-webkit-box-align:center!important;-webkit-align-items:center!important;-moz-box-align:center!important;-ms-flex-align:center!important;align-items:center!important;-webkit-box-pack:center!important;-webkit-justify-content:center!important;-moz-box-pack:center!important;-ms-flex-pack:center!important;justify-content:center!important;width:auto!important;min-width:2.3em!important;max-width:none!important;height:2.3em!important;min-height:2.3em!important;max-height:2.3em!important;padding:0 .82em!important;-webkit-border-radius:5em!important;border-radius:5em!important;text-align:center!important;line-height:1!important;overflow:hidden!important;font-size:1em!important;white-space:nowrap!important}.player:not(.iptv) .player-panel__quality>*,.player:not(.iptv) .player-panel .button.youtube-player-text-button>*,.player:not(.iptv) .player-video__next .button>*,.player:not(.iptv) .player-skip .button>*{font-size:.72em!important;line-height:1!important}',
+            '.player:not(.iptv) .player-panel .button.hide,.player:not(.iptv) .player-panel .button.disabled,.player:not(.iptv) .player-panel .button.inactive,.player:not(.iptv) .player-panel .button[hidden],.player:not(.iptv) .player-panel .button[disabled],.player:not(.iptv) .player-panel .button[aria-disabled="true"],.player:not(.iptv) .player-panel .button[style*="display: none"],.player:not(.iptv) .player-video__next .button.hide,.player:not(.iptv) .player-skip .button.hide{display:none!important}',
             '.player:not(.iptv) .player-panel__flow.hide,.player:not(.iptv) .player-panel__subs.hide,.player:not(.iptv) .player-panel__tracks.hide,.player:not(.iptv) .player-panel__quality.hide{display:none!important}',
             '.player:not(.iptv) .player-panel__timeline{margin-bottom:.55em!important}',
             '.player:not(.iptv) .player-info__title{font-size:1.28em!important;width:86%!important}',
@@ -70,7 +70,7 @@
             '.player:not(.iptv) .player-panel .button{width:2.05em!important;min-width:2.05em!important;max-width:2.05em!important;height:2.05em!important;min-height:2.05em!important;max-height:2.05em!important;padding:.54em!important}',
             '.player:not(.iptv) .player-panel__center .button{width:2.25em!important;min-width:2.25em!important;max-width:2.25em!important;height:2.25em!important;min-height:2.25em!important;max-height:2.25em!important;padding:.6em!important}',
             '.player:not(.iptv) .player-panel__playpause{width:2.65em!important;min-width:2.65em!important;max-width:2.65em!important;height:2.65em!important;min-height:2.65em!important;max-height:2.65em!important;padding:.78em!important}',
-            '.player:not(.iptv) .player-panel__quality{width:2.05em!important;min-width:2.05em!important;max-width:2.05em!important;height:2.05em!important;min-height:2.05em!important;max-height:2.05em!important;line-height:2.05em!important;font-size:1em!important}.player:not(.iptv) .player-panel__quality>*{font-size:.66em!important}',
+            '.player:not(.iptv) .player-panel__quality,.player:not(.iptv) .player-panel .button.youtube-player-text-button,.player:not(.iptv) .player-video__next .button,.player:not(.iptv) .player-skip .button{width:auto!important;min-width:2.05em!important;max-width:none!important;height:2.05em!important;min-height:2.05em!important;max-height:2.05em!important;padding:0 .7em!important;font-size:1em!important}.player:not(.iptv) .player-panel__quality>*,.player:not(.iptv) .player-panel .button.youtube-player-text-button>*,.player:not(.iptv) .player-video__next .button>*,.player:not(.iptv) .player-skip .button>*{font-size:.66em!important}',
             '}'
         ].join('');
 
@@ -121,8 +121,23 @@
             return window.matchMedia ? window.matchMedia('(orientation: portrait)').matches : window.innerHeight > window.innerWidth;
         }
 
+        function markTextButtons() {
+            render.find('.player-panel__prev,.player-panel__next').each(function () {
+                var button = $(this);
+                var clone = button.clone();
+
+                clone.find('svg').remove();
+
+                var text = clone.text().replace(/\s+/g, ' ').trim();
+
+                button.toggleClass('youtube-player-text-button', text.length > 0);
+            });
+        }
+
         function updatePortraitCenterButtons() {
             if (!playpause.length) return;
+
+            markTextButtons();
 
             if (isPortrait()) {
                 if (center_prev_allowed && !center_prev.parent().length) playpause.before(center_prev);
@@ -157,6 +172,9 @@
             title.text(head).toggleClass('hide', Boolean(data.iptv));
             render.find('.player-info__name').toggleClass('hide', Boolean(name == head)).toggleClass('hide', true);
             value.toggleClass('hide', Boolean(name == head)).find('span').text(name);
+
+            setTimeout(updatePortraitCenterButtons, 100);
+            setTimeout(updatePortraitCenterButtons, 500);
         });
     }
 
