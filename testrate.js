@@ -79,6 +79,7 @@
         var view = card.querySelector('.card__view');
         var age = card.querySelector('.card__age');
         if (!view || !age) return;
+        markCardOverlayHost(card);
         if (age.parentNode !== view) view.appendChild(age);
         age.classList.add('card__year-badge');
         age.style.cssText = 'position:absolute;line-height:1;box-sizing:border-box;user-select:none;padding:0.25em 0.45em;background:rgba(0,0,0,' + getOverlayAlpha() + ');color:#fff;font-size:1.1em;white-space:nowrap;margin-top:0;' + getYearPositionCSS();
@@ -500,9 +501,13 @@
     function getRatingParent(card) {
         var parent = card.querySelector && card.querySelector('.card__view');
         if (!parent) parent = card;
+        markCardOverlayHost(card);
         parent.setAttribute('data-rate-anchor', '1');
         parent.style.position = 'relative';
         return parent;
+    }
+    function markCardOverlayHost(card) {
+        if (card && card.classList) card.classList.add('card-overlay-has-overlays');
     }
     function isRatingSourceVisible(source) {
         var v = Lampa.Storage.get('rating_show_' + source, '1');
@@ -1291,6 +1296,7 @@
         itemElement.setAttribute('data-quality-added', 'true');
         var viewSection = itemElement.querySelector('.card__view');
         if (!viewSection) return;
+        markCardOverlayHost(itemElement);
         var existing = viewSection.querySelectorAll('.card__quality');
         for (var i = 0; i < existing.length; i++) existing[i].remove();
         if (resQuality && resQuality !== 'NO' && resQuality !== '...') {
@@ -1446,6 +1452,7 @@
         if ($(card).closest('.explorer, .layer--online, .select-box').length) { $(card).find('.content-label').remove(); return; }
         var view = $(card).find('.card__view');
         if (!view.length) return;
+        markCardOverlayHost(card);
         var meta = {}, tmp;
         try {
             tmp = $(card).attr('data-card'); if (tmp) meta = JSON.parse(tmp);
@@ -2116,8 +2123,10 @@
             '.rate-settings-site{display:inline-block;color:#8ab4ff!important;text-decoration:underline!important;white-space:nowrap!important}' +
             '[data-name="rating_modal_open"] .settings-param__value,[data-name="rating_modal_open"] .settings-param__control,[data-name="rating_modal_open"] input[type="checkbox"],[data-name="clear_ratings_cache"] .settings-param__value,[data-name="clear_ratings_cache"] .settings-param__control,[data-name="clear_ratings_cache"] input[type="checkbox"],[data-name="clear_quality_cache"] .settings-param__value,[data-name="clear_quality_cache"] .settings-param__control,[data-name="clear_quality_cache"] input[type="checkbox"]{display:none!important}' +
             '.card .card__view{position:relative!important}' +
+            '.card.card-overlay-has-overlays{will-change:auto!important}' +
+            '.card.card-overlay-has-overlays .card__view{-webkit-transform:translate3d(0,0,0)!important;transform:translate3d(0,0,0)!important;-webkit-transform-style:preserve-3d!important;transform-style:preserve-3d!important}' +
             '.card .card__view>.card__img{z-index:0!important}' +
-            '.card .card__vote,.card .card__vote-line,.card .card__vote-separate-wrap,.card .card__vote-separate-wrap .card__vote,.card .card__quality,.card .content-label,.card .card__year-badge{z-index:2!important;opacity:1!important;-webkit-filter:none!important;filter:none!important;will-change:auto!important;-webkit-transform:none!important;transform:none!important}' +
+            '.card .card__vote,.card .card__vote-line,.card .card__vote-separate-wrap,.card .card__vote-separate-wrap .card__vote,.card .card__quality,.card .content-label,.card .card__year-badge{z-index:2!important;opacity:1!important;-webkit-filter:none!important;filter:none!important;will-change:auto!important;-webkit-transform:translateZ(0.01px)!important;transform:translateZ(0.01px)!important}' +
             '.card.card-overlay-repaint .card__view{will-change:transform!important;-webkit-transform:translate3d(0,0,0)!important;transform:translate3d(0,0,0)!important}' +
             '.card__view > .card__vote:not(.card__vote--top):not(.card__vote--bottom):not(.card__vote-line):not(.card__vote-separate-wrap){display:none!important}' +
             '.card__vote,.card__vote-separate-wrap .card__vote{position:absolute!important;right:0!important;bottom:0!important;padding:0.2em 0.45em!important;border-radius:0.75em 0!important;white-space:nowrap!important;font-size:var(--rating-font-size,1.1em)!important;line-height:1!important;height:auto!important;border:none!important;margin:0!important}' +
