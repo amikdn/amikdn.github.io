@@ -61,7 +61,7 @@
             '.player:not(.iptv) .player-panel .button>svg{width:.92em!important;height:.92em!important}',
             '.player:not(.iptv) .player-panel__playpause>svg{width:1.12em!important;height:1.12em!important}',
             '.player:not(.iptv) .player-panel .player-panel__quality,.player:not(.iptv) .player-panel .button.player-panel__quality,.player:not(.iptv) .player-panel .button.youtube-player-text-button,.player:not(.iptv) .player-video__next .button,.player:not(.iptv) .player-skip .button{box-sizing:border-box!important;display:-webkit-inline-box!important;display:-webkit-inline-flex!important;display:-moz-inline-box!important;display:-ms-inline-flexbox!important;display:inline-flex!important;-webkit-box-align:center!important;-webkit-align-items:center!important;-moz-box-align:center!important;-ms-flex-align:center!important;align-items:center!important;-webkit-box-pack:center!important;-webkit-justify-content:center!important;-moz-box-pack:center!important;-ms-flex-pack:center!important;justify-content:center!important;width:auto!important;min-width:2.3em!important;max-width:none!important;height:2.3em!important;min-height:2.3em!important;max-height:2.3em!important;padding:0 .82em!important;-webkit-border-radius:5em!important;border-radius:5em!important;text-align:center!important;line-height:1!important;overflow:hidden!important;font-size:1em!important;white-space:nowrap!important}.player:not(.iptv) .player-panel .player-panel__quality>*,.player:not(.iptv) .player-panel .button.player-panel__quality>*,.player:not(.iptv) .player-panel .button.youtube-player-text-button>*,.player:not(.iptv) .player-video__next .button>*,.player:not(.iptv) .player-skip .button>*{font-size:.72em!important;line-height:1!important}',
-            '.player:not(.iptv) .player-panel__center .button.youtube-player-text-button,.player:not(.iptv) .player-panel__center .player-panel__prev,.player:not(.iptv) .player-panel__center .player-panel__next,.player:not(.iptv) .player-video__next .button,.player:not(.iptv) .player-skip .button{width:auto!important;min-width:3.6em!important;max-width:none!important;padding-left:1.25em!important;padding-right:1.25em!important;-webkit-border-radius:5em!important;border-radius:5em!important}',
+            '.player:not(.iptv) .player-video__next .button,.player:not(.iptv) .player-skip .button{width:auto!important;min-width:3.6em!important;max-width:none!important;padding-left:1.25em!important;padding-right:1.25em!important;-webkit-border-radius:5em!important;border-radius:5em!important}',
             '.player:not(.iptv) .player-panel .button.hide,.player:not(.iptv) .player-panel .button.disabled,.player:not(.iptv) .player-panel .button.inactive,.player:not(.iptv) .player-panel .button[hidden],.player:not(.iptv) .player-panel .button[disabled],.player:not(.iptv) .player-panel .button[aria-disabled="true"],.player:not(.iptv) .player-panel .button[style*="display: none"],.player:not(.iptv) .player-video__next .button.hide,.player:not(.iptv) .player-skip .button.hide{display:none!important}',
             '.player:not(.iptv) .player-panel__flow.hide,.player:not(.iptv) .player-panel__subs.hide,.player:not(.iptv) .player-panel__tracks.hide,.player:not(.iptv) .player-panel__quality.hide{display:none!important}',
             '.player:not(.iptv) .player-panel__timeline{margin-bottom:.55em!important}',
@@ -73,7 +73,7 @@
             '.player:not(.iptv) .player-panel__center .button{width:2.25em!important;min-width:2.25em!important;max-width:2.25em!important;height:2.25em!important;min-height:2.25em!important;max-height:2.25em!important;padding:.6em!important}',
             '.player:not(.iptv) .player-panel__playpause{width:2.65em!important;min-width:2.65em!important;max-width:2.65em!important;height:2.65em!important;min-height:2.65em!important;max-height:2.65em!important;padding:.78em!important}',
             '.player:not(.iptv) .player-panel .player-panel__quality,.player:not(.iptv) .player-panel .button.player-panel__quality,.player:not(.iptv) .player-panel .button.youtube-player-text-button,.player:not(.iptv) .player-video__next .button,.player:not(.iptv) .player-skip .button{width:auto!important;min-width:2.05em!important;max-width:none!important;height:2.05em!important;min-height:2.05em!important;max-height:2.05em!important;padding:0 .7em!important;font-size:1em!important}.player:not(.iptv) .player-panel .player-panel__quality>*,.player:not(.iptv) .player-panel .button.player-panel__quality>*,.player:not(.iptv) .player-panel .button.youtube-player-text-button>*,.player:not(.iptv) .player-video__next .button>*,.player:not(.iptv) .player-skip .button>*{font-size:.66em!important}',
-            '.player:not(.iptv) .player-panel__center .button.youtube-player-text-button,.player:not(.iptv) .player-panel__center .player-panel__prev,.player:not(.iptv) .player-panel__center .player-panel__next,.player:not(.iptv) .player-video__next .button,.player:not(.iptv) .player-skip .button{width:auto!important;min-width:3.2em!important;max-width:none!important;padding-left:1.1em!important;padding-right:1.1em!important}',
+            '.player:not(.iptv) .player-video__next .button,.player:not(.iptv) .player-skip .button{width:auto!important;min-width:3.2em!important;max-width:none!important;padding-left:1.1em!important;padding-right:1.1em!important}',
             '}'
         ].join('');
 
@@ -93,8 +93,6 @@
         var playpause = center_panel.find('.player-panel__playpause');
         var center_prev = center_panel.find('.player-panel__prev').detach();
         var center_next = center_panel.find('.player-panel__next').detach();
-        var center_prev_allowed = center_prev.length && !center_prev.hasClass('hide') && !center_prev.hasClass('disabled') && !center_prev.hasClass('inactive') && !center_prev.is('[hidden],[disabled],[aria-disabled="true"]');
-        var center_next_allowed = center_next.length && !center_next.hasClass('hide') && !center_next.hasClass('disabled') && !center_next.hasClass('inactive') && !center_next.is('[hidden],[disabled],[aria-disabled="true"]');
 
         center_panel.find('.button:not(.player-panel__playpause)').remove();
         render.find('.player-panel__timeline').before(render.find('.player-panel__line-one'));
@@ -120,71 +118,16 @@
         left_panel.prepend(left_box_main);
         left_box_main.append(left_panel.find('.button'));
 
-        var portrait_prev_buttons = render.find('.player-panel__prev').add(center_prev);
-        var portrait_next_buttons = render.find('.player-panel__next').add(center_next);
-
-        portrait_prev_buttons.add(portrait_next_buttons).each(function () {
-            var button = $(this);
-
-            if (button.parent().length && !button.data('youtube-player-placeholder')) {
-                var placeholder = $('<span class="youtube-player-button-placeholder" style="display:none"></span>');
-
-                button.before(placeholder);
-                button.data('youtube-player-placeholder', placeholder);
-            }
-        });
-
         function isPortrait() {
             return window.matchMedia ? window.matchMedia('(orientation: portrait)').matches : window.innerHeight > window.innerWidth;
-        }
-
-        function buttonAllowed(button) {
-            return button.length && !button.hasClass('hide') && !button.hasClass('disabled') && !button.hasClass('inactive') && !button.is('[hidden],[disabled],[aria-disabled="true"]');
-        }
-
-        function restoreButton(button) {
-            var placeholder = button.data('youtube-player-placeholder');
-
-            if (placeholder && placeholder.parent().length) placeholder.before(button);
-            else button.detach();
-        }
-
-        function refreshEmptyButtonBoxes() {
-            render.find('.player-panel__box-buttons').each(function () {
-                var box = $(this);
-                var has_buttons = false;
-
-                box.children('.button').each(function () {
-                    if (buttonAllowed($(this))) has_buttons = true;
-                });
-
-                box.toggleClass('youtube-player-empty-box', !has_buttons);
-            });
-        }
-
-        function markTextButtons() {
-            var buttons = portrait_prev_buttons.add(portrait_next_buttons);
-
-            buttons.each(function () {
-                var button = $(this);
-                var clone = button.clone();
-
-                clone.find('svg').remove();
-
-                var text = clone.text().replace(/\s+/g, ' ').trim();
-
-                button.toggleClass('youtube-player-text-button', text.length > 0);
-            });
         }
 
         function updatePortraitCenterButtons() {
             if (!playpause.length) return;
 
-            markTextButtons();
-
             if (isPortrait()) {
                 var portrait_quality_buttons = render.find('.player-panel__quality');
-                var portrait_series_buttons = render.find('.player-video__next .button,.player-skip .button').add(portrait_prev_buttons).add(portrait_next_buttons);
+                var portrait_series_buttons = render.find('.player-video__next .button,.player-skip .button');
 
                 portrait_quality_buttons.css({
                     width: 'auto',
@@ -204,21 +147,8 @@
                     borderRadius: '5em'
                 });
 
-                portrait_prev_buttons.each(function () {
-                    var button = $(this);
-
-                    if (buttonAllowed(button) && button.parent()[0] !== center_panel[0]) playpause.before(button);
-                });
-
-                portrait_next_buttons.each(function () {
-                    var button = $(this);
-
-                    if (buttonAllowed(button) && button.parent()[0] !== center_panel[0]) playpause.after(button);
-                });
-
-                refreshEmptyButtonBoxes();
             } else {
-                var landscape_text_buttons = render.find('.player-panel__quality,.youtube-player-text-button,.player-video__next .button,.player-skip .button').add(portrait_prev_buttons).add(portrait_next_buttons);
+                var landscape_text_buttons = render.find('.player-panel__quality,.player-video__next .button,.player-skip .button');
 
                 landscape_text_buttons.css({
                     width: '',
@@ -228,12 +158,6 @@
                     paddingRight: '',
                     borderRadius: ''
                 });
-
-                portrait_prev_buttons.add(portrait_next_buttons).each(function () {
-                    restoreButton($(this));
-                });
-
-                refreshEmptyButtonBoxes();
             }
         }
 
