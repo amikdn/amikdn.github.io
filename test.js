@@ -12,6 +12,41 @@
   var balansers_with_search;
   
   var unic_id = GUEST_UID;
+
+  function hasUrlComponent(url, name) {
+    return new RegExp('([?&])' + name + '=', 'i').test(url + '');
+  }
+
+  function addUrlComponentSafe(url, component) {
+    url = url + '';
+
+    if (window.Lampa && Lampa.Utils && typeof Lampa.Utils.addUrlComponent == 'function') {
+      return Lampa.Utils.addUrlComponent(url, component);
+    }
+
+    var hash = '';
+    var hashIndex = url.indexOf('#');
+
+    if (hashIndex >= 0) {
+      hash = url.substring(hashIndex);
+      url = url.substring(0, hashIndex);
+    }
+
+    return url + (url.indexOf('?') >= 0 ? '&' : '?') + component + hash;
+  }
+
+  function setUrlComponent(url, name, value) {
+    url = url + '';
+
+    var encoded = encodeURIComponent(value);
+    var regexp = new RegExp('([?&])' + name + '=[^&#]*', 'i');
+
+    if (regexp.test(url)) {
+      return url.replace(regexp, '$1' + name + '=' + encoded);
+    }
+
+    return addUrlComponentSafe(url, name + '=' + encoded);
+  }
   
     function getAndroidVersion() {
   if (Lampa.Platform.is('android')) {
@@ -147,7 +182,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
         result('pong');
       } else {
         console.log('RCH', url);
-        network["native"](url, result, function(e) {
+        network["native"](account(url), result, function(e) {
           console.log('RCH', 'result empty, ' + e.status);
           result('');
         }, data, {
@@ -215,20 +250,18 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
 
   function account(url) {
     url = url + '';
-    if (url.indexOf('account_email=') == -1) {
+    url = setUrlComponent(url, 'uid', GUEST_UID);
+    if (!hasUrlComponent(url, 'account_email')) {
       var email = Lampa.Storage.get('account_email');
-      if (email) url = Lampa.Utils.addUrlComponent(url, 'account_email=' + encodeURIComponent(email));
+      if (email) url = addUrlComponentSafe(url, 'account_email=' + encodeURIComponent(email));
     }
-    if (url.indexOf('uid=') == -1) {
-      url = Lampa.Utils.addUrlComponent(url, 'uid=' + encodeURIComponent(GUEST_UID));
-    }
-    if (url.indexOf('token=') == -1) {
+    if (!hasUrlComponent(url, 'token')) {
       var token = '';
-      if (token != '') url = Lampa.Utils.addUrlComponent(url, 'token=');
+      if (token != '') url = addUrlComponentSafe(url, 'token=');
     }
-    if (url.indexOf('nws_id=') == -1) {
+    if (!hasUrlComponent(url, 'nws_id')) {
       var nws_id = Lampa.Storage.get('lampac_nws_id', '');
-      if (nws_id) url = Lampa.Utils.addUrlComponent(url, 'nws_id=' + encodeURIComponent(nws_id));
+      if (nws_id) url = addUrlComponentSafe(url, 'nws_id=' + encodeURIComponent(nws_id));
     }
     return url;
   }
