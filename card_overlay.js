@@ -3,6 +3,10 @@
 
     var ANIMATED_REACTIONS_BASE_URL = 'https://amikdn.github.io/img';
     var SVG_REACTIONS_BASE_URL = 'https://cubnotrip.top/img/reactions';
+    var DETAIL_STAR_SVG = '<svg width="64" height="64" viewBox="10 10 44 44" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M31.4517 11.3659C31.8429 10.7366 32.7589 10.7366 33.1501 11.3659L40.2946 22.8568C40.4323 23.0782 40.651 23.2371 40.9041 23.2996L54.0403 26.5435C54.7598 26.7212 55.0428 27.5923 54.5652 28.1589L45.8445 38.5045C45.6764 38.7039 45.5929 38.961 45.6117 39.221L46.5858 52.7168C46.6392 53.4559 45.8982 53.9942 45.2117 53.7151L32.6776 48.6182C32.4361 48.52 32.1657 48.52 31.9242 48.6182L19.39 53.7151C18.7036 53.9942 17.9626 53.4559 18.016 52.7168L18.9901 39.221C19.0089 38.961 18.9253 38.7039 18.7573 38.5045L10.0366 28.1589C9.559 27.5923 9.84204 26.7212 10.5615 26.5435L23.6977 23.2996C23.9508 23.2371 24.1695 23.0782 24.3072 22.8568L31.4517 11.3659Z" fill="#FFDF6D"/><path fill-rule="evenodd" clip-rule="evenodd" d="M30.6024 10.8379C31.385 9.57926 33.2168 9.57926 33.9994 10.8379L41.1438 22.3288L54.2801 25.5727C55.7189 25.928 56.285 27.6702 55.3298 28.8034L46.6091 39.149L47.5832 52.6448C47.6899 54.123 46.208 55.1997 44.8351 54.6414L32.3009 49.5445L19.7667 54.6414C18.3938 55.1997 16.9118 54.123 17.0185 52.6448L17.9927 39.149L9.272 28.8034C8.3168 27.6702 8.88287 25.928 10.3217 25.5727L23.4579 22.3288L30.6024 10.8379ZM39.4454 23.3848L32.3009 11.8939L25.1564 23.3848C24.8811 23.8276 24.4437 24.1454 23.9374 24.2704L10.8012 27.5144L19.5219 37.86C19.858 38.2587 20.0251 38.7729 19.9875 39.293L19.0134 52.7888L31.5475 47.6919C32.0306 47.4954 32.5712 47.4954 33.0543 47.6919L45.5884 52.7888L44.6143 39.293C44.5767 38.7729 44.7438 38.2587 45.0799 37.86L53.8006 27.5144L40.6643 24.2704C40.1581 24.1454 39.7207 23.8276 39.4454 23.3848Z" fill="black"/></svg>';
+    var DETAIL_TMDB_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 150"><defs><linearGradient id="cardOverlayTmdbGrad" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#90cea1"/><stop offset="56%" stop-color="#3cbec9"/><stop offset="100%" stop-color="#00b3e5"/></linearGradient><style>.card-overlay-tmdb-text{font-weight:bold;fill:url(#cardOverlayTmdbGrad);text-anchor:start;dominant-baseline:middle;textLength:150;lengthAdjust:spacingAndGlyphs;font-size:70px;}</style></defs><text class="card-overlay-tmdb-text" x="0" y="50" textLength="150" lengthAdjust="spacingAndGlyphs">TM</text><text class="card-overlay-tmdb-text" x="0" y="120" textLength="150" lengthAdjust="spacingAndGlyphs">DB</text></svg>';
+    var DETAIL_IMDB_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 122.88 122.88"><g><path fill="#F5C518" d="M18.43,0h86.02c10.18,0,18.43,8.25,18.43,18.43v86.02c0,10.18-8.25,18.43-18.43,18.43H18.43C8.25,122.88,0,114.63,0,104.45l0-86.02C0,8.25,8.25,0,18.43,0z"/><path fill="#000" d="M24.96,78.72V44.16h-9.6v34.56H24.96z M45.36,44.16L43.2,60.24L42,51.6l-1.2-7.44h-12v34.56h8.16v-22.8l3.36,22.8h6l3.12-23.28v23.28h8.16V44.16H45.36z M61.44,78.72V44.16h14.88c3.6,0,6.24,2.64,6.24,6v22.56c0,3.36-2.64,6-6.24,6H61.44z M72.72,50.4l-2.16-0.24v22.56c1.2,0,2.16-0.24,2.4-0.72c0.48-0.48,0.48-1.92,0.48-4.32V54.24v-2.88L72.72,50.4z M100.56,52.8h0.72c3.36,0,6.24,2.64,6.24,6v13.92c0,3.36-2.88,6-6.24,6h-0.72c-1.92,0-3.84-0.96-5.04-2.64l-0.48,2.16H86.4V44.16h9.12V55.2C96.72,53.76,98.64,52.8,100.56,52.8z M98.64,69.6v-8.16L98.4,58.8c-0.24-0.48-0.96-0.72-1.44-0.72c-0.48,0-1.2,0.24-1.44,0.72v13.68c0.24,0.48,0.96,0.72,1.44,0.72c0.48,0,1.44-0.24,1.44-0.72L98.64,69.6z"/></g></svg>';
+    var DETAIL_KP_SVG = '<svg width="300" height="300" viewBox="0 0 300 300" fill="none" xmlns="http://www.w3.org/2000/svg"><mask id="cardOverlayKpMask" style="mask-type:alpha" maskUnits="userSpaceOnUse" x="0" y="0" width="300" height="300"><circle cx="150" cy="150" r="150" fill="white"/></mask><g mask="url(#cardOverlayKpMask)"><circle cx="150" cy="150" r="150" fill="black"/><path d="M300 45L145.26 127.827L225.9 45H181.2L126.3 121.203V45H89.9999V255H126.3V178.92L181.2 255H225.9L147.354 174.777L300 255V216L160.776 160.146L300 169.5V130.5L161.658 139.494L300 84V45Z" fill="url(#cardOverlayKpGradient)"/></g><defs><radialGradient id="cardOverlayKpGradient" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(89.9999 45) rotate(45) scale(296.985)"><stop offset="0.5" stop-color="#FF5500"/><stop offset="1" stop-color="#BBFF00"/></radialGradient></defs></svg>';
     var KP_API_URL = 'https://kinopoiskapiunofficial.tech/';
     var QUALITY_CACHE_KEY = 'qualview_quality_cache';
     var QUALITY_API_DOMAIN = 'jr.maxvol.pro';
@@ -42,6 +46,9 @@
     function isTypeLabelsColoredOn() {
         return isTriggerOn('type_labels_colored', false);
     }
+    function isDetailRatingIconsOn() {
+        return isTriggerOn('detail_rating_icons', true);
+    }
     function getRatingColor(value) {
         if (isTriggerOn('rating_colored_windows', false)) return '#fff';
         if (!isColoredRatingsPosterOn()) return '#fff';
@@ -74,7 +81,7 @@
         if (!view || !age) return;
         if (age.parentNode !== view) view.appendChild(age);
         age.classList.add('card__year-badge');
-        age.style.cssText = 'position:absolute;z-index:1;line-height:1;font-family:"SegoeUI",sans-serif;box-sizing:border-box;user-select:none;padding:0.25em 0.45em;background:rgba(0,0,0,' + getOverlayAlpha() + ');color:#fff;font-size:1.1em;white-space:nowrap;margin-top:0;' + getYearPositionCSS();
+        age.style.cssText = 'position:absolute;line-height:1;box-sizing:border-box;user-select:none;padding:0.25em 0.45em;background:rgba(0,0,0,' + getOverlayAlpha() + ');color:#fff;font-size:1.1em;white-space:nowrap;margin-top:0;' + getYearPositionCSS();
     }
     function refreshAllYearBadges() {
         var allCards = document.querySelectorAll('.card');
@@ -492,7 +499,7 @@
         ratingElement.className = voteClass();
         var posCSS = getRatingPositionCSS();
         var bgAlpha = getOverlayAlpha();
-        ratingElement.style.cssText = 'line-height:1;font-family:"SegoeUI",sans-serif;cursor:pointer;box-sizing:border-box;outline:none;user-select:none;position:absolute;z-index:1;display:flex;align-items:center;' + posCSS + 'background:rgba(0,0,0,' + bgAlpha + ');color:#fff;padding:0.2em 0.1em 0.2em 0.7em;';
+        ratingElement.style.cssText = 'line-height:1;cursor:pointer;box-sizing:border-box;outline:none;user-select:none;position:absolute;' + posCSS + 'background:rgba(0,0,0,' + bgAlpha + ');color:#fff;padding:0.2em 0.45em;';
         getRatingParent(card).appendChild(ratingElement);
         return ratingElement;
     }
@@ -500,7 +507,7 @@
         var el = document.createElement('div');
         el.className = voteClass();
         var bgAlpha = getOverlayAlpha();
-        el.style.cssText = 'line-height:1;font-family:"SegoeUI",sans-serif;cursor:pointer;box-sizing:border-box;outline:none;user-select:none;display:flex;align-items:center;background:rgba(0,0,0,' + bgAlpha + ');color:#fff;padding:0.2em 0.1em 0.2em 0.7em;';
+        el.style.cssText = 'line-height:1;cursor:pointer;box-sizing:border-box;outline:none;user-select:none;background:rgba(0,0,0,' + bgAlpha + ');color:#fff;padding:0.2em 0.45em;';
         return el;
     }
     function createRatingLineElement(card) {
@@ -508,7 +515,7 @@
         line.className = voteClass('card__vote-line');
         var posCSS = getRatingPositionCSS();
         var bgAlpha = getOverlayAlpha();
-        line.style.cssText = 'line-height:1;font-family:"SegoeUI",sans-serif;cursor:pointer;box-sizing:border-box;outline:none;user-select:none;position:absolute;z-index:1;display:flex;flex-direction:column;align-items:flex-start;' + posCSS + 'background:rgba(0,0,0,' + bgAlpha + ');color:#fff;padding:0.2em 0.1em 0.2em 0.7em;';
+        line.style.cssText = 'line-height:1;cursor:pointer;box-sizing:border-box;outline:none;user-select:none;position:absolute;' + posCSS + 'background:rgba(0,0,0,' + bgAlpha + ');color:#fff;padding:0.2em 0.45em;';
         line.innerHTML = '<div class="card__rate-item rate--tmdb" style="display:none"><div>0.0</div><span class="source--name"></span></div><div class="card__rate-item rate--imdb" style="display:none"><div>0.0</div><span class="source--name"></span></div><div class="card__rate-item rate--kp" style="display:none"><div>0.0</div><span class="source--name"></span></div><div class="card__rate-item rate--lampa" style="display:none"><span class="rate-value">0.0</span><span class="source--name rate-icon-reaction"></span></div>';
         getRatingParent(card).appendChild(line);
         return line;
@@ -632,7 +639,7 @@
         var wrapper = document.createElement('div');
         wrapper.className = voteClass('card__vote-separate-wrap');
         var posCSS = getRatingPositionCSS();
-        wrapper.style.cssText = 'position:absolute;z-index:1;display:flex;flex-direction:column;align-items:stretch;gap:0.15em;box-sizing:border-box;' + posCSS;
+        wrapper.style.cssText = 'position:absolute;box-sizing:border-box;' + posCSS;
         for (var i = 0; i < sources.length; i++) {
             var el = createRatingInnerBlock();
             el.dataset.rateSource = sources[i];
@@ -949,18 +956,64 @@
         if (!isTriggerOn('lampa_rating_show', true)) return false;
         var rateLine = $(render).find('.full-start-new__rate-line');
         if (!rateLine.length || rateLine.find('.rate--lampa').length > 0) return false;
-        var html = '<div class="full-start-new__rate full-start__rate rate--lampa"><div class="rate-value">0.0</div><div class="rate-icon"></div><div class="source--name" style="margin-left:-0.2em">LAMPA</div></div>';
+        var html = '<div class="full-start-new__rate full-start__rate rate--lampa"><div class="rate-value">0.0</div><div class="rate-icon"></div><div class="source--name card-overlay-lampa-star" style="margin-left:-0.2em">★</div></div>';
         var $anchor = rateLine.find('.full-start-new__rate.rate--tmdb, .full-start-new__rate.rate--kp, .full-start-new__rate.rate--imdb, .full-start__rate.rate--tmdb, .full-start__rate.rate--kp, .full-start__rate.rate--imdb').last();
         if (!$anchor.length) $anchor = rateLine.find('.rate--tmdb, .rate--kp, .rate--imdb').last().closest('.full-start-new__rate, .full-start__rate');
         if (!$anchor.length) $anchor = rateLine.find('.full-start-new__rate:not(.rate--lampa), .full-start__rate:not(.rate--lampa)').last();
         if ($anchor.length) $anchor.after(html); else rateLine.append(html);
+        applyDetailRatingIcons(render);
         return true;
+    }
+    function getDetailRatingIconSvg(className) {
+        if (className === 'rate--tmdb') return DETAIL_TMDB_SVG;
+        if (className === 'rate--imdb') return DETAIL_IMDB_SVG;
+        if (className === 'rate--kp') return DETAIL_KP_SVG;
+        if (className === 'rate--lampa') return DETAIL_STAR_SVG;
+        return '';
+    }
+    function applyDetailRatingIcons(render) {
+        var scope = render ? $(render) : $(document);
+        var showIcons = isDetailRatingIconsOn();
+        if (showIcons) $('body').attr('data-detail-rating-icons', 'on'); else $('body').attr('data-detail-rating-icons', 'off');
+        function replaceIcon(className) {
+            var svg = getDetailRatingIconSvg(className);
+            if (!svg) return;
+            scope.find('.full-start-new__rate.' + className + ', .full-start__rate.' + className).each(function () {
+                var element = $(this);
+                var target = element.find('.source--name').first();
+                if (!target.length) {
+                    target = element.children('div').filter(function () {
+                        var text = (this.textContent || '').trim().toUpperCase();
+                        return text === 'TMDB' || text === 'IMDB' || text === 'KP' || text === 'LAMPA' || text === '★';
+                    }).last();
+                }
+                if (!target.length) {
+                    var childDivs = element.children('div');
+                    if (childDivs.length >= 2) target = childDivs.eq(childDivs.length - 1);
+                }
+                if (!target.length) return;
+                if (showIcons) {
+                    if (!target.attr('data-card-overlay-original-html')) target.attr('data-card-overlay-original-html', target.html());
+                    target.html('<span class="card-overlay-detail-icon">' + svg + '</span>');
+                    target.addClass('card-overlay-detail-icon-target');
+                } else {
+                    var original = target.attr('data-card-overlay-original-html');
+                    if (original != null) target.html(original);
+                    target.removeAttr('data-card-overlay-original-html').removeClass('card-overlay-detail-icon-target');
+                    if (className === 'rate--lampa') target.text('LAMPA').removeAttr('style');
+                }
+            });
+        }
+        replaceIcon('rate--tmdb');
+        replaceIcon('rate--imdb');
+        replaceIcon('rate--kp');
+        replaceIcon('rate--lampa');
     }
     function applyRatingScale() {
         var v = parseFloat(Lampa.Storage.get('rating_scale', '100'));
         if (isNaN(v)) v = 100;
-        v = Math.max(60, Math.min(150, v)) / 100;
-        try { document.body.style.setProperty('--rating-scale', String(v)); } catch (e) {}
+        v = Math.max(60, Math.min(150, v));
+        try { document.body.style.setProperty('--rating-font-size', (1.1 * v / 100) + 'em'); } catch (e) {}
     }
     var _settingsRefreshTimer = 0;
     function scheduleSettingsRefresh(delay) {
@@ -970,6 +1023,7 @@
     function applyRatingSettingsRefresh() {
         applyRatingScale();
         if (isTriggerOn('lampa_rating_icon', true)) $('body').attr('data-lampa-icon-on', '1'); else $('body').removeAttr('data-lampa-icon-on');
+        applyDetailRatingIcons();
         var allCards = document.querySelectorAll('.card');
         for (var i = 0; i < allCards.length; i++) removeAllRatingElements(allCards[i]);
         if (typeof window.refreshAllRatings === 'function') window.refreshAllRatings();
@@ -1589,11 +1643,55 @@
             clearRatingCaches(true);
             Lampa.Storage.set('card_overlay_cache_version', CARD_OVERLAY_CACHE_VERSION);
         }
-        var keys = ['animated_reactions', 'lampa_rating_animated', 'colored_ratings_poster', 'rating_colored_windows', 'rating_show_tmdb', 'rating_show_imdb', 'rating_show_kp', 'rating_show_lampa', 'lampa_rating_show', 'lampa_rating_icon', 'quality_show', 'quality_colored', 'type_labels_show', 'type_labels_colored'];
+        var keys = ['animated_reactions', 'lampa_rating_animated', 'colored_ratings_poster', 'rating_colored_windows', 'rating_show_tmdb', 'rating_show_imdb', 'rating_show_kp', 'rating_show_lampa', 'lampa_rating_show', 'lampa_rating_icon', 'detail_rating_icons', 'quality_show', 'quality_colored', 'type_labels_show', 'type_labels_colored'];
         for (var i = 0; i < keys.length; i++) { var v = Lampa.Storage.get(keys[i], undefined); if (v === '1' || v === 1) Lampa.Storage.set(keys[i], 'true'); else if (v === '0' || v === 0) Lampa.Storage.set(keys[i], 'false'); }
     }
     function closeModalSafe() {
         try { if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.close) Lampa.Modal.close(); } catch (e) {}
+    }
+
+    function findSettingsScrollElement() {
+        var selectors = ['.settings__content', '.settings__body', '.settings .scroll__content', '.settings'];
+        for (var i = 0; i < selectors.length; i++) {
+            var el = document.querySelector(selectors[i]);
+            if (el && el.scrollHeight > el.clientHeight) return el;
+        }
+        return document.querySelector('.settings') || null;
+    }
+    function getFocusedSettingsName(fallbackName) {
+        try {
+            var active = document.activeElement;
+            var row = active && active.closest ? active.closest('[data-name]') : null;
+            if (!row) row = document.querySelector('.settings-param.focus[data-name], .settings-param.hover[data-name], .settings-param.traverse[data-name]');
+            return (row && row.getAttribute('data-name')) || fallbackName || '';
+        } catch (e) { return fallbackName || ''; }
+    }
+    function restoreSettingsFocus(name, scrollTop) {
+        function restore() {
+            if (scrollTop != null) {
+                var sc = findSettingsScrollElement();
+                if (sc) try { sc.scrollTop = scrollTop; } catch (e) {}
+            }
+            if (!name) return;
+            var target = document.querySelector('div[data-name="' + String(name).replace(/"/g, '\\"') + '"]');
+            if (!target) return;
+            try {
+                var settings = document.querySelector('.settings') || target.closest('.settings') || document.body;
+                if (Lampa.Controller && Lampa.Controller.collectionSet) Lampa.Controller.collectionSet($(settings));
+                if (Lampa.Controller && Lampa.Controller.collectionFocus) Lampa.Controller.collectionFocus(target, settings);
+            } catch (e) {}
+            try { if (target.focus) target.focus(); } catch (e2) {}
+        }
+        setTimeout(restore, 0);
+        setTimeout(restore, 80);
+        setTimeout(restore, 180);
+    }
+    function updateSettingsKeepFocus(fallbackName) {
+        var focusName = getFocusedSettingsName(fallbackName);
+        var sc = findSettingsScrollElement();
+        var scrollTop = sc ? sc.scrollTop : null;
+        try { Lampa.Settings.update(); } catch (e) {}
+        restoreSettingsFocus(focusName || fallbackName, scrollTop);
     }
 
 
@@ -1604,7 +1702,7 @@
         Lampa.SettingsApi.addComponent({
             component: 'card_overlay',
             name: 'Интерфейс Мод',
-            icon: '<svg viewBox="1 1 22 22" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="4" y="4" width="16" height="16" rx="3" stroke="currentColor" stroke-width="2"/><path d="M12 15V9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M16 15V11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M8 15V11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>'
+            icon: '<svg height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="21" height="21" rx="2" fill="white"></rect><mask id="path-2-inside-1_154_24" fill="white"><rect x="2" y="27" width="17" height="17" rx="2"></rect></mask><rect x="2" y="27" width="17" height="17" rx="2" stroke="white" stroke-width="6" mask="url(#path-2-inside-1_154_24)"></rect><rect x="27" y="2" width="17" height="17" rx="2" fill="white"></rect><rect x="27" y="34" width="17" height="3" fill="white"></rect><rect x="34" y="44" width="17" height="3" transform="rotate(-90 34 44)" fill="white"></rect></svg>'
         });
         Lampa.SettingsApi.addParam({
             component: 'card_overlay',
@@ -1616,19 +1714,19 @@
             component: 'card_overlay',
             param: { name: 'seasons_info_mode', type: 'select', values: { none: 'Выключить', aired: 'Актуальная информация', total: 'Полное количество' }, default: 'none' },
             field: { name: 'Информация о сериях', description: 'Как отображать информацию о сериях и сезонах' },
-            onChange: function (v) { seasonInfoSettings.seasons_info_mode = v; Lampa.Settings.update(); }
+            onChange: function (v) { seasonInfoSettings.seasons_info_mode = v; updateSettingsKeepFocus('seasons_info_mode'); }
         });
         Lampa.SettingsApi.addParam({
             component: 'card_overlay',
             param: { name: 'label_position', type: 'select', values: { 'top-right': 'Верхний правый', 'top-left': 'Верхний левый', 'bottom-right': 'Нижний правый', 'bottom-left': 'Нижний левый' }, default: 'top-right' },
             field: { name: 'Позиция лейбла о сериях', description: 'Позиция лейбла на постере детальной страницы' },
-            onChange: function (v) { seasonInfoSettings.label_position = v; Lampa.Settings.update(); Lampa.Noty.show('Откройте карточку заново'); }
+            onChange: function (v) { seasonInfoSettings.label_position = v; updateSettingsKeepFocus('label_position'); Lampa.Noty.show('Откройте карточку заново'); }
         });
         Lampa.SettingsApi.addParam({
             component: 'card_overlay',
             param: { name: 'quality_source', type: 'select', values: { 'jacred': 'JacRed (парсер)', 'alloha': 'Alloha (API)', 'both': 'Сначала JacRed, потом Alloha' }, default: 'both' },
             field: { name: 'Источник качества', description: 'Откуда получать информацию о качестве видео' },
-            onChange: function () { Lampa.Settings.update(); refreshAllQualityLabels(); }
+            onChange: function () { updateSettingsKeepFocus('quality_source'); refreshAllQualityLabels(); }
         });
         Lampa.SettingsApi.addParam({
             component: 'card_overlay',
@@ -1644,7 +1742,7 @@
             param: { name: 'colored_elements', type: 'trigger', default: false },
             field: { name: 'Цветные элементы', description: 'Статусы сериалов и возрастные ограничения цветными' },
             onChange: function (v) {
-                Lampa.Settings.update();
+                updateSettingsKeepFocus('colored_elements');
                 if (isTriggerOn('colored_elements', true)) { $('body').addClass('colored-elements-on'); colorizeSeriesStatus(); colorizeAgeRating(); colorizeDetailQuality(); }
                 else { $('body').removeClass('colored-elements-on'); colorizeDetailQuality(); }
             }
@@ -1655,7 +1753,7 @@
             param: { name: 'lampa_rating_show', type: 'trigger', default: true },
             field: { name: 'Рейтинг Lampa', description: 'Показывать рейтинг Lampa на странице фильма' },
             onChange: function (v) {
-                Lampa.Settings.update();
+                updateSettingsKeepFocus('lampa_rating_show');
                 if (isTriggerOn('lampa_rating_show', true)) { $('body').removeAttr('data-lampa-rating-off'); $('.rate--lampa').show(); }
                 else { $('body').attr('data-lampa-rating-off', '1'); $('.rate--lampa').hide(); }
             }
@@ -1666,7 +1764,7 @@
             param: { name: 'lampa_rating_icon', type: 'trigger', default: true },
             field: { name: 'Иконка в рейтинге Lampa', description: 'Показывать иконку реакции рядом с рейтингом Lampa на странице фильма' },
             onChange: function (v) {
-                Lampa.Settings.update();
+                updateSettingsKeepFocus('lampa_rating_icon');
                 if (isTriggerOn('lampa_rating_icon', true)) { $('body').attr('data-lampa-icon-on', '1'); } else { $('body').removeAttr('data-lampa-icon-on'); }
                 $('.rate--lampa .rate-icon').each(function () {
                     var icon = $(this);
@@ -1681,10 +1779,24 @@
 
         Lampa.SettingsApi.addParam({
             component: 'card_overlay',
+            param: { name: 'detail_rating_icons', type: 'trigger', default: true },
+            field: { name: 'Значки рейтингов', description: 'Показывать иконки TMDB, IMDB, КП и звезду Lampa на странице фильма' },
+            onChange: function () {
+                updateSettingsKeepFocus('detail_rating_icons');
+                try {
+                    var active = Lampa.Activity && Lampa.Activity.active ? Lampa.Activity.active() : null;
+                    var render = active && active.activity && active.activity.render ? active.activity.render() : null;
+                    applyDetailRatingIcons(render);
+                } catch (e) { applyDetailRatingIcons(); }
+            }
+        });
+
+        Lampa.SettingsApi.addParam({
+            component: 'card_overlay',
             param: { name: 'lampa_rating_animated', type: 'trigger', default: false },
             field: { name: 'Анимированная иконка рейтинга Lampa', description: 'Анимированная иконка реакции в рейтинге Lampa на странице фильма' },
             onChange: function () {
-                Lampa.Settings.update();
+                updateSettingsKeepFocus('lampa_rating_animated');
                 if (isTriggerOn('lampa_rating_animated', false)) {
                     $('.rate--lampa').addClass('rate--lampa--animated');
                 } else {
@@ -1707,7 +1819,7 @@
                 clearRatingCaches(false);
                 try { Lampa.Storage.set('clear_ratings_cache', 'false'); } catch (e) {}
                 Lampa.Noty.show('Кэш рейтингов очищен');
-                Lampa.Settings.update();
+                updateSettingsKeepFocus('clear_ratings_cache');
                 applyRatingSettingsRefresh();
             }
         });
@@ -1722,7 +1834,7 @@
                     Lampa.Storage.set('clear_quality_cache', 'false');
                 } catch (e) {}
                 Lampa.Noty.show('Кэш качества очищен');
-                Lampa.Settings.update();
+                updateSettingsKeepFocus('clear_quality_cache');
                 refreshAllQualityLabels();
             }
         });
@@ -1745,6 +1857,28 @@
     function setupCardListener() {
         if (window.lampa_listener_extensions) return;
         window.lampa_listener_extensions = true;
+        try {
+            if (Lampa.Maker && Lampa.Maker.map) {
+                var CardMaker = Lampa.Maker.map('Card');
+                if (CardMaker && CardMaker.Card && !CardMaker.Card.__card_overlay_onvisible__) {
+                    var originalOnVisible = CardMaker.Card.onVisible;
+                    CardMaker.Card.onVisible = function () {
+                        if (originalOnVisible) originalOnVisible.apply(this, arguments);
+                        var card = this.html || this.card;
+                        var data = card && card.card_data;
+                        if (!data && this.card && this.card.card_data) data = this.card.card_data;
+                        if (!data && this.card_data) data = this.card_data;
+                        if (card && data && data.id) {
+                            updateCardRating({ card: card, data: data });
+                            if (isQualityShowOn()) processQualityForCards([card]);
+                            addTypeLabel(card);
+                            addYearBadge(card);
+                        }
+                    };
+                    CardMaker.Card.__card_overlay_onvisible__ = true;
+                }
+            }
+        } catch (e) {}
         Object.defineProperty(window.Lampa.Card.prototype, 'build', {
             get: function () { return this._build; },
             set: function (func) {
@@ -1835,6 +1969,9 @@
     function initPlugin() {
         var style = document.createElement('style');
         style.type = 'text/css';
+        var detailTmdbSvgCss = encodeURIComponent(DETAIL_TMDB_SVG).replace(/'/g, '%27').replace(/"/g, '%22');
+        var detailImdbSvgCss = encodeURIComponent(DETAIL_IMDB_SVG).replace(/'/g, '%27').replace(/"/g, '%22');
+        var detailKpSvgCss = encodeURIComponent(DETAIL_KP_SVG).replace(/'/g, '%27').replace(/"/g, '%22');
         style.textContent =
             '.rate-settings-modal .selector{cursor:pointer!important;pointer-events:auto!important;-webkit-tap-highlight-color:rgba(255,255,255,0.15);user-select:none;border:3px solid transparent;box-sizing:border-box;border-radius:0.35em}' +
             '.rate-settings-modal .selector.focus{border-color:rgba(255,255,255,0.8)!important;box-shadow:none!important}' +
@@ -1845,14 +1982,15 @@
             '[data-name="rating_modal_open"] .settings-param__value,[data-name="rating_modal_open"] .settings-param__control,[data-name="rating_modal_open"] input[type="checkbox"],[data-name="clear_ratings_cache"] .settings-param__value,[data-name="clear_ratings_cache"] .settings-param__control,[data-name="clear_ratings_cache"] input[type="checkbox"],[data-name="clear_quality_cache"] .settings-param__value,[data-name="clear_quality_cache"] .settings-param__control,[data-name="clear_quality_cache"] input[type="checkbox"]{display:none!important}' +
             '.card .card__view{position:relative!important}' +
             '.card__view > .card__vote:not(.card__vote--top):not(.card__vote--bottom):not(.card__vote-line):not(.card__vote-separate-wrap){display:none!important}' +
-            '.card__vote,.card__vote-separate-wrap .card__vote{display:flex!important;align-items:center!important;justify-content:flex-start!important;position:absolute!important;z-index:1!important;width:auto!important;min-width:2.8em!important;max-width:100%!important;box-sizing:border-box!important;transform:scale(var(--rating-scale,1))!important;padding:0.2em 0.1em 0.2em 0.7em!important;white-space:nowrap!important;font-size:1.1em!important;line-height:1!important;height:auto!important;border:none!important;margin:0!important}' +
-            '.card__vote-separate-wrap .card__vote{position:static!important;transform:none!important;flex-shrink:0!important}' +
+            '.card__vote,.card__vote-separate-wrap .card__vote{position:absolute!important;right:0!important;bottom:0!important;padding:0.2em 0.45em!important;border-radius:0.75em 0!important;white-space:nowrap!important;font-size:var(--rating-font-size,1.1em)!important;line-height:1!important;height:auto!important;border:none!important;margin:0!important}' +
+            '.card__vote-separate-wrap .card__vote{position:static!important;margin:0!important}' +
+            '.card__vote-separate-wrap .card__vote:not(.visible-last):not(.visible-only):not(.card__vote--hidden){margin-bottom:0.15em!important}' +
             '.card__vote.card__vote--hidden,.card__vote-separate-wrap .card__vote.card__vote--hidden{display:none!important;height:0!important;padding:0!important;margin:0!important;overflow:hidden!important;min-width:0!important;min-height:0!important;border:none!important;width:0!important;position:absolute!important;opacity:0!important;pointer-events:none!important}' +
-            '.card__vote-line{display:flex!important;flex-direction:column!important;align-items:flex-start!important;position:absolute!important;width:auto!important;min-width:2.8em!important;max-width:100%!important;box-sizing:border-box!important;transform:scale(var(--rating-scale,1))!important;padding:0.2em 0.1em 0.2em 0.7em!important;font-size:1.1em!important;line-height:1!important;height:auto!important;border:none!important;margin:0!important}' +
-            '.card__vote-separate-wrap{background:transparent!important;padding:0!important;width:auto!important;min-width:2.8em!important;max-width:100%!important;overflow:visible!important;transform:scale(var(--rating-scale,1))!important;display:flex!important;flex-direction:column!important;align-items:stretch!important;gap:0.15em!important;font-size:1.1em!important}' +
-            '.card__vote > span:first-child,.card__vote-line .card__rate-item > div,.card__vote-line .card__rate-item > .rate-value{display:inline-block!important;min-width:3ch!important;text-align:left!important}' +
-            '.card__vote--top,.card__vote-line.card__vote--top,.card__vote-separate-wrap.card__vote--top{transform-origin:top right!important;transform:scale(var(--rating-scale,1))!important}' +
-            '.card__vote--bottom,.card__vote-line.card__vote--bottom,.card__vote-separate-wrap.card__vote--bottom{transform-origin:bottom right!important;transform:scale(var(--rating-scale,1))!important}' +
+            '.card__vote-line{position:absolute!important;right:0!important;bottom:0!important;padding:0.2em 0.45em!important;border-radius:0.75em 0!important;font-size:var(--rating-font-size,1.1em)!important;line-height:1!important;height:auto!important;border:none!important;margin:0!important}' +
+            '.card__vote-separate-wrap{position:absolute!important;background:transparent!important;padding:0!important;width:auto!important;min-width:0!important;max-width:100%!important;overflow:visible!important;font-size:var(--rating-font-size,1.1em)!important}' +
+            '.card__vote > span:first-child,.card__vote-line .card__rate-item > div,.card__vote-line .card__rate-item > .rate-value{display:inline-block!important;min-width:3ch!important;text-align:left!important;vertical-align:middle!important}' +
+            '.card__vote--top,.card__vote-line.card__vote--top,.card__vote-separate-wrap.card__vote--top{transform-origin:top right!important}' +
+            '.card__vote--bottom,.card__vote-line.card__vote--bottom,.card__vote-separate-wrap.card__vote--bottom{transform-origin:bottom right!important}' +
             '.card__vote--top{top:0!important;right:0!important;bottom:auto!important;border-radius:0 0.75em!important}' +
             '.card__vote--bottom{top:auto!important;right:0!important;bottom:0!important;border-radius:0.75em 0!important}' +
             '.card__vote-separate-wrap.card__vote--bottom .card__vote{border-radius:0.75em 0 0 0.75em!important}' +
@@ -1861,15 +1999,25 @@
             '.card__vote-separate-wrap.card__vote--top .card__vote{border-radius:0.75em 0 0 0.75em!important}' +
             '.card__vote-separate-wrap.card__vote--top .card__vote.visible-first{border-radius:0 0.75em!important}' +
             '.card__vote-separate-wrap.card__vote--top .card__vote.visible-only{border-radius:0 0.75em!important}' +
-            '.card__vote-line .card__rate-item{display:-webkit-box;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;white-space:nowrap}' +
+            '.card__vote-line .card__rate-item{display:block!important;white-space:nowrap}' +
             '.card__vote-line .card__rate-item:last-child{margin-bottom:0}' +
-            '.card__vote .source--name{font-size:0!important;display:block!important;color:transparent!important;width:12px!important;height:12px!important;overflow:hidden!important;background-repeat:no-repeat!important;background-position:center!important;background-size:contain!important;margin-left:auto!important;padding:0!important;border:none!important;flex-shrink:0!important}' +
+            '.card__vote .source--name{font-size:0!important;display:inline-block!important;color:transparent!important;width:12px!important;height:12px!important;overflow:hidden!important;background-repeat:no-repeat!important;background-position:center!important;background-size:contain!important;margin-left:0.25em!important;padding:0!important;border:none!important;vertical-align:middle!important}' +
             '@media (min-width:481px){.card__vote .source--name{width:18px!important;height:18px!important}}' +
-            '@media (min-width:481px){.card__vote,.card__vote-line,.card__vote-separate-wrap,.card__vote-separate-wrap .card__vote{font-size:1.1em!important}}' +
+            '@media (min-width:481px){.card__vote,.card__vote-line,.card__vote-separate-wrap,.card__vote-separate-wrap .card__vote{font-size:var(--rating-font-size,1.1em)!important}}' +
             '.rate--kp .source--name{background-image:url("data:image/svg+xml,%3Csvg width=\'300\' height=\'300\' viewBox=\'0 0 300 300\' fill=\'none\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cmask id=\'mask0_1_69\' style=\'mask-type:alpha\' maskUnits=\'userSpaceOnUse\' x=\'0\' y=\'0\' width=\'300\' height=\'300\'%3E%3Ccircle cx=\'150\' cy=\'150\' r=\'150\' fill=\'white\'/%3E%3C/mask%3E%3Cg mask=\'url(%23mask0_1_69)\'%3E%3Ccircle cx=\'150\' cy=\'150\' r=\'150\' fill=\'black\'/%3E%3Cpath d=\'M300 45L145.26 127.827L225.9 45H181.2L126.3 121.203V45H89.9999V255H126.3V178.92L181.2 255H225.9L147.354 174.777L300 255V216L160.776 160.146L300 169.5V130.5L161.658 139.494L300 84V45Z\' fill=\'url(%23paint0_radial_1_69)\'/%3E%3C/g%3E%3Cdefs%3E%3CradialGradient id=\'paint0_radial_1_69\' cx=\'0\' cy=\'0\' r=\'1\' gradientUnits=\'userSpaceOnUse\' gradientTransform=\'translate(89.9999 45) rotate(45) scale(296.985)\'%3E%3Cstop offset=\'0.5\' stop-color=\'%23FF5500\'/%3E%3Cstop offset=\'1\' stop-color=\'%23BBFF00\'/%3E%3C/radialGradient%3E%3C/defs%3E%3C/svg%3E")}' +
-            '.rate--tmdb .source--name{background-image:url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 300 300\' width=\'300\' height=\'300\'%3E%3Cdefs%3E%3ClinearGradient id=\'grad\' x1=\'0\' y1=\'0\' x2=\'1\' y2=\'0\'%3E%3Cstop offset=\'0%25\' stop-color=\'%2390cea1\'/%3E%3Cstop offset=\'56%25\' stop-color=\'%233cbec9\'/%3E%3Cstop offset=\'100%25\' stop-color=\'%2300b3e5\'/%3E%3C/linearGradient%3E%3Cstyle%3E.text-style%7Bfont-weight:bold;fill:url(%23grad);text-anchor:start;dominant-baseline:middle;textLength:300;lengthAdjust:spacingAndGlyphs;font-size:120px;%7D%3C/style%3E%3C/defs%3E%3Ctext class=\'text-style\' x=\'0\' y=\'150\' textLength=\'300\' lengthAdjust=\'spacingAndGlyphs\'%3ETMDB%3C/text%3E%3C/svg%3E")}' +
+            '.card .rate--tmdb .source--name{background-image:url("data:image/svg+xml,' + detailTmdbSvgCss + '")}' +
             '.rate--lampa .rate-icon-reaction{background-image:url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'%23e040fb\'%3E%3Cpath d=\'M12 2C8.13 2 5 5.13 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.87-3.13-7-7-7zm2 14h-4v-1h4v1zm0-2h-4v-1h4v1zM9 20h6v1c0 .55-.45 1-1 1h-4c-.55 0-1-.45-1-1v-1z\'/%3E%3C/svg%3E")}' +
             '.rate-icon-reaction{background-repeat:no-repeat;background-position:center;background-size:contain}' +
+            '.card-overlay-detail-icon-target{display:inline-flex!important;align-items:center!important;justify-content:center!important;padding:0!important;min-width:1.45em!important;width:1.45em!important;height:1.45em!important;line-height:1!important;font-size:1em!important;margin-left:0!important}' +
+            '.card-overlay-detail-icon{display:inline-flex!important;align-items:center!important;justify-content:center!important;width:1.15em!important;height:1.15em!important;overflow:hidden!important;color:currentColor!important}' +
+            '.card-overlay-detail-icon svg{width:100%!important;height:100%!important;object-fit:contain!important;display:block!important}' +
+            '.full-start-new__rate.rate--lampa .card-overlay-detail-icon-target,.full-start__rate.rate--lampa .card-overlay-detail-icon-target{padding:0!important;min-width:1.45em!important;width:1.45em!important;height:1.45em!important;margin-left:0!important}' +
+            '.full-start-new__rate.rate--lampa .card-overlay-detail-icon,.full-start__rate.rate--lampa .card-overlay-detail-icon{width:1.05em!important;height:1.05em!important}' +
+            'body[data-detail-rating-icons="on"] .full-start-new__rate.rate--tmdb .source--name:not(.card-overlay-detail-icon-target),body[data-detail-rating-icons="on"] .full-start__rate.rate--tmdb .source--name:not(.card-overlay-detail-icon-target){font-size:0!important;color:transparent!important;background:url("data:image/svg+xml,' + detailTmdbSvgCss + '") no-repeat center/contain!important;display:inline-flex!important;min-width:1.45em!important;width:1.45em!important;height:1.45em!important;padding:0!important}' +
+            'body[data-detail-rating-icons="on"] .full-start-new__rate.rate--imdb .source--name:not(.card-overlay-detail-icon-target),body[data-detail-rating-icons="on"] .full-start__rate.rate--imdb .source--name:not(.card-overlay-detail-icon-target){font-size:0!important;color:transparent!important;background:url("data:image/svg+xml,' + detailImdbSvgCss + '") no-repeat center/contain!important;display:inline-flex!important;min-width:1.45em!important;width:1.45em!important;height:1.45em!important;padding:0!important}' +
+            'body[data-detail-rating-icons="on"] .full-start-new__rate.rate--kp .source--name:not(.card-overlay-detail-icon-target),body[data-detail-rating-icons="on"] .full-start__rate.rate--kp .source--name:not(.card-overlay-detail-icon-target){font-size:0!important;color:transparent!important;background:url("data:image/svg+xml,' + detailKpSvgCss + '") no-repeat center/contain!important;display:inline-flex!important;min-width:1.45em!important;width:1.45em!important;height:1.45em!important;padding:0!important}' +
+            '.full-start-new__rate.rate--lampa .card-overlay-lampa-star,.full-start__rate.rate--lampa .card-overlay-lampa-star{line-height:1!important}' +
+            'body[data-detail-rating-icons="off"] .full-start-new__rate.rate--lampa .source--name,body[data-detail-rating-icons="off"] .full-start__rate.rate--lampa .source--name{font-size:.72em!important;font-weight:400!important;letter-spacing:0!important;text-transform:none!important;line-height:1!important;padding:0.2em 0.4em!important;min-width:0!important;width:auto!important;height:auto!important;margin-left:0!important;display:block!important}' +
             '.card .rate--lampa .rate-icon{font-size:0!important}' +
             'body:not([data-lampa-icon-on]) .full-start-new__rate.rate--lampa .rate-icon,body:not([data-lampa-icon-on]) .full-start__rate.rate--lampa .rate-icon{display:none!important}' +
             'body[data-lampa-rating-off] .full-start-new__rate.rate--lampa,body[data-lampa-rating-off] .full-start__rate.rate--lampa{display:none!important}' +
@@ -1906,6 +2054,7 @@
 
         applyRatingScale();
         if (isTriggerOn('lampa_rating_icon', true)) $('body').attr('data-lampa-icon-on', '1'); else $('body').removeAttr('data-lampa-icon-on');
+        if (isDetailRatingIconsOn()) $('body').attr('data-detail-rating-icons', 'on'); else $('body').attr('data-detail-rating-icons', 'off');
         if (!isTriggerOn('lampa_rating_show', true)) $('body').attr('data-lampa-rating-off', '1'); else $('body').removeAttr('data-lampa-rating-off');
         addSettings();
         setupCardListener();
@@ -1959,6 +2108,7 @@
                         if (cached && cached.rating > 0) {
                             $(render).find('.rate--lampa .rate-value').text(formatRating(cached.rating));
                             renderLampaFullIcon($(render), cached.medianReaction);
+                            applyDetailRatingIcons(render);
                             if (cached.medianReaction && isTriggerOn('lampa_rating_animated', false)) $(render).find('.rate--lampa').addClass('rate--lampa--animated');
                             colorizeFullCardRatings(render);
                             scheduleVisibleRatingsUpdate(0);
@@ -1968,6 +2118,7 @@
                                     if (result.rating !== null && result.rating > 0) {
                                         $(render).find('.rate--lampa .rate-value').text(formatRating(result.rating));
                                         renderLampaFullIcon($(render), result.medianReaction);
+                                        applyDetailRatingIcons(render);
                                         if (result.medianReaction && isTriggerOn('lampa_rating_animated', false)) $(render).find('.rate--lampa').addClass('rate--lampa--animated');
                                     } else { $(render).find('.rate--lampa').hide(); }
                                     colorizeFullCardRatings(render);
@@ -1979,6 +2130,7 @@
                 }
                 if (render && event.data.movie) {
                     if (isQualityShowOn()) loadQualityForDetail(event.data.movie, render);
+                    applyDetailRatingIcons(render);
                     moveDetailMetaToSecondLine(render);
                     setTimeout(function () { moveDetailMetaToSecondLine(render); }, 150);
                 }
