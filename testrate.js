@@ -1760,11 +1760,16 @@
         setTimeout(restore, 180);
     }
     function updateSettingsKeepFocus(fallbackName) {
-        var focusName = getFocusedSettingsName(fallbackName);
         var sc = findSettingsScrollElement();
         var scrollTop = sc ? sc.scrollTop : null;
-        try { Lampa.Settings.update(); } catch (e) {}
-        restoreSettingsFocus(focusName || fallbackName, scrollTop);
+        function restoreScroll() {
+            if (scrollTop == null) return;
+            var current = findSettingsScrollElement();
+            if (current) try { current.scrollTop = scrollTop; } catch (e) {}
+        }
+        setTimeout(restoreScroll, 0);
+        setTimeout(restoreScroll, 80);
+        setTimeout(restoreScroll, 180);
     }
 
 
@@ -2055,7 +2060,7 @@
             '[data-name="rating_modal_open"] .settings-param__value,[data-name="rating_modal_open"] .settings-param__control,[data-name="rating_modal_open"] input[type="checkbox"],[data-name="clear_ratings_cache"] .settings-param__value,[data-name="clear_ratings_cache"] .settings-param__control,[data-name="clear_ratings_cache"] input[type="checkbox"],[data-name="clear_quality_cache"] .settings-param__value,[data-name="clear_quality_cache"] .settings-param__control,[data-name="clear_quality_cache"] input[type="checkbox"]{display:none!important}' +
             '.card .card__view{position:relative!important}' +
             '.card .card__view>.card__img{z-index:0!important}' +
-            '.card .card__vote,.card .card__vote-line,.card .card__vote-separate-wrap,.card .card__vote-separate-wrap .card__vote,.card .card__quality,.card .content-label,.card .card__year-badge{z-index:2!important;opacity:1!important;-webkit-filter:none!important;filter:none!important;-webkit-transform:translateZ(0)!important;transform:translateZ(0)!important;-webkit-backface-visibility:hidden!important;backface-visibility:hidden!important;-webkit-font-smoothing:antialiased!important;text-rendering:optimizeLegibility!important}' +
+            '.card .card__vote,.card .card__vote-line,.card .card__vote-separate-wrap,.card .card__vote-separate-wrap .card__vote,.card .card__quality,.card .content-label,.card .card__year-badge{z-index:2!important;opacity:1!important;-webkit-filter:none!important;filter:none!important;will-change:auto!important}' +
             '.card__view > .card__vote:not(.card__vote--top):not(.card__vote--bottom):not(.card__vote-line):not(.card__vote-separate-wrap){display:none!important}' +
             '.card__vote,.card__vote-separate-wrap .card__vote{position:absolute!important;right:0!important;bottom:0!important;padding:0.2em 0.45em!important;border-radius:0.75em 0!important;white-space:nowrap!important;font-size:var(--rating-font-size,1.1em)!important;line-height:1!important;height:auto!important;border:none!important;margin:0!important}' +
             '.card__vote-separate-wrap .card__vote{position:static!important;margin:0!important}' +
