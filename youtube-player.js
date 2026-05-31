@@ -60,7 +60,7 @@
             '.player:not(.iptv) .player-panel .button>svg{width:.92em!important;height:.92em!important}',
             '.player:not(.iptv) .player-panel__playpause>svg{width:1.12em!important;height:1.12em!important}',
             '.player:not(.iptv) .player-panel .player-panel__quality,.player:not(.iptv) .player-panel .button.player-panel__quality,.player:not(.iptv) .player-panel .button.youtube-player-text-button,.player:not(.iptv) .player-video__next .button,.player:not(.iptv) .player-skip .button{box-sizing:border-box!important;display:-webkit-inline-box!important;display:-webkit-inline-flex!important;display:-moz-inline-box!important;display:-ms-inline-flexbox!important;display:inline-flex!important;-webkit-box-align:center!important;-webkit-align-items:center!important;-moz-box-align:center!important;-ms-flex-align:center!important;align-items:center!important;-webkit-box-pack:center!important;-webkit-justify-content:center!important;-moz-box-pack:center!important;-ms-flex-pack:center!important;justify-content:center!important;width:auto!important;min-width:2.3em!important;max-width:none!important;height:2.3em!important;min-height:2.3em!important;max-height:2.3em!important;padding:0 .82em!important;-webkit-border-radius:5em!important;border-radius:5em!important;text-align:center!important;line-height:1!important;overflow:hidden!important;font-size:1em!important;white-space:nowrap!important}.player:not(.iptv) .player-panel .player-panel__quality>*,.player:not(.iptv) .player-panel .button.player-panel__quality>*,.player:not(.iptv) .player-panel .button.youtube-player-text-button>*,.player:not(.iptv) .player-video__next .button>*,.player:not(.iptv) .player-skip .button>*{font-size:.72em!important;line-height:1!important}',
-            '.player:not(.iptv) .player-panel .button.youtube-player-text-button,.player:not(.iptv) .player-video__next .button,.player:not(.iptv) .player-skip .button{min-width:3.15em!important;padding-left:1.15em!important;padding-right:1.15em!important}',
+            '.player:not(.iptv) .player-panel .button.youtube-player-text-button,.player:not(.iptv) .player-panel .player-panel__prev,.player:not(.iptv) .player-panel .player-panel__next,.player:not(.iptv) .player-video__next .button,.player:not(.iptv) .player-skip .button{width:auto!important;min-width:3.6em!important;max-width:none!important;padding-left:1.25em!important;padding-right:1.25em!important;-webkit-border-radius:5em!important;border-radius:5em!important}',
             '.player:not(.iptv) .player-panel .button.hide,.player:not(.iptv) .player-panel .button.disabled,.player:not(.iptv) .player-panel .button.inactive,.player:not(.iptv) .player-panel .button[hidden],.player:not(.iptv) .player-panel .button[disabled],.player:not(.iptv) .player-panel .button[aria-disabled="true"],.player:not(.iptv) .player-panel .button[style*="display: none"],.player:not(.iptv) .player-video__next .button.hide,.player:not(.iptv) .player-skip .button.hide{display:none!important}',
             '.player:not(.iptv) .player-panel__flow.hide,.player:not(.iptv) .player-panel__subs.hide,.player:not(.iptv) .player-panel__tracks.hide,.player:not(.iptv) .player-panel__quality.hide{display:none!important}',
             '.player:not(.iptv) .player-panel__timeline{margin-bottom:.55em!important}',
@@ -72,7 +72,7 @@
             '.player:not(.iptv) .player-panel__center .button{width:2.25em!important;min-width:2.25em!important;max-width:2.25em!important;height:2.25em!important;min-height:2.25em!important;max-height:2.25em!important;padding:.6em!important}',
             '.player:not(.iptv) .player-panel__playpause{width:2.65em!important;min-width:2.65em!important;max-width:2.65em!important;height:2.65em!important;min-height:2.65em!important;max-height:2.65em!important;padding:.78em!important}',
             '.player:not(.iptv) .player-panel .player-panel__quality,.player:not(.iptv) .player-panel .button.player-panel__quality,.player:not(.iptv) .player-panel .button.youtube-player-text-button,.player:not(.iptv) .player-video__next .button,.player:not(.iptv) .player-skip .button{width:auto!important;min-width:2.05em!important;max-width:none!important;height:2.05em!important;min-height:2.05em!important;max-height:2.05em!important;padding:0 .7em!important;font-size:1em!important}.player:not(.iptv) .player-panel .player-panel__quality>*,.player:not(.iptv) .player-panel .button.player-panel__quality>*,.player:not(.iptv) .player-panel .button.youtube-player-text-button>*,.player:not(.iptv) .player-video__next .button>*,.player:not(.iptv) .player-skip .button>*{font-size:.66em!important}',
-            '.player:not(.iptv) .player-panel .button.youtube-player-text-button,.player:not(.iptv) .player-video__next .button,.player:not(.iptv) .player-skip .button{min-width:2.85em!important;padding-left:1em!important;padding-right:1em!important}',
+            '.player:not(.iptv) .player-panel .button.youtube-player-text-button,.player:not(.iptv) .player-panel .player-panel__prev,.player:not(.iptv) .player-panel .player-panel__next,.player:not(.iptv) .player-video__next .button,.player:not(.iptv) .player-skip .button{width:auto!important;min-width:3.2em!important;max-width:none!important;padding-left:1.1em!important;padding-right:1.1em!important}',
             '}'
         ].join('');
 
@@ -148,10 +148,10 @@
 
             if (isPortrait()) {
                 var portrait_quality_buttons = render.find('.player-panel__quality');
-                var portrait_series_buttons = render.find('.youtube-player-text-button');
+                var portrait_series_buttons = render.find('.youtube-player-text-button,.player-panel__prev,.player-panel__next,.player-video__next .button,.player-skip .button');
 
-                if (center_prev.hasClass('youtube-player-text-button')) portrait_series_buttons = portrait_series_buttons.add(center_prev);
-                if (center_next.hasClass('youtube-player-text-button')) portrait_series_buttons = portrait_series_buttons.add(center_next);
+                if (center_prev.length) portrait_series_buttons = portrait_series_buttons.add(center_prev);
+                if (center_next.length) portrait_series_buttons = portrait_series_buttons.add(center_next);
 
                 portrait_quality_buttons.css({
                     width: 'auto',
@@ -164,10 +164,10 @@
 
                 portrait_series_buttons.css({
                     width: 'auto',
-                    minWidth: '3.15em',
+                    minWidth: '3.6em',
                     maxWidth: 'none',
-                    paddingLeft: '1.15em',
-                    paddingRight: '1.15em',
+                    paddingLeft: '1.25em',
+                    paddingRight: '1.25em',
                     borderRadius: '5em'
                 });
 
