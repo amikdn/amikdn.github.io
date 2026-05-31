@@ -130,20 +130,38 @@
                 var portrait_series_buttons = render.find('.player-video__next .button,.player-skip .button');
 
                 portrait_quality_buttons.css({
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
                     width: 'auto',
                     minWidth: '2.3em',
                     maxWidth: 'none',
+                    height: '2.3em',
+                    minHeight: '2.3em',
+                    maxHeight: '2.3em',
                     paddingLeft: '.82em',
                     paddingRight: '.82em',
+                    paddingTop: '0',
+                    paddingBottom: '0',
+                    lineHeight: '1',
                     borderRadius: '5em'
                 });
 
                 portrait_series_buttons.css({
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
                     width: 'auto',
                     minWidth: '3.6em',
                     maxWidth: 'none',
+                    height: '2.3em',
+                    minHeight: '2.3em',
+                    maxHeight: '2.3em',
                     paddingLeft: '1.25em',
                     paddingRight: '1.25em',
+                    paddingTop: '0',
+                    paddingBottom: '0',
+                    lineHeight: '1',
                     borderRadius: '5em'
                 });
 
@@ -154,8 +172,17 @@
                     width: '',
                     minWidth: '',
                     maxWidth: '',
+                    height: '',
+                    minHeight: '',
+                    maxHeight: '',
                     paddingLeft: '',
                     paddingRight: '',
+                    paddingTop: '',
+                    paddingBottom: '',
+                    lineHeight: '',
+                    display: '',
+                    alignItems: '',
+                    justifyContent: '',
                     borderRadius: ''
                 });
             }
