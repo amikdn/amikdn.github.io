@@ -182,9 +182,9 @@
     var _saveVersion = {};
     function debouncedSave(source, cache) {
         _saveVersion[source] = (_saveVersion[source] || 0) + 1;
-        var version = _saveVersion[source];
         if (_savePending[source]) return;
         _savePending[source] = true;
+        var version = _saveVersion[source];
         setTimeout(function () {
             _savePending[source] = false;
             if (version !== (_saveVersion[source] || 0)) {
@@ -553,6 +553,17 @@
     function isRatingLineItemVisible(item) {
         return !!(item && !item.classList.contains('card__rate-item--hidden'));
     }
+    function hideSingleRatingElement(el, rateClass) {
+        if (!el) return;
+        el.className = voteClass((rateClass ? rateClass + ' ' : '') + 'card__vote--separate card__vote--hidden');
+        el.innerHTML = '';
+        el.style.display = 'none';
+    }
+    function showSingleRatingElement(el) {
+        if (!el) return;
+        el.classList.remove('card__vote--hidden');
+        el.style.display = '';
+    }
 
     function updateCardRatingLine(ratingLine, data) {
         if (!ratingLine || !ratingLine.parentNode) return;
@@ -807,30 +818,31 @@
                 ratingElement.className = voteClass('rate--lampa card__vote--separate');
                 ratingElement.innerHTML = '<span style="color:' + getRatingColor(cached.rating) + '">' + formatRating(cached.rating) + '</span>';
                 renderLampaPosterIcon(ratingElement, cached.medianReaction);
+                showSingleRatingElement(ratingElement);
                 ratingElement.style.background = getRatingBackgroundColor(cached.rating) || ('rgba(0,0,0,' + getOverlayAlpha() + ')');
                 return;
             }
-            ratingElement.className = voteClass('rate--lampa card__vote--separate card__vote--hidden');
-            ratingElement.innerHTML = '';
+            hideSingleRatingElement(ratingElement, 'rate--lampa');
             addToQueue(function () {
                 getLampaRating(ratingKey).then(function (result) {
                     if (ratingElement.parentNode && ratingElement.dataset.movieId === idStr && result.rating > 0) {
                         ratingElement.className = voteClass('rate--lampa card__vote--separate');
                         ratingElement.innerHTML = '<span style="color:' + getRatingColor(result.rating) + '">' + formatRating(result.rating) + '</span>';
                         renderLampaPosterIcon(ratingElement, result.medianReaction);
+                        showSingleRatingElement(ratingElement);
                         ratingElement.style.background = getRatingBackgroundColor(result.rating) || ('rgba(0,0,0,' + getOverlayAlpha() + ')');
                     }
                 });
             });
         } else if (source === 'kp' || source === 'imdb') {
-            ratingElement.className = voteClass('rate--' + source + ' card__vote--separate card__vote--hidden');
-            ratingElement.innerHTML = '';
+            hideSingleRatingElement(ratingElement, 'rate--' + source);
             getKinopoiskRating(data, function (res) {
                 if (ratingElement.parentNode && ratingElement.dataset.movieId === idStr) {
                     var val = source === 'kp' ? res.kp : res.imdb;
                     if (val && val > 0) {
                         ratingElement.className = voteClass('rate--' + source + ' card__vote--separate');
                         ratingElement.innerHTML = '<span style="color:' + getRatingColor(val) + '">' + formatRating(val) + '</span><span class="source--name"></span>';
+                        showSingleRatingElement(ratingElement);
                         ratingElement.style.background = getRatingBackgroundColor(val) || ('rgba(0,0,0,' + getOverlayAlpha() + ')');
                     }
                 }
@@ -886,21 +898,22 @@
                 else { if (separateEls.length === 0 || (separateEls[0] && separateEls[0].dataset.movieId !== idStr)) needFull = true; else updateCardRatingSeparate(card, data); }
             } else {
                 if (!singleEl || singleEl.dataset.source !== source || singleEl.dataset.movieId !== idStr) needFull = true;
-                else if (singleEl.innerHTML === '') {
+                else if (singleEl.innerHTML === '' || singleEl.classList.contains('card__vote--hidden')) {
                     if (source === 'lampa') {
                         var ratingKey = (data.seasons || data.first_air_date || data.original_name) ? 'tv_' + data.id : 'movie_' + data.id;
                         var cachedLampa = ratingCache.get('lampa_rating', ratingKey);
                         if (cachedLampa && cachedLampa.rating > 0) {
                             singleEl.innerHTML = '<span style="color:' + getRatingColor(cachedLampa.rating) + '">' + formatRating(cachedLampa.rating) + '</span>';
                             renderLampaPosterIcon(singleEl, cachedLampa.medianReaction);
+                            showSingleRatingElement(singleEl);
                         }
                     } else if (source === 'tmdb') {
                         var tmdbKey = getTmdbRatingKey(data);
                         var cachedTmdb = tmdbKey ? ratingCache.get('tmdb_rating', tmdbKey) : null;
-                        if (cachedTmdb && cachedTmdb.vote_average > 0) singleEl.innerHTML = '<span style="color:' + getRatingColor(cachedTmdb.vote_average) + '">' + formatRating(cachedTmdb.vote_average) + '</span><span class="source--name"></span>';
+                        if (cachedTmdb && cachedTmdb.vote_average > 0) { singleEl.innerHTML = '<span style="color:' + getRatingColor(cachedTmdb.vote_average) + '">' + formatRating(cachedTmdb.vote_average) + '</span><span class="source--name"></span>'; showSingleRatingElement(singleEl); }
                     } else if (source === 'kp' || source === 'imdb') {
                         var cachedKp = ratingCache.get('kp_rating', data.id);
-                        if (cachedKp && (cachedKp.kp > 0 || cachedKp.imdb > 0)) { var r = source === 'kp' ? cachedKp.kp : cachedKp.imdb; singleEl.innerHTML = '<span style="color:' + getRatingColor(r) + '">' + formatRating(r) + '</span><span class="source--name"></span>'; }
+                        if (cachedKp && (cachedKp.kp > 0 || cachedKp.imdb > 0)) { var r = source === 'kp' ? cachedKp.kp : cachedKp.imdb; if (r > 0) { singleEl.innerHTML = '<span style="color:' + getRatingColor(r) + '">' + formatRating(r) + '</span><span class="source--name"></span>'; showSingleRatingElement(singleEl); } }
                     }
                 }
             }
@@ -1436,9 +1449,9 @@
         if (meta.type === 'tv' || meta.card_type === 'tv' || meta.seasons || meta.number_of_seasons > 0 || meta.episodes || meta.number_of_episodes > 0 || meta.is_series) isTV = true;
         if (!isTV) { if ($(card).hasClass('card--tv') || $(card).data('type') === 'tv') isTV = true; else if ($(card).find('.card__type, .card__temp').text().match(/(сезон|серия|эпизод|ТВ|TV)/i)) isTV = true; }
         var isPerson = $(card).hasClass('card--person') || $(card).closest('.scroll--persons, .items--persons, .crew').length > 0;
-        if (isPerson) return;
+        if (isPerson) { view.find('.content-label').remove(); return; }
         var hasMovieTraits = $(card).find('.card__age').length > 0 || $(card).find('.card__vote').length > 0 || /\b(19|20)\d{2}\b/.test($(card).text());
-        if (!isTV && !hasMovieTraits) return;
+        if (!isTV && !hasMovieTraits) { view.find('.content-label').remove(); return; }
         var lbl = view.find('.content-label').first();
         if (!lbl.length) {
             lbl = $('<div class="content-label"></div>');
