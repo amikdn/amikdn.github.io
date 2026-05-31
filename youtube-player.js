@@ -59,7 +59,7 @@
             '.player:not(.iptv) .player-panel__prev:not(.hide),.player:not(.iptv) .player-panel__next:not(.hide){visibility:visible!important;opacity:1!important}',
             '.player:not(.iptv) .player-panel .button>svg{width:.92em!important;height:.92em!important}',
             '.player:not(.iptv) .player-panel__playpause>svg{width:1.12em!important;height:1.12em!important}',
-            '.player:not(.iptv) .player-panel__quality{box-sizing:border-box!important;width:2.3em!important;min-width:2.3em!important;max-width:2.3em!important;height:2.3em!important;min-height:2.3em!important;max-height:2.3em!important;padding:0!important;-webkit-border-radius:50%!important;border-radius:50%!important;text-align:center!important;line-height:1!important;overflow:hidden!important;font-size:.72em!important;white-space:nowrap!important}',
+            '.player:not(.iptv) .player-panel__quality{box-sizing:border-box!important;width:2.3em!important;min-width:2.3em!important;max-width:2.3em!important;height:2.3em!important;min-height:2.3em!important;max-height:2.3em!important;padding:0!important;-webkit-border-radius:50%!important;border-radius:50%!important;text-align:center!important;line-height:2.3em!important;overflow:hidden!important;font-size:1em!important;white-space:nowrap!important}.player:not(.iptv) .player-panel__quality>*{font-size:.72em!important;line-height:1!important}',
             '.player:not(.iptv) .player-panel .button.hide,.player:not(.iptv) .player-panel .button.disabled,.player:not(.iptv) .player-panel .button.inactive,.player:not(.iptv) .player-panel .button[hidden],.player:not(.iptv) .player-panel .button[disabled],.player:not(.iptv) .player-panel .button[aria-disabled="true"],.player:not(.iptv) .player-panel .button[style*="display: none"]{display:none!important}',
             '.player:not(.iptv) .player-panel__flow.hide,.player:not(.iptv) .player-panel__subs.hide,.player:not(.iptv) .player-panel__tracks.hide,.player:not(.iptv) .player-panel__quality.hide{display:none!important}',
             '.player:not(.iptv) .player-panel__timeline{margin-bottom:.55em!important}',
@@ -70,7 +70,7 @@
             '.player:not(.iptv) .player-panel .button{width:2.05em!important;min-width:2.05em!important;max-width:2.05em!important;height:2.05em!important;min-height:2.05em!important;max-height:2.05em!important;padding:.54em!important}',
             '.player:not(.iptv) .player-panel__center .button{width:2.25em!important;min-width:2.25em!important;max-width:2.25em!important;height:2.25em!important;min-height:2.25em!important;max-height:2.25em!important;padding:.6em!important}',
             '.player:not(.iptv) .player-panel__playpause{width:2.65em!important;min-width:2.65em!important;max-width:2.65em!important;height:2.65em!important;min-height:2.65em!important;max-height:2.65em!important;padding:.78em!important}',
-            '.player:not(.iptv) .player-panel__quality{width:2.05em!important;min-width:2.05em!important;max-width:2.05em!important;height:2.05em!important;min-height:2.05em!important;max-height:2.05em!important;font-size:.66em!important}',
+            '.player:not(.iptv) .player-panel__quality{width:2.05em!important;min-width:2.05em!important;max-width:2.05em!important;height:2.05em!important;min-height:2.05em!important;max-height:2.05em!important;line-height:2.05em!important;font-size:1em!important}.player:not(.iptv) .player-panel__quality>*{font-size:.66em!important}',
             '}'
         ].join('');
 
