@@ -516,9 +516,24 @@
         var posCSS = getRatingPositionCSS();
         var bgAlpha = getOverlayAlpha();
         line.style.cssText = 'line-height:1;cursor:pointer;box-sizing:border-box;outline:none;user-select:none;position:absolute;' + posCSS + 'background:rgba(0,0,0,' + bgAlpha + ');color:#fff;padding:0.2em 0.45em;';
-        line.innerHTML = '<div class="card__rate-item rate--tmdb" style="display:none"><div>0.0</div><span class="source--name"></span></div><div class="card__rate-item rate--imdb" style="display:none"><div>0.0</div><span class="source--name"></span></div><div class="card__rate-item rate--kp" style="display:none"><div>0.0</div><span class="source--name"></span></div><div class="card__rate-item rate--lampa" style="display:none"><span class="rate-value">0.0</span><span class="source--name rate-icon-reaction"></span></div>';
+        line.innerHTML = '<div class="card__rate-item rate--tmdb card__rate-item--hidden" style="display:none"><div>0.0</div><span class="source--name"></span></div><div class="card__rate-item rate--imdb card__rate-item--hidden" style="display:none"><div>0.0</div><span class="source--name"></span></div><div class="card__rate-item rate--kp card__rate-item--hidden" style="display:none"><div>0.0</div><span class="source--name"></span></div><div class="card__rate-item rate--lampa card__rate-item--hidden" style="display:none"><span class="rate-value">0.0</span><span class="source--name rate-icon-reaction"></span></div>';
         getRatingParent(card).appendChild(line);
         return line;
+    }
+
+    function setRatingLineItemVisible(item, visible) {
+        if (!item) return;
+        if (visible) {
+            item.classList.remove('card__rate-item--hidden');
+            item.style.removeProperty('display');
+        } else {
+            item.classList.add('card__rate-item--hidden');
+            item.style.setProperty('display', 'none', 'important');
+        }
+    }
+
+    function isRatingLineItemVisible(item) {
+        return !!(item && !item.classList.contains('card__rate-item--hidden'));
     }
 
     function updateCardRatingLine(ratingLine, data) {
@@ -532,7 +547,7 @@
                 var tmdbRating = getTMDBRating(data);
                 var tmdbDiv = tmdbItem.querySelector('div');
                 if (tmdbDiv) { tmdbDiv.textContent = formatRating(tmdbRating); tmdbDiv.style.color = getRatingColor(tmdbRating); }
-                tmdbItem.style.display = (tmdbRating !== '0.0') && isRatingSourceVisible('tmdb') ? '' : 'none';
+                setRatingLineItemVisible(tmdbItem, (tmdbRating !== '0.0') && isRatingSourceVisible('tmdb'));
             }
         } catch (e) {}
         try {
@@ -546,14 +561,14 @@
                 var imdbDiv = imdbItem.querySelector('div');
                 var imdbText = imdbVal ? formatRating(imdbVal) : '0.0';
                 if (imdbDiv) { imdbDiv.textContent = imdbText; imdbDiv.style.color = getRatingColor(imdbText); }
-                imdbItem.style.display = (imdbVal > 0) && isRatingSourceVisible('imdb') ? '' : 'none';
+                setRatingLineItemVisible(imdbItem, (imdbVal > 0) && isRatingSourceVisible('imdb'));
             }
             kpItem = ratingLine.querySelector('.rate--kp');
             if (kpItem) {
                 var kpDiv = kpItem.querySelector('div');
                 var kpText = kpVal ? formatRating(kpVal) : '0.0';
                 if (kpDiv) { kpDiv.textContent = kpText; kpDiv.style.color = getRatingColor(kpText); }
-                kpItem.style.display = (kpVal > 0) && isRatingSourceVisible('kp') ? '' : 'none';
+                setRatingLineItemVisible(kpItem, (kpVal > 0) && isRatingSourceVisible('kp'));
             }
         } catch (e) {}
         try {
@@ -567,7 +582,7 @@
                 var lampaText = hasLampa ? formatRating(cachedLampa.rating) : '0.0';
                 if (lampaValEl) { lampaValEl.textContent = lampaText; lampaValEl.style.color = getRatingColor(lampaText); }
                 if (lampaReactionIcon) lampaReactionIcon.style.backgroundImage = (hasLampa && cachedLampa.medianReaction) ? 'url(' + getReactionImageSrc(cachedLampa.medianReaction) + ')' : '';
-                lampaItem.style.display = hasLampa && isRatingSourceVisible('lampa') ? '' : 'none';
+                setRatingLineItemVisible(lampaItem, hasLampa && isRatingSourceVisible('lampa'));
             }
         } catch (e) {}
         var firstRating = null;
@@ -579,7 +594,7 @@
             if (!firstRating && cachedLampa && cachedLampa.rating > 0 && isRatingSourceVisible('lampa')) firstRating = String(cachedLampa.rating);
         } catch (e) {}
         ratingLine.style.background = getRatingBackgroundColor(firstRating || '0') || ('rgba(0,0,0,' + getOverlayAlpha() + ')');
-        var anyVisible = (tmdbItem && tmdbItem.style.display !== 'none') || (imdbItem && imdbItem.style.display !== 'none') || (kpItem && kpItem.style.display !== 'none') || (lampaItem && lampaItem.style.display !== 'none');
+        var anyVisible = isRatingLineItemVisible(tmdbItem) || isRatingLineItemVisible(imdbItem) || isRatingLineItemVisible(kpItem) || isRatingLineItemVisible(lampaItem);
         ratingLine.style.display = anyVisible ? '' : 'none';
     }
 
@@ -2000,6 +2015,7 @@
             '.card__vote-separate-wrap.card__vote--top .card__vote.visible-first{border-radius:0 0.75em!important}' +
             '.card__vote-separate-wrap.card__vote--top .card__vote.visible-only{border-radius:0 0.75em!important}' +
             '.card__vote-line .card__rate-item{display:block!important;white-space:nowrap}' +
+            '.card__vote-line .card__rate-item.card__rate-item--hidden{display:none!important}' +
             '.card__vote-line .card__rate-item:last-child{margin-bottom:0}' +
             '.card__vote .source--name{font-size:0!important;display:inline-block!important;color:transparent!important;width:12px!important;height:12px!important;overflow:hidden!important;background-repeat:no-repeat!important;background-position:center!important;background-size:contain!important;margin-left:0.25em!important;padding:0!important;border:none!important;vertical-align:middle!important}' +
             '@media (min-width:481px){.card__vote .source--name{width:18px!important;height:18px!important}}' +
