@@ -47,6 +47,26 @@
 
     return addUrlComponentSafe(url, name + '=' + encoded);
   }
+
+  function removeUrlComponent(url, name) {
+    url = url + '';
+
+    var hash = '';
+    var hashIndex = url.indexOf('#');
+
+    if (hashIndex >= 0) {
+      hash = url.substring(hashIndex);
+      url = url.substring(0, hashIndex);
+    }
+
+    url = url.replace(new RegExp('([?&])' + name + '=[^&]*', 'ig'), function(match, separator) {
+      return separator == '?' ? '?' : '';
+    });
+
+    url = url.replace('?&', '?').replace(/[?&]$/, '');
+
+    return url + hash;
+  }
   
     function getAndroidVersion() {
   if (Lampa.Platform.is('android')) {
@@ -251,10 +271,8 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
   function account(url) {
     url = url + '';
     url = setUrlComponent(url, 'uid', GUEST_UID);
-    if (!hasUrlComponent(url, 'account_email')) {
-      var email = Lampa.Storage.get('account_email');
-      if (email) url = addUrlComponentSafe(url, 'account_email=' + encodeURIComponent(email));
-    }
+    url = removeUrlComponent(url, 'account_email');
+    url = removeUrlComponent(url, 'cub_id');
     if (!hasUrlComponent(url, 'token')) {
       var token = '';
       if (token != '') url = addUrlComponentSafe(url, 'token=');
@@ -513,7 +531,6 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
       query.push('clarification=' + (object.clarification ? 1 : 0));
       query.push('similar=' + (object.similar ? true : false));
       query.push('rchtype=' + (((window.rch_nws && window.rch_nws[hostkey]) ? window.rch_nws[hostkey].type : (window.rch && window.rch[hostkey]) ? window.rch[hostkey].type : '') || ''));
-      if (Lampa.Storage.get('account_email', '')) query.push('cub_id=' + Lampa.Utils.hash(Lampa.Storage.get('account_email', '')));
       return url + (url.indexOf('?') >= 0 ? '&' : '?') + query.join('&');
     };
     this.getLastChoiceBalanser = function() {
