@@ -1702,7 +1702,7 @@
         Lampa.SettingsApi.addComponent({
             component: 'card_overlay',
             name: 'Интерфейс Мод',
-            icon: '<svg viewBox="1 1 22 22" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="4" y="4" width="16" height="16" rx="3" stroke="currentColor" stroke-width="2"/><path d="M12 15V9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M16 15V11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M8 15V11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>'
+            icon: '<svg height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="21" height="21" rx="2" fill="white"></rect><mask id="path-2-inside-1_154_24" fill="white"><rect x="2" y="27" width="17" height="17" rx="2"></rect></mask><rect x="2" y="27" width="17" height="17" rx="2" stroke="white" stroke-width="6" mask="url(#path-2-inside-1_154_24)"></rect><rect x="27" y="2" width="17" height="17" rx="2" fill="white"></rect><rect x="27" y="34" width="17" height="3" fill="white"></rect><rect x="34" y="44" width="17" height="3" transform="rotate(-90 34 44)" fill="white"></rect></svg>'
         });
         Lampa.SettingsApi.addParam({
             component: 'card_overlay',
