@@ -843,6 +843,7 @@
     var _scrollRatingMaxCardsPerRun = 80;
     var _ratingUpdateTimer = 0;
     var _ratingUpdateRafScheduled = false;
+    var _cardOverlayRepaintTimer = 0;
     var _mainObserver = null;
     var _cardIntersectionObserver = null;
     function isCardUpdatesBlocked() {
@@ -903,7 +904,30 @@
     }
     function scheduleVisibleRatingsUpdate(delay) {
         if (_ratingUpdateTimer) clearTimeout(_ratingUpdateTimer);
-        _ratingUpdateTimer = setTimeout(function () { _ratingUpdateTimer = 0; if (_ratingUpdateRafScheduled) return; _ratingUpdateRafScheduled = true; requestAnimationFrame(function () { _ratingUpdateRafScheduled = false; updateVisibleCards(_scrollRatingMaxCardsPerRun); }); }, delay || 0);
+        _ratingUpdateTimer = setTimeout(function () { _ratingUpdateTimer = 0; if (_ratingUpdateRafScheduled) return; _ratingUpdateRafScheduled = true; requestAnimationFrame(function () { _ratingUpdateRafScheduled = false; updateVisibleCards(_scrollRatingMaxCardsPerRun); scheduleCardOverlayRepaint(40); }); }, delay || 0);
+    }
+    function repaintCardOverlays() {
+        var cards = document.querySelectorAll('.card[data-rating-visible="1"]');
+        if (!cards.length) cards = document.querySelectorAll('.card');
+        var wH = window.innerHeight || 1000;
+        var touched = [];
+        for (var i = 0; i < cards.length && touched.length < 24; i++) {
+            var card = cards[i];
+            if (!card || !isCardNearViewport(card, wH)) continue;
+            var overlays = card.querySelectorAll('.card__vote, .card__vote-line, .card__vote-separate-wrap, .card__quality, .content-label, .card__year-badge');
+            if (!overlays.length) continue;
+            for (var j = 0; j < overlays.length; j++) overlays[j].style.textShadow = '0 0 0 rgba(255,255,255,0.01)';
+            touched.push(overlays);
+        }
+        if (touched.length) requestAnimationFrame(function () {
+            for (var a = 0; a < touched.length; a++) {
+                for (var b = 0; b < touched[a].length; b++) touched[a][b].style.textShadow = '';
+            }
+        });
+    }
+    function scheduleCardOverlayRepaint(delay) {
+        if (_cardOverlayRepaintTimer) clearTimeout(_cardOverlayRepaintTimer);
+        _cardOverlayRepaintTimer = setTimeout(function () { _cardOverlayRepaintTimer = 0; repaintCardOverlays(); }, delay || 0);
     }
     function observeCardVisibility(card) {
         if (!_cardIntersectionObserver || !card || !card.nodeType || card.nodeType !== 1) return;
@@ -1037,6 +1061,7 @@
         replaceIcon('rate--imdb');
         replaceIcon('rate--kp');
         replaceIcon('rate--lampa');
+        normalizeDetailRatingLine(render || document);
     }
     function applyRatingScale() {
         var v = parseFloat(Lampa.Storage.get('rating_scale', '100'));
@@ -1297,6 +1322,41 @@
     function isMobilePortrait() {
         return Lampa.Platform.screen('mobile') && window.matchMedia && window.matchMedia('(orientation: portrait)').matches;
     }
+    function normalizeDetailRatingLine(viewRenderer) {
+        var render = viewRenderer ? $(viewRenderer) : $(document);
+        var rateLines = render.find('.full-start-new__rate-line');
+        if (render.hasClass && render.hasClass('full-start-new__rate-line')) rateLines = rateLines.add(render);
+        if (!rateLines.length) return;
+        rateLines.each(function () {
+            var line = $(this);
+            if (!isMobilePortrait()) {
+                line.removeClass('card-overlay-mobile-rate-line').removeAttr('data-card-overlay-rating-count data-card-overlay-rating-content');
+                return;
+            }
+            var count = 0;
+            var content = [];
+            line.children('.full-start-new__rate, .full-start__rate').each(function () {
+                var node = this;
+                var item = $(node);
+                if (item.hasClass('hide')) return;
+                try {
+                    var cs = window.getComputedStyle(node);
+                    if (!cs || cs.display === 'none' || cs.visibility === 'hidden' || parseFloat(cs.opacity) === 0) return;
+                } catch (e) {}
+                if (node.offsetParent === null && !node.getClientRects().length) return;
+                count++;
+                var source = item.hasClass('rate--tmdb') ? 'tmdb' : item.hasClass('rate--imdb') ? 'imdb' : item.hasClass('rate--kp') ? 'kp' : item.hasClass('rate--lampa') ? 'lampa' : 'rate';
+                var flags = [];
+                var iconTarget = item.find('.card-overlay-detail-icon-target').first();
+                if (iconTarget.length && iconTarget.css('display') !== 'none') flags.push('icon');
+                var lampaReaction = item.find('.rate-icon').first();
+                if (lampaReaction.length && lampaReaction.css('display') !== 'none' && lampaReaction.children().length) flags.push('reaction');
+                var text = $.trim(item.text()).replace(/\s+/g, ' ');
+                content.push(source + ':' + (flags.length ? flags.join('+') : 'text') + ':' + text.length);
+            });
+            line.addClass('card-overlay-mobile-rate-line').attr('data-card-overlay-rating-count', String(count)).attr('data-card-overlay-rating-content', content.join(' '));
+        });
+    }
     function repositionDetailMeta() {
         if (isMobilePortrait()) {
             var fullRender = document.querySelector('.full-start, .full-start-new');
@@ -1308,6 +1368,7 @@
                 metaLine.children().each(function () { rateLine.append(this); });
                 metaLine.remove();
             });
+            normalizeDetailRatingLine(document);
         }
     }
     function moveDetailMetaToSecondLine(viewRenderer) {
@@ -1331,11 +1392,13 @@
         if (quality.length) metaItems.push(quality);
         if (!metaItems.length) {
             rateLine.siblings('.full-start-new__meta-line').remove();
+            normalizeDetailRatingLine(viewRenderer);
             return;
         }
         var metaLine = ensureDetailMetaLine(viewRenderer);
         if (!metaLine.length) return;
         metaItems.forEach(function (el) { metaLine.append(el); });
+        normalizeDetailRatingLine(viewRenderer);
     }
 
     function colorizeDetailQuality() {
@@ -1721,11 +1784,16 @@
         setTimeout(restore, 180);
     }
     function updateSettingsKeepFocus(fallbackName) {
-        var focusName = getFocusedSettingsName(fallbackName);
         var sc = findSettingsScrollElement();
         var scrollTop = sc ? sc.scrollTop : null;
-        try { Lampa.Settings.update(); } catch (e) {}
-        restoreSettingsFocus(focusName || fallbackName, scrollTop);
+        function restoreScroll() {
+            if (scrollTop == null) return;
+            var current = findSettingsScrollElement();
+            if (current) try { current.scrollTop = scrollTop; } catch (e) {}
+        }
+        setTimeout(restoreScroll, 0);
+        setTimeout(restoreScroll, 80);
+        setTimeout(restoreScroll, 180);
     }
 
 
@@ -2015,6 +2083,8 @@
             '.rate-settings-site{display:inline-block;color:#8ab4ff!important;text-decoration:underline!important;white-space:nowrap!important}' +
             '[data-name="rating_modal_open"] .settings-param__value,[data-name="rating_modal_open"] .settings-param__control,[data-name="rating_modal_open"] input[type="checkbox"],[data-name="clear_ratings_cache"] .settings-param__value,[data-name="clear_ratings_cache"] .settings-param__control,[data-name="clear_ratings_cache"] input[type="checkbox"],[data-name="clear_quality_cache"] .settings-param__value,[data-name="clear_quality_cache"] .settings-param__control,[data-name="clear_quality_cache"] input[type="checkbox"]{display:none!important}' +
             '.card .card__view{position:relative!important}' +
+            '.card .card__view>.card__img{z-index:0!important}' +
+            '.card .card__vote,.card .card__vote-line,.card .card__vote-separate-wrap,.card .card__vote-separate-wrap .card__vote,.card .card__quality,.card .content-label,.card .card__year-badge{z-index:2!important;opacity:1!important;-webkit-filter:none!important;filter:none!important;will-change:auto!important;-webkit-transform:none!important;transform:none!important}' +
             '.card__view > .card__vote:not(.card__vote--top):not(.card__vote--bottom):not(.card__vote-line):not(.card__vote-separate-wrap){display:none!important}' +
             '.card__vote,.card__vote-separate-wrap .card__vote{position:absolute!important;right:0!important;bottom:0!important;padding:0.2em 0.45em!important;border-radius:0.75em 0!important;white-space:nowrap!important;font-size:var(--rating-font-size,1.1em)!important;line-height:1!important;height:auto!important;border:none!important;margin:0!important}' +
             '.card__vote-separate-wrap .card__vote{position:static!important;margin:0!important}' +
@@ -2062,7 +2132,7 @@
             '.rate--lampa.rate--lampa--animated .rate-icon img{width:1.4em!important;height:1.4em!important;max-height:none!important;max-width:none!important;object-fit:contain;display:block!important;margin-left:auto!important}' +
             '.full-start-new__rate.rate--lampa .rate-icon img,.full-start__rate.rate--lampa .rate-icon img{max-height:1em!important;max-width:1em!important;object-fit:contain}' +
             '.rate--imdb .source--name{background-image:url("data:image/svg+xml,%3Csvg fill=\'%23ffcc00\' viewBox=\'0 0 32 32\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg id=\'SVGRepo_bgCarrier\' stroke-width=\'0\'%3E%3C/g%3E%3Cg id=\'SVGRepo_tracerCarrier\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3E%3C/g%3E%3Cg id=\'SVGRepo_iconCarrier\'%3E%3Cpath d=\'M 0 7 L 0 25 L 32 25 L 32 7 Z M 2 9 L 30 9 L 30 23 L 2 23 Z M 5 11.6875 L 5 20.3125 L 7 20.3125 L 7 11.6875 Z M 8.09375 11.6875 L 8.09375 20.3125 L 10 20.3125 L 10 15.5 L 10.90625 20.3125 L 12.1875 20.3125 L 13 15.5 L 13 20.3125 L 14.8125 20.3125 L 14.8125 11.6875 L 12 11.6875 L 11.5 15.8125 L 10.8125 11.6875 Z M 15.90625 11.6875 L 15.90625 20.1875 L 18.3125 20.1875 C 19.613281 20.1875 20.101563 19.988281 20.5 19.6875 C 20.898438 19.488281 21.09375 19 21.09375 18.5 L 21.09375 13.3125 C 21.09375 12.710938 20.898438 12.199219 20.5 12 C 20 11.800781 19.8125 11.6875 18.3125 11.6875 Z M 22.09375 11.8125 L 22.09375 20.3125 L 23.90625 20.3125 C 23.90625 20.3125 23.992188 19.710938 24.09375 19.8125 C 24.292969 19.8125 25.101563 20.1875 25.5 20.1875 C 26 20.1875 26.199219 20.195313 26.5 20.09375 C 26.898438 19.894531 27 19.613281 27 19.3125 L 27 14.3125 C 27 13.613281 26.289063 13.09375 25.6875 13.09375 C 25.085938 13.09375 24.511719 13.488281 24.3125 13.6875 L 24.3125 11.8125 Z M 18 13 C 18.398438 13 18.8125 13.007813 18.8125 13.40625 L 18.8125 18.40625 C 18.8125 18.804688 18.300781 18.8125 18 18.8125 Z M 24.59375 14 C 24.695313 14 24.8125 14.105469 24.8125 14.40625 L 24.8125 18.6875 C 24.8125 18.886719 24.792969 19.09375 24.59375 19.09375 C 24.492188 19.09375 24.40625 18.988281 24.40625 18.6875 L 24.40625 14.40625 C 24.40625 14.207031 24.394531 14 24.59375 14 Z\'/%3E%3C/g%3E%3C/svg%3E")}' +
-            '@media (max-width:480px) and (orientation:portrait){.full-start-new__rate.rate--lampa,.full-start__rate.rate--lampa{min-width:80px}body:not([data-lampa-icon-on]) .full-start-new__rate.rate--lampa,body:not([data-lampa-icon-on]) .full-start__rate.rate--lampa{min-width:0!important}}' +
+            '@media (max-width:480px) and (orientation:portrait){.full-start-new__rate.rate--lampa,.full-start__rate.rate--lampa{min-width:0!important}body:not([data-lampa-icon-on]) .full-start-new__rate.rate--lampa,body:not([data-lampa-icon-on]) .full-start__rate.rate--lampa{min-width:0!important}}' +
             '.card__quality{position:absolute!important;left:0!important;bottom:0!important;padding:0.25em 0.45em!important;border-radius:0 0.75em!important;color:white!important;font-size:1.1em!important;line-height:1!important;z-index:10!important;white-space:nowrap!important}' +
             '.content-label{position:absolute!important;left:0!important;top:0!important;color:white!important;padding:0.25em 0.45em!important;border-radius:0.75em 0!important;font-size:1.1em!important;line-height:1!important;z-index:10!important;display:flex!important;align-items:center!important;justify-content:center!important}' +
             '.full-start-new__rate-line .full-start__status,.full-start-new__rate-line .full-start__pg:not(.hide),.full-start-new__meta-line .full-start__status,.full-start-new__meta-line .full-start__pg:not(.hide){border-radius:0.3em!important;padding:0.2em 0.4em!important;display:inline-block!important;line-height:1!important;white-space:nowrap!important}' +
@@ -2083,7 +2153,7 @@
             '.full-start__pg.hide,.full-start__pg.nr{display:none!important}' +
             '.full-start-new__meta-line{display:none!important}' +
             '.season-info-label{position:absolute!important;color:#fff!important;padding:0.25em 0.45em!important;font-size:1.1em!important;line-height:1!important;z-index:10!important;white-space:nowrap!important}' +
-            '@media (max-width:480px) and (orientation:portrait){.full-start-new__rate-line{display:flex!important;flex-wrap:wrap!important;align-items:center!important;justify-content:center!important;gap:0.2em!important}.full-start-new__meta-line{display:flex!important;flex-wrap:wrap!important;align-items:center!important;justify-content:center!important;gap:0.5em!important;width:100%!important;line-height:1!important;font-size:1em!important;margin-top:0.3em!important}.full-start-new__meta-line .full-start__status,.full-start-new__meta-line .full-start__pg{margin:0!important;display:inline-flex!important;align-items:center!important;line-height:1!important;white-space:nowrap!important}.full-start-new__details{margin-top:0.3em!important;display:flex!important;flex-wrap:wrap!important;justify-content:center!important;gap:0.1em!important}.full-start-new__reactions{justify-content:center!important}.full-start-new__buttons{justify-content:center!important;text-align:center!important}.full-start-new__right,.full-start__right{text-align:center!important}.full-start-new__right h1,.full-start__right h1,.full-start-new__right .name,.full-start__right .name,.full-start__name{text-align:center!important;width:100%!important}.season-info-label{display:none!important}}' +
+            '@media (max-width:480px) and (orientation:portrait){.full-start-new__rate-line{display:flex!important;flex-wrap:wrap!important;align-items:center!important;justify-content:center!important;align-content:center!important;gap:0.35em!important;width:100%!important;max-width:100%!important;margin-left:auto!important;margin-right:auto!important;text-align:center!important}.full-start-new__rate-line>*{margin:0!important}.full-start-new__rate-line .full-start-new__rate:not(.hide):not([style*="display: none"]),.full-start-new__rate-line .full-start__rate:not(.hide):not([style*="display: none"]){display:inline-flex;align-items:center!important;justify-content:center!important;flex:0 0 auto!important;margin:0!important}.full-start-new__rate-line .full-start-new__rate.hide,.full-start-new__rate-line .full-start__rate.hide,.full-start-new__rate-line .full-start-new__rate[style*="display: none"],.full-start-new__rate-line .full-start__rate[style*="display: none"]{display:none!important}.full-start-new__rate-line.card-overlay-mobile-rate-line[data-card-overlay-rating-count="1"]{max-width:9em!important}.full-start-new__rate-line.card-overlay-mobile-rate-line[data-card-overlay-rating-count="2"]{max-width:18em!important}.full-start-new__rate-line.card-overlay-mobile-rate-line[data-card-overlay-rating-count="3"],.full-start-new__rate-line.card-overlay-mobile-rate-line[data-card-overlay-rating-count="4"]{max-width:100%!important}.full-start-new__meta-line{display:flex!important;flex-wrap:wrap!important;align-items:center!important;justify-content:center!important;gap:0.5em!important;width:100%!important;line-height:1!important;font-size:1em!important;margin-top:0.3em!important}.full-start-new__meta-line .full-start__status,.full-start-new__meta-line .full-start__pg{margin:0!important;display:inline-flex!important;align-items:center!important;line-height:1!important;white-space:nowrap!important}.full-start-new__details{margin-top:0.3em!important;display:flex!important;flex-wrap:wrap!important;justify-content:center!important;gap:0.1em!important}.full-start-new__reactions{justify-content:center!important}.full-start-new__buttons{justify-content:center!important;text-align:center!important}.full-start-new__right,.full-start__right{text-align:center!important}.full-start-new__right h1,.full-start__right h1,.full-start-new__right .name,.full-start__right .name,.full-start__name{text-align:center!important;width:100%!important}.season-info-label{display:none!important}}' +
             'body[data-movie-labels="on"] .card--tv .card__type{display:none!important}';
         document.head.appendChild(style);
 
