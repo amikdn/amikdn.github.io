@@ -1814,7 +1814,7 @@
         Lampa.SettingsApi.addParam({
             component: 'card_overlay',
             param: { name: 'detail_rating_icons', type: 'trigger', default: true },
-            field: { name: 'Значки рейтингов', description: 'Показывать иконки TMDB, IMDB, КП и звезду Lampa на странице фильма' },
+            field: { name: 'Значки рейтингов', description: 'Показывать иконки TMDB, IMDB, КП и Lampa на странице фильма' },
             onChange: function () {
                 updateSettingsKeepFocus('detail_rating_icons');
                 try {
