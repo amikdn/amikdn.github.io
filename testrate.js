@@ -1857,6 +1857,28 @@
     function setupCardListener() {
         if (window.lampa_listener_extensions) return;
         window.lampa_listener_extensions = true;
+        try {
+            if (Lampa.Maker && Lampa.Maker.map) {
+                var CardMaker = Lampa.Maker.map('Card');
+                if (CardMaker && CardMaker.Card && !CardMaker.Card.__card_overlay_onvisible__) {
+                    var originalOnVisible = CardMaker.Card.onVisible;
+                    CardMaker.Card.onVisible = function () {
+                        if (originalOnVisible) originalOnVisible.apply(this, arguments);
+                        var card = this.html || this.card;
+                        var data = card && card.card_data;
+                        if (!data && this.card && this.card.card_data) data = this.card.card_data;
+                        if (!data && this.card_data) data = this.card_data;
+                        if (card && data && data.id) {
+                            updateCardRating({ card: card, data: data });
+                            if (isQualityShowOn()) processQualityForCards([card]);
+                            addTypeLabel(card);
+                            addYearBadge(card);
+                        }
+                    };
+                    CardMaker.Card.__card_overlay_onvisible__ = true;
+                }
+            }
+        } catch (e) {}
         Object.defineProperty(window.Lampa.Card.prototype, 'build', {
             get: function () { return this._build; },
             set: function (func) {
