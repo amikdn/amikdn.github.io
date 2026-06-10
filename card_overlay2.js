@@ -528,7 +528,7 @@
         ratingElement.className = voteClass();
         var posCSS = getRatingPositionCSS();
         var bgAlpha = getOverlayAlpha();
-        ratingElement.style.cssText = 'line-height:1;cursor:pointer;box-sizing:border-box;outline:none;user-select:none;position:absolute;' + posCSS + 'background:rgba(0,0,0,' + bgAlpha + ');color:#fff;padding:0.2em 0.45em;';
+        ratingElement.style.cssText = 'line-height:1;cursor:pointer;box-sizing:border-box;outline:none;user-select:none;position:absolute;' + posCSS + 'background:rgba(0,0,0,' + bgAlpha + ');color:#fff;padding:var(--card-overlay-padding-y,0.25em) var(--card-overlay-padding-x,0.45em);font-size:var(--card-overlay-font-size,1.1em);border-radius:var(--card-overlay-radius,0.75em) 0;';
         if (ratingElement.parentNode !== parent) parent.appendChild(ratingElement);
         return ratingElement;
     }
@@ -536,7 +536,7 @@
         var el = document.createElement('div');
         el.className = voteClass();
         var bgAlpha = getOverlayAlpha();
-        el.style.cssText = 'line-height:1;cursor:pointer;box-sizing:border-box;outline:none;user-select:none;background:rgba(0,0,0,' + bgAlpha + ');color:#fff;padding:0.2em 0.45em;';
+        el.style.cssText = 'line-height:1;cursor:pointer;box-sizing:border-box;outline:none;user-select:none;background:rgba(0,0,0,' + bgAlpha + ');color:#fff;padding:var(--card-overlay-padding-y,0.25em) var(--card-overlay-padding-x,0.45em);font-size:var(--card-overlay-font-size,1.1em);border-radius:var(--card-overlay-radius,0.75em) 0;';
         return el;
     }
     function createRatingLineElement(card) {
@@ -545,7 +545,7 @@
         line.className = voteClass('card__vote-line');
         var posCSS = getRatingPositionCSS();
         var bgAlpha = getOverlayAlpha();
-        line.style.cssText = 'line-height:1;cursor:pointer;box-sizing:border-box;outline:none;user-select:none;position:absolute;' + posCSS + 'background:rgba(0,0,0,' + bgAlpha + ');color:#fff;padding:0.2em 0.45em;';
+        line.style.cssText = 'line-height:1;cursor:pointer;box-sizing:border-box;outline:none;user-select:none;position:absolute;' + posCSS + 'background:rgba(0,0,0,' + bgAlpha + ');color:#fff;padding:var(--card-overlay-padding-y,0.25em) var(--card-overlay-padding-x,0.45em);font-size:var(--card-overlay-font-size,1.1em);border-radius:var(--card-overlay-radius,0.75em) 0;';
         line.innerHTML = '<div class="card__rate-item rate--tmdb card__rate-item--hidden" style="display:none"><div>0.0</div><span class="source--name"></span></div><div class="card__rate-item rate--imdb card__rate-item--hidden" style="display:none"><div>0.0</div><span class="source--name"></span></div><div class="card__rate-item rate--kp card__rate-item--hidden" style="display:none"><div>0.0</div><span class="source--name"></span></div><div class="card__rate-item rate--lampa card__rate-item--hidden" style="display:none"><span class="rate-value">0.0</span><span class="source--name rate-icon-reaction"></span></div>';
         if (line.parentNode !== parent) parent.appendChild(line);
         return line;
@@ -2417,9 +2417,9 @@
             var code = e && (e.code || e.key);
             if (code === 'PageUp' || code === 'PageDown') scheduleVisibleRatingsUpdate(120);
         }, { passive: true });
-        window.addEventListener('resize', function () { scheduleVisibleRatingsUpdate(0); refreshAllCardOverlayLayout(); repositionDetailMeta(); }, { passive: true });
-        window.addEventListener('orientationchange', function () { setTimeout(function () { refreshAllCardOverlayLayout(); repositionDetailMeta(); }, 150); }, { passive: true });
-        document.addEventListener('visibilitychange', function () { if (!document.hidden) { scheduleVisibleRatingsUpdate(0); refreshAllCardOverlayLayout(); repositionDetailMeta(); } });
+        window.addEventListener('resize', function () { scheduleVisibleRatingsUpdate(0); refreshAllCardOverlayLayout(); setTimeout(refreshAllCardOverlayLayout, 120); repositionDetailMeta(); }, { passive: true });
+        window.addEventListener('orientationchange', function () { setTimeout(function () { refreshAllCardOverlayLayout(); setTimeout(refreshAllCardOverlayLayout, 120); repositionDetailMeta(); }, 150); }, { passive: true });
+        document.addEventListener('visibilitychange', function () { if (!document.hidden) { scheduleVisibleRatingsUpdate(0); refreshAllCardOverlayLayout(); setTimeout(refreshAllCardOverlayLayout, 120); repositionDetailMeta(); } });
 
         Lampa.Listener.follow('card', function (event) {
             if (event.type === 'build' && event.object.card) {
