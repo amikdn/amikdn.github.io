@@ -1505,12 +1505,16 @@
         var label = view.querySelector('.card__episode-label');
         if (!label) return;
         if (isEpisodeLabelUnderType()) {
+            var typeLabel = view.querySelector('.card__type[data-card-overlay-type-label="1"], .card__type');
+            var topOffset = 0;
+            if (typeLabel) topOffset = typeLabel.offsetTop + typeLabel.offsetHeight + 6;
             label.style.setProperty('left', '0', 'important');
             label.style.setProperty('right', 'auto', 'important');
-            label.style.setProperty('top', 'calc(0.25em + 1.1em + 0.35em)', 'important');
+            label.style.setProperty('top', topOffset + 'px', 'important');
             label.style.setProperty('bottom', 'auto', 'important');
             label.style.setProperty('transform', 'none', 'important');
             label.style.setProperty('border-radius', '0 0.75em 0.75em 0', 'important');
+            label.style.setProperty('font-size', '1.1em', 'important');
             return;
         }
         try {
@@ -1532,6 +1536,7 @@
             label.style.setProperty('bottom', '0', 'important');
             label.style.setProperty('transform', 'translateX(-50%)', 'important');
             label.style.setProperty('border-radius', '0.75em 0.75em 0 0', 'important');
+            label.style.setProperty('font-size', '1.1em', 'important');
         } catch (e2) {
             label.style.setProperty('left', '50%', 'important');
             label.style.setProperty('right', 'auto', 'important');
@@ -1539,6 +1544,7 @@
             label.style.setProperty('bottom', '0', 'important');
             label.style.setProperty('transform', 'translateX(-50%)', 'important');
             label.style.setProperty('border-radius', '0.75em 0.75em 0 0', 'important');
+            label.style.setProperty('font-size', '1.1em', 'important');
         }
     }
     function applyEpisodeLabelText(card, text) {
