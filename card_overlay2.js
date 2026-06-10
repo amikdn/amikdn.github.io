@@ -1663,6 +1663,14 @@
         refreshAllTypeLabels();
         refreshAllYearBadges();
     }
+    function refreshAllCardOverlayLayout() {
+        var allCards = document.querySelectorAll('.card');
+        for (var i = 0; i < allCards.length; i++) {
+            addTypeLabel(allCards[i]);
+            addYearBadge(allCards[i]);
+            updateEpisodeLabelPosition(allCards[i]);
+        }
+    }
     function addTypeLabelToDetail(poster, movie) {
         if (!isTypeLabelsShowOn()) return;
         poster.find('.content-label').remove();
@@ -2409,9 +2417,9 @@
             var code = e && (e.code || e.key);
             if (code === 'PageUp' || code === 'PageDown') scheduleVisibleRatingsUpdate(120);
         }, { passive: true });
-        window.addEventListener('resize', function () { scheduleVisibleRatingsUpdate(0); repositionDetailMeta(); }, { passive: true });
-        window.addEventListener('orientationchange', function () { setTimeout(repositionDetailMeta, 150); }, { passive: true });
-        document.addEventListener('visibilitychange', function () { if (!document.hidden) { scheduleVisibleRatingsUpdate(0); repositionDetailMeta(); } });
+        window.addEventListener('resize', function () { scheduleVisibleRatingsUpdate(0); refreshAllCardOverlayLayout(); repositionDetailMeta(); }, { passive: true });
+        window.addEventListener('orientationchange', function () { setTimeout(function () { refreshAllCardOverlayLayout(); repositionDetailMeta(); }, 150); }, { passive: true });
+        document.addEventListener('visibilitychange', function () { if (!document.hidden) { scheduleVisibleRatingsUpdate(0); refreshAllCardOverlayLayout(); repositionDetailMeta(); } });
 
         Lampa.Listener.follow('card', function (event) {
             if (event.type === 'build' && event.object.card) {
