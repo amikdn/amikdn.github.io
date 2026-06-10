@@ -1519,7 +1519,7 @@
             label.style.setProperty('top', topOffset + 'px', 'important');
             label.style.setProperty('bottom', 'auto', 'important');
             label.style.setProperty('transform', 'none', 'important');
-            label.style.setProperty('border-radius', '0 ' + (typeLabel ? window.getComputedStyle(typeLabel).borderTopRightRadius : '12px') + ' ' + (typeLabel ? window.getComputedStyle(typeLabel).borderTopRightRadius : '12px') + ' 0', 'important');
+            label.style.setProperty('border-radius', '0 0.75em 0.75em 0', 'important');
             return;
         }
         try {
@@ -1540,14 +1540,14 @@
             label.style.setProperty('top', 'auto', 'important');
             label.style.setProperty('bottom', '0', 'important');
             label.style.setProperty('transform', 'translateX(-50%)', 'important');
-            label.style.setProperty('border-radius', '12px 12px 0 0', 'important');
+            label.style.setProperty('border-radius', '0.75em 0.75em 0 0', 'important');
         } catch (e2) {
             label.style.setProperty('left', '50%', 'important');
             label.style.setProperty('right', 'auto', 'important');
             label.style.setProperty('top', 'auto', 'important');
             label.style.setProperty('bottom', '0', 'important');
             label.style.setProperty('transform', 'translateX(-50%)', 'important');
-            label.style.setProperty('border-radius', '12px 12px 0 0', 'important');
+            label.style.setProperty('border-radius', '0.75em 0.75em 0 0', 'important');
         }
     }
     function applyEpisodeLabelText(card, text) {
