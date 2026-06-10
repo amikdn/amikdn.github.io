@@ -87,7 +87,7 @@
         markCardOverlayHost(card);
         if (age.parentNode !== view) view.appendChild(age);
         age.classList.add('card__year-badge');
-        age.style.cssText = 'position:absolute;line-height:1;box-sizing:border-box;user-select:none;padding:0.25em 0.45em;background:rgba(0,0,0,' + getOverlayAlpha() + ');color:#fff;font-size:1.1em;white-space:nowrap;margin-top:0;' + getYearPositionCSS();
+        age.style.cssText = 'position:absolute;line-height:1;box-sizing:border-box;user-select:none;padding:var(--card-overlay-padding-y,0.25em) var(--card-overlay-padding-x,0.45em);background:rgba(0,0,0,' + getOverlayAlpha() + ');color:#fff;font-size:var(--card-overlay-font-size,1.1em);white-space:nowrap;margin-top:0;border-radius:0 var(--card-overlay-radius,0.75em);' + getYearPositionCSS();
     }
     function refreshAllYearBadges() {
         var allCards = document.querySelectorAll('.card');
