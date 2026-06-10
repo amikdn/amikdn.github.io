@@ -1513,8 +1513,9 @@
             label.style.setProperty('top', topOffset + 'px', 'important');
             label.style.setProperty('bottom', 'auto', 'important');
             label.style.setProperty('transform', 'none', 'important');
-            label.style.setProperty('border-radius', '0 0.75em 0.75em 0', 'important');
-            label.style.setProperty('font-size', '1.1em', 'important');
+            label.style.setProperty('border-radius', '0 12px 12px 0', 'important');
+            label.style.setProperty('font-size', '18px', 'important');
+            label.style.setProperty('padding', '4px 7px', 'important');
             return;
         }
         try {
@@ -1535,16 +1536,18 @@
             label.style.setProperty('top', 'auto', 'important');
             label.style.setProperty('bottom', '0', 'important');
             label.style.setProperty('transform', 'translateX(-50%)', 'important');
-            label.style.setProperty('border-radius', '0.75em 0.75em 0 0', 'important');
-            label.style.setProperty('font-size', '1.1em', 'important');
+            label.style.setProperty('border-radius', '12px 12px 0 0', 'important');
+            label.style.setProperty('font-size', '18px', 'important');
+            label.style.setProperty('padding', '4px 7px', 'important');
         } catch (e2) {
             label.style.setProperty('left', '50%', 'important');
             label.style.setProperty('right', 'auto', 'important');
             label.style.setProperty('top', 'auto', 'important');
             label.style.setProperty('bottom', '0', 'important');
             label.style.setProperty('transform', 'translateX(-50%)', 'important');
-            label.style.setProperty('border-radius', '0.75em 0.75em 0 0', 'important');
-            label.style.setProperty('font-size', '1.1em', 'important');
+            label.style.setProperty('border-radius', '12px 12px 0 0', 'important');
+            label.style.setProperty('font-size', '18px', 'important');
+            label.style.setProperty('padding', '4px 7px', 'important');
         }
     }
     function applyEpisodeLabelText(card, text) {
@@ -2348,7 +2351,7 @@
             '.rate--imdb .source--name{background-image:url("data:image/svg+xml,' + detailImdbSvgCss + '")}' +
             '@media (max-width:480px) and (orientation:portrait){.full-start-new__rate.rate--lampa,.full-start__rate.rate--lampa{min-width:0!important}body:not([data-lampa-icon-on]) .full-start-new__rate.rate--lampa,body:not([data-lampa-icon-on]) .full-start__rate.rate--lampa{min-width:0!important}}' +
             '.card__quality{position:absolute!important;left:0!important;bottom:0!important;padding:0.25em 0.45em!important;border-radius:0 0.75em!important;color:white!important;font-size:1.1em!important;line-height:1!important;z-index:10!important;white-space:nowrap!important}' +
-            '.card__episode-label{position:absolute!important;left:50%!important;right:auto!important;bottom:0!important;top:auto!important;transform:translateX(-50%)!important;color:white!important;padding:0.25em 0.45em!important;border-radius:0.75em 0.75em 0 0!important;font-size:1.1em!important;font-weight:400!important;line-height:1!important;height:auto!important;z-index:10!important;white-space:nowrap!important;box-sizing:border-box!important;margin:0!important;border:none!important}' +
+            '.card__episode-label{position:absolute!important;left:50%!important;right:auto!important;bottom:0!important;top:auto!important;transform:translateX(-50%)!important;color:white!important;padding:4px 7px!important;border-radius:12px 12px 0 0!important;font-size:18px!important;font-weight:400!important;line-height:1!important;height:auto!important;z-index:10!important;white-space:nowrap!important;box-sizing:border-box!important;margin:0!important;border:none!important}' +
             '.content-label,.card__type[data-card-overlay-type-label="1"]{position:absolute!important;left:0!important;top:0!important;color:white!important;padding:0.25em 0.45em!important;border-radius:0.75em 0!important;font-size:1.1em!important;line-height:1!important;z-index:10!important;display:flex!important;align-items:center!important;justify-content:center!important}' +
             '.full-start-new__rate-line .full-start__status,.full-start-new__rate-line .full-start__pg:not(.hide),.full-start-new__meta-line .full-start__status,.full-start-new__meta-line .full-start__pg:not(.hide){border-radius:0.3em!important;padding:0.2em 0.4em!important;display:inline-block!important;line-height:1!important;white-space:nowrap!important}' +
             'body.colored-elements-on .full-start__pg.age-kids{background:#2ecc71!important;color:white!important}' +
