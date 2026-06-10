@@ -1534,10 +1534,8 @@
             label.style.setProperty('top', topOffset + 'px', 'important');
             label.style.setProperty('bottom', 'auto', 'important');
             label.style.setProperty('transform', 'none', 'important');
-            label.style.setProperty('border-top-left-radius', '0', 'important');
-            label.style.setProperty('border-top-right-radius', typeStyle ? typeStyle.borderTopRightRadius : '0.75em', 'important');
-            label.style.setProperty('border-bottom-right-radius', typeStyle ? typeStyle.borderTopRightRadius : '0.75em', 'important');
-            label.style.setProperty('border-bottom-left-radius', '0', 'important');
+            label.style.setProperty('border', 'none', 'important');
+            label.style.setProperty('border-radius', '0 ' + (typeStyle ? typeStyle.borderTopRightRadius : '0.75em') + ' ' + (typeStyle ? typeStyle.borderTopRightRadius : '0.75em') + ' 0', 'important');
             return;
         }
         try {
@@ -1558,6 +1556,7 @@
             label.style.setProperty('top', 'auto', 'important');
             label.style.setProperty('bottom', '0', 'important');
             label.style.setProperty('transform', 'translateX(-50%)', 'important');
+            label.style.setProperty('border', 'none', 'important');
             label.style.setProperty('border-radius', 'var(--card-overlay-radius,0.75em) var(--card-overlay-radius,0.75em) 0 0', 'important');
         } catch (e2) {
             label.style.setProperty('left', '50%', 'important');
@@ -1565,6 +1564,7 @@
             label.style.setProperty('top', 'auto', 'important');
             label.style.setProperty('bottom', '0', 'important');
             label.style.setProperty('transform', 'translateX(-50%)', 'important');
+            label.style.setProperty('border', 'none', 'important');
             label.style.setProperty('border-radius', 'var(--card-overlay-radius,0.75em) var(--card-overlay-radius,0.75em) 0 0', 'important');
         }
     }
