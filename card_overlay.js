@@ -17,6 +17,8 @@
     var CACHE_TTL = 24 * 60 * 60 * 1000;
     var TMDB_DETAIL_RETRY_TTL = CACHE_TTL;
     var CARD_OVERLAY_CACHE_VERSION = '3';
+    var TYPE_LABEL_EPISODE_INFO_KEY = 'type_labels_episode_info';
+    var TYPE_LABEL_EPISODE_CACHE_KEY = 'type_label_episode_cache';
 
     function isTriggerOn(key, def) {
         var v = Lampa.Storage.get(key, def);
@@ -46,6 +48,9 @@
     function isTypeLabelsColoredOn() {
         return isTriggerOn('type_labels_colored', false);
     }
+    function isTypeLabelEpisodeInfoOn() {
+        return isTriggerOn(TYPE_LABEL_EPISODE_INFO_KEY, true);
+    }
     function isDetailRatingIconsOn() {
         return isTriggerOn('detail_rating_icons', true);
     }
@@ -54,10 +59,10 @@
         if (!isColoredRatingsPosterOn()) return '#fff';
         var v = parseFloat(String(value).replace(',', '.'));
         if (isNaN(v) || v <= 0) return '#fff';
-        if (v <= 3) return 'rgba(231,76,60,0.8)';
-        if (v < 6) return 'rgba(243,156,18,0.8)';
-        if (v < 8) return 'rgba(52,152,219,0.8)';
-        return 'rgba(46,204,113,0.8)';
+        if (v <= 3) return '#e74c3c';
+        if (v < 6) return '#f39c12';
+        if (v < 8) return '#3498db';
+        return '#2ecc71';
     }
     function getRatingBackgroundColor(value) {
         if (!isTriggerOn('rating_colored_windows', false)) return '';
@@ -79,6 +84,7 @@
         var view = card.querySelector('.card__view');
         var age = card.querySelector('.card__age');
         if (!view || !age) return;
+        markCardOverlayHost(card);
         if (age.parentNode !== view) view.appendChild(age);
         age.classList.add('card__year-badge');
         age.style.cssText = 'position:absolute;line-height:1;box-sizing:border-box;user-select:none;padding:0.25em 0.45em;background:rgba(0,0,0,' + getOverlayAlpha() + ');color:#fff;font-size:1.1em;white-space:nowrap;margin-top:0;' + getYearPositionCSS();
@@ -181,12 +187,16 @@
     var _savePending = {};
     var _saveVersion = {};
     function debouncedSave(source, cache) {
+        _saveVersion[source] = (_saveVersion[source] || 0) + 1;
         if (_savePending[source]) return;
         _savePending[source] = true;
-        var version = _saveVersion[source] || 0;
+        var version = _saveVersion[source];
         setTimeout(function () {
             _savePending[source] = false;
-            if (version !== (_saveVersion[source] || 0)) return;
+            if (version !== (_saveVersion[source] || 0)) {
+                debouncedSave(source, cache);
+                return;
+            }
             try { Lampa.Storage.set(getPersistentCacheKey(source), cache); } catch (e) {}
         }, 2000);
     }
@@ -496,9 +506,13 @@
     function getRatingParent(card) {
         var parent = card.querySelector && card.querySelector('.card__view');
         if (!parent) parent = card;
+        markCardOverlayHost(card);
         parent.setAttribute('data-rate-anchor', '1');
         parent.style.position = 'relative';
         return parent;
+    }
+    function markCardOverlayHost(card) {
+        if (card && card.classList) card.classList.add('card-overlay-has-overlays');
     }
     function isRatingSourceVisible(source) {
         var v = Lampa.Storage.get('rating_show_' + source, '1');
@@ -509,12 +523,13 @@
         return isRatingSourceVisible('kp') || isRatingSourceVisible('imdb');
     }
     function createRatingElement(card) {
-        var ratingElement = document.createElement('div');
+        var parent = getRatingParent(card);
+        var ratingElement = parent.querySelector(':scope > .card__vote:not(.card__vote-line):not(.card__vote-separate-wrap)') || card.querySelector('.card__vote:not(.card__vote-line):not(.card__vote-separate-wrap)') || document.createElement('div');
         ratingElement.className = voteClass();
         var posCSS = getRatingPositionCSS();
         var bgAlpha = getOverlayAlpha();
         ratingElement.style.cssText = 'line-height:1;cursor:pointer;box-sizing:border-box;outline:none;user-select:none;position:absolute;' + posCSS + 'background:rgba(0,0,0,' + bgAlpha + ');color:#fff;padding:0.2em 0.45em;';
-        getRatingParent(card).appendChild(ratingElement);
+        if (ratingElement.parentNode !== parent) parent.appendChild(ratingElement);
         return ratingElement;
     }
     function createRatingInnerBlock() {
@@ -525,13 +540,14 @@
         return el;
     }
     function createRatingLineElement(card) {
-        var line = document.createElement('div');
+        var parent = getRatingParent(card);
+        var line = parent.querySelector(':scope > .card__vote-line') || parent.querySelector(':scope > .card__vote:not(.card__vote-separate-wrap)') || card.querySelector('.card__vote:not(.card__vote-separate-wrap)') || document.createElement('div');
         line.className = voteClass('card__vote-line');
         var posCSS = getRatingPositionCSS();
         var bgAlpha = getOverlayAlpha();
         line.style.cssText = 'line-height:1;cursor:pointer;box-sizing:border-box;outline:none;user-select:none;position:absolute;' + posCSS + 'background:rgba(0,0,0,' + bgAlpha + ');color:#fff;padding:0.2em 0.45em;';
         line.innerHTML = '<div class="card__rate-item rate--tmdb card__rate-item--hidden" style="display:none"><div>0.0</div><span class="source--name"></span></div><div class="card__rate-item rate--imdb card__rate-item--hidden" style="display:none"><div>0.0</div><span class="source--name"></span></div><div class="card__rate-item rate--kp card__rate-item--hidden" style="display:none"><div>0.0</div><span class="source--name"></span></div><div class="card__rate-item rate--lampa card__rate-item--hidden" style="display:none"><span class="rate-value">0.0</span><span class="source--name rate-icon-reaction"></span></div>';
-        getRatingParent(card).appendChild(line);
+        if (line.parentNode !== parent) parent.appendChild(line);
         return line;
     }
 
@@ -548,6 +564,18 @@
 
     function isRatingLineItemVisible(item) {
         return !!(item && !item.classList.contains('card__rate-item--hidden'));
+    }
+    function hideSingleRatingElement(el, rateClass) {
+        if (!el) return;
+        el.className = voteClass((rateClass ? rateClass + ' ' : '') + 'card__vote--separate card__vote--hidden');
+        el.innerHTML = '';
+        el.style.display = 'none';
+    }
+    function showSingleRatingElement(el) {
+        if (!el) return;
+        el.classList.remove('card__vote--hidden');
+        el.style.display = '';
+        if (el.closest) updateEpisodeLabelPosition(el.closest('.card'));
     }
 
     function updateCardRatingLine(ratingLine, data) {
@@ -610,6 +638,7 @@
         ratingLine.style.background = getRatingBackgroundColor(firstRating || '0') || ('rgba(0,0,0,' + getOverlayAlpha() + ')');
         var anyVisible = isRatingLineItemVisible(tmdbItem) || isRatingLineItemVisible(imdbItem) || isRatingLineItemVisible(kpItem) || isRatingLineItemVisible(lampaItem);
         ratingLine.style.display = anyVisible ? '' : 'none';
+        updateEpisodeLabelPosition(ratingLine.closest ? ratingLine.closest('.card') : null);
     }
 
     function getRatingDisplayMode() { return Lampa.Storage.get('rating_display_mode', 'separate'); }
@@ -619,7 +648,7 @@
         var idStr = data.id.toString();
         if (el.dataset.movieId !== idStr) return;
         el.classList.add('card__vote--separate');
-        function refreshBR() { var c = el.closest('.card'); if (c) fixSeparateBorderRadius(c); }
+        function refreshBR() { var c = el.closest('.card'); if (c) { fixSeparateBorderRadius(c); updateEpisodeLabelPosition(c); } }
         if (rateSource === 'tmdb') {
             var rating = getTMDBRating(data);
             if (rating !== '0.0') {
@@ -682,6 +711,7 @@
         var elements = card.querySelectorAll('.card__vote-separate-wrap [data-rate-source]');
         for (var i = 0; i < elements.length; i++) { elements[i].dataset.movieId = idStr; fillSingleRatingElement(elements[i], data, elements[i].dataset.rateSource); }
         fixSeparateBorderRadius(card);
+        updateEpisodeLabelPosition(card);
     }
     function fixSeparateBorderRadius(card) {
         var wrap = card.querySelector('.card__vote-separate-wrap');
@@ -700,6 +730,7 @@
             ratingElement.className = voteClass('rate--tmdb');
             ratingElement.innerHTML = '<span style="color:' + getRatingColor(tmdb) + '">' + formatRating(tmdb) + '</span><span class="source--name"></span>';
             ratingElement.style.background = getRatingBackgroundColor(tmdb) || ('rgba(0,0,0,' + getOverlayAlpha() + ')');
+            updateEpisodeLabelPosition(ratingElement.closest ? ratingElement.closest('.card') : null);
             return;
         }
         var lampaKey = (data.seasons || data.first_air_date || data.original_name) ? 'tv_' + data.id : 'movie_' + data.id;
@@ -709,6 +740,7 @@
             ratingElement.innerHTML = '<span style="color:' + getRatingColor(cachedLampa.rating) + '">' + formatRating(cachedLampa.rating) + '</span>';
             renderLampaPosterIcon(ratingElement, cachedLampa.medianReaction);
             ratingElement.style.background = getRatingBackgroundColor(cachedLampa.rating) || ('rgba(0,0,0,' + getOverlayAlpha() + ')');
+            updateEpisodeLabelPosition(ratingElement.closest ? ratingElement.closest('.card') : null);
             return;
         }
         getLampaRating(lampaKey).then(function (result) {
@@ -718,6 +750,7 @@
                 ratingElement.innerHTML = '<span style="color:' + getRatingColor(result.rating) + '">' + formatRating(result.rating) + '</span>';
                 renderLampaPosterIcon(ratingElement, result.medianReaction);
                 ratingElement.style.background = getRatingBackgroundColor(result.rating) || ('rgba(0,0,0,' + getOverlayAlpha() + ')');
+                updateEpisodeLabelPosition(ratingElement.closest ? ratingElement.closest('.card') : null);
             } else { ratingElement.classList.add('card__vote--hidden'); }
         });
     }
@@ -726,6 +759,7 @@
         if (!parent) return;
         var list = parent.querySelectorAll('.card__vote, .card__vote-line');
         for (var i = 0; i < list.length; i++) list[i].remove();
+        updateEpisodeLabelPosition(card);
     }
 
     function updateCardRating(item) {
@@ -786,6 +820,7 @@
                 el.className = voteClass('rate--tmdb');
                 el.innerHTML = '<span style="color:' + getRatingColor(tmdb) + '">' + formatRating(tmdb) + '</span><span class="source--name"></span>';
                 el.style.background = getRatingBackgroundColor(tmdb) || ('rgba(0,0,0,' + getOverlayAlpha() + ')');
+                if (el.closest) updateEpisodeLabelPosition(el.closest('.card'));
                 return true;
             }
             return false;
@@ -803,28 +838,31 @@
                 ratingElement.className = voteClass('rate--lampa card__vote--separate');
                 ratingElement.innerHTML = '<span style="color:' + getRatingColor(cached.rating) + '">' + formatRating(cached.rating) + '</span>';
                 renderLampaPosterIcon(ratingElement, cached.medianReaction);
+                showSingleRatingElement(ratingElement);
                 ratingElement.style.background = getRatingBackgroundColor(cached.rating) || ('rgba(0,0,0,' + getOverlayAlpha() + ')');
                 return;
             }
-            applyTmdbToElement(ratingElement);
+            hideSingleRatingElement(ratingElement, 'rate--lampa');
             addToQueue(function () {
                 getLampaRating(ratingKey).then(function (result) {
                     if (ratingElement.parentNode && ratingElement.dataset.movieId === idStr && result.rating > 0) {
                         ratingElement.className = voteClass('rate--lampa card__vote--separate');
                         ratingElement.innerHTML = '<span style="color:' + getRatingColor(result.rating) + '">' + formatRating(result.rating) + '</span>';
                         renderLampaPosterIcon(ratingElement, result.medianReaction);
+                        showSingleRatingElement(ratingElement);
                         ratingElement.style.background = getRatingBackgroundColor(result.rating) || ('rgba(0,0,0,' + getOverlayAlpha() + ')');
                     }
                 });
             });
         } else if (source === 'kp' || source === 'imdb') {
-            applyTmdbToElement(ratingElement);
+            hideSingleRatingElement(ratingElement, 'rate--' + source);
             getKinopoiskRating(data, function (res) {
                 if (ratingElement.parentNode && ratingElement.dataset.movieId === idStr) {
                     var val = source === 'kp' ? res.kp : res.imdb;
                     if (val && val > 0) {
                         ratingElement.className = voteClass('rate--' + source + ' card__vote--separate');
                         ratingElement.innerHTML = '<span style="color:' + getRatingColor(val) + '">' + formatRating(val) + '</span><span class="source--name"></span>';
+                        showSingleRatingElement(ratingElement);
                         ratingElement.style.background = getRatingBackgroundColor(val) || ('rgba(0,0,0,' + getOverlayAlpha() + ')');
                     }
                 }
@@ -837,13 +875,13 @@
         for (var i = 0; i < allCards.length; i++) {
             var card = allCards[i]; var data = card.card_data;
             if (data && data.id) updateCardRating({ card: card, data: data });
+            updateEpisodeLabelPosition(card);
         }
     };
 
     var _scrollRatingMaxCardsPerRun = 80;
     var _ratingUpdateTimer = 0;
     var _ratingUpdateRafScheduled = false;
-    var _cardOverlayRepaintTimer = 0;
     var _mainObserver = null;
     var _cardIntersectionObserver = null;
     function isCardUpdatesBlocked() {
@@ -880,57 +918,46 @@
                 else { if (separateEls.length === 0 || (separateEls[0] && separateEls[0].dataset.movieId !== idStr)) needFull = true; else updateCardRatingSeparate(card, data); }
             } else {
                 if (!singleEl || singleEl.dataset.source !== source || singleEl.dataset.movieId !== idStr) needFull = true;
-                else if (singleEl.innerHTML === '') {
+                else if (singleEl.innerHTML === '' || singleEl.classList.contains('card__vote--hidden')) {
                     if (source === 'lampa') {
                         var ratingKey = (data.seasons || data.first_air_date || data.original_name) ? 'tv_' + data.id : 'movie_' + data.id;
                         var cachedLampa = ratingCache.get('lampa_rating', ratingKey);
                         if (cachedLampa && cachedLampa.rating > 0) {
                             singleEl.innerHTML = '<span style="color:' + getRatingColor(cachedLampa.rating) + '">' + formatRating(cachedLampa.rating) + '</span>';
                             renderLampaPosterIcon(singleEl, cachedLampa.medianReaction);
+                            showSingleRatingElement(singleEl);
                         }
                     } else if (source === 'tmdb') {
                         var tmdbKey = getTmdbRatingKey(data);
                         var cachedTmdb = tmdbKey ? ratingCache.get('tmdb_rating', tmdbKey) : null;
-                        if (cachedTmdb && cachedTmdb.vote_average > 0) singleEl.innerHTML = '<span style="color:' + getRatingColor(cachedTmdb.vote_average) + '">' + formatRating(cachedTmdb.vote_average) + '</span><span class="source--name"></span>';
+                        if (cachedTmdb && cachedTmdb.vote_average > 0) { singleEl.innerHTML = '<span style="color:' + getRatingColor(cachedTmdb.vote_average) + '">' + formatRating(cachedTmdb.vote_average) + '</span><span class="source--name"></span>'; showSingleRatingElement(singleEl); }
                     } else if (source === 'kp' || source === 'imdb') {
                         var cachedKp = ratingCache.get('kp_rating', data.id);
-                        if (cachedKp && (cachedKp.kp > 0 || cachedKp.imdb > 0)) { var r = source === 'kp' ? cachedKp.kp : cachedKp.imdb; singleEl.innerHTML = '<span style="color:' + getRatingColor(r) + '">' + formatRating(r) + '</span><span class="source--name"></span>'; }
+                        if (cachedKp && (cachedKp.kp > 0 || cachedKp.imdb > 0)) { var r = source === 'kp' ? cachedKp.kp : cachedKp.imdb; if (r > 0) { singleEl.innerHTML = '<span style="color:' + getRatingColor(r) + '">' + formatRating(r) + '</span><span class="source--name"></span>'; showSingleRatingElement(singleEl); } }
                     }
                 }
             }
             if (needFull) updateCardRating({ card: card, data: data });
+            addTypeLabel(card);
+            updateEpisodeLabelPosition(card);
             updated++;
         }
     }
     function scheduleVisibleRatingsUpdate(delay) {
         if (_ratingUpdateTimer) clearTimeout(_ratingUpdateTimer);
-        _ratingUpdateTimer = setTimeout(function () { _ratingUpdateTimer = 0; if (_ratingUpdateRafScheduled) return; _ratingUpdateRafScheduled = true; requestAnimationFrame(function () { _ratingUpdateRafScheduled = false; updateVisibleCards(_scrollRatingMaxCardsPerRun); scheduleCardOverlayRepaint(40); }); }, delay || 0);
+        _ratingUpdateTimer = setTimeout(function () { _ratingUpdateTimer = 0; if (_ratingUpdateRafScheduled) return; _ratingUpdateRafScheduled = true; requestAnimationFrame(function () { _ratingUpdateRafScheduled = false; updateVisibleCards(_scrollRatingMaxCardsPerRun); }); }, delay || 0);
     }
-    function repaintCardOverlays() {
-        var cards = document.querySelectorAll('.card[data-rating-visible="1"]');
-        if (!cards.length) cards = document.querySelectorAll('.card');
-        var wH = window.innerHeight || 1000;
-        var touched = [];
-        for (var i = 0; i < cards.length && touched.length < 24; i++) {
-            var card = cards[i];
-            if (!card || !isCardNearViewport(card, wH)) continue;
-            var overlays = card.querySelectorAll('.card__vote, .card__vote-line, .card__vote-separate-wrap, .card__quality, .content-label, .card__year-badge');
-            if (!overlays.length) continue;
-            for (var j = 0; j < overlays.length; j++) overlays[j].style.textShadow = '0 0 0 rgba(255,255,255,0.01)';
-            touched.push(overlays);
-        }
-        if (touched.length) requestAnimationFrame(function () {
-            for (var a = 0; a < touched.length; a++) {
-                for (var b = 0; b < touched[a].length; b++) touched[a][b].style.textShadow = '';
-            }
-        });
-    }
-    function scheduleCardOverlayRepaint(delay) {
-        if (_cardOverlayRepaintTimer) clearTimeout(_cardOverlayRepaintTimer);
-        _cardOverlayRepaintTimer = setTimeout(function () { _cardOverlayRepaintTimer = 0; repaintCardOverlays(); }, delay || 0);
+    function bindCardImageRepaint(card) {
+        if (!card || card.dataset.cardOverlayImageRepaintBound) return;
+        card.dataset.cardOverlayImageRepaintBound = '1';
+        try {
+            var img = card.querySelector('.card__img');
+            if (img) img.addEventListener('load', function () { scheduleVisibleRatingsUpdate(30); }, false);
+        } catch (e) {}
     }
     function observeCardVisibility(card) {
         if (!_cardIntersectionObserver || !card || !card.nodeType || card.nodeType !== 1) return;
+        bindCardImageRepaint(card);
         try { _cardIntersectionObserver.observe(card); } catch (e) {}
     }
     function startMainObserver() {
@@ -1083,8 +1110,7 @@
         if (typeof window.refreshAllRatings === 'function') window.refreshAllRatings();
         scheduleVisibleRatingsUpdate(0);
         refreshAllQualityLabels();
-        refreshAllTypeLabels();
-        refreshAllYearBadges();
+        refreshAllCardOverlays();
     }
 
     // ===== QUALITY SYSTEM =====
@@ -1263,6 +1289,7 @@
         itemElement.setAttribute('data-quality-added', 'true');
         var viewSection = itemElement.querySelector('.card__view');
         if (!viewSection) return;
+        markCardOverlayHost(itemElement);
         var existing = viewSection.querySelectorAll('.card__quality');
         for (var i = 0; i < existing.length; i++) existing[i].remove();
         if (resQuality && resQuality !== 'NO' && resQuality !== '...') {
@@ -1274,6 +1301,7 @@
             qualityContainer.style.background = getQualityBackground(resQuality);
             viewSection.appendChild(qualityContainer);
         }
+        updateEpisodeLabelPosition(itemElement);
     }
     function processQualityForCards(itemsList) {
         for (var idx = 0; idx < itemsList.length; idx++) {
@@ -1303,6 +1331,7 @@
             allCards[i].removeAttribute('data-quality-added');
             var existing = allCards[i].querySelectorAll('.card__quality');
             for (var j = 0; j < existing.length; j++) existing[j].remove();
+            updateEpisodeLabelPosition(allCards[i]);
         }
         if (isQualityShowOn()) processQualityForCards(allCards);
     }
@@ -1413,12 +1442,138 @@
     }
 
     // ===== TYPE LABELS =====
+    function getTypeLabelEpisodeCacheKey(data) {
+        return data && data.id ? 'tv_' + data.id : '';
+    }
+    function getTypeLabelEpisodeCache(key) {
+        if (!key) return null;
+        try {
+            var cache = Lampa.Storage.get(TYPE_LABEL_EPISODE_CACHE_KEY, {}) || {};
+            var entry = cache[key];
+            if (!entry) return null;
+            if (Date.now() - entry.timestamp > CACHE_TTL) {
+                delete cache[key];
+                Lampa.Storage.set(TYPE_LABEL_EPISODE_CACHE_KEY, cache);
+                return null;
+            }
+            return entry;
+        } catch (e) { return null; }
+    }
+    function setTypeLabelEpisodeCache(key, episodeText) {
+        if (!key || !episodeText) return;
+        try {
+            var cache = Lampa.Storage.get(TYPE_LABEL_EPISODE_CACHE_KEY, {}) || {};
+            cache[key] = { text: episodeText, timestamp: Date.now() };
+            Lampa.Storage.set(TYPE_LABEL_EPISODE_CACHE_KEY, cache);
+        } catch (e) {}
+    }
+    function formatTypeLabelEpisodeText(lastEpisode) {
+        if (!lastEpisode) return '';
+        var seasonNumber = parseInt(lastEpisode.season_number, 10) || 0;
+        var episodeNumber = parseInt(lastEpisode.episode_number, 10) || 0;
+        if (!seasonNumber || !episodeNumber) return '';
+        return 'S' + seasonNumber + ':E' + episodeNumber;
+    }
+    function getCardTmdbId(card, meta) {
+        return (meta && meta.id) || $(card).data('id') || $(card).attr('data-id') || (card && card.card_data && card.card_data.id) || '';
+    }
+    function removeEpisodeLabel(card) {
+        var view = card && card.querySelector && card.querySelector('.card__view');
+        if (!view) return;
+        var labels = view.querySelectorAll('.card__episode-label');
+        for (var i = 0; i < labels.length; i++) labels[i].remove();
+    }
+    function isVisibleOverlayElement(el) {
+        if (!el) return false;
+        try {
+            var st = window.getComputedStyle(el);
+            return !!(st && st.display !== 'none' && st.visibility !== 'hidden' && st.opacity !== '0' && el.offsetWidth > 0 && el.offsetHeight > 0);
+        } catch (e) { return false; }
+    }
+    function getVisibleDirectOverlayBox(view, isMatch) {
+        var children = view.children || [];
+        for (var i = 0; i < children.length; i++) {
+            var el = children[i];
+            if (!isMatch(el) || !isVisibleOverlayElement(el)) continue;
+            return { left: el.offsetLeft, right: el.offsetLeft + el.offsetWidth };
+        }
+        return null;
+    }
+    function updateEpisodeLabelPosition(card) {
+        var view = card && card.querySelector && card.querySelector('.card__view');
+        if (!view) return;
+        var label = view.querySelector('.card__episode-label');
+        if (!label) return;
+        try {
+            var viewWidth = view.clientWidth || view.offsetWidth;
+            var qualityBox = getVisibleDirectOverlayBox(view, function (el) { return el.classList && el.classList.contains('card__quality'); });
+            var ratingBox = getVisibleDirectOverlayBox(view, function (el) {
+                return el.classList && (el.classList.contains('card__vote--bottom') || Lampa.Storage.get('rating_position', 'bottom') === 'bottom') && ((el.classList.contains('card__vote-separate-wrap') || el.classList.contains('card__vote-line') || (el.classList.contains('card__vote') && !el.classList.contains('card__vote-separate-wrap') && !el.classList.contains('card__vote-line'))));
+            });
+            var leftEdge = qualityBox ? qualityBox.right : 0;
+            var rightEdge = ratingBox ? ratingBox.left : viewWidth;
+            if (rightEdge <= leftEdge) {
+                leftEdge = 0;
+                rightEdge = viewWidth;
+            }
+            var center = (leftEdge + rightEdge) / 2;
+            label.style.setProperty('left', center + 'px', 'important');
+            label.style.setProperty('transform', 'translateX(-50%)', 'important');
+        } catch (e2) {
+            label.style.setProperty('left', '50%', 'important');
+            label.style.setProperty('transform', 'translateX(-50%)', 'important');
+        }
+    }
+    function applyEpisodeLabelText(card, text) {
+        if (!text) { removeEpisodeLabel(card); return; }
+        var view = card && card.querySelector && card.querySelector('.card__view');
+        if (!view) return;
+        markCardOverlayHost(card);
+        var label = view.querySelector('.card__episode-label');
+        if (!label) {
+            label = document.createElement('div');
+            label.className = 'card__episode-label';
+            view.appendChild(label);
+        }
+        label.textContent = text;
+        label.style.backgroundColor = getTypeLabelBackground(true);
+        label.classList.remove('movie-label', 'serial-label');
+        if (isTypeLabelsColoredOn()) label.classList.add('serial-label');
+        updateEpisodeLabelPosition(card);
+    }
+    function updateTypeLabelEpisodeInfo(card, meta) {
+        if (!isTypeLabelEpisodeInfoOn()) { removeEpisodeLabel(card); return; }
+        var tmdbId = getCardTmdbId(card, meta);
+        if (!tmdbId) { removeEpisodeLabel(card); return; }
+        var cacheKey = getTypeLabelEpisodeCacheKey({ id: tmdbId });
+        var metaEpisodeText = formatTypeLabelEpisodeText(meta && meta.last_episode_to_air);
+        if (metaEpisodeText) {
+            setTypeLabelEpisodeCache(cacheKey, metaEpisodeText);
+            applyEpisodeLabelText(card, metaEpisodeText);
+            return;
+        }
+        var cached = getTypeLabelEpisodeCache(cacheKey);
+        if (cached && cached.text) {
+            applyEpisodeLabelText(card, cached.text);
+            return;
+        }
+        removeEpisodeLabel(card);
+        Lampa.Network.silent(
+            Lampa.TMDB.api('tv/' + tmdbId + '?api_key=' + Lampa.TMDB.key()),
+            function (tvInfo) {
+                var episodeText = formatTypeLabelEpisodeText(tvInfo && tvInfo.last_episode_to_air);
+                if (!episodeText) return;
+                setTypeLabelEpisodeCache(cacheKey, episodeText);
+                if (card && document.body.contains(card)) applyEpisodeLabelText(card, episodeText);
+            }
+        );
+    }
     function addTypeLabel(card) {
-        if (!isTypeLabelsShowOn()) return;
-        if ($(card).closest('.explorer, .layer--online, .select-box').length) { $(card).find('.content-label').remove(); return; }
-        if ($(card).find('.content-label').length) return;
+        if (!isTypeLabelsShowOn()) { removeEpisodeLabel(card); return; }
+        if ($(card).closest('.explorer, .layer--online, .select-box').length) { removeEpisodeLabel(card); $(card).find('.content-label').remove(); return; }
         var view = $(card).find('.card__view');
         if (!view.length) return;
+        markCardOverlayHost(card);
         var meta = {}, tmp;
         try {
             tmp = $(card).attr('data-card'); if (tmp) meta = JSON.parse(tmp);
@@ -1431,24 +1586,38 @@
         if (meta.type === 'tv' || meta.card_type === 'tv' || meta.seasons || meta.number_of_seasons > 0 || meta.episodes || meta.number_of_episodes > 0 || meta.is_series) isTV = true;
         if (!isTV) { if ($(card).hasClass('card--tv') || $(card).data('type') === 'tv') isTV = true; else if ($(card).find('.card__type, .card__temp').text().match(/(сезон|серия|эпизод|ТВ|TV)/i)) isTV = true; }
         var isPerson = $(card).hasClass('card--person') || $(card).closest('.scroll--persons, .items--persons, .crew').length > 0;
-        if (isPerson) return;
+        if (isPerson) { removeEpisodeLabel(card); view.find('.content-label').remove(); view.find('.card__type[data-card-overlay-type-label="1"]').remove(); return; }
         var hasMovieTraits = $(card).find('.card__age').length > 0 || $(card).find('.card__vote').length > 0 || /\b(19|20)\d{2}\b/.test($(card).text());
-        if (!isTV && !hasMovieTraits) return;
-        var lbl = $('<div class="content-label"></div>');
+        if (!isTV && !hasMovieTraits) { removeEpisodeLabel(card); view.find('.content-label').remove(); view.find('.card__type[data-card-overlay-type-label="1"]').remove(); return; }
+        view.find('.content-label').remove();
+        var lbl = view.find('.card__type[data-card-overlay-type-label="1"], .card__type').first();
+        if (!lbl.length) {
+            lbl = $('<div class="card__type"></div>');
+            view.append(lbl);
+        }
+        lbl.attr('data-card-overlay-type-label', '1').show();
+        lbl.removeClass('serial-label movie-label');
         lbl.text(isTV ? 'Сериал' : 'Фильм');
+        if (isTV) updateTypeLabelEpisodeInfo(card, meta);
+        else removeEpisodeLabel(card);
         lbl.css({ backgroundColor: getTypeLabelBackground(isTV) });
-        if (isTypeLabelsColoredOn()) { lbl.addClass(isTV ? 'serial-label' : 'movie-label'); }
-        view.append(lbl);
-        if (isTV) $('body[data-movie-labels="on"] .card--tv .card__type').css('display', 'none!important');
+        if (isTypeLabelsColoredOn()) lbl.addClass(isTV ? 'serial-label' : 'movie-label');
     }
     function processAllTypeLabels() {
-        if (!isTypeLabelsShowOn()) { $('.card .content-label').remove(); return; }
+        if (!isTypeLabelsShowOn()) { $('.card').each(function () { removeEpisodeLabel(this); }); $('.card .content-label').remove(); return; }
         $('body').attr('data-movie-labels', isTypeLabelsShowOn() ? 'on' : 'off');
         $('.card').each(function () { addTypeLabel(this); });
     }
     function refreshAllTypeLabels() {
         $('.card .content-label').remove();
+        $('.card .card__type[data-card-overlay-type-label="1"]').remove();
+        $('.card .card__episode-label').remove();
         processAllTypeLabels();
+        $('.card').each(function () { updateEpisodeLabelPosition(this); });
+    }
+    function refreshAllCardOverlays() {
+        refreshAllTypeLabels();
+        refreshAllYearBadges();
     }
     function addTypeLabelToDetail(poster, movie) {
         if (!isTypeLabelsShowOn()) return;
@@ -1675,6 +1844,7 @@
             modal.append($('<div class="comodal__section">Лейблы типа</div>'));
             var rowTypeLabelsShow = addTriggerRow('Показывать «Фильм»/«Сериал»', 'type_labels_show', true);
             var rowTypeLabelsColored = addTriggerRow('Цветные лейблы типа', 'type_labels_colored', false);
+            var rowTypeLabelsEpisodeInfo = addTriggerRow('Серии в лейбле «Сериал»', TYPE_LABEL_EPISODE_INFO_KEY, true);
 
             modal.append($('<div class="comodal__divider"></div>'));
             modal.append($('<div class="comodal__section">API</div>'));
@@ -1701,14 +1871,14 @@
                 Lampa.Storage.set('rating_display_mode', 'separate'); Lampa.Storage.set('rating_window_opacity', '40');
                 Lampa.Storage.set('rating_scale', '100'); Lampa.Storage.set('rating_kp_api_key', '');
                 Lampa.Storage.set('quality_show', 'true'); Lampa.Storage.set('quality_colored', 'false');
-                Lampa.Storage.set('type_labels_show', 'true'); Lampa.Storage.set('type_labels_colored', 'false');
+                Lampa.Storage.set('type_labels_show', 'true'); Lampa.Storage.set('type_labels_colored', 'false'); Lampa.Storage.set(TYPE_LABEL_EPISODE_INFO_KEY, 'true');
                 rowSource.updateVal(SOURCE_LABELS.all); rowDisplayMode.updateVal(DISPLAY_MODE_LABELS.separate);
                 rowPosition.updateVal(POSITION_LABELS.bottom); rowColored.updateVal('Выкл'); rowColoredWin.updateVal('Выкл');
                 rowAnimated.updateVal('Выкл'); rowLampaPosterIcon.updateVal(LAMPA_POSTER_ICON_LABELS.reaction); rowShowTmdb.updateVal('Вкл'); rowShowImdb.updateVal('Вкл');
                 rowShowKp.updateVal('Вкл'); rowShowLampa.updateVal('Вкл');
                 rowOpacity.updateVal('40%'); rowScale.updateVal('100%'); rowKpKey.updateVal(kpApiKeyRowText());
                 rowQualityShow.updateVal('Вкл'); rowQualityColored.updateVal('Выкл');
-                rowTypeLabelsShow.updateVal('Вкл'); rowTypeLabelsColored.updateVal('Выкл');
+                rowTypeLabelsShow.updateVal('Вкл'); rowTypeLabelsColored.updateVal('Выкл'); rowTypeLabelsEpisodeInfo.updateVal('Вкл');
                 scheduleSettingsRefresh(50);
                 try { Lampa.Noty.show('Настройки сброшены'); } catch (e) {}
             }
@@ -1738,7 +1908,7 @@
             clearRatingCaches(true);
             Lampa.Storage.set('card_overlay_cache_version', CARD_OVERLAY_CACHE_VERSION);
         }
-        var keys = ['animated_reactions', 'lampa_rating_animated', 'colored_ratings_poster', 'rating_colored_windows', 'rating_show_tmdb', 'rating_show_imdb', 'rating_show_kp', 'rating_show_lampa', 'lampa_rating_show', 'lampa_rating_icon', 'detail_rating_icons', 'quality_show', 'quality_colored', 'type_labels_show', 'type_labels_colored'];
+        var keys = ['animated_reactions', 'lampa_rating_animated', 'colored_ratings_poster', 'rating_colored_windows', 'rating_show_tmdb', 'rating_show_imdb', 'rating_show_kp', 'rating_show_lampa', 'lampa_rating_show', 'lampa_rating_icon', 'detail_rating_icons', 'quality_show', 'quality_colored', 'type_labels_show', 'type_labels_colored', TYPE_LABEL_EPISODE_INFO_KEY];
         for (var i = 0; i < keys.length; i++) { var v = Lampa.Storage.get(keys[i], undefined); if (v === '1' || v === 1) Lampa.Storage.set(keys[i], 'true'); else if (v === '0' || v === 0) Lampa.Storage.set(keys[i], 'false'); }
         var lampaPosterIconMode = Lampa.Storage.get('lampa_poster_icon_mode', 'reaction');
         if (lampaPosterIconMode !== 'reaction' && lampaPosterIconMode !== 'lamp') Lampa.Storage.set('lampa_poster_icon_mode', 'reaction');
@@ -1981,13 +2151,15 @@
                 }
             }
         } catch (e) {}
-        Object.defineProperty(window.Lampa.Card.prototype, 'build', {
-            get: function () { return this._build; },
-            set: function (func) {
-                var self = this;
-                this._build = function () { func.apply(self); Lampa.Listener.send('card', { type: 'build', object: self }); };
-            }
-        });
+        if (window.Lampa && Lampa.Card && Lampa.Card.prototype) {
+            Object.defineProperty(window.Lampa.Card.prototype, 'build', {
+                get: function () { return this._build; },
+                set: function (func) {
+                    var self = this;
+                    this._build = function () { func.apply(self); Lampa.Listener.send('card', { type: 'build', object: self }); };
+                }
+            });
+        }
     }
 
     // ===== ANIMATED REACTIONS IN PLAYER =====
@@ -2084,14 +2256,15 @@
             '[data-name="rating_modal_open"] .settings-param__value,[data-name="rating_modal_open"] .settings-param__control,[data-name="rating_modal_open"] input[type="checkbox"],[data-name="clear_ratings_cache"] .settings-param__value,[data-name="clear_ratings_cache"] .settings-param__control,[data-name="clear_ratings_cache"] input[type="checkbox"],[data-name="clear_quality_cache"] .settings-param__value,[data-name="clear_quality_cache"] .settings-param__control,[data-name="clear_quality_cache"] input[type="checkbox"]{display:none!important}' +
             '.card .card__view{position:relative!important}' +
             '.card .card__view>.card__img{z-index:0!important}' +
-            '.card .card__vote,.card .card__vote-line,.card .card__vote-separate-wrap,.card .card__vote-separate-wrap .card__vote,.card .card__quality,.card .content-label,.card .card__year-badge{z-index:2!important;opacity:1!important;-webkit-filter:none!important;filter:none!important;will-change:auto!important;-webkit-transform:none!important;transform:none!important}' +
+            '.card .card__vote,.card .card__vote-line,.card .card__vote-separate-wrap,.card .card__vote-separate-wrap .card__vote,.card .card__quality,.card .card__type[data-card-overlay-type-label="1"],.card .content-label,.card .card__episode-label,.card .card__year-badge{z-index:10!important;opacity:1!important;-webkit-filter:none!important;filter:none!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}' +
+            '.card.card-overlay-has-overlays>.card__age,.card.card-overlay-has-overlays>.card__vote{display:none!important}' +
             '.card__view > .card__vote:not(.card__vote--top):not(.card__vote--bottom):not(.card__vote-line):not(.card__vote-separate-wrap){display:none!important}' +
-            '.card__vote,.card__vote-separate-wrap .card__vote{position:absolute!important;right:0!important;bottom:0!important;padding:0.2em 0.45em!important;border-radius:0.75em 0!important;white-space:nowrap!important;font-size:var(--rating-font-size,1.1em)!important;line-height:1!important;height:auto!important;border:none!important;margin:0!important}' +
+            '.card__vote,.card__vote-separate-wrap .card__vote{position:absolute!important;right:0!important;bottom:0!important;padding:0.2em 0.45em!important;border-radius:0.75em 0!important;white-space:nowrap!important;font-size:var(--rating-font-size,1.1em)!important;font-weight:600!important;line-height:1!important;height:auto!important;border:none!important;margin:0!important}' +
             '.card__vote-separate-wrap .card__vote{position:static!important;margin:0!important}' +
             '.card__vote-separate-wrap .card__vote:not(.visible-last):not(.visible-only):not(.card__vote--hidden){margin-bottom:0.15em!important}' +
             '.card__vote.card__vote--hidden,.card__vote-separate-wrap .card__vote.card__vote--hidden{display:none!important;height:0!important;padding:0!important;margin:0!important;overflow:hidden!important;min-width:0!important;min-height:0!important;border:none!important;width:0!important;position:absolute!important;opacity:0!important;pointer-events:none!important}' +
-            '.card__vote-line{position:absolute!important;right:0!important;bottom:0!important;padding:0.2em 0.45em!important;border-radius:0.75em 0!important;font-size:var(--rating-font-size,1.1em)!important;line-height:1!important;height:auto!important;border:none!important;margin:0!important}' +
-            '.card__vote-separate-wrap{position:absolute!important;background:transparent!important;padding:0!important;width:auto!important;min-width:0!important;max-width:100%!important;overflow:visible!important;font-size:var(--rating-font-size,1.1em)!important}' +
+            '.card__vote-line{position:absolute!important;right:0!important;bottom:0!important;padding:0.2em 0.45em!important;border-radius:0.75em 0!important;font-size:var(--rating-font-size,1.1em)!important;font-weight:600!important;line-height:1!important;height:auto!important;border:none!important;margin:0!important}' +
+            '.card__vote-separate-wrap{position:absolute!important;background:transparent!important;padding:0!important;width:auto!important;min-width:0!important;max-width:100%!important;overflow:visible!important;font-size:var(--rating-font-size,1.1em)!important;font-weight:600!important}' +
             '.card__vote > span:first-child,.card__vote-line .card__rate-item > div,.card__vote-line .card__rate-item > .rate-value{display:inline-block!important;min-width:3ch!important;text-align:left!important;vertical-align:middle!important}' +
             '.card__vote--top,.card__vote-line.card__vote--top,.card__vote-separate-wrap.card__vote--top{transform-origin:top right!important}' +
             '.card__vote--bottom,.card__vote-line.card__vote--bottom,.card__vote-separate-wrap.card__vote--bottom{transform-origin:bottom right!important}' +
@@ -2131,10 +2304,11 @@
             '@media (min-width:481px){.card__vote.rate--lampa img{max-height:18px!important;max-width:18px!important}}' +
             '.rate--lampa.rate--lampa--animated .rate-icon img{width:1.4em!important;height:1.4em!important;max-height:none!important;max-width:none!important;object-fit:contain;display:block!important;margin-left:auto!important}' +
             '.full-start-new__rate.rate--lampa .rate-icon img,.full-start__rate.rate--lampa .rate-icon img{max-height:1em!important;max-width:1em!important;object-fit:contain}' +
-            '.rate--imdb .source--name{background-image:url("data:image/svg+xml,%3Csvg fill=\'%23ffcc00\' viewBox=\'0 0 32 32\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg id=\'SVGRepo_bgCarrier\' stroke-width=\'0\'%3E%3C/g%3E%3Cg id=\'SVGRepo_tracerCarrier\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3E%3C/g%3E%3Cg id=\'SVGRepo_iconCarrier\'%3E%3Cpath d=\'M 0 7 L 0 25 L 32 25 L 32 7 Z M 2 9 L 30 9 L 30 23 L 2 23 Z M 5 11.6875 L 5 20.3125 L 7 20.3125 L 7 11.6875 Z M 8.09375 11.6875 L 8.09375 20.3125 L 10 20.3125 L 10 15.5 L 10.90625 20.3125 L 12.1875 20.3125 L 13 15.5 L 13 20.3125 L 14.8125 20.3125 L 14.8125 11.6875 L 12 11.6875 L 11.5 15.8125 L 10.8125 11.6875 Z M 15.90625 11.6875 L 15.90625 20.1875 L 18.3125 20.1875 C 19.613281 20.1875 20.101563 19.988281 20.5 19.6875 C 20.898438 19.488281 21.09375 19 21.09375 18.5 L 21.09375 13.3125 C 21.09375 12.710938 20.898438 12.199219 20.5 12 C 20 11.800781 19.8125 11.6875 18.3125 11.6875 Z M 22.09375 11.8125 L 22.09375 20.3125 L 23.90625 20.3125 C 23.90625 20.3125 23.992188 19.710938 24.09375 19.8125 C 24.292969 19.8125 25.101563 20.1875 25.5 20.1875 C 26 20.1875 26.199219 20.195313 26.5 20.09375 C 26.898438 19.894531 27 19.613281 27 19.3125 L 27 14.3125 C 27 13.613281 26.289063 13.09375 25.6875 13.09375 C 25.085938 13.09375 24.511719 13.488281 24.3125 13.6875 L 24.3125 11.8125 Z M 18 13 C 18.398438 13 18.8125 13.007813 18.8125 13.40625 L 18.8125 18.40625 C 18.8125 18.804688 18.300781 18.8125 18 18.8125 Z M 24.59375 14 C 24.695313 14 24.8125 14.105469 24.8125 14.40625 L 24.8125 18.6875 C 24.8125 18.886719 24.792969 19.09375 24.59375 19.09375 C 24.492188 19.09375 24.40625 18.988281 24.40625 18.6875 L 24.40625 14.40625 C 24.40625 14.207031 24.394531 14 24.59375 14 Z\'/%3E%3C/g%3E%3C/svg%3E")}' +
+            '.rate--imdb .source--name{background-image:url("data:image/svg+xml,' + detailImdbSvgCss + '")}' +
             '@media (max-width:480px) and (orientation:portrait){.full-start-new__rate.rate--lampa,.full-start__rate.rate--lampa{min-width:0!important}body:not([data-lampa-icon-on]) .full-start-new__rate.rate--lampa,body:not([data-lampa-icon-on]) .full-start__rate.rate--lampa{min-width:0!important}}' +
             '.card__quality{position:absolute!important;left:0!important;bottom:0!important;padding:0.25em 0.45em!important;border-radius:0 0.75em!important;color:white!important;font-size:1.1em!important;line-height:1!important;z-index:10!important;white-space:nowrap!important}' +
-            '.content-label{position:absolute!important;left:0!important;top:0!important;color:white!important;padding:0.25em 0.45em!important;border-radius:0.75em 0!important;font-size:1.1em!important;line-height:1!important;z-index:10!important;display:flex!important;align-items:center!important;justify-content:center!important}' +
+            '.card__episode-label{position:absolute!important;left:50%!important;right:auto!important;bottom:0!important;top:auto!important;transform:translateX(-50%)!important;color:white!important;padding:0.2em 0.45em!important;border-radius:0.75em 0.75em 0 0!important;font-size:var(--rating-font-size,1.1em)!important;font-weight:600!important;line-height:1!important;height:auto!important;z-index:10!important;white-space:nowrap!important;box-sizing:border-box!important;margin:0!important;border:none!important}' +
+            '.content-label,.card__type[data-card-overlay-type-label="1"]{position:absolute!important;left:0!important;top:0!important;color:white!important;padding:0.25em 0.45em!important;border-radius:0.75em 0!important;font-size:1.1em!important;line-height:1!important;z-index:10!important;display:flex!important;align-items:center!important;justify-content:center!important}' +
             '.full-start-new__rate-line .full-start__status,.full-start-new__rate-line .full-start__pg:not(.hide),.full-start-new__meta-line .full-start__status,.full-start-new__meta-line .full-start__pg:not(.hide){border-radius:0.3em!important;padding:0.2em 0.4em!important;display:inline-block!important;line-height:1!important;white-space:nowrap!important}' +
             'body.colored-elements-on .full-start__pg.age-kids{background:#2ecc71!important;color:white!important}' +
             'body.colored-elements-on .full-start__pg.age-children{background:#3498db!important;color:white!important}' +
@@ -2154,7 +2328,7 @@
             '.full-start-new__meta-line{display:none!important}' +
             '.season-info-label{position:absolute!important;color:#fff!important;padding:0.25em 0.45em!important;font-size:1.1em!important;line-height:1!important;z-index:10!important;white-space:nowrap!important}' +
             '@media (max-width:480px) and (orientation:portrait){.full-start-new__rate-line{display:flex!important;flex-wrap:wrap!important;align-items:center!important;justify-content:center!important;align-content:center!important;gap:0.35em!important;width:100%!important;max-width:100%!important;margin-left:auto!important;margin-right:auto!important;text-align:center!important}.full-start-new__rate-line>*{margin:0!important}.full-start-new__rate-line .full-start-new__rate:not(.hide):not([style*="display: none"]),.full-start-new__rate-line .full-start__rate:not(.hide):not([style*="display: none"]){display:inline-flex;align-items:center!important;justify-content:center!important;flex:0 0 auto!important;margin:0!important}.full-start-new__rate-line .full-start-new__rate.hide,.full-start-new__rate-line .full-start__rate.hide,.full-start-new__rate-line .full-start-new__rate[style*="display: none"],.full-start-new__rate-line .full-start__rate[style*="display: none"]{display:none!important}.full-start-new__rate-line.card-overlay-mobile-rate-line[data-card-overlay-rating-count="1"]{max-width:9em!important}.full-start-new__rate-line.card-overlay-mobile-rate-line[data-card-overlay-rating-count="2"]{max-width:18em!important}.full-start-new__rate-line.card-overlay-mobile-rate-line[data-card-overlay-rating-count="3"],.full-start-new__rate-line.card-overlay-mobile-rate-line[data-card-overlay-rating-count="4"]{max-width:100%!important}.full-start-new__meta-line{display:flex!important;flex-wrap:wrap!important;align-items:center!important;justify-content:center!important;gap:0.5em!important;width:100%!important;line-height:1!important;font-size:1em!important;margin-top:0.3em!important}.full-start-new__meta-line .full-start__status,.full-start-new__meta-line .full-start__pg{margin:0!important;display:inline-flex!important;align-items:center!important;line-height:1!important;white-space:nowrap!important}.full-start-new__details{margin-top:0.3em!important;display:flex!important;flex-wrap:wrap!important;justify-content:center!important;gap:0.1em!important}.full-start-new__reactions{justify-content:center!important}.full-start-new__buttons{justify-content:center!important;text-align:center!important}.full-start-new__right,.full-start__right{text-align:center!important}.full-start-new__right h1,.full-start__right h1,.full-start-new__right .name,.full-start__right .name,.full-start__name{text-align:center!important;width:100%!important}.season-info-label{display:none!important}}' +
-            'body[data-movie-labels="on"] .card--tv .card__type{display:none!important}';
+            'body[data-movie-labels="on"] .card--tv .card__type:not([data-card-overlay-type-label="1"]){display:none!important}';
         document.head.appendChild(style);
 
         applyRatingScale();
