@@ -87,7 +87,7 @@
         markCardOverlayHost(card);
         if (age.parentNode !== view) view.appendChild(age);
         age.classList.add('card__year-badge');
-        age.style.cssText = 'position:absolute;line-height:1;box-sizing:border-box;user-select:none;padding:0.25em 0.45em;background:rgba(0,0,0,' + getOverlayAlpha() + ');color:#fff;font-size:1.1em;white-space:nowrap;margin-top:0;' + getYearPositionCSS();
+        age.style.cssText = 'position:absolute;line-height:1;box-sizing:border-box;user-select:none;padding:0.25em 0.45em;background:rgba(0,0,0,' + getOverlayAlpha() + ');color:#fff;font-size:var(--rating-font-size,1.1em);white-space:nowrap;margin-top:0;' + getYearPositionCSS();
     }
     function refreshAllYearBadges() {
         var allCards = document.querySelectorAll('.card');
@@ -1513,7 +1513,10 @@
         }
         if (isEpisodeLabelUnderType()) {
             var topOffset = 0;
-            if (typeLabel) topOffset = typeLabel.offsetTop + typeLabel.offsetHeight + 6;
+            if (typeLabel) {
+                var typeGap = (0.15 * parseFloat(typeStyle.fontSize)) || 6;
+                topOffset = typeLabel.offsetTop + typeLabel.offsetHeight + typeGap;
+            }
             label.style.setProperty('left', '0', 'important');
             label.style.setProperty('right', 'auto', 'important');
             label.style.setProperty('top', topOffset + 'px', 'important');
@@ -1651,7 +1654,7 @@
         var isTV = movie.number_of_seasons > 0 || movie.seasons || movie.type === 'tv';
         var lbl = $('<div class="content-label"></div>').css({
             position: 'absolute', left: '0', top: '0', color: 'white', padding: '0.25em 0.45em',
-            borderRadius: '0.75em 0', fontSize: '1.1em', zIndex: 10, lineHeight: 1,
+            borderRadius: '0.75em 0', fontSize: 'var(--rating-font-size,1.1em)', zIndex: 10, lineHeight: 1,
             backgroundColor: getTypeLabelBackground(isTV)
         });
         if (isTypeLabelsColoredOn()) lbl.addClass(isTV ? 'serial-label' : 'movie-label');
@@ -1720,7 +1723,7 @@
                 var metaLine;
                 var positions = { 'top-right': { top: '0', right: '0', borderRadius: '0 0.75em', textAlign: 'right' }, 'top-left': { top: '0', left: '0', borderRadius: '0.75em 0', textAlign: 'left' }, 'bottom-right': { bottom: '0', right: '0', borderRadius: '0.75em 0', textAlign: 'right' }, 'bottom-left': { bottom: '0', left: '0', borderRadius: '0 0.75em', textAlign: 'left' } };
                 var pos = positions[seasonInfoSettings.label_position] || positions['top-right'];
-                info.css($.extend({ position: 'absolute', backgroundColor: bgColor, color: 'white', padding: '0.25em 0.45em', fontSize: '1.1em', zIndex: 10, whiteSpace: 'nowrap', lineHeight: '1', boxShadow: 'none' }, pos));
+                info.css($.extend({ position: 'absolute', backgroundColor: bgColor, color: 'white', padding: '0.25em 0.45em', fontSize: 'var(--rating-font-size,1.1em)', zIndex: 10, whiteSpace: 'nowrap', lineHeight: '1', boxShadow: 'none' }, pos));
                 setTimeout(function () {
                     var render = data.object.activity.render();
                     var poster = $(render).find('.full-start-new__poster');
@@ -2349,9 +2352,9 @@
             '.full-start-new__rate.rate--lampa .rate-icon img,.full-start__rate.rate--lampa .rate-icon img{max-height:1em!important;max-width:1em!important;object-fit:contain}' +
             '.rate--imdb .source--name{background-image:url("data:image/svg+xml,' + detailImdbSvgCss + '")}' +
             '@media (max-width:480px) and (orientation:portrait){.full-start-new__rate.rate--lampa,.full-start__rate.rate--lampa{min-width:0!important}body:not([data-lampa-icon-on]) .full-start-new__rate.rate--lampa,body:not([data-lampa-icon-on]) .full-start__rate.rate--lampa{min-width:0!important}}' +
-            '.card__quality{position:absolute!important;left:0!important;bottom:0!important;padding:0.25em 0.45em!important;border-radius:0 0.75em!important;color:white!important;font-size:1.1em!important;line-height:1!important;z-index:10!important;white-space:nowrap!important}' +
-            '.card__episode-label{position:absolute!important;left:50%!important;right:auto!important;bottom:0!important;top:auto!important;transform:translateX(-50%)!important;color:white!important;padding:0.25em 0.45em!important;border-radius:0.75em 0.75em 0 0!important;font-size:1.1em!important;font-weight:400!important;line-height:1!important;height:auto!important;z-index:10!important;white-space:nowrap!important;box-sizing:border-box!important;margin:0!important;border:none!important}' +
-            '.content-label,.card__type[data-card-overlay-type-label="1"]{position:absolute!important;left:0!important;top:0!important;color:white!important;padding:0.25em 0.45em!important;border-radius:0.75em 0!important;font-size:1.1em!important;line-height:1!important;z-index:10!important;display:flex!important;align-items:center!important;justify-content:center!important}' +
+            '.card__quality{position:absolute!important;left:0!important;bottom:0!important;padding:0.25em 0.45em!important;border-radius:0 0.75em!important;color:white!important;font-size:var(--rating-font-size,1.1em)!important;line-height:1!important;z-index:10!important;white-space:nowrap!important}' +
+            '.card__episode-label{position:absolute!important;left:50%!important;right:auto!important;bottom:0!important;top:auto!important;transform:translateX(-50%)!important;color:white!important;padding:0.25em 0.45em!important;border-radius:0.75em 0.75em 0 0!important;font-size:var(--rating-font-size,1.1em)!important;font-weight:400!important;line-height:1!important;height:auto!important;z-index:10!important;white-space:nowrap!important;box-sizing:border-box!important;margin:0!important;border:none!important}' +
+            '.content-label,.card__type[data-card-overlay-type-label="1"]{position:absolute!important;left:0!important;top:0!important;color:white!important;padding:0.25em 0.45em!important;border-radius:0.75em 0!important;font-size:var(--rating-font-size,1.1em)!important;line-height:1!important;z-index:10!important;display:flex!important;align-items:center!important;justify-content:center!important}' +
             '.full-start-new__rate-line .full-start__status,.full-start-new__rate-line .full-start__pg:not(.hide),.full-start-new__meta-line .full-start__status,.full-start-new__meta-line .full-start__pg:not(.hide){border-radius:0.3em!important;padding:0.2em 0.4em!important;display:inline-block!important;line-height:1!important;white-space:nowrap!important}' +
             'body.colored-elements-on .full-start__pg.age-kids{background:#2ecc71!important;color:white!important}' +
             'body.colored-elements-on .full-start__pg.age-children{background:#3498db!important;color:white!important}' +
@@ -2369,7 +2372,7 @@
             'body.colored-elements-on .full-start__status.status-post{background:rgba(0,188,212,0.8)!important;color:white!important}' +
             '.full-start__pg.hide,.full-start__pg.nr{display:none!important}' +
             '.full-start-new__meta-line{display:none!important}' +
-            '.season-info-label{position:absolute!important;color:#fff!important;padding:0.25em 0.45em!important;font-size:1.1em!important;line-height:1!important;z-index:10!important;white-space:nowrap!important}' +
+            '.season-info-label{position:absolute!important;color:#fff!important;padding:0.25em 0.45em!important;font-size:var(--rating-font-size,1.1em)!important;line-height:1!important;z-index:10!important;white-space:nowrap!important}' +
             '@media (max-width:480px) and (orientation:portrait){.full-start-new__rate-line{display:flex!important;flex-wrap:wrap!important;align-items:center!important;justify-content:center!important;align-content:center!important;gap:0.35em!important;width:100%!important;max-width:100%!important;margin-left:auto!important;margin-right:auto!important;text-align:center!important}.full-start-new__rate-line>*{margin:0!important}.full-start-new__rate-line .full-start-new__rate:not(.hide):not([style*="display: none"]),.full-start-new__rate-line .full-start__rate:not(.hide):not([style*="display: none"]){display:inline-flex;align-items:center!important;justify-content:center!important;flex:0 0 auto!important;margin:0!important}.full-start-new__rate-line .full-start-new__rate.hide,.full-start-new__rate-line .full-start__rate.hide,.full-start-new__rate-line .full-start-new__rate[style*="display: none"],.full-start-new__rate-line .full-start__rate[style*="display: none"]{display:none!important}.full-start-new__rate-line.card-overlay-mobile-rate-line[data-card-overlay-rating-count="1"]{max-width:9em!important}.full-start-new__rate-line.card-overlay-mobile-rate-line[data-card-overlay-rating-count="2"]{max-width:18em!important}.full-start-new__rate-line.card-overlay-mobile-rate-line[data-card-overlay-rating-count="3"],.full-start-new__rate-line.card-overlay-mobile-rate-line[data-card-overlay-rating-count="4"]{max-width:100%!important}.full-start-new__meta-line{display:flex!important;flex-wrap:wrap!important;align-items:center!important;justify-content:center!important;gap:0.5em!important;width:100%!important;line-height:1!important;font-size:1em!important;margin-top:0.3em!important}.full-start-new__meta-line .full-start__status,.full-start-new__meta-line .full-start__pg{margin:0!important;display:inline-flex!important;align-items:center!important;line-height:1!important;white-space:nowrap!important}.full-start-new__details{margin-top:0.3em!important;display:flex!important;flex-wrap:wrap!important;justify-content:center!important;gap:0.1em!important}.full-start-new__reactions{justify-content:center!important}.full-start-new__buttons{justify-content:center!important;text-align:center!important}.full-start-new__right,.full-start__right{text-align:center!important}.full-start-new__right h1,.full-start__right h1,.full-start-new__right .name,.full-start__right .name,.full-start__name{text-align:center!important;width:100%!important}.season-info-label{display:none!important}}' +
             'body[data-movie-labels="on"] .card--tv .card__type:not([data-card-overlay-type-label="1"]){display:none!important}';
         document.head.appendChild(style);
