@@ -177,34 +177,49 @@
     function getPersistentCacheKey(source) {
         return 'rating_cache_' + source;
     }
+    // Чистка протухших записей при загрузке кэша — иначе localStorage растёт бесконечно
+    // (раньше записи удалялись только при чтении конкретного ключа)
+    function pruneExpiredCacheEntries(cache) {
+        var now = Date.now(), removed = false;
+        for (var k in cache) {
+            var entry = cache[k];
+            if (!entry || typeof entry !== 'object' || !entry.timestamp || now - entry.timestamp > CACHE_TTL) { delete cache[k]; removed = true; }
+        }
+        return removed;
+    }
     function loadPersistentCache(source) {
         var stored = null;
         try { stored = Lampa.Storage.get(getPersistentCacheKey(source), null); } catch (e) {}
-        if (stored && typeof stored === 'object') return stored;
-        try { stored = Lampa.Storage.cache(source, 500, {}); } catch (e2) { stored = null; }
-        return stored && typeof stored === 'object' ? stored : {};
+        if (!stored || typeof stored !== 'object') {
+            try { stored = Lampa.Storage.cache(source, 500, {}); } catch (e2) { stored = null; }
+        }
+        if (!stored || typeof stored !== 'object') stored = {};
+        if (pruneExpiredCacheEntries(stored)) debouncedSave(source, stored);
+        return stored;
     }
     var _savePending = {};
     var _saveVersion = {};
-    function debouncedSave(source, cache) {
-        _saveVersion[source] = (_saveVersion[source] || 0) + 1;
-        if (_savePending[source]) return;
-        _savePending[source] = true;
-        var version = _saveVersion[source];
+    function debouncedSaveByKey(storageKey, cache) {
+        _saveVersion[storageKey] = (_saveVersion[storageKey] || 0) + 1;
+        if (_savePending[storageKey]) return;
+        _savePending[storageKey] = true;
+        var version = _saveVersion[storageKey];
         setTimeout(function () {
-            _savePending[source] = false;
-            if (version !== (_saveVersion[source] || 0)) {
-                debouncedSave(source, cache);
+            _savePending[storageKey] = false;
+            if (version !== (_saveVersion[storageKey] || 0)) {
+                debouncedSaveByKey(storageKey, cache);
                 return;
             }
-            try { Lampa.Storage.set(getPersistentCacheKey(source), cache); } catch (e) {}
+            try { Lampa.Storage.set(storageKey, cache); } catch (e) {}
         }, 2000);
     }
+    function debouncedSave(source, cache) { debouncedSaveByKey(getPersistentCacheKey(source), cache); }
 
-    function resetCacheSaveState(source) {
-        _saveVersion[source] = (_saveVersion[source] || 0) + 1;
-        _savePending[source] = false;
+    function resetCacheSaveStateByKey(storageKey) {
+        _saveVersion[storageKey] = (_saveVersion[storageKey] || 0) + 1;
+        _savePending[storageKey] = false;
     }
+    function resetCacheSaveState(source) { resetCacheSaveStateByKey(getPersistentCacheKey(source)); }
     function clearStorageObject(key) {
         try { Lampa.Storage.set(key, {}); } catch (e) {}
     }
@@ -220,34 +235,48 @@
         ratingCache.caches = {};
         if (typeof pendingTmdbRequests !== 'undefined') pendingTmdbRequests = {};
         if (typeof pendingLampaRequests !== 'undefined') pendingLampaRequests = {};
-        if (includeQuality) clearStorageObject(QUALITY_CACHE_KEY);
+        if (typeof pendingKpCallbacks !== 'undefined') pendingKpCallbacks = {};
+        if (includeQuality) clearQualityCache();
     }
 
-    var taskQueue = [];
-    var isProcessing = false;
-    var taskInterval = 350;
-    var taskBatchSize = 1;
+    // Две очереди запросов: КиноПоиск (unofficial API, жёсткие лимиты) — медленно,
+    // TMDB/cub и прочее — быстрее. Новые задачи встают в начало (LIFO): они соответствуют
+    // карточкам, видимым прямо сейчас. Старые задачи не теряются молча — при переполнении
+    // отбрасывается хвост (давно не видимые карточки), а IntersectionObserver
+    // повторно ставит задачу, когда карточка снова попадает в зону видимости.
+    var REQUEST_QUEUES = {
+        kp: { tasks: [], processing: false, interval: 350, batch: 1 },
+        fast: { tasks: [], processing: false, interval: 120, batch: 2 }
+    };
+    var QUEUE_MAX_TASKS = 120;
     var requestPool = [];
     function getRequest() { return requestPool.pop() || new Lampa.Reguest(); }
     function releaseRequest(request) { request.clear(); if (requestPool.length < 5) requestPool.push(request); }
-    function processQueue() {
-        if (isProcessing || !taskQueue.length) return;
-        isProcessing = true;
-        var batch = taskQueue.splice(0, taskBatchSize);
-        for (var i = 0; i < batch.length; i++) { batch[i].execute(); }
-        setTimeout(function () { isProcessing = false; processQueue(); }, taskInterval);
+    function processQueue(queue) {
+        if (queue.processing || !queue.tasks.length) return;
+        queue.processing = true;
+        var batch = queue.tasks.splice(0, queue.batch);
+        for (var i = 0; i < batch.length; i++) { try { batch[i].execute(); } catch (e) {} }
+        setTimeout(function () { queue.processing = false; processQueue(queue); }, queue.interval);
     }
-    function addToQueue(task) {
-        if (taskQueue.length > 20) taskQueue.splice(10);
-        taskQueue.push({ execute: task });
-        processQueue();
+    function addToQueue(task, queueName, onDrop) {
+        var queue = REQUEST_QUEUES[queueName] || REQUEST_QUEUES.fast;
+        queue.tasks.unshift({ execute: task, onDrop: onDrop });
+        while (queue.tasks.length > QUEUE_MAX_TASKS) {
+            var dropped = queue.tasks.pop();
+            if (dropped && dropped.onDrop) { try { dropped.onDrop(); } catch (e) {} }
+        }
+        processQueue(queue);
     }
 
     var stringCache = {};
+    var stringCacheSize = 0;
     function normalizeString(str) {
         if (stringCache[str]) return stringCache[str];
         var normalized = str.replace(/[\s.,:;''`!?]+/g, ' ').trim().toLowerCase().replace(/[\-\u2010-\u2015\u2E3A\u2E3B\uFE58\uFE63\uFF0D]+/g, '-').replace(/ё/g, 'е');
+        if (stringCacheSize > 800) { stringCache = {}; stringCacheSize = 0; }
         stringCache[str] = normalized;
+        stringCacheSize++;
         return normalized;
     }
     function cleanString(str) {
@@ -260,6 +289,7 @@
     function canUseKinopoiskApi() { return getKpApiKey().length > 0; }
     function getKpHeaders() { var k = getKpApiKey(); if (!k) return {}; return { 'X-API-KEY': k }; }
     function cacheEmptyKpRating(itemId) { return ratingCache.set('kp_rating', itemId, { kp: 0, imdb: 0 }); }
+    var pendingKpCallbacks = {};
     function findBestKpMatch(results, title, originalTitle, releaseYear) {
         if (!results || !results.length) return null;
         results.forEach(function (r) { r.tmp_year = parseInt(String(r.year || r.start_date || "0000").slice(0, 4)); });
@@ -286,16 +316,25 @@
             if (otherData && (otherData.kp > 0 || otherData.imdb > 0)) { callback(ratingCache.set('kp_rating', item.id, { kp: parseFloat(otherData.kp) || 0, imdb: parseFloat(otherData.imdb) || 0, timestamp: Date.now() })); return; }
         } catch (e) {}
         if (!canUseKinopoiskApi()) { callback(cacheEmptyKpRating(item.id)); return; }
+        // Дедупликация: несколько карточек/повторные вызовы для одного id не плодят запросы к лимитированному API
+        var pendingKey = String(item.id);
+        if (pendingKpCallbacks[pendingKey]) { pendingKpCallbacks[pendingKey].push(callback); return; }
+        pendingKpCallbacks[pendingKey] = [callback];
+        function notifyKp(result, isFinal) {
+            var cbs = pendingKpCallbacks[pendingKey] || [];
+            if (isFinal) delete pendingKpCallbacks[pendingKey];
+            for (var ci = 0; ci < cbs.length; ci++) { try { cbs[ci](result); } catch (e) {} }
+        }
         if (item.kinopoisk_id) {
             addToQueue(function () {
                 var request = getRequest(); request.timeout(5000);
                 request.silent(KP_API_URL + 'api/v2.2/films/' + item.kinopoisk_id, function (data) {
-                    callback(ratingCache.set('kp_rating', item.id, { kp: parseFloat(data.ratingKinopoisk) || 0, imdb: parseFloat(data.ratingImdb) || 0, timestamp: Date.now() }));
+                    notifyKp(ratingCache.set('kp_rating', item.id, { kp: parseFloat(data.ratingKinopoisk) || 0, imdb: parseFloat(data.ratingImdb) || 0, timestamp: Date.now() }), true);
                     releaseRequest(request);
-                }, function () { releaseRequest(request); callback(cacheEmptyKpRating(item.id)); }, false, { headers: getKpHeaders() });
-            }); return;
+                }, function () { releaseRequest(request); notifyKp(cacheEmptyKpRating(item.id), true); }, false, { headers: getKpHeaders() });
+            }, 'kp', function () { delete pendingKpCallbacks[pendingKey]; }); return;
         }
-        if (!(item.title || item.name) && !item.imdb_id) { callback(cacheEmptyKpRating(item.id)); return; }
+        if (!(item.title || item.name) && !item.imdb_id) { notifyKp(cacheEmptyKpRating(item.id), true); return; }
         addToQueue(function () {
             var request = getRequest();
             var title = cleanString(item.title || item.name || '');
@@ -307,26 +346,26 @@
                 var results = data.films || data.items || [];
                 if (!results.length && data && (data.kinopoiskId || data.filmId)) results = [data];
                 var best = findBestKpMatch(results, title, originalTitle, releaseYear);
-                if (!best) { releaseRequest(request); callback(cacheEmptyKpRating(item.id)); return; }
+                if (!best) { releaseRequest(request); notifyKp(cacheEmptyKpRating(item.id), true); return; }
                 var kpFromSearch = parseFloat(best.rating || best.ratingKinopoisk) || 0;
                 var imdbFromSearch = parseFloat(best.ratingImdb) || 0;
                 var movieId = best.kinopoiskId || best.filmId || best.kp_id || best.kinopoisk_id;
                 if (kpFromSearch > 0) ratingCache.set('kp_rating', item.id, { kp: kpFromSearch, imdb: imdbFromSearch, timestamp: Date.now() });
                 if (movieId && (kpFromSearch === 0 || imdbFromSearch === 0)) {
-                    if (kpFromSearch > 0) callback({ kp: kpFromSearch, imdb: imdbFromSearch });
+                    if (kpFromSearch > 0) notifyKp({ kp: kpFromSearch, imdb: imdbFromSearch }, false);
                     request.timeout(5000);
                     request.silent(KP_API_URL + 'api/v2.2/films/' + movieId, function (detail) {
                         var fullKp = parseFloat(detail.ratingKinopoisk) || 0;
                         var fullImdb = parseFloat(detail.ratingImdb) || 0;
-                        callback(ratingCache.set('kp_rating', item.id, { kp: fullKp > 0 ? fullKp : kpFromSearch, imdb: fullImdb > 0 ? fullImdb : imdbFromSearch, timestamp: Date.now() }));
+                        notifyKp(ratingCache.set('kp_rating', item.id, { kp: fullKp > 0 ? fullKp : kpFromSearch, imdb: fullImdb > 0 ? fullImdb : imdbFromSearch, timestamp: Date.now() }), true);
                         releaseRequest(request);
-                    }, function () { releaseRequest(request); callback(ratingCache.set('kp_rating', item.id, { kp: kpFromSearch, imdb: imdbFromSearch, timestamp: Date.now() })); }, false, { headers: getKpHeaders() });
+                    }, function () { releaseRequest(request); notifyKp(ratingCache.set('kp_rating', item.id, { kp: kpFromSearch, imdb: imdbFromSearch, timestamp: Date.now() }), true); }, false, { headers: getKpHeaders() });
                 } else {
                     releaseRequest(request);
-                    callback(ratingCache.set('kp_rating', item.id, { kp: kpFromSearch, imdb: imdbFromSearch, timestamp: Date.now() }));
+                    notifyKp(ratingCache.set('kp_rating', item.id, { kp: kpFromSearch, imdb: imdbFromSearch, timestamp: Date.now() }), true);
                 }
-            }, function () { releaseRequest(request); callback(cacheEmptyKpRating(item.id)); }, false, { headers: getKpHeaders() });
-        });
+            }, function () { releaseRequest(request); notifyKp(cacheEmptyKpRating(item.id), true); }, false, { headers: getKpHeaders() });
+        }, 'kp', function () { delete pendingKpCallbacks[pendingKey]; });
     }
 
     function calculateLampaRating10(reactions) {
@@ -483,7 +522,7 @@
                 }
             } catch (e) {}
             handleFail();
-        });
+        }, 'fast', function () { delete pendingTmdbRequests[key]; });
     }
     function ensureFreshTMDBRating(data, onUpdated) {
         var key = getTmdbRatingKey(data);
@@ -904,6 +943,7 @@
         var updated = 0;
         var source = Lampa.Storage.get('rating_source', 'all');
         var displayMode = getRatingDisplayMode();
+        var episodeLabelCards = [];
         for (var i = 0; i < allCards.length && updated < maxCards; i++) {
             var card = allCards[i]; var data = card.card_data;
             if (!data || !data.id) continue;
@@ -939,9 +979,10 @@
             }
             if (needFull) updateCardRating({ card: card, data: data });
             addTypeLabel(card);
-            updateEpisodeLabelPosition(card);
+            episodeLabelCards.push(card);
             updated++;
         }
+        updateEpisodeLabelPositionsBatch(episodeLabelCards);
     }
     function scheduleVisibleRatingsUpdate(delay) {
         if (_ratingUpdateTimer) clearTimeout(_ratingUpdateTimer);
@@ -978,8 +1019,10 @@
             for (var ci = 0; ci < existingCards.length; ci++) observeCardVisibility(existingCards[ci]);
         }
         _mainObserver = new MutationObserver(function (mutations) {
+            // Обрабатываем только реально добавленные карточки — раньше каждая мутация
+            // с карточками заново сканировала ВСЕ .card в документе
             var needRatings = false;
-            var needCards = false;
+            var addedCards = [];
             var needSelectbox = false;
             for (var i = 0; i < mutations.length; i++) {
                 var m = mutations[i];
@@ -987,30 +1030,29 @@
                     for (var j = 0; j < m.addedNodes.length; j++) {
                         var node = m.addedNodes[j];
                         if (!node || node.nodeType !== 1) continue;
-                        if (node.matches && node.matches('.card')) { observeCardVisibility(node); needRatings = true; needCards = true; }
+                        if (node.matches && node.matches('.card')) { observeCardVisibility(node); needRatings = true; addedCards.push(node); }
                         else if (node.querySelector && node.querySelector('.card')) {
-                            needRatings = true; needCards = true;
+                            needRatings = true;
                             var nestedCards = node.querySelectorAll('.card');
-                            for (var ni = 0; ni < nestedCards.length; ni++) observeCardVisibility(nestedCards[ni]);
+                            for (var ni = 0; ni < nestedCards.length; ni++) { observeCardVisibility(nestedCards[ni]); addedCards.push(nestedCards[ni]); }
                         }
                         if (node.querySelector && (node.querySelector('.selectbox-item__icon') || node.querySelector('.selectbox-item__icon img'))) needSelectbox = true;
                     }
                 }
             }
             if (needRatings) scheduleVisibleRatingsUpdate(50);
-            if (needCards) {
-                var allCards = document.querySelectorAll('.card');
-                for (var k = 0; k < allCards.length; k++) {
-                    if (!allCards[k].hasAttribute('data-type-label-checked')) {
-                        addTypeLabel(allCards[k]);
-                        addYearBadge(allCards[k]);
-                        if (!isQualityShowOn()) { $(allCards[k]).find('.card__quality').remove(); allCards[k].removeAttribute('data-quality-added'); }
+            if (addedCards.length) {
+                for (var k = 0; k < addedCards.length; k++) {
+                    if (!addedCards[k].hasAttribute('data-type-label-checked')) {
+                        addTypeLabel(addedCards[k]);
+                        addYearBadge(addedCards[k]);
+                        if (!isQualityShowOn()) { $(addedCards[k]).find('.card__quality').remove(); addedCards[k].removeAttribute('data-quality-added'); }
                     }
                 }
                 if (isQualityShowOn()) {
                     var newCards = [];
-                    for (var k = 0; k < allCards.length; k++) {
-                        if (!allCards[k].hasAttribute('data-quality-added')) newCards.push(allCards[k]);
+                    for (var k2 = 0; k2 < addedCards.length; k2++) {
+                        if (!addedCards[k2].hasAttribute('data-quality-added')) newCards.push(addedCards[k2]);
                     }
                     if (newCards.length) processQualityForCards(newCards);
                 }
@@ -1141,7 +1183,9 @@
             onComplete(null);
             return;
         }
-        new Lampa.Reguest().silent(url, function (responseData) {
+        var allohaRequest = getRequest(); allohaRequest.timeout(10000);
+        allohaRequest.silent(url, function (responseData) {
+            releaseRequest(allohaRequest);
             if (!responseData) { onComplete(null); return; }
             try {
                 var parsedData = typeof responseData === 'string' ? JSON.parse(responseData) : responseData;
@@ -1152,7 +1196,7 @@
                 if (data.quality) { onComplete({ quality: 'HD' }); return; }
                 onComplete(null);
             } catch (e) { onComplete(null); }
-        }, function () { onComplete(null); });
+        }, function () { releaseRequest(allohaRequest); onComplete(null); });
     }
 
     function fetchJacRed(normalizedItem, itemId, onComplete) {
@@ -1169,7 +1213,9 @@
         if (normalizedItem.title && (containsText(normalizedItem.title) || isNumericOnly(normalizedItem.title))) { requestUrl += '&title=' + encodeURIComponent(normalizedItem.title.trim()); titlePresent = true; }
         if (normalizedItem.original_title && (containsText(normalizedItem.original_title) || isNumericOnly(normalizedItem.original_title))) { requestUrl += '&title_original=' + encodeURIComponent(normalizedItem.original_title.trim()); titlePresent = true; }
         if (!titlePresent) { onComplete(null); return; }
-        new Lampa.Reguest().silent(requestUrl, function (responseData) {
+        var jacRequest = getRequest(); jacRequest.timeout(15000);
+        jacRequest.silent(requestUrl, function (responseData) {
+            releaseRequest(jacRequest);
             if (!responseData) { onComplete(null); return; }
             try {
                 var parsedData = typeof responseData === 'string' ? JSON.parse(responseData) : responseData;
@@ -1195,7 +1241,7 @@
                 else if (detectedForbidden) onComplete({ quality: convertQuality('TS'), title: "NOT SAVED" });
                 else onComplete(null);
             } catch (error) { onComplete(null); }
-        }, function () { onComplete(null); });
+        }, function () { releaseRequest(jacRequest); onComplete(null); });
     }
 
     function fetchOptimalRelease(normalizedItem, itemId, onComplete) {
@@ -1217,15 +1263,30 @@
             fetchJacRed(normalizedItem, itemId, completeWithFallback);
         }
     }
+    // Кэш качества держится в памяти: раньше каждый вызов парсил/сериализовал весь
+    // объект из localStorage на КАЖДУЮ карточку — главный тормоз при скролле списков
+    var _qualityCacheMem = null;
+    function getQualityCacheMem() {
+        if (_qualityCacheMem) return _qualityCacheMem;
+        var stored = null;
+        try { stored = Lampa.Storage.get(QUALITY_CACHE_KEY, null); } catch (e) {}
+        _qualityCacheMem = (stored && typeof stored === 'object') ? stored : {};
+        if (pruneExpiredCacheEntries(_qualityCacheMem)) debouncedSaveByKey(QUALITY_CACHE_KEY, _qualityCacheMem);
+        return _qualityCacheMem;
+    }
+    function clearQualityCache() {
+        _qualityCacheMem = null;
+        resetCacheSaveStateByKey(QUALITY_CACHE_KEY);
+        clearStorageObject(QUALITY_CACHE_KEY);
+    }
     function retrieveQualityCache(entryKey) {
-        var storedCache = Lampa.Storage.get(QUALITY_CACHE_KEY) || {};
-        var cacheEntry = storedCache[entryKey];
+        var cacheEntry = getQualityCacheMem()[entryKey];
         return cacheEntry && (Date.now() - cacheEntry.timestamp < CACHE_TTL) ? cacheEntry : null;
     }
     function storeQualityCache(entryKey, entryData) {
-        var storedCache = Lampa.Storage.get(QUALITY_CACHE_KEY) || {};
-        storedCache[entryKey] = { quality: entryData.quality || null, timestamp: Date.now() };
-        Lampa.Storage.set(QUALITY_CACHE_KEY, storedCache);
+        var cache = getQualityCacheMem();
+        cache[entryKey] = { quality: entryData.quality || null, timestamp: Date.now() };
+        debouncedSaveByKey(QUALITY_CACHE_KEY, cache);
     }
     function loadQualityForDetail(item, viewRenderer) {
         var standardizedItem = {
@@ -1331,8 +1392,8 @@
             allCards[i].removeAttribute('data-quality-added');
             var existing = allCards[i].querySelectorAll('.card__quality');
             for (var j = 0; j < existing.length; j++) existing[j].remove();
-            updateEpisodeLabelPosition(allCards[i]);
         }
+        updateEpisodeLabelPositionsBatch(allCards);
         if (isQualityShowOn()) processQualityForCards(allCards);
     }
 
@@ -1445,15 +1506,25 @@
     function getTypeLabelEpisodeCacheKey(data) {
         return data && data.id ? 'tv_' + data.id : '';
     }
+    // Кэш эпизодов тоже в памяти (см. комментарий у кэша качества)
+    var _episodeCacheMem = null;
+    function getEpisodeCacheMem() {
+        if (_episodeCacheMem) return _episodeCacheMem;
+        var stored = null;
+        try { stored = Lampa.Storage.get(TYPE_LABEL_EPISODE_CACHE_KEY, null); } catch (e) {}
+        _episodeCacheMem = (stored && typeof stored === 'object') ? stored : {};
+        if (pruneExpiredCacheEntries(_episodeCacheMem)) debouncedSaveByKey(TYPE_LABEL_EPISODE_CACHE_KEY, _episodeCacheMem);
+        return _episodeCacheMem;
+    }
     function getTypeLabelEpisodeCache(key) {
         if (!key) return null;
         try {
-            var cache = Lampa.Storage.get(TYPE_LABEL_EPISODE_CACHE_KEY, {}) || {};
+            var cache = getEpisodeCacheMem();
             var entry = cache[key];
             if (!entry) return null;
             if (Date.now() - entry.timestamp > CACHE_TTL) {
                 delete cache[key];
-                Lampa.Storage.set(TYPE_LABEL_EPISODE_CACHE_KEY, cache);
+                debouncedSaveByKey(TYPE_LABEL_EPISODE_CACHE_KEY, cache);
                 return null;
             }
             return entry;
@@ -1462,9 +1533,9 @@
     function setTypeLabelEpisodeCache(key, episodeText) {
         if (!key || !episodeText) return;
         try {
-            var cache = Lampa.Storage.get(TYPE_LABEL_EPISODE_CACHE_KEY, {}) || {};
+            var cache = getEpisodeCacheMem();
             cache[key] = { text: episodeText, timestamp: Date.now() };
-            Lampa.Storage.set(TYPE_LABEL_EPISODE_CACHE_KEY, cache);
+            debouncedSaveByKey(TYPE_LABEL_EPISODE_CACHE_KEY, cache);
         } catch (e) {}
     }
     function formatTypeLabelEpisodeText(lastEpisode) {
@@ -1499,17 +1570,22 @@
         }
         return null;
     }
-    function updateEpisodeLabelPosition(card) {
+    // Позиционирование лейбла эпизода разделено на фазу чтения (measure) и фазу записи
+    // (apply) — в циклах по карточкам это убирает layout thrashing (чтение layout-свойств
+    // вперемешку с записью стилей заставляло браузер пересчитывать layout на каждую карточку)
+    function measureEpisodeLabelPosition(card) {
         var view = card && card.querySelector && card.querySelector('.card__view');
-        if (!view) return;
+        if (!view) return null;
         var label = view.querySelector('.card__episode-label');
-        if (!label) return;
+        if (!label) return null;
+        var props = [];
         var typeLabel = view.querySelector('.card__type[data-card-overlay-type-label="1"], .card__type');
+        var typeStyle = null;
         if (typeLabel) {
-            var typeStyle = window.getComputedStyle(typeLabel);
-            label.style.setProperty('font-size', typeStyle.fontSize, 'important');
-            label.style.setProperty('line-height', typeStyle.lineHeight === 'normal' ? '1' : typeStyle.lineHeight, 'important');
-            label.style.setProperty('padding', typeStyle.paddingTop + ' ' + typeStyle.paddingRight + ' ' + typeStyle.paddingBottom + ' ' + typeStyle.paddingLeft, 'important');
+            typeStyle = window.getComputedStyle(typeLabel);
+            props.push(['font-size', typeStyle.fontSize]);
+            props.push(['line-height', typeStyle.lineHeight === 'normal' ? '1' : typeStyle.lineHeight]);
+            props.push(['padding', typeStyle.paddingTop + ' ' + typeStyle.paddingRight + ' ' + typeStyle.paddingBottom + ' ' + typeStyle.paddingLeft]);
         }
         if (isEpisodeLabelUnderType()) {
             var topOffset = 0;
@@ -1517,13 +1593,8 @@
                 var typeGap = (0.15 * parseFloat(typeStyle.fontSize)) || 6;
                 topOffset = typeLabel.offsetTop + typeLabel.offsetHeight + typeGap;
             }
-            label.style.setProperty('left', '0', 'important');
-            label.style.setProperty('right', 'auto', 'important');
-            label.style.setProperty('top', topOffset + 'px', 'important');
-            label.style.setProperty('bottom', 'auto', 'important');
-            label.style.setProperty('transform', 'none', 'important');
-            label.style.setProperty('border-radius', '0 0.75em 0.75em 0', 'important');
-            return;
+            props.push(['left', '0'], ['right', 'auto'], ['top', topOffset + 'px'], ['bottom', 'auto'], ['transform', 'none'], ['border-radius', '0 0.75em 0.75em 0']);
+            return { label: label, props: props };
         }
         try {
             var viewWidth = view.clientWidth || view.offsetWidth;
@@ -1538,20 +1609,28 @@
                 rightEdge = viewWidth;
             }
             var center = (leftEdge + rightEdge) / 2;
-            label.style.setProperty('left', center + 'px', 'important');
-            label.style.setProperty('right', 'auto', 'important');
-            label.style.setProperty('top', 'auto', 'important');
-            label.style.setProperty('bottom', '0', 'important');
-            label.style.setProperty('transform', 'translateX(-50%)', 'important');
-            label.style.setProperty('border-radius', '0.75em 0.75em 0 0', 'important');
+            props.push(['left', center + 'px'], ['right', 'auto'], ['top', 'auto'], ['bottom', '0'], ['transform', 'translateX(-50%)'], ['border-radius', '0.75em 0.75em 0 0']);
         } catch (e2) {
-            label.style.setProperty('left', '50%', 'important');
-            label.style.setProperty('right', 'auto', 'important');
-            label.style.setProperty('top', 'auto', 'important');
-            label.style.setProperty('bottom', '0', 'important');
-            label.style.setProperty('transform', 'translateX(-50%)', 'important');
-            label.style.setProperty('border-radius', '0.75em 0.75em 0 0', 'important');
+            props.push(['left', '50%'], ['right', 'auto'], ['top', 'auto'], ['bottom', '0'], ['transform', 'translateX(-50%)'], ['border-radius', '0.75em 0.75em 0 0']);
         }
+        return { label: label, props: props };
+    }
+    function applyEpisodeLabelStyles(measured) {
+        if (!measured) return;
+        for (var i = 0; i < measured.props.length; i++) {
+            measured.label.style.setProperty(measured.props[i][0], measured.props[i][1], 'important');
+        }
+    }
+    function updateEpisodeLabelPosition(card) {
+        applyEpisodeLabelStyles(measureEpisodeLabelPosition(card));
+    }
+    function updateEpisodeLabelPositionsBatch(cards) {
+        var measured = [];
+        for (var i = 0; i < cards.length; i++) {
+            var m = measureEpisodeLabelPosition(cards[i]);
+            if (m) measured.push(m);
+        }
+        for (var j = 0; j < measured.length; j++) applyEpisodeLabelStyles(measured[j]);
     }
     function applyEpisodeLabelText(card, text) {
         if (!text) { removeEpisodeLabel(card); return; }
@@ -1642,7 +1721,7 @@
         $('.card .card__type[data-card-overlay-type-label="1"]').remove();
         $('.card .card__episode-label').remove();
         processAllTypeLabels();
-        $('.card').each(function () { updateEpisodeLabelPosition(this); });
+        updateEpisodeLabelPositionsBatch(document.querySelectorAll('.card'));
     }
     function refreshAllCardOverlays() {
         refreshAllTypeLabels();
@@ -2152,7 +2231,7 @@
             onChange: function (v) {
                 if (!(v === true || v === 'true' || v === '1' || v === 1)) return;
                 try {
-                    Lampa.Storage.set(QUALITY_CACHE_KEY, {});
+                    clearQualityCache();
                     Lampa.Storage.set('clear_quality_cache', 'false');
                 } catch (e) {}
                 Lampa.Noty.show('Кэш качества очищен');
@@ -2497,7 +2576,7 @@
 
     Lampa.Manifest.plugins = {
         name: 'Интерфейс Мод',
-        version: '1.0.0',
+        version: '1.1.0',
         description: 'Рейтинги, качество, лейблы типа на карточках + темы'
     };
 
