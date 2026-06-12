@@ -40,24 +40,22 @@
       'ТНТ': 1191
     };
 
-    // Коллекции
     var collections = [
-      { title: 'Русские фильмы',     img: 'https://amikdn.github.io/img/rus_movie.jpg', svg: rusSvg },
-      { title: 'Русские сериалы',    img: 'https://amikdn.github.io/img/rus_tv.jpg',     svg: rusSvg },
-      { title: 'Русские мультфильмы',img: 'https://amikdn.github.io/img/rus_mult.jpg',   svg: rusSvg },
-      { title: 'Start',              img: 'https://amikdn.github.io/img/start.jpg',      svg: startSvg },
-      { title: 'Premier',            img: 'https://amikdn.github.io/img/premier.jpg',    svg: premierSvg },
-      { title: 'KION',               img: 'https://amikdn.github.io/img/kion.jpg',       svg: kionSvg },
-      { title: 'ИВИ',                img: 'https://amikdn.github.io/img/ivi.jpg',        svg: iviSvg },
-      { title: 'Okko',               img: 'https://amikdn.github.io/img/okko.jpg',       svg: okkoSvg },
-      { title: 'КиноПоиск',          img: 'https://amikdn.github.io/img/kinopoisk.jpg',  svg: kinopoiskSvg },
-      { title: 'Wink',               img: 'https://amikdn.github.io/img/wink.jpg',       svg: winkSvg },
-      { title: 'СТС',                img: 'https://amikdn.github.io/img/sts.jpg',        svg: stsSvg },
-      { title: 'ТНТ',                img: 'https://amikdn.github.io/img/tnt.jpg',        svg: tntSvg },
+      { title: 'Русские фильмы',     svg: rusSvg },
+      { title: 'Русские сериалы',    svg: rusSvg },
+      { title: 'Русские мультфильмы',svg: rusSvg },
+      { title: 'Start',              svg: startSvg },
+      { title: 'Premier',            svg: premierSvg },
+      { title: 'KION',               svg: kionSvg },
+      { title: 'ИВИ',                svg: iviSvg },
+      { title: 'Okko',               svg: okkoSvg },
+      { title: 'КиноПоиск',          svg: kinopoiskSvg },
+      { title: 'Wink',               svg: winkSvg },
+      { title: 'СТС',                svg: stsSvg },
+      { title: 'ТНТ',                svg: tntSvg },
     ].map(function(item) {
       var newItem = {
         title: item.title,
-        img: item.img,
         svg: item.svg
       };
       var networkId = networksMap[item.title];
@@ -95,6 +93,8 @@
       var s = document.createElement('style'); s.type = 'text/css'; s.appendChild(document.createTextNode(css)); document.head.appendChild(s);
     }
 
+    var _rusFromModal = false;
+
     function openRusModal() {
       try { if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.close) Lampa.Modal.close(); } catch (err) {}
 
@@ -118,6 +118,7 @@
           row.append($('<div class="rusmodal__icon"></div>').append($(col.svg)));
           row.append($('<div class="rusmodal__label"></div>').text(col.title));
           row.on('hover:enter', function () {
+            _rusFromModal = true;
             Lampa.Modal.close();
             setTimeout(function () {
               Lampa.Activity.push({
@@ -125,10 +126,7 @@
                 title: col.title,
                 component: 'category_full',
                 source: 'tmdb',
-                page: 1,
-                onBack: function () {
-                  setTimeout(function () { openRusModal(); }, 300);
-                }
+                page: 1
               });
             }, 100);
           });
@@ -148,6 +146,7 @@
           row.append($('<div class="rusmodal__icon"></div>').append($(col.svg)));
           row.append($('<div class="rusmodal__label"></div>').text(col.title));
           row.on('hover:enter', function () {
+            _rusFromModal = true;
             Lampa.Modal.close();
             setTimeout(function () {
               Lampa.Activity.push({
@@ -155,10 +154,7 @@
                 title: col.title,
                 component: 'category_full',
                 source: 'tmdb',
-                page: 1,
-                onBack: function () {
-                  setTimeout(function () { openRusModal(); }, 300);
-                }
+                page: 1
               });
             }, 100);
           });
@@ -167,7 +163,7 @@
         });
 
         var closeBtn = $('<div class="rusmodal__action rusmodal__action--close selector" tabindex="0">Закрыть</div>');
-        function closeModal() { Lampa.Modal.close(); setTimeout(function () { try { Lampa.Controller.toggle('menu'); } catch (err) {} }, 50); }
+        function closeModal() { _rusFromModal = false; Lampa.Modal.close(); setTimeout(function () { try { Lampa.Controller.toggle('menu'); } catch (err) {} }, 50); }
         closeBtn.on('hover:enter', closeModal);
         closeBtn.on('click', function (e) { if (e && e.preventDefault) e.preventDefault(); if (e && e.stopPropagation) e.stopPropagation(); blurAfterMouse(e); });
         modal.append(closeBtn);
@@ -177,6 +173,18 @@
         }
       }, 200);
     }
+
+    Lampa.Listener.follow('activity', function(e) {
+      if (e.type === 'backward' && _rusFromModal) {
+        setTimeout(function() {
+          var active = Lampa.Activity.active();
+          if (active && active.component === 'main') {
+            _rusFromModal = false;
+            openRusModal();
+          }
+        }, 400);
+      }
+    });
 
     var menuIconSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="1.2em" height="1.2em" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="4"><path stroke-linejoin="round" d="M24 44c11.046 0 20-8.954 20-20S35.046 4 24 4S4 12.954 4 24s8.954 20 20 20Z"/><path stroke-linejoin="round" d="M24 18a3 3 0 1 0 0-6a3 3 0 0 0 0 6Zm0 18a3 3 0 1 0 0-6a3 3 0 0 0 0 6Zm-9-9a3 3 0 1 0 0-6a3 3 0 0 0 0 6Zm18 0a3 3 0 1 0 0-6a3 3 0 0 0 0 6Z"/><path stroke-linecap="round" d="M24 44h20"/></g></svg>';
 
@@ -188,6 +196,7 @@
     );
 
     menuItem.on('hover:enter', function() {
+      _rusFromModal = false;
       openRusModal();
     });
 
