@@ -93,8 +93,6 @@
       var s = document.createElement('style'); s.type = 'text/css'; s.appendChild(document.createTextNode(css)); document.head.appendChild(s);
     }
 
-    var _rusFromModal = false;
-
     function openRusModal() {
       try { if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.close) Lampa.Modal.close(); } catch (err) {}
 
@@ -118,7 +116,6 @@
           row.append($('<div class="rusmodal__icon"></div>').append($(col.svg)));
           row.append($('<div class="rusmodal__label"></div>').text(col.title));
           row.on('hover:enter', function () {
-            _rusFromModal = true;
             Lampa.Modal.close();
             setTimeout(function () {
               Lampa.Activity.push({
@@ -146,7 +143,6 @@
           row.append($('<div class="rusmodal__icon"></div>').append($(col.svg)));
           row.append($('<div class="rusmodal__label"></div>').text(col.title));
           row.on('hover:enter', function () {
-            _rusFromModal = true;
             Lampa.Modal.close();
             setTimeout(function () {
               Lampa.Activity.push({
@@ -163,7 +159,7 @@
         });
 
         var closeBtn = $('<div class="rusmodal__action rusmodal__action--close selector" tabindex="0">Закрыть</div>');
-        function closeModal() { _rusFromModal = false; Lampa.Modal.close(); setTimeout(function () { try { Lampa.Controller.toggle('menu'); } catch (err) {} }, 50); }
+        function closeModal() { Lampa.Modal.close(); setTimeout(function () { try { Lampa.Controller.toggle('menu'); } catch (err) {} }, 50); }
         closeBtn.on('hover:enter', closeModal);
         closeBtn.on('click', function (e) { if (e && e.preventDefault) e.preventDefault(); if (e && e.stopPropagation) e.stopPropagation(); blurAfterMouse(e); });
         modal.append(closeBtn);
@@ -173,18 +169,6 @@
         }
       }, 200);
     }
-
-    Lampa.Listener.follow('activity', function(e) {
-      if (e.type === 'backward' && _rusFromModal) {
-        setTimeout(function() {
-          var active = Lampa.Activity.active();
-          if (active && active.component === 'main') {
-            _rusFromModal = false;
-            openRusModal();
-          }
-        }, 400);
-      }
-    });
 
     var menuIconSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="1.2em" height="1.2em" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="4"><path stroke-linejoin="round" d="M24 44c11.046 0 20-8.954 20-20S35.046 4 24 4S4 12.954 4 24s8.954 20 20 20Z"/><path stroke-linejoin="round" d="M24 18a3 3 0 1 0 0-6a3 3 0 0 0 0 6Zm0 18a3 3 0 1 0 0-6a3 3 0 0 0 0 6Zm-9-9a3 3 0 1 0 0-6a3 3 0 0 0 0 6Zm18 0a3 3 0 1 0 0-6a3 3 0 0 0 0 6Z"/><path stroke-linecap="round" d="M24 44h20"/></g></svg>';
 
@@ -196,7 +180,6 @@
     );
 
     menuItem.on('hover:enter', function() {
-      _rusFromModal = false;
       openRusModal();
     });
 
