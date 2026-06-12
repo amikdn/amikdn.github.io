@@ -159,7 +159,7 @@
         });
 
         var closeBtn = $('<div class="rusmodal__action rusmodal__action--close selector" tabindex="0">Закрыть</div>');
-        function closeModal() { Lampa.Modal.close(); setTimeout(function () { try { Lampa.Controller.toggle('menu'); } catch (err) {} }, 50); }
+        function closeModal() { Lampa.Modal.close(); }
         closeBtn.on('hover:enter', closeModal);
         closeBtn.on('click', function (e) { if (e && e.preventDefault) e.preventDefault(); if (e && e.stopPropagation) e.stopPropagation(); blurAfterMouse(e); });
         modal.append(closeBtn);
