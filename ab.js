@@ -1849,7 +1849,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
     var manifst = {
       type: 'video',
       version: '1.7.1',
-      name: 'akter.black',
+      name: 'a.b',
       description: 'Плагин для просмотра онлайн сериалов и фильмов',
       component: 'lampac',
       onContextMenu: function onContextMenu(object) {
