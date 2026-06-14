@@ -2,7 +2,7 @@
 (function() {
     'use strict';
 
-    var PLUGIN_VERSION = '1.77';
+    var PLUGIN_VERSION = '1.78';
     var EDIT_ORDER_BUTTON_ID = 'buttons_plugin_edit_order';
     var FULL_EVENT_TYPE = 'complite';
     var DELAY_AFTER_APPLY_MS = 100;
@@ -49,8 +49,6 @@
         } catch (e) { /* консоль недоступна — молча игнорируем */ }
     }
 
-    // #10: полифилы вешаются как НЕперечисляемые свойства, чтобы не просачиваться
-    // в for…in по массивам в стороннем коде. Срабатывают только на древних движках.
     function definePolyfill(proto, name, fn) {
         if (proto[name]) return;
         try {
@@ -197,8 +195,6 @@
     }
 
     function getFolders() {
-        // #5: гвард от повреждённого хранилища — возвращаем массив папок, каждая
-        // с гарантированным массивом buttons, иначе concat/forEach ниже тихо ломают раскладку.
         var raw = Lampa.Storage.get(STORAGE_KEYS.folders, []);
         if (!Array.isArray(raw)) return [];
         return raw.filter(function(f) { return f && typeof f === 'object'; }).map(function(f) {
@@ -212,7 +208,6 @@
     }
 
     function getItemOrder() {
-        // #5: гвард от повреждённого хранилища — только валидные записи {type,id}.
         var raw = Lampa.Storage.get(STORAGE_KEYS.item_order, []);
         if (!Array.isArray(raw)) return [];
         return raw.filter(function(it) { return it && typeof it === 'object' && it.id != null; });
@@ -320,7 +315,6 @@
         }, 120);
     }
 
-    /** Подгоняет шрифт открытой модалки под интерфейс Lampa (настройки / экран), чтобы наследование inherit работало корректно. */
     function syncModalFont() {
         try {
             var ref = document.querySelector('.settings-param') || document.querySelector('.settings');
@@ -488,7 +482,6 @@
         }, 250);
     }
 
-    // #9: чистая функция вынесена в область модуля (раньше пересоздавалась на каждую кнопку внутри forEach).
     function isNeutralTone(hexOrName) {
         if (!hexOrName) {
             return false;
@@ -658,7 +651,6 @@
         var folders = getFolders();
         var buttonsInFolders = [];
         folders.forEach(function(folder) {
-            // #5: getFolders() уже гарантирует массив, но оставляем гвард на случай прямого вызова.
             if (Array.isArray(folder.buttons)) {
                 buttonsInFolders = buttonsInFolders.concat(folder.buttons);
             }
@@ -669,6 +661,22 @@
     function normalizeSvgString(str) {
         if (!str || typeof str !== 'string') return '';
         return str.replace(/\s+/g, ' ').replace(/>\s+</g, '><').trim();
+    }
+
+    function sanitizeSvgMarkup(raw) {
+        if (!raw || typeof raw !== 'string') return '';
+        var match = raw.match(/<svg[\s\S]*?<\s*\/\s*svg\s*>/i);
+        var svg = match ? match[0] : '';
+        if (!svg) return '';
+        svg = svg.replace(/<\s*script[\s\S]*?<\s*\/\s*script\s*>/gi, '');
+        svg = svg.replace(/<\s*script\b[^>]*>/gi, '');
+        svg = svg.replace(/<\s*foreignObject[\s\S]*?<\s*\/\s*foreignObject\s*>/gi, '');
+        svg = svg.replace(/\son[a-z0-9_-]+\s*=\s*"[^"]*"/gi, '');
+        svg = svg.replace(/\son[a-z0-9_-]+\s*=\s*'[^']*'/gi, '');
+        svg = svg.replace(/\son[a-z0-9_-]+\s*=\s*[^\s>]+/gi, '');
+        svg = svg.replace(/(href|xlink:href|src)\s*=\s*"\s*javascript:[^"]*"/gi, '$1="#"');
+        svg = svg.replace(/(href|xlink:href|src)\s*=\s*'\s*javascript:[^']*'/gi, "$1='#'");
+        return svg;
     }
 
     function svgFingerprint(html) {
@@ -789,8 +797,6 @@
             originalCallback(null, 'Введите ссылку на файл');
             return;
         }
-        // Гарантируем единственный вызов callback: при таймауте onreadystatechange и
-        // ontimeout могут сработать оба, что приводило бы к двойному ответу.
         var settled = false;
         function callback(res, err) {
             if (settled) return;
@@ -826,7 +832,6 @@
                 try {
                     arr = JSON.parse(text.replace(/[\u0000-\u001F]+/g, ' '));
                 } catch (e2) {
-                    /* Файл может быть массивом с неэкранированными кавычками — извлекаем все блоки <svg>...</svg> */
                     var svgList = text.match(/<svg[\s\S]*?<\s*\/\s*svg\s*>/gi);
                     if (svgList && svgList.length > 0) {
                         arr = svgList;
@@ -848,10 +853,13 @@
                 if (typeof item === 'string') {
                     html = item.trim();
                     if (html.indexOf('<svg') !== -1) {
-                        key = svgFingerprint(html);
-                        if (!seen[key]) {
-                            seen[key] = true;
-                            result.push({ id: 'icon-' + i, html: html });
+                        html = sanitizeSvgMarkup(html);
+                        if (html) {
+                            key = svgFingerprint(html);
+                            if (!seen[key]) {
+                                seen[key] = true;
+                                result.push({ id: 'icon-' + i, html: html });
+                            }
                         }
                     } else if (html.indexOf('http://') === 0 || html.indexOf('https://') === 0) {
                         urlsToFetch.push({ url: html, index: i });
@@ -859,10 +867,13 @@
                 } else if (item && item.html != null) {
                     html = String(item.html).trim();
                     if (html && html.indexOf('<svg') !== -1) {
-                        key = svgFingerprint(html);
-                        if (!seen[key]) {
-                            seen[key] = true;
-                            result.push({ id: (item.id && String(item.id)) || key.substring(0, 80), html: html });
+                        html = sanitizeSvgMarkup(html);
+                        if (html) {
+                            key = svgFingerprint(html);
+                            if (!seen[key]) {
+                                seen[key] = true;
+                                result.push({ id: (item.id && String(item.id)) || key.substring(0, 80), html: html });
+                            }
                         }
                     }
                 }
@@ -886,10 +897,13 @@
                     if (req.status === 200 && req.responseText) {
                         html = req.responseText.trim();
                         if (html.indexOf('<svg') !== -1) {
-                            key = svgFingerprint(html);
-                            if (!seen[key]) {
-                                seen[key] = true;
-                                result.push({ id: 'icon-' + entry.index, html: html });
+                            html = sanitizeSvgMarkup(html);
+                            if (html) {
+                                key = svgFingerprint(html);
+                                if (!seen[key]) {
+                                    seen[key] = true;
+                                    result.push({ id: 'icon-' + entry.index, html: html });
+                                }
                             }
                         }
                     }
@@ -1016,16 +1030,9 @@
         });
     }
 
-    // Атрибут-метка со стабильным уникальным ID кнопки и разделитель для дублей.
-    // '___dup' практически не встречается в реальных классах/тексте кнопок.
     var BM_ID_ATTR = 'data-bm-id';
     var BM_ID_SEP = '___dup';
 
-    // «Базовый» ID кнопки — прежний алгоритм getButtonId без изменений.
-    // ВАЖНО: формат намеренно сохранён 1-в-1, чтобы у существующих пользователей
-    // не сбросились сохранённые настройки (порядок/иконки/цвета/ярлыки/папки),
-    // которые хранятся именно по этим ключам. Уникальность дублей обеспечивается
-    // отдельно — суффиксом ___dupN (см. assignButtonIds / getButtonId).
     function baseButtonId(button) {
         var classes = button.attr('class') || '';
         var span = button.find('span').first();
@@ -1048,21 +1055,10 @@
         return id;
     }
 
-    // Проставляет каждой кнопке стабильный УНИКАЛЬНЫЙ ID в атрибут data-bm-id.
-    // Первое вхождение базового ID остаётся как есть (== старому ID → настройки
-    // не сбрасываются), повторные получают суффикс ___dup2, ___dup3 и т.д.
-    // Это устраняет коллизии getButtonId: раньше две кнопки с одинаковым базовым
-    // ID давали один ключ, и вторая кнопка молча выпадала из карточки
-    // (Array.find/дедуп по ID находил только первую).
-    //
-    // Порядок присвоения — порядок в DOM (document order), он стабилен между
-    // перерисовками и перезапусками, поэтому ID воспроизводимы. Функция
-    // идемпотентна: уже размеченные кнопки не трогаются, счётчики
-    // «досеиваются» из существующих меток, чтобы новые кнопки не конфликтовали.
     function assignButtonIds($buttons) {
         if (!$buttons || !$buttons.length) return;
         var counts = {};
-        // 1) Учитываем уже проставленные метки (стабильность между вызовами).
+
         $buttons.each(function() {
             var existing = this.getAttribute ? this.getAttribute(BM_ID_ATTR) : null;
             if (!existing) return;
@@ -1075,7 +1071,7 @@
             }
             if (!counts[base] || n > counts[base]) counts[base] = n;
         });
-        // 2) Размечаем ещё не размеченные кнопки.
+
         $buttons.each(function() {
             if (this.getAttribute && this.getAttribute(BM_ID_ATTR)) return;
             var base = baseButtonId($(this));
@@ -1086,10 +1082,6 @@
         });
     }
 
-    // Возвращает стабильный уникальный ID кнопки. Если метка уже проставлена
-    // (assignButtonIds / клонирование с copy-атрибутов) — берём её. Иначе
-    // откатываемся к базовому ID — поведение как раньше (без регрессии для
-    // ранних вызовов до разметки).
     function getButtonId(button) {
         if (!button) return baseButtonId(button);
         var el = button[0];
@@ -1128,10 +1120,6 @@
 
     function categorizeButtons(container) {
         var allButtons = container.find('.full-start__button').not('.button--edit-order, .button--folder, .button--play');
-        // Размечаем стабильные уникальные ID до любой обработки по ID — это самый
-        // ранний момент, где доступен полный набор кнопок карточки. Делается до
-        // клонирования в allButtonsOriginal (reorderButtons), поэтому клоны
-        // наследуют data-bm-id и матчатся с живыми кнопками по тому же ID.
         assignButtonIds(allButtons);
         var categories = { online: [], torrent: [], trailer: [], favorite: [], subscribe: [], book: [], reaction: [], other: [] };
         var processedIds = {};
@@ -1285,16 +1273,6 @@
         setCustomOrder(order);
     }
 
-    // #11: общая раскладка кнопок/папок по itemOrder, вынесенная из applyChanges и
-    // reorderButtons (раньше ~80% копипасты). Поведение обоих вызовов сохранено 1-в-1
-    // через опции:
-    //   options.guardButtonsInFolders — пропускать кнопки, уже лежащие в папках
-    //       (true в applyChanges, где currentButtons НЕ отфильтрован; false в
-    //        reorderButtons, где currentButtons уже отфильтрован заранее).
-    //   options.foldersFirstWhenNoOrder — при пустом itemOrder сначала добавлять папки,
-    //       потом кнопки (true в reorderButtons), иначе сначала кнопки, потом папки
-    //       (false в applyChanges).
-    // Возвращает массив видимых элементов (visibleButtons) для анимации.
     function layoutButtons(targetContainer, currentButtons, folders, buttonsInFolders, options) {
         options = options || {};
         var guardInFolders = !!options.guardButtonsInFolders;
@@ -1381,8 +1359,7 @@
         var targetContainer = currentContainer.find('.full-start-new__buttons');
         if (!targetContainer.length) return;
         targetContainer.find('.full-start__button').not('.button--edit-order').detach();
-        // #11: общая раскладка вынесена в layoutButtons.
-        // applyChanges: гвард buttonsInFolders включён; в else-ветке порядок «кнопки → папки».
+
         var visibleButtons = layoutButtons(targetContainer, currentButtons, folders, buttonsInFolders, {
             guardButtonsInFolders: true,
             foldersFirstWhenNoOrder: false
@@ -1442,7 +1419,7 @@
             if (subtitle) {
                 return text + ' (' + (subtitle.substring(0, 30).replace(/</g, '').replace(/>/g, '')) + ')';
             }
-            // #13: переименовано из дублирующего var viewClass (был тот же идентификатор, что выше).
+
             var viewOnlyClass = classes.split(' ').find(function(c) { return c.indexOf('view--') === 0; });
             if (viewOnlyClass) {
                 var identifier = viewOnlyClass.replace('view--', '').replace(/_/g, ' ');
@@ -2479,8 +2456,7 @@
             });
         }
         targetContainer.children().detach();
-        // #11: общая раскладка вынесена в layoutButtons.
-        // reorderButtons: currentButtons уже отфильтрован, гвард не нужен; в else-ветке порядок «папки → кнопки».
+
         var visibleButtons = layoutButtons(targetContainer, currentButtons, folders, buttonsInFolders, {
             guardButtonsInFolders: false,
             foldersFirstWhenNoOrder: true
@@ -2502,7 +2478,8 @@
         return true;
     }
 
-    window.reorderButtons = reorderButtons;
+    window.lampa_buttons_plugin = window.lampa_buttons_plugin || {};
+    window.lampa_buttons_plugin.reorder = reorderButtons;
 
     function setupButtonNavigation(container) {
         if (Lampa.Controller && typeof Lampa.Controller.toggle === 'function') {
@@ -2649,8 +2626,7 @@
             $('body').toggleClass('buttons-plugin--poster-off', !showPoster);
         }
         syncPosterOffClass();
-        // #6: вместо опроса Storage каждые 3 c — реакция на событие изменения настройки.
-        // На интервал откатываемся только если listener-API недоступен (старые сборки Lampa).
+
         (function bindPosterSync() {
             var bound = false;
             try {
