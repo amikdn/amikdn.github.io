@@ -1,8 +1,7 @@
-
 (function() {
     'use strict';
 
-    var PLUGIN_VERSION = '1.80';
+    var PLUGIN_VERSION = '1.81';
     var EDIT_ORDER_BUTTON_ID = 'buttons_plugin_edit_order';
     var FULL_EVENT_TYPE = 'complite';
     var DELAY_AFTER_APPLY_MS = 100;
@@ -41,7 +40,7 @@
             if (typeof console !== 'undefined' && console && typeof console.warn === 'function') {
                 console.warn.apply(console, ['[buttons]'].concat([].slice.call(arguments)));
             }
-        } catch (e) { /* консоль недоступна — молча игнорируем */ }
+        } catch (e) {  }
     }
 
     function definePolyfill(proto, name, fn) {
@@ -190,6 +189,7 @@
     }
 
     function getFolders() {
+
         var raw = Lampa.Storage.get(STORAGE_KEYS.folders, []);
         if (!Array.isArray(raw)) return [];
         return raw.filter(function(f) { return f && typeof f === 'object'; }).map(function(f) {
@@ -203,6 +203,7 @@
     }
 
     function getItemOrder() {
+
         var raw = Lampa.Storage.get(STORAGE_KEYS.item_order, []);
         if (!Array.isArray(raw)) return [];
         return raw.filter(function(it) { return it && typeof it === 'object' && it.id != null; });
@@ -308,6 +309,48 @@
                 logDebug('focusModalController', e);
             }
         }, 120);
+    }
+
+    var EDGE_SCROLL_PAD = 8;
+
+    function openModalWithEdgeScroll(params) {
+        Lampa.Modal.open(params);
+        patchModalEdgeScroll();
+    }
+
+    function patchModalEdgeScroll() {
+        try {
+            if (!Lampa.Modal || typeof Lampa.Modal.scroll !== 'function') return;
+            var scroll = Lampa.Modal.scroll();
+            if (!scroll || scroll.__edgeScrollPatched) return;
+            if (typeof scroll.update !== 'function' || typeof scroll.wheel !== 'function' ||
+                typeof scroll.render !== 'function') return;
+            scroll.__edgeScrollPatched = true;
+            scroll.update = function(elem) {
+                try {
+                    var target = elem && elem.jquery ? elem[0] : elem;
+                    if (!target || typeof target.getBoundingClientRect !== 'function') return;
+                    var renderEl = scroll.render(true);
+                    if (!renderEl) return;
+                    var viewportEl = renderEl.querySelector('.scroll__content') || renderEl;
+                    var er = target.getBoundingClientRect();
+                    var vr = viewportEl.getBoundingClientRect();
+                    if (!er.height || !vr.height) return;
+
+                    if (er.bottom > vr.bottom - EDGE_SCROLL_PAD) {
+                        scroll.wheel(er.bottom - vr.bottom + EDGE_SCROLL_PAD);
+
+                    } else if (er.top < vr.top + EDGE_SCROLL_PAD) {
+                        scroll.wheel(er.top - vr.top - EDGE_SCROLL_PAD);
+                    }
+
+                } catch (e) {
+                    logDebug('edgeScroll.update', e);
+                }
+            };
+        } catch (e) {
+            logDebug('patchModalEdgeScroll', e);
+        }
     }
 
     function syncModalFont() {
@@ -461,7 +504,7 @@
 
         closeModalSafe();
         setTimeout(function() {
-            Lampa.Modal.open({
+            openModalWithEdgeScroll({
                 title: 'Цвет иконок',
                 html: wrap,
                 size: 'medium',
@@ -654,6 +697,7 @@
         var folders = getFolders();
         var buttonsInFolders = [];
         folders.forEach(function(folder) {
+
             if (Array.isArray(folder.buttons)) {
                 buttonsInFolders = buttonsInFolders.concat(folder.buttons);
             }
@@ -668,15 +712,20 @@
 
     function sanitizeSvgMarkup(raw) {
         if (!raw || typeof raw !== 'string') return '';
+
         var match = raw.match(/<svg[\s\S]*?<\s*\/\s*svg\s*>/i);
         var svg = match ? match[0] : '';
         if (!svg) return '';
+
         svg = svg.replace(/<\s*script[\s\S]*?<\s*\/\s*script\s*>/gi, '');
         svg = svg.replace(/<\s*script\b[^>]*>/gi, '');
+
         svg = svg.replace(/<\s*foreignObject[\s\S]*?<\s*\/\s*foreignObject\s*>/gi, '');
+
         svg = svg.replace(/\son[a-z0-9_-]+\s*=\s*"[^"]*"/gi, '');
         svg = svg.replace(/\son[a-z0-9_-]+\s*=\s*'[^']*'/gi, '');
         svg = svg.replace(/\son[a-z0-9_-]+\s*=\s*[^\s>]+/gi, '');
+
         svg = svg.replace(/(href|xlink:href|src)\s*=\s*"\s*javascript:[^"]*"/gi, '$1="#"');
         svg = svg.replace(/(href|xlink:href|src)\s*=\s*'\s*javascript:[^']*'/gi, "$1='#'");
         return svg;
@@ -800,6 +849,7 @@
             originalCallback(null, 'Введите ссылку на файл');
             return;
         }
+
         var settled = false;
         function callback(res, err) {
             if (settled) return;
@@ -835,6 +885,7 @@
                 try {
                     arr = JSON.parse(text.replace(/[\u0000-\u001F]+/g, ' '));
                 } catch (e2) {
+
                     var svgList = text.match(/<svg[\s\S]*?<\s*\/\s*svg\s*>/gi);
                     if (svgList && svgList.length > 0) {
                         arr = svgList;
@@ -979,7 +1030,7 @@
         function openModal() {
             if (modalOpened) return;
             modalOpened = true;
-            Lampa.Modal.open({
+            openModalWithEdgeScroll({
                 title: title,
                 html: wrap,
                 size: 'medium',
@@ -1045,7 +1096,7 @@
             if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.close) Lampa.Modal.close();
             onDone(val);
         });
-        Lampa.Modal.open({
+        openModalWithEdgeScroll({
             title: title,
             html: wrap,
             size: 'small',
@@ -1104,6 +1155,7 @@
     function assignButtonIds($buttons) {
         if (!$buttons || !$buttons.length) return;
         var counts = {};
+
         $buttons.each(function() {
             var existing = this.getAttribute ? this.getAttribute(BM_ID_ATTR) : null;
             if (!existing) return;
@@ -1116,6 +1168,7 @@
             }
             if (!counts[base] || n > counts[base]) counts[base] = n;
         });
+
         $buttons.each(function() {
             if (this.getAttribute && this.getAttribute(BM_ID_ATTR)) return;
             var base = baseButtonId($(this));
@@ -1164,6 +1217,7 @@
 
     function categorizeButtons(container) {
         var allButtons = container.find('.full-start__button').not('.button--edit-order, .button--folder, .button--play');
+
         assignButtonIds(allButtons);
         var categories = { online: [], torrent: [], trailer: [], favorite: [], subscribe: [], book: [], reaction: [], other: [] };
         var processedIds = {};
@@ -1403,6 +1457,7 @@
         var targetContainer = currentContainer.find('.full-start-new__buttons');
         if (!targetContainer.length) return;
         targetContainer.find('.full-start__button').not('.button--edit-order').detach();
+
         var visibleButtons = layoutButtons(targetContainer, currentButtons, folders, buttonsInFolders, {
             guardButtonsInFolders: true,
             foldersFirstWhenNoOrder: false
@@ -1462,6 +1517,7 @@
             if (subtitle) {
                 return text + ' (' + (subtitle.substring(0, 30).replace(/</g, '').replace(/>/g, '')) + ')';
             }
+
             var viewOnlyClass = classes.split(' ').find(function(c) { return c.indexOf('view--') === 0; });
             if (viewOnlyClass) {
                 var identifier = viewOnlyClass.replace('view--', '').replace(/_/g, ' ');
@@ -1566,7 +1622,7 @@
                 list.append(item);
             }
         });
-        Lampa.Modal.open({
+        openModalWithEdgeScroll({
             title: 'Порядок кнопок в папке',
             html: list,
             size: 'medium',
@@ -1829,7 +1885,7 @@
             refreshController();
         });
         list.append(createBtn);
-        Lampa.Modal.open({
+        openModalWithEdgeScroll({
             title: 'Выберите кнопки для папки',
             html: list,
             size: 'medium',
@@ -1948,6 +2004,7 @@
         function createFolderItem(folder) {
             var folderIconHtml = folder.customIcon || (findButton(folder.buttons[0]) && findButton(folder.buttons[0]).find('svg').first().length ? findButton(folder.buttons[0]).find('svg').first().get(0).outerHTML : '');
             var folderIcon = folderIconHtml ? $(folderIconHtml).clone() : $('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>');
+
             var folderResolvedColor = getPerButtonIconColors()[folder.id] || getGlobalIconColor() || '';
             paintSvgWithColor(folderIcon, folderResolvedColor);
             var item = $('<div class="menu-edit-list__item folder-item">' +
@@ -2290,7 +2347,7 @@
         });
         list.append(resetBtn);
 
-        Lampa.Modal.open({
+        openModalWithEdgeScroll({
             title: 'Порядок кнопок',
             html: list,
             size: 'medium',
@@ -2386,6 +2443,7 @@
             });
         }
         targetContainer.children().detach();
+
         var visibleButtons = layoutButtons(targetContainer, currentButtons, folders, buttonsInFolders, {
             guardButtonsInFolders: false,
             foldersFirstWhenNoOrder: true
@@ -2555,6 +2613,7 @@
             $('body').toggleClass('buttons-plugin--poster-off', !showPoster);
         }
         syncPosterOffClass();
+
         (function bindPosterSync() {
             var bound = false;
             try {
