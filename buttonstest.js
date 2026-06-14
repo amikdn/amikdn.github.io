@@ -1,8 +1,7 @@
-
 (function() {
     'use strict';
 
-    var PLUGIN_VERSION = '1.71';
+    var PLUGIN_VERSION = '1.81';
     var EDIT_ORDER_BUTTON_ID = 'buttons_plugin_edit_order';
     var FULL_EVENT_TYPE = 'complite';
     var DELAY_AFTER_APPLY_MS = 100;
@@ -36,95 +35,102 @@
             .replace(/'/g, '&#39;');
     }
 
-    if (!Array.prototype.forEach) {
-        Array.prototype.forEach = function(callback, thisArg) {
-            var T, k;
-            if (this == null) throw new TypeError('this is null or not defined');
-            var O = Object(this);
-            var len = O.length >>> 0;
-            if (typeof callback !== 'function') throw new TypeError(callback + ' is not a function');
-            if (arguments.length > 1) T = thisArg;
-            k = 0;
-            while (k < len) {
-                var kValue;
-                if (k in O) {
-                    kValue = O[k];
-                    callback.call(T, kValue, k, O);
-                }
-                k++;
+    function logDebug() {
+        try {
+            if (typeof console !== 'undefined' && console && typeof console.warn === 'function') {
+                console.warn.apply(console, ['[buttons]'].concat([].slice.call(arguments)));
             }
-        };
+        } catch (e) {  }
     }
 
-    if (!Array.prototype.filter) {
-        Array.prototype.filter = function(callback, thisArg) {
-            if (this == null) throw new TypeError('this is null or not defined');
-            var O = Object(this);
-            var len = O.length >>> 0;
-            if (typeof callback !== 'function') throw new TypeError(callback + ' is not a function');
-            var res = [];
-            var T = thisArg;
-            var k = 0;
-            while (k < len) {
-                if (k in O) {
-                    var kValue = O[k];
-                    if (callback.call(T, kValue, k, O)) res.push(kValue);
-                }
-                k++;
-            }
-            return res;
-        };
+    function definePolyfill(proto, name, fn) {
+        if (proto[name]) return;
+        try {
+            Object.defineProperty(proto, name, { value: fn, configurable: true, writable: true, enumerable: false });
+        } catch (e) {
+            proto[name] = fn;
+        }
     }
 
-    if (!Array.prototype.find) {
-        Array.prototype.find = function(callback, thisArg) {
-            if (this == null) throw new TypeError('this is null or not defined');
-            var O = Object(this);
-            var len = O.length >>> 0;
-            if (typeof callback !== 'function') throw new TypeError(callback + ' is not a function');
-            var T = thisArg;
-            var k = 0;
-            while (k < len) {
+    definePolyfill(Array.prototype, 'forEach', function(callback, thisArg) {
+        var T, k;
+        if (this == null) throw new TypeError('this is null or not defined');
+        var O = Object(this);
+        var len = O.length >>> 0;
+        if (typeof callback !== 'function') throw new TypeError(callback + ' is not a function');
+        if (arguments.length > 1) T = thisArg;
+        k = 0;
+        while (k < len) {
+            var kValue;
+            if (k in O) {
+                kValue = O[k];
+                callback.call(T, kValue, k, O);
+            }
+            k++;
+        }
+    });
+
+    definePolyfill(Array.prototype, 'filter', function(callback, thisArg) {
+        if (this == null) throw new TypeError('this is null or not defined');
+        var O = Object(this);
+        var len = O.length >>> 0;
+        if (typeof callback !== 'function') throw new TypeError(callback + ' is not a function');
+        var res = [];
+        var T = thisArg;
+        var k = 0;
+        while (k < len) {
+            if (k in O) {
                 var kValue = O[k];
-                if (callback.call(T, kValue, k, O)) return kValue;
-                k++;
+                if (callback.call(T, kValue, k, O)) res.push(kValue);
             }
-            return undefined;
-        };
-    }
+            k++;
+        }
+        return res;
+    });
 
-    if (!Array.prototype.some) {
-        Array.prototype.some = function(callback, thisArg) {
-            if (this == null) throw new TypeError('this is null or not defined');
-            var O = Object(this);
-            var len = O.length >>> 0;
-            if (typeof callback !== 'function') throw new TypeError(callback + ' is not a function');
-            var T = thisArg;
-            var k = 0;
-            while (k < len) {
-                if (k in O && callback.call(T, O[k], k, O)) return true;
-                k++;
-            }
-            return false;
-        };
-    }
+    definePolyfill(Array.prototype, 'find', function(callback, thisArg) {
+        if (this == null) throw new TypeError('this is null or not defined');
+        var O = Object(this);
+        var len = O.length >>> 0;
+        if (typeof callback !== 'function') throw new TypeError(callback + ' is not a function');
+        var T = thisArg;
+        var k = 0;
+        while (k < len) {
+            var kValue = O[k];
+            if (callback.call(T, kValue, k, O)) return kValue;
+            k++;
+        }
+        return undefined;
+    });
 
-    if (!Array.prototype.indexOf) {
-        Array.prototype.indexOf = function(searchElement, fromIndex) {
-            if (this == null) throw new TypeError('this is null or not defined');
-            var O = Object(this);
-            var len = O.length >>> 0;
-            if (len === 0) return -1;
-            var n = fromIndex | 0;
-            if (n >= len) return -1;
-            var k = Math.max(n >= 0 ? n : len - Math.abs(n), 0);
-            while (k < len) {
-                if (k in O && O[k] === searchElement) return k;
-                k++;
-            }
-            return -1;
-        };
-    }
+    definePolyfill(Array.prototype, 'some', function(callback, thisArg) {
+        if (this == null) throw new TypeError('this is null or not defined');
+        var O = Object(this);
+        var len = O.length >>> 0;
+        if (typeof callback !== 'function') throw new TypeError(callback + ' is not a function');
+        var T = thisArg;
+        var k = 0;
+        while (k < len) {
+            if (k in O && callback.call(T, O[k], k, O)) return true;
+            k++;
+        }
+        return false;
+    });
+
+    definePolyfill(Array.prototype, 'indexOf', function(searchElement, fromIndex) {
+        if (this == null) throw new TypeError('this is null or not defined');
+        var O = Object(this);
+        var len = O.length >>> 0;
+        if (len === 0) return -1;
+        var n = fromIndex | 0;
+        if (n >= len) return -1;
+        var k = Math.max(n >= 0 ? n : len - Math.abs(n), 0);
+        while (k < len) {
+            if (k in O && O[k] === searchElement) return k;
+            k++;
+        }
+        return -1;
+    });
 
     var LAMPAC_ICON = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><path d="M20.331 14.644l-13.794-13.831 17.55 10.075zM2.938 0c-0.813 0.425-1.356 1.2-1.356 2.206v27.581c0 1.006 0.544 1.781 1.356 2.206l16.038-16zM29.512 14.1l-3.681-2.131-4.106 4.031 4.106 4.031 3.756-2.131c1.125-0.893 1.125-2.906-0.075-3.8zM6.538 31.188l17.55-10.075-3.756-3.756z" fill="currentColor"></path></svg>';
     var EXCLUDED_CLASSES = ['button--play', 'button--edit-order', 'button--folder'];
@@ -183,7 +189,13 @@
     }
 
     function getFolders() {
-        return Lampa.Storage.get(STORAGE_KEYS.folders, []);
+
+        var raw = Lampa.Storage.get(STORAGE_KEYS.folders, []);
+        if (!Array.isArray(raw)) return [];
+        return raw.filter(function(f) { return f && typeof f === 'object'; }).map(function(f) {
+            if (!Array.isArray(f.buttons)) f.buttons = [];
+            return f;
+        });
     }
 
     function setFolders(folders) {
@@ -191,7 +203,10 @@
     }
 
     function getItemOrder() {
-        return Lampa.Storage.get(STORAGE_KEYS.item_order, []);
+
+        var raw = Lampa.Storage.get(STORAGE_KEYS.item_order, []);
+        if (!Array.isArray(raw)) return [];
+        return raw.filter(function(it) { return it && typeof it === 'object' && it.id != null; });
     }
 
     function setItemOrder(order) {
@@ -296,7 +311,48 @@
         }, 120);
     }
 
-    /** Подгоняет шрифт открытой модалки под интерфейс Lampa (настройки / экран), чтобы наследование inherit работало корректно. */
+    var EDGE_SCROLL_PAD = 8;
+
+    function openModalWithEdgeScroll(params) {
+        Lampa.Modal.open(params);
+        patchModalEdgeScroll();
+    }
+
+    function patchModalEdgeScroll() {
+        try {
+            if (!Lampa.Modal || typeof Lampa.Modal.scroll !== 'function') return;
+            var scroll = Lampa.Modal.scroll();
+            if (!scroll || scroll.__edgeScrollPatched) return;
+            if (typeof scroll.update !== 'function' || typeof scroll.wheel !== 'function' ||
+                typeof scroll.render !== 'function') return;
+            scroll.__edgeScrollPatched = true;
+            scroll.update = function(elem) {
+                try {
+                    var target = elem && elem.jquery ? elem[0] : elem;
+                    if (!target || typeof target.getBoundingClientRect !== 'function') return;
+                    var renderEl = scroll.render(true);
+                    if (!renderEl) return;
+                    var viewportEl = renderEl.querySelector('.scroll__content') || renderEl;
+                    var er = target.getBoundingClientRect();
+                    var vr = viewportEl.getBoundingClientRect();
+                    if (!er.height || !vr.height) return;
+
+                    if (er.bottom > vr.bottom - EDGE_SCROLL_PAD) {
+                        scroll.wheel(er.bottom - vr.bottom + EDGE_SCROLL_PAD);
+
+                    } else if (er.top < vr.top + EDGE_SCROLL_PAD) {
+                        scroll.wheel(er.top - vr.top - EDGE_SCROLL_PAD);
+                    }
+
+                } catch (e) {
+                    logDebug('edgeScroll.update', e);
+                }
+            };
+        } catch (e) {
+            logDebug('patchModalEdgeScroll', e);
+        }
+    }
+
     function syncModalFont() {
         try {
             var ref = document.querySelector('.settings-param') || document.querySelector('.settings');
@@ -448,7 +504,7 @@
 
         closeModalSafe();
         setTimeout(function() {
-            Lampa.Modal.open({
+            openModalWithEdgeScroll({
                 title: 'Цвет иконок',
                 html: wrap,
                 size: 'medium',
@@ -462,6 +518,79 @@
             });
             focusModalController();
         }, 250);
+    }
+
+    function isNeutralTone(hexOrName) {
+        if (!hexOrName) {
+            return false;
+        }
+        var compactLower = String(hexOrName).replace(/\s/g, '').toLowerCase();
+        return compactLower === '#fff' || compactLower === '#ffffff' || compactLower === 'white' ||
+            compactLower === '#000' || compactLower === '#000000' || compactLower === 'black' ||
+            compactLower === '#ccc' || compactLower === '#cccccc' || compactLower === 'gray' ||
+            compactLower === 'grey' || compactLower === '#fff7f7';
+    }
+
+    function paintSvgWithColor($svg, resolvedColor) {
+        if (!$svg || !$svg.length) {
+            return $svg;
+        }
+        $svg.attr('data-ci-color', resolvedColor || '');
+        $svg.find('*').addBack().each(function() {
+            var el = this;
+            var tag = el.tagName.toLowerCase();
+            var fillAttr = (el.getAttribute('fill') || '').trim();
+            var strokeAttr = (el.getAttribute('stroke') || '').trim();
+            el.style.removeProperty('fill');
+            el.style.removeProperty('stroke');
+            el.style.removeProperty('color');
+            if (resolvedColor) {
+                if (tag === 'svg') {
+                    el.style.setProperty('color', resolvedColor, 'important');
+                    if (fillAttr && fillAttr.toLowerCase() !== 'none' && fillAttr.toLowerCase() !== 'transparent') {
+                        el.style.setProperty('fill', resolvedColor, 'important');
+                    }
+                } else {
+                    var ownerSvg = $(el).closest('svg');
+                    var svgFill = (ownerSvg.attr('fill') || '').trim().toLowerCase();
+                    var svgStroke = (ownerSvg.attr('stroke') || '').trim().toLowerCase();
+                    if (fillAttr) {
+                        if (fillAttr.toLowerCase() === 'none' || fillAttr.toLowerCase() === 'transparent') {
+                            el.style.setProperty('fill', 'none', 'important');
+                        } else if (isNeutralTone(fillAttr)) {
+                            el.style.setProperty('fill', fillAttr, 'important');
+                        } else {
+                            el.style.setProperty('fill', resolvedColor, 'important');
+                        }
+                    } else if (svgFill === 'none' || svgFill === 'transparent') {
+                        el.style.setProperty('fill', 'none', 'important');
+                    } else {
+                        el.style.setProperty('fill', resolvedColor, 'important');
+                    }
+                    if (strokeAttr) {
+                        if (strokeAttr.toLowerCase() === 'none' || strokeAttr.toLowerCase() === 'transparent') {
+                            el.style.setProperty('stroke', 'none', 'important');
+                        } else if (isNeutralTone(strokeAttr)) {
+                            el.style.setProperty('stroke', strokeAttr, 'important');
+                        } else {
+                            el.style.setProperty('stroke', resolvedColor, 'important');
+                        }
+                    } else if (svgStroke && svgStroke !== 'none' && svgStroke !== 'transparent') {
+                        el.style.setProperty('stroke', resolvedColor, 'important');
+                    } else {
+                        el.style.setProperty('stroke', 'none', 'important');
+                    }
+                }
+            } else {
+                if (fillAttr) {
+                    el.style.setProperty('fill', fillAttr, 'important');
+                }
+                if (strokeAttr) {
+                    el.style.setProperty('stroke', strokeAttr, 'important');
+                }
+            }
+        });
+        return $svg;
     }
 
     function applyIconsAndColorsToButtons(nodes) {
@@ -543,71 +672,7 @@
                     }
                 }
                 if (newSvg) {
-                    newSvg.attr('data-ci-color', resolvedColor);
-                    function isNeutralTone(hexOrName) {
-                        if (!hexOrName) {
-                            return false;
-                        }
-                        var compactLower = String(hexOrName).replace(/\s/g, '').toLowerCase();
-                        return compactLower === '#fff' || compactLower === '#ffffff' || compactLower === 'white' ||
-                            compactLower === '#000' || compactLower === '#000000' || compactLower === 'black' ||
-                            compactLower === '#ccc' || compactLower === '#cccccc' || compactLower === 'gray' ||
-                            compactLower === 'grey' || compactLower === '#fff7f7';
-                    }
-                    newSvg.find('*').addBack().each(function() {
-                        var el = this;
-                        var tag = el.tagName.toLowerCase();
-                        var fillAttr = (el.getAttribute('fill') || '').trim();
-                        var strokeAttr = (el.getAttribute('stroke') || '').trim();
-                        el.style.removeProperty('fill');
-                        el.style.removeProperty('stroke');
-                        el.style.removeProperty('color');
-                        if (resolvedColor) {
-                            if (tag === 'svg') {
-                                el.style.setProperty('color', resolvedColor, 'important');
-                                if (fillAttr && fillAttr.toLowerCase() !== 'none' && fillAttr.toLowerCase() !== 'transparent') {
-                                    el.style.setProperty('fill', resolvedColor, 'important');
-                                }
-                            } else {
-                                var ownerSvg = $(el).closest('svg');
-                                var svgFill = (ownerSvg.attr('fill') || '').trim().toLowerCase();
-                                var svgStroke = (ownerSvg.attr('stroke') || '').trim().toLowerCase();
-                                if (fillAttr) {
-                                    if (fillAttr.toLowerCase() === 'none' || fillAttr.toLowerCase() === 'transparent') {
-                                        el.style.setProperty('fill', 'none', 'important');
-                                    } else if (isNeutralTone(fillAttr)) {
-                                        el.style.setProperty('fill', fillAttr, 'important');
-                                    } else {
-                                        el.style.setProperty('fill', resolvedColor, 'important');
-                                    }
-                                } else if (svgFill === 'none' || svgFill === 'transparent') {
-                                    el.style.setProperty('fill', 'none', 'important');
-                                } else {
-                                    el.style.setProperty('fill', resolvedColor, 'important');
-                                }
-                                if (strokeAttr) {
-                                    if (strokeAttr.toLowerCase() === 'none' || strokeAttr.toLowerCase() === 'transparent') {
-                                        el.style.setProperty('stroke', 'none', 'important');
-                                    } else if (isNeutralTone(strokeAttr)) {
-                                        el.style.setProperty('stroke', strokeAttr, 'important');
-                                    } else {
-                                        el.style.setProperty('stroke', resolvedColor, 'important');
-                                    }
-                                } else if (svgStroke && svgStroke !== 'none' && svgStroke !== 'transparent') {
-                                    el.style.setProperty('stroke', resolvedColor, 'important');
-                                } else {
-                                    el.style.setProperty('stroke', 'none', 'important');
-                                }
-                            }
-                        } else {
-                            if (fillAttr) {
-                                el.style.setProperty('fill', fillAttr, 'important');
-                            }
-                            if (strokeAttr) {
-                                el.style.setProperty('stroke', strokeAttr, 'important');
-                            }
-                        }
-                    });
+                    paintSvgWithColor(newSvg, resolvedColor);
                     if (currentSvg.length) {
                         currentSvg.replaceWith(newSvg);
                     } else {
@@ -632,7 +697,10 @@
         var folders = getFolders();
         var buttonsInFolders = [];
         folders.forEach(function(folder) {
-            buttonsInFolders = buttonsInFolders.concat(folder.buttons);
+
+            if (Array.isArray(folder.buttons)) {
+                buttonsInFolders = buttonsInFolders.concat(folder.buttons);
+            }
         });
         return buttonsInFolders;
     }
@@ -640,6 +708,27 @@
     function normalizeSvgString(str) {
         if (!str || typeof str !== 'string') return '';
         return str.replace(/\s+/g, ' ').replace(/>\s+</g, '><').trim();
+    }
+
+    function sanitizeSvgMarkup(raw) {
+        if (!raw || typeof raw !== 'string') return '';
+
+        var match = raw.match(/<svg[\s\S]*?<\s*\/\s*svg\s*>/i);
+        var svg = match ? match[0] : '';
+        if (!svg) return '';
+
+        svg = svg.replace(/<\s*script[\s\S]*?<\s*\/\s*script\s*>/gi, '');
+        svg = svg.replace(/<\s*script\b[^>]*>/gi, '');
+
+        svg = svg.replace(/<\s*foreignObject[\s\S]*?<\s*\/\s*foreignObject\s*>/gi, '');
+
+        svg = svg.replace(/\son[a-z0-9_-]+\s*=\s*"[^"]*"/gi, '');
+        svg = svg.replace(/\son[a-z0-9_-]+\s*=\s*'[^']*'/gi, '');
+        svg = svg.replace(/\son[a-z0-9_-]+\s*=\s*[^\s>]+/gi, '');
+
+        svg = svg.replace(/(href|xlink:href|src)\s*=\s*"\s*javascript:[^"]*"/gi, '$1="#"');
+        svg = svg.replace(/(href|xlink:href|src)\s*=\s*'\s*javascript:[^']*'/gi, "$1='#'");
+        return svg;
     }
 
     function svgFingerprint(html) {
@@ -755,12 +844,23 @@
         return svg.length ? svg.get(0).outerHTML : '';
     }
 
-    function loadIconsFromUrl(url, seen, callback) {
+    function loadIconsFromUrl(url, seen, originalCallback) {
         if (!url || typeof url !== 'string') {
-            callback(null, 'Введите ссылку на файл');
+            originalCallback(null, 'Введите ссылку на файл');
             return;
         }
+
+        var settled = false;
+        function callback(res, err) {
+            if (settled) return;
+            settled = true;
+            originalCallback(res, err);
+        }
         var xhr = new XMLHttpRequest();
+        xhr.timeout = 15000;
+        xhr.ontimeout = function() {
+            callback(null, 'Таймаут загрузки');
+        };
         xhr.onreadystatechange = function() {
             if (xhr.readyState !== 4) return;
             if (xhr.status !== 200) {
@@ -777,7 +877,7 @@
                 return;
             }
             text = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-            text = text.replace(/,(\s*)\]/, '$1]').replace(/,(\s*)\}/, '$1}');
+            text = text.replace(/,(\s*)\]/g, '$1]').replace(/,(\s*)\}/g, '$1}');
             var arr;
             try {
                 arr = JSON.parse(text);
@@ -785,7 +885,7 @@
                 try {
                     arr = JSON.parse(text.replace(/[\u0000-\u001F]+/g, ' '));
                 } catch (e2) {
-                    /* Файл может быть массивом с неэкранированными кавычками — извлекаем все блоки <svg>...</svg> */
+
                     var svgList = text.match(/<svg[\s\S]*?<\s*\/\s*svg\s*>/gi);
                     if (svgList && svgList.length > 0) {
                         arr = svgList;
@@ -807,10 +907,13 @@
                 if (typeof item === 'string') {
                     html = item.trim();
                     if (html.indexOf('<svg') !== -1) {
-                        key = svgFingerprint(html);
-                        if (!seen[key]) {
-                            seen[key] = true;
-                            result.push({ id: 'icon-' + i, html: html });
+                        html = sanitizeSvgMarkup(html);
+                        if (html) {
+                            key = svgFingerprint(html);
+                            if (!seen[key]) {
+                                seen[key] = true;
+                                result.push({ id: 'icon-' + i, html: html });
+                            }
                         }
                     } else if (html.indexOf('http://') === 0 || html.indexOf('https://') === 0) {
                         urlsToFetch.push({ url: html, index: i });
@@ -818,10 +921,13 @@
                 } else if (item && item.html != null) {
                     html = String(item.html).trim();
                     if (html && html.indexOf('<svg') !== -1) {
-                        key = svgFingerprint(html);
-                        if (!seen[key]) {
-                            seen[key] = true;
-                            result.push({ id: (item.id && String(item.id)) || key.substring(0, 80), html: html });
+                        html = sanitizeSvgMarkup(html);
+                        if (html) {
+                            key = svgFingerprint(html);
+                            if (!seen[key]) {
+                                seen[key] = true;
+                                result.push({ id: (item.id && String(item.id)) || key.substring(0, 80), html: html });
+                            }
                         }
                     }
                 }
@@ -833,15 +939,25 @@
             var fetched = 0;
             urlsToFetch.forEach(function(entry) {
                 var req = new XMLHttpRequest();
+                req.timeout = 15000;
+                req.ontimeout = function() {
+                    fetched++;
+                    if (fetched === urlsToFetch.length) {
+                        callback(result, null);
+                    }
+                };
                 req.open('GET', entry.url, true);
                 req.onload = function() {
                     if (req.status === 200 && req.responseText) {
                         html = req.responseText.trim();
                         if (html.indexOf('<svg') !== -1) {
-                            key = svgFingerprint(html);
-                            if (!seen[key]) {
-                                seen[key] = true;
-                                result.push({ id: 'icon-' + entry.index, html: html });
+                            html = sanitizeSvgMarkup(html);
+                            if (html) {
+                                key = svgFingerprint(html);
+                                if (!seen[key]) {
+                                    seen[key] = true;
+                                    result.push({ id: 'icon-' + entry.index, html: html });
+                                }
                             }
                         }
                     }
@@ -871,7 +987,11 @@
         }
     }
 
-    function openIconPicker(btn, btnId, defaultIconHtml, listItem) {
+    function buildIconPicker(opts) {
+        opts = opts || {};
+        var title = opts.title || '';
+        var defaultIconHtml = opts.defaultIconHtml;
+        var onChoice = (typeof opts.onChoice === 'function') ? opts.onChoice : function() {};
         var seenForJsonDedupe = {};
         var wrap = $('<div class="icon-picker-wrap buttons-plugin-icon-picker"></div>');
         var defaultBlock = $('<div class="selector icon-picker-default" tabindex="0">' +
@@ -881,50 +1001,37 @@
             defaultBlock.find('.icon-picker-default__preview').append($(defaultIconHtml).clone());
         }
         function applyChoice(isDefault, chosenHtml) {
-            var stored = getCustomIcons();
-            var custom = {};
-            for (var key in stored) {
-                if (stored.hasOwnProperty(key)) custom[key] = stored[key];
-            }
-            if (isDefault) {
-                delete custom[btnId];
-            } else {
-                custom[btnId] = chosenHtml;
-            }
-            setCustomIcons(custom);
-            reopenButtonEditorAfterColorPicker(true);
+            onChoice(isDefault, chosenHtml);
         }
         defaultBlock.on('hover:enter', function() {
             applyChoice(true, null);
         });
         wrap.append(defaultBlock);
-        var loadStatus = $('<div class="icon-picker-load-status buttons-plugin-ui-text"></div>');
         var tabLampa = $('<div class="selector icon-picker-tab icon-picker-tab--active buttons-plugin-ui-text" tabindex="0">Иконки Lampa</div>');
         var tabAlt = $('<div class="selector icon-picker-tab buttons-plugin-ui-text" tabindex="0">Альтернативные иконки</div>');
         var switchBlock = $('<div class="icon-picker-switch-wrap"></div>');
         switchBlock.append(tabLampa).append(tabAlt);
         wrap.append(switchBlock);
+        var loadStatus = $('<div class="icon-picker-load-status buttons-plugin-ui-text"></div>');
         wrap.append(loadStatus);
-        function showLampaGrid() {
+        wrap.addClass('icon-picker-view-lampa');
+        tabLampa.on('hover:enter', function() {
             wrap.removeClass('icon-picker-view-alt').addClass('icon-picker-view-lampa');
             tabLampa.addClass('icon-picker-tab--active');
             tabAlt.removeClass('icon-picker-tab--active');
-        }
-        function showAltGrid() {
+        });
+        tabAlt.on('hover:enter', function() {
             wrap.removeClass('icon-picker-view-lampa').addClass('icon-picker-view-alt');
             tabAlt.addClass('icon-picker-tab--active');
             tabLampa.removeClass('icon-picker-tab--active');
-        }
-        tabLampa.on('hover:enter', showLampaGrid);
-        tabAlt.on('hover:enter', showAltGrid);
-        wrap.addClass('icon-picker-view-lampa');
+        });
         loadStatus.text('Загрузка…');
         var modalOpened = false;
         function openModal() {
             if (modalOpened) return;
             modalOpened = true;
-            Lampa.Modal.open({
-                title: 'Иконка кнопки',
+            openModalWithEdgeScroll({
+                title: title,
                 html: wrap,
                 size: 'medium',
                 scroll_to_center: false,
@@ -968,7 +1075,62 @@
         });
     }
 
-    function getButtonId(button) {
+    function openTextInputModal(opts) {
+        opts = opts || {};
+        var title = opts.title || '';
+        var placeholder = opts.placeholder || '';
+        var value = opts.value || '';
+        var onDone = (typeof opts.onDone === 'function') ? opts.onDone : function() {};
+        var onBack = (typeof opts.onBack === 'function') ? opts.onBack : function() {};
+        var wrap = $('<div class="name-picker-wrap">' +
+            '<input type="text" class="name-picker-input" value="' + escapeHtml(value) + '" placeholder="' + escapeHtml(placeholder) + '" style="width:100%;padding:.7em 1em;margin:.3em 0;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:.7em;color:#fff;font-size:1em;box-sizing:border-box" />' +
+            '<div class="selector name-picker-ok">' +
+            '<span class="menu-edit-list__create-folder-spacer"></span>' +
+            '<div class="menu-edit-list__create-folder-inner">' +
+            '<div class="menu-edit-list__icon">' + toolbarSvgCheck() + '</div>' +
+            '<span class="buttons-plugin-ui-text">Готово</span>' +
+            '</div><span class="menu-edit-list__create-folder-spacer"></span></div></div>');
+        var inputEl = wrap.find('input').get(0);
+        wrap.find('.name-picker-ok').on('hover:enter', function() {
+            var val = (inputEl && inputEl.value) ? String(inputEl.value).trim() : '';
+            if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.close) Lampa.Modal.close();
+            onDone(val);
+        });
+        openModalWithEdgeScroll({
+            title: title,
+            html: wrap,
+            size: 'small',
+            scroll_to_center: true,
+            onBack: onBack
+        });
+        setTimeout(function() { if (inputEl) inputEl.focus(); }, 150);
+    }
+
+    function openIconPicker(btn, btnId, defaultIconHtml, listItem) {
+        buildIconPicker({
+            title: 'Иконка кнопки',
+            defaultIconHtml: defaultIconHtml,
+            onChoice: function(isDefault, chosenHtml) {
+                var stored = getCustomIcons();
+                var custom = {};
+                for (var key in stored) {
+                    if (stored.hasOwnProperty(key)) custom[key] = stored[key];
+                }
+                if (isDefault) {
+                    delete custom[btnId];
+                } else {
+                    custom[btnId] = chosenHtml;
+                }
+                setCustomIcons(custom);
+                reopenButtonEditorAfterColorPicker(true);
+            }
+        });
+    }
+
+    var BM_ID_ATTR = 'data-bm-id';
+    var BM_ID_SEP = '___dup';
+
+    function baseButtonId(button) {
         var classes = button.attr('class') || '';
         var span = button.find('span').first();
         var text = (span.attr('data-original-text') || span.text() || '').trim().replace(/\s+/g, '_');
@@ -988,6 +1150,46 @@
             id = id + '_' + subtitle.replace(/\s+/g, '_').substring(0, 30);
         }
         return id;
+    }
+
+    function assignButtonIds($buttons) {
+        if (!$buttons || !$buttons.length) return;
+        var counts = {};
+
+        $buttons.each(function() {
+            var existing = this.getAttribute ? this.getAttribute(BM_ID_ATTR) : null;
+            if (!existing) return;
+            var sepIdx = existing.indexOf(BM_ID_SEP);
+            var base = sepIdx === -1 ? existing : existing.substring(0, sepIdx);
+            var n = 1;
+            if (sepIdx !== -1) {
+                var parsed = parseInt(existing.substring(sepIdx + BM_ID_SEP.length), 10);
+                if (!isNaN(parsed)) n = parsed;
+            }
+            if (!counts[base] || n > counts[base]) counts[base] = n;
+        });
+
+        $buttons.each(function() {
+            if (this.getAttribute && this.getAttribute(BM_ID_ATTR)) return;
+            var base = baseButtonId($(this));
+            var c = (counts[base] || 0) + 1;
+            counts[base] = c;
+            var id = (c === 1) ? base : (base + BM_ID_SEP + c);
+            if (this.setAttribute) this.setAttribute(BM_ID_ATTR, id);
+        });
+    }
+
+    function getButtonId(button) {
+        if (!button) return baseButtonId(button);
+        var el = button[0];
+        if (el && el.getAttribute) {
+            var stamped = el.getAttribute(BM_ID_ATTR);
+            if (stamped) return stamped;
+        } else if (button.attr) {
+            var attr = button.attr(BM_ID_ATTR);
+            if (attr) return attr;
+        }
+        return baseButtonId(button);
     }
 
     function getButtonType(button) {
@@ -1015,6 +1217,8 @@
 
     function categorizeButtons(container) {
         var allButtons = container.find('.full-start__button').not('.button--edit-order, .button--folder, .button--play');
+
+        assignButtonIds(allButtons);
         var categories = { online: [], torrent: [], trailer: [], favorite: [], subscribe: [], book: [], reaction: [], other: [] };
         var processedIds = {};
         allButtons.each(function() {
@@ -1103,23 +1307,6 @@
         });
     }
 
-    function applyCustomIcons(buttons) {
-        var customIcons = getCustomIcons();
-        buttons.forEach(function(btn) {
-            var id = getButtonId(btn);
-            var svgEl = btn.find('svg').first();
-            if (!svgEl.length) return;
-            if (customIcons[id]) {
-                svgEl.replaceWith($(customIcons[id]).clone());
-            } else {
-                var defaultHtml = getDefaultIconForButton(id);
-                if (defaultHtml) {
-                    svgEl.replaceWith($(defaultHtml).clone());
-                }
-            }
-        });
-    }
-
     function getDefaultLabelForButton(btnId) {
         var orig = allButtonsOriginal.find(function(b) { return getButtonId(b) === btnId; });
         if (!orig || !orig.length) return '';
@@ -1184,20 +1371,11 @@
         setCustomOrder(order);
     }
 
-    function applyChanges() {
-        if (!currentContainer) return;
-        var categories = categorizeButtons(currentContainer);
-        var allButtons = sortByCustomOrder(getAllButtonsFromCategories(categories));
-        allButtonsCache = allButtons;
-        var folders = getFolders();
-        var buttonsInFolders = getButtonsInFolders();
-        var filteredButtons = allButtons.filter(function(btn) {
-            return buttonsInFolders.indexOf(getButtonId(btn)) === -1;
-        });
-        currentButtons = filteredButtons;
-        var targetContainer = currentContainer.find('.full-start-new__buttons');
-        if (!targetContainer.length) return;
-        targetContainer.find('.full-start__button').not('.button--edit-order').detach();
+    function layoutButtons(targetContainer, currentButtons, folders, buttonsInFolders, options) {
+        options = options || {};
+        var guardInFolders = !!options.guardButtonsInFolders;
+        var foldersFirst = !!options.foldersFirstWhenNoOrder;
+        if (!buttonsInFolders) buttonsInFolders = [];
         var visibleButtons = [];
         var itemOrder = getItemOrder();
         if (itemOrder.length > 0) {
@@ -1214,7 +1392,7 @@
                     }
                 } else if (item.type === 'button') {
                     var btnId = item.id;
-                    if (buttonsInFolders.indexOf(btnId) === -1) {
+                    if (!guardInFolders || buttonsInFolders.indexOf(btnId) === -1) {
                         var btn = currentButtons.find(function(b) { return getButtonId(b) === btnId; });
                         if (btn) {
                             targetContainer.append(btn);
@@ -1226,7 +1404,7 @@
             });
             currentButtons.forEach(function(btn) {
                 var btnId = getButtonId(btn);
-                if (addedButtons.indexOf(btnId) === -1 && buttonsInFolders.indexOf(btnId) === -1) {
+                if (addedButtons.indexOf(btnId) === -1 && (!guardInFolders || buttonsInFolders.indexOf(btnId) === -1)) {
                     targetContainer.append(btn);
                     if (!btn.hasClass('hidden')) visibleButtons.push(btn);
                 }
@@ -1239,18 +1417,51 @@
                 }
             });
         } else {
-            currentButtons.forEach(function(btn) {
-                if (buttonsInFolders.indexOf(getButtonId(btn)) === -1) {
-                    targetContainer.append(btn);
-                    if (!btn.hasClass('hidden')) visibleButtons.push(btn);
-                }
-            });
-            folders.forEach(function(folder) {
-                var folderBtn = createFolderButton(folder);
-                targetContainer.append(folderBtn);
-                visibleButtons.push(folderBtn);
-            });
+            var appendLooseButtons = function() {
+                currentButtons.forEach(function(btn) {
+                    if (!guardInFolders || buttonsInFolders.indexOf(getButtonId(btn)) === -1) {
+                        targetContainer.append(btn);
+                        if (!btn.hasClass('hidden')) visibleButtons.push(btn);
+                    }
+                });
+            };
+            var appendAllFolders = function() {
+                folders.forEach(function(folder) {
+                    var folderBtn = createFolderButton(folder);
+                    targetContainer.append(folderBtn);
+                    visibleButtons.push(folderBtn);
+                });
+            };
+            if (foldersFirst) {
+                appendAllFolders();
+                appendLooseButtons();
+            } else {
+                appendLooseButtons();
+                appendAllFolders();
+            }
         }
+        return visibleButtons;
+    }
+
+    function applyChanges() {
+        if (!currentContainer) return;
+        var categories = categorizeButtons(currentContainer);
+        var allButtons = sortByCustomOrder(getAllButtonsFromCategories(categories));
+        allButtonsCache = allButtons;
+        var folders = getFolders();
+        var buttonsInFolders = getButtonsInFolders();
+        var filteredButtons = allButtons.filter(function(btn) {
+            return buttonsInFolders.indexOf(getButtonId(btn)) === -1;
+        });
+        currentButtons = filteredButtons;
+        var targetContainer = currentContainer.find('.full-start-new__buttons');
+        if (!targetContainer.length) return;
+        targetContainer.find('.full-start__button').not('.button--edit-order').detach();
+
+        var visibleButtons = layoutButtons(targetContainer, currentButtons, folders, buttonsInFolders, {
+            guardButtonsInFolders: true,
+            foldersFirstWhenNoOrder: false
+        });
         applyButtonAnimation(visibleButtons, currentContainer.hasClass('applecation'));
         var editBtn = targetContainer.find('.button--edit-order');
         if (editBtn.length) {
@@ -1258,7 +1469,6 @@
             targetContainer.append(editBtn);
         }
         applyHiddenButtons(currentButtons);
-        applyCustomIcons(currentButtons);
         applyCustomLabels(currentButtons);
         applyIconsAndColorsToButtons(targetContainer.find('.full-start__button'));
         var viewmode = Lampa.Storage.get(STORAGE_KEYS.viewmode, 'default');
@@ -1307,9 +1517,10 @@
             if (subtitle) {
                 return text + ' (' + (subtitle.substring(0, 30).replace(/</g, '').replace(/>/g, '')) + ')';
             }
-            var viewClass = classes.split(' ').find(function(c) { return c.indexOf('view--') === 0; });
-            if (viewClass) {
-                var identifier = viewClass.replace('view--', '').replace(/_/g, ' ');
+
+            var viewOnlyClass = classes.split(' ').find(function(c) { return c.indexOf('view--') === 0; });
+            if (viewOnlyClass) {
+                var identifier = viewOnlyClass.replace('view--', '').replace(/_/g, ' ');
                 identifier = capitalize(identifier);
                 return text + ' (' + identifier + ')';
             }
@@ -1411,7 +1622,7 @@
                 list.append(item);
             }
         });
-        Lampa.Modal.open({
+        openModalWithEdgeScroll({
             title: 'Порядок кнопок в папке',
             html: list,
             size: 'medium',
@@ -1511,117 +1722,29 @@
                 applyName(value);
             });
         } else {
-            var wrap = $('<div class="name-picker-wrap">' +
-                '<input type="text" class="name-picker-input" value="' + escapeHtml(currentName) + '" placeholder="Название папки" style="width:100%;padding:.7em 1em;margin:.3em 0;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:.7em;color:#fff;font-size:1em;box-sizing:border-box" />' +
-                '<div class="selector name-picker-ok">' +
-                '<span class="menu-edit-list__create-folder-spacer"></span>' +
-                '<div class="menu-edit-list__create-folder-inner">' +
-                '<div class="menu-edit-list__icon">' + toolbarSvgCheck() + '</div>' +
-                '<span class="buttons-plugin-ui-text">Готово</span>' +
-                '</div><span class="menu-edit-list__create-folder-spacer"></span></div></div>');
-            var inputEl = wrap.find('input').get(0);
-            wrap.find('.name-picker-ok').on('hover:enter', function() {
-                var val = (inputEl && inputEl.value) ? String(inputEl.value).trim() : '';
-                if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.close) Lampa.Modal.close();
-                applyName(val);
-            });
-            Lampa.Modal.open({
+            openTextInputModal({
                 title: 'Название папки',
-                html: wrap,
-                size: 'small',
-                scroll_to_center: true,
+                placeholder: 'Название папки',
+                value: currentName,
+                onDone: function(val) {
+                    applyName(val);
+                },
                 onBack: function() {
                     if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.close) Lampa.Modal.close();
                     setTimeout(function() { refreshController(); }, DELAY_AFTER_APPLY_MS);
                 }
             });
-            setTimeout(function() { if (inputEl) inputEl.focus(); }, 150);
         }
     }
 
     function openFolderIconPicker(folder, listItem) {
-        var defaultIconHtml = getDefaultIconForFolder(folder);
-        var seenForJsonDedupe = {};
-        var wrap = $('<div class="icon-picker-wrap buttons-plugin-icon-picker"></div>');
-        var defaultBlock = $('<div class="selector icon-picker-default" tabindex="0">' +
-            '<div class="icon-picker-default__preview"></div>' +
-            '<span class="buttons-plugin-ui-text">По умолчанию</span></div>');
-        if (defaultIconHtml) {
-            defaultBlock.find('.icon-picker-default__preview').append($(defaultIconHtml).clone());
-        }
-        function applyChoice(isDefault, chosenHtml) {
-            updateFolder(folder.id, { customIcon: isDefault ? undefined : chosenHtml });
-            reopenButtonEditorAfterColorPicker(true);
-        }
-        defaultBlock.on('hover:enter', function() {
-            applyChoice(true, null);
-        });
-        wrap.append(defaultBlock);
-        var tabLampa = $('<div class="selector icon-picker-tab icon-picker-tab--active buttons-plugin-ui-text" tabindex="0">Иконки Lampa</div>');
-        var tabAlt = $('<div class="selector icon-picker-tab buttons-plugin-ui-text" tabindex="0">Альтернативные иконки</div>');
-        var switchBlock = $('<div class="icon-picker-switch-wrap"></div>');
-        switchBlock.append(tabLampa).append(tabAlt);
-        wrap.append(switchBlock);
-        var loadStatus = $('<div class="icon-picker-load-status buttons-plugin-ui-text"></div>');
-        wrap.append(loadStatus);
-        wrap.addClass('icon-picker-view-lampa');
-        tabLampa.on('hover:enter', function() {
-            wrap.removeClass('icon-picker-view-alt').addClass('icon-picker-view-lampa');
-            tabLampa.addClass('icon-picker-tab--active');
-            tabAlt.removeClass('icon-picker-tab--active');
-        });
-        tabAlt.on('hover:enter', function() {
-            wrap.removeClass('icon-picker-view-lampa').addClass('icon-picker-view-alt');
-            tabAlt.addClass('icon-picker-tab--active');
-            tabLampa.removeClass('icon-picker-tab--active');
-        });
-        loadStatus.text('Загрузка…');
-        var modalOpened = false;
-        function openFolderIconModal() {
-            if (modalOpened) return;
-            modalOpened = true;
-            Lampa.Modal.open({
-                title: 'Иконка папки',
-                html: wrap,
-                size: 'medium',
-                scroll_to_center: false,
-                onBack: function() {
-                    closeModalSafe();
-                    setTimeout(function() {
-                        reopenButtonEditorAfterColorPicker(false);
-                    }, 200);
-                }
-            });
-        }
-        var openFolderIconTimeout = setTimeout(openFolderIconModal, DELAY_ICON_PICKER_MODAL_MS);
-        var folderChainUrls = [DEFAULT_ICONS_URL];
-        loadIconsFromUrlChain(folderChainUrls, seenForJsonDedupe, function(newEntries, err) {
-            clearTimeout(openFolderIconTimeout);
-            var icons = collectAllIcons(seenForJsonDedupe);
-            icons.forEach(function(entry) {
-                var lampaCell = $('<div class="selector icon-picker-grid__cell icon-picker-cell-lampa" tabindex="0"></div>');
-                lampaCell.append($(entry.html).clone());
-                var lampaHtml = entry.html;
-                lampaCell.on('hover:enter', function() {
-                    applyChoice(false, lampaHtml);
-                });
-                wrap.append(lampaCell);
-            });
-            if (newEntries && newEntries.length) {
-                newEntries.forEach(function(entry) {
-                    var altCell = $('<div class="selector icon-picker-grid__cell icon-picker-cell-alt" tabindex="0"></div>');
-                    altCell.append($(entry.html).clone());
-                    var altHtml = entry.html;
-                    altCell.on('hover:enter', function() {
-                        applyChoice(false, altHtml);
-                    });
-                    wrap.append(altCell);
-                });
-                loadStatus.text('Альтернативные: ' + newEntries.length + ' · вкладка Lampa: ' + icons.length);
-            } else {
-                loadStatus.text('Вкладка Lampa: ' + icons.length);
+        buildIconPicker({
+            title: 'Иконка папки',
+            defaultIconHtml: getDefaultIconForFolder(folder),
+            onChoice: function(isDefault, chosenHtml) {
+                updateFolder(folder.id, { customIcon: isDefault ? undefined : chosenHtml });
+                reopenButtonEditorAfterColorPicker(true);
             }
-            openFolderIconModal();
         });
     }
 
@@ -1656,36 +1779,23 @@
                 openSelectButtonsDialog(String(folderName).trim());
             });
         } else {
-            var wrap = $('<div class="name-picker-wrap">' +
-                '<input type="text" class="name-picker-input" value="" placeholder="Название папки" style="width:100%;padding:.7em 1em;margin:.3em 0;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:.7em;color:#fff;font-size:1em;box-sizing:border-box" />' +
-                '<div class="selector name-picker-ok">' +
-                '<span class="menu-edit-list__create-folder-spacer"></span>' +
-                '<div class="menu-edit-list__create-folder-inner">' +
-                '<div class="menu-edit-list__icon">' + toolbarSvgCheck() + '</div>' +
-                '<span class="buttons-plugin-ui-text">Готово</span>' +
-                '</div><span class="menu-edit-list__create-folder-spacer"></span></div></div>');
-            var inputEl = wrap.find('input').get(0);
-            wrap.find('.name-picker-ok').on('hover:enter', function() {
-                var val = (inputEl && inputEl.value) ? String(inputEl.value).trim() : '';
-                if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.close) Lampa.Modal.close();
-                if (!val) {
-                    Lampa.Noty.show('Введите название папки');
-                    openEditDialog();
-                    return;
-                }
-                openSelectButtonsDialog(val);
-            });
-            Lampa.Modal.open({
+            openTextInputModal({
                 title: 'Название папки',
-                html: wrap,
-                size: 'small',
-                scroll_to_center: true,
+                placeholder: 'Название папки',
+                value: '',
+                onDone: function(val) {
+                    if (!val) {
+                        Lampa.Noty.show('Введите название папки');
+                        openEditDialog();
+                        return;
+                    }
+                    openSelectButtonsDialog(val);
+                },
                 onBack: function() {
                     if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.close) Lampa.Modal.close();
                     openEditDialog();
                 }
             });
-            setTimeout(function() { if (inputEl) inputEl.focus(); }, 150);
         }
     }
 
@@ -1775,7 +1885,7 @@
             refreshController();
         });
         list.append(createBtn);
-        Lampa.Modal.open({
+        openModalWithEdgeScroll({
             title: 'Выберите кнопки для папки',
             html: list,
             size: 'medium',
@@ -1822,7 +1932,6 @@
                 return buttonsInFolders.indexOf(getButtonId(btn)) === -1;
             });
         }
-        applyCustomIcons(currentButtons);
         applyCustomLabels(currentButtons);
         if (currentContainer) {
             var editToolbar = currentContainer.find('.full-start-new__buttons');
@@ -1895,6 +2004,9 @@
         function createFolderItem(folder) {
             var folderIconHtml = folder.customIcon || (findButton(folder.buttons[0]) && findButton(folder.buttons[0]).find('svg').first().length ? findButton(folder.buttons[0]).find('svg').first().get(0).outerHTML : '');
             var folderIcon = folderIconHtml ? $(folderIconHtml).clone() : $('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>');
+
+            var folderResolvedColor = getPerButtonIconColors()[folder.id] || getGlobalIconColor() || '';
+            paintSvgWithColor(folderIcon, folderResolvedColor);
             var item = $('<div class="menu-edit-list__item folder-item">' +
                 '<div class="menu-edit-list__icon"></div>' +
                 '<div class="menu-edit-list__title">' + escapeHtml(folder.name) + ' <span style="opacity:0.5">(' + folder.buttons.length + ')</span></div>' +
@@ -2019,31 +2131,18 @@
                     applyName(value);
                 });
             } else {
-                var wrap = $('<div class="name-picker-wrap">' +
-                    '<input type="text" class="name-picker-input" value="' + escapeHtml(currentLabel) + '" placeholder="Название кнопки" style="width:100%;padding:.7em 1em;margin:.3em 0;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:.7em;color:#fff;font-size:1em;box-sizing:border-box" />' +
-                    '<div class="selector name-picker-ok">' +
-                    '<span class="menu-edit-list__create-folder-spacer"></span>' +
-                    '<div class="menu-edit-list__create-folder-inner">' +
-                    '<div class="menu-edit-list__icon">' + toolbarSvgCheck() + '</div>' +
-                    '<span class="buttons-plugin-ui-text">Готово</span>' +
-                    '</div><span class="menu-edit-list__create-folder-spacer"></span></div></div>');
-                var inputEl = wrap.find('input').get(0);
-                wrap.find('.name-picker-ok').on('hover:enter', function() {
-                    var val = (inputEl && inputEl.value) ? inputEl.value.trim() : '';
-                    if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.close) Lampa.Modal.close();
-                    applyName(val);
-                });
-                Lampa.Modal.open({
+                openTextInputModal({
                     title: 'Название кнопки',
-                    html: wrap,
-                    size: 'small',
-                    scroll_to_center: true,
+                    placeholder: 'Название кнопки',
+                    value: currentLabel,
+                    onDone: function(val) {
+                        applyName(val);
+                    },
                     onBack: function() {
                         if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.close) Lampa.Modal.close();
                         setTimeout(function() { refreshController(); }, DELAY_AFTER_APPLY_MS);
                     }
                 });
-                setTimeout(function() { if (inputEl) inputEl.focus(); }, 150);
             }
         }
 
@@ -2248,7 +2347,7 @@
         });
         list.append(resetBtn);
 
-        Lampa.Modal.open({
+        openModalWithEdgeScroll({
             title: 'Порядок кнопок',
             html: list,
             size: 'medium',
@@ -2344,59 +2443,15 @@
             });
         }
         targetContainer.children().detach();
-        var visibleButtons = [];
-        var itemOrder = getItemOrder();
-        if (itemOrder.length > 0) {
-            var addedFolders = [];
-            var addedButtons = [];
-            itemOrder.forEach(function(item) {
-                if (item.type === 'folder') {
-                    var folder = folders.find(function(f) { return f.id === item.id; });
-                    if (folder) {
-                        var folderBtn = createFolderButton(folder);
-                        targetContainer.append(folderBtn);
-                        visibleButtons.push(folderBtn);
-                        addedFolders.push(folder.id);
-                    }
-                } else if (item.type === 'button') {
-                    var btn = currentButtons.find(function(b) { return getButtonId(b) === item.id; });
-                    if (btn) {
-                        targetContainer.append(btn);
-                        if (!btn.hasClass('hidden')) visibleButtons.push(btn);
-                        addedButtons.push(getButtonId(btn));
-                    }
-                }
-            });
-            currentButtons.forEach(function(btn) {
-                var btnId = getButtonId(btn);
-                if (addedButtons.indexOf(btnId) === -1) {
-                    targetContainer.append(btn);
-                    if (!btn.hasClass('hidden')) visibleButtons.push(btn);
-                }
-            });
-            folders.forEach(function(folder) {
-                if (addedFolders.indexOf(folder.id) === -1) {
-                    var folderBtn = createFolderButton(folder);
-                    targetContainer.append(folderBtn);
-                    visibleButtons.push(folderBtn);
-                }
-            });
-        } else {
-            folders.forEach(function(folder) {
-                var folderBtn = createFolderButton(folder);
-                targetContainer.append(folderBtn);
-                visibleButtons.push(folderBtn);
-            });
-            currentButtons.forEach(function(btn) {
-                targetContainer.append(btn);
-                if (!btn.hasClass('hidden')) visibleButtons.push(btn);
-            });
-        }
+
+        var visibleButtons = layoutButtons(targetContainer, currentButtons, folders, buttonsInFolders, {
+            guardButtonsInFolders: false,
+            foldersFirstWhenNoOrder: true
+        });
         var editButton = createEditButton();
         targetContainer.append(editButton);
         visibleButtons.push(editButton);
         applyHiddenButtons(currentButtons);
-        applyCustomIcons(currentButtons);
         applyCustomLabels(currentButtons);
         applyIconsAndColorsToButtons(targetContainer.find('.full-start__button'));
         var viewmode = Lampa.Storage.get(STORAGE_KEYS.viewmode, 'default');
@@ -2410,7 +2465,8 @@
         return true;
     }
 
-    window.reorderButtons = reorderButtons;
+    window.lampa_buttons_plugin = window.lampa_buttons_plugin || {};
+    window.lampa_buttons_plugin.reorder = reorderButtons;
 
     function setupButtonNavigation(container) {
         if (Lampa.Controller && typeof Lampa.Controller.toggle === 'function') {
@@ -2557,7 +2613,20 @@
             $('body').toggleClass('buttons-plugin--poster-off', !showPoster);
         }
         syncPosterOffClass();
-        setInterval(syncPosterOffClass, SYNC_POSTER_INTERVAL_MS);
+
+        (function bindPosterSync() {
+            var bound = false;
+            try {
+                if (Lampa.Storage && Lampa.Storage.listener && typeof Lampa.Storage.listener.follow === 'function') {
+                    Lampa.Storage.listener.follow('change', function(e) {
+                        if (!e || (e.name !== 'card_interface_poster' && e.name !== 'card_interfice_poster')) return;
+                        syncPosterOffClass();
+                    });
+                    bound = true;
+                }
+            } catch (ex) { logDebug('poster sync listener bind failed', ex); }
+            if (!bound) setInterval(syncPosterOffClass, SYNC_POSTER_INTERVAL_MS);
+        })();
 
         Lampa.Listener.follow('full', function(e) {
             if (e.type !== FULL_EVENT_TYPE) return;
