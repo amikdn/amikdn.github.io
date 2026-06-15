@@ -1,5 +1,3 @@
-Lampa.Platform.tv();
-
 (function () {
   'use strict';
 
@@ -15,52 +13,65 @@ Lampa.Platform.tv();
 
   /** CSS: нижняя панель и окно выбора. Многострочная строка через конкатенацию для старых движков. */
   var css = [
+    /* === Нижняя панель (телефон) — лёгкий «стеклянный» вид, без backdrop-filter и анимаций в простое === */
     '.navigation-bar__body {',
-    '  display: flex !important; justify-content: center !important; align-items: center !important;',
-    '  width: 100% !important; max-width: 100vw !important; padding: 6px 4px !important; background: transparent !important;',
+    '  display: flex !important; justify-content: center !important; align-items: stretch !important;',
+    '  width: 100% !important; max-width: 100vw !important; padding: 8px 8px !important; background: transparent !important;',
     '  border-top: none !important; overflow-x: auto !important; overflow-y: hidden !important;',
-    '  box-sizing: border-box !important; scrollbar-width: none; gap: 4px !important;',
+    '  box-sizing: border-box !important; scrollbar-width: none; gap: 8px !important;',
     '}',
     '.navigation-bar__body::-webkit-scrollbar { display: none; }',
     '.navigation-bar__item {',
+    '  position: relative !important;',
     '  flex: 1 1 0 !important; min-width: 0 !important; max-width: 33.333% !important; display: flex !important; flex-direction: column !important;',
-    '  align-items: center; justify-content: center; height: 64px !important; margin: 0 !important;',
-    '  background: linear-gradient(to top, rgba(80,80,80,0.35), rgba(30,30,35,0.25)) !important;',
-    '  border: 1px solid rgba(255,255,255,0.12) !important; box-shadow: inset 0 0 6px rgba(0,0,0,0.5) !important;',
-    '  border-radius: 14px !important; transition: background .3s ease, transform .2s ease, border-color .3s ease, box-shadow .3s ease !important;',
-    '  box-sizing: border-box; overflow: hidden !important;',
+    '  align-items: center; justify-content: center; height: 62px !important; margin: 0 !important;',
+    '  background: linear-gradient(180deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.02) 100%) !important;',
+    '  border: 1px solid rgba(255,255,255,0.08) !important;',
+    '  box-shadow: 0 1px 2px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.06) !important;',
+    '  border-radius: 18px !important;',
+    '  transition: transform .22s cubic-bezier(.2,.7,.3,1), background .25s ease, border-color .25s ease, box-shadow .25s ease !important;',
+    '  box-sizing: border-box; overflow: hidden !important; -webkit-tap-highlight-color: transparent;',
     '}',
     '.navigation-bar__item:hover, .navigation-bar__item.active {',
-    '  background: linear-gradient(to top, rgba(100,100,100,0.45), rgba(40,40,45,0.35)) !important;',
-    '  border-color: rgba(255,255,255,0.25) !important; box-shadow: inset 0 0 8px rgba(0,0,0,0.6) !important; transform: translateY(-3px);',
+    '  background: linear-gradient(180deg, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0.05) 100%) !important;',
+    '  border-color: rgba(255,255,255,0.22) !important;',
+    '  box-shadow: 0 8px 20px rgba(0,0,0,0.38), inset 0 1px 0 rgba(255,255,255,0.14) !important;',
+    '  transform: translateY(-2px);',
     '}',
-    '.navigation-bar__icon { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; margin-bottom: 2px !important; }',
+    '.navigation-bar__item:active { transform: translateY(0) scale(0.95); transition-duration: .08s !important; }',
+    '.navigation-bar__item.active::after {',
+    '  content: ""; position: absolute; top: 6px; left: 50%; width: 18px; height: 3px;',
+    '  margin-left: -9px; border-radius: 3px; background: rgba(255,255,255,0.9); box-shadow: 0 0 6px rgba(255,255,255,0.45);',
+    '}',
+    '.navigation-bar__icon { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; margin-bottom: 3px !important; transition: transform .22s cubic-bezier(.2,.7,.3,1); }',
     '.navigation-bar__icon svg { width: 26px !important; height: 26px !important; }',
+    '.navigation-bar__item:hover .navigation-bar__icon, .navigation-bar__item.active .navigation-bar__icon { transform: translateY(-1px) scale(1.06); }',
     '.navigation-bar__label {',
-    '  font-size: 10px !important; color: #fff !important; opacity: 0.95 !important; white-space: nowrap !important;',
+    '  font-size: 10px !important; line-height: 1.1 !important; color: #fff !important; opacity: 0.72 !important; white-space: nowrap !important;',
     '  overflow: hidden !important; text-overflow: ellipsis !important; width: 100% !important; max-width: 100% !important; text-align: center !important;',
-    '  padding: 0 6px !important; margin-top: -2px !important; box-sizing: border-box !important;',
+    '  padding: 0 6px !important; margin-top: 0 !important; box-sizing: border-box !important; font-weight: 500 !important; letter-spacing: 0.2px !important; transition: opacity .25s ease;',
     '}',
+    '.navigation-bar__item:hover .navigation-bar__label, .navigation-bar__item.active .navigation-bar__label { opacity: 1 !important; }',
     '@media (max-width: 900px) {',
-    '  .navigation-bar__body { gap: 3px !important; padding: 6px 3px !important; }',
-    '  .navigation-bar__item { height: 60px !important; margin: 0 !important; }',
+    '  .navigation-bar__body { gap: 7px !important; padding: 8px 7px !important; }',
+    '  .navigation-bar__item { height: 60px !important; margin: 0 !important; border-radius: 16px !important; }',
     '  .navigation-bar__icon svg { width: 24px !important; height: 24px !important; }',
     '  .navigation-bar__label { font-size: 9.5px !important; padding: 0 4px !important; }',
     '}',
     '@media (max-width: 600px) {',
-    '  .navigation-bar__body { padding: 6px 2px !important; gap: 2px !important; }',
-    '  .navigation-bar__item { height: 56px !important; margin: 0 !important; }',
-    '  .navigation-bar__icon { width: 26px; height: 26px; margin-bottom: 1px !important; }',
+    '  .navigation-bar__body { padding: 7px 6px !important; gap: 6px !important; }',
+    '  .navigation-bar__item { height: 56px !important; margin: 0 !important; border-radius: 15px !important; }',
+    '  .navigation-bar__icon { width: 26px; height: 26px; margin-bottom: 2px !important; }',
     '  .navigation-bar__icon svg { width: 24px !important; height: 24px !important; }',
-    '  .navigation-bar__label { font-size: 9px !important; margin-top: -1px !important; padding: 0 3px !important; }',
+    '  .navigation-bar__label { font-size: 9px !important; padding: 0 3px !important; }',
     '}',
     '@media (max-width: 400px) {',
-    '  .navigation-bar__body { padding: 4px 2px !important; gap: 2px !important; }',
-    '  .navigation-bar__item { height: 54px !important; }',
+    '  .navigation-bar__body { padding: 6px 5px !important; gap: 5px !important; }',
+    '  .navigation-bar__item { height: 54px !important; border-radius: 14px !important; }',
     '  .navigation-bar__label { font-size: 8.5px !important; padding: 0 2px !important; }',
     '}',
     '@media (max-width: 360px) {',
-    '  .navigation-bar__body { padding: 4px 1px !important; gap: 1px !important; }',
+    '  .navigation-bar__body { padding: 6px 4px !important; gap: 4px !important; }',
     '  .navigation-bar__item { height: 52px !important; }',
     '  .navigation-bar__icon svg { width: 22px !important; height: 22px !important; }',
     '  .navigation-bar__label { font-size: 8px !important; }',
@@ -70,17 +81,20 @@ Lampa.Platform.tv();
     '  .navigation-bar__item { flex: none !important; width: auto !important; height: auto !important; min-width: 0 !important; min-height: 0 !important;',
     '    background: transparent !important; border: none !important; box-shadow: none !important; border-radius: 0 !important;',
     '    margin: 0 10px !important; padding: 0 !important; transition: transform .2s ease !important; align-self: center !important; }',
-    '  .navigation-bar__item:hover, .navigation-bar__item.active { background: transparent !important; transform: scale(1.15); }',
+    '  .navigation-bar__item.active::after { display: none !important; }',
+    '  .navigation-bar__item:hover, .navigation-bar__item.active { background: transparent !important; box-shadow: none !important; transform: scale(1.15); }',
+    '  .navigation-bar__item:hover .navigation-bar__icon, .navigation-bar__item.active .navigation-bar__icon { transform: none; }',
     '  .navigation-bar__icon { width: 20px !important; height: 20px !important; margin-bottom: 0 !important; padding: 0 !important; }',
     '  .navigation-bar__icon svg { width: 20px !important; height: 20px !important; }',
     '  .navigation-bar__label { display: none !important; }',
     '}',
-    '.phone-menu-picker-toolbar { display: flex; gap: 6px; margin-bottom: 10px; justify-content: center; flex-wrap: wrap; }',
-    '.phone-menu-picker-tab { padding: 6px 10px; border-radius: 8px; background: rgba(255,255,255,0.1); color: #fff; font-size: 13px; cursor: pointer; white-space: nowrap; user-select: none; transition: background .2s; text-align: center; }',
-    '.phone-menu-picker-tab:hover { background: rgba(255,255,255,0.2); }',
-    '.phone-menu-picker-tab.active { background: rgba(255,255,255,0.3); }',
+    /* === Окно выбора иконки/цвета === */
+    '.phone-menu-picker-toolbar { display: flex; gap: 8px; margin-bottom: 14px; justify-content: center; flex-wrap: wrap; }',
+    '.phone-menu-picker-tab { padding: 7px 16px; border-radius: 999px; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.08); color: rgba(255,255,255,0.75); font-size: 13px; font-weight: 500; cursor: pointer; white-space: nowrap; user-select: none; transition: background .2s ease, color .2s ease, border-color .2s ease; text-align: center; }',
+    '.phone-menu-picker-tab:hover { background: rgba(255,255,255,0.12); color: #fff; }',
+    '.phone-menu-picker-tab.active { background: #fff; color: #16161c; border-color: #fff; }',
     '.phone-menu-picker-overlay {',
-    '  position: fixed; left: 0; top: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.75);',
+    '  position: fixed; left: 0; top: 0; right: 0; bottom: 0; background: rgba(8,8,12,0.72);',
     '  display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 10px; box-sizing: border-box;',
     '}',
     '@supports (padding: constant(safe-area-inset-top)) {',
@@ -89,27 +103,29 @@ Lampa.Platform.tv();
     '@supports (padding: env(safe-area-inset-top)) {',
     '  .phone-menu-picker-overlay { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }',
     '}',
-    '.phone-menu-picker-modal { background: #1e1e24; padding: 12px; border-radius: 12px; max-width: 96%; max-height: 88vh; overflow: hidden;',
-    '  display: flex; flex-direction: column; box-shadow: 0 10px 30px rgba(0,0,0,0.6); box-sizing: border-box; width: 100%; }',
-    '.phone-menu-picker-title { text-align: center; color: #fff; margin: 0 0 10px; font-size: 16px; font-weight: 600; }',
+    '.phone-menu-picker-modal { background: linear-gradient(180deg, #20202a 0%, #15151b 100%); padding: 16px; border-radius: 20px; max-width: 96%; max-height: 88vh; overflow: hidden;',
+    '  display: flex; flex-direction: column; box-shadow: 0 18px 50px rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.08); box-sizing: border-box; width: 100%; }',
+    '.phone-menu-picker-title { text-align: center; color: #fff; margin: 0 0 14px; font-size: 17px; font-weight: 600; letter-spacing: 0.2px; }',
     '.phone-menu-picker-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; overflow-y: auto; padding: 4px; flex: 1; min-height: 100px; -webkit-overflow-scrolling: touch; }',
-    '.phone-menu-picker-grid .picker-item { display: flex; flex-direction: column; align-items: center; cursor: pointer; padding: 8px; border-radius: 10px; transition: background 0.2s; }',
-    '.phone-menu-picker-grid .picker-item:hover { background: rgba(255,255,255,0.1); }',
+    '.phone-menu-picker-grid .picker-item { display: flex; flex-direction: column; align-items: center; cursor: pointer; padding: 10px 8px; border-radius: 14px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); transition: background .18s ease, border-color .18s ease, transform .18s ease; }',
+    '.phone-menu-picker-grid .picker-item:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.16); transform: translateY(-2px); }',
+    '.phone-menu-picker-grid .picker-item:active { transform: scale(0.96); }',
     '.phone-menu-picker-grid .picker-icon-wrap { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; margin-bottom: 6px; }',
     '.phone-menu-picker-grid .picker-icon-wrap svg { width: 40px; height: 40px; }',
-    '.phone-menu-picker-grid .picker-name { font-size: 11px; color: #fff; text-align: center; word-break: break-word; }',
-    '.phone-menu-picker-reset { grid-column: 1 / -1; text-align: center; padding: 12px; cursor: pointer; color: #ff5555; font-size: 14px; }',
+    '.phone-menu-picker-grid .picker-name { font-size: 11px; color: rgba(255,255,255,0.85); text-align: center; word-break: break-word; }',
+    '.phone-menu-picker-reset { grid-column: 1 / -1; text-align: center; padding: 12px; margin-top: 4px; cursor: pointer; color: #ff6b6b; font-size: 14px; font-weight: 500; border-radius: 12px; background: rgba(255,107,107,0.08); border: 1px solid rgba(255,107,107,0.18); transition: background .18s ease; }',
+    '.phone-menu-picker-reset:hover { background: rgba(255,107,107,0.16); }',
     '@media (min-width: 360px) {',
-    '  .phone-menu-picker-modal { padding: 16px; border-radius: 14px; }',
-    '  .phone-menu-picker-title { font-size: 17px; margin-bottom: 12px; }',
+    '  .phone-menu-picker-modal { padding: 18px; border-radius: 22px; }',
+    '  .phone-menu-picker-title { font-size: 18px; margin-bottom: 16px; }',
     '  .phone-menu-picker-grid { gap: 12px; min-height: 120px; }',
     '  .phone-menu-picker-grid .picker-icon-wrap { width: 50px; height: 50px; margin-bottom: 8px; }',
     '  .phone-menu-picker-grid .picker-icon-wrap svg { width: 46px; height: 46px; }',
     '  .phone-menu-picker-grid .picker-name { font-size: 12px; }',
     '}',
     '@media (min-width: 480px) {',
-    '  .phone-menu-picker-modal { padding: 20px; border-radius: 16px; max-width: 420px; }',
-    '  .phone-menu-picker-title { font-size: 18px; }',
+    '  .phone-menu-picker-modal { padding: 22px; border-radius: 24px; max-width: 420px; }',
+    '  .phone-menu-picker-title { font-size: 19px; }',
     '  .phone-menu-picker-grid { gap: 16px; min-height: 140px; }',
     '  .phone-menu-picker-grid .picker-icon-wrap { width: 56px; height: 56px; }',
     '  .phone-menu-picker-grid .picker-icon-wrap svg { width: 48px; height: 48px; }',
@@ -168,33 +184,39 @@ Lampa.Platform.tv();
     var st = document.createElement('style');
     st.id = 'phone-menu-plugin-style';
     st.textContent = [
-      '/* buttonstest.js buttons */',
+      '/* buttonstest.js buttons — в одном стиле с нижней панелью */',
       '.full-start-new__buttons .full-start__button {',
-      '  background: linear-gradient(to top, rgba(80,80,80,0.35), rgba(30,30,35,0.25)) !important;',
-      '  border: 1px solid rgba(255,255,255,0.12) !important;',
-      '  box-shadow: inset 0 0 6px rgba(0,0,0,0.5) !important;',
-      '  border-radius: 14px !important;',
-      '  transition: background .3s ease, transform .2s ease, border-color .3s ease, box-shadow .3s ease !important;',
+      '  background: linear-gradient(180deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.02) 100%) !important;',
+      '  border: 1px solid rgba(255,255,255,0.08) !important;',
+      '  box-shadow: 0 1px 2px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.06) !important;',
+      '  border-radius: 16px !important;',
+      '  transition: background .25s ease, transform .22s cubic-bezier(.2,.7,.3,1), border-color .25s ease, box-shadow .25s ease !important;',
       '}',
       '.full-start-new__buttons .full-start__button:hover,',
       '.full-start-new__buttons .full-start__button.active {',
-      '  background: linear-gradient(to top, rgba(100,100,100,0.45), rgba(40,40,45,0.35)) !important;',
-      '  border-color: rgba(255,255,255,0.25) !important;',
-      '  box-shadow: inset 0 0 8px rgba(0,0,0,0.6) !important;',
-      '  transform: translateY(-3px);',
+      '  background: linear-gradient(180deg, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0.05) 100%) !important;',
+      '  border-color: rgba(255,255,255,0.22) !important;',
+      '  box-shadow: 0 8px 20px rgba(0,0,0,0.38), inset 0 1px 0 rgba(255,255,255,0.14) !important;',
+      '  transform: translateY(-2px);',
       '}',
+      '.full-start-new__buttons .full-start__button:active { transform: translateY(0) scale(0.96); transition-duration: .08s !important; }',
       '/* anim_reaction.js reactions */',
       '.full-start-new__reactions {',
-      '  gap: 2px !important;',
+      '  gap: 4px !important;',
       '  flex-wrap: nowrap !important;',
       '}',
       '.full-start-new__reactions .reaction {',
       '  margin: 0 !important;',
-      '  background: linear-gradient(to top, rgba(80,80,80,0.35), rgba(30,30,35,0.25)) !important;',
-      '  border: 1px solid rgba(255,255,255,0.12) !important;',
-      '  box-shadow: inset 0 0 6px rgba(0,0,0,0.5) !important;',
+      '  background: linear-gradient(180deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.02) 100%) !important;',
+      '  border: 1px solid rgba(255,255,255,0.08) !important;',
+      '  box-shadow: 0 1px 2px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.06) !important;',
       '  border-radius: 14px !important;',
       '  padding: 4px !important;',
+      '  transition: background .25s ease, border-color .25s ease, box-shadow .25s ease !important;',
+      '}',
+      '.full-start-new__reactions .reaction:hover, .full-start-new__reactions .reaction.active {',
+      '  background: linear-gradient(180deg, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0.05) 100%) !important;',
+      '  border-color: rgba(255,255,255,0.22) !important;',
       '}'
     ].join('\n');
     document.head.appendChild(st);
@@ -384,24 +406,26 @@ Lampa.Platform.tv();
     return result;
   }
   function loadIconsFromUrl(url, seen, callback){
-    if(!url || typeof url !== 'string'){ callback(null, 'Введите ссылку на файл'); return; }
+    var finished = false;
+    function done(res, err){ if(finished) return; finished = true; callback(res, err); }
+    if(!url || typeof url !== 'string'){ done(null, 'Введите ссылку на файл'); return; }
     var xhr = new XMLHttpRequest();
     xhr.onreadystatechange = function(){
       if(xhr.readyState !== 4) return;
-      if(xhr.status !== 200){ callback(null, 'Ошибка загрузки: ' + (xhr.status || 'сеть')); return; }
+      if(xhr.status !== 200){ done(null, 'Ошибка загрузки: ' + (xhr.status || 'сеть')); return; }
       var text = (xhr.responseText || '').replace(/^\uFEFF/,'').trim();
-      if(!text){ callback(null, 'Пустой ответ'); return; }
-      if(text.indexOf('<!') === 0 || text.indexOf('<html') !== -1){ callback(null, 'По ссылке отдаётся не JSON'); return; }
+      if(!text){ done(null, 'Пустой ответ'); return; }
+      if(text.indexOf('<!') === 0 || text.indexOf('<html') !== -1){ done(null, 'По ссылке отдаётся не JSON'); return; }
       text = text.replace(/\r\n/g,'\n').replace(/\r/g,'\n');
-      text = text.replace(/,(\s*)\]/,'$1]').replace(/,(\s*)\}/,'$1}');
+      text = text.replace(/,(\s*)\]/g,'$1]').replace(/,(\s*)\}/g,'$1}');
       var arr;
       try{ arr = JSON.parse(text); } catch(e){
         try{ arr = JSON.parse(text.replace(/[\u0000-\u001F]+/g,' ')); } catch(e2){
           var svgList = text.match(/<svg[\s\S]*?<\s*\/\s*svg\s*>/gi);
-          if(svgList && svgList.length > 0){ arr = svgList; } else { callback(null, 'Неверный формат файла'); return; }
+          if(svgList && svgList.length > 0){ arr = svgList; } else { done(null, 'Неверный формат файла'); return; }
         }
       }
-      if(!Array.isArray(arr)){ callback(null, 'Файл должен содержать массив'); return; }
+      if(!Array.isArray(arr)){ done(null, 'Файл должен содержать массив'); return; }
       var result = [];
       var urlsToFetch = [];
       var i, item, html, key;
@@ -423,28 +447,31 @@ Lampa.Platform.tv();
           }
         }
       }
-      if(urlsToFetch.length === 0){ callback(result, null); return; }
+      if(urlsToFetch.length === 0){ done(result, null); return; }
       var fetched = 0;
+      function finishFetch(){ fetched++; if(fetched === urlsToFetch.length) done(result, null); }
       urlsToFetch.forEach(function(entry){
         var req = new XMLHttpRequest();
-        req.open('GET', entry.url, true);
+        try{ req.open('GET', entry.url, true); } catch(eo){ finishFetch(); return; }
+        req.timeout = 15000;
         req.onload = function(){
           if(req.status === 200 && req.responseText){
-            html = req.responseText.trim();
-            if(html.indexOf('<svg') !== -1){
-              key = svgFingerprint(html);
-              if(!seen[key]){ seen[key] = true; result.push({ id: 'icon-' + entry.index, html: html }); }
+            var h = req.responseText.trim();
+            if(h.indexOf('<svg') !== -1){
+              var k = svgFingerprint(h);
+              if(!seen[k]){ seen[k] = true; result.push({ id: 'icon-' + entry.index, html: h }); }
             }
           }
-          fetched++;
-          if(fetched === urlsToFetch.length) callback(result, null);
+          finishFetch();
         };
-        req.onerror = function(){ fetched++; if(fetched === urlsToFetch.length) callback(result, null); };
-        req.send();
+        req.onerror = finishFetch;
+        req.ontimeout = finishFetch;
+        try{ req.send(); } catch(es){ finishFetch(); }
       });
     };
-    xhr.onerror = function(){ callback(null, 'Ошибка сети'); };
-    try{ xhr.open('GET', url, true); xhr.responseType = 'text'; xhr.send(); } catch(e){ callback(null, 'Ошибка запроса'); }
+    xhr.onerror = function(){ done(null, 'Ошибка сети'); };
+    xhr.ontimeout = function(){ done(null, 'Таймаут загрузки'); };
+    try{ xhr.open('GET', url, true); xhr.responseType = 'text'; xhr.timeout = 15000; xhr.send(); } catch(e){ done(null, 'Ошибка запроса'); }
   }
   function loadIconsFromUrlChain(urls, seen, callback){
     var allResults = [];
@@ -583,7 +610,7 @@ Lampa.Platform.tv();
       var opt = options[i];
       var item = document.createElement('div');
       item.className = 'picker-item';
-      item.innerHTML = '<div class="picker-icon-wrap">' + opt.svg + '</div><span class="picker-name">' + (opt.name || '') + '</span>';
+      item.innerHTML = '<div class="picker-icon-wrap">' + opt.svg + '</div><span class="picker-name">' + escapeHtml(opt.name || '') + '</span>';
       var svgEl = item.querySelector('svg');
       if(svgEl){ svgEl.style.width = '48px'; svgEl.style.height = '48px'; }
       if(opt.action !== '_'){
