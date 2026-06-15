@@ -134,11 +134,36 @@
     '@media (min-width: 768px) {',
     '  .phone-menu-picker-overlay { padding: 20px; }',
     '  .phone-menu-picker-modal { max-width: 480px; max-height: 85vh; }',
+    '}',
+    /* === Светлая тема Lampa (body.light--version) === */
+    /* На светлом фоне белые «стеклянные» кнопки и белые иконки/подписи теряются. */
+    /* Кладём панель на самостоятельный тёмный «поднос»: вид как в тёмной теме, читаемость на светлом сохраняется. */
+    'body.light--version .navigation-bar__body {',
+    '  background: linear-gradient(180deg, #2b2d33 0%, #1e2025 100%) !important;',
+    '  border-radius: 22px !important; padding: 8px !important;',
+    '  border: 1px solid rgba(0,0,0,0.06) !important;',
+    '  box-shadow: 0 8px 26px rgba(0,0,0,0.20), 0 2px 8px rgba(0,0,0,0.10), inset 0 1px 0 rgba(255,255,255,0.05) !important;',
+    '}',
+    'body.light--version .navigation-bar__label { color: #fff !important; }',
+    'body.light--version .navigation-bar__item.active::after { background: rgba(255,255,255,0.92) !important; box-shadow: 0 0 6px rgba(255,255,255,0.45) !important; }',
+    '@media (orientation: landscape) {',
+    '  body.light--version .navigation-bar__body { background: transparent !important; box-shadow: none !important; border: none !important; padding: 0 !important; }',
     '}'
   ].join('\n');
 
   var $  = function(s,r){ r = r || document; return r.querySelector(s); };
   var $$ = function(s,r){ r = r || document; var n = r.querySelectorAll(s); return Array.prototype.slice.call(n); };
+
+  /** Debounce: на телефоне resize срабатывает часто (адресная строка, клавиатура),
+      поэтому откладываем тяжёлую перестройку DOM до паузы в событиях. */
+  function debounce(fn, wait){
+    var timer;
+    return function(){
+      var ctx = this, args = arguments;
+      clearTimeout(timer);
+      timer = setTimeout(function(){ fn.apply(ctx, args); }, wait);
+    };
+  }
 
   /** Сохраняем SVG в Storage в base64, чтобы в Storage Manager не отображалась сама иконка. */
   function svgToStorage(svg){
@@ -920,10 +945,11 @@
     adjustPosition();
     processAllBarItems();
 
+    var adjustPositionDebounced = debounce(adjustPosition, 150);
     var mql = window.matchMedia && window.matchMedia('(orientation: landscape)');
     if(mql && mql.addEventListener) mql.addEventListener('change', adjustPosition);
     window.addEventListener('orientationchange', adjustPosition);
-    window.addEventListener('resize', adjustPosition);
+    window.addEventListener('resize', adjustPositionDebounced);
   }
 
   var mo = typeof MutationObserver !== 'undefined' ? new MutationObserver(function() {
