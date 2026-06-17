@@ -1735,7 +1735,8 @@
             view.appendChild(label);
         }
         label.textContent = text;
-        label.style.setProperty('background-color', getSeriesStatusColor(status), 'important');
+        var statusBg = isTypeLabelsColoredOn() ? getSeriesStatusColor(status) : 'rgba(0,0,0,' + getOverlayAlpha() + ')';
+        label.style.setProperty('background-color', statusBg, 'important');
         var center = measureCenterBottom(view);
         if (center !== null) label.style.setProperty('left', center + 'px', 'important');
         else label.style.setProperty('left', '50%', 'important');
@@ -1760,11 +1761,10 @@
         var bestEpisodes = metaEpisodes || (cached && cached.episodes) || 0;
 
         if (fullInfoOn) {
-            var countText = formatSeasonsEpisodesCount(bestSeasons, bestEpisodes);
             var statusText = getSeriesFullStatusText(bestStatus);
-            if (countText) applyEpisodeLabelText(card, countText); else removeEpisodeLabel(card);
+            if (bestText) applyEpisodeLabelText(card, bestText); else removeEpisodeLabel(card);
             if (statusText) applyCardSeriesStatus(card, statusText, bestStatus); else removeCardSeriesStatus(card);
-            if (bestSeasons && bestEpisodes && bestStatus) return;
+            if (bestText && bestStatus) return;
             Lampa.Network.silent(
                 Lampa.TMDB.api('tv/' + tmdbId + '?api_key=' + Lampa.TMDB.key()),
                 function (tvInfo) {
@@ -1773,13 +1773,12 @@
                     var seasons = tvInfo.number_of_seasons || 0;
                     var episodes = tvInfo.number_of_episodes || 0;
                     var episodeText = formatTypeLabelEpisodeText(tvInfo.last_episode_to_air);
-                    if (!status && !seasons && !episodes) return;
+                    if (!status && !seasons && !episodes && !episodeText) return;
                     setTypeLabelEpisodeCache(cacheKey, episodeText, status, seasons, episodes);
                     if (!card || !document.body.contains(card)) return;
                     if (!isCardSeriesFullInfoOn()) return;
-                    var ct = formatSeasonsEpisodesCount(seasons, episodes);
                     var st = getSeriesFullStatusText(status);
-                    if (ct) applyEpisodeLabelText(card, ct); else removeEpisodeLabel(card);
+                    if (episodeText) applyEpisodeLabelText(card, episodeText); else removeEpisodeLabel(card);
                     if (st) applyCardSeriesStatus(card, st, status); else removeCardSeriesStatus(card);
                 }
             );
@@ -2129,7 +2128,7 @@
             var rowTypeLabelsEpisodeInfo = addTriggerRow('Серии в лейбле «Сериал»', TYPE_LABEL_EPISODE_INFO_KEY, true);
             var rowSeasonInfoDetailsPosition = addCycleRow('Позиция сезонов и серий', 'seasons_info_details_position', SEASON_INFO_DETAILS_POSITION_LABELS, 'bottom');
             var rowSeasonCompletedReplace = addTriggerRow('«Завершён» вместо сезонов/серий', 'season_completed_replace', false);
-            var rowCardSeriesFullInfo = addTriggerRow('Статус снизу + сезоны/серии под «Сериал»', CARD_SERIES_FULL_INFO_KEY, false);
+            var rowCardSeriesFullInfo = addTriggerRow('Статус снизу + S:E под «Сериал»', CARD_SERIES_FULL_INFO_KEY, false);
 
             modal.append($('<div class="comodal__divider"></div>'));
             modal.append($('<div class="comodal__section">API</div>'));
