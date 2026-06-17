@@ -1161,6 +1161,7 @@
         scheduleVisibleRatingsUpdate(0);
         refreshAllQualityLabels();
         refreshAllCardOverlays();
+        refreshSeasonInfo();
     }
 
     function convertQuality(resolution) {
@@ -1749,6 +1750,9 @@
         label_position: 'top-right',
         details_position: 'bottom'
     };
+    // Запоминаем последнюю открытую карточку, чтобы перерисовывать лейбл о сериях
+    // сразу после изменения настроек (без переоткрытия карточки).
+    var _seasonInfoLast = null;
     function getSeasonInfoDetailsPosition() {
         var pos = Lampa.Storage.get('seasons_info_details_position', seasonInfoSettings.details_position || 'bottom');
         return pos === 'under-type-label' ? 'under-type-label' : 'bottom';
@@ -1756,77 +1760,101 @@
     function isEpisodeLabelUnderType() {
         return getSeasonInfoDetailsPosition() === 'under-type-label';
     }
+    function getActivityRender(object) {
+        try { return object && object.activity && object.activity.render ? object.activity.render() : null; } catch (e) { return null; }
+    }
+    function renderSeasonInfo(movie, object) {
+        if (!movie) return;
+        var render = getActivityRender(object);
+        // Режим выключен — убираем лейбл (чтобы выключение применялось сразу).
+        if (seasonInfoSettings.seasons_info_mode === 'none') {
+            if (render) $(render).find('.full-start-new__poster .season-info-label').remove();
+            return;
+        }
+        if (!movie.number_of_seasons) return;
+        var status = movie.status;
+        var totalSeasons = movie.number_of_seasons || 0;
+        var totalEpisodes = movie.number_of_episodes || 0;
+        var airedSeasons = 0, airedEpisodes = 0;
+        var now = new Date();
+        if (movie.seasons) {
+            movie.seasons.forEach(function (s) {
+                if (s.season_number === 0) return;
+                var seasonAired = s.air_date && new Date(s.air_date) <= now;
+                if (seasonAired) airedSeasons++;
+                if (s.episodes) { s.episodes.forEach(function (ep) { if (ep.air_date && new Date(ep.air_date) <= now) airedEpisodes++; }); }
+                else if (seasonAired && s.episode_count) airedEpisodes += s.episode_count;
+            });
+        } else if (movie.last_episode_to_air) {
+            airedSeasons = movie.last_episode_to_air.season_number || 0;
+            if (movie.seasons) { movie.seasons.forEach(function (s) { if (s.season_number === 0) return; if (s.season_number < movie.last_episode_to_air.season_number) airedEpisodes += s.episode_count || 0; else if (s.season_number === movie.last_episode_to_air.season_number) airedEpisodes += movie.last_episode_to_air.episode_number; }); }
+            else { var prev = 0; for (var i = 1; i < movie.last_episode_to_air.season_number; i++) prev += 10; airedEpisodes = prev + movie.last_episode_to_air.episode_number; }
+        }
+        if (movie.next_episode_to_air && totalEpisodes > 0) {
+            var ne = movie.next_episode_to_air, rem = 0;
+            if (movie.seasons) { movie.seasons.forEach(function (s) { if (s.season_number === ne.season_number) rem += (s.episode_count || 0) - ne.episode_number + 1; else if (s.season_number > ne.season_number) rem += s.episode_count || 0; }); }
+            if (rem > 0) { var calc = totalEpisodes - rem; if (calc >= 0 && calc <= totalEpisodes) airedEpisodes = calc; }
+        }
+        if (!airedSeasons) airedSeasons = totalSeasons;
+        if (!airedEpisodes) airedEpisodes = totalEpisodes;
+        if (totalEpisodes > 0 && airedEpisodes > totalEpisodes) airedEpisodes = totalEpisodes;
+        function plural(n, one, two, five) { var m = Math.abs(n) % 100; if (m >= 5 && m <= 20) return five; m %= 10; if (m === 1) return one; if (m >= 2 && m <= 4) return two; return five; }
+        function getStatusText(st) { if (st === 'Ended') return 'Завершён'; if (st === 'Canceled') return 'Отменён'; if (st === 'Returning Series') return 'Онгоинг'; if (st === 'In Production') return 'В производстве'; return st || 'Неизвестно'; }
+        var displaySeasons, displayEpisodes;
+        if (seasonInfoSettings.seasons_info_mode === 'aired') { displaySeasons = airedSeasons; displayEpisodes = airedEpisodes; }
+        else { displaySeasons = totalSeasons; displayEpisodes = totalEpisodes; }
+        var seasonsText = plural(displaySeasons, 'сезон', 'сезона', 'сезонов');
+        var episodesText = plural(displayEpisodes, 'серия', 'серии', 'серий');
+        var isCompleted = (status === 'Ended' || status === 'Canceled');
+        var bgColor = isCompleted ? 'rgba(33,150,243,0.8)' : 'rgba(244,67,54,0.8)';
+        var statusText = getStatusText(status);
+        // Замена сезонов/серий статусом «Завершён» (Ended/Canceled) при включённой настройке.
+        var replaceWithStatus = isTriggerOn('season_completed_replace', false) && isCompleted;
+        var txt = displaySeasons + ' ' + seasonsText + ' ' + displayEpisodes + ' ' + episodesText;
+        if (seasonInfoSettings.seasons_info_mode === 'aired' && totalEpisodes > 0 && airedEpisodes < totalEpisodes && airedEpisodes > 0) txt = displaySeasons + ' ' + seasonsText + ' ' + airedEpisodes + ' ' + episodesText + ' из ' + totalEpisodes;
+        if (replaceWithStatus) txt = statusText;
+        var info = $('<div class="season-info-label"></div>').text(txt);
+        var statusLabel = $('<div class="full-start__status season-info-status"></div>').text(statusText);
+        var metaLine;
+        var positions = { 'top-right': { top: '0', right: '0', borderRadius: '0 0.75em', textAlign: 'right' }, 'top-left': { top: '0', left: '0', borderRadius: '0.75em 0', textAlign: 'left' }, 'bottom-right': { bottom: '0', right: '0', borderRadius: '0.75em 0', textAlign: 'right' }, 'bottom-left': { bottom: '0', left: '0', borderRadius: '0 0.75em', textAlign: 'left' } };
+        var pos = positions[seasonInfoSettings.label_position] || positions['top-right'];
+        info.css($.extend({ position: 'absolute', backgroundColor: bgColor, color: 'white', padding: '0.25em 0.45em', fontSize: 'var(--rating-font-size,1.1em)', zIndex: 10, whiteSpace: 'nowrap', lineHeight: '1', boxShadow: 'none' }, pos));
+        setTimeout(function () {
+            var render2 = getActivityRender(object);
+            if (!render2) return;
+            var poster = $(render2).find('.full-start-new__poster');
+            if (poster.length) {
+                poster.find('.season-info-label').remove();
+                // На детальной странице статус «Завершён» уже выводится в мета-линии,
+                // поэтому не дублируем его лейблом на постере (показываем лейбл только когда это не замена статусом).
+                if (!replaceWithStatus) poster.css('position', 'relative').append(info);
+            }
+            metaLine = ensureDetailMetaLine(render2);
+            if (metaLine.length) {
+                metaLine.find('.season-info-status').remove();
+                var nativeStatus = $(render2).find('.full-start__status').filter(function () {
+                    var el = $(this);
+                    if (el.hasClass('qualview-quality')) return false;
+                    return !el.closest('.full-start-new__rate, .full-start__rate, .full-start-new__meta-line').length;
+                }).first();
+                if (nativeStatus.length) nativeStatus.addClass('season-info-status');
+                else if (isMobilePortrait()) metaLine.append(statusLabel);
+                moveDetailMetaToSecondLine(render2);
+            }
+        }, 100);
+    }
+    // Перерисовать лейбл о сериях на уже открытой карточке (живое применение настроек).
+    function refreshSeasonInfo() {
+        if (!_seasonInfoLast) return;
+        var render = getActivityRender(_seasonInfoLast.object);
+        if (!render || !$(render).closest('body').length) return;
+        renderSeasonInfo(_seasonInfoLast.movie, _seasonInfoLast.object);
+    }
     function addSeasonInfo() {
         Lampa.Listener.follow('full', function (data) {
             if (data.type === 'complite' && data.data.movie.number_of_seasons) {
-                if (seasonInfoSettings.seasons_info_mode === 'none') return;
-                var movie = data.data.movie;
-                var status = movie.status;
-                var totalSeasons = movie.number_of_seasons || 0;
-                var totalEpisodes = movie.number_of_episodes || 0;
-                var airedSeasons = 0, airedEpisodes = 0;
-                var now = new Date();
-                if (movie.seasons) {
-                    movie.seasons.forEach(function (s) {
-                        if (s.season_number === 0) return;
-                        var seasonAired = s.air_date && new Date(s.air_date) <= now;
-                        if (seasonAired) airedSeasons++;
-                        if (s.episodes) { s.episodes.forEach(function (ep) { if (ep.air_date && new Date(ep.air_date) <= now) airedEpisodes++; }); }
-                        else if (seasonAired && s.episode_count) airedEpisodes += s.episode_count;
-                    });
-                } else if (movie.last_episode_to_air) {
-                    airedSeasons = movie.last_episode_to_air.season_number || 0;
-                    if (movie.seasons) { movie.seasons.forEach(function (s) { if (s.season_number === 0) return; if (s.season_number < movie.last_episode_to_air.season_number) airedEpisodes += s.episode_count || 0; else if (s.season_number === movie.last_episode_to_air.season_number) airedEpisodes += movie.last_episode_to_air.episode_number; }); }
-                    else { var prev = 0; for (var i = 1; i < movie.last_episode_to_air.season_number; i++) prev += 10; airedEpisodes = prev + movie.last_episode_to_air.episode_number; }
-                }
-                if (movie.next_episode_to_air && totalEpisodes > 0) {
-                    var ne = movie.next_episode_to_air, rem = 0;
-                    if (movie.seasons) { movie.seasons.forEach(function (s) { if (s.season_number === ne.season_number) rem += (s.episode_count || 0) - ne.episode_number + 1; else if (s.season_number > ne.season_number) rem += s.episode_count || 0; }); }
-                    if (rem > 0) { var calc = totalEpisodes - rem; if (calc >= 0 && calc <= totalEpisodes) airedEpisodes = calc; }
-                }
-                if (!airedSeasons) airedSeasons = totalSeasons;
-                if (!airedEpisodes) airedEpisodes = totalEpisodes;
-                if (totalEpisodes > 0 && airedEpisodes > totalEpisodes) airedEpisodes = totalEpisodes;
-                function plural(n, one, two, five) { var m = Math.abs(n) % 100; if (m >= 5 && m <= 20) return five; m %= 10; if (m === 1) return one; if (m >= 2 && m <= 4) return two; return five; }
-                function getStatusText(st) { if (st === 'Ended') return 'Завершён'; if (st === 'Canceled') return 'Отменён'; if (st === 'Returning Series') return 'Онгоинг'; if (st === 'In Production') return 'В производстве'; return st || 'Неизвестно'; }
-                var displaySeasons, displayEpisodes;
-                if (seasonInfoSettings.seasons_info_mode === 'aired') { displaySeasons = airedSeasons; displayEpisodes = airedEpisodes; }
-                else { displaySeasons = totalSeasons; displayEpisodes = totalEpisodes; }
-                var seasonsText = plural(displaySeasons, 'сезон', 'сезона', 'сезонов');
-                var episodesText = plural(displayEpisodes, 'серия', 'серии', 'серий');
-                var isCompleted = (status === 'Ended' || status === 'Canceled');
-                var bgColor = isCompleted ? 'rgba(33,150,243,0.8)' : 'rgba(244,67,54,0.8)';
-                var statusText = getStatusText(status);
-                var txt = displaySeasons + ' ' + seasonsText + ' ' + displayEpisodes + ' ' + episodesText;
-                if (seasonInfoSettings.seasons_info_mode === 'aired' && totalEpisodes > 0 && airedEpisodes < totalEpisodes && airedEpisodes > 0) txt = displaySeasons + ' ' + seasonsText + ' ' + airedEpisodes + ' ' + episodesText + ' из ' + totalEpisodes;
-
-                if (isTriggerOn('season_completed_replace', false) && status === 'Ended') txt = getStatusText('Ended');
-                var info = $('<div class="season-info-label"></div>').text(txt);
-                var statusLabel = $('<div class="full-start__status season-info-status"></div>').text(statusText);
-                var metaLine;
-                var positions = { 'top-right': { top: '0', right: '0', borderRadius: '0 0.75em', textAlign: 'right' }, 'top-left': { top: '0', left: '0', borderRadius: '0.75em 0', textAlign: 'left' }, 'bottom-right': { bottom: '0', right: '0', borderRadius: '0.75em 0', textAlign: 'right' }, 'bottom-left': { bottom: '0', left: '0', borderRadius: '0 0.75em', textAlign: 'left' } };
-                var pos = positions[seasonInfoSettings.label_position] || positions['top-right'];
-                info.css($.extend({ position: 'absolute', backgroundColor: bgColor, color: 'white', padding: '0.25em 0.45em', fontSize: 'var(--rating-font-size,1.1em)', zIndex: 10, whiteSpace: 'nowrap', lineHeight: '1', boxShadow: 'none' }, pos));
-                setTimeout(function () {
-                    var render = data.object.activity.render();
-                    var poster = $(render).find('.full-start-new__poster');
-                    if (poster.length) {
-                        poster.find('.season-info-label').remove();
-                        poster.css('position', 'relative').append(info);
-                    }
-                    metaLine = ensureDetailMetaLine(render);
-                    if (metaLine.length) {
-                        metaLine.find('.season-info-status').remove();
-                        var nativeStatus = $(render).find('.full-start__status').filter(function () {
-                            var el = $(this);
-                            if (el.hasClass('qualview-quality')) return false;
-                            return !el.closest('.full-start-new__rate, .full-start__rate, .full-start-new__meta-line').length;
-                        }).first();
-                        if (nativeStatus.length) nativeStatus.addClass('season-info-status');
-                        else if (isMobilePortrait()) metaLine.append(statusLabel);
-                        moveDetailMetaToSecondLine(render);
-                    }
-                }, 100);
+                _seasonInfoLast = { movie: data.data.movie, object: data.object };
+                renderSeasonInfo(data.data.movie, data.object);
             }
         });
     }
@@ -2129,13 +2157,13 @@
             component: 'card_overlay',
             param: { name: 'seasons_info_mode', type: 'select', values: { none: 'Выключить', aired: 'Актуальная информация', total: 'Полное количество' }, default: 'none' },
             field: { name: 'Информация о сериях', description: 'Как отображать информацию о сериях и сезонах' },
-            onChange: function (v) { seasonInfoSettings.seasons_info_mode = v; updateSettingsKeepFocus('seasons_info_mode'); }
+            onChange: function (v) { seasonInfoSettings.seasons_info_mode = v; updateSettingsKeepFocus('seasons_info_mode'); refreshSeasonInfo(); }
         });
         Lampa.SettingsApi.addParam({
             component: 'card_overlay',
             param: { name: 'label_position', type: 'select', values: { 'top-right': 'Верхний правый', 'top-left': 'Верхний левый', 'bottom-right': 'Нижний правый', 'bottom-left': 'Нижний левый' }, default: 'top-right' },
             field: { name: 'Позиция лейбла о сериях', description: 'Позиция лейбла на постере детальной страницы' },
-            onChange: function (v) { seasonInfoSettings.label_position = v; updateSettingsKeepFocus('label_position'); Lampa.Noty.show('Откройте карточку заново'); }
+            onChange: function (v) { seasonInfoSettings.label_position = v; updateSettingsKeepFocus('label_position'); refreshSeasonInfo(); }
         });
         Lampa.SettingsApi.addParam({
             component: 'card_overlay',
