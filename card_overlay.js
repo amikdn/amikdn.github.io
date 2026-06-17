@@ -194,7 +194,6 @@
     function getPersistentCacheKey(source) {
         return 'rating_cache_' + source;
     }
-
     function pruneExpiredCacheEntries(cache) {
         var now = Date.now(), removed = false;
         for (var k in cache) {
@@ -1070,7 +1069,6 @@
         _mainObserver.observe(document.body, { childList: true, subtree: true });
     }
 
-
     function colorizeFullCardRatings(render) {
         if (!isColoredRatingsPosterOn()) return;
         var scope = $(render).length ? $(render) : $(document);
@@ -1271,7 +1269,6 @@
             fetchJacRed(normalizedItem, itemId, completeWithFallback);
         }
     }
-
     var _qualityCacheMem = null;
     function getQualityCacheMem() {
         if (_qualityCacheMem) return _qualityCacheMem;
@@ -1512,7 +1509,6 @@
     function getTypeLabelEpisodeCacheKey(data) {
         return data && data.id ? 'tv_' + data.id : '';
     }
-
     var _episodeCacheMem = null;
     function getEpisodeCacheMem() {
         if (_episodeCacheMem) return _episodeCacheMem;
@@ -1536,11 +1532,12 @@
             return entry;
         } catch (e) { return null; }
     }
-    function setTypeLabelEpisodeCache(key, episodeText) {
-        if (!key || !episodeText) return;
+    function setTypeLabelEpisodeCache(key, episodeText, status) {
+        if (!key) return;
+        if (!episodeText && !status) return;
         try {
             var cache = getEpisodeCacheMem();
-            cache[key] = { text: episodeText, timestamp: Date.now() };
+            cache[key] = { text: episodeText || '', status: status || '', timestamp: Date.now() };
             debouncedSaveByKey(TYPE_LABEL_EPISODE_CACHE_KEY, cache);
         } catch (e) {}
     }
@@ -1550,6 +1547,19 @@
         var episodeNumber = parseInt(lastEpisode.episode_number, 10) || 0;
         if (!seasonNumber || !episodeNumber) return '';
         return 'S' + seasonNumber + ':E' + episodeNumber;
+    }
+    function isCompletedSeriesStatus(status) {
+        return status === 'Ended' || status === 'Canceled';
+    }
+    function getSeriesStatusLabelText(status) {
+        return status === 'Canceled' ? 'Отменён' : 'Завершён';
+    }
+    function deriveEpisodeLabelDisplay(entry) {
+        if (!entry) return '';
+        if (isTriggerOn('season_completed_replace', false) && isCompletedSeriesStatus(entry.status)) {
+            return getSeriesStatusLabelText(entry.status);
+        }
+        return entry.text || '';
     }
     function getCardTmdbId(card, meta) {
         return (meta && meta.id) || $(card).data('id') || $(card).attr('data-id') || (card && card.card_data && card.card_data.id) || '';
@@ -1576,7 +1586,6 @@
         }
         return null;
     }
-
     function measureEpisodeLabelPosition(card) {
         var view = card && card.querySelector && card.querySelector('.card__view');
         if (!view) return null;
@@ -1659,24 +1668,29 @@
         if (!tmdbId) { removeEpisodeLabel(card); return; }
         var cacheKey = getTypeLabelEpisodeCacheKey({ id: tmdbId });
         var metaEpisodeText = formatTypeLabelEpisodeText(meta && meta.last_episode_to_air);
-        if (metaEpisodeText) {
-            setTypeLabelEpisodeCache(cacheKey, metaEpisodeText);
-            applyEpisodeLabelText(card, metaEpisodeText);
-            return;
+        var metaStatus = (meta && meta.status) || '';
+        if (metaEpisodeText || metaStatus) {
+            setTypeLabelEpisodeCache(cacheKey, metaEpisodeText, metaStatus);
+            var metaDisplay = deriveEpisodeLabelDisplay({ text: metaEpisodeText, status: metaStatus });
+            if (metaDisplay) { applyEpisodeLabelText(card, metaDisplay); return; }
         }
         var cached = getTypeLabelEpisodeCache(cacheKey);
-        if (cached && cached.text) {
-            applyEpisodeLabelText(card, cached.text);
-            return;
+        if (cached) {
+            var cachedDisplay = deriveEpisodeLabelDisplay(cached);
+            if (cachedDisplay) { applyEpisodeLabelText(card, cachedDisplay); return; }
         }
         removeEpisodeLabel(card);
         Lampa.Network.silent(
             Lampa.TMDB.api('tv/' + tmdbId + '?api_key=' + Lampa.TMDB.key()),
             function (tvInfo) {
-                var episodeText = formatTypeLabelEpisodeText(tvInfo && tvInfo.last_episode_to_air);
-                if (!episodeText) return;
-                setTypeLabelEpisodeCache(cacheKey, episodeText);
-                if (card && document.body.contains(card)) applyEpisodeLabelText(card, episodeText);
+                if (!tvInfo) return;
+                var episodeText = formatTypeLabelEpisodeText(tvInfo.last_episode_to_air);
+                var status = tvInfo.status || '';
+                if (!episodeText && !status) return;
+                setTypeLabelEpisodeCache(cacheKey, episodeText, status);
+                var display = deriveEpisodeLabelDisplay({ text: episodeText, status: status });
+                if (!display) return;
+                if (card && document.body.contains(card)) applyEpisodeLabelText(card, display);
             }
         );
     }
@@ -1750,8 +1764,6 @@
         label_position: 'top-right',
         details_position: 'bottom'
     };
-    // Запоминаем последнюю открытую карточку, чтобы перерисовывать лейбл о сериях
-    // сразу после изменения настроек (без переоткрытия карточки).
     var _seasonInfoLast = null;
     function getSeasonInfoDetailsPosition() {
         var pos = Lampa.Storage.get('seasons_info_details_position', seasonInfoSettings.details_position || 'bottom');
@@ -1766,7 +1778,6 @@
     function renderSeasonInfo(movie, object) {
         if (!movie) return;
         var render = getActivityRender(object);
-        // Режим выключен — убираем лейбл (чтобы выключение применялось сразу).
         if (seasonInfoSettings.seasons_info_mode === 'none') {
             if (render) $(render).find('.full-start-new__poster .season-info-label').remove();
             return;
@@ -1808,7 +1819,6 @@
         var isCompleted = (status === 'Ended' || status === 'Canceled');
         var bgColor = isCompleted ? 'rgba(33,150,243,0.8)' : 'rgba(244,67,54,0.8)';
         var statusText = getStatusText(status);
-        // Замена сезонов/серий статусом «Завершён» (Ended/Canceled) при включённой настройке.
         var replaceWithStatus = isTriggerOn('season_completed_replace', false) && isCompleted;
         var txt = displaySeasons + ' ' + seasonsText + ' ' + displayEpisodes + ' ' + episodesText;
         if (seasonInfoSettings.seasons_info_mode === 'aired' && totalEpisodes > 0 && airedEpisodes < totalEpisodes && airedEpisodes > 0) txt = displaySeasons + ' ' + seasonsText + ' ' + airedEpisodes + ' ' + episodesText + ' из ' + totalEpisodes;
@@ -1825,9 +1835,7 @@
             var poster = $(render2).find('.full-start-new__poster');
             if (poster.length) {
                 poster.find('.season-info-label').remove();
-                // На детальной странице статус «Завершён» уже выводится в мета-линии,
-                // поэтому не дублируем его лейблом на постере (показываем лейбл только когда это не замена статусом).
-                if (!replaceWithStatus) poster.css('position', 'relative').append(info);
+                poster.css('position', 'relative').append(info);
             }
             metaLine = ensureDetailMetaLine(render2);
             if (metaLine.length) {
@@ -1843,7 +1851,6 @@
             }
         }, 100);
     }
-    // Перерисовать лейбл о сериях на уже открытой карточке (живое применение настроек).
     function refreshSeasonInfo() {
         if (!_seasonInfoLast) return;
         var render = getActivityRender(_seasonInfoLast.object);
@@ -1870,7 +1877,6 @@
         var scope = render ? $(render) : $(document);
         scope.find('.full-start__status').each(function () { apply(this); });
     }
-
     function fixSeriesStatusText(render) {
         var scope = render ? $(render) : $(document);
         scope.find('.full-start__status').each(function () {
@@ -2136,8 +2142,6 @@
         setTimeout(restoreScroll, 80);
         setTimeout(restoreScroll, 180);
     }
-
-
 
     function addSettings() {
         if (!Lampa.SettingsApi) return;
@@ -2598,7 +2602,6 @@
         seasonInfoSettings.details_position = Lampa.Storage.get('seasons_info_details_position', 'bottom');
         addSeasonInfo();
 
-
         if (isColoredElementsOn()) { $('body').addClass('colored-elements-on'); colorizeSeriesStatus(); colorizeAgeRating(); colorizeDetailQuality(); }
         else { $('body').removeClass('colored-elements-on'); }
 
@@ -2621,7 +2624,7 @@
     Lampa.Manifest.plugins = {
         name: 'Интерфейс Мод',
         version: '1.1.0',
-        description: 'Рейтинги, качество, лейблы типа на карточках'
+        description: 'Рейтинги, качество, лейблы типа на карточках + темы'
     };
 
     if (window.appready) { initPlugin(); }
