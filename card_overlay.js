@@ -1584,7 +1584,7 @@
         return status || '';
     }
     function getSeriesStatusColor(status) {
-        if (status === 'Ended') return 'rgba(33,150,243,0.85)';
+        if (status === 'Ended') return 'rgba(52,152,219,0.85)';
         if (status === 'Canceled') return 'rgba(244,67,54,0.85)';
         if (status === 'Returning Series') return 'rgba(243,156,18,0.85)';
         if (status === 'In Production') return 'rgba(52,152,219,0.85)';
@@ -1723,6 +1723,48 @@
         if (isTypeLabelsColoredOn()) label.classList.add('serial-label');
         updateEpisodeLabelPosition(card);
     }
+    function getVisibleDirectOverlayVBox(view, isMatch) {
+        var children = view.children || [];
+        for (var i = 0; i < children.length; i++) {
+            var el = children[i];
+            if (!isMatch(el) || !isVisibleOverlayElement(el)) continue;
+            return { top: el.offsetTop, bottom: el.offsetTop + el.offsetHeight };
+        }
+        return null;
+    }
+    function measureSeriesStatusRightMiddle(view) {
+        if (!view) return null;
+        try {
+            if (Lampa.Storage.get('rating_position', 'bottom') !== 'top') return null;
+            var ratingBox = getVisibleDirectOverlayVBox(view, function (el) {
+                return el.classList && (el.classList.contains('card__vote--top') || Lampa.Storage.get('rating_position', 'bottom') === 'top') && (el.classList.contains('card__vote-separate-wrap') || el.classList.contains('card__vote-line') || (el.classList.contains('card__vote') && !el.classList.contains('card__vote-separate-wrap') && !el.classList.contains('card__vote-line')));
+            });
+            var yearBox = getVisibleDirectOverlayVBox(view, function (el) { return el.classList && el.classList.contains('card__year-badge'); });
+            if (!ratingBox || !yearBox) return null;
+            if (yearBox.top <= ratingBox.bottom) return null;
+            return (ratingBox.bottom + yearBox.top) / 2;
+        } catch (e3) { return null; }
+    }
+    function positionCardSeriesStatus(view, label) {
+        var mid = measureSeriesStatusRightMiddle(view);
+        if (mid !== null) {
+            label.style.setProperty('left', 'auto', 'important');
+            label.style.setProperty('right', '0', 'important');
+            label.style.setProperty('top', mid + 'px', 'important');
+            label.style.setProperty('bottom', 'auto', 'important');
+            label.style.setProperty('transform', 'translateY(-50%)', 'important');
+            label.style.setProperty('border-radius', '0.75em 0 0 0.75em', 'important');
+            return;
+        }
+        var center = measureCenterBottom(view);
+        if (center !== null) label.style.setProperty('left', center + 'px', 'important');
+        else label.style.setProperty('left', '50%', 'important');
+        label.style.setProperty('right', 'auto', 'important');
+        label.style.setProperty('top', 'auto', 'important');
+        label.style.setProperty('bottom', '0', 'important');
+        label.style.setProperty('transform', 'translateX(-50%)', 'important');
+        label.style.setProperty('border-radius', '0.75em 0.75em 0 0', 'important');
+    }
     function applyCardSeriesStatus(card, text, status) {
         if (!text) { removeCardSeriesStatus(card); return; }
         var view = card && card.querySelector && card.querySelector('.card__view');
@@ -1735,12 +1777,12 @@
             view.appendChild(label);
         }
         label.textContent = text;
-        var statusBg = getSeriesStatusColor(status);
+        var statusBg;
+        if (!isTypeLabelsColoredOn()) statusBg = 'rgba(0,0,0,' + getOverlayAlpha() + ')';
+        else if (status === 'Ended') statusBg = getTypeLabelBackground(true);
+        else statusBg = getSeriesStatusColor(status);
         label.style.setProperty('background-color', statusBg, 'important');
-        var center = measureCenterBottom(view);
-        if (center !== null) label.style.setProperty('left', center + 'px', 'important');
-        else label.style.setProperty('left', '50%', 'important');
-        label.style.setProperty('transform', 'translateX(-50%)', 'important');
+        positionCardSeriesStatus(view, label);
     }
     function updateTypeLabelEpisodeInfo(card, meta) {
         var fullInfoOn = isCardSeriesFullInfoOn();
