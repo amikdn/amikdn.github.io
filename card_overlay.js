@@ -1735,7 +1735,7 @@
             view.appendChild(label);
         }
         label.textContent = text;
-        var statusBg = isTypeLabelsColoredOn() ? getSeriesStatusColor(status) : 'rgba(0,0,0,' + getOverlayAlpha() + ')';
+        var statusBg = getSeriesStatusColor(status);
         label.style.setProperty('background-color', statusBg, 'important');
         var center = measureCenterBottom(view);
         if (center !== null) label.style.setProperty('left', center + 'px', 'important');
