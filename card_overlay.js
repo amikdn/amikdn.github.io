@@ -1723,40 +1723,30 @@
         if (isTypeLabelsColoredOn()) label.classList.add('serial-label');
         updateEpisodeLabelPosition(card);
     }
-    function getVisibleDirectOverlayVBox(view, isMatch) {
-        var children = view.children || [];
-        for (var i = 0; i < children.length; i++) {
-            var el = children[i];
-            if (!isMatch(el) || !isVisibleOverlayElement(el)) continue;
-            return { top: el.offsetTop, bottom: el.offsetTop + el.offsetHeight };
-        }
-        return null;
-    }
-    function measureSeriesStatusRightMiddle(view) {
+    function measureSeriesStatusCenterBottom(view) {
         if (!view) return null;
         try {
-            if (Lampa.Storage.get('rating_position', 'bottom') !== 'top') return null;
-            var ratingBox = getVisibleDirectOverlayVBox(view, function (el) {
-                return el.classList && (el.classList.contains('card__vote--top') || Lampa.Storage.get('rating_position', 'bottom') === 'top') && (el.classList.contains('card__vote-separate-wrap') || el.classList.contains('card__vote-line') || (el.classList.contains('card__vote') && !el.classList.contains('card__vote-separate-wrap') && !el.classList.contains('card__vote-line')));
-            });
-            var yearBox = getVisibleDirectOverlayVBox(view, function (el) { return el.classList && el.classList.contains('card__year-badge'); });
-            if (!ratingBox || !yearBox) return null;
-            if (yearBox.top <= ratingBox.bottom) return null;
-            return (ratingBox.bottom + yearBox.top) / 2;
+            var viewWidth = view.clientWidth || view.offsetWidth;
+            var qualityBox = getVisibleDirectOverlayBox(view, function (el) { return el.classList && el.classList.contains('card__quality'); });
+            var rightBox;
+            if (Lampa.Storage.get('rating_position', 'bottom') === 'top') {
+                rightBox = getVisibleDirectOverlayBox(view, function (el) { return el.classList && el.classList.contains('card__year-badge'); });
+            } else {
+                rightBox = getVisibleDirectOverlayBox(view, function (el) {
+                    return el.classList && (el.classList.contains('card__vote--bottom') || Lampa.Storage.get('rating_position', 'bottom') === 'bottom') && ((el.classList.contains('card__vote-separate-wrap') || el.classList.contains('card__vote-line') || (el.classList.contains('card__vote') && !el.classList.contains('card__vote-separate-wrap') && !el.classList.contains('card__vote-line'))));
+                });
+            }
+            var leftEdge = qualityBox ? qualityBox.right : 0;
+            var rightEdge = rightBox ? rightBox.left : viewWidth;
+            if (rightEdge <= leftEdge) {
+                leftEdge = 0;
+                rightEdge = viewWidth;
+            }
+            return (leftEdge + rightEdge) / 2;
         } catch (e3) { return null; }
     }
     function positionCardSeriesStatus(view, label) {
-        var mid = measureSeriesStatusRightMiddle(view);
-        if (mid !== null) {
-            label.style.setProperty('left', 'auto', 'important');
-            label.style.setProperty('right', '0', 'important');
-            label.style.setProperty('top', mid + 'px', 'important');
-            label.style.setProperty('bottom', 'auto', 'important');
-            label.style.setProperty('transform', 'translateY(-50%)', 'important');
-            label.style.setProperty('border-radius', '0.75em 0 0 0.75em', 'important');
-            return;
-        }
-        var center = measureCenterBottom(view);
+        var center = measureSeriesStatusCenterBottom(view);
         if (center !== null) label.style.setProperty('left', center + 'px', 'important');
         else label.style.setProperty('left', '50%', 'important');
         label.style.setProperty('right', 'auto', 'important');
