@@ -1035,6 +1035,7 @@
             var needRatings = false;
             var addedCards = [];
             var needSelectbox = false;
+            var badgeCards = [];
             for (var i = 0; i < mutations.length; i++) {
                 var m = mutations[i];
                 if (m.addedNodes && m.addedNodes.length) {
@@ -1048,10 +1049,18 @@
                             for (var ni = 0; ni < nestedCards.length; ni++) { observeCardVisibility(nestedCards[ni]); addedCards.push(nestedCards[ni]); }
                         }
                         if (node.querySelector && (node.querySelector('.selectbox-item__icon') || node.querySelector('.selectbox-item__icon img'))) needSelectbox = true;
+                        if (node.matches && node.matches('.card__badge--next-episode')) { var bc = getCardRootNode(node); if (bc) badgeCards.push(bc); }
+                        else if (node.querySelector && node.querySelector('.card__badge--next-episode')) {
+                            var badgeNodes = node.querySelectorAll('.card__badge--next-episode');
+                            for (var bi = 0; bi < badgeNodes.length; bi++) { var bcard = getCardRootNode(badgeNodes[bi]); if (bcard) badgeCards.push(bcard); }
+                        }
                     }
                 }
             }
             if (needRatings) scheduleVisibleRatingsUpdate(50);
+            if (badgeCards.length) {
+                for (var bk = 0; bk < badgeCards.length; bk++) raiseNextEpisodeBadgeForCard(badgeCards[bk]);
+            }
             if (addedCards.length) {
                 for (var k = 0; k < addedCards.length; k++) {
                     if (!addedCards[k].hasAttribute('data-type-label-checked')) {
@@ -1624,6 +1633,49 @@
         if (!view) return;
         var labels = view.querySelectorAll('.card__series-status');
         for (var i = 0; i < labels.length; i++) labels[i].remove();
+        raiseNextEpisodeBadge(view);
+    }
+    function getCardRootNode(node) {
+        while (node && node.nodeType === 1) {
+            if (node.classList && node.classList.contains('card')) return node;
+            node = node.parentNode;
+        }
+        return null;
+    }
+    function findNextEpisodeBadgeForView(view) {
+        if (!view || !view.querySelector) return null;
+        var badge = view.querySelector('.card__badge--next-episode');
+        if (badge) return badge;
+        var card = getCardRootNode(view.parentNode);
+        if (card && card.querySelector) return card.querySelector('.card__badge--next-episode');
+        return null;
+    }
+    function raiseNextEpisodeBadge(view) {
+        if (!view || !view.querySelector) return;
+        var badge = findNextEpisodeBadgeForView(view);
+        if (!badge) return;
+        var status = view.querySelector('.card__series-status');
+        if (status && isVisibleOverlayElement(status)) {
+            var lift = status.offsetHeight || 0;
+            try {
+                var pos = window.getComputedStyle(badge).position;
+                if (!pos || pos === 'static') badge.style.setProperty('position', 'absolute', 'important');
+            } catch (ePos) {}
+            badge.style.setProperty('bottom', lift + 'px', 'important');
+            badge.style.setProperty('top', 'auto', 'important');
+            badge.style.setProperty('z-index', '11', 'important');
+            badge.setAttribute('data-card-overlay-raised', '1');
+        } else if (badge.getAttribute('data-card-overlay-raised') === '1') {
+            badge.style.removeProperty('position');
+            badge.style.removeProperty('bottom');
+            badge.style.removeProperty('top');
+            badge.style.removeProperty('z-index');
+            badge.removeAttribute('data-card-overlay-raised');
+        }
+    }
+    function raiseNextEpisodeBadgeForCard(card) {
+        var view = card && card.querySelector && card.querySelector('.card__view');
+        if (view) raiseNextEpisodeBadge(view);
     }
     function isVisibleOverlayElement(el) {
         if (!el) return false;
@@ -1754,6 +1806,7 @@
         label.style.setProperty('bottom', '0', 'important');
         label.style.setProperty('transform', 'translateX(-50%)', 'important');
         label.style.setProperty('border-radius', '0.75em 0.75em 0 0', 'important');
+        raiseNextEpisodeBadge(view);
     }
     function applyCardSeriesStatus(card, text, status) {
         if (!text) { removeCardSeriesStatus(card); return; }
@@ -1773,6 +1826,30 @@
         else statusBg = getSeriesStatusColor(status);
         label.style.setProperty('background-color', statusBg, 'important');
         positionCardSeriesStatus(view, label);
+    }
+    var pendingEpisodeInfoRequests = {};
+    var _episodeInfoAttempts = {};
+    var EPISODE_INFO_RETRY_TTL = 6 * 60 * 60 * 1000;
+    function fetchTvEpisodeInfo(tmdbId, callback) {
+        if (!tmdbId) { if (callback) callback(null); return; }
+        var key = String(tmdbId);
+        if (pendingEpisodeInfoRequests[key]) { if (callback) pendingEpisodeInfoRequests[key].push(callback); return; }
+        var lastAttempt = _episodeInfoAttempts[key];
+        if (lastAttempt && (Date.now() - lastAttempt < EPISODE_INFO_RETRY_TTL)) { if (callback) callback(null); return; }
+        pendingEpisodeInfoRequests[key] = callback ? [callback] : [];
+        addToQueue(function () {
+            function complete(result) {
+                _episodeInfoAttempts[key] = Date.now();
+                var callbacks = pendingEpisodeInfoRequests[key] || [];
+                delete pendingEpisodeInfoRequests[key];
+                for (var i = 0; i < callbacks.length; i++) { try { callbacks[i](result); } catch (e) {} }
+            }
+            var url = buildTmdbApiUrl('tv', tmdbId);
+            if (!url) { complete(null); return; }
+            var request = getRequest();
+            request.timeout(6000);
+            request.silent(url, function (tvInfo) { releaseRequest(request); complete(tvInfo || null); }, function () { releaseRequest(request); complete(null); }, false);
+        }, 'fast', function () { delete pendingEpisodeInfoRequests[key]; });
     }
     function updateTypeLabelEpisodeInfo(card, meta) {
         var fullInfoOn = isCardSeriesFullInfoOn();
@@ -1797,23 +1874,20 @@
             if (bestText) applyEpisodeLabelText(card, bestText); else removeEpisodeLabel(card);
             if (statusText) applyCardSeriesStatus(card, statusText, bestStatus); else removeCardSeriesStatus(card);
             if (bestText && bestStatus) return;
-            Lampa.Network.silent(
-                Lampa.TMDB.api('tv/' + tmdbId + '?api_key=' + Lampa.TMDB.key()),
-                function (tvInfo) {
-                    if (!tvInfo) return;
-                    var status = tvInfo.status || '';
-                    var seasons = tvInfo.number_of_seasons || 0;
-                    var episodes = tvInfo.number_of_episodes || 0;
-                    var episodeText = formatTypeLabelEpisodeText(tvInfo.last_episode_to_air);
-                    if (!status && !seasons && !episodes && !episodeText) return;
-                    setTypeLabelEpisodeCache(cacheKey, episodeText, status, seasons, episodes);
-                    if (!card || !document.body.contains(card)) return;
-                    if (!isCardSeriesFullInfoOn()) return;
-                    var st = getSeriesFullStatusText(status);
-                    if (episodeText) applyEpisodeLabelText(card, episodeText); else removeEpisodeLabel(card);
-                    if (st) applyCardSeriesStatus(card, st, status); else removeCardSeriesStatus(card);
-                }
-            );
+            fetchTvEpisodeInfo(tmdbId, function (tvInfo) {
+                if (!tvInfo) return;
+                var status = tvInfo.status || '';
+                var seasons = tvInfo.number_of_seasons || 0;
+                var episodes = tvInfo.number_of_episodes || 0;
+                var episodeText = formatTypeLabelEpisodeText(tvInfo.last_episode_to_air);
+                if (!status && !seasons && !episodes && !episodeText) return;
+                setTypeLabelEpisodeCache(cacheKey, episodeText, status, seasons, episodes);
+                if (!card || !document.body.contains(card)) return;
+                if (!isCardSeriesFullInfoOn()) return;
+                var st = getSeriesFullStatusText(status);
+                if (episodeText) applyEpisodeLabelText(card, episodeText); else removeEpisodeLabel(card);
+                if (st) applyCardSeriesStatus(card, st, status); else removeCardSeriesStatus(card);
+            });
             return;
         }
 
@@ -1824,19 +1898,16 @@
         if (display) applyEpisodeLabelText(card, display);
         else if (bestText) applyEpisodeLabelText(card, bestText);
         else removeEpisodeLabel(card);
-        Lampa.Network.silent(
-            Lampa.TMDB.api('tv/' + tmdbId + '?api_key=' + Lampa.TMDB.key()),
-            function (tvInfo) {
-                if (!tvInfo) return;
-                var episodeText = formatTypeLabelEpisodeText(tvInfo.last_episode_to_air);
-                var status = tvInfo.status || '';
-                if (!episodeText && !status) return;
-                setTypeLabelEpisodeCache(cacheKey, episodeText, status);
-                var display = deriveEpisodeLabelDisplay({ text: episodeText, status: status });
-                if (!display) { removeEpisodeLabel(card); return; }
-                if (card && document.body.contains(card)) applyEpisodeLabelText(card, display);
-            }
-        );
+        fetchTvEpisodeInfo(tmdbId, function (tvInfo) {
+            if (!tvInfo) return;
+            var episodeText = formatTypeLabelEpisodeText(tvInfo.last_episode_to_air);
+            var status = tvInfo.status || '';
+            if (!episodeText && !status) return;
+            setTypeLabelEpisodeCache(cacheKey, episodeText, status);
+            var display = deriveEpisodeLabelDisplay({ text: episodeText, status: status });
+            if (!display) { removeEpisodeLabel(card); return; }
+            if (card && document.body.contains(card)) applyEpisodeLabelText(card, display);
+        });
     }
     function addTypeLabel(card) {
         if (!isTypeLabelsShowOn()) { removeEpisodeLabel(card); return; }
