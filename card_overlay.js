@@ -1556,7 +1556,7 @@
     }
     function deriveEpisodeLabelDisplay(entry) {
         if (!entry) return '';
-        if (isTriggerOn('season_completed_replace', false) && isCompletedSeriesStatus(entry.status)) {
+        if (isTriggerOn('season_completed_replace', false) && entry.status === 'Ended') {
             return getSeriesStatusLabelText(entry.status);
         }
         return entry.text || '';
@@ -1675,13 +1675,10 @@
         var bestText = metaEpisodeText || (cached && cached.text) || '';
         var bestStatus = metaStatus || (cached && cached.status) || '';
         var haveEnough = !!bestStatus || (!replaceOn && !!bestText);
-        if (haveEnough) {
-            var display = deriveEpisodeLabelDisplay({ text: bestText, status: bestStatus });
-            if (display) applyEpisodeLabelText(card, display);
-            else removeEpisodeLabel(card);
-            return;
-        }
-        if (bestText) applyEpisodeLabelText(card, bestText);
+        var display = deriveEpisodeLabelDisplay({ text: bestText, status: bestStatus });
+        if (haveEnough && display) { applyEpisodeLabelText(card, display); return; }
+        if (display) applyEpisodeLabelText(card, display);
+        else if (bestText) applyEpisodeLabelText(card, bestText);
         else removeEpisodeLabel(card);
         Lampa.Network.silent(
             Lampa.TMDB.api('tv/' + tmdbId + '?api_key=' + Lampa.TMDB.key()),
@@ -1885,6 +1882,7 @@
             if (el.hasClass('qualview-quality')) return;
             var t = (el.text() || '').trim();
             if (/^завершено$/i.test(t)) el.text('Завершён');
+            else if (/^отменено$/i.test(t)) el.text('Отменён');
         });
     }
     function colorizeAgeRating(render) {
