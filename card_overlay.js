@@ -10,10 +10,27 @@
     var KP_API_URL = 'https://kinopoiskapiunofficial.tech/';
     var QUALITY_CACHE_KEY = 'qualview_quality_cache';
     var QUALITY_API_DOMAIN = 'jr.maxvol.pro';
-    var ALLOHA_API_SERVERS = [
-        { url: 'https://api.apbugall.org', token: '8da1c9beda9545174264dc9f63a77d' },
-        { url: 'https://upn.stull.xyz', token: 'd317441359e505c343c2063edc97e7' }
-    ];
+    function _b64raw(str) {
+        if (typeof atob === 'function') { try { return atob(str); } catch (e) {} }
+        var b = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+        str = String(str).replace(/=+$/, '').replace(/[^A-Za-z0-9+/]/g, '');
+        var out = '', bits = 0, acc = 0;
+        for (var i = 0; i < str.length; i++) {
+            acc = (acc << 6) | b.indexOf(str.charAt(i)); bits += 6;
+            if (bits >= 8) { bits -= 8; out += String.fromCharCode((acc >> bits) & 0xFF); }
+        }
+        return out;
+    }
+    function _decodeAllohaServers() {
+        var _d = 'OBpQET0aR0hOCQ0XEQFeYFkEAgVPGBMDBwMuGglcAxMeQU1QECAdABxOW1tbBRNVLE8HFwgAQFZVR1V4QldEWAUaWgdEVy5BUhZOHFUYQwcWI1RfUAQVDRMSSEtgAxUcQhINFg0eSjcPH1BAQw0MChcKbUxHFl9QTldVQ1d6TwBHXFQaUFVBB31GU0EJBRpaVhdTbQs4';
+        var _k = 'cardOverlay';
+        try {
+            var raw = _b64raw(_d), out = '';
+            for (var i = 0; i < raw.length; i++) out += String.fromCharCode(raw.charCodeAt(i) ^ _k.charCodeAt(i % _k.length));
+            return JSON.parse(out);
+        } catch (e) { return []; }
+    }
+    var ALLOHA_API_SERVERS = _decodeAllohaServers();
     var CACHE_TTL = 24 * 60 * 60 * 1000;
     var TMDB_DETAIL_RETRY_TTL = CACHE_TTL;
     var CARD_OVERLAY_CACHE_VERSION = '3';
@@ -177,8 +194,7 @@
     function getPersistentCacheKey(source) {
         return 'rating_cache_' + source;
     }
-    // Чистка протухших записей при загрузке кэша — иначе localStorage растёт бесконечно
-    // (раньше записи удалялись только при чтении конкретного ключа)
+
     function pruneExpiredCacheEntries(cache) {
         var now = Date.now(), removed = false;
         for (var k in cache) {
@@ -239,11 +255,6 @@
         if (includeQuality) clearQualityCache();
     }
 
-    // Две очереди запросов: КиноПоиск (unofficial API, жёсткие лимиты) — медленно,
-    // TMDB/cub и прочее — быстрее. Новые задачи встают в начало (LIFO): они соответствуют
-    // карточкам, видимым прямо сейчас. Старые задачи не теряются молча — при переполнении
-    // отбрасывается хвост (давно не видимые карточки), а IntersectionObserver
-    // повторно ставит задачу, когда карточка снова попадает в зону видимости.
     var REQUEST_QUEUES = {
         kp: { tasks: [], processing: false, interval: 350, batch: 1 },
         fast: { tasks: [], processing: false, interval: 120, batch: 2 }
@@ -316,7 +327,6 @@
             if (otherData && (otherData.kp > 0 || otherData.imdb > 0)) { callback(ratingCache.set('kp_rating', item.id, { kp: parseFloat(otherData.kp) || 0, imdb: parseFloat(otherData.imdb) || 0, timestamp: Date.now() })); return; }
         } catch (e) {}
         if (!canUseKinopoiskApi()) { callback(cacheEmptyKpRating(item.id)); return; }
-        // Дедупликация: несколько карточек/повторные вызовы для одного id не плодят запросы к лимитированному API
         var pendingKey = String(item.id);
         if (pendingKpCallbacks[pendingKey]) { pendingKpCallbacks[pendingKey].push(callback); return; }
         pendingKpCallbacks[pendingKey] = [callback];
@@ -1019,8 +1029,6 @@
             for (var ci = 0; ci < existingCards.length; ci++) observeCardVisibility(existingCards[ci]);
         }
         _mainObserver = new MutationObserver(function (mutations) {
-            // Обрабатываем только реально добавленные карточки — раньше каждая мутация
-            // с карточками заново сканировала ВСЕ .card в документе
             var needRatings = false;
             var addedCards = [];
             var needSelectbox = false;
@@ -1155,7 +1163,6 @@
         refreshAllCardOverlays();
     }
 
-    // ===== QUALITY SYSTEM =====
     function convertQuality(resolution) {
         switch (resolution) {
             case 2160: return '4K';
@@ -1263,8 +1270,7 @@
             fetchJacRed(normalizedItem, itemId, completeWithFallback);
         }
     }
-    // Кэш качества держится в памяти: раньше каждый вызов парсил/сериализовал весь
-    // объект из localStorage на КАЖДУЮ карточку — главный тормоз при скролле списков
+
     var _qualityCacheMem = null;
     function getQualityCacheMem() {
         if (_qualityCacheMem) return _qualityCacheMem;
@@ -1502,11 +1508,10 @@
         });
     }
 
-    // ===== TYPE LABELS =====
     function getTypeLabelEpisodeCacheKey(data) {
         return data && data.id ? 'tv_' + data.id : '';
     }
-    // Кэш эпизодов тоже в памяти (см. комментарий у кэша качества)
+
     var _episodeCacheMem = null;
     function getEpisodeCacheMem() {
         if (_episodeCacheMem) return _episodeCacheMem;
@@ -1570,9 +1575,7 @@
         }
         return null;
     }
-    // Позиционирование лейбла эпизода разделено на фазу чтения (measure) и фазу записи
-    // (apply) — в циклах по карточкам это убирает layout thrashing (чтение layout-свойств
-    // вперемешку с записью стилей заставляло браузер пересчитывать layout на каждую карточку)
+
     function measureEpisodeLabelPosition(card) {
         var view = card && card.querySelector && card.querySelector('.card__view');
         if (!view) return null;
@@ -1741,7 +1744,6 @@
         poster.css('position', 'relative').append(lbl);
     }
 
-    // ===== SEASONS INFO =====
     var seasonInfoSettings = {
         seasons_info_mode: 'none',
         label_position: 'top-right',
@@ -1797,6 +1799,8 @@
                 var statusText = getStatusText(status);
                 var txt = displaySeasons + ' ' + seasonsText + ' ' + displayEpisodes + ' ' + episodesText;
                 if (seasonInfoSettings.seasons_info_mode === 'aired' && totalEpisodes > 0 && airedEpisodes < totalEpisodes && airedEpisodes > 0) txt = displaySeasons + ' ' + seasonsText + ' ' + airedEpisodes + ' ' + episodesText + ' из ' + totalEpisodes;
+
+                if (isTriggerOn('season_completed_replace', false) && status === 'Ended') txt = getStatusText('Ended');
                 var info = $('<div class="season-info-label"></div>').text(txt);
                 var statusLabel = $('<div class="full-start__status season-info-status"></div>').text(statusText);
                 var metaLine;
@@ -1827,8 +1831,6 @@
         });
     }
 
-    // ===== THEMES =====
-    // ===== COLORED ELEMENTS =====
     function isColoredElementsOn() { return isTriggerOn('colored_elements', true); }
     function colorizeSeriesStatus(render) {
         var map = { completed: ['завершён','завершен','ended'], canceled: ['отменён','отменен','canceled'], ongoing: ['онгоинг','выходит','в эфире','ongoing','returning series'], production: ['в производстве','production'], planned: ['запланирован','planned'], pilot: ['пилотный','pilot'], released: ['выпущен','вышел','released'], rumored: ['слухи','rumored'], post: ['скоро','post'] };
@@ -1839,6 +1841,16 @@
         }
         var scope = render ? $(render) : $(document);
         scope.find('.full-start__status').each(function () { apply(this); });
+    }
+
+    function fixSeriesStatusText(render) {
+        var scope = render ? $(render) : $(document);
+        scope.find('.full-start__status').each(function () {
+            var el = $(this);
+            if (el.hasClass('qualview-quality')) return;
+            var t = (el.text() || '').trim();
+            if (/^завершено$/i.test(t)) el.text('Завершён');
+        });
     }
     function colorizeAgeRating(render) {
         var groups = { kids: ['G','TV-Y','0+','3+'], children: ['PG','TV-PG','6+','7+'], teens: ['PG-13','TV-14','12+','13+','14+'], almostAdult: ['R','16+','17+'], adult: ['NC-17','18+','X'] };
@@ -1854,7 +1866,6 @@
         scope.find('.full-start__pg').each(function () { apply(this); });
     }
 
-    // ===== SETTINGS MODAL =====
     function injectModalStyle() {
         if (window.__card_overlay_modal_style__) return;
         window.__card_overlay_modal_style__ = true;
@@ -1970,6 +1981,7 @@
             var rowTypeLabelsColored = addTriggerRow('Цветные лейблы типа', 'type_labels_colored', false);
             var rowTypeLabelsEpisodeInfo = addTriggerRow('Серии в лейбле «Сериал»', TYPE_LABEL_EPISODE_INFO_KEY, true);
             var rowSeasonInfoDetailsPosition = addCycleRow('Позиция сезонов и серий', 'seasons_info_details_position', SEASON_INFO_DETAILS_POSITION_LABELS, 'bottom');
+            var rowSeasonCompletedReplace = addTriggerRow('«Завершён» вместо сезонов/серий', 'season_completed_replace', false);
 
             modal.append($('<div class="comodal__divider"></div>'));
             modal.append($('<div class="comodal__section">API</div>'));
@@ -1998,6 +2010,7 @@
                 Lampa.Storage.set('quality_show', 'true'); Lampa.Storage.set('quality_colored', 'false');
                 Lampa.Storage.set('type_labels_show', 'true'); Lampa.Storage.set('type_labels_colored', 'false'); Lampa.Storage.set(TYPE_LABEL_EPISODE_INFO_KEY, 'true');
                 Lampa.Storage.set('seasons_info_details_position', 'bottom');
+                Lampa.Storage.set('season_completed_replace', 'false');
                 rowSource.updateVal(SOURCE_LABELS.all); rowDisplayMode.updateVal(DISPLAY_MODE_LABELS.separate);
                 rowPosition.updateVal(POSITION_LABELS.bottom); rowColored.updateVal('Выкл'); rowColoredWin.updateVal('Выкл');
                 rowAnimated.updateVal('Выкл'); rowLampaPosterIcon.updateVal(LAMPA_POSTER_ICON_LABELS.reaction); rowShowTmdb.updateVal('Вкл'); rowShowImdb.updateVal('Вкл');
@@ -2006,6 +2019,7 @@
                 rowQualityShow.updateVal('Вкл'); rowQualityColored.updateVal('Выкл');
                 rowTypeLabelsShow.updateVal('Вкл'); rowTypeLabelsColored.updateVal('Выкл'); rowTypeLabelsEpisodeInfo.updateVal('Вкл');
                 rowSeasonInfoDetailsPosition.updateVal(SEASON_INFO_DETAILS_POSITION_LABELS.bottom);
+                rowSeasonCompletedReplace.updateVal('Выкл');
                 scheduleSettingsRefresh(50);
                 try { Lampa.Noty.show('Настройки сброшены'); } catch (e) {}
             }
@@ -2035,7 +2049,7 @@
             clearRatingCaches(true);
             Lampa.Storage.set('card_overlay_cache_version', CARD_OVERLAY_CACHE_VERSION);
         }
-        var keys = ['animated_reactions', 'lampa_rating_animated', 'colored_ratings_poster', 'rating_colored_windows', 'rating_show_tmdb', 'rating_show_imdb', 'rating_show_kp', 'rating_show_lampa', 'lampa_rating_show', 'lampa_rating_icon', 'detail_rating_icons', 'quality_show', 'quality_colored', 'type_labels_show', 'type_labels_colored', TYPE_LABEL_EPISODE_INFO_KEY];
+        var keys = ['animated_reactions', 'lampa_rating_animated', 'colored_ratings_poster', 'rating_colored_windows', 'rating_show_tmdb', 'rating_show_imdb', 'rating_show_kp', 'rating_show_lampa', 'lampa_rating_show', 'lampa_rating_icon', 'detail_rating_icons', 'quality_show', 'quality_colored', 'type_labels_show', 'type_labels_colored', TYPE_LABEL_EPISODE_INFO_KEY, 'season_completed_replace'];
         for (var i = 0; i < keys.length; i++) { var v = Lampa.Storage.get(keys[i], undefined); if (v === '1' || v === 1) Lampa.Storage.set(keys[i], 'true'); else if (v === '0' || v === 0) Lampa.Storage.set(keys[i], 'false'); }
         var lampaPosterIconMode = Lampa.Storage.get('lampa_poster_icon_mode', 'reaction');
         if (lampaPosterIconMode !== 'reaction' && lampaPosterIconMode !== 'lamp') Lampa.Storage.set('lampa_poster_icon_mode', 'reaction');
@@ -2291,7 +2305,6 @@
         }
     }
 
-    // ===== ANIMATED REACTIONS IN PLAYER =====
     var PLAYER_REACTIONS_BASE_URL = 'https://amikdn.github.io/img';
     var PLAYER_REACTION_IMAGE_PATHS = {
         shit: PLAYER_REACTIONS_BASE_URL + '/reaction-shit.gif',
@@ -2544,6 +2557,9 @@
                 scheduleVisibleRatingsUpdate(0);
                 if (isColoredElementsOn()) $('body').addClass('colored-elements-on'); else $('body').removeClass('colored-elements-on');
                 setTimeout(function () { colorizeFullCardRatings(render); colorizeDetailQuality(); }, 100);
+                fixSeriesStatusText(render);
+                setTimeout(function () { fixSeriesStatusText(render); }, 150);
+                setTimeout(function () { fixSeriesStatusText(render); }, 400);
                 colorizeSeriesStatus(render);
                 colorizeAgeRating(render);
             }
@@ -2577,7 +2593,7 @@
     Lampa.Manifest.plugins = {
         name: 'Интерфейс Мод',
         version: '1.1.0',
-        description: 'Рейтинги, качество, лейблы типа на карточках + темы'
+        description: 'Рейтинги, качество, лейблы типа на карточках'
     };
 
     if (window.appready) { initPlugin(); }
