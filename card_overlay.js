@@ -36,6 +36,7 @@
     var CARD_OVERLAY_CACHE_VERSION = '3';
     var TYPE_LABEL_EPISODE_INFO_KEY = 'type_labels_episode_info';
     var TYPE_LABEL_EPISODE_CACHE_KEY = 'type_label_episode_cache';
+    var CARD_SERIES_FULL_INFO_KEY = 'card_series_full_info';
 
     function isTriggerOn(key, def) {
         var v = Lampa.Storage.get(key, def);
@@ -67,6 +68,9 @@
     }
     function isTypeLabelEpisodeInfoOn() {
         return isTriggerOn(TYPE_LABEL_EPISODE_INFO_KEY, true);
+    }
+    function isCardSeriesFullInfoOn() {
+        return isTriggerOn(CARD_SERIES_FULL_INFO_KEY, false);
     }
     function isDetailRatingIconsOn() {
         return isTriggerOn('detail_rating_icons', true);
@@ -1532,12 +1536,21 @@
             return entry;
         } catch (e) { return null; }
     }
-    function setTypeLabelEpisodeCache(key, episodeText, status) {
+    function setTypeLabelEpisodeCache(key, episodeText, status, seasons, episodes) {
         if (!key) return;
-        if (!episodeText && !status) return;
+        seasons = parseInt(seasons, 10) || 0;
+        episodes = parseInt(episodes, 10) || 0;
+        if (!episodeText && !status && !seasons && !episodes) return;
         try {
             var cache = getEpisodeCacheMem();
-            cache[key] = { text: episodeText || '', status: status || '', timestamp: Date.now() };
+            var prev = cache[key] || {};
+            cache[key] = {
+                text: episodeText || prev.text || '',
+                status: status || prev.status || '',
+                seasons: seasons || prev.seasons || 0,
+                episodes: episodes || prev.episodes || 0,
+                timestamp: Date.now()
+            };
             debouncedSaveByKey(TYPE_LABEL_EPISODE_CACHE_KEY, cache);
         } catch (e) {}
     }
@@ -1561,6 +1574,41 @@
         }
         return entry.text || '';
     }
+    function getSeriesFullStatusText(status) {
+        if (status === 'Ended') return 'Завершён';
+        if (status === 'Canceled') return 'Отменён';
+        if (status === 'Returning Series') return 'Онгоинг';
+        if (status === 'In Production') return 'В производстве';
+        if (status === 'Planned') return 'Запланирован';
+        if (status === 'Pilot') return 'Пилотный';
+        return status || '';
+    }
+    function getSeriesStatusColor(status) {
+        if (status === 'Ended') return 'rgba(33,150,243,0.85)';
+        if (status === 'Canceled') return 'rgba(244,67,54,0.85)';
+        if (status === 'Returning Series') return 'rgba(243,156,18,0.85)';
+        if (status === 'In Production') return 'rgba(52,152,219,0.85)';
+        if (status === 'Planned') return 'rgba(155,89,182,0.85)';
+        if (status === 'Pilot') return 'rgba(230,126,34,0.85)';
+        return 'rgba(0,0,0,0.7)';
+    }
+    function seriesCountPlural(n, one, two, five) {
+        var m = Math.abs(n) % 100;
+        if (m >= 5 && m <= 20) return five;
+        m %= 10;
+        if (m === 1) return one;
+        if (m >= 2 && m <= 4) return two;
+        return five;
+    }
+    function formatSeasonsEpisodesCount(seasons, episodes) {
+        seasons = parseInt(seasons, 10) || 0;
+        episodes = parseInt(episodes, 10) || 0;
+        if (!seasons && !episodes) return '';
+        var parts = [];
+        if (seasons) parts.push(seasons + ' ' + seriesCountPlural(seasons, 'сезон', 'сезона', 'сезонов'));
+        if (episodes) parts.push(episodes + ' ' + seriesCountPlural(episodes, 'серия', 'серии', 'серий'));
+        return parts.join(' ');
+    }
     function getCardTmdbId(card, meta) {
         return (meta && meta.id) || $(card).data('id') || $(card).attr('data-id') || (card && card.card_data && card.card_data.id) || '';
     }
@@ -1568,6 +1616,13 @@
         var view = card && card.querySelector && card.querySelector('.card__view');
         if (!view) return;
         var labels = view.querySelectorAll('.card__episode-label');
+        for (var i = 0; i < labels.length; i++) labels[i].remove();
+        removeCardSeriesStatus(card);
+    }
+    function removeCardSeriesStatus(card) {
+        var view = card && card.querySelector && card.querySelector('.card__view');
+        if (!view) return;
+        var labels = view.querySelectorAll('.card__series-status');
         for (var i = 0; i < labels.length; i++) labels[i].remove();
     }
     function isVisibleOverlayElement(el) {
@@ -1600,7 +1655,7 @@
             props.push(['line-height', typeStyle.lineHeight === 'normal' ? '1' : typeStyle.lineHeight]);
             props.push(['padding', typeStyle.paddingTop + ' ' + typeStyle.paddingRight + ' ' + typeStyle.paddingBottom + ' ' + typeStyle.paddingLeft]);
         }
-        if (isEpisodeLabelUnderType()) {
+        if (isEpisodeLabelUnderType() || isCardSeriesFullInfoOn()) {
             var topOffset = 0;
             if (typeLabel) {
                 var typeGap = (0.15 * parseFloat(typeStyle.fontSize)) || 6;
@@ -1609,6 +1664,16 @@
             props.push(['left', '0'], ['right', 'auto'], ['top', topOffset + 'px'], ['bottom', 'auto'], ['transform', 'none'], ['border-radius', '0 0.75em 0.75em 0']);
             return { label: label, props: props };
         }
+        var center = measureCenterBottom(view);
+        if (center !== null) {
+            props.push(['left', center + 'px'], ['right', 'auto'], ['top', 'auto'], ['bottom', '0'], ['transform', 'translateX(-50%)'], ['border-radius', '0.75em 0.75em 0 0']);
+        } else {
+            props.push(['left', '50%'], ['right', 'auto'], ['top', 'auto'], ['bottom', '0'], ['transform', 'translateX(-50%)'], ['border-radius', '0.75em 0.75em 0 0']);
+        }
+        return { label: label, props: props };
+    }
+    function measureCenterBottom(view) {
+        if (!view) return null;
         try {
             var viewWidth = view.clientWidth || view.offsetWidth;
             var qualityBox = getVisibleDirectOverlayBox(view, function (el) { return el.classList && el.classList.contains('card__quality'); });
@@ -1621,12 +1686,8 @@
                 leftEdge = 0;
                 rightEdge = viewWidth;
             }
-            var center = (leftEdge + rightEdge) / 2;
-            props.push(['left', center + 'px'], ['right', 'auto'], ['top', 'auto'], ['bottom', '0'], ['transform', 'translateX(-50%)'], ['border-radius', '0.75em 0.75em 0 0']);
-        } catch (e2) {
-            props.push(['left', '50%'], ['right', 'auto'], ['top', 'auto'], ['bottom', '0'], ['transform', 'translateX(-50%)'], ['border-radius', '0.75em 0.75em 0 0']);
-        }
-        return { label: label, props: props };
+            return (leftEdge + rightEdge) / 2;
+        } catch (e2) { return null; }
     }
     function applyEpisodeLabelStyles(measured) {
         if (!measured) return;
@@ -1662,18 +1723,70 @@
         if (isTypeLabelsColoredOn()) label.classList.add('serial-label');
         updateEpisodeLabelPosition(card);
     }
+    function applyCardSeriesStatus(card, text, status) {
+        if (!text) { removeCardSeriesStatus(card); return; }
+        var view = card && card.querySelector && card.querySelector('.card__view');
+        if (!view) return;
+        markCardOverlayHost(card);
+        var label = view.querySelector('.card__series-status');
+        if (!label) {
+            label = document.createElement('div');
+            label.className = 'card__series-status';
+            view.appendChild(label);
+        }
+        label.textContent = text;
+        label.style.setProperty('background-color', getSeriesStatusColor(status), 'important');
+        var center = measureCenterBottom(view);
+        if (center !== null) label.style.setProperty('left', center + 'px', 'important');
+        else label.style.setProperty('left', '50%', 'important');
+        label.style.setProperty('transform', 'translateX(-50%)', 'important');
+    }
     function updateTypeLabelEpisodeInfo(card, meta) {
-        if (!isTypeLabelEpisodeInfoOn()) { removeEpisodeLabel(card); return; }
+        var fullInfoOn = isCardSeriesFullInfoOn();
+        if (!isTypeLabelEpisodeInfoOn() && !fullInfoOn) { removeEpisodeLabel(card); removeCardSeriesStatus(card); return; }
         var tmdbId = getCardTmdbId(card, meta);
-        if (!tmdbId) { removeEpisodeLabel(card); return; }
+        if (!tmdbId) { removeEpisodeLabel(card); removeCardSeriesStatus(card); return; }
         var cacheKey = getTypeLabelEpisodeCacheKey({ id: tmdbId });
         var replaceOn = isTriggerOn('season_completed_replace', false);
         var metaEpisodeText = formatTypeLabelEpisodeText(meta && meta.last_episode_to_air);
         var metaStatus = (meta && meta.status) || '';
-        if (metaEpisodeText || metaStatus) setTypeLabelEpisodeCache(cacheKey, metaEpisodeText, metaStatus);
+        var metaSeasons = (meta && meta.number_of_seasons) || 0;
+        var metaEpisodes = (meta && meta.number_of_episodes) || 0;
+        if (metaEpisodeText || metaStatus || metaSeasons || metaEpisodes) setTypeLabelEpisodeCache(cacheKey, metaEpisodeText, metaStatus, metaSeasons, metaEpisodes);
         var cached = getTypeLabelEpisodeCache(cacheKey);
         var bestText = metaEpisodeText || (cached && cached.text) || '';
         var bestStatus = metaStatus || (cached && cached.status) || '';
+        var bestSeasons = metaSeasons || (cached && cached.seasons) || 0;
+        var bestEpisodes = metaEpisodes || (cached && cached.episodes) || 0;
+
+        if (fullInfoOn) {
+            var countText = formatSeasonsEpisodesCount(bestSeasons, bestEpisodes);
+            var statusText = getSeriesFullStatusText(bestStatus);
+            if (countText) applyEpisodeLabelText(card, countText); else removeEpisodeLabel(card);
+            if (statusText) applyCardSeriesStatus(card, statusText, bestStatus); else removeCardSeriesStatus(card);
+            if (bestSeasons && bestEpisodes && bestStatus) return;
+            Lampa.Network.silent(
+                Lampa.TMDB.api('tv/' + tmdbId + '?api_key=' + Lampa.TMDB.key()),
+                function (tvInfo) {
+                    if (!tvInfo) return;
+                    var status = tvInfo.status || '';
+                    var seasons = tvInfo.number_of_seasons || 0;
+                    var episodes = tvInfo.number_of_episodes || 0;
+                    var episodeText = formatTypeLabelEpisodeText(tvInfo.last_episode_to_air);
+                    if (!status && !seasons && !episodes) return;
+                    setTypeLabelEpisodeCache(cacheKey, episodeText, status, seasons, episodes);
+                    if (!card || !document.body.contains(card)) return;
+                    if (!isCardSeriesFullInfoOn()) return;
+                    var ct = formatSeasonsEpisodesCount(seasons, episodes);
+                    var st = getSeriesFullStatusText(status);
+                    if (ct) applyEpisodeLabelText(card, ct); else removeEpisodeLabel(card);
+                    if (st) applyCardSeriesStatus(card, st, status); else removeCardSeriesStatus(card);
+                }
+            );
+            return;
+        }
+
+        removeCardSeriesStatus(card);
         var haveEnough = !!bestStatus || (!replaceOn && !!bestText);
         var display = deriveEpisodeLabelDisplay({ text: bestText, status: bestStatus });
         if (haveEnough && display) { applyEpisodeLabelText(card, display); return; }
@@ -1738,6 +1851,7 @@
         $('.card .content-label').remove();
         $('.card .card__type[data-card-overlay-type-label="1"]').remove();
         $('.card .card__episode-label').remove();
+        $('.card .card__series-status').remove();
         processAllTypeLabels();
         updateEpisodeLabelPositionsBatch(document.querySelectorAll('.card'));
     }
@@ -2015,6 +2129,7 @@
             var rowTypeLabelsEpisodeInfo = addTriggerRow('Серии в лейбле «Сериал»', TYPE_LABEL_EPISODE_INFO_KEY, true);
             var rowSeasonInfoDetailsPosition = addCycleRow('Позиция сезонов и серий', 'seasons_info_details_position', SEASON_INFO_DETAILS_POSITION_LABELS, 'bottom');
             var rowSeasonCompletedReplace = addTriggerRow('«Завершён» вместо сезонов/серий', 'season_completed_replace', false);
+            var rowCardSeriesFullInfo = addTriggerRow('Статус снизу + сезоны/серии под «Сериал»', CARD_SERIES_FULL_INFO_KEY, false);
 
             modal.append($('<div class="comodal__divider"></div>'));
             modal.append($('<div class="comodal__section">API</div>'));
@@ -2044,6 +2159,7 @@
                 Lampa.Storage.set('type_labels_show', 'true'); Lampa.Storage.set('type_labels_colored', 'false'); Lampa.Storage.set(TYPE_LABEL_EPISODE_INFO_KEY, 'true');
                 Lampa.Storage.set('seasons_info_details_position', 'bottom');
                 Lampa.Storage.set('season_completed_replace', 'false');
+                Lampa.Storage.set(CARD_SERIES_FULL_INFO_KEY, 'false');
                 rowSource.updateVal(SOURCE_LABELS.all); rowDisplayMode.updateVal(DISPLAY_MODE_LABELS.separate);
                 rowPosition.updateVal(POSITION_LABELS.bottom); rowColored.updateVal('Выкл'); rowColoredWin.updateVal('Выкл');
                 rowAnimated.updateVal('Выкл'); rowLampaPosterIcon.updateVal(LAMPA_POSTER_ICON_LABELS.reaction); rowShowTmdb.updateVal('Вкл'); rowShowImdb.updateVal('Вкл');
@@ -2053,6 +2169,7 @@
                 rowTypeLabelsShow.updateVal('Вкл'); rowTypeLabelsColored.updateVal('Выкл'); rowTypeLabelsEpisodeInfo.updateVal('Вкл');
                 rowSeasonInfoDetailsPosition.updateVal(SEASON_INFO_DETAILS_POSITION_LABELS.bottom);
                 rowSeasonCompletedReplace.updateVal('Выкл');
+                rowCardSeriesFullInfo.updateVal('Выкл');
                 scheduleSettingsRefresh(50);
                 try { Lampa.Noty.show('Настройки сброшены'); } catch (e) {}
             }
@@ -2082,7 +2199,7 @@
             clearRatingCaches(true);
             Lampa.Storage.set('card_overlay_cache_version', CARD_OVERLAY_CACHE_VERSION);
         }
-        var keys = ['animated_reactions', 'lampa_rating_animated', 'colored_ratings_poster', 'rating_colored_windows', 'rating_show_tmdb', 'rating_show_imdb', 'rating_show_kp', 'rating_show_lampa', 'lampa_rating_show', 'lampa_rating_icon', 'detail_rating_icons', 'quality_show', 'quality_colored', 'type_labels_show', 'type_labels_colored', TYPE_LABEL_EPISODE_INFO_KEY, 'season_completed_replace'];
+        var keys = ['animated_reactions', 'lampa_rating_animated', 'colored_ratings_poster', 'rating_colored_windows', 'rating_show_tmdb', 'rating_show_imdb', 'rating_show_kp', 'rating_show_lampa', 'lampa_rating_show', 'lampa_rating_icon', 'detail_rating_icons', 'quality_show', 'quality_colored', 'type_labels_show', 'type_labels_colored', TYPE_LABEL_EPISODE_INFO_KEY, 'season_completed_replace', CARD_SERIES_FULL_INFO_KEY];
         for (var i = 0; i < keys.length; i++) { var v = Lampa.Storage.get(keys[i], undefined); if (v === '1' || v === 1) Lampa.Storage.set(keys[i], 'true'); else if (v === '0' || v === 0) Lampa.Storage.set(keys[i], 'false'); }
         var lampaPosterIconMode = Lampa.Storage.get('lampa_poster_icon_mode', 'reaction');
         if (lampaPosterIconMode !== 'reaction' && lampaPosterIconMode !== 'lamp') Lampa.Storage.set('lampa_poster_icon_mode', 'reaction');
@@ -2429,7 +2546,7 @@
             '[data-name="rating_modal_open"] .settings-param__value,[data-name="rating_modal_open"] .settings-param__control,[data-name="rating_modal_open"] input[type="checkbox"],[data-name="clear_ratings_cache"] .settings-param__value,[data-name="clear_ratings_cache"] .settings-param__control,[data-name="clear_ratings_cache"] input[type="checkbox"],[data-name="clear_quality_cache"] .settings-param__value,[data-name="clear_quality_cache"] .settings-param__control,[data-name="clear_quality_cache"] input[type="checkbox"]{display:none!important}' +
             '.card .card__view{position:relative!important}' +
             '.card .card__view>.card__img{z-index:0!important}' +
-            '.card .card__vote,.card .card__vote-line,.card .card__vote-separate-wrap,.card .card__vote-separate-wrap .card__vote,.card .card__quality,.card .card__type[data-card-overlay-type-label="1"],.card .content-label,.card .card__episode-label,.card .card__year-badge{z-index:10!important;opacity:1!important;-webkit-filter:none!important;filter:none!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}' +
+            '.card .card__vote,.card .card__vote-line,.card .card__vote-separate-wrap,.card .card__vote-separate-wrap .card__vote,.card .card__quality,.card .card__type[data-card-overlay-type-label="1"],.card .content-label,.card .card__episode-label,.card .card__series-status,.card .card__year-badge{z-index:10!important;opacity:1!important;-webkit-filter:none!important;filter:none!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}' +
             '.card.card-overlay-has-overlays>.card__age,.card.card-overlay-has-overlays>.card__vote{display:none!important}' +
             '.card__view > .card__vote:not(.card__vote--top):not(.card__vote--bottom):not(.card__vote-line):not(.card__vote-separate-wrap){display:none!important}' +
             '.card__vote,.card__vote-separate-wrap .card__vote{display:flex!important;align-items:center!important;position:absolute!important;right:0!important;bottom:0!important;padding:0.25em 0.45em!important;border-radius:0.75em 0!important;white-space:nowrap!important;font-size:var(--rating-font-size,1.1em)!important;font-weight:600!important;line-height:1!important;height:auto!important;border:none!important;margin:0!important}' +
@@ -2480,6 +2597,7 @@
             '@media (max-width:480px) and (orientation:portrait){.full-start-new__rate.rate--lampa,.full-start__rate.rate--lampa{min-width:0!important}body:not([data-lampa-icon-on]) .full-start-new__rate.rate--lampa,body:not([data-lampa-icon-on]) .full-start__rate.rate--lampa{min-width:0!important}}' +
             '.card__quality{position:absolute!important;left:0!important;bottom:0!important;padding:0.25em 0.45em!important;border-radius:0 0.75em!important;color:white!important;font-size:var(--rating-font-size,1.1em)!important;line-height:1!important;z-index:10!important;white-space:nowrap!important}' +
             '.card__episode-label{position:absolute!important;left:50%!important;right:auto!important;bottom:0!important;top:auto!important;transform:translateX(-50%)!important;color:white!important;padding:0.25em 0.45em!important;border-radius:0.75em 0.75em 0 0!important;font-size:var(--rating-font-size,1.1em)!important;font-weight:400!important;line-height:1!important;height:auto!important;z-index:10!important;white-space:nowrap!important;box-sizing:border-box!important;margin:0!important;border:none!important}' +
+            '.card__series-status{position:absolute!important;left:50%!important;right:auto!important;bottom:0!important;top:auto!important;transform:translateX(-50%)!important;color:#fff!important;padding:0.25em 0.45em!important;border-radius:0.75em 0.75em 0 0!important;font-size:var(--rating-font-size,1.1em)!important;font-weight:400!important;line-height:1!important;height:auto!important;z-index:10!important;white-space:nowrap!important;box-sizing:border-box!important;margin:0!important;border:none!important}' +
             '.content-label,.card__type[data-card-overlay-type-label="1"]{position:absolute!important;left:0!important;top:0!important;color:white!important;padding:0.25em 0.45em!important;border-radius:0.75em 0!important;font-size:var(--rating-font-size,1.1em)!important;line-height:1!important;z-index:10!important;display:flex!important;align-items:center!important;justify-content:center!important}' +
             '.full-start-new__rate-line .full-start__status,.full-start-new__rate-line .full-start__pg:not(.hide),.full-start-new__meta-line .full-start__status,.full-start-new__meta-line .full-start__pg:not(.hide){border-radius:0.3em!important;padding:0.2em 0.4em!important;display:inline-block!important;line-height:1!important;white-space:nowrap!important}' +
             'body.colored-elements-on .full-start__pg.age-kids{background:#2ecc71!important;color:white!important}' +
