@@ -1667,19 +1667,22 @@
         var tmdbId = getCardTmdbId(card, meta);
         if (!tmdbId) { removeEpisodeLabel(card); return; }
         var cacheKey = getTypeLabelEpisodeCacheKey({ id: tmdbId });
+        var replaceOn = isTriggerOn('season_completed_replace', false);
         var metaEpisodeText = formatTypeLabelEpisodeText(meta && meta.last_episode_to_air);
         var metaStatus = (meta && meta.status) || '';
-        if (metaEpisodeText || metaStatus) {
-            setTypeLabelEpisodeCache(cacheKey, metaEpisodeText, metaStatus);
-            var metaDisplay = deriveEpisodeLabelDisplay({ text: metaEpisodeText, status: metaStatus });
-            if (metaDisplay) { applyEpisodeLabelText(card, metaDisplay); return; }
-        }
+        if (metaEpisodeText || metaStatus) setTypeLabelEpisodeCache(cacheKey, metaEpisodeText, metaStatus);
         var cached = getTypeLabelEpisodeCache(cacheKey);
-        if (cached) {
-            var cachedDisplay = deriveEpisodeLabelDisplay(cached);
-            if (cachedDisplay) { applyEpisodeLabelText(card, cachedDisplay); return; }
+        var bestText = metaEpisodeText || (cached && cached.text) || '';
+        var bestStatus = metaStatus || (cached && cached.status) || '';
+        var haveEnough = !!bestStatus || (!replaceOn && !!bestText);
+        if (haveEnough) {
+            var display = deriveEpisodeLabelDisplay({ text: bestText, status: bestStatus });
+            if (display) applyEpisodeLabelText(card, display);
+            else removeEpisodeLabel(card);
+            return;
         }
-        removeEpisodeLabel(card);
+        if (bestText) applyEpisodeLabelText(card, bestText);
+        else removeEpisodeLabel(card);
         Lampa.Network.silent(
             Lampa.TMDB.api('tv/' + tmdbId + '?api_key=' + Lampa.TMDB.key()),
             function (tvInfo) {
@@ -1689,7 +1692,7 @@
                 if (!episodeText && !status) return;
                 setTypeLabelEpisodeCache(cacheKey, episodeText, status);
                 var display = deriveEpisodeLabelDisplay({ text: episodeText, status: status });
-                if (!display) return;
+                if (!display) { removeEpisodeLabel(card); return; }
                 if (card && document.body.contains(card)) applyEpisodeLabelText(card, display);
             }
         );
@@ -1819,10 +1822,8 @@
         var isCompleted = (status === 'Ended' || status === 'Canceled');
         var bgColor = isCompleted ? 'rgba(33,150,243,0.8)' : 'rgba(244,67,54,0.8)';
         var statusText = getStatusText(status);
-        var replaceWithStatus = isTriggerOn('season_completed_replace', false) && isCompleted;
         var txt = displaySeasons + ' ' + seasonsText + ' ' + displayEpisodes + ' ' + episodesText;
         if (seasonInfoSettings.seasons_info_mode === 'aired' && totalEpisodes > 0 && airedEpisodes < totalEpisodes && airedEpisodes > 0) txt = displaySeasons + ' ' + seasonsText + ' ' + airedEpisodes + ' ' + episodesText + ' из ' + totalEpisodes;
-        if (replaceWithStatus) txt = statusText;
         var info = $('<div class="season-info-label"></div>').text(txt);
         var statusLabel = $('<div class="full-start__status season-info-status"></div>').text(statusText);
         var metaLine;
