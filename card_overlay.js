@@ -554,7 +554,12 @@
 
     function getRatingPositionCSS() {
         var pos = Lampa.Storage.get('rating_position', 'bottom');
-        if (pos === 'bottom') return 'right:0!important;bottom:0!important;top:auto!important;left:auto!important;';
+        var rounded = getBadgeStyle() === 'rounded';
+        if (pos === 'bottom') {
+            if (rounded) return 'right:0.4em!important;bottom:0.4em!important;top:auto!important;left:auto!important;';
+            return 'right:0!important;bottom:0!important;top:auto!important;left:auto!important;';
+        }
+        if (rounded) return 'right:0.4em!important;top:0.4em!important;bottom:auto!important;left:auto!important;';
         return 'right:0!important;top:0!important;bottom:auto!important;left:auto!important;';
     }
     function voteClass(extra) {
