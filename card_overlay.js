@@ -936,6 +936,8 @@
     var _ratingUpdateRafScheduled = false;
     var _mainObserver = null;
     var _cardIntersectionObserver = null;
+    var _settingsArranger = null;
+    var _settingsArrangeTimer = 0;
     function isCardUpdatesBlocked() {
         try {
             var selectors = ['.modal', '.settings-input__content', '.selectbox__content', '.menu-edit-list'];
@@ -1041,6 +1043,7 @@
             var addedCards = [];
             var needSelectbox = false;
             var badgeCards = [];
+            var needSettingsArrange = false;
             for (var i = 0; i < mutations.length; i++) {
                 var m = mutations[i];
                 if (m.addedNodes && m.addedNodes.length) {
@@ -1054,6 +1057,7 @@
                             for (var ni = 0; ni < nestedCards.length; ni++) { observeCardVisibility(nestedCards[ni]); addedCards.push(nestedCards[ni]); }
                         }
                         if (node.querySelector && (node.querySelector('.selectbox-item__icon') || node.querySelector('.selectbox-item__icon img'))) needSelectbox = true;
+                        if (!needSettingsArrange && _settingsArranger && ((node.matches && node.matches('.settings-folder')) || (node.querySelector && node.querySelector('.settings-folder')))) needSettingsArrange = true;
                         if (node.matches && node.matches('.card__badge--next-episode')) { var bc = getCardRootNode(node); if (bc) badgeCards.push(bc); }
                         else if (node.querySelector && node.querySelector('.card__badge--next-episode')) {
                             var badgeNodes = node.querySelectorAll('.card__badge--next-episode');
@@ -1083,6 +1087,9 @@
                 }
             }
             if (needSelectbox && document.querySelector('.selectbox-item__icon img')) applyReactionsToSelectbox();
+            if (needSettingsArrange && _settingsArranger && !_settingsArrangeTimer) {
+                _settingsArrangeTimer = setTimeout(function () { _settingsArrangeTimer = 0; if (_settingsArranger) _settingsArranger(); }, 100);
+            }
         });
         _mainObserver.observe(document.body, { childList: true, subtree: true });
     }
@@ -2541,11 +2548,7 @@
             if (!$mod.length) $mod = $('.settings-folder').filter(function () { return $(this).find('.settings-folder__name').text().trim() === 'Интерфейс Мод'; });
             if ($interface.length && $mod.length && $mod.prev()[0] !== $interface[0]) $mod.insertAfter($interface);
         }
-        var _moveTimer = 0;
-        new MutationObserver(function () {
-            if (_moveTimer) return;
-            _moveTimer = setTimeout(function () { _moveTimer = 0; moveAfterInterface(); }, 100);
-        }).observe(document.body, { childList: true, subtree: true });
+        _settingsArranger = moveAfterInterface;
         moveAfterInterface();
     }
 
@@ -2770,7 +2773,14 @@
             var code = e && (e.code || e.key);
             if (code === 'PageUp' || code === 'PageDown') scheduleVisibleRatingsUpdate(120);
         }, { passive: true });
-        window.addEventListener('resize', function () { scheduleVisibleRatingsUpdate(0); repositionDetailMeta(); }, { passive: true });
+        var _resizeTimer = 0;
+        window.addEventListener('resize', function () {
+            if (_resizeTimer) clearTimeout(_resizeTimer);
+            _resizeTimer = setTimeout(function () {
+                _resizeTimer = 0;
+                requestAnimationFrame(function () { scheduleVisibleRatingsUpdate(0); repositionDetailMeta(); });
+            }, 150);
+        }, { passive: true });
         window.addEventListener('orientationchange', function () { setTimeout(repositionDetailMeta, 150); }, { passive: true });
         document.addEventListener('visibilitychange', function () { if (!document.hidden) { scheduleVisibleRatingsUpdate(0); repositionDetailMeta(); } });
 
