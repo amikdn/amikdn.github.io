@@ -98,12 +98,13 @@
     function getYearPositionCSS() {
         var pos = Lampa.Storage.get('rating_position', 'bottom');
         var rounded = getBadgeStyle() === 'rounded';
+        var shadow = (rounded || getCornerShadow()) ? 'box-shadow:0 0.12em 0.4em rgba(0,0,0,0.55)!important;' : '';
         if (pos === 'bottom') {
-            if (rounded) return 'right:0.4em!important;top:0.4em!important;bottom:auto!important;left:auto!important;border-radius:0.5em!important;box-shadow:0 0.12em 0.4em rgba(0,0,0,0.55)!important;';
-            return 'right:0!important;top:0!important;bottom:auto!important;left:auto!important;border-radius:0 0.75em!important;';
+            if (rounded) return 'right:0.4em!important;top:0.4em!important;bottom:auto!important;left:auto!important;border-radius:0.5em!important;' + shadow;
+            return 'right:0!important;top:0!important;bottom:auto!important;left:auto!important;border-radius:0 0.75em!important;' + shadow;
         }
-        if (rounded) return 'right:0.4em!important;bottom:0.4em!important;top:auto!important;left:auto!important;border-radius:0.5em!important;box-shadow:0 0.12em 0.4em rgba(0,0,0,0.55)!important;';
-        return 'right:0!important;bottom:0!important;top:auto!important;left:auto!important;border-radius:0.75em 0!important;';
+        if (rounded) return 'right:0.4em!important;bottom:0.4em!important;top:auto!important;left:auto!important;border-radius:0.5em!important;' + shadow;
+        return 'right:0!important;bottom:0!important;top:auto!important;left:auto!important;border-radius:0.75em 0!important;' + shadow;
     }
     function addYearBadge(card) {
         if (!card || !card.querySelector) return;
@@ -1756,20 +1757,24 @@
             props.push(['line-height', typeStyle.lineHeight === 'normal' ? '1' : typeStyle.lineHeight]);
             props.push(['padding', typeStyle.paddingTop + ' ' + typeStyle.paddingRight + ' ' + typeStyle.paddingBottom + ' ' + typeStyle.paddingLeft]);
         }
+        var rounded = getBadgeStyle() === 'rounded';
         if (isEpisodeLabelUnderType() || isCardSeriesFullInfoOn()) {
             var topOffset = 0;
             if (typeLabel) {
                 var typeGap = (0.15 * parseFloat(typeStyle.fontSize)) || 6;
                 topOffset = typeLabel.offsetTop + typeLabel.offsetHeight + typeGap;
             }
-            props.push(['left', '0'], ['right', 'auto'], ['top', topOffset + 'px'], ['bottom', 'auto'], ['transform', 'none'], ['border-radius', '0 0.75em 0.75em 0']);
+            if (rounded) props.push(['left', '0.4em'], ['right', 'auto'], ['top', topOffset + 'px'], ['bottom', 'auto'], ['transform', 'none'], ['border-radius', '0.5em']);
+            else props.push(['left', '0'], ['right', 'auto'], ['top', topOffset + 'px'], ['bottom', 'auto'], ['transform', 'none'], ['border-radius', '0 0.75em 0.75em 0']);
             return { label: label, props: props };
         }
+        var epBottom = rounded ? '0.4em' : '0';
+        var epRadius = rounded ? '0.5em' : '0.75em 0.75em 0 0';
         var center = measureCenterBottom(view);
         if (center !== null) {
-            props.push(['left', center + 'px'], ['right', 'auto'], ['top', 'auto'], ['bottom', '0'], ['transform', 'translateX(-50%)'], ['border-radius', '0.75em 0.75em 0 0']);
+            props.push(['left', center + 'px'], ['right', 'auto'], ['top', 'auto'], ['bottom', epBottom], ['transform', 'translateX(-50%)'], ['border-radius', epRadius]);
         } else {
-            props.push(['left', '50%'], ['right', 'auto'], ['top', 'auto'], ['bottom', '0'], ['transform', 'translateX(-50%)'], ['border-radius', '0.75em 0.75em 0 0']);
+            props.push(['left', '50%'], ['right', 'auto'], ['top', 'auto'], ['bottom', epBottom], ['transform', 'translateX(-50%)'], ['border-radius', epRadius]);
         }
         return { label: label, props: props };
     }
@@ -1851,20 +1856,22 @@
     }
     function positionCardSeriesStatus(view, label) {
         if (_batchOverlayPositions) { _pendingSeriesStatus.push([view, label]); return; }
+        var ssRounded = getBadgeStyle() === 'rounded';
         var center = measureSeriesStatusCenterBottom(view);
         if (center !== null) label.style.setProperty('left', center + 'px', 'important');
         else label.style.setProperty('left', '50%', 'important');
         label.style.setProperty('right', 'auto', 'important');
         label.style.setProperty('top', 'auto', 'important');
-        label.style.setProperty('bottom', '0', 'important');
+        label.style.setProperty('bottom', ssRounded ? '0.4em' : '0', 'important');
         label.style.setProperty('transform', 'translateX(-50%)', 'important');
-        label.style.setProperty('border-radius', '0.75em 0.75em 0 0', 'important');
+        label.style.setProperty('border-radius', ssRounded ? '0.5em' : '0.75em 0.75em 0 0', 'important');
         hideNextEpisodeBadge(view);
     }
     function flushSeriesStatusPositions() {
         var pend = _pendingSeriesStatus;
         _pendingSeriesStatus = [];
         if (!pend.length) return;
+        var ssRounded = getBadgeStyle() === 'rounded';
         var measured = [];
         for (var i = 0; i < pend.length; i++) { measured.push([pend[i][0], pend[i][1], measureSeriesStatusCenterBottom(pend[i][0])]); }
         for (var j = 0; j < measured.length; j++) {
@@ -1873,9 +1880,9 @@
             else label.style.setProperty('left', '50%', 'important');
             label.style.setProperty('right', 'auto', 'important');
             label.style.setProperty('top', 'auto', 'important');
-            label.style.setProperty('bottom', '0', 'important');
+            label.style.setProperty('bottom', ssRounded ? '0.4em' : '0', 'important');
             label.style.setProperty('transform', 'translateX(-50%)', 'important');
-            label.style.setProperty('border-radius', '0.75em 0.75em 0 0', 'important');
+            label.style.setProperty('border-radius', ssRounded ? '0.5em' : '0.75em 0.75em 0 0', 'important');
         }
         for (var k = 0; k < measured.length; k++) hideNextEpisodeBadge(measured[k][0]);
     }
@@ -2156,7 +2163,8 @@
 
     function isColoredElementsOn() { return isTriggerOn('colored_elements', true); }
     function getBadgeStyle() { return Lampa.Storage.get('badge_visual_style', 'corner') === 'rounded' ? 'rounded' : 'corner'; }
-    function applyBadgeStyle() { try { $('body').attr('data-badge-style', getBadgeStyle()); } catch (e) {} }
+    function getCornerShadow() { var v = Lampa.Storage.get('badge_corner_shadow', false); return (v === true || v === 'true' || v === '1' || v === 1); }
+    function applyBadgeStyle() { try { $('body').attr('data-badge-style', getBadgeStyle()); $('body').attr('data-badge-corner-shadow', getCornerShadow() ? 'on' : 'off'); } catch (e) {} }
     function colorizeSeriesStatus(render) {
         var map = { completed: ['завершён','завершен','ended'], canceled: ['отменён','отменен','canceled'], ongoing: ['онгоинг','выходит','в эфире','ongoing','returning series'], production: ['в производстве','production'], planned: ['запланирован','planned'], pilot: ['пилотный','pilot'], released: ['выпущен','вышел','released'], rumored: ['слухи','rumored'], post: ['скоро','post'] };
         function apply(el) {
@@ -2281,6 +2289,7 @@
             var rowOpacity = addNumberRow('Прозрачность окон (0–100)', 'rating_window_opacity', 40, 0, 100, 10, '%');
             var rowScale = addNumberRow('Масштаб окон', 'rating_scale', 100, 60, 150, 5, '%');
             var rowBadgeStyle = addCycleRow('Стиль окон', 'badge_visual_style', BADGE_STYLE_LABELS, 'corner');
+            var rowCornerShadow = addTriggerRow('Тень для «Уголки»', 'badge_corner_shadow', false);
 
             modal.append($('<div class="comodal__divider"></div>'));
             modal.append($('<div class="comodal__section">Рейтинги</div>'));
@@ -2336,6 +2345,7 @@
                 Lampa.Storage.set('rating_display_mode', 'separate'); Lampa.Storage.set('rating_window_opacity', '40');
                 Lampa.Storage.set('rating_scale', '100'); Lampa.Storage.set('rating_kp_api_key', '');
                 Lampa.Storage.set('badge_visual_style', 'corner');
+                Lampa.Storage.set('badge_corner_shadow', 'false');
                 Lampa.Storage.set('quality_show', 'true'); Lampa.Storage.set('quality_colored', 'false');
                 Lampa.Storage.set('type_labels_show', 'true'); Lampa.Storage.set('type_labels_colored', 'false'); Lampa.Storage.set(TYPE_LABEL_EPISODE_INFO_KEY, 'true');
                 Lampa.Storage.set('seasons_info_details_position', 'bottom');
@@ -2345,7 +2355,7 @@
                 rowPosition.updateVal(POSITION_LABELS.bottom); rowColored.updateVal('Выкл'); rowColoredWin.updateVal('Выкл');
                 rowAnimated.updateVal('Выкл'); rowLampaPosterIcon.updateVal(LAMPA_POSTER_ICON_LABELS.reaction); rowShowTmdb.updateVal('Вкл'); rowShowImdb.updateVal('Вкл');
                 rowShowKp.updateVal('Вкл'); rowShowLampa.updateVal('Вкл');
-                rowOpacity.updateVal('40%'); rowScale.updateVal('100%'); rowBadgeStyle.updateVal(BADGE_STYLE_LABELS.corner); rowKpKey.updateVal(kpApiKeyRowText());
+                rowOpacity.updateVal('40%'); rowScale.updateVal('100%'); rowBadgeStyle.updateVal(BADGE_STYLE_LABELS.corner); rowCornerShadow.updateVal('Выкл'); rowKpKey.updateVal(kpApiKeyRowText());
                 rowQualityShow.updateVal('Вкл'); rowQualityColored.updateVal('Выкл');
                 rowTypeLabelsShow.updateVal('Вкл'); rowTypeLabelsColored.updateVal('Выкл'); rowTypeLabelsEpisodeInfo.updateVal('Вкл');
                 rowSeasonInfoDetailsPosition.updateVal(SEASON_INFO_DETAILS_POSITION_LABELS.bottom);
@@ -2803,6 +2813,9 @@
             'body[data-badge-style="rounded"] .card__vote--top{right:0.4em!important;top:0.4em!important;bottom:auto!important}' +
             'body[data-badge-style="rounded"] .card__quality{left:0.4em!important;bottom:0.4em!important;top:auto!important}' +
             'body[data-badge-style="rounded"] .content-label,body[data-badge-style="rounded"] .card__type[data-card-overlay-type-label="1"]{left:0.4em!important;top:0.4em!important;bottom:auto!important}' +
+            'body[data-badge-style="rounded"] .card__episode-label,body[data-badge-style="rounded"] .card__series-status{box-shadow:0 0.12em 0.4em rgba(0,0,0,0.55)!important}' +
+            'body[data-badge-style="corner"][data-badge-corner-shadow="on"] .card__vote,body[data-badge-style="corner"][data-badge-corner-shadow="on"] .card__vote-line,body[data-badge-style="corner"][data-badge-corner-shadow="on"] .card__quality,body[data-badge-style="corner"][data-badge-corner-shadow="on"] .card__type[data-card-overlay-type-label="1"],body[data-badge-style="corner"][data-badge-corner-shadow="on"] .content-label,body[data-badge-style="corner"][data-badge-corner-shadow="on"] .card__episode-label,body[data-badge-style="corner"][data-badge-corner-shadow="on"] .card__series-status,body[data-badge-style="corner"][data-badge-corner-shadow="on"] .card__vote-separate-wrap .card__vote{box-shadow:0 0.12em 0.4em rgba(0,0,0,0.55)!important}' +
+            'body[data-badge-style="corner"][data-badge-corner-shadow="on"] .card__vote-separate-wrap{box-shadow:none!important}' +
             '.card .card__badge--next-episode,.card__badge--next-episode{display:none!important}';
         document.head.appendChild(style);
 
@@ -2942,7 +2955,7 @@
     Lampa.Manifest.plugins = {
         name: 'Интерфейс Мод',
         version: '1.1.0',
-        description: 'Рейтинги, качество, лейблы типа на карточках + темы'
+        description: 'Рейтинги, качество, лейблы типа на карточках'
     };
 
     if (window.appready) { initPlugin(); }
