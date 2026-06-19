@@ -269,7 +269,8 @@
 
     var REQUEST_QUEUES = {
         kp: { tasks: [], processing: false, interval: 350, batch: 1 },
-        fast: { tasks: [], processing: false, interval: 120, batch: 2 }
+        fast: { tasks: [], processing: false, interval: 120, batch: 2 },
+        lampa: { tasks: [], processing: false, interval: 140, batch: 2 }
     };
     var QUEUE_MAX_TASKS = 120;
     var requestPool = [];
@@ -405,12 +406,19 @@
         return { rating: finalRating, medianReaction: medianReaction };
     }
     function fetchLampaRating(ratingKey) {
+        // Throttle reactions requests through a dedicated queue. Otherwise a row of
+        // ~20 cards fires 20 simultaneous requests to cubnotrip.top; the browser caps
+        // ~6 connections/host, the rest stack behind 10s timeouts → ratings load very
+        // slowly or not at all. The queue paces them (batch 2 / 140ms) so cached
+        // results paint instantly and live fetches stream in without flooding.
         return new Promise(function (resolve) {
-            var request = getRequest(); request.timeout(10000);
-            request.silent("https://cubnotrip.top/api/reactions/get/" + ratingKey, function (data) {
-                try { resolve(data && data.result && Array.isArray(data.result) ? calculateLampaRating10(data.result) : { rating: 0, medianReaction: '' }); } catch (e) { resolve({ rating: 0, medianReaction: '' }); }
-                finally { releaseRequest(request); }
-            }, function () { releaseRequest(request); resolve({ rating: 0, medianReaction: '' }); }, false);
+            addToQueue(function () {
+                var request = getRequest(); request.timeout(8000);
+                request.silent("https://cubnotrip.top/api/reactions/get/" + ratingKey, function (data) {
+                    try { resolve(data && data.result && Array.isArray(data.result) ? calculateLampaRating10(data.result) : { rating: 0, medianReaction: '' }); } catch (e) { resolve({ rating: 0, medianReaction: '' }); }
+                    finally { releaseRequest(request); }
+                }, function () { releaseRequest(request); resolve({ rating: 0, medianReaction: '' }); }, false);
+            }, 'lampa', function () { resolve({ rating: 0, medianReaction: '' }); });
         });
     }
     var pendingLampaRequests = {};
@@ -943,7 +951,7 @@
             requestFreshTmdbUpdate(function () { if (ratingElement.parentNode && ratingElement.dataset.movieId === idStr) applyTmdbToElement(ratingElement); });
         }
         else if (source === 'lampa') {
-            var type = (data.seasons || data.first_air_date || data.original_name) ? 'tv' : 'movie';
+            var type = getTmdbMediaType(data) === 'tv' ? 'tv' : 'movie';
             var ratingKey = type + '_' + data.id;
             var cached = ratingCache.get('lampa_rating', ratingKey);
             if (cached && cached.rating > 0) {
@@ -955,16 +963,14 @@
                 return;
             }
             hideSingleRatingElement(ratingElement, 'rate--lampa');
-            addToQueue(function () {
-                getLampaRating(ratingKey).then(function (result) {
-                    if (ratingElement.parentNode && ratingElement.dataset.movieId === idStr && result.rating > 0) {
-                        ratingElement.className = voteClass('rate--lampa card__vote--separate');
-                        ratingElement.innerHTML = '<span style="color:' + getRatingColor(result.rating) + '">' + formatRating(result.rating) + '</span>';
-                        renderLampaPosterIcon(ratingElement, result.medianReaction);
-                        showSingleRatingElement(ratingElement);
-                        ratingElement.style.background = getRatingBackgroundColor(result.rating) || ('rgba(0,0,0,' + getOverlayAlpha() + ')');
-                    }
-                });
+            getLampaRating(ratingKey).then(function (result) {
+                if (ratingElement.parentNode && ratingElement.dataset.movieId === idStr && result.rating > 0) {
+                    ratingElement.className = voteClass('rate--lampa card__vote--separate');
+                    ratingElement.innerHTML = '<span style="color:' + getRatingColor(result.rating) + '">' + formatRating(result.rating) + '</span>';
+                    renderLampaPosterIcon(ratingElement, result.medianReaction);
+                    showSingleRatingElement(ratingElement);
+                    ratingElement.style.background = getRatingBackgroundColor(result.rating) || ('rgba(0,0,0,' + getOverlayAlpha() + ')');
+                }
             });
         } else if (source === 'kp' || source === 'imdb') {
             hideSingleRatingElement(ratingElement, 'rate--' + source);
@@ -2946,17 +2952,15 @@
                             colorizeFullCardRatings(render);
                             scheduleVisibleRatingsUpdate(0);
                         } else {
-                            addToQueue(function () {
-                                getLampaRating(ratingKey).then(function (result) {
-                                    if (result.rating !== null && result.rating > 0) {
-                                        $(render).find('.rate--lampa .rate-value').text(formatRating(result.rating));
-                                        renderLampaFullIcon($(render), result.medianReaction);
-                                        applyDetailRatingIcons(render);
-                                        if (result.medianReaction && isTriggerOn('lampa_rating_animated', false)) $(render).find('.rate--lampa').addClass('rate--lampa--animated');
-                                    } else { $(render).find('.rate--lampa').hide(); }
-                                    colorizeFullCardRatings(render);
-                                    scheduleVisibleRatingsUpdate(0);
-                                });
+                            getLampaRating(ratingKey).then(function (result) {
+                                if (result.rating !== null && result.rating > 0) {
+                                    $(render).find('.rate--lampa .rate-value').text(formatRating(result.rating));
+                                    renderLampaFullIcon($(render), result.medianReaction);
+                                    applyDetailRatingIcons(render);
+                                    if (result.medianReaction && isTriggerOn('lampa_rating_animated', false)) $(render).find('.rate--lampa').addClass('rate--lampa--animated');
+                                } else { $(render).find('.rate--lampa').hide(); }
+                                colorizeFullCardRatings(render);
+                                scheduleVisibleRatingsUpdate(0);
                             });
                         }
                     }
