@@ -97,8 +97,19 @@
     }
     function getYearPositionCSS() {
         var pos = Lampa.Storage.get('rating_position', 'bottom');
-        if (pos === 'bottom') return 'right:0!important;top:0!important;bottom:auto!important;left:auto!important;border-radius:0 0.75em!important;';
-        return 'right:0!important;bottom:0!important;top:auto!important;left:auto!important;border-radius:0.75em 0!important;';
+        var rounded = getBadgeStyle() === 'rounded';
+        var cornerShadowOn = getCornerShadow();
+        // Year badge sits opposite the rating: top when rating is at bottom, bottom when rating is at top.
+        // For the corner-style shadow, point it inward (upward) when the badge is at the bottom of the card.
+        var yearAtBottom = (pos === 'top');
+        var shadowY = (cornerShadowOn && !rounded && yearAtBottom) ? '-0.12em' : '0.12em';
+        var shadow = (rounded || cornerShadowOn) ? 'box-shadow:0 ' + shadowY + ' 0.4em rgba(0,0,0,0.55)!important;' : '';
+        if (pos === 'bottom') {
+            if (rounded) return 'right:0.4em!important;top:0.4em!important;bottom:auto!important;left:auto!important;border-radius:0.5em!important;' + shadow;
+            return 'right:0!important;top:0!important;bottom:auto!important;left:auto!important;border-radius:0 0.75em!important;' + shadow;
+        }
+        if (rounded) return 'right:0.4em!important;bottom:0.4em!important;top:auto!important;left:auto!important;border-radius:0.5em!important;' + shadow;
+        return 'right:0!important;bottom:0!important;top:auto!important;left:auto!important;border-radius:0.75em 0!important;' + shadow;
     }
     function addYearBadge(card) {
         if (!card || !card.querySelector) return;
@@ -548,7 +559,12 @@
 
     function getRatingPositionCSS() {
         var pos = Lampa.Storage.get('rating_position', 'bottom');
-        if (pos === 'bottom') return 'right:0!important;bottom:0!important;top:auto!important;left:auto!important;';
+        var rounded = getBadgeStyle() === 'rounded';
+        if (pos === 'bottom') {
+            if (rounded) return 'right:0.4em!important;bottom:0.4em!important;top:auto!important;left:auto!important;';
+            return 'right:0!important;bottom:0!important;top:auto!important;left:auto!important;';
+        }
+        if (rounded) return 'right:0.4em!important;top:0.4em!important;bottom:auto!important;left:auto!important;';
         return 'right:0!important;top:0!important;bottom:auto!important;left:auto!important;';
     }
     function voteClass(extra) {
@@ -935,7 +951,12 @@
     var _ratingUpdateTimer = 0;
     var _ratingUpdateRafScheduled = false;
     var _mainObserver = null;
+    var _layerObserver = null;
+    var _mainObserverTarget = null;
+    var _retargetTimer = 0;
     var _cardIntersectionObserver = null;
+    var _settingsArranger = null;
+    var _settingsArrangeTimer = 0;
     function isCardUpdatesBlocked() {
         try {
             var selectors = ['.modal', '.settings-input__content', '.selectbox__content', '.menu-edit-list'];
@@ -957,6 +978,9 @@
         var source = Lampa.Storage.get('rating_source', 'all');
         var displayMode = getRatingDisplayMode();
         var episodeLabelCards = [];
+        _batchOverlayPositions = true;
+        _pendingSeriesStatus = [];
+        try {
         for (var i = 0; i < allCards.length && updated < maxCards; i++) {
             var card = allCards[i]; var data = card.card_data;
             if (!data || !data.id) continue;
@@ -995,7 +1019,9 @@
             episodeLabelCards.push(card);
             updated++;
         }
+        } finally { _batchOverlayPositions = false; }
         updateEpisodeLabelPositionsBatch(episodeLabelCards);
+        flushSeriesStatusPositions();
     }
     function scheduleVisibleRatingsUpdate(delay) {
         if (_ratingUpdateTimer) clearTimeout(_ratingUpdateTimer);
@@ -1031,55 +1057,102 @@
             var existingCards = document.querySelectorAll('.card');
             for (var ci = 0; ci < existingCards.length; ci++) observeCardVisibility(existingCards[ci]);
         }
-        _mainObserver = new MutationObserver(function (mutations) {
-            var needRatings = false;
-            var addedCards = [];
-            var needSelectbox = false;
-            var badgeCards = [];
+        var mutationHandler = function (mutations) {
+            var acc = { needRatings: false, addedCards: [], needSelectbox: false, badgeCards: [], looseBadges: [], needSettingsArrange: false };
             for (var i = 0; i < mutations.length; i++) {
                 var m = mutations[i];
                 if (m.addedNodes && m.addedNodes.length) {
-                    for (var j = 0; j < m.addedNodes.length; j++) {
-                        var node = m.addedNodes[j];
-                        if (!node || node.nodeType !== 1) continue;
-                        if (node.matches && node.matches('.card')) { observeCardVisibility(node); needRatings = true; addedCards.push(node); }
-                        else if (node.querySelector && node.querySelector('.card')) {
-                            needRatings = true;
-                            var nestedCards = node.querySelectorAll('.card');
-                            for (var ni = 0; ni < nestedCards.length; ni++) { observeCardVisibility(nestedCards[ni]); addedCards.push(nestedCards[ni]); }
-                        }
-                        if (node.querySelector && (node.querySelector('.selectbox-item__icon') || node.querySelector('.selectbox-item__icon img'))) needSelectbox = true;
-                        if (node.matches && node.matches('.card__badge--next-episode')) { var bc = getCardRootNode(node); if (bc) badgeCards.push(bc); }
-                        else if (node.querySelector && node.querySelector('.card__badge--next-episode')) {
-                            var badgeNodes = node.querySelectorAll('.card__badge--next-episode');
-                            for (var bi = 0; bi < badgeNodes.length; bi++) { var bcard = getCardRootNode(badgeNodes[bi]); if (bcard) badgeCards.push(bcard); }
-                        }
-                    }
+                    for (var j = 0; j < m.addedNodes.length; j++) collectFromAddedNode(m.addedNodes[j], acc);
                 }
             }
-            if (needRatings) scheduleVisibleRatingsUpdate(50);
-            if (badgeCards.length) {
-                for (var bk = 0; bk < badgeCards.length; bk++) raiseNextEpisodeBadgeForCard(badgeCards[bk]);
-            }
-            if (addedCards.length) {
-                for (var k = 0; k < addedCards.length; k++) {
-                    if (!addedCards[k].hasAttribute('data-type-label-checked')) {
-                        addTypeLabel(addedCards[k]);
-                        addYearBadge(addedCards[k]);
-                        if (!isQualityShowOn()) { $(addedCards[k]).find('.card__quality').remove(); addedCards[k].removeAttribute('data-quality-added'); }
-                    }
+            applyObserverAccumulators(acc);
+        };
+        _mainObserver = new MutationObserver(mutationHandler);
+        // Variant A: narrow the heavy observer from document.body{subtree} to the
+        // active Activity render container; re-target it on the 'activity' event.
+        // A lightweight top-level layer watcher (childList only, NOT subtree) catches
+        // modals/selectboxes that mount outside the activity (e.g. reaction picker).
+        retargetMainObserver();
+        if (!_layerObserver) {
+            _layerObserver = new MutationObserver(mutationHandler);
+            try { _layerObserver.observe(document.body, { childList: true, subtree: false }); } catch (eLayer) {}
+        }
+    }
+    function getActiveActivityRender() {
+        try {
+            var a = Lampa.Activity && Lampa.Activity.active ? Lampa.Activity.active() : null;
+            var r = a && a.activity && a.activity.render ? a.activity.render() : null;
+            if (r && r.nodeType !== 1 && r.length) r = r[0];
+            return (r && r.nodeType === 1) ? r : null;
+        } catch (e) { return null; }
+    }
+    function retargetMainObserver() {
+        if (!_mainObserver) return;
+        var target = getActiveActivityRender() || document.body;
+        if (target === _mainObserverTarget && _mainObserverTarget) return;
+        try { _mainObserver.disconnect(); } catch (e) {}
+        _mainObserverTarget = target;
+        try { _mainObserver.observe(target, { childList: true, subtree: true }); } catch (e2) {}
+        // Immediate one-shot scan of the freshly-targeted container so we don't
+        // miss content that was already rendered before we re-attached.
+        scanContainerOnce(target);
+    }
+    function scanContainerOnce(target) {
+        if (!target || target.querySelectorAll === undefined) return;
+        var acc = { needRatings: false, addedCards: [], needSelectbox: false, badgeCards: [], looseBadges: [], needSettingsArrange: false };
+        var cards = target.querySelectorAll('.card');
+        for (var i = 0; i < cards.length; i++) { observeCardVisibility(cards[i]); acc.addedCards.push(cards[i]); }
+        if (cards.length) acc.needRatings = true;
+        if (_settingsArranger && (target.querySelector && target.querySelector('.settings-folder'))) acc.needSettingsArrange = true;
+        var badgeNodes = target.querySelectorAll('.card__badge--next-episode');
+        for (var bi = 0; bi < badgeNodes.length; bi++) { var bcard = getCardRootNode(badgeNodes[bi]); if (bcard) acc.badgeCards.push(bcard); else acc.looseBadges.push(badgeNodes[bi]); }
+        if (target.querySelector && target.querySelector('.selectbox-item__icon img')) acc.needSelectbox = true;
+        applyObserverAccumulators(acc);
+    }
+    function collectFromAddedNode(node, acc) {
+        if (!node || node.nodeType !== 1) return;
+        if (node.matches && node.matches('.card')) { observeCardVisibility(node); acc.needRatings = true; acc.addedCards.push(node); }
+        else if (node.querySelector && node.querySelector('.card')) {
+            acc.needRatings = true;
+            var nestedCards = node.querySelectorAll('.card');
+            for (var ni = 0; ni < nestedCards.length; ni++) { observeCardVisibility(nestedCards[ni]); acc.addedCards.push(nestedCards[ni]); }
+        }
+        if ((node.matches && node.matches('.selectbox-item__icon')) || (node.querySelector && (node.querySelector('.selectbox-item__icon') || node.querySelector('.selectbox-item__icon img')))) acc.needSelectbox = true;
+        if (!acc.needSettingsArrange && _settingsArranger && ((node.matches && node.matches('.settings-folder')) || (node.querySelector && node.querySelector('.settings-folder')))) acc.needSettingsArrange = true;
+        if (node.matches && node.matches('.card__badge--next-episode')) { var bc = getCardRootNode(node); if (bc) acc.badgeCards.push(bc); else acc.looseBadges.push(node); }
+        else if (node.querySelector && node.querySelector('.card__badge--next-episode')) {
+            var badgeNodes = node.querySelectorAll('.card__badge--next-episode');
+            for (var bi = 0; bi < badgeNodes.length; bi++) { var bcard = getCardRootNode(badgeNodes[bi]); if (bcard) acc.badgeCards.push(bcard); else acc.looseBadges.push(badgeNodes[bi]); }
+        }
+    }
+    function applyObserverAccumulators(acc) {
+        if (acc.needRatings) scheduleVisibleRatingsUpdate(50);
+        if (acc.badgeCards.length) {
+            for (var bk = 0; bk < acc.badgeCards.length; bk++) hideNextEpisodeBadgeForCard(acc.badgeCards[bk]);
+        }
+        if (acc.looseBadges.length) {
+            for (var lb = 0; lb < acc.looseBadges.length; lb++) { var lbn = acc.looseBadges[lb]; if (lbn && lbn.parentNode) lbn.parentNode.removeChild(lbn); }
+        }
+        if (acc.addedCards.length) {
+            for (var k = 0; k < acc.addedCards.length; k++) {
+                if (!acc.addedCards[k].hasAttribute('data-type-label-checked')) {
+                    addTypeLabel(acc.addedCards[k]);
+                    addYearBadge(acc.addedCards[k]);
+                    if (!isQualityShowOn()) { $(acc.addedCards[k]).find('.card__quality').remove(); acc.addedCards[k].removeAttribute('data-quality-added'); }
                 }
-                if (isQualityShowOn()) {
-                    var newCards = [];
-                    for (var k2 = 0; k2 < addedCards.length; k2++) {
-                        if (!addedCards[k2].hasAttribute('data-quality-added')) newCards.push(addedCards[k2]);
-                    }
-                    if (newCards.length) processQualityForCards(newCards);
-                }
             }
-            if (needSelectbox && document.querySelector('.selectbox-item__icon img')) applyReactionsToSelectbox();
-        });
-        _mainObserver.observe(document.body, { childList: true, subtree: true });
+            if (isQualityShowOn()) {
+                var newCards = [];
+                for (var k2 = 0; k2 < acc.addedCards.length; k2++) {
+                    if (!acc.addedCards[k2].hasAttribute('data-quality-added')) newCards.push(acc.addedCards[k2]);
+                }
+                if (newCards.length) processQualityForCards(newCards);
+            }
+        }
+        if (acc.needSelectbox && document.querySelector('.selectbox-item__icon img')) applyReactionsToSelectbox();
+        if (acc.needSettingsArrange && _settingsArranger && !_settingsArrangeTimer) {
+            _settingsArrangeTimer = setTimeout(function () { _settingsArrangeTimer = 0; if (_settingsArranger) _settingsArranger(); }, 100);
+        }
     }
 
     function colorizeFullCardRatings(render) {
@@ -1164,6 +1237,7 @@
     }
     function applyRatingSettingsRefresh() {
         applyRatingScale();
+        applyBadgeStyle();
         if (isTriggerOn('lampa_rating_icon', true)) $('body').attr('data-lampa-icon-on', '1'); else $('body').removeAttr('data-lampa-icon-on');
         applyDetailRatingIcons();
         var allCards = document.querySelectorAll('.card');
@@ -1172,6 +1246,7 @@
         scheduleVisibleRatingsUpdate(0);
         refreshAllQualityLabels();
         refreshAllCardOverlays();
+        refreshAllYearBadges();
         refreshSeasonInfo();
     }
 
@@ -1633,7 +1708,7 @@
         if (!view) return;
         var labels = view.querySelectorAll('.card__series-status');
         for (var i = 0; i < labels.length; i++) labels[i].remove();
-        raiseNextEpisodeBadge(view);
+        hideNextEpisodeBadge(view);
     }
     function getCardRootNode(node) {
         while (node && node.nodeType === 1) {
@@ -1650,32 +1725,17 @@
         if (card && card.querySelector) return card.querySelector('.card__badge--next-episode');
         return null;
     }
-    function raiseNextEpisodeBadge(view) {
+    function hideNextEpisodeBadge(view) {
+        // We no longer reposition ("raise") the server next-episode badge above the
+        // series-status label — we remove it from the card entirely (it is also kept
+        // visually hidden via CSS display:none as a flash-proof fallback).
         if (!view || !view.querySelector) return;
         var badge = findNextEpisodeBadgeForView(view);
-        if (!badge) return;
-        var status = view.querySelector('.card__series-status');
-        if (status && isVisibleOverlayElement(status)) {
-            var lift = status.offsetHeight || 0;
-            try {
-                var pos = window.getComputedStyle(badge).position;
-                if (!pos || pos === 'static') badge.style.setProperty('position', 'absolute', 'important');
-            } catch (ePos) {}
-            badge.style.setProperty('bottom', lift + 'px', 'important');
-            badge.style.setProperty('top', 'auto', 'important');
-            badge.style.setProperty('z-index', '11', 'important');
-            badge.setAttribute('data-card-overlay-raised', '1');
-        } else if (badge.getAttribute('data-card-overlay-raised') === '1') {
-            badge.style.removeProperty('position');
-            badge.style.removeProperty('bottom');
-            badge.style.removeProperty('top');
-            badge.style.removeProperty('z-index');
-            badge.removeAttribute('data-card-overlay-raised');
-        }
+        if (badge && badge.parentNode) badge.parentNode.removeChild(badge);
     }
-    function raiseNextEpisodeBadgeForCard(card) {
-        var view = card && card.querySelector && card.querySelector('.card__view');
-        if (view) raiseNextEpisodeBadge(view);
+    function hideNextEpisodeBadgeForCard(card) {
+        var badge = card && card.querySelector && card.querySelector('.card__badge--next-episode');
+        if (badge && badge.parentNode) badge.parentNode.removeChild(badge);
     }
     function isVisibleOverlayElement(el) {
         if (!el) return false;
@@ -1707,20 +1767,31 @@
             props.push(['line-height', typeStyle.lineHeight === 'normal' ? '1' : typeStyle.lineHeight]);
             props.push(['padding', typeStyle.paddingTop + ' ' + typeStyle.paddingRight + ' ' + typeStyle.paddingBottom + ' ' + typeStyle.paddingLeft]);
         }
+        var rounded = getBadgeStyle() === 'rounded';
+        // Episode-label position is dynamic: top (under the type label) or bottom-center.
+        // Set its shadow inline so the direction points INWARD for its real edge
+        // (static CSS can't know where the badge actually sits). Matches the year-badge logic.
+        var cornerShadowOn = getCornerShadow();
+        var epAtBottom = !(isEpisodeLabelUnderType() || isCardSeriesFullInfoOn());
+        var epShadowY = (cornerShadowOn && !rounded && epAtBottom) ? '-0.12em' : '0.12em';
+        props.push(['box-shadow', (rounded || cornerShadowOn) ? '0 ' + epShadowY + ' 0.4em rgba(0,0,0,0.55)' : 'none']);
         if (isEpisodeLabelUnderType() || isCardSeriesFullInfoOn()) {
             var topOffset = 0;
             if (typeLabel) {
                 var typeGap = (0.15 * parseFloat(typeStyle.fontSize)) || 6;
                 topOffset = typeLabel.offsetTop + typeLabel.offsetHeight + typeGap;
             }
-            props.push(['left', '0'], ['right', 'auto'], ['top', topOffset + 'px'], ['bottom', 'auto'], ['transform', 'none'], ['border-radius', '0 0.75em 0.75em 0']);
+            if (rounded) props.push(['left', '0.4em'], ['right', 'auto'], ['top', topOffset + 'px'], ['bottom', 'auto'], ['transform', 'none'], ['border-radius', '0.5em']);
+            else props.push(['left', '0'], ['right', 'auto'], ['top', topOffset + 'px'], ['bottom', 'auto'], ['transform', 'none'], ['border-radius', '0 0.75em 0.75em 0']);
             return { label: label, props: props };
         }
+        var epBottom = rounded ? '0.4em' : '0';
+        var epRadius = rounded ? '0.5em' : '0.75em 0.75em 0 0';
         var center = measureCenterBottom(view);
         if (center !== null) {
-            props.push(['left', center + 'px'], ['right', 'auto'], ['top', 'auto'], ['bottom', '0'], ['transform', 'translateX(-50%)'], ['border-radius', '0.75em 0.75em 0 0']);
+            props.push(['left', center + 'px'], ['right', 'auto'], ['top', 'auto'], ['bottom', epBottom], ['transform', 'translateX(-50%)'], ['border-radius', epRadius]);
         } else {
-            props.push(['left', '50%'], ['right', 'auto'], ['top', 'auto'], ['bottom', '0'], ['transform', 'translateX(-50%)'], ['border-radius', '0.75em 0.75em 0 0']);
+            props.push(['left', '50%'], ['right', 'auto'], ['top', 'auto'], ['bottom', epBottom], ['transform', 'translateX(-50%)'], ['border-radius', epRadius]);
         }
         return { label: label, props: props };
     }
@@ -1747,7 +1818,10 @@
             measured.label.style.setProperty(measured.props[i][0], measured.props[i][1], 'important');
         }
     }
+    var _batchOverlayPositions = false;
+    var _pendingSeriesStatus = [];
     function updateEpisodeLabelPosition(card) {
+        if (_batchOverlayPositions) return;
         applyEpisodeLabelStyles(measureEpisodeLabelPosition(card));
     }
     function updateEpisodeLabelPositionsBatch(cards) {
@@ -1798,15 +1872,36 @@
         } catch (e3) { return null; }
     }
     function positionCardSeriesStatus(view, label) {
+        if (_batchOverlayPositions) { _pendingSeriesStatus.push([view, label]); return; }
+        var ssRounded = getBadgeStyle() === 'rounded';
         var center = measureSeriesStatusCenterBottom(view);
         if (center !== null) label.style.setProperty('left', center + 'px', 'important');
         else label.style.setProperty('left', '50%', 'important');
         label.style.setProperty('right', 'auto', 'important');
         label.style.setProperty('top', 'auto', 'important');
-        label.style.setProperty('bottom', '0', 'important');
+        label.style.setProperty('bottom', ssRounded ? '0.4em' : '0', 'important');
         label.style.setProperty('transform', 'translateX(-50%)', 'important');
-        label.style.setProperty('border-radius', '0.75em 0.75em 0 0', 'important');
-        raiseNextEpisodeBadge(view);
+        label.style.setProperty('border-radius', ssRounded ? '0.5em' : '0.75em 0.75em 0 0', 'important');
+        hideNextEpisodeBadge(view);
+    }
+    function flushSeriesStatusPositions() {
+        var pend = _pendingSeriesStatus;
+        _pendingSeriesStatus = [];
+        if (!pend.length) return;
+        var ssRounded = getBadgeStyle() === 'rounded';
+        var measured = [];
+        for (var i = 0; i < pend.length; i++) { measured.push([pend[i][0], pend[i][1], measureSeriesStatusCenterBottom(pend[i][0])]); }
+        for (var j = 0; j < measured.length; j++) {
+            var label = measured[j][1], center = measured[j][2];
+            if (center !== null) label.style.setProperty('left', center + 'px', 'important');
+            else label.style.setProperty('left', '50%', 'important');
+            label.style.setProperty('right', 'auto', 'important');
+            label.style.setProperty('top', 'auto', 'important');
+            label.style.setProperty('bottom', ssRounded ? '0.4em' : '0', 'important');
+            label.style.setProperty('transform', 'translateX(-50%)', 'important');
+            label.style.setProperty('border-radius', ssRounded ? '0.5em' : '0.75em 0.75em 0 0', 'important');
+        }
+        for (var k = 0; k < measured.length; k++) hideNextEpisodeBadge(measured[k][0]);
     }
     function applyCardSeriesStatus(card, text, status) {
         if (!text) { removeCardSeriesStatus(card); return; }
@@ -1954,8 +2049,11 @@
         $('.card .card__type[data-card-overlay-type-label="1"]').remove();
         $('.card .card__episode-label').remove();
         $('.card .card__series-status').remove();
-        processAllTypeLabels();
+        _batchOverlayPositions = true;
+        _pendingSeriesStatus = [];
+        try { processAllTypeLabels(); } finally { _batchOverlayPositions = false; }
         updateEpisodeLabelPositionsBatch(document.querySelectorAll('.card'));
+        flushSeriesStatusPositions();
     }
     function refreshAllCardOverlays() {
         refreshAllTypeLabels();
@@ -2081,6 +2179,9 @@
     }
 
     function isColoredElementsOn() { return isTriggerOn('colored_elements', true); }
+    function getBadgeStyle() { return Lampa.Storage.get('badge_visual_style', 'corner') === 'rounded' ? 'rounded' : 'corner'; }
+    function getCornerShadow() { var v = Lampa.Storage.get('badge_corner_shadow', false); return (v === true || v === 'true' || v === '1' || v === 1); }
+    function applyBadgeStyle() { try { $('body').attr('data-badge-style', getBadgeStyle()); $('body').attr('data-badge-corner-shadow', getCornerShadow() ? 'on' : 'off'); } catch (e) {} }
     function colorizeSeriesStatus(render) {
         var map = { completed: ['завершён','завершен','ended'], canceled: ['отменён','отменен','canceled'], ongoing: ['онгоинг','выходит','в эфире','ongoing','returning series'], production: ['в производстве','production'], planned: ['запланирован','planned'], pilot: ['пилотный','pilot'], released: ['выпущен','вышел','released'], rumored: ['слухи','rumored'], post: ['скоро','post'] };
         function apply(el) {
@@ -2151,6 +2252,7 @@
             var DISPLAY_MODE_LABELS = { single: 'Одно окно', separate: 'Каждый в отдельном окне' };
             var LAMPA_POSTER_ICON_LABELS = { reaction: 'Реакция', lamp: 'Иконка Lampa' };
             var SEASON_INFO_DETAILS_POSITION_LABELS = { bottom: 'Внизу постера', 'under-type-label': 'Под лейблом «Сериал»' };
+            var BADGE_STYLE_LABELS = { corner: 'Уголки', rounded: 'Скругление + тень' };
             var modal = $('<div class="comodal"></div>');
             modal.on('click mousedown touchstart', function (e) { e.stopPropagation(); });
             function isMouseEvent(e) { return e && (e.pointerType === 'mouse' || (e.clientX !== undefined && e.clientY !== undefined)); }
@@ -2203,6 +2305,8 @@
             modal.append($('<div class="comodal__section">Общие настройки окон</div>'));
             var rowOpacity = addNumberRow('Прозрачность окон (0–100)', 'rating_window_opacity', 40, 0, 100, 10, '%');
             var rowScale = addNumberRow('Масштаб окон', 'rating_scale', 100, 60, 150, 5, '%');
+            var rowBadgeStyle = addCycleRow('Стиль окон', 'badge_visual_style', BADGE_STYLE_LABELS, 'corner');
+            var rowCornerShadow = addTriggerRow('Тень для «Уголки»', 'badge_corner_shadow', false);
 
             modal.append($('<div class="comodal__divider"></div>'));
             modal.append($('<div class="comodal__section">Рейтинги</div>'));
@@ -2257,6 +2361,8 @@
                 Lampa.Storage.set('lampa_poster_icon_mode', 'reaction');
                 Lampa.Storage.set('rating_display_mode', 'separate'); Lampa.Storage.set('rating_window_opacity', '40');
                 Lampa.Storage.set('rating_scale', '100'); Lampa.Storage.set('rating_kp_api_key', '');
+                Lampa.Storage.set('badge_visual_style', 'corner');
+                Lampa.Storage.set('badge_corner_shadow', 'false');
                 Lampa.Storage.set('quality_show', 'true'); Lampa.Storage.set('quality_colored', 'false');
                 Lampa.Storage.set('type_labels_show', 'true'); Lampa.Storage.set('type_labels_colored', 'false'); Lampa.Storage.set(TYPE_LABEL_EPISODE_INFO_KEY, 'true');
                 Lampa.Storage.set('seasons_info_details_position', 'bottom');
@@ -2266,7 +2372,7 @@
                 rowPosition.updateVal(POSITION_LABELS.bottom); rowColored.updateVal('Выкл'); rowColoredWin.updateVal('Выкл');
                 rowAnimated.updateVal('Выкл'); rowLampaPosterIcon.updateVal(LAMPA_POSTER_ICON_LABELS.reaction); rowShowTmdb.updateVal('Вкл'); rowShowImdb.updateVal('Вкл');
                 rowShowKp.updateVal('Вкл'); rowShowLampa.updateVal('Вкл');
-                rowOpacity.updateVal('40%'); rowScale.updateVal('100%'); rowKpKey.updateVal(kpApiKeyRowText());
+                rowOpacity.updateVal('40%'); rowScale.updateVal('100%'); rowBadgeStyle.updateVal(BADGE_STYLE_LABELS.corner); rowCornerShadow.updateVal('Выкл'); rowKpKey.updateVal(kpApiKeyRowText());
                 rowQualityShow.updateVal('Вкл'); rowQualityColored.updateVal('Выкл');
                 rowTypeLabelsShow.updateVal('Вкл'); rowTypeLabelsColored.updateVal('Выкл'); rowTypeLabelsEpisodeInfo.updateVal('Вкл');
                 rowSeasonInfoDetailsPosition.updateVal(SEASON_INFO_DETAILS_POSITION_LABELS.bottom);
@@ -2511,11 +2617,7 @@
             if (!$mod.length) $mod = $('.settings-folder').filter(function () { return $(this).find('.settings-folder__name').text().trim() === 'Интерфейс Мод'; });
             if ($interface.length && $mod.length && $mod.prev()[0] !== $interface[0]) $mod.insertAfter($interface);
         }
-        var _moveTimer = 0;
-        new MutationObserver(function () {
-            if (_moveTimer) return;
-            _moveTimer = setTimeout(function () { _moveTimer = 0; moveAfterInterface(); }, 100);
-        }).observe(document.body, { childList: true, subtree: true });
+        _settingsArranger = moveAfterInterface;
         moveAfterInterface();
     }
 
@@ -2646,7 +2748,7 @@
             '.rate-settings-note{display:block!important;width:100%!important;overflow:visible!important;box-sizing:border-box!important}' +
             '.rate-settings-site{display:inline-block;color:#8ab4ff!important;text-decoration:underline!important;white-space:nowrap!important}' +
             '[data-name="rating_modal_open"] .settings-param__value,[data-name="rating_modal_open"] .settings-param__control,[data-name="rating_modal_open"] input[type="checkbox"],[data-name="clear_ratings_cache"] .settings-param__value,[data-name="clear_ratings_cache"] .settings-param__control,[data-name="clear_ratings_cache"] input[type="checkbox"],[data-name="clear_quality_cache"] .settings-param__value,[data-name="clear_quality_cache"] .settings-param__control,[data-name="clear_quality_cache"] input[type="checkbox"]{display:none!important}' +
-            '.card .card__view{position:relative!important}' +
+            '.card .card__view{position:relative!important;overflow:hidden!important}' +
             '.card .card__view>.card__img{z-index:0!important}' +
             '.card .card__vote,.card .card__vote-line,.card .card__vote-separate-wrap,.card .card__vote-separate-wrap .card__vote,.card .card__quality,.card .card__type[data-card-overlay-type-label="1"],.card .content-label,.card .card__episode-label,.card .card__series-status,.card .card__year-badge{z-index:10!important;opacity:1!important;-webkit-filter:none!important;filter:none!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}' +
             '.card.card-overlay-has-overlays>.card__age,.card.card-overlay-has-overlays>.card__vote{display:none!important}' +
@@ -2657,7 +2759,7 @@
             '.card__vote.card__vote--hidden,.card__vote-separate-wrap .card__vote.card__vote--hidden{display:none!important;height:0!important;padding:0!important;margin:0!important;overflow:hidden!important;min-width:0!important;min-height:0!important;border:none!important;width:0!important;position:absolute!important;opacity:0!important;pointer-events:none!important}' +
             '.card__vote-line{display:block!important;position:absolute!important;right:0!important;bottom:0!important;padding:0.25em 0.45em!important;border-radius:0.75em 0!important;font-size:var(--rating-font-size,1.1em)!important;font-weight:600!important;line-height:1!important;height:auto!important;border:none!important;margin:0!important}' +
             '.card__vote-separate-wrap{display:block!important;position:absolute!important;background:transparent!important;padding:0!important;width:auto!important;min-width:0!important;max-width:100%!important;overflow:visible!important;font-size:var(--rating-font-size,1.1em)!important;font-weight:600!important}' +
-            '.card__vote > span:first-child,.card__vote-line .card__rate-item > div,.card__vote-line .card__rate-item > .rate-value{display:inline-block!important;min-width:3ch!important;text-align:left!important;vertical-align:middle!important}' +
+            '.card__vote > span:first-child,.card__vote-line .card__rate-item > div,.card__vote-line .card__rate-item > .rate-value{display:inline-block!important;min-width:2.4ch!important;text-align:left!important;vertical-align:middle!important}' +
             '.card__vote--top,.card__vote-line.card__vote--top,.card__vote-separate-wrap.card__vote--top{transform-origin:top right!important}' +
             '.card__vote--bottom,.card__vote-line.card__vote--bottom,.card__vote-separate-wrap.card__vote--bottom{transform-origin:bottom right!important}' +
             '.card__vote--top{top:0!important;right:0!important;bottom:auto!important;border-radius:0 0.75em!important}' +
@@ -2671,7 +2773,7 @@
             '.card__vote-line .card__rate-item{display:flex!important;align-items:center!important;white-space:nowrap}' +
             '.card__vote-line .card__rate-item.card__rate-item--hidden{display:none!important}' +
             '.card__vote-line .card__rate-item:last-child{margin-bottom:0}' +
-            '.card__vote .source--name{font-size:inherit!important;line-height:0!important;display:inline-block!important;color:transparent!important;width:1em!important;height:1em!important;flex-shrink:0!important;overflow:hidden!important;background-repeat:no-repeat!important;background-position:center!important;background-size:contain!important;margin-left:0.25em!important;padding:0!important;border:none!important;vertical-align:middle!important}' +
+            '.card__vote .source--name{font-size:inherit!important;line-height:0!important;display:inline-block!important;color:transparent!important;width:1em!important;height:1em!important;flex-shrink:0!important;overflow:hidden!important;background-repeat:no-repeat!important;background-position:center!important;background-size:contain!important;margin-left:0.16em!important;padding:0!important;border:none!important;vertical-align:middle!important}' +
             '@media (min-width:481px){.card__vote,.card__vote-line,.card__vote-separate-wrap{font-size:var(--rating-font-size,1.1em)!important}.card__vote-separate-wrap .card__vote{font-size:1em!important}}' +
             '.rate--kp .source--name{background-image:url("data:image/svg+xml,%3Csvg width=\'300\' height=\'300\' viewBox=\'0 0 300 300\' fill=\'none\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cmask id=\'mask0_1_69\' style=\'mask-type:alpha\' maskUnits=\'userSpaceOnUse\' x=\'0\' y=\'0\' width=\'300\' height=\'300\'%3E%3Ccircle cx=\'150\' cy=\'150\' r=\'150\' fill=\'white\'/%3E%3C/mask%3E%3Cg mask=\'url(%23mask0_1_69)\'%3E%3Ccircle cx=\'150\' cy=\'150\' r=\'150\' fill=\'black\'/%3E%3Cpath d=\'M300 45L145.26 127.827L225.9 45H181.2L126.3 121.203V45H89.9999V255H126.3V178.92L181.2 255H225.9L147.354 174.777L300 255V216L160.776 160.146L300 169.5V130.5L161.658 139.494L300 84V45Z\' fill=\'url(%23paint0_radial_1_69)\'/%3E%3C/g%3E%3Cdefs%3E%3CradialGradient id=\'paint0_radial_1_69\' cx=\'0\' cy=\'0\' r=\'1\' gradientUnits=\'userSpaceOnUse\' gradientTransform=\'translate(89.9999 45) rotate(45) scale(296.985)\'%3E%3Cstop offset=\'0.5\' stop-color=\'%23FF5500\'/%3E%3Cstop offset=\'1\' stop-color=\'%23BBFF00\'/%3E%3C/radialGradient%3E%3C/defs%3E%3C/svg%3E")}' +
             '.card .rate--tmdb .source--name{background-image:url("data:image/svg+xml,' + detailTmdbSvgCss + '")}' +
@@ -2720,16 +2822,37 @@
             '.full-start-new__meta-line{display:none!important}' +
             '.season-info-label{position:absolute!important;color:#fff!important;padding:0.25em 0.45em!important;font-size:var(--rating-font-size,1.1em)!important;line-height:1!important;z-index:10!important;white-space:nowrap!important}' +
             '@media (max-width:480px) and (orientation:portrait){.full-start-new__rate-line{display:flex!important;flex-wrap:wrap!important;align-items:center!important;justify-content:center!important;align-content:center!important;gap:0.35em!important;width:100%!important;max-width:100%!important;margin-left:auto!important;margin-right:auto!important;text-align:center!important}.full-start-new__rate-line>*{margin:0!important}.full-start-new__rate-line .full-start-new__rate:not(.hide):not([style*="display: none"]),.full-start-new__rate-line .full-start__rate:not(.hide):not([style*="display: none"]){display:inline-flex;align-items:center!important;justify-content:center!important;flex:0 0 auto!important;margin:0!important}.full-start-new__rate-line .full-start-new__rate.hide,.full-start-new__rate-line .full-start__rate.hide,.full-start-new__rate-line .full-start-new__rate[style*="display: none"],.full-start-new__rate-line .full-start__rate[style*="display: none"]{display:none!important}.full-start-new__rate-line.card-overlay-mobile-rate-line[data-card-overlay-rating-count="1"]{max-width:9em!important}.full-start-new__rate-line.card-overlay-mobile-rate-line[data-card-overlay-rating-count="2"]{max-width:18em!important}.full-start-new__rate-line.card-overlay-mobile-rate-line[data-card-overlay-rating-count="3"],.full-start-new__rate-line.card-overlay-mobile-rate-line[data-card-overlay-rating-count="4"]{max-width:100%!important}.full-start-new__meta-line{display:flex!important;flex-wrap:wrap!important;align-items:center!important;justify-content:center!important;gap:0.5em!important;width:100%!important;line-height:1!important;font-size:1em!important;margin-top:0.3em!important}.full-start-new__meta-line .full-start__status,.full-start-new__meta-line .full-start__pg{margin:0!important;display:inline-flex!important;align-items:center!important;line-height:1!important;white-space:nowrap!important}.full-start-new__details{margin-top:0.3em!important;display:flex!important;flex-wrap:wrap!important;justify-content:center!important;gap:0.1em!important}.full-start-new__reactions{justify-content:center!important}.full-start-new__buttons{justify-content:center!important;text-align:center!important}.full-start-new__right,.full-start__right{text-align:center!important}.full-start-new__right h1,.full-start__right h1,.full-start-new__right .name,.full-start__right .name,.full-start__name{text-align:center!important;width:100%!important}.season-info-label{display:none!important}}' +
-            'body[data-movie-labels="on"] .card--tv .card__type:not([data-card-overlay-type-label="1"]){display:none!important}';
+            'body[data-movie-labels="on"] .card--tv .card__type:not([data-card-overlay-type-label="1"]){display:none!important}' +
+            'body[data-badge-style="rounded"] .card__vote,body[data-badge-style="rounded"] .card__vote-line,body[data-badge-style="rounded"] .card__quality,body[data-badge-style="rounded"] .card__type[data-card-overlay-type-label="1"],body[data-badge-style="rounded"] .content-label{border-radius:0.5em!important;box-shadow:0 0.12em 0.4em rgba(0,0,0,0.55)!important}' +
+            'body[data-badge-style="rounded"] .card__vote-separate-wrap .card__vote,body[data-badge-style="rounded"] .card__vote-separate-wrap.card__vote--bottom .card__vote.visible-last,body[data-badge-style="rounded"] .card__vote-separate-wrap.card__vote--bottom .card__vote.visible-only,body[data-badge-style="rounded"] .card__vote-separate-wrap.card__vote--top .card__vote.visible-first,body[data-badge-style="rounded"] .card__vote-separate-wrap.card__vote--top .card__vote.visible-only{border-radius:0.5em!important;box-shadow:0 0.12em 0.4em rgba(0,0,0,0.55)!important}' +
+            'body[data-badge-style="rounded"] .card__vote-separate-wrap{box-shadow:none!important}' +
+            'body[data-badge-style="rounded"] .card__vote--bottom{right:0.4em!important;bottom:0.4em!important;top:auto!important}' +
+            'body[data-badge-style="rounded"] .card__vote--top{right:0.4em!important;top:0.4em!important;bottom:auto!important}' +
+            'body[data-badge-style="rounded"] .card__quality{left:0.4em!important;bottom:0.4em!important;top:auto!important}' +
+            'body[data-badge-style="rounded"] .content-label,body[data-badge-style="rounded"] .card__type[data-card-overlay-type-label="1"]{left:0.4em!important;top:0.4em!important;bottom:auto!important}' +
+            'body[data-badge-style="rounded"] .card__series-status{box-shadow:0 0.12em 0.4em rgba(0,0,0,0.55)!important}' +
+            'body[data-badge-style="corner"][data-badge-corner-shadow="on"] .card__type[data-card-overlay-type-label="1"],body[data-badge-style="corner"][data-badge-corner-shadow="on"] .content-label,body[data-badge-style="corner"][data-badge-corner-shadow="on"] .card__vote--top,body[data-badge-style="corner"][data-badge-corner-shadow="on"] .card__vote-separate-wrap.card__vote--top .card__vote{box-shadow:0 0.12em 0.4em rgba(0,0,0,0.55)!important}' +
+            'body[data-badge-style="corner"][data-badge-corner-shadow="on"] .card__quality,body[data-badge-style="corner"][data-badge-corner-shadow="on"] .card__series-status,body[data-badge-style="corner"][data-badge-corner-shadow="on"] .card__vote--bottom,body[data-badge-style="corner"][data-badge-corner-shadow="on"] .card__vote-separate-wrap.card__vote--bottom .card__vote{box-shadow:0 -0.12em 0.4em rgba(0,0,0,0.55)!important}' +
+            'body[data-badge-style="corner"][data-badge-corner-shadow="on"] .card__vote-separate-wrap{box-shadow:none!important}' +
+            '.card .card__badge--next-episode,.card__badge--next-episode{display:none!important}';
         document.head.appendChild(style);
 
         applyRatingScale();
+        applyBadgeStyle();
         if (isTriggerOn('lampa_rating_icon', true)) $('body').attr('data-lampa-icon-on', '1'); else $('body').removeAttr('data-lampa-icon-on');
         if (isDetailRatingIconsOn()) $('body').attr('data-detail-rating-icons', 'on'); else $('body').attr('data-detail-rating-icons', 'off');
         if (!isTriggerOn('lampa_rating_show', true)) $('body').attr('data-lampa-rating-off', '1'); else $('body').removeAttr('data-lampa-rating-off');
         addSettings();
         setupCardListener();
         startMainObserver();
+        // Variant A: re-point the scoped main observer at the new active Activity
+        // whenever the app switches activities (the render node is replaced).
+        try {
+            Lampa.Listener.follow('activity', function () {
+                if (_retargetTimer) clearTimeout(_retargetTimer);
+                _retargetTimer = setTimeout(function () { _retargetTimer = 0; retargetMainObserver(); }, 0);
+            });
+        } catch (eAct) {}
         scheduleVisibleRatingsUpdate(120);
         setTimeout(function () { scheduleVisibleRatingsUpdate(250); }, 250);
         setTimeout(function () { scheduleVisibleRatingsUpdate(600); }, 600);
@@ -2739,7 +2862,14 @@
             var code = e && (e.code || e.key);
             if (code === 'PageUp' || code === 'PageDown') scheduleVisibleRatingsUpdate(120);
         }, { passive: true });
-        window.addEventListener('resize', function () { scheduleVisibleRatingsUpdate(0); repositionDetailMeta(); }, { passive: true });
+        var _resizeTimer = 0;
+        window.addEventListener('resize', function () {
+            if (_resizeTimer) clearTimeout(_resizeTimer);
+            _resizeTimer = setTimeout(function () {
+                _resizeTimer = 0;
+                requestAnimationFrame(function () { scheduleVisibleRatingsUpdate(0); repositionDetailMeta(); });
+            }, 150);
+        }, { passive: true });
         window.addEventListener('orientationchange', function () { setTimeout(repositionDetailMeta, 150); }, { passive: true });
         document.addEventListener('visibilitychange', function () { if (!document.hidden) { scheduleVisibleRatingsUpdate(0); repositionDetailMeta(); } });
 
@@ -2843,7 +2973,7 @@
     Lampa.Manifest.plugins = {
         name: 'Интерфейс Мод',
         version: '1.1.0',
-        description: 'Рейтинги, качество, лейблы типа на карточках + темы'
+        description: 'Рейтинги, качество, лейблы типа на карточках'
     };
 
     if (window.appready) { initPlugin(); }
