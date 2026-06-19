@@ -263,6 +263,7 @@
         ratingCache.caches = {};
         if (typeof pendingTmdbRequests !== 'undefined') pendingTmdbRequests = {};
         if (typeof pendingLampaRequests !== 'undefined') pendingLampaRequests = {};
+        if (typeof lampaFailRetryAt !== 'undefined') lampaFailRetryAt = {};
         if (typeof pendingKpCallbacks !== 'undefined') pendingKpCallbacks = {};
         if (includeQuality) clearQualityCache();
     }
@@ -408,25 +409,46 @@
     function fetchLampaRating(ratingKey) {
         // Throttle reactions requests through a dedicated queue. Otherwise a row of
         // ~20 cards fires 20 simultaneous requests to cubnotrip.top; the browser caps
-        // ~6 connections/host, the rest stack behind 10s timeouts → ratings load very
-        // slowly or not at all. The queue paces them (batch 2 / 140ms) so cached
-        // results paint instantly and live fetches stream in without flooding.
+        // ~6 connections/host, the rest stack behind timeouts → ratings load very
+        // slowly or not at all. The queue paces them so cached results paint instantly
+        // and live fetches stream in without flooding.
+        // IMPORTANT: a real answer (data came back, even rating 0 = "no reactions") is
+        // returned WITHOUT `failed` so it can be cached. A failure (network error,
+        // timeout, or queue drop) is returned WITH `failed:true` so the caller does NOT
+        // cache it — otherwise a single transient failure poisons the cache with a
+        // permanent 0 and the rating never loads again (incl. on detail pages, which
+        // read the same cache). Failed keys stay retryable on the next render.
         return new Promise(function (resolve) {
             addToQueue(function () {
                 var request = getRequest(); request.timeout(8000);
                 request.silent("https://cubnotrip.top/api/reactions/get/" + ratingKey, function (data) {
-                    try { resolve(data && data.result && Array.isArray(data.result) ? calculateLampaRating10(data.result) : { rating: 0, medianReaction: '' }); } catch (e) { resolve({ rating: 0, medianReaction: '' }); }
+                    try {
+                        if (data && data.result && Array.isArray(data.result)) resolve(calculateLampaRating10(data.result));
+                        else if (data && typeof data === 'object') resolve({ rating: 0, medianReaction: '' });
+                        else resolve({ rating: 0, medianReaction: '', failed: true });
+                    } catch (e) { resolve({ rating: 0, medianReaction: '', failed: true }); }
                     finally { releaseRequest(request); }
-                }, function () { releaseRequest(request); resolve({ rating: 0, medianReaction: '' }); }, false);
-            }, 'lampa', function () { resolve({ rating: 0, medianReaction: '' }); });
+                }, function () { releaseRequest(request); resolve({ rating: 0, medianReaction: '', failed: true }); }, false);
+            }, 'lampa', function () { resolve({ rating: 0, medianReaction: '', failed: true }); });
         });
     }
     var pendingLampaRequests = {};
+    var lampaFailRetryAt = {};
+    var LAMPA_FAIL_RETRY_MS = 20000;
     function getLampaRating(ratingKey) {
         var cached = ratingCache.get('lampa_rating', ratingKey);
         if (cached) return Promise.resolve(cached);
         if (pendingLampaRequests[ratingKey]) return pendingLampaRequests[ratingKey];
-        pendingLampaRequests[ratingKey] = fetchLampaRating(ratingKey).then(function (result) { return ratingCache.set('lampa_rating', ratingKey, result); }).catch(function () { return { rating: 0, medianReaction: '' }; }).then(function (result) { delete pendingLampaRequests[ratingKey]; return result; }, function (error) { delete pendingLampaRequests[ratingKey]; throw error; });
+        // Back off briefly after a failure so we don't re-fetch the same key on every
+        // render, but still recover automatically (unlike caching a permanent 0).
+        var failAt = lampaFailRetryAt[ratingKey];
+        if (failAt && Date.now() - failAt < LAMPA_FAIL_RETRY_MS) return Promise.resolve({ rating: 0, medianReaction: '', failed: true });
+        pendingLampaRequests[ratingKey] = fetchLampaRating(ratingKey).then(function (result) {
+            // Only cache real answers; failures (network/timeout/drop) stay retryable.
+            if (result && result.failed) { lampaFailRetryAt[ratingKey] = Date.now(); return result; }
+            delete lampaFailRetryAt[ratingKey];
+            return ratingCache.set('lampa_rating', ratingKey, result);
+        }).catch(function () { lampaFailRetryAt[ratingKey] = Date.now(); return { rating: 0, medianReaction: '', failed: true }; }).then(function (result) { delete pendingLampaRequests[ratingKey]; return result; }, function (error) { delete pendingLampaRequests[ratingKey]; throw error; });
         return pendingLampaRequests[ratingKey];
     }
     function renderLampaPosterIcon(target, medianReaction) {
