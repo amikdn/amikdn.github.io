@@ -99,8 +99,6 @@
         var pos = Lampa.Storage.get('rating_position', 'bottom');
         var rounded = getBadgeStyle() === 'rounded';
         var cornerShadowOn = getCornerShadow();
-        // Year badge sits opposite the rating: top when rating is at bottom, bottom when rating is at top.
-        // For the corner-style shadow, point it inward (upward) when the badge is at the bottom of the card.
         var yearAtBottom = (pos === 'top');
         var shadowY = (cornerShadowOn && !rounded && yearAtBottom) ? '-0.12em' : '0.12em';
         var shadow = (rounded || cornerShadowOn) ? 'box-shadow:0 ' + shadowY + ' 0.4em rgba(0,0,0,0.55)!important;' : '';
@@ -449,8 +447,9 @@
         var mt = data.media_type || data.type || data.method;
         if (mt === 'movie' || mt === 'tv') return mt;
         if (mt === 'person' || mt === 'collection') return null;
-        if (data.number_of_seasons || data.seasons || data.first_air_date || data.last_air_date || data.name || data.original_name) return 'tv';
-        if (data.title || data.original_title || data.release_date) return 'movie';
+        if (data.number_of_seasons || data.seasons || data.first_air_date || data.last_air_date) return 'tv';
+        if (data.release_date || data.title || data.original_title) return 'movie';
+        if (data.name || data.original_name) return 'tv';
         return null;
     }
     function getTmdbId(data) {
@@ -523,6 +522,32 @@
             function handleFail() {
                 complete(markTmdbDetailAttempt(data, cached));
             }
+            function tryAltType() {
+                var altType = type === 'tv' ? 'movie' : 'tv';
+                function handleAltDetail(detail) {
+                    var rating = getTmdbVoteAverage(detail || {});
+                    if (rating > 0) {
+                        data.media_type = altType;
+                        var stored = storeTmdbRating(data, rating, true, detail.vote_count);
+                        if (stored) ratingCache.set('tmdb_rating', key, stored);
+                        complete(stored);
+                    } else handleFail();
+                }
+                var altUrl = buildTmdbApiUrl(altType, id);
+                if (altUrl) {
+                    var altRequest = getRequest();
+                    altRequest.timeout(6000);
+                    altRequest.silent(altUrl, function (detail) { releaseRequest(altRequest); handleAltDetail(detail); }, function () { releaseRequest(altRequest); handleFail(); }, false);
+                    return;
+                }
+                try {
+                    if (Lampa.Api && Lampa.Api.sources && Lampa.Api.sources.tmdb && Lampa.Api.sources.tmdb.get) {
+                        Lampa.Api.sources.tmdb.get(altType + '/' + id, {}, function (detail) { handleAltDetail(detail); }, handleFail);
+                        return;
+                    }
+                } catch (e) {}
+                handleFail();
+            }
             var url = buildTmdbApiUrl(type, id);
             if (url) {
                 var request = getRequest();
@@ -531,21 +556,21 @@
                     releaseRequest(request);
                     try {
                         if (Lampa.Api && Lampa.Api.sources && Lampa.Api.sources.tmdb && Lampa.Api.sources.tmdb.get) {
-                            Lampa.Api.sources.tmdb.get(type + '/' + id, {}, function (detail2) { handleDetail(detail2 || {}); }, handleFail);
+                            Lampa.Api.sources.tmdb.get(type + '/' + id, {}, function (detail2) { handleDetail(detail2 || {}); }, tryAltType);
                             return;
                         }
                     } catch (e) {}
-                    handleFail();
+                    tryAltType();
                 }, false);
                 return;
             }
             try {
                 if (Lampa.Api && Lampa.Api.sources && Lampa.Api.sources.tmdb && Lampa.Api.sources.tmdb.get) {
-                    Lampa.Api.sources.tmdb.get(type + '/' + id, {}, function (detail) { handleDetail(detail || {}); }, handleFail);
+                    Lampa.Api.sources.tmdb.get(type + '/' + id, {}, function (detail) { handleDetail(detail || {}); }, tryAltType);
                     return;
                 }
             } catch (e) {}
-            handleFail();
+            tryAltType();
         }, 'fast', function () { delete pendingTmdbRequests[key]; });
     }
     function ensureFreshTMDBRating(data, onUpdated) {
@@ -580,9 +605,6 @@
         return parent;
     }
     var _posterRadiusGen = 1;
-    // Read the poster's real rounded-corner radius and expose it on the card__view as
-    // --co-poster-radius so the corner badges can match the poster corner exactly.
-    // The poster radius can live on .card__img (most themes) or on .card__view itself.
     function syncCardPosterRadius(card) {
         try {
             if (!card || !card.querySelector) return;
@@ -704,7 +726,7 @@
             }
         } catch (e) {}
         try {
-            var lampaKey = (data.seasons || data.first_air_date || data.original_name) ? 'tv_' + data.id : 'movie_' + data.id;
+            var lampaKey = (getTmdbMediaType(data) === 'tv' ? 'tv_' : 'movie_') + data.id;
             var cachedLampa = ratingCache.get('lampa_rating', lampaKey);
             lampaItem = ratingLine.querySelector('.rate--lampa');
             if (lampaItem) {
@@ -763,7 +785,7 @@
             }); return;
         }
         if (rateSource === 'lampa') {
-            var lampaKey = (data.seasons || data.first_air_date || data.original_name) ? 'tv_' + data.id : 'movie_' + data.id;
+            var lampaKey = (getTmdbMediaType(data) === 'tv' ? 'tv_' : 'movie_') + data.id;
             getLampaRating(lampaKey).then(function (result) {
                 if (!el.parentNode || el.dataset.movieId !== idStr) return;
                 if (result.rating > 0) {
@@ -823,7 +845,7 @@
             updateEpisodeLabelPosition(ratingElement.closest ? ratingElement.closest('.card') : null);
             return;
         }
-        var lampaKey = (data.seasons || data.first_air_date || data.original_name) ? 'tv_' + data.id : 'movie_' + data.id;
+        var lampaKey = (getTmdbMediaType(data) === 'tv' ? 'tv_' : 'movie_') + data.id;
         var cachedLampa = ratingCache.get('lampa_rating', lampaKey);
         if (cachedLampa && cachedLampa.rating > 0) {
             ratingElement.className = voteClass('rate--lampa');
@@ -882,7 +904,7 @@
                 updateCardRatingSeparate(card, data);
                 requestFreshTmdbUpdate(function () { updateCardRatingSeparate(card, data); });
                 if (canUseKinopoiskApi() && isAnyKinopoiskSourceVisible()) getKinopoiskRating(data, function () { if (card.parentNode && document.body.contains(card)) updateCardRatingSeparate(card, data); });
-                var lampaKey = (data.seasons || data.first_air_date || data.original_name) ? 'tv_' + data.id : 'movie_' + data.id;
+                var lampaKey = (getTmdbMediaType(data) === 'tv' ? 'tv_' : 'movie_') + data.id;
                 getLampaRating(lampaKey).then(function () { if (card.parentNode && document.body.contains(card)) updateCardRatingSeparate(card, data); });
             } else {
                 ratingElement = card.querySelector('.card__vote-line');
@@ -895,7 +917,7 @@
                     ratingElement.dataset.kpRequested = String(Date.now());
                     getKinopoiskRating(data, function () { if (ratingElement.parentNode && ratingElement.dataset.movieId === idStr) updateCardRatingLine(ratingElement, data); });
                 }
-                var lampaKey2 = (data.seasons || data.first_air_date || data.original_name) ? 'tv_' + data.id : 'movie_' + data.id;
+                var lampaKey2 = (getTmdbMediaType(data) === 'tv' ? 'tv_' : 'movie_') + data.id;
                 getLampaRating(lampaKey2).then(function () { if (ratingElement.parentNode && ratingElement.dataset.movieId === idStr) updateCardRatingLine(ratingElement, data); });
             }
             return;
@@ -1019,7 +1041,7 @@
                 if (!singleEl || singleEl.dataset.source !== source || singleEl.dataset.movieId !== idStr) needFull = true;
                 else if (singleEl.innerHTML === '' || singleEl.classList.contains('card__vote--hidden')) {
                     if (source === 'lampa') {
-                        var ratingKey = (data.seasons || data.first_air_date || data.original_name) ? 'tv_' + data.id : 'movie_' + data.id;
+                        var ratingKey = (getTmdbMediaType(data) === 'tv' ? 'tv_' : 'movie_') + data.id;
                         var cachedLampa = ratingCache.get('lampa_rating', ratingKey);
                         if (cachedLampa && cachedLampa.rating > 0) {
                             singleEl.innerHTML = '<span style="color:' + getRatingColor(cachedLampa.rating) + '">' + formatRating(cachedLampa.rating) + '</span>';
@@ -1090,10 +1112,6 @@
             applyObserverAccumulators(acc);
         };
         _mainObserver = new MutationObserver(mutationHandler);
-        // Variant A: narrow the heavy observer from document.body{subtree} to the
-        // active Activity render container; re-target it on the 'activity' event.
-        // A lightweight top-level layer watcher (childList only, NOT subtree) catches
-        // modals/selectboxes that mount outside the activity (e.g. reaction picker).
         retargetMainObserver();
         if (!_layerObserver) {
             _layerObserver = new MutationObserver(mutationHandler);
@@ -1115,8 +1133,6 @@
         try { _mainObserver.disconnect(); } catch (e) {}
         _mainObserverTarget = target;
         try { _mainObserver.observe(target, { childList: true, subtree: true }); } catch (e2) {}
-        // Immediate one-shot scan of the freshly-targeted container so we don't
-        // miss content that was already rendered before we re-attached.
         scanContainerOnce(target);
     }
     function scanContainerOnce(target) {
@@ -1748,9 +1764,6 @@
         return null;
     }
     function hideNextEpisodeBadge(view) {
-        // We no longer reposition ("raise") the server next-episode badge above the
-        // series-status label — we remove it from the card entirely (it is also kept
-        // visually hidden via CSS display:none as a flash-proof fallback).
         if (!view || !view.querySelector) return;
         var badge = findNextEpisodeBadgeForView(view);
         if (badge && badge.parentNode) badge.parentNode.removeChild(badge);
@@ -1790,9 +1803,6 @@
             props.push(['padding', typeStyle.paddingTop + ' ' + typeStyle.paddingRight + ' ' + typeStyle.paddingBottom + ' ' + typeStyle.paddingLeft]);
         }
         var rounded = getBadgeStyle() === 'rounded';
-        // Episode-label position is dynamic: top (under the type label) or bottom-center.
-        // Set its shadow inline so the direction points INWARD for its real edge
-        // (static CSS can't know where the badge actually sits). Matches the year-badge logic.
         var cornerShadowOn = getCornerShadow();
         var epAtBottom = !(isEpisodeLabelUnderType() || isCardSeriesFullInfoOn());
         var epShadowY = (cornerShadowOn && !rounded && epAtBottom) ? '-0.12em' : '0.12em';
@@ -2867,8 +2877,7 @@
         addSettings();
         setupCardListener();
         startMainObserver();
-        // Variant A: re-point the scoped main observer at the new active Activity
-        // whenever the app switches activities (the render node is replaced).
+
         try {
             Lampa.Listener.follow('activity', function () {
                 if (_retargetTimer) clearTimeout(_retargetTimer);
