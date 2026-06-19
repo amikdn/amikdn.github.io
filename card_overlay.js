@@ -173,7 +173,7 @@
         return _lampaIconDataUrl;
     }
     function getLampaPosterIconMode() {
-        var mode = Lampa.Storage.get('lampa_poster_icon_mode', 'reaction');
+        var mode = Lampa.Storage.get('lampa_poster_icon_mode', 'lamp');
         return mode === 'lamp' ? 'lamp' : 'reaction';
     }
     function getLampaPosterIconBackground(medianReaction) {
@@ -429,7 +429,14 @@
         // the rating never loads again (incl. on detail pages, which read the same
         // cache). Failed keys stay retryable on the next render.
         return new Promise(function (resolve) {
-            var request = getRequest(); request.timeout(8000);
+            // Timeout is generous (30s) on purpose. The reactions host (cubnotrip.top)
+            // answers slowly (~3-4s/req) and ALL lampa reqs hit that single host, so the
+            // browser's ~6-conn/host cap queues them. The XHR timeout counts from send()
+            // INCLUDING the wait in that browser queue — with a short 8s timeout, every
+            // card past ~position 12-14 on a full page died in the queue before its turn
+            // (no rating), even though the data exists (it loads fine on the detail page,
+            // which fires just one request). A long timeout lets the browser queue drain.
+            var request = getRequest(); request.timeout(30000);
             // Guard against the success + timeout callbacks both firing: settle once.
             var settled = false;
             function finish(result) { if (settled) return; settled = true; resolve(result); }
@@ -476,11 +483,10 @@
         var icon = $scope.find('.rate--lampa .rate-icon');
         if (!icon.length) return;
         if (medianReaction) icon.attr('data-median-reaction', medianReaction);
-        if (!isTriggerOn('lampa_rating_icon', true)) { icon.empty().hide(); return; }
-        icon.show();
-        var reaction = medianReaction || icon.attr('data-median-reaction');
-        if (reaction) icon.html('<img style="width:1em;height:1em;margin:0 0.15em;object-fit:contain;" data-reaction-type="' + reaction + '" src="' + getReactionImageSrc(reaction, true) + '">');
-        else icon.empty();
+        // On the detail page we show ONLY the Lampa icon (the rate-line source icon,
+        // rendered via "Значки рейтингов"/detail_rating_icons), NOT the reaction face.
+        // So the inline reaction slot is always emptied/hidden.
+        icon.empty().hide();
     }
     var pendingTmdbRequests = {};
     function getTmdbMediaType(data) {
@@ -2192,11 +2198,11 @@
     var seasonInfoSettings = {
         seasons_info_mode: 'none',
         label_position: 'top-right',
-        details_position: 'bottom'
+        details_position: 'under-type-label'
     };
     var _seasonInfoLast = null;
     function getSeasonInfoDetailsPosition() {
-        var pos = Lampa.Storage.get('seasons_info_details_position', seasonInfoSettings.details_position || 'bottom');
+        var pos = Lampa.Storage.get('seasons_info_details_position', seasonInfoSettings.details_position || 'under-type-label');
         return pos === 'under-type-label' ? 'under-type-label' : 'bottom';
     }
     function isEpisodeLabelUnderType() {
@@ -2432,7 +2438,7 @@
             var rowColored = addTriggerRow('Цветные цифры рейтингов', 'colored_ratings_poster', false);
             var rowColoredWin = addTriggerRow('Цветные окна (цифры белые)', 'rating_colored_windows', false);
             var rowAnimated = addTriggerRow('Анимированные реакции на постерах', 'animated_reactions', false);
-            var rowLampaPosterIcon = addCycleRow('Иконка Lampa на постере', 'lampa_poster_icon_mode', LAMPA_POSTER_ICON_LABELS, 'reaction');
+            var rowLampaPosterIcon = addCycleRow('Иконка Lampa на постере', 'lampa_poster_icon_mode', LAMPA_POSTER_ICON_LABELS, 'lamp');
 
             var rowShowTmdb = addTriggerRow('Показывать TMDB', 'rating_show_tmdb', true);
             var rowShowImdb = addTriggerRow('Показывать IMDB', 'rating_show_imdb', true);
@@ -2449,7 +2455,7 @@
             var rowTypeLabelsShow = addTriggerRow('Показывать «Фильм»/«Сериал»', 'type_labels_show', true);
             var rowTypeLabelsColored = addTriggerRow('Цветные лейблы типа', 'type_labels_colored', false);
             var rowTypeLabelsEpisodeInfo = addTriggerRow('Серии в лейбле «Сериал»', TYPE_LABEL_EPISODE_INFO_KEY, true);
-            var rowSeasonInfoDetailsPosition = addCycleRow('Позиция сезонов и серий', 'seasons_info_details_position', SEASON_INFO_DETAILS_POSITION_LABELS, 'bottom');
+            var rowSeasonInfoDetailsPosition = addCycleRow('Позиция сезонов и серий', 'seasons_info_details_position', SEASON_INFO_DETAILS_POSITION_LABELS, 'under-type-label');
             var rowSeasonCompletedReplace = addTriggerRow('«Завершён» вместо сезонов/серий', 'season_completed_replace', false);
             var rowCardSeriesFullInfo = addTriggerRow('Статус снизу + S:E под «Сериал»', CARD_SERIES_FULL_INFO_KEY, false);
 
@@ -2474,24 +2480,24 @@
                 Lampa.Storage.set('rating_colored_windows', 'false'); Lampa.Storage.set('rating_position', 'bottom');
                 Lampa.Storage.set('rating_show_tmdb', 'true'); Lampa.Storage.set('rating_show_imdb', 'true');
                 Lampa.Storage.set('rating_show_kp', 'true'); Lampa.Storage.set('rating_show_lampa', 'true');
-                Lampa.Storage.set('lampa_poster_icon_mode', 'reaction');
+                Lampa.Storage.set('lampa_poster_icon_mode', 'lamp');
                 Lampa.Storage.set('rating_display_mode', 'separate'); Lampa.Storage.set('rating_window_opacity', '40');
                 Lampa.Storage.set('rating_scale', '100'); Lampa.Storage.set('rating_kp_api_key', '');
                 Lampa.Storage.set('badge_visual_style', 'corner');
                 Lampa.Storage.set('badge_corner_shadow', 'false');
                 Lampa.Storage.set('quality_show', 'true'); Lampa.Storage.set('quality_colored', 'false');
                 Lampa.Storage.set('type_labels_show', 'true'); Lampa.Storage.set('type_labels_colored', 'false'); Lampa.Storage.set(TYPE_LABEL_EPISODE_INFO_KEY, 'true');
-                Lampa.Storage.set('seasons_info_details_position', 'bottom');
+                Lampa.Storage.set('seasons_info_details_position', 'under-type-label');
                 Lampa.Storage.set('season_completed_replace', 'false');
                 Lampa.Storage.set(CARD_SERIES_FULL_INFO_KEY, 'false');
                 rowSource.updateVal(SOURCE_LABELS.all); rowDisplayMode.updateVal(DISPLAY_MODE_LABELS.separate);
                 rowPosition.updateVal(POSITION_LABELS.bottom); rowColored.updateVal('Выкл'); rowColoredWin.updateVal('Выкл');
-                rowAnimated.updateVal('Выкл'); rowLampaPosterIcon.updateVal(LAMPA_POSTER_ICON_LABELS.reaction); rowShowTmdb.updateVal('Вкл'); rowShowImdb.updateVal('Вкл');
+                rowAnimated.updateVal('Выкл'); rowLampaPosterIcon.updateVal(LAMPA_POSTER_ICON_LABELS.lamp); rowShowTmdb.updateVal('Вкл'); rowShowImdb.updateVal('Вкл');
                 rowShowKp.updateVal('Вкл'); rowShowLampa.updateVal('Вкл');
                 rowOpacity.updateVal('40%'); rowScale.updateVal('100%'); rowBadgeStyle.updateVal(BADGE_STYLE_LABELS.corner); rowCornerShadow.updateVal('Выкл'); rowKpKey.updateVal(kpApiKeyRowText());
                 rowQualityShow.updateVal('Вкл'); rowQualityColored.updateVal('Выкл');
                 rowTypeLabelsShow.updateVal('Вкл'); rowTypeLabelsColored.updateVal('Выкл'); rowTypeLabelsEpisodeInfo.updateVal('Вкл');
-                rowSeasonInfoDetailsPosition.updateVal(SEASON_INFO_DETAILS_POSITION_LABELS.bottom);
+                rowSeasonInfoDetailsPosition.updateVal(SEASON_INFO_DETAILS_POSITION_LABELS['under-type-label']);
                 rowSeasonCompletedReplace.updateVal('Выкл');
                 rowCardSeriesFullInfo.updateVal('Выкл');
                 scheduleSettingsRefresh(50);
@@ -2525,10 +2531,10 @@
         }
         var keys = ['animated_reactions', 'lampa_rating_animated', 'colored_ratings_poster', 'rating_colored_windows', 'rating_show_tmdb', 'rating_show_imdb', 'rating_show_kp', 'rating_show_lampa', 'lampa_rating_show', 'lampa_rating_icon', 'detail_rating_icons', 'quality_show', 'quality_colored', 'type_labels_show', 'type_labels_colored', TYPE_LABEL_EPISODE_INFO_KEY, 'season_completed_replace', CARD_SERIES_FULL_INFO_KEY];
         for (var i = 0; i < keys.length; i++) { var v = Lampa.Storage.get(keys[i], undefined); if (v === '1' || v === 1) Lampa.Storage.set(keys[i], 'true'); else if (v === '0' || v === 0) Lampa.Storage.set(keys[i], 'false'); }
-        var lampaPosterIconMode = Lampa.Storage.get('lampa_poster_icon_mode', 'reaction');
-        if (lampaPosterIconMode !== 'reaction' && lampaPosterIconMode !== 'lamp') Lampa.Storage.set('lampa_poster_icon_mode', 'reaction');
-        var seasonInfoDetailsPosition = Lampa.Storage.get('seasons_info_details_position', 'bottom');
-        if (seasonInfoDetailsPosition !== 'bottom' && seasonInfoDetailsPosition !== 'under-type-label') Lampa.Storage.set('seasons_info_details_position', 'bottom');
+        var lampaPosterIconMode = Lampa.Storage.get('lampa_poster_icon_mode', 'lamp');
+        if (lampaPosterIconMode !== 'reaction' && lampaPosterIconMode !== 'lamp') Lampa.Storage.set('lampa_poster_icon_mode', 'lamp');
+        var seasonInfoDetailsPosition = Lampa.Storage.get('seasons_info_details_position', 'under-type-label');
+        if (seasonInfoDetailsPosition !== 'bottom' && seasonInfoDetailsPosition !== 'under-type-label') Lampa.Storage.set('seasons_info_details_position', 'under-type-label');
     }
     function closeModalSafe() {
         try { if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.close) Lampa.Modal.close(); } catch (e) {}
@@ -2653,14 +2659,9 @@
             onChange: function (v) {
                 updateSettingsKeepFocus('lampa_rating_icon');
                 if (isTriggerOn('lampa_rating_icon', true)) { $('body').attr('data-lampa-icon-on', '1'); } else { $('body').removeAttr('data-lampa-icon-on'); }
-                $('.rate--lampa .rate-icon').each(function () {
-                    var icon = $(this);
-                    if (isTriggerOn('lampa_rating_icon', true)) {
-                        icon.show();
-                        var reaction = icon.attr('data-median-reaction');
-                        if (reaction) icon.html('<img style="width:1em;height:1em;margin:0 0.15em;object-fit:contain;" data-reaction-type="' + reaction + '" src="' + getReactionImageSrc(reaction, true) + '">');
-                    } else { icon.empty().hide(); }
-                });
+                // Reaction face is never shown on the detail page anymore — only the
+                // Lampa source icon. Always empty/hide the inline reaction slot.
+                $('.rate--lampa .rate-icon').each(function () { $(this).empty().hide(); });
             }
         });
 
@@ -2689,11 +2690,8 @@
                 } else {
                     $('.rate--lampa').removeClass('rate--lampa--animated');
                 }
-                $('.rate--lampa .rate-icon').each(function () {
-                    var icon = $(this);
-                    var reaction = icon.attr('data-median-reaction');
-                    if (reaction) icon.html('<img style="width:1em;height:1em;margin:0 0.15em;object-fit:contain;" data-reaction-type="' + reaction + '" src="' + getReactionImageSrc(reaction, true) + '">');
-                });
+                // No reaction face on the detail page — keep the inline slot empty.
+                $('.rate--lampa .rate-icon').each(function () { $(this).empty().hide(); });
             }
         });
 
@@ -3062,7 +3060,7 @@
 
         seasonInfoSettings.seasons_info_mode = Lampa.Storage.get('seasons_info_mode', 'none');
         seasonInfoSettings.label_position = Lampa.Storage.get('label_position', 'top-right');
-        seasonInfoSettings.details_position = Lampa.Storage.get('seasons_info_details_position', 'bottom');
+        seasonInfoSettings.details_position = Lampa.Storage.get('seasons_info_details_position', 'under-type-label');
         addSeasonInfo();
 
         if (isColoredElementsOn()) { $('body').addClass('colored-elements-on'); colorizeSeriesStatus(); colorizeAgeRating(); colorizeDetailQuality(); }
