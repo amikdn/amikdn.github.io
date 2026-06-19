@@ -1768,6 +1768,13 @@
             props.push(['padding', typeStyle.paddingTop + ' ' + typeStyle.paddingRight + ' ' + typeStyle.paddingBottom + ' ' + typeStyle.paddingLeft]);
         }
         var rounded = getBadgeStyle() === 'rounded';
+        // Episode-label position is dynamic: top (under the type label) or bottom-center.
+        // Set its shadow inline so the direction points INWARD for its real edge
+        // (static CSS can't know where the badge actually sits). Matches the year-badge logic.
+        var cornerShadowOn = getCornerShadow();
+        var epAtBottom = !(isEpisodeLabelUnderType() || isCardSeriesFullInfoOn());
+        var epShadowY = (cornerShadowOn && !rounded && epAtBottom) ? '-0.12em' : '0.12em';
+        props.push(['box-shadow', (rounded || cornerShadowOn) ? '0 ' + epShadowY + ' 0.4em rgba(0,0,0,0.55)' : 'none']);
         if (isEpisodeLabelUnderType() || isCardSeriesFullInfoOn()) {
             var topOffset = 0;
             if (typeLabel) {
@@ -2823,9 +2830,9 @@
             'body[data-badge-style="rounded"] .card__vote--top{right:0.4em!important;top:0.4em!important;bottom:auto!important}' +
             'body[data-badge-style="rounded"] .card__quality{left:0.4em!important;bottom:0.4em!important;top:auto!important}' +
             'body[data-badge-style="rounded"] .content-label,body[data-badge-style="rounded"] .card__type[data-card-overlay-type-label="1"]{left:0.4em!important;top:0.4em!important;bottom:auto!important}' +
-            'body[data-badge-style="rounded"] .card__episode-label,body[data-badge-style="rounded"] .card__series-status{box-shadow:0 0.12em 0.4em rgba(0,0,0,0.55)!important}' +
+            'body[data-badge-style="rounded"] .card__series-status{box-shadow:0 0.12em 0.4em rgba(0,0,0,0.55)!important}' +
             'body[data-badge-style="corner"][data-badge-corner-shadow="on"] .card__type[data-card-overlay-type-label="1"],body[data-badge-style="corner"][data-badge-corner-shadow="on"] .content-label,body[data-badge-style="corner"][data-badge-corner-shadow="on"] .card__vote--top,body[data-badge-style="corner"][data-badge-corner-shadow="on"] .card__vote-separate-wrap.card__vote--top .card__vote{box-shadow:0 0.12em 0.4em rgba(0,0,0,0.55)!important}' +
-            'body[data-badge-style="corner"][data-badge-corner-shadow="on"] .card__quality,body[data-badge-style="corner"][data-badge-corner-shadow="on"] .card__episode-label,body[data-badge-style="corner"][data-badge-corner-shadow="on"] .card__series-status,body[data-badge-style="corner"][data-badge-corner-shadow="on"] .card__vote--bottom,body[data-badge-style="corner"][data-badge-corner-shadow="on"] .card__vote-separate-wrap.card__vote--bottom .card__vote{box-shadow:0 -0.12em 0.4em rgba(0,0,0,0.55)!important}' +
+            'body[data-badge-style="corner"][data-badge-corner-shadow="on"] .card__quality,body[data-badge-style="corner"][data-badge-corner-shadow="on"] .card__series-status,body[data-badge-style="corner"][data-badge-corner-shadow="on"] .card__vote--bottom,body[data-badge-style="corner"][data-badge-corner-shadow="on"] .card__vote-separate-wrap.card__vote--bottom .card__vote{box-shadow:0 -0.12em 0.4em rgba(0,0,0,0.55)!important}' +
             'body[data-badge-style="corner"][data-badge-corner-shadow="on"] .card__vote-separate-wrap{box-shadow:none!important}' +
             '.card .card__badge--next-episode,.card__badge--next-episode{display:none!important}';
         document.head.appendChild(style);
