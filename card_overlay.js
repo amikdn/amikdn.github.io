@@ -271,25 +271,65 @@
     var REQUEST_QUEUES = {
         kp: { tasks: [], processing: false, interval: 350, batch: 1 },
         fast: { tasks: [], processing: false, interval: 120, batch: 2 },
-        lampa: { tasks: [], processing: false, interval: 140, batch: 2 }
+        // Lampa reactions all hit ONE host (cubnotrip.top). A time-paced queue still
+        // fires faster than the browser's ~6-connections/host cap can drain, so the
+        // overflow requests sit in the browser's connection queue while their 8s XHR
+        // timeout keeps ticking → they time out WITHOUT ever reaching the server,
+        // resolve `failed`, and never paint. Because the queue was LIFO (unshift +
+        // splice-front), the FIRST/TOP cards on a page were fired LAST → they were the
+        // ones most likely to wait past the timeout → "even the first movies have no
+        // lampa rating". Fix: a true concurrency-gated FIFO queue (below) — never more
+        // than `concurrency` requests in flight at once, and the next task starts only
+        // when one actually completes. So no request ever burns its timeout waiting in
+        // line, and top cards (enqueued first) are fetched first.
+        lampa: { tasks: [], active: 0, concurrency: 5 }
     };
     var QUEUE_MAX_TASKS = 120;
     var requestPool = [];
     function getRequest() { return requestPool.pop() || new Lampa.Reguest(); }
     function releaseRequest(request) { request.clear(); if (requestPool.length < 5) requestPool.push(request); }
     function processQueue(queue) {
+        // Concurrency-gated mode (FIFO): keep up to `concurrency` tasks in flight,
+        // pumping a new one only when a slot is freed via queueTaskDone().
+        if (queue.concurrency) {
+            while (queue.active < queue.concurrency && queue.tasks.length) {
+                var item = queue.tasks.shift();
+                queue.active++;
+                try { item.execute(); } catch (e) { queue.active = Math.max(0, queue.active - 1); }
+            }
+            return;
+        }
         if (queue.processing || !queue.tasks.length) return;
         queue.processing = true;
         var batch = queue.tasks.splice(0, queue.batch);
         for (var i = 0; i < batch.length; i++) { try { batch[i].execute(); } catch (e) {} }
         setTimeout(function () { queue.processing = false; processQueue(queue); }, queue.interval);
     }
+    function queueTaskDone(queue) {
+        // Frees one concurrency slot and pumps the next queued task. MUST be called
+        // exactly once per executed task in a concurrency-gated queue (success, error
+        // and timeout paths all funnel here). Tasks dropped before execution never
+        // incremented `active`, so their onDrop must NOT call this.
+        if (!queue) return;
+        if (queue.active > 0) queue.active--;
+        processQueue(queue);
+    }
     function addToQueue(task, queueName, onDrop) {
         var queue = REQUEST_QUEUES[queueName] || REQUEST_QUEUES.fast;
-        queue.tasks.unshift({ execute: task, onDrop: onDrop });
-        while (queue.tasks.length > QUEUE_MAX_TASKS) {
-            var dropped = queue.tasks.pop();
-            if (dropped && dropped.onDrop) { try { dropped.onDrop(); } catch (e) {} }
+        if (queue.concurrency) {
+            // FIFO: add to the back, process from the front, and on overflow drop the
+            // NEWEST (back) so the earliest-enqueued (top-of-page) cards survive.
+            queue.tasks.push({ execute: task, onDrop: onDrop });
+            while (queue.tasks.length > QUEUE_MAX_TASKS) {
+                var droppedC = queue.tasks.pop();
+                if (droppedC && droppedC.onDrop) { try { droppedC.onDrop(); } catch (e) {} }
+            }
+        } else {
+            queue.tasks.unshift({ execute: task, onDrop: onDrop });
+            while (queue.tasks.length > QUEUE_MAX_TASKS) {
+                var dropped = queue.tasks.pop();
+                if (dropped && dropped.onDrop) { try { dropped.onDrop(); } catch (e) {} }
+            }
         }
         processQueue(queue);
     }
@@ -421,14 +461,22 @@
         return new Promise(function (resolve) {
             addToQueue(function () {
                 var request = getRequest(); request.timeout(8000);
+                // Guard against the success + timeout callbacks both firing: settle once,
+                // free exactly one concurrency slot, then resolve.
+                var settled = false;
+                function finish(result) {
+                    if (settled) return; settled = true;
+                    queueTaskDone(REQUEST_QUEUES.lampa);
+                    resolve(result);
+                }
                 request.silent("https://cubnotrip.top/api/reactions/get/" + ratingKey, function (data) {
                     try {
-                        if (data && data.result && Array.isArray(data.result)) resolve(calculateLampaRating10(data.result));
-                        else if (data && typeof data === 'object') resolve({ rating: 0, medianReaction: '' });
-                        else resolve({ rating: 0, medianReaction: '', failed: true });
-                    } catch (e) { resolve({ rating: 0, medianReaction: '', failed: true }); }
+                        if (data && data.result && Array.isArray(data.result)) finish(calculateLampaRating10(data.result));
+                        else if (data && typeof data === 'object') finish({ rating: 0, medianReaction: '' });
+                        else finish({ rating: 0, medianReaction: '', failed: true });
+                    } catch (e) { finish({ rating: 0, medianReaction: '', failed: true }); }
                     finally { releaseRequest(request); }
-                }, function () { releaseRequest(request); resolve({ rating: 0, medianReaction: '', failed: true }); }, false);
+                }, function () { releaseRequest(request); finish({ rating: 0, medianReaction: '', failed: true }); }, false);
             }, 'lampa', function () { resolve({ rating: 0, medianReaction: '', failed: true }); });
         });
     }
@@ -499,6 +547,33 @@
         var rating = parseFloat(data && data.vote_average);
         return rating > 0 ? rating : 0;
     }
+    // Normalize a title for fuzzy comparison: lowercase, strip whitespace/punctuation,
+    // keep letters/digits (incl. cyrillic/accents) — avoids \p{L} (unsupported on old TV webviews).
+    function _normTmdbTitle(s) {
+        return String(s == null ? '' : s).toLowerCase().replace(/[\s\u00a0.,:;!?'"`’“”«»()\[\]{}\-_/\\|+*&@#%]+/g, '').trim();
+    }
+    // Does the TMDB detail actually belong to this card? Movie and TV ids overlap on TMDB
+    // (e.g. movie/83533 = Avatar, tv/83533 = a random German show with 10.0/1 vote), so a
+    // wrong-type fetch "succeeds" with garbage. Compare every title field both ways.
+    // Returns true (match) / false (card has titles but none match) / null (can't tell).
+    function tmdbTitleMatches(card, detail) {
+        if (!card || !detail) return null;
+        function list(o) {
+            var out = [];
+            var fields = [o.title, o.original_title, o.name, o.original_name];
+            for (var i = 0; i < fields.length; i++) { var v = _normTmdbTitle(fields[i]); if (v.length >= 2) out.push(v); }
+            return out;
+        }
+        var a = list(card), b = list(detail);
+        if (!a.length || !b.length) return null;
+        for (var i = 0; i < a.length; i++) {
+            for (var j = 0; j < b.length; j++) {
+                if (a[i] === b[j]) return true;
+                if (a[i].length >= 5 && b[j].length >= 5 && (a[i].indexOf(b[j]) !== -1 || b[j].indexOf(a[i]) !== -1)) return true;
+            }
+        }
+        return false;
+    }
     function storeTmdbRating(data, rating, isDetail, voteCount) {
         var key = getTmdbRatingKey(data);
         rating = parseFloat(rating) || 0;
@@ -545,38 +620,56 @@
                 }
             }
             function handleDetail(detail) {
+                detail = detail || {};
                 var rating = getTmdbVoteAverage(detail);
-                if (rating > 0) complete(storeTmdbRating(data, rating, true, detail.vote_count));
-                else complete(cached || null);
+                var match = tmdbTitleMatches(data, detail);
+                // Wrong entity behind this id+type (movie/tv id collision): the fetched title
+                // doesn't match the card → re-fetch the OTHER type and validate before trusting.
+                if (match === false) { tryAltType(rating > 0 ? detail : null); return; }
+                if (rating > 0) { acceptDetail(detail, type); return; }
+                complete(cached || null);
+            }
+            function acceptDetail(detail, asType) {
+                var rating = getTmdbVoteAverage(detail);
+                if (rating <= 0) { complete(cached || null); return; }
+                if (asType && asType !== type) data.media_type = asType;
+                var stored = storeTmdbRating(data, rating, true, detail.vote_count);
+                if (stored && asType && asType !== type) ratingCache.set('tmdb_rating', key, stored);
+                complete(stored || cached || null);
             }
             function handleFail() {
                 complete(markTmdbDetailAttempt(data, cached));
             }
-            function tryAltType() {
+            function tryAltType(primaryDetail) {
                 var altType = type === 'tv' ? 'movie' : 'tv';
+                var hasPrimary = primaryDetail && getTmdbVoteAverage(primaryDetail) > 0;
                 function handleAltDetail(detail) {
-                    var rating = getTmdbVoteAverage(detail || {});
-                    if (rating > 0) {
-                        data.media_type = altType;
-                        var stored = storeTmdbRating(data, rating, true, detail.vote_count);
-                        if (stored) ratingCache.set('tmdb_rating', key, stored);
-                        complete(stored);
-                    } else handleFail();
+                    detail = detail || {};
+                    var altRating = getTmdbVoteAverage(detail);
+                    var altMatch = tmdbTitleMatches(data, detail);
+                    // Accept the alt type only when it validates: title matches, or we had no
+                    // valid primary and the title can't be checked. Never override a result with
+                    // an unverified one.
+                    if (altRating > 0 && altMatch !== false && (altMatch === true || !hasPrimary)) { acceptDetail(detail, altType); return; }
+                    // Alt didn't validate → keep the primary result if we had one (no regression).
+                    if (hasPrimary) { acceptDetail(primaryDetail, type); return; }
+                    if (altRating > 0) { acceptDetail(detail, altType); return; }
+                    handleFail();
                 }
                 var altUrl = buildTmdbApiUrl(altType, id);
                 if (altUrl) {
                     var altRequest = getRequest();
                     altRequest.timeout(6000);
-                    altRequest.silent(altUrl, function (detail) { releaseRequest(altRequest); handleAltDetail(detail); }, function () { releaseRequest(altRequest); handleFail(); }, false);
+                    altRequest.silent(altUrl, function (detail) { releaseRequest(altRequest); handleAltDetail(detail); }, function () { releaseRequest(altRequest); handleAltDetail(null); }, false);
                     return;
                 }
                 try {
                     if (Lampa.Api && Lampa.Api.sources && Lampa.Api.sources.tmdb && Lampa.Api.sources.tmdb.get) {
-                        Lampa.Api.sources.tmdb.get(altType + '/' + id, {}, function (detail) { handleAltDetail(detail); }, handleFail);
+                        Lampa.Api.sources.tmdb.get(altType + '/' + id, {}, function (detail) { handleAltDetail(detail); }, function () { handleAltDetail(null); });
                         return;
                     }
                 } catch (e) {}
-                handleFail();
+                handleAltDetail(null);
             }
             var url = buildTmdbApiUrl(type, id);
             if (url) {
