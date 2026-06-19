@@ -98,7 +98,12 @@
     function getYearPositionCSS() {
         var pos = Lampa.Storage.get('rating_position', 'bottom');
         var rounded = getBadgeStyle() === 'rounded';
-        var shadow = (rounded || getCornerShadow()) ? 'box-shadow:0 0.12em 0.4em rgba(0,0,0,0.55)!important;' : '';
+        var cornerShadowOn = getCornerShadow();
+        // Year badge sits opposite the rating: top when rating is at bottom, bottom when rating is at top.
+        // For the corner-style shadow, point it inward (upward) when the badge is at the bottom of the card.
+        var yearAtBottom = (pos === 'top');
+        var shadowY = (cornerShadowOn && !rounded && yearAtBottom) ? '-0.12em' : '0.12em';
+        var shadow = (rounded || cornerShadowOn) ? 'box-shadow:0 ' + shadowY + ' 0.4em rgba(0,0,0,0.55)!important;' : '';
         if (pos === 'bottom') {
             if (rounded) return 'right:0.4em!important;top:0.4em!important;bottom:auto!important;left:auto!important;border-radius:0.5em!important;' + shadow;
             return 'right:0!important;top:0!important;bottom:auto!important;left:auto!important;border-radius:0 0.75em!important;' + shadow;
@@ -2819,7 +2824,8 @@
             'body[data-badge-style="rounded"] .card__quality{left:0.4em!important;bottom:0.4em!important;top:auto!important}' +
             'body[data-badge-style="rounded"] .content-label,body[data-badge-style="rounded"] .card__type[data-card-overlay-type-label="1"]{left:0.4em!important;top:0.4em!important;bottom:auto!important}' +
             'body[data-badge-style="rounded"] .card__episode-label,body[data-badge-style="rounded"] .card__series-status{box-shadow:0 0.12em 0.4em rgba(0,0,0,0.55)!important}' +
-            'body[data-badge-style="corner"][data-badge-corner-shadow="on"] .card__vote,body[data-badge-style="corner"][data-badge-corner-shadow="on"] .card__vote-line,body[data-badge-style="corner"][data-badge-corner-shadow="on"] .card__quality,body[data-badge-style="corner"][data-badge-corner-shadow="on"] .card__type[data-card-overlay-type-label="1"],body[data-badge-style="corner"][data-badge-corner-shadow="on"] .content-label,body[data-badge-style="corner"][data-badge-corner-shadow="on"] .card__episode-label,body[data-badge-style="corner"][data-badge-corner-shadow="on"] .card__series-status,body[data-badge-style="corner"][data-badge-corner-shadow="on"] .card__vote-separate-wrap .card__vote{box-shadow:0 0.12em 0.4em rgba(0,0,0,0.55)!important}' +
+            'body[data-badge-style="corner"][data-badge-corner-shadow="on"] .card__type[data-card-overlay-type-label="1"],body[data-badge-style="corner"][data-badge-corner-shadow="on"] .content-label,body[data-badge-style="corner"][data-badge-corner-shadow="on"] .card__vote--top,body[data-badge-style="corner"][data-badge-corner-shadow="on"] .card__vote-separate-wrap.card__vote--top .card__vote{box-shadow:0 0.12em 0.4em rgba(0,0,0,0.55)!important}' +
+            'body[data-badge-style="corner"][data-badge-corner-shadow="on"] .card__quality,body[data-badge-style="corner"][data-badge-corner-shadow="on"] .card__episode-label,body[data-badge-style="corner"][data-badge-corner-shadow="on"] .card__series-status,body[data-badge-style="corner"][data-badge-corner-shadow="on"] .card__vote--bottom,body[data-badge-style="corner"][data-badge-corner-shadow="on"] .card__vote-separate-wrap.card__vote--bottom .card__vote{box-shadow:0 -0.12em 0.4em rgba(0,0,0,0.55)!important}' +
             'body[data-badge-style="corner"][data-badge-corner-shadow="on"] .card__vote-separate-wrap{box-shadow:none!important}' +
             '.card .card__badge--next-episode,.card__badge--next-episode{display:none!important}';
         document.head.appendChild(style);
