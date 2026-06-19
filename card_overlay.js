@@ -818,7 +818,7 @@
             }
         } catch (e) {}
         try {
-            var lampaKey = (getTmdbMediaType(data) === 'tv' ? 'tv_' : 'movie_') + data.id;
+            var lampaKey = (data.seasons || data.first_air_date || data.original_name) ? 'tv_' + data.id : 'movie_' + data.id;
             var cachedLampa = ratingCache.get('lampa_rating', lampaKey);
             lampaItem = ratingLine.querySelector('.rate--lampa');
             if (lampaItem) {
@@ -877,7 +877,7 @@
             }); return;
         }
         if (rateSource === 'lampa') {
-            var lampaKey = (getTmdbMediaType(data) === 'tv' ? 'tv_' : 'movie_') + data.id;
+            var lampaKey = (data.seasons || data.first_air_date || data.original_name) ? 'tv_' + data.id : 'movie_' + data.id;
             getLampaRating(lampaKey).then(function (result) {
                 if (!el.parentNode || el.dataset.movieId !== idStr) return;
                 if (result.rating > 0) {
@@ -937,7 +937,7 @@
             updateEpisodeLabelPosition(ratingElement.closest ? ratingElement.closest('.card') : null);
             return;
         }
-        var lampaKey = (getTmdbMediaType(data) === 'tv' ? 'tv_' : 'movie_') + data.id;
+        var lampaKey = (data.seasons || data.first_air_date || data.original_name) ? 'tv_' + data.id : 'movie_' + data.id;
         var cachedLampa = ratingCache.get('lampa_rating', lampaKey);
         if (cachedLampa && cachedLampa.rating > 0) {
             ratingElement.className = voteClass('rate--lampa');
@@ -996,7 +996,7 @@
                 updateCardRatingSeparate(card, data);
                 requestFreshTmdbUpdate(function () { updateCardRatingSeparate(card, data); });
                 if (canUseKinopoiskApi() && isAnyKinopoiskSourceVisible()) getKinopoiskRating(data, function () { if (card.parentNode && document.body.contains(card)) updateCardRatingSeparate(card, data); });
-                var lampaKey = (getTmdbMediaType(data) === 'tv' ? 'tv_' : 'movie_') + data.id;
+                var lampaKey = (data.seasons || data.first_air_date || data.original_name) ? 'tv_' + data.id : 'movie_' + data.id;
                 getLampaRating(lampaKey).then(function () { if (card.parentNode && document.body.contains(card)) updateCardRatingSeparate(card, data); });
             } else {
                 ratingElement = card.querySelector('.card__vote-line');
@@ -1009,7 +1009,7 @@
                     ratingElement.dataset.kpRequested = String(Date.now());
                     getKinopoiskRating(data, function () { if (ratingElement.parentNode && ratingElement.dataset.movieId === idStr) updateCardRatingLine(ratingElement, data); });
                 }
-                var lampaKey2 = (getTmdbMediaType(data) === 'tv' ? 'tv_' : 'movie_') + data.id;
+                var lampaKey2 = (data.seasons || data.first_air_date || data.original_name) ? 'tv_' + data.id : 'movie_' + data.id;
                 getLampaRating(lampaKey2).then(function () { if (ratingElement.parentNode && ratingElement.dataset.movieId === idStr) updateCardRatingLine(ratingElement, data); });
             }
             return;
@@ -1035,7 +1035,7 @@
             requestFreshTmdbUpdate(function () { if (ratingElement.parentNode && ratingElement.dataset.movieId === idStr) applyTmdbToElement(ratingElement); });
         }
         else if (source === 'lampa') {
-            var type = getTmdbMediaType(data) === 'tv' ? 'tv' : 'movie';
+            var type = (data.seasons || data.first_air_date || data.original_name) ? 'tv' : 'movie';
             var ratingKey = type + '_' + data.id;
             var cached = ratingCache.get('lampa_rating', ratingKey);
             if (cached && cached.rating > 0) {
@@ -1131,7 +1131,7 @@
                 if (!singleEl || singleEl.dataset.source !== source || singleEl.dataset.movieId !== idStr) needFull = true;
                 else if (singleEl.innerHTML === '' || singleEl.classList.contains('card__vote--hidden')) {
                     if (source === 'lampa') {
-                        var ratingKey = (getTmdbMediaType(data) === 'tv' ? 'tv_' : 'movie_') + data.id;
+                        var ratingKey = (data.seasons || data.first_air_date || data.original_name) ? 'tv_' + data.id : 'movie_' + data.id;
                         var cachedLampa = ratingCache.get('lampa_rating', ratingKey);
                         if (cachedLampa && cachedLampa.rating > 0) {
                             singleEl.innerHTML = '<span style="color:' + getRatingColor(cachedLampa.rating) + '">' + formatRating(cachedLampa.rating) + '</span>';
