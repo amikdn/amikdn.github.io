@@ -270,66 +270,35 @@
 
     var REQUEST_QUEUES = {
         kp: { tasks: [], processing: false, interval: 350, batch: 1 },
-        fast: { tasks: [], processing: false, interval: 120, batch: 2 },
-        // Lampa reactions all hit ONE host (cubnotrip.top). A time-paced queue still
-        // fires faster than the browser's ~6-connections/host cap can drain, so the
-        // overflow requests sit in the browser's connection queue while their 8s XHR
-        // timeout keeps ticking → they time out WITHOUT ever reaching the server,
-        // resolve `failed`, and never paint. Because the queue was LIFO (unshift +
-        // splice-front), the FIRST/TOP cards on a page were fired LAST → they were the
-        // ones most likely to wait past the timeout → "even the first movies have no
-        // lampa rating". Fix: a true concurrency-gated FIFO queue (below) — never more
-        // than `concurrency` requests in flight at once, and the next task starts only
-        // when one actually completes. So no request ever burns its timeout waiting in
-        // line, and top cards (enqueued first) are fetched first.
-        lampa: { tasks: [], active: 0, concurrency: 5 }
+        fast: { tasks: [], processing: false, interval: 120, batch: 2 }
+        // NOTE: there is deliberately NO dedicated "lampa" queue. Lampa-reactions
+        // requests are fired DIRECTLY (see fetchLampaRating). Every form of throttle/
+        // concurrency queue we tried (time-paced LIFO, then concurrency-gated FIFO)
+        // made posters LOSE ratings: lampa reqs all hit one host (cubnotrip.top), and
+        // pacing them behind a queue left requests sitting in line until their XHR
+        // timeout elapsed → they timed out without reaching the server and never
+        // painted (incl. the first cards). The browser's own ~6-connections/host cap
+        // is the only throttling lampa needs, and the original plugin (which fired
+        // directly) loaded ratings fine. KP still needs its own queue because it talks
+        // to a real rate-limited API key; lampa does not.
     };
     var QUEUE_MAX_TASKS = 120;
     var requestPool = [];
     function getRequest() { return requestPool.pop() || new Lampa.Reguest(); }
     function releaseRequest(request) { request.clear(); if (requestPool.length < 5) requestPool.push(request); }
     function processQueue(queue) {
-        // Concurrency-gated mode (FIFO): keep up to `concurrency` tasks in flight,
-        // pumping a new one only when a slot is freed via queueTaskDone().
-        if (queue.concurrency) {
-            while (queue.active < queue.concurrency && queue.tasks.length) {
-                var item = queue.tasks.shift();
-                queue.active++;
-                try { item.execute(); } catch (e) { queue.active = Math.max(0, queue.active - 1); }
-            }
-            return;
-        }
         if (queue.processing || !queue.tasks.length) return;
         queue.processing = true;
         var batch = queue.tasks.splice(0, queue.batch);
         for (var i = 0; i < batch.length; i++) { try { batch[i].execute(); } catch (e) {} }
         setTimeout(function () { queue.processing = false; processQueue(queue); }, queue.interval);
     }
-    function queueTaskDone(queue) {
-        // Frees one concurrency slot and pumps the next queued task. MUST be called
-        // exactly once per executed task in a concurrency-gated queue (success, error
-        // and timeout paths all funnel here). Tasks dropped before execution never
-        // incremented `active`, so their onDrop must NOT call this.
-        if (!queue) return;
-        if (queue.active > 0) queue.active--;
-        processQueue(queue);
-    }
     function addToQueue(task, queueName, onDrop) {
         var queue = REQUEST_QUEUES[queueName] || REQUEST_QUEUES.fast;
-        if (queue.concurrency) {
-            // FIFO: add to the back, process from the front, and on overflow drop the
-            // NEWEST (back) so the earliest-enqueued (top-of-page) cards survive.
-            queue.tasks.push({ execute: task, onDrop: onDrop });
-            while (queue.tasks.length > QUEUE_MAX_TASKS) {
-                var droppedC = queue.tasks.pop();
-                if (droppedC && droppedC.onDrop) { try { droppedC.onDrop(); } catch (e) {} }
-            }
-        } else {
-            queue.tasks.unshift({ execute: task, onDrop: onDrop });
-            while (queue.tasks.length > QUEUE_MAX_TASKS) {
-                var dropped = queue.tasks.pop();
-                if (dropped && dropped.onDrop) { try { dropped.onDrop(); } catch (e) {} }
-            }
+        queue.tasks.unshift({ execute: task, onDrop: onDrop });
+        while (queue.tasks.length > QUEUE_MAX_TASKS) {
+            var dropped = queue.tasks.pop();
+            if (dropped && dropped.onDrop) { try { dropped.onDrop(); } catch (e) {} }
         }
         processQueue(queue);
     }
@@ -447,37 +416,31 @@
         return { rating: finalRating, medianReaction: medianReaction };
     }
     function fetchLampaRating(ratingKey) {
-        // Throttle reactions requests through a dedicated queue. Otherwise a row of
-        // ~20 cards fires 20 simultaneous requests to cubnotrip.top; the browser caps
-        // ~6 connections/host, the rest stack behind timeouts → ratings load very
-        // slowly or not at all. The queue paces them so cached results paint instantly
-        // and live fetches stream in without flooding.
+        // Fire the reactions request DIRECTLY — no throttle/concurrency queue. Every
+        // queued variant we tried made posters lose ratings (requests sat in line
+        // until their XHR timeout elapsed and never painted, even the first cards).
+        // All lampa reqs hit one host (cubnotrip.top) and the browser already caps
+        // ~6 connections/host, which is exactly the throttling lampa needs; the
+        // original plugin fired directly and loaded ratings fine.
         // IMPORTANT: a real answer (data came back, even rating 0 = "no reactions") is
-        // returned WITHOUT `failed` so it can be cached. A failure (network error,
-        // timeout, or queue drop) is returned WITH `failed:true` so the caller does NOT
-        // cache it — otherwise a single transient failure poisons the cache with a
-        // permanent 0 and the rating never loads again (incl. on detail pages, which
-        // read the same cache). Failed keys stay retryable on the next render.
+        // returned WITHOUT `failed` so it can be cached. A failure (network error or
+        // timeout) is returned WITH `failed:true` so the caller does NOT cache it —
+        // otherwise a single transient failure poisons the cache with a permanent 0 and
+        // the rating never loads again (incl. on detail pages, which read the same
+        // cache). Failed keys stay retryable on the next render.
         return new Promise(function (resolve) {
-            addToQueue(function () {
-                var request = getRequest(); request.timeout(8000);
-                // Guard against the success + timeout callbacks both firing: settle once,
-                // free exactly one concurrency slot, then resolve.
-                var settled = false;
-                function finish(result) {
-                    if (settled) return; settled = true;
-                    queueTaskDone(REQUEST_QUEUES.lampa);
-                    resolve(result);
-                }
-                request.silent("https://cubnotrip.top/api/reactions/get/" + ratingKey, function (data) {
-                    try {
-                        if (data && data.result && Array.isArray(data.result)) finish(calculateLampaRating10(data.result));
-                        else if (data && typeof data === 'object') finish({ rating: 0, medianReaction: '' });
-                        else finish({ rating: 0, medianReaction: '', failed: true });
-                    } catch (e) { finish({ rating: 0, medianReaction: '', failed: true }); }
-                    finally { releaseRequest(request); }
-                }, function () { releaseRequest(request); finish({ rating: 0, medianReaction: '', failed: true }); }, false);
-            }, 'lampa', function () { resolve({ rating: 0, medianReaction: '', failed: true }); });
+            var request = getRequest(); request.timeout(8000);
+            // Guard against the success + timeout callbacks both firing: settle once.
+            var settled = false;
+            function finish(result) { if (settled) return; settled = true; resolve(result); }
+            request.silent("https://cubnotrip.top/api/reactions/get/" + ratingKey, function (data) {
+                try {
+                    if (data && data.result && Array.isArray(data.result)) finish(calculateLampaRating10(data.result));
+                    else if (data && typeof data === 'object') finish({ rating: 0, medianReaction: '' });
+                    else finish({ rating: 0, medianReaction: '', failed: true });
+                } catch (e) { finish({ rating: 0, medianReaction: '', failed: true }); }
+                finally { releaseRequest(request); }
+            }, function () { releaseRequest(request); finish({ rating: 0, medianReaction: '', failed: true }); }, false);
         });
     }
     var pendingLampaRequests = {};
