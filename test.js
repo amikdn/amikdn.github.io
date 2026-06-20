@@ -27,12 +27,6 @@
         en: 'Personal token from real-debrid.com/apitoken. Works directly in the Lampa Android app. Web version needs a proxy (see field below).',
         uk: 'Персональний токен з real-debrid.com/apitoken. В Android-застосунку Lampa працює напряму. Web-версії потрібен proxy (див. поле нижче).'
       },
-      rd_last_link: { ru: 'Резервный magnet или torrent URL', en: 'Fallback magnet or torrent URL', uk: 'Резервний magnet або torrent URL' },
-      rd_last_link_descr: {
-        ru: 'Резервное поле. Обычно плагин сам подхватывает выбранный magnet из списка торрентов.',
-        en: 'Fallback field. The plugin usually captures the selected magnet from the torrent list automatically.',
-        uk: 'Резервне поле. Зазвичай плагін сам підхоплює вибраний magnet зі списку торентів.'
-      },
       rd_use: { ru: 'Запустить через Real-Debrid', en: 'Open with Real-Debrid', uk: 'Запустити через Real-Debrid' },
       rd_need_token: { ru: 'Сначала укажи Real-Debrid API token в настройках', en: 'Set your Real-Debrid API token in settings first', uk: 'Спочатку вкажи Real-Debrid API token у налаштуваннях' },
       rd_need_link: {
@@ -50,6 +44,11 @@
       },
       rd_empty_files: { ru: 'Real-Debrid не вернул подходящих видеофайлов', en: 'Real-Debrid returned no playable video files', uk: 'Real-Debrid не повернув придатних відеофайлів' },
       rd_dead: { ru: 'Real-Debrid: раздача мёртвая или повреждена', en: 'Real-Debrid: torrent is dead or broken', uk: 'Real-Debrid: роздача мертва або пошкоджена' },
+      rd_infringing: {
+        ru: 'Real-Debrid заблокировал эту раздачу по жалобе правообладателя (infringing_file). Это не ошибка proxy — выбери другую раздачу/релиз.',
+        en: 'Real-Debrid blocked this torrent due to a copyright claim (infringing_file). This is not a proxy error — pick a different release.',
+        uk: 'Real-Debrid заблокував цю роздачу за скаргою правовласника (infringing_file). Це не помилка proxy — вибери іншу роздачу.'
+      },
       rd_cors_fail: {
         ru: 'Запрос к Real-Debrid не удался. В web-версии это обычно CORS — укажи proxy URL в настройках.',
         en: 'Request to Real-Debrid failed. In web mode this is usually CORS — set a proxy URL in settings.',
@@ -66,9 +65,9 @@
       },
       rd_proxy: { ru: 'Real-Debrid proxy URL', en: 'Real-Debrid proxy URL', uk: 'Real-Debrid proxy URL' },
       rd_proxy_descr: {
-        ru: 'Только для web-версии (в Android-приложении не нужен). Поддерживается 2 формата: 1) свой Cloudflare Worker, напр. https://example.workers.dev/rd; 2) публичный CORS-proxy с подстановкой URL — оканчивается на = или содержит {url}, напр. https://corsproxy.io/?url= или https://api.allorigins.win/raw?url={url}. Внимание: публичный proxy видит твой token.',
-        en: 'Web mode only (not needed in the Android app). Two formats: 1) your own Cloudflare Worker, e.g. https://example.workers.dev/rd; 2) a public CORS proxy that wraps the URL — ends with = or contains {url}, e.g. https://corsproxy.io/?url= or https://api.allorigins.win/raw?url={url}. Note: a public proxy can see your token.',
-        uk: 'Тільки для web-версії (в Android-застосунку не потрібен). Підтримується 2 формати: 1) свій Cloudflare Worker, напр. https://example.workers.dev/rd; 2) публічний CORS-proxy з підстановкою URL — закінчується на = або містить {url}, напр. https://corsproxy.io/?url= або https://api.allorigins.win/raw?url={url}. Увага: публічний proxy бачить твій token.'
+        ru: 'Только для web-версии (в Android-приложении не нужен). Адрес твоего HTTPS-proxy на VPS, напр. https://your-host/rd (без слеша в конце). Proxy обязательно по HTTPS — Lampa открыта по HTTPS, обычный http браузер заблокирует.',
+        en: 'Web mode only (not needed in the Android app). Your HTTPS proxy address on a VPS, e.g. https://your-host/rd (no trailing slash). It must be HTTPS — Lampa runs over HTTPS, so plain http is blocked by the browser.',
+        uk: 'Тільки для web-версії (в Android-застосунку не потрібен). Адреса твого HTTPS-proxy на VPS, напр. https://your-host/rd (без слеша в кінці). Proxy обовʼязково по HTTPS — Lampa відкрита по HTTPS, звичайний http браузер заблокує.'
       },
       rd_auto: { ru: 'Автозапуск торрентов через Real-Debrid', en: 'Auto-launch torrents via Real-Debrid', uk: 'Автозапуск торентів через Real-Debrid' },
       rd_auto_descr: {
@@ -210,15 +209,15 @@
 
   // ---- HTTP layer (CORS-aware) --------------------------------------------
   // Android app -> native Android.httpReq (no CORS).
-  // Web -> configured proxy (Cloudflare Worker path-style OR public wrapping
-  //        CORS proxy), otherwise a best-effort direct fetch that usually hits
-  //        the browser CORS wall and reports it clearly.
+  // Web -> configured proxy (path-style HTTPS proxy, e.g. your VPS nginx),
+  //        otherwise a best-effort direct fetch that usually hits the browser
+  //        CORS wall and reports it clearly.
 
   // Builds the request URL + whether a proxy is in play.
-  // Supported proxy formats:
-  //   - path-style (Cloudflare Worker): "https://x.workers.dev/rd" -> proxy + path
-  //   - wrapping proxy with placeholder: "...{url}"               -> {url} replaced with encoded target
-  //   - wrapping proxy ending in =/?/&: "https://corsproxy.io/?url=" -> proxy + encoded target
+  // Supported proxy formats (path-style is the recommended VPS setup):
+  //   - path-style (VPS nginx): "https://your-host/rd"  -> proxy + path
+  //   - wrapping proxy with placeholder: "...{url}"      -> {url} replaced with encoded target
+  //   - wrapping proxy ending in =/?/&: "https://x/?url=" -> proxy + encoded target
   function buildRequestUrl(path) {
     var direct = RD_API_BASE + path;
     var proxy = getProxyUrl();
@@ -540,9 +539,15 @@
         stopLoading();
         console.error('Real-Debrid plugin error', error);
         var msg = error && error.message;
+        // RD content block (HTTP 451, error_code 35). The proxy faithfully
+        // forwards this from Real-Debrid — it is NOT a CORS/proxy failure, so
+        // surface the real reason instead of the generic CORS hint.
+        var isInfringing = typeof msg === 'string' &&
+          (msg.indexOf('infringing_file') !== -1 || /"error_code"\s*:\s*35\b/.test(msg));
         if (msg === 'NO_VIDEO_FILES') notify('rd_empty_files');
         else if (msg === 'NO_PLAYER') notify('rd_no_player');
         else if (msg === 'TORRENT_DEAD') notify('rd_dead');
+        else if (isInfringing) notify('rd_infringing');
         else if (msg === 'TIMEOUT' || msg === 'NO_LINKS') notify('rd_not_cached');
         else if (msg === 'WEB_CORS_BLOCKED') notify('rd_web_cors');
         else notify('rd_cors_fail');
@@ -615,14 +620,7 @@
 
     Lampa.SettingsApi.addParam({
       component: runtimeState.settingsComponent,
-      param: { name: RD_LINK_KEY, type: 'input', values: '', default: '', placeholder: '' },
-      field: { name: Lampa.Lang.translate('rd_last_link'), description: Lampa.Lang.translate('rd_last_link_descr') },
-      onChange: function () {}
-    });
-
-    Lampa.SettingsApi.addParam({
-      component: runtimeState.settingsComponent,
-      param: { name: 'rd_test_token', type: 'trigger', default: false },
+      param: { name: 'rd_test_token', type: 'button' },
       field: { name: Lampa.Lang.translate('rd_test_token'), description: 'GET /user' },
       onChange: testToken
     });
