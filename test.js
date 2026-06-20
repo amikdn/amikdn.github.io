@@ -3,11 +3,14 @@
 
   var RD_TOKEN_KEY = 'rd_api_token';
   var RD_LINK_KEY = 'rd_last_magnet';
+  var RD_PROXY_KEY = 'rd_proxy_url';
   var RD_BUTTON_CLASS = 'button--realdebrid';
   var runtimeState = {
     lastLink: '',
     torrentChoice: null,
-    torrentList: []
+    torrentList: [],
+    settingsComponent: 'realdebrid',
+    settingsCreated: false
   };
 
   function addLang() {
@@ -92,16 +95,35 @@
         en: 'Real-Debrid token validation failed',
         uk: 'Real-Debrid token не пройшов перевірку'
       },
+      rd_account: {
+        ru: 'Аккаунт Real-Debrid',
+        en: 'Real-Debrid account',
+        uk: 'Акаунт Real-Debrid'
+      },
       rd_web_cors: {
         ru: 'В web-версии Lampa прямые запросы к Real-Debrid блокируются CORS. Используй Android-приложение Lampa или proxy.',
         en: 'Direct requests to Real-Debrid are blocked by CORS in Lampa web mode. Use Android app or a proxy.',
         uk: 'У web-версії Lampa прямі запити до Real-Debrid блокує CORS. Використовуй Android-застосунок Lampa або proxy.'
+      },
+      rd_proxy: {
+        ru: 'Real-Debrid proxy URL',
+        en: 'Real-Debrid proxy URL',
+        uk: 'Real-Debrid proxy URL'
+      },
+      rd_proxy_descr: {
+        ru: 'Для web-версии Lampa укажи URL своего Cloudflare Worker, например https://example.workers.dev/rd',
+        en: 'For Lampa web mode, set your Cloudflare Worker URL, for example https://example.workers.dev/rd',
+        uk: 'Для web-версії Lampa вкажи URL свого Cloudflare Worker, наприклад https://example.workers.dev/rd'
       }
     });
   }
 
   function getToken() {
     return (Lampa.Storage.get(RD_TOKEN_KEY, '') || '').trim();
+  }
+
+  function getProxyUrl() {
+    return (Lampa.Storage.get(RD_PROXY_KEY, '') || '').trim().replace(/\/$/, '');
   }
 
   function getLink() {
@@ -142,6 +164,10 @@
 
   function isWebRuntime() {
     return !isAndroidNative();
+  }
+
+  function hasProxy() {
+    return !!getProxyUrl();
   }
 
   function extractLink(value) {
@@ -282,6 +308,22 @@
             reject(new Error(text));
           }
         });
+      });
+    }
+
+    if (hasProxy()) {
+      return fetch(getProxyUrl() + path, {
+        method: requestOptions.method,
+        headers: requestOptions.headers,
+        body: requestOptions.body
+      }).then(function (response) {
+        if (!response.ok) {
+          return response.text().then(function (text) {
+            throw new Error(text || ('HTTP ' + response.status));
+          });
+        }
+
+        return response.status === 204 ? {} : response.json();
       });
     }
 
@@ -441,7 +483,7 @@
       return;
     }
 
-    if (isWebRuntime()) {
+    if (isWebRuntime() && !hasProxy()) {
       notify('rd_web_cors');
       return;
     }
@@ -505,6 +547,13 @@
     });
   }
 
+  function formatPremium(user) {
+    if (!user || !user.type) return 'unknown';
+    var status = user.type;
+    if (typeof user.premium === 'number' && user.premium > 0) status += ' (' + Math.floor(user.premium / 86400) + 'd)';
+    return status;
+  }
+
   function testToken() {
     var token = getToken();
 
@@ -513,16 +562,16 @@
       return;
     }
 
-    if (isWebRuntime()) {
+    if (isWebRuntime() && !hasProxy()) {
       notify('rd_web_cors');
       return;
     }
 
     startLoading('Real-Debrid');
 
-    request('/user').then(function () {
+    request('/user').then(function (user) {
       Lampa.Loading.stop();
-      notify('rd_test_ok');
+      Lampa.Noty.show((user.username || 'unknown') + ' | ' + formatPremium(user));
     }).catch(function (error) {
       Lampa.Loading.stop();
       console.error('Real-Debrid token test error', error);
@@ -531,22 +580,17 @@
   }
 
   function addSettings() {
-    Lampa.SettingsApi.addParam({
-      component: 'parser',
-      param: {
-        name: 'rd_test_token',
-        type: 'trigger',
-        default: false
-      },
-      field: {
-        name: Lampa.Lang.translate('rd_test_token'),
-        description: 'GET /user'
-      },
-      onChange: testToken
+    if (runtimeState.settingsCreated) return;
+    runtimeState.settingsCreated = true;
+
+    Lampa.SettingsApi.addComponent({
+      component: runtimeState.settingsComponent,
+      name: Lampa.Lang.translate('rd_title'),
+      icon: '<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M96 128C96 92.6538 124.654 64 160 64H352C387.346 64 416 92.6538 416 128V384C416 419.346 387.346 448 352 448H160C124.654 448 96 419.346 96 384V128Z" fill="white" fill-opacity="0.15"/><path d="M160 128H352V192H160V128Z" fill="white"/><path d="M160 224H288V288H160V224Z" fill="white" fill-opacity="0.85"/><path d="M160 320H256V384H160V320Z" fill="white" fill-opacity="0.7"/></svg>'
     });
 
     Lampa.SettingsApi.addParam({
-      component: 'parser',
+      component: runtimeState.settingsComponent,
       param: {
         name: RD_TOKEN_KEY,
         type: 'input',
@@ -561,7 +605,22 @@
     });
 
     Lampa.SettingsApi.addParam({
-      component: 'parser',
+      component: runtimeState.settingsComponent,
+      param: {
+        name: RD_PROXY_KEY,
+        type: 'input',
+        value: '',
+        default: ''
+      },
+      field: {
+        name: Lampa.Lang.translate('rd_proxy'),
+        description: Lampa.Lang.translate('rd_proxy_descr')
+      },
+      onChange: function () {}
+    });
+
+    Lampa.SettingsApi.addParam({
+      component: runtimeState.settingsComponent,
       param: {
         name: RD_LINK_KEY,
         type: 'input',
@@ -575,44 +634,53 @@
       onChange: function () {}
     });
 
+    Lampa.SettingsApi.addParam({
+      component: runtimeState.settingsComponent,
+      param: {
+        name: 'rd_test_token',
+        type: 'trigger',
+        default: false
+      },
+      field: {
+        name: Lampa.Lang.translate('rd_test_token'),
+        description: 'GET /user'
+      },
+      onChange: testToken
+    });
+
     Lampa.Params.select(RD_TOKEN_KEY, '', '');
     Lampa.Params.select(RD_LINK_KEY, '', '');
+    Lampa.Params.select(RD_PROXY_KEY, '', '');
     Lampa.Settings.main().update();
   }
 
-  function addTorrentMenuAction() {
-    Lampa.Listener.follow('torrent_file', function (e) {
-      if (!e || e.type !== 'onlong' || !e.menu || !e.menu.push) return;
+  function ensureTorrentButton() {
+    var body = $('.torrent-files');
+    if (!body.length) return;
 
-      setTorrentChoice(e.element, e.items, e.params);
+    var existing = body.parent().find('.rd-torrent-action');
+    if (existing.length) return;
 
-      if (!e.menu.some(function (item) {
-        return item && item.realdebrid;
-      })) {
-        e.menu.push({
-          title: Lampa.Lang.translate('rd_use'),
-          realdebrid: true
-        });
-      }
-    });
-
-    $(document).on('hover:enter', '.selectbox-item', function () {
-      var item = $(this).data('data');
-      if (!item || !item.realdebrid) return;
-      setTimeout(prepareAndPlay, 0);
-    });
+    var button = $('<div class="simple-button selector rd-torrent-action" style="margin:1em 0 0 0;display:inline-flex;">' + Lampa.Lang.translate('rd_use') + '</div>');
+    button.on('hover:enter', prepareAndPlay);
+    body.before(button);
   }
 
-  function addButton() {
-    Lampa.Listener.follow('full', function (e) {
-      if (e.type !== 'complite' || !e.object || !e.object.activity) return;
+  function bindTorrentScreenButton() {
+    Lampa.Listener.follow('torrent_file', function (e) {
+      if (!e || !e.type) return;
 
-      var render = e.object.activity.render();
-      if (!render || render.find('.' + RD_BUTTON_CLASS).length) return;
+      if (e.type === 'list_open') {
+        setTimeout(ensureTorrentButton, 0);
+      }
 
-      var button = $("<div class=\"full-start__button selector " + RD_BUTTON_CLASS + "\"><span>" + Lampa.Lang.translate('rd_use') + "</span></div>");
-      button.on('hover:enter', prepareAndPlay);
-      render.find('.full-start__button').last().after(button);
+      if (e.type === 'onfocus' || e.type === 'onenter') {
+        setTimeout(ensureTorrentButton, 0);
+      }
+
+      if (e.type === 'list_close') {
+        $('.rd-torrent-action').remove();
+      }
     });
   }
 
@@ -621,8 +689,7 @@
     initTorrentCapture();
     initNetworkCapture();
     addSettings();
-    addTorrentMenuAction();
-    addButton();
+    bindTorrentScreenButton();
   }
 
   function startPlugin() {
