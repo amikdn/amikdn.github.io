@@ -387,10 +387,19 @@
   function openStream(url, title) {
     if (!url) return false;
     if (Lampa.Player && typeof Lampa.Player.play === 'function') {
-      Lampa.Player.play({ url: url, title: title || 'Real-Debrid', timeline: null });
+      // IMPORTANT: use ONE shared item object for both play() and playlist().
+      // Previously play() and playlist() received two separate object literals
+      // with the same url. Lampa could not match the currently-playing item
+      // against the playlist entry, so it issued a SECOND video load for the
+      // same url, interrupting the first play() promise:
+      //   "The play() request was interrupted by a new load request"
+      // which looped and the player never started. Registering the playlist
+      // first with the same reference makes Lampa load the url exactly once.
+      var item = { url: url, title: title || 'Real-Debrid', timeline: null };
       if (typeof Lampa.Player.playlist === 'function') {
-        Lampa.Player.playlist([{ url: url, title: title || 'Real-Debrid' }]);
+        Lampa.Player.playlist([item]);
       }
+      Lampa.Player.play(item);
       return true;
     }
     if (Lampa.Utils && typeof Lampa.Utils.openLink === 'function') {
