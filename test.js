@@ -125,6 +125,12 @@
     Lampa.Noty.show(Lampa.Lang.translate(key));
   }
 
+  function startLoading(title) {
+    if (!Lampa.Loading || typeof Lampa.Loading.start !== 'function') return;
+    Lampa.Loading.start();
+    if (title && typeof Lampa.Loading.setTitle === 'function') Lampa.Loading.setTitle(title);
+  }
+
   function extractLink(value) {
     if (!value) return '';
 
@@ -417,8 +423,7 @@
       }
 
       setLink(link);
-      Lampa.Loading.start();
-      Lampa.Loading.setTitle(Lampa.Lang.translate('rd_loading'));
+      startLoading(Lampa.Lang.translate('rd_loading'));
 
       return addTorrent(link).then(function (added) {
         return request('/torrents/info/' + added.id).then(function (info) {
@@ -478,8 +483,7 @@
       return;
     }
 
-    Lampa.Loading.start();
-    Lampa.Loading.setTitle('Real-Debrid');
+    startLoading('Real-Debrid');
 
     request('/user').then(function () {
       Lampa.Loading.stop();
