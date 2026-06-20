@@ -91,6 +91,11 @@
         ru: 'Real-Debrid token не прошёл проверку',
         en: 'Real-Debrid token validation failed',
         uk: 'Real-Debrid token не пройшов перевірку'
+      },
+      rd_web_cors: {
+        ru: 'В web-версии Lampa прямые запросы к Real-Debrid блокируются CORS. Используй Android-приложение Lampa или proxy.',
+        en: 'Direct requests to Real-Debrid are blocked by CORS in Lampa web mode. Use Android app or a proxy.',
+        uk: 'У web-версії Lampa прямі запити до Real-Debrid блокує CORS. Використовуй Android-застосунок Lampa або proxy.'
       }
     });
   }
@@ -129,6 +134,14 @@
     if (!Lampa.Loading || typeof Lampa.Loading.start !== 'function') return;
     Lampa.Loading.start();
     if (title && typeof Lampa.Loading.setTitle === 'function') Lampa.Loading.setTitle(title);
+  }
+
+  function isAndroidNative() {
+    return typeof Lampa !== 'undefined' && Lampa.Platform && typeof Lampa.Platform.is === 'function' && Lampa.Platform.is('android') && typeof Android !== 'undefined' && Android && typeof Android.httpReq === 'function';
+  }
+
+  function isWebRuntime() {
+    return !isAndroidNative();
   }
 
   function extractLink(value) {
@@ -252,15 +265,27 @@
       Authorization: 'Bearer ' + token
     }, requestOptions.headers || {});
 
-    return fetch('https://api.real-debrid.com/rest/1.0' + path, requestOptions).then(function (response) {
-      if (!response.ok) {
-        return response.text().then(function (text) {
-          throw new Error(text || ('HTTP ' + response.status));
+    if (isAndroidNative()) {
+      return new Promise(function (resolve, reject) {
+        Android.httpReq({
+          url: 'https://api.real-debrid.com/rest/1.0' + path,
+          method: requestOptions.method,
+          headers: requestOptions.headers,
+          data: requestOptions.body || '',
+          dataType: 'json'
+        }, {
+          success: function (response) {
+            resolve(response || {});
+          },
+          error: function (response) {
+            var text = response && (response.error || response.responseText || response.message) || 'HTTP error';
+            reject(new Error(text));
+          }
         });
-      }
+      });
+    }
 
-      return response.status === 204 ? {} : response.json();
-    });
+    return Promise.reject(new Error('WEB_CORS_BLOCKED'));
   }
 
   function normalizeFilename(name) {
@@ -416,6 +441,11 @@
       return;
     }
 
+    if (isWebRuntime()) {
+      notify('rd_web_cors');
+      return;
+    }
+
     chooseTorrentLink().then(function (link) {
       if (!link) {
         notify('rd_need_link');
@@ -480,6 +510,11 @@
 
     if (!token) {
       notify('rd_need_token');
+      return;
+    }
+
+    if (isWebRuntime()) {
+      notify('rd_web_cors');
       return;
     }
 
