@@ -64,15 +64,15 @@
       rd_test_token: { ru: 'Проверить token', en: 'Test token', uk: 'Перевірити token' },
       rd_test_fail: { ru: 'Real-Debrid token не прошёл проверку', en: 'Real-Debrid token validation failed', uk: 'Real-Debrid token не пройшов перевірку' },
       rd_web_cors: {
-        ru: 'В web-версии Lampa прямые запросы к Real-Debrid блокирует CORS. Укажи proxy URL в настройках или используй Android-приложение Lampa.',
-        en: 'Direct requests to Real-Debrid are blocked by CORS in Lampa web mode. Set a proxy URL in settings or use the Lampa Android app.',
-        uk: 'У web-версії Lampa прямі запити до Real-Debrid блокує CORS. Вкажи proxy URL у налаштуваннях або використовуй Android-застосунок Lampa.'
+        ru: 'Прямые запросы к Real-Debrid блокирует CORS. Укажи proxy URL в настройках (тот же proxy работает и в браузере, и в приложении).',
+        en: 'Direct requests to Real-Debrid are blocked by CORS. Set a proxy URL in settings (the same proxy works in both the browser and the app).',
+        uk: 'Прямі запити до Real-Debrid блокує CORS. Вкажи proxy URL у налаштуваннях (той самий proxy працює і в браузері, і в застосунку).'
       },
       rd_proxy: { ru: 'Real-Debrid proxy URL', en: 'Real-Debrid proxy URL', uk: 'Real-Debrid proxy URL' },
       rd_proxy_descr: {
-        ru: 'Только для web-версии (в Android-приложении не нужен). Адрес твоего HTTPS-proxy на VPS, напр. https://your-host/rd (без слеша в конце). Proxy обязательно по HTTPS — Lampa открыта по HTTPS, обычный http браузер заблокирует.',
-        en: 'Web mode only (not needed in the Android app). Your HTTPS proxy address on a VPS, e.g. https://your-host/rd (no trailing slash). It must be HTTPS — Lampa runs over HTTPS, so plain http is blocked by the browser.',
-        uk: 'Тільки для web-версії (в Android-застосунку не потрібен). Адреса твого HTTPS-proxy на VPS, напр. https://your-host/rd (без слеша в кінці). Proxy обовʼязково по HTTPS — Lampa відкрита по HTTPS, звичайний http браузер заблокує.'
+        ru: 'Адрес твоего HTTPS-proxy на VPS, напр. https://your-host/rd (без слеша в конце). Нужен для web-версии. В Android-приложении обычно не нужен (работает напрямую), НО если в приложении ошибка CORS — укажи этот же proxy и здесь. Proxy обязательно по HTTPS.',
+        en: 'Your HTTPS proxy address on a VPS, e.g. https://your-host/rd (no trailing slash). Needed for web mode. Usually not needed in the Android app (direct access), BUT if the app shows a CORS error, set this same proxy here too. Must be HTTPS.',
+        uk: 'Адреса твого HTTPS-proxy на VPS, напр. https://your-host/rd (без слеша в кінці). Потрібен для web-версії. В Android-застосунку зазвичай не потрібен (працює напряму), АЛЕ якщо в застосунку помилка CORS — вкажи цей самий proxy і тут. Proxy обовʼязково по HTTPS.'
       },
       rd_auto: { ru: 'Автозапуск торрентов через Real-Debrid', en: 'Auto-launch torrents via Real-Debrid', uk: 'Автозапуск торентів через Real-Debrid' },
       rd_auto_descr: {
@@ -105,22 +105,51 @@
 
   // ---- runtime detection --------------------------------------------------
 
-  function isAndroidNative() {
-    return typeof Lampa !== 'undefined' && Lampa.Platform && typeof Lampa.Platform.is === 'function' &&
-      Lampa.Platform.is('android') && typeof Android !== 'undefined' && Android && typeof Android.httpReq === 'function';
+  // Native Android HTTP bridge. The Lampa Android app injects a global `Android`
+  // object; when it exposes httpReq we can hit Real-Debrid directly with NO CORS.
+  // NOTE: we intentionally do NOT also require Lampa.Platform.is('android') here.
+  // Some app builds report a different/empty platform string while still exposing
+  // Android.httpReq — the old combined check wrongly fell back to web mode there
+  // (CORS errors + "browser can't play mkv" warning inside the real app).
+  function hasNativeHttp() {
+    return typeof Android !== 'undefined' && Android && typeof Android.httpReq === 'function';
   }
 
-  function isWebRuntime() {
-    return !isAndroidNative();
+  // Are we inside a native Lampa client (Android app, Android TV, Tizen, webOS,
+  // NW.js desktop) rather than a real web browser? In native clients the built-in
+  // video player handles .mkv/.avi/.ts, and CORS does not apply the same way.
+  // We rely on platform/runtime markers, NOT on Android.httpReq, so an app build
+  // without the HTTP bridge is still treated as an app (no browser-only warnings).
+  function isNativeApp() {
+    try {
+      if (typeof Android !== 'undefined' && Android) return true;
+      if (typeof tizen !== 'undefined') return true;
+      if (typeof webOS !== 'undefined' || typeof PalmSystem !== 'undefined') return true;
+      if (typeof window !== 'undefined' && (window.nw || window.process || window.cordova)) return true;
+      if (typeof Lampa !== 'undefined' && Lampa.Platform && typeof Lampa.Platform.is === 'function') {
+        if (Lampa.Platform.is('android') || Lampa.Platform.is('android_tv') ||
+            Lampa.Platform.is('tizen') || Lampa.Platform.is('webos') ||
+            Lampa.Platform.is('apple_tv') || Lampa.Platform.is('nw')) return true;
+      }
+    } catch (e) {}
+    return false;
+  }
+
+  // Real web browser (desktop/mobile Chrome, Safari, etc.) where HTML5 <video>
+  // cannot decode most containers and CORS is strictly enforced.
+  function isBrowserEnv() {
+    return !isNativeApp();
   }
 
   function hasProxy() {
     return !!getProxyUrl();
   }
 
-  // Real-Debrid is reachable when: native Android (no CORS), or a proxy is configured.
+  // Real-Debrid is reachable when we have a native HTTP bridge (no CORS), a proxy
+  // configured (works in both app and browser), or we're in a native app whose
+  // WebView can reach RD directly.
   function canReachRealDebrid() {
-    return isAndroidNative() || hasProxy();
+    return hasNativeHttp() || hasProxy() || isNativeApp();
   }
 
   function hasTorrserver() {
@@ -213,10 +242,13 @@
   }
 
   // ---- HTTP layer (CORS-aware) --------------------------------------------
-  // Android app -> native Android.httpReq (no CORS).
-  // Web -> configured proxy (path-style HTTPS proxy, e.g. your VPS nginx),
-  //        otherwise a best-effort direct fetch that usually hits the browser
-  //        CORS wall and reports it clearly.
+  // 1) Native Android HTTP bridge (Android.httpReq) -> direct to RD, no CORS.
+  // 2) Otherwise a configured proxy (path-style HTTPS proxy on your VPS). The
+  //    proxy answers with Access-Control-Allow-Origin: *, so it works the SAME
+  //    from a browser AND from the app's WebView — set it in BOTH if the app
+  //    build has no native HTTP bridge.
+  // 3) Otherwise a best-effort direct fetch that usually hits the browser CORS
+  //    wall and reports it clearly.
 
   // Builds the request URL + whether a proxy is in play.
   // Supported proxy formats (path-style is the recommended VPS setup):
@@ -249,7 +281,7 @@
     var opts = Object.assign({ method: 'GET' }, options || {});
     opts.headers = Object.assign({ Authorization: 'Bearer ' + token }, opts.headers || {});
 
-    if (isAndroidNative()) {
+    if (hasNativeHttp()) {
       return new Promise(function (resolve, reject) {
         Android.httpReq({
           url: RD_API_BASE + path,
@@ -308,7 +340,7 @@
   }
 
   function sortFiles(files) {
-    var web = isWebRuntime();
+    var web = isBrowserEnv();
     return files.sort(function (a, b) {
       var aScore = isVideoFile(a.path) ? 1 : 0;
       var bScore = isVideoFile(b.path) ? 1 : 0;
@@ -406,9 +438,9 @@
   function openStream(url, title) {
     if (!url) return false;
     // Web browsers can't decode most .mkv/.avi/.ts files even when RD returns a
-    // valid direct link. Warn the user instead of leaving them with a black
-    // screen + a cryptic "play() interrupted by a new load request" in console.
-    if (isWebRuntime() && !isBrowserPlayable((url.split('?')[0] || ''))) {
+    // valid direct link. Warn ONLY in a real browser — the native Lampa player
+    // in the Android app / TV plays these containers fine, so no warning there.
+    if (isBrowserEnv() && !isBrowserPlayable((url.split('?')[0] || ''))) {
       notify('rd_web_container');
     }
     if (Lampa.Player && typeof Lampa.Player.play === 'function') {
@@ -776,12 +808,39 @@
 
   // ---- bootstrap ----------------------------------------------------------
 
+  function logEnvironment() {
+    try {
+      var androidMethods = [];
+      if (typeof Android !== 'undefined' && Android) {
+        for (var k in Android) { try { if (typeof Android[k] === 'function') androidMethods.push(k); } catch (e) {} }
+      }
+      var platform = '';
+      try {
+        if (Lampa && Lampa.Platform) {
+          ['android', 'android_tv', 'tizen', 'webos', 'apple_tv', 'nw', 'browser'].forEach(function (p) {
+            try { if (typeof Lampa.Platform.is === 'function' && Lampa.Platform.is(p)) platform += (platform ? ',' : '') + p; } catch (e) {}
+          });
+        }
+      } catch (e) {}
+      console.log('[RD] env:', {
+        nativeApp: isNativeApp(),
+        nativeHttp: hasNativeHttp(),
+        browserEnv: isBrowserEnv(),
+        proxy: getProxyUrl() || '(none)',
+        platform: platform || '(unknown)',
+        androidBridge: typeof Android !== 'undefined',
+        androidMethods: androidMethods
+      });
+    } catch (e) {}
+  }
+
   function init() {
     addLang();
     addSettings();
     patchTorrentStart();
     initTorrentCapture();
     bindTorrentScreenButton();
+    logEnvironment();
   }
 
   function startPlugin() {
