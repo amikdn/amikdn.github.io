@@ -14,8 +14,8 @@
     torrentList: [],
     settingsComponent: 'realdebrid',
     settingsCreated: false,
-    interceptNextPlay: false,
-    rdLaunching: false
+    rdLaunching: false,
+    torrentStartPatched: false
   };
 
   function addLang() {
@@ -66,9 +66,9 @@
       },
       rd_proxy: { ru: 'Real-Debrid proxy URL', en: 'Real-Debrid proxy URL', uk: 'Real-Debrid proxy URL' },
       rd_proxy_descr: {
-        ru: 'Только для web-версии. URL твоего Cloudflare Worker, например https://example.workers.dev/rd (без слеша в конце).',
-        en: 'Web mode only. URL of your Cloudflare Worker, e.g. https://example.workers.dev/rd (no trailing slash).',
-        uk: 'Тільки для web-версії. URL твого Cloudflare Worker, напр. https://example.workers.dev/rd (без слеша в кінці).'
+        ru: 'Только для web-версии (в Android-приложении не нужен). Поддерживается 2 формата: 1) свой Cloudflare Worker, напр. https://example.workers.dev/rd; 2) публичный CORS-proxy с подстановкой URL — оканчивается на = или содержит {url}, напр. https://corsproxy.io/?url= или https://api.allorigins.win/raw?url={url}. Внимание: публичный proxy видит твой token.',
+        en: 'Web mode only (not needed in the Android app). Two formats: 1) your own Cloudflare Worker, e.g. https://example.workers.dev/rd; 2) a public CORS proxy that wraps the URL — ends with = or contains {url}, e.g. https://corsproxy.io/?url= or https://api.allorigins.win/raw?url={url}. Note: a public proxy can see your token.',
+        uk: 'Тільки для web-версії (в Android-застосунку не потрібен). Підтримується 2 формати: 1) свій Cloudflare Worker, напр. https://example.workers.dev/rd; 2) публічний CORS-proxy з підстановкою URL — закінчується на = або містить {url}, напр. https://corsproxy.io/?url= або https://api.allorigins.win/raw?url={url}. Увага: публічний proxy бачить твій token.'
       },
       rd_auto: { ru: 'Автозапуск торрентов через Real-Debrid', en: 'Auto-launch torrents via Real-Debrid', uk: 'Автозапуск торентів через Real-Debrid' },
       rd_auto_descr: {
@@ -210,7 +210,35 @@
 
   // ---- HTTP layer (CORS-aware) --------------------------------------------
   // Android app -> native Android.httpReq (no CORS).
-  // Web -> Cloudflare Worker proxy if configured, otherwise hard CORS block.
+  // Web -> configured proxy (Cloudflare Worker path-style OR public wrapping
+  //        CORS proxy), otherwise a best-effort direct fetch that usually hits
+  //        the browser CORS wall and reports it clearly.
+
+  // Builds the request URL + whether a proxy is in play.
+  // Supported proxy formats:
+  //   - path-style (Cloudflare Worker): "https://x.workers.dev/rd" -> proxy + path
+  //   - wrapping proxy with placeholder: "...{url}"               -> {url} replaced with encoded target
+  //   - wrapping proxy ending in =/?/&: "https://corsproxy.io/?url=" -> proxy + encoded target
+  function buildRequestUrl(path) {
+    var direct = RD_API_BASE + path;
+    var proxy = getProxyUrl();
+    if (!proxy) return { url: direct, proxied: false };
+    if (proxy.indexOf('{url}') !== -1) return { url: proxy.replace('{url}', encodeURIComponent(direct)), proxied: true };
+    if (/[?&=]$/.test(proxy)) return { url: proxy + encodeURIComponent(direct), proxied: true };
+    return { url: proxy + path, proxied: true };
+  }
+
+  function handleFetchResponse(response) {
+    if (!response.ok) {
+      return response.text().then(function (text) {
+        throw new Error(text || ('HTTP ' + response.status));
+      });
+    }
+    return response.status === 204 ? {} : response.text().then(function (text) {
+      if (!text) return {};
+      try { return JSON.parse(text); } catch (e) { return {}; }
+    });
+  }
 
   function request(path, options) {
     var token = getToken();
@@ -237,22 +265,16 @@
       });
     }
 
-    if (hasProxy()) {
-      return fetch(getProxyUrl() + path, {
-        method: opts.method,
-        headers: opts.headers,
-        body: opts.body
-      }).then(function (response) {
-        if (!response.ok) {
-          return response.text().then(function (text) {
-            throw new Error(text || ('HTTP ' + response.status));
-          });
-        }
-        return response.status === 204 ? {} : response.json();
-      });
-    }
-
-    return Promise.reject(new Error('WEB_CORS_BLOCKED'));
+    var target = buildRequestUrl(path);
+    return fetch(target.url, {
+      method: opts.method,
+      headers: opts.headers,
+      body: opts.body
+    }).then(handleFetchResponse).catch(function (err) {
+      // A failed direct (un-proxied) web request is almost always the CORS wall.
+      if (!target.proxied) throw new Error('WEB_CORS_BLOCKED');
+      throw err;
+    });
   }
 
   function parseMaybeJson(response) {
@@ -445,10 +467,10 @@
       if (!autoMode) notify('rd_need_token');
       return;
     }
-    if (!canReachRealDebrid()) {
-      if (!autoMode) notify('rd_web_cors');
-      return;
-    }
+    // Auto mode is already gated by shouldUseRealDebridAuto() (native or proxy).
+    // For a manual launch we still try: request() falls back to a direct fetch
+    // and reports rd_web_cors clearly if the browser blocks it.
+    if (autoMode && !canReachRealDebrid()) return;
 
     runtimeState.rdLaunching = true;
 
@@ -537,7 +559,6 @@
   function testToken() {
     var token = getToken();
     if (!token) { notify('rd_need_token'); return; }
-    if (!canReachRealDebrid()) { notify('rd_web_cors'); return; }
 
     startLoading('Real-Debrid');
     request('/user').then(function (user) {
@@ -600,7 +621,57 @@
 
   // ---- torrent screen integration ----------------------------------------
 
+  // Adds "Запустить через Real-Debrid" to a long-press action menu. Lampa sends
+  // the `menu` array by reference right before Select.show, and Select supports
+  // per-item onSelect handlers, so pushing our item with its own onSelect is the
+  // clean, intended extension point (no monkey-patching of Select needed).
+  function injectActionMenuItem(e) {
+    if (!getToken()) return;
+    if (!e || !Array.isArray(e.menu)) return;
+    if (e.menu.some(function (m) { return m && m.rd_action; })) return;
+
+    var element = e.element;
+    var items = (e.items && e.items.length) ? e.items : (element ? [element] : []);
+    var params = e.params || {};
+    // Captured while the list controller is still active (Select toggles after).
+    var prevController = (Lampa.Controller && typeof Lampa.Controller.enabled === 'function' &&
+      Lampa.Controller.enabled().name) || 'content';
+
+    e.menu.unshift({
+      title: Lampa.Lang.translate('rd_use'),
+      rd_action: true,
+      onSelect: function () {
+        // Select only hid the box; restore the list controller (stock items do
+        // this via active.onSelect, which our per-item onSelect replaces).
+        if (Lampa.Controller && typeof Lampa.Controller.toggle === 'function') {
+          Lampa.Controller.toggle(prevController);
+        }
+        setTorrentChoice(element, items, params);
+        prepareAndPlay(false);
+      }
+    });
+  }
+
+  // Release-list screen (search results). Emits `torrent` events. This is the
+  // primary integration point for Real-Debrid because it works WITHOUT a
+  // TorrServer (the `torrent_file` events only fire inside a connected
+  // TorrServer file list, which RD-only users never reach).
   function initTorrentCapture() {
+    Lampa.Listener.follow('torrent', function (e) {
+      if (!e || !e.type) return;
+
+      if (e.type === 'render' || e.type === 'onfocus' || e.type === 'onenter') {
+        setTorrentChoice(e.element, e.element ? [e.element] : [], { movie: e.element && e.element.movie });
+      }
+
+      if (e.type === 'onlong') {
+        setTorrentChoice(e.element, e.element ? [e.element] : [], {});
+        injectActionMenuItem(e);
+      }
+    });
+
+    // Also expose the action inside a connected TorrServer file list, reusing
+    // the magnet captured from the release the user opened.
     Lampa.Listener.follow('torrent_file', function (e) {
       if (!e || !e.type) return;
 
@@ -610,23 +681,40 @@
         return;
       }
 
-      if (e.type === 'onfocus' || e.type === 'onlong') {
+      if (e.type === 'onfocus') {
         setTorrentChoice(e.element, e.items, e.params);
       }
 
-      if (e.type === 'onenter') {
-        setTorrentChoice(e.element, e.items, e.params);
-        if (!runtimeState.rdLaunching && shouldUseRealDebridAuto()) {
-          runtimeState.interceptNextPlay = true;
-          setTimeout(function () {
-            if (runtimeState.interceptNextPlay) {
-              runtimeState.interceptNextPlay = false;
-              prepareAndPlay(true);
-            }
-          }, 0);
-        }
+      if (e.type === 'onlong') {
+        injectActionMenuItem(e);
       }
     });
+  }
+
+  // Auto-launch: intercept Lampa's torrent start so that, when enabled and no
+  // TorrServer is configured, opening a release goes straight through RD instead
+  // of falling into the "install TorrServer" flow.
+  function patchTorrentStart() {
+    if (runtimeState.torrentStartPatched) return;
+    if (!Lampa.Torrent || typeof Lampa.Torrent.start !== 'function') return;
+    runtimeState.torrentStartPatched = true;
+
+    var original = Lampa.Torrent.start;
+    Lampa.Torrent.start = function (element, movie) {
+      try {
+        if (!runtimeState.rdLaunching && shouldUseRealDebridAuto()) {
+          var link = extractLink(element);
+          if (link) {
+            setTorrentChoice(element, [element], { movie: movie });
+            prepareAndPlay(true);
+            return;
+          }
+        }
+      } catch (err) {
+        console.error('Real-Debrid auto-intercept error', err);
+      }
+      return original.apply(this, arguments);
+    };
   }
 
   function ensureTorrentButton() {
@@ -658,6 +746,7 @@
   function init() {
     addLang();
     addSettings();
+    patchTorrentStart();
     initTorrentCapture();
     bindTorrentScreenButton();
   }
