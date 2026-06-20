@@ -106,13 +106,29 @@
   // ---- runtime detection --------------------------------------------------
 
   // Native Android HTTP bridge. The Lampa Android app injects a global `Android`
-  // object; when it exposes httpReq we can hit Real-Debrid directly with NO CORS.
-  // NOTE: we intentionally do NOT also require Lampa.Platform.is('android') here.
-  // Some app builds report a different/empty platform string while still exposing
-  // Android.httpReq — the old combined check wrongly fell back to web mode there
-  // (CORS errors + "browser can't play mkv" warning inside the real app).
+  // object; when it exposes an HTTP method we can hit Real-Debrid directly with
+  // NO CORS. NOTE: we intentionally do NOT also require Lampa.Platform.is('android')
+  // here. Some app builds report a different/empty platform string while still
+  // exposing the bridge — the old combined check wrongly fell back to web mode
+  // there (CORS errors + "browser can't play mkv" warning inside the real app).
+  //
+  // Different Lampa Android builds expose the bridge under different method names
+  // (httpReq / request / network / httpRequest). We probe a known list and use the
+  // first function we find; if a build uses a name we don't know yet, the env log
+  // prints `androidMethods` so we can add it.
+  var NATIVE_HTTP_METHODS = ['httpReq', 'request', 'network', 'httpRequest', 'http'];
+
+  function nativeHttpFn() {
+    if (typeof Android === 'undefined' || !Android) return null;
+    for (var i = 0; i < NATIVE_HTTP_METHODS.length; i++) {
+      var name = NATIVE_HTTP_METHODS[i];
+      try { if (typeof Android[name] === 'function') return { name: name, fn: Android[name] }; } catch (e) {}
+    }
+    return null;
+  }
+
   function hasNativeHttp() {
-    return typeof Android !== 'undefined' && Android && typeof Android.httpReq === 'function';
+    return !!nativeHttpFn();
   }
 
   // Are we inside a native Lampa client (Android app, Android TV, Tizen, webOS,
@@ -276,31 +292,7 @@
     });
   }
 
-  function request(path, options) {
-    var token = getToken();
-    var opts = Object.assign({ method: 'GET' }, options || {});
-    opts.headers = Object.assign({ Authorization: 'Bearer ' + token }, opts.headers || {});
-
-    if (hasNativeHttp()) {
-      return new Promise(function (resolve, reject) {
-        Android.httpReq({
-          url: RD_API_BASE + path,
-          method: opts.method,
-          headers: opts.headers,
-          data: opts.body || '',
-          dataType: 'json'
-        }, {
-          success: function (response) {
-            resolve(parseMaybeJson(response));
-          },
-          error: function (response) {
-            var text = (response && (response.error || response.responseText || response.message)) || 'HTTP error';
-            reject(new Error(text));
-          }
-        });
-      });
-    }
-
+  function fetchRequest(path, opts) {
     var target = buildRequestUrl(path);
     return fetch(target.url, {
       method: opts.method,
@@ -311,6 +303,48 @@
       if (!target.proxied) throw new Error('WEB_CORS_BLOCKED');
       throw err;
     });
+  }
+
+  function nativeRequest(native, path, opts) {
+    return new Promise(function (resolve, reject) {
+      try {
+        native.fn({
+          url: RD_API_BASE + path,
+          method: opts.method,
+          headers: opts.headers,
+          data: opts.body || '',
+          dataType: 'json'
+        }, {
+          success: function (response) { resolve(parseMaybeJson(response)); },
+          error: function (response) {
+            var text = (response && (response.error || response.responseText || response.message)) || 'HTTP error';
+            reject(new Error(text));
+          }
+        });
+      } catch (e) { reject(e); }
+    });
+  }
+
+  function request(path, options) {
+    var token = getToken();
+    var opts = Object.assign({ method: 'GET' }, options || {});
+    opts.headers = Object.assign({ Authorization: 'Bearer ' + token }, opts.headers || {});
+
+    var native = nativeHttpFn();
+    if (native) {
+      return nativeRequest(native, path, opts).catch(function (err) {
+        // The native bridge failed (unexpected build / wrong method signature /
+        // transport error). If a proxy is configured it works the same in the
+        // app's WebView, so fall back to it instead of surfacing a CORS error.
+        if (hasProxy()) {
+          console.warn('[RD] native http (' + native.name + ') failed, falling back to proxy:', err && err.message);
+          return fetchRequest(path, opts);
+        }
+        throw err;
+      });
+    }
+
+    return fetchRequest(path, opts);
   }
 
   function parseMaybeJson(response) {
@@ -332,6 +366,34 @@
     return /\.(mkv|mp4|avi|mov|wmv|m4v|ts|m2ts|webm)$/i.test(name || '');
   }
 
+  // Junk / non-feature files inside a release (samples, trailers, extras, bonus
+  // featurettes, BDMV side content). We strip these before auto-picking so a 4 GB
+  // "extras.mkv" never wins over the 1.2 GB actual episode.
+  function isJunkFile(name) {
+    var base = (name || '').split('/').pop();
+    return /(^|[\s._\-\[\(])(sample|trailer|trailers|extra|extras|bonus|bonusview|featurette|featurettes|deleted|outtake|outtakes|interview|behind[\s._-]*the[\s._-]*scenes|making[\s._-]*of|proof|screen(?:shot)?s?)([\s._\-\]\)]|$)/i.test(base) ||
+      /[\\/](extras?|bonus|featurettes?|specials?)[\\/]/i.test(name || '');
+  }
+
+  // Parse SxxExx / 1x05 style markers from a filename for series episode matching.
+  function parseEpisode(name) {
+    var base = (name || '').split('/').pop();
+    var m = base.match(/s(\d{1,2})[\s._-]*e(\d{1,3})/i);
+    if (m) return { season: parseInt(m[1], 10), episode: parseInt(m[2], 10) };
+    m = base.match(/(?:^|[^\d])(\d{1,2})x(\d{1,3})(?:[^\d]|$)/i);
+    if (m) return { season: parseInt(m[1], 10), episode: parseInt(m[2], 10) };
+    return null;
+  }
+
+  function episodeMatches(file, target) {
+    if (!target) return false;
+    var ep = parseEpisode(file.path);
+    if (!ep) return false;
+    if (typeof target.episode === 'number' && ep.episode !== target.episode) return false;
+    if (typeof target.season === 'number' && ep.season !== target.season) return false;
+    return true;
+  }
+
   // Containers an HTML5 <video> in a browser can realistically play.
   // .mkv/.avi/.ts/.wmv/.m2ts usually fail in web mode (codec/container) even
   // though Real-Debrid resolves a direct link — the browser just can't decode it.
@@ -339,12 +401,18 @@
     return /\.(mp4|m4v|webm|mov)$/i.test(name || '');
   }
 
-  function sortFiles(files) {
+  function sortFiles(files, target) {
     var web = isBrowserEnv();
     return files.sort(function (a, b) {
       var aScore = isVideoFile(a.path) ? 1 : 0;
       var bScore = isVideoFile(b.path) ? 1 : 0;
       if (aScore !== bScore) return bScore - aScore;
+      // When we know the target episode (series), float matching files to the top.
+      if (target) {
+        var aEp = episodeMatches(a, target) ? 1 : 0;
+        var bEp = episodeMatches(b, target) ? 1 : 0;
+        if (aEp !== bEp) return bEp - aEp;
+      }
       // In web mode, surface browser-playable containers first so we don't
       // auto-pick an unplayable .mkv when an .mp4 of the same title exists.
       if (web) {
@@ -357,15 +425,21 @@
     });
   }
 
-  function mapFiles(info) {
-    return sortFiles((info.files || []).map(function (file) {
+  function mapFiles(info, target) {
+    var all = (info.files || []).map(function (file) {
       return {
         id: file.id,
         path: file.path || '',
         bytes: file.bytes || 0,
         selected: file.selected === 1 || file.selected === '1'
       };
-    })).filter(function (file) { return file.path; });
+    }).filter(function (file) { return file.path && isVideoFile(file.path); });
+
+    // Drop junk (sample/trailer/extras/...) unless that would leave nothing.
+    var clean = all.filter(function (file) { return !isJunkFile(file.path); });
+    if (!clean.length) clean = all;
+
+    return sortFiles(clean, target);
   }
 
   function formatSize(bytes) {
@@ -468,6 +542,74 @@
 
   // ---- Real-Debrid API flow ----------------------------------------------
 
+  // Extract the info-hash from a magnet link. RD's /torrents and
+  // /torrents/instantAvailability speak hex (40 chars). base32 (32 chars) magnets
+  // can't be compared 1:1 without decoding, so we only reuse/avail-check for hex.
+  function magnetHash(link) {
+    if (!link) return '';
+    var m = String(link).match(/xt=urn:btih:([a-z0-9]+)/i);
+    var h = m && m[1] ? m[1].toLowerCase() : '';
+    return h.length === 40 ? h : '';
+  }
+
+  // P3: reuse an already-added torrent instead of re-adding the same magnet on
+  // every launch. Returns the best matching torrent record (prefers downloaded).
+  function findExistingTorrent(hash) {
+    if (!hash) return Promise.resolve(null);
+    return request('/torrents?limit=100').then(function (list) {
+      if (!Array.isArray(list)) return null;
+      var match = list.filter(function (t) { return t && t.hash && String(t.hash).toLowerCase() === hash; });
+      if (!match.length) return null;
+      var rank = { downloaded: 3, uploading: 2, downloading: 1, waiting_files_selection: 1 };
+      match.sort(function (a, b) { return (rank[b.status] || 0) - (rank[a.status] || 0); });
+      return match[0];
+    }).catch(function () { return null; });
+  }
+
+  // P1: instant-availability hint. NOTE: Real-Debrid effectively deprecated this
+  // endpoint (it now returns empty for most hashes), so we treat it as ADVISORY
+  // ONLY and never block on it — true => definitely cached, anything else =>
+  // unknown, proceed normally and let polling decide.
+  function checkInstantAvailability(hash) {
+    if (!hash) return Promise.resolve(null);
+    return request('/torrents/instantAvailability/' + hash).then(function (res) {
+      try {
+        var entry = res && res[hash];
+        if (entry && Array.isArray(entry.rd)) return entry.rd.length > 0;
+        if (entry && typeof entry === 'object') {
+          var host = Object.keys(entry)[0];
+          if (host && entry[host] && Array.isArray(entry[host].rd)) return entry[host].rd.length > 0;
+        }
+        return null;
+      } catch (e) { return null; }
+    }).catch(function () { return null; });
+  }
+
+  // P4: work out which season/episode the user is after from the Lampa card /
+  // capture params, so we can auto-pick the right file from a season pack.
+  function getTargetEpisode() {
+    function fromObj(o) {
+      if (!o || typeof o !== 'object') return null;
+      var s = o.season != null ? o.season : (o.season_number != null ? o.season_number : (o.s != null ? o.s : null));
+      var ep = o.episode != null ? o.episode : (o.episode_number != null ? o.episode_number : (o.e != null ? o.e : null));
+      var out = {};
+      if (s != null && !isNaN(parseInt(s, 10))) out.season = parseInt(s, 10);
+      if (ep != null && !isNaN(parseInt(ep, 10))) out.episode = parseInt(ep, 10);
+      return (out.season != null || out.episode != null) ? out : null;
+    }
+    try {
+      var params = runtimeState.torrentChoice && runtimeState.torrentChoice.params;
+      var hit = fromObj(params) || fromObj(params && params.movie) || fromObj(params && params.card);
+      if (hit) return hit;
+      if (typeof Lampa !== 'undefined' && Lampa.Activity && typeof Lampa.Activity.active === 'function') {
+        var act = Lampa.Activity.active() || {};
+        hit = fromObj(act) || fromObj(act.card) || fromObj(act.activity) || fromObj(act.movie);
+        if (hit) return hit;
+      }
+    } catch (e) {}
+    return null;
+  }
+
   function addTorrent(link) {
     var headers = {};
     if (/^magnet:/i.test(link)) {
@@ -551,17 +693,43 @@
       startLoading(Lampa.Lang.translate('rd_adding'));
 
       var torrentId;
+      var hash = magnetHash(link);
+      var target = getTargetEpisode();
+      if (target) console.log('[RD] target episode:', target);
 
-      return addTorrent(link).then(function (added) {
-        torrentId = added && added.id;
+      // P1+P3: before re-adding, see if RD already has this torrent. Reuse the
+      // existing torrent id (avoids spawning a new id on every launch) and use
+      // instantAvailability as an advisory cache hint (best-effort, see note).
+      return findExistingTorrent(hash).then(function (existing) {
+        if (existing && existing.id) {
+          console.log('[RD] reusing existing torrent', existing.id, existing.status);
+          return request('/torrents/info/' + existing.id);
+        }
+        return checkInstantAvailability(hash).then(function (cached) {
+          if (cached === false) console.log('[RD] instantAvailability: not reported as cached (advisory)');
+          return addTorrent(link).then(function (added) {
+            var id = added && added.id;
+            if (!id) throw new Error('NO_TORRENT_ID');
+            return request('/torrents/info/' + id);
+          });
+        });
+      }).then(function (info) {
+        torrentId = info && info.id;
         if (!torrentId) throw new Error('NO_TORRENT_ID');
         // Wait until RD parsed the magnet and exposes the file list.
         return waitTorrent(torrentId, ['waiting_files_selection', 'downloaded'], {
           maxAttempts: 20, interval: 1500, titleKey: 'rd_adding'
         });
       }).then(function (info) {
-        var files = mapFiles(info).filter(function (file) { return isVideoFile(file.path); });
+        var files = mapFiles(info, target);
         if (!files.length) throw new Error('NO_VIDEO_FILES');
+
+        // P4: if we know the target episode and exactly one file matches it,
+        // auto-pick it instead of prompting; otherwise narrow to matches.
+        if (target) {
+          var matches = files.filter(function (f) { return episodeMatches(f, target); });
+          if (matches.length) files = matches;
+        }
 
         return chooseFile(files).then(function (chosen) {
           if (!chosen) { runtimeState.rdLaunching = false; return null; }
@@ -811,8 +979,14 @@
   function logEnvironment() {
     try {
       var androidMethods = [];
+      var androidKeys = [];
       if (typeof Android !== 'undefined' && Android) {
-        for (var k in Android) { try { if (typeof Android[k] === 'function') androidMethods.push(k); } catch (e) {} }
+        for (var k in Android) {
+          try {
+            androidKeys.push(k);
+            if (typeof Android[k] === 'function') androidMethods.push(k);
+          } catch (e) {}
+        }
       }
       var platform = '';
       try {
@@ -822,14 +996,19 @@
           });
         }
       } catch (e) {}
+      var native = nativeHttpFn();
       console.log('[RD] env:', {
         nativeApp: isNativeApp(),
         nativeHttp: hasNativeHttp(),
+        nativeHttpMethod: native ? native.name : '(none)',
         browserEnv: isBrowserEnv(),
         proxy: getProxyUrl() || '(none)',
         platform: platform || '(unknown)',
         androidBridge: typeof Android !== 'undefined',
-        androidMethods: androidMethods
+        androidKeys: androidKeys,
+        androidMethods: androidMethods,
+        lampaReguest: (typeof Lampa !== 'undefined' && typeof Lampa.Reguest),
+        userAgent: (typeof navigator !== 'undefined' && navigator.userAgent) || '(none)'
       });
     } catch (e) {}
   }
