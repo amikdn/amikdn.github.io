@@ -56,6 +56,11 @@
       },
       rd_pick_file: { ru: 'Выбери файл', en: 'Choose file', uk: 'Вибери файл' },
       rd_no_player: { ru: 'Не удалось запустить плеер Lampa', en: 'Unable to start Lampa player', uk: 'Не вдалося запустити плеєр Lampa' },
+      rd_web_container: {
+        ru: 'Это файл .mkv/.avi и т.п. — браузер обычно не умеет его проигрывать (отсюда «play() interrupted» и чёрный экран). Открой Lampa в Android-приложении или выбери релиз в .mp4.',
+        en: 'This is an .mkv/.avi-type file — browsers usually cannot play it (hence "play() interrupted" and a black screen). Open Lampa in the Android app or pick an .mp4 release.',
+        uk: 'Це файл .mkv/.avi тощо — браузер зазвичай не вміє його програвати (звідси «play() interrupted» і чорний екран). Відкрий Lampa в Android-застосунку або вибери реліз у .mp4.'
+      },
       rd_test_token: { ru: 'Проверить token', en: 'Test token', uk: 'Перевірити token' },
       rd_test_fail: { ru: 'Real-Debrid token не прошёл проверку', en: 'Real-Debrid token validation failed', uk: 'Real-Debrid token не пройшов перевірку' },
       rd_web_cors: {
@@ -295,11 +300,26 @@
     return /\.(mkv|mp4|avi|mov|wmv|m4v|ts|m2ts|webm)$/i.test(name || '');
   }
 
+  // Containers an HTML5 <video> in a browser can realistically play.
+  // .mkv/.avi/.ts/.wmv/.m2ts usually fail in web mode (codec/container) even
+  // though Real-Debrid resolves a direct link — the browser just can't decode it.
+  function isBrowserPlayable(name) {
+    return /\.(mp4|m4v|webm|mov)$/i.test(name || '');
+  }
+
   function sortFiles(files) {
+    var web = isWebRuntime();
     return files.sort(function (a, b) {
       var aScore = isVideoFile(a.path) ? 1 : 0;
       var bScore = isVideoFile(b.path) ? 1 : 0;
       if (aScore !== bScore) return bScore - aScore;
+      // In web mode, surface browser-playable containers first so we don't
+      // auto-pick an unplayable .mkv when an .mp4 of the same title exists.
+      if (web) {
+        var aWeb = isBrowserPlayable(a.path) ? 1 : 0;
+        var bWeb = isBrowserPlayable(b.path) ? 1 : 0;
+        if (aWeb !== bWeb) return bWeb - aWeb;
+      }
       if (b.bytes !== a.bytes) return b.bytes - a.bytes;
       return normalizeFilename(a.path).localeCompare(normalizeFilename(b.path));
     });
@@ -385,6 +405,12 @@
 
   function openStream(url, title) {
     if (!url) return false;
+    // Web browsers can't decode most .mkv/.avi/.ts files even when RD returns a
+    // valid direct link. Warn the user instead of leaving them with a black
+    // screen + a cryptic "play() interrupted by a new load request" in console.
+    if (isWebRuntime() && !isBrowserPlayable((url.split('?')[0] || ''))) {
+      notify('rd_web_container');
+    }
     if (Lampa.Player && typeof Lampa.Player.play === 'function') {
       // IMPORTANT: use ONE shared item object for both play() and playlist().
       // Previously play() and playlist() received two separate object literals
