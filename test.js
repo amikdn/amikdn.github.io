@@ -564,14 +564,14 @@
 
     Lampa.SettingsApi.addParam({
       component: runtimeState.settingsComponent,
-      param: { name: RD_TOKEN_KEY, type: 'input', value: '', default: '' },
+      param: { name: RD_TOKEN_KEY, type: 'input', values: '', default: '', placeholder: '' },
       field: { name: Lampa.Lang.translate('rd_token'), description: Lampa.Lang.translate('rd_token_descr') },
       onChange: function () {}
     });
 
     Lampa.SettingsApi.addParam({
       component: runtimeState.settingsComponent,
-      param: { name: RD_PROXY_KEY, type: 'input', value: '', default: '' },
+      param: { name: RD_PROXY_KEY, type: 'input', values: '', default: '', placeholder: '' },
       field: { name: Lampa.Lang.translate('rd_proxy'), description: Lampa.Lang.translate('rd_proxy_descr') },
       onChange: function () {}
     });
@@ -585,7 +585,7 @@
 
     Lampa.SettingsApi.addParam({
       component: runtimeState.settingsComponent,
-      param: { name: RD_LINK_KEY, type: 'input', value: '', default: '' },
+      param: { name: RD_LINK_KEY, type: 'input', values: '', default: '', placeholder: '' },
       field: { name: Lampa.Lang.translate('rd_last_link'), description: Lampa.Lang.translate('rd_last_link_descr') },
       onChange: function () {}
     });
