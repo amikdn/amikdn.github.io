@@ -77,7 +77,6 @@
       return newItem;
     });
 
-    // Настройка переключения вида
     Lampa.SettingsApi.addParam({
       component: 'interface',
       param: {
@@ -97,7 +96,6 @@
       }
     });
 
-    // Компонент только для режима "Сетка"
     function rusMovieGridComponent(object) {
       var category = Lampa.Maker.make('Category', object);
 
@@ -142,10 +140,8 @@
       return category;
     }
 
-    // Регистрация компонента для grid
     Lampa.Component.add('rus_movie_grid', rusMovieGridComponent);
 
-    // Пункт меню
     var menuIconSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="1.2em" height="1.2em" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="4"><path stroke-linejoin="round" d="M24 44c11.046 0 20-8.954 20-20S35.046 4 24 4S4 12.954 4 24s8.954 20 20 20Z"/><path stroke-linejoin="round" d="M24 18a3 3 0 1 0 0-6a3 3 0 0 0 0 6Zm0 18a3 3 0 1 0 0-6a3 3 0 0 0 0 6Zm-9-9a3 3 0 1 0 0-6a3 3 0 0 0 0 6Zm18 0a3 3 0 1 0 0-6a3 3 0 0 0 0 6Z"/><path stroke-linecap="round" d="M24 44h20"/></g></svg>';
 
     var menuItem = $(
@@ -166,7 +162,6 @@
           page: 1,
         });
       } else {
-        // Режим списка плиток — модальное окно Lampa.Select
         var items = collections.map(function(item) {
           return {
             title: '<div class="settings-folder" style="padding:0!important"><div style="width:2.2em;height:1.7em;padding-right:.5em">' + item.svg + '</div><div style="font-size:1.3em">' + item.title + '</div></div>'
@@ -198,12 +193,9 @@
 
     $('.menu .menu__list').eq(0).append(menuItem);
 
-    // Функция "Русские новинки на главной"
     function RusMainSource(source) {
       this.network = new Lampa.Reguest();
       var self = this;
-      
-      // Используем оригинальный метод get из источника
       if (source && source.get) {
         this.get = source.get;
       }
@@ -453,8 +445,6 @@
 
     if (Lampa.Storage.get('rus_movie_main') !== false) {
       var newSource = new RusMainSource(Lampa.Api.sources.tmdb);
-      // Копируем только переопределенные методы из нового источника в оригинальный (ES5 совместимый Object.assign)
-      // Это перезапишет только main, get и network, сохранив все остальные методы оригинального источника
       for (var key in newSource) {
         if (newSource.hasOwnProperty(key)) {
           Lampa.Api.sources.tmdb[key] = newSource[key];
