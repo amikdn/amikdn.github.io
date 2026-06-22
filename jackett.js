@@ -484,6 +484,13 @@
       })(s);
     });
 
+    try {
+      var refEl = document.querySelector('.settings-param') || document.querySelector('.settings') || document.body;
+      var refCs = window.getComputedStyle(refEl);
+      if (refCs.fontFamily) list[0].style.fontFamily = refCs.fontFamily;
+      if (refCs.fontSize) list[0].style.fontSize = refCs.fontSize;
+    } catch (e) {}
+
     openModalWithEdgeScrollJ({
       title: 'Меню смены парсера',
       html: list,
@@ -495,7 +502,6 @@
       }
     });
     setTimeout(function () {
-      syncModalFontJ();
       focusModalControllerJ();
     }, 250);
 
