@@ -152,7 +152,8 @@
       setTimeout(function () {
         var urltwoEl = $('div[data-name="jackett_urltwo"]');
         urltwoEl.off('hover:enter').on('hover:enter', function () {
-          showServerSwitchMenu();
+          closeModalSafeJ();
+          setTimeout(showServerSwitchMenu, 200);
         });
 
         if (Lampa.Storage.get('jackett_urltwo') !== 'no_parser') {
@@ -483,22 +484,20 @@
       })(s);
     });
 
-    closeModalSafeJ();
+    openModalWithEdgeScrollJ({
+      title: 'Меню смены парсера',
+      html: list,
+      size: 'medium',
+      scroll_to_center: false,
+      onBack: function () {
+        closeModalSafeJ();
+        closeParserSelectAndRestore(controllerBeforeModal);
+      }
+    });
     setTimeout(function () {
-      openModalWithEdgeScrollJ({
-        title: 'Меню смены парсера',
-        html: list,
-        size: 'medium',
-        onBack: function () {
-          closeModalSafeJ();
-          closeParserSelectAndRestore(controllerBeforeModal);
-        }
-      });
-      setTimeout(function () {
-        syncModalFontJ();
-        focusModalControllerJ();
-      }, 250);
-    }, 200);
+      syncModalFontJ();
+      focusModalControllerJ();
+    }, 250);
 
     checkAllServers(function (checkedServers) {
       checkedServers.forEach(function (s) {
