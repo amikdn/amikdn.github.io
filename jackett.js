@@ -150,18 +150,21 @@
     },
     onRender: function (element) {
       setTimeout(function () {
-        $('div[data-children="parser"]').on('hover:enter', function () { Lampa.Settings.update(); });
+        var urltwoEl = $('div[data-name="jackett_urltwo"]');
+        urltwoEl.off('hover:enter').on('hover:enter', function () {
+          showServerSwitchMenu();
+        });
 
         if (Lampa.Storage.get('jackett_urltwo') !== 'no_parser') {
           $('div[data-name="jackett_url"]').hide();
           $('div[data-name="jackett_key"]').hide();
-          Lampa.Controller.toggle('settings_component');
         }
 
         if (Lampa.Storage.field('parser_use') && Lampa.Storage.field('parser_torrent_type') === 'jackett') {
           element.show();
           $('.settings-param__name', element).css('color', '#ffffff');
-          $('div[data-name="jackett_urltwo"]').insertAfter('div[data-name="parser_torrent_type"]');
+          urltwoEl.find('.settings-param__value').text(getCurrentParserName());
+          urltwoEl.insertAfter('div[data-name="parser_torrent_type"]');
         } else {
           element.hide();
         }
@@ -171,7 +174,12 @@
 
   Lampa.Settings.listener.follow('open', function (e) {
     if (e.name === 'parser') {
-      e.body.find('[data-name="jackett_url2"], [data-name="jackett_url_two"]').remove();
+      setTimeout(function () {
+        if (Lampa.Storage.get('jackett_urltwo') !== 'no_parser') {
+          $('div[data-name="jackett_url2"]').hide();
+          $('div[data-name="jackett_url_two"]').hide();
+        }
+      }, 10);
     }
   });
 
@@ -198,17 +206,18 @@
     else filterContainer.appendChild(button);
   }
 
-  function checkAllServers() {
-    return Promise.all(servers.map(function (server) {
-      return new Promise(function (resolve) {
-        checkServerStatus(server, function (srv, ok) {
-          srv.title = ok
-            ? '<span style="color:' + COLOR_OK + '">✓&nbsp;&nbsp;' + srv.name + '</span>'
-            : '<span style="color:' + COLOR_FAIL + '">✗&nbsp;&nbsp;' + srv.name + '</span>';
-          resolve(srv);
-        });
+  function checkAllServers(callback) {
+    var results = [];
+    var done = 0;
+    var total = servers.length;
+    servers.forEach(function (server) {
+      checkServerStatus(server, function (srv, ok) {
+        srv._online = ok;
+        results.push(srv);
+        done++;
+        if (done === total) callback(results);
       });
-    }));
+    });
   }
 
   function getServerSelectItem(s, overrideTitle) {
@@ -320,30 +329,191 @@
     }
   }
 
+  var SVG_CHECK_ON = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+  var SVG_CHECK_OFF = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>';
+  var SVG_SPINNER = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9" opacity="0.3"/><path d="M21 12a9 9 0 0 1-9 9"/></svg>';
+
+  var jackettStyle = document.createElement('style');
+  jackettStyle.textContent =
+    '.jackett-server-list{display:flex;flex-direction:column;gap:.7em;padding-right:1em;max-width:100%;width:100%;box-sizing:border-box}' +
+    '.jackett-server-item{display:grid;grid-template-columns:minmax(0,1fr) 2.4em;align-items:center;gap:.35em;padding:.7em 1em;border-radius:.7em;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);box-sizing:border-box;min-height:3.2em}' +
+    '.jackett-server-item.focus{border-color:#fff!important;background:rgba(255,255,255,.1)}' +
+    '.jackett-server-item.jackett-server-active{border-color:rgba(66,133,244,.7);background:rgba(66,133,244,.15)}' +
+    '.jackett-server-info{min-width:0;overflow:hidden;box-sizing:border-box}' +
+    '.jackett-server-name{font-family:inherit;font-size:inherit;font-weight:bold;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.3}' +
+    '.jackett-server-status{width:2.4em;min-width:2.4em;height:2.4em;display:flex;align-items:center;justify-content:center;box-sizing:border-box;border:1px solid rgba(255,255,255,.2);border-radius:.6em;background:rgba(255,255,255,.1)}' +
+    '.jackett-server-status svg{width:1.2em;height:1.2em}' +
+    '.jackett-server-item.jackett-server-online .jackett-server-status{border-color:rgba(76,175,80,.6);background:rgba(76,175,80,.2);color:#4caf50}' +
+    '.jackett-server-item.jackett-server-offline .jackett-server-status{border-color:rgba(255,33,33,.5);background:rgba(255,33,33,.15);color:#ff2121}' +
+    '.jackett-server-item.jackett-server-checking .jackett-server-status{border-color:rgba(255,255,255,.2);background:rgba(255,255,255,.1);color:rgba(255,255,255,.5)}' +
+    '@keyframes jackett-spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}' +
+    '.jackett-server-item.jackett-server-checking .jackett-server-status svg{animation:jackett-spin 1s linear infinite}';
+  document.head.appendChild(jackettStyle);
+
+  var EDGE_SCROLL_PAD_J = 8;
+
+  function openModalWithEdgeScrollJ(params) {
+    Lampa.Modal.open(params);
+    patchModalEdgeScrollJ();
+  }
+
+  function patchModalEdgeScrollJ() {
+    try {
+      if (!Lampa.Modal || typeof Lampa.Modal.scroll !== 'function') return;
+      var scroll = Lampa.Modal.scroll();
+      if (!scroll || scroll.__edgeScrollPatchedJ) return;
+      if (typeof scroll.update !== 'function' || typeof scroll.wheel !== 'function' ||
+          typeof scroll.render !== 'function') return;
+      scroll.__edgeScrollPatchedJ = true;
+      scroll.update = function (elem) {
+        try {
+          var target = elem && elem.jquery ? elem[0] : elem;
+          if (!target || typeof target.getBoundingClientRect !== 'function') return;
+          var renderEl = scroll.render(true);
+          if (!renderEl) return;
+          var viewportEl = renderEl.querySelector('.scroll__content') || renderEl;
+          var er = target.getBoundingClientRect();
+          var vr = viewportEl.getBoundingClientRect();
+          if (!er.height || !vr.height) return;
+          if (er.bottom > vr.bottom - EDGE_SCROLL_PAD_J) {
+            scroll.wheel(er.bottom - vr.bottom + EDGE_SCROLL_PAD_J);
+          } else if (er.top < vr.top + EDGE_SCROLL_PAD_J) {
+            scroll.wheel(er.top - vr.top - EDGE_SCROLL_PAD_J);
+          }
+        } catch (e) {}
+      };
+    } catch (e) {}
+  }
+
+  function closeModalSafeJ() {
+    try {
+      if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.close) {
+        Lampa.Modal.close();
+      }
+    } catch (e) {}
+  }
+
+  function focusModalControllerJ() {
+    setTimeout(function () {
+      try {
+        if (Lampa.Controller && typeof Lampa.Controller.toggle === 'function') {
+          Lampa.Controller.toggle('modal');
+        }
+      } catch (e) {}
+    }, 120);
+  }
+
+  function syncModalFontJ() {
+    try {
+      var ref = document.querySelector('.settings-param') || document.querySelector('.settings');
+      if (!ref) ref = document.body;
+      var cs = window.getComputedStyle(ref);
+      var modalRoot = document.querySelector('.modal__content') || document.querySelector('.modal .modal__body') || document.querySelector('.modal .modal__html');
+      if (!modalRoot && typeof window.$ !== 'undefined' && window.$) {
+        var $inner = $('.modal').last().find('.modal__body, .modal__content, .modal__html').first();
+        if ($inner.length) modalRoot = $inner[0];
+      }
+      if (!modalRoot) return;
+      if (cs.fontFamily) modalRoot.style.fontFamily = cs.fontFamily;
+      if (cs.fontSize) modalRoot.style.fontSize = cs.fontSize;
+    } catch (e) {}
+  }
+
   function showServerSwitchMenu() {
     var currentActivity = Lampa.Storage.get('activity');
     var enabled = Lampa.Controller.enabled();
-    var controllerBeforeSelect = (enabled && enabled.name) || '';
+    var controllerBeforeModal = (enabled && enabled.name) || '';
+    var currentSelected = Lampa.Storage.get('jackett_urltwo');
 
-    function showCheckedList(checkedServers) {
-      var en = Lampa.Controller.enabled();
-      var backTo = controllerBeforeSelect || (en && en.name);
-      Lampa.Select.show({
-        title: 'Меню смены парсера',
-        items: checkedServers.map(function (s) { return getServerSelectItem(s); }),
-        onBack: function () { closeParserSelectAndRestore(backTo); },
-        onSelect: function (item) { applyParserAndRefreshTorrents(item, currentActivity); }
-      });
-    }
+    var list = $('<div class="jackett-server-list"></div>');
+    var rowMap = {};
 
-    Lampa.Select.show({
-      title: 'Меню смены парсера',
-      items: servers.map(function (s) { return getServerSelectItem(s); }),
-      onBack: function () { closeParserSelectAndRestore(controllerBeforeSelect); },
-      onSelect: function (item) { applyParserAndRefreshTorrents(item, currentActivity); }
+    var noParserRow = $('<div class="selector jackett-server-item" tabindex="0">' +
+      '<div class="jackett-server-info">' +
+      '<div class="jackett-server-name">Свой вариант</div>' +
+      '</div>' +
+      '<div class="jackett-server-status"></div>' +
+      '</div>');
+
+    if (currentSelected === 'no_parser') noParserRow.addClass('jackett-server-active');
+
+    noParserRow.on('hover:enter', function () {
+      Lampa.Storage.set('jackett_urltwo', 'no_parser');
+      Lampa.Storage.set('jackett_url', '');
+      Lampa.Storage.set('jackett_key', '');
+      Lampa.Storage.set('jackett_interview', 'all');
+      Lampa.Storage.set('parse_in_search', false);
+      Lampa.Storage.set('parse_lang', 'lg');
+      closeModalSafeJ();
+      $('div[data-name="jackett_url"] input, div[data-name="jackett_url"] .settings-param__value').val('').text('');
+      $('div[data-name="jackett_key"] input, div[data-name="jackett_key"] .settings-param__value').val('').text('');
+      $('div[data-name="jackett_url"]').show();
+      $('div[data-name="jackett_key"]').show();
+      $('div[data-name="jackett_url2"]').show();
+      $('div[data-name="jackett_url_two"]').show();
+      $('div[data-name="jackett_urltwo"] .settings-param__value').text('Свой вариант');
+      closeParserSelectAndRestore(controllerBeforeModal);
     });
 
-    checkAllServers().then(showCheckedList);
+    list.append(noParserRow);
+
+    servers.forEach(function (s) {
+      (function (server) {
+        var isActive = (server.id === currentSelected);
+        var row = $('<div class="selector jackett-server-item jackett-server-checking" tabindex="0">' +
+          '<div class="jackett-server-info">' +
+          '<div class="jackett-server-name">' + server.name + '</div>' +
+          '</div>' +
+          '<div class="jackett-server-status">' + SVG_SPINNER + '</div>' +
+          '</div>');
+
+        if (isActive) row.addClass('jackett-server-active');
+
+        row.on('hover:enter', function () {
+          var item = getServerSelectItem(server);
+          closeModalSafeJ();
+          $('div[data-name="jackett_url"]').hide();
+          $('div[data-name="jackett_key"]').hide();
+          $('div[data-name="jackett_urltwo"] .settings-param__value').text(server.name);
+          applyParserAndRefreshTorrents(item, currentActivity);
+        });
+
+        rowMap[server.id] = row;
+        list.append(row);
+      })(s);
+    });
+
+    closeModalSafeJ();
+    setTimeout(function () {
+      openModalWithEdgeScrollJ({
+        title: 'Меню смены парсера',
+        html: list,
+        size: 'medium',
+        onBack: function () {
+          closeModalSafeJ();
+          closeParserSelectAndRestore(controllerBeforeModal);
+        }
+      });
+      setTimeout(function () {
+        syncModalFontJ();
+        focusModalControllerJ();
+      }, 250);
+    }, 200);
+
+    checkAllServers(function (checkedServers) {
+      checkedServers.forEach(function (s) {
+        var row = rowMap[s.id];
+        if (!row) return;
+        row.removeClass('jackett-server-checking');
+        if (s._online) {
+          row.addClass('jackett-server-online');
+          row.find('.jackett-server-status').html(SVG_CHECK_ON);
+        } else {
+          row.addClass('jackett-server-offline');
+          row.find('.jackett-server-status').html(SVG_CHECK_OFF);
+        }
+      });
+    });
   }
 
   var emptyObserver = null;
@@ -410,6 +580,8 @@
     if (e.name === 'jackett_urltwo') {
       var nameEl = document.getElementById('current-parser-name');
       if (nameEl) nameEl.textContent = getCurrentParserName();
+      var valEl = $('div[data-name="jackett_urltwo"] .settings-param__value');
+      if (valEl.length) valEl.text(getCurrentParserName());
     }
   });
 
