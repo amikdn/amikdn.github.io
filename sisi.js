@@ -6,7 +6,7 @@
   function initExternalScriptLoader() {
     // Список зеркал для загрузки внешнего скрипта sisi.js
     const scriptMirrors = [
-      'https://ab2024.ru/sisi.js',
+    //  'https://ab2024.ru/sisi.js',
       'http://78.17.216.151:9118/sisi.js',
     ];
 
