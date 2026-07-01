@@ -1,6 +1,9 @@
 (function () {
     'use strict';
 
+    if (window.__home_tv_loaded) return;
+    window.__home_tv_loaded = true;
+
     // 1. Стили
     if (!$('#home-tv-styles').length) {
         $('<style id="home-tv-styles">' +
@@ -42,7 +45,7 @@
             return html; 
         };
 
-        this.create = function () {
+        this.start = function () {
             inner.empty();
 
             channels.forEach(function (channel) {
@@ -107,8 +110,6 @@
 
             scroll.append(inner);
             html.append(scroll.render(true));
-            
-            return this.render();
         };
 
         // Метод, отвечающий за привязку пульта к плагину
@@ -141,23 +142,22 @@
 
         // Обязательный метод для очистки памяти и уничтожения контроллера при выходе
         this.destroy = function () {
+            Lampa.Controller.remove('home_tv_ctrl');
             scroll.destroy();
             html.remove();
             inner.remove();
         };
-
-        this.create();
     });
 
     function addPlugin() {
-        if ($('.menu__item[data-action="home_tv"]').length > 0) return;
+        $('.menu__item[data-action="home_tv"]').remove();
         var menu_item = $('<li class="menu__item selector" data-action="home_tv">' +
             '<div class="menu__ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h5v2h8v-2h5c1.1 0 1.99-.9 1.99-2L23 5c0-1.1-.9-2-2-2zm0 14H3V5h18v12z" fill="#f39c12"/></svg></div>' +
             '<div class="menu__text">HOME TV</div>' +
             '</li>');
         
         menu_item.on('hover:enter click', function () {
-            Lampa.Activity.push({ title: 'HOME TV', component: 'home_tv_plugin', page: 1 });
+            Lampa.Activity.push({ url: '', title: 'HOME TV', component: 'home_tv_plugin' });
         });
         
         $('.menu .menu__list').append(menu_item);
