@@ -117,23 +117,16 @@
                 back: function () { Lampa.Activity.backward(); }
             });
             Lampa.Controller.toggle('home_tv_ctrl');
-            var items = html.find('.selector');
-            if (items.length) {
-                Lampa.Controller.collectionSet(html);
-                Lampa.Controller.collectionFocus(items[0], html);
-            }
+            Lampa.Controller.collectionSet(html);
+            Lampa.Controller.collectionFocus(html.find('.selector')[0], html);
         };
 
         this.active = function () {
-            Lampa.Controller.toggle('home_tv_ctrl');
-            var items = html.find('.selector');
-            if (items.length) {
-                Lampa.Controller.collectionSet(html);
-                Lampa.Controller.collectionFocus(last_focus && last_focus.length ? last_focus[0] : items[0], html);
-            }
+            Lampa.Controller.collectionSet(html);
+            var target = last_focus && last_focus.length ? last_focus[0] : html.find('.selector')[0];
+            Lampa.Controller.collectionFocus(target, html);
         };
 
-        // Обязательный метод для очистки памяти и уничтожения контроллера при выходе
         this.destroy = function () {
             Lampa.Controller.remove('home_tv_ctrl');
             scroll.destroy();
