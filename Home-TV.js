@@ -7,7 +7,7 @@
     // 1. Стили
     if (!$('#home-tv-styles').length) {
         $('<style id="home-tv-styles">' +
-            '.home-tv-list { padding: 20px; height: 100%; position: relative; overflow: hidden; }' +
+            '.home-tv-list { padding: 20px; overflow-y: auto; height: 100%; position: relative; }' +
             '.home-tv-card { display: flex; align-items: center; margin-bottom: 10px; padding: 15px; background: rgba(255,255,255,0.05); border-radius: 10px; cursor: pointer; border-left: 5px solid #f39c12; }' +
             '.home-tv-card.focus { background: #f39c12; color: #000; transform: scale(1.02); }' +
             '.home-tv-card__icon { width: 60px; height: 40px; margin-right: 15px; background-size: contain; background-repeat: no-repeat; background-position: center; flex-shrink: 0; }' +
@@ -17,10 +17,8 @@
 
     // 2. Компонент
     Lampa.Component.add('home_tv_plugin', function (object, exam) {
-        var scroll = new Lampa.Scroll({mask: true, over: true});
         var html   = $('<div class="home-tv-list"></div>');
-        var inner  = $('<div></div>');
-        var last_focus; // Переменная для запоминания последней активной карточки
+        var last_focus;
         
         var channels = [
             { title: 'Россия 1', url: 'https://raw.githubusercontent.com/iptv-org/iptv/refs/heads/master/streams/ru_televizor24.m3u', img: 'https://iptvx.one/picons/rossia-1.png' },
@@ -46,7 +44,7 @@
         };
 
         this.create = function () {
-            inner.empty();
+            html.empty();
 
             channels.forEach(function (channel) {
                 var card = $('<div class="home-tv-card selector">' +
@@ -54,10 +52,8 @@
                     '<div class="home-tv-card__title">' + channel.title + '</div>' +
                 '</div>');
 
-                // Обновление скролла при наведении и сохранение фокуса
                 card.on('hover:focus', function (e) {
-                    last_focus = card; // Запоминаем текущую карточку
-                    scroll.update(card); 
+                    last_focus = card;
                 });
 
                 card.on('hover:enter', function () {
@@ -105,11 +101,8 @@
                     });
                 });
 
-                inner.append(card);
+                html.append(card);
             });
-
-            scroll.append(inner);
-            html.append(scroll.render(true));
         };
 
         this.start = function () {
@@ -129,9 +122,7 @@
 
         this.destroy = function () {
             Lampa.Controller.remove('home_tv_ctrl');
-            scroll.destroy();
             html.remove();
-            inner.remove();
         };
     });
 
