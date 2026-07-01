@@ -45,7 +45,7 @@
             return html; 
         };
 
-        this.start = function () {
+        this.create = function () {
             inner.empty();
 
             channels.forEach(function (channel) {
@@ -111,6 +111,8 @@
             scroll.append(inner);
             html.append(scroll.render(true));
         };
+
+        this.start = function () {};
 
         // Метод, отвечающий за привязку пульта к плагину
         this.active = function () {
