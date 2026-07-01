@@ -120,15 +120,18 @@
                 },
                 back: function () { Lampa.Activity.backward(); }
             });
+            Lampa.Controller.add('content', {
+                invisible: true,
+                toggle: function () {
+                    Lampa.Controller.toggle('home_tv_ctrl');
+                    Lampa.Controller.collectionSet(html);
+                    var target = last_focus && last_focus.length ? last_focus[0] : html.find('.selector')[0];
+                    Lampa.Controller.collectionFocus(target, html);
+                }
+            });
             Lampa.Controller.toggle('home_tv_ctrl');
             Lampa.Controller.collectionSet(html);
             Lampa.Controller.collectionFocus(html.find('.selector')[0], html);
-        };
-
-        this.active = function () {
-            Lampa.Controller.collectionSet(html);
-            var target = last_focus && last_focus.length ? last_focus[0] : html.find('.selector')[0];
-            Lampa.Controller.collectionFocus(target, html);
         };
 
         this.destroy = function () {
