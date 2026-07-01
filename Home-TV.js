@@ -114,9 +114,6 @@
 
         this.start = function () {
             Lampa.Controller.add('home_tv_ctrl', {
-                toggle: function () {},
-                up: function () { Lampa.Controller.move('up'); },
-                down: function () { Lampa.Controller.move('down'); },
                 back: function () { Lampa.Activity.backward(); }
             });
             Lampa.Controller.toggle('home_tv_ctrl');
