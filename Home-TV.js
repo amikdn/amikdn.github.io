@@ -112,34 +112,28 @@
             html.append(scroll.render(true));
         };
 
-        this.start = function () {};
-
-        // Метод, отвечающий за привязку пульта к плагину
-        this.active = function () {
+        this.start = function () {
             Lampa.Controller.add('home_tv_ctrl', {
-                toggle: function () { 
-                    // Находим все элементы с классом .selector внутри нашего контейнера
-                    var selecters = html.find('.selector');
-                    
-                    // Передаем коллекцию селекторов контроллеру Lampa
-                    Lampa.Controller.collectionSet(html); 
-                    
-                    // Фокусируемся либо на последнем запомненном элементе, либо на самом первом
-                    Lampa.Controller.collectionFocus(last_focus && last_focus.length ? last_focus[0] : selecters[0], html); 
-                },
-                up: function () { 
-                    Lampa.Controller.move('up'); 
-                },
-                down: function () { 
-                    Lampa.Controller.move('down'); 
-                },
-                back: function () { 
-                    Lampa.Activity.backward(); 
-                }
+                toggle: function () {},
+                up: function () { Lampa.Controller.move('up'); },
+                down: function () { Lampa.Controller.move('down'); },
+                back: function () { Lampa.Activity.backward(); }
             });
-            
-            // Включаем созданный контроллер
             Lampa.Controller.toggle('home_tv_ctrl');
+            var items = html.find('.selector');
+            if (items.length) {
+                Lampa.Controller.collectionSet(html);
+                Lampa.Controller.collectionFocus(items[0], html);
+            }
+        };
+
+        this.active = function () {
+            Lampa.Controller.toggle('home_tv_ctrl');
+            var items = html.find('.selector');
+            if (items.length) {
+                Lampa.Controller.collectionSet(html);
+                Lampa.Controller.collectionFocus(last_focus && last_focus.length ? last_focus[0] : items[0], html);
+            }
         };
 
         // Обязательный метод для очистки памяти и уничтожения контроллера при выходе
@@ -154,7 +148,7 @@
     function addPlugin() {
         $('.menu__item[data-action="home_tv"]').remove();
         var menu_item = $('<li class="menu__item selector" data-action="home_tv">' +
-            '<div class="menu__ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h5v2h8v-2h5c1.1 0 1.99-.9 1.99-2L23 5c0-1.1-.9-2-2-2zm0 14H3V5h18v12z" fill="#f39c12"/></svg></div>' +
+            '<div class="menu__ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h5v2h8v-2h5c1.1 0 1.99-.9 1.99-2L23 5c0-1.1-.9-2-2-2zm0 14H3V5h18v12z" fill="currentColor"/></svg></div>' +
             '<div class="menu__text">HOME TV</div>' +
             '</li>');
         
@@ -162,7 +156,7 @@
             Lampa.Activity.push({ url: '', title: 'HOME TV', component: 'home_tv_plugin' });
         });
         
-        $('.menu .menu__list').append(menu_item);
+        $('.menu .menu__list').eq(0).append(menu_item);
     }
 
     Lampa.Listener.follow('app', function (e) { 
