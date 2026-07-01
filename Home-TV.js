@@ -54,6 +54,7 @@
 
                 card.on('hover:focus', function (e) {
                     last_focus = card;
+                    card[0].scrollIntoView({ block: 'nearest' });
                 });
 
                 card.on('hover:enter', function () {
@@ -107,6 +108,10 @@
 
         this.start = function () {
             Lampa.Controller.add('home_tv_ctrl', {
+                left: function () {
+                    if (window.Navigator && window.Navigator.canmove('left')) window.Navigator.move('left');
+                    else Lampa.Controller.toggle('menu');
+                },
                 up: function () {
                     if (window.Navigator && window.Navigator.canmove('up')) window.Navigator.move('up');
                 },
