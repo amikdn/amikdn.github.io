@@ -1,10 +1,18 @@
 (function() {
   'use strict';
 
-  if (window.__content_filter_loaded) return;
-  window.__content_filter_loaded = true;
+  if (window.__cf_loaded) return;
+  window.__cf_loaded = true;
 
   var state = { asian: false, language: false, quality: false, rating: false, history: false };
+
+  function loadState() {
+    state.asian = Lampa.Storage.get('cf_asian', false);
+    state.language = Lampa.Storage.get('cf_language', false);
+    state.quality = Lampa.Storage.get('cf_quality', false);
+    state.rating = Lampa.Storage.get('cf_rating', false);
+    state.history = Lampa.Storage.get('cf_history', false);
+  }
 
   function applyFilters(items) {
     var r = Lampa.Arrays.clone(items);
@@ -51,68 +59,66 @@
     return r;
   }
 
-  function isSearchUrl(url) {
+  function isSearch(url) {
     if (!url) return false;
     var o = Lampa.TMDB ? Lampa.TMDB.origin('') : '';
     return url.indexOf(o) > -1 && url.indexOf('/search') === -1 && url.indexOf('/person/') === -1;
   }
 
   function init() {
-    state.asian = Lampa.Storage.get('content_filter_asian', false);
-    state.language = Lampa.Storage.get('content_filter_language', false);
-    state.quality = Lampa.Storage.get('content_filter_quality', false);
-    state.rating = Lampa.Storage.get('content_filter_rating', false);
-    state.history = Lampa.Storage.get('content_filter_history', false);
+    loadState();
 
-    Lampa.Lang.add({
-      content_filters: { ru: 'Фильтр контента', en: 'Content Filter', uk: 'Фільтр контенту' },
-      cf_asian: { ru: 'Убрать азиатский контент', en: 'Remove Asian', uk: 'Прибрати азіатський' },
-      cf_lang: { ru: 'Убрать контент на другом языке', en: 'Language Filter', uk: 'Мовний фільтр' },
-      cf_quality: { ru: 'Убрать контент с качеством TS', en: 'Remove TS', uk: 'Прибрати TS' },
-      cf_rating: { ru: 'Убрать низкорейтинговый контент', en: 'Rating Filter', uk: 'Рейтинговий фільтр' },
-      cf_history: { ru: 'Убрать просмотренный контент', en: 'Watched Filter', uk: 'Переглянуте' }
-    });
+    Lampa.Listener.follow('app', function(e) {
+      if (e.type !== 'ready') return;
 
-    Lampa.SettingsApi.addParam({
-      component: 'interface',
-      param: { name: 'content_filters', type: 'object', default: true },
-      field: { name: Lampa.Lang.translate('content_filters'), description: '' },
-      onRender: function() {}
-    });
+      Lampa.Lang.add({
+        cf_title: { ru: 'Фильтр контента', en: 'Content Filter', uk: 'Фільтр контенту' },
+        cf_asian: { ru: 'Убрать азиатский', en: 'Remove Asian', uk: 'Прибрати азіатський' },
+        cf_lang: { ru: 'Контент на другом языке', en: 'Language Filter', uk: 'Мовний фільтр' },
+        cf_quality: { ru: 'Убрать качество TS', en: 'Remove TS', uk: 'Прибрати TS' },
+        cf_rating: { ru: 'Рейтинг ниже 6.0', en: 'Rating below 6.0', uk: 'Рейтинг нижче 6.0' },
+        cf_history: { ru: 'Просмотренное', en: 'Watched', uk: 'Переглянуте' }
+      });
 
-    Lampa.SettingsApi.addParam({
-      component: 'content_filters',
-      param: { name: 'asian_filter_enabled', type: 'trigger', default: false },
-      field: { name: Lampa.Lang.translate('cf_asian'), description: '' },
-      onChange: function(v) { state.asian = v; Lampa.Storage.set('content_filter_asian', v); }
-    });
+      var folder = $('<div class="settings-folder selector" data-component="cf_settings" data-static="true">' +
+        '<div class="settings-folder__icon">' +
+        '<svg width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>' +
+        '</div>' +
+        '<div class="settings-folder__name">' + Lampa.Lang.translate('cf_title') + '</div>' +
+        '</div>');
 
-    Lampa.SettingsApi.addParam({
-      component: 'content_filters',
-      param: { name: 'language_filter_enabled', type: 'trigger', default: false },
-      field: { name: Lampa.Lang.translate('cf_lang'), description: '' },
-      onChange: function(v) { state.language = v; Lampa.Storage.set('content_filter_language', v); }
-    });
+      Lampa.Settings.main().render().find('[data-component="more"]').after(folder);
+      Lampa.Settings.main().update();
 
-    Lampa.SettingsApi.addParam({
-      component: 'content_filters',
-      param: { name: 'quality_filter_enabled', type: 'trigger', default: false },
-      field: { name: Lampa.Lang.translate('cf_quality'), description: '' },
-      onChange: function(v) { state.quality = v; Lampa.Storage.set('content_filter_quality', v); }
-    });
+      Lampa.Settings.listener.follow('open', function(se) {
+        if (se.name == 'main') {
+          se.body.find('[data-component="cf_settings"]').on('hover:enter', function() {
+            var items = [
+              { id: 'cf_asian', label: Lampa.Lang.translate('cf_asian'), key: 'cf_asian' },
+              { id: 'cf_lang', label: Lampa.Lang.translate('cf_lang'), key: 'cf_language' },
+              { id: 'cf_quality', label: Lampa.Lang.translate('cf_quality'), key: 'cf_quality' },
+              { id: 'cf_rating', label: Lampa.Lang.translate('cf_rating'), key: 'cf_rating' },
+              { id: 'cf_history', label: Lampa.Lang.translate('cf_history'), key: 'cf_history' }
+            ];
 
-    Lampa.SettingsApi.addParam({
-      component: 'content_filters',
-      param: { name: 'rating_filter_enabled', type: 'trigger', default: false },
-      field: { name: Lampa.Lang.translate('cf_rating'), description: '' },
-      onChange: function(v) { state.rating = v; Lampa.Storage.set('content_filter_rating', v); }
-    });
-
-    Lampa.SettingsApi.addParam({
-      component: 'content_filters',
-      param: { name: 'history_filter_enabled', type: 'trigger', default: false },
-      field: { name: Lampa.Lang.translate('cf_history'), description: '' },
-      onChange: function(v) { state.history = v; Lampa.Storage.set('content_filter_history', v); }
+            Lampa.Settings.open('cf_settings', {
+              name: Lampa.Lang.translate('cf_title'),
+              items: items.map(function(it) {
+                return {
+                  name: it.label,
+                  type: 'trigger',
+                  field: it.key,
+                  default: false,
+                  onChange: function(v) {
+                    state[it.key.replace('cf_', '')] = v;
+                    Lampa.Storage.set(it.key, v);
+                  }
+                };
+              })
+            });
+          });
+        }
+      });
     });
 
     Lampa.Listener.follow('build', function(e) {
@@ -125,7 +131,7 @@
     });
 
     Lampa.Listener.follow('request_secuses', function(e) {
-      if (e.params && e.params.url && isSearchUrl(e.params.url) && e.data && Array.isArray(e.data.results)) {
+      if (e.params && e.params.url && isSearch(e.params.url) && e.data && Array.isArray(e.data.results)) {
         e.data.original_length = e.data.results.length;
         e.data.results = applyFilters(e.data.results);
       }
