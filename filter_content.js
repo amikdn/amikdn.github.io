@@ -60,12 +60,16 @@
   }
 
   function isSearch(url) {
-    if (!url) return false;
-    var o = '';
-    if (Lampa.TMDB) {
-      o = typeof Lampa.TMDB.origin === 'function' ? Lampa.TMDB.origin('') : (Lampa.Manifest ? Lampa.Manifest.url : '');
-    }
-    return o && url.indexOf(o) > -1 && url.indexOf('/search') === -1 && url.indexOf('/person/') === -1;
+    try {
+      if (!url) return false;
+      var origin = '';
+      if (typeof Lampa.TMDB !== 'undefined') {
+        if (typeof Lampa.TMDB.origin === 'function') origin = Lampa.TMDB.origin('');
+        else if (Lampa.Manifest && Lampa.Manifest.url) origin = Lampa.Manifest.url;
+        else origin = 'api.themoviedb.org';
+      }
+      return url.indexOf(origin) > -1 && url.indexOf('/search') === -1 && url.indexOf('/person/') === -1;
+    } catch(e) { return false; }
   }
 
   function init() {
@@ -82,14 +86,15 @@
 
     function addSettings() {
       if (!Lampa.SettingsApi || !Lampa.SettingsApi.addParam) {
-        setTimeout(addSettings, 1000);
+        setTimeout(addSettings, 500);
         return;
       }
-      if (!window.__filter_settings_done) {
-        window.__filter_settings_done = true;
+      if (!window.__filter_settings_ready) {
+        window.__filter_settings_ready = true;
         Lampa.SettingsApi.addComponent({
           component: 'filter_content',
-          name: Lampa.Lang.translate('filter_title')
+          name: Lampa.Lang.translate('filter_title'),
+          icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>'
         });
       }
 
@@ -128,19 +133,23 @@
     addSettings();
 
     Lampa.Listener.follow('build', function(e) {
-      if (e.type !== 'build' || !state.quality || !e.data || !e.data.object || !e.data.object.build) return;
-      setTimeout(function() {
-        var el = e.data.object.build.querySelector('.card__quality div');
-        if (el && el.textContent.trim().toUpperCase() === 'TS')
-          e.data.object.build.style.display = 'none';
-      }, 0);
+      try {
+        if (e.type !== 'build' || !state.quality || !e.data || !e.data.object || !e.data.object.build) return;
+        setTimeout(function() {
+          var el = e.data.object.build.querySelector('.card__quality div');
+          if (el && el.textContent.trim().toUpperCase() === 'TS')
+            e.data.object.build.style.display = 'none';
+        }, 0);
+      } catch(e) {}
     });
 
     Lampa.Listener.follow('request_secuses', function(e) {
-      if (e.params && e.params.url && isSearch(e.params.url) && e.data && Array.isArray(e.data.results)) {
-        e.data.original_length = e.data.results.length;
-        e.data.results = applyFilters(e.data.results);
-      }
+      try {
+        if (e.params && e.params.url && isSearch(e.params.url) && e.data && Array.isArray(e.data.results)) {
+          e.data.original_length = e.data.results.length;
+          e.data.results = applyFilters(e.data.results);
+        }
+      } catch(e) {}
     });
   }
 
