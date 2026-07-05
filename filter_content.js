@@ -1,13 +1,10 @@
 (function() {
   'use strict';
 
-  var state = {
-    asian: false,
-    language: false,
-    quality: false,
-    rating: false,
-    history: false
-  };
+  if (window.__content_filter_loaded) return;
+  window.__content_filter_loaded = true;
+
+  var state = { asian: false, language: false, quality: false, rating: false, history: false };
 
   function applyFilters(items) {
     var r = Lampa.Arrays.clone(items);
@@ -20,9 +17,7 @@
 
   function filterAsian(items) {
     var langs = ['ja','ko','zh','th','vi','hi','ta','te','ml','kn','bn','ur','pa','gu','mr','ne','si','my','km','lo','mn','ka','hy','az','kk','ky','tg','tk','uz'];
-    return items.filter(function(i) {
-      return !i || !i.original_language || langs.indexOf(i.original_language.toLowerCase()) === -1;
-    });
+    return items.filter(function(i) { return !i || !i.original_language || langs.indexOf(i.original_language.toLowerCase()) === -1; });
   }
 
   function filterLanguage(items) {
@@ -30,9 +25,7 @@
     return items.filter(function(i) {
       if (!i) return true;
       if (i.original_language === def) return true;
-      var orig = i.original_title || i.original_name;
-      var title = i.title || i.name;
-      return title !== orig;
+      return (i.original_title || i.original_name) !== (i.title || i.name);
     });
   }
 
@@ -59,12 +52,13 @@
       if (!card) return [];
       var eps = [];
       card.seasons.forEach(function(s) {
-        if (s.season_number > 0 && s.episode_count > 0 && s.air_date && new Date(s.air_date) < new Date()) {
+        if (s.season_number > 0 && s.episode_count > 0 && s.air_date && new Date(s.air_date) < new Date())
           for (var e = 1; e <= s.episode_count; e++) eps.push({s: s.season_number, e: e});
-        }
       });
-      (c.filter(function(x) { return x.id === id; })[0] || {}).episodes && (c.filter(function(x) { return x.id === id; })[0]).episodes.forEach(function(ep) {
-        if (ep.episode_number > 0 && ep.air_date && new Date(ep.air_date) < new Date()) eps.push({s: ep.season_number || 1, e: ep.episode_number});
+      var epData = (c.filter(function(x) { return x.id === id; })[0] || {});
+      if (epData.episodes) epData.episodes.forEach(function(ep) {
+        if (ep.episode_number > 0 && ep.air_date && new Date(ep.air_date) < new Date())
+          eps.push({s: ep.season_number || 1, e: ep.episode_number});
       });
       var uniq = [];
       eps.forEach(function(e) { if (!uniq.some(function(u) { return u.s === e.s && u.e === e.e; })) uniq.push(e); });
@@ -74,22 +68,19 @@
     function isWatched(title, watched) {
       if (!watched || !watched.length) return false;
       for (var i = 0; i < watched.length; i++) {
-        var h = Lampa.Utils.hash([watched[i].s, watched[i].s > 10 ? ':' : '', watched[i].e, title].join(''));
-        if (Lampa.Storage.get(h).percent === 0) return false;
+        var key = [watched[i].s, watched[i].s > 10 ? ':' : '', watched[i].e, title].join('');
+        if (Lampa.Storage.get(Lampa.Utils.hash(key)).percent === 0) return false;
       }
       return true;
     }
   }
 
-  function isSearch(url) {
+  function isSearchUrl(url) {
     var origin = Lampa.TMDB ? Lampa.TMDB.origin('') : '';
     return url.indexOf(origin) > -1 && url.indexOf('/search') === -1 && url.indexOf('/person/') === -1;
   }
 
   function init() {
-    if (window.__content_filter_loaded) return;
-    window.__content_filter_loaded = true;
-
     state.asian = Lampa.Storage.get('content_filter_asian', false);
     state.language = Lampa.Storage.get('content_filter_language', false);
     state.quality = Lampa.Storage.get('content_filter_quality', false);
@@ -98,11 +89,11 @@
 
     Lampa.Lang.add({
       content_filter: { ru: 'Фильтр контента', en: 'Content Filter', uk: 'Фільтр контенту' },
-      cf_asian: { ru: 'Убрать азиатский контент', en: 'Remove Asian Content', uk: 'Прибрати азіатський контент' },
-      cf_lang: { ru: 'Убрать контент на другом языке', en: 'Remove Other Language Content', uk: 'Прибрати контент іншою мовою' },
-      cf_quality: { ru: 'Убрать контент TS', en: 'Remove TS Quality Content', uk: 'Прибрати контент TS' },
-      cf_rating: { ru: 'Убрать низкорейтинговый', en: 'Remove Low-Rated Content', uk: 'Прибрати низько рейтинговий' },
-      cf_history: { ru: 'Убрать просмотренное', en: 'Hide Watched Content', uk: 'Приховати переглянуте' }
+      cf_asian: { ru: 'Убрать азиатский', en: 'Remove Asian', uk: 'Прибрати азіатський' },
+      cf_lang: { ru: 'Убрать контент на другом языке', en: 'Language Filter', uk: 'Мовний фільтр' },
+      cf_quality: { ru: 'Убрать TS качество', en: 'Remove TS', uk: 'Прибрати TS' },
+      cf_rating: { ru: 'Рейтинг ниже 6.0', en: 'Rating below 6.0', uk: 'Рейтинг нижче 6.0' },
+      cf_history: { ru: 'Просмотренное', en: 'Watched', uk: 'Переглянуте' }
     });
 
     Lampa.Settings.add('content_filter', {
@@ -119,13 +110,9 @@
 
     Lampa.Component.add('content_filter', function(object) {
       this.create = function() {
-        var div = $('<div class="content-filter__wrap"></div>');
-        object.append(div);
+        object.append($('<div class="content-filter__wrap"></div>'));
       };
-      this.start = function() {
-        Lampa.Controller.enable('content_filter');
-      };
-      this.stop = function() {};
+      this.start = function() { Lampa.Controller.enable('content_filter'); };
       this.destroy = function() {};
     });
 
@@ -142,20 +129,31 @@
       if (e.type !== 'build' || !state.quality || !e.data || !e.data.object || !e.data.object.build) return;
       setTimeout(function() {
         var el = e.data.object.build.querySelector('.card__quality div');
-        if (el && el.textContent.trim().toUpperCase() === 'TS') {
+        if (el && el.textContent.trim().toUpperCase() === 'TS')
           e.data.object.build.style.display = 'none';
-        }
       }, 0);
     });
 
     Lampa.Listener.follow('request_secuses', function(e) {
-      if (e.params && e.params.url && isSearch(e.params.url) && e.data && Array.isArray(e.data.results)) {
+      if (e.params && e.params.url && isSearchUrl(e.params.url) && e.data && Array.isArray(e.data.results)) {
         e.data.original_length = e.data.results.length;
         e.data.results = applyFilters(e.data.results);
       }
     });
   }
 
-  if (window.appready) init();
-  else $(document).on('appready', init);
+  if (typeof Lampa !== 'undefined' && Lampa.Listener) {
+    if (window.appready) init();
+    else Lampa.Listener.follow('app', function(e) { if (e.type === 'ready') init(); });
+  } else {
+    document.addEventListener('DOMContentLoaded', function() {
+      var check = setInterval(function() {
+        if (typeof Lampa !== 'undefined' && Lampa.Listener) {
+          clearInterval(check);
+          if (window.appready) init();
+          else Lampa.Listener.follow('app', function(e) { if (e.type === 'ready') init(); });
+        }
+      }, 100);
+    });
+  }
 })();
