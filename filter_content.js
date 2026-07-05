@@ -6,27 +6,25 @@
 
   var state = { asian: false, language: false, quality: false, rating: false, history: false };
 
-  function loadState() {
-    state.asian = Lampa.Storage.get('filter_asian', false);
-    state.language = Lampa.Storage.get('filter_language', false);
-    state.quality = Lampa.Storage.get('filter_quality', false);
-    state.rating = Lampa.Storage.get('filter_rating', false);
-    state.history = Lampa.Storage.get('filter_history', false);
-  }
+  function getSetting(key, def) { state[key] = Lampa.Storage.get('filter_' + key, def); }
 
   function applyFilters(items) {
     var r = Lampa.Arrays.clone(items);
+
     if (state.asian) r = r.filter(function(i) {
       if (!i || !i.original_language) return true;
       return ['ja','ko','zh','th','vi','hi','ta','te','ml','kn','bn','ur','pa','gu','mr','ne','si','my','km','lo','mn','ka','hy','az','kk','ky','tg','tk','uz'].indexOf(i.original_language.toLowerCase()) === -1;
     });
+
     if (state.language) r = r.filter(function(i) {
       if (!i) return true;
       var def = Lampa.Storage.get('language');
       if (i.original_language === def) return true;
       return (i.original_title || i.original_name) !== (i.title || i.name);
     });
+
     if (state.rating) r = r.filter(function(i) { return !i || (i.vote_average && i.vote_average >= 6); });
+
     if (state.history) r = r.filter(function(i) {
       if (!i || !i.original_language) return true;
       var type = i.media_type || (i.seasons ? 'tv' : 'movie');
@@ -56,24 +54,16 @@
       }
       return true;
     });
+
     return r;
   }
 
-  function isSearch(url) {
-    try {
-      if (!url) return false;
-      var origin = '';
-      if (typeof Lampa.TMDB !== 'undefined') {
-        if (typeof Lampa.TMDB.origin === 'function') origin = Lampa.TMDB.origin('');
-        else if (Lampa.Manifest && Lampa.Manifest.url) origin = Lampa.Manifest.url;
-        else origin = 'api.themoviedb.org';
-      }
-      return url.indexOf(origin) > -1 && url.indexOf('/search') === -1 && url.indexOf('/person/') === -1;
-    } catch(e) { return false; }
-  }
-
   function init() {
-    loadState();
+    getSetting('asian', false);
+    getSetting('language', false);
+    getSetting('quality', false);
+    getSetting('rating', false);
+    getSetting('history', false);
 
     Lampa.Lang.add({
       filter_title: { ru: 'Фильтр контента', en: 'Content Filter', uk: 'Фільтр контенту' },
@@ -98,36 +88,11 @@
         });
       }
 
-      Lampa.SettingsApi.addParam({
-        component: 'filter_content',
-        param: { name: 'filter_asian', type: 'trigger', default: false },
-        field: { name: Lampa.Lang.translate('filter_asian'), description: '' },
-        onChange: function(v) { state.asian = v; Lampa.Storage.set('filter_asian', v); }
-      });
-      Lampa.SettingsApi.addParam({
-        component: 'filter_content',
-        param: { name: 'filter_language', type: 'trigger', default: false },
-        field: { name: Lampa.Lang.translate('filter_lang'), description: '' },
-        onChange: function(v) { state.language = v; Lampa.Storage.set('filter_language', v); }
-      });
-      Lampa.SettingsApi.addParam({
-        component: 'filter_content',
-        param: { name: 'filter_quality', type: 'trigger', default: false },
-        field: { name: Lampa.Lang.translate('filter_quality'), description: '' },
-        onChange: function(v) { state.quality = v; Lampa.Storage.set('filter_quality', v); }
-      });
-      Lampa.SettingsApi.addParam({
-        component: 'filter_content',
-        param: { name: 'filter_rating', type: 'trigger', default: false },
-        field: { name: Lampa.Lang.translate('filter_rating'), description: '' },
-        onChange: function(v) { state.rating = v; Lampa.Storage.set('filter_rating', v); }
-      });
-      Lampa.SettingsApi.addParam({
-        component: 'filter_content',
-        param: { name: 'filter_history', type: 'trigger', default: false },
-        field: { name: Lampa.Lang.translate('filter_history'), description: '' },
-        onChange: function(v) { state.history = v; Lampa.Storage.set('filter_history', v); }
-      });
+      Lampa.SettingsApi.addParam({ component: 'filter_content', param: { name: 'filter_asian', type: 'trigger', default: false }, field: { name: Lampa.Lang.translate('filter_asian'), description: '' }, onChange: function(v) { state.asian = v; Lampa.Storage.set('filter_asian', v); } });
+      Lampa.SettingsApi.addParam({ component: 'filter_content', param: { name: 'filter_language', type: 'trigger', default: false }, field: { name: Lampa.Lang.translate('filter_lang'), description: '' }, onChange: function(v) { state.language = v; Lampa.Storage.set('filter_language', v); } });
+      Lampa.SettingsApi.addParam({ component: 'filter_content', param: { name: 'filter_quality', type: 'trigger', default: false }, field: { name: Lampa.Lang.translate('filter_quality'), description: '' }, onChange: function(v) { state.quality = v; Lampa.Storage.set('filter_quality', v); } });
+      Lampa.SettingsApi.addParam({ component: 'filter_content', param: { name: 'filter_rating', type: 'trigger', default: false }, field: { name: Lampa.Lang.translate('filter_rating'), description: '' }, onChange: function(v) { state.rating = v; Lampa.Storage.set('filter_rating', v); } });
+      Lampa.SettingsApi.addParam({ component: 'filter_content', param: { name: 'filter_history', type: 'trigger', default: false }, field: { name: Lampa.Lang.translate('filter_history'), description: '' }, onChange: function(v) { state.history = v; Lampa.Storage.set('filter_history', v); } });
     }
 
     addSettings();
@@ -145,7 +110,7 @@
 
     Lampa.Listener.follow('request_secuses', function(e) {
       try {
-        if (e.params && e.params.url && isSearch(e.params.url) && e.data && Array.isArray(e.data.results)) {
+        if (e.data && Array.isArray(e.data.results)) {
           e.data.original_length = e.data.results.length;
           e.data.results = applyFilters(e.data.results);
         }
