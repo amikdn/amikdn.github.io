@@ -80,45 +80,52 @@
       filter_history: { ru: 'Просмотренное', en: 'Watched', uk: 'Переглянуте' }
     });
 
-    if (Lampa.SettingsApi && Lampa.SettingsApi.addParam) {
-      Lampa.SettingsApi.addParam({
-        component: 'interface',
-        param: { name: 'filter_settings', type: 'object', default: true },
-        field: { name: Lampa.Lang.translate('filter_title'), description: '' },
-        onRender: function() {}
-      });
+    function addSettings() {
+      if (!Lampa.SettingsApi || !Lampa.SettingsApi.addParam) {
+        setTimeout(addSettings, 1000);
+        return;
+      }
+      if (!window.__filter_settings_done) {
+        window.__filter_settings_done = true;
+        Lampa.SettingsApi.addComponent({
+          component: 'filter_content',
+          name: Lampa.Lang.translate('filter_title')
+        });
+      }
 
       Lampa.SettingsApi.addParam({
-        component: 'filter_settings',
+        component: 'filter_content',
         param: { name: 'filter_asian', type: 'trigger', default: false },
         field: { name: Lampa.Lang.translate('filter_asian'), description: '' },
         onChange: function(v) { state.asian = v; Lampa.Storage.set('filter_asian', v); }
       });
       Lampa.SettingsApi.addParam({
-        component: 'filter_settings',
+        component: 'filter_content',
         param: { name: 'filter_language', type: 'trigger', default: false },
         field: { name: Lampa.Lang.translate('filter_lang'), description: '' },
         onChange: function(v) { state.language = v; Lampa.Storage.set('filter_language', v); }
       });
       Lampa.SettingsApi.addParam({
-        component: 'filter_settings',
+        component: 'filter_content',
         param: { name: 'filter_quality', type: 'trigger', default: false },
         field: { name: Lampa.Lang.translate('filter_quality'), description: '' },
         onChange: function(v) { state.quality = v; Lampa.Storage.set('filter_quality', v); }
       });
       Lampa.SettingsApi.addParam({
-        component: 'filter_settings',
+        component: 'filter_content',
         param: { name: 'filter_rating', type: 'trigger', default: false },
         field: { name: Lampa.Lang.translate('filter_rating'), description: '' },
         onChange: function(v) { state.rating = v; Lampa.Storage.set('filter_rating', v); }
       });
       Lampa.SettingsApi.addParam({
-        component: 'filter_settings',
+        component: 'filter_content',
         param: { name: 'filter_history', type: 'trigger', default: false },
         field: { name: Lampa.Lang.translate('filter_history'), description: '' },
         onChange: function(v) { state.history = v; Lampa.Storage.set('filter_history', v); }
       });
     }
+
+    addSettings();
 
     Lampa.Listener.follow('build', function(e) {
       if (e.type !== 'build' || !state.quality || !e.data || !e.data.object || !e.data.object.build) return;
