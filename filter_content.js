@@ -117,6 +117,18 @@
       ]
     });
 
+    Lampa.Component.add('content_filter', function(object) {
+      this.create = function() {
+        var div = $('<div class="content-filter__wrap"></div>');
+        object.append(div);
+      };
+      this.start = function() {
+        Lampa.Controller.enable('content_filter');
+      };
+      this.stop = function() {};
+      this.destroy = function() {};
+    });
+
     Lampa.Storage.listener.follow('change', function(e) {
       if (!e.key || e.key.indexOf('content_filter_') !== 0) return;
       state.asian = Lampa.Storage.get('content_filter_asian', false);
@@ -126,8 +138,8 @@
       state.history = Lampa.Storage.get('content_filter_history', false);
     });
 
-    Lampa.Listener.follow('quality_filter', function(e) {
-      if (!state.quality || !e.data || !e.data.object || !e.data.object.build) return;
+    Lampa.Listener.follow('build', function(e) {
+      if (e.type !== 'build' || !state.quality || !e.data || !e.data.object || !e.data.object.build) return;
       setTimeout(function() {
         var el = e.data.object.build.querySelector('.card__quality div');
         if (el && el.textContent.trim().toUpperCase() === 'TS') {
