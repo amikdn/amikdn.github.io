@@ -1,17 +1,17 @@
 (function() {
   'use strict';
 
-  if (window.__cf_loaded) return;
-  window.__cf_loaded = true;
+  if (window.__filter_content_loaded) return;
+  window.__filter_content_loaded = true;
 
   var state = { asian: false, language: false, quality: false, rating: false, history: false };
 
   function loadState() {
-    state.asian = Lampa.Storage.get('cf_asian', false);
-    state.language = Lampa.Storage.get('cf_language', false);
-    state.quality = Lampa.Storage.get('cf_quality', false);
-    state.rating = Lampa.Storage.get('cf_rating', false);
-    state.history = Lampa.Storage.get('cf_history', false);
+    state.asian = Lampa.Storage.get('filter_asian', false);
+    state.language = Lampa.Storage.get('filter_language', false);
+    state.quality = Lampa.Storage.get('filter_quality', false);
+    state.rating = Lampa.Storage.get('filter_rating', false);
+    state.history = Lampa.Storage.get('filter_history', false);
   }
 
   function applyFilters(items) {
@@ -61,66 +61,63 @@
 
   function isSearch(url) {
     if (!url) return false;
-    var o = (Lampa.TMDB && typeof Lampa.TMDB.origin === 'function') ? Lampa.TMDB.origin('') : (Lampa.Manifest ? Lampa.Manifest.url : '');
-    return url.indexOf(o) > -1 && url.indexOf('/search') === -1 && url.indexOf('/person/') === -1;
+    var o = '';
+    if (Lampa.TMDB) {
+      o = typeof Lampa.TMDB.origin === 'function' ? Lampa.TMDB.origin('') : (Lampa.Manifest ? Lampa.Manifest.url : '');
+    }
+    return o && url.indexOf(o) > -1 && url.indexOf('/search') === -1 && url.indexOf('/person/') === -1;
   }
 
   function init() {
     loadState();
 
     Lampa.Lang.add({
-      cf_title: { ru: 'Фильтр контента', en: 'Content Filter', uk: 'Фільтр контенту' },
-      cf_asian: { ru: 'Убрать азиатский', en: 'Remove Asian', uk: 'Прибрати азіатський' },
-      cf_lang: { ru: 'Контент на другом языке', en: 'Language Filter', uk: 'Мовний фільтр' },
-      cf_quality: { ru: 'Убрать качество TS', en: 'Remove TS', uk: 'Прибрати TS' },
-      cf_rating: { ru: 'Рейтинг ниже 6.0', en: 'Rating below 6.0', uk: 'Рейтинг нижче 6.0' },
-      cf_history: { ru: 'Просмотренное', en: 'Watched', uk: 'Переглянуте' }
+      filter_title: { ru: 'Фильтр контента', en: 'Content Filter', uk: 'Фільтр контенту' },
+      filter_asian: { ru: 'Убрать азиатский', en: 'Remove Asian', uk: 'Прибрати азіатський' },
+      filter_lang: { ru: 'Контент на другом языке', en: 'Language Filter', uk: 'Мовний фільтр' },
+      filter_quality: { ru: 'Убрать TS', en: 'Remove TS', uk: 'Прибрати TS' },
+      filter_rating: { ru: 'Рейтинг ниже 6.0', en: 'Rating below 6.0', uk: 'Рейтинг нижче 6.0' },
+      filter_history: { ru: 'Просмотренное', en: 'Watched', uk: 'Переглянуте' }
     });
 
-    var items = [
-      { name: Lampa.Lang.translate('cf_asian'), type: 'trigger', field: 'cf_asian', default: false, onChange: function(v) { state.asian = v; Lampa.Storage.set('cf_asian', v); } },
-      { name: Lampa.Lang.translate('cf_lang'), type: 'trigger', field: 'cf_language', default: false, onChange: function(v) { state.language = v; Lampa.Storage.set('cf_language', v); } },
-      { name: Lampa.Lang.translate('cf_quality'), type: 'trigger', field: 'cf_quality', default: false, onChange: function(v) { state.quality = v; Lampa.Storage.set('cf_quality', v); } },
-      { name: Lampa.Lang.translate('cf_rating'), type: 'trigger', field: 'cf_rating', default: false, onChange: function(v) { state.rating = v; Lampa.Storage.set('cf_rating', v); } },
-      { name: Lampa.Lang.translate('cf_history'), type: 'trigger', field: 'cf_history', default: false, onChange: function(v) { state.history = v; Lampa.Storage.set('cf_history', v); } }
-    ];
-
-    if (typeof Lampa.Settings.open === 'function') {
-      var folder = $('<div class="settings-folder selector" data-component="cf_settings" data-static="true">' +
-        '<div class="settings-folder__icon">' +
-        '<svg width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>' +
-        '</div>' +
-        '<div class="settings-folder__name">' + Lampa.Lang.translate('cf_title') + '</div>' +
-        '</div>');
-
-      Lampa.Settings.main().render().find('[data-component="more"]').after(folder);
-      Lampa.Settings.main().update();
-
-      Lampa.Settings.listener.follow('open', function(e) {
-        if (e.name == 'main') {
-          e.body.find('[data-component="cf_settings"]').on('hover:enter', function() {
-            Lampa.Settings.open('cf_settings', { name: Lampa.Lang.translate('cf_title'), items: items });
-          });
-        }
+    if (Lampa.SettingsApi && Lampa.SettingsApi.addParam) {
+      Lampa.SettingsApi.addParam({
+        component: 'interface',
+        param: { name: 'filter_settings', type: 'object', default: true },
+        field: { name: Lampa.Lang.translate('filter_title'), description: '' },
+        onRender: function() {}
       });
-    } else {
-      // Fallback: add via SettingsApi
-      if (typeof Lampa.SettingsApi !== 'undefined' && Lampa.SettingsApi.addParam) {
-        Lampa.SettingsApi.addParam({
-          component: 'interface',
-          param: { name: 'cf_settings', type: 'object', default: true },
-          field: { name: Lampa.Lang.translate('cf_title'), description: '' },
-          onRender: function() {}
-        });
-        items.forEach(function(it) {
-          Lampa.SettingsApi.addParam({
-            component: 'cf_settings',
-            param: { name: it.field, type: 'trigger', default: false },
-            field: { name: it.name, description: '' },
-            onChange: it.onChange
-          });
-        });
-      }
+
+      Lampa.SettingsApi.addParam({
+        component: 'filter_settings',
+        param: { name: 'filter_asian', type: 'trigger', default: false },
+        field: { name: Lampa.Lang.translate('filter_asian'), description: '' },
+        onChange: function(v) { state.asian = v; Lampa.Storage.set('filter_asian', v); }
+      });
+      Lampa.SettingsApi.addParam({
+        component: 'filter_settings',
+        param: { name: 'filter_language', type: 'trigger', default: false },
+        field: { name: Lampa.Lang.translate('filter_lang'), description: '' },
+        onChange: function(v) { state.language = v; Lampa.Storage.set('filter_language', v); }
+      });
+      Lampa.SettingsApi.addParam({
+        component: 'filter_settings',
+        param: { name: 'filter_quality', type: 'trigger', default: false },
+        field: { name: Lampa.Lang.translate('filter_quality'), description: '' },
+        onChange: function(v) { state.quality = v; Lampa.Storage.set('filter_quality', v); }
+      });
+      Lampa.SettingsApi.addParam({
+        component: 'filter_settings',
+        param: { name: 'filter_rating', type: 'trigger', default: false },
+        field: { name: Lampa.Lang.translate('filter_rating'), description: '' },
+        onChange: function(v) { state.rating = v; Lampa.Storage.set('filter_rating', v); }
+      });
+      Lampa.SettingsApi.addParam({
+        component: 'filter_settings',
+        param: { name: 'filter_history', type: 'trigger', default: false },
+        field: { name: Lampa.Lang.translate('filter_history'), description: '' },
+        onChange: function(v) { state.history = v; Lampa.Storage.set('filter_history', v); }
+      });
     }
 
     Lampa.Listener.follow('build', function(e) {
