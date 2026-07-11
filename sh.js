@@ -55,9 +55,9 @@
         s1: {
             label: 'Online',
             mirrors: [
+                decodeHidden('aHR0cDovLzE4NS4xMjEuMjM1LjEyNDoxMTE3Ni8='),
                 decodeHidden('aHR0cDovL3Nob3d5cHJvLmNvbS8='),
-                decodeHidden('aHR0cDovL3Ntb3RyZXRrLmNvbS8='),
-                decodeHidden('aHR0cDovLzE4NS4xMjEuMjM1LjEyNDoxMTE3Ni8=')
+                decodeHidden('aHR0cDovL3Ntb3RyZXRrLmNvbS8=')
             ],
             currentIndex: 0,
             uid: decodeHidden('aThucWI5dnc='),
