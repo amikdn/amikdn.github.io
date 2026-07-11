@@ -1,7 +1,7 @@
 (function() {
     'use strict';
 
-    var PLUGIN_VERSION = '1.86';
+    var PLUGIN_VERSION = '1.87';
     var EDIT_ORDER_BUTTON_ID = 'buttons_plugin_edit_order';
     var FULL_EVENT_TYPE = 'complite';
     var DELAY_AFTER_APPLY_MS = 100;
@@ -2436,6 +2436,8 @@
         options = options || {};
         var targetContainer = container.find('.full-start-new__buttons');
         if (!targetContainer.length) return false;
+        var focusedButton = targetContainer.find('.full-start__button.focus').first();
+        var focusedButtonId = focusedButton.length ? getButtonId(focusedButton) : '';
         currentContainer = container;
         var isApplecation = container.hasClass('applecation');
         if (!isApplecation) {
@@ -2537,6 +2539,16 @@
         }
         setTimeout(function() {
             setupButtonNavigation(container);
+            if (focusedButtonId && Lampa.Controller && typeof Lampa.Controller.collectionFocus === 'function') {
+                var restoredFocus = targetContainer.find('.full-start__button').filter(function() {
+                    return getButtonId($(this)) === focusedButtonId;
+                }).first();
+                if (restoredFocus.length) {
+                    try {
+                        Lampa.Controller.collectionFocus(restoredFocus, targetContainer);
+                    } catch (e) { logDebug('restore button focus', e); }
+                }
+            }
         }, DELAY_AFTER_APPLY_MS);
         return true;
     }
