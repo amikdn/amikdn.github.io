@@ -16,11 +16,26 @@
     var showyUid = decodeHidden('aThucWI5dnc=');
     var showyToken = decodeHidden('ZjgzNzcwNTctOTBlYi00ZDc2LTkzYzktNzYwNTk1MmEwOTZs');
 
-    function start() {
+    function lockCredentials() {
+        if (!Lampa.Storage.__showyOriginalSet) {
+            Lampa.Storage.__showyOriginalSet = Lampa.Storage.set;
+            Lampa.Storage.set = function(name, value) {
+                if (name === 'lampac_unic_id') value = showyUid;
+                if (name === 'showy_token') value = showyToken;
+                return Lampa.Storage.__showyOriginalSet.call(Lampa.Storage, name, value);
+            };
+        }
+
         Lampa.Storage.set('lampac_unic_id', showyUid);
         Lampa.Storage.set('showy_token', showyToken);
+    }
 
-        Lampa.Utils.putScript([pluginUrl], function() {}, false, function() {}, true);
+    function start() {
+        lockCredentials();
+
+        Lampa.Utils.putScript([pluginUrl], function() {
+            lockCredentials();
+        }, false, function() {}, true);
     }
 
     if (window.appready) {
