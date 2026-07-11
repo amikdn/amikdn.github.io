@@ -1,7 +1,7 @@
 (function() {
     'use strict';
 
-    var PLUGIN_VERSION = '1.82';
+    var PLUGIN_VERSION = '1.83';
     var EDIT_ORDER_BUTTON_ID = 'buttons_plugin_edit_order';
     var FULL_EVENT_TYPE = 'complite';
     var DELAY_AFTER_APPLY_MS = 100;
@@ -188,7 +188,7 @@
             refreshTimer = setTimeout(function() {
                 if (!container.closest('html').length) return;
                 container.data('buttons-processed', true);
-                if (reorderButtons(container)) refreshController();
+                if (reorderButtons(container, { animate: false })) refreshController();
             }, 50);
         });
 
@@ -2412,7 +2412,8 @@
         }, 250);
     }
 
-    function reorderButtons(container) {
+    function reorderButtons(container, options) {
+        options = options || {};
         var targetContainer = container.find('.full-start-new__buttons');
         if (!targetContainer.length) return false;
         currentContainer = container;
@@ -2506,7 +2507,13 @@
         targetContainer.removeClass('icons-only always-text');
         if (viewmode === 'icons') targetContainer.addClass('icons-only');
         if (viewmode === 'always') targetContainer.addClass('always-text');
-        applyButtonAnimation(visibleButtons, isApplecation);
+        if (options.animate === false) {
+            visibleButtons.forEach(function(btn) {
+                btn.css({ 'opacity': '1', 'animation': 'none', 'animation-delay': '' });
+            });
+        } else {
+            applyButtonAnimation(visibleButtons, isApplecation);
+        }
         setTimeout(function() {
             setupButtonNavigation(container);
         }, DELAY_AFTER_APPLY_MS);
@@ -2719,7 +2726,7 @@
                                     }
                                 });
                                 if (hasNewButtons) {
-                                    reorderButtons(container);
+                                    reorderButtons(container, { animate: false });
                                 }
                                 watchForLateButtons(container);
                             }
