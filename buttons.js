@@ -1,7 +1,7 @@
 (function() {
     'use strict';
 
-    var PLUGIN_VERSION = '1.81';
+    var PLUGIN_VERSION = '1.82';
     var EDIT_ORDER_BUTTON_ID = 'buttons_plugin_edit_order';
     var FULL_EVENT_TYPE = 'complite';
     var DELAY_AFTER_APPLY_MS = 100;
@@ -147,6 +147,54 @@
     var allButtonsCache = [];
     var allButtonsOriginal = [];
     var currentContainer = null;
+
+    function isKnownButton(btn) {
+        var btnId = getButtonId(btn);
+        for (var i = 0; i < allButtonsCache.length; i++) {
+            if (getButtonId(allButtonsCache[i]) === btnId) return true;
+        }
+        return false;
+    }
+
+    function watchForLateButtons(container) {
+        if (typeof MutationObserver === 'undefined' || !container || !container.length) return;
+        var target = container.find('.full-start-new__buttons');
+        if (!target.length || target.data('buttons-late-observer')) return;
+
+        var refreshTimer = null;
+        var observer = new MutationObserver(function(mutations) {
+            var hasUnknownButton = false;
+            for (var i = 0; i < mutations.length && !hasUnknownButton; i++) {
+                var added = mutations[i].addedNodes || [];
+                for (var j = 0; j < added.length; j++) {
+                    var node = added[j];
+                    if (!node || node.nodeType !== 1) continue;
+                    var candidates = $(node).is('.full-start__button')
+                        ? $(node)
+                        : $(node).find('.full-start__button');
+                    candidates.each(function() {
+                        var btn = $(this);
+                        if (!isExcluded(btn) && !isKnownButton(btn)) {
+                            hasUnknownButton = true;
+                            return false;
+                        }
+                    });
+                    if (hasUnknownButton) break;
+                }
+            }
+            if (!hasUnknownButton) return;
+
+            clearTimeout(refreshTimer);
+            refreshTimer = setTimeout(function() {
+                if (!container.closest('html').length) return;
+                container.data('buttons-processed', true);
+                if (reorderButtons(container)) refreshController();
+            }, 50);
+        });
+
+        observer.observe(target[0], { childList: true, subtree: true });
+        target.data('buttons-late-observer', observer);
+    }
 
     function findButton(btnId) {
         var btn = allButtonsOriginal.find(function(b) { return getButtonId(b) === btnId; });
@@ -2645,6 +2693,7 @@
                     if (!container.data('buttons-processed')) {
                         container.data('buttons-processed', true);
                         if (reorderButtons(container)) {
+                            watchForLateButtons(container);
                             if (targetContainer.length) {
                                 targetContainer.removeClass('buttons-loading');
                             }
@@ -2672,6 +2721,7 @@
                                 if (hasNewButtons) {
                                     reorderButtons(container);
                                 }
+                                watchForLateButtons(container);
                             }
                         }, 600);
                     }
