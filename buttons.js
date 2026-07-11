@@ -1,7 +1,7 @@
 (function() {
     'use strict';
 
-    var PLUGIN_VERSION = '1.85';
+    var PLUGIN_VERSION = '1.86';
     var EDIT_ORDER_BUTTON_ID = 'buttons_plugin_edit_order';
     var FULL_EVENT_TYPE = 'complite';
     var DELAY_AFTER_APPLY_MS = 100;
@@ -2722,9 +2722,6 @@
                         container.data('buttons-processed', true);
                         if (reorderButtons(container)) {
                             watchForLateButtons(container);
-                            setTimeout(function() { reconcileLateButtons(container); }, 750);
-                            setTimeout(function() { reconcileLateButtons(container); }, 1500);
-                            setTimeout(function() { reconcileLateButtons(container); }, 3000);
                             if (targetContainer.length) {
                                 targetContainer.removeClass('buttons-loading');
                             }
