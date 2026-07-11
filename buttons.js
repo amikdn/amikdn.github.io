@@ -1,7 +1,7 @@
 (function() {
     'use strict';
 
-    var PLUGIN_VERSION = '1.83';
+    var PLUGIN_VERSION = '1.85';
     var EDIT_ORDER_BUTTON_ID = 'buttons_plugin_edit_order';
     var FULL_EVENT_TYPE = 'complite';
     var DELAY_AFTER_APPLY_MS = 100;
@@ -151,9 +151,28 @@
     function isKnownButton(btn) {
         var btnId = getButtonId(btn);
         for (var i = 0; i < allButtonsCache.length; i++) {
-            if (getButtonId(allButtonsCache[i]) === btnId) return true;
+            if (getButtonId(allButtonsCache[i]) === btnId && allButtonsCache[i][0] === btn[0]) return true;
         }
         return false;
+    }
+
+    function reconcileLateButtons(container) {
+        if (!container || !container.length || !container.closest('html').length) return;
+        var animationUntil = container.data('buttons-animation-until') || 0;
+        var waitForAnimation = animationUntil - Date.now();
+        if (waitForAnimation > 0) {
+            setTimeout(function() { reconcileLateButtons(container); }, waitForAnimation + 30);
+            return;
+        }
+        var hasUnknownButton = false;
+        container.find('.full-start-new__buttons .full-start__button').each(function() {
+            var btn = $(this);
+            if (!isExcluded(btn) && !isKnownButton(btn)) {
+                hasUnknownButton = true;
+                return false;
+            }
+        });
+        if (hasUnknownButton && reorderButtons(container, { animate: false })) refreshController();
     }
 
     function watchForLateButtons(container) {
@@ -185,11 +204,12 @@
             if (!hasUnknownButton) return;
 
             clearTimeout(refreshTimer);
+            var animationUntil = container.data('buttons-animation-until') || 0;
+            var refreshDelay = Math.max(50, animationUntil - Date.now() + 30);
             refreshTimer = setTimeout(function() {
-                if (!container.closest('html').length) return;
                 container.data('buttons-processed', true);
-                if (reorderButtons(container, { animate: false })) refreshController();
-            }, 50);
+                reconcileLateButtons(container);
+            }, refreshDelay);
         });
 
         observer.observe(target[0], { childList: true, subtree: true });
@@ -2513,6 +2533,7 @@
             });
         } else {
             applyButtonAnimation(visibleButtons, isApplecation);
+            container.data('buttons-animation-until', Date.now() + 450 + Math.max(0, visibleButtons.length - 1) * 80);
         }
         setTimeout(function() {
             setupButtonNavigation(container);
@@ -2701,6 +2722,9 @@
                         container.data('buttons-processed', true);
                         if (reorderButtons(container)) {
                             watchForLateButtons(container);
+                            setTimeout(function() { reconcileLateButtons(container); }, 750);
+                            setTimeout(function() { reconcileLateButtons(container); }, 1500);
+                            setTimeout(function() { reconcileLateButtons(container); }, 3000);
                             if (targetContainer.length) {
                                 targetContainer.removeClass('buttons-loading');
                             }
