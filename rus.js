@@ -42,9 +42,9 @@
 
     // Коллекции
     var collections = [
-      { title: 'Русские фильмы',     img: 'https://amikdn.github.io/img/rus_movie.jpg', svg: rusSvg },
-      { title: 'Русские сериалы',    img: 'https://amikdn.github.io/img/rus_tv.jpg',     svg: rusSvg },
-      { title: 'Русские мультфильмы',img: 'https://amikdn.github.io/img/rus_mult.jpg',   svg: rusSvg },
+      { title: 'Русские фильмы',     img: 'https://amikdn.github.io/img/r_movies.png', svg: rusSvg },
+      { title: 'Русские сериалы',    img: 'https://amikdn.github.io/img/r_serials.png',     svg: rusSvg },
+      { title: 'Русские мультфильмы',img: 'https://amikdn.github.io/img/r_mult.png',   svg: rusSvg },
       { title: 'Start',              img: 'https://amikdn.github.io/img/start.jpg',      svg: startSvg },
       { title: 'Premier',            img: 'https://amikdn.github.io/img/premier.jpg',    svg: premierSvg },
       { title: 'KION',               img: 'https://amikdn.github.io/img/kion.jpg',       svg: kionSvg },
