@@ -6,7 +6,8 @@
         asian_filter_enabled: false,
         language_filter_enabled: false,
         rating_filter_enabled: false,
-        history_filter_enabled: false
+        history_filter_enabled: false,
+        ts_filter_enabled: false
     };
 
     // Функция проверки, является ли элемент медиа-контентом
@@ -50,6 +51,44 @@
         if (!hasMediaFields) return false;
         
         return true;
+    }
+
+    function settingEnabled(value) {
+        return value === true || value === 'true' || value === '1' || value === 1;
+    }
+
+    function mediaType(item) {
+        if (!item) return 'movie';
+        var type = item.media_type || item.type || item.method;
+        if (type === 'tv' || type === 'movie') return type;
+        return item.name || item.original_name || item.first_air_date || item.number_of_seasons ? 'tv' : 'movie';
+    }
+
+    function isTsText(value) {
+        if (value == null) return false;
+        var text = String(value).toLowerCase().replace(/ё/g, 'е');
+        return /(^|[\s,;:/|()\[\]{}._-])(ts|тс|telesync|telesynch)(?=$|[\s,;:/|()\[\]{}._-])/i.test(text);
+    }
+
+    function hasTsQuality(item) {
+        if (!item) return false;
+        var values = [
+            item.quality,
+            item.video_quality,
+            item.release_quality,
+            item.source_quality,
+            item.resolution,
+            item.info && item.info.quality,
+            item.Info && item.Info.quality,
+            item.card && item.card.quality,
+            item.card && item.card.release_quality,
+            item.data && item.data.quality,
+            item.data && item.data.release_quality
+        ];
+        for (var i = 0; i < values.length; i++) {
+            if (isTsText(values[i])) return true;
+        }
+        return false;
     }
 
     // Процессор фильтров
@@ -104,6 +143,15 @@
                 });
             },
 
+            // Фильтр качества TS. Проверяет поля ответа и общий кэш card_overlay.
+            function (items) {
+                if (!settings.ts_filter_enabled) return items;
+                return items.filter(function (item) {
+                    if (!isMediaContent(item)) return true;
+                    return !hasTsQuality(item);
+                });
+            },
+
             function (items) {
                 if (!settings.history_filter_enabled) return items;
 
@@ -135,6 +183,8 @@
             rating_filter_desc: { ru: 'Скрываем карточки с рейтингом ниже 6.0' },
             history_filter: { ru: 'Убрать просмотренный контент' },
             history_filter_desc: { ru: 'Скрываем карточки фильмов и сериалов из истории, которые вы закончили смотреть' },
+            ts_filter: { ru: 'Убрать качество TS' },
+            ts_filter_desc: { ru: 'Скрываем карточки с отметкой качества TS в данных Lampa' },
             more: { ru: 'ещё' },
             title_category: { ru: 'Категория' }
         });
@@ -176,7 +226,7 @@
             }
         });
 
-        ['asian', 'language', 'rating', 'history'].forEach(function (type) {
+        ['asian', 'language', 'rating', 'history', 'ts'].forEach(function (type) {
             Lampa.SettingsApi.addParam({
                 component: 'content_filters',
                 param: { name: type + '_filter_enabled', type: 'trigger', default: false },
@@ -185,18 +235,88 @@
                     description: Lampa.Lang.translate(type + '_filter_desc')
                 },
                 onChange: function (value) {
-                    settings[type + '_filter_enabled'] = value;
-                    Lampa.Storage.set(type + '_filter_enabled', value);
+                    var enabled = settingEnabled(value);
+                    settings[type + '_filter_enabled'] = enabled;
+                    Lampa.Storage.set(type + '_filter_enabled', enabled);
+                    if (type === 'ts') applyTsDomFilter();
                 }
             });
         });
     }
 
     function loadSettings() {
-        settings.asian_filter_enabled = Lampa.Storage.get('asian_filter_enabled', false);
-        settings.language_filter_enabled = Lampa.Storage.get('language_filter_enabled', false);
-        settings.rating_filter_enabled = Lampa.Storage.get('rating_filter_enabled', false);
-        settings.history_filter_enabled = Lampa.Storage.get('history_filter_enabled', false);
+        settings.asian_filter_enabled = settingEnabled(Lampa.Storage.get('asian_filter_enabled', false));
+        settings.language_filter_enabled = settingEnabled(Lampa.Storage.get('language_filter_enabled', false));
+        settings.rating_filter_enabled = settingEnabled(Lampa.Storage.get('rating_filter_enabled', false));
+        settings.history_filter_enabled = settingEnabled(Lampa.Storage.get('history_filter_enabled', false));
+        settings.ts_filter_enabled = settingEnabled(Lampa.Storage.get('ts_filter_enabled', false));
+    }
+
+    var tsQualityObserver = null;
+
+    function hideTsCard(card) {
+        if (!card || card.nodeType !== 1 || card.getAttribute('data-content-filter-ts') === '1') return;
+        card.setAttribute('data-content-filter-ts', '1');
+        card.setAttribute('data-content-filter-ts-display', card.style.display || '');
+        card.style.setProperty('display', 'none', 'important');
+    }
+
+    function restoreTsCard(card) {
+        if (!card || card.getAttribute('data-content-filter-ts') !== '1') return;
+        var previous = card.getAttribute('data-content-filter-ts-display') || '';
+        card.removeAttribute('data-content-filter-ts');
+        card.removeAttribute('data-content-filter-ts-display');
+        if (previous) card.style.setProperty('display', previous);
+        else card.style.removeProperty('display');
+    }
+
+    function cardHasNativeTs(card) {
+        if (!card) return false;
+        if (hasTsQuality(card.card_data || card.data || null)) return true;
+        if (isTsText(card.getAttribute('data-quality')) || isTsText(card.getAttribute('data-release-quality'))) return true;
+        var qualityNodes = card.querySelectorAll('.card__quality, .tag--quality, [data-quality], [data-release-quality]');
+        for (var i = 0; i < qualityNodes.length; i++) {
+            var node = qualityNodes[i];
+            if (isTsText(node.textContent) || isTsText(node.getAttribute('data-quality')) || isTsText(node.getAttribute('data-release-quality'))) return true;
+        }
+        return false;
+    }
+
+    function processNativeTsCard(card) {
+        if (!card) return;
+        if (settings.ts_filter_enabled && cardHasNativeTs(card)) hideTsCard(card);
+        else restoreTsCard(card);
+    }
+
+    function processTsQualityNode(node) {
+        if (!node || node.nodeType !== 1) return;
+        var card = node.matches && node.matches('.card') ? node : closest(node, '.card');
+        if (card) processNativeTsCard(card);
+        if (node.querySelectorAll) {
+            var cards = node.querySelectorAll('.card');
+            for (var i = 0; i < cards.length; i++) processNativeTsCard(cards[i]);
+        }
+    }
+
+    function applyTsDomFilter() {
+        var cards = document.querySelectorAll('.card');
+        for (var i = 0; i < cards.length; i++) processNativeTsCard(cards[i]);
+    }
+
+    function startTsQualityObserver() {
+        if (tsQualityObserver || typeof MutationObserver === 'undefined') return;
+        tsQualityObserver = new MutationObserver(function (mutations) {
+            if (!settings.ts_filter_enabled) return;
+            for (var i = 0; i < mutations.length; i++) {
+                var mutation = mutations[i];
+                var added = mutation.addedNodes || [];
+                for (var j = 0; j < added.length; j++) processTsQualityNode(added[j]);
+                var card = closest(mutation.target, '.card');
+                if (card) processNativeTsCard(card);
+            }
+        });
+        try { tsQualityObserver.observe(document.body, { childList: true, subtree: true }); } catch (e) {}
+        applyTsDomFilter();
     }
 
     function needMoreButton(data) {
@@ -217,10 +337,17 @@
     function initPlugin() {
         if (window.content_filter_plugin) return;
         window.content_filter_plugin = true;
+        try { console.log('[filter_content] v1.3-native-ts active'); } catch (e) {}
 
         loadSettings();
         addRussianTranslations();
         addSettings();
+        startTsQualityObserver();
+
+        Lampa.Listener.follow('line', function (e) {
+            if (!settings.ts_filter_enabled || (e.type !== 'visible' && e.type !== 'append')) return;
+            setTimeout(applyTsDomFilter, 50);
+        });
 
         Lampa.Listener.follow('line', function (e) {
             if (e.type !== 'visible' || !needMoreButton(e.data)) return;
@@ -304,3 +431,4 @@
         });
     }
 })();
+;
