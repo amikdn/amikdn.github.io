@@ -271,16 +271,6 @@
     var REQUEST_QUEUES = {
         kp: { tasks: [], processing: false, interval: 350, batch: 1 },
         fast: { tasks: [], processing: false, interval: 120, batch: 2 }
-        // NOTE: there is deliberately NO dedicated "lampa" queue. Lampa-reactions
-        // requests are fired DIRECTLY (see fetchLampaRating). Every form of throttle/
-        // concurrency queue we tried (time-paced LIFO, then concurrency-gated FIFO)
-        // made posters LOSE ratings: lampa reqs all hit one host (cubnotrip.top), and
-        // pacing them behind a queue left requests sitting in line until their XHR
-        // timeout elapsed → they timed out without reaching the server and never
-        // painted (incl. the first cards). The browser's own ~6-connections/host cap
-        // is the only throttling lampa needs, and the original plugin (which fired
-        // directly) loaded ratings fine. KP still needs its own queue because it talks
-        // to a real rate-limited API key; lampa does not.
     };
     var QUEUE_MAX_TASKS = 120;
     var requestPool = [];
