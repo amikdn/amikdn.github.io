@@ -104,35 +104,13 @@
                 });
             },
 
-            // 4. Просмотренный контент
             function (items) {
                 if (!settings.history_filter_enabled) return items;
 
-                var favorite = Lampa.Storage.get('favorite', '{}');
-                var timeline = Lampa.Storage.cache('timetable', 300, []);
-
                 return items.filter(function (item) {
-                    // Пропускаем элементы, которые не являются медиа-контентом
-                    if (!isMediaContent(item)) return true;
-                    if (!item || !item.id) return true;
-
-                    var mediaType = item.media_type || (item.first_air_date ? 'tv' : 'movie');
-
-                    var card = Lampa.Favorite.check(item);
-                    var hasHistory = card && card.history;
-                    var isThrown = card && card.thrown;
-
-                    if (isThrown) return false;
-                    if (!hasHistory) return true;
-                    if (hasHistory && mediaType === 'movie') return false;
-
-                    var watchedFromFavorite = getWatchedEpisodesFromFavorite(item.id, favorite);
-                    var watchedFromTimeline = getWatchedEpisodesFromTimeline(item.id, timeline);
-                    var allWatchedEpisodes = mergeWatchedEpisodes(watchedFromFavorite, watchedFromTimeline);
-                    var title = item.original_title || item.original_name || item.title || item.name || '';
-                    var isFullyWatched = isSeriesFullyWatched(title, allWatchedEpisodes);
-
-                    return !isFullyWatched;
+                    if (!isMediaContent(item) || !item.id) return true;
+                    var status = Lampa.Favorite.check(item) || {};
+                    return !status.viewed && !status.thrown;
                 });
             }
         ],
@@ -145,78 +123,6 @@
             return results;
         }
     };
-
-    // Вспомогательные функции для просмотренного
-    function getWatchedEpisodesFromFavorite(id, favoriteData) {
-        var card = (favoriteData.card || []).find(function (c) {
-            return c.id === id && Array.isArray(c.seasons) && c.seasons.length > 0;
-        });
-        if (!card) return [];
-
-        var airedSeasons = card.seasons.filter(function (s) {
-            return s.season_number > 0 && s.episode_count > 0 && s.air_date && new Date(s.air_date) < new Date();
-        });
-
-        var episodes = [];
-        airedSeasons.forEach(function (season) {
-            for (var ep = 1; ep <= season.episode_count; ep++) {
-                episodes.push({ season_number: season.season_number, episode_number: ep });
-            }
-        });
-        return episodes;
-    }
-
-    function getWatchedEpisodesFromTimeline(id, timelineData) {
-        var entry = (timelineData || []).find(function (e) { return e.id === id; }) || {};
-        if (!Array.isArray(entry.episodes) || entry.episodes.length === 0) return [];
-
-        return entry.episodes.filter(function (ep) {
-            return ep.season_number > 0 && ep.air_date && new Date(ep.air_date) < new Date();
-        });
-    }
-
-    function mergeWatchedEpisodes(arr1, arr2) {
-        var merged = (arr1 || []).concat(arr2 || []);
-        var unique = [];
-        merged.forEach(function (ep) {
-            var exists = unique.some(function (u) {
-                return u.season_number === ep.season_number && u.episode_number === ep.episode_number;
-            });
-            if (!exists) unique.push(ep);
-        });
-        return unique;
-    }
-
-    function isSeriesFullyWatched(title, watchedEpisodes) {
-        if (!watchedEpisodes || watchedEpisodes.length === 0) return false;
-
-        for (var i = 0; i < watchedEpisodes.length; i++) {
-            var ep = watchedEpisodes[i];
-            var hash = Lampa.Utils.hash([
-                ep.season_number,
-                ep.season_number > 10 ? ':' : '',
-                ep.episode_number,
-                title
-            ].join(''));
-            var view = Lampa.Timeline.view(hash);
-            if (!view || view.percent < 100) return false;
-        }
-        return true;
-    }
-
-    function initCardListener() {
-        if (window.lampa_listener_extensions) return;
-        window.lampa_listener_extensions = true;
-        Object.defineProperty(Lampa.Card.prototype, 'build', {
-            get: function () { return this._build; },
-            set: function (value) {
-                this._build = function () {
-                    value.apply(this);
-                    Lampa.Listener.send('card', { type: 'build', object: this });
-                }.bind(this);
-            }
-        });
-    }
 
     function addRussianTranslations() {
         Lampa.Lang.add({
@@ -312,7 +218,6 @@
         if (window.content_filter_plugin) return;
         window.content_filter_plugin = true;
 
-        initCardListener();
         loadSettings();
         addRussianTranslations();
         addSettings();
@@ -326,14 +231,15 @@
             more.classList.add('items-line__more', 'selector');
             more.innerText = Lampa.Lang.translate('more');
             more.addEventListener('hover:enter', function () {
+                var params = e.params || {};
                 Lampa.Activity.push({
                     url: e.data.url,
                     title: e.data.title || Lampa.Lang.translate('title_category'),
                     component: 'category_full',
                     page: 1,
-                    genres: e.params.genres,
+                    genres: params.genres,
                     filter: e.data.filter,
-                    source: e.data.source || (e.params.object ? e.params.object.source : '')
+                    source: e.data.source || (params.object ? params.object.source : '')
                 });
             });
             head.append(more);
@@ -342,6 +248,7 @@
         // Автозагрузка
         Lampa.Listener.follow('line', function (e) {
             if (e.type !== 'append' || !needMoreButton(e.data)) return;
+            if (!Array.isArray(e.items) || !e.line || typeof e.line.more !== 'function') return;
             if (e.items.length === e.data.results.length && Lampa.Controller.own(e.line)) {
                 Lampa.Controller.collectionAppend(e.line.more());
             }
