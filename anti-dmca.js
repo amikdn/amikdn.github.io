@@ -85,9 +85,6 @@
     function directTmdbUrl(type, id, suffix, params) {
         var path = type + '/' + id + (suffix || '') + '?' + params;
 
-        // Never use the configured TMDB proxy for the anti-DMCA fallback.
-        // tmdb.abmsx.tech returns 404 for titles blocked by CUB, while the
-        // official TMDB endpoint returns the complete card.
         return 'https://' + TMDB_HOST + '/3/' + path;
     }
 
@@ -298,8 +295,6 @@
             var aiOnReady = xhr.onreadystatechange;
             var aiOnLoad = xhr.onload;
 
-            // CUB AI metadata is optional. Do not send this request at all:
-            // a missing record returns HTTP 500 and Lampa treats it as fatal.
             setTimeout(function () {
                 patchXhr(xhr, {}, null);
                 try { Object.defineProperty(xhr, 'readyState', { value: 4, configurable: true }); } catch (e) {}
@@ -539,8 +534,6 @@
                 var match = url.match(cardPathRe);
                 var blocked = !!(data && (data.blocked === true || (data.movie && data.movie.blocked === true)));
 
-                // This hook also receives cached responses. XHR/fetch interception alone
-                // cannot fix a blocked card that Lampa has already stored in its cache.
                 if (match && blocked && typeof event.abort === 'function') {
                     var resume = event.abort();
                     var type = match[1];
