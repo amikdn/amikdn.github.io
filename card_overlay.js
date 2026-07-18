@@ -405,28 +405,8 @@
         return { rating: finalRating, medianReaction: medianReaction };
     }
     function fetchLampaRating(ratingKey) {
-        // Fire the reactions request DIRECTLY — no throttle/concurrency queue. Every
-        // queued variant we tried made posters lose ratings (requests sat in line
-        // until their XHR timeout elapsed and never painted, even the first cards).
-        // All lampa reqs hit one host (cubnotrip.top) and the browser already caps
-        // ~6 connections/host, which is exactly the throttling lampa needs; the
-        // original plugin fired directly and loaded ratings fine.
-        // IMPORTANT: a real answer (data came back, even rating 0 = "no reactions") is
-        // returned WITHOUT `failed` so it can be cached. A failure (network error or
-        // timeout) is returned WITH `failed:true` so the caller does NOT cache it —
-        // otherwise a single transient failure poisons the cache with a permanent 0 and
-        // the rating never loads again (incl. on detail pages, which read the same
-        // cache). Failed keys stay retryable on the next render.
         return new Promise(function (resolve) {
-            // Timeout is generous (30s) on purpose. The reactions host (cubnotrip.top)
-            // answers slowly (~3-4s/req) and ALL lampa reqs hit that single host, so the
-            // browser's ~6-conn/host cap queues them. The XHR timeout counts from send()
-            // INCLUDING the wait in that browser queue — with a short 8s timeout, every
-            // card past ~position 12-14 on a full page died in the queue before its turn
-            // (no rating), even though the data exists (it loads fine on the detail page,
-            // which fires just one request). A long timeout lets the browser queue drain.
             var request = getRequest(); request.timeout(30000);
-            // Guard against the success + timeout callbacks both firing: settle once.
             var settled = false;
             function finish(result) { if (settled) return; settled = true; resolve(result); }
             request.silent("https://cubnotrip.top/api/reactions/get/" + ratingKey, function (data) {
@@ -446,12 +426,9 @@
         var cached = ratingCache.get('lampa_rating', ratingKey);
         if (cached) return Promise.resolve(cached);
         if (pendingLampaRequests[ratingKey]) return pendingLampaRequests[ratingKey];
-        // Back off briefly after a failure so we don't re-fetch the same key on every
-        // render, but still recover automatically (unlike caching a permanent 0).
         var failAt = lampaFailRetryAt[ratingKey];
         if (failAt && Date.now() - failAt < LAMPA_FAIL_RETRY_MS) return Promise.resolve({ rating: 0, medianReaction: '', failed: true });
         pendingLampaRequests[ratingKey] = fetchLampaRating(ratingKey).then(function (result) {
-            // Only cache real answers; failures (network/timeout/drop) stay retryable.
             if (result && result.failed) { lampaFailRetryAt[ratingKey] = Date.now(); return result; }
             delete lampaFailRetryAt[ratingKey];
             return ratingCache.set('lampa_rating', ratingKey, result);
@@ -472,9 +449,6 @@
         var icon = $scope.find('.rate--lampa .rate-icon');
         if (!icon.length) return;
         if (medianReaction) icon.attr('data-median-reaction', medianReaction);
-        // On the detail page we show ONLY the Lampa icon (the rate-line source icon,
-        // rendered via "Значки рейтингов"/detail_rating_icons), NOT the reaction face.
-        // So the inline reaction slot is always emptied/hidden.
         icon.empty().hide();
     }
     var pendingTmdbRequests = {};
@@ -505,15 +479,9 @@
         var rating = parseFloat(data && data.vote_average);
         return rating > 0 ? rating : 0;
     }
-    // Normalize a title for fuzzy comparison: lowercase, strip whitespace/punctuation,
-    // keep letters/digits (incl. cyrillic/accents) — avoids \p{L} (unsupported on old TV webviews).
     function _normTmdbTitle(s) {
         return String(s == null ? '' : s).toLowerCase().replace(/[\s\u00a0.,:;!?'"`’“”«»()\[\]{}\-_/\\|+*&@#%]+/g, '').trim();
     }
-    // Does the TMDB detail actually belong to this card? Movie and TV ids overlap on TMDB
-    // (e.g. movie/83533 = Avatar, tv/83533 = a random German show with 10.0/1 vote), so a
-    // wrong-type fetch "succeeds" with garbage. Compare every title field both ways.
-    // Returns true (match) / false (card has titles but none match) / null (can't tell).
     function tmdbTitleMatches(card, detail) {
         if (!card || !detail) return null;
         function list(o) {
@@ -581,8 +549,6 @@
                 detail = detail || {};
                 var rating = getTmdbVoteAverage(detail);
                 var match = tmdbTitleMatches(data, detail);
-                // Wrong entity behind this id+type (movie/tv id collision): the fetched title
-                // doesn't match the card → re-fetch the OTHER type and validate before trusting.
                 if (match === false) { tryAltType(rating > 0 ? detail : null); return; }
                 if (rating > 0) { acceptDetail(detail, type); return; }
                 complete(cached || null);
@@ -605,11 +571,7 @@
                     detail = detail || {};
                     var altRating = getTmdbVoteAverage(detail);
                     var altMatch = tmdbTitleMatches(data, detail);
-                    // Accept the alt type only when it validates: title matches, or we had no
-                    // valid primary and the title can't be checked. Never override a result with
-                    // an unverified one.
                     if (altRating > 0 && altMatch !== false && (altMatch === true || !hasPrimary)) { acceptDetail(detail, altType); return; }
-                    // Alt didn't validate → keep the primary result if we had one (no regression).
                     if (hasPrimary) { acceptDetail(primaryDetail, type); return; }
                     if (altRating > 0) { acceptDetail(detail, altType); return; }
                     handleFail();
@@ -2708,8 +2670,6 @@
             onChange: function (v) {
                 updateSettingsKeepFocus('lampa_rating_icon');
                 if (isTriggerOn('lampa_rating_icon', true)) { $('body').attr('data-lampa-icon-on', '1'); } else { $('body').removeAttr('data-lampa-icon-on'); }
-                // Reaction face is never shown on the detail page anymore — only the
-                // Lampa source icon. Always empty/hide the inline reaction slot.
                 $('.rate--lampa .rate-icon').each(function () { $(this).empty().hide(); });
             }
         });
