@@ -10,6 +10,7 @@
     var subPathRe = /\/3\/(?:movie|tv)\/\d+\/([^\/\?]+)/;
     var seasonNumRe = /\/season\/(\d+)(?:\/|$|\?)/;
     var blockedRe = /^\s*\{\s*"blocked"\s*:\s*true\s*\}\s*$/;
+    var aiMetadataPathRe = /\/api\/ai\/metadata\/(\d+)\/(movie|tv)(?:\/|$|\?)/;
 
     var ownXhrs = new WeakSet();
 
@@ -273,6 +274,50 @@
         if (ownXhrs.has(xhr)) return origSend.apply(this, arguments);
 
         var reqUrl = xhr.__admca_url || '';
+        var aiMetadataMatch = reqUrl.match(aiMetadataPathRe);
+
+        if (aiMetadataMatch) {
+            var aiOnReady = xhr.onreadystatechange;
+            var aiOnLoad = xhr.onload;
+            var aiPatched = false;
+
+            function patchMissingMetadata() {
+                if (aiPatched) return;
+
+                var failed = false;
+                try {
+                    failed = xhr.status === 0 || xhr.status >= 400;
+                } catch (e) {
+                    failed = true;
+                }
+
+                if (!failed) return;
+                aiPatched = true;
+                patchXhr(xhr, {}, null);
+            }
+
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState === 4) patchMissingMetadata();
+                if (aiOnReady) aiOnReady.call(xhr);
+            };
+
+            xhr.onload = function () {
+                patchMissingMetadata();
+                if (aiOnLoad) aiOnLoad.call(xhr);
+            };
+
+            xhr.onerror = function () {
+                if (!aiPatched) {
+                    aiPatched = true;
+                    patchXhr(xhr, {}, null);
+                }
+                if (aiOnReady) aiOnReady.call(xhr);
+                if (aiOnLoad) aiOnLoad.call(xhr);
+            };
+
+            return origSend.apply(this, arguments);
+        }
+
         if (!cardPathRe.test(reqUrl) && !isMirrorTmdb(reqUrl)) {
             return origSend.apply(this, arguments);
         }
