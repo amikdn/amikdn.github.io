@@ -14,6 +14,47 @@
     var ownXhrs = new WeakSet();
 
     var blockedCards = {};
+    var resolvedTypes = {};
+
+    function rememberType(id, type) {
+        if (!id || (type !== 'movie' && type !== 'tv')) return;
+        resolvedTypes['movie_' + id] = type;
+        resolvedTypes['tv_' + id] = type;
+    }
+
+    function detectType(item) {
+        if (!item) return null;
+        if (item.media_type === 'movie' || item.media_type === 'tv') return item.media_type;
+        if (item.method === 'movie' || item.method === 'tv') return item.method;
+        if (item.first_air_date || item.original_name || item.number_of_seasons) return 'tv';
+        if (item.release_date || item.original_title) return 'movie';
+        return null;
+    }
+
+    function rememberItem(item) {
+        var type = detectType(item);
+        var id = item && (item.tmdb_id || item.id);
+        if (type && id) rememberType(id, type);
+    }
+
+    function rememberResults(data) {
+        var results = data && data.results;
+        if (!Array.isArray(results)) return;
+        results.forEach(rememberItem);
+    }
+
+    function resolvedType(id, type) {
+        return resolvedTypes[type + '_' + id] || type;
+    }
+
+    function rewriteResolvedUrl(url) {
+        if (typeof url !== 'string') return url;
+        var match = url.match(cardPathRe);
+        if (!match) return url;
+        var actual = resolvedType(match[2], match[1]);
+        if (actual === match[1]) return url;
+        return url.replace('/3/' + match[1] + '/' + match[2], '/3/' + actual + '/' + match[2]);
+    }
 
     function isMirrorTmdb(url) {
         return typeof url === 'string' && (url.indexOf('apitmdb.') !== -1 || url.indexOf('tmdb.') !== -1) && url.indexOf(TMDB_HOST) === -1;
@@ -46,44 +87,69 @@
     var imagesCache = {};
     var seasonCache = {};
 
-    function fetchCard(id, type) {
-        var key = type + '_' + id;
-        if (cardCache[key]) return cardCache[key];
+    function fetchCardOnce(id, type) {
         var lang = getLang();
         var append = type === 'tv'
             ? 'credits,external_ids,videos,recommendations,similar,content_ratings'
             : 'credits,external_ids,videos,recommendations,similar';
         var url = directTmdbUrl(type, id, '', 'api_key=' + getApiKey() + '&language=' + lang + '&append_to_response=' + append);
-        var p;
         if (nativeFetch) {
-            p = nativeFetch(url).then(function (r) { return r.json(); }).then(function (data) {
-                if (data && data.id) return data;
-                delete cardCache[key];
-                return Promise.reject();
-            }).catch(function () { delete cardCache[key]; return Promise.reject(); });
-        } else {
-            p = new Promise(function (resolve, reject) {
-                var xhr = new XMLHttpRequest();
-                ownXhrs.add(xhr);
-                xhr.open('GET', url, true);
-                xhr.onreadystatechange = function () {
-                    if (xhr.readyState !== 4) return;
-                    try {
-                        var data = JSON.parse(xhr.responseText);
-                        if (data && data.id) { resolve(data); return; }
-                    } catch (e) {}
-                    delete cardCache[key];
-                    reject();
-                };
-                xhr.onerror = function () { delete cardCache[key]; reject(); };
-                xhr.send();
+            return nativeFetch(url).then(function (response) {
+                if (!response.ok) return Promise.reject(new Error('HTTP ' + response.status));
+                return response.json();
+            }).then(function (data) {
+                if (!data || !data.id) return Promise.reject(new Error('invalid card'));
+                return data;
             });
         }
+        return new Promise(function (resolve, reject) {
+            var xhr = new XMLHttpRequest();
+            ownXhrs.add(xhr);
+            xhr.open('GET', url, true);
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState !== 4) return;
+                if (xhr.status < 200 || xhr.status >= 300) { reject(new Error('HTTP ' + xhr.status)); return; }
+                try {
+                    var data = JSON.parse(xhr.responseText);
+                    if (data && data.id) { resolve(data); return; }
+                } catch (e) {}
+                reject(new Error('invalid card'));
+            };
+            xhr.onerror = function () { reject(new Error('network error')); };
+            xhr.send();
+        });
+    }
+
+    function fetchCard(id, type, preferAlternate) {
+        var key = type + '_' + id;
+        if (cardCache[key]) return cardCache[key];
+        var actual = resolvedType(id, type);
+        if (preferAlternate && !resolvedTypes[key]) actual = type === 'tv' ? 'movie' : 'tv';
+        var alternate = actual === 'tv' ? 'movie' : 'tv';
+
+        function load(candidate) {
+            return fetchCardOnce(id, candidate).then(function (data) {
+                rememberType(id, candidate);
+                data.media_type = candidate;
+                cardCache[candidate + '_' + id] = Promise.resolve(data);
+                return data;
+            });
+        }
+
+        var p = load(actual).catch(function (error) {
+            if (preferAlternate) return Promise.reject(error);
+            if (resolvedTypes[key] && resolvedTypes[key] === actual) return Promise.reject(error);
+            return load(alternate);
+        }).catch(function (error) {
+            delete cardCache[key];
+            return Promise.reject(error);
+        });
         cardCache[key] = p;
         return p;
     }
 
     function fetchImages(id, type, isRetry) {
+        type = resolvedType(id, type);
         var key = type + '_' + id;
         if (!isRetry && imagesCache[key]) return imagesCache[key];
         var lang = getLang();
@@ -192,8 +258,13 @@
 
     var origOpen = XMLHttpRequest.prototype.open;
     XMLHttpRequest.prototype.open = function (method, url) {
-        if (typeof url === 'string') this.__admca_url = url;
-        return origOpen.apply(this, arguments);
+        var args = Array.prototype.slice.call(arguments);
+        if (typeof url === 'string') {
+            var rewritten = rewriteResolvedUrl(url);
+            this.__admca_url = rewritten;
+            args[1] = rewritten;
+        }
+        return origOpen.apply(this, args);
     };
 
     var origSend = XMLHttpRequest.prototype.send;
@@ -254,7 +325,7 @@
                     done();
                 }, function () { done(); });
             } else {
-                fetchCard(id, type).then(function (data) {
+                fetchCard(id, type, !isBlocked && xhr.status === 404).then(function (data) {
                     patchXhr(xhr, data, sub);
                     done();
                 }, function () { done(); });
@@ -350,8 +421,9 @@
     if (typeof fetch !== 'undefined') {
         var origFetch = window.fetch;
         window.fetch = function (url, opts) {
-            var requestedUrl = typeof url === 'string' ? url : '';
-            return origFetch.call(this, url, opts).then(function (response) {
+            var requestedUrl = typeof url === 'string' ? rewriteResolvedUrl(url) : '';
+            var requestArg = typeof url === 'string' ? requestedUrl : url;
+            return origFetch.call(this, requestArg, opts).then(function (response) {
                 if (!cardPathRe.test(requestedUrl)) return response;
                 return response.clone().text().then(function (text) {
                     var t = (text || '').trim();
@@ -376,7 +448,7 @@
                             return new Response(JSON.stringify(data), { status: 200, headers: { 'Content-Type': 'application/json' } });
                         }).catch(function () { return response; });
                     }
-                    return fetchCard(id, type).then(function (data) {
+                    return fetchCard(id, type, !isBlocked && response.status === 404).then(function (data) {
                         var out = sub && data[sub] !== undefined ? data[sub] : data;
                         return new Response(JSON.stringify(out), { status: 200, headers: { 'Content-Type': 'application/json' } });
                     }).catch(function () { return response; });
@@ -413,6 +485,17 @@
         if (window.anti_dmca_plugin) return;
         if (typeof Lampa === 'undefined' || !window.lampa_settings) return;
         window.anti_dmca_plugin = true;
+
+        if (Lampa.Listener && typeof Lampa.Listener.follow === 'function') {
+            Lampa.Listener.follow('request_secuses', function (event) {
+                rememberResults(event && event.data);
+            });
+            Lampa.Listener.follow('line', function (event) {
+                if (!event) return;
+                rememberResults(event.data);
+                if (Array.isArray(event.items)) event.items.forEach(rememberItem);
+            });
+        }
 
         Lampa.Utils.dcma = function () { return undefined; };
         try {
