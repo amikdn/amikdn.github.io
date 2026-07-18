@@ -84,12 +84,10 @@
 
     function directTmdbUrl(type, id, suffix, params) {
         var path = type + '/' + id + (suffix || '') + '?' + params;
-        try {
-            var proto = (typeof Lampa !== 'undefined' && Lampa.Utils && typeof Lampa.Utils.protocol === 'function')
-                ? Lampa.Utils.protocol() : 'https://';
-            var useProxy = Lampa.Storage && typeof Lampa.Storage.field === 'function' && Lampa.Storage.field('proxy_tmdb');
-            return (useProxy ? proto + PROXY_API_HOST + '/3/' : proto + TMDB_HOST + '/3/') + path;
-        } catch (e) {}
+
+        // Never use the configured TMDB proxy for the anti-DMCA fallback.
+        // tmdb.abmsx.tech returns 404 for titles blocked by CUB, while the
+        // official TMDB endpoint returns the complete card.
         return 'https://' + TMDB_HOST + '/3/' + path;
     }
 
@@ -526,7 +524,7 @@
         if (window.anti_dmca_plugin) return;
         if (typeof Lampa === 'undefined' || !window.lampa_settings) return;
         window.anti_dmca_plugin = true;
-        try { console.log('[anti-dmca] v5-cache-hook active'); } catch (e) {}
+        try { console.log('[anti-dmca] v6-direct-tmdb active'); } catch (e) {}
 
         window.lampa_settings.disable_features = window.lampa_settings.disable_features || {};
         window.lampa_settings.disable_features.dmca = true;
