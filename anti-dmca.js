@@ -526,6 +526,7 @@
         if (window.anti_dmca_plugin) return;
         if (typeof Lampa === 'undefined' || !window.lampa_settings) return;
         window.anti_dmca_plugin = true;
+        try { console.log('[anti-dmca] v5-cache-hook active'); } catch (e) {}
 
         window.lampa_settings.disable_features = window.lampa_settings.disable_features || {};
         window.lampa_settings.disable_features.dmca = true;
@@ -533,7 +534,34 @@
 
         if (Lampa.Listener && typeof Lampa.Listener.follow === 'function') {
             Lampa.Listener.follow('request_secuses', function (event) {
-                rememberResults(event && event.data);
+                if (!event) return;
+
+                var data = event.data;
+                var url = event.params && event.params.url ? event.params.url : '';
+                var match = url.match(cardPathRe);
+                var blocked = !!(data && (data.blocked === true || (data.movie && data.movie.blocked === true)));
+
+                // This hook also receives cached responses. XHR/fetch interception alone
+                // cannot fix a blocked card that Lampa has already stored in its cache.
+                if (match && blocked && typeof event.abort === 'function') {
+                    var resume = event.abort();
+                    var type = match[1];
+                    var id = match[2];
+                    var subMatch = url.match(subPathRe);
+                    var sub = subMatch ? subMatch[1] : null;
+
+                    fetchCard(id, type).then(function (card) {
+                        clearBlockedFlag(card);
+                        resume(sub && card[sub] !== undefined ? card[sub] : card);
+                    }, function () {
+                        clearBlockedFlag(data);
+                        resume(data);
+                    });
+                    return;
+                }
+
+                clearBlockedFlag(data);
+                rememberResults(data);
             });
             Lampa.Listener.follow('line', function (event) {
                 if (!event) return;
