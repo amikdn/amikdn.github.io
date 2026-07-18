@@ -12,6 +12,24 @@
     var blockedRe = /^\s*\{\s*"blocked"\s*:\s*true\s*\}\s*$/;
     var aiMetadataPathRe = /\/api\/ai\/metadata\/(\d+)\/(movie|tv)(?:\/|$|\?)/;
 
+    function isBlockedPayload(text) {
+        if (blockedRe.test(text || '')) return true;
+        try {
+            var data = JSON.parse(text || '{}');
+            return !!(data && (data.blocked === true || (data.movie && data.movie.blocked === true)));
+        } catch (e) {}
+        return false;
+    }
+
+    function clearBlockedFlag(data) {
+        if (!data || typeof data !== 'object') return data;
+        try { delete data.blocked; } catch (e) { data.blocked = false; }
+        if (data.movie && typeof data.movie === 'object') {
+            try { delete data.movie.blocked; } catch (e) { data.movie.blocked = false; }
+        }
+        return data;
+    }
+
     var ownXhrs = new WeakSet();
 
     var blockedCards = {};
@@ -33,6 +51,7 @@
     }
 
     function rememberItem(item) {
+        clearBlockedFlag(item);
         var type = detectType(item);
         var id = item && (item.tmdb_id || item.id);
         if (type && id) rememberType(id, type);
@@ -131,6 +150,7 @@
         function load(candidate) {
             return fetchCardOnce(id, candidate).then(function (data) {
                 rememberType(id, candidate);
+                clearBlockedFlag(data);
                 data.media_type = candidate;
                 cardCache[candidate + '_' + id] = Promise.resolve(data);
                 return data;
@@ -311,7 +331,7 @@
 
             var text = '';
             try { text = (xhr.responseText || '').trim(); } catch (e) {}
-            var isBlocked = blockedRe.test(text);
+            var isBlocked = isBlockedPayload(text);
             var isFailed = !isBlocked && (xhr.status === 0 || xhr.status >= 400 || !text);
             if (!isBlocked && !isFailed) return false;
 
@@ -448,7 +468,7 @@
                 if (!cardPathRe.test(requestedUrl)) return response;
                 return response.clone().text().then(function (text) {
                     var t = (text || '').trim();
-                    var isBlocked = blockedRe.test(t);
+                    var isBlocked = isBlockedPayload(t);
                     var isFailed = !response.ok || response.status === 0 || !t;
                     if (!isBlocked && !isFailed) return response;
                     var m = requestedUrl.match(cardPathRe);
@@ -506,6 +526,10 @@
         if (window.anti_dmca_plugin) return;
         if (typeof Lampa === 'undefined' || !window.lampa_settings) return;
         window.anti_dmca_plugin = true;
+
+        window.lampa_settings.disable_features = window.lampa_settings.disable_features || {};
+        window.lampa_settings.disable_features.dmca = true;
+        window.lampa_settings.disable_features.metadata = true;
 
         if (Lampa.Listener && typeof Lampa.Listener.follow === 'function') {
             Lampa.Listener.follow('request_secuses', function (event) {
