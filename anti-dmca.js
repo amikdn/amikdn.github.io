@@ -279,43 +279,19 @@
         if (aiMetadataMatch) {
             var aiOnReady = xhr.onreadystatechange;
             var aiOnLoad = xhr.onload;
-            var aiPatched = false;
 
-            function patchMissingMetadata() {
-                if (aiPatched) return;
-
-                var failed = false;
-                try {
-                    failed = xhr.status === 0 || xhr.status >= 400;
-                } catch (e) {
-                    failed = true;
-                }
-
-                if (!failed) return;
-                aiPatched = true;
+            // CUB AI metadata is optional. Do not send this request at all:
+            // a missing record returns HTTP 500 and Lampa treats it as fatal.
+            setTimeout(function () {
                 patchXhr(xhr, {}, null);
-            }
+                try { Object.defineProperty(xhr, 'readyState', { value: 4, configurable: true }); } catch (e) {}
+                try { Object.defineProperty(xhr, 'responseURL', { value: reqUrl, configurable: true }); } catch (e) {}
 
-            xhr.onreadystatechange = function () {
-                if (xhr.readyState === 4) patchMissingMetadata();
-                if (aiOnReady) aiOnReady.call(xhr);
-            };
-
-            xhr.onload = function () {
-                patchMissingMetadata();
-                if (aiOnLoad) aiOnLoad.call(xhr);
-            };
-
-            xhr.onerror = function () {
-                if (!aiPatched) {
-                    aiPatched = true;
-                    patchXhr(xhr, {}, null);
-                }
                 if (aiOnReady) aiOnReady.call(xhr);
                 if (aiOnLoad) aiOnLoad.call(xhr);
-            };
+            }, 0);
 
-            return origSend.apply(this, arguments);
+            return;
         }
 
         if (!cardPathRe.test(reqUrl) && !isMirrorTmdb(reqUrl)) {
