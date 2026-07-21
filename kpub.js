@@ -27,7 +27,6 @@
   var API_BASE_URL = "https://api.srvkp.com";
   var OAUTH_CLIENT_ID = "xbmc";
   var OAUTH_CLIENT_SECRET = "cgg3gtifu46urtfp2zp1nqtba0k2ezxh";
-  var legacyAuthTimer;
   // ==========================================================================
   // Token storage (Lampa.Storage)
   // ==========================================================================
@@ -3552,7 +3551,6 @@
       if (source && source.destroy) {
         source.destroy();
       }
-      clearInterval(legacyAuthTimer);
     };
   }
   // ==========================================================================
@@ -4079,7 +4077,6 @@
           onBack: function () {
             Lampa.Modal.close();
             Lampa.Controller.toggle("settings_component");
-            clearInterval(legacyAuthTimer);
             clearInterval(pollTimer);
           },
           onSelect: function () {
