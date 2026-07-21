@@ -66,7 +66,7 @@
     if (!imageUrl) {
       return "";
     }
-    var PROXIED_HOSTS = ["gravatar", "kino.pub", "srvkp", "staticpop", "service-kp", "kino.pub"];
+    var PROXIED_HOSTS = ["gravatar", "kino.pub", "srvkp", "staticpop", "service-kp"];
     var needsProxy = false;
     for (var hostIndex = 0; hostIndex < PROXIED_HOSTS.length; hostIndex++) {
       if (imageUrl.indexOf(PROXIED_HOSTS[hostIndex]) > -1) {
@@ -3471,7 +3471,6 @@
       this.loading(false);
     };
     this.doesNotAnswer = function () {
-      var selfDoesNotAnswer = this;
       this.reset();
       var answerTemplateData = {
         balanser: balanserName
