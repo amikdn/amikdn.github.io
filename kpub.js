@@ -1,30 +1,3 @@
-
-
-/*
- * DSO KinoPub — Lampa online-source plugin (v1.3.0)
- * kinopub.readable.js — fully renamed, human-readable edition.
- *
- * Provenance: faithful deobfuscation of an obfuscator.io build via webcrack
- * (string-array decoded, control flow unflattened, dead code removed), then
- * all 949 machine identifiers renamed to meaningful names. The rename was
- * scope-aware and AST-verified: code structure is byte-identical to the
- * deobfuscated original, only names differ.
- *
- * Android compatibility fixes (vs. the original build):
- *  - template literal  -> string concatenation  (syntax error on WebView < 41:
- *    the whole file failed to parse, so the plugin silently never loaded)
- *  - Object.assign     -> manual key copy       (TypeError on WebView < 45,
- *    crashed startPlugin before settings/auth were registered)
- *  - Array.prototype.find -> findInArray helper (TypeError on WebView < 45
- *    when picking quality/voice or drawing episode lists)
- * Everything else is unchanged.
- *
- * What the plugin does:
- *  - Registers "KinoPub" as a Lampa content source (catalog, search, cards)
- *  - Adds an online playback source: streams with voice / quality / subtitles
- *  - Device-code OAuth against api.srvkp.com (kino.pub) with token refresh
- *  - Two-way favorites / bookmarks sync, watch history, Live TV, anime menu
- */
 (function () {
   'use strict';
 
