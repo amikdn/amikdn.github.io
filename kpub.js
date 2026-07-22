@@ -5,11 +5,8 @@
     return;
   }
   window.__dso_kinopub_loaded = true;
-  // ==========================================================================
-  // Module constants & persistent state
-  // ==========================================================================
   var PLUGIN_NAME = "DSO KinoPub";
-  var PLUGIN_VERSION = "1.3.0";
+  var PLUGIN_VERSION = "1.3.1";
   var DEFAULT_PROXY = "";
   var SOURCE_ID = "kinopub";
   var SOURCE_TITLE = "KinoPub";
@@ -27,18 +24,13 @@
   var API_BASE_URL = "https://api.srvkp.com";
   var OAUTH_CLIENT_ID = "xbmc";
   var OAUTH_CLIENT_SECRET = "cgg3gtifu46urtfp2zp1nqtba0k2ezxh";
-  // ==========================================================================
-  // Token storage (Lampa.Storage)
-  // ==========================================================================
   function getAccessToken() {
     return Lampa.Storage.get("dso_kinopub_token", "");
   }
   function getRefreshToken() {
     return Lampa.Storage.get("dso_kinopub_refresh", "");
   }
-  // ==========================================================================
-  // URL building & CORS/image proxying
-  // ==========================================================================
+
   function buildApiUrl(path) {
     var absoluteUrl = API_BASE_URL + (path.charAt(0) === "/" ? path : "/" + path);
     return proxyUrl + absoluteUrl;
@@ -79,9 +71,6 @@
     }
     return imageUrl;
   }
-  function proxyAvatarUrl(avatarUrl) {
-    return proxyImageUrl(avatarUrl);
-  }
   function hasPlayableContent(itemResponse) {
     var item = itemResponse && itemResponse.item;
     if (!item) {
@@ -99,10 +88,20 @@
     return parseInt(("" + (value || "")).replace(/\D/g, ""), 10) || 0;
   }
 
-  /**
-   * ES5-safe replacement for Array.prototype.find (missing in old Android
-   * WebView / Chromium < 45). Returns the first element matching predicate.
-   */
+  function formatCardQuality(rawQuality) {
+    if (typeof rawQuality === "string" && !/^\d+$/.test(rawQuality.replace(/\s/g, ""))) {
+      return rawQuality;
+    }
+    var numericQuality = parseInt(rawQuality, 10) || 0;
+    if (!numericQuality) {
+      return "";
+    }
+    if (numericQuality >= 2160) {
+      return "4K";
+    }
+    return numericQuality + "p";
+  }
+
   function findInArray(list, predicate) {
     if (!list || !list.length) {
       return undefined;
@@ -124,9 +123,7 @@
     }
     return Math.max(0, Math.ceil((timestampMs - Date.now()) / 86400000));
   }
-  // ==========================================================================
-  // User profile & subscription card (settings screen)
-  // ==========================================================================
+
   function parseUserProfile(statusResponse) {
     if (!statusResponse || typeof statusResponse !== "object") {
       return null;
@@ -147,7 +144,7 @@
     return {
       login: login,
       name: displayName,
-      photo: proxyAvatarUrl(profileData.avatar || ""),
+      photo: proxyImageUrl(profileData.avatar || ""),
       is_pro: !!subscription.active,
       is_pro_plus: false,
       pro_date: subscriptionEndDate,
@@ -200,9 +197,7 @@
       $(this).replaceWith("<div class=\"dso-kinopub-profile__placeholder\">" + fallbackLetter + "</div>");
     });
   }
-  // ==========================================================================
-  // Auth requests: user status, token refresh, device notify
-  // ==========================================================================
+
   function fetchUserStatus(accessToken, onSuccess, onError) {
     var request = new Lampa.Reguest();
     var url = buildApiUrl("/v1/user?access_token=" + encodeURIComponent(accessToken));
@@ -270,9 +265,7 @@
     request.timeout(8000);
     request.silent(url, function () {}, function () {});
   }
-  // ==========================================================================
-  // KinoPub item -> Lampa card conversion
-  // ==========================================================================
+
   function isSeriesType(contentType) {
     return contentType === "serial" || contentType === "docuserial" || contentType === "tvshow";
   }
@@ -352,6 +345,11 @@
     if (item.posters) {
       posterUrl = proxyImageUrl(item.posters.big || item.posters.medium || item.posters.small || "");
     }
+
+    var backdropUrl = "";
+    if (item.posters && item.posters.wide) {
+      backdropUrl = proxyImageUrl(item.posters.wide);
+    }
     var yearString = item.year ? String(item.year) : "";
     var releaseDate = yearString ? yearString + "-01-01" : "";
     var rating = parseFloat(item.kinopoisk_rating || item.imdb_rating || item.rating) || 0;
@@ -372,11 +370,11 @@
       overview: item.plot || "",
       img: posterUrl,
       poster: posterUrl,
-      background_image: posterUrl,
+      background_image: backdropUrl,
       vote_average: rating,
       kinopoisk_id: item.kinopoisk || 0,
       imdb_id: imdbId,
-      quality: item.quality,
+      quality: formatCardQuality(item.quality),
       runtime: runtimeMinutes,
       budget: 0,
       genres: normalizeGenres(item.genres),
@@ -424,9 +422,7 @@
       total_results: totalRaw * (perPage > 1 && totalRaw <= 100 ? perPage : 1)
     };
   }
-  // ==========================================================================
-  // API transport: GET with auto token refresh, POST, helpers
-  // ==========================================================================
+
   function trackRequest(request) {
     trackedRequests.push(request);
     return request;
@@ -587,9 +583,7 @@
       }
     });
   }
-  // ==========================================================================
-  // Favorites & bookmarks: two-way sync with KinoPub
-  // ==========================================================================
+
   function isKinopubCard(card) {
     if (!card) {
       return false;
@@ -674,17 +668,12 @@
         return;
       }
       var endpoint = remove ? "/v1/bookmarks/remove-item" : "/v1/bookmarks/add";
-      var addPayload = {
+      var payload = remove ? {
+        item: itemId
+      } : {
         item: itemId,
         folder: folderId
       };
-      var payload = addPayload;
-      var removePayload = {
-        item: itemId
-      };
-      if (remove) {
-        payload = removePayload;
-      }
       apiPost(endpoint, payload, function () {}, function () {});
     });
   }
@@ -803,9 +792,7 @@
       }
     });
   }
-  // ==========================================================================
-  // Main page rows: continue watching, bookmarks, collections
-  // ==========================================================================
+
   function prependContinueWatchingLines(lineLoaders, done) {
     if (!getAccessToken()) {
       done();
@@ -935,9 +922,7 @@
       });
     });
   }
-  // ==========================================================================
-  // Catalog modes (movie / tv / anime / cartoon) & genre lookup
-  // ==========================================================================
+
   function lampaTypeToKinopubType(lampaType) {
     if (lampaType === "tv" || lampaType === "anime") {
       return "serial";
@@ -1045,20 +1030,17 @@
   }
   function addStandardCatalogLines(lineLoaders, contentType, genreId, titlePrefix) {
     var genreQuery = genreId ? "&genre=" + encodeURIComponent(genreId) : "";
-    var genreUrlQuery = genreId ? "&genre=" + encodeURIComponent(genreId) : "";
     var prefix = titlePrefix ? titlePrefix + " — " : "";
-    queueCardsLine(lineLoaders, "/v1/items?type=" + contentType + genreQuery + "&sort=updated-&perpage=20", prefix + translateOr("title_new", "Новинки"), "catalog?type=" + contentType + genreUrlQuery + "&sort=updated-");
-    queueCardsLine(lineLoaders, "/v1/items?type=" + contentType + genreQuery + "&sort=views-&perpage=20", prefix + translateOr("title_popular", "Популярные"), "catalog?type=" + contentType + genreUrlQuery + "&sort=views-");
-    queueCardsLine(lineLoaders, "/v1/items?type=" + contentType + genreQuery + "&sort=rating-&perpage=20", prefix + translateOr("title_hight_voite", "С высоким рейтингом"), "catalog?type=" + contentType + genreUrlQuery + "&sort=rating-");
-    queueCardsLine(lineLoaders, "/v1/items?type=" + contentType + genreQuery + "&sort=watchers-&perpage=20", prefix + translateOr("dso_kinopub_watchers", "Смотрят сейчас"), "catalog?type=" + contentType + genreUrlQuery + "&sort=watchers-");
+    queueCardsLine(lineLoaders, "/v1/items?type=" + contentType + genreQuery + "&sort=updated-&perpage=20", prefix + translateOr("title_new", "Новинки"), "catalog?type=" + contentType + genreQuery + "&sort=updated-");
+    queueCardsLine(lineLoaders, "/v1/items?type=" + contentType + genreQuery + "&sort=views-&perpage=20", prefix + translateOr("title_popular", "Популярные"), "catalog?type=" + contentType + genreQuery + "&sort=views-");
+    queueCardsLine(lineLoaders, "/v1/items?type=" + contentType + genreQuery + "&sort=rating-&perpage=20", prefix + translateOr("title_hight_voite", "С высоким рейтингом"), "catalog?type=" + contentType + genreQuery + "&sort=rating-");
+    queueCardsLine(lineLoaders, "/v1/items?type=" + contentType + genreQuery + "&sort=watchers-&perpage=20", prefix + translateOr("dso_kinopub_watchers", "Смотрят сейчас"), "catalog?type=" + contentType + genreQuery + "&sort=watchers-");
   }
-  // ==========================================================================
-  // List/catalog URL parsing -> API request building
-  // ==========================================================================
+
   function parseListParams(params) {
     var rawUrl = params && params.url ? String(params.url) : "";
     var page = parseInt(params && params.page, 10) || 1;
-    var defaults = {
+    var parsed = {
       page: page,
       shortcut: "",
       type: "",
@@ -1072,7 +1054,6 @@
       collection: "",
       mode: ""
     };
-    var parsed = defaults;
     if (params && params.query) {
       parsed.query = decodeURIComponent(params.query);
     }
@@ -1251,9 +1232,7 @@
       callback([]);
     });
   }
-  // ==========================================================================
-  // Live TV (channel list + player)
-  // ==========================================================================
+
   var liveTvMenuButton = null;
   function playLiveChannel(channel) {
     if (!channel || !channel.stream) {
@@ -1370,9 +1349,7 @@
       Lampa.Activity.push(activityParams);
     });
   }
-  // ==========================================================================
-  // Full card data: seasons, trailer, cast/crew
-  // ==========================================================================
+
   function buildSeasonsMap(item) {
     if (!item || !item.seasons || !item.seasons.length) {
       return {};
@@ -1537,13 +1514,7 @@
     serveNext(onSuccess, onError);
     return serveNext;
   }
-  // ==========================================================================
-  // Lampa.Api source: main / category / list / full / menu / search
-  // ==========================================================================
-  /**
-   * Content-source implementation registered as Lampa.Api.sources["kinopub"].
-   * Each method receives Lampa activity params and success/error callbacks.
-   */
+
   var kinopubApiSource = {
     main: function (mainParams, onSuccess, onError) {
       if (!getAccessToken()) {
@@ -1761,12 +1732,11 @@
         var lastSeasonInfo = buildLastSeasonInfo(item);
         var persons = buildPersons(item);
         var trailerVideos = buildTrailerVideos(item);
-        var baseData = {
+        var fullData = {
           movie: card,
           persons: persons,
           videos: trailerVideos
         };
-        var fullData = baseData;
         if (lastSeasonInfo) {
           fullData.episodes = lastSeasonInfo;
         }
@@ -1880,7 +1850,7 @@
             return;
           }
           var rawQuery = searchParams && searchParams.query || "";
-          var searchQuery = rawQuery;
+          var searchQuery;
           try {
             searchQuery = decodeURIComponent(String(rawQuery).replace(/\+/g, " "));
           } catch (queryDecodeError) {
@@ -1991,9 +1961,7 @@
       };
     }
   };
-  // ==========================================================================
-  // Streams: audio tracks, voice selection, quality, subtitles
-  // ==========================================================================
+
   function describeAudioTracks(audios) {
     if (!audios || !audios.length) {
       return Lampa.Lang.translate("torrent_parser_voice");
@@ -2237,16 +2205,7 @@
       is_max_qualitie: false
     };
   }
-  // ==========================================================================
-  // Online playback source ("balanser") used by OnlineComponent
-  // ==========================================================================
-  /**
-   * Resolves a Lampa card to a KinoPub item (by id or title search),
-   * builds per-translation playlists for movies/serials, lets the user
-   * filter by season/voice and hands stream URLs to Lampa.Player.
-   * @param {Object} component  OnlineComponent instance (UI callbacks)
-   * @param {Object} initialObject  Lampa activity object ({ movie, ... })
-   */
+
   function KinopubOnlineSource(component, initialObject) {
     var request = new Lampa.Reguest();
     var playlistByTranslation = {};
@@ -2788,9 +2747,7 @@
       });
     }
   }
-  // ==========================================================================
-  // Online activity component (episode/translation list UI)
-  // ==========================================================================
+
   function createComponentParts(componentObject) {
     return {
       network: new Lampa.Reguest(),
@@ -2802,22 +2759,16 @@
       filter: new Lampa.Filter(componentObject)
     };
   }
-  /**
-   * Lampa activity component shown when the user presses the
-   * "Watch online" button on a movie card. Renders episode lists,
-   * filters, context menus and drives KinopubOnlineSource.
-   * @param {Object} object  Lampa activity object ({ movie, search, ... })
-   */
+
   function OnlineComponent(object) {
     var parts = createComponentParts(object);
     var network = parts.network;
     var scroll = parts.scroll;
     var explorer = parts.files;
     var filter = parts.filter;
-    var sourcesMap = {
+    var sources = {
       dso_kinopub: KinopubOnlineSource
     };
-    var sources = sourcesMap;
     var lastFocused;
     var choiceExtended;
     var overrideMovieId;
@@ -3113,11 +3064,10 @@
           }
           var timelineHash = Lampa.Utils.hash(drawElement.season ? [drawElement.season, drawElement.episode, object.movie.original_title].join("") : object.movie.original_title + (drawElement.voice_name || ""));
           var beholdHash = Lampa.Utils.hash(drawElement.season ? [drawElement.season, drawElement.episode, object.movie.original_title, drawElement.voice_name].join("") : object.movie.original_title + drawElement.voice_name);
-          var hashPair = {
+          var elementHashes = {
             hash_timeline: timelineHash,
             hash_behold: beholdHash
           };
-          var elementHashes = hashPair;
           var infoParts = [];
           if (drawElement.season) {
             drawElement.translate_episode_end = self.getLastEpisode(drawnItems);
@@ -3466,7 +3416,7 @@
     this.empty = function (emptyMessage) {
       var emptyHtml = Lampa.Template.get("online_does_not_answer", {});
       emptyHtml.find(".online-empty__buttons").remove();
-      emptyHtml.find(".online-empty__title").text(Lampa.Lang.translate("empty_title_two"));
+      emptyHtml.find(".online-empty__title").text(emptyMessage || Lampa.Lang.translate("empty_title_two"));
       scroll.append(emptyHtml);
       this.loading(false);
     };
@@ -3552,14 +3502,7 @@
       }
     };
   }
-  // ==========================================================================
-  // Plugin bootstrap: manifest, translations, templates, settings, auth
-  // ==========================================================================
-  /**
-   * Entry point, executed once on app ready. Registers the manifest,
-   * translations, CSS/templates, the content source, the "Watch online"
-   * button, settings screen and the device-code authorization flow.
-   */
+
   function startPlugin() {
     console.log(PLUGIN_NAME, "v" + PLUGIN_VERSION);
     var manifest = {
@@ -3916,9 +3859,6 @@
       Lampa.Template.add("online_prestige_rate", "<div class=\"online-prestige-rate\">\n            <svg width=\"17\" height=\"16\" viewBox=\"0 0 17 16\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\">\n                <path d=\"M8.39409 0.192139L10.99 5.30994L16.7882 6.20387L12.5475 10.4277L13.5819 15.9311L8.39409 13.2425L3.20626 15.9311L4.24065 10.4277L0 6.20387L5.79819 5.30994L8.39409 0.192139Z\" fill=\"#fff\"></path>\n            </svg>\n            <span>{rate}</span>\n        </div>");
       Lampa.Template.add("online_prestige_folder", "<div class=\"online-prestige online-prestige--folder selector\">\n            <div class=\"online-prestige__folder\">\n                <svg viewBox=\"0 0 128 112\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\">\n                    <rect y=\"20\" width=\"128\" height=\"92\" rx=\"13\" fill=\"white\"></rect>\n                    <path d=\"M29.9963 8H98.0037C96.0446 3.3021 91.4079 0 86 0H42C36.5921 0 31.9555 3.3021 29.9963 8Z\" fill=\"white\" fill-opacity=\"0.23\"></path>\n                    <rect x=\"11\" y=\"8\" width=\"106\" height=\"76\" rx=\"13\" fill=\"white\" fill-opacity=\"0.51\"></rect>\n                </svg>\n            </div>\n            <div class=\"online-prestige__body\">\n                <div class=\"online-prestige__head\">\n                    <div class=\"online-prestige__title\">{title}</div>\n                    <div class=\"online-prestige__time\">{time}</div>\n                </div>\n\n                <div class=\"online-prestige__footer\">\n                    <div class=\"online-prestige__info\">{info}</div>\n                </div>\n            </div>\n        </div>");
     }
-    // NOTE: built with string concatenation instead of a template literal —
-    // template literals are a syntax error on old Android WebView (Chromium < 41)
-    // and would prevent the whole plugin file from loading.
     var watchButtonHtml = "<div class=\"full-start__button selector view--online\" data-subtitle=\"DSO KinoPub v" + manifest.version + "\">\n" +
       "        <svg width=\"135\" height=\"147\" viewBox=\"0 0 135 147\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\">\n" +
       "            <path d=\"M121.5 96.8823C139.5 86.49 139.5 60.5092 121.5 50.1169L41.25 3.78454C23.25 -6.60776 0.750004 6.38265 0.750001 27.1673L0.75 51.9742C4.70314 35.7475 23.6209 26.8138 39.0547 35.7701L94.8534 68.1505C110.252 77.0864 111.909 97.8693 99.8725 109.369L121.5 96.8823Z\" fill=\"currentColor\"/>\n" +
@@ -3932,9 +3872,6 @@
       Lampa.Api.sources[SOURCE_ID] = kinopubApiSource;
     }
     if (Lampa.Params && Lampa.Params.select) {
-      // NOTE: manual copy instead of Object.assign — Object.assign is missing
-      // in old Android WebView (Chromium < 45) and would crash plugin startup
-      // right here, before settings and device auth are registered.
       var existingSources = Lampa.Params.values && Lampa.Params.values.source || {};
       var sourceOptions = {};
       for (var existingSourceKey in existingSources) {
