@@ -9,7 +9,7 @@
   // Module constants & persistent state
   // ==========================================================================
   var PLUGIN_NAME = "DSO KinoPub";
-  var PLUGIN_VERSION = "1.3.2";
+  var PLUGIN_VERSION = "1.3.3";
   var DEFAULT_PROXY = "";
   var SOURCE_ID = "kinopub";
   var SOURCE_TITLE = "KinoPub";
@@ -1561,6 +1561,42 @@
   // Lampa.Api source: main / category / list / full / menu / search
   // ==========================================================================
   /**
+   * Resolve the real TMDB id (and wide backdrop) for a KinoPub card via the
+   * TMDB "find by IMDB id" endpoint. On success, mutates the card in place:
+   *   - id            -> real TMDB id (so logo/rating plugins and core
+   *                      episode lookups hit the right movie)
+   *   - backdrop_path -> real landscape art (fixes the zoomed portrait
+   *                      poster in the mobile card header)
+   * Always calls `callback` (with or without a match) and never blocks the
+   * card for longer than the request timeout.
+   */
+  function resolveTmdbInfo(card, callback) {
+    if (!card || !card.imdb_id || !Lampa.TMDB || typeof Lampa.TMDB.api !== "function") {
+      callback();
+      return;
+    }
+    var findUrl = Lampa.TMDB.api("find/" + encodeURIComponent(card.imdb_id) + "?api_key=" + Lampa.TMDB.key() + "&external_source=imdb_id&language=" + Lampa.Storage.get("language", "ru"));
+    var request = trackRequest(new Lampa.Reguest());
+    request.timeout(8000);
+    request.silent(findUrl, function (findResponse) {
+      var matches = findResponse && (card.name ? findResponse.tv_results : findResponse.movie_results) || [];
+      var match = matches[0];
+      if (match && match.id) {
+        card.id = match.id;
+        card.tmdb_id = match.id;
+        if (match.backdrop_path) {
+          card.backdrop_path = match.backdrop_path;
+        }
+        if (match.poster_path) {
+          card.poster_path = match.poster_path;
+        }
+      }
+      callback();
+    }, function () {
+      callback();
+    });
+  }
+  /**
    * Content-source implementation registered as Lampa.Api.sources["kinopub"].
    * Each method receives Lampa activity params and success/error callbacks.
    */
@@ -1789,17 +1825,26 @@
         if (lastSeasonInfo) {
           fullData.episodes = lastSeasonInfo;
         }
-        apiGet("/v1/items/similar?id=" + encodeURIComponent(itemId), function (similarResponse) {
-          var similarItems = similarResponse && similarResponse.items ? similarResponse.items : Array.isArray(similarResponse) ? similarResponse : [];
-          fullData.simular = {
-            results: convertItemsToCards(similarItems),
-            source: SOURCE_ID
-          };
-          fullData.recomend = fullData.simular;
-          onSuccess(fullData);
-        }, function () {
-          onSuccess(fullData);
-        });
+        function finishFull() {
+          apiGet("/v1/items/similar?id=" + encodeURIComponent(itemId), function (similarResponse) {
+            var similarItems = similarResponse && similarResponse.items ? similarResponse.items : Array.isArray(similarResponse) ? similarResponse : [];
+            fullData.simular = {
+              results: convertItemsToCards(similarItems),
+              source: SOURCE_ID
+            };
+            fullData.recomend = fullData.simular;
+            onSuccess(fullData);
+          }, function () {
+            onSuccess(fullData);
+          });
+        }
+        // Resolve the REAL TMDB id via the IMDB id. KinoPub ids are not TMDB
+        // ids, so plugins (applecation logos/ratings) and Lampa core (episode
+        // titles, wide backdrop on mobile) that query TMDB by `card.id` were
+        // getting data for a random foreign movie. With the resolved id we
+        // also get a proper landscape `backdrop_path`, which fixes the
+        // zoomed-in portrait poster in the mobile card header.
+        resolveTmdbInfo(card, finishFull);
       }, onError);
     },
     menu: function (menuParams, callback) {
@@ -3067,7 +3112,12 @@
     };
     this.getEpisodes = function (seasonNumber, episodesCallback) {
       var tmdbEpisodes = [];
-      if (typeof object.movie.id == "number" && object.movie.name) {
+      var isKinopubCard = object.movie.source === SOURCE_ID || object.movie.source === "kinopub";
+      // For KinoPub cards, `movie.id` is only a valid TMDB id after
+      // resolveTmdbInfo succeeded (tmdb_id is set) — otherwise querying TMDB
+      // with the KinoPub id would fetch episode titles of a FOREIGN show.
+      var canQueryTmdb = typeof object.movie.id == "number" && object.movie.name && (!isKinopubCard || object.movie.tmdb_id);
+      if (canQueryTmdb) {
         var tmdbPath = "tv/" + object.movie.id + "/season/" + seasonNumber + "?api_key=" + Lampa.TMDB.key() + "&language=" + Lampa.Storage.get("language", "ru");
         var tmdbUrl = Lampa.TMDB.api(tmdbPath);
         network.timeout(10000);
