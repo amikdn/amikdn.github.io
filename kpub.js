@@ -9,7 +9,7 @@
   // Module constants & persistent state
   // ==========================================================================
   var PLUGIN_NAME = "DSO KinoPub";
-  var PLUGIN_VERSION = "1.3.3";
+  var PLUGIN_VERSION = "1.4.0";
   var DEFAULT_PROXY = "";
   var SOURCE_ID = "kinopub";
   var SOURCE_TITLE = "KinoPub";
@@ -421,6 +421,38 @@
     }
     if (item.seasons && item.seasons.length) {
       card.number_of_seasons = item.seasons.length;
+      // Poster badge ("N сезонов M серий") reads TMDB-style number_of_episodes.
+      // Sum per-season episode arrays (detail endpoint) or fall back to an
+      // aggregate count if the API exposes one. List endpoints omit episode
+      // arrays entirely — in that case leave number_of_episodes unset so the
+      // badge doesn't render a misleading "0 серий".
+      var totalEpisodes = 0;
+      var haveEpisodeData = false;
+      for (var seasonIndex = 0; seasonIndex < item.seasons.length; seasonIndex++) {
+        var seasonEpisodes = item.seasons[seasonIndex] && item.seasons[seasonIndex].episodes;
+        if (seasonEpisodes && seasonEpisodes.length) {
+          totalEpisodes += seasonEpisodes.length;
+          haveEpisodeData = true;
+        }
+      }
+      if (!haveEpisodeData) {
+        var aggregateEpisodes = parseInt(item.episodes_total || item.total_episodes || 0, 10) || 0;
+        if (aggregateEpisodes > 0) {
+          totalEpisodes = aggregateEpisodes;
+          haveEpisodeData = true;
+        }
+      }
+      if (haveEpisodeData && totalEpisodes > 0) {
+        card.number_of_episodes = totalEpisodes;
+      }
+    }
+    // Age restriction -> TMDB-style pg source (parsePG reads card.restrict and
+    // renders "18+" etc). Only set when a real positive age exists so we never
+    // produce an empty age pill in the rate line.
+    var ageRestriction = item.age || item.ac || item.restrict || item.rating_mpaa;
+    var ageNumber = parseInt(("" + (ageRestriction || "")).replace(/\D/g, ""), 10) || 0;
+    if (ageNumber > 0) {
+      card.restrict = ageNumber;
     }
     if (item.cast) {
       card.kinopub_cast = item.cast;
@@ -456,6 +488,12 @@
   // ==========================================================================
   function trackRequest(request) {
     trackedRequests.push(request);
+    // clearTrackedRequests only runs on some component-destroy paths, so full-card
+    // opens (resolveTmdbInfo) can accumulate references indefinitely. Cap the array
+    // to the most recent entries — older tracked requests have long since finished.
+    if (trackedRequests.length > 60) {
+      trackedRequests.splice(0, trackedRequests.length - 60);
+    }
     return request;
   }
   function clearTrackedRequests() {
@@ -555,6 +593,7 @@
   }
   var suppressFavoriteSync = false;
   var favoritesSyncActive = false;
+  var lastSettingsUserFetch = 0;
   var BOOKMARK_FOLDER_TITLE = "Lampa";
   function extractItems(response) {
     if (!response) {
@@ -628,6 +667,71 @@
       return 0;
     }
     return card.kinopub_id || (card.source === SOURCE_ID || card.source === "kinopub" ? card.id : 0);
+  }
+  // --------------------------------------------------------------------------
+  // Watch-history tombstones. When the user deletes a KinoPub item from Lampa's
+  // local history we record its KinoPub id here so the periodic history sync
+  // never re-adds it. Watching the item again removes the tombstone.
+  // --------------------------------------------------------------------------
+  var HISTORY_REMOVED_KEY = "dso_kinopub_history_removed";
+  var HISTORY_REMOVED_CAP = 500;
+  function getHistoryRemovedIds() {
+    var list = Lampa.Storage.get(HISTORY_REMOVED_KEY, []);
+    return Array.isArray(list) ? list : [];
+  }
+  function isHistoryTombstoned(itemId) {
+    itemId = parseInt(itemId, 10) || 0;
+    if (!itemId) {
+      return false;
+    }
+    var list = getHistoryRemovedIds();
+    for (var index = 0; index < list.length; index++) {
+      if ((parseInt(list[index], 10) || 0) === itemId) {
+        return true;
+      }
+    }
+    return false;
+  }
+  function addHistoryTombstone(itemId) {
+    itemId = parseInt(itemId, 10) || 0;
+    if (!itemId || isHistoryTombstoned(itemId)) {
+      return;
+    }
+    var list = getHistoryRemovedIds();
+    list.push(itemId);
+    if (list.length > HISTORY_REMOVED_CAP) {
+      list = list.slice(list.length - HISTORY_REMOVED_CAP);
+    }
+    Lampa.Storage.set(HISTORY_REMOVED_KEY, list);
+  }
+  function removeHistoryTombstone(itemId) {
+    itemId = parseInt(itemId, 10) || 0;
+    if (!itemId) {
+      return;
+    }
+    var list = getHistoryRemovedIds();
+    var changed = false;
+    for (var index = list.length - 1; index >= 0; index--) {
+      if ((parseInt(list[index], 10) || 0) === itemId) {
+        list.splice(index, 1);
+        changed = true;
+      }
+    }
+    if (changed) {
+      Lampa.Storage.set(HISTORY_REMOVED_KEY, list);
+    }
+  }
+  function isHistorySyncEnabled() {
+    return !!Lampa.Storage.get("dso_kinopub_sync_history", false);
+  }
+  // Best-effort server-side history removal. KinoPub has no documented history
+  // delete endpoint, so this is fire-and-forget with silent error handling and
+  // is NOT relied upon — tombstones are the primary mechanism.
+  function clearHistoryOnServer(itemId) {
+    if (!itemId || !getAccessToken()) {
+      return;
+    }
+    apiGet("/v1/history/clear?id=" + encodeURIComponent(itemId), function () {}, function () {});
   }
   function addToLampaFavorites(category, card, historyLimit) {
     if (!Lampa.Favorite || !card || !card.id) {
@@ -725,6 +829,19 @@
       }
     });
   }
+  // Like addItemsToFavorites but for history: skips ids the user has deleted
+  // from Lampa history (tombstoned) so they don't reappear on next sync.
+  function addHistoryItemsToFavorites(items) {
+    (items || []).forEach(function (item) {
+      if (!item || isHistoryTombstoned(item.id)) {
+        return;
+      }
+      var card = convertItemToCard(item);
+      if (card) {
+        addToLampaFavorites("history", card, 100);
+      }
+    });
+  }
   function syncFavoritesFromKinopub(callback) {
     if (!getAccessToken() || !Lampa.Favorite || favoritesSyncActive) {
       if (callback) {
@@ -782,10 +899,15 @@
       addItemsToFavorites(extractItems(serialsResponse), "wath");
       onPartDone();
     }, onPartDone);
-    apiGet("/v1/history?perpage=50", function (historyResponse) {
-      addItemsToFavorites(extractItems(historyResponse), "history", 100);
+    if (isHistorySyncEnabled()) {
+      apiGet("/v1/history?perpage=50", function (historyResponse) {
+        addHistoryItemsToFavorites(extractItems(historyResponse));
+        onPartDone();
+      }, onPartDone);
+    } else {
+      // History sync disabled — skip this part but keep the pending count in sync.
       onPartDone();
-    }, onPartDone);
+    }
   }
   function maybeSyncFavorites(force) {
     if (!getAccessToken()) {
@@ -796,6 +918,14 @@
       return;
     }
     syncFavoritesFromKinopub();
+  }
+  // Defer the favorites sync a few seconds after startup so its burst of
+  // requests (bookmarks + one per folder + watching + history) doesn't compete
+  // with the first render and cause visible stutter.
+  function scheduleFavoritesSync(force) {
+    setTimeout(function () {
+      maybeSyncFavorites(force);
+    }, 5000);
   }
   function bindFavoriteListeners() {
     if (!Lampa.Favorite || !Lampa.Favorite.listener || window.__dso_kinopub_fav_bound) {
@@ -822,6 +952,15 @@
       }
       if (removeEvent.where === "wath") {
         toggleKinopubWatchlist(removeEvent.card);
+      }
+      if (removeEvent.where === "history") {
+        // User deleted this from Lampa history: remember it so history sync
+        // never re-adds it, and try to clear it server-side (best-effort).
+        var removedId = getKinopubId(removeEvent.card);
+        if (removedId) {
+          addHistoryTombstone(removedId);
+          clearHistoryOnServer(removedId);
+        }
       }
     });
   }
@@ -1650,7 +1789,11 @@
           });
         });
       });
-      maybeSyncFavorites(false);
+      // Defer (not fire during) the main-page render: kicking the favorites
+      // sync burst synchronously here competed with the first row of poster
+      // images. scheduleFavoritesSync delays ~5s and still respects the
+      // 15-minute throttle, so it never double-fires with the startup sync.
+      scheduleFavoritesSync(false);
       return function (onNextSuccess, onNextError) {
         servePartedLines(lineLoaders, partSize, onNextSuccess, onNextError);
       };
@@ -3292,6 +3435,12 @@
           };
           elementHtml.on("hover:enter", function () {
             if (object.movie.id) {
+              // Watching again = the user wants it in history: drop any tombstone
+              // so a later sync won't be blocked, then record the real view.
+              var playedId = getKinopubId(object.movie);
+              if (playedId) {
+                removeHistoryTombstone(playedId);
+              }
               Lampa.Favorite.add("history", object.movie, 100);
             }
             if (drawOptions.onEnter) {
@@ -3907,9 +4056,9 @@
         zh: "电视节目"
       },
       dso_kinopub_live_tv: {
-        ru: "ТВ",
-        uk: "ТВ",
-        en: "Live TV",
+        ru: "ТВ KinoPub",
+        uk: "ТБ KinoPub",
+        en: "TV KinoPub",
         zh: "直播电视"
       },
       dso_kinopub_live_empty: {
@@ -3959,6 +4108,18 @@
         uk: "Синхронізувати обране KinoPub",
         en: "Sync KinoPub favorites",
         zh: "同步 KinoPub 收藏"
+      },
+      dso_kinopub_sync_history: {
+        ru: "Синхронизировать историю KinoPub",
+        uk: "Синхронізувати історію KinoPub",
+        en: "Sync KinoPub history",
+        zh: "同步 KinoPub 观看历史"
+      },
+      dso_kinopub_sync_history_descr: {
+        ru: "Добавлять историю просмотров KinoPub в историю Lampa",
+        uk: "Додавати історію переглядів KinoPub до історії Lampa",
+        en: "Add KinoPub watch history to Lampa history",
+        zh: "将 KinoPub 观看历史添加到 Lampa 历史记录"
       },
       dso_kinopub_sync_ok: {
         ru: "Избранное KinoPub синхронизировано",
@@ -4016,6 +4177,30 @@
     updateLiveTvMenuButton();
     Lampa.Listener.follow("full", function (fullEvent) {
       if (fullEvent.type == "complite") {
+        // Defensive: for KinoPub-source cards, hide any empty age (.full-start__pg)
+        // or status (.full-start__status) pill that would otherwise render as an
+        // empty oval in the rate line. Scoped to the rendered card only.
+        var fullMovieCard = fullEvent.data && fullEvent.data.movie;
+        if (isKinopubCard(fullMovieCard) && fullEvent.object && fullEvent.object.activity) {
+          var hideEmptyRatePills = function () {
+            var activityRoot;
+            try {
+              activityRoot = fullEvent.object.activity.render();
+            } catch (renderError) {
+              return;
+            }
+            activityRoot.find(".full-start__pg, .full-start__status").each(function () {
+              var pillNode = $(this);
+              if (!pillNode.text().trim()) {
+                pillNode.addClass("hide");
+              }
+            });
+          };
+          hideEmptyRatePills();
+          // Other overlay plugins may inject pills after "complite" — re-check.
+          setTimeout(hideEmptyRatePills, 400);
+          setTimeout(hideEmptyRatePills, 1500);
+        }
         var watchButton = $(Lampa.Lang.translate(watchButtonHtml));
         watchButton.on("hover:enter", function () {
           registerOnlineTemplates();
@@ -4041,26 +4226,25 @@
       max_qualitie: 2160,
       is_max_qualitie: false
     };
-    function initializeWithToken(startupToken) {
+    function initializeWithToken(startupToken, forceSync) {
       fetchUserStatus(startupToken, function () {
         notifyDevice(startupToken);
-        maybeSyncFavorites(true);
+        scheduleFavoritesSync(forceSync);
       }, function () {
         refreshAccessToken(function (didRefreshToken) {
           if (didRefreshToken) {
             var refreshedToken = getAccessToken();
             fetchUserStatus(refreshedToken, function () {
               notifyDevice(refreshedToken);
-              maybeSyncFavorites(true);
+              scheduleFavoritesSync(forceSync);
             });
           }
         });
       });
     }
     bindFavoriteListeners();
-    if (getAccessToken()) {
-      maybeSyncFavorites(false);
-    }
+    // Sync is driven by initializeWithToken (below, on app ready) — no extra
+    // immediate call here, which previously double-fired sync at startup.
     Lampa.Params.select("dso_kinopub_token", "", "");
     Lampa.Params.select("dso_kinopub_proxy", DEFAULT_PROXY, "");
     Lampa.Params.select("dso_kinopub_filetype", {
@@ -4071,6 +4255,21 @@
       component: "dso_kinopub",
       name: "DSO KinoPub",
       icon: "<svg height=\"57\" viewBox=\"0 0 58 57\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M20 13H26.8281V45H20V13ZM26.8281 17.5L39 13V20.5L29.5 29L39 37.5V45L26.8281 40.5V17.5Z\" fill=\"white\"/><rect x=\"2\" y=\"2\" width=\"54\" height=\"53\" rx=\"5\" stroke=\"white\" stroke-width=\"4\"/></svg>"
+    });
+    // Opt-in toggle for pulling KinoPub watch history into Lampa history.
+    // Default OFF so deleting a Lampa history item does not get undone by sync.
+    // startPlugin runs once (guarded at file top), so this registers only once.
+    Lampa.SettingsApi.addParam({
+      component: "dso_kinopub",
+      param: {
+        name: "dso_kinopub_sync_history",
+        type: "trigger",
+        "default": false
+      },
+      field: {
+        name: Lampa.Lang.translate("dso_kinopub_sync_history"),
+        description: Lampa.Lang.translate("dso_kinopub_sync_history_descr")
+      }
     });
     Lampa.Template.add("settings_dso_kinopub", "<div>\n        <div class=\"settings-param\" data-name=\"dso_kinopub_profile\" data-static=\"true\"></div>\n        <div class=\"settings-param selector\" data-name=\"dso_kinopub_refresh\" data-static=\"true\">\n            <div class=\"settings-param__name\">#{dso_kinopub_refresh_profile}</div>\n        </div>\n        <div class=\"settings-param selector\" data-name=\"dso_kinopub_sync\" data-static=\"true\">\n            <div class=\"settings-param__name\">#{dso_kinopub_sync_favorites}</div>\n        </div>\n        <div class=\"settings-param selector\" data-type=\"select\" data-name=\"dso_kinopub_filetype\">\n            <div class=\"settings-param__name\">#{dso_kinopub_filetype_title}</div>\n            <div class=\"settings-param__value\"></div>\n            <div class=\"settings-param__descr\">#{dso_kinopub_filetype_descr}</div>\n        </div>\n        <div class=\"settings-param selector\" data-name=\"dso_kinopub_proxy\" data-type=\"input\" placeholder=\"https://cors.example.com/\">\n            <div class=\"settings-param__name\">#{dso_kinopub_proxy_title}</div>\n            <div class=\"settings-param__value\"></div>\n            <div class=\"settings-param__descr\">#{dso_kinopub_proxy_descr}</div>\n        </div>\n        <div class=\"settings-param selector\" data-name=\"dso_kinopub_token\" data-type=\"input\" placeholder=\"#{dso_kinopub_param_placeholder}\">\n            <div class=\"settings-param__name\">#{dso_kinopub_param_add_title}</div>\n            <div class=\"settings-param__value\"></div>\n            <div class=\"settings-param__descr\">#{dso_kinopub_param_add_descr}</div>\n        </div>\n        <div class=\"settings-param selector\" data-name=\"dso_kinopub_add\" data-static=\"true\">\n            <div class=\"settings-param__name\">#{dso_kinopub_param_add_device}</div>\n        </div>\n    </div>");
     Lampa.Storage.listener.follow("change", function (storageEvent) {
@@ -4083,7 +4282,8 @@
       if (storageEvent.name == "dso_kinopub_token") {
         window.dso_kinopub.is_max_qualitie = false;
         if (storageEvent.value) {
-          initializeWithToken(storageEvent.value);
+          // Fresh token entered by the user — force an immediate (deferred) sync.
+          initializeWithToken(storageEvent.value, true);
         } else {
           Lampa.Storage.set("dso_kinopub_status", {});
           Lampa.Storage.set("dso_kinopub_refresh", "");
@@ -4100,7 +4300,17 @@
       renderProfileCard();
       var settingsToken = getAccessToken();
       if (settingsToken) {
-        fetchUserStatus(settingsToken);
+        // Refresh the profile async (never blocks the settings render), but at
+        // most once per minute — opening settings repeatedly no longer fires a
+        // /v1/user request every time. The manual "refresh" button below is
+        // unaffected and always re-fetches on demand.
+        var nowMs = Date.now();
+        if (nowMs - lastSettingsUserFetch > 60000) {
+          lastSettingsUserFetch = nowMs;
+          fetchUserStatus(settingsToken);
+        } else {
+          renderProfileCard();
+        }
       }
       settingsEvent.body.find("[data-name=\"dso_kinopub_refresh\"]").unbind("hover:enter").on("hover:enter", function () {
         var refreshClickToken = getAccessToken();
@@ -4108,6 +4318,7 @@
           Lampa.Noty.show(Lampa.Lang.translate("dso_kinopub_nodevice"));
           return;
         }
+        lastSettingsUserFetch = Date.now();
         fetchUserStatus(refreshClickToken, function (refreshedProfile) {
           if (refreshedProfile) {
             Lampa.Noty.show(Lampa.Lang.translate("dso_kinopub_profile_updated"));
@@ -4207,7 +4418,9 @@
     });
     var savedToken = getAccessToken();
     if (savedToken) {
-      initializeWithToken(savedToken);
+      // App startup with an existing token — non-forced sync respects the
+      // 15-minute throttle so it doesn't re-run on every launch.
+      initializeWithToken(savedToken, false);
     }
     if (Lampa.Manifest.app_digital >= 177) {
       Lampa.Storage.sync("online_choice_dso_kinopub", "object_object");
