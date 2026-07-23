@@ -1832,7 +1832,11 @@
         }
         return;
       }
-      var itemId = fullParams.card && (fullParams.card.kinopub_id || fullParams.card.id) || fullParams.id;
+      var itemId = fullParams.card && (fullParams.card.kinopub_id || fullParams.card.id) || fullParams.kinopub_id || fullParams.id;
+      itemId = parseInt(itemId, 10) || 0;
+      if (itemId > 9000000000) {
+        itemId = itemId - 9000000000;
+      }
       if (!itemId) {
         if (onError) {
           onError();
@@ -4036,13 +4040,9 @@
         }
       }
       sourceOptions[SOURCE_ID] = SOURCE_TITLE;
-      var savedLastSource = Lampa.Storage.get("dso_kinopub_last_source", "");
       var currentStoredSource = Lampa.Storage.field("source");
-      var defaultSource = (savedLastSource === SOURCE_ID || currentStoredSource === SOURCE_ID) ? SOURCE_ID : "tmdb";
+      var defaultSource = currentStoredSource || "tmdb";
       Lampa.Params.select("source", sourceOptions, defaultSource);
-      if (savedLastSource === SOURCE_ID && Lampa.Storage.field("source") !== SOURCE_ID) {
-        Lampa.Storage.set("source", SOURCE_ID);
-      }
       Lampa.Storage.listener.follow("change", function (sourceChangeEvent) {
         if (sourceChangeEvent && sourceChangeEvent.name === "source") {
           Lampa.Storage.set("dso_kinopub_last_source", sourceChangeEvent.value);
