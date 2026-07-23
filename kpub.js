@@ -5,9 +5,7 @@
     return;
   }
   window.__dso_kinopub_loaded = true;
-  // ==========================================================================
-  // Module constants & persistent state
-  // ==========================================================================
+
   var PLUGIN_NAME = "DSO KinoPub";
   var PLUGIN_VERSION = "1.4.0";
   var DEFAULT_PROXY = "";
@@ -27,18 +25,14 @@
   var API_BASE_URL = "https://api.srvkp.com";
   var OAUTH_CLIENT_ID = "xbmc";
   var OAUTH_CLIENT_SECRET = "cgg3gtifu46urtfp2zp1nqtba0k2ezxh";
-  // ==========================================================================
-  // Token storage (Lampa.Storage)
-  // ==========================================================================
+
   function getAccessToken() {
     return Lampa.Storage.get("dso_kinopub_token", "");
   }
   function getRefreshToken() {
     return Lampa.Storage.get("dso_kinopub_refresh", "");
   }
-  // ==========================================================================
-  // URL building & CORS/image proxying
-  // ==========================================================================
+
   function buildApiUrl(path) {
     var absoluteUrl = API_BASE_URL + (path.charAt(0) === "/" ? path : "/" + path);
     return proxyUrl + absoluteUrl;
@@ -96,11 +90,6 @@
     return parseInt(("" + (value || "")).replace(/\D/g, ""), 10) || 0;
   }
 
-  /**
-   * KinoPub API returns `quality` as a NUMBER (e.g. 2160), but Lampa core
-   * calls `quality.toUpperCase()` on the card page / main-screen info panel,
-   * which crashes on numbers. Always hand Lampa a string ("4K", "1080p", ...).
-   */
   function formatCardQuality(rawQuality) {
     if (typeof rawQuality === "string" && !/^\d+$/.test(rawQuality.replace(/\s/g, ""))) {
       return rawQuality;
@@ -115,10 +104,6 @@
     return numericQuality + "p";
   }
 
-  /**
-   * ES5-safe replacement for Array.prototype.find (missing in old Android
-   * WebView / Chromium < 45). Returns the first element matching predicate.
-   */
   function findInArray(list, predicate) {
     if (!list || !list.length) {
       return undefined;
@@ -140,9 +125,7 @@
     }
     return Math.max(0, Math.ceil((timestampMs - Date.now()) / 86400000));
   }
-  // ==========================================================================
-  // User profile & subscription card (settings screen)
-  // ==========================================================================
+
   function parseUserProfile(statusResponse) {
     if (!statusResponse || typeof statusResponse !== "object") {
       return null;
@@ -216,9 +199,7 @@
       $(this).replaceWith("<div class=\"dso-kinopub-profile__placeholder\">" + fallbackLetter + "</div>");
     });
   }
-  // ==========================================================================
-  // Auth requests: user status, token refresh, device notify
-  // ==========================================================================
+
   function fetchUserStatus(accessToken, onSuccess, onError) {
     var request = new Lampa.Reguest();
     var url = buildApiUrl("/v1/user?access_token=" + encodeURIComponent(accessToken));
@@ -286,9 +267,7 @@
     request.timeout(8000);
     request.silent(url, function () {}, function () {});
   }
-  // ==========================================================================
-  // KinoPub item -> Lampa card conversion
-  // ==========================================================================
+
   function isSeriesType(contentType) {
     return contentType === "serial" || contentType === "docuserial" || contentType === "tvshow";
   }
@@ -368,13 +347,7 @@
     if (item.posters) {
       posterUrl = proxyImageUrl(item.posters.big || item.posters.medium || item.posters.small || "");
     }
-    // background_image is used by Lampa as a WIDE backdrop (like TMDB's
-    // backdrop_path). Feeding a portrait poster there makes the card page
-    // background look zoomed ~500%. Use the real landscape art (posters.wide),
-    // but ONLY for the full card page (includeBackdrop): list cards trigger
-    // Background.change() on every focus, and loading a huge wide image per
-    // focus makes the whole UI lag. With an empty background_image Lampa
-    // falls back to the already-cached poster for the blurred background.
+
     var backdropUrl = "";
     if (includeBackdrop && item.posters && item.posters.wide) {
       backdropUrl = proxyImageUrl(item.posters.wide);
@@ -390,7 +363,7 @@
       imdbId = ("" + imdbRaw).indexOf("tt") === 0 ? "" + imdbRaw : "tt" + imdbRaw;
     }
     var card = {
-      id: item.id,
+      id: item.id + 9000000000,
       kinopub_id: item.id,
       kinopub_type: item.type || "",
       source: SOURCE_ID,
@@ -421,11 +394,7 @@
     }
     if (item.seasons && item.seasons.length) {
       card.number_of_seasons = item.seasons.length;
-      // Poster badge ("N сезонов M серий") reads TMDB-style number_of_episodes.
-      // Sum per-season episode arrays (detail endpoint) or fall back to an
-      // aggregate count if the API exposes one. List endpoints omit episode
-      // arrays entirely — in that case leave number_of_episodes unset so the
-      // badge doesn't render a misleading "0 серий".
+
       var totalEpisodes = 0;
       var haveEpisodeData = false;
       for (var seasonIndex = 0; seasonIndex < item.seasons.length; seasonIndex++) {
@@ -446,9 +415,7 @@
         card.number_of_episodes = totalEpisodes;
       }
     }
-    // Age restriction -> TMDB-style pg source (parsePG reads card.restrict and
-    // renders "18+" etc). Only set when a real positive age exists so we never
-    // produce an empty age pill in the rate line.
+
     var ageRestriction = item.age || item.ac || item.restrict || item.rating_mpaa;
     var ageNumber = parseInt(("" + (ageRestriction || "")).replace(/\D/g, ""), 10) || 0;
     if (ageNumber > 0) {
@@ -483,14 +450,10 @@
       total_results: totalRaw * (perPage > 1 && totalRaw <= 100 ? perPage : 1)
     };
   }
-  // ==========================================================================
-  // API transport: GET with auto token refresh, POST, helpers
-  // ==========================================================================
+
   function trackRequest(request) {
     trackedRequests.push(request);
-    // clearTrackedRequests only runs on some component-destroy paths, so full-card
-    // opens (resolveTmdbInfo) can accumulate references indefinitely. Cap the array
-    // to the most recent entries — older tracked requests have long since finished.
+
     if (trackedRequests.length > 60) {
       trackedRequests.splice(0, trackedRequests.length - 60);
     }
@@ -653,9 +616,7 @@
       }
     });
   }
-  // ==========================================================================
-  // Favorites & bookmarks: two-way sync with KinoPub
-  // ==========================================================================
+
   function isKinopubCard(card) {
     if (!card) {
       return false;
@@ -667,71 +628,6 @@
       return 0;
     }
     return card.kinopub_id || (card.source === SOURCE_ID || card.source === "kinopub" ? card.id : 0);
-  }
-  // --------------------------------------------------------------------------
-  // Watch-history tombstones. When the user deletes a KinoPub item from Lampa's
-  // local history we record its KinoPub id here so the periodic history sync
-  // never re-adds it. Watching the item again removes the tombstone.
-  // --------------------------------------------------------------------------
-  var HISTORY_REMOVED_KEY = "dso_kinopub_history_removed";
-  var HISTORY_REMOVED_CAP = 500;
-  function getHistoryRemovedIds() {
-    var list = Lampa.Storage.get(HISTORY_REMOVED_KEY, []);
-    return Array.isArray(list) ? list : [];
-  }
-  function isHistoryTombstoned(itemId) {
-    itemId = parseInt(itemId, 10) || 0;
-    if (!itemId) {
-      return false;
-    }
-    var list = getHistoryRemovedIds();
-    for (var index = 0; index < list.length; index++) {
-      if ((parseInt(list[index], 10) || 0) === itemId) {
-        return true;
-      }
-    }
-    return false;
-  }
-  function addHistoryTombstone(itemId) {
-    itemId = parseInt(itemId, 10) || 0;
-    if (!itemId || isHistoryTombstoned(itemId)) {
-      return;
-    }
-    var list = getHistoryRemovedIds();
-    list.push(itemId);
-    if (list.length > HISTORY_REMOVED_CAP) {
-      list = list.slice(list.length - HISTORY_REMOVED_CAP);
-    }
-    Lampa.Storage.set(HISTORY_REMOVED_KEY, list);
-  }
-  function removeHistoryTombstone(itemId) {
-    itemId = parseInt(itemId, 10) || 0;
-    if (!itemId) {
-      return;
-    }
-    var list = getHistoryRemovedIds();
-    var changed = false;
-    for (var index = list.length - 1; index >= 0; index--) {
-      if ((parseInt(list[index], 10) || 0) === itemId) {
-        list.splice(index, 1);
-        changed = true;
-      }
-    }
-    if (changed) {
-      Lampa.Storage.set(HISTORY_REMOVED_KEY, list);
-    }
-  }
-  function isHistorySyncEnabled() {
-    return !!Lampa.Storage.get("dso_kinopub_sync_history", false);
-  }
-  // Best-effort server-side history removal. KinoPub has no documented history
-  // delete endpoint, so this is fire-and-forget with silent error handling and
-  // is NOT relied upon — tombstones are the primary mechanism.
-  function clearHistoryOnServer(itemId) {
-    if (!itemId || !getAccessToken()) {
-      return;
-    }
-    apiGet("/v1/history/clear?id=" + encodeURIComponent(itemId), function () {}, function () {});
   }
   function addToLampaFavorites(category, card, historyLimit) {
     if (!Lampa.Favorite || !card || !card.id) {
@@ -829,19 +725,6 @@
       }
     });
   }
-  // Like addItemsToFavorites but for history: skips ids the user has deleted
-  // from Lampa history (tombstoned) so they don't reappear on next sync.
-  function addHistoryItemsToFavorites(items) {
-    (items || []).forEach(function (item) {
-      if (!item || isHistoryTombstoned(item.id)) {
-        return;
-      }
-      var card = convertItemToCard(item);
-      if (card) {
-        addToLampaFavorites("history", card, 100);
-      }
-    });
-  }
   function syncFavoritesFromKinopub(callback) {
     if (!getAccessToken() || !Lampa.Favorite || favoritesSyncActive) {
       if (callback) {
@@ -850,7 +733,7 @@
       return;
     }
     favoritesSyncActive = true;
-    var pendingParts = 4;
+    var pendingParts = 3;
     function onPartDone() {
       pendingParts--;
       if (pendingParts > 0) {
@@ -899,15 +782,6 @@
       addItemsToFavorites(extractItems(serialsResponse), "wath");
       onPartDone();
     }, onPartDone);
-    if (isHistorySyncEnabled()) {
-      apiGet("/v1/history?perpage=50", function (historyResponse) {
-        addHistoryItemsToFavorites(extractItems(historyResponse));
-        onPartDone();
-      }, onPartDone);
-    } else {
-      // History sync disabled — skip this part but keep the pending count in sync.
-      onPartDone();
-    }
   }
   function maybeSyncFavorites(force) {
     if (!getAccessToken()) {
@@ -919,9 +793,7 @@
     }
     syncFavoritesFromKinopub();
   }
-  // Defer the favorites sync a few seconds after startup so its burst of
-  // requests (bookmarks + one per folder + watching + history) doesn't compete
-  // with the first render and cause visible stutter.
+
   function scheduleFavoritesSync(force) {
     setTimeout(function () {
       maybeSyncFavorites(force);
@@ -953,80 +825,65 @@
       if (removeEvent.where === "wath") {
         toggleKinopubWatchlist(removeEvent.card);
       }
-      if (removeEvent.where === "history") {
-        // User deleted this from Lampa history: remember it so history sync
-        // never re-adds it, and try to clear it server-side (best-effort).
-        var removedId = getKinopubId(removeEvent.card);
-        if (removedId) {
-          addHistoryTombstone(removedId);
-          clearHistoryOnServer(removedId);
-        }
-      }
     });
   }
-  // ==========================================================================
-  // Main page rows: continue watching, bookmarks, collections
-  // ==========================================================================
+
   function prependContinueWatchingLines(lineLoaders, done) {
-    if (!getAccessToken()) {
+    if (!Lampa.Favorite || typeof Lampa.Favorite.get !== "function") {
       done();
       return;
     }
-    var loaders = {
-      movies: null,
-      serials: null,
-      history: null
-    };
-    var pendingParts = 3;
-    function onPartDone() {
-      pendingParts--;
-      if (pendingParts > 0) {
-        return;
-      }
-      [loaders.history, loaders.serials, loaders.movies].forEach(function (loader) {
-        if (loader) {
-          lineLoaders.unshift(loader);
-        }
-      });
+    var localHistory = (Lampa.Favorite.get("history") || []).filter(function (favoriteCard) {
+      return isKinopubCard(favoriteCard) && favoriteCard && (favoriteCard.title || favoriteCard.name);
+    });
+    if (!localHistory.length) {
       done();
+      return;
     }
-    apiGet("/v1/watching/movies", function (moviesResponse) {
-      var movieItems = extractItems(moviesResponse);
-      if (movieItems.length) {
-        loaders.movies = function (lineCallback) {
-          var moviesData = {
-            items: movieItems
-          };
-          lineCallback(buildCardsResult(moviesData, translateOr("dso_kinopub_continue_movies", "Продолжить — фильмы"), "watching/movies"));
-        };
+    var continueItems = [];
+    var pureHistory = [];
+    localHistory.forEach(function (favoriteCard) {
+      var hasContinue = false;
+      if (Lampa.Timeline && typeof Lampa.Timeline.view === "function") {
+        var hashSource = favoriteCard.original_name || favoriteCard.name || favoriteCard.original_title || favoriteCard.title || "";
+        try {
+          var timelineInfo = Lampa.Timeline.view(Lampa.Utils.hash(hashSource));
+          if (timelineInfo && timelineInfo.percent > 0 && timelineInfo.percent < 100) {
+            hasContinue = true;
+          }
+        } catch (timelineError) {}
       }
-      onPartDone();
-    }, onPartDone);
-    apiGet("/v1/watching/serials?subscribed=0", function (serialsResponse) {
-      var serialItems = extractItems(serialsResponse);
-      if (serialItems.length) {
-        loaders.serials = function (serialsLineCallback) {
-          var serialsData = {
-            items: serialItems
-          };
-          serialsLineCallback(buildCardsResult(serialsData, translateOr("dso_kinopub_continue_serials", "Продолжить — сериалы"), "watching/serials"));
-        };
+      if (hasContinue) {
+        continueItems.push(favoriteCard);
+      } else {
+        pureHistory.push(favoriteCard);
       }
-      onPartDone();
-    }, onPartDone);
-    apiGet("/v1/history?perpage=20", function (historyResponse) {
-      var historyItems = extractItems(historyResponse);
-      if (historyItems.length) {
-        loaders.history = function (historyLineCallback) {
-          var historyData = {
-            items: historyItems,
-            pagination: historyResponse.pagination
-          };
-          historyLineCallback(buildCardsResult(historyData, translateOr("title_history", "История"), "history"));
-        };
-      }
-      onPartDone();
-    }, onPartDone);
+    });
+    if (pureHistory.length) {
+      lineLoaders.unshift(function (historyLineCallback) {
+        historyLineCallback({
+          title: translateOr("title_history", "История"),
+          results: pureHistory.slice(0, 25),
+          source: SOURCE_ID,
+          url: "history",
+          page: 1,
+          total_pages: 1
+        });
+      });
+    }
+    if (continueItems.length) {
+      lineLoaders.unshift(function (continueLineCallback) {
+        continueLineCallback({
+          title: translateOr("dso_kinopub_continue", "Продолжить просмотр"),
+          results: continueItems.slice(0, 25),
+          source: SOURCE_ID,
+          url: "history?continue=1",
+          page: 1,
+          total_pages: 1
+        });
+      });
+    }
+    done();
   }
   function appendBookmarkLines(lineLoaders, done) {
     if (!getAccessToken()) {
@@ -1096,9 +953,7 @@
       });
     });
   }
-  // ==========================================================================
-  // Catalog modes (movie / tv / anime / cartoon) & genre lookup
-  // ==========================================================================
+
   function lampaTypeToKinopubType(lampaType) {
     if (lampaType === "tv" || lampaType === "anime") {
       return "serial";
@@ -1212,9 +1067,7 @@
     queueCardsLine(lineLoaders, "/v1/items?type=" + contentType + genreQuery + "&sort=rating-&perpage=20", prefix + translateOr("title_hight_voite", "С высоким рейтингом"), "catalog?type=" + contentType + genreQuery + "&sort=rating-");
     queueCardsLine(lineLoaders, "/v1/items?type=" + contentType + genreQuery + "&sort=watchers-&perpage=20", prefix + translateOr("dso_kinopub_watchers", "Смотрят сейчас"), "catalog?type=" + contentType + genreQuery + "&sort=watchers-");
   }
-  // ==========================================================================
-  // List/catalog URL parsing -> API request building
-  // ==========================================================================
+
   function parseListParams(params) {
     var rawUrl = params && params.url ? String(params.url) : "";
     var page = parseInt(params && params.page, 10) || 1;
@@ -1410,9 +1263,7 @@
       callback([]);
     });
   }
-  // ==========================================================================
-  // Live TV (channel list + player)
-  // ==========================================================================
+
   var liveTvMenuButton = null;
   function playLiveChannel(channel) {
     if (!channel || !channel.stream) {
@@ -1529,9 +1380,7 @@
       Lampa.Activity.push(activityParams);
     });
   }
-  // ==========================================================================
-  // Full card data: seasons, trailer, cast/crew
-  // ==========================================================================
+
   function buildSeasonsMap(item) {
     if (!item || !item.seasons || !item.seasons.length) {
       return {};
@@ -1696,19 +1545,7 @@
     serveNext(onSuccess, onError);
     return serveNext;
   }
-  // ==========================================================================
-  // Lampa.Api source: main / category / list / full / menu / search
-  // ==========================================================================
-  /**
-   * Resolve the real TMDB id (and wide backdrop) for a KinoPub card via the
-   * TMDB "find by IMDB id" endpoint. On success, mutates the card in place:
-   *   - id            -> real TMDB id (so logo/rating plugins and core
-   *                      episode lookups hit the right movie)
-   *   - backdrop_path -> real landscape art (fixes the zoomed portrait
-   *                      poster in the mobile card header)
-   * Always calls `callback` (with or without a match) and never blocks the
-   * card for longer than the request timeout.
-   */
+
   function resolveTmdbInfo(card, callback) {
     if (!card || !card.imdb_id || !Lampa.TMDB || typeof Lampa.TMDB.api !== "function") {
       callback();
@@ -1735,10 +1572,7 @@
       callback();
     });
   }
-  /**
-   * Content-source implementation registered as Lampa.Api.sources["kinopub"].
-   * Each method receives Lampa activity params and success/error callbacks.
-   */
+
   var kinopubApiSource = {
     main: function (mainParams, onSuccess, onError) {
       if (!getAccessToken()) {
@@ -1789,10 +1623,7 @@
           });
         });
       });
-      // Defer (not fire during) the main-page render: kicking the favorites
-      // sync burst synchronously here competed with the first row of poster
-      // images. scheduleFavoritesSync delays ~5s and still respects the
-      // 15-minute throttle, so it never double-fires with the startup sync.
+
       scheduleFavoritesSync(false);
       return function (onNextSuccess, onNextError) {
         servePartedLines(lineLoaders, partSize, onNextSuccess, onNextError);
@@ -1981,12 +1812,7 @@
             onSuccess(fullData);
           });
         }
-        // Resolve the REAL TMDB id via the IMDB id. KinoPub ids are not TMDB
-        // ids, so plugins (applecation logos/ratings) and Lampa core (episode
-        // titles, wide backdrop on mobile) that query TMDB by `card.id` were
-        // getting data for a random foreign movie. With the resolved id we
-        // also get a proper landscape `backdrop_path`, which fixes the
-        // zoomed-in portrait poster in the mobile card header.
+
         resolveTmdbInfo(card, finishFull);
       }, onError);
     },
@@ -2198,9 +2024,7 @@
       };
     }
   };
-  // ==========================================================================
-  // Streams: audio tracks, voice selection, quality, subtitles
-  // ==========================================================================
+
   function describeAudioTracks(audios) {
     if (!audios || !audios.length) {
       return Lampa.Lang.translate("torrent_parser_voice");
@@ -2444,16 +2268,7 @@
       is_max_qualitie: false
     };
   }
-  // ==========================================================================
-  // Online playback source ("balanser") used by OnlineComponent
-  // ==========================================================================
-  /**
-   * Resolves a Lampa card to a KinoPub item (by id or title search),
-   * builds per-translation playlists for movies/serials, lets the user
-   * filter by season/voice and hands stream URLs to Lampa.Player.
-   * @param {Object} component  OnlineComponent instance (UI callbacks)
-   * @param {Object} initialObject  Lampa activity object ({ movie, ... })
-   */
+
   function KinopubOnlineSource(component, initialObject) {
     var request = new Lampa.Reguest();
     var playlistByTranslation = {};
@@ -2995,9 +2810,7 @@
       });
     }
   }
-  // ==========================================================================
-  // Online activity component (episode/translation list UI)
-  // ==========================================================================
+
   function createComponentParts(componentObject) {
     return {
       network: new Lampa.Reguest(),
@@ -3009,12 +2822,7 @@
       filter: new Lampa.Filter(componentObject)
     };
   }
-  /**
-   * Lampa activity component shown when the user presses the
-   * "Watch online" button on a movie card. Renders episode lists,
-   * filters, context menus and drives KinopubOnlineSource.
-   * @param {Object} object  Lampa activity object ({ movie, search, ... })
-   */
+
   function OnlineComponent(object) {
     var parts = createComponentParts(object);
     var network = parts.network;
@@ -3256,9 +3064,7 @@
     this.getEpisodes = function (seasonNumber, episodesCallback) {
       var tmdbEpisodes = [];
       var isKinopubCard = object.movie.source === SOURCE_ID || object.movie.source === "kinopub";
-      // For KinoPub cards, `movie.id` is only a valid TMDB id after
-      // resolveTmdbInfo succeeded (tmdb_id is set) — otherwise querying TMDB
-      // with the KinoPub id would fetch episode titles of a FOREIGN show.
+
       var canQueryTmdb = typeof object.movie.id == "number" && object.movie.name && (!isKinopubCard || object.movie.tmdb_id);
       if (canQueryTmdb) {
         var tmdbPath = "tv/" + object.movie.id + "/season/" + seasonNumber + "?api_key=" + Lampa.TMDB.key() + "&language=" + Lampa.Storage.get("language", "ru");
@@ -3435,12 +3241,6 @@
           };
           elementHtml.on("hover:enter", function () {
             if (object.movie.id) {
-              // Watching again = the user wants it in history: drop any tombstone
-              // so a later sync won't be blocked, then record the real view.
-              var playedId = getKinopubId(object.movie);
-              if (playedId) {
-                removeHistoryTombstone(playedId);
-              }
               Lampa.Favorite.add("history", object.movie, 100);
             }
             if (drawOptions.onEnter) {
@@ -3768,14 +3568,7 @@
       }
     };
   }
-  // ==========================================================================
-  // Plugin bootstrap: manifest, translations, templates, settings, auth
-  // ==========================================================================
-  /**
-   * Entry point, executed once on app ready. Registers the manifest,
-   * translations, CSS/templates, the content source, the "Watch online"
-   * button, settings screen and the device-code authorization flow.
-   */
+
   function startPlugin() {
     console.log(PLUGIN_NAME, "v" + PLUGIN_VERSION);
     var manifest = {
@@ -4091,17 +3884,11 @@
         en: "3D",
         zh: "3D"
       },
-      dso_kinopub_continue_movies: {
-        ru: "Продолжить — фильмы",
-        uk: "Продовжити — фільми",
-        en: "Continue — movies",
-        zh: "继续观看 — 电影"
-      },
-      dso_kinopub_continue_serials: {
-        ru: "Продолжить — сериалы",
-        uk: "Продовжити — серіали",
-        en: "Continue — series",
-        zh: "继续观看 — 剧集"
+      dso_kinopub_continue: {
+        ru: "Продолжить просмотр",
+        uk: "Продовжити перегляд",
+        en: "Continue watching",
+        zh: "继续观看"
       },
       dso_kinopub_sync_favorites: {
         ru: "Синхронизировать избранное KinoPub",
@@ -4109,18 +3896,7 @@
         en: "Sync KinoPub favorites",
         zh: "同步 KinoPub 收藏"
       },
-      dso_kinopub_sync_history: {
-        ru: "Синхронизировать историю KinoPub",
-        uk: "Синхронізувати історію KinoPub",
-        en: "Sync KinoPub history",
-        zh: "同步 KinoPub 观看历史"
-      },
-      dso_kinopub_sync_history_descr: {
-        ru: "Добавлять историю просмотров KinoPub в историю Lampa",
-        uk: "Додавати історію переглядів KinoPub до історії Lampa",
-        en: "Add KinoPub watch history to Lampa history",
-        zh: "将 KinoPub 观看历史添加到 Lampa 历史记录"
-      },
+
       dso_kinopub_sync_ok: {
         ru: "Избранное KinoPub синхронизировано",
         uk: "Обране KinoPub синхронізовано",
@@ -4136,7 +3912,7 @@
     });
     Lampa.Template.add("dso_kinopub_profile_css", "<style>.dso-kinopub-profile{margin:1em 0;padding:1em;background:rgba(255,255,255,.08);border-radius:.6em;line-height:1.35}.dso-kinopub-profile--empty{opacity:.75;padding:1.2em 1em}.dso-kinopub-profile__wrap{display:flex;gap:1em;align-items:center}.dso-kinopub-profile__avatar{width:4.5em;height:4.5em;border-radius:50%;overflow:hidden;background:rgba(0,0,0,.35);flex-shrink:0;display:flex;align-items:center;justify-content:center}.dso-kinopub-profile__avatar img{width:100%;height:100%;object-fit:cover}.dso-kinopub-profile__placeholder{font-size:1.8em;font-weight:600;text-transform:uppercase}.dso-kinopub-profile__title{font-size:1.25em;font-weight:600}.dso-kinopub-profile__login{opacity:.75;font-size:.95em;margin-top:.15em}.dso-kinopub-profile__meta{opacity:.85;font-size:.92em;margin-top:.45em}.dso-kinopub-profile__badge{display:inline-block;margin-bottom:.35em;padding:.15em .55em;border-radius:.3em;background:rgba(255,255,255,.14);font-size:.88em;font-weight:600}</style>");
     $("body").append(Lampa.Template.get("dso_kinopub_profile_css", {}, true));
-    Lampa.Template.add("online_prestige_css", "\n        <style>\n        @charset 'UTF-8';.online-prestige{position:relative;-webkit-border-radius:.3em;-moz-border-radius:.3em;border-radius:.3em;background-color:rgba(0,0,0,0.3);display:-webkit-box;display:-webkit-flex;display:-moz-box;display:-ms-flexbox;display:flex;will-change:transform}.online-prestige__body{padding:1.2em;line-height:1.3;-webkit-box-flex:1;-webkit-flex-grow:1;-moz-box-flex:1;-ms-flex-positive:1;flex-grow:1;position:relative}@media screen and (max-width:480px){.online-prestige__body{padding:.8em 1.2em}}.online-prestige__img{position:relative;width:13em;-webkit-flex-shrink:0;-ms-flex-negative:0;flex-shrink:0;min-height:8.2em}.online-prestige__img>img{position:absolute;top:0;left:0;width:100%;height:100%;-o-object-fit:cover;object-fit:cover;-webkit-border-radius:.3em;-moz-border-radius:.3em;border-radius:.3em;opacity:0;-webkit-transition:opacity .3s;-o-transition:opacity .3s;-moz-transition:opacity .3s;transition:opacity .3s}.online-prestige__img--loaded>img{opacity:1}@media screen and (max-width:480px){.online-prestige__img{width:7em;min-height:6em}}.online-prestige__folder{padding:1em;-webkit-flex-shrink:0;-ms-flex-negative:0;flex-shrink:0}.online-prestige__folder>svg{width:4.4em !important;height:4.4em !important}.online-prestige__viewed{position:absolute;top:1em;left:1em;background:rgba(0,0,0,0.45);-webkit-border-radius:100%;-moz-border-radius:100%;border-radius:100%;padding:.25em;font-size:.76em}.online-prestige__viewed>svg{width:1.5em !important;height:1.5em !important}.online-prestige__episode-number{position:absolute;top:0;left:0;right:0;bottom:0;display:-webkit-box;display:-webkit-flex;display:-moz-box;display:-ms-flexbox;display:flex;-webkit-box-align:center;-webkit-align-items:center;-moz-box-align:center;-ms-flex-align:center;align-items:center;-webkit-box-pack:center;-webkit-justify-content:center;-moz-box-pack:center;-ms-flex-pack:center;justify-content:center;font-size:2em}.online-prestige__loader{position:absolute;top:50%;left:50%;width:2em;height:2em;margin-left:-1em;margin-top:-1em;background:url(./img/loader.svg) no-repeat center center;-webkit-background-size:contain;-moz-background-size:contain;-o-background-size:contain;background-size:contain}.online-prestige__head,.online-prestige__footer{display:-webkit-box;display:-webkit-flex;display:-moz-box;display:-ms-flexbox;display:flex;-webkit-box-pack:justify;-webkit-justify-content:space-between;-moz-box-pack:justify;-ms-flex-pack:justify;justify-content:space-between;-webkit-box-align:center;-webkit-align-items:center;-moz-box-align:center;-ms-flex-align:center;align-items:center}.online-prestige__timeline{margin:.8em 0}.online-prestige__timeline>.time-line{display:block !important}.online-prestige__title{font-size:1.7em;overflow:hidden;-o-text-overflow:ellipsis;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:1;line-clamp:1;-webkit-box-orient:vertical}@media screen and (max-width:480px){.online-prestige__title{font-size:1.4em}}.online-prestige__time{padding-left:2em}.online-prestige__info{display:-webkit-box;display:-webkit-flex;display:-moz-box;display:-ms-flexbox;display:flex;-webkit-box-align:center;-webkit-align-items:center;-moz-box-align:center;-ms-flex-align:center;align-items:center}.online-prestige__info>*{overflow:hidden;-o-text-overflow:ellipsis;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:1;line-clamp:1;-webkit-box-orient:vertical}.online-prestige__quality{padding-left:1em;white-space:nowrap;flex-shrink:0}.online-prestige--full .online-prestige__info{min-width:0;flex:1}.online-prestige--full .online-prestige__info>span:only-child{overflow:hidden;-o-text-overflow:ellipsis;text-overflow:ellipsis;white-space:nowrap;display:block;max-width:100%}.online-prestige--full .online-prestige__footer{align-items:flex-end;gap:.6em}.online-prestige__scan-file{position:absolute;bottom:0;left:0;right:0}.online-prestige__scan-file .broadcast__scan{margin:0}.online-prestige .online-prestige-split{font-size:.8em;margin:0 1em;-webkit-flex-shrink:0;-ms-flex-negative:0;flex-shrink:0}.online-prestige.focus::after{content:'';position:absolute;top:-0.6em;left:-0.6em;right:-0.6em;bottom:-0.6em;-webkit-border-radius:.7em;-moz-border-radius:.7em;border-radius:.7em;border:solid .3em #fff;z-index:-1;pointer-events:none}.online-prestige+.online-prestige{margin-top:1.5em}.online-prestige--folder .online-prestige__footer{margin-top:.8em}.online-prestige-watched{padding:1em}.online-prestige-watched__icon>svg{width:1.5em;height:1.5em}.online-prestige-watched__body{padding-left:1em;padding-top:.1em;display:-webkit-box;display:-webkit-flex;display:-moz-box;display:-ms-flexbox;display:flex;-webkit-flex-wrap:wrap;-ms-flex-wrap:wrap;flex-wrap:wrap}.online-prestige-watched__body>span+span::before{content:' ● ';vertical-align:top;display:inline-block;margin:0 .5em}.online-prestige-rate{display:-webkit-inline-box;display:-webkit-inline-flex;display:-moz-inline-box;display:-ms-inline-flexbox;display:inline-flex;-webkit-box-align:center;-webkit-align-items:center;-moz-box-align:center;-ms-flex-align:center;align-items:center}.online-prestige-rate>svg{width:1.3em !important;height:1.3em !important}.online-prestige-rate>span{font-weight:600;font-size:1.1em;padding-left:.7em}.online-empty{line-height:1.4}.online-empty__title{font-size:2em;margin-bottom:.9em}.online-empty__time{font-size:1.2em;font-weight:300;margin-bottom:1.6em}.online-empty__buttons{display:-webkit-box;display:-webkit-flex;display:-moz-box;display:-ms-flexbox;display:flex}.online-empty__buttons>*+*{margin-left:1em}.online-empty__button{background:rgba(0,0,0,0.3);font-size:1.2em;padding:.5em 1.2em;-webkit-border-radius:.2em;-moz-border-radius:.2em;border-radius:.2em;margin-bottom:2.4em}.online-empty__button.focus{background:#fff;color:black}.online-empty__templates .online-empty-template:nth-child(2){opacity:.5}.online-empty__templates .online-empty-template:nth-child(3){opacity:.2}.online-empty-template{background-color:rgba(255,255,255,0.3);padding:1em;display:-webkit-box;display:-webkit-flex;display:-moz-box;display:-ms-flexbox;display:flex;-webkit-box-align:center;-webkit-align-items:center;-moz-box-align:center;-ms-flex-align:center;align-items:center;-webkit-border-radius:.3em;-moz-border-radius:.3em;border-radius:.3em}.online-empty-template>*{background:rgba(0,0,0,0.3);-webkit-border-radius:.3em;-moz-border-radius:.3em;border-radius:.3em}.online-empty-template__ico{width:4em;height:4em;margin-right:2.4em}.online-empty-template__body{height:1.7em;width:70%}.online-empty-template+.online-empty-template{margin-top:1em}\n        </style>\n    ");
+    Lampa.Template.add("online_prestige_css", "\n        <style>\n        @charset 'UTF-8';.online-prestige{position:relative;-webkit-border-radius:.3em;-moz-border-radius:.3em;border-radius:.3em;background-color:rgba(0,0,0,0.3);display:-webkit-box;display:-webkit-flex;display:-moz-box;display:-ms-flexbox;display:flex;will-change:transform;width:100%;box-sizing:border-box;overflow:hidden}.online-prestige__body{padding:1.2em;line-height:1.3;-webkit-box-flex:1;-webkit-flex-grow:1;-moz-box-flex:1;-ms-flex-positive:1;flex-grow:1;position:relative;min-width:0;overflow:hidden}@media screen and (max-width:480px){.online-prestige__body{padding:.8em 1.2em}}.online-prestige__img{position:relative;width:13em;-webkit-flex-shrink:0;-ms-flex-negative:0;flex-shrink:0;min-height:8.2em}.online-prestige__img>img{position:absolute;top:0;left:0;width:100%;height:100%;-o-object-fit:cover;object-fit:cover;-webkit-border-radius:.3em;-moz-border-radius:.3em;border-radius:.3em;opacity:0;-webkit-transition:opacity .3s;-o-transition:opacity .3s;-moz-transition:opacity .3s;transition:opacity .3s}.online-prestige__img--loaded>img{opacity:1}@media screen and (max-width:480px){.online-prestige__img{width:7em;min-height:6em}}.online-prestige__folder{padding:1em;-webkit-flex-shrink:0;-ms-flex-negative:0;flex-shrink:0}.online-prestige__folder>svg{width:4.4em !important;height:4.4em !important}.online-prestige__viewed{position:absolute;top:1em;left:1em;background:rgba(0,0,0,0.45);-webkit-border-radius:100%;-moz-border-radius:100%;border-radius:100%;padding:.25em;font-size:.76em}.online-prestige__viewed>svg{width:1.5em !important;height:1.5em !important}.online-prestige__episode-number{position:absolute;top:0;left:0;right:0;bottom:0;display:-webkit-box;display:-webkit-flex;display:-moz-box;display:-ms-flexbox;display:flex;-webkit-box-align:center;-webkit-align-items:center;-moz-box-align:center;-ms-flex-align:center;align-items:center;-webkit-box-pack:center;-webkit-justify-content:center;-moz-box-pack:center;-ms-flex-pack:center;justify-content:center;font-size:2em}.online-prestige__loader{position:absolute;top:50%;left:50%;width:2em;height:2em;margin-left:-1em;margin-top:-1em;background:url(./img/loader.svg) no-repeat center center;-webkit-background-size:contain;-moz-background-size:contain;-o-background-size:contain;background-size:contain}.online-prestige__head,.online-prestige__footer{display:-webkit-box;display:-webkit-flex;display:-moz-box;display:-ms-flexbox;display:flex;-webkit-box-pack:justify;-webkit-justify-content:space-between;-moz-box-pack:justify;-ms-flex-pack:justify;justify-content:space-between;-webkit-box-align:center;-webkit-align-items:center;-moz-box-align:center;-ms-flex-align:center;align-items:center}.online-prestige__timeline{margin:.8em 0}.online-prestige__timeline>.time-line{display:block !important}.online-prestige__title{font-size:1.7em;overflow:hidden;-o-text-overflow:ellipsis;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:1;line-clamp:1;-webkit-box-orient:vertical}@media screen and (max-width:480px){.online-prestige__title{font-size:1.4em}}.online-prestige__time{padding-left:2em}.online-prestige__info{display:-webkit-box;display:-webkit-flex;display:-moz-box;display:-ms-flexbox;display:flex;-webkit-box-align:center;-webkit-align-items:center;-moz-box-align:center;-ms-flex-align:center;align-items:center}.online-prestige__info>*{overflow:hidden;-o-text-overflow:ellipsis;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:1;line-clamp:1;-webkit-box-orient:vertical}.online-prestige__quality{padding-left:1em;white-space:nowrap;flex-shrink:0}.online-prestige--full .online-prestige__info{min-width:0;flex:1}.online-prestige--full .online-prestige__info>span:only-child{overflow:hidden;-o-text-overflow:ellipsis;text-overflow:ellipsis;white-space:nowrap;display:block;max-width:100%}.online-prestige--full .online-prestige__footer{align-items:flex-end;gap:.6em}.online-prestige__scan-file{position:absolute;bottom:0;left:0;right:0}.online-prestige__scan-file .broadcast__scan{margin:0}.online-prestige .online-prestige-split{font-size:.8em;margin:0 1em;-webkit-flex-shrink:0;-ms-flex-negative:0;flex-shrink:0}.online-prestige.focus::after{content:'';position:absolute;top:-0.6em;left:-0.6em;right:-0.6em;bottom:-0.6em;-webkit-border-radius:.7em;-moz-border-radius:.7em;border-radius:.7em;border:solid .3em #fff;z-index:-1;pointer-events:none}.online-prestige+.online-prestige{margin-top:1.5em}.online-prestige--folder .online-prestige__footer{margin-top:.8em}.online-prestige-watched{padding:1em}.online-prestige-watched__icon>svg{width:1.5em;height:1.5em}.online-prestige-watched__body{padding-left:1em;padding-top:.1em;display:-webkit-box;display:-webkit-flex;display:-moz-box;display:-ms-flexbox;display:flex;-webkit-flex-wrap:wrap;-ms-flex-wrap:wrap;flex-wrap:wrap}.online-prestige-watched__body>span+span::before{content:' ● ';vertical-align:top;display:inline-block;margin:0 .5em}.online-prestige-rate{display:-webkit-inline-box;display:-webkit-inline-flex;display:-moz-inline-box;display:-ms-inline-flexbox;display:inline-flex;-webkit-box-align:center;-webkit-align-items:center;-moz-box-align:center;-ms-flex-align:center;align-items:center}.online-prestige-rate>svg{width:1.3em !important;height:1.3em !important}.online-prestige-rate>span{font-weight:600;font-size:1.1em;padding-left:.7em}.online-empty{line-height:1.4}.online-empty__title{font-size:2em;margin-bottom:.9em}.online-empty__time{font-size:1.2em;font-weight:300;margin-bottom:1.6em}.online-empty__buttons{display:-webkit-box;display:-webkit-flex;display:-moz-box;display:-ms-flexbox;display:flex}.online-empty__buttons>*+*{margin-left:1em}.online-empty__button{background:rgba(0,0,0,0.3);font-size:1.2em;padding:.5em 1.2em;-webkit-border-radius:.2em;-moz-border-radius:.2em;border-radius:.2em;margin-bottom:2.4em}.online-empty__button.focus{background:#fff;color:black}.online-empty__templates .online-empty-template:nth-child(2){opacity:.5}.online-empty__templates .online-empty-template:nth-child(3){opacity:.2}.online-empty-template{background-color:rgba(255,255,255,0.3);padding:1em;display:-webkit-box;display:-webkit-flex;display:-moz-box;display:-ms-flexbox;display:flex;-webkit-box-align:center;-webkit-align-items:center;-moz-box-align:center;-ms-flex-align:center;align-items:center;-webkit-border-radius:.3em;-moz-border-radius:.3em;border-radius:.3em}.online-empty-template>*{background:rgba(0,0,0,0.3);-webkit-border-radius:.3em;-moz-border-radius:.3em;border-radius:.3em}.online-empty-template__ico{width:4em;height:4em;margin-right:2.4em}.online-empty-template__body{height:1.7em;width:70%}.online-empty-template+.online-empty-template{margin-top:1em}\n        </style>\n    ");
     $("body").append(Lampa.Template.get("online_prestige_css", {}, true));
     function registerOnlineTemplates() {
       Lampa.Template.add("online_prestige_full", "<div class=\"online-prestige online-prestige--full selector\">\n            <div class=\"online-prestige__img\">\n                <img alt=\"\">\n                <div class=\"online-prestige__loader\"></div>\n            </div>\n            <div class=\"online-prestige__body\">\n                <div class=\"online-prestige__head\">\n                    <div class=\"online-prestige__title\">{title}</div>\n                    <div class=\"online-prestige__time\">{time}</div>\n                </div>\n\n                <div class=\"online-prestige__timeline\"></div>\n\n                <div class=\"online-prestige__footer\">\n                    <div class=\"online-prestige__info\">{info}</div>\n                    <div class=\"online-prestige__quality\">{quality}</div>\n                </div>\n            </div>\n        </div>");
@@ -4144,9 +3920,7 @@
       Lampa.Template.add("online_prestige_rate", "<div class=\"online-prestige-rate\">\n            <svg width=\"17\" height=\"16\" viewBox=\"0 0 17 16\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\">\n                <path d=\"M8.39409 0.192139L10.99 5.30994L16.7882 6.20387L12.5475 10.4277L13.5819 15.9311L8.39409 13.2425L3.20626 15.9311L4.24065 10.4277L0 6.20387L5.79819 5.30994L8.39409 0.192139Z\" fill=\"#fff\"></path>\n            </svg>\n            <span>{rate}</span>\n        </div>");
       Lampa.Template.add("online_prestige_folder", "<div class=\"online-prestige online-prestige--folder selector\">\n            <div class=\"online-prestige__folder\">\n                <svg viewBox=\"0 0 128 112\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\">\n                    <rect y=\"20\" width=\"128\" height=\"92\" rx=\"13\" fill=\"white\"></rect>\n                    <path d=\"M29.9963 8H98.0037C96.0446 3.3021 91.4079 0 86 0H42C36.5921 0 31.9555 3.3021 29.9963 8Z\" fill=\"white\" fill-opacity=\"0.23\"></path>\n                    <rect x=\"11\" y=\"8\" width=\"106\" height=\"76\" rx=\"13\" fill=\"white\" fill-opacity=\"0.51\"></rect>\n                </svg>\n            </div>\n            <div class=\"online-prestige__body\">\n                <div class=\"online-prestige__head\">\n                    <div class=\"online-prestige__title\">{title}</div>\n                    <div class=\"online-prestige__time\">{time}</div>\n                </div>\n\n                <div class=\"online-prestige__footer\">\n                    <div class=\"online-prestige__info\">{info}</div>\n                </div>\n            </div>\n        </div>");
     }
-    // NOTE: built with string concatenation instead of a template literal —
-    // template literals are a syntax error on old Android WebView (Chromium < 41)
-    // and would prevent the whole plugin file from loading.
+
     var watchButtonHtml = "<div class=\"full-start__button selector view--online\" data-subtitle=\"DSO KinoPub v" + manifest.version + "\">\n" +
       "        <svg width=\"135\" height=\"147\" viewBox=\"0 0 135 147\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\">\n" +
       "            <path d=\"M121.5 96.8823C139.5 86.49 139.5 60.5092 121.5 50.1169L41.25 3.78454C23.25 -6.60776 0.750004 6.38265 0.750001 27.1673L0.75 51.9742C4.70314 35.7475 23.6209 26.8138 39.0547 35.7701L94.8534 68.1505C110.252 77.0864 111.909 97.8693 99.8725 109.369L121.5 96.8823Z\" fill=\"currentColor\"/>\n" +
@@ -4159,10 +3933,24 @@
     if (Lampa.Api && Lampa.Api.sources) {
       Lampa.Api.sources[SOURCE_ID] = kinopubApiSource;
     }
+    if (Lampa.Activity && !Lampa.Activity.__dso_kinopub_patched) {
+      Lampa.Activity.__dso_kinopub_patched = true;
+      var __dsoOrigActivityPush = Lampa.Activity.push;
+      Lampa.Activity.push = function (pushParams) {
+        if (pushParams && pushParams.component === "full") {
+          var routedCard = pushParams.card || pushParams.movie;
+          if (routedCard && (routedCard.kinopub_id || routedCard.source === SOURCE_ID || routedCard.source === "kinopub")) {
+            pushParams.source = SOURCE_ID;
+            if (routedCard.kinopub_id) {
+              pushParams.id = routedCard.kinopub_id;
+            }
+          }
+        }
+        return __dsoOrigActivityPush.apply(this, arguments);
+      };
+    }
     if (Lampa.Params && Lampa.Params.select) {
-      // NOTE: manual copy instead of Object.assign — Object.assign is missing
-      // in old Android WebView (Chromium < 45) and would crash plugin startup
-      // right here, before settings and device auth are registered.
+
       var existingSources = Lampa.Params.values && Lampa.Params.values.source || {};
       var sourceOptions = {};
       for (var existingSourceKey in existingSources) {
@@ -4171,15 +3959,24 @@
         }
       }
       sourceOptions[SOURCE_ID] = SOURCE_TITLE;
-      Lampa.Params.select("source", sourceOptions, "tmdb");
+      var savedLastSource = Lampa.Storage.get("dso_kinopub_last_source", "");
+      var currentStoredSource = Lampa.Storage.field("source");
+      var defaultSource = (savedLastSource === SOURCE_ID || currentStoredSource === SOURCE_ID) ? SOURCE_ID : "tmdb";
+      Lampa.Params.select("source", sourceOptions, defaultSource);
+      if (savedLastSource === SOURCE_ID && Lampa.Storage.field("source") !== SOURCE_ID) {
+        Lampa.Storage.set("source", SOURCE_ID);
+      }
+      Lampa.Storage.listener.follow("change", function (sourceChangeEvent) {
+        if (sourceChangeEvent && sourceChangeEvent.name === "source") {
+          Lampa.Storage.set("dso_kinopub_last_source", sourceChangeEvent.value);
+        }
+      });
     }
     interceptAnimeMenu();
     updateLiveTvMenuButton();
     Lampa.Listener.follow("full", function (fullEvent) {
       if (fullEvent.type == "complite") {
-        // Defensive: for KinoPub-source cards, hide any empty age (.full-start__pg)
-        // or status (.full-start__status) pill that would otherwise render as an
-        // empty oval in the rate line. Scoped to the rendered card only.
+
         var fullMovieCard = fullEvent.data && fullEvent.data.movie;
         if (isKinopubCard(fullMovieCard) && fullEvent.object && fullEvent.object.activity) {
           var hideEmptyRatePills = function () {
@@ -4197,7 +3994,7 @@
             });
           };
           hideEmptyRatePills();
-          // Other overlay plugins may inject pills after "complite" — re-check.
+
           setTimeout(hideEmptyRatePills, 400);
           setTimeout(hideEmptyRatePills, 1500);
         }
@@ -4243,8 +4040,7 @@
       });
     }
     bindFavoriteListeners();
-    // Sync is driven by initializeWithToken (below, on app ready) — no extra
-    // immediate call here, which previously double-fired sync at startup.
+
     Lampa.Params.select("dso_kinopub_token", "", "");
     Lampa.Params.select("dso_kinopub_proxy", DEFAULT_PROXY, "");
     Lampa.Params.select("dso_kinopub_filetype", {
@@ -4255,21 +4051,6 @@
       component: "dso_kinopub",
       name: "DSO KinoPub",
       icon: "<svg height=\"57\" viewBox=\"0 0 58 57\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M20 13H26.8281V45H20V13ZM26.8281 17.5L39 13V20.5L29.5 29L39 37.5V45L26.8281 40.5V17.5Z\" fill=\"white\"/><rect x=\"2\" y=\"2\" width=\"54\" height=\"53\" rx=\"5\" stroke=\"white\" stroke-width=\"4\"/></svg>"
-    });
-    // Opt-in toggle for pulling KinoPub watch history into Lampa history.
-    // Default OFF so deleting a Lampa history item does not get undone by sync.
-    // startPlugin runs once (guarded at file top), so this registers only once.
-    Lampa.SettingsApi.addParam({
-      component: "dso_kinopub",
-      param: {
-        name: "dso_kinopub_sync_history",
-        type: "trigger",
-        "default": false
-      },
-      field: {
-        name: Lampa.Lang.translate("dso_kinopub_sync_history"),
-        description: Lampa.Lang.translate("dso_kinopub_sync_history_descr")
-      }
     });
     Lampa.Template.add("settings_dso_kinopub", "<div>\n        <div class=\"settings-param\" data-name=\"dso_kinopub_profile\" data-static=\"true\"></div>\n        <div class=\"settings-param selector\" data-name=\"dso_kinopub_refresh\" data-static=\"true\">\n            <div class=\"settings-param__name\">#{dso_kinopub_refresh_profile}</div>\n        </div>\n        <div class=\"settings-param selector\" data-name=\"dso_kinopub_sync\" data-static=\"true\">\n            <div class=\"settings-param__name\">#{dso_kinopub_sync_favorites}</div>\n        </div>\n        <div class=\"settings-param selector\" data-type=\"select\" data-name=\"dso_kinopub_filetype\">\n            <div class=\"settings-param__name\">#{dso_kinopub_filetype_title}</div>\n            <div class=\"settings-param__value\"></div>\n            <div class=\"settings-param__descr\">#{dso_kinopub_filetype_descr}</div>\n        </div>\n        <div class=\"settings-param selector\" data-name=\"dso_kinopub_proxy\" data-type=\"input\" placeholder=\"https://cors.example.com/\">\n            <div class=\"settings-param__name\">#{dso_kinopub_proxy_title}</div>\n            <div class=\"settings-param__value\"></div>\n            <div class=\"settings-param__descr\">#{dso_kinopub_proxy_descr}</div>\n        </div>\n        <div class=\"settings-param selector\" data-name=\"dso_kinopub_token\" data-type=\"input\" placeholder=\"#{dso_kinopub_param_placeholder}\">\n            <div class=\"settings-param__name\">#{dso_kinopub_param_add_title}</div>\n            <div class=\"settings-param__value\"></div>\n            <div class=\"settings-param__descr\">#{dso_kinopub_param_add_descr}</div>\n        </div>\n        <div class=\"settings-param selector\" data-name=\"dso_kinopub_add\" data-static=\"true\">\n            <div class=\"settings-param__name\">#{dso_kinopub_param_add_device}</div>\n        </div>\n    </div>");
     Lampa.Storage.listener.follow("change", function (storageEvent) {
@@ -4282,7 +4063,7 @@
       if (storageEvent.name == "dso_kinopub_token") {
         window.dso_kinopub.is_max_qualitie = false;
         if (storageEvent.value) {
-          // Fresh token entered by the user — force an immediate (deferred) sync.
+
           initializeWithToken(storageEvent.value, true);
         } else {
           Lampa.Storage.set("dso_kinopub_status", {});
@@ -4300,10 +4081,7 @@
       renderProfileCard();
       var settingsToken = getAccessToken();
       if (settingsToken) {
-        // Refresh the profile async (never blocks the settings render), but at
-        // most once per minute — opening settings repeatedly no longer fires a
-        // /v1/user request every time. The manual "refresh" button below is
-        // unaffected and always re-fetches on demand.
+
         var nowMs = Date.now();
         if (nowMs - lastSettingsUserFetch > 60000) {
           lastSettingsUserFetch = nowMs;
@@ -4418,8 +4196,7 @@
     });
     var savedToken = getAccessToken();
     if (savedToken) {
-      // App startup with an existing token — non-forced sync respects the
-      // 15-minute throttle so it doesn't re-run on every launch.
+
       initializeWithToken(savedToken, false);
     }
     if (Lampa.Manifest.app_digital >= 177) {
