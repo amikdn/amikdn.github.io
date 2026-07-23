@@ -279,11 +279,25 @@
         orig: ""
       };
     }
-    var titleParts = String(rawTitle).split(" / ");
+    var titleParts = String(rawTitle).split(" / ").map(function (p) { return p.trim(); }).filter(Boolean);
     if (titleParts.length >= 2) {
+      var cyrillicRe = /[\u0400-\u04FF]/;
+      var ruPart = "";
+      var origParts = [];
+      titleParts.forEach(function (part) {
+        if (!ruPart && cyrillicRe.test(part)) {
+          ruPart = part;
+        } else {
+          origParts.push(part);
+        }
+      });
+      if (!ruPart) {
+        ruPart = titleParts[titleParts.length - 1];
+        origParts = titleParts.slice(0, -1);
+      }
       return {
-        ru: titleParts[0].trim(),
-        orig: titleParts.slice(1).join(" / ").trim()
+        ru: ruPart,
+        orig: origParts.join(" / ") || ruPart
       };
     }
     var sameTitle = {
