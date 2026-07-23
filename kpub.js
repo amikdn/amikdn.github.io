@@ -2922,6 +2922,7 @@
         clearInterval(focusTimer);
       });
       filter.onSelect = function (selectType, selectElement, selectItem) {
+        Lampa.Select.close();
         if (selectType == "filter") {
           if (selectElement.reset) {
             if (choiceExtended) {
@@ -2932,8 +2933,6 @@
           } else {
             source.filter(selectType, selectElement, selectItem);
           }
-        } else if (selectType == "sort") {
-          Lampa.Select.close();
         }
       };
       if (filter.addButtonBack) {
