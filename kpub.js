@@ -1558,30 +1558,79 @@
   }
 
   function resolveTmdbInfo(card, callback) {
-    if (!card || !card.imdb_id || !Lampa.TMDB || typeof Lampa.TMDB.api !== "function") {
+    if (!card || !Lampa.TMDB || typeof Lampa.TMDB.api !== "function") {
       callback();
       return;
     }
-    var findUrl = Lampa.TMDB.api("find/" + encodeURIComponent(card.imdb_id) + "?api_key=" + Lampa.TMDB.key() + "&external_source=imdb_id&language=" + Lampa.Storage.get("language", "ru"));
+    var isTv = !!card.name;
+    var languageCode = Lampa.Storage.get("language", "ru");
     var request = trackRequest(new Lampa.Reguest());
     request.timeout(8000);
-    request.silent(findUrl, function (findResponse) {
-      var matches = findResponse && (card.name ? findResponse.tv_results : findResponse.movie_results) || [];
-      var match = matches[0];
-      if (match && match.id) {
-        card.id = match.id;
-        card.tmdb_id = match.id;
-        if (match.backdrop_path) {
-          card.backdrop_path = match.backdrop_path;
-        }
-        if (match.poster_path) {
-          card.poster_path = match.poster_path;
-        }
+
+    function applyTmdbMatch(match) {
+      if (!match || !match.id) {
+        return false;
       }
-      callback();
-    }, function () {
-      callback();
-    });
+      card.id = match.id;
+      card.tmdb_id = match.id;
+      if (match.backdrop_path) {
+        card.backdrop_path = match.backdrop_path;
+      }
+      if (match.poster_path) {
+        card.poster_path = match.poster_path;
+      }
+      return true;
+    }
+
+    function searchByTitle() {
+      var searchTitle = (isTv ? card.original_name || card.name : card.original_title || card.title) || "";
+      if (!searchTitle) {
+        callback();
+        return;
+      }
+      var year = "";
+      var dateSource = isTv ? card.first_air_date : card.release_date;
+      if (dateSource) {
+        year = String(dateSource).substr(0, 4);
+      }
+      var searchEndpoint = isTv ? "search/tv" : "search/movie";
+      var yearParam = year ? (isTv ? "&first_air_date_year=" + year : "&year=" + year) : "";
+      var searchUrl = Lampa.TMDB.api(searchEndpoint + "?api_key=" + Lampa.TMDB.key() + "&language=" + languageCode + "&query=" + encodeURIComponent(searchTitle) + yearParam);
+      request.silent(searchUrl, function (searchResponse) {
+        var searchResults = searchResponse && searchResponse.results ? searchResponse.results : [];
+        if (!searchResults.length && year) {
+          var fallbackUrl = Lampa.TMDB.api(searchEndpoint + "?api_key=" + Lampa.TMDB.key() + "&language=" + languageCode + "&query=" + encodeURIComponent(searchTitle));
+          request.silent(fallbackUrl, function (fallbackResponse) {
+            var fallbackResults = fallbackResponse && fallbackResponse.results ? fallbackResponse.results : [];
+            applyTmdbMatch(fallbackResults[0]);
+            callback();
+          }, function () {
+            callback();
+          });
+          return;
+        }
+        applyTmdbMatch(searchResults[0]);
+        callback();
+      }, function () {
+        callback();
+      });
+    }
+
+    if (card.imdb_id) {
+      var findUrl = Lampa.TMDB.api("find/" + encodeURIComponent(card.imdb_id) + "?api_key=" + Lampa.TMDB.key() + "&external_source=imdb_id&language=" + languageCode);
+      request.silent(findUrl, function (findResponse) {
+        var matches = findResponse && (isTv ? findResponse.tv_results : findResponse.movie_results) || [];
+        if (applyTmdbMatch(matches[0])) {
+          callback();
+        } else {
+          searchByTitle();
+        }
+      }, function () {
+        searchByTitle();
+      });
+    } else {
+      searchByTitle();
+    }
   }
 
   var kinopubApiSource = {
@@ -3344,7 +3393,16 @@
         } else if (lastMarkedHtml) {
           lastFocused = lastMarkedHtml[0];
         }
-        Lampa.Controller.enable("content");
+        if (Lampa.Activity.active().activity !== self.activity) {
+          return;
+        }
+        var currentControllerState = Lampa.Controller.enabled();
+        var currentControllerName = currentControllerState && currentControllerState.name;
+        if (currentControllerName === "content" || currentControllerName === "settings_component") {
+          Lampa.Controller.toggle("content");
+        } else {
+          Lampa.Controller.enable("content");
+        }
       });
     };
     this.contextMenu = function (contextMenuParams) {
