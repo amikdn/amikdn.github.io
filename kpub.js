@@ -237,7 +237,7 @@
       }
       return;
     }
-    var request = new Lampa.Reguest();
+    var request = trackRequest(new Lampa.Reguest());
     var url = buildApiUrl("/oauth2/token?grant_type=refresh_token&client_id=" + OAUTH_CLIENT_ID + "&client_secret=" + OAUTH_CLIENT_SECRET + "&refresh_token=" + encodeURIComponent(refreshToken));
     request.timeout(10000);
     request.silent(url, function (response) {
@@ -2900,11 +2900,12 @@
     var componentStarted;
     var focusTimer;
     var loadedImages = [];
-    var filterLabels = {
-      season: Lampa.Lang.translate("torrent_serial_season"),
-      voice: Lampa.Lang.translate("torrent_parser_voice"),
-      source: Lampa.Lang.translate("settings_rest_source")
-    };
+    function filterLabel(labelKey) {
+      if (labelKey === "voice") return Lampa.Lang.translate("torrent_parser_voice");
+      if (labelKey === "season") return Lampa.Lang.translate("torrent_serial_season");
+      if (labelKey === "source") return Lampa.Lang.translate("settings_rest_source");
+      return "";
+    }
     this.initialize = function () {
       var self = this;
       source = this.createSource();
@@ -2918,7 +2919,7 @@
       filter.onBack = function () {
         self.start();
       };
-      filter.render().find(".selector").on("hover:enter", function () {
+      filter.render().on("hover:enter", ".selector", function () {
         clearInterval(focusTimer);
       });
       filter.onSelect = function (selectType, selectElement, selectItem) {
@@ -3107,15 +3108,14 @@
       var selectedChoice = this.getChoice();
       var chosenLabels = [];
       for (var choiceKey in selectedChoice) {
-        if (selectedFilterItems[choiceKey] && selectedFilterItems[choiceKey].length) {
-          if (choiceKey == "voice") {
-            chosenLabels.push(filterLabels[choiceKey] + ": " + selectedFilterItems[choiceKey][selectedChoice[choiceKey]]);
-          } else if (choiceKey !== "source") {
-            if (selectedFilterItems.season.length >= 1) {
-              chosenLabels.push(filterLabels.season + ": " + selectedFilterItems[choiceKey][selectedChoice[choiceKey]]);
-            }
-          }
-        }
+        var choiceValues = selectedFilterItems[choiceKey];
+        if (!choiceValues || !choiceValues.length) continue;
+        if (choiceKey === "source") continue;
+        var label = filterLabel(choiceKey);
+        if (!label) continue;
+        var chosenValue = choiceValues[selectedChoice[choiceKey]];
+        if (chosenValue === undefined) continue;
+        chosenLabels.push(label + ": " + chosenValue);
       }
       filter.chosen("filter", chosenLabels);
       filter.chosen("sort", [balanserName]);
@@ -3668,7 +3668,16 @@
         });
       }
     };
-    Lampa.Manifest.plugins = manifest;
+    if (Array.isArray(Lampa.Manifest.plugins)) {
+      var __dsoManifestExists = Lampa.Manifest.plugins.some(function (__dsoManifestEntry) {
+        return __dsoManifestEntry && __dsoManifestEntry.name === manifest.name;
+      });
+      if (!__dsoManifestExists) {
+        Lampa.Manifest.plugins.push(manifest);
+      }
+    } else {
+      Lampa.Manifest.plugins = manifest;
+    }
     Lampa.Lang.add({
       online_watch: {
         ru: "Смотреть онлайн",
@@ -4068,7 +4077,12 @@
             setTimeout(dropEmptyRatePills, delay);
           });
         }
+        var __dsoActivityRoot = fullEvent.object.activity.render();
+        if (__dsoActivityRoot.find(".view--online.dso-kinopub-button").length) {
+          return;
+        }
         var watchButton = $(Lampa.Lang.translate(watchButtonHtml));
+        watchButton.addClass("dso-kinopub-button");
         watchButton.on("hover:enter", function () {
           registerOnlineTemplates();
           Lampa.Component.add("online_dso_kinopub", OnlineComponent);
@@ -4195,7 +4209,7 @@
           clearInterval(pollTimer);
           pollTimer = setInterval(pollForToken, pollIntervalMs);
         }
-        var authModalHtml = $("<div><div class=\"broadcast__text\">" + Lampa.Lang.translate("modal_text") + "</div><div class=\"broadcast__device selector\" style=\"text-align: center\">" + Lampa.Lang.translate("modal_wait") + "...</div><br><div class=\"broadcast__scan\"><div></div></div></div></div>");
+        var authModalHtml = $("<div><div class=\"broadcast__text\">" + Lampa.Lang.translate("modal_text") + "</div><div class=\"broadcast__device selector\" style=\"text-align: center\">" + Lampa.Lang.translate("modal_wait") + "...</div><br><div class=\"broadcast__scan\"><div></div></div></div>");
         Lampa.Modal.open({
           title: "",
           html: authModalHtml,
@@ -4205,6 +4219,10 @@
             clearInterval(pollTimer);
           },
           onSelect: function () {
+            if (!userCode) {
+              Lampa.Noty.show(Lampa.Lang.translate("modal_wait") + "...");
+              return;
+            }
             Lampa.Utils.copyTextToClipboard(userCode, function () {
               Lampa.Noty.show(Lampa.Lang.translate("copy_secuses"));
             }, function () {
@@ -4215,6 +4233,7 @@
         function buildDeviceAuthUrl(grantType) {
           return buildApiUrl("/oauth2/device?grant_type=" + grantType + "&client_id=" + OAUTH_CLIENT_ID + "&client_secret=" + OAUTH_CLIENT_SECRET + (grantType === "device_token" && deviceCode ? "&code=" + encodeURIComponent(deviceCode) : ""));
         }
+        var pollErrorCount = 0;
         function pollForToken() {
           if (!deviceCode) {
             return;
@@ -4225,6 +4244,7 @@
             dataType: "json",
             timeout: 10000,
             success: function (tokenResponse) {
+              pollErrorCount = 0;
               if (tokenResponse && tokenResponse.access_token) {
                 Lampa.Modal.close();
                 clearInterval(pollTimer);
@@ -4238,6 +4258,16 @@
                   maybeSyncFavorites(true);
                 });
                 Lampa.Controller.toggle("settings_component");
+              }
+            },
+            error: function (pollXhr) {
+              pollErrorCount++;
+              var isFatal = pollXhr && (pollXhr.status === 401 || pollXhr.status === 403 || pollXhr.status === 404);
+              if (isFatal || pollErrorCount >= 12) {
+                clearInterval(pollTimer);
+                Lampa.Modal.close();
+                Lampa.Controller.toggle("settings_component");
+                Lampa.Noty.show(Lampa.Lang.translate("copy_fail"));
               }
             }
           });
