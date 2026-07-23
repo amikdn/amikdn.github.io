@@ -262,10 +262,11 @@
     if (!accessToken) {
       return;
     }
-    var request = new Lampa.Reguest();
-    var url = buildApiUrl("/v1/device/notify?access_token=" + encodeURIComponent(accessToken) + "&title=" + encodeURIComponent("Lampa") + "&software=" + encodeURIComponent("DSO KinoPub " + PLUGIN_VERSION) + "&hardware=" + encodeURIComponent(deviceUid || "device"));
-    request.timeout(8000);
-    request.silent(url, function () {}, function () {});
+    apiPost("/v1/device/notify", {
+      title: "Lampa",
+      software: "DSO KinoPub " + PLUGIN_VERSION,
+      hardware: deviceUid || "device"
+    }, function () {}, function () {});
   }
 
   function isSeriesType(contentType) {
@@ -833,7 +834,17 @@
       done();
       return;
     }
-    var localHistory = (Lampa.Favorite.get("history") || []).filter(function (favoriteCard) {
+    var rawHistory;
+    try {
+      rawHistory = Lampa.Favorite.get("history");
+    } catch (favoriteError) {
+      rawHistory = null;
+    }
+    if (!rawHistory || typeof rawHistory.filter !== "function") {
+      done();
+      return;
+    }
+    var localHistory = rawHistory.filter(function (favoriteCard) {
       return isKinopubCard(favoriteCard) && favoriteCard && (favoriteCard.title || favoriteCard.name);
     });
     if (!localHistory.length) {
@@ -3979,24 +3990,26 @@
 
         var fullMovieCard = fullEvent.data && fullEvent.data.movie;
         if (isKinopubCard(fullMovieCard) && fullEvent.object && fullEvent.object.activity) {
-          var hideEmptyRatePills = function () {
+          var dropEmptyRatePills = function () {
             var activityRoot;
             try {
               activityRoot = fullEvent.object.activity.render();
             } catch (renderError) {
               return;
             }
-            activityRoot.find(".full-start__pg, .full-start__status").each(function () {
+            var pillSelector = ".full-start__pg, .full-start-new__pg, .full-start__status, .full-start-new__status";
+            activityRoot.find(pillSelector).each(function () {
               var pillNode = $(this);
-              if (!pillNode.text().trim()) {
-                pillNode.addClass("hide");
+              var pillText = (pillNode.text() || "").replace(/[\s\u00A0]+/g, "");
+              if (!pillText || pillText === "+" || pillText === "0") {
+                pillNode.remove();
               }
             });
           };
-          hideEmptyRatePills();
-
-          setTimeout(hideEmptyRatePills, 400);
-          setTimeout(hideEmptyRatePills, 1500);
+          dropEmptyRatePills();
+          [80, 300, 800, 1600, 3000].forEach(function (delay) {
+            setTimeout(dropEmptyRatePills, delay);
+          });
         }
         var watchButton = $(Lampa.Lang.translate(watchButtonHtml));
         watchButton.on("hover:enter", function () {
