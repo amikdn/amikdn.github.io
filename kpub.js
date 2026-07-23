@@ -2923,7 +2923,6 @@
         clearInterval(focusTimer);
       });
       filter.onSelect = function (selectType, selectElement, selectItem) {
-        Lampa.Select.close();
         if (selectType == "filter") {
           if (selectElement.reset) {
             if (choiceExtended) {
@@ -2934,6 +2933,7 @@
           } else {
             source.filter(selectType, selectElement, selectItem);
           }
+          setTimeout(Lampa.Select.close, 10);
         }
       };
       if (filter.addButtonBack) {
