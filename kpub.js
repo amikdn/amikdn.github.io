@@ -3469,7 +3469,7 @@
             title: Lampa.Lang.translate("more"),
             separator: true
           });
-          if (Lampa.Account.permit.access() && contextMenuParams.element && typeof contextMenuParams.element.season !== "undefined" && contextMenuParams.element.translate_voice) {
+          if (Lampa.Account && Lampa.Account.permit && typeof Lampa.Account.permit.access === "function" && Lampa.Account.permit.access() && contextMenuParams.element && typeof contextMenuParams.element.season !== "undefined" && contextMenuParams.element.translate_voice) {
             contextMenuItems.push({
               title: Lampa.Lang.translate("online_voice_subscribe"),
               subscribe: true
@@ -4329,4 +4329,3 @@
     }
   }
 })();
-
