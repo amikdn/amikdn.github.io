@@ -3103,7 +3103,21 @@
                 applyPlayerReactions();
                 var render = event.object.activity.render();
                 if (render && event.object.id) {
-                    if (event.data && event.data.movie) storeTmdbRating(event.data.movie, event.data.movie.vote_average, true, event.data.movie.vote_count);
+                    if (event.data && event.data.movie) {
+                        var movieForStore = event.data.movie;
+                        var freshVote = parseFloat(movieForStore.vote_average) || 0;
+                        if (freshVote > 0) {
+                            var detailKey = (event.object.method === 'movie' || event.object.method === 'tv') ? (event.object.method + '_' + event.object.id) : null;
+                            var derivedKey = getTmdbRatingKey(movieForStore);
+                            var voteCountFresh = parseInt(movieForStore.vote_count, 10) || 0;
+                            var detailEntry = { vote_average: freshVote, vote_count: voteCountFresh, detail: true, detail_checked: Date.now() };
+                            if (detailKey) ratingCache.set('tmdb_rating', detailKey, detailEntry);
+                            if (derivedKey && derivedKey !== detailKey) ratingCache.set('tmdb_rating', derivedKey, detailEntry);
+                            try { movieForStore.vote_average = freshVote; } catch (eMut) {}
+                        } else {
+                            storeTmdbRating(movieForStore, movieForStore.vote_average, true, movieForStore.vote_count);
+                        }
+                    }
                     var kpBlock = $(render).find('.rate--kp');
                     var imdbBlock = $(render).find('.rate--imdb');
                     if (kpBlock.length || imdbBlock.length) {
