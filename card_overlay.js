@@ -32,8 +32,10 @@
     }
     var ALLOHA_API_SERVERS = _decodeAllohaServers();
     var CACHE_TTL = 24 * 60 * 60 * 1000;
+    var CACHE_EMPTY_TTL = 3 * 60 * 60 * 1000;
+    var CACHE_NETWORK_ERROR_TTL = 45 * 1000;
     var TMDB_DETAIL_RETRY_TTL = CACHE_TTL;
-    var CARD_OVERLAY_CACHE_VERSION = '4';
+    var CARD_OVERLAY_CACHE_VERSION = '5';
     var TYPE_LABEL_EPISODE_INFO_KEY = 'type_labels_episode_info';
     var TYPE_LABEL_EPISODE_CACHE_KEY = 'type_label_episode_cache';
     var CARD_SERIES_FULL_INFO_KEY = 'card_series_full_info';
@@ -187,7 +189,10 @@
             var cache = this.caches[source] || (this.caches[source] = loadPersistentCache(source));
             var data = cache[key];
             if (!data) return null;
-            if (Date.now() - data.timestamp > CACHE_TTL) {
+            var ttl = CACHE_TTL;
+            if (data._failed) ttl = CACHE_NETWORK_ERROR_TTL;
+            else if (data._empty) ttl = CACHE_EMPTY_TTL;
+            if (Date.now() - data.timestamp > ttl) {
                 delete cache[key];
                 debouncedSave(source, cache);
                 return null;
@@ -225,33 +230,33 @@
         if (pruneExpiredCacheEntries(stored)) debouncedSave(source, stored);
         return stored;
     }
-    var _savePending = {};
-    var _saveVersion = {};
+    var _saveStates = Object.create(null);
+    var cacheGeneration = 1;
     function debouncedSaveByKey(storageKey, cache) {
-        _saveVersion[storageKey] = (_saveVersion[storageKey] || 0) + 1;
-        if (_savePending[storageKey]) return;
-        _savePending[storageKey] = true;
-        var version = _saveVersion[storageKey];
-        setTimeout(function () {
-            _savePending[storageKey] = false;
-            if (version !== (_saveVersion[storageKey] || 0)) {
-                debouncedSaveByKey(storageKey, cache);
-                return;
-            }
-            try { Lampa.Storage.set(storageKey, cache); } catch (e) {}
+        var state = _saveStates[storageKey];
+        if (!state) { state = _saveStates[storageKey] = { timer: 0, cache: cache }; }
+        state.cache = cache;
+        if (state.timer) { try { clearTimeout(state.timer); } catch (e) {} state.timer = 0; }
+        state.timer = setTimeout(function () {
+            state.timer = 0;
+            try { Lampa.Storage.set(storageKey, state.cache); }
+            catch (error) { try { console.error('[card_overlay] cache save failed', storageKey, error); } catch (e2) {} }
         }, 2000);
     }
     function debouncedSave(source, cache) { debouncedSaveByKey(getPersistentCacheKey(source), cache); }
 
-    function resetCacheSaveStateByKey(storageKey) {
-        _saveVersion[storageKey] = (_saveVersion[storageKey] || 0) + 1;
-        _savePending[storageKey] = false;
+    function cancelPendingSave(storageKey) {
+        var state = _saveStates[storageKey];
+        if (state && state.timer) { try { clearTimeout(state.timer); } catch (e) {} }
+        delete _saveStates[storageKey];
     }
+    function resetCacheSaveStateByKey(storageKey) { cancelPendingSave(storageKey); }
     function resetCacheSaveState(source) { resetCacheSaveStateByKey(getPersistentCacheKey(source)); }
     function clearStorageObject(key) {
         try { Lampa.Storage.set(key, {}); } catch (e) {}
     }
     function clearRatingCaches(includeQuality) {
+        cacheGeneration++;
         var sources = ['tmdb_rating', 'kp_rating', 'lampa_rating'];
         for (var i = 0; i < sources.length; i++) {
             resetCacheSaveState(sources[i]);
@@ -265,6 +270,7 @@
         if (typeof pendingLampaRequests !== 'undefined') pendingLampaRequests = {};
         if (typeof lampaFailRetryAt !== 'undefined') lampaFailRetryAt = {};
         if (typeof pendingKpCallbacks !== 'undefined') pendingKpCallbacks = {};
+        try { clearRequestQueues(); } catch (e) {}
         if (includeQuality) clearQualityCache();
     }
 
@@ -280,17 +286,36 @@
         if (queue.processing || !queue.tasks.length) return;
         queue.processing = true;
         var batch = queue.tasks.splice(0, queue.batch);
-        for (var i = 0; i < batch.length; i++) { try { batch[i].execute(); } catch (e) {} }
+        for (var i = 0; i < batch.length; i++) {
+            var t = batch[i];
+            try { t.execute(); }
+            catch (e) {
+                try { if (t && t.onDrop) t.onDrop(); } catch (e2) {}
+                try { console.error('[card_overlay] queue task error', e); } catch (e3) {}
+            }
+        }
         setTimeout(function () { queue.processing = false; processQueue(queue); }, queue.interval);
     }
     function addToQueue(task, queueName, onDrop) {
         var queue = REQUEST_QUEUES[queueName] || REQUEST_QUEUES.fast;
-        queue.tasks.unshift({ execute: task, onDrop: onDrop });
+        queue.tasks.push({ execute: task, onDrop: onDrop });
         while (queue.tasks.length > QUEUE_MAX_TASKS) {
-            var dropped = queue.tasks.pop();
+            var dropped = queue.tasks.shift();
             if (dropped && dropped.onDrop) { try { dropped.onDrop(); } catch (e) {} }
         }
         processQueue(queue);
+    }
+    function clearRequestQueues() {
+        for (var qname in REQUEST_QUEUES) {
+            var q = REQUEST_QUEUES[qname];
+            if (!q) continue;
+            var pending = q.tasks;
+            q.tasks = [];
+            for (var i = 0; i < pending.length; i++) {
+                var t = pending[i];
+                if (t && t.onDrop) { try { t.onDrop(); } catch (e) {} }
+            }
+        }
     }
 
     var stringCache = {};
@@ -311,7 +336,17 @@
     function getKpApiKey() { var k = Lampa.Storage.get('rating_kp_api_key', '') || Lampa.Storage.get('source_api_key', ''); return String(k || '').trim(); }
     function canUseKinopoiskApi() { return getKpApiKey().length > 0; }
     function getKpHeaders() { var k = getKpApiKey(); if (!k) return {}; return { 'X-API-KEY': k }; }
-    function cacheEmptyKpRating(itemId) { return ratingCache.set('kp_rating', itemId, { kp: 0, imdb: 0 }); }
+    function kpCacheKey(item) {
+        if (!item) return 'unknown_';
+        var t = item.type || item.media_type;
+        if (t !== 'movie' && t !== 'tv') t = (item.name || item.original_name || item.first_air_date || item.last_air_date) ? 'tv' : 'movie';
+        return t + '_' + item.id;
+    }
+    function cacheEmptyKpRating(item, failedNetwork) {
+        var entry = { kp: 0, imdb: 0 };
+        if (failedNetwork) entry._failed = true;
+        return ratingCache.set('kp_rating', kpCacheKey(item), entry);
+    }
     var pendingKpCallbacks = {};
     function findBestKpMatch(results, title, originalTitle, releaseYear) {
         if (!results || !results.length) return null;
@@ -329,20 +364,23 @@
         return filtered[0] || null;
     }
     function getKinopoiskRating(item, callback) {
-        if (item.kp_rating > 0 || item.imdb_rating > 0) { callback(ratingCache.set('kp_rating', item.id, { kp: parseFloat(item.kp_rating) || 0, imdb: parseFloat(item.imdb_rating) || 0, timestamp: Date.now() })); return; }
-        if (item.ratingKinopoisk > 0 || item.ratingImdb > 0) { callback(ratingCache.set('kp_rating', item.id, { kp: parseFloat(item.ratingKinopoisk) || 0, imdb: parseFloat(item.ratingImdb) || 0, timestamp: Date.now() })); return; }
-        var cached = ratingCache.get('kp_rating', item.id);
+        var kpKey = kpCacheKey(item);
+        if (item.kp_rating > 0 || item.imdb_rating > 0) { callback(ratingCache.set('kp_rating', kpKey, { kp: parseFloat(item.kp_rating) || 0, imdb: parseFloat(item.imdb_rating) || 0, timestamp: Date.now() })); return; }
+        if (item.ratingKinopoisk > 0 || item.ratingImdb > 0) { callback(ratingCache.set('kp_rating', kpKey, { kp: parseFloat(item.ratingKinopoisk) || 0, imdb: parseFloat(item.ratingImdb) || 0, timestamp: Date.now() })); return; }
+        var cached = ratingCache.get('kp_rating', kpKey);
         if (cached) { callback(cached); return; }
         try {
             var otherCache = Lampa.Storage.cache('kp_rating', 500, {});
-            var otherData = otherCache[item.id];
-            if (otherData && (otherData.kp > 0 || otherData.imdb > 0)) { callback(ratingCache.set('kp_rating', item.id, { kp: parseFloat(otherData.kp) || 0, imdb: parseFloat(otherData.imdb) || 0, timestamp: Date.now() })); return; }
+            var otherData = otherCache[kpKey] || otherCache[item.id];
+            if (otherData && (otherData.kp > 0 || otherData.imdb > 0)) { callback(ratingCache.set('kp_rating', kpKey, { kp: parseFloat(otherData.kp) || 0, imdb: parseFloat(otherData.imdb) || 0, timestamp: Date.now() })); return; }
         } catch (e) {}
-        if (!canUseKinopoiskApi()) { callback(cacheEmptyKpRating(item.id)); return; }
-        var pendingKey = String(item.id);
+        if (!canUseKinopoiskApi()) { callback(cacheEmptyKpRating(item)); return; }
+        var pendingKey = kpKey;
         if (pendingKpCallbacks[pendingKey]) { pendingKpCallbacks[pendingKey].push(callback); return; }
         pendingKpCallbacks[pendingKey] = [callback];
+        var startGeneration = cacheGeneration;
         function notifyKp(result, isFinal) {
+            if (startGeneration !== cacheGeneration) { if (isFinal) delete pendingKpCallbacks[pendingKey]; return; }
             var cbs = pendingKpCallbacks[pendingKey] || [];
             if (isFinal) delete pendingKpCallbacks[pendingKey];
             for (var ci = 0; ci < cbs.length; ci++) { try { cbs[ci](result); } catch (e) {} }
@@ -351,12 +389,12 @@
             addToQueue(function () {
                 var request = getRequest(); request.timeout(5000);
                 request.silent(KP_API_URL + 'api/v2.2/films/' + item.kinopoisk_id, function (data) {
-                    notifyKp(ratingCache.set('kp_rating', item.id, { kp: parseFloat(data.ratingKinopoisk) || 0, imdb: parseFloat(data.ratingImdb) || 0, timestamp: Date.now() }), true);
+                    notifyKp(ratingCache.set('kp_rating', kpKey, { kp: parseFloat(data.ratingKinopoisk) || 0, imdb: parseFloat(data.ratingImdb) || 0, timestamp: Date.now() }), true);
                     releaseRequest(request);
-                }, function () { releaseRequest(request); notifyKp(cacheEmptyKpRating(item.id), true); }, false, { headers: getKpHeaders() });
+                }, function () { releaseRequest(request); notifyKp(cacheEmptyKpRating(item, true), true); }, false, { headers: getKpHeaders() });
             }, 'kp', function () { delete pendingKpCallbacks[pendingKey]; }); return;
         }
-        if (!(item.title || item.name) && !item.imdb_id) { notifyKp(cacheEmptyKpRating(item.id), true); return; }
+        if (!(item.title || item.name) && !item.imdb_id) { notifyKp(cacheEmptyKpRating(item), true); return; }
         addToQueue(function () {
             var request = getRequest();
             var title = cleanString(item.title || item.name || '');
@@ -368,25 +406,25 @@
                 var results = data.films || data.items || [];
                 if (!results.length && data && (data.kinopoiskId || data.filmId)) results = [data];
                 var best = findBestKpMatch(results, title, originalTitle, releaseYear);
-                if (!best) { releaseRequest(request); notifyKp(cacheEmptyKpRating(item.id), true); return; }
+                if (!best) { releaseRequest(request); notifyKp(cacheEmptyKpRating(item), true); return; }
                 var kpFromSearch = parseFloat(best.rating || best.ratingKinopoisk) || 0;
                 var imdbFromSearch = parseFloat(best.ratingImdb) || 0;
                 var movieId = best.kinopoiskId || best.filmId || best.kp_id || best.kinopoisk_id;
-                if (kpFromSearch > 0) ratingCache.set('kp_rating', item.id, { kp: kpFromSearch, imdb: imdbFromSearch, timestamp: Date.now() });
+                if (kpFromSearch > 0) ratingCache.set('kp_rating', kpKey, { kp: kpFromSearch, imdb: imdbFromSearch, timestamp: Date.now() });
                 if (movieId && (kpFromSearch === 0 || imdbFromSearch === 0)) {
                     if (kpFromSearch > 0) notifyKp({ kp: kpFromSearch, imdb: imdbFromSearch }, false);
                     request.timeout(5000);
                     request.silent(KP_API_URL + 'api/v2.2/films/' + movieId, function (detail) {
                         var fullKp = parseFloat(detail.ratingKinopoisk) || 0;
                         var fullImdb = parseFloat(detail.ratingImdb) || 0;
-                        notifyKp(ratingCache.set('kp_rating', item.id, { kp: fullKp > 0 ? fullKp : kpFromSearch, imdb: fullImdb > 0 ? fullImdb : imdbFromSearch, timestamp: Date.now() }), true);
+                        notifyKp(ratingCache.set('kp_rating', kpKey, { kp: fullKp > 0 ? fullKp : kpFromSearch, imdb: fullImdb > 0 ? fullImdb : imdbFromSearch, timestamp: Date.now() }), true);
                         releaseRequest(request);
-                    }, function () { releaseRequest(request); notifyKp(ratingCache.set('kp_rating', item.id, { kp: kpFromSearch, imdb: imdbFromSearch, timestamp: Date.now() }), true); }, false, { headers: getKpHeaders() });
+                    }, function () { releaseRequest(request); notifyKp(ratingCache.set('kp_rating', kpKey, { kp: kpFromSearch, imdb: imdbFromSearch, timestamp: Date.now() }), true); }, false, { headers: getKpHeaders() });
                 } else {
                     releaseRequest(request);
-                    notifyKp(ratingCache.set('kp_rating', item.id, { kp: kpFromSearch, imdb: imdbFromSearch, timestamp: Date.now() }), true);
+                    notifyKp(ratingCache.set('kp_rating', kpKey, { kp: kpFromSearch, imdb: imdbFromSearch, timestamp: Date.now() }), true);
                 }
-            }, function () { releaseRequest(request); notifyKp(cacheEmptyKpRating(item.id), true); }, false, { headers: getKpHeaders() });
+            }, function () { releaseRequest(request); notifyKp(cacheEmptyKpRating(item, true), true); }, false, { headers: getKpHeaders() });
         }, 'kp', function () { delete pendingKpCallbacks[pendingKey]; });
     }
 
@@ -1360,6 +1398,17 @@
     function detectLowQuality(title) { if (!title) return false; var l = title.toLowerCase(); return forbiddenPatterns.some(function (p) { return p.test(l); }); }
     function determineType(item) { var ct = item.media_type || item.type; if (ct === 'movie' || ct === 'tv') return ct; return item.name || item.original_name ? 'tv' : 'movie'; }
 
+    function normalizeQuality(value) {
+        var text = String(value || '').toLowerCase();
+        if (!text) return null;
+        if (/camrip|телесинк|телесинх|telesync|telesynch|telecine|(^|[^a-zа-яё])ts([^a-zа-яё]|$)|(^|[^а-яё])тс([^а-яё]|$)/i.test(text)) return 'TS';
+        if (/2160|4k|uhd/.test(text)) return '4K';
+        if (/1080|full\s*hd|fhd/.test(text)) return 'FHD';
+        if (/720|(^|[^a-zа-яё])hd([^a-zа-яё]|$)/.test(text)) return 'HD';
+        if (/480|360|(^|[^a-zа-яё])sd([^a-zа-яё]|$)/.test(text)) return 'SD';
+        return null;
+    }
+
     function fetchAllohaQuality(normalizedItem, onComplete) {
         if (!Array.isArray(ALLOHA_API_SERVERS) || !ALLOHA_API_SERVERS.length) {
             onComplete(null);
@@ -1390,7 +1439,8 @@
                 if (parsedData.status !== 'success' || !parsedData.data) { onComplete(null); return; }
                 var data = parsedData.data;
                 if (data.uhd) { onComplete({ quality: '4K' }); return; }
-                if (data.quality && /(^|,\s*)ts(\s*,|$)/i.test(data.quality)) { onComplete({ quality: 'TS' }); return; }
+                var normalized = normalizeQuality(data.quality);
+                if (normalized) { onComplete({ quality: normalized }); return; }
                 if (data.quality) { onComplete({ quality: 'HD' }); return; }
                 onComplete(null);
             } catch (e) { onComplete(null); }
@@ -1461,6 +1511,12 @@
     var QUALITY_EMPTY_CACHE_TTL = 60 * 60 * 1000;
     var _qualityCacheMem = null;
     var pendingQualityRequests = {};
+    function getQualityCacheKey(item) {
+        var source = 'both';
+        try { source = Lampa.Storage.get('quality_source', 'both'); } catch (e) {}
+        var t = (item && item.type) || 'movie';
+        return [CARD_OVERLAY_CACHE_VERSION, source, t, item ? item.id : ''].join(':');
+    }
     function getQualityCacheMem() {
         if (_qualityCacheMem) return _qualityCacheMem;
         var stored = null;
@@ -1518,7 +1574,7 @@
             kinopoisk_id: item.kinopoisk_id || item.kp_id || item.kinopoiskId || '',
             imdb_id: item.imdb_id || item.imdbId || ''
         };
-        var cacheEntryKey = standardizedItem.type + '_' + standardizedItem.id;
+        var cacheEntryKey = getQualityCacheKey(standardizedItem);
         var cachedQuality = retrieveQualityCache(cacheEntryKey);
         if (cachedQuality) {
             if (cachedQuality.quality) refreshDetailQuality(cachedQuality.quality, viewRenderer);
@@ -2630,7 +2686,7 @@
             component: 'card_overlay',
             param: { name: 'quality_source', type: 'select', values: { 'jacred': 'JacRed (парсер)', 'alloha': 'Alloha (API)', 'both': 'Сначала JacRed, потом Alloha' }, default: 'both' },
             field: { name: 'Источник качества', description: 'Откуда получать информацию о качестве видео' },
-            onChange: function () { updateSettingsKeepFocus('quality_source'); refreshAllQualityLabels(); }
+            onChange: function () { try { clearQualityCache(); } catch (e) {} updateSettingsKeepFocus('quality_source'); refreshAllQualityLabels(); }
         });
         Lampa.SettingsApi.addParam({
             component: 'card_overlay',
@@ -2771,17 +2827,26 @@
                 }
             }
         } catch (e) {}
-        if (!modernCardPatched && window.Lampa && Lampa.Card && Lampa.Card.prototype) {
-            try {
-                Object.defineProperty(window.Lampa.Card.prototype, 'build', {
-                    configurable: true,
-                    get: function () { return this._build; },
-                    set: function (func) {
-                        var self = this;
-                        this._build = function () { func.apply(self); Lampa.Listener.send('card', { type: 'build', object: self }); };
-                    }
-                });
-            } catch (eLegacy) {}
+        if (!modernCardPatched && window.Lampa && Lampa.Card && Lampa.Card.prototype && !Lampa.Card.prototype.__card_overlay_build_patched__) {
+            var appVersion = 0;
+            try { appVersion = parseInt(Lampa.Manifest && Lampa.Manifest.app_digital, 10) || 0; } catch (eV) {}
+            if (appVersion < 300 || !Lampa.Maker) {
+                try {
+                    var proto = window.Lampa.Card.prototype;
+                    var existingDescriptor = null;
+                    try { existingDescriptor = Object.getOwnPropertyDescriptor(proto, 'build'); } catch (eD) {}
+                    if (existingDescriptor && existingDescriptor.get) return;
+                    Object.defineProperty(proto, 'build', {
+                        configurable: true,
+                        get: function () { return this._build; },
+                        set: function (func) {
+                            var self = this;
+                            this._build = function () { try { func.apply(self); } catch (eBuild) {} try { Lampa.Listener.send('card', { type: 'build', object: self }); } catch (eS) {} };
+                        }
+                    });
+                    proto.__card_overlay_build_patched__ = true;
+                } catch (eLegacy) {}
+            }
         }
     }
 
@@ -2838,20 +2903,35 @@
             });
         } catch (err) {}
     }
+    var _reactionLoadGeneration = 0;
     function applyPlayerReactions() {
         try {
             var active = Lampa.Activity && Lampa.Activity.active ? Lampa.Activity.active() : null;
             if (!active || active.component !== 'full') return;
             if (!isAnimatedReactionsInPlayerEnabled()) { restoreOriginalReactions(); applyReactionsToSelectbox(); return; }
+            _reactionLoadGeneration++;
+            var myGeneration = _reactionLoadGeneration;
             function preloadReactionImage(reactionIndex) {
                 if (reactionIndex >= PLAYER_REACTION_CONFIGS.length) return;
+                if (myGeneration !== _reactionLoadGeneration) return;
                 var config = PLAYER_REACTION_CONFIGS[reactionIndex];
                 var activityBlock = document.querySelector('.activity--active');
                 var reactionIconElement = activityBlock ? activityBlock.querySelector(config.selector + ' img') : null;
                 if (!reactionIconElement) { preloadReactionImage(reactionIndex + 1); return; }
                 if (!reactionIconElement.dataset.originalSrc) reactionIconElement.dataset.originalSrc = reactionIconElement.src;
                 var preloadImage = new Image();
-                preloadImage.onload = preloadImage.onerror = function () { reactionIconElement.src = config.url; reactionIconElement.style.opacity = '1'; preloadReactionImage(reactionIndex + 1); };
+                preloadImage.onload = function () {
+                    if (myGeneration !== _reactionLoadGeneration) return;
+                    if (!isAnimatedReactionsInPlayerEnabled()) return;
+                    reactionIconElement.src = config.url;
+                    reactionIconElement.style.opacity = '1';
+                    preloadReactionImage(reactionIndex + 1);
+                };
+                preloadImage.onerror = function () {
+                    if (myGeneration !== _reactionLoadGeneration) return;
+                    reactionIconElement.style.opacity = '1';
+                    preloadReactionImage(reactionIndex + 1);
+                };
                 preloadImage.src = config.url;
                 reactionIconElement.style.opacity = '1';
             }
