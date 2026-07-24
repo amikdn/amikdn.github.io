@@ -1840,28 +1840,43 @@
       loadList();
     },
     full: function (fullParams, onSuccess, onError) {
+      fullParams = fullParams || {};
+      var __dsoSelfFull = this;
       if (!getAccessToken()) {
-        if (onError) {
-          onError();
+        var __dsoRetry = fullParams.__dsoTokenRetry || 0;
+        if (__dsoRetry < 6) {
+          fullParams.__dsoTokenRetry = __dsoRetry + 1;
+          setTimeout(function () { __dsoSelfFull.full(fullParams, onSuccess, onError); }, 500);
+          return;
         }
+        if (onError) { onError(); }
         return;
       }
-      var itemId = fullParams.card && (fullParams.card.kinopub_id || fullParams.card.id) || fullParams.kinopub_id || fullParams.id;
-      itemId = parseInt(itemId, 10) || 0;
-      if (itemId > 9000000000) {
-        itemId = itemId - 9000000000;
-      }
-      if (!itemId) {
-        if (onError) {
-          onError();
-        }
-        return;
-      }
-      apiGet("/v1/items/" + itemId + "?nolinks=1", function (itemResponse) {
+      var __dsoCard = fullParams.card || fullParams.movie || (fullParams.object && (fullParams.object.card || fullParams.object.movie)) || null;
+      var __dsoSearchTitle = (__dsoCard && (__dsoCard.title || __dsoCard.name || __dsoCard.original_title || __dsoCard.original_name)) || fullParams.title || "";
+      var __dsoInitId = (__dsoCard && (__dsoCard.kinopub_id || __dsoCard.id)) || fullParams.kinopub_id || fullParams.id || (fullParams.object && fullParams.object.id) || 0;
+      __dsoInitId = parseInt(__dsoInitId, 10) || 0;
+      if (__dsoInitId > 9000000000) __dsoInitId = __dsoInitId - 9000000000;
+      var __dsoRunFallback = function (currentId) {
+        if (!__dsoSearchTitle) { if (onError) onError(); return; }
+        apiGet("/v1/items/search?q=" + encodeURIComponent(__dsoSearchTitle) + "&perpage=5", function (searchResp) {
+          var items = (searchResp && searchResp.items) || [];
+          if (!items.length) { if (onError) onError(); return; }
+          var foundId = parseInt(items[0].id, 10) || 0;
+          if (!foundId) { if (onError) onError(); return; }
+          __dsoLoadItem(foundId);
+        }, function () { if (onError) onError(); });
+      };
+      var __dsoLoadItem = function (loadItemId) {
+        apiGet("/v1/items/" + loadItemId + "?nolinks=1", function (itemResponse) {
+          if (!itemResponse || !itemResponse.item) { __dsoRunFallback(loadItemId); return; }
+          __dsoProcessItem(itemResponse, loadItemId);
+        }, function () { __dsoRunFallback(loadItemId); });
+      };
+      var __dsoProcessItem = function (itemResponse, effectiveItemId) {
+        var itemId = effectiveItemId;
         if (!itemResponse || !itemResponse.item) {
-          if (onError) {
-            onError();
-          }
+          __dsoRunFallback(itemId);
           return;
         }
         var item = itemResponse.item;
@@ -1892,7 +1907,8 @@
         }
 
         resolveTmdbInfo(card, finishFull);
-      }, onError);
+      };
+      if (__dsoInitId) { __dsoLoadItem(__dsoInitId); } else { __dsoRunFallback(0); }
     },
     menu: function (menuParams, callback) {
       if (!getAccessToken()) {
