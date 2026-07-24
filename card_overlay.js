@@ -1672,12 +1672,12 @@
                     applyQualityToItem(currElement, '...');
                     requestQuality(sInfo, entryKey, function (result) {
                         var current = currElement.card_data;
-                        var currentKey = current ? determineType(current) + '_' + (current.id || '') : '';
+                        var currentKey = current ? getQualityCacheKey({ type: determineType(current), id: current.id || '' }) : '';
                         if (currentKey !== entryKey) return;
                         applyQualityToItem(currElement, result && result.quality);
                     });
                 }
-            })(itemElement, stdInfo, stdInfo.type + '_' + stdInfo.id);
+            })(itemElement, stdInfo, getQualityCacheKey(stdInfo));
         }
     }
     function refreshAllQualityLabels() {
