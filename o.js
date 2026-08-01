@@ -42,6 +42,43 @@
     return Lampa.Storage.get('lampac_source_filter', 'true') !== false;
   }
 
+  function balanserKey(value) {
+    var name = value;
+
+    if (value && typeof value === 'object') {
+      name = value.balanser || (value.name ? String(value.name).split(' ')[0] : '');
+    }
+
+    return String(name || '')
+      .toLowerCase()
+      .replace(/[^a-z0-9_-]/g, '');
+  }
+
+  function isBlockedBalanser(value) {
+    if (!sourceFilterEnabled()) return false;
+
+    var name = balanserKey(value);
+    if (!name) return false;
+
+    return BLOCKED_BALANSERS.some(function (blocked) {
+      return (
+        name === blocked ||
+        name.indexOf(blocked + '-') === 0 ||
+        name.indexOf(blocked + '_') === 0 ||
+        name.indexOf('lme' + blocked) === 0 ||
+        name.indexOf(blocked) === 0
+      );
+    });
+  }
+
+  function filterBalansers(list) {
+    if (!list || typeof list.filter !== 'function') return list;
+
+    return list.filter(function (item) {
+      return !isBlockedBalanser(item);
+    });
+  }
+
   var Defined = {
     api: 'lampac',
     localhost: SERVER_BASE + '/',
@@ -350,15 +387,6 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
       return (bals || name).toLowerCase();
     }
 
-    function isBlockedBalanser(value) {
-      if (!sourceFilterEnabled()) return false;
-      var name = typeof value === 'string' ? value : balanserName(value || { name: '' });
-      name = String(name || '').toLowerCase().replace(/[^a-z0-9_-]/g, '');
-      return BLOCKED_BALANSERS.some(function (blocked) {
-        return name === blocked || name.indexOf(blocked + '-') === 0 || name.indexOf(blocked + '_') === 0;
-      });
-    }
-
     function clarificationSearchAdd(value) {
       var id = Lampa.Utils.hash(
         object.movie.number_of_seasons ? object.movie.original_name : object.movie.original_title
@@ -636,14 +664,15 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
         var gou = function gou(json, any) {
           if (json.accsdb) return reject(json);
           var last_balanser = _this3.getLastChoiceBalanser();
+          var online = filterBalansers(json.online || []);
           if (!red) {
-            var _filter = json.online.filter(function (c) {
+            var _filter = online.filter(function (c) {
               return any ? c.show : c.show && c.name.toLowerCase() == last_balanser;
             });
             if (_filter.length) {
               red = true;
               resolve(
-                json.online.filter(function (c) {
+                online.filter(function (c) {
                   return c.show;
                 })
               );
@@ -660,8 +689,9 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
               life_wait_times++;
               filter_sources = [];
               sources = {};
-              json.online.forEach(function (j) {
+              filterBalansers(json.online || []).forEach(function (j) {
                 var name = balanserName(j);
+                if (isBlockedBalanser(name)) return;
                 sources[name] = {
                   url: j.url,
                   name: j.name,
@@ -1952,7 +1982,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
       title: spiderName,
       search: function (params, oncomplite) {
         function searchComplite(links) {
-          var keys = Lampa.Arrays.getKeys(links);
+          var keys = filterBalansers(Lampa.Arrays.getKeys(links) || []);
 
           if (keys.length) {
             var status = new Lampa.Status(keys.length);
