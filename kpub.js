@@ -23,8 +23,8 @@
     proxyUrl += "/";
   }
   var API_BASE_URL = "https://api.srvkp.com";
-  var OAUTH_CLIENT_ID = "xbmc";
-  var OAUTH_CLIENT_SECRET = "cgg3gtifu46urtfp2zp1nqtba0k2ezxh";
+  var OAUTH_CLIENT_ID = Lampa.Storage.get("dso_kinopub_client_id", "xbmc");
+  var OAUTH_CLIENT_SECRET = Lampa.Storage.get("dso_kinopub_client_secret", "");
 
   function getAccessToken() {
     return Lampa.Storage.get("dso_kinopub_token", "");
