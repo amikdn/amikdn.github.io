@@ -2,6 +2,11 @@
   'use strict';
 
   var LAMPAC_VERSION = '1.8.1';
+  var PLUGIN_ID = 'lampac_onl';
+  var PLUGIN_NAME = 'Lampac ONL';
+  var PLUGIN_FLAG = 'lampac_onl_plugin';
+  var PLUGIN_BUTTON_CLASS = 'lampac-onl--button';
+  var STORAGE_PREFIX = 'lampac_onl_';
   var REQUEST_TIMEOUT = 10000;
   var BALANCER_TIMEOUT = 60000;
 
@@ -24,6 +29,8 @@
     'uaflix',
     'uakino',
     'makhno',
+    'klonfun',
+    'lme_klonfun',
     'lme_eneyida',
     'lme_kinoukr',
     'lme_uafilmme',
@@ -39,7 +46,7 @@
     '<rect x="2" y="2" width="54" height="53" rx="5" stroke="white" stroke-width="4"/></svg>';
 
   function sourceFilterEnabled() {
-    return Lampa.Storage.get('lampac_source_filter', 'true') !== false;
+    return Lampa.Storage.get(STORAGE_PREFIX + 'source_filter', 'true') !== false;
   }
 
   function balanserKey(value) {
@@ -565,13 +572,13 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
     };
     // ── balanser ──
     this.updateBalanser = function (balanser_name) {
-      var last_select_balanser = Lampa.Storage.cache('online_last_balanser', 3000, {});
+      var last_select_balanser = Lampa.Storage.cache(STORAGE_PREFIX + 'online_last_balanser', 3000, {});
       last_select_balanser[object.movie.id] = balanser_name;
-      Lampa.Storage.set('online_last_balanser', last_select_balanser);
+      Lampa.Storage.set(STORAGE_PREFIX + 'online_last_balanser', last_select_balanser);
     };
     this.changeBalanser = function (balanser_name) {
       this.updateBalanser(balanser_name);
-      Lampa.Storage.set('online_balanser', balanser_name);
+      Lampa.Storage.set(STORAGE_PREFIX + 'online_balanser', balanser_name);
       var to = this.getChoice(balanser_name);
       var from = this.getChoice();
       if (from.voice_name) to.voice_name = from.voice_name;
@@ -620,11 +627,11 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
     };
     // ── source & life events ──
     this.getLastChoiceBalanser = function () {
-      var last_select_balanser = Lampa.Storage.cache('online_last_balanser', 3000, {});
+      var last_select_balanser = Lampa.Storage.cache(STORAGE_PREFIX + 'online_last_balanser', 3000, {});
       if (last_select_balanser[object.movie.id]) {
         return last_select_balanser[object.movie.id];
       } else {
-        return Lampa.Storage.get('online_balanser', filter_sources.length ? filter_sources[0] : '');
+        return Lampa.Storage.get(STORAGE_PREFIX + 'online_balanser', filter_sources.length ? filter_sources[0] : '');
       }
     };
     this.startSource = function (json) {
@@ -640,11 +647,11 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
         });
         filter_sources = Lampa.Arrays.getKeys(sources);
         if (filter_sources.length) {
-          var last_select_balanser = Lampa.Storage.cache('online_last_balanser', 3000, {});
+          var last_select_balanser = Lampa.Storage.cache(STORAGE_PREFIX + 'online_last_balanser', 3000, {});
           if (last_select_balanser[object.movie.id]) {
             balanser = last_select_balanser[object.movie.id];
           } else {
-            balanser = Lampa.Storage.get('online_balanser', filter_sources[0]);
+            balanser = Lampa.Storage.get(STORAGE_PREFIX + 'online_balanser', filter_sources[0]);
           }
           if (!sources[balanser]) balanser = filter_sources[0];
           if (!sources[balanser].show && !object.lampac_custom_select) balanser = filter_sources[0];
@@ -1213,7 +1220,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
     };
     // ── choice & storage ──
     this.getChoice = function (for_balanser) {
-      var data = Lampa.Storage.cache('online_choice_' + (for_balanser || balanser), 3000, {});
+      var data = Lampa.Storage.cache(STORAGE_PREFIX + 'online_choice_' + (for_balanser || balanser), 3000, {});
       var save = data[object.movie.id] || {};
       Lampa.Arrays.extend(save, {
         season: 0,
@@ -1226,9 +1233,9 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
       return save;
     };
     this.saveChoice = function (choice, for_balanser) {
-      var data = Lampa.Storage.cache('online_choice_' + (for_balanser || balanser), 3000, {});
+      var data = Lampa.Storage.cache(STORAGE_PREFIX + 'online_choice_' + (for_balanser || balanser), 3000, {});
       data[object.movie.id] = choice;
-      Lampa.Storage.set('online_choice_' + (for_balanser || balanser), data);
+      Lampa.Storage.set(STORAGE_PREFIX + 'online_choice_' + (for_balanser || balanser), data);
       this.updateBalanser(for_balanser || balanser);
     };
     this.replaceChoice = function (choice, for_balanser) {
@@ -1998,7 +2005,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
                     item.title = Lampa.Utils.capitalizeFirstLetter(item.title);
                     item.release_date = item.year || '0000';
                     item.balanser = spiderUri;
-                    item.source = 'lampac';
+                    item.source = PLUGIN_ID;
                     if (item.img !== undefined) {
                       if (item.img.charAt(0) === '/') item.img = Defined.localhost + item.img.substring(1);
                       if (item.img.indexOf('/proxyimg') !== -1) item.img = account(item.img);
@@ -2013,7 +2020,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
                         title: name,
                         results: cards
                       },
-                      'lampac'
+                      PLUGIN_ID
                     )
                   );
                 }
@@ -2090,7 +2097,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
         Lampa.Activity.push({
           url: params.element.url,
           title: 'Lampac - ' + params.element.title,
-          component: 'lampac',
+          component: PLUGIN_ID,
           movie: params.element,
           page: 1,
           search: params.element.title,
@@ -2107,14 +2114,14 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
   function startPlugin() {
     if (window.lampa_settings && window.lampa_settings.read_only) return;
 
-    window.lampac_plugin = true;
-    Lampa.Component.add('lampac', component);
+    window[PLUGIN_FLAG] = true;
+    Lampa.Component.add(PLUGIN_ID, component);
     var manifest = {
       type: 'video',
       version: LAMPAC_VERSION,
-      name: 'Lampac',
+      name: PLUGIN_NAME,
       description: 'Плагин для просмотра онлайн сериалов и фильмов',
-      component: 'lampac',
+      component: PLUGIN_ID,
       icon: PLUGIN_ICON,
       onContextMenu: function onContextMenu(object) {
         return {
@@ -2131,7 +2138,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
         Lampa.Activity.push({
           url: '',
           title: Lampa.Lang.translate('title_online'),
-          component: 'lampac',
+          component: PLUGIN_ID,
           search: all[id] ? all[id] : object.title,
           search_one: object.title,
           search_two: object.original_title,
@@ -2141,9 +2148,17 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
         });
       }
     };
-    addSourceSearch('Spider', 'spider');
-    addSourceSearch('Anime', 'spider/anime');
-    Lampa.Manifest.plugins = manifest;
+    addSourceSearch(PLUGIN_NAME + ' Spider', 'spider');
+    addSourceSearch(PLUGIN_NAME + ' Anime', 'spider/anime');
+
+    // не затираем манифесты других онлайн-плагинов, а добавляемся рядом
+    if (Array.isArray(Lampa.Manifest.plugins)) {
+      Lampa.Manifest.plugins.push(manifest);
+    } else if (Lampa.Manifest.plugins) {
+      Lampa.Manifest.plugins = [Lampa.Manifest.plugins, manifest];
+    } else {
+      Lampa.Manifest.plugins = manifest;
+    }
     Lampa.Lang.add({
       lampac_watch: {
         //
@@ -2732,7 +2747,9 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
     }
 
     var LAMPAC_FULL_CARD_BUTTON = [
-      '<div class="full-start__button selector view--online lampac--button" data-subtitle="' +
+      '<div class="full-start__button selector view--online ' +
+        PLUGIN_BUTTON_CLASS +
+        '" data-subtitle="' +
         manifest.name +
         ' v' +
         manifest.version +
@@ -2752,10 +2769,10 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
 
       Lampa.Lang.add({
         lampac_settings_title: {
-          ru: 'Lampac',
-          uk: 'Lampac',
-          en: 'Lampac',
-          zh: 'Lampac'
+          ru: PLUGIN_NAME,
+          uk: PLUGIN_NAME,
+          en: PLUGIN_NAME,
+          zh: PLUGIN_NAME
         },
         lampac_source_filter_title: {
           ru: 'Фильтр источников',
@@ -2772,15 +2789,15 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
       });
 
       Lampa.SettingsApi.addComponent({
-        component: 'lampac',
+        component: PLUGIN_ID,
         name: Lampa.Lang.translate('lampac_settings_title'),
         icon: PLUGIN_ICON
       });
 
       Lampa.SettingsApi.addParam({
-        component: 'lampac',
+        component: PLUGIN_ID,
         param: {
-          name: 'lampac_source_filter',
+          name: STORAGE_PREFIX + 'source_filter',
           type: 'trigger',
           'default': true
         },
@@ -2794,7 +2811,8 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
     addSettings();
 
     function addButton(e) {
-      if (e.render.find('.lampac--button').length) return;
+      if (e.render.find('.' + PLUGIN_BUTTON_CLASS).length) return;
+      if (e.render.parent().find('.' + PLUGIN_BUTTON_CLASS).length) return;
       var btn = $(Lampa.Lang.translate(button));
       // //console.log(btn.clone().removeClass('focus').prop('outerHTML'))
       btn.on('hover:enter', function () {
@@ -2806,7 +2824,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
         Lampa.Activity.push({
           url: '',
           title: Lampa.Lang.translate('title_online'),
-          component: 'lampac',
+          component: PLUGIN_ID,
           search: all[id] ? all[id] : e.movie.title,
           search_one: e.movie.title,
           search_two: e.movie.original_title,
@@ -2885,10 +2903,10 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
         'dreamerscast'
       ];
       balansers_sync.forEach(function (name) {
-        Lampa.Storage.sync('online_choice_' + name, 'object_object');
+        Lampa.Storage.sync(STORAGE_PREFIX + 'online_choice_' + name, 'object_object');
       });
       Lampa.Storage.sync('online_watched_last', 'object_object');
     }
   }
-  if (!window.lampac_plugin) startPlugin();
+  if (!window[PLUGIN_FLAG]) startPlugin();
 })();
