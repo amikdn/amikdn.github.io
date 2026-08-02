@@ -206,6 +206,65 @@
     }
   }
 
+  // Спойлеры Rezka: <span class="title_spoiler" onclick="ShowOrHide('id')">…</span>
+  // + скрытый блок с этим id. Превращаем в самодостаточную пару кнопка/текст.
+  function prepareSpoilers(root) {
+    var toggles = root.querySelectorAll('.title_spoiler, [data-spoiler]');
+    var seq = 0;
+    var i;
+
+    for (i = 0; i < toggles.length; i++) {
+      var toggle = toggles[i];
+      var id = toggle.getAttribute('data-spoiler');
+      var body = null;
+
+      if (id) {
+        body = root.querySelector('[id="' + id + '"]');
+        if (!body && root.ownerDocument) body = root.ownerDocument.querySelector('[id="' + id + '"]');
+      }
+
+      // запасной вариант: скрытый блок идёт сразу за кнопкой
+      if (!body) {
+        var next = toggle.nextElementSibling;
+
+        while (next) {
+          var cls = String(next.className || '');
+
+          if (cls.indexOf('text_spoiler') !== -1 || cls.indexOf('spoiler') !== -1) {
+            body = next;
+            break;
+          }
+
+          next = next.nextElementSibling;
+        }
+      }
+
+      if (!body) {
+        // кнопка без текста бесполезна, убираем
+        if (toggle.parentNode) toggle.parentNode.removeChild(toggle);
+        continue;
+      }
+
+      seq++;
+
+      var key = 'sp' + seq;
+      var label = (toggle.innerText || toggle.textContent || '').trim();
+
+      if (!label || label.length > 40) label = 'Спойлер';
+
+      toggle.className = 'rc-spoiler';
+      toggle.setAttribute('data-sp', key);
+      toggle.removeAttribute('data-spoiler');
+      toggle.removeAttribute('id');
+      toggle.innerHTML = escapeHtml(label);
+
+      body.className = String(body.className || '').replace(/\brc-spoiler-body\b/g, '') + ' rc-spoiler-body';
+      body.setAttribute('data-sp-body', key);
+      body.removeAttribute('id');
+      body.setAttribute('style', 'display:none');
+    }
+  }
+
   function text(node, selector) {
     var found = node.querySelector(selector);
     if (!found) return '';
@@ -219,16 +278,19 @@
     var date = text(item, '.date, .b-comment__time');
     var body = item.querySelector('.message .text, .text');
     var html = body ? body.innerHTML : '';
+    var spoiler = html.indexOf('rc-spoiler') !== -1;
 
     return (
-      '<div class="rc-item selector">' +
+      '<div class="rc-item selector' + (spoiler ? ' rc-item--spoiler' : '') + '">' +
       (avatar ? '<div class="rc-ava"><img src="' + escapeHtml(avatar) + '" alt=""></div>' : '') +
       '<div class="rc-card">' +
       '<div class="rc-head"><span class="rc-name">' +
       escapeHtml(user) +
       '</span><span class="rc-date">' +
       escapeHtml(date) +
-      '</span></div>' +
+      '</span>' +
+      (spoiler ? '<span class="rc-hint">OK — показать спойлер</span>' : '') +
+      '</div>' +
       '<div class="rc-text">' +
       html +
       '</div>' +
@@ -282,9 +344,11 @@
       '.rc-date{opacity:.6;font-size:.8em;padding-left:1em;flex-shrink:0}',
       '.rc-text{color:#ddd;line-height:1.45;word-wrap:break-word;overflow-wrap:break-word}',
       '.rc-text img{max-width:100%;height:auto}',
-      '.title_spoiler{display:inline-block;background:#2a2a2a;border-radius:.3em;padding:0 .4em;margin:0 .2em;color:#e0e0e0;cursor:pointer}',
-      '.title_spoiler a{color:#e0e0e0!important;text-decoration:none!important}',
-      '.title_spoiler img,.title_spoiler .attention{height:1em;width:auto;vertical-align:middle}'
+      '.rc-spoiler{display:inline-block;background:#3a3a3a;border:1px solid #555;border-radius:.3em;padding:0 .5em;margin:0 .2em;color:#fff;cursor:pointer}',
+      '.rc-spoiler:before{content:"\\1F441 "}',
+      '.rc-spoiler-body{color:#ffd98a}',
+      '.rc-item.focus .rc-spoiler{background:#5a5a5a}',
+      '.rc-hint{opacity:.5;font-size:.8em;margin-left:.4em}'
     ].join('');
 
     document.head.appendChild(style);
@@ -306,13 +370,33 @@
 
     body.html(html);
 
-    // спойлеры без inline-скриптов
-    body.on('click hover:enter', '[data-spoiler]', function () {
-      var id = $(this).attr('data-spoiler');
-      var target = body.find('#' + id);
+    function reveal(scope) {
+      var bodies = scope.find('.rc-spoiler-body');
 
-      if (target.length) target.css('display', 'inline');
-      $(this).hide();
+      if (!bodies.length) return false;
+
+      bodies.css('display', 'inline');
+      bodies.removeClass('rc-spoiler-body');
+      scope.find('.rc-spoiler').remove();
+
+      return true;
+    }
+
+    // мышь/тач: клик прямо по плашке
+    body.on('click', '.rc-spoiler', function (e) {
+      var key = $(this).attr('data-sp');
+
+      body.find('[data-sp-body="' + key + '"]').css('display', 'inline').removeClass('rc-spoiler-body');
+      $(this).remove();
+
+      if (e && e.stopPropagation) e.stopPropagation();
+
+      return false;
+    });
+
+    // пульт: OK на комментарии раскрывает все спойлеры внутри него
+    body.on('hover:enter', '.rc-item', function () {
+      reveal($(this));
     });
 
     modal_open = true;
@@ -363,6 +447,7 @@
         }
 
         sanitize(dom.body || dom);
+        prepareSpoilers(dom.body || dom);
 
         var html = treeHtml(root, 0);
 
