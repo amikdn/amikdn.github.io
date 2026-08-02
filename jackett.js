@@ -13,12 +13,11 @@
     { id: 'freebie_tom_ru', name: 'Freebie', baseUrl: 'jacred.freebie.tom.ru', key: '1', interview: 'all', lang: 'lg' }
   ];
 
-  var PARSER_ICON = '<svg width="100%" height="100%" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="3.5" width="18" height="5" rx="1.6" stroke="currentColor" stroke-width="1.8"/><rect x="3" y="9.5" width="18" height="5" rx="1.6" stroke="currentColor" stroke-width="1.8"/><rect x="3" y="15.5" width="18" height="5" rx="1.6" stroke="currentColor" stroke-width="1.8"/><circle cx="6.6" cy="6" r="1.05" fill="currentColor"/><circle cx="6.6" cy="12" r="1.05" fill="currentColor"/><circle cx="6.6" cy="18" r="1.05" fill="currentColor"/></svg>';
+  var PARSER_ICON = '<svg width="100%" height="100%" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 4 19.6 9.5 16.7 18.5 7.3 18.5 4.4 9.5Z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round" opacity=".45"/><path d="M12 12 12 4M12 12 19.6 9.5M12 12 16.7 18.5M12 12 7.3 18.5M12 12 4.4 9.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="12" cy="12" r="2.6" fill="currentColor"/><circle cx="12" cy="4" r="1.9" fill="currentColor"/><circle cx="19.6" cy="9.5" r="1.9" fill="currentColor"/><circle cx="16.7" cy="18.5" r="1.9" fill="currentColor"/><circle cx="7.3" cy="18.5" r="1.9" fill="currentColor"/><circle cx="4.4" cy="9.5" r="1.9" fill="currentColor"/></svg>';
 
   var COLOR_OK = '#64e364';
   var COLOR_FAIL = '#ff2121';
   var COLOR_AUTH = '#000';
-
 
   function findServerById(id) {
     for (var i = 0; i < servers.length; i++) {
