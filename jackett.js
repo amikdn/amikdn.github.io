@@ -66,6 +66,7 @@
   }
 
   var PING_QUERY = 'test';
+  var PING_TIMEOUT = 6000;
 
   function buildPingUrl(server) {
     return getRequestProtocol(server) + server.baseUrl +
@@ -80,7 +81,7 @@
     }
 
     var xhr = new XMLHttpRequest();
-    xhr.timeout = 3000;
+    xhr.timeout = PING_TIMEOUT;
     xhr.onload = function () { callback(server, xhr.status === 200, xhr.status); };
     xhr.ontimeout = function () { callback(server, false, 'timeout'); };
     xhr.onerror = function () { callback(server, false, 'error'); };
@@ -220,6 +221,7 @@
 
   function scheduleParserButtonAfterChange() {
     ensureParserButton();
+    startResultWatch(1200);
   }
 
   function softReloadTorrents() {
@@ -501,7 +503,12 @@
 
   var BUILD_RETRY_DELAYS = [0, 150, 400, 900];
   var pageTimers = [];
-  var emptyMenuShown = false;
+
+  var WATCH_STEP = 400;
+  var WATCH_MAX_TICKS = 45;
+  var watchTimer = 0;
+  var watchTicks = 0;
+  var pageVerdict = false;
 
   function clearPageTimers() {
     for (var i = 0; i < pageTimers.length; i++) clearTimeout(pageTimers[i]);
@@ -513,6 +520,14 @@
     return !!(active && active.component === 'torrents');
   }
 
+  function activeSlide() {
+    return document.querySelector('.activity--active') || document.body;
+  }
+
+  function isActivityLoading(slide) {
+    return !!(slide && slide.classList && slide.classList.contains('activity--load'));
+  }
+
   function ensureParserButton() {
     clearPageTimers();
 
@@ -520,39 +535,80 @@
       pageTimers.push(setTimeout(function () {
         if (!isTorrentsPage()) return;
         if (document.querySelector('.filter--parser')) return;
-
         addParserFilterButton();
-        checkEmptyResult();
       }, delay));
     });
   }
 
-  function checkEmptyResult() {
-    if (emptyMenuShown) return;
-    if (Lampa.Storage.field('parser_torrent_type') !== 'jackett') return;
-    if (!$('.empty__title').length) return;
+  function stopResultWatch() {
+    if (watchTimer) clearTimeout(watchTimer);
+    watchTimer = 0;
+    watchTicks = 0;
+  }
 
-    emptyMenuShown = true;
+  function startResultWatch(startDelay) {
+    stopResultWatch();
+    pageVerdict = false;
+    watchTimer = setTimeout(tickResultWatch, startDelay || 0);
+  }
+
+  function tickResultWatch() {
+    watchTimer = 0;
+
+    if (!isTorrentsPage()) { stopResultWatch(); return; }
+    if (checkEmptyResult()) { stopResultWatch(); return; }
+    if (++watchTicks >= WATCH_MAX_TICKS) { stopResultWatch(); return; }
+
+    watchTimer = setTimeout(tickResultWatch, WATCH_STEP);
+  }
+
+  function checkEmptyResult() {
+    if (pageVerdict) return true;
+    if (!isTorrentsPage()) return true;
+
+    if (Lampa.Storage.field('parser_torrent_type') !== 'jackett') {
+      pageVerdict = true;
+      return true;
+    }
+
+    var slide = activeSlide();
+
+    if (isActivityLoading(slide)) return false;
+
+    if (slide.querySelector('.torrent-item')) {
+      pageVerdict = true;
+      return true;
+    }
+
+    if (!slide.querySelector('.empty__title')) return false;
+
+    pageVerdict = true;
     showServerSwitchMenu();
+    return true;
+  }
+
+  function onTorrentsPageEnter() {
+    ensureParserButton();
+    startResultWatch(300);
   }
 
   function onTorrentsPageLeave() {
     clearPageTimers();
-    emptyMenuShown = false;
+    stopResultWatch();
+    pageVerdict = false;
   }
 
   Lampa.Listener.follow('torrent', function (e) {
-    if (e.type === 'render') emptyMenuShown = true;
+    if (e.type === 'render') {
+      pageVerdict = true;
+      stopResultWatch();
+    }
   });
 
   Lampa.Listener.follow('activity', function (e) {
     if (e.component !== 'torrents') return;
 
-    if (e.type === 'start') {
-      emptyMenuShown = false;
-      ensureParserButton();
-    }
-
+    if (e.type === 'start') onTorrentsPageEnter();
     if (e.type === 'destroy' || e.type === 'archive') onTorrentsPageLeave();
   });
 
@@ -564,7 +620,7 @@
     }
 
     if (e.name === 'activity') {
-      if (isTorrentsPage()) ensureParserButton();
+      if (isTorrentsPage()) onTorrentsPageEnter();
       else onTorrentsPageLeave();
     }
 
@@ -579,6 +635,10 @@
   Lampa.Controller.listener.follow('toggle', function (e) {
     if (e.name === 'select') {
       setTimeout(updateServerStatusInSettings, 10);
+    }
+
+    if (e.name === 'content' && isTorrentsPage() && !pageVerdict) {
+      setTimeout(function () { if (checkEmptyResult()) stopResultWatch(); }, 120);
     }
   });
 
