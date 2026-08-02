@@ -11,7 +11,7 @@
     var QUALITY_CACHE_KEY = 'qualview_quality_cache';
     var QUALITY_API_DOMAIN = 'jr.maxvol.pro';
     function _b64raw(str) {
-        if (typeof atob === 'function') { try { return atob(str); } catch (e) {} }
+        if (typeof atob === 'function') { try { return atob(str); } catch (e) { logErr(e); } }
         var b = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
         str = String(str).replace(/=+$/, '').replace(/[^A-Za-z0-9+/]/g, '');
         var out = '', bits = 0, acc = 0;
@@ -114,9 +114,100 @@
         if (force) Lampa.Storage.set('card_overlay_defaults_version', DEFAULTS_VERSION);
     }
 
+    // ── инфраструктура: таймеры, слушатели, безопасный вызов ──────────────
+    var DEBUG = false;
+    try { DEBUG = isTruthy(Lampa.Storage.get('card_overlay_debug', false)); } catch (e) {}
+
+    function isTruthy(v) {
+        return (v === true || v === 'true' || v === '1' || v === 1);
+    }
+
+    // Единая обёртка над try/catch: молча гасит ошибку в проде,
+    // но показывает её в консоли при включённом card_overlay_debug.
+    function logErr(e) {
+        if (!DEBUG) return;
+        try { console.error('[card_overlay]', e); } catch (e2) {}
+    }
+
+    function safe(fn, label) {
+        try {
+            return fn();
+        } catch (e) {
+            if (DEBUG) {
+                try { console.error('[card_overlay] ' + (label || 'error'), e); } catch (e2) {}
+            }
+            return undefined;
+        }
+    }
+
+    // Все таймеры плагина живут здесь: их можно погасить разом.
+    // Ключ делает повторный вызов заменой предыдущего, а не вторым таймером.
+    var _timers = {};
+    var _timerSeq = 0;
+
+    function later(fn, delay, key) {
+        var id = key || ('t' + (++_timerSeq));
+
+        if (_timers[id]) clearTimeout(_timers[id]);
+
+        _timers[id] = setTimeout(function () {
+            delete _timers[id];
+            safe(fn, 'timer ' + id);
+        }, delay || 0);
+
+        return id;
+    }
+
+    function cancelLater(key) {
+        if (_timers[key]) {
+            clearTimeout(_timers[key]);
+            delete _timers[key];
+        }
+    }
+
+    // Вместо россыпи setTimeout(fn,150)+setTimeout(fn,400):
+    // одна серия повторов с общим ключом, старая серия отменяется.
+    function retry(fn, delays, key) {
+        var list = delays || [0, 150, 400];
+        var i;
+
+        for (i = 0; i < list.length; i++) {
+            (function (delay, index) {
+                later(fn, delay, (key || 'retry') + '#' + index);
+            })(list[i], i);
+        }
+    }
+
+    function clearAllTimers() {
+        var k;
+        for (k in _timers) {
+            if (Object.prototype.hasOwnProperty.call(_timers, k)) clearTimeout(_timers[k]);
+        }
+        _timers = {};
+    }
+
+    // Слушатели регистрируем через хелпер, чтобы их можно было снять.
+    var _listeners = [];
+
+    function on(target, event, handler, options) {
+        if (!target || !target.addEventListener) return;
+
+        target.addEventListener(event, handler, options);
+        _listeners.push({ target: target, event: event, handler: handler, options: options });
+    }
+
+    function offAll() {
+        var i;
+        for (i = 0; i < _listeners.length; i++) {
+            var l = _listeners[i];
+            safe(function () { l.target.removeEventListener(l.event, l.handler, l.options); }, 'removeEventListener');
+        }
+        _listeners = [];
+    }
+
     function isTriggerOn(key, def) {
         var v = Lampa.Storage.get(key, def);
-        return (v === true || v === 'true' || v === '1' || v === 1);
+        return isTruthy(v);
     }
     function getOverlayAlpha() {
         var v = parseFloat(Lampa.Storage.get('rating_window_opacity', defStr('rating_window_opacity')));
@@ -296,7 +387,7 @@
     }
     function loadPersistentCache(source) {
         var stored = null;
-        try { stored = Lampa.Storage.get(getPersistentCacheKey(source), null); } catch (e) {}
+        try { stored = Lampa.Storage.get(getPersistentCacheKey(source), null); } catch (e) { logErr(e); }
         if (!stored || typeof stored !== 'object') {
             try { stored = Lampa.Storage.cache(source, 500, {}); } catch (e2) { stored = null; }
         }
@@ -310,24 +401,24 @@
         var state = _saveStates[storageKey];
         if (!state) { state = _saveStates[storageKey] = { timer: 0, cache: cache }; }
         state.cache = cache;
-        if (state.timer) { try { clearTimeout(state.timer); } catch (e) {} state.timer = 0; }
+        if (state.timer) { try { clearTimeout(state.timer); } catch (e) { logErr(e); } state.timer = 0; }
         state.timer = setTimeout(function () {
             state.timer = 0;
             try { Lampa.Storage.set(storageKey, state.cache); }
-            catch (error) { try { console.error('[card_overlay] cache save failed', storageKey, error); } catch (e2) {} }
+            catch (error) { try { console.error('[card_overlay] cache save failed', storageKey, error); } catch (e2) { logErr(e2); } }
         }, 2000);
     }
     function debouncedSave(source, cache) { debouncedSaveByKey(getPersistentCacheKey(source), cache); }
 
     function cancelPendingSave(storageKey) {
         var state = _saveStates[storageKey];
-        if (state && state.timer) { try { clearTimeout(state.timer); } catch (e) {} }
+        if (state && state.timer) { try { clearTimeout(state.timer); } catch (e) { logErr(e); } }
         delete _saveStates[storageKey];
     }
     function resetCacheSaveStateByKey(storageKey) { cancelPendingSave(storageKey); }
     function resetCacheSaveState(source) { resetCacheSaveStateByKey(getPersistentCacheKey(source)); }
     function clearStorageObject(key) {
-        try { Lampa.Storage.set(key, {}); } catch (e) {}
+        try { Lampa.Storage.set(key, {}); } catch (e) { logErr(e); }
     }
     function clearRatingCaches(includeQuality) {
         cacheGeneration++;
@@ -344,7 +435,7 @@
         if (typeof pendingLampaRequests !== 'undefined') pendingLampaRequests = {};
         if (typeof lampaFailRetryAt !== 'undefined') lampaFailRetryAt = {};
         if (typeof pendingKpCallbacks !== 'undefined') pendingKpCallbacks = {};
-        try { clearRequestQueues(); } catch (e) {}
+        try { clearRequestQueues(); } catch (e) { logErr(e); }
         if (includeQuality) clearQualityCache();
     }
 
@@ -364,8 +455,8 @@
             var t = batch[i];
             try { t.execute(); }
             catch (e) {
-                try { if (t && t.onDrop) t.onDrop(); } catch (e2) {}
-                try { console.error('[card_overlay] queue task error', e); } catch (e3) {}
+                try { if (t && t.onDrop) t.onDrop(); } catch (e2) { logErr(e2); }
+                try { console.error('[card_overlay] queue task error', e); } catch (e3) { logErr(e3); }
             }
         }
         setTimeout(function () { queue.processing = false; processQueue(queue); }, queue.interval);
@@ -375,7 +466,7 @@
         queue.tasks.push({ execute: task, onDrop: onDrop });
         while (queue.tasks.length > QUEUE_MAX_TASKS) {
             var dropped = queue.tasks.shift();
-            if (dropped && dropped.onDrop) { try { dropped.onDrop(); } catch (e) {} }
+            if (dropped && dropped.onDrop) { try { dropped.onDrop(); } catch (e) { logErr(e); } }
         }
         processQueue(queue);
     }
@@ -387,7 +478,7 @@
             q.tasks = [];
             for (var i = 0; i < pending.length; i++) {
                 var t = pending[i];
-                if (t && t.onDrop) { try { t.onDrop(); } catch (e) {} }
+                if (t && t.onDrop) { try { t.onDrop(); } catch (e) { logErr(e); } }
             }
         }
     }
@@ -447,7 +538,7 @@
             var otherCache = Lampa.Storage.cache('kp_rating', 500, {});
             var otherData = otherCache[kpKey] || otherCache[item.id];
             if (otherData && (otherData.kp > 0 || otherData.imdb > 0)) { callback(ratingCache.set('kp_rating', kpKey, { kp: parseFloat(otherData.kp) || 0, imdb: parseFloat(otherData.imdb) || 0, timestamp: Date.now() })); return; }
-        } catch (e) {}
+        } catch (e) { logErr(e); }
         if (!canUseKinopoiskApi()) { callback(cacheEmptyKpRating(item)); return; }
         var pendingKey = kpKey;
         if (pendingKpCallbacks[pendingKey]) { pendingKpCallbacks[pendingKey].push(callback); return; }
@@ -457,7 +548,7 @@
             if (startGeneration !== cacheGeneration) { if (isFinal) delete pendingKpCallbacks[pendingKey]; return; }
             var cbs = pendingKpCallbacks[pendingKey] || [];
             if (isFinal) delete pendingKpCallbacks[pendingKey];
-            for (var ci = 0; ci < cbs.length; ci++) { try { cbs[ci](result); } catch (e) {} }
+            for (var ci = 0; ci < cbs.length; ci++) { try { cbs[ci](result); } catch (e) { logErr(e); } }
         }
         if (item.kinopoisk_id) {
             addToQueue(function () {
@@ -654,7 +745,7 @@
                 var callbacks = pendingTmdbRequests[key] || [];
                 delete pendingTmdbRequests[key];
                 for (var i = 0; i < callbacks.length; i++) {
-                    try { callbacks[i](result); } catch (e) {}
+                    try { callbacks[i](result); } catch (e) { logErr(e); }
                 }
             }
             function handleDetail(detail) {
@@ -700,7 +791,7 @@
                         Lampa.Api.sources.tmdb.get(altType + '/' + id, {}, function (detail) { handleAltDetail(detail); }, function () { handleAltDetail(null); });
                         return;
                     }
-                } catch (e) {}
+                } catch (e) { logErr(e); }
                 handleAltDetail(null);
             }
             var url = buildTmdbApiUrl(type, id);
@@ -714,7 +805,7 @@
                             Lampa.Api.sources.tmdb.get(type + '/' + id, {}, function (detail2) { handleDetail(detail2 || {}); }, tryAltType);
                             return;
                         }
-                    } catch (e) {}
+                    } catch (e) { logErr(e); }
                     tryAltType();
                 }, false);
                 return;
@@ -724,7 +815,7 @@
                     Lampa.Api.sources.tmdb.get(type + '/' + id, {}, function (detail) { handleDetail(detail || {}); }, tryAltType);
                     return;
                 }
-            } catch (e) {}
+            } catch (e) { logErr(e); }
             tryAltType();
         }, 'fast', function () { delete pendingTmdbRequests[key]; });
     }
@@ -773,7 +864,7 @@
             if (r) view.style.setProperty('--co-poster-radius', r);
             else view.style.removeProperty('--co-poster-radius');
             if (view.dataset) view.dataset.coPosterRadiusGen = _posterRadiusGen;
-        } catch (e) {}
+        } catch (e) { logErr(e); }
     }
     function markCardOverlayHost(card) {
         if (card && card.classList) {
@@ -860,7 +951,7 @@
                 if (tmdbDiv) { tmdbDiv.textContent = formatRating(tmdbRating); tmdbDiv.style.color = getRatingColor(tmdbRating); }
                 setRatingLineItemVisible(tmdbItem, (tmdbRating !== '0.0') && isRatingSourceVisible('tmdb'));
             }
-        } catch (e) {}
+        } catch (e) { logErr(e); }
         try {
             var kpFromData = (data.kp_rating != null ? data.kp_rating : (data.ratingKinopoisk != null ? data.ratingKinopoisk : 0));
             var imdbFromData = (data.imdb_rating != null ? data.imdb_rating : (data.ratingImdb != null ? data.ratingImdb : 0));
@@ -881,7 +972,7 @@
                 if (kpDiv) { kpDiv.textContent = kpText; kpDiv.style.color = getRatingColor(kpText); }
                 setRatingLineItemVisible(kpItem, (kpVal > 0) && isRatingSourceVisible('kp'));
             }
-        } catch (e) {}
+        } catch (e) { logErr(e); }
         try {
             var lampaKey = (data.seasons || data.first_air_date || data.original_name) ? 'tv_' + data.id : 'movie_' + data.id;
             var cachedLampa = ratingCache.get('lampa_rating', lampaKey);
@@ -895,7 +986,7 @@
                 if (lampaReactionIcon) lampaReactionIcon.style.backgroundImage = hasLampa ? getLampaPosterIconBackground(cachedLampa.medianReaction) : '';
                 setRatingLineItemVisible(lampaItem, hasLampa && isRatingSourceVisible('lampa'));
             }
-        } catch (e) {}
+        } catch (e) { logErr(e); }
         var firstRating = null;
         try {
             var tmdbR = getTMDBRating(data);
@@ -903,7 +994,7 @@
             if (!firstRating && imdbVal > 0 && isRatingSourceVisible('imdb')) firstRating = String(imdbVal);
             if (!firstRating && kpVal > 0 && isRatingSourceVisible('kp')) firstRating = String(kpVal);
             if (!firstRating && cachedLampa && cachedLampa.rating > 0 && isRatingSourceVisible('lampa')) firstRating = String(cachedLampa.rating);
-        } catch (e) {}
+        } catch (e) { logErr(e); }
         ratingLine.style.background = getRatingBackgroundColor(firstRating || '0') || ('rgba(0,0,0,' + getOverlayAlpha() + ')');
         var anyVisible = isRatingLineItemVisible(tmdbItem) || isRatingLineItemVisible(imdbItem) || isRatingLineItemVisible(kpItem) || isRatingLineItemVisible(lampaItem);
         ratingLine.style.display = anyVisible ? '' : 'none';
@@ -1152,7 +1243,6 @@
     var _mainObserver = null;
     var _layerObserver = null;
     var _mainObserverTarget = null;
-    var _retargetTimer = 0;
     var _cardIntersectionObserver = null;
     var _settingsArranger = null;
     var _settingsArrangeTimer = 0;
@@ -1163,7 +1253,7 @@
                 var node = document.querySelector(selectors[i]);
                 if (node && node.offsetParent !== null) return true;
             }
-        } catch (e) {}
+        } catch (e) { logErr(e); }
         return false;
     }
     function isCardNearViewport(card, windowHeight) { var rect = card.getBoundingClientRect(); return !(rect.bottom < -200 || rect.top > windowHeight + 200); }
@@ -1232,12 +1322,12 @@
         try {
             var img = card.querySelector('.card__img');
             if (img) img.addEventListener('load', function () { scheduleVisibleRatingsUpdate(30); }, false);
-        } catch (e) {}
+        } catch (e) { logErr(e); }
     }
     function observeCardVisibility(card) {
         if (!_cardIntersectionObserver || !card || !card.nodeType || card.nodeType !== 1) return;
         bindCardImageRepaint(card);
-        try { _cardIntersectionObserver.observe(card); } catch (e) {}
+        try { _cardIntersectionObserver.observe(card); } catch (e) { logErr(e); }
     }
     function startMainObserver() {
         if (_mainObserver) return;
@@ -1273,7 +1363,7 @@
         retargetMainObserver();
         if (!_layerObserver) {
             _layerObserver = new MutationObserver(mutationHandler);
-            try { _layerObserver.observe(document.body, { childList: true, subtree: false }); } catch (eLayer) {}
+            try { _layerObserver.observe(document.body, { childList: true, subtree: false }); } catch (eLayer) { logErr(eLayer); }
         }
     }
     function getActiveActivityRender() {
@@ -1288,9 +1378,9 @@
         if (!_mainObserver) return;
         var target = getActiveActivityRender() || document.body;
         if (target === _mainObserverTarget && _mainObserverTarget) return;
-        try { _mainObserver.disconnect(); } catch (e) {}
+        try { _mainObserver.disconnect(); } catch (e) { logErr(e); }
         _mainObserverTarget = target;
-        try { _mainObserver.observe(target, { childList: true, subtree: true }); } catch (e2) {}
+        try { _mainObserver.observe(target, { childList: true, subtree: true }); } catch (e2) { logErr(e2); }
         scanContainerOnce(target);
     }
     function scanContainerOnce(target) {
@@ -1332,7 +1422,7 @@
     function applyObserverAccumulators(acc) {
         if (acc.removedCards && acc.removedCards.length && _cardIntersectionObserver) {
             for (var ri = 0; ri < acc.removedCards.length; ri++) {
-                try { _cardIntersectionObserver.unobserve(acc.removedCards[ri]); } catch (e) {}
+                try { _cardIntersectionObserver.unobserve(acc.removedCards[ri]); } catch (e) { logErr(e); }
                 acc.removedCards[ri].removeAttribute('data-rating-visible');
             }
         }
@@ -1438,7 +1528,7 @@
         var v = parseFloat(Lampa.Storage.get('rating_scale', defStr('rating_scale')));
         if (isNaN(v)) v = 100;
         v = Math.max(60, Math.min(150, v));
-        try { document.body.style.setProperty('--rating-font-size', (1.1 * v / 100) + 'em'); } catch (e) {}
+        try { document.body.style.setProperty('--rating-font-size', (1.1 * v / 100) + 'em'); } catch (e) { logErr(e); }
     }
     var _settingsRefreshTimer = 0;
     function scheduleSettingsRefresh(delay) {
@@ -1589,14 +1679,14 @@
     var pendingQualityRequests = {};
     function getQualityCacheKey(item) {
         var source = 'both';
-        try { source = Lampa.Storage.get('quality_source', defStr('quality_source')); } catch (e) {}
+        try { source = Lampa.Storage.get('quality_source', defStr('quality_source')); } catch (e) { logErr(e); }
         var t = (item && item.type) || 'movie';
         return [CARD_OVERLAY_CACHE_VERSION, source, t, item ? item.id : ''].join(':');
     }
     function getQualityCacheMem() {
         if (_qualityCacheMem) return _qualityCacheMem;
         var stored = null;
-        try { stored = Lampa.Storage.get(QUALITY_CACHE_KEY, null); } catch (e) {}
+        try { stored = Lampa.Storage.get(QUALITY_CACHE_KEY, null); } catch (e) { logErr(e); }
         _qualityCacheMem = (stored && typeof stored === 'object') ? stored : {};
         if (pruneExpiredCacheEntries(_qualityCacheMem)) debouncedSaveByKey(QUALITY_CACHE_KEY, _qualityCacheMem);
         return _qualityCacheMem;
@@ -1636,7 +1726,7 @@
             var callbacks = pendingQualityRequests[entryKey] || [];
             delete pendingQualityRequests[entryKey];
             for (var i = 0; i < callbacks.length; i++) {
-                try { callbacks[i](cached); } catch (e) {}
+                try { callbacks[i](cached); } catch (e) { logErr(e); }
             }
         });
     }
@@ -1802,7 +1892,7 @@
                 try {
                     var cs = window.getComputedStyle(node);
                     if (!cs || cs.display === 'none' || cs.visibility === 'hidden' || parseFloat(cs.opacity) === 0) return;
-                } catch (e) {}
+                } catch (e) { logErr(e); }
                 if (node.offsetParent === null && !node.getClientRects().length) return;
                 count++;
                 var source = item.hasClass('rate--tmdb') ? 'tmdb' : item.hasClass('rate--imdb') ? 'imdb' : item.hasClass('rate--kp') ? 'kp' : item.hasClass('rate--lampa') ? 'lampa' : 'rate';
@@ -1879,7 +1969,7 @@
     function getEpisodeCacheMem() {
         if (_episodeCacheMem) return _episodeCacheMem;
         var stored = null;
-        try { stored = Lampa.Storage.get(TYPE_LABEL_EPISODE_CACHE_KEY, null); } catch (e) {}
+        try { stored = Lampa.Storage.get(TYPE_LABEL_EPISODE_CACHE_KEY, null); } catch (e) { logErr(e); }
         _episodeCacheMem = (stored && typeof stored === 'object') ? stored : {};
         if (pruneExpiredCacheEntries(_episodeCacheMem)) debouncedSaveByKey(TYPE_LABEL_EPISODE_CACHE_KEY, _episodeCacheMem);
         return _episodeCacheMem;
@@ -1914,7 +2004,7 @@
                 timestamp: Date.now()
             };
             debouncedSaveByKey(TYPE_LABEL_EPISODE_CACHE_KEY, cache);
-        } catch (e) {}
+        } catch (e) { logErr(e); }
     }
     function formatTypeLabelEpisodeText(lastEpisode) {
         if (!lastEpisode) return '';
@@ -2197,7 +2287,7 @@
                 _episodeInfoAttempts[key] = Date.now();
                 var callbacks = pendingEpisodeInfoRequests[key] || [];
                 delete pendingEpisodeInfoRequests[key];
-                for (var i = 0; i < callbacks.length; i++) { try { callbacks[i](result); } catch (e) {} }
+                for (var i = 0; i < callbacks.length; i++) { try { callbacks[i](result); } catch (e) { logErr(e); } }
             }
             var url = buildTmdbApiUrl('tv', tmdbId);
             if (!url) { complete(null); return; }
@@ -2277,7 +2367,7 @@
             if (Lampa.Card && $(card).attr('id')) { var c = Lampa.Card.get($(card).attr('id')); if (c) meta = Object.assign(meta, c); }
             var id = $(card).data('id') || $(card).attr('data-id') || meta.id;
             if (id && Lampa.Storage.cache('card_' + id)) meta = Object.assign(meta, Lampa.Storage.cache('card_' + id));
-        } catch (e) {}
+        } catch (e) { logErr(e); }
         var isTV = false;
         if (meta.type === 'tv' || meta.card_type === 'tv' || meta.seasons || meta.number_of_seasons > 0 || meta.episodes || meta.number_of_episodes > 0 || meta.is_series) isTV = true;
         if (!isTV) { if ($(card).hasClass('card--tv') || $(card).data('type') === 'tv') isTV = true; else if ($(card).find('.card__type, .card__temp').text().match(/(сезон|серия|эпизод|ТВ|TV)/i)) isTV = true; }
@@ -2439,7 +2529,7 @@
     function isColoredElementsOn() { return isTriggerOn('colored_elements', true); }
     function getBadgeStyle() { return Lampa.Storage.get('badge_visual_style', defStr('badge_visual_style')) === 'rounded' ? 'rounded' : 'corner'; }
     function getCornerShadow() { var v = Lampa.Storage.get('badge_corner_shadow', def('badge_corner_shadow')); return (v === true || v === 'true' || v === '1' || v === 1); }
-    function applyBadgeStyle() { try { $('body').attr('data-badge-style', getBadgeStyle()); $('body').attr('data-badge-corner-shadow', getCornerShadow() ? 'on' : 'off'); } catch (e) {} }
+    function applyBadgeStyle() { try { $('body').attr('data-badge-style', getBadgeStyle()); $('body').attr('data-badge-corner-shadow', getCornerShadow() ? 'on' : 'off'); } catch (e) { logErr(e); } }
     function colorizeSeriesStatus(render) {
         var map = { completed: ['завершён','завершен','ended'], canceled: ['отменён','отменен','canceled'], ongoing: ['онгоинг','выходит','в эфире','ongoing','returning series'], production: ['в производстве','production'], planned: ['запланирован','planned'], pilot: ['пилотный','pilot'], released: ['выпущен','вышел','released'], rumored: ['слухи','rumored'], post: ['скоро','post'] };
         function apply(el) {
@@ -2509,7 +2599,7 @@
     function openRatingSettingsModal() {
         var $ = typeof window.$ !== 'undefined' ? window.$ : (typeof window.jQuery !== 'undefined' ? window.jQuery : null);
         if (!$) return;
-        try { if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.close) Lampa.Modal.close(); } catch (err) {}
+        try { if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.close) Lampa.Modal.close(); } catch (err) { logErr(err); }
         setTimeout(function () {
             injectModalStyle();
             var SOURCE_LABELS = { tmdb: 'TMDB', lampa: 'Lampa', kp: 'КиноПоиск', imdb: 'IMDB', all: 'Все' };
@@ -2521,7 +2611,7 @@
             var modal = $('<div class="comodal"></div>');
             modal.on('click mousedown touchstart', function (e) { e.stopPropagation(); });
             function isMouseEvent(e) { return e && (e.pointerType === 'mouse' || (e.clientX !== undefined && e.clientY !== undefined)); }
-            function blurAfterMouse(e) { if (isMouseEvent(e)) setTimeout(function () { try { var a = document.activeElement; if (a && a.blur) a.blur(); } catch (err) {} }, 0); }
+            function blurAfterMouse(e) { if (isMouseEvent(e)) setTimeout(function () { try { var a = document.activeElement; if (a && a.blur) a.blur(); } catch (err) { logErr(err); } }, 0); }
             function makeRow(label, valueText, onClick) {
                 var row = $('<div class="comodal__item selector" tabindex="0"></div>');
                 row.append($('<div class="comodal__label"></div>').text(label));
@@ -2659,13 +2749,13 @@
                 seasonInfoSettings.details_position = def('seasons_info_details_position');
 
                 scheduleSettingsRefresh(50);
-                try { Lampa.Noty.show('Настройки сброшены'); } catch (e) {}
+                try { Lampa.Noty.show('Настройки сброшены'); } catch (e) { logErr(e); }
             }
             var resetBtn = $('<div class="comodal__action comodal__action--reset selector" tabindex="0">Сбросить всё по умолчанию</div>');
             resetBtn.on('hover:enter', resetAllToDefault); resetBtn.on('click', function (e) { if (e && e.preventDefault) e.preventDefault(); if (e && e.stopPropagation) e.stopPropagation(); blurAfterMouse(e); });
             modal.append(resetBtn);
             var closeBtn = $('<div class="comodal__action comodal__action--close selector" tabindex="0">Готово</div>');
-            function closeModal() { Lampa.Modal.close(); applyRatingSettingsRefresh(); setTimeout(function () { try { Lampa.Controller.toggle('settings'); } catch (err) {} }, 50); }
+            function closeModal() { Lampa.Modal.close(); applyRatingSettingsRefresh(); setTimeout(function () { try { Lampa.Controller.toggle('settings'); } catch (err) { logErr(err); } }, 50); }
             closeBtn.on('hover:enter', closeModal); closeBtn.on('click', function (e) { if (e && e.preventDefault) e.preventDefault(); if (e && e.stopPropagation) e.stopPropagation(); blurAfterMouse(e); });
             modal.append(closeBtn);
             if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.open) {
@@ -2695,7 +2785,7 @@
         if (seasonInfoDetailsPosition !== 'bottom' && seasonInfoDetailsPosition !== 'under-type-label') Lampa.Storage.set('seasons_info_details_position', 'under-type-label');
     }
     function closeModalSafe() {
-        try { if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.close) Lampa.Modal.close(); } catch (e) {}
+        try { if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.close) Lampa.Modal.close(); } catch (e) { logErr(e); }
     }
 
     function findSettingsScrollElement() {
@@ -2718,7 +2808,7 @@
         function restore() {
             if (scrollTop != null) {
                 var sc = findSettingsScrollElement();
-                if (sc) try { sc.scrollTop = scrollTop; } catch (e) {}
+                if (sc) try { sc.scrollTop = scrollTop; } catch (e) { logErr(e); }
             }
             if (!name) return;
             var target = document.querySelector('div[data-name="' + String(name).replace(/"/g, '\\"') + '"]');
@@ -2727,12 +2817,10 @@
                 var settings = document.querySelector('.settings') || target.closest('.settings') || document.body;
                 if (Lampa.Controller && Lampa.Controller.collectionSet) Lampa.Controller.collectionSet($(settings));
                 if (Lampa.Controller && Lampa.Controller.collectionFocus) Lampa.Controller.collectionFocus(target, settings);
-            } catch (e) {}
-            try { if (target.focus) target.focus(); } catch (e2) {}
+            } catch (e) { logErr(e); }
+            try { if (target.focus) target.focus(); } catch (e2) { logErr(e2); }
         }
-        setTimeout(restore, 0);
-        setTimeout(restore, 80);
-        setTimeout(restore, 180);
+        retry(restore, [0, 80, 180], 'settings-focus');
     }
     function updateSettingsKeepFocus(fallbackName) {
         var sc = findSettingsScrollElement();
@@ -2740,11 +2828,9 @@
         function restoreScroll() {
             if (scrollTop == null) return;
             var current = findSettingsScrollElement();
-            if (current) try { current.scrollTop = scrollTop; } catch (e) {}
+            if (current) try { current.scrollTop = scrollTop; } catch (e) { logErr(e); }
         }
-        setTimeout(restoreScroll, 0);
-        setTimeout(restoreScroll, 80);
-        setTimeout(restoreScroll, 180);
+        retry(restoreScroll, [0, 80, 180], 'settings-scroll');
     }
 
     function addSettings() {
@@ -2778,16 +2864,13 @@
             component: 'card_overlay',
             param: { name: 'quality_source', type: 'select', values: { 'jacred': 'JacRed (парсер)', 'alloha': 'Alloha (API)', 'both': 'Сначала JacRed, потом Alloha' }, default: DEFAULTS.quality_source },
             field: { name: 'Источник качества', description: 'Откуда получать информацию о качестве видео' },
-            onChange: function () { try { clearQualityCache(); } catch (e) {} updateSettingsKeepFocus('quality_source'); refreshAllQualityLabels(); }
+            onChange: function () { try { clearQualityCache(); } catch (e) { logErr(e); } updateSettingsKeepFocus('quality_source'); refreshAllQualityLabels(); }
         });
         Lampa.SettingsApi.addParam({
             component: 'card_overlay',
             param: { name: 'animated_reactions_in_player', type: 'trigger', default: DEFAULTS.animated_reactions_in_player },
             field: { name: 'Анимированные реакции на странице фильма', description: 'Заменять иконки реакций на анимированные GIF в карточке фильма' },
-            onChange: function () {
-                if (!isAnimatedReactionsInPlayerEnabled()) { restoreOriginalReactions(); applyReactionsToSelectbox(); setTimeout(restoreOriginalReactions, 150); setTimeout(applyReactionsToSelectbox, 150); setTimeout(restoreOriginalReactions, 400); setTimeout(applyReactionsToSelectbox, 400); }
-                setTimeout(applyPlayerReactions, 100);
-            }
+            onChange: function () { refreshPlayerReactions(); }
         });
         Lampa.SettingsApi.addParam({
             component: 'card_overlay',
@@ -2859,7 +2942,7 @@
             onChange: function (v) {
                 if (!(v === true || v === 'true' || v === '1' || v === 1)) return;
                 clearRatingCaches(false);
-                try { Lampa.Storage.set('clear_ratings_cache', 'false'); } catch (e) {}
+                try { Lampa.Storage.set('clear_ratings_cache', 'false'); } catch (e) { logErr(e); }
                 Lampa.Noty.show('Кэш рейтингов очищен');
                 updateSettingsKeepFocus('clear_ratings_cache');
                 applyRatingSettingsRefresh();
@@ -2874,10 +2957,20 @@
                 try {
                     clearQualityCache();
                     Lampa.Storage.set('clear_quality_cache', 'false');
-                } catch (e) {}
+                } catch (e) { logErr(e); }
                 Lampa.Noty.show('Кэш качества очищен');
                 updateSettingsKeepFocus('clear_quality_cache');
                 refreshAllQualityLabels();
+            }
+        });
+
+        Lampa.SettingsApi.addParam({
+            component: 'card_overlay',
+            param: { name: 'card_overlay_debug', type: 'trigger', default: false },
+            field: { name: 'Режим отладки', description: 'Выводить ошибки плагина в консоль' },
+            onChange: function (v) {
+                DEBUG = isTruthy(v);
+                updateSettingsKeepFocus('card_overlay_debug');
             }
         });
 
@@ -2918,7 +3011,7 @@
                     CardMaker.Card.__card_overlay_onvisible__ = true;
                 }
             }
-        } catch (e) {}
+        } catch (e) { logErr(e); }
         if (!modernCardPatched && window.Lampa && Lampa.Card && Lampa.Card.prototype && !Lampa.Card.prototype.__card_overlay_build_patched__) {
             var appVersion = 0;
             try { appVersion = parseInt(Lampa.Manifest && Lampa.Manifest.app_digital, 10) || 0; } catch (eV) {}
@@ -2968,7 +3061,7 @@
         return null;
     }
     function resetReactionStylesToDefault() {
-        try { $('.reaction__icon').css({ width: '', height: '' }); $('.full-start-new__reactions > div').css('padding', ''); } catch (err) {}
+        try { $('.reaction__icon').css({ width: '', height: '' }); $('.full-start-new__reactions > div').css('padding', ''); } catch (err) { logErr(err); }
     }
     function restoreOriginalReactions() {
         try {
@@ -2977,7 +3070,7 @@
             });
             document.querySelectorAll('.selectbox-item__icon img[data-original-src]').forEach(function (el) { el.src = el.dataset.originalSrc; delete el.dataset.originalSrc; });
             resetReactionStylesToDefault();
-        } catch (err) {}
+        } catch (err) { logErr(err); }
     }
     function applyReactionsToSelectbox() {
         try {
@@ -2993,7 +3086,7 @@
                     delete img.dataset.originalSrc;
                 }
             });
-        } catch (err) {}
+        } catch (err) { logErr(err); }
     }
     var _reactionLoadGeneration = 0;
     function applyPlayerReactions() {
@@ -3031,15 +3124,33 @@
             $('.reaction__icon').css({ width: '2.5em', height: '2.5em' });
             if (Lampa.Platform.screen('mobile')) $('.full-start-new__reactions > div').css('padding', '0em');
             applyReactionsToSelectbox();
-        } catch (err) {}
+        } catch (err) { logErr(err); }
+    }
+
+    // Единая точка: раньше это дублировалось в onChange и в слушателе
+    // хранилища, из-за чего одно переключение плодило по 10 таймеров.
+    function refreshPlayerReactions() {
+        if (!isAnimatedReactionsInPlayerEnabled()) {
+            retry(function () {
+                restoreOriginalReactions();
+                applyReactionsToSelectbox();
+            }, [0, 150, 400], 'reactions-restore');
+        }
+
+        later(applyPlayerReactions, 100, 'reactions-apply');
     }
 
     function initPlugin() {
         if (window.__card_overlay_initialized__) return;
         window.__card_overlay_initialized__ = true;
-        try { console.log('[card_overlay] v1.2.0 optimized active'); } catch (e) {}
-        try { applyDefaults(); } catch (e) {}
+        try { console.log('[card_overlay] v1.2.0 optimized active'); } catch (e) { logErr(e); }
+        safe(applyDefaults, 'applyDefaults');
+
+        var existing = document.getElementById('card-overlay-style');
+        if (existing && existing.parentNode) existing.parentNode.removeChild(existing);
+
         var style = document.createElement('style');
+        style.id = 'card-overlay-style';
         style.type = 'text/css';
         var detailTmdbSvgCss = encodeURIComponent(DETAIL_TMDB_SVG).replace(/'/g, '%27').replace(/"/g, '%22');
         var detailImdbSvgCss = encodeURIComponent(DETAIL_IMDB_SVG).replace(/'/g, '%27').replace(/"/g, '%22');
@@ -3150,32 +3261,38 @@
         setupCardListener();
         startMainObserver();
 
-        try {
+        safe(function () {
             Lampa.Listener.follow('activity', function () {
-                if (_retargetTimer) clearTimeout(_retargetTimer);
-                _retargetTimer = setTimeout(function () { _retargetTimer = 0; retargetMainObserver(); }, 0);
+                later(retargetMainObserver, 0, 'retarget');
             });
-        } catch (eAct) {}
+        }, 'activity listener');
+
         scheduleVisibleRatingsUpdate(120);
-        setTimeout(function () { scheduleVisibleRatingsUpdate(250); }, 250);
-        setTimeout(function () { scheduleVisibleRatingsUpdate(600); }, 600);
-        window.addEventListener('scroll', function () { scheduleVisibleRatingsUpdate(120); }, { passive: true });
-        window.addEventListener('keydown', function (e) {
+        later(function () { scheduleVisibleRatingsUpdate(250); }, 250, 'boot-250');
+        later(function () { scheduleVisibleRatingsUpdate(600); }, 600, 'boot-600');
+
+        on(window, 'scroll', function () { scheduleVisibleRatingsUpdate(120); }, { passive: true });
+
+        on(window, 'keydown', function (e) {
             if (isCardUpdatesBlocked()) return;
             var code = e && (e.code || e.key);
             if (code === 'PageUp' || code === 'PageDown') scheduleVisibleRatingsUpdate(120);
         }, { passive: true });
-        var _resizeTimer = 0;
-        window.addEventListener('resize', function () {
-            if (_resizeTimer) clearTimeout(_resizeTimer);
-            _resizeTimer = setTimeout(function () {
-                _resizeTimer = 0;
+
+        on(window, 'resize', function () {
+            later(function () {
                 _posterRadiusGen++;
                 requestAnimationFrame(function () { scheduleVisibleRatingsUpdate(0); repositionDetailMeta(); });
-            }, 150);
+            }, 150, 'resize');
         }, { passive: true });
-        window.addEventListener('orientationchange', function () { setTimeout(repositionDetailMeta, 150); }, { passive: true });
-        document.addEventListener('visibilitychange', function () { if (!document.hidden) { scheduleVisibleRatingsUpdate(0); repositionDetailMeta(); } });
+
+        on(window, 'orientationchange', function () {
+            later(repositionDetailMeta, 150, 'orientation');
+        }, { passive: true });
+
+        on(document, 'visibilitychange', function () {
+            if (!document.hidden) { scheduleVisibleRatingsUpdate(0); repositionDetailMeta(); }
+        });
 
         Lampa.Listener.follow('card', function (event) {
             if (event.type === 'build' && event.object.card) {
@@ -3251,14 +3368,12 @@
                     if (isQualityShowOn()) loadQualityForDetail(event.data.movie, render);
                     applyDetailRatingIcons(render);
                     moveDetailMetaToSecondLine(render);
-                    setTimeout(function () { moveDetailMetaToSecondLine(render); }, 150);
+                    later(function () { moveDetailMetaToSecondLine(render); }, 150, 'detail-meta');
                 }
                 scheduleVisibleRatingsUpdate(0);
                 if (isColoredElementsOn()) $('body').addClass('colored-elements-on'); else $('body').removeClass('colored-elements-on');
-                setTimeout(function () { colorizeFullCardRatings(render); colorizeDetailQuality(); }, 100);
-                fixSeriesStatusText(render);
-                setTimeout(function () { fixSeriesStatusText(render); }, 150);
-                setTimeout(function () { fixSeriesStatusText(render); }, 400);
+                later(function () { colorizeFullCardRatings(render); colorizeDetailQuality(); }, 100, 'detail-colorize');
+                retry(function () { fixSeriesStatusText(render); }, [0, 150, 400], 'detail-status');
                 colorizeSeriesStatus(render);
                 colorizeAgeRating(render);
             }
@@ -3275,19 +3390,49 @@
 
         Lampa.Storage.listener.follow('change', function (e) {
             if (e.name === 'activity') applyPlayerReactions();
-            if (e.name === 'mine_reactions') setTimeout(applyPlayerReactions, 200);
-            if (e.name === 'animated_reactions_in_player') {
-                if (!isAnimatedReactionsInPlayerEnabled()) { restoreOriginalReactions(); applyReactionsToSelectbox(); setTimeout(restoreOriginalReactions, 150); setTimeout(applyReactionsToSelectbox, 150); setTimeout(restoreOriginalReactions, 400); setTimeout(applyReactionsToSelectbox, 400); }
-                setTimeout(applyPlayerReactions, 100);
-            }
+            if (e.name === 'mine_reactions') later(applyPlayerReactions, 200, 'reactions-mine');
+            if (e.name === 'animated_reactions_in_player') refreshPlayerReactions();
         });
     }
 
-    Lampa.Manifest.plugins = {
+    // Полная выгрузка: снимаем слушатели, гасим таймеры и наблюдатели.
+    // Без этого при перезапуске приложения они копились.
+    function destroyPlugin() {
+        offAll();
+        clearAllTimers();
+
+        // локальные таймеры, живущие вне общего реестра
+        if (_ratingUpdateTimer) { clearTimeout(_ratingUpdateTimer); _ratingUpdateTimer = 0; }
+        if (_settingsRefreshTimer) { clearTimeout(_settingsRefreshTimer); _settingsRefreshTimer = 0; }
+        if (_settingsArrangeTimer) { clearTimeout(_settingsArrangeTimer); _settingsArrangeTimer = 0; }
+        safe(clearRequestQueues, 'queues');
+
+        safe(function () { if (_mainObserver) _mainObserver.disconnect(); }, 'mainObserver');
+        safe(function () { if (_layerObserver) _layerObserver.disconnect(); }, 'layerObserver');
+        safe(function () { if (_cardIntersectionObserver) _cardIntersectionObserver.disconnect(); }, 'intersectionObserver');
+
+        _mainObserver = null;
+        _layerObserver = null;
+        _cardIntersectionObserver = null;
+
+        var style = document.getElementById('card-overlay-style');
+        if (style && style.parentNode) style.parentNode.removeChild(style);
+
+        window.__card_overlay_initialized__ = false;
+    }
+
+    window.__card_overlay_destroy__ = destroyPlugin;
+
+    // не затираем манифесты других плагинов
+    var manifest = {
         name: 'Интерфейс Мод',
-        version: '1.2.0',
+        version: '1.3.0',
         description: 'Рейтинги, качество, лейблы типа на карточках'
     };
+
+    if (Array.isArray(Lampa.Manifest.plugins)) Lampa.Manifest.plugins.push(manifest);
+    else if (Lampa.Manifest.plugins) Lampa.Manifest.plugins = [Lampa.Manifest.plugins, manifest];
+    else Lampa.Manifest.plugins = manifest;
 
     if (window.appready) { initPlugin(); }
     else { Lampa.Listener.follow('app', function (e) { if (e.type === 'ready') initPlugin(); }); }
