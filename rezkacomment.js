@@ -9,7 +9,7 @@
   var BUTTON_CLASS = 'rezka-comment--button';
   var STYLE_ID = 'rezka-comment-style';
 
-  var CACHE_KEY = 'rezka_comment_cache';
+  var CACHE_KEY = 'rezka_comment_cache_v2';
   var CACHE_TTL = 24 * 60 * 60 * 1000;
   var CACHE_LIMIT = 40;
   var REQUEST_TIMEOUT = 15000;
@@ -208,39 +208,91 @@
 
   // Спойлеры Rezka: <span class="title_spoiler" onclick="ShowOrHide('id')">…</span>
   // + скрытый блок с этим id. Превращаем в самодостаточную пару кнопка/текст.
+  function hasClass(el, name) {
+    return (' ' + String((el && el.className) || '') + ' ').indexOf(' ' + name + ' ') !== -1;
+  }
+
+  function closestSpoilerTitle(el, root) {
+    var node = el;
+
+    while (node && node !== root) {
+      if (hasClass(node, 'title_spoiler')) return node;
+      node = node.parentNode;
+    }
+
+    return el;
+  }
+
+  function contains(parent, child) {
+    var node = child;
+
+    while (node) {
+      if (node === parent) return true;
+      node = node.parentNode;
+    }
+
+    return false;
+  }
+
+  function findSpoilerBody(toggle, id, root) {
+    var body = null;
+    var doc = root.ownerDocument || root;
+
+    if (id) {
+      try {
+        body = root.querySelector('[id="' + id + '"]');
+        if (!body && doc.querySelector) body = doc.querySelector('[id="' + id + '"]');
+      } catch (e) {
+        body = null;
+      }
+    }
+
+    if (body && !contains(toggle, body)) return body;
+
+    // запасной вариант: скрытый блок стоит рядом с плашкой или с её родителем
+    var start = toggle;
+    var hops = 0;
+
+    while (start && start !== root && hops < 4) {
+      var next = start.nextElementSibling;
+
+      while (next) {
+        if (hasClass(next, 'text_spoiler') || String(next.className || '').indexOf('spoiler') !== -1) return next;
+        if (next.getAttribute && next.getAttribute('data-sp-body')) return null;
+        next = next.nextElementSibling;
+      }
+
+      start = start.parentNode;
+      hops++;
+    }
+
+    return null;
+  }
+
+  // Rezka: <span class="title_spoiler"><a onclick="ShowOrHide('id')">Спойлер</a></span>
+  // + отдельный скрытый блок с этим id. Связываем пары своим ключом.
   function prepareSpoilers(root) {
-    var toggles = root.querySelectorAll('.title_spoiler, [data-spoiler]');
+    var raw = root.querySelectorAll('[data-spoiler], .title_spoiler');
     var seq = 0;
     var i;
 
-    for (i = 0; i < toggles.length; i++) {
-      var toggle = toggles[i];
-      var id = toggle.getAttribute('data-spoiler');
-      var body = null;
+    for (i = 0; i < raw.length; i++) {
+      var el = raw[i];
 
-      if (id) {
-        body = root.querySelector('[id="' + id + '"]');
-        if (!body && root.ownerDocument) body = root.ownerDocument.querySelector('[id="' + id + '"]');
+      if (!el || !el.parentNode) continue;
+
+      var id = el.getAttribute('data-spoiler');
+      var toggle = closestSpoilerTitle(el, root);
+
+      // плашку уже разобрали на прошлой итерации (внешний span + вложенная ссылка)
+      if (toggle.getAttribute('data-sp')) {
+        if (el !== toggle) el.removeAttribute('data-spoiler');
+        continue;
       }
 
-      // запасной вариант: скрытый блок идёт сразу за кнопкой
-      if (!body) {
-        var next = toggle.nextElementSibling;
+      var body = findSpoilerBody(toggle, id, root);
 
-        while (next) {
-          var cls = String(next.className || '');
-
-          if (cls.indexOf('text_spoiler') !== -1 || cls.indexOf('spoiler') !== -1) {
-            body = next;
-            break;
-          }
-
-          next = next.nextElementSibling;
-        }
-      }
-
-      if (!body) {
-        // кнопка без текста бесполезна, убираем
+      if (!body || body.getAttribute('data-sp-body')) {
         if (toggle.parentNode) toggle.parentNode.removeChild(toggle);
         continue;
       }
@@ -248,7 +300,7 @@
       seq++;
 
       var key = 'sp' + seq;
-      var label = (toggle.innerText || toggle.textContent || '').trim();
+      var label = String(toggle.textContent || '').replace(/\s+/g, ' ').trim();
 
       if (!label || label.length > 40) label = 'Спойлер';
 
@@ -258,7 +310,7 @@
       toggle.removeAttribute('id');
       toggle.innerHTML = escapeHtml(label);
 
-      body.className = String(body.className || '').replace(/\brc-spoiler-body\b/g, '') + ' rc-spoiler-body';
+      body.className = String(body.className || '') + ' rc-spoiler-body';
       body.setAttribute('data-sp-body', key);
       body.removeAttribute('id');
       body.setAttribute('style', 'display:none');
@@ -382,12 +434,18 @@
       return true;
     }
 
-    // мышь/тач: клик прямо по плашке
-    body.on('click', '.rc-spoiler', function (e) {
+    // мышь/тач: тап прямо по плашке
+    body.on('click hover:enter', '.rc-spoiler', function (e) {
       var key = $(this).attr('data-sp');
+      var target = key ? body.find('[data-sp-body="' + key + '"]') : null;
 
-      body.find('[data-sp-body="' + key + '"]').css('display', 'inline').removeClass('rc-spoiler-body');
-      $(this).remove();
+      if (target && target.length) {
+        target.css('display', 'inline').removeClass('rc-spoiler-body');
+        $(this).remove();
+      } else {
+        // ключ потерялся: открываем всё в этом комментарии
+        reveal($(this).closest('.rc-item'));
+      }
 
       if (e && e.stopPropagation) e.stopPropagation();
 
@@ -395,7 +453,7 @@
     });
 
     // пульт: OK на комментарии раскрывает все спойлеры внутри него
-    body.on('hover:enter', '.rc-item', function () {
+    body.on('click hover:enter', '.rc-item', function () {
       reveal($(this));
     });
 
