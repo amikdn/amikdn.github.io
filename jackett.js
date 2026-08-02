@@ -13,7 +13,7 @@
     { id: 'freebie_tom_ru', name: 'Freebie', baseUrl: 'jacred.freebie.tom.ru', key: '1', interview: 'all', lang: 'lg' }
   ];
 
-  var PARSER_ICON = '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="3.5" width="18" height="5" rx="1.6" stroke="currentColor" stroke-width="1.8"/><rect x="3" y="9.5" width="18" height="5" rx="1.6" stroke="currentColor" stroke-width="1.8"/><rect x="3" y="15.5" width="18" height="5" rx="1.6" stroke="currentColor" stroke-width="1.8"/><circle cx="6.6" cy="6" r="1.05" fill="currentColor"/><circle cx="6.6" cy="12" r="1.05" fill="currentColor"/><circle cx="6.6" cy="18" r="1.05" fill="currentColor"/></svg>';
+  var PARSER_ICON = '<svg width="100%" height="100%" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="3.5" width="18" height="5" rx="1.6" stroke="currentColor" stroke-width="1.8"/><rect x="3" y="9.5" width="18" height="5" rx="1.6" stroke="currentColor" stroke-width="1.8"/><rect x="3" y="15.5" width="18" height="5" rx="1.6" stroke="currentColor" stroke-width="1.8"/><circle cx="6.6" cy="6" r="1.05" fill="currentColor"/><circle cx="6.6" cy="12" r="1.05" fill="currentColor"/><circle cx="6.6" cy="18" r="1.05" fill="currentColor"/></svg>';
 
   var COLOR_OK = '#64e364';
   var COLOR_FAIL = '#ff2121';
@@ -124,8 +124,8 @@
       default: 'jac_red'
     },
     field: {
-      name: '<div class="settings-folder" style="padding:0!important">'
-        + '<div style="width:1.3em;height:1.3em;padding-right:.6em;flex-shrink:0">' + PARSER_ICON + '</div>'
+      name: '<div class="settings-folder" style="padding:0!important;display:flex;align-items:center">'
+        + '<div style="width:1.7em;height:1.7em;margin-right:.7em;flex-shrink:0;display:flex;align-items:center;justify-content:center">' + PARSER_ICON + '</div>'
         + '<div>Выбрать парсер</div>'
         + '</div>',
       description: 'Нажмите для выбора парсера из списка'
