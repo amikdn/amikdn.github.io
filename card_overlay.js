@@ -40,45 +40,119 @@
     var TYPE_LABEL_EPISODE_CACHE_KEY = 'type_label_episode_cache';
     var CARD_SERIES_FULL_INFO_KEY = 'card_series_full_info';
 
+    // ── единая точка правды для значений по умолчанию ──────────────────────
+    var DEFAULTS_VERSION = '2';
+    var DEFAULTS = {
+        // основные настройки плагина
+        seasons_info_mode: 'aired',
+        label_position: 'bottom-right',
+        animated_reactions_in_player: false,
+        quality_source: 'both',
+        colored_elements: false,
+        lampa_rating_show: true,
+        lampa_rating_icon: true,
+        detail_rating_icons: true,
+        lampa_rating_animated: false,
+
+        // окна
+        rating_window_opacity: '30',
+        rating_scale: '80',
+        badge_visual_style: 'corner',
+        badge_corner_shadow: true,
+
+        // рейтинги
+        rating_source: 'all',
+        rating_display_mode: 'separate',
+        rating_position: 'bottom',
+        colored_ratings_poster: true,
+        rating_colored_windows: false,
+        animated_reactions: false,
+        lampa_poster_icon_mode: 'lamp',
+        rating_show_tmdb: true,
+        rating_show_imdb: false,
+        rating_show_kp: false,
+        rating_show_lampa: true,
+
+        // качество
+        quality_show: true,
+        quality_colored: true,
+
+        // лейблы типа
+        type_labels_show: true,
+        type_labels_colored: true,
+        type_labels_episode_info: false,
+        seasons_info_details_position: 'under-type-label',
+        season_completed_replace: false,
+        card_series_full_info: false
+    };
+
+    function def(key) {
+        return DEFAULTS[key];
+    }
+    function defStr(key) {
+        var v = DEFAULTS[key];
+        if (v === true) return 'true';
+        if (v === false) return 'false';
+        return String(v);
+    }
+    // один раз приводим хранилище к новым дефолтам, дальше выбор пользователя не трогаем
+    function applyDefaults() {
+        var stored = String(Lampa.Storage.get('card_overlay_defaults_version', '0'));
+        var force = stored !== DEFAULTS_VERSION;
+        var key;
+
+        for (key in DEFAULTS) {
+            if (!Object.prototype.hasOwnProperty.call(DEFAULTS, key)) continue;
+
+            var current = Lampa.Storage.get(key, undefined);
+
+            if (force || current === undefined || current === null || current === '') {
+                Lampa.Storage.set(key, defStr(key));
+            }
+        }
+
+        if (force) Lampa.Storage.set('card_overlay_defaults_version', DEFAULTS_VERSION);
+    }
+
     function isTriggerOn(key, def) {
         var v = Lampa.Storage.get(key, def);
         return (v === true || v === 'true' || v === '1' || v === 1);
     }
     function getOverlayAlpha() {
-        var v = parseFloat(Lampa.Storage.get('rating_window_opacity', '40'));
-        if (isNaN(v)) v = 40;
+        var v = parseFloat(Lampa.Storage.get('rating_window_opacity', defStr('rating_window_opacity')));
+        if (isNaN(v)) v = parseFloat(defStr('rating_window_opacity'));
         v = Math.max(0, Math.min(100, v));
         return 1 - (v / 100);
     }
     function isColoredRatingsPosterOn() {
-        return isTriggerOn('colored_ratings_poster', false);
+        return isTriggerOn('colored_ratings_poster', def('colored_ratings_poster'));
     }
     function setColoredRatingsPoster(on) {
         Lampa.Storage.set('colored_ratings_poster', on ? 'true' : 'false');
     }
     function isQualityShowOn() {
-        return isTriggerOn('quality_show', true);
+        return isTriggerOn('quality_show', def('quality_show'));
     }
     function isQualityColoredOn() {
-        return isTriggerOn('quality_colored', false);
+        return isTriggerOn('quality_colored', def('quality_colored'));
     }
     function isTypeLabelsShowOn() {
-        return isTriggerOn('type_labels_show', true);
+        return isTriggerOn('type_labels_show', def('type_labels_show'));
     }
     function isTypeLabelsColoredOn() {
-        return isTriggerOn('type_labels_colored', false);
+        return isTriggerOn('type_labels_colored', def('type_labels_colored'));
     }
     function isTypeLabelEpisodeInfoOn() {
-        return isTriggerOn(TYPE_LABEL_EPISODE_INFO_KEY, true);
+        return isTriggerOn(TYPE_LABEL_EPISODE_INFO_KEY, def(TYPE_LABEL_EPISODE_INFO_KEY));
     }
     function isCardSeriesFullInfoOn() {
-        return isTriggerOn(CARD_SERIES_FULL_INFO_KEY, false);
+        return isTriggerOn(CARD_SERIES_FULL_INFO_KEY, def(CARD_SERIES_FULL_INFO_KEY));
     }
     function isDetailRatingIconsOn() {
-        return isTriggerOn('detail_rating_icons', true);
+        return isTriggerOn('detail_rating_icons', def('detail_rating_icons'));
     }
     function getRatingColor(value) {
-        if (isTriggerOn('rating_colored_windows', false)) return '#fff';
+        if (isTriggerOn('rating_colored_windows', def('rating_colored_windows'))) return '#fff';
         if (!isColoredRatingsPosterOn()) return '#fff';
         var v = parseFloat(String(value).replace(',', '.'));
         if (isNaN(v) || v <= 0) return '#fff';
@@ -88,7 +162,7 @@
         return '#2ecc71';
     }
     function getRatingBackgroundColor(value) {
-        if (!isTriggerOn('rating_colored_windows', false)) return '';
+        if (!isTriggerOn('rating_colored_windows', def('rating_colored_windows'))) return '';
         var alpha = getOverlayAlpha();
         var v = parseFloat(String(value).replace(',', '.'));
         if (isNaN(v) || v <= 0) return 'rgba(0,0,0,' + alpha + ')';
@@ -98,7 +172,7 @@
         return 'rgba(46,204,113,' + alpha + ')';
     }
     function getYearPositionCSS() {
-        var pos = Lampa.Storage.get('rating_position', 'bottom');
+        var pos = Lampa.Storage.get('rating_position', defStr('rating_position'));
         var rounded = getBadgeStyle() === 'rounded';
         var cornerShadowOn = getCornerShadow();
         var yearAtBottom = (pos === 'top');
@@ -175,7 +249,7 @@
         return _lampaIconDataUrl;
     }
     function getLampaPosterIconMode() {
-        var mode = Lampa.Storage.get('lampa_poster_icon_mode', 'lamp');
+        var mode = Lampa.Storage.get('lampa_poster_icon_mode', defStr('lampa_poster_icon_mode'));
         return mode === 'lamp' ? 'lamp' : 'reaction';
     }
     function getLampaPosterIconBackground(medianReaction) {
@@ -664,7 +738,7 @@
     }
 
     function getRatingPositionCSS() {
-        var pos = Lampa.Storage.get('rating_position', 'bottom');
+        var pos = Lampa.Storage.get('rating_position', defStr('rating_position'));
         var rounded = getBadgeStyle() === 'rounded';
         if (pos === 'bottom') {
             if (rounded) return 'right:0.4em!important;bottom:0.4em!important;top:auto!important;left:auto!important;';
@@ -674,7 +748,7 @@
         return 'right:0!important;top:0!important;bottom:auto!important;left:auto!important;';
     }
     function voteClass(extra) {
-        var pos = Lampa.Storage.get('rating_position', 'bottom');
+        var pos = Lampa.Storage.get('rating_position', defStr('rating_position'));
         return 'card__vote card__vote--' + pos + (extra ? ' ' + extra : '');
     }
     function getRatingParent(card) {
@@ -708,7 +782,9 @@
         }
     }
     function isRatingSourceVisible(source) {
-        var v = Lampa.Storage.get('rating_show_' + source, '1');
+        var key = 'rating_show_' + source;
+        var fallback = Object.prototype.hasOwnProperty.call(DEFAULTS, key) ? defStr(key) : '1';
+        var v = Lampa.Storage.get(key, fallback);
         return !(v === false || v === 'false' || v === 0 || v === '0' || v === '' || v === null || v === undefined);
     }
 
@@ -834,7 +910,7 @@
         updateEpisodeLabelPosition(ratingLine.closest ? ratingLine.closest('.card') : null);
     }
 
-    function getRatingDisplayMode() { return Lampa.Storage.get('rating_display_mode', 'separate'); }
+    function getRatingDisplayMode() { return Lampa.Storage.get('rating_display_mode', defStr('rating_display_mode')); }
 
     function fillSingleRatingElement(el, data, rateSource) {
         if (!el || !data || !rateSource) return;
@@ -961,7 +1037,7 @@
         var data = card.card_data || item.data || {};
         if (!data.id) return;
         var idStr = data.id.toString();
-        var source = Lampa.Storage.get('rating_source', 'all');
+        var source = Lampa.Storage.get('rating_source', defStr('rating_source'));
         var ratingElement;
         var displayMode = getRatingDisplayMode();
         var tmdbUpdateRequested = false;
@@ -1098,7 +1174,7 @@
         var maxCards = typeof limit === 'number' && limit > 0 ? limit : allCards.length;
         var wH = window.innerHeight || 1000;
         var updated = 0;
-        var source = Lampa.Storage.get('rating_source', 'all');
+        var source = Lampa.Storage.get('rating_source', defStr('rating_source'));
         var displayMode = getRatingDisplayMode();
         var episodeLabelCards = [];
         _batchOverlayPositions = true;
@@ -1359,7 +1435,7 @@
         normalizeDetailRatingLine(render || document);
     }
     function applyRatingScale() {
-        var v = parseFloat(Lampa.Storage.get('rating_scale', '100'));
+        var v = parseFloat(Lampa.Storage.get('rating_scale', defStr('rating_scale')));
         if (isNaN(v)) v = 100;
         v = Math.max(60, Math.min(150, v));
         try { document.body.style.setProperty('--rating-font-size', (1.1 * v / 100) + 'em'); } catch (e) {}
@@ -1493,7 +1569,7 @@
     }
 
     function fetchOptimalRelease(normalizedItem, itemId, onComplete) {
-        var source = Lampa.Storage.get('quality_source', 'both');
+        var source = Lampa.Storage.get('quality_source', defStr('quality_source'));
         function completeWithFallback(result) {
             if (result && result.quality) onComplete(result);
             else fetchAllohaQuality(normalizedItem, onComplete);
@@ -1513,7 +1589,7 @@
     var pendingQualityRequests = {};
     function getQualityCacheKey(item) {
         var source = 'both';
-        try { source = Lampa.Storage.get('quality_source', 'both'); } catch (e) {}
+        try { source = Lampa.Storage.get('quality_source', defStr('quality_source')); } catch (e) {}
         var t = (item && item.type) || 'movie';
         return [CARD_OVERLAY_CACHE_VERSION, source, t, item ? item.id : ''].join(':');
     }
@@ -1985,7 +2061,7 @@
             var viewWidth = view.clientWidth || view.offsetWidth;
             var qualityBox = getVisibleDirectOverlayBox(view, function (el) { return el.classList && el.classList.contains('card__quality'); });
             var ratingBox = getVisibleDirectOverlayBox(view, function (el) {
-                return el.classList && (el.classList.contains('card__vote--bottom') || Lampa.Storage.get('rating_position', 'bottom') === 'bottom') && ((el.classList.contains('card__vote-separate-wrap') || el.classList.contains('card__vote-line') || (el.classList.contains('card__vote') && !el.classList.contains('card__vote-separate-wrap') && !el.classList.contains('card__vote-line'))));
+                return el.classList && (el.classList.contains('card__vote--bottom') || Lampa.Storage.get('rating_position', defStr('rating_position')) === 'bottom') && ((el.classList.contains('card__vote-separate-wrap') || el.classList.contains('card__vote-line') || (el.classList.contains('card__vote') && !el.classList.contains('card__vote-separate-wrap') && !el.classList.contains('card__vote-line'))));
             });
             var leftEdge = qualityBox ? qualityBox.right : 0;
             var rightEdge = ratingBox ? ratingBox.left : viewWidth;
@@ -2039,11 +2115,11 @@
             var viewWidth = view.clientWidth || view.offsetWidth;
             var qualityBox = getVisibleDirectOverlayBox(view, function (el) { return el.classList && el.classList.contains('card__quality'); });
             var rightBox;
-            if (Lampa.Storage.get('rating_position', 'bottom') === 'top') {
+            if (Lampa.Storage.get('rating_position', defStr('rating_position')) === 'top') {
                 rightBox = getVisibleDirectOverlayBox(view, function (el) { return el.classList && el.classList.contains('card__year-badge'); });
             } else {
                 rightBox = getVisibleDirectOverlayBox(view, function (el) {
-                    return el.classList && (el.classList.contains('card__vote--bottom') || Lampa.Storage.get('rating_position', 'bottom') === 'bottom') && ((el.classList.contains('card__vote-separate-wrap') || el.classList.contains('card__vote-line') || (el.classList.contains('card__vote') && !el.classList.contains('card__vote-separate-wrap') && !el.classList.contains('card__vote-line'))));
+                    return el.classList && (el.classList.contains('card__vote--bottom') || Lampa.Storage.get('rating_position', defStr('rating_position')) === 'bottom') && ((el.classList.contains('card__vote-separate-wrap') || el.classList.contains('card__vote-line') || (el.classList.contains('card__vote') && !el.classList.contains('card__vote-separate-wrap') && !el.classList.contains('card__vote-line'))));
                 });
             }
             var leftEdge = qualityBox ? qualityBox.right : 0;
@@ -2258,13 +2334,13 @@
     }
 
     var seasonInfoSettings = {
-        seasons_info_mode: 'none',
-        label_position: 'top-right',
-        details_position: 'under-type-label'
+        seasons_info_mode: DEFAULTS.seasons_info_mode,
+        label_position: DEFAULTS.label_position,
+        details_position: DEFAULTS.seasons_info_details_position
     };
     var _seasonInfoLast = null;
     function getSeasonInfoDetailsPosition() {
-        var pos = Lampa.Storage.get('seasons_info_details_position', seasonInfoSettings.details_position || 'under-type-label');
+        var pos = Lampa.Storage.get('seasons_info_details_position', seasonInfoSettings.details_position || defStr('seasons_info_details_position'));
         return pos === 'under-type-label' ? 'under-type-label' : 'bottom';
     }
     function isEpisodeLabelUnderType() {
@@ -2361,8 +2437,8 @@
     }
 
     function isColoredElementsOn() { return isTriggerOn('colored_elements', true); }
-    function getBadgeStyle() { return Lampa.Storage.get('badge_visual_style', 'corner') === 'rounded' ? 'rounded' : 'corner'; }
-    function getCornerShadow() { var v = Lampa.Storage.get('badge_corner_shadow', false); return (v === true || v === 'true' || v === '1' || v === 1); }
+    function getBadgeStyle() { return Lampa.Storage.get('badge_visual_style', defStr('badge_visual_style')) === 'rounded' ? 'rounded' : 'corner'; }
+    function getCornerShadow() { var v = Lampa.Storage.get('badge_corner_shadow', def('badge_corner_shadow')); return (v === true || v === 'true' || v === '1' || v === 1); }
     function applyBadgeStyle() { try { $('body').attr('data-badge-style', getBadgeStyle()); $('body').attr('data-badge-corner-shadow', getCornerShadow() ? 'on' : 'off'); } catch (e) {} }
     function colorizeSeriesStatus(render) {
         var map = { completed: ['завершён','завершен','ended'], canceled: ['отменён','отменен','canceled'], ongoing: ['онгоинг','выходит','в эфире','ongoing','returning series'], production: ['в производстве','production'], planned: ['запланирован','planned'], pilot: ['пилотный','pilot'], released: ['выпущен','вышел','released'], rumored: ['слухи','rumored'], post: ['скоро','post'] };
@@ -2492,39 +2568,39 @@
             }
 
             modal.append($('<div class="comodal__section">Общие настройки окон</div>'));
-            var rowOpacity = addNumberRow('Прозрачность окон (0–100)', 'rating_window_opacity', 40, 0, 100, 10, '%');
-            var rowScale = addNumberRow('Масштаб окон', 'rating_scale', 100, 60, 150, 5, '%');
-            var rowBadgeStyle = addCycleRow('Стиль окон', 'badge_visual_style', BADGE_STYLE_LABELS, 'corner');
-            var rowCornerShadow = addTriggerRow('Тень для «Уголки»', 'badge_corner_shadow', false);
+            var rowOpacity = addNumberRow('Прозрачность окон (0–100)', 'rating_window_opacity', parseFloat(defStr('rating_window_opacity')), 0, 100, 10, '%');
+            var rowScale = addNumberRow('Масштаб окон', 'rating_scale', parseFloat(defStr('rating_scale')), 60, 150, 5, '%');
+            var rowBadgeStyle = addCycleRow('Стиль окон', 'badge_visual_style', BADGE_STYLE_LABELS, DEFAULTS.badge_visual_style);
+            var rowCornerShadow = addTriggerRow('Тень для «Уголки»', 'badge_corner_shadow', DEFAULTS.badge_corner_shadow);
 
             modal.append($('<div class="comodal__divider"></div>'));
             modal.append($('<div class="comodal__section">Рейтинги</div>'));
-            var rowSource = addCycleRow('Источник рейтинга', 'rating_source', SOURCE_LABELS, 'all');
-            var rowDisplayMode = addCycleRow('Режим отображения', 'rating_display_mode', DISPLAY_MODE_LABELS, 'separate');
-            var rowPosition = addCycleRow('Позиция на постере', 'rating_position', POSITION_LABELS, 'bottom');
-            var rowColored = addTriggerRow('Цветные цифры рейтингов', 'colored_ratings_poster', false);
-            var rowColoredWin = addTriggerRow('Цветные окна (цифры белые)', 'rating_colored_windows', false);
-            var rowAnimated = addTriggerRow('Анимированные реакции на постерах', 'animated_reactions', false);
-            var rowLampaPosterIcon = addCycleRow('Иконка Lampa на постере', 'lampa_poster_icon_mode', LAMPA_POSTER_ICON_LABELS, 'lamp');
+            var rowSource = addCycleRow('Источник рейтинга', 'rating_source', SOURCE_LABELS, DEFAULTS.rating_source);
+            var rowDisplayMode = addCycleRow('Режим отображения', 'rating_display_mode', DISPLAY_MODE_LABELS, DEFAULTS.rating_display_mode);
+            var rowPosition = addCycleRow('Позиция на постере', 'rating_position', POSITION_LABELS, DEFAULTS.rating_position);
+            var rowColored = addTriggerRow('Цветные цифры рейтингов', 'colored_ratings_poster', DEFAULTS.colored_ratings_poster);
+            var rowColoredWin = addTriggerRow('Цветные окна (цифры белые)', 'rating_colored_windows', DEFAULTS.rating_colored_windows);
+            var rowAnimated = addTriggerRow('Анимированные реакции на постерах', 'animated_reactions', DEFAULTS.animated_reactions);
+            var rowLampaPosterIcon = addCycleRow('Иконка Lampa на постере', 'lampa_poster_icon_mode', LAMPA_POSTER_ICON_LABELS, DEFAULTS.lampa_poster_icon_mode);
 
-            var rowShowTmdb = addTriggerRow('Показывать TMDB', 'rating_show_tmdb', true);
-            var rowShowImdb = addTriggerRow('Показывать IMDB', 'rating_show_imdb', true);
-            var rowShowKp = addTriggerRow('Показывать КиноПоиск', 'rating_show_kp', true);
-            var rowShowLampa = addTriggerRow('Показывать Lampa', 'rating_show_lampa', true);
+            var rowShowTmdb = addTriggerRow('Показывать TMDB', 'rating_show_tmdb', DEFAULTS.rating_show_tmdb);
+            var rowShowImdb = addTriggerRow('Показывать IMDB', 'rating_show_imdb', DEFAULTS.rating_show_imdb);
+            var rowShowKp = addTriggerRow('Показывать КиноПоиск', 'rating_show_kp', DEFAULTS.rating_show_kp);
+            var rowShowLampa = addTriggerRow('Показывать Lampa', 'rating_show_lampa', DEFAULTS.rating_show_lampa);
 
             modal.append($('<div class="comodal__divider"></div>'));
             modal.append($('<div class="comodal__section">Качество</div>'));
-            var rowQualityShow = addTriggerRow('Показывать качество', 'quality_show', true);
-            var rowQualityColored = addTriggerRow('Цветные окна качества', 'quality_colored', false);
+            var rowQualityShow = addTriggerRow('Показывать качество', 'quality_show', DEFAULTS.quality_show);
+            var rowQualityColored = addTriggerRow('Цветные окна качества', 'quality_colored', DEFAULTS.quality_colored);
 
             modal.append($('<div class="comodal__divider"></div>'));
             modal.append($('<div class="comodal__section">Лейблы типа</div>'));
-            var rowTypeLabelsShow = addTriggerRow('Показывать «Фильм»/«Сериал»', 'type_labels_show', true);
-            var rowTypeLabelsColored = addTriggerRow('Цветные лейблы типа', 'type_labels_colored', false);
-            var rowTypeLabelsEpisodeInfo = addTriggerRow('Серии в лейбле «Сериал»', TYPE_LABEL_EPISODE_INFO_KEY, true);
-            var rowSeasonInfoDetailsPosition = addCycleRow('Позиция сезонов и серий', 'seasons_info_details_position', SEASON_INFO_DETAILS_POSITION_LABELS, 'under-type-label');
-            var rowSeasonCompletedReplace = addTriggerRow('«Завершён» вместо сезонов/серий', 'season_completed_replace', false);
-            var rowCardSeriesFullInfo = addTriggerRow('Статус снизу + S:E под «Сериал»', CARD_SERIES_FULL_INFO_KEY, false);
+            var rowTypeLabelsShow = addTriggerRow('Показывать «Фильм»/«Сериал»', 'type_labels_show', DEFAULTS.type_labels_show);
+            var rowTypeLabelsColored = addTriggerRow('Цветные лейблы типа', 'type_labels_colored', DEFAULTS.type_labels_colored);
+            var rowTypeLabelsEpisodeInfo = addTriggerRow('Серии в лейбле «Сериал»', TYPE_LABEL_EPISODE_INFO_KEY, DEFAULTS[TYPE_LABEL_EPISODE_INFO_KEY]);
+            var rowSeasonInfoDetailsPosition = addCycleRow('Позиция сезонов и серий', 'seasons_info_details_position', SEASON_INFO_DETAILS_POSITION_LABELS, DEFAULTS.seasons_info_details_position);
+            var rowSeasonCompletedReplace = addTriggerRow('«Завершён» вместо сезонов/серий', 'season_completed_replace', DEFAULTS.season_completed_replace);
+            var rowCardSeriesFullInfo = addTriggerRow('Статус снизу + S:E под «Сериал»', CARD_SERIES_FULL_INFO_KEY, DEFAULTS[CARD_SERIES_FULL_INFO_KEY]);
 
             modal.append($('<div class="comodal__divider"></div>'));
             modal.append($('<div class="comodal__section">API</div>'));
@@ -2543,30 +2619,45 @@
             modal.append(rowKpKey.row);
 
             function resetAllToDefault() {
-                Lampa.Storage.set('rating_source', 'all'); Lampa.Storage.set('animated_reactions', 'false'); setColoredRatingsPoster(false);
-                Lampa.Storage.set('rating_colored_windows', 'false'); Lampa.Storage.set('rating_position', 'bottom');
-                Lampa.Storage.set('rating_show_tmdb', 'true'); Lampa.Storage.set('rating_show_imdb', 'true');
-                Lampa.Storage.set('rating_show_kp', 'true'); Lampa.Storage.set('rating_show_lampa', 'true');
-                Lampa.Storage.set('lampa_poster_icon_mode', 'lamp');
-                Lampa.Storage.set('rating_display_mode', 'separate'); Lampa.Storage.set('rating_window_opacity', '40');
-                Lampa.Storage.set('rating_scale', '100'); Lampa.Storage.set('rating_kp_api_key', '');
-                Lampa.Storage.set('badge_visual_style', 'corner');
-                Lampa.Storage.set('badge_corner_shadow', 'false');
-                Lampa.Storage.set('quality_show', 'true'); Lampa.Storage.set('quality_colored', 'false');
-                Lampa.Storage.set('type_labels_show', 'true'); Lampa.Storage.set('type_labels_colored', 'false'); Lampa.Storage.set(TYPE_LABEL_EPISODE_INFO_KEY, 'true');
-                Lampa.Storage.set('seasons_info_details_position', 'under-type-label');
-                Lampa.Storage.set('season_completed_replace', 'false');
-                Lampa.Storage.set(CARD_SERIES_FULL_INFO_KEY, 'false');
-                rowSource.updateVal(SOURCE_LABELS.all); rowDisplayMode.updateVal(DISPLAY_MODE_LABELS.separate);
-                rowPosition.updateVal(POSITION_LABELS.bottom); rowColored.updateVal('Выкл'); rowColoredWin.updateVal('Выкл');
-                rowAnimated.updateVal('Выкл'); rowLampaPosterIcon.updateVal(LAMPA_POSTER_ICON_LABELS.lamp); rowShowTmdb.updateVal('Вкл'); rowShowImdb.updateVal('Вкл');
-                rowShowKp.updateVal('Вкл'); rowShowLampa.updateVal('Вкл');
-                rowOpacity.updateVal('40%'); rowScale.updateVal('100%'); rowBadgeStyle.updateVal(BADGE_STYLE_LABELS.corner); rowCornerShadow.updateVal('Выкл'); rowKpKey.updateVal(kpApiKeyRowText());
-                rowQualityShow.updateVal('Вкл'); rowQualityColored.updateVal('Выкл');
-                rowTypeLabelsShow.updateVal('Вкл'); rowTypeLabelsColored.updateVal('Выкл'); rowTypeLabelsEpisodeInfo.updateVal('Вкл');
-                rowSeasonInfoDetailsPosition.updateVal(SEASON_INFO_DETAILS_POSITION_LABELS['under-type-label']);
-                rowSeasonCompletedReplace.updateVal('Выкл');
-                rowCardSeriesFullInfo.updateVal('Выкл');
+                var key;
+
+                for (key in DEFAULTS) {
+                    if (Object.prototype.hasOwnProperty.call(DEFAULTS, key)) Lampa.Storage.set(key, defStr(key));
+                }
+
+                Lampa.Storage.set('rating_kp_api_key', '');
+
+                function onOff(k) { return def(k) ? 'Вкл' : 'Выкл'; }
+
+                rowSource.updateVal(SOURCE_LABELS[def('rating_source')]);
+                rowDisplayMode.updateVal(DISPLAY_MODE_LABELS[def('rating_display_mode')]);
+                rowPosition.updateVal(POSITION_LABELS[def('rating_position')]);
+                rowColored.updateVal(onOff('colored_ratings_poster'));
+                rowColoredWin.updateVal(onOff('rating_colored_windows'));
+                rowAnimated.updateVal(onOff('animated_reactions'));
+                rowLampaPosterIcon.updateVal(LAMPA_POSTER_ICON_LABELS[def('lampa_poster_icon_mode')]);
+                rowShowTmdb.updateVal(onOff('rating_show_tmdb'));
+                rowShowImdb.updateVal(onOff('rating_show_imdb'));
+                rowShowKp.updateVal(onOff('rating_show_kp'));
+                rowShowLampa.updateVal(onOff('rating_show_lampa'));
+                rowOpacity.updateVal(defStr('rating_window_opacity') + '%');
+                rowScale.updateVal(defStr('rating_scale') + '%');
+                rowBadgeStyle.updateVal(BADGE_STYLE_LABELS[def('badge_visual_style')]);
+                rowCornerShadow.updateVal(onOff('badge_corner_shadow'));
+                rowKpKey.updateVal(kpApiKeyRowText());
+                rowQualityShow.updateVal(onOff('quality_show'));
+                rowQualityColored.updateVal(onOff('quality_colored'));
+                rowTypeLabelsShow.updateVal(onOff('type_labels_show'));
+                rowTypeLabelsColored.updateVal(onOff('type_labels_colored'));
+                rowTypeLabelsEpisodeInfo.updateVal(onOff(TYPE_LABEL_EPISODE_INFO_KEY));
+                rowSeasonInfoDetailsPosition.updateVal(SEASON_INFO_DETAILS_POSITION_LABELS[def('seasons_info_details_position')]);
+                rowSeasonCompletedReplace.updateVal(onOff('season_completed_replace'));
+                rowCardSeriesFullInfo.updateVal(onOff(CARD_SERIES_FULL_INFO_KEY));
+
+                seasonInfoSettings.seasons_info_mode = def('seasons_info_mode');
+                seasonInfoSettings.label_position = def('label_position');
+                seasonInfoSettings.details_position = def('seasons_info_details_position');
+
                 scheduleSettingsRefresh(50);
                 try { Lampa.Noty.show('Настройки сброшены'); } catch (e) {}
             }
@@ -2598,9 +2689,9 @@
         }
         var keys = ['animated_reactions', 'lampa_rating_animated', 'colored_ratings_poster', 'rating_colored_windows', 'rating_show_tmdb', 'rating_show_imdb', 'rating_show_kp', 'rating_show_lampa', 'lampa_rating_show', 'lampa_rating_icon', 'detail_rating_icons', 'quality_show', 'quality_colored', 'type_labels_show', 'type_labels_colored', TYPE_LABEL_EPISODE_INFO_KEY, 'season_completed_replace', CARD_SERIES_FULL_INFO_KEY];
         for (var i = 0; i < keys.length; i++) { var v = Lampa.Storage.get(keys[i], undefined); if (v === '1' || v === 1) Lampa.Storage.set(keys[i], 'true'); else if (v === '0' || v === 0) Lampa.Storage.set(keys[i], 'false'); }
-        var lampaPosterIconMode = Lampa.Storage.get('lampa_poster_icon_mode', 'lamp');
+        var lampaPosterIconMode = Lampa.Storage.get('lampa_poster_icon_mode', defStr('lampa_poster_icon_mode'));
         if (lampaPosterIconMode !== 'reaction' && lampaPosterIconMode !== 'lamp') Lampa.Storage.set('lampa_poster_icon_mode', 'lamp');
-        var seasonInfoDetailsPosition = Lampa.Storage.get('seasons_info_details_position', 'under-type-label');
+        var seasonInfoDetailsPosition = Lampa.Storage.get('seasons_info_details_position', defStr('seasons_info_details_position'));
         if (seasonInfoDetailsPosition !== 'bottom' && seasonInfoDetailsPosition !== 'under-type-label') Lampa.Storage.set('seasons_info_details_position', 'under-type-label');
     }
     function closeModalSafe() {
@@ -2659,6 +2750,7 @@
     function addSettings() {
         if (!Lampa.SettingsApi) return;
         migrateStorageFormat();
+        applyDefaults();
         Lampa.SettingsApi.addComponent({
             component: 'card_overlay',
             name: 'Интерфейс Мод',
@@ -2672,25 +2764,25 @@
         });
         Lampa.SettingsApi.addParam({
             component: 'card_overlay',
-            param: { name: 'seasons_info_mode', type: 'select', values: { none: 'Выключить', aired: 'Актуальная информация', total: 'Полное количество' }, default: 'none' },
+            param: { name: 'seasons_info_mode', type: 'select', values: { none: 'Выключить', aired: 'Актуальная информация', total: 'Полное количество' }, default: DEFAULTS.seasons_info_mode },
             field: { name: 'Информация о сериях', description: 'Как отображать информацию о сериях и сезонах' },
             onChange: function (v) { seasonInfoSettings.seasons_info_mode = v; updateSettingsKeepFocus('seasons_info_mode'); refreshSeasonInfo(); }
         });
         Lampa.SettingsApi.addParam({
             component: 'card_overlay',
-            param: { name: 'label_position', type: 'select', values: { 'top-right': 'Верхний правый', 'top-left': 'Верхний левый', 'bottom-right': 'Нижний правый', 'bottom-left': 'Нижний левый' }, default: 'top-right' },
+            param: { name: 'label_position', type: 'select', values: { 'top-right': 'Верхний правый', 'top-left': 'Верхний левый', 'bottom-right': 'Нижний правый', 'bottom-left': 'Нижний левый' }, default: DEFAULTS.label_position },
             field: { name: 'Позиция лейбла о сериях', description: 'Позиция лейбла на постере детальной страницы' },
             onChange: function (v) { seasonInfoSettings.label_position = v; updateSettingsKeepFocus('label_position'); refreshSeasonInfo(); }
         });
         Lampa.SettingsApi.addParam({
             component: 'card_overlay',
-            param: { name: 'quality_source', type: 'select', values: { 'jacred': 'JacRed (парсер)', 'alloha': 'Alloha (API)', 'both': 'Сначала JacRed, потом Alloha' }, default: 'both' },
+            param: { name: 'quality_source', type: 'select', values: { 'jacred': 'JacRed (парсер)', 'alloha': 'Alloha (API)', 'both': 'Сначала JacRed, потом Alloha' }, default: DEFAULTS.quality_source },
             field: { name: 'Источник качества', description: 'Откуда получать информацию о качестве видео' },
             onChange: function () { try { clearQualityCache(); } catch (e) {} updateSettingsKeepFocus('quality_source'); refreshAllQualityLabels(); }
         });
         Lampa.SettingsApi.addParam({
             component: 'card_overlay',
-            param: { name: 'animated_reactions_in_player', type: 'trigger', default: true },
+            param: { name: 'animated_reactions_in_player', type: 'trigger', default: DEFAULTS.animated_reactions_in_player },
             field: { name: 'Анимированные реакции на странице фильма', description: 'Заменять иконки реакций на анимированные GIF в карточке фильма' },
             onChange: function () {
                 if (!isAnimatedReactionsInPlayerEnabled()) { restoreOriginalReactions(); applyReactionsToSelectbox(); setTimeout(restoreOriginalReactions, 150); setTimeout(applyReactionsToSelectbox, 150); setTimeout(restoreOriginalReactions, 400); setTimeout(applyReactionsToSelectbox, 400); }
@@ -2699,7 +2791,7 @@
         });
         Lampa.SettingsApi.addParam({
             component: 'card_overlay',
-            param: { name: 'colored_elements', type: 'trigger', default: false },
+            param: { name: 'colored_elements', type: 'trigger', default: DEFAULTS.colored_elements },
             field: { name: 'Цветные элементы', description: 'Статусы сериалов и возрастные ограничения цветными' },
             onChange: function (v) {
                 updateSettingsKeepFocus('colored_elements');
@@ -2710,7 +2802,7 @@
 
         Lampa.SettingsApi.addParam({
             component: 'card_overlay',
-            param: { name: 'lampa_rating_show', type: 'trigger', default: true },
+            param: { name: 'lampa_rating_show', type: 'trigger', default: DEFAULTS.lampa_rating_show },
             field: { name: 'Рейтинг Lampa', description: 'Показывать рейтинг Lampa на странице фильма' },
             onChange: function (v) {
                 updateSettingsKeepFocus('lampa_rating_show');
@@ -2721,7 +2813,7 @@
 
         Lampa.SettingsApi.addParam({
             component: 'card_overlay',
-            param: { name: 'lampa_rating_icon', type: 'trigger', default: true },
+            param: { name: 'lampa_rating_icon', type: 'trigger', default: DEFAULTS.lampa_rating_icon },
             field: { name: 'Иконка в рейтинге Lampa', description: 'Показывать иконку реакции рядом с рейтингом Lampa на странице фильма' },
             onChange: function (v) {
                 updateSettingsKeepFocus('lampa_rating_icon');
@@ -2732,7 +2824,7 @@
 
         Lampa.SettingsApi.addParam({
             component: 'card_overlay',
-            param: { name: 'detail_rating_icons', type: 'trigger', default: true },
+            param: { name: 'detail_rating_icons', type: 'trigger', default: DEFAULTS.detail_rating_icons },
             field: { name: 'Значки рейтингов', description: 'Показывать иконки TMDB, IMDB, КП и Lampa на странице фильма' },
             onChange: function () {
                 updateSettingsKeepFocus('detail_rating_icons');
@@ -2746,7 +2838,7 @@
 
         Lampa.SettingsApi.addParam({
             component: 'card_overlay',
-            param: { name: 'lampa_rating_animated', type: 'trigger', default: false },
+            param: { name: 'lampa_rating_animated', type: 'trigger', default: DEFAULTS.lampa_rating_animated },
             field: { name: 'Анимированная иконка рейтинга Lampa', description: 'Анимированная иконка реакции в рейтинге Lampa на странице фильма' },
             onChange: function () {
                 updateSettingsKeepFocus('lampa_rating_animated');
@@ -2868,7 +2960,7 @@
     var PLAYER_REACTION_TYPES = ['fire', 'nice', 'think', 'bore', 'shit'];
 
     function isAnimatedReactionsInPlayerEnabled() {
-        return isTriggerOn('animated_reactions_in_player', true);
+        return isTriggerOn('animated_reactions_in_player', def('animated_reactions_in_player'));
     }
     function getReactionTypeFromSrc(src) {
         if (!src) return null;
@@ -2946,6 +3038,7 @@
         if (window.__card_overlay_initialized__) return;
         window.__card_overlay_initialized__ = true;
         try { console.log('[card_overlay] v1.2.0 optimized active'); } catch (e) {}
+        try { applyDefaults(); } catch (e) {}
         var style = document.createElement('style');
         style.type = 'text/css';
         var detailTmdbSvgCss = encodeURIComponent(DETAIL_TMDB_SVG).replace(/'/g, '%27').replace(/"/g, '%22');
@@ -3171,9 +3264,9 @@
             }
         });
 
-        seasonInfoSettings.seasons_info_mode = Lampa.Storage.get('seasons_info_mode', 'none');
-        seasonInfoSettings.label_position = Lampa.Storage.get('label_position', 'top-right');
-        seasonInfoSettings.details_position = Lampa.Storage.get('seasons_info_details_position', 'under-type-label');
+        seasonInfoSettings.seasons_info_mode = Lampa.Storage.get('seasons_info_mode', defStr('seasons_info_mode'));
+        seasonInfoSettings.label_position = Lampa.Storage.get('label_position', defStr('label_position'));
+        seasonInfoSettings.details_position = Lampa.Storage.get('seasons_info_details_position', defStr('seasons_info_details_position'));
 
         if (isColoredElementsOn()) { $('body').addClass('colored-elements-on'); colorizeSeriesStatus(); colorizeAgeRating(); colorizeDetailQuality(); }
         else { $('body').removeClass('colored-elements-on'); }
