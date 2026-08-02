@@ -40,10 +40,8 @@
     var TYPE_LABEL_EPISODE_CACHE_KEY = 'type_label_episode_cache';
     var CARD_SERIES_FULL_INFO_KEY = 'card_series_full_info';
 
-    // ── единая точка правды для значений по умолчанию ──────────────────────
     var DEFAULTS_VERSION = '2';
     var DEFAULTS = {
-        // основные настройки плагина
         seasons_info_mode: 'aired',
         label_position: 'bottom-right',
         animated_reactions_in_player: false,
@@ -54,13 +52,11 @@
         detail_rating_icons: true,
         lampa_rating_animated: false,
 
-        // окна
         rating_window_opacity: '30',
         rating_scale: '80',
         badge_visual_style: 'corner',
         badge_corner_shadow: true,
 
-        // рейтинги
         rating_source: 'all',
         rating_display_mode: 'separate',
         rating_position: 'bottom',
@@ -73,11 +69,9 @@
         rating_show_kp: false,
         rating_show_lampa: true,
 
-        // качество
         quality_show: true,
         quality_colored: true,
 
-        // лейблы типа
         type_labels_show: true,
         type_labels_colored: true,
         type_labels_episode_info: false,
@@ -95,7 +89,6 @@
         if (v === false) return 'false';
         return String(v);
     }
-    // один раз приводим хранилище к новым дефолтам, дальше выбор пользователя не трогаем
     function applyDefaults() {
         var stored = String(Lampa.Storage.get('card_overlay_defaults_version', '0'));
         var force = stored !== DEFAULTS_VERSION;
@@ -114,7 +107,6 @@
         if (force) Lampa.Storage.set('card_overlay_defaults_version', DEFAULTS_VERSION);
     }
 
-    // ── инфраструктура: таймеры, слушатели, безопасный вызов ──────────────
     var DEBUG = false;
     try { DEBUG = isTruthy(Lampa.Storage.get('card_overlay_debug', false)); } catch (e) {}
 
@@ -122,8 +114,6 @@
         return (v === true || v === 'true' || v === '1' || v === 1);
     }
 
-    // Единая обёртка над try/catch: молча гасит ошибку в проде,
-    // но показывает её в консоли при включённом card_overlay_debug.
     function logErr(e) {
         if (!DEBUG) return;
         try { console.error('[card_overlay]', e); } catch (e2) {}
@@ -140,8 +130,6 @@
         }
     }
 
-    // Все таймеры плагина живут здесь: их можно погасить разом.
-    // Ключ делает повторный вызов заменой предыдущего, а не вторым таймером.
     var _timers = {};
     var _timerSeq = 0;
 
@@ -165,8 +153,6 @@
         }
     }
 
-    // Вместо россыпи setTimeout(fn,150)+setTimeout(fn,400):
-    // одна серия повторов с общим ключом, старая серия отменяется.
     function retry(fn, delays, key) {
         var list = delays || [0, 150, 400];
         var i;
@@ -186,7 +172,6 @@
         _timers = {};
     }
 
-    // Слушатели регистрируем через хелпер, чтобы их можно было снять.
     var _listeners = [];
 
     function on(target, event, handler, options) {
@@ -1240,10 +1225,9 @@
     var _scrollRatingMaxCardsPerRun = 80;
     var _ratingUpdateTimer = 0;
     var _ratingUpdateRafScheduled = false;
-    var _mainObserver = null;
-    var _layerObserver = null;
-    var _mainObserverTarget = null;
     var _cardIntersectionObserver = null;
+    var _observedCards = [];
+    var SCAN_DELAYS = [0, 150, 400, 900];
     var _settingsArranger = null;
     var _settingsArrangeTimer = 0;
     function isCardUpdatesBlocked() {
@@ -1326,45 +1310,25 @@
     }
     function observeCardVisibility(card) {
         if (!_cardIntersectionObserver || !card || !card.nodeType || card.nodeType !== 1) return;
+        if (card.getAttribute('data-card-overlay-seen') === '1') return;
+        card.setAttribute('data-card-overlay-seen', '1');
         bindCardImageRepaint(card);
-        try { _cardIntersectionObserver.observe(card); } catch (e) { logErr(e); }
+        try { _cardIntersectionObserver.observe(card); _observedCards.push(card); } catch (e) { logErr(e); }
     }
-    function startMainObserver() {
-        if (_mainObserver) return;
-        if (!_cardIntersectionObserver && typeof IntersectionObserver !== 'undefined') {
-            _cardIntersectionObserver = new IntersectionObserver(function (entries) {
-                for (var i = 0; i < entries.length; i++) {
-                    if (entries[i].target) entries[i].target.setAttribute('data-rating-visible', entries[i].isIntersecting ? '1' : '0');
-                    if (entries[i].isIntersecting && entries[i].target && entries[i].target.card_data && !isCardUpdatesBlocked()) {
-                        updateCardRating({ card: entries[i].target, data: entries[i].target.card_data });
-                        if (isQualityShowOn()) processQualityForCards([entries[i].target]);
-                        addTypeLabel(entries[i].target);
-                        addYearBadge(entries[i].target);
-                    }
-                }
-            }, { root: null, rootMargin: '250px 0px 250px 0px', threshold: 0.01 });
-            var existingCards = document.querySelectorAll('.card');
-            for (var ci = 0; ci < existingCards.length; ci++) observeCardVisibility(existingCards[ci]);
-        }
-        var mutationHandler = function (mutations) {
-            var acc = { needRatings: false, addedCards: [], removedCards: [], needSelectbox: false, badgeCards: [], looseBadges: [], needSettingsArrange: false };
-            for (var i = 0; i < mutations.length; i++) {
-                var m = mutations[i];
-                if (m.addedNodes && m.addedNodes.length) {
-                    for (var j = 0; j < m.addedNodes.length; j++) collectFromAddedNode(m.addedNodes[j], acc);
-                }
-                if (m.removedNodes && m.removedNodes.length) {
-                    for (var r = 0; r < m.removedNodes.length; r++) collectFromRemovedNode(m.removedNodes[r], acc);
+    function startCardWatch() {
+        if (_cardIntersectionObserver || typeof IntersectionObserver === 'undefined') return;
+        _cardIntersectionObserver = new IntersectionObserver(function (entries) {
+            for (var i = 0; i < entries.length; i++) {
+                if (entries[i].target) entries[i].target.setAttribute('data-rating-visible', entries[i].isIntersecting ? '1' : '0');
+                if (entries[i].isIntersecting && entries[i].target && entries[i].target.card_data && !isCardUpdatesBlocked()) {
+                    updateCardRating({ card: entries[i].target, data: entries[i].target.card_data });
+                    if (isQualityShowOn()) processQualityForCards([entries[i].target]);
+                    addTypeLabel(entries[i].target);
+                    addYearBadge(entries[i].target);
                 }
             }
-            applyObserverAccumulators(acc);
-        };
-        _mainObserver = new MutationObserver(mutationHandler);
-        retargetMainObserver();
-        if (!_layerObserver) {
-            _layerObserver = new MutationObserver(mutationHandler);
-            try { _layerObserver.observe(document.body, { childList: true, subtree: false }); } catch (eLayer) { logErr(eLayer); }
-        }
+        }, { root: null, rootMargin: '250px 0px 250px 0px', threshold: 0.01 });
+        scanContainer(document.body, false);
     }
     function getActiveActivityRender() {
         try {
@@ -1374,50 +1338,62 @@
             return (r && r.nodeType === 1) ? r : null;
         } catch (e) { return null; }
     }
-    function retargetMainObserver() {
-        if (!_mainObserver) return;
-        var target = getActiveActivityRender() || document.body;
-        if (target === _mainObserverTarget && _mainObserverTarget) return;
-        try { _mainObserver.disconnect(); } catch (e) { logErr(e); }
-        _mainObserverTarget = target;
-        try { _mainObserver.observe(target, { childList: true, subtree: true }); } catch (e2) { logErr(e2); }
-        scanContainerOnce(target);
+    function toElement(node) {
+        if (!node) return null;
+        if (node.nodeType === 1) return node;
+        if (node.length && node[0] && node[0].nodeType === 1) return node[0];
+        return null;
     }
-    function scanContainerOnce(target) {
+    function scanActive(onlyNew) {
+        scanContainer(getActiveActivityRender() || document.body, onlyNew);
+    }
+    function scanActiveNew() { scanActive(true); }
+    function scanActiveAll() { scanActive(false); }
+    function scanContainer(target, onlyNew) {
         if (!target || target.querySelectorAll === undefined) return;
         var acc = { needRatings: false, addedCards: [], removedCards: [], needSelectbox: false, badgeCards: [], looseBadges: [], needSettingsArrange: false };
-        var cards = target.querySelectorAll('.card');
+        var cards = target.querySelectorAll(onlyNew ? '.card:not([data-card-overlay-seen])' : '.card');
         for (var i = 0; i < cards.length; i++) { observeCardVisibility(cards[i]); acc.addedCards.push(cards[i]); }
         if (cards.length) acc.needRatings = true;
-        if (_settingsArranger && (target.querySelector && target.querySelector('.settings-folder'))) acc.needSettingsArrange = true;
-        var badgeNodes = target.querySelectorAll('.card__badge--next-episode');
-        for (var bi = 0; bi < badgeNodes.length; bi++) { var bcard = getCardRootNode(badgeNodes[bi]); if (bcard) acc.badgeCards.push(bcard); else acc.looseBadges.push(badgeNodes[bi]); }
-        if (target.querySelector && target.querySelector('.selectbox-item__icon img')) acc.needSelectbox = true;
-        applyObserverAccumulators(acc);
-    }
-    function collectFromAddedNode(node, acc) {
-        if (!node || node.nodeType !== 1) return;
-        if (node.matches && node.matches('.card')) { observeCardVisibility(node); acc.needRatings = true; acc.addedCards.push(node); }
-        else if (node.querySelector && node.querySelector('.card')) {
-            acc.needRatings = true;
-            var nestedCards = node.querySelectorAll('.card');
-            for (var ni = 0; ni < nestedCards.length; ni++) { observeCardVisibility(nestedCards[ni]); acc.addedCards.push(nestedCards[ni]); }
-        }
-        if ((node.matches && node.matches('.selectbox-item__icon')) || (node.querySelector && (node.querySelector('.selectbox-item__icon') || node.querySelector('.selectbox-item__icon img')))) acc.needSelectbox = true;
-        if (!acc.needSettingsArrange && _settingsArranger && ((node.matches && node.matches('.settings-folder')) || (node.querySelector && node.querySelector('.settings-folder')))) acc.needSettingsArrange = true;
-        if (node.matches && node.matches('.card__badge--next-episode')) { var bc = getCardRootNode(node); if (bc) acc.badgeCards.push(bc); else acc.looseBadges.push(node); }
-        else if (node.querySelector && node.querySelector('.card__badge--next-episode')) {
-            var badgeNodes = node.querySelectorAll('.card__badge--next-episode');
+        if (cards.length || !onlyNew) {
+            var badgeNodes = target.querySelectorAll('.card__badge--next-episode');
             for (var bi = 0; bi < badgeNodes.length; bi++) { var bcard = getCardRootNode(badgeNodes[bi]); if (bcard) acc.badgeCards.push(bcard); else acc.looseBadges.push(badgeNodes[bi]); }
         }
-    }
-    function collectFromRemovedNode(node, acc) {
-        if (!node || node.nodeType !== 1) return;
-        if (node.matches && node.matches('.card')) acc.removedCards.push(node);
-        if (node.querySelectorAll) {
-            var nestedCards = node.querySelectorAll('.card');
-            for (var i = 0; i < nestedCards.length; i++) acc.removedCards.push(nestedCards[i]);
+        if (!onlyNew && target.querySelector) {
+            if (_settingsArranger && target.querySelector('.settings-folder')) acc.needSettingsArrange = true;
+            if (target.querySelector('.selectbox-item__icon img')) acc.needSelectbox = true;
         }
+        applyObserverAccumulators(acc);
+    }
+    function pruneObservedCards() {
+        if (!_cardIntersectionObserver || !_observedCards.length) return;
+        var alive = [];
+        for (var i = 0; i < _observedCards.length; i++) {
+            var node = _observedCards[i];
+            if (!node) continue;
+            if (node.parentNode && document.body.contains(node)) { alive.push(node); continue; }
+            try { _cardIntersectionObserver.unobserve(node); } catch (e) { logErr(e); }
+            if (node.removeAttribute) { node.removeAttribute('data-card-overlay-seen'); node.removeAttribute('data-rating-visible'); }
+        }
+        _observedCards = alive;
+    }
+    function onActivityEvent(e) {
+        var type = e && e.type;
+        if (type === 'destroy' || type === 'archive') { later(pruneObservedCards, 0, 'prune'); return; }
+        retry(scanActiveAll, SCAN_DELAYS, 'scan-activity');
+    }
+    function onLineEvent(e) {
+        if (!e || (e.type !== 'append' && e.type !== 'create' && e.type !== 'visible')) return;
+        var body = toElement(e.body);
+        if (body) scanContainer(body, true);
+        else scanActiveNew();
+    }
+    function onSelectShown() {
+        later(function () { if (document.querySelector('.selectbox-item__icon img')) applyReactionsToSelectbox(); }, 0, 'selectbox');
+    }
+    function onSettingsOpen() {
+        if (!_settingsArranger || _settingsArrangeTimer) return;
+        _settingsArrangeTimer = setTimeout(function () { _settingsArrangeTimer = 0; if (_settingsArranger) _settingsArranger(); }, 100);
     }
     function applyObserverAccumulators(acc) {
         if (acc.removedCards && acc.removedCards.length && _cardIntersectionObserver) {
@@ -2930,7 +2906,6 @@
                 } else {
                     $('.rate--lampa').removeClass('rate--lampa--animated');
                 }
-                // No reaction face on the detail page — keep the inline slot empty.
                 $('.rate--lampa .rate-icon').each(function () { $(this).empty().hide(); });
             }
         });
@@ -3127,8 +3102,6 @@
         } catch (err) { logErr(err); }
     }
 
-    // Единая точка: раньше это дублировалось в onChange и в слушателе
-    // хранилища, из-за чего одно переключение плодило по 10 таймеров.
     function refreshPlayerReactions() {
         if (!isAnimatedReactionsInPlayerEnabled()) {
             retry(function () {
@@ -3259,22 +3232,34 @@
         if (!isTriggerOn('lampa_rating_show', true)) $('body').attr('data-lampa-rating-off', '1'); else $('body').removeAttr('data-lampa-rating-off');
         addSettings();
         setupCardListener();
-        startMainObserver();
+        startCardWatch();
+
+        safe(function () { Lampa.Listener.follow('activity', onActivityEvent); }, 'activity listener');
+
+        safe(function () { Lampa.Listener.follow('line', onLineEvent); }, 'line listener');
 
         safe(function () {
-            Lampa.Listener.follow('activity', function () {
-                later(retargetMainObserver, 0, 'retarget');
-            });
-        }, 'activity listener');
+            if (Lampa.Select && Lampa.Select.listener) {
+                Lampa.Select.listener.follow('fullshow', onSelectShown);
+                Lampa.Select.listener.follow('toggle', onSelectShown);
+            }
+        }, 'select listener');
+
+        safe(function () {
+            if (Lampa.Settings && Lampa.Settings.listener) Lampa.Settings.listener.follow('open', onSettingsOpen);
+        }, 'settings listener');
 
         scheduleVisibleRatingsUpdate(120);
         later(function () { scheduleVisibleRatingsUpdate(250); }, 250, 'boot-250');
         later(function () { scheduleVisibleRatingsUpdate(600); }, 600, 'boot-600');
 
-        on(window, 'scroll', function () { scheduleVisibleRatingsUpdate(120); }, { passive: true });
+        on(window, 'scroll', function () { scheduleVisibleRatingsUpdate(120); later(scanActiveNew, 120, 'scan-scroll'); }, { passive: true });
+
+        on(document, 'touchend', function () { later(scanActiveNew, 200, 'scan-touch'); }, { passive: true });
 
         on(window, 'keydown', function (e) {
             if (isCardUpdatesBlocked()) return;
+            later(scanActiveNew, 200, 'scan-key');
             var code = e && (e.code || e.key);
             if (code === 'PageUp' || code === 'PageDown') scheduleVisibleRatingsUpdate(120);
         }, { passive: true });
@@ -3395,25 +3380,19 @@
         });
     }
 
-    // Полная выгрузка: снимаем слушатели, гасим таймеры и наблюдатели.
-    // Без этого при перезапуске приложения они копились.
     function destroyPlugin() {
         offAll();
         clearAllTimers();
 
-        // локальные таймеры, живущие вне общего реестра
         if (_ratingUpdateTimer) { clearTimeout(_ratingUpdateTimer); _ratingUpdateTimer = 0; }
         if (_settingsRefreshTimer) { clearTimeout(_settingsRefreshTimer); _settingsRefreshTimer = 0; }
         if (_settingsArrangeTimer) { clearTimeout(_settingsArrangeTimer); _settingsArrangeTimer = 0; }
         safe(clearRequestQueues, 'queues');
 
-        safe(function () { if (_mainObserver) _mainObserver.disconnect(); }, 'mainObserver');
-        safe(function () { if (_layerObserver) _layerObserver.disconnect(); }, 'layerObserver');
         safe(function () { if (_cardIntersectionObserver) _cardIntersectionObserver.disconnect(); }, 'intersectionObserver');
 
-        _mainObserver = null;
-        _layerObserver = null;
         _cardIntersectionObserver = null;
+        _observedCards = [];
 
         var style = document.getElementById('card-overlay-style');
         if (style && style.parentNode) style.parentNode.removeChild(style);
@@ -3423,10 +3402,9 @@
 
     window.__card_overlay_destroy__ = destroyPlugin;
 
-    // не затираем манифесты других плагинов
     var manifest = {
         name: 'Интерфейс Мод',
-        version: '1.3.0',
+        version: '1.4.0',
         description: 'Рейтинги, качество, лейблы типа на карточках'
     };
 
@@ -3437,3 +3415,4 @@
     if (window.appready) { initPlugin(); }
     else { Lampa.Listener.follow('app', function (e) { if (e.type === 'ready') initPlugin(); }); }
 })();
+
