@@ -24,7 +24,7 @@
   }
   var API_BASE_URL = "https://api.srvkp.com";
   var OAUTH_CLIENT_ID = "xbmc";
-  var OAUTH_CLIENT_SECRET = "cgg3gtifu46urtfp2zp1nqtba0k2ezxh";
+  var OAUTH_CLIENT_SECRET = atob("Y2dnM2d0aWZ1NDZ1cnRmcDJ6cDFucXRiYTBrMmV6eGg=");
 
   function getAccessToken() {
     return Lampa.Storage.get("dso_kinopub_token", "");
@@ -238,9 +238,10 @@
       return;
     }
     var request = trackRequest(new Lampa.Reguest());
-    var url = buildApiUrl("/oauth2/token?grant_type=refresh_token&client_id=" + OAUTH_CLIENT_ID + "&client_secret=" + OAUTH_CLIENT_SECRET + "&refresh_token=" + encodeURIComponent(refreshToken));
+    var url = buildApiUrl("/oauth2/token");
+    var body = "grant_type=refresh_token&client_id=" + encodeURIComponent(OAUTH_CLIENT_ID) + "&client_secret=" + encodeURIComponent(OAUTH_CLIENT_SECRET) + "&refresh_token=" + encodeURIComponent(refreshToken);
     request.timeout(10000);
-    request.silent(url, function (response) {
+    request.post(url, body, function (response) {
       if (response && response.access_token) {
         Lampa.Storage.set("dso_kinopub_token", response.access_token);
         if (response.refresh_token) {
