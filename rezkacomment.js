@@ -1,9 +1,6 @@
 (function () {
   'use strict';
 
-  // Rezka Comments for Lampa
-  // rewritten: ES5-safe, cached, cancellable, remote-friendly
-
   var PLUGIN_FLAG = 'rezka_comment_plugin';
   var COMPONENT = 'rezka_comment';
   var BUTTON_CLASS = 'rezka-comment--button';
@@ -20,8 +17,6 @@
   var network = null;
   var busy = false;
   var modal_open = false;
-
-  // ── utils ───────────────────────────────────────────────────────────────
 
   function getNetwork() {
     if (!network) network = new Lampa.Reguest();
@@ -126,8 +121,6 @@
     );
   }
 
-  // ── cache ───────────────────────────────────────────────────────────────
-
   function readCache(key) {
     var all = Lampa.Storage.get(CACHE_KEY, '{}') || {};
     var item = all[key];
@@ -163,8 +156,6 @@
     Lampa.Storage.set(CACHE_KEY, all);
   }
 
-  // ── comments rendering ──────────────────────────────────────────────────
-
   function sanitize(root) {
     var junk = root.querySelectorAll('script, iframe, style, link, .actions, .share-link');
     var nodes;
@@ -198,7 +189,6 @@
         else if (name === 'href' && /^\s*javascript:/i.test(attrs[j].value)) el.removeAttribute(name);
       }
 
-      // ленивые аватарки
       if (el.tagName === 'IMG') {
         var lazy = el.getAttribute('data-src');
         if (lazy && !el.getAttribute('src')) el.setAttribute('src', lazy);
@@ -206,8 +196,6 @@
     }
   }
 
-  // Спойлеры Rezka: <span class="title_spoiler" onclick="ShowOrHide('id')">…</span>
-  // + скрытый блок с этим id. Превращаем в самодостаточную пару кнопка/текст.
   function hasClass(el, name) {
     return (' ' + String((el && el.className) || '') + ' ').indexOf(' ' + name + ' ') !== -1;
   }
@@ -249,7 +237,6 @@
 
     if (body && !contains(toggle, body)) return body;
 
-    // запасной вариант: скрытый блок стоит рядом с плашкой или с её родителем
     var start = toggle;
     var hops = 0;
 
@@ -269,8 +256,6 @@
     return null;
   }
 
-  // Rezka: <span class="title_spoiler"><a onclick="ShowOrHide('id')">Спойлер</a></span>
-  // + отдельный скрытый блок с этим id. Связываем пары своим ключом.
   function prepareSpoilers(root) {
     var raw = root.querySelectorAll('[data-spoiler], .title_spoiler');
     var seq = 0;
@@ -284,7 +269,6 @@
       var id = el.getAttribute('data-spoiler');
       var toggle = closestSpoilerTitle(el, root);
 
-      // плашку уже разобрали на прошлой итерации (внешний span + вложенная ссылка)
       if (toggle.getAttribute('data-sp')) {
         if (el !== toggle) el.removeAttribute('data-spoiler');
         continue;
@@ -422,7 +406,6 @@
 
     body.html(html);
 
-    // раскрыть все спойлеры внутри элемента
     function reveal(scope) {
       if (!scope || !scope.length) return false;
 
@@ -438,7 +421,6 @@
       return true;
     }
 
-    // раскрыть одну конкретную плашку
     function revealOne(toggle) {
       var key = toggle.attr('data-sp');
       var target = key ? body.find('[data-sp-body="' + key + '"]') : null;
@@ -458,9 +440,6 @@
       return true;
     }
 
-    // Привязываем обработчики напрямую к элементам, без делегирования:
-    // на части сборок Lampa кастомные события до делегированных
-    // обработчиков не доходят, и пульт переставал работать.
     body.find('.rc-item').each(function () {
       var item = $(this);
 
@@ -469,7 +448,6 @@
       });
 
       item.on('click', function (e) {
-        // клик по плашке обрабатывается отдельно
         if (e && e.target && $(e.target).hasClass('rc-spoiler')) return;
 
         reveal(item);
@@ -495,7 +473,6 @@
       html: body,
       size: 'large',
       mask: true,
-      // штатный хук Lampa: срабатывает на OK по любому .selector внутри модалки
       onSelect: function (element) {
         var node = $(element);
 
@@ -505,8 +482,6 @@
       onBack: closeModal
     });
   }
-
-  // ── rezka api ───────────────────────────────────────────────────────────
 
   function loadComments(id, pageUrl, title, cacheKey) {
     var target =
@@ -591,7 +566,6 @@
 
       if (year && info.indexOf(String(year)) !== -1) score += 5;
 
-      // первый результат чуть предпочтительнее при равенстве
       score += (items.length - i) / (items.length * 10);
 
       if (score > best_score) {
@@ -690,8 +664,6 @@
     searchRezka(queries, 0, titles, year, cacheKey);
   }
 
-  // ── settings ────────────────────────────────────────────────────────────
-
   function addSettings() {
     if (!Lampa.SettingsApi || typeof Lampa.SettingsApi.addComponent !== 'function') return;
 
@@ -731,8 +703,6 @@
       }
     });
   }
-
-  // ── button ──────────────────────────────────────────────────────────────
 
   var BUTTON_HTML =
     '<div class="full-start__button selector ' +
