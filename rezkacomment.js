@@ -422,39 +422,70 @@
 
     body.html(html);
 
+    // раскрыть все спойлеры внутри элемента
     function reveal(scope) {
+      if (!scope || !scope.length) return false;
+
       var bodies = scope.find('.rc-spoiler-body');
 
       if (!bodies.length) return false;
 
-      bodies.css('display', 'inline');
-      bodies.removeClass('rc-spoiler-body');
+      bodies.css('display', 'inline').removeClass('rc-spoiler-body');
       scope.find('.rc-spoiler').remove();
+      scope.find('.rc-hint').remove();
+      scope.removeClass('rc-item--spoiler');
 
       return true;
     }
 
-    // мышь/тач: тап прямо по плашке
-    body.on('click hover:enter', '.rc-spoiler', function (e) {
-      var key = $(this).attr('data-sp');
+    // раскрыть одну конкретную плашку
+    function revealOne(toggle) {
+      var key = toggle.attr('data-sp');
       var target = key ? body.find('[data-sp-body="' + key + '"]') : null;
 
-      if (target && target.length) {
-        target.css('display', 'inline').removeClass('rc-spoiler-body');
-        $(this).remove();
-      } else {
-        // ключ потерялся: открываем всё в этом комментарии
-        reveal($(this).closest('.rc-item'));
+      if (!target || !target.length) return reveal(toggle.closest('.rc-item'));
+
+      target.css('display', 'inline').removeClass('rc-spoiler-body');
+      toggle.remove();
+
+      var item = target.closest('.rc-item');
+
+      if (item.length && !item.find('.rc-spoiler').length) {
+        item.find('.rc-hint').remove();
+        item.removeClass('rc-item--spoiler');
       }
 
-      if (e && e.stopPropagation) e.stopPropagation();
+      return true;
+    }
 
-      return false;
+    // Привязываем обработчики напрямую к элементам, без делегирования:
+    // на части сборок Lampa кастомные события до делегированных
+    // обработчиков не доходят, и пульт переставал работать.
+    body.find('.rc-item').each(function () {
+      var item = $(this);
+
+      item.on('hover:enter', function () {
+        reveal(item);
+      });
+
+      item.on('click', function (e) {
+        // клик по плашке обрабатывается отдельно
+        if (e && e.target && $(e.target).hasClass('rc-spoiler')) return;
+
+        reveal(item);
+      });
     });
 
-    // пульт: OK на комментарии раскрывает все спойлеры внутри него
-    body.on('click hover:enter', '.rc-item', function () {
-      reveal($(this));
+    body.find('.rc-spoiler').each(function () {
+      var toggle = $(this);
+
+      toggle.on('click hover:enter', function (e) {
+        revealOne(toggle);
+
+        if (e && e.stopPropagation) e.stopPropagation();
+
+        return false;
+      });
     });
 
     modal_open = true;
@@ -464,6 +495,13 @@
       html: body,
       size: 'large',
       mask: true,
+      // штатный хук Lampa: срабатывает на OK по любому .selector внутри модалки
+      onSelect: function (element) {
+        var node = $(element);
+
+        if (node.hasClass('rc-spoiler')) revealOne(node);
+        else reveal(node.hasClass('rc-item') ? node : node.closest('.rc-item'));
+      },
       onBack: closeModal
     });
   }
