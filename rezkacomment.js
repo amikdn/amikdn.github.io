@@ -175,7 +175,6 @@
       el = nodes[i];
       attrs = el.attributes;
 
-      // спойлеры: onclick="ShowOrHide('id')" -> data-spoiler="id"
       var onclick = el.getAttribute ? el.getAttribute('onclick') : null;
       if (onclick) {
         var found = onclick.match(/ShowOrHide\(\s*['"]([^'"]+)['"]/);
@@ -739,25 +738,17 @@
       }
     });
 
-    try {
-      addSettings();
-    } catch (e) {
-      console.error('[RezkaComment] settings error', e);
-    }
+    addSettings();
 
     Lampa.Listener.follow('full', function (e) {
       if (e.type !== 'complite') return;
 
-      try {
-        var root = e.object.activity.render();
-        var holder = root.find('.full-start-new__buttons');
+      var root = e.object.activity.render();
+      var holder = root.find('.full-start-new__buttons');
 
-        if (!holder.length) holder = root.find('.full-start__buttons');
+      if (!holder.length) holder = root.find('.full-start__buttons');
 
-        addButton(holder, e.data.movie, e.object.method);
-      } catch (err) {
-        console.error('[RezkaComment] button error', err);
-      }
+      addButton(holder, e.data.movie, e.object.method);
     });
 
     Lampa.Listener.follow('app', function (e) {
