@@ -24,24 +24,6 @@
   var SVG_NS = decodeParts(['aH', 'R0', 'cD', 'ov', 'L3', 'd3', 'dy', '53', 'My', '5v', 'cm', 'cv', 'Mj', 'Aw', 'MC', '9z', 'dm', 'c=']);
   var XLINK_NS = decodeParts(['aH', 'R0', 'cD', 'ov', 'L3', 'd3', 'dy', '53', 'My', '5v', 'cm', 'cv', 'MT', 'k5', 'OS', '94', 'bG', 'lu', 'aw', '==']);
 
-  var BLOCKED_BALANSERS = [
-    'eneyida',
-    'kinoukr',
-    'uafilm',
-    'uafilmme',
-    'uaflix',
-    'uakino',
-    'makhno',
-    'klonfun',
-    'lme_eneyida',
-    'lme_kinoukr',
-    'lme_uafilmme',
-    'lme_uaflix',
-    'lme_uakino',
-    'lme_makhno',
-    'lme_klonfun'
-  ];
-
   var PLUGIN_ICON =
     '<svg viewBox="0 0 36 36" xmlns="' +
     SVG_NS +
@@ -50,47 +32,6 @@
     '<path fill="currentColor" d="M30.14 3a1 1 0 0 0-1-1h-22a1 1 0 0 0-1 1v1h24Z"/>' +
     '<path fill="currentColor" d="M32.12 7a1 1 0 0 0-1-1h-26a1 1 0 0 0-1 1v1h28Z"/>' +
     '</svg>';
-
-  function sourceFilterEnabled() {
-    return Lampa.Storage.get(STORAGE_PREFIX + 'source_filter', 'true') !== false;
-  }
-
-  function balanserKey(value) {
-    var name = value;
-
-    if (value && typeof value === 'object') {
-      name = value.balanser || (value.name ? String(value.name).split(' ')[0] : '');
-    }
-
-    return String(name || '')
-      .toLowerCase()
-      .replace(/[^a-z0-9_-]/g, '');
-  }
-
-  function isBlockedBalanser(value) {
-    if (!sourceFilterEnabled()) return false;
-
-    var name = balanserKey(value);
-    if (!name) return false;
-
-    return BLOCKED_BALANSERS.some(function (blocked) {
-      return (
-        name === blocked ||
-        name.indexOf(blocked + '-') === 0 ||
-        name.indexOf(blocked + '_') === 0 ||
-        name.indexOf('lme' + blocked) === 0 ||
-        name.indexOf(blocked) === 0
-      );
-    });
-  }
-
-  function filterBalansers(list) {
-    if (!list || typeof list.filter !== 'function') return list;
-
-    return list.filter(function (item) {
-      return !isBlockedBalanser(item);
-    });
-  }
 
   var Defined = {
     api: 'lampac',
@@ -386,7 +327,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
       network.silent(
         account(SERVER_BASE + '/lite/withsearch'),
         function (json) {
-          balansers_with_search = filterBalansers(json || []);
+          balansers_with_search = json;
         },
         function () {
           balansers_with_search = [];
@@ -644,7 +585,6 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
       return new Promise(function (resolve, reject) {
         json.forEach(function (j) {
           var name = balanserName(j);
-          if (isBlockedBalanser(name)) return;
           sources[name] = {
             url: j.url,
             name: j.name,
@@ -677,7 +617,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
         var gou = function gou(json, any) {
           if (json.accsdb) return reject(json);
           var last_balanser = _this3.getLastChoiceBalanser();
-          var online = filterBalansers(json.online || []);
+          var online = json.online || [];
           if (!red) {
             var _filter = online.filter(function (c) {
               return any ? c.show : c.show && c.name.toLowerCase() == last_balanser;
@@ -702,9 +642,8 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
               life_wait_times++;
               filter_sources = [];
               sources = {};
-              filterBalansers(json.online || []).forEach(function (j) {
+              (json.online || []).forEach(function (j) {
                 var name = balanserName(j);
-                if (isBlockedBalanser(name)) return;
                 sources[name] = {
                   url: j.url,
                   name: j.name,
@@ -1995,7 +1934,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
       title: spiderName,
       search: function (params, oncomplite) {
         function searchComplite(links) {
-          var keys = filterBalansers(Lampa.Arrays.getKeys(links) || []);
+          var keys = Lampa.Arrays.getKeys(links);
 
           if (keys.length) {
             var status = new Lampa.Status(keys.length);
@@ -2764,52 +2703,6 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
     ].join('\n');
     var button = LAMPAC_FULL_CARD_BUTTON; // нужна заглушка, а то при страте лампы говорит пусто
     resetTemplates();
-
-    function addSettings() {
-      if (!Lampa.SettingsApi || typeof Lampa.SettingsApi.addComponent !== 'function') return;
-
-      Lampa.Lang.add({
-        lom_settings_title: {
-          ru: PLUGIN_NAME,
-          uk: PLUGIN_NAME,
-          en: PLUGIN_NAME,
-          zh: PLUGIN_NAME
-        },
-        lom_source_filter_title: {
-          ru: 'Фильтр источников',
-          uk: 'Фільтр джерел',
-          en: 'Source filter',
-          zh: '来源过滤'
-        },
-        lom_source_filter_descr: {
-          ru: 'Скрывать источники из внутреннего стоп-листа плагина',
-          uk: 'Приховувати джерела з внутрішнього стоп-листа плагіна',
-          en: 'Hide sources from the plugin internal block list',
-          zh: '隐藏插件内部屏蔽列表中的来源'
-        }
-      });
-
-      Lampa.SettingsApi.addComponent({
-        component: PLUGIN_ID,
-        name: Lampa.Lang.translate('lom_settings_title'),
-        icon: PLUGIN_ICON
-      });
-
-      Lampa.SettingsApi.addParam({
-        component: PLUGIN_ID,
-        param: {
-          name: STORAGE_PREFIX + 'source_filter',
-          type: 'trigger',
-          'default': true
-        },
-        field: {
-          name: Lampa.Lang.translate('lom_source_filter_title'),
-          description: Lampa.Lang.translate('lom_source_filter_descr')
-        }
-      });
-    }
-
-    addSettings();
 
     function addButton(e) {
       if (e.render.find('.' + PLUGIN_BUTTON_CLASS).length) return;
