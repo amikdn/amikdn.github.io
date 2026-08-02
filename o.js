@@ -45,10 +45,6 @@
     '"><path d="M47 28.5L17 46V11L47 28.5Z" fill="white"/>' +
     '<rect x="2" y="2" width="54" height="53" rx="5" stroke="white" stroke-width="4"/></svg>';
 
-  function sourceFilterEnabled() {
-    return Lampa.Storage.get(STORAGE_PREFIX + 'source_filter', 'true') !== false;
-  }
-
   function balanserKey(value) {
     var name = value;
 
@@ -62,8 +58,6 @@
   }
 
   function isBlockedBalanser(value) {
-    if (!sourceFilterEnabled()) return false;
-
     var name = balanserKey(value);
     if (!name) return false;
 
@@ -94,10 +88,10 @@
 
   var balansers_with_search;
 
-  var unic_id = Lampa.Storage.get('lampac_unic_id', '');
+  var unic_id = Lampa.Storage.get(STORAGE_PREFIX + 'unic_id', '');
   if (!unic_id) {
     unic_id = Lampa.Utils.uid(8).toLowerCase();
-    Lampa.Storage.set('lampac_unic_id', unic_id);
+    Lampa.Storage.set(STORAGE_PREFIX + 'unic_id', unic_id);
   }
 
     function getAndroidVersion() {
@@ -307,7 +301,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
       if (email) url = Lampa.Utils.addUrlComponent(url, 'account_email=' + encodeURIComponent(email));
     }
     if (url.indexOf('uid=') == -1) {
-      var uid = Lampa.Storage.get('lampac_unic_id', '');
+      var uid = Lampa.Storage.get(STORAGE_PREFIX + 'unic_id', '');
       if (uid) url = Lampa.Utils.addUrlComponent(url, 'uid=' + encodeURIComponent(uid));
     }
     if (url.indexOf('token=') == -1) {
@@ -315,7 +309,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
       if (token != '') url = Lampa.Utils.addUrlComponent(url, 'token=');
     }
     if (url.indexOf('nws_id=') == -1) {
-      var nws_id = Lampa.Storage.get('lampac_nws_id', '');
+      var nws_id = Lampa.Storage.get(STORAGE_PREFIX + 'nws_id', '');
       if (nws_id) url = Lampa.Utils.addUrlComponent(url, 'nws_id=' + encodeURIComponent(nws_id));
     }
     return url;
@@ -2763,52 +2757,6 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
     ].join('\n');
     var button = LAMPAC_FULL_CARD_BUTTON; // нужна заглушка, а то при страте лампы говорит пусто
     resetTemplates();
-
-    function addSettings() {
-      if (!Lampa.SettingsApi || typeof Lampa.SettingsApi.addComponent !== 'function') return;
-
-      Lampa.Lang.add({
-        lampac_settings_title: {
-          ru: PLUGIN_NAME,
-          uk: PLUGIN_NAME,
-          en: PLUGIN_NAME,
-          zh: PLUGIN_NAME
-        },
-        lampac_source_filter_title: {
-          ru: 'Фильтр источников',
-          uk: 'Фільтр джерел',
-          en: 'Source filter',
-          zh: '来源过滤'
-        },
-        lampac_source_filter_descr: {
-          ru: 'Скрывать источники из внутреннего стоп-листа плагина',
-          uk: 'Приховувати джерела з внутрішнього стоп-листа плагіна',
-          en: 'Hide sources from the plugin internal block list',
-          zh: '隐藏插件内部屏蔽列表中的来源'
-        }
-      });
-
-      Lampa.SettingsApi.addComponent({
-        component: PLUGIN_ID,
-        name: Lampa.Lang.translate('lampac_settings_title'),
-        icon: PLUGIN_ICON
-      });
-
-      Lampa.SettingsApi.addParam({
-        component: PLUGIN_ID,
-        param: {
-          name: STORAGE_PREFIX + 'source_filter',
-          type: 'trigger',
-          'default': true
-        },
-        field: {
-          name: Lampa.Lang.translate('lampac_source_filter_title'),
-          description: Lampa.Lang.translate('lampac_source_filter_descr')
-        }
-      });
-    }
-
-    addSettings();
 
     function addButton(e) {
       if (e.render.find('.' + PLUGIN_BUTTON_CLASS).length) return;
