@@ -6,6 +6,7 @@
   var servers = [
     { id: 'lampa_jackett', name: 'Lampa jacred', baseUrl: '87.120.84.218:9117', key: '333', interview: 'all', lang: 'df' },
     { id: 'jac_red', name: 'Jac.red', baseUrl: 'jac.red', key: '', interview: 'healthy', lang: 'lg' },
+    { id: 'ru_jac_black', name: 'RU Jac.black', baseUrl: 'ru.jac.black', protocol: 'https://', key: '', interview: 'healthy', lang: 'lg' },
     { id: 'jr_maxvol_pro', name: 'Jacred Maxvol Pro', baseUrl: 'jr.maxvol.pro', key: '', interview: 'healthy', lang: 'df' },
     { id: 'jacred_ru', name: 'Jacred RU', baseUrl: 'jac-red.ru', key: '', interview: 'all', lang: 'lg' },
     { id: 'jacred_pro', name: 'RU Jacred Pro', baseUrl: 'ru.jacred.pro', key: '', interview: 'all', lang: 'lg' },
