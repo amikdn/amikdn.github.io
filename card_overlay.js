@@ -2478,7 +2478,12 @@
         var seasonsText = plural(displaySeasons, 'сезон', 'сезона', 'сезонов');
         var episodesText = plural(displayEpisodes, 'серия', 'серии', 'серий');
         var isCompleted = (status === 'Ended' || status === 'Canceled');
-        var bgColor = isCompleted ? 'rgba(33,150,243,0.8)' : 'rgba(244,67,54,0.8)';
+        // На телефоне лейбл лежит поверх постера, который к тому же затемнён
+        // градиентом — полупрозрачный фон там сливается с картинкой и текст
+        // не читается. Делаем плотный.
+        var bgColor = isMobilePortrait()
+            ? (isCompleted ? 'rgb(33,150,243)' : 'rgb(244,67,54)')
+            : (isCompleted ? 'rgba(33,150,243,0.8)' : 'rgba(244,67,54,0.8)');
         var statusText = getStatusText(status);
         var txt = displaySeasons + ' ' + seasonsText + ' ' + displayEpisodes + ' ' + episodesText;
         if (seasonInfoSettings.seasons_info_mode === 'aired' && totalEpisodes > 0 && airedEpisodes < totalEpisodes && airedEpisodes > 0) txt = displaySeasons + ' ' + seasonsText + ' ' + airedEpisodes + ' ' + episodesText + ' из ' + totalEpisodes;
@@ -2492,19 +2497,13 @@
         var pos = SEASON_LABEL_POSITIONS[posKey];
         info.css($.extend({ position: 'absolute', backgroundColor: bgColor, color: 'white', padding: '0.25em 0.45em', fontSize: 'var(--rating-font-size,1.1em)', zIndex: 10, whiteSpace: 'nowrap', lineHeight: '1', boxShadow: 'none' }, pos));
         info.attr('data-co-label-pos', posKey);
-        // На телефоне в вертикальном режиме постер узкий и наполовину уходит
-        // за край экрана: лейбл поверх него получался мелким и обрезанным.
-        // Поэтому там он становится обычной плашкой в строке с «18+», «4K» —
-        // тот же размер, что у соседей, и ничего не режется.
-        var asChip = isMobilePortrait() && (posKey === 'top-left' || posKey === 'top-right');
-
         setTimeout(function () {
             var render2 = getActivityRender(object);
             if (!render2) return;
             var poster = $(render2).find('.full-start-new__poster');
             if (poster.length) {
                 poster.find('.season-info-label').remove();
-                if (!asChip) poster.css('position', 'relative').append(info);
+                poster.css('position', 'relative').append(info);
             }
             metaLine = ensureDetailMetaLine(render2);
             if (metaLine.length) {
@@ -2530,11 +2529,6 @@
                 // иначе «Завершено» и «Завершён» считаются разными плашками.
                 fixSeriesStatusText(render2);
                 dedupeDetailStatus(render2);
-                // Ставим после переноса плашек: он дописывает свои в конец.
-                if (asChip) {
-                    if (posKey === 'top-left') metaLine.prepend(info);
-                    else metaLine.append(info);
-                }
             }
         }, 100);
     }
@@ -3305,7 +3299,7 @@
             '.full-start__pg.hide,.full-start__pg.nr{display:none!important}' +
             '.full-start-new__meta-line{display:none!important}' +
             '.season-info-label{position:absolute!important;color:#fff!important;padding:0.25em 0.45em!important;font-size:var(--rating-font-size,1.1em)!important;line-height:1!important;z-index:10!important;white-space:nowrap!important}' +
-            '@media (max-width:480px) and (orientation:portrait){.full-start-new__rate-line{display:flex!important;flex-wrap:wrap!important;align-items:center!important;justify-content:center!important;align-content:center!important;gap:0.35em!important;width:100%!important;max-width:100%!important;margin-left:auto!important;margin-right:auto!important;text-align:center!important}.full-start-new__rate-line>*{margin:0!important}.full-start-new__rate-line .full-start-new__rate:not(.hide):not([style*="display: none"]),.full-start-new__rate-line .full-start__rate:not(.hide):not([style*="display: none"]){display:inline-flex;align-items:center!important;justify-content:center!important;flex:0 0 auto!important;margin:0!important}.full-start-new__rate-line .full-start-new__rate.hide,.full-start-new__rate-line .full-start__rate.hide,.full-start-new__rate-line .full-start-new__rate[style*="display: none"],.full-start-new__rate-line .full-start__rate[style*="display: none"]{display:none!important}.full-start-new__rate-line.card-overlay-mobile-rate-line[data-card-overlay-rating-count="1"]{max-width:9em!important}.full-start-new__rate-line.card-overlay-mobile-rate-line[data-card-overlay-rating-count="2"]{max-width:18em!important}.full-start-new__rate-line.card-overlay-mobile-rate-line[data-card-overlay-rating-count="3"],.full-start-new__rate-line.card-overlay-mobile-rate-line[data-card-overlay-rating-count="4"]{max-width:100%!important}.full-start-new__meta-line{display:flex!important;flex-wrap:wrap!important;align-items:center!important;justify-content:center!important;gap:0.5em!important;width:100%!important;line-height:1!important;font-size:1em!important;margin-top:0.3em!important}.full-start-new__meta-line .full-start__status,.full-start-new__meta-line .full-start__pg{margin:0!important;display:inline-flex!important;align-items:center!important;line-height:1!important;white-space:nowrap!important}.full-start-new__details{margin-top:0.3em!important;display:flex!important;flex-wrap:wrap!important;justify-content:center!important;gap:0.1em!important}.full-start-new__reactions{justify-content:center!important}.full-start-new__buttons{justify-content:center!important;text-align:center!important}.full-start-new__right,.full-start__right{text-align:center!important}.full-start-new__right h1,.full-start__right h1,.full-start-new__right .name,.full-start__right .name,.full-start__name{text-align:center!important;width:100%!important}.season-info-label{display:none!important}.full-start-new__meta-line .season-info-label{display:inline-flex!important;align-items:center!important;position:static!important;top:auto!important;right:auto!important;bottom:auto!important;left:auto!important;-webkit-writing-mode:horizontal-tb!important;writing-mode:horizontal-tb!important;font-size:1em!important;line-height:1!important;margin:0!important;padding:0.3em 0.6em!important;border-radius:0.4em!important;white-space:nowrap!important;max-width:100%!important;overflow:visible!important;box-shadow:none!important;text-shadow:none!important;filter:none!important;opacity:1!important}}' +
+            '@media (max-width:480px) and (orientation:portrait){.full-start-new__rate-line{display:flex!important;flex-wrap:wrap!important;align-items:center!important;justify-content:center!important;align-content:center!important;gap:0.35em!important;width:100%!important;max-width:100%!important;margin-left:auto!important;margin-right:auto!important;text-align:center!important}.full-start-new__rate-line>*{margin:0!important}.full-start-new__rate-line .full-start-new__rate:not(.hide):not([style*="display: none"]),.full-start-new__rate-line .full-start__rate:not(.hide):not([style*="display: none"]){display:inline-flex;align-items:center!important;justify-content:center!important;flex:0 0 auto!important;margin:0!important}.full-start-new__rate-line .full-start-new__rate.hide,.full-start-new__rate-line .full-start__rate.hide,.full-start-new__rate-line .full-start-new__rate[style*="display: none"],.full-start-new__rate-line .full-start__rate[style*="display: none"]{display:none!important}.full-start-new__rate-line.card-overlay-mobile-rate-line[data-card-overlay-rating-count="1"]{max-width:9em!important}.full-start-new__rate-line.card-overlay-mobile-rate-line[data-card-overlay-rating-count="2"]{max-width:18em!important}.full-start-new__rate-line.card-overlay-mobile-rate-line[data-card-overlay-rating-count="3"],.full-start-new__rate-line.card-overlay-mobile-rate-line[data-card-overlay-rating-count="4"]{max-width:100%!important}.full-start-new__meta-line{display:flex!important;flex-wrap:wrap!important;align-items:center!important;justify-content:center!important;gap:0.5em!important;width:100%!important;line-height:1!important;font-size:1em!important;margin-top:0.3em!important}.full-start-new__meta-line .full-start__status,.full-start-new__meta-line .full-start__pg{margin:0!important;display:inline-flex!important;align-items:center!important;line-height:1!important;white-space:nowrap!important}.full-start-new__details{margin-top:0.3em!important;display:flex!important;flex-wrap:wrap!important;justify-content:center!important;gap:0.1em!important}.full-start-new__reactions{justify-content:center!important}.full-start-new__buttons{justify-content:center!important;text-align:center!important}.full-start-new__right,.full-start__right{text-align:center!important}.full-start-new__right h1,.full-start__right h1,.full-start-new__right .name,.full-start__right .name,.full-start__name{text-align:center!important;width:100%!important}.season-info-label{display:none!important}.season-info-label[data-co-label-pos="top-left"],.season-info-label[data-co-label-pos="top-right"]{display:inline-block!important;top:3.2em!important;bottom:auto!important;-webkit-writing-mode:horizontal-tb!important;writing-mode:horizontal-tb!important;font-size:1.1em!important;line-height:1!important;padding:0.4em 0.7em!important;border-radius:0.5em!important;white-space:nowrap!important;max-width:calc(100vw - 3.6em)!important;overflow:hidden!important;text-overflow:ellipsis!important;box-shadow:0 0.15em 0.5em rgba(0,0,0,0.6)!important;text-shadow:none!important;filter:none!important;opacity:1!important;z-index:15!important}.season-info-label[data-co-label-pos="top-left"]{left:1.4em!important;right:auto!important}.season-info-label[data-co-label-pos="top-right"]{right:1.4em!important;left:auto!important}}' +
             'body[data-movie-labels="on"] .card--tv .card__type:not([data-card-overlay-type-label="1"]){display:none!important}' +
             'body[data-badge-style="rounded"] .card__vote,body[data-badge-style="rounded"] .card__vote-line,body[data-badge-style="rounded"] .card__quality,body[data-badge-style="rounded"] .card__type[data-card-overlay-type-label="1"],body[data-badge-style="rounded"] .content-label{border-radius:0.5em!important;box-shadow:0 0.12em 0.4em rgba(0,0,0,0.55)!important}' +
             'body[data-badge-style="rounded"] .card__vote-separate-wrap .card__vote,body[data-badge-style="rounded"] .card__vote-separate-wrap.card__vote--bottom .card__vote.visible-last,body[data-badge-style="rounded"] .card__vote-separate-wrap.card__vote--bottom .card__vote.visible-only,body[data-badge-style="rounded"] .card__vote-separate-wrap.card__vote--top .card__vote.visible-first,body[data-badge-style="rounded"] .card__vote-separate-wrap.card__vote--top .card__vote.visible-only{border-radius:0.5em!important;box-shadow:0 0.12em 0.4em rgba(0,0,0,0.55)!important}' +
