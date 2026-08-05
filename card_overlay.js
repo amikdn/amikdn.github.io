@@ -1891,11 +1891,17 @@
             $('.full-start-new__meta-line').each(function () {
                 var metaLine = $(this);
                 var rateLine = metaLine.prev('.full-start-new__rate-line');
+                // Лейбл о сериях в горизонтальном режиме возвращается на
+                // постер, в строку рейтингов его тащить не надо.
+                metaLine.find('.season-info-label').remove();
                 metaLine.children().each(function () { rateLine.append(this); });
                 metaLine.remove();
             });
             normalizeDetailRatingLine(document);
         }
+        // Поворот экрана меняет место лейбла: плашка в строке или метка на
+        // постере. Перерисовываем, иначе он останется там, где был.
+        try { refreshSeasonInfo(); } catch (e) { logErr(e); }
     }
     function moveDetailMetaToSecondLine(viewRenderer) {
         if (!isMobilePortrait()) return;
@@ -1907,7 +1913,11 @@
             if (el.hasClass('hide') || el.hasClass('nr')) return false;
             return $.trim(el.text()).length > 0;
         }).first();
-        var nativeStatus = render.find('.full-start__status').not('.qualview-quality').not('.season-info-status').filter(function () {
+        // Исключаем только СВОЮ плашку. Родной статус помечается классом
+        // season-info-status при отрисовке информации о сериях, и если
+        // отсеивать по нему, при повторном вызове родной статус перестаёт
+        // переезжать во вторую строку и застревает среди рейтингов.
+        var nativeStatus = render.find('.full-start__status').not('.qualview-quality').not('.co-own-status').filter(function () {
             var el = $(this);
             return !el.closest('.full-start-new__rate, .full-start__rate').length;
         }).first();
@@ -1924,6 +1934,7 @@
         var metaLine = ensureDetailMetaLine(viewRenderer);
         if (!metaLine.length) return;
         metaItems.forEach(function (el) { metaLine.append(el); });
+        dedupeDetailStatus(viewRenderer);
         normalizeDetailRatingLine(viewRenderer);
     }
 
@@ -2472,31 +2483,58 @@
         var txt = displaySeasons + ' ' + seasonsText + ' ' + displayEpisodes + ' ' + episodesText;
         if (seasonInfoSettings.seasons_info_mode === 'aired' && totalEpisodes > 0 && airedEpisodes < totalEpisodes && airedEpisodes > 0) txt = displaySeasons + ' ' + seasonsText + ' ' + airedEpisodes + ' ' + episodesText + ' из ' + totalEpisodes;
         var info = $('<div class="season-info-label"></div>').text(txt);
-        var statusLabel = $('<div class="full-start__status season-info-status"></div>').text(statusText);
+        // Свой класс, чтобы отличать нашу плашку от родной ламповской:
+        // раньше обе висели с season-info-status, и очистка перед
+        // перерисовкой сносила заодно родную.
+        var statusLabel = $('<div class="full-start__status season-info-status co-own-status"></div>').text(statusText);
         var metaLine;
         var posKey = getSeasonLabelPosition();
         var pos = SEASON_LABEL_POSITIONS[posKey];
         info.css($.extend({ position: 'absolute', backgroundColor: bgColor, color: 'white', padding: '0.25em 0.45em', fontSize: 'var(--rating-font-size,1.1em)', zIndex: 10, whiteSpace: 'nowrap', lineHeight: '1', boxShadow: 'none' }, pos));
         info.attr('data-co-label-pos', posKey);
+        // На телефоне в вертикальном режиме постер узкий и наполовину уходит
+        // за край экрана: лейбл поверх него получался мелким и обрезанным.
+        // Поэтому там он становится обычной плашкой в строке с «18+», «4K» —
+        // тот же размер, что у соседей, и ничего не режется.
+        var asChip = isMobilePortrait() && (posKey === 'top-left' || posKey === 'top-right');
+
         setTimeout(function () {
             var render2 = getActivityRender(object);
             if (!render2) return;
             var poster = $(render2).find('.full-start-new__poster');
             if (poster.length) {
                 poster.find('.season-info-label').remove();
-                poster.css('position', 'relative').append(info);
+                if (!asChip) poster.css('position', 'relative').append(info);
             }
             metaLine = ensureDetailMetaLine(render2);
             if (metaLine.length) {
-                metaLine.find('.season-info-status').remove();
+                // Сносим только свою плашку, родную не трогаем.
+                $(render2).find('.co-own-status').remove();
+                metaLine.find('.season-info-label').remove();
+
+                // Ищем родной статус ВЕЗДЕ, включая строку плашек.
+                //
+                // Тут и была причина двойного «Завершён»: перенос плашек во
+                // вторую строку успевал отработать раньше этого места, родной
+                // статус оказывался внутри meta-line, а он из поиска
+                // исключался. Мы решали, что статуса нет, и дорисовывали свой.
                 var nativeStatus = $(render2).find('.full-start__status').filter(function () {
                     var el = $(this);
-                    if (el.hasClass('qualview-quality')) return false;
-                    return !el.closest('.full-start-new__rate, .full-start__rate, .full-start-new__meta-line').length;
+                    if (el.hasClass('qualview-quality') || el.hasClass('co-own-status')) return false;
+                    return !el.closest('.full-start-new__rate, .full-start__rate').length;
                 }).first();
                 if (nativeStatus.length) nativeStatus.addClass('season-info-status');
                 else if (isMobilePortrait()) metaLine.append(statusLabel);
                 moveDetailMetaToSecondLine(render2);
+                // Сначала приводим текст к единому виду, потом убираем дубли:
+                // иначе «Завершено» и «Завершён» считаются разными плашками.
+                fixSeriesStatusText(render2);
+                dedupeDetailStatus(render2);
+                // Ставим после переноса плашек: он дописывает свои в конец.
+                if (asChip) {
+                    if (posKey === 'top-left') metaLine.prepend(info);
+                    else metaLine.append(info);
+                }
             }
         }, 100);
     }
@@ -2526,6 +2564,53 @@
         }
         var scope = render ? $(render) : $(document);
         scope.find('.full-start__status').each(function () { apply(this); });
+    }
+    // Разные системы пишут один и тот же статус по-разному: «Завершено» и
+    // «Завершён», «Ended» и «Завершён». Для сравнения сводим к одному слову,
+    // иначе дубликат не распознается и на экране остаются обе плашки.
+    var STATUS_SYNONYMS = [
+        ['completed', ['завершен', 'завершено', 'ended', 'окончен', 'окончено']],
+        ['canceled', ['отменен', 'отменено', 'canceled', 'cancelled']],
+        ['ongoing', ['онгоинг', 'выходит', 'в эфире', 'ongoing', 'returning series']],
+        ['production', ['в производстве', 'production', 'in production']],
+        ['planned', ['запланирован', 'запланировано', 'planned']],
+        ['released', ['выпущен', 'вышел', 'released']]
+    ];
+
+    function statusKey(text) {
+        var t = (text || '').trim().toLowerCase().replace(/\s+/g, ' ').replace(/ё/g, 'е');
+        if (!t) return '';
+        for (var i = 0; i < STATUS_SYNONYMS.length; i++) {
+            var words = STATUS_SYNONYMS[i][1];
+            for (var j = 0; j < words.length; j++) {
+                if (t === words[j]) return STATUS_SYNONYMS[i][0];
+            }
+        }
+        return t;
+    }
+
+    function dedupeDetailStatus(render) {
+        // Одинаковые плашки могут прийти из разных мест: своя, ламповская,
+        // чужого плагина. Оставляем первую, остальные с тем же текстом убираем.
+        // Своя копия уходит первой: родную оставлять правильнее.
+        var scope = render ? $(render) : $(document);
+        var seen = {};
+        var nodes = scope.find('.full-start-new__rate-line .full-start__status, .full-start-new__meta-line .full-start__status').toArray();
+
+        nodes.sort(function (a, b) {
+            var ao = $(a).hasClass('co-own-status') ? 1 : 0;
+            var bo = $(b).hasClass('co-own-status') ? 1 : 0;
+            return ao - bo;
+        });
+
+        nodes.forEach(function (node) {
+            var el = $(node);
+            if (el.hasClass('qualview-quality')) return;
+            var key = statusKey(el.text());
+            if (!key) return;
+            if (seen[key]) el.remove();
+            else seen[key] = true;
+        });
     }
     function fixSeriesStatusText(render) {
         var scope = render ? $(render) : $(document);
@@ -3220,7 +3305,7 @@
             '.full-start__pg.hide,.full-start__pg.nr{display:none!important}' +
             '.full-start-new__meta-line{display:none!important}' +
             '.season-info-label{position:absolute!important;color:#fff!important;padding:0.25em 0.45em!important;font-size:var(--rating-font-size,1.1em)!important;line-height:1!important;z-index:10!important;white-space:nowrap!important}' +
-            '@media (max-width:480px) and (orientation:portrait){.full-start-new__rate-line{display:flex!important;flex-wrap:wrap!important;align-items:center!important;justify-content:center!important;align-content:center!important;gap:0.35em!important;width:100%!important;max-width:100%!important;margin-left:auto!important;margin-right:auto!important;text-align:center!important}.full-start-new__rate-line>*{margin:0!important}.full-start-new__rate-line .full-start-new__rate:not(.hide):not([style*="display: none"]),.full-start-new__rate-line .full-start__rate:not(.hide):not([style*="display: none"]){display:inline-flex;align-items:center!important;justify-content:center!important;flex:0 0 auto!important;margin:0!important}.full-start-new__rate-line .full-start-new__rate.hide,.full-start-new__rate-line .full-start__rate.hide,.full-start-new__rate-line .full-start-new__rate[style*="display: none"],.full-start-new__rate-line .full-start__rate[style*="display: none"]{display:none!important}.full-start-new__rate-line.card-overlay-mobile-rate-line[data-card-overlay-rating-count="1"]{max-width:9em!important}.full-start-new__rate-line.card-overlay-mobile-rate-line[data-card-overlay-rating-count="2"]{max-width:18em!important}.full-start-new__rate-line.card-overlay-mobile-rate-line[data-card-overlay-rating-count="3"],.full-start-new__rate-line.card-overlay-mobile-rate-line[data-card-overlay-rating-count="4"]{max-width:100%!important}.full-start-new__meta-line{display:flex!important;flex-wrap:wrap!important;align-items:center!important;justify-content:center!important;gap:0.5em!important;width:100%!important;line-height:1!important;font-size:1em!important;margin-top:0.3em!important}.full-start-new__meta-line .full-start__status,.full-start-new__meta-line .full-start__pg{margin:0!important;display:inline-flex!important;align-items:center!important;line-height:1!important;white-space:nowrap!important}.full-start-new__details{margin-top:0.3em!important;display:flex!important;flex-wrap:wrap!important;justify-content:center!important;gap:0.1em!important}.full-start-new__reactions{justify-content:center!important}.full-start-new__buttons{justify-content:center!important;text-align:center!important}.full-start-new__right,.full-start__right{text-align:center!important}.full-start-new__right h1,.full-start__right h1,.full-start-new__right .name,.full-start__right .name,.full-start__name{text-align:center!important;width:100%!important}.season-info-label{display:none!important}.season-info-label[data-co-label-pos="top-left"],.season-info-label[data-co-label-pos="top-right"]{display:block!important;-webkit-writing-mode:horizontal-tb!important;writing-mode:horizontal-tb!important;font-size:var(--rating-font-size,1.1em)!important;white-space:normal!important;overflow-wrap:break-word!important;max-width:calc(100% - 0.4em)!important;overflow:visible!important;text-overflow:clip!important;padding:0.25em 0.45em!important;box-shadow:none!important;text-shadow:none!important;filter:none!important}}' +
+            '@media (max-width:480px) and (orientation:portrait){.full-start-new__rate-line{display:flex!important;flex-wrap:wrap!important;align-items:center!important;justify-content:center!important;align-content:center!important;gap:0.35em!important;width:100%!important;max-width:100%!important;margin-left:auto!important;margin-right:auto!important;text-align:center!important}.full-start-new__rate-line>*{margin:0!important}.full-start-new__rate-line .full-start-new__rate:not(.hide):not([style*="display: none"]),.full-start-new__rate-line .full-start__rate:not(.hide):not([style*="display: none"]){display:inline-flex;align-items:center!important;justify-content:center!important;flex:0 0 auto!important;margin:0!important}.full-start-new__rate-line .full-start-new__rate.hide,.full-start-new__rate-line .full-start__rate.hide,.full-start-new__rate-line .full-start-new__rate[style*="display: none"],.full-start-new__rate-line .full-start__rate[style*="display: none"]{display:none!important}.full-start-new__rate-line.card-overlay-mobile-rate-line[data-card-overlay-rating-count="1"]{max-width:9em!important}.full-start-new__rate-line.card-overlay-mobile-rate-line[data-card-overlay-rating-count="2"]{max-width:18em!important}.full-start-new__rate-line.card-overlay-mobile-rate-line[data-card-overlay-rating-count="3"],.full-start-new__rate-line.card-overlay-mobile-rate-line[data-card-overlay-rating-count="4"]{max-width:100%!important}.full-start-new__meta-line{display:flex!important;flex-wrap:wrap!important;align-items:center!important;justify-content:center!important;gap:0.5em!important;width:100%!important;line-height:1!important;font-size:1em!important;margin-top:0.3em!important}.full-start-new__meta-line .full-start__status,.full-start-new__meta-line .full-start__pg{margin:0!important;display:inline-flex!important;align-items:center!important;line-height:1!important;white-space:nowrap!important}.full-start-new__details{margin-top:0.3em!important;display:flex!important;flex-wrap:wrap!important;justify-content:center!important;gap:0.1em!important}.full-start-new__reactions{justify-content:center!important}.full-start-new__buttons{justify-content:center!important;text-align:center!important}.full-start-new__right,.full-start__right{text-align:center!important}.full-start-new__right h1,.full-start__right h1,.full-start-new__right .name,.full-start__right .name,.full-start__name{text-align:center!important;width:100%!important}.season-info-label{display:none!important}.full-start-new__meta-line .season-info-label{display:inline-flex!important;align-items:center!important;position:static!important;top:auto!important;right:auto!important;bottom:auto!important;left:auto!important;-webkit-writing-mode:horizontal-tb!important;writing-mode:horizontal-tb!important;font-size:1em!important;line-height:1!important;margin:0!important;padding:0.3em 0.6em!important;border-radius:0.4em!important;white-space:nowrap!important;max-width:100%!important;overflow:visible!important;box-shadow:none!important;text-shadow:none!important;filter:none!important;opacity:1!important}}' +
             'body[data-movie-labels="on"] .card--tv .card__type:not([data-card-overlay-type-label="1"]){display:none!important}' +
             'body[data-badge-style="rounded"] .card__vote,body[data-badge-style="rounded"] .card__vote-line,body[data-badge-style="rounded"] .card__quality,body[data-badge-style="rounded"] .card__type[data-card-overlay-type-label="1"],body[data-badge-style="rounded"] .content-label{border-radius:0.5em!important;box-shadow:0 0.12em 0.4em rgba(0,0,0,0.55)!important}' +
             'body[data-badge-style="rounded"] .card__vote-separate-wrap .card__vote,body[data-badge-style="rounded"] .card__vote-separate-wrap.card__vote--bottom .card__vote.visible-last,body[data-badge-style="rounded"] .card__vote-separate-wrap.card__vote--bottom .card__vote.visible-only,body[data-badge-style="rounded"] .card__vote-separate-wrap.card__vote--top .card__vote.visible-first,body[data-badge-style="rounded"] .card__vote-separate-wrap.card__vote--top .card__vote.visible-only{border-radius:0.5em!important;box-shadow:0 0.12em 0.4em rgba(0,0,0,0.55)!important}' +
@@ -3369,7 +3454,7 @@
                 scheduleVisibleRatingsUpdate(0);
                 if (isColoredElementsOn()) $('body').addClass('colored-elements-on'); else $('body').removeClass('colored-elements-on');
                 later(function () { colorizeFullCardRatings(render); colorizeDetailQuality(); }, 100, 'detail-colorize');
-                retry(function () { fixSeriesStatusText(render); }, [0, 150, 400], 'detail-status');
+                retry(function () { fixSeriesStatusText(render); dedupeDetailStatus(render); }, [0, 150, 400], 'detail-status');
                 colorizeSeriesStatus(render);
                 colorizeAgeRating(render);
             }
