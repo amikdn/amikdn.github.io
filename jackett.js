@@ -9,7 +9,6 @@
     { id: 'ru_jac_black', name: 'RU Jac.black', baseUrl: 'ru.jac.black', protocol: 'https://', key: '', interview: 'healthy', lang: 'lg' },
     { id: 'jr_maxvol_pro', name: 'Jacred Maxvol Pro', baseUrl: 'jr.maxvol.pro', key: '', interview: 'healthy', lang: 'df' },
     { id: 'jacred_ru', name: 'Jacred RU', baseUrl: 'jac-red.ru', key: '', interview: 'all', lang: 'lg' },
-    { id: 'jacred_pro', name: 'RU Jacred Pro', baseUrl: 'ru.jacred.pro', key: '', interview: 'all', lang: 'lg' },
     { id: 'tribal', name: 'Tribal', baseUrl: '11.307407.xyz', protocol: 'https://', key: '', interview: 'all', lang: 'lg' },
     { id: 'freebie_tom_ru', name: 'Freebie', baseUrl: 'jacred.freebie.tom.ru', key: '1', interview: 'all', lang: 'lg' }
   ];
@@ -37,7 +36,25 @@
     return server.protocol || 'http://';
   }
 
+  /* Приложение (Android, Tizen, WebOS) ходит в сеть нативно и правило
+     mixed content на него не распространяется. Ограничение живое только в
+     обычном браузере — там https-страница действительно не пустит запрос
+     на http.
+
+     Раньше проверка не различала эти случаи, и на ТВ рабочие http-парсеры
+     (Freebie и другие) висели с ⚠, хотя при выборе искали как ни в чём не
+     бывало. */
+  function isNativeApp() {
+    try {
+      if (typeof Lampa === 'undefined' || !Lampa.Platform) return false;
+      return !Lampa.Platform.is('browser');
+    } catch (e) {
+      return false;
+    }
+  }
+
   function isBlockedByMixedContent(server) {
+    if (isNativeApp()) return false;
     return pageHttps && getRequestProtocol(server) === 'http://';
   }
 
@@ -66,28 +83,123 @@
     if (server) applyServer(server);
   }
 
-  var PING_QUERY = 'test';
-  var PING_TIMEOUT = 6000;
+  // Заведомо несуществующее слово. Два повода не брать реальное:
+  //
+  // 1. Freebie отдавал 403 именно на слово "test" — фильтр на стороне его
+  //    nginx. Парсер работал, а в списке горел красным.
+  // 2. Осмысленный запрос заставляет сервер реально искать по трекерам:
+  //    Jac.black отвечал 3-4 секунды и присылал больше мегабайта. На пинг
+  //    достаточно пустого ответа в 28 байт.
+  var PING_QUERY = 'zzqxwv';
+  // 6 секунд не хватало: на телевизоре первое обращение к серверу включает
+  // разрешение имени и рукопожатие TLS, и живой парсер помечался мёртвым.
+  var PING_TIMEOUT = 12000;
 
-  function buildPingUrl(server) {
-    return getRequestProtocol(server) + server.baseUrl +
-      '/api/v2.0/indexers/status:healthy/results?apikey=' + server.key +
-      '&query=' + PING_QUERY;
+  function buildPingUrls(server) {
+    // Порядок важен: сначала самый быстрый адрес, потом запасные.
+    //
+    // status:healthy опрашивает только живые индексеры и на всех серверах
+    // отвечает за доли секунды. indexers/all заставляет сервер обойти в том
+    // числе мёртвые трекеры: у Tribal такой запрос занимал 25 секунд и не
+    // укладывался в таймаут, хотя сам парсер полностью рабочий.
+    var base = getRequestProtocol(server) + server.baseUrl;
+    var own = server.interview === 'healthy' ? 'status:healthy' : 'all';
+    var urls = [base + '/api/v2.0/indexers/status:healthy/results?apikey=' + server.key + '&query=' + PING_QUERY];
+
+    if (own !== 'status:healthy') {
+      urls.push(base + '/api/v2.0/indexers/' + own + '/results?apikey=' + server.key + '&query=' + PING_QUERY);
+    }
+    // Часть сборок jacred отдаёт только v1.0.
+    urls.push(base + '/api/v1.0/torrents?search=' + PING_QUERY + '&apikey=' + server.key);
+
+    return urls;
+  }
+
+  /* Запрос через сетевой слой самой Lampa.
+
+     Это главная причина, по которой рабочие парсеры горели красным.
+     Проверка шла обычным XMLHttpRequest прямо со страницы, а он подчиняется
+     правилам браузера: с https-страницы запрос на http блокируется как
+     mixed content, плюс к нему применяется CORS. Настоящий же поиск
+     торрентов Lampa делает своим слоем, который на Android и ТВ ходит в
+     сеть нативно, мимо этих ограничений.
+
+     Отсюда и расхождение: в списке ✗, а при выборе всё работает. Теперь
+     проверяем тем же способом, каким потом ищем. */
+  function requestPing(url, onDone) {
+    var done = false;
+    function finish(ok, status) {
+      if (done) return;
+      done = true;
+      onDone(ok, status);
+    }
+
+    if (typeof Lampa !== 'undefined' && Lampa.Reguest) {
+      try {
+        var net = new Lampa.Reguest();
+        var timer = setTimeout(function () {
+          try { net.clear(); } catch (e) {}
+          finish(false, 'timeout');
+        }, PING_TIMEOUT);
+
+        net.native(url, function () {
+          clearTimeout(timer);
+          finish(true, 200);
+        }, function (xhr) {
+          clearTimeout(timer);
+          var code = (xhr && xhr.status) || 'error';
+          finish(false, code);
+        });
+        return;
+      } catch (e) {
+        // Сетевой слой недоступен — падаем на обычный запрос ниже.
+      }
+    }
+
+    var xhr = new XMLHttpRequest();
+    xhr.timeout = PING_TIMEOUT;
+    xhr.onload = function () { finish(xhr.status === 200, xhr.status); };
+    xhr.ontimeout = function () { finish(false, 'timeout'); };
+    xhr.onerror = function () { finish(false, 'error'); };
+    try {
+      xhr.open('GET', url, true);
+      xhr.send();
+    } catch (e) {
+      finish(false, 'error');
+    }
   }
 
   function checkServerStatus(server, callback) {
+    // Проверку на mixed content оставляем только там, где она реальна:
+    // в браузере. В приложении запрос идёт нативно, и http-парсер работает
+    // прекрасно — помечать его предупреждением значит врать.
     if (isBlockedByMixedContent(server)) {
       callback(server, false, 'mixed');
       return;
     }
 
-    var xhr = new XMLHttpRequest();
-    xhr.timeout = PING_TIMEOUT;
-    xhr.onload = function () { callback(server, xhr.status === 200, xhr.status); };
-    xhr.ontimeout = function () { callback(server, false, 'timeout'); };
-    xhr.onerror = function () { callback(server, false, 'error'); };
-    xhr.open('GET', buildPingUrl(server), true);
-    xhr.send();
+    var urls = buildPingUrls(server);
+
+    function attempt(i, lastStatus) {
+      if (i >= urls.length) {
+        callback(server, false, lastStatus);
+        return;
+      }
+      requestPing(urls[i], function (ok, status) {
+        if (ok) {
+          callback(server, true, status);
+          return;
+        }
+        // 401 — сервер жив, но просит ключ: остальные адреса не помогут.
+        if (status === 401) {
+          callback(server, false, status);
+          return;
+        }
+        attempt(i + 1, status);
+      });
+    }
+
+    attempt(0, 'error');
   }
 
   function updateServerStatusInSettings() {
