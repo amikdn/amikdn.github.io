@@ -1,8 +1,6 @@
 (function () {
   'use strict';
-
   Lampa.Platform.tv();
-
   var servers = [
     { id: 'lampa_jackett', name: 'Lampa jacred', baseUrl: '87.120.84.218:9117', key: '333', interview: 'all', lang: 'df' },
     { id: 'jac_red', name: 'Jac.red', baseUrl: 'jac.red', key: '', interview: 'healthy', lang: 'lg' },
