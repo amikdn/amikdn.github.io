@@ -1,538 +1,569 @@
 (function () {
-  'use strict';
+    'use strict';
 
-  var VERSION = '1.0.0';
-  var API_URL = 'https://cubnotrip.top/api/reactions/get/';
+    var PLUGIN_ID = 'lampa_reaction_filter';
+    var PLUGIN_VERSION = '1.0.0';
 
-  // Ключи хранилища.
-  var K = {
-    enabled: 'lrf_enabled',
-    min: 'lrf_min',
-    votes: 'lrf_min_votes',
-    unrated: 'lrf_unrated',
-    scope: 'lrf_scope',
-    mode: 'lrf_mode',
-    cache: 'lrf_rating_cache'
-  };
+    var API_URL = 'https://cubnotrip.top/api/reactions/get/';
 
-  var DEFAULTS = {};
-  DEFAULTS[K.enabled] = false;
-  DEFAULTS[K.min] = '0';
-  DEFAULTS[K.votes] = '10';
-  DEFAULTS[K.unrated] = 'show';
-  DEFAULTS[K.scope] = 'catalog';
-  DEFAULTS[K.mode] = 'hide';
+    var CACHE_STORAGE_KEY = 'reaction_filter_cache';
+    var CACHE_TTL = 24 * 60 * 60 * 1000;
+    var CACHE_MAX_ENTRIES = 3000;
 
-  // Кеш card_overlay: если плагин стоит рядом, его рейтинги достаются
-  // бесплатно, без единого запроса.
-  var SHARED_CACHE_KEY = 'rating_cache_lampa_rating';
+    var MAX_PARALLEL = 6;
+    var REQUEST_TIMEOUT = 15000;
+    var FAIL_RETRY_MS = 30000;
 
-  var CACHE_TTL = 24 * 60 * 60 * 1000;
-  var EMPTY_TTL = 6 * 60 * 60 * 1000;
-  var FAIL_TTL = 10 * 60 * 1000;
+    var REACTION_COEF = { fire: 5, nice: 4, think: 3, bore: 2, shit: 1 };
 
-  // Больше шести одновременных запросов старые телевизоры не любят.
-  var MAX_PARALLEL = 6;
-  var REQUEST_TIMEOUT = 20000;
+    var REACTION_NAMES = {
+        fire: '🔥 огонь',
+        nice: '👍 палец вверх',
+        think: '🤔 задумался',
+        bore: '😴 скучно',
+        shit: '💩 плохо'
+    };
 
-  // Коэффициенты и формула — ровно как в card_overlay, иначе цифра в
-  // фильтре не совпадала бы с цифрой на постере.
-  var REACTION_COEF = { fire: 5, nice: 4, think: 3, bore: 2, shit: 1 };
+    var DEFAULTS = {
+        rf_enabled: false,
+        rf_allowed: 'fire',
+        rf_min_rating: '0',
+        rf_min_votes: '10',
+        rf_no_data: 'show',
+        rf_dim_instead: false
+    };
 
-  var ICON = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">' +
-    '<path d="M3 5.5h18M6 12h12M10 18.5h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>' +
-    '<path d="M19.2 15.1l.9 1.9 2 .3-1.5 1.5.4 2.1-1.8-1-1.8 1 .4-2.1-1.5-1.5 2-.3z" fill="currentColor"/></svg>';
+    var ALLOWED_VALUES = {
+        fire: 'Только 🔥 огонь',
+        fire_nice: '🔥 огонь и 👍 палец вверх',
+        fire_nice_think: '🔥 👍 и 🤔 задумался'
+    };
 
-  var DEBUG = false;
-  function logErr(e) {
-    if (DEBUG && typeof console !== 'undefined' && console.warn) console.warn('[lrf]', e);
-  }
-  function safe(fn) {
-    try { return fn(); } catch (e) { logErr(e); return undefined; }
-  }
+    var ALLOWED_SETS = {
+        fire: { fire: 1 },
+        fire_nice: { fire: 1, nice: 1 },
+        fire_nice_think: { fire: 1, nice: 1, think: 1 }
+    };
 
-  // ───────────────────────────── настройки ─────────────────────────────
+    var RATING_VALUES = {
+        '0': 'Не важен',
+        '6': 'от 6.0',
+        '6.5': 'от 6.5',
+        '7': 'от 7.0',
+        '7.5': 'от 7.5',
+        '8': 'от 8.0',
+        '8.5': 'от 8.5',
+        '9': 'от 9.0'
+    };
 
-  function get(key) {
-    var v = Lampa.Storage.get(key, DEFAULTS[key]);
-    return v === undefined || v === null || v === '' ? DEFAULTS[key] : v;
-  }
+    var VOTES_VALUES = {
+        '0': 'Любое количество',
+        '10': 'от 10 голосов',
+        '50': 'от 50 голосов',
+        '100': 'от 100 голосов',
+        '500': 'от 500 голосов',
+        '1000': 'от 1000 голосов'
+    };
 
-  function isOn() {
-    var v = get(K.enabled);
-    return v === true || v === 'true' || v === 1 || v === '1';
-  }
+    var NO_DATA_VALUES = { show: 'Показывать', hide: 'Скрывать' };
 
-  function minRating() {
-    var v = parseFloat(get(K.min));
-    return isNaN(v) ? 0 : v;
-  }
+    var ICON = '<div class="settings-folder" style="padding:0!important"><div style="width:1.8em;height:1.3em;padding-right:.5em"><svg width="100%" height="100%" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2.5c2.2 3 3.3 5 3.3 6.4 0 1.2-.8 2.1-1.9 2.1-1 0-1.7-.7-1.7-1.8 0-.6.2-1.2.5-1.9-2.6 1.6-4 3.8-4 6.2 0 3.3 2.6 5.9 5.8 5.9s5.7-2.6 5.7-6c0-4-2.9-7.9-7.7-10.9z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg></div></div>';
 
-  function minVotes() {
-    var v = parseInt(get(K.votes), 10);
-    return isNaN(v) ? 0 : v;
-  }
-
-  function hideUnrated() {
-    return get(K.unrated) === 'hide';
-  }
-
-  function dimInsteadOfHide() {
-    return get(K.mode) === 'dim';
-  }
-
-  function active() {
-    return isOn() && minRating() > 0;
-  }
-
-  /* Где фильтровать.
-
-     В закладках, истории и результатах поиска фильтр почти всегда мешает:
-     человек ищет конкретный фильм, а плагин его прячет за низкую оценку.
-     Поэтому по умолчанию фильтруются только подборки каталога. */
-  var PERSONAL_COMPONENTS = {
-    favorite: 1, bookmarks: 1, history: 1, later: 1, thrown: 1,
-    search: 1, torrents: 1, full: 1, console: 1
-  };
-
-  function scopeAllows() {
-    if (get(K.scope) === 'all') return true;
-    var name = safe(function () {
-      var a = Lampa.Activity.active();
-      return a && a.component ? String(a.component) : '';
-    }) || '';
-    return !PERSONAL_COMPONENTS[name];
-  }
-
-  // ─────────────────────────────── кеш ────────────────────────────────
-
-  var cache = null;
-  var saveTimer = 0;
-
-  function loadCache() {
-    if (cache) return cache;
-    cache = safe(function () { return Lampa.Storage.get(K.cache, {}) || {}; }) || {};
-    if (typeof cache !== 'object') cache = {};
-    return cache;
-  }
-
-  function scheduleSave() {
-    if (saveTimer) clearTimeout(saveTimer);
-    saveTimer = setTimeout(function () {
-      saveTimer = 0;
-      safe(function () { Lampa.Storage.set(K.cache, prune(loadCache())); });
-    }, 2000);
-  }
-
-  function prune(store) {
-    var now = Date.now();
-    var keys = Object.keys(store);
-    for (var i = 0; i < keys.length; i++) {
-      var e = store[keys[i]];
-      if (!e || typeof e !== 'object' || !e.t) { delete store[keys[i]]; continue; }
-      var ttl = e.failed ? FAIL_TTL : (e.votes ? CACHE_TTL : EMPTY_TTL);
-      if (now - e.t > ttl) delete store[keys[i]];
-    }
-    // Хранилище не резиновое: держим не больше 4000 записей, лишние
-    // выкидываем начиная с самых старых.
-    keys = Object.keys(store);
-    if (keys.length > 4000) {
-      keys.sort(function (a, b) { return (store[a].t || 0) - (store[b].t || 0); });
-      for (var j = 0; j < keys.length - 4000; j++) delete store[keys[j]];
-    }
-    return store;
-  }
-
-  /* Заглянуть в кеш card_overlay.
-
-     Читаем, но не пишем: у него свой формат и своё отложенное сохранение,
-     и запись отсюда затирала бы его записи. Так плагины не воюют за файл, а
-     рейтинги всё равно достаются бесплатно. */
-  function fromSharedCache(key) {
-    return safe(function () {
-      var store = Lampa.Storage.get(SHARED_CACHE_KEY, null);
-      if (!store || typeof store !== 'object') return null;
-      var e = store[key];
-      if (!e || typeof e !== 'object') return null;
-      if (e.timestamp && Date.now() - e.timestamp > CACHE_TTL) return null;
-      var r = parseFloat(e.rating);
-      if (isNaN(r)) return null;
-      // Число голосов card_overlay не хранит, поэтому порог голосов к таким
-      // записям не применяем — иначе они все считались бы недостоверными.
-      return { rating: r, votes: -1, t: e.timestamp || Date.now() };
-    }) || null;
-  }
-
-  function cachedRating(key) {
-    var store = loadCache();
-    var e = store[key];
-    if (e && e.t) {
-      var ttl = e.failed ? FAIL_TTL : (e.votes ? CACHE_TTL : EMPTY_TTL);
-      if (Date.now() - e.t <= ttl) return e;
-      delete store[key];
-    }
-    return fromSharedCache(key);
-  }
-
-  function rememberRating(key, value) {
-    var store = loadCache();
-    value.t = Date.now();
-    store[key] = value;
-    scheduleSave();
-    return value;
-  }
-
-  // ──────────────────────────── запросы ───────────────────────────────
-
-  function calcRating(list) {
-    var weighted = 0, total = 0;
-    for (var i = 0; i < list.length; i++) {
-      var item = list[i] || {};
-      var count = parseInt(item.counter, 10) || 0;
-      var coef = REACTION_COEF[item.type] || 0;
-      if (!coef) continue;
-      weighted += count * coef;
-      total += count;
-    }
-    if (!total) return { rating: 0, votes: 0 };
-    var avg = weighted / total;
-    var r = (avg - 1) * 2.5;
-    return { rating: r > 0 ? parseFloat(r.toFixed(1)) : 0, votes: total };
-  }
-
-  var queue = [];
-  var running = 0;
-  var pending = {};
-
-  function pump() {
-    while (running < MAX_PARALLEL && queue.length) {
-      running++;
-      ask(queue.shift());
-    }
-  }
-
-  function ask(job) {
-    var net = safe(function () { return new Lampa.Reguest(); });
-    if (!net) { done(job, { rating: 0, votes: 0, failed: true }); return; }
-
-    var settled = false;
-    function finish(value) {
-      if (settled) return;
-      settled = true;
-      clearTimeout(timer);
-      safe(function () { net.clear(); });
-      done(job, value);
+    function log() {
+        try {
+            if (typeof console !== 'undefined' && console && console.log) {
+                console.log.apply(console, ['[reaction-filter]'].concat([].slice.call(arguments)));
+            }
+        } catch (e) { /* некому жаловаться */ }
     }
 
-    var timer = setTimeout(function () { finish({ rating: 0, votes: 0, failed: true }); }, REQUEST_TIMEOUT);
+    function safe(fn, label) {
+        try {
+            return fn();
+        } catch (e) {
+            log('ошибка: ' + (label || 'код'), e);
+            return null;
+        }
+    }
 
-    safe(function () {
-      net.timeout(REQUEST_TIMEOUT);
-      net.silent(API_URL + job.key, function (data) {
-        if (data && data.result && data.result.length !== undefined) finish(calcRating(data.result));
-        else finish({ rating: 0, votes: 0 });
-      }, function () {
-        finish({ rating: 0, votes: 0, failed: true });
-      }, false);
-    });
-  }
+    function getStr(key) {
+        return String(Lampa.Storage.get(key, String(DEFAULTS[key])));
+    }
 
-  function done(job, value) {
-    running--;
-    rememberRating(job.key, value);
-    var waiters = pending[job.key] || [];
-    delete pending[job.key];
-    for (var i = 0; i < waiters.length; i++) safe(function () { waiters[i](value); });
-    pump();
-  }
+    function isOn(key) {
+        var v = Lampa.Storage.get(key, DEFAULTS[key]);
+        return v === true || v === 'true' || v === '1' || v === 1;
+    }
 
-  function requestRating(key, callback) {
-    if (pending[key]) { pending[key].push(callback); return; }
-    pending[key] = [callback];
-    queue.push({ key: key });
-    pump();
-  }
+    function allowedSet() {
+        return ALLOWED_SETS[getStr('rf_allowed')] || ALLOWED_SETS.fire;
+    }
 
-  // ──────────────────────────── карточки ──────────────────────────────
+    function minRating() {
+        var v = parseFloat(getStr('rf_min_rating'));
+        return isNaN(v) ? 0 : v;
+    }
 
-  function cardKey(data) {
-    if (!data || !data.id) return '';
-    var isTv = !!(data.seasons || data.first_air_date || data.original_name || data.number_of_seasons);
-    return (isTv ? 'tv_' : 'movie_') + data.id;
-  }
+    function minVotes() {
+        var v = parseInt(getStr('rf_min_votes'), 10);
+        return isNaN(v) ? 0 : v;
+    }
 
-  function cardData(card) {
-    return (card && (card.card_data || card.data)) || null;
-  }
+    function hideNoData() {
+        return getStr('rf_no_data') === 'hide';
+    }
 
-  function applyVerdict(card, rating, votes, known) {
-    if (!card || !card.classList) return;
+    function dimInstead() {
+        return isOn('rf_dim_instead');
+    }
 
-    card.setAttribute('data-lrf', known ? String(rating) : '?');
-    // По одному аргументу: старые движки не принимают список классов.
-    card.classList.remove('lrf-hidden');
-    card.classList.remove('lrf-dim');
+    function filterActive() {
+        return isOn('rf_enabled');
+    }
 
-    if (!known) return;
+    var cache = null;
+    var cacheDirty = false;
+    var cacheSaveTimer = null;
 
-    var need = minRating();
-    var trusted = votes < 0 || votes >= minVotes();
-    var bad;
+    function loadCache() {
+        if (cache) return cache;
+        cache = safe(function () {
+            var raw = Lampa.Storage.get(CACHE_STORAGE_KEY, {});
+            if (typeof raw === 'string') raw = JSON.parse(raw || '{}');
+            return (raw && typeof raw === 'object') ? raw : {};
+        }, 'чтение кеша') || {};
+        return cache;
+    }
 
-    if (!votes) {
-      // Никто не голосовал — оценки нет вовсе.
-      bad = hideUnrated();
-    } else if (!trusted) {
-      // Голосов слишком мало, чтобы верить цифре: считаем такую карточку
-      // как «без оценки» и поступаем по тому же правилу.
-      bad = hideUnrated();
+    function saveCacheSoon() {
+        cacheDirty = true;
+        if (cacheSaveTimer) return;
+        cacheSaveTimer = setTimeout(function () {
+            cacheSaveTimer = null;
+            if (!cacheDirty) return;
+            cacheDirty = false;
+            safe(function () {
+                var store = loadCache();
+                var keys = Object.keys(store);
+                if (keys.length > CACHE_MAX_ENTRIES) {
+                    keys.sort(function (a, b) {
+                        return ((store[a] && store[a].timestamp) || 0) - ((store[b] && store[b].timestamp) || 0);
+                    });
+                    var kill = keys.length - CACHE_MAX_ENTRIES;
+                    for (var i = 0; i < kill; i++) delete store[keys[i]];
+                }
+                Lampa.Storage.set(CACHE_STORAGE_KEY, store);
+            }, 'запись кеша');
+        }, 2000);
+    }
+
+    function cacheGet(key) {
+        var entry = loadCache()[key];
+        if (!entry || typeof entry !== 'object') return null;
+        if (!entry.timestamp || Date.now() - entry.timestamp > CACHE_TTL) return null;
+        if (entry.votes === undefined) return null;
+        return entry;
+    }
+
+    function cachePut(key, value) {
+        var store = loadCache();
+        value.timestamp = Date.now();
+        store[key] = value;
+        saveCacheSoon();
+        return value;
+    }
+
+    function calcLampa(reactions) {
+        var weightedSum = 0, totalCount = 0, reactionCnt = {};
+
+        for (var i = 0; i < reactions.length; i++) {
+            var item = reactions[i] || {};
+            var count = parseInt(item.counter, 10) || 0;
+            var coef = REACTION_COEF[item.type] || 0;
+            weightedSum += count * coef;
+            totalCount += count;
+            reactionCnt[item.type] = (reactionCnt[item.type] || 0) + count;
+        }
+
+        if (totalCount === 0) return { rating: 0, icon: '', votes: 0 };
+
+        var avgRating = weightedSum / totalCount;
+        var rating10 = (avgRating - 1) * 2.5;
+        var finalRating = rating10 >= 0 ? parseFloat(rating10.toFixed(1)) : 0;
+
+        var medianReaction = '';
+        var medianIndex = Math.ceil(totalCount / 2.0);
+        var keys = Object.keys(REACTION_COEF);
+        var sorted = keys.sort(function (a, b) { return REACTION_COEF[a] - REACTION_COEF[b]; });
+        var cumulative = 0;
+
+        while (sorted.length && cumulative < medianIndex) {
+            medianReaction = sorted.pop();
+            cumulative += (reactionCnt[medianReaction] || 0);
+        }
+
+        return { rating: finalRating, icon: medianReaction, votes: totalCount };
+    }
+
+    function cardKey(data) {
+        if (!data || !data.id) return '';
+        var serial = data.seasons || data.first_air_date || data.original_name || data.number_of_seasons;
+        return (serial ? 'tv_' : 'movie_') + data.id;
+    }
+
+    var pending = {};
+    var failedAt = {};
+    var queue = [];
+    var running = 0;
+
+    function fetchReactions(key) {
+        if (pending[key]) return pending[key];
+
+        var fail = failedAt[key];
+        if (fail && Date.now() - fail < FAIL_RETRY_MS) {
+            return Promise.resolve({ failed: true });
+        }
+
+        pending[key] = new Promise(function (resolve) {
+            queue.push({ key: key, resolve: resolve });
+            pump();
+        }).then(function (result) {
+            delete pending[key];
+            return result;
+        });
+
+        return pending[key];
+    }
+
+    function pump() {
+        while (running < MAX_PARALLEL && queue.length) {
+            (function (job) {
+                running++;
+                requestOne(job.key, function (result) {
+                    running--;
+                    job.resolve(result);
+                    pump();
+                });
+            })(queue.shift());
+        }
+    }
+
+    function requestOne(key, done) {
+        var settled = false;
+        function finish(result) {
+            if (settled) return;
+            settled = true;
+            if (result.failed) {
+                failedAt[key] = Date.now();
+            } else {
+                delete failedAt[key];
+                cachePut(key, { rating: result.rating, icon: result.icon, votes: result.votes });
+            }
+            done(result);
+        }
+
+        var net = safe(function () { return new Lampa.Reguest(); }, 'создание запроса');
+        if (!net) {
+            finish({ failed: true });
+            return;
+        }
+
+        var timer = setTimeout(function () {
+            safe(function () { net.clear(); }, 'сброс запроса');
+            finish({ failed: true });
+        }, REQUEST_TIMEOUT);
+
+        safe(function () {
+            net.timeout(REQUEST_TIMEOUT);
+            net.silent(API_URL + key, function (data) {
+                clearTimeout(timer);
+                if (data && data.result && data.result.length !== undefined) finish(calcLampa(data.result));
+                else if (data && typeof data === 'object') finish({ rating: 0, icon: '', votes: 0 });
+                else finish({ failed: true });
+            }, function () {
+                clearTimeout(timer);
+                finish({ failed: true });
+            });
+        }, 'отправка запроса');
+    }
+
+    function passes(info) {
+        if (!info) return !hideNoData();
+
+        var votes = info.votes || 0;
+        if (!votes) return !hideNoData();
+        if (votes < minVotes()) return !hideNoData();
+
+        if (!allowedSet()[info.icon]) return false;
+
+        return (info.rating || 0) >= minRating();
+    }
+
+    var ATTR_STATE = 'data-rf';
+
+    function hideCard(card, info) {
+        if (!card) return;
+        card.setAttribute(ATTR_STATE, 'hidden');
+        card.setAttribute('data-rf-icon', (info && info.icon) || '');
+
+        if (dimInstead()) {
+            card.classList.add('rf-dim');
+            card.classList.remove('rf-hidden');
+            return;
+        }
+
+        card.classList.remove('selector');
+        card.classList.remove('rf-dim');
+        card.classList.add('rf-hidden');
+    }
+
+    function showCard(card) {
+        if (!card) return;
+        if (card.getAttribute(ATTR_STATE) === 'hidden') card.classList.add('selector');
+        card.setAttribute(ATTR_STATE, 'ok');
+        card.classList.remove('rf-hidden');
+        card.classList.remove('rf-dim');
+    }
+
+    function resetCard(card) {
+        if (!card) return;
+        if (card.getAttribute(ATTR_STATE) === 'hidden') card.classList.add('selector');
+        card.removeAttribute(ATTR_STATE);
+        card.removeAttribute('data-rf-icon');
+        card.classList.remove('rf-hidden');
+        card.classList.remove('rf-dim');
+    }
+
+    function judge(card, data) {
+        if (!card || !document.body.contains(card)) return;
+
+        var key = cardKey(data);
+        if (!key) return;
+
+        var cached = cacheGet(key);
+        if (cached) {
+            if (passes(cached)) showCard(card);
+            else hideCard(card, cached);
+            return;
+        }
+
+        fetchReactions(key).then(function (info) {
+            if (!card || !document.body.contains(card)) return;
+            if (!filterActive()) return;
+            if (info && info.failed) return;
+            if (passes(info)) showCard(card);
+            else hideCard(card, info);
+        });
+    }
+
+    function judgeItems(items) {
+        if (!items || !items.length) return;
+        for (var i = 0; i < items.length; i++) {
+            var item = items[i];
+            if (!item) continue;
+            var dom = safe(function () {
+                return item.card || (typeof item.render === 'function' ? item.render(true) : null);
+            }, 'получение карточки');
+            if (!dom || dom.nodeType !== 1) continue;
+            var data = dom.card_data || item.data || null;
+            if (data) judge(dom, data);
+        }
+    }
+
+    function scanRendered() {
+        if (!filterActive()) return;
+        var cards = document.querySelectorAll('.card');
+        for (var i = 0; i < cards.length; i++) {
+            var card = cards[i];
+            if (card.getAttribute(ATTR_STATE)) continue;
+            var data = card.card_data;
+            if (data && data.id) judge(card, data);
+        }
+    }
+
+    function resetAll() {
+        var cards = document.querySelectorAll('[' + ATTR_STATE + ']');
+        for (var i = 0; i < cards.length; i++) resetCard(cards[i]);
+    }
+
+    var MAX_AUTO_MORE = 3;
+
+    function maybeLoadMore(event) {
+        if (!filterActive()) return;
+        if (!event || !event.line || typeof event.line.more !== 'function') return;
+
+        var body = event.body;
+        if (!body || !body.querySelectorAll) return;
+
+        var used = parseInt(body.getAttribute('data-rf-more') || '0', 10) || 0;
+        if (used >= MAX_AUTO_MORE) return;
+
+        setTimeout(function () {
+            if (!document.body.contains(body)) return;
+
+            var all = body.querySelectorAll('.card');
+            if (!all.length) return;
+
+            var judged = body.querySelectorAll('.card[' + ATTR_STATE + ']');
+            if (judged.length < all.length) return;
+
+            var hidden = body.querySelectorAll('.card.rf-hidden');
+            if (all.length - hidden.length >= 5) return;
+
+            body.setAttribute('data-rf-more', String(used + 1));
+            safe(function () { event.line.more(); }, 'дозагрузка строки');
+        }, 1200);
+    }
+
+    function addStyles() {
+        if (document.getElementById('rf-style')) return;
+        var style = document.createElement('style');
+        style.id = 'rf-style';
+        style.textContent =
+            '.card.rf-hidden{display:none!important}' +
+            '.card.rf-dim{opacity:.28;filter:grayscale(1)}';
+        document.head.appendChild(style);
+    }
+
+    function applyDefaults() {
+        for (var key in DEFAULTS) {
+            if (!Object.prototype.hasOwnProperty.call(DEFAULTS, key)) continue;
+            var current = Lampa.Storage.get(key, undefined);
+            if (current === undefined || current === null || current === '') {
+                Lampa.Storage.set(key, String(DEFAULTS[key]));
+            }
+        }
+    }
+
+    function refresh() {
+        resetAll();
+        if (filterActive()) scanRendered();
+    }
+
+    function addSettings() {
+        if (!Lampa.SettingsApi) return;
+
+        Lampa.SettingsApi.addComponent({
+            component: PLUGIN_ID,
+            name: 'Фильтр по реакциям Lampa',
+            icon: ICON
+        });
+
+        Lampa.SettingsApi.addParam({
+            component: PLUGIN_ID,
+            param: { name: 'rf_enabled', type: 'trigger', default: DEFAULTS.rf_enabled },
+            field: {
+                name: 'Включить фильтр',
+                description: 'Оставлять только карточки с нужной реакцией зрителей'
+            },
+            onChange: function () { refresh(); }
+        });
+
+        Lampa.SettingsApi.addParam({
+            component: PLUGIN_ID,
+            param: { name: 'rf_allowed', type: 'select', values: ALLOWED_VALUES, default: DEFAULTS.rf_allowed },
+            field: {
+                name: 'Какие реакции оставлять',
+                description: 'Та самая иконка, что стоит рядом с рейтингом Lampa. Остальное скрывается'
+            },
+            onChange: function () { refresh(); }
+        });
+
+        Lampa.SettingsApi.addParam({
+            component: PLUGIN_ID,
+            param: { name: 'rf_min_rating', type: 'select', values: RATING_VALUES, default: DEFAULTS.rf_min_rating },
+            field: {
+                name: 'Минимальный балл',
+                description: 'Иконка 🔥 бывает и при балле 7.5, и при 9.4. Порог отсекает нижнюю часть'
+            },
+            onChange: function () { refresh(); }
+        });
+
+        Lampa.SettingsApi.addParam({
+            component: PLUGIN_ID,
+            param: { name: 'rf_min_votes', type: 'select', values: VOTES_VALUES, default: DEFAULTS.rf_min_votes },
+            field: {
+                name: 'Минимум голосов',
+                description: 'Иконка от трёх человек ничего не значит. Порог отсекает такие случаи'
+            },
+            onChange: function () { refresh(); }
+        });
+
+        Lampa.SettingsApi.addParam({
+            component: PLUGIN_ID,
+            param: { name: 'rf_no_data', type: 'select', values: NO_DATA_VALUES, default: DEFAULTS.rf_no_data },
+            field: {
+                name: 'Без реакций',
+                description: 'Что делать с новинками, которые ещё никто не оценил'
+            },
+            onChange: function () { refresh(); }
+        });
+
+        Lampa.SettingsApi.addParam({
+            component: PLUGIN_ID,
+            param: { name: 'rf_dim_instead', type: 'trigger', default: DEFAULTS.rf_dim_instead },
+            field: {
+                name: 'Приглушать вместо скрытия',
+                description: 'Отсеянные карточки останутся видимыми, но серыми. Удобно, пока подбираете настройки'
+            },
+            onChange: function () { refresh(); }
+        });
+    }
+
+    function onLine(event) {
+        if (!filterActive()) return;
+        if (!event || (event.type !== 'append' && event.type !== 'visible')) return;
+        judgeItems(event.items);
+        maybeLoadMore(event);
+    }
+
+    function onActivity(event) {
+        if (!filterActive()) return;
+        if (!event) return;
+        if (event.type !== 'start' && event.type !== 'ready' && event.type !== 'archive') return;
+        setTimeout(scanRendered, 300);
+        setTimeout(scanRendered, 1200);
+    }
+
+    var scanTimer = null;
+
+    function onUserAction() {
+        if (!filterActive()) return;
+        if (scanTimer) return;
+        scanTimer = setTimeout(function () {
+            scanTimer = null;
+            scanRendered();
+        }, 400);
+    }
+
+    function start() {
+        applyDefaults();
+        addStyles();
+        addSettings();
+
+        safe(function () { Lampa.Listener.follow('line', onLine); }, 'подписка на строки');
+        safe(function () { Lampa.Listener.follow('activity', onActivity); }, 'подписка на активность');
+
+        safe(function () {
+            window.addEventListener('scroll', onUserAction, true);
+            window.addEventListener('wheel', onUserAction, true);
+            window.addEventListener('keydown', onUserAction, true);
+            window.addEventListener('touchend', onUserAction, true);
+        }, 'подписка на прокрутку');
+
+        log('запущен, версия ' + PLUGIN_VERSION);
+    }
+
+    if (window.lampa_reaction_filter_ready) return;
+    window.lampa_reaction_filter_ready = true;
+
+    if (typeof Lampa === 'undefined' || !Lampa.Listener || !Lampa.SettingsApi) {
+        var waiting = setInterval(function () {
+            if (typeof Lampa === 'undefined' || !Lampa.Listener || !Lampa.SettingsApi) return;
+            clearInterval(waiting);
+            safe(start, 'запуск');
+        }, 200);
     } else {
-      bad = rating < need;
+        safe(start, 'запуск');
     }
-
-    if (bad) card.classList.add(dimInsteadOfHide() ? 'lrf-dim' : 'lrf-hidden');
-  }
-
-  function clearCard(card) {
-    if (!card || !card.classList) return;
-    card.classList.remove('lrf-hidden');
-    card.classList.remove('lrf-dim');
-    card.removeAttribute('data-lrf');
-    card.removeAttribute('data-lrf-seen');
-  }
-
-  function handleCard(card) {
-    if (!card || card.getAttribute('data-lrf-seen')) return;
-
-    var data = cardData(card);
-    var key = cardKey(data);
-    if (!key) return;
-
-    card.setAttribute('data-lrf-seen', '1');
-
-    var hit = cachedRating(key);
-    if (hit) {
-      applyVerdict(card, hit.rating, hit.votes, !hit.failed);
-      return;
-    }
-
-    requestRating(key, function (value) {
-      // Карточку могли пересобрать или увести с экрана, пока ждали ответ.
-      if (!document.body.contains(card)) return;
-      applyVerdict(card, value.rating, value.votes, !value.failed);
-    });
-  }
-
-  function scan(onlyNew) {
-    if (!active() || !scopeAllows()) return;
-    var cards = document.querySelectorAll(onlyNew ? '.card:not([data-lrf-seen])' : '.card');
-    for (var i = 0; i < cards.length; i++) handleCard(cards[i]);
-  }
-
-  function resetAll() {
-    var cards = document.querySelectorAll('.card[data-lrf-seen], .card[data-lrf]');
-    for (var i = 0; i < cards.length; i++) clearCard(cards[i]);
-  }
-
-  function refresh() {
-    resetAll();
-    if (active()) scan(false);
-  }
-
-  // Отложенный запуск: событий на прокрутке много, работа одна.
-  var timers = {};
-  function later(fn, ms, tag) {
-    if (timers[tag]) clearTimeout(timers[tag]);
-    timers[tag] = setTimeout(function () { timers[tag] = 0; safe(fn); }, ms);
-  }
-
-  // ──────────────────────────── стили ─────────────────────────────────
-
-  function addStyles() {
-    if (document.getElementById('lrf-style')) return;
-    var css = document.createElement('style');
-    css.id = 'lrf-style';
-    css.textContent =
-      /* Скрытая карточка не должна занимать место: тогда список короче,
-         и Lampa сама раньше подгружает следующую страницу. */
-      '.card.lrf-hidden{display:none!important}' +
-      '.card.lrf-dim{opacity:.25!important;filter:grayscale(1)!important}' +
-      '.lrf-note{padding:.4em 0 0;opacity:.6;font-size:.9em;line-height:1.3}';
-    document.head.appendChild(css);
-  }
-
-  // ─────────────────────────── настройки UI ───────────────────────────
-
-  function addSettings() {
-    if (!Lampa.SettingsApi) return;
-
-    Lampa.SettingsApi.addComponent({
-      component: 'lampa_rating_filter',
-      name: 'Фильтр по рейтингу Lampa',
-      icon: ICON
-    });
-
-    Lampa.SettingsApi.addParam({
-      component: 'lampa_rating_filter',
-      param: { name: K.enabled, type: 'trigger', default: DEFAULTS[K.enabled] },
-      field: {
-        name: 'Включить фильтр',
-        description: 'Убирать из подборок карточки с низкой оценкой Lampa'
-      },
-      onChange: function () { later(refresh, 60, 'change'); }
-    });
-
-    Lampa.SettingsApi.addParam({
-      component: 'lampa_rating_filter',
-      param: {
-        name: K.min,
-        type: 'select',
-        values: {
-          '0': 'Выключено',
-          '5': 'от 5.0',
-          '6': 'от 6.0',
-          '6.5': 'от 6.5',
-          '7': 'от 7.0',
-          '7.5': 'от 7.5',
-          '8': 'от 8.0',
-          '8.5': 'от 8.5',
-          '9': 'от 9.0'
-        },
-        default: DEFAULTS[K.min]
-      },
-      field: {
-        name: 'Минимальный рейтинг',
-        description: 'Чем выше порог, тем реже список: карточки ниже порога скрываются'
-      },
-      onChange: function () { later(refresh, 60, 'change'); }
-    });
-
-    Lampa.SettingsApi.addParam({
-      component: 'lampa_rating_filter',
-      param: {
-        name: K.votes,
-        type: 'select',
-        values: {
-          '0': 'Любое количество',
-          '5': 'от 5 оценок',
-          '10': 'от 10 оценок',
-          '50': 'от 50 оценок',
-          '100': 'от 100 оценок'
-        },
-        default: DEFAULTS[K.votes]
-      },
-      field: {
-        name: 'Доверять оценке',
-        description: 'Две-три реакции легко дают 10 из 10. Ниже этого числа оценка считается ненадёжной'
-      },
-      onChange: function () { later(refresh, 60, 'change'); }
-    });
-
-    Lampa.SettingsApi.addParam({
-      component: 'lampa_rating_filter',
-      param: {
-        name: K.unrated,
-        type: 'select',
-        values: { show: 'Показывать', hide: 'Скрывать' },
-        default: DEFAULTS[K.unrated]
-      },
-      field: {
-        name: 'Карточки без оценок',
-        description: 'Новинки и редкие фильмы часто вообще никто не оценивал'
-      },
-      onChange: function () { later(refresh, 60, 'change'); }
-    });
-
-    Lampa.SettingsApi.addParam({
-      component: 'lampa_rating_filter',
-      param: {
-        name: K.scope,
-        type: 'select',
-        values: { catalog: 'Только подборки', all: 'Везде' },
-        default: DEFAULTS[K.scope]
-      },
-      field: {
-        name: 'Где фильтровать',
-        description: 'В закладках, истории и поиске фильтр обычно мешает: он прячет то, что вы ищете'
-      },
-      onChange: function () { later(refresh, 60, 'change'); }
-    });
-
-    Lampa.SettingsApi.addParam({
-      component: 'lampa_rating_filter',
-      param: {
-        name: K.mode,
-        type: 'select',
-        values: { hide: 'Скрывать', dim: 'Затемнять' },
-        default: DEFAULTS[K.mode]
-      },
-      field: {
-        name: 'Что делать с лишними',
-        description: 'Затемнение удобно, чтобы проверить настройки: видно, что именно отсеивается'
-      },
-      onChange: function () { later(refresh, 60, 'change'); }
-    });
-
-    Lampa.SettingsApi.addParam({
-      component: 'lampa_rating_filter',
-      param: { name: 'lrf_clear_cache', type: 'trigger', default: false },
-      field: {
-        name: 'Очистить кеш оценок',
-        description: 'Одноразовое действие: оценки будут запрошены заново'
-      },
-      onChange: function () {
-        cache = {};
-        safe(function () { Lampa.Storage.set(K.cache, {}); });
-        safe(function () { Lampa.Storage.set('lrf_clear_cache', false); });
-        safe(function () { Lampa.Noty.show('Кеш оценок Lampa очищен'); });
-        later(refresh, 60, 'change');
-      }
-    });
-  }
-
-  // ──────────────────────────── запуск ────────────────────────────────
-
-  function start() {
-    addStyles();
-    addSettings();
-
-    /* Ловим карточки событиями самой Lampa.
-
-       MutationObserver здесь не нужен и вреден: на старых телевизорах он
-       полифилится опросом DOM каждые 30 мс, а список карточек Lampa
-       перерисовывает постоянно. Событий 'line' и 'activity' достаточно. */
-    safe(function () {
-      Lampa.Listener.follow('line', function (e) {
-        if (e.type === 'append' || e.type === 'visible') later(function () { scan(true); }, 60, 'line');
-      });
-    });
-
-    safe(function () {
-      Lampa.Listener.follow('activity', function (e) {
-        if (e.component === 'start' || e.type === 'archive' || e.type === 'destroy') return;
-        later(function () { scan(true); }, 120, 'activity');
-        later(function () { scan(true); }, 500, 'activity-late');
-      });
-    });
-
-    // Прокрутка и пульт: карточки досоздаются по ходу движения.
-    safe(function () {
-      window.addEventListener('scroll', function () { later(function () { scan(true); }, 120, 'scroll'); }, true);
-      window.addEventListener('keydown', function () { later(function () { scan(true); }, 150, 'key'); }, true);
-      window.addEventListener('touchend', function () { later(function () { scan(true); }, 150, 'touch'); }, true);
-    });
-
-    later(function () { scan(true); }, 300, 'boot');
-    later(function () { scan(true); }, 1200, 'boot-late');
-  }
-
-  if (window.lampa_rating_filter_ready) return;
-  window.lampa_rating_filter_ready = VERSION;
-
-  if (window.appready) start();
-  else {
-    Lampa.Listener.follow('app', function (e) {
-      if (e.type === 'ready') start();
-    });
-  }
 })();
