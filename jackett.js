@@ -1,6 +1,5 @@
 (function () {
   'use strict';
-
   Lampa.Platform.tv();
 
   var servers = [
