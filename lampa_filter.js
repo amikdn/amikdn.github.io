@@ -2,7 +2,7 @@
     'use strict';
 
     var PLUGIN_ID = 'lampa_reaction_filter';
-    var PLUGIN_VERSION = '1.0.0';
+    var PLUGIN_VERSION = '1.0.1';
 
     var API_URL = 'https://cubnotrip.top/api/reactions/get/';
 
@@ -15,14 +15,6 @@
     var FAIL_RETRY_MS = 30000;
 
     var REACTION_COEF = { fire: 5, nice: 4, think: 3, bore: 2, shit: 1 };
-
-    var REACTION_NAMES = {
-        fire: '🔥 огонь',
-        nice: '👍 палец вверх',
-        think: '🤔 задумался',
-        bore: '😴 скучно',
-        shit: '💩 плохо'
-    };
 
     var DEFAULTS = {
         rf_enabled: false,
@@ -67,14 +59,14 @@
 
     var NO_DATA_VALUES = { show: 'Показывать', hide: 'Скрывать' };
 
-    var ICON = '<div class="settings-folder" style="padding:0!important"><div style="width:1.8em;height:1.3em;padding-right:.5em"><svg width="100%" height="100%" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2.5c2.2 3 3.3 5 3.3 6.4 0 1.2-.8 2.1-1.9 2.1-1 0-1.7-.7-1.7-1.8 0-.6.2-1.2.5-1.9-2.6 1.6-4 3.8-4 6.2 0 3.3 2.6 5.9 5.8 5.9s5.7-2.6 5.7-6c0-4-2.9-7.9-7.7-10.9z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg></div></div>';
+    var ICON = '<svg height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M22 3Q33 11 37 24A15.5 15.5 0 0 1 6.5 24Q10.5 11 22 3Z" stroke="white" stroke-width="3.5" stroke-linejoin="round"></path><path d="M22 22Q26 26 27 32A5.2 5.2 0 0 1 17 32Q18 26 22 22Z" fill="white"></path></svg>';
 
     function log() {
         try {
             if (typeof console !== 'undefined' && console && console.log) {
                 console.log.apply(console, ['[reaction-filter]'].concat([].slice.call(arguments)));
             }
-        } catch (e) { /* некому жаловаться */ }
+        } catch (e) { }
     }
 
     function safe(fn, label) {
