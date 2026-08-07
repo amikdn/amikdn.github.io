@@ -3,17 +3,13 @@
 
     var PLUGIN_ID = 'lampa_reaction_filter';
     var PLUGIN_VERSION = '1.0.1';
-
     var API_URL = 'https://cubnotrip.top/api/reactions/get/';
-
     var CACHE_STORAGE_KEY = 'reaction_filter_cache';
     var CACHE_TTL = 24 * 60 * 60 * 1000;
     var CACHE_MAX_ENTRIES = 3000;
-
     var MAX_PARALLEL = 6;
     var REQUEST_TIMEOUT = 15000;
     var FAIL_RETRY_MS = 30000;
-
     var REACTION_COEF = { fire: 5, nice: 4, think: 3, bore: 2, shit: 1 };
 
     var DEFAULTS = {
