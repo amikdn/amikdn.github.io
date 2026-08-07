@@ -328,7 +328,6 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
   var Network = Lampa.Reguest;
 
   function component(object) {
-    // ── state & UI scaffold ──
     var network = new Network();
     network.timeout(BALANCER_TIMEOUT);
     var scroll = new Lampa.Scroll({
@@ -366,7 +365,6 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
       }
     }
 
-    // ── helpers ──
     if (balansers_with_search == undefined) {
       network.timeout(REQUEST_TIMEOUT);
       network.silent(
@@ -419,7 +417,6 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
       return all[id];
     }
 
-    // ── init & filter ──
     this.initialize = function () {
       var _this = this;
       this.loading(true);
@@ -527,7 +524,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
         _this.noConnectToServer(e);
       });
     };
-    // ── RCH & external IDs ──
+
     this.rch = function (json, noreset) {
       var _this2 = this;
       rchRun(json, function () {
@@ -564,7 +561,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
         } else resolve();
       });
     };
-    // ── balanser ──
+
     this.updateBalanser = function (balanser_name) {
       var last_select_balanser = Lampa.Storage.cache(STORAGE_PREFIX + 'online_last_balanser', 3000, {});
       last_select_balanser[object.movie.id] = balanser_name;
@@ -619,7 +616,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
         query.push('cub_id=' + Lampa.Utils.hash(Lampa.Storage.get('account_email', '')));
       return url + (url.indexOf('?') >= 0 ? '&' : '?') + query.join('&');
     };
-    // ── source & life events ──
+
     this.getLastChoiceBalanser = function () {
       var last_select_balanser = Lampa.Storage.cache(STORAGE_PREFIX + 'online_last_balanser', 3000, {});
       if (last_select_balanser[object.movie.id]) {
@@ -774,16 +771,11 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
         );
       });
     };
-    /**
-     * Подготовка
-     */
+
     this.create = function () {
       return this.render();
     };
-    // ── search & request ──
-    /**
-     * Начать поиск
-     */
+
     this.search = function () {
       //this.loading(true)
       this.filter(
@@ -843,7 +835,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
         return [];
       }
     };
-    // ── play / quality ──
+
     this.getFileUrl = function (file, call, waiting_rch) {
       var _this = this;
 
@@ -1053,7 +1045,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
         }
       );
     };
-    // ── parse response ──
+
     this.parse = function (str) {
       var json = Lampa.Arrays.decodeJson(str, {});
       if (Lampa.Arrays.isObject(str) && str.rch) json = str;
@@ -1212,7 +1204,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
       );
       Lampa.Controller.enable('content');
     };
-    // ── choice & storage ──
+
     this.getChoice = function (for_balanser) {
       var data = Lampa.Storage.cache(STORAGE_PREFIX + 'online_choice_' + (for_balanser || balanser), 3000, {});
       var save = data[object.movie.id] || {};
@@ -1245,9 +1237,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
       });
       images = [];
     };
-    /**
-     * Очистить список файлов
-     */
+
     this.reset = function () {
       last = false;
       stopBalanserTimer();
@@ -1258,9 +1248,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
       scroll.reset();
       scroll.body().append(Lampa.Template.get('lampac_content_loading'));
     };
-    /**
-     * Загрузка
-     */
+
     this.loading = function (status) {
       if (status) this.activity.loader(true);
       else {
@@ -1268,10 +1256,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
         this.activity.toggle();
       }
     };
-    // ── UI: filter, draw, errors ──
-    /**
-     * Построить фильтр
-     */
+
     this.filter = function (filter_items, choice) {
       var _this7 = this;
       var select = [];
@@ -1317,9 +1302,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
       );
       this.selected(filter_items);
     };
-    /**
-     * Показать что выбрано в фильтре
-     */
+
     this.selected = function (filter_items) {
       var need = this.getChoice(),
         select = [];
@@ -1384,9 +1367,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
         });
       } else body.append('<span>' + Lampa.Lang.translate('lampac_no_watch_history') + '</span>');
     };
-    /**
-     * Отрисовка файлов
-     */
+
     this.draw = function (items) {
       var _this8 = this;
       var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
@@ -1681,9 +1662,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
         Lampa.Controller.enable('content');
       });
     };
-    /**
-     * Меню
-     */
+
     this.contextMenu = function (params) {
       params.html
         .on('hover:long', function () {
@@ -1834,9 +1813,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
           if (Lampa.Helper) Lampa.Helper.show('online_file', Lampa.Lang.translate('helper_online_file'), params.html);
         });
     };
-    /**
-     * Показать пустой результат
-     */
+
     this.empty = function () {
       var html = Lampa.Template.get('lampac_does_not_answer', {});
       html.find('.online-empty__buttons').remove();
@@ -1905,13 +1882,11 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
       });
       return last_episode;
     };
-    // ── activity lifecycle ──
+
     this.background = function () {
       Lampa.Background.immediately(Lampa.Utils.cardImgBackgroundBlur(object.movie));
     };
-    /**
-     * Начать навигацию по файлам
-     */
+
     this.start = function () {
       if (Lampa.Activity.active().activity !== this.activity) return;
       if (!initialized) {
@@ -2145,7 +2120,6 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
     addSourceSearch(PLUGIN_NAME + ' Spider', 'spider');
     addSourceSearch(PLUGIN_NAME + ' Anime', 'spider/anime');
 
-    // не затираем манифесты других онлайн-плагинов, а добавляемся рядом
     if (Array.isArray(Lampa.Manifest.plugins)) {
       Lampa.Manifest.plugins.push(manifest);
     } else if (Lampa.Manifest.plugins) {
@@ -2264,7 +2238,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
         zh: '搜索 ({balanser}) 未返回任何结果'
       }
     });
-    // ── UI assets: CSS + Lampa templates ──
+
     function lampacCssHtml() {
       return [
         '<style>',
