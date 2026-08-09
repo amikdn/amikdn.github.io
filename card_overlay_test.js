@@ -179,14 +179,10 @@
         Lampa.Storage.set('card_overlay_defaults_version', DEFAULTS_VERSION);
     }
 
-    var DEBUG = false;
-    try { DEBUG = isTruthy(Lampa.Storage.get('card_overlay_debug', false)); } catch (e) {}
-
     function isTruthy(v) {
         return (v === true || v === 'true' || v === '1' || v === 1);
     }
 
-    // Internal modules stay in this single runtime file because it is loaded without a bundler.
     var Config = (function () {
         var values = Object.create(null);
         function typed(key, value) {
@@ -198,7 +194,6 @@
         function refresh(key) {
             if (key && Object.prototype.hasOwnProperty.call(DEFAULTS, key)) values[key] = typed(key, Lampa.Storage.get(key, DEFAULTS[key]));
             else for (var name in DEFAULTS) if (Object.prototype.hasOwnProperty.call(DEFAULTS, name)) values[name] = typed(name, Lampa.Storage.get(name, DEFAULTS[name]));
-            try { DEBUG = isTruthy(Lampa.Storage.get('card_overlay_debug', false)); } catch (e) {}
             return api.snapshot();
         }
         var api = {
@@ -229,7 +224,6 @@
             counters[category]++;
             var event = { at: Date.now(), category: category, action: String(action || 'event').slice(0, 32), meta: clean(meta) };
             buffer[cursor] = event; cursor = (cursor + 1) % limit; size = Math.min(size + 1, limit);
-            if (DEBUG && typeof console !== 'undefined' && console.debug) try { console.debug('[card_overlay]', category, event.action, event.meta); } catch (e) {}
         }
         function snapshot() {
             var events = [], start = (cursor - size + limit) % limit;
@@ -244,17 +238,14 @@
     }
 
     function logErr(e) {
-        if (!DEBUG) return;
-        try { console.error('[card_overlay] internal error' + (e && e.name ? ' (' + e.name + ')' : '')); } catch (e2) {}
+        Telemetry.record('lifecycle', 'error', { reason: e && e.name ? e.name : 'error' });
     }
 
     function safe(fn, label) {
         try {
             return fn();
         } catch (e) {
-            if (DEBUG) {
-                try { console.error('[card_overlay] ' + (label || 'error')); } catch (e2) {}
-            }
+            Telemetry.record('lifecycle', 'error', { reason: label || (e && e.name) || 'error' });
             return undefined;
         }
     }
@@ -576,7 +567,7 @@
         state.timer = setTimeout(function () {
             state.timer = 0;
             try { Lampa.Storage.set(storageKey, state.cache); }
-            catch (error) { try { console.error('[card_overlay] cache save failed', storageKey, error); } catch (e2) { logErr(e2); } }
+            catch (error) { Telemetry.record('cache', 'save-error', { reason: error && error.name ? error.name : 'error' }); }
         }, 2000);
     }
     function debouncedSave(source, cache) { debouncedSaveByKey(getPersistentCacheKey(source), cache); }
@@ -3099,6 +3090,10 @@
         }, 0);
     }
     function migrateStorageFormat() {
+        if (Lampa.Storage.get('card_overlay_debug', undefined) !== undefined) {
+            if (typeof Lampa.Storage.remove === 'function') Lampa.Storage.remove('card_overlay_debug');
+            else Lampa.Storage.set('card_overlay_debug', null);
+        }
         var storedVersion = String(Lampa.Storage.get('card_overlay_cache_version', '0'));
         if (storedVersion !== CARD_OVERLAY_CACHE_VERSION) {
             clearRatingCaches(true);
@@ -3299,16 +3294,6 @@
             field: { name: 'Передавать install UID', description: 'Разрешить передачу идентификатора установки (по умолчанию включено)' }, onChange: function () { clearQualityCache(); refreshAllQualityLabels(); }
         });
 
-        Lampa.SettingsApi.addParam({
-            component: 'card_overlay',
-            param: { name: 'card_overlay_debug', type: 'trigger', default: false },
-            field: { name: 'Режим отладки', description: 'Выводить ошибки плагина в консоль' },
-            onChange: function (v) {
-                DEBUG = isTruthy(v);
-                updateSettingsKeepFocus('card_overlay_debug');
-            }
-        });
-
         function moveAfterInterface() {
             var $interface = $('.settings-folder[data-component="interface"]');
             if (!$interface.length) $interface = $('.settings-folder').filter(function () { return $(this).find('.settings-folder__name').text().trim() === 'Интерфейс'; });
@@ -3477,7 +3462,6 @@
         if (window.__card_overlay_initialized__) return;
         window.__card_overlay_initialized__ = true;
         _activeGeneration = ++_lifecycleGeneration;
-        try { console.log('[card_overlay] v' + PLUGIN_VERSION + ' active'); } catch (e) { logErr(e); }
         safe(applyDefaults, 'applyDefaults');
         Config.refresh();
         Telemetry.record('lifecycle', 'init', { active: 1 });
@@ -3783,8 +3767,7 @@
     var DetailRenderer = { season: renderSeasonInfo, ratings: applyDetailRatingIcons, quality: loadQualityForDetail, reposition: moveDetailMetaToSecondLine };
     var SettingsUI = { register: addSettings, refresh: updateSettingsKeepFocus };
     var Lifecycle = { version: PLUGIN_VERSION, init: initPlugin, destroy: destroyPlugin };
-    window.__card_overlay_modules__ = { Config: Config, Identity: Identity, CacheStore: CacheStore, RequestManager: RequestManager, RatingsService: RatingsService, QualityService: QualityService, EpisodeService: EpisodeService, CardScheduler: CardScheduler, CardRenderer: CardRenderer, DetailRenderer: DetailRenderer, SettingsUI: SettingsUI, Lifecycle: Lifecycle, Telemetry: Telemetry, NetworkResult: { normalize: normalizeNetworkResult } };
-    window.__card_overlay_diagnostics__ = function () { return { config: Config.snapshot(), telemetry: Telemetry.snapshot(), request: { active: RequestManager.active, queued: RequestManager.queue.length } }; };
+    window.__card_overlay_modules__ = { Config: Config, Identity: Identity, CacheStore: CacheStore, RequestManager: RequestManager, RatingsService: RatingsService, QualityService: QualityService, EpisodeService: EpisodeService, CardScheduler: CardScheduler, CardRenderer: CardRenderer, DetailRenderer: DetailRenderer, SettingsUI: SettingsUI, Lifecycle: Lifecycle, NetworkResult: { normalize: normalizeNetworkResult } };
 
     window.__card_overlay_init__ = initPlugin;
     window.__card_overlay_destroy__ = destroyPlugin;
