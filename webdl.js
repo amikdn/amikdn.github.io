@@ -222,6 +222,9 @@
             try {
                 if (render) Lampa.Controller.collectionSet(render);
                 Lampa.Controller.collectionFocus(first, render || container);
+                refreshLayers(container);
+            } catch (e) {}
+        }, 0);
     }
 
     function applyAndReport() {
