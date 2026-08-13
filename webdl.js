@@ -8,6 +8,9 @@
     var lastSignature = '';
     var lastCardKey = '';
 
+    var baseOrder = [];
+    var baseSignature = '';
+
     function translate(key, fallback) {
         try {
             var text = Lampa.Lang.translate(key);
@@ -151,7 +154,10 @@
     }
 
     function signature(items) {
-        return items.length + ':' + items.map(function (i) { return i.title.slice(0, 12); }).join('|');
+        return items.length + ':' + items
+            .map(function (i) { return i.title.slice(0, 12); })
+            .sort()
+            .join('|');
     }
 
     function apply() {
@@ -163,27 +169,42 @@
         var container = items[0].el.parentNode;
         var shown = 0;
 
+        var listSign = signature(items);
+        if (listSign !== baseSignature) {
+            baseSignature = listSign;
+            baseOrder = items.map(function (item) { return item.el; });
+        }
+
         items.forEach(function (item) {
             var ok = quality.match(item.title);
             item.el.style.display = ok ? '' : 'none';
             if (ok) shown++;
         });
 
-        if (sort.id === 'off' || !container) return shown;
+        if (!container) return shown;
 
-        var sign = sort.id === 'desc' ? -1 : 1;
-        var ordered = items.slice().sort(function (a, b) {
-            var hiddenA = a.el.style.display === 'none' ? 1 : 0;
-            var hiddenB = b.el.style.display === 'none' ? 1 : 0;
-            if (hiddenA !== hiddenB) return hiddenA - hiddenB;
-            return (a.bitrate - b.bitrate) * sign;
-        });
+        var nodes;
 
-        var same = ordered.every(function (item, index) { return items[index].el === item.el; });
+        if (sort.id === 'off') {
+            nodes = baseOrder.filter(function (el) { return el.parentNode === container; });
+            if (!nodes.length) return shown;
+        }
+        else {
+            var sign = sort.id === 'desc' ? -1 : 1;
+            nodes = items.slice().sort(function (a, b) {
+                var hiddenA = a.el.style.display === 'none' ? 1 : 0;
+                var hiddenB = b.el.style.display === 'none' ? 1 : 0;
+
+                if (hiddenA !== hiddenB) return hiddenA - hiddenB;
+                return (a.bitrate - b.bitrate) * sign;
+            }).map(function (item) { return item.el; });
+        }
+
+        var same = nodes.every(function (el, index) { return items[index].el === el; });
         if (same) return shown;
 
         var fragment = document.createDocumentFragment();
-        ordered.forEach(function (item) { fragment.appendChild(item.el); });
+        nodes.forEach(function (el) { fragment.appendChild(el); });
         container.appendChild(fragment);
 
         refreshLayers(container);
@@ -357,6 +378,8 @@
             if (key === lastCardKey) return;
             lastCardKey = key;
             lastSignature = '';
+            baseSignature = '';
+            baseOrder = [];
         });
     }
 
