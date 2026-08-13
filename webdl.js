@@ -108,12 +108,22 @@
         return value;
     }
 
+    function onTorrents() {
+        try {
+            var current = Lampa.Activity.active();
+            if (current && current.component) return current.component === 'torrents';
+        } catch (e) {}
+        return !!document.querySelector('.torrent-item__tracker');
+    }
+
     function listContainer() {
+        if (!onTorrents()) return null;
         return document.querySelector('.torrent-list');
     }
 
     function readItems() {
-        var root = listContainer() || document;
+        var root = listContainer();
+        if (!root) return [];
         var nodes = root.querySelectorAll('.torrent-item');
         return Array.prototype.map.call(nodes, function (item) {
             var titleEl = item.querySelector('.torrent-item__title');
@@ -232,9 +242,7 @@
 
         Lampa.Select.show = function (params) {
             try {
-                var onTorrents = !!listContainer();
-
-                if (params && onTorrents && Array.isArray(params.items) && !params.tq_skip) {
+                if (params && onTorrents() && Array.isArray(params.items) && !params.tq_skip) {
                     if (params.title === translate('filter_filtred', 'Фильтр')) {
                         injectItem(params, {
                             title: 'Тип раздачи: ' + currentQuality().title,
