@@ -1,7 +1,7 @@
 (function () {
     'use strict';
 
-    var VERSION = '4.1.0';
+    var VERSION = '4.2.0';
     var STORAGE_QUALITY = 'tq_webdl_filter';
     var STORAGE_SORT = 'tq_bitrate_sort';
 
@@ -14,6 +14,15 @@
             if (text && text !== key) return text;
         } catch (e) {}
         return fallback;
+    }
+
+    function titleIs(title, key, variants) {
+        if (!title) return false;
+        if (title === translate(key, '')) return true;
+        for (var i = 0; i < variants.length; i++) {
+            if (title === variants[i]) return true;
+        }
+        return false;
     }
 
     var QUALITIES = [
@@ -109,11 +118,17 @@
     }
 
     function onTorrents() {
+        var component = '';
+
         try {
             var current = Lampa.Activity.active();
-            if (current && current.component) return current.component === 'torrents';
+            if (current && current.component) component = String(current.component);
         } catch (e) {}
-        return !!document.querySelector('.torrent-item__tracker');
+
+        if (component === 'online') return false;
+        if (component.indexOf('torrent') !== -1) return true;
+
+        return !!document.querySelector('.torrent-list .torrent-item__tracker');
     }
 
     function listContainer() {
@@ -296,14 +311,14 @@
         Lampa.Select.show = function (params) {
             try {
                 if (params && onTorrents() && Array.isArray(params.items) && !params.tq_skip) {
-                    if (params.title === translate('filter_filtred', 'Фильтр')) {
+                    if (titleIs(params.title, 'filter_filtred', ['Фильтр', 'Filter', 'Фільтр'])) {
                         injectItem(params, {
                             title: 'Тип раздачи: ' + currentQuality().title,
                             tq_own: true,
                             noselect: true
                         }, openQualityMenu);
                     }
-                    else if (params.title === translate('filter_sorted', 'Сортировка')) {
+                    else if (titleIs(params.title, 'filter_sorted', ['Сортировка', 'Сортировать', 'Sorted', 'Sort', 'Сортування'])) {
                         injectItem(params, {
                             title: 'Битрейт: ' + currentSort().title,
                             tq_own: true,
@@ -352,6 +367,8 @@
             });
             return;
         }
+
+        try { console.log('torrent quality plugin ' + VERSION + ' ready'); } catch (e) {}
 
         hookSelect();
         watchList();
