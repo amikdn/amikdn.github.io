@@ -171,7 +171,41 @@
         ordered.forEach(function (item) { fragment.appendChild(item.el); });
         container.appendChild(fragment);
 
+        resetNavigation(container);
+
         return shown;
+    }
+
+    function activityRender() {
+        try {
+            var current = Lampa.Activity.active();
+            if (current && current.activity && current.activity.render) {
+                return current.activity.render();
+            }
+        } catch (e) {}
+        return null;
+    }
+
+    function resetNavigation(container) {
+        var nodes = container.querySelectorAll('.torrent-item');
+        var first = null;
+
+        for (var i = 0; i < nodes.length; i++) {
+            if (nodes[i].style.display !== 'none') {
+                first = nodes[i];
+                break;
+            }
+        }
+        if (!first) return;
+
+        var render = activityRender();
+
+        setTimeout(function () {
+            try {
+                if (render) Lampa.Controller.collectionSet(render);
+                Lampa.Controller.collectionFocus(first, render || container);
+            } catch (e) {}
+        }, 0);
     }
 
     function applyAndReport() {
