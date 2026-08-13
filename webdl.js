@@ -171,6 +171,7 @@
         ordered.forEach(function (item) { fragment.appendChild(item.el); });
         container.appendChild(fragment);
 
+        refreshLayers(container);
         resetNavigation(container);
 
         return shown;
@@ -184,6 +185,23 @@
             }
         } catch (e) {}
         return null;
+    }
+
+    function refreshLayers(container) {
+        var nodes = container.querySelectorAll('.torrent-item');
+
+        for (var i = 0; i < nodes.length; i++) {
+            var node = nodes[i];
+            if (node.style.visibility === 'hidden') {
+                node.style.visibility = '';
+                node.visibility = '';
+                node.visible = false;
+            }
+        }
+
+        try {
+            if (Lampa.Layer && Lampa.Layer.visible) Lampa.Layer.visible(container);
+        } catch (e) {}
     }
 
     function resetNavigation(container) {
@@ -204,8 +222,6 @@
             try {
                 if (render) Lampa.Controller.collectionSet(render);
                 Lampa.Controller.collectionFocus(first, render || container);
-            } catch (e) {}
-        }, 0);
     }
 
     function applyAndReport() {
