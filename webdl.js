@@ -1,11 +1,11 @@
 (function () {
     'use strict';
 
-    var VERSION = '4.0.0';
+    var VERSION = '4.1.0';
     var STORAGE_QUALITY = 'tq_webdl_filter';
     var STORAGE_SORT = 'tq_bitrate_sort';
 
-    var applyingNow = false;
+    var lastSignature = '';
     var lastCardKey = '';
 
     function translate(key, fallback) {
@@ -108,9 +108,13 @@
         return value;
     }
 
+    function listContainer() {
+        return document.querySelector('.torrent-list');
+    }
+
     function readItems() {
-        var nodes = document.querySelectorAll('.torrent-list .torrent-item');
-        if (!nodes.length) nodes = document.querySelectorAll('.torrent-item');
+        var root = listContainer() || document;
+        var nodes = root.querySelectorAll('.torrent-item');
         return Array.prototype.map.call(nodes, function (item) {
             var titleEl = item.querySelector('.torrent-item__title');
             return {
@@ -121,12 +125,17 @@
         });
     }
 
+    function signature(items) {
+        return items.length + ':' + items.map(function (i) { return i.title.slice(0, 12); }).join('|');
+    }
+
     function apply() {
         var items = readItems();
         if (!items.length) return 0;
 
         var quality = currentQuality();
         var sort = currentSort();
+        var container = items[0].el.parentNode;
         var shown = 0;
 
         items.forEach(function (item) {
@@ -135,21 +144,22 @@
             if (ok) shown++;
         });
 
-        if (sort.id !== 'off') {
-            var visible = items.filter(function (item) { return item.el.style.display !== 'none'; });
-            var sign = sort.id === 'desc' ? -1 : 1;
-            visible.sort(function (a, b) { return (a.bitrate - b.bitrate) * sign; });
+        if (sort.id === 'off' || !container) return shown;
 
-            var parent = visible.length ? visible[0].el.parentNode : null;
-            if (parent) {
-                applyingNow = true;
-                visible.forEach(function (item) { parent.appendChild(item.el); });
-                items.forEach(function (item) {
-                    if (item.el.style.display === 'none') parent.appendChild(item.el);
-                });
-                applyingNow = false;
-            }
-        }
+        var sign = sort.id === 'desc' ? -1 : 1;
+        var ordered = items.slice().sort(function (a, b) {
+            var hiddenA = a.el.style.display === 'none' ? 1 : 0;
+            var hiddenB = b.el.style.display === 'none' ? 1 : 0;
+            if (hiddenA !== hiddenB) return hiddenA - hiddenB;
+            return (a.bitrate - b.bitrate) * sign;
+        });
+
+        var same = ordered.every(function (item, index) { return items[index].el === item.el; });
+        if (same) return shown;
+
+        var fragment = document.createDocumentFragment();
+        ordered.forEach(function (item) { fragment.appendChild(item.el); });
+        container.appendChild(fragment);
 
         return shown;
     }
@@ -178,6 +188,7 @@
             onBack: function () { backToFilterButton('.filter--filter'); },
             onSelect: function (item) {
                 Lampa.Storage.set(STORAGE_QUALITY, item.quality_id);
+                lastSignature = '';
                 applyAndReport();
                 backToFilterButton('.filter--filter');
             }
@@ -194,6 +205,7 @@
             onBack: function () { backToFilterButton('.filter--sort'); },
             onSelect: function (item) {
                 Lampa.Storage.set(STORAGE_SORT, item.sort_id);
+                lastSignature = '';
                 apply();
                 backToFilterButton('.filter--sort');
             }
@@ -220,7 +232,7 @@
 
         Lampa.Select.show = function (params) {
             try {
-                var onTorrents = !!document.querySelector('.torrent-list');
+                var onTorrents = !!listContainer();
 
                 if (params && onTorrents && Array.isArray(params.items) && !params.tq_skip) {
                     if (params.title === translate('filter_filtred', 'Фильтр')) {
@@ -250,11 +262,15 @@
         var timer = null;
 
         new MutationObserver(function () {
-            if (applyingNow) return;
             clearTimeout(timer);
             timer = setTimeout(function () {
-                if (document.querySelector('.torrent-item')) apply();
-            }, 120);
+                var items = readItems();
+                if (!items.length) return;
+                var sign = signature(items);
+                if (sign === lastSignature) return;
+                lastSignature = sign;
+                apply();
+            }, 150);
         }).observe(document.body, { childList: true, subtree: true });
     }
 
@@ -264,7 +280,7 @@
             var key = window.location.search;
             if (key === lastCardKey) return;
             lastCardKey = key;
-            setTimeout(apply, 300);
+            lastSignature = '';
         });
     }
 
@@ -279,7 +295,12 @@
         hookSelect();
         watchList();
         watchActivity();
-        apply();
+
+        var items = readItems();
+        if (items.length) {
+            lastSignature = signature(items);
+            apply();
+        }
     }
 
     start();
