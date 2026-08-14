@@ -1,8 +1,7 @@
 (function () {
     'use strict';
 
-    var TMDB_HOST = 'api.themoviedb.org';
-    var API_KEY = '4ef0d7355d9ffb5151e987764708ce96';
+    var DEFAULT_TMDB_HOST = 'api.themoviedb.org';
 
     var nativeFetch = typeof window !== 'undefined' && typeof window.fetch === 'function' ? window.fetch.bind(window) : null;
 
@@ -76,16 +75,38 @@
         return url.replace('/3/' + match[1] + '/' + match[2], '/3/' + actual + '/' + match[2]);
     }
 
-    function isMirrorTmdb(url) {
-        return typeof url === 'string' && (url.indexOf('apitmdb.') !== -1 || url.indexOf('tmdb.') !== -1) && url.indexOf(TMDB_HOST) === -1;
+    function hostFromUrl(url) {
+        if (typeof url !== 'string' || !url) return '';
+        return url.replace(/^[a-z]+:\/\//i, '').replace(/[\/?].*$/, '');
     }
 
-    var PROXY_API_HOST = 'tmdb.abmsx.tech';
+    function getTmdbApiBase() {
+        try {
+            if (Lampa.TMDB && typeof Lampa.TMDB.api === 'function') {
+                var api = Lampa.TMDB.api('');
+                if (api) return api;
+            }
+        } catch (e) {}
+        try {
+            var proxy = hostFromUrl(Lampa.Storage.get('proxy_tmdb', ''));
+            if (proxy) return 'https://' + proxy + '/3/';
+        } catch (e) {}
+        return 'https://' + DEFAULT_TMDB_HOST + '/3/';
+    }
+
+    function getTmdbHost() {
+        return hostFromUrl(getTmdbApiBase()) || DEFAULT_TMDB_HOST;
+    }
+
+    function isMirrorTmdb(url) {
+        return typeof url === 'string' && (url.indexOf('apitmdb.') !== -1 || url.indexOf('tmdb.') !== -1) && url.indexOf(getTmdbHost()) === -1;
+    }
 
     function directTmdbUrl(type, id, suffix, params) {
-        var path = type + '/' + id + (suffix || '') + '?' + params;
+        var base = getTmdbApiBase();
+        if (base.charAt(base.length - 1) !== '/') base += '/';
 
-        return 'https://' + TMDB_HOST + '/3/' + path;
+        return base + type + '/' + id + (suffix || '') + '?' + params;
     }
 
     function getLang() {
@@ -94,8 +115,22 @@
     }
 
     function getApiKey() {
-        try { if (Lampa.TMDB && typeof Lampa.TMDB.key === 'function') return Lampa.TMDB.key(); } catch (e) {}
-        return API_KEY;
+        try {
+            if (Lampa.TMDB && typeof Lampa.TMDB.key === 'function') {
+                var key = Lampa.TMDB.key();
+                if (key) return key;
+            }
+        } catch (e) {}
+        try {
+            var stored = Lampa.Storage.get('tmdb_key', '');
+            if (stored) return stored;
+        } catch (e) {}
+        return '';
+    }
+
+    function apiKeyParam() {
+        var key = getApiKey();
+        return key ? 'api_key=' + key + '&' : '';
     }
 
     var cardCache = {};
@@ -107,7 +142,7 @@
         var append = type === 'tv'
             ? 'credits,external_ids,videos,recommendations,similar,content_ratings'
             : 'credits,external_ids,videos,recommendations,similar';
-        var url = directTmdbUrl(type, id, '', 'api_key=' + getApiKey() + '&language=' + lang + '&append_to_response=' + append);
+        var url = directTmdbUrl(type, id, '', apiKeyParam() + 'language=' + lang + '&append_to_response=' + append);
         if (nativeFetch) {
             return nativeFetch(url).then(function (response) {
                 if (!response.ok) return Promise.reject(new Error('HTTP ' + response.status));
@@ -169,7 +204,7 @@
         var key = type + '_' + id;
         if (!isRetry && imagesCache[key]) return imagesCache[key];
         var lang = getLang();
-        var url = directTmdbUrl(type, id, '/images', 'api_key=' + getApiKey() + '&include_image_language=' + lang + ',en,null');
+        var url = directTmdbUrl(type, id, '/images', apiKeyParam() + 'include_image_language=' + lang + ',en,null');
         var p;
         if (nativeFetch) {
             var timeoutMs = 15000;
@@ -228,7 +263,7 @@
         var key = 'tv_' + tvId + '_s' + seasonNum;
         if (seasonCache[key]) return seasonCache[key];
         var lang = getLang();
-        var url = directTmdbUrl('tv', tvId, '/season/' + seasonNum, 'api_key=' + getApiKey() + '&language=' + lang);
+        var url = directTmdbUrl('tv', tvId, '/season/' + seasonNum, apiKeyParam() + 'language=' + lang);
         var p;
         if (nativeFetch) {
             p = nativeFetch(url).then(function (r) { return r.json(); }).then(function (data) {
