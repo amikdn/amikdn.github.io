@@ -85,12 +85,30 @@
         return url.replace(/^[a-z]+:\/\//i, '').replace(/[\/?].*$/, '');
     }
 
+    var PROXY_HOSTS = ['tmdb.abmsx.tech'];
+    var activeBaseIndex = 0;
+
+    function tmdbBases() {
+        var list = [];
+        var seen = {};
+
+        function push(host) {
+            if (!host || seen[host]) return;
+            seen[host] = true;
+            list.push('https://' + host + '/3/');
+        }
+
+        try { push(hostFromUrl(Lampa.Storage.get('anti_dmca_tmdb_host', ''))); } catch (e) {}
+        push(DEFAULT_TMDB_HOST);
+        PROXY_HOSTS.forEach(push);
+        try { push(hostFromUrl(Lampa.Storage.get('proxy_tmdb', ''))); } catch (e) {}
+
+        return list;
+    }
+
     function getTmdbApiBase() {
-        try {
-            var proxy = hostFromUrl(Lampa.Storage.get('anti_dmca_tmdb_host', ''));
-            if (proxy) return 'https://' + proxy + '/3/';
-        } catch (e) {}
-        return 'https://' + DEFAULT_TMDB_HOST + '/3/';
+        var bases = tmdbBases();
+        return bases[activeBaseIndex] || bases[0];
     }
 
     function getTmdbHost() {
@@ -125,10 +143,34 @@
         return key ? 'api_key=' + key + '&' : '';
     }
 
-    function tmdbUrl(type, id, suffix, params) {
-        var base = getTmdbApiBase();
-        if (base.charAt(base.length - 1) !== '/') base += '/';
-        return base + type + '/' + id + (suffix || '') + '?' + apiKeyParam() + params;
+    function tmdbPath(type, id, suffix, params) {
+        return type + '/' + id + (suffix || '') + '?' + apiKeyParam() + params;
+    }
+
+    function requestTmdb(path, validate) {
+        var bases = tmdbBases();
+        if (!bases.length) return Promise.reject(new Error('no tmdb base'));
+        var start = activeBaseIndex < bases.length ? activeBaseIndex : 0;
+
+        function attempt(step, lastError) {
+            if (step >= bases.length) {
+                return Promise.reject(lastError || new Error('all tmdb hosts failed'));
+            }
+            var index = (start + step) % bases.length;
+            return httpJson(bases[index] + path)
+                .then(validate)
+                .then(function (data) {
+                    activeBaseIndex = index;
+                    return data;
+                }, function (error) {
+                    if (bases.length > 1) {
+                        logFail('host ' + hostFromUrl(bases[index]), error);
+                    }
+                    return attempt(step + 1, error);
+                });
+        }
+
+        return attempt(0);
     }
 
     function httpJson(url) {
@@ -195,8 +237,10 @@
 
         function load(candidate) {
             var append = 'credits,external_ids,videos,recommendations,similar' + (candidate === 'tv' ? ',content_ratings' : '');
-            return httpJson(tmdbUrl(candidate, id, '', 'language=' + getLang() + '&append_to_response=' + append))
-                .then(validCard)
+            return requestTmdb(
+                tmdbPath(candidate, id, '', 'language=' + getLang() + '&append_to_response=' + append),
+                validCard
+            )
                 .then(function (data) {
                     rememberType(id, candidate);
                     clearBlockedFlag(data);
@@ -216,17 +260,17 @@
 
     function fetchImages(id, type) {
         type = resolvedType(id, type);
-        var url = tmdbUrl(type, id, '/images', 'include_image_language=' + getLang() + ',en,null');
-        function load() { return httpJson(url).then(validImages); }
+        var path = tmdbPath(type, id, '/images', 'include_image_language=' + getLang() + ',en,null');
+        function load() { return requestTmdb(path, validImages); }
         return cached(imagesCache, type + '_' + id, function () {
             return load().catch(load);
         });
     }
 
     function fetchSeason(tvId, seasonNum) {
-        var url = tmdbUrl('tv', tvId, '/season/' + seasonNum, 'language=' + getLang());
+        var path = tmdbPath('tv', tvId, '/season/' + seasonNum, 'language=' + getLang());
         return cached(seasonCache, 'tv_' + tvId + '_s' + seasonNum, function () {
-            return httpJson(url).then(validSeason);
+            return requestTmdb(path, validSeason);
         });
     }
 
@@ -249,6 +293,8 @@
             vote_average: src.vote_average || 0,
             genres: [],
             production_countries: [],
+            origin_country: [],
+            countries: [],
             production_companies: [],
             spoken_languages: [],
             credits: { cast: [], crew: [] },
@@ -412,7 +458,8 @@
         if (typeof Lampa === 'undefined' || !window.lampa_settings) return;
         window.anti_dmca_plugin = true;
         try {
-            console.log('[anti-dmca] v8-direct-tmdb active, host=' + getTmdbHost() +
+            console.log('[anti-dmca] v9-failover active, hosts=' +
+                tmdbBases().map(hostFromUrl).join(' > ') +
                 ', key=' + (getApiKey() ? 'yes' : 'no'));
         } catch (e) {}
 
@@ -472,14 +519,22 @@
             });
         } catch (e) { settings.dcma = []; }
 
-        var tmdbSource = Lampa.Api && Lampa.Api.sources && Lampa.Api.sources.tmdb;
-        if (tmdbSource && typeof tmdbSource.parseCountries === 'function') {
-            var origPC = tmdbSource.parseCountries;
-            tmdbSource.parseCountries = function () {
-                var r = origPC.apply(this, arguments);
+        var sources = (Lampa.Api && Lampa.Api.sources) || {};
+        Object.keys(sources).forEach(function (name) {
+            var source = sources[name];
+            if (!source || typeof source.parseCountries !== 'function' || source.__admca_pc) return;
+            var origPC = source.parseCountries;
+            source.parseCountries = function () {
+                var r;
+                try {
+                    r = origPC.apply(this, arguments);
+                } catch (e) {
+                    return [];
+                }
                 return Array.isArray(r) ? r : [];
             };
-        }
+            source.__admca_pc = true;
+        });
     }
 
     if (window.appready) {
