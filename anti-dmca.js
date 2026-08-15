@@ -160,6 +160,13 @@
         });
     }
 
+    function logFail(what, error) {
+        try {
+            console.warn('[anti-dmca] ' + what + ' → ' + ((error && error.message) || error || 'unknown') +
+                ' | host=' + getTmdbHost() + ' key=' + (getApiKey() ? 'yes' : 'no'));
+        } catch (e) {}
+    }
+
     function validator(check, message) {
         return function (data) {
             if (check(data)) return data;
@@ -264,7 +271,8 @@
         var sub = (url.match(subPathRe) || [])[1] || null;
 
         if (sub === 'images') {
-            return fetchImages(id, type).catch(function () {
+            return fetchImages(id, type).catch(function (error) {
+                logFail('images ' + type + '/' + id, error);
                 return { id: parseInt(id, 10), logos: [], backdrops: [], posters: [] };
             });
         }
@@ -273,9 +281,11 @@
         }
         return fetchCard(id, type, preferAlternate).then(function (data) {
             return sub && data[sub] !== undefined ? data[sub] : data;
-        }, function () {
+        }, function (error) {
+            logFail('card ' + type + '/' + id + (sub ? '/' + sub : ''), error);
             var stub = safeCard(id, resolvedType(id, type));
-            return sub && stub[sub] !== undefined ? stub[sub] : stub;
+            if (!sub) return stub;
+            return stub[sub] === undefined || stub[sub] === null ? {} : stub[sub];
         });
     }
 
@@ -283,7 +293,8 @@
         try { Object.defineProperty(xhr, prop, { value: value, configurable: true }); } catch (e) {}
     }
 
-    function patchXhr(xhr, payload) {
+    function patchXhr(xhr, data) {
+        var payload = data === undefined || data === null ? {} : data;
         var text = JSON.stringify(payload);
         try {
             Object.defineProperty(xhr, 'responseText', { get: function () { return text; }, configurable: true });
@@ -401,7 +412,8 @@
         if (typeof Lampa === 'undefined' || !window.lampa_settings) return;
         window.anti_dmca_plugin = true;
         try {
-            console.log('[anti-dmca] v7-direct-tmdb active, host=' + getTmdbHost());
+            console.log('[anti-dmca] v8-direct-tmdb active, host=' + getTmdbHost() +
+                ', key=' + (getApiKey() ? 'yes' : 'no'));
         } catch (e) {}
 
         var settings = window.lampa_settings;
@@ -423,14 +435,19 @@
                     fetchCard(match[2], match[1]).then(function (card) {
                         clearBlockedFlag(card);
                         resume(sub && card[sub] !== undefined ? card[sub] : card);
-                    }, function () {
+                    }, function (error) {
+                        logFail('request_secuses ' + match[1] + '/' + match[2] + (sub ? '/' + sub : ''), error);
+
                         var fallback = clearBlockedFlag(data);
                         var hasTitle = fallback && (fallback.title || fallback.name);
+                        var stub = safeCard(match[2], match[1], fallback);
+
                         if (sub) {
-                            resume(hasTitle && fallback[sub] !== undefined ? fallback[sub] : safeCard(match[2], match[1])[sub]);
+                            var subData = hasTitle && fallback[sub] !== undefined ? fallback[sub] : stub[sub];
+                            resume(subData === undefined || subData === null ? {} : subData);
                             return;
                         }
-                        resume(hasTitle ? fallback : safeCard(match[2], match[1], fallback));
+                        resume(hasTitle ? fallback : stub);
                     });
                     return;
                 }
