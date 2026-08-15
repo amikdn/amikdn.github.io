@@ -10,7 +10,6 @@
     { id: 'jr_maxvol_pro', name: 'Jacred Maxvol Pro', baseUrl: 'jr.maxvol.pro', key: '', interview: 'status:healthy', lang: 'df' },
     { id: 'jacred_ru', name: 'Jacred RU', baseUrl: 'jac-red.ru', key: '', interview: 'all', lang: 'lg' },
     { id: 'freebie_tom_ru', name: 'Freebie', baseUrl: 'jacred.freebie.tom.ru', key: '1', interview: 'all', lang: 'lg' },
-    { id: 'lampa_app', name: 'Lampa.app', baseUrl: 'lampa.app', key: '', interview: 'status:healthy', lang: 'lg' },
     { id: 'jacred_su', name: 'JacRed.su', baseUrl: 'jacred.su', key: '', interview: 'status:healthy', lang: 'lg' }
   ];
 
@@ -95,19 +94,17 @@
   }
 
   var PING_QUERY = 'zzqxwv';
-  var PING_TIMEOUT = 12000;
+  var PING_TIMEOUT = 6000;
+  var PING_TOTAL_TIMEOUT = 7000;
+  var PING_CACHE_TTL = 3 * 60 * 1000;
+  var pingCache = {};
 
   function buildPingUrls(server) {
     var base = getRequestProtocol(server) + server.baseUrl;
-    var urls = [base + '/api/v2.0/indexers/status:healthy/results?apikey=' + server.key + '&query=' + PING_QUERY];
-
-    if (server.interview !== 'status:healthy') {
-      urls.push(base + '/api/v2.0/indexers/' + server.interview + '/results?apikey=' + server.key + '&query=' + PING_QUERY);
-    }
-
-    urls.push(base + '/api/v1.0/torrents?search=' + PING_QUERY + '&apikey=' + server.key);
-
-    return urls;
+    return [
+      base + '/api/v2.0/indexers/' + server.interview + '/results?apikey=' + server.key + '&query=' + PING_QUERY,
+      base + '/api/v1.0/torrents?search=' + PING_QUERY + '&apikey=' + server.key
+    ];
   }
 
   function requestPing(url, onDone) {
@@ -152,39 +149,56 @@
     }
   }
 
+  function statusMeansAlive(status) {
+    return typeof status === 'number' && status > 0 && status < 500 && status !== 401;
+  }
+
   function checkServerStatus(server, callback) {
     if (isBlockedByMixedContent(server)) {
       callback(server, false, 'mixed');
       return;
     }
 
-    var urls = buildPingUrls(server);
+    var cached = pingCache[server.id];
+    if (cached && Date.now() < cached.expires) {
+      callback(server, cached.ok, cached.status);
+      return;
+    }
 
-    function attempt(i, lastStatus) {
-      if (i >= urls.length) {
-        callback(server, false, lastStatus);
-        return;
-      }
-      requestPing(urls[i], function (ok, status) {
-        if (ok) {
-          callback(server, true, status);
+    var urls = buildPingUrls(server);
+    var pending = urls.length;
+    var settled = false;
+    var lastStatus = 'error';
+
+    function done(ok, status) {
+      if (settled) return;
+      settled = true;
+      clearTimeout(totalTimer);
+      pingCache[server.id] = { ok: ok, status: status, expires: Date.now() + PING_CACHE_TTL };
+      callback(server, ok, status);
+    }
+
+    var totalTimer = setTimeout(function () {
+      done(false, lastStatus);
+    }, PING_TOTAL_TIMEOUT);
+
+    urls.forEach(function (url) {
+      requestPing(url, function (ok, status) {
+        pending--;
+        if (typeof status === 'number') lastStatus = status;
+
+        if (ok || statusMeansAlive(status)) {
+          done(true, status);
           return;
         }
 
         if (status === 401) {
-          callback(server, false, status);
+          done(false, 401);
           return;
         }
-
-        if (typeof status === 'number' && status > 0 && status < 500) {
-          callback(server, true, status);
-          return;
-        }
-        attempt(i + 1, status);
+        if (pending <= 0) done(false, lastStatus);
       });
-    }
-
-    attempt(0, 'error');
+    });
   }
 
   function updateServerStatusInSettings() {
