@@ -1,15 +1,17 @@
 (function () {
   'use strict';
+
   Lampa.Platform.tv();
 
   var servers = [
     { id: 'lampa_jackett', name: 'Lampa jacred', baseUrl: '87.120.84.218:9117', key: '333', interview: 'all', lang: 'df' },
-    { id: 'jac_red', name: 'Jac.red', baseUrl: 'jac.red', key: '', interview: 'healthy', lang: 'lg' },
-    { id: 'ru_jac_black', name: 'RU Jac.black', baseUrl: 'ru.jac.black', protocol: 'https://', key: '', interview: 'healthy', lang: 'lg' },
-    { id: 'jr_maxvol_pro', name: 'Jacred Maxvol Pro', baseUrl: 'jr.maxvol.pro', key: '', interview: 'healthy', lang: 'df' },
+    { id: 'jac_red', name: 'Jac.red', baseUrl: 'jac.red', key: '', interview: 'status:healthy', lang: 'lg' },
+    { id: 'ru_jac_black', name: 'RU Jac.black', baseUrl: 'ru.jac.black', protocol: 'https://', key: '', interview: 'status:healthy', lang: 'lg' },
+    { id: 'jr_maxvol_pro', name: 'Jacred Maxvol Pro', baseUrl: 'jr.maxvol.pro', key: '', interview: 'status:healthy', lang: 'df' },
     { id: 'jacred_ru', name: 'Jacred RU', baseUrl: 'jac-red.ru', key: '', interview: 'all', lang: 'lg' },
-  //  { id: 'tribal', name: 'Tribal', baseUrl: '11.307407.xyz', protocol: 'https://', key: '', interview: 'all', lang: 'lg' },
-    { id: 'freebie_tom_ru', name: 'Freebie', baseUrl: 'jacred.freebie.tom.ru', key: '1', interview: 'all', lang: 'lg' }
+    { id: 'freebie_tom_ru', name: 'Freebie', baseUrl: 'jacred.freebie.tom.ru', key: '1', interview: 'all', lang: 'lg' },
+    { id: 'lampa_app', name: 'Lampa.app', baseUrl: 'lampa.app', key: '', interview: 'status:healthy', lang: 'lg' },
+    { id: 'jacred_su', name: 'JacRed.su', baseUrl: 'jacred.su', key: '', interview: 'status:healthy', lang: 'lg' }
   ];
 
   var PARSER_ICON = '<svg width="100%" height="100%" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 4 19.6 9.5 16.7 18.5 7.3 18.5 4.4 9.5Z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round" opacity=".45"/><path d="M12 12 12 4M12 12 19.6 9.5M12 12 16.7 18.5M12 12 7.3 18.5M12 12 4.4 9.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="12" cy="12" r="2.6" fill="currentColor"/><circle cx="12" cy="4" r="1.9" fill="currentColor"/><circle cx="19.6" cy="9.5" r="1.9" fill="currentColor"/><circle cx="16.7" cy="18.5" r="1.9" fill="currentColor"/><circle cx="7.3" cy="18.5" r="1.9" fill="currentColor"/><circle cx="4.4" cy="9.5" r="1.9" fill="currentColor"/></svg>';
@@ -58,15 +60,33 @@
     Lampa.Storage.set('parse_in_search', true);
   }
 
+  function saveOwnParser(url, key) {
+    Lampa.Storage.set('jackett_own_url', url || '');
+    Lampa.Storage.set('jackett_own_key', key || '');
+  }
+
+  function rememberOwnParserFromCurrent() {
+    if (Lampa.Storage.get('jackett_urltwo') !== 'no_parser') return;
+    var url = Lampa.Storage.get('jackett_url', '');
+    var key = Lampa.Storage.get('jackett_key', '');
+    if (url) saveOwnParser(url, key);
+  }
+
+  function applyOwnParser() {
+    Lampa.Storage.set('jackett_urltwo', 'no_parser');
+    Lampa.Storage.set('jackett_url', Lampa.Storage.get('jackett_own_url', ''));
+    Lampa.Storage.set('jackett_key', Lampa.Storage.get('jackett_own_key', ''));
+    Lampa.Storage.set('jackett_interview', 'all');
+    Lampa.Storage.set('parse_lang', 'lg');
+    Lampa.Storage.set('parse_in_search', !!Lampa.Storage.get('jackett_own_url', ''));
+  }
+
   function applyServerConfig() {
     var selected = Lampa.Storage.get('jackett_urltwo');
 
     if (selected === 'no_parser') {
-      Lampa.Storage.set('jackett_url', '');
-      Lampa.Storage.set('jackett_key', '');
-      Lampa.Storage.set('jackett_interview', 'all');
-      Lampa.Storage.set('parse_in_search', false);
-      Lampa.Storage.set('parse_lang', 'lg');
+      rememberOwnParserFromCurrent();
+      applyOwnParser();
       return;
     }
 
@@ -79,12 +99,12 @@
 
   function buildPingUrls(server) {
     var base = getRequestProtocol(server) + server.baseUrl;
-    var own = server.interview === 'healthy' ? 'status:healthy' : 'all';
     var urls = [base + '/api/v2.0/indexers/status:healthy/results?apikey=' + server.key + '&query=' + PING_QUERY];
 
-    if (own !== 'status:healthy') {
-      urls.push(base + '/api/v2.0/indexers/' + own + '/results?apikey=' + server.key + '&query=' + PING_QUERY);
+    if (server.interview !== 'status:healthy') {
+      urls.push(base + '/api/v2.0/indexers/' + server.interview + '/results?apikey=' + server.key + '&query=' + PING_QUERY);
     }
+
     urls.push(base + '/api/v1.0/torrents?search=' + PING_QUERY + '&apikey=' + server.key);
 
     return urls;
@@ -150,8 +170,14 @@
           callback(server, true, status);
           return;
         }
+
         if (status === 401) {
           callback(server, false, status);
+          return;
+        }
+
+        if (typeof status === 'number' && status > 0 && status < 500) {
+          callback(server, true, status);
           return;
         }
         attempt(i + 1, status);
@@ -487,15 +513,14 @@
     if (currentSelected === 'no_parser') noParserRow.addClass('jackett-server-active');
 
     noParserRow.on('hover:enter', function () {
-      Lampa.Storage.set('jackett_urltwo', 'no_parser');
-      Lampa.Storage.set('jackett_url', '');
-      Lampa.Storage.set('jackett_key', '');
-      Lampa.Storage.set('jackett_interview', 'all');
-      Lampa.Storage.set('parse_in_search', false);
-      Lampa.Storage.set('parse_lang', 'lg');
+      applyOwnParser();
+      var ownUrl = Lampa.Storage.get('jackett_own_url', '');
+      var ownKey = Lampa.Storage.get('jackett_own_key', '');
       closeModalSafeJ();
-      $('div[data-name="jackett_url"] input, div[data-name="jackett_url"] .settings-param__value').val('').text('');
-      $('div[data-name="jackett_key"] input, div[data-name="jackett_key"] .settings-param__value').val('').text('');
+      $('div[data-name="jackett_url"] input').val(ownUrl);
+      $('div[data-name="jackett_url"] .settings-param__value').text(ownUrl);
+      $('div[data-name="jackett_key"] input').val(ownKey);
+      $('div[data-name="jackett_key"] .settings-param__value').text(ownKey);
       $('div[data-name="jackett_url"]').show();
       $('div[data-name="jackett_key"]').show();
       $('div[data-name="jackett_url2"]').show();
@@ -685,6 +710,15 @@
   });
 
   Lampa.Storage.listener.follow('change', function (e) {
+    if ((e.name === 'jackett_url' || e.name === 'jackett_key') &&
+        Lampa.Storage.get('jackett_urltwo') === 'no_parser') {
+      saveOwnParser(
+        e.name === 'jackett_url' ? e.value : Lampa.Storage.get('jackett_url', ''),
+        e.name === 'jackett_key' ? e.value : Lampa.Storage.get('jackett_key', '')
+      );
+      Lampa.Storage.set('parse_in_search', !!Lampa.Storage.get('jackett_own_url', ''));
+    }
+
     if (e.name === 'parser_torrent_type') {
       var el = $('div[data-name="jackett_urltwo"]');
       if (e.value !== 'jackett') el.hide();
@@ -723,4 +757,22 @@
     var def = findServerById('jac_red');
     if (def) applyServer(def);
   }
+
+  (function migrateSelectedServer() {
+    var selected = Lampa.Storage.get('jackett_urltwo');
+    rememberOwnParserFromCurrent();
+    if (!selected || selected === 'no_parser') return;
+
+    var server = findServerById(selected);
+    if (!server) {
+      var fallback = findServerById('jac_red');
+      if (fallback) {
+        Lampa.Storage.set('jackett_urltwo', fallback.id);
+        applyServer(fallback);
+      }
+      return;
+    }
+
+    if (Lampa.Storage.get('jackett_interview') !== server.interview) applyServer(server);
+  })();
 })();
