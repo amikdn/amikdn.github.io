@@ -2,6 +2,7 @@
     'use strict';
 
     var DEFAULT_TMDB_HOST = 'api.themoviedb.org';
+    var FALLBACK_API_KEY = '4ef0d7355d9ffb5151e987764708ce96';
     var TIMEOUT = 15000;
 
     var nativeFetch = typeof window !== 'undefined' && typeof window.fetch === 'function' ? window.fetch.bind(window) : null;
@@ -86,13 +87,7 @@
 
     function getTmdbApiBase() {
         try {
-            if (Lampa.TMDB && typeof Lampa.TMDB.api === 'function') {
-                var api = Lampa.TMDB.api('');
-                if (api) return api;
-            }
-        } catch (e) {}
-        try {
-            var proxy = hostFromUrl(Lampa.Storage.get('proxy_tmdb', ''));
+            var proxy = hostFromUrl(Lampa.Storage.get('anti_dmca_tmdb_host', ''));
             if (proxy) return 'https://' + proxy + '/3/';
         } catch (e) {}
         return 'https://' + DEFAULT_TMDB_HOST + '/3/';
@@ -111,14 +106,22 @@
         return (typeof localStorage !== 'undefined' && localStorage.getItem('language')) || 'ru';
     }
 
-    function apiKeyParam() {
-        var key = '';
+    function getApiKey() {
         try {
-            if (Lampa.TMDB && typeof Lampa.TMDB.key === 'function') key = Lampa.TMDB.key() || '';
+            var own = Lampa.Storage.get('anti_dmca_tmdb_key', '') || Lampa.Storage.get('tmdb_key', '') || '';
+            if (own) return own;
         } catch (e) {}
-        if (!key) {
-            try { key = Lampa.Storage.get('tmdb_key', '') || ''; } catch (e) {}
-        }
+        try {
+            if (Lampa.TMDB && typeof Lampa.TMDB.key === 'function') {
+                var key = Lampa.TMDB.key();
+                if (key) return key;
+            }
+        } catch (e) {}
+        return FALLBACK_API_KEY;
+    }
+
+    function apiKeyParam() {
+        var key = getApiKey();
         return key ? 'api_key=' + key + '&' : '';
     }
 
@@ -220,6 +223,39 @@
         });
     }
 
+    function safeCard(id, type, source) {
+        var src = source && typeof source === 'object' ? source : {};
+        var isTv = type === 'tv';
+        var title = src.title || src.name || src.original_title || src.original_name || '';
+        return {
+            id: parseInt(id, 10) || id,
+            media_type: isTv ? 'tv' : 'movie',
+            title: title,
+            name: title,
+            original_title: title,
+            original_name: title,
+            overview: src.overview || '',
+            poster_path: src.poster_path || null,
+            backdrop_path: src.backdrop_path || null,
+            release_date: src.release_date || '',
+            first_air_date: src.first_air_date || '',
+            vote_average: src.vote_average || 0,
+            genres: [],
+            production_countries: [],
+            production_companies: [],
+            spoken_languages: [],
+            credits: { cast: [], crew: [] },
+            videos: { results: [] },
+            images: { logos: [], backdrops: [], posters: [] },
+            recommendations: { results: [] },
+            similar: { results: [] },
+            seasons: [],
+            number_of_seasons: 0,
+            episode_run_time: [],
+            runtime: 0
+        };
+    }
+
     function recover(url, preferAlternate) {
         var m = typeof url === 'string' ? url.match(cardPathRe) : null;
         if (!m) return null;
@@ -237,6 +273,9 @@
         }
         return fetchCard(id, type, preferAlternate).then(function (data) {
             return sub && data[sub] !== undefined ? data[sub] : data;
+        }, function () {
+            var stub = safeCard(id, resolvedType(id, type));
+            return sub && stub[sub] !== undefined ? stub[sub] : stub;
         });
     }
 
@@ -361,7 +400,9 @@
         if (window.anti_dmca_plugin) return;
         if (typeof Lampa === 'undefined' || !window.lampa_settings) return;
         window.anti_dmca_plugin = true;
-        try { console.log('[anti-dmca] v6-direct-tmdb active'); } catch (e) {}
+        try {
+            console.log('[anti-dmca] v7-direct-tmdb active, host=' + getTmdbHost());
+        } catch (e) {}
 
         var settings = window.lampa_settings;
         settings.disable_features = settings.disable_features || {};
@@ -383,7 +424,13 @@
                         clearBlockedFlag(card);
                         resume(sub && card[sub] !== undefined ? card[sub] : card);
                     }, function () {
-                        resume(clearBlockedFlag(data));
+                        var fallback = clearBlockedFlag(data);
+                        var hasTitle = fallback && (fallback.title || fallback.name);
+                        if (sub) {
+                            resume(hasTitle && fallback[sub] !== undefined ? fallback[sub] : safeCard(match[2], match[1])[sub]);
+                            return;
+                        }
+                        resume(hasTitle ? fallback : safeCard(match[2], match[1], fallback));
                     });
                     return;
                 }
