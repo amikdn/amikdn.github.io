@@ -103,7 +103,8 @@
     var base = getRequestProtocol(server) + server.baseUrl;
     return [
       base + '/api/v2.0/indexers/' + server.interview + '/results?apikey=' + server.key + '&query=' + PING_QUERY,
-      base + '/api/v1.0/torrents?search=' + PING_QUERY + '&apikey=' + server.key
+      base + '/api/v1.0/torrents?search=' + PING_QUERY + '&apikey=' + server.key,
+      base + '/'
     ];
   }
 
@@ -182,21 +183,20 @@
       done(false, lastStatus);
     }, PING_TOTAL_TIMEOUT);
 
+    var sawAuthError = false;
+
     urls.forEach(function (url) {
       requestPing(url, function (ok, status) {
         pending--;
         if (typeof status === 'number') lastStatus = status;
+        if (status === 401) sawAuthError = true;
 
         if (ok || statusMeansAlive(status)) {
           done(true, status);
           return;
         }
 
-        if (status === 401) {
-          done(false, 401);
-          return;
-        }
-        if (pending <= 0) done(false, lastStatus);
+        if (pending <= 0) done(false, sawAuthError ? 401 : lastStatus);
       });
     });
   }
