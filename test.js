@@ -93,7 +93,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
 
     client.on("RchClient", function(rchId, url, data, headers, returnHeaders) {
       var network = new Lampa.Reguest();
-	  
+
 	  function sendResult(uri, html) {
 	    $.ajax({
 	      url: 'http://150.230.22.208:8080/rch/' + uri + '?id=' + rchId,
@@ -181,7 +181,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
   window.rch_nws[hostkey].typeInvoke('http://150.230.22.208:8080', function() {});
 
   function rchInvoke(json, call) {
-    if (!window.nwsClient) 
+    if (!window.nwsClient)
       window.nwsClient = {};
 
     var client = window.nwsClient[hostkey];
@@ -250,16 +250,15 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
     return (episodeNumber < 10 ? '0' : '') + episodeNumber;
   }
 
-  /* S1E1 вместо 01: так бейдж выглядит в оригинальном BWA. */
-  function bwaBadge(season, episodeNumber) {
-    if (window.BWA_VIEW) return window.BWA_VIEW.episodeBadge(season, episodeNumber);
+  function novaBadge(season, episodeNumber) {
+    if (window.NOVA_VIEW) return window.NOVA_VIEW.episodeBadge(season, episodeNumber);
     return formatEpisodeNumber(episodeNumber);
   }
 
   var Network = Lampa.Reguest;
 
   function component(object) {
-    // ── state & UI scaffold ──
+
     var network = new Network();
     network.timeout(BALANCER_TIMEOUT);
     var scroll = new Lampa.Scroll({
@@ -297,7 +296,6 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
       }
     }
 
-    // ── helpers ──
     if (balansers_with_search == undefined) {
       network.timeout(REQUEST_TIMEOUT);
       network.silent(
@@ -348,7 +346,6 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
       return all[id];
     }
 
-    // ── init & filter ──
     this.initialize = function () {
       var _this = this;
       this.loading(true);
@@ -411,9 +408,9 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
       if (filter.addButtonBack) filter.addButtonBack();
       filter.render().find('.filter--sort span').text(Lampa.Lang.translate('lampac_balanser'));
       scroll.body().addClass('torrent-list');
-      if (window.BWA_VIEW) {
-        window.BWA_VIEW.install();
-        window.BWA_VIEW.scope(files.render());
+      if (window.NOVA_VIEW) {
+        window.NOVA_VIEW.install();
+        window.NOVA_VIEW.scope(files.render());
       }
       files.appendFiles(scroll.render());
       files.appendHead(filter.render());
@@ -460,7 +457,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
         _this.noConnectToServer(e);
       });
     };
-    // ── RCH & external IDs ──
+
     this.rch = function (json, noreset) {
       var _this2 = this;
       rchRun(json, function () {
@@ -497,7 +494,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
         } else resolve();
       });
     };
-    // ── balanser ──
+
     this.updateBalanser = function (balanser_name) {
       var last_select_balanser = Lampa.Storage.cache('online_last_balanser', 3000, {});
       last_select_balanser[object.movie.id] = balanser_name;
@@ -514,7 +511,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
     };
     this.requestParams = function (url) {
       var query = [];
-      var card_source = object.movie.source || 'tmdb'; //Lampa.Storage.field('source')
+      var card_source = object.movie.source || 'tmdb';
       query.push('id=' + encodeURIComponent(object.movie.id));
 
       if (object.movie.imdb_id) query.push('imdb_id=' + (object.movie.imdb_id || ''));
@@ -552,7 +549,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
         query.push('cub_id=' + Lampa.Utils.hash(Lampa.Storage.get('account_email', '')));
       return url + (url.indexOf('?') >= 0 ? '&' : '?') + query.join('&');
     };
-    // ── source & life events ──
+
     this.getLastChoiceBalanser = function () {
       var last_select_balanser = Lampa.Storage.cache('online_last_balanser', 3000, {});
       if (last_select_balanser[object.movie.id]) {
@@ -704,18 +701,13 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
         );
       });
     };
-    /**
-     * Подготовка
-     */
+
     this.create = function () {
       return this.render();
     };
-    // ── search & request ──
-    /**
-     * Начать поиск
-     */
+
     this.search = function () {
-      //this.loading(true)
+
       this.filter(
         {
           source: filter_sources
@@ -773,7 +765,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
         return [];
       }
     };
-    // ── play / quality ──
+
     this.getFileUrl = function (file, call, waiting_rch) {
       var _this = this;
 
@@ -922,7 +914,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
                     _this5.orUrlReserve(cell);
                     _this5.setDefaultQuality(cell);
                     playlist.push(cell);
-                  }); //Lampa.Player.playlist(playlist)
+                  });
                 } else {
                   playlist.push(first);
                 }
@@ -930,7 +922,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
                 if (first.url) {
                   var element = first;
                   element.isonline = true;
-                  
+
                   Lampa.Player.play(element);
                   Lampa.Player.playlist(playlist);
                   if (element.subtitles_call) _this5.loadSubtitles(element.subtitles_call);
@@ -983,7 +975,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
         }
       );
     };
-    // ── parse response ──
+
     this.parse = function (str) {
       var json = Lampa.Arrays.decodeJson(str, {});
       if (Lampa.Arrays.isObject(str) && str.rch) json = str;
@@ -1028,19 +1020,17 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
               });
               var find_voice_active = buttons.find(function (v) {
                 return v.active;
-              }); ////console.log('b',buttons)
-              ////console.log('u',find_voice_url)
-              ////console.log('n',find_voice_name)
-              ////console.log('a',find_voice_active)
+              });
+
               if (find_voice_url && !find_voice_url.active) {
-                //console.log('Lampac', 'go to voice', find_voice_url);
+
                 this.replaceChoice({
                   voice: buttons.indexOf(find_voice_url),
                   voice_name: find_voice_url.text
                 });
                 this.request(find_voice_url.url);
               } else if (find_voice_name && !find_voice_name.active) {
-                //console.log('Lampac', 'go to voice', find_voice_name);
+
                 this.replaceChoice({
                   voice: buttons.indexOf(find_voice_name),
                   voice_name: find_voice_name.text
@@ -1068,7 +1058,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
               this.similars(similar);
               this.activity.loader(false);
             } else {
-              //this.activity.loader(true)
+
               filter_find.season = items.map(function (s) {
                 return {
                   title: s.text,
@@ -1078,7 +1068,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
               var select_season = this.getChoice(balanser).season;
               var season = filter_find.season[select_season];
               if (!season) season = filter_find.season[0];
-              //console.log('Lampac', 'go to season', season);
+
               this.request(season.url);
             }
           } else {
@@ -1086,7 +1076,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
           }
         }
       } catch (e) {
-        //console.log('Lampac', 'error', e.stack);
+
         this.doesNotAnswer(e);
       }
     };
@@ -1142,7 +1132,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
       );
       Lampa.Controller.enable('content');
     };
-    // ── choice & storage ──
+
     this.getChoice = function (for_balanser) {
       var data = Lampa.Storage.cache('online_choice_' + (for_balanser || balanser), 3000, {});
       var save = data[object.movie.id] || {};
@@ -1175,9 +1165,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
       });
       images = [];
     };
-    /**
-     * Очистить список файлов
-     */
+
     this.reset = function () {
       last = false;
       stopBalanserTimer();
@@ -1188,9 +1176,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
       scroll.reset();
       scroll.body().append(Lampa.Template.get('lampac_content_loading'));
     };
-    /**
-     * Загрузка
-     */
+
     this.loading = function (status) {
       if (status) this.activity.loader(true);
       else {
@@ -1198,10 +1184,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
         this.activity.toggle();
       }
     };
-    // ── UI: filter, draw, errors ──
-    /**
-     * Построить фильтр
-     */
+
     this.filter = function (filter_items, choice) {
       var _this7 = this;
       var select = [];
@@ -1247,9 +1230,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
       );
       this.selected(filter_items);
     };
-    /**
-     * Показать что выбрано в фильтре
-     */
+
     this.selected = function (filter_items) {
       var need = this.getChoice(),
         select = [];
@@ -1314,9 +1295,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
         });
       } else body.append('<span>' + Lampa.Lang.translate('lampac_no_watch_history') + '</span>');
     };
-    /**
-     * Отрисовка файлов
-     */
+
     this.draw = function (items) {
       var _this8 = this;
       var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
@@ -1324,8 +1303,8 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
       scroll.clear();
       this.updateWatched();
       this.getEpisodes(items[0].season, function (episodes) {
-        if (window.BWA_VIEW) {
-          window.BWA_VIEW.head({
+        if (window.NOVA_VIEW) {
+          window.NOVA_VIEW.head({
             scroll: scroll,
             object: object,
             items: items,
@@ -1429,7 +1408,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
               })
               .join('<span class="online-prestige-split">●</span>');
           var html = Lampa.Template.get('lampac_prestige_full', element);
-          if (window.BWA_VIEW) window.BWA_VIEW.decorateCard(html, element, episode, serial);
+          if (window.NOVA_VIEW) window.NOVA_VIEW.decorateCard(html, element, episode, serial);
           var loader = html.find('.online-prestige__loader');
           var image = html.find('.online-prestige__img');
           if (object.balanser) image.hide();
@@ -1441,7 +1420,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
           if (serial && !episode) {
             image.append(
               '<div class="online-prestige__episode-number">' +
-              bwaBadge(element.season, element.episode || index + 1) +
+              novaBadge(element.season, element.episode || index + 1) +
               '</div>'
             );
             loader.remove();
@@ -1457,7 +1436,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
               if (serial)
                 image.append(
                   '<div class="online-prestige__episode-number">' +
-                  bwaBadge(element.season, element.episode || index + 1) +
+                  novaBadge(element.season, element.episode || index + 1) +
                   '</div>'
                 );
             };
@@ -1581,7 +1560,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
               title: episode.name,
               quality: day > 0 ? txt : ''
             });
-            if (window.BWA_VIEW) html.addClass('bwa-ep--soon');
+            if (window.NOVA_VIEW) html.addClass('nova-ep--soon');
             var loader = html.find('.online-prestige__loader');
             var image = html.find('.online-prestige__img');
             var season = items[0] ? items[0].season : 1;
@@ -1604,7 +1583,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
                 loader.remove();
                 image.append(
                   '<div class="online-prestige__episode-number">' +
-                  bwaBadge(season, episode.episode_number) +
+                  novaBadge(season, episode.episode_number) +
                   '</div>'
                 );
               };
@@ -1614,7 +1593,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
               loader.remove();
               image.append(
                 '<div class="online-prestige__episode-number">' +
-                bwaBadge(season, episode.episode_number) +
+                novaBadge(season, episode.episode_number) +
                 '</div>'
               );
             }
@@ -1634,9 +1613,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
         Lampa.Controller.enable('content');
       });
     };
-    /**
-     * Меню
-     */
+
     this.contextMenu = function (params) {
       params.html
         .on('hover:long', function () {
@@ -1787,9 +1764,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
           if (Lampa.Helper) Lampa.Helper.show('online_file', Lampa.Lang.translate('helper_online_file'), params.html);
         });
     };
-    /**
-     * Показать пустой результат
-     */
+
     this.empty = function () {
       var html = Lampa.Template.get('lampac_does_not_answer', {});
       html.find('.online-empty__buttons').remove();
@@ -1858,13 +1833,11 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
       });
       return last_episode;
     };
-    // ── activity lifecycle ──
+
     this.background = function () {
       Lampa.Background.immediately(Lampa.Utils.cardImgBackgroundBlur(object.movie));
     };
-    /**
-     * Начать навигацию по файлам
-     */
+
     this.start = function () {
       if (Lampa.Activity.active().activity !== this.activity) return;
       if (!initialized) {
@@ -2099,14 +2072,14 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
     Lampa.Manifest.plugins = manifest;
     Lampa.Lang.add({
       lampac_watch: {
-        //
+
         ru: 'Смотреть онлайн',
         en: 'Watch online',
         uk: 'Дивитися онлайн',
         zh: '在线观看'
       },
       lampac_video: {
-        //
+
         ru: 'Видео',
         en: 'Video',
         uk: 'Відео',
@@ -2125,77 +2098,77 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
         zh: '获取链接失败'
       },
       lampac_balanser: {
-        //
+
         ru: 'Источник',
         uk: 'Джерело',
         en: 'Source',
         zh: '来源'
       },
       helper_online_file: {
-        //
+
         ru: 'Удерживайте клавишу "ОК" для вызова контекстного меню',
         uk: 'Утримуйте клавішу "ОК" для виклику контекстного меню',
         en: 'Hold the "OK" key to bring up the context menu',
         zh: '按住“确定”键调出上下文菜单'
       },
       title_online: {
-        //
+
         ru: 'Онлайн',
         uk: 'Онлайн',
         en: 'Online',
         zh: '在线的'
       },
       lampac_voice_subscribe: {
-        //
+
         ru: 'Подписаться на перевод',
         uk: 'Підписатися на переклад',
         en: 'Subscribe to translation',
         zh: '订阅翻译'
       },
       lampac_voice_success: {
-        //
+
         ru: 'Вы успешно подписались',
         uk: 'Ви успішно підписалися',
         en: 'You have successfully subscribed',
         zh: '您已成功订阅'
       },
       lampac_voice_error: {
-        //
+
         ru: 'Возникла ошибка',
         uk: 'Виникла помилка',
         en: 'An error has occurred',
         zh: '发生了错误'
       },
       lampac_clear_all_marks: {
-        //
+
         ru: 'Очистить все метки',
         uk: 'Очистити всі мітки',
         en: 'Clear all labels',
         zh: '清除所有标签'
       },
       lampac_clear_all_timecodes: {
-        //
+
         ru: 'Очистить все тайм-коды',
         uk: 'Очистити всі тайм-коди',
         en: 'Clear all timecodes',
         zh: '清除所有时间代码'
       },
       lampac_change_balanser: {
-        //
+
         ru: 'Изменить балансер',
         uk: 'Змінити балансер',
         en: 'Change balancer',
         zh: '更改平衡器'
       },
       lampac_balanser_dont_work: {
-        //
+
         ru: 'Поиск на ({balanser}) не дал результатов',
         uk: 'Пошук на ({balanser}) не дав результатів',
         en: 'Search on ({balanser}) did not return any results',
         zh: '搜索 ({balanser}) 未返回任何结果'
       },
       lampac_balanser_timeout: {
-        //
+
         ru: 'Источник будет переключен автоматически через <span class="timeout">10</span> секунд.',
         uk: 'Джерело буде автоматично переключено через <span class="timeout">10</span> секунд.',
         en: 'The source will be switched automatically after <span class="timeout">10</span> seconds.',
@@ -2208,12 +2181,11 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
         zh: '搜索 ({balanser}) 未返回任何结果'
       }
     });
-    // ── UI assets: CSS + Lampa templates ──
+
     function lampacCssHtml() {
       return [
         '<style>',
         '@charset \'UTF-8\';',
-        '/* ── prestige card ── */',
         '.online-prestige {',
         '  position: relative;',
         '  -webkit-border-radius: 0.3em;',
@@ -2435,7 +2407,6 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
         '.online-prestige--folder .online-prestige__footer {',
         '  margin-top: 0.8em;',
         '}',
-        '/* ── watched row ── */',
         '.online-prestige-watched {',
         '  padding: 1em;',
         '}',
@@ -2461,7 +2432,6 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
         '  display: inline-block;',
         '  margin: 0 0.5em;',
         '}',
-        '/* ── rate badge ── */',
         '.online-prestige-rate {',
         '  display: -webkit-inline-box;',
         '  display: -webkit-inline-flex;',
@@ -2483,7 +2453,6 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
         '  font-size: 1.1em;',
         '  padding-left: 0.7em;',
         '}',
-        '/* ── empty / error ── */',
         '.online-empty {',
         '  line-height: 1.4;',
         '}',
@@ -2562,20 +2531,20 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
     }
 
     var LAMPAC_TEMPLATE_PRESTIGE_FULL = [
-      '<div class="online-prestige online-prestige--full selector bwa-ep">',
-      '  <div class="online-prestige__img bwa-ep__art">',
+      '<div class="online-prestige online-prestige--full selector nova-ep">',
+      '  <div class="online-prestige__img nova-ep__art">',
       '    <img alt="">',
       '    <div class="online-prestige__loader"></div>',
-      '    <div class="bwa-ep__scrim"></div>',
-      '    <div class="bwa-ep__play"><svg width="30" height="30" viewBox="0 0 24 24" fill="none"><path d="M6 4l14 8-14 8V4z" fill="currentColor"/></svg></div>',
-      '    <div class="online-prestige__timeline bwa-ep__prog"></div>',
+      '    <div class="nova-ep__scrim"></div>',
+      '    <div class="nova-ep__play"><svg width="30" height="30" viewBox="0 0 24 24" fill="none"><path d="M6 4l14 8-14 8V4z" fill="currentColor"/></svg></div>',
+      '    <div class="online-prestige__timeline nova-ep__prog"></div>',
       '  </div>',
-      '  <div class="online-prestige__body bwa-ep__body">',
-      '    <div class="online-prestige__head bwa-ep__top">',
-      '      <div class="online-prestige__title bwa-ep__title">{title}</div>',
-      '      <div class="online-prestige__time bwa-ep__time">{time}</div>',
+      '  <div class="online-prestige__body nova-ep__body">',
+      '    <div class="online-prestige__head nova-ep__top">',
+      '      <div class="online-prestige__title nova-ep__title">{title}</div>',
+      '      <div class="online-prestige__time nova-ep__time">{time}</div>',
       '    </div>',
-      '    <div class="online-prestige__footer bwa-ep__sub">',
+      '    <div class="online-prestige__footer nova-ep__sub">',
       '      <div class="online-prestige__info">{info}</div>',
       '      <div class="online-prestige__quality">{quality}</div>',
       '    </div>',
@@ -2701,13 +2670,13 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
       '  <span>#{title_online}</span>',
       '</div>'
     ].join('\n');
-    var button = LAMPAC_FULL_CARD_BUTTON; // нужна заглушка, а то при страте лампы говорит пусто
+    var button = LAMPAC_FULL_CARD_BUTTON;
     resetTemplates();
 
     function addButton(e) {
       if (e.render.find('.lampac--button').length) return;
       var btn = $(Lampa.Lang.translate(button));
-      // //console.log(btn.clone().removeClass('focus').prop('outerHTML'))
+
       btn.on('hover:enter', function () {
         resetTemplates();
 
@@ -2808,31 +2777,19 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
   if (!window.lampac_plugin) startPlugin();
 })();
 
-/* ==========================================================================
-   BWA view layer
-
-   Портирован draw-слой оригинального плагина BWA (online777): hero, пилюли
-   ИСТОЧНИК/ОЗВУЧКА/СЕЗОН, плитки сезонов, карточки серий и чипсы озвучек.
-   Логика (балансеры, поиск, плеер, таймкоды) остаётся от online4 — модуль
-   только рисует и отдаёт управление штатным методам компонента.
-
-   CSS и шаблоны подставляет build_online_bwa.py.
-   ========================================================================== */
 (function () {
   'use strict';
 
-  if (window.BWA_VIEW) return;
+  if (window.NOVA_VIEW) return;
 
-  var BWA_CSS = ":root{--bwa-bg:#0a0b12;--bwa-accent:#5b6cff;--bwa-accent2:#d05185;--bwa-rgb:91,108,255;--bwa-accent-lt:#7b86ff;--bwa-glow:rgba(var(--bwa-rgb),.5);--bwa-glass:rgba(255,255,255,.055);--bwa-line:rgba(255,255,255,.09);--bwa-info:#8f909a;--bwa-text:#eceefb}.bwa-scope .explorer__left{display:none!important}.bwa-scope .explorer__files{width:100%!important;left:0!important}.bwa-scope .explorer__files-head{display:none!important}.bwa-voices{display:flex;flex-wrap:wrap;gap:.7em;padding:.2em .2em 1.4em}.bwa-voice{display:inline-flex;align-items:center;gap:.7em;padding:.7em 1.15em;border-radius:1em;background:var(--bwa-glass);border:1px solid var(--bwa-line);transition:transform .2s,background .2s,border-color .2s,box-shadow .2s}.bwa-voice.focus{background:rgba(var(--bwa-rgb),.12);border-color:transparent;transform:scale(1.03);box-shadow:0 0 0 2px var(--bwa-accent),0 0 2em var(--bwa-glow)}.bwa-voice.is-sel{border-color:var(--bwa-accent)}.bwa-voice__q{color:#fff;background:linear-gradient(120deg,var(--bwa-accent),var(--bwa-accent-lt));padding:.16em .52em;border-radius:.42em;font-size:.78em;font-weight:800;letter-spacing:.02em}.bwa-voice__name{font-weight:600;color:var(--bwa-text)}.bwa-seasons{display:flex;flex-wrap:wrap;gap:.55em;padding:.2em .2em 1.3em}.bwa-season{display:inline-flex;align-items:center;justify-content:center;min-width:2.2em;padding:.55em 1.05em;border-radius:1em;font-size:.95em;font-weight:700;color:var(--bwa-text);background:var(--bwa-glass);border:1px solid var(--bwa-line);transition:transform .2s,background .2s,border-color .2s,box-shadow .2s}.bwa-season.focus{background:rgba(var(--bwa-rgb),.12);border-color:transparent;transform:scale(1.06);box-shadow:0 0 0 2px var(--bwa-accent),0 0 2em var(--bwa-glow)}.bwa-season.is-sel{border-color:var(--bwa-accent);background:rgba(var(--bwa-rgb),.16)}.bwa-pills{display:flex;flex-wrap:wrap;gap:.6em;padding:.1em .2em 1.1em}.bwa-pill{display:inline-flex;align-items:center;gap:.5em;padding:.55em 1.1em;border-radius:2em;background:var(--bwa-glass);border:1px solid var(--bwa-line);color:var(--bwa-text);transition:transform .2s,background .2s,border-color .2s,box-shadow .2s}.bwa-pill.focus{background:rgba(var(--bwa-rgb),.16);border-color:transparent;transform:scale(1.05);box-shadow:0 0 0 2px var(--bwa-accent),0 0 1.8em var(--bwa-glow)}.bwa-pill__k{font-size:.72em;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--bwa-info)}.bwa-pill__v{font-size:.95em;font-weight:700;max-width:14em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.bwa-pill__c{opacity:.55;font-size:.8em}.bwa-pill__badge{display:inline-flex;align-items:center;justify-content:center;min-width:1.35em;height:1.35em;padding:0 .35em;border-radius:1em;background:rgba(84,224,138,.16);color:#54e08a;font-size:.8em;font-weight:800;line-height:1}/* ========== модальные окна Lampa ========== */\n.selectbox, .select, .modal {\n  --bwa-modal-bg: #0c0d14;\n  --bwa-modal-border: var(--bwa-line);\n  --bwa-modal-radius: 1.2em;\n}\n\n.selectbox { border-radius: var(--bwa-modal-radius) !important; border: 1px solid var(--bwa-modal-border) !important; box-shadow: 0 2em 4em rgba(0,0,0,.7), 0 0 0 1px var(--bwa-modal-border) !important; }\n.selectbox.focus { border-color: transparent !important; box-shadow: 0 2em 4em rgba(0,0,0,.85), 0 0 0 2px var(--bwa-accent), 0 0 2em var(--bwa-glow) !important; }\n\n.select { border-radius: var(--bwa-modal-radius) !important; border: 1px solid var(--bwa-modal-border) !important; box-shadow: 0 2em 4em rgba(0,0,0,.7) !important; background: var(--bwa-modal-bg) !important; }\n.select.focus { border-color: transparent !important; box-shadow: 0 2em 4em rgba(0,0,0,.85), 0 0 0 2px var(--bwa-accent), 0 0 2em var(--bwa-glow) !important; }\n\n.modal { border-radius: var(--bwa-modal-radius) !important; border: 1px solid var(--bwa-modal-border) !important; box-shadow: 0 2em 4em rgba(0,0,0,.7) !important; background: var(--bwa-modal-bg) !important; }\n.modal.focus { border-color: transparent !important; box-shadow: 0 2em 4em rgba(0,0,0,.85), 0 0 0 2px var(--bwa-accent), 0 0 2em var(--bwa-glow) !important; }\n\n/* меню (контекстное, Select.show) */\n.selectbox__content, .select__content { border-radius: .8em !important; border-top: 1px solid var(--bwa-line) !important; }\n\n.selectbox.bwa-skin .selectbox__content{background:#0c0d14 !important; border: 0 !important; box-shadow: inset 0 .2em .8em rgba(0,0,0,.4) !important}\n\n/* фильтр online плагина */\n.torrent-filter, .content-filter { border-radius: 1.1em !important; border: 1px solid var(--bwa-line) !important; background: rgba(var(--bwa-rgb), .08) !important; padding: 1em !important; margin: 0 .4em 1em !important; }\n.torrent-filter.focus, .content-filter.focus { border-color: transparent !important; box-shadow: 0 0 0 2px var(--bwa-accent), 0 0 1.8em var(--bwa-glow) !important; }\n\n.filter--sort, .filter--filter, .filter--search { border-radius: .8em !important; border: 1px solid var(--bwa-line) !important; background: var(--bwa-glass) !important; color: var(--bwa-text) !important; padding: .7em 1em !important; transition: all .2s ease !important; }\n.filter--sort.focus, .filter--filter.focus, .filter--search.focus { border-color: transparent !important; background: rgba(var(--bwa-rgb), .16) !important; box-shadow: 0 0 0 2px var(--bwa-accent), 0 0 1.4em var(--bwa-glow) !important; }.selectbox.bwa-skin .selectbox__title{color:var(--bwa-accent) !important;text-transform:uppercase;letter-spacing:.05em;font-weight:700}.selectbox.bwa-skin .selectbox-item{background:transparent !important;border:0 !important;border-radius:.9em;margin:.15em .55em;color:var(--bwa-text) !important;transition:background .15s ease,box-shadow .15s ease}.selectbox.bwa-skin .selectbox-item.focus{background:rgba(var(--bwa-rgb),.18) !important;box-shadow:0 0 0 2px var(--bwa-accent),0 0 1.4em var(--bwa-glow) !important}.selectbox.bwa-skin .selectbox-item.selected{box-shadow:inset .22em 0 0 var(--bwa-accent) !important}.selectbox.bwa-skin .selectbox-item.selected.focus{background:rgba(var(--bwa-rgb),.24) !important;box-shadow:inset .22em 0 0 var(--bwa-accent),0 0 0 2px var(--bwa-accent),0 0 1.4em var(--bwa-glow) !important}.selectbox.bwa-skin .selectbox-item--checkbox{position:relative;padding-right:3.2em}.selectbox.bwa-skin .selectbox-item__checkbox{position:absolute;right:1.1em;top:50%;transform:translateY(-50%);width:1.5em;height:1.5em;border-radius:.42em;border:.14em solid rgba(var(--bwa-rgb),.55);background:transparent;box-sizing:border-box;margin:0}.selectbox.bwa-skin .selectbox-item--checked .selectbox-item__checkbox{background:var(--bwa-accent) !important;border-color:var(--bwa-accent) !important}.selectbox.bwa-skin .selectbox-item--checked .selectbox-item__checkbox::after{content:\"\";position:absolute;left:.46em;top:.18em;width:.34em;height:.66em;border:solid #0b0d17;border-width:0 .2em .2em 0;transform:rotate(45deg)}.bwa-hero{position:relative;display:block;height:23em;margin:.4em .4em 1em;border-radius:1.4em;overflow:hidden;background-size:cover;background-position:center 20%;background-color:#12131b;border:1px solid var(--bwa-line);background-clip:padding-box;transition:box-shadow .2s ease,border-color .2s ease,transform .2s ease}.bwa-hero.focus{transform:translateY(-.15em);border-color:transparent;box-shadow:0 1.4em 3.6em rgba(0,0,0,.75),0 0 0 2px var(--bwa-accent),0 0 3em var(--bwa-glow)}.bwa-hero__scrim{position:absolute;inset:0;background:linear-gradient(0deg,rgba(8,9,16,.98),rgba(8,9,16,.4) 48%,rgba(8,9,16,.03) 78%),linear-gradient(90deg,rgba(8,9,16,.72),transparent 62%),radial-gradient(120% 90% at 92% 8%,rgba(var(--bwa-rgb),.16),transparent 55%)}.bwa-hero__content{position:absolute;left:1.7em;right:1.7em;bottom:1.4em;z-index:2;display:flex;flex-direction:column;gap:.6em}.bwa-hero__title{font-size:2.7em;font-weight:800;letter-spacing:-.015em;line-height:1.03;color:#fff;text-shadow:0 2px 16px rgba(0,0,0,.8);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.bwa-hero__meta{display:flex;align-items:center;gap:.85em;font-size:.95em;color:#c9cad6;font-weight:600}.bwa-hero__q{color:#fff;background:linear-gradient(120deg,var(--bwa-accent),var(--bwa-accent-lt));padding:.2em .62em;border-radius:.5em;font-size:.8em;font-weight:800;letter-spacing:.03em;box-shadow:0 .2em .8em var(--bwa-glow)}.bwa-hero__chips{display:flex;gap:.5em;flex-wrap:wrap}.bwa-chip{display:inline-flex;align-items:center;gap:.45em;font-size:.82em;font-weight:600;color:#d8d9e6;background:rgba(255,255,255,.07);border:1px solid var(--bwa-line);padding:.3em .8em .3em .7em;border-radius:1.2em}.bwa-chip::before{content:\"\";width:.42em;height:.42em;border-radius:50%;background:var(--bwa-accent);box-shadow:0 0 .5em var(--bwa-glow)}.bwa-hero__desc{font-size:.92em;line-height:1.42;color:#b3b4c2;max-width:46em;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.bwa-hero__desc:empty{display:none}.bwa-hero__cta{display:flex;align-items:center;gap:1.1em;margin-top:.55em}.bwa-play{display:inline-flex;align-items:center;gap:.5em;font-size:1.05em;font-weight:800;color:#fff;background:linear-gradient(120deg,var(--bwa-accent),var(--bwa-accent-lt));padding:.62em 1.5em;border-radius:2em;box-shadow:0 .4em 1.4em var(--bwa-glow);transition:transform .2s,box-shadow .2s}.bwa-hero.focus .bwa-play{transform:scale(1.05);box-shadow:0 0 2em var(--bwa-glow),0 .5em 1.6em rgba(0,0,0,.45)}.bwa-hero__voice{font-size:.92em;color:#9a9ba7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.bwa-hero__prog{position:absolute;left:0;right:0;bottom:0;z-index:3;height:.3em;background:rgba(255,255,255,.14)}.bwa-hero__prog>i{display:block;height:100%;background:linear-gradient(90deg,var(--bwa-accent),var(--bwa-accent2))}.bwa-ep{display:flex;align-items:center;gap:1.2em;padding:.6em .75em;margin:.45em .2em;border-radius:1.1em;background:var(--bwa-glass);border:1px solid var(--bwa-line);transition:transform .2s ease,background .2s ease,border-color .2s ease,box-shadow .2s ease}.bwa-ep.focus{background:rgba(var(--bwa-rgb),.1);border-color:transparent;transform:scale(1.01);box-shadow:0 .8em 2.2em rgba(0,0,0,.55),0 0 0 2px var(--bwa-accent),0 0 2.2em var(--bwa-glow)}.bwa-ep__art{position:relative;flex:0 0 auto;width:11em;height:6.2em;border-radius:.8em;overflow:hidden;background-size:cover;background-position:center;background-image:linear-gradient(135deg,#2b2d3a,#181924)}.bwa-ep__scrim{position:absolute;inset:0;background:linear-gradient(90deg,rgba(0,0,0,.15),transparent 55%),linear-gradient(0deg,rgba(0,0,0,.45),transparent 55%)}.bwa-ep__badge{position:absolute;left:.5em;top:.45em;z-index:2;font-size:.85em;font-weight:800;color:#fff;background:rgba(var(--bwa-rgb),.85);padding:.12em .55em;border-radius:.45em;box-shadow:0 .2em .6em rgba(0,0,0,.4)}.bwa-ep__badge:empty{display:none}.bwa-ep__play{position:absolute;inset:0;z-index:2;display:flex;align-items:center;justify-content:center;color:#fff;opacity:0;transition:opacity .2s;text-shadow:0 2px 10px rgba(0,0,0,.7),0 0 1em var(--bwa-glow)}.bwa-ep.focus .bwa-ep__play{opacity:1}.bwa-ep__prog{position:absolute;left:0;right:0;bottom:0;z-index:2;height:.32em;background:rgba(255,255,255,.16)}.bwa-ep__prog>i{display:block;height:100%;background:linear-gradient(90deg,var(--bwa-accent),var(--bwa-accent2))}.bwa-ep__body{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:.32em}.bwa-ep__top{display:flex;align-items:baseline;gap:1em}.bwa-ep__title{flex:1 1 auto;min-width:0;font-size:1.35em;font-weight:700;color:var(--bwa-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.bwa-ep__time{flex:0 0 auto;font-size:.9em;color:var(--bwa-info)}.bwa-ep__sub{font-size:.9em;color:var(--bwa-info);line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.bwa-ep__mark{position:absolute;right:.5em;top:.45em;z-index:2;width:1.7em;height:1.7em;border-radius:50%;background:#54e08a;color:#0b0d17;display:flex;align-items:center;justify-content:center;font-size:.9em;font-weight:800;box-shadow:0 .2em .6em rgba(0,0,0,.5)}.bwa-ep__mark:empty{display:none}.bwa-ep__resume{flex:0 0 auto;padding:.16em .7em;border-radius:1em;background:var(--bwa-accent);color:#0b0d17;font-size:.72em;font-weight:800;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap;align-self:center}.bwa-ep__resume:empty{display:none}.bwa-ep--watched .bwa-ep__art{opacity:.6}.bwa-ep--watched .bwa-ep__title{color:var(--bwa-info)}.bwa-ep--soon{opacity:.5}.bwa-ep--soon .bwa-ep__play{display:none!important}.bwa-empty{padding:2.8em 1.4em;text-align:center;line-height:1.5}.bwa-empty__main{color:#eceefb;font-size:1.25em;font-weight:700}.bwa-empty__hint{margin-top:.7em;color:#9a9ba7;font-size:1.02em}.bwa-empty__btn{display:inline-block;margin-top:1.5em;padding:.7em 1.7em;border-radius:2em;background:rgba(var(--bwa-rgb),.14);border:1px solid var(--bwa-line);color:var(--bwa-text);font-weight:700;font-size:1.05em}.bwa-empty__btn.focus{background:rgba(var(--bwa-rgb),.2);border-color:transparent;box-shadow:0 0 0 2px var(--bwa-accent),0 0 1.6em var(--bwa-glow)}.bwa-skel{display:flex;align-items:center;gap:1.2em;padding:.6em .75em;margin:.45em .2em;border-radius:1.1em;background:var(--bwa-glass);pointer-events:none}.bwa-skel__art{flex:0 0 auto;width:11em;height:6.2em;border-radius:.8em;background:rgba(255,255,255,.06)}.bwa-skel__l{height:1em;border-radius:.4em;margin:.3em 0;background:rgba(255,255,255,.06)}.bwa-shine{position:relative;overflow:hidden}.bwa-shine:after{content:\"\";position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent,rgba(var(--bwa-rgb),.14),transparent);animation:bwaShine 1.3s infinite}@keyframes bwaShine{100%{transform:translateX(100%)}}.bwa-note{display:flex;align-items:center;gap:.5em;padding:.9em 1em .25em;color:#aeb0c8;font-size:.82em;font-weight:700;text-transform:uppercase;letter-spacing:.09em}.bwa-note::before{content:\"\";width:.35em;height:1em;border-radius:.2em;background:linear-gradient(var(--bwa-accent),var(--bwa-accent2));box-shadow:0 0 .6em var(--bwa-glow)}.bwa-actors{padding:.3em .2em 1.2em;overflow:hidden}.bwa-actors__track{display:flex;gap:1.2em}.bwa-actor{flex:0 0 auto;width:6.4em;text-align:center;border-radius:1em;padding:.4em .2em;transition:transform .2s,background .2s}.bwa-actor.focus{background:rgba(var(--bwa-rgb),.1);transform:translateY(-.25em)}.bwa-actor__ava{width:5em;height:5em;margin:0 auto .55em;border-radius:50%;background-size:cover;background-position:center;background-color:#20222e;box-shadow:0 .4em 1.2em rgba(0,0,0,.5)}.bwa-actor.focus .bwa-actor__ava{box-shadow:0 0 0 .16em var(--bwa-accent),0 0 1.6em var(--bwa-glow)}.bwa-actor__name{font-size:.86em;font-weight:600;color:var(--bwa-text);line-height:1.15;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}.bwa-actor__role{font-size:.78em;color:var(--bwa-info);margin-top:.15em;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}.bwa-info{display:flex;flex-wrap:wrap;gap:1.4em 2.4em;padding:.3em 1em 1.6em}.bwa-info__it{min-width:7em}.bwa-info__k{font-size:.72em;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#7d7f8c}.bwa-info__v{font-size:.98em;color:var(--bwa-text);margin-top:.2em}.view--bwa{display:inline-flex!important;align-items:center;gap:.5em;background:linear-gradient(120deg,var(--bwa-accent),var(--bwa-accent2))!important;border:0!important;color:#fff!important;box-shadow:0 .35em 1em var(--bwa-glow)!important}.view--bwa .bwa-btn__ico{flex:0 0 auto;color:#fff}.view--bwa span,.view--bwa .full-start__button-text{font-weight:800!important;letter-spacing:.08em;color:#fff!important}.view--bwa.focus{box-shadow:0 0 0 .16em #fff,0 0 1.8em var(--bwa-glow)!important;transform:translateY(-.05em) scale(1.02)}@media screen and (max-width:600px){.bwa-ep__art,.bwa-skel__art{width:7.5em;height:4.3em}.bwa-hero{height:12em}.bwa-hero__title{font-size:1.5em}.bwa-ep__title{font-size:1.15em}.bwa-ep__sub{font-size:.85em}\n\n/* ==========================================================================\n   BWA bridge: штатная разметка online4 (.online-prestige*) -> геометрия BWA.\n   Идёт СТРОГО после bwa_style.css: тут точечные перекрытия лампак-стилей,\n   которые грузятся в <body> и иначе перебивают наши правила.\n   ========================================================================== */\n\n/* ---- раскладка активности ---- */\n\n/* Голова фильтра не display:none, а сжата в ноль: обработчики выбора должны жить. */\n.bwa-scope .explorer__files-head {\n  display: block !important;\n  height: 0 !important;\n  min-height: 0 !important;\n  padding: 0 !important;\n  margin: 0 !important;\n  overflow: hidden !important;\n  opacity: 0 !important;\n  pointer-events: none !important;\n}\n\n.bwa-scope .online-prestige-watched { display: none !important; }\n.bwa-scope .torrent-list { padding: 0 .8em 2em !important; }\n\n/* ---- карточка серии ---- */\n\n.bwa-scope .online-prestige--full.bwa-ep {\n  display: flex !important;\n  align-items: center;\n  gap: 1.2em;\n  padding: .6em .75em !important;\n  margin: .45em .2em !important;\n  border-radius: 1.1em !important;\n  background: var(--bwa-glass) !important;\n  border: 1px solid var(--bwa-line) !important;\n  box-shadow: none;\n}\n\n.bwa-scope .online-prestige--full.bwa-ep.focus {\n  background: rgba(var(--bwa-rgb), .1) !important;\n  border-color: transparent !important;\n  transform: scale(1.01);\n  box-shadow: 0 .8em 2.2em rgba(0, 0, 0, .55), 0 0 0 2px var(--bwa-accent), 0 0 2.2em var(--bwa-glow);\n}\n\n.bwa-scope .online-prestige.focus::after { display: none !important; }\n.bwa-scope .online-prestige + .online-prestige { margin-top: .45em !important; border-top: 0 !important; }\n\n/* арт */\n.bwa-scope .bwa-ep .online-prestige__img {\n  position: relative;\n  flex: 0 0 auto;\n  width: 11em !important;\n  height: 6.2em !important;\n  margin: 0 !important;\n  border-radius: .8em !important;\n  overflow: hidden !important;\n  opacity: 1 !important;\n  background: linear-gradient(135deg, #2b2d3a, #181924) !important;\n}\n\n.bwa-scope .bwa-ep .online-prestige__img > img {\n  display: block;\n  width: 100% !important;\n  height: 100% !important;\n  margin: 0 !important;\n  border-radius: 0 !important;\n  object-fit: cover;\n  opacity: 1 !important;\n}\n\n.bwa-scope .bwa-ep .online-prestige__loader { z-index: 2; }\n\n/* номер серии = бейдж S1E1 */\n.bwa-scope .bwa-ep .online-prestige__episode-number {\n  position: absolute !important;\n  left: .5em !important;\n  top: .45em !important;\n  right: auto !important;\n  bottom: auto !important;\n  z-index: 3;\n  padding: .12em .55em !important;\n  border-radius: .45em !important;\n  font-size: .85em !important;\n  font-weight: 800;\n  color: #fff !important;\n  background: rgba(var(--bwa-rgb), .85) !important;\n  box-shadow: 0 .2em .6em rgba(0, 0, 0, .4);\n}\n\n/* отметка «просмотрено» */\n.bwa-scope .bwa-ep .online-prestige__viewed {\n  position: absolute !important;\n  right: .5em !important;\n  top: .45em !important;\n  left: auto !important;\n  bottom: auto !important;\n  z-index: 3;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  width: 1.7em;\n  height: 1.7em;\n  padding: 0 !important;\n  border-radius: 50%;\n  color: #0b0d17 !important;\n  background: #54e08a !important;\n  box-shadow: 0 .2em .6em rgba(0, 0, 0, .5);\n}\n\n.bwa-scope .bwa-ep .online-prestige__viewed > svg { width: 1em; height: 1em; }\n\n/* таймлайн = полоса прогресса на арте */\n.bwa-scope .bwa-ep .online-prestige__timeline {\n  position: absolute !important;\n  left: 0;\n  right: 0;\n  bottom: 0;\n  z-index: 3;\n  height: .32em !important;\n  margin: 0 !important;\n  padding: 0 !important;\n  background: rgba(255, 255, 255, .16);\n}\n\n.bwa-scope .bwa-ep .online-prestige__timeline > .time-line {\n  position: absolute;\n  left: 0;\n  right: 0;\n  top: 0;\n  bottom: 0;\n  height: 100% !important;\n  margin: 0 !important;\n  border-radius: 0 !important;\n  background: transparent !important;\n}\n\n.bwa-scope .bwa-ep .online-prestige__timeline > .time-line > div {\n  height: 100% !important;\n  border-radius: 0 !important;\n  background: linear-gradient(90deg, var(--bwa-accent), var(--bwa-accent2)) !important;\n}\n\n/* тело */\n.bwa-scope .bwa-ep .online-prestige__body {\n  flex: 1 1 auto;\n  min-width: 0;\n  display: flex !important;\n  flex-direction: column;\n  gap: .32em;\n  padding: 0 !important;\n  margin: 0 !important;\n}\n\n.bwa-scope .bwa-ep .online-prestige__head {\n  display: flex !important;\n  align-items: baseline;\n  gap: 1em;\n  margin: 0 !important;\n}\n\n.bwa-scope .bwa-ep .online-prestige__title {\n  flex: 1 1 auto;\n  min-width: 0;\n  margin: 0 !important;\n  font-size: 1.35em !important;\n  font-weight: 700;\n  color: var(--bwa-text) !important;\n  white-space: nowrap;\n  overflow: hidden;\n  text-overflow: ellipsis;\n}\n\n.bwa-scope .bwa-ep .online-prestige__time {\n  flex: 0 0 auto;\n  margin: 0 !important;\n  font-size: .9em !important;\n  color: var(--bwa-info) !important;\n  opacity: 1 !important;\n}\n\n.bwa-scope .bwa-ep .online-prestige__footer {\n  display: flex !important;\n  align-items: center;\n  gap: .8em;\n  margin: 0 !important;\n  font-size: .9em;\n  color: var(--bwa-info);\n}\n\n.bwa-scope .bwa-ep .online-prestige__info {\n  min-width: 0;\n  overflow: hidden;\n  display: -webkit-box;\n  -webkit-line-clamp: 2;\n  -webkit-box-orient: vertical;\n  color: var(--bwa-info) !important;\n  opacity: 1 !important;\n}\n\n.bwa-scope .bwa-ep .online-prestige__quality {\n  flex: 0 0 auto;\n  padding: .16em .52em;\n  border: 0 !important;\n  border-radius: .42em;\n  font-size: .78em;\n  font-weight: 800;\n  color: #fff !important;\n  background: linear-gradient(120deg, var(--bwa-accent), var(--bwa-accent-lt)) !important;\n}\n\n.bwa-scope .bwa-ep .online-prestige__quality:empty { display: none; }\n\n.bwa-scope .bwa-ep .bwa-ep__play {\n  position: absolute;\n  left: 0;\n  right: 0;\n  top: 0;\n  bottom: 0;\n  z-index: 2;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  color: #fff;\n  opacity: 0;\n  transition: opacity .2s;\n  text-shadow: 0 2px 10px rgba(0, 0, 0, .7);\n}\n\n.bwa-scope .bwa-ep.focus .bwa-ep__play { opacity: 1; }\n\n.bwa-scope .bwa-ep .bwa-ep__scrim {\n  position: absolute;\n  left: 0;\n  right: 0;\n  top: 0;\n  bottom: 0;\n  z-index: 1;\n  background: linear-gradient(0deg, rgba(0, 0, 0, .45), transparent 55%);\n}\n\n.bwa-scope .bwa-ep .bwa-ep__resume { margin-left: .2em; }\n\n/* ---- фильм: та же карточка в виде чипса озвучки ---- */\n\n.bwa-scope .online-prestige--full.bwa-as-voice {\n  display: inline-flex !important;\n  width: auto !important;\n  align-items: center;\n  gap: .7em;\n  padding: .7em 1.15em !important;\n  margin: .25em .3em !important;\n  border-radius: 1em !important;\n  vertical-align: middle;\n}\n\n.bwa-scope .bwa-as-voice .online-prestige__img,\n.bwa-scope .bwa-as-voice .bwa-ep__scrim,\n.bwa-scope .bwa-as-voice .bwa-ep__play,\n.bwa-scope .bwa-as-voice .online-prestige__time,\n.bwa-scope .bwa-as-voice .online-prestige__info { display: none !important; }\n\n.bwa-scope .bwa-as-voice .online-prestige__body {\n  flex-direction: row !important;\n  align-items: center;\n  gap: .7em;\n}\n\n.bwa-scope .bwa-as-voice .online-prestige__footer { order: 1; gap: 0; }\n.bwa-scope .bwa-as-voice .online-prestige__head { order: 2; }\n\n.bwa-scope .bwa-as-voice .online-prestige__title {\n  font-size: 1em !important;\n  font-weight: 600;\n  white-space: nowrap;\n}\n\n/* ==========================================================================\n   BWA -> Lampa skin. Идёт ПОСЛЕДНИМ (после bwa_style.css и bwa_bridge.css).\n\n   Раскладка страницы остаётся как в online777 (hero, пилюли, плитки серий),\n   но вся подсветка и кнопки — штатные ламповские:\n     * фокус кнопки = белый фон + чёрный текст (.simple-button.focus);\n     * фокус карточки = белая обводка 0.3em с отступом -0.5em (.card.focus);\n     * синий акцент #5b6cff и его свечение выпилены полностью.\n   ========================================================================== */\n\n/* ---- палитра: акцент = белый, свечения нет ---- */\n:root {\n  --bwa-accent: #fff;\n  --bwa-accent-lt: #fff;\n  --bwa-accent2: #fff;\n  --bwa-rgb: 255, 255, 255;\n  --bwa-glow: rgba(255, 255, 255, 0);\n  --bwa-line: rgba(255, 255, 255, .14);\n  --bwa-glass: rgba(255, 255, 255, .1);\n  --lampa-focus-border: .3em solid #fff;\n}\n\n/* ---- кнопки: пилюли, сезоны, чипсы озвучек = .simple-button ---- */\n\n.bwa-pill,\n.bwa-season,\n.bwa-voice {\n  background-color: rgba(255, 255, 255, .1) !important;\n  border: 0 !important;\n  border-radius: 1em !important;\n  color: #fff !important;\n  box-shadow: none !important;\n  transform: none !important;\n  transition: background-color .2s ease, color .2s ease !important;\n}\n\n.bwa-pill.focus,\n.bwa-season.focus,\n.bwa-voice.focus {\n  background-color: #fff !important;\n  color: #000 !important;\n  box-shadow: none !important;\n  transform: none !important;\n}\n\n.bwa-pill.focus .bwa-pill__k,\n.bwa-pill.focus .bwa-pill__v,\n.bwa-pill.focus .bwa-pill__c,\n.bwa-season.focus,\n.bwa-voice.focus .bwa-voice__name { color: #000 !important; }\n\n/* бейджи внутри кнопок инвертируются вместе с кнопкой */\n.bwa-pill__badge {\n  background: rgba(255, 255, 255, .3) !important;\n  color: #fff !important;\n}\n\n.bwa-pill.focus .bwa-pill__badge {\n  background: rgba(0, 0, 0, .18) !important;\n  color: #000 !important;\n}\n\n/* выбранное значение — без цветной рамки, просто светлее фон */\n.bwa-season.is-sel,\n.bwa-voice.is-sel {\n  background-color: rgba(255, 255, 255, .22) !important;\n  border: 0 !important;\n}\n\n.bwa-season.is-sel.focus,\n.bwa-voice.is-sel.focus {\n  background-color: #fff !important;\n  color: #000 !important;\n}\n\n/* ---- метки качества = .card__type (белый фон, чёрный текст) ---- */\n\n.bwa-voice__q,\n.bwa-hero__q,\n.bwa-scope .bwa-ep .online-prestige__quality {\n  background: #fff !important;\n  color: #000 !important;\n  border-radius: .3em !important;\n  box-shadow: none !important;\n  text-shadow: none !important;\n}\n\n.bwa-voice.focus .bwa-voice__q {\n  background: #000 !important;\n  color: #fff !important;\n}\n\n/* ---- hero: главная кнопка и обводка фокуса ---- */\n\n.bwa-play {\n  background: #fff !important;\n  color: #000 !important;\n  border-radius: 1em !important;\n  box-shadow: none !important;\n}\n\n.bwa-hero.focus .bwa-play {\n  transform: none !important;\n  box-shadow: none !important;\n}\n\n.bwa-hero {\n  border: 0 !important;\n  transition: none !important;\n}\n\n/* у hero overflow:hidden, поэтому ринг через box-shadow (как .full-start…img.focus в Лампе),\n   а не через ::after — его бы обрезало. */\n.bwa-hero.focus {\n  transform: none !important;\n  box-shadow: 0 0 0 .3em #fff !important;\n}\n\n/* убираем фиолетовый радиальный подсвет в скриме hero */\n.bwa-hero__scrim {\n  background:\n    linear-gradient(0deg, rgba(8, 9, 16, .98), rgba(8, 9, 16, .4) 48%, rgba(8, 9, 16, .03) 78%),\n    linear-gradient(90deg, rgba(8, 9, 16, .72), transparent 62%) !important;\n}\n\n.bwa-chip::before {\n  background: #fff !important;\n  box-shadow: none !important;\n}\n\n.bwa-hero__prog > i { background: #fff !important; }\n\n/* ---- карточки серий: лампавская обводка вместо синего ринга ---- */\n\n.bwa-scope .online-prestige--full.bwa-ep {\n  position: relative;\n  border: 0 !important;\n  background: rgba(255, 255, 255, .1) !important;\n  box-shadow: none !important;\n  transition: background-color .2s ease !important;\n}\n\n.bwa-scope .online-prestige--full.bwa-ep.focus {\n  background: rgba(255, 255, 255, .16) !important;\n  border: 0 !important;\n  transform: none !important;\n  box-shadow: none !important;\n}\n\n.bwa-scope .online-prestige--full.bwa-ep.focus::after {\n  display: block !important;\n  content: '';\n  position: absolute;\n  left: -.5em;\n  top: -.5em;\n  right: -.5em;\n  bottom: -.5em;\n  border: var(--lampa-focus-border);\n  border-radius: 1.4em;\n  pointer-events: none;\n  z-index: 4;\n}\n\n/* бейдж серии = .card__marker */\n.bwa-scope .bwa-ep .online-prestige__episode-number {\n  background: rgba(0, 0, 0, .6) !important;\n  color: #fff !important;\n  border-radius: 1em !important;\n  box-shadow: none !important;\n}\n\n.bwa-scope .bwa-ep .online-prestige__timeline > .time-line > div {\n  background: #fff !important;\n}\n\n/* чипс озвучки на карточке фильма — та же кнопка */\n.bwa-scope .online-prestige--full.bwa-as-voice {\n  background: rgba(255, 255, 255, .1) !important;\n  border: 0 !important;\n}\n\n.bwa-scope .online-prestige--full.bwa-as-voice.focus {\n  background: #fff !important;\n}\n\n.bwa-scope .online-prestige--full.bwa-as-voice.focus .online-prestige__title { color: #000 !important; }\n.bwa-scope .online-prestige--full.bwa-as-voice.focus .online-prestige__quality { background: #000 !important; color: #fff !important; }\n.bwa-scope .online-prestige--full.bwa-as-voice.focus::after { display: none !important; }\n\n/* ---- модалки и селектбоксы: белая обводка, без синевы ---- */\n\n.selectbox,\n.select,\n.modal {\n  border: 0 !important;\n  box-shadow: 0 2em 4em rgba(0, 0, 0, .7) !important;\n}\n\n.selectbox.focus,\n.select.focus,\n.modal.focus {\n  box-shadow: 0 2em 4em rgba(0, 0, 0, .85), 0 0 0 .3em #fff !important;\n}\n\n.selectbox.bwa-skin .selectbox__title {\n  color: #fff !important;\n  opacity: .6;\n}\n\n.selectbox.bwa-skin .selectbox-item.focus {\n  background: #fff !important;\n  color: #000 !important;\n  box-shadow: none !important;\n}\n\n.selectbox.bwa-skin .selectbox-item.selected {\n  box-shadow: inset .22em 0 0 #fff !important;\n}\n\n.selectbox.bwa-skin .selectbox-item.selected.focus {\n  background: #fff !important;\n  color: #000 !important;\n  box-shadow: inset .22em 0 0 #000 !important;\n}\n\n.selectbox.bwa-skin .selectbox-item__checkbox {\n  border-color: rgba(255, 255, 255, .6) !important;\n}\n\n.selectbox.bwa-skin .selectbox-item.focus .selectbox-item__checkbox {\n  border-color: rgba(0, 0, 0, .5) !important;\n}\n\n.selectbox.bwa-skin .selectbox-item--checked .selectbox-item__checkbox {\n  background: #fff !important;\n  border-color: #fff !important;\n}\n\n.selectbox.bwa-skin .selectbox-item.focus.selectbox-item--checked .selectbox-item__checkbox {\n  background: #000 !important;\n  border-color: #000 !important;\n}\n\n.selectbox.bwa-skin .selectbox-item--checked .selectbox-item__checkbox::after {\n  border-color: #000 !important;\n}\n\n.selectbox.bwa-skin .selectbox-item.focus.selectbox-item--checked .selectbox-item__checkbox::after {\n  border-color: #fff !important;\n}\n\n/* ---- штатный фильтр online: тоже .simple-button ---- */\n\n.torrent-filter,\n.content-filter {\n  border: 0 !important;\n  background: transparent !important;\n}\n\n.filter--sort,\n.filter--filter,\n.filter--search {\n  background-color: rgba(255, 255, 255, .1) !important;\n  border: 0 !important;\n  border-radius: 1em !important;\n  color: #fff !important;\n}\n\n.filter--sort.focus,\n.filter--filter.focus,\n.filter--search.focus {\n  background-color: #fff !important;\n  color: #000 !important;\n  box-shadow: none !important;\n}";
-  var BWA_TPL = {
-  "bwa_hero": "<div class=\"bwa-hero selector\" style=\"background-image:url({art})\"><div class=\"bwa-hero__scrim\"></div><div class=\"bwa-hero__content\"><div class=\"bwa-hero__title\">{title}</div><div class=\"bwa-hero__meta\"><span class=\"bwa-hero__q\">{quality}</span><span>{meta}</span></div><div class=\"bwa-hero__chips\">{chips}</div><div class=\"bwa-hero__desc\">{desc}</div><div class=\"bwa-hero__cta\"><span class=\"bwa-play\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\"><path d=\"M6 4l14 8-14 8V4z\" fill=\"currentColor\"/></svg>{playlabel}</span><span class=\"bwa-hero__voice\">{voice}</span></div></div><div class=\"bwa-hero__prog\"><i style=\"width:{progress}%\"></i></div></div>",
-  "bwa_episode": "<div class=\"bwa-ep selector\"><div class=\"bwa-ep__art\" style=\"background-image:url({still})\"><span class=\"bwa-ep__badge\">{num}</span><span class=\"bwa-ep__mark\">{mark}</span><span class=\"bwa-ep__scrim\"></span><span class=\"bwa-ep__play\"><svg width=\"30\" height=\"30\" viewBox=\"0 0 24 24\" fill=\"none\"><path d=\"M6 4l14 8-14 8V4z\" fill=\"currentColor\"/></svg></span><span class=\"bwa-ep__prog\"><i style=\"width:{progress}%\"></i></span></div><div class=\"bwa-ep__body\"><div class=\"bwa-ep__top\"><div class=\"bwa-ep__title\">{title}</div><span class=\"bwa-ep__resume\">{resume}</span><div class=\"bwa-ep__time\">{time}</div></div><div class=\"bwa-ep__sub\">{sub}</div></div></div>",
-  "bwa_voice": "<div class=\"bwa-voice selector\"><span class=\"bwa-voice__q\">{quality}</span><span class=\"bwa-voice__name\">{name}</span></div>",
-  "bwa_season": "<div class=\"bwa-season selector\">{title}</div>",
-  "bwa_actor": "<div class=\"bwa-actor selector\"><div class=\"bwa-actor__ava\" style=\"background-image:url({img})\"></div><div class=\"bwa-actor__name\">{name}</div><div class=\"bwa-actor__role\">{role}</div></div>"
+  var NOVA_CSS = ":root{--nova-bg:#0a0b12;--nova-accent:#5b6cff;--nova-accent2:#d05185;--nova-rgb:91,108,255;--nova-accent-lt:#7b86ff;--nova-glow:rgba(var(--nova-rgb),.5);--nova-glass:rgba(255,255,255,.055);--nova-line:rgba(255,255,255,.09);--nova-info:#8f909a;--nova-text:#eceefb}.nova-scope .explorer__left{display:none!important}.nova-scope .explorer__files{width:100%!important;left:0!important}.nova-scope .explorer__files-head{display:none!important}.nova-voices{display:flex;flex-wrap:wrap;gap:.7em;padding:.2em .2em 1.4em}.nova-voice{display:inline-flex;align-items:center;gap:.7em;padding:.7em 1.15em;border-radius:1em;background:var(--nova-glass);border:1px solid var(--nova-line);transition:transform .2s,background .2s,border-color .2s,box-shadow .2s}.nova-voice.focus{background:rgba(var(--nova-rgb),.12);border-color:transparent;transform:scale(1.03);box-shadow:0 0 0 2px var(--nova-accent),0 0 2em var(--nova-glow)}.nova-voice.is-sel{border-color:var(--nova-accent)}.nova-voice__q{color:#fff;background:linear-gradient(120deg,var(--nova-accent),var(--nova-accent-lt));padding:.16em .52em;border-radius:.42em;font-size:.78em;font-weight:800;letter-spacing:.02em}.nova-voice__name{font-weight:600;color:var(--nova-text)}.nova-seasons{display:flex;flex-wrap:wrap;gap:.55em;padding:.2em .2em 1.3em}.nova-season{display:inline-flex;align-items:center;justify-content:center;min-width:2.2em;padding:.55em 1.05em;border-radius:1em;font-size:.95em;font-weight:700;color:var(--nova-text);background:var(--nova-glass);border:1px solid var(--nova-line);transition:transform .2s,background .2s,border-color .2s,box-shadow .2s}.nova-season.focus{background:rgba(var(--nova-rgb),.12);border-color:transparent;transform:scale(1.06);box-shadow:0 0 0 2px var(--nova-accent),0 0 2em var(--nova-glow)}.nova-season.is-sel{border-color:var(--nova-accent);background:rgba(var(--nova-rgb),.16)}.nova-pills{display:flex;flex-wrap:wrap;gap:.6em;padding:.1em .2em 1.1em}.nova-pill{display:inline-flex;align-items:center;gap:.5em;padding:.55em 1.1em;border-radius:2em;background:var(--nova-glass);border:1px solid var(--nova-line);color:var(--nova-text);transition:transform .2s,background .2s,border-color .2s,box-shadow .2s}.nova-pill.focus{background:rgba(var(--nova-rgb),.16);border-color:transparent;transform:scale(1.05);box-shadow:0 0 0 2px var(--nova-accent),0 0 1.8em var(--nova-glow)}.nova-pill__k{font-size:.72em;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--nova-info)}.nova-pill__v{font-size:.95em;font-weight:700;max-width:14em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.nova-pill__c{opacity:.55;font-size:.8em}.nova-pill__badge{display:inline-flex;align-items:center;justify-content:center;min-width:1.35em;height:1.35em;padding:0 .35em;border-radius:1em;background:rgba(84,224,138,.16);color:#54e08a;font-size:.8em;font-weight:800;line-height:1}\n.selectbox, .select, .modal {\n  --nova-modal-bg: #0c0d14;\n  --nova-modal-border: var(--nova-line);\n  --nova-modal-radius: 1.2em;\n}\n\n.selectbox { border-radius: var(--nova-modal-radius) !important; border: 1px solid var(--nova-modal-border) !important; box-shadow: 0 2em 4em rgba(0,0,0,.7), 0 0 0 1px var(--nova-modal-border) !important; }\n.selectbox.focus { border-color: transparent !important; box-shadow: 0 2em 4em rgba(0,0,0,.85), 0 0 0 2px var(--nova-accent), 0 0 2em var(--nova-glow) !important; }\n\n.select { border-radius: var(--nova-modal-radius) !important; border: 1px solid var(--nova-modal-border) !important; box-shadow: 0 2em 4em rgba(0,0,0,.7) !important; background: var(--nova-modal-bg) !important; }\n.select.focus { border-color: transparent !important; box-shadow: 0 2em 4em rgba(0,0,0,.85), 0 0 0 2px var(--nova-accent), 0 0 2em var(--nova-glow) !important; }\n\n.modal { border-radius: var(--nova-modal-radius) !important; border: 1px solid var(--nova-modal-border) !important; box-shadow: 0 2em 4em rgba(0,0,0,.7) !important; background: var(--nova-modal-bg) !important; }\n.modal.focus { border-color: transparent !important; box-shadow: 0 2em 4em rgba(0,0,0,.85), 0 0 0 2px var(--nova-accent), 0 0 2em var(--nova-glow) !important; }\n\n.selectbox__content, .select__content { border-radius: .8em !important; border-top: 1px solid var(--nova-line) !important; }\n\n.selectbox.nova-skin .selectbox__content{background:#0c0d14 !important; border: 0 !important; box-shadow: inset 0 .2em .8em rgba(0,0,0,.4) !important}\n\n.torrent-filter, .content-filter { border-radius: 1.1em !important; border: 1px solid var(--nova-line) !important; background: rgba(var(--nova-rgb), .08) !important; padding: 1em !important; margin: 0 .4em 1em !important; }\n.torrent-filter.focus, .content-filter.focus { border-color: transparent !important; box-shadow: 0 0 0 2px var(--nova-accent), 0 0 1.8em var(--nova-glow) !important; }\n\n.filter--sort, .filter--filter, .filter--search { border-radius: .8em !important; border: 1px solid var(--nova-line) !important; background: var(--nova-glass) !important; color: var(--nova-text) !important; padding: .7em 1em !important; transition: all .2s ease !important; }\n.filter--sort.focus, .filter--filter.focus, .filter--search.focus { border-color: transparent !important; background: rgba(var(--nova-rgb), .16) !important; box-shadow: 0 0 0 2px var(--nova-accent), 0 0 1.4em var(--nova-glow) !important; }.selectbox.nova-skin .selectbox__title{color:var(--nova-accent) !important;text-transform:uppercase;letter-spacing:.05em;font-weight:700}.selectbox.nova-skin .selectbox-item{background:transparent !important;border:0 !important;border-radius:.9em;margin:.15em .55em;color:var(--nova-text) !important;transition:background .15s ease,box-shadow .15s ease}.selectbox.nova-skin .selectbox-item.focus{background:rgba(var(--nova-rgb),.18) !important;box-shadow:0 0 0 2px var(--nova-accent),0 0 1.4em var(--nova-glow) !important}.selectbox.nova-skin .selectbox-item.selected{box-shadow:inset .22em 0 0 var(--nova-accent) !important}.selectbox.nova-skin .selectbox-item.selected.focus{background:rgba(var(--nova-rgb),.24) !important;box-shadow:inset .22em 0 0 var(--nova-accent),0 0 0 2px var(--nova-accent),0 0 1.4em var(--nova-glow) !important}.selectbox.nova-skin .selectbox-item--checkbox{position:relative;padding-right:3.2em}.selectbox.nova-skin .selectbox-item__checkbox{position:absolute;right:1.1em;top:50%;transform:translateY(-50%);width:1.5em;height:1.5em;border-radius:.42em;border:.14em solid rgba(var(--nova-rgb),.55);background:transparent;box-sizing:border-box;margin:0}.selectbox.nova-skin .selectbox-item--checked .selectbox-item__checkbox{background:var(--nova-accent) !important;border-color:var(--nova-accent) !important}.selectbox.nova-skin .selectbox-item--checked .selectbox-item__checkbox::after{content:\"\";position:absolute;left:.46em;top:.18em;width:.34em;height:.66em;border:solid #0b0d17;border-width:0 .2em .2em 0;transform:rotate(45deg)}.nova-hero{position:relative;display:block;height:23em;margin:.4em .4em 1em;border-radius:1.4em;overflow:hidden;background-size:cover;background-position:center 20%;background-color:#12131b;border:1px solid var(--nova-line);background-clip:padding-box;transition:box-shadow .2s ease,border-color .2s ease,transform .2s ease}.nova-hero.focus{transform:translateY(-.15em);border-color:transparent;box-shadow:0 1.4em 3.6em rgba(0,0,0,.75),0 0 0 2px var(--nova-accent),0 0 3em var(--nova-glow)}.nova-hero__scrim{position:absolute;inset:0;background:linear-gradient(0deg,rgba(8,9,16,.98),rgba(8,9,16,.4) 48%,rgba(8,9,16,.03) 78%),linear-gradient(90deg,rgba(8,9,16,.72),transparent 62%),radial-gradient(120% 90% at 92% 8%,rgba(var(--nova-rgb),.16),transparent 55%)}.nova-hero__content{position:absolute;left:1.7em;right:1.7em;bottom:1.4em;z-index:2;display:flex;flex-direction:column;gap:.6em}.nova-hero__title{font-size:2.7em;font-weight:800;letter-spacing:-.015em;line-height:1.03;color:#fff;text-shadow:0 2px 16px rgba(0,0,0,.8);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.nova-hero__meta{display:flex;align-items:center;gap:.85em;font-size:.95em;color:#c9cad6;font-weight:600}.nova-hero__q{color:#fff;background:linear-gradient(120deg,var(--nova-accent),var(--nova-accent-lt));padding:.2em .62em;border-radius:.5em;font-size:.8em;font-weight:800;letter-spacing:.03em;box-shadow:0 .2em .8em var(--nova-glow)}.nova-hero__chips{display:flex;gap:.5em;flex-wrap:wrap}.nova-chip{display:inline-flex;align-items:center;gap:.45em;font-size:.82em;font-weight:600;color:#d8d9e6;background:rgba(255,255,255,.07);border:1px solid var(--nova-line);padding:.3em .8em .3em .7em;border-radius:1.2em}.nova-chip::before{content:\"\";width:.42em;height:.42em;border-radius:50%;background:var(--nova-accent);box-shadow:0 0 .5em var(--nova-glow)}.nova-hero__desc{font-size:.92em;line-height:1.42;color:#b3b4c2;max-width:46em;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.nova-hero__desc:empty{display:none}.nova-hero__cta{display:flex;align-items:center;gap:1.1em;margin-top:.55em}.nova-play{display:inline-flex;align-items:center;gap:.5em;font-size:1.05em;font-weight:800;color:#fff;background:linear-gradient(120deg,var(--nova-accent),var(--nova-accent-lt));padding:.62em 1.5em;border-radius:2em;box-shadow:0 .4em 1.4em var(--nova-glow);transition:transform .2s,box-shadow .2s}.nova-hero.focus .nova-play{transform:scale(1.05);box-shadow:0 0 2em var(--nova-glow),0 .5em 1.6em rgba(0,0,0,.45)}.nova-hero__voice{font-size:.92em;color:#9a9ba7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.nova-hero__prog{position:absolute;left:0;right:0;bottom:0;z-index:3;height:.3em;background:rgba(255,255,255,.14)}.nova-hero__prog>i{display:block;height:100%;background:linear-gradient(90deg,var(--nova-accent),var(--nova-accent2))}.nova-ep{display:flex;align-items:center;gap:1.2em;padding:.6em .75em;margin:.45em .2em;border-radius:1.1em;background:var(--nova-glass);border:1px solid var(--nova-line);transition:transform .2s ease,background .2s ease,border-color .2s ease,box-shadow .2s ease}.nova-ep.focus{background:rgba(var(--nova-rgb),.1);border-color:transparent;transform:scale(1.01);box-shadow:0 .8em 2.2em rgba(0,0,0,.55),0 0 0 2px var(--nova-accent),0 0 2.2em var(--nova-glow)}.nova-ep__art{position:relative;flex:0 0 auto;width:11em;height:6.2em;border-radius:.8em;overflow:hidden;background-size:cover;background-position:center;background-image:linear-gradient(135deg,#2b2d3a,#181924)}.nova-ep__scrim{position:absolute;inset:0;background:linear-gradient(90deg,rgba(0,0,0,.15),transparent 55%),linear-gradient(0deg,rgba(0,0,0,.45),transparent 55%)}.nova-ep__badge{position:absolute;left:.5em;top:.45em;z-index:2;font-size:.85em;font-weight:800;color:#fff;background:rgba(var(--nova-rgb),.85);padding:.12em .55em;border-radius:.45em;box-shadow:0 .2em .6em rgba(0,0,0,.4)}.nova-ep__badge:empty{display:none}.nova-ep__play{position:absolute;inset:0;z-index:2;display:flex;align-items:center;justify-content:center;color:#fff;opacity:0;transition:opacity .2s;text-shadow:0 2px 10px rgba(0,0,0,.7),0 0 1em var(--nova-glow)}.nova-ep.focus .nova-ep__play{opacity:1}.nova-ep__prog{position:absolute;left:0;right:0;bottom:0;z-index:2;height:.32em;background:rgba(255,255,255,.16)}.nova-ep__prog>i{display:block;height:100%;background:linear-gradient(90deg,var(--nova-accent),var(--nova-accent2))}.nova-ep__body{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:.32em}.nova-ep__top{display:flex;align-items:baseline;gap:1em}.nova-ep__title{flex:1 1 auto;min-width:0;font-size:1.35em;font-weight:700;color:var(--nova-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.nova-ep__time{flex:0 0 auto;font-size:.9em;color:var(--nova-info)}.nova-ep__sub{font-size:.9em;color:var(--nova-info);line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.nova-ep__mark{position:absolute;right:.5em;top:.45em;z-index:2;width:1.7em;height:1.7em;border-radius:50%;background:#54e08a;color:#0b0d17;display:flex;align-items:center;justify-content:center;font-size:.9em;font-weight:800;box-shadow:0 .2em .6em rgba(0,0,0,.5)}.nova-ep__mark:empty{display:none}.nova-ep__resume{flex:0 0 auto;padding:.16em .7em;border-radius:1em;background:var(--nova-accent);color:#0b0d17;font-size:.72em;font-weight:800;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap;align-self:center}.nova-ep__resume:empty{display:none}.nova-ep--watched .nova-ep__art{opacity:.6}.nova-ep--watched .nova-ep__title{color:var(--nova-info)}.nova-ep--soon{opacity:.5}.nova-ep--soon .nova-ep__play{display:none!important}.nova-empty{padding:2.8em 1.4em;text-align:center;line-height:1.5}.nova-empty__main{color:#eceefb;font-size:1.25em;font-weight:700}.nova-empty__hint{margin-top:.7em;color:#9a9ba7;font-size:1.02em}.nova-empty__btn{display:inline-block;margin-top:1.5em;padding:.7em 1.7em;border-radius:2em;background:rgba(var(--nova-rgb),.14);border:1px solid var(--nova-line);color:var(--nova-text);font-weight:700;font-size:1.05em}.nova-empty__btn.focus{background:rgba(var(--nova-rgb),.2);border-color:transparent;box-shadow:0 0 0 2px var(--nova-accent),0 0 1.6em var(--nova-glow)}.nova-skel{display:flex;align-items:center;gap:1.2em;padding:.6em .75em;margin:.45em .2em;border-radius:1.1em;background:var(--nova-glass);pointer-events:none}.nova-skel__art{flex:0 0 auto;width:11em;height:6.2em;border-radius:.8em;background:rgba(255,255,255,.06)}.nova-skel__l{height:1em;border-radius:.4em;margin:.3em 0;background:rgba(255,255,255,.06)}.nova-shine{position:relative;overflow:hidden}.nova-shine:after{content:\"\";position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent,rgba(var(--nova-rgb),.14),transparent);animation:novaShine 1.3s infinite}@keyframes novaShine{100%{transform:translateX(100%)}}.nova-note{display:flex;align-items:center;gap:.5em;padding:.9em 1em .25em;color:#aeb0c8;font-size:.82em;font-weight:700;text-transform:uppercase;letter-spacing:.09em}.nova-note::before{content:\"\";width:.35em;height:1em;border-radius:.2em;background:linear-gradient(var(--nova-accent),var(--nova-accent2));box-shadow:0 0 .6em var(--nova-glow)}.nova-actors{padding:.3em .2em 1.2em;overflow:hidden}.nova-actors__track{display:flex;gap:1.2em}.nova-actor{flex:0 0 auto;width:6.4em;text-align:center;border-radius:1em;padding:.4em .2em;transition:transform .2s,background .2s}.nova-actor.focus{background:rgba(var(--nova-rgb),.1);transform:translateY(-.25em)}.nova-actor__ava{width:5em;height:5em;margin:0 auto .55em;border-radius:50%;background-size:cover;background-position:center;background-color:#20222e;box-shadow:0 .4em 1.2em rgba(0,0,0,.5)}.nova-actor.focus .nova-actor__ava{box-shadow:0 0 0 .16em var(--nova-accent),0 0 1.6em var(--nova-glow)}.nova-actor__name{font-size:.86em;font-weight:600;color:var(--nova-text);line-height:1.15;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}.nova-actor__role{font-size:.78em;color:var(--nova-info);margin-top:.15em;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}.nova-info{display:flex;flex-wrap:wrap;gap:1.4em 2.4em;padding:.3em 1em 1.6em}.nova-info__it{min-width:7em}.nova-info__k{font-size:.72em;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#7d7f8c}.nova-info__v{font-size:.98em;color:var(--nova-text);margin-top:.2em}.view--nova{display:inline-flex!important;align-items:center;gap:.5em;background:linear-gradient(120deg,var(--nova-accent),var(--nova-accent2))!important;border:0!important;color:#fff!important;box-shadow:0 .35em 1em var(--nova-glow)!important}.view--nova .nova-btn__ico{flex:0 0 auto;color:#fff}.view--nova span,.view--nova .full-start__button-text{font-weight:800!important;letter-spacing:.08em;color:#fff!important}.view--nova.focus{box-shadow:0 0 0 .16em #fff,0 0 1.8em var(--nova-glow)!important;transform:translateY(-.05em) scale(1.02)}@media screen and (max-width:600px){.nova-ep__art,.nova-skel__art{width:7.5em;height:4.3em}.nova-hero{height:12em}.nova-hero__title{font-size:1.5em}.nova-ep__title{font-size:1.15em}.nova-ep__sub{font-size:.85em}\n\n.nova-scope .explorer__files-head {\n  display: block !important;\n  height: 0 !important;\n  min-height: 0 !important;\n  padding: 0 !important;\n  margin: 0 !important;\n  overflow: hidden !important;\n  opacity: 0 !important;\n  pointer-events: none !important;\n}\n\n.nova-scope .online-prestige-watched { display: none !important; }\n.nova-scope .torrent-list { padding: 0 .8em 2em !important; }\n\n.nova-scope .online-prestige--full.nova-ep {\n  display: flex !important;\n  align-items: center;\n  gap: 1.2em;\n  padding: .6em .75em !important;\n  margin: .45em .2em !important;\n  border-radius: 1.1em !important;\n  background: var(--nova-glass) !important;\n  border: 1px solid var(--nova-line) !important;\n  box-shadow: none;\n}\n\n.nova-scope .online-prestige--full.nova-ep.focus {\n  background: rgba(var(--nova-rgb), .1) !important;\n  border-color: transparent !important;\n  transform: scale(1.01);\n  box-shadow: 0 .8em 2.2em rgba(0, 0, 0, .55), 0 0 0 2px var(--nova-accent), 0 0 2.2em var(--nova-glow);\n}\n\n.nova-scope .online-prestige.focus::after { display: none !important; }\n.nova-scope .online-prestige + .online-prestige { margin-top: .45em !important; border-top: 0 !important; }\n\n.nova-scope .nova-ep .online-prestige__img {\n  position: relative;\n  flex: 0 0 auto;\n  width: 11em !important;\n  height: 6.2em !important;\n  margin: 0 !important;\n  border-radius: .8em !important;\n  overflow: hidden !important;\n  opacity: 1 !important;\n  background: linear-gradient(135deg, #2b2d3a, #181924) !important;\n}\n\n.nova-scope .nova-ep .online-prestige__img > img {\n  display: block;\n  width: 100% !important;\n  height: 100% !important;\n  margin: 0 !important;\n  border-radius: 0 !important;\n  object-fit: cover;\n  opacity: 1 !important;\n}\n\n.nova-scope .nova-ep .online-prestige__loader { z-index: 2; }\n\n.nova-scope .nova-ep .online-prestige__episode-number {\n  position: absolute !important;\n  left: .5em !important;\n  top: .45em !important;\n  right: auto !important;\n  bottom: auto !important;\n  z-index: 3;\n  padding: .12em .55em !important;\n  border-radius: .45em !important;\n  font-size: .85em !important;\n  font-weight: 800;\n  color: #fff !important;\n  background: rgba(var(--nova-rgb), .85) !important;\n  box-shadow: 0 .2em .6em rgba(0, 0, 0, .4);\n}\n\n.nova-scope .nova-ep .online-prestige__viewed {\n  position: absolute !important;\n  right: .5em !important;\n  top: .45em !important;\n  left: auto !important;\n  bottom: auto !important;\n  z-index: 3;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  width: 1.7em;\n  height: 1.7em;\n  padding: 0 !important;\n  border-radius: 50%;\n  color: #0b0d17 !important;\n  background: #54e08a !important;\n  box-shadow: 0 .2em .6em rgba(0, 0, 0, .5);\n}\n\n.nova-scope .nova-ep .online-prestige__viewed > svg { width: 1em; height: 1em; }\n\n.nova-scope .nova-ep .online-prestige__timeline {\n  position: absolute !important;\n  left: 0;\n  right: 0;\n  bottom: 0;\n  z-index: 3;\n  height: .32em !important;\n  margin: 0 !important;\n  padding: 0 !important;\n  background: rgba(255, 255, 255, .16);\n}\n\n.nova-scope .nova-ep .online-prestige__timeline > .time-line {\n  position: absolute;\n  left: 0;\n  right: 0;\n  top: 0;\n  bottom: 0;\n  height: 100% !important;\n  margin: 0 !important;\n  border-radius: 0 !important;\n  background: transparent !important;\n}\n\n.nova-scope .nova-ep .online-prestige__timeline > .time-line > div {\n  height: 100% !important;\n  border-radius: 0 !important;\n  background: linear-gradient(90deg, var(--nova-accent), var(--nova-accent2)) !important;\n}\n\n.nova-scope .nova-ep .online-prestige__body {\n  flex: 1 1 auto;\n  min-width: 0;\n  display: flex !important;\n  flex-direction: column;\n  gap: .32em;\n  padding: 0 !important;\n  margin: 0 !important;\n}\n\n.nova-scope .nova-ep .online-prestige__head {\n  display: flex !important;\n  align-items: baseline;\n  gap: 1em;\n  margin: 0 !important;\n}\n\n.nova-scope .nova-ep .online-prestige__title {\n  flex: 1 1 auto;\n  min-width: 0;\n  margin: 0 !important;\n  font-size: 1.35em !important;\n  font-weight: 700;\n  color: var(--nova-text) !important;\n  white-space: nowrap;\n  overflow: hidden;\n  text-overflow: ellipsis;\n}\n\n.nova-scope .nova-ep .online-prestige__time {\n  flex: 0 0 auto;\n  margin: 0 !important;\n  font-size: .9em !important;\n  color: var(--nova-info) !important;\n  opacity: 1 !important;\n}\n\n.nova-scope .nova-ep .online-prestige__footer {\n  display: flex !important;\n  align-items: center;\n  gap: .8em;\n  margin: 0 !important;\n  font-size: .9em;\n  color: var(--nova-info);\n}\n\n.nova-scope .nova-ep .online-prestige__info {\n  min-width: 0;\n  overflow: hidden;\n  display: -webkit-box;\n  -webkit-line-clamp: 2;\n  -webkit-box-orient: vertical;\n  color: var(--nova-info) !important;\n  opacity: 1 !important;\n}\n\n.nova-scope .nova-ep .online-prestige__quality {\n  flex: 0 0 auto;\n  padding: .16em .52em;\n  border: 0 !important;\n  border-radius: .42em;\n  font-size: .78em;\n  font-weight: 800;\n  color: #fff !important;\n  background: linear-gradient(120deg, var(--nova-accent), var(--nova-accent-lt)) !important;\n}\n\n.nova-scope .nova-ep .online-prestige__quality:empty { display: none; }\n\n.nova-scope .nova-ep .nova-ep__play {\n  position: absolute;\n  left: 0;\n  right: 0;\n  top: 0;\n  bottom: 0;\n  z-index: 2;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  color: #fff;\n  opacity: 0;\n  transition: opacity .2s;\n  text-shadow: 0 2px 10px rgba(0, 0, 0, .7);\n}\n\n.nova-scope .nova-ep.focus .nova-ep__play { opacity: 1; }\n\n.nova-scope .nova-ep .nova-ep__scrim {\n  position: absolute;\n  left: 0;\n  right: 0;\n  top: 0;\n  bottom: 0;\n  z-index: 1;\n  background: linear-gradient(0deg, rgba(0, 0, 0, .45), transparent 55%);\n}\n\n.nova-scope .nova-ep .nova-ep__resume { margin-left: .2em; }\n\n.nova-scope .online-prestige--full.nova-as-voice {\n  display: inline-flex !important;\n  width: auto !important;\n  align-items: center;\n  gap: .7em;\n  padding: .7em 1.15em !important;\n  margin: .25em .3em !important;\n  border-radius: 1em !important;\n  vertical-align: middle;\n}\n\n.nova-scope .nova-as-voice .online-prestige__img,\n.nova-scope .nova-as-voice .nova-ep__scrim,\n.nova-scope .nova-as-voice .nova-ep__play,\n.nova-scope .nova-as-voice .online-prestige__time,\n.nova-scope .nova-as-voice .online-prestige__info { display: none !important; }\n\n.nova-scope .nova-as-voice .online-prestige__body {\n  flex-direction: row !important;\n  align-items: center;\n  gap: .7em;\n}\n\n.nova-scope .nova-as-voice .online-prestige__footer { order: 1; gap: 0; }\n.nova-scope .nova-as-voice .online-prestige__head { order: 2; }\n\n.nova-scope .nova-as-voice .online-prestige__title {\n  font-size: 1em !important;\n  font-weight: 600;\n  white-space: nowrap;\n}\n\n:root {\n  --nova-accent: #fff;\n  --nova-accent-lt: #fff;\n  --nova-accent2: #fff;\n  --nova-rgb: 255, 255, 255;\n  --nova-glow: rgba(255, 255, 255, 0);\n  --nova-line: rgba(255, 255, 255, .14);\n  --nova-glass: rgba(255, 255, 255, .1);\n  --lampa-focus-border: .3em solid #fff;\n}\n\n.nova-pill,\n.nova-season,\n.nova-voice {\n  background-color: rgba(255, 255, 255, .1) !important;\n  border: 0 !important;\n  border-radius: 1em !important;\n  color: #fff !important;\n  box-shadow: none !important;\n  transform: none !important;\n  transition: background-color .2s ease, color .2s ease !important;\n}\n\n.nova-pill.focus,\n.nova-season.focus,\n.nova-voice.focus {\n  background-color: #fff !important;\n  color: #000 !important;\n  box-shadow: none !important;\n  transform: none !important;\n}\n\n.nova-pill.focus .nova-pill__k,\n.nova-pill.focus .nova-pill__v,\n.nova-pill.focus .nova-pill__c,\n.nova-season.focus,\n.nova-voice.focus .nova-voice__name { color: #000 !important; }\n\n.nova-pill__badge {\n  background: rgba(255, 255, 255, .3) !important;\n  color: #fff !important;\n}\n\n.nova-pill.focus .nova-pill__badge {\n  background: rgba(0, 0, 0, .18) !important;\n  color: #000 !important;\n}\n\n.nova-season.is-sel,\n.nova-voice.is-sel {\n  background-color: rgba(255, 255, 255, .22) !important;\n  border: 0 !important;\n}\n\n.nova-season.is-sel.focus,\n.nova-voice.is-sel.focus {\n  background-color: #fff !important;\n  color: #000 !important;\n}\n\n.nova-voice__q,\n.nova-hero__q,\n.nova-scope .nova-ep .online-prestige__quality {\n  background: #fff !important;\n  color: #000 !important;\n  border-radius: .3em !important;\n  box-shadow: none !important;\n  text-shadow: none !important;\n}\n\n.nova-voice.focus .nova-voice__q {\n  background: #000 !important;\n  color: #fff !important;\n}\n\n.nova-play {\n  background: #fff !important;\n  color: #000 !important;\n  border-radius: 1em !important;\n  box-shadow: none !important;\n}\n\n.nova-hero.focus .nova-play {\n  transform: none !important;\n  box-shadow: none !important;\n}\n\n.nova-hero {\n  border: 0 !important;\n  transition: none !important;\n}\n\n.nova-hero.focus {\n  transform: none !important;\n  box-shadow: 0 0 0 .3em #fff !important;\n}\n\n.nova-hero__scrim {\n  background:\n    linear-gradient(0deg, rgba(8, 9, 16, .98), rgba(8, 9, 16, .4) 48%, rgba(8, 9, 16, .03) 78%),\n    linear-gradient(90deg, rgba(8, 9, 16, .72), transparent 62%) !important;\n}\n\n.nova-chip::before {\n  background: #fff !important;\n  box-shadow: none !important;\n}\n\n.nova-hero__prog > i { background: #fff !important; }\n\n.nova-scope .online-prestige--full.nova-ep {\n  position: relative;\n  border: 0 !important;\n  background: rgba(255, 255, 255, .1) !important;\n  box-shadow: none !important;\n  transition: background-color .2s ease !important;\n}\n\n.nova-scope .online-prestige--full.nova-ep.focus {\n  background: rgba(255, 255, 255, .16) !important;\n  border: 0 !important;\n  transform: none !important;\n  box-shadow: none !important;\n}\n\n.nova-scope .online-prestige--full.nova-ep.focus::after {\n  display: block !important;\n  content: '';\n  position: absolute;\n  left: -.5em;\n  top: -.5em;\n  right: -.5em;\n  bottom: -.5em;\n  border: var(--lampa-focus-border);\n  border-radius: 1.4em;\n  pointer-events: none;\n  z-index: 4;\n}\n\n.nova-scope .nova-ep .online-prestige__episode-number {\n  background: rgba(0, 0, 0, .6) !important;\n  color: #fff !important;\n  border-radius: 1em !important;\n  box-shadow: none !important;\n}\n\n.nova-scope .nova-ep .online-prestige__timeline > .time-line > div {\n  background: #fff !important;\n}\n\n.nova-scope .online-prestige--full.nova-as-voice {\n  background: rgba(255, 255, 255, .1) !important;\n  border: 0 !important;\n}\n\n.nova-scope .online-prestige--full.nova-as-voice.focus {\n  background: #fff !important;\n}\n\n.nova-scope .online-prestige--full.nova-as-voice.focus .online-prestige__title { color: #000 !important; }\n.nova-scope .online-prestige--full.nova-as-voice.focus .online-prestige__quality { background: #000 !important; color: #fff !important; }\n.nova-scope .online-prestige--full.nova-as-voice.focus::after { display: none !important; }\n\n.selectbox,\n.select,\n.modal {\n  border: 0 !important;\n  box-shadow: 0 2em 4em rgba(0, 0, 0, .7) !important;\n}\n\n.selectbox.focus,\n.select.focus,\n.modal.focus {\n  box-shadow: 0 2em 4em rgba(0, 0, 0, .85), 0 0 0 .3em #fff !important;\n}\n\n.selectbox.nova-skin .selectbox__title {\n  color: #fff !important;\n  opacity: .6;\n}\n\n.selectbox.nova-skin .selectbox-item.focus {\n  background: #fff !important;\n  color: #000 !important;\n  box-shadow: none !important;\n}\n\n.selectbox.nova-skin .selectbox-item.selected {\n  box-shadow: inset .22em 0 0 #fff !important;\n}\n\n.selectbox.nova-skin .selectbox-item.selected.focus {\n  background: #fff !important;\n  color: #000 !important;\n  box-shadow: inset .22em 0 0 #000 !important;\n}\n\n.selectbox.nova-skin .selectbox-item__checkbox {\n  border-color: rgba(255, 255, 255, .6) !important;\n}\n\n.selectbox.nova-skin .selectbox-item.focus .selectbox-item__checkbox {\n  border-color: rgba(0, 0, 0, .5) !important;\n}\n\n.selectbox.nova-skin .selectbox-item--checked .selectbox-item__checkbox {\n  background: #fff !important;\n  border-color: #fff !important;\n}\n\n.selectbox.nova-skin .selectbox-item.focus.selectbox-item--checked .selectbox-item__checkbox {\n  background: #000 !important;\n  border-color: #000 !important;\n}\n\n.selectbox.nova-skin .selectbox-item--checked .selectbox-item__checkbox::after {\n  border-color: #000 !important;\n}\n\n.selectbox.nova-skin .selectbox-item.focus.selectbox-item--checked .selectbox-item__checkbox::after {\n  border-color: #fff !important;\n}\n\n.view--nova {\n  background: rgba(0, 0, 0, .3) !important;\n  border: 0 !important;\n  border-radius: 1em !important;\n  color: #fff !important;\n  box-shadow: none !important;\n  transform: none !important;\n  transition: background-color .2s ease, color .2s ease !important;\n}\n\n.view--nova .nova-btn__ico,\n.view--nova span,\n.view--nova .full-start__button-text {\n  color: #fff !important;\n  letter-spacing: normal !important;\n}\n\n.view--nova.focus {\n  background: #fff !important;\n  box-shadow: none !important;\n  transform: none !important;\n}\n\n.view--nova.focus .nova-btn__ico,\n.view--nova.focus span,\n.view--nova.focus .full-start__button-text { color: #000 !important; }\n\n.nova-ep__badge {\n  background: rgba(0, 0, 0, .6) !important;\n  color: #fff !important;\n  border-radius: 1em !important;\n  box-shadow: none !important;\n}\n\n.nova-ep__mark,\n.nova-scope .nova-ep .online-prestige__viewed {\n  background: #fff !important;\n  color: #000 !important;\n  box-shadow: none !important;\n}\n\n.nova-ep__resume {\n  background: #fff !important;\n  color: #000 !important;\n}\n\n.nova-actor.focus {\n  background: rgba(255, 255, 255, .1) !important;\n  transform: none !important;\n}\n\n.nova-actor.focus .nova-actor__ava {\n  box-shadow: 0 0 0 .3em #fff !important;\n}\n\n.nova-empty__btn {\n  background: rgba(255, 255, 255, .1) !important;\n  border: 0 !important;\n  border-radius: 1em !important;\n  color: #fff !important;\n}\n\n.nova-empty__btn.focus {\n  background: #fff !important;\n  color: #000 !important;\n  box-shadow: none !important;\n}\n\n.nova-shine:after {\n  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .12), transparent) !important;\n}\n\n.nova-note::before {\n  background: #fff !important;\n  box-shadow: none !important;\n}\n\n.torrent-filter,\n.content-filter {\n  border: 0 !important;\n  background: transparent !important;\n}\n\n.filter--sort,\n.filter--filter,\n.filter--search {\n  background-color: rgba(255, 255, 255, .1) !important;\n  border: 0 !important;\n  border-radius: 1em !important;\n  color: #fff !important;\n}\n\n.filter--sort.focus,\n.filter--filter.focus,\n.filter--search.focus {\n  background-color: #fff !important;\n  color: #000 !important;\n  box-shadow: none !important;\n}\n";
+  var NOVA_TPL = {
+  "nova_hero": "<div class=\"nova-hero selector\" style=\"background-image:url({art})\"><div class=\"nova-hero__scrim\"></div><div class=\"nova-hero__content\"><div class=\"nova-hero__title\">{title}</div><div class=\"nova-hero__meta\"><span class=\"nova-hero__q\">{quality}</span><span>{meta}</span></div><div class=\"nova-hero__chips\">{chips}</div><div class=\"nova-hero__desc\">{desc}</div><div class=\"nova-hero__cta\"><span class=\"nova-play\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\"><path d=\"M6 4l14 8-14 8V4z\" fill=\"currentColor\"/></svg>{playlabel}</span><span class=\"nova-hero__voice\">{voice}</span></div></div><div class=\"nova-hero__prog\"><i style=\"width:{progress}%\"></i></div></div>",
+  "nova_episode": "<div class=\"nova-ep selector\"><div class=\"nova-ep__art\" style=\"background-image:url({still})\"><span class=\"nova-ep__badge\">{num}</span><span class=\"nova-ep__mark\">{mark}</span><span class=\"nova-ep__scrim\"></span><span class=\"nova-ep__play\"><svg width=\"30\" height=\"30\" viewBox=\"0 0 24 24\" fill=\"none\"><path d=\"M6 4l14 8-14 8V4z\" fill=\"currentColor\"/></svg></span><span class=\"nova-ep__prog\"><i style=\"width:{progress}%\"></i></span></div><div class=\"nova-ep__body\"><div class=\"nova-ep__top\"><div class=\"nova-ep__title\">{title}</div><span class=\"nova-ep__resume\">{resume}</span><div class=\"nova-ep__time\">{time}</div></div><div class=\"nova-ep__sub\">{sub}</div></div></div>",
+  "nova_voice": "<div class=\"nova-voice selector\"><span class=\"nova-voice__q\">{quality}</span><span class=\"nova-voice__name\">{name}</span></div>",
+  "nova_season": "<div class=\"nova-season selector\">{title}</div>",
+  "nova_actor": "<div class=\"nova-actor selector\"><div class=\"nova-actor__ava\" style=\"background-image:url({img})\"></div><div class=\"nova-actor__name\">{name}</div><div class=\"nova-actor__role\">{role}</div></div>"
 };
-
-  /* ---------------------------------------------------------------- utils */
 
   function esc(value) {
     return ('' + (value == null ? '' : value)).replace(/[&<>"]/g, function (ch) {
@@ -2890,7 +2847,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
   function chips(movie) {
     var out = [];
     (movie.genres || []).slice(0, 3).forEach(function (g) {
-      if (g && g.name) out.push('<span class="bwa-chip">' + esc(g.name) + '</span>');
+      if (g && g.name) out.push('<span class="nova-chip">' + esc(g.name) + '</span>');
     });
     return out.join('');
   }
@@ -2942,22 +2899,19 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
     }
   }
 
-  /* ------------------------------------------------------------- install */
-
   function addStyle() {
-    if (document.getElementById('bwa-view-style')) return;
+    if (document.getElementById('nova-view-style')) return;
     var style = document.createElement('style');
-    style.id = 'bwa-view-style';
-    style.textContent = BWA_CSS;
+    style.id = 'nova-view-style';
+    style.textContent = NOVA_CSS;
     document.head.appendChild(style);
   }
 
   function addTemplates() {
     if (typeof Lampa === 'undefined' || !Lampa.Template || !Lampa.Template.add) return;
-    for (var name in BWA_TPL) Lampa.Template.add(name, BWA_TPL[name]);
+    for (var name in NOVA_TPL) Lampa.Template.add(name, NOVA_TPL[name]);
   }
 
-  /* Штатный селектбокс Lampa под палитру BWA: тот самый список источников. */
   function skinSelect() {
     if (skinSelect.done) return;
     skinSelect.done = true;
@@ -2966,14 +2920,12 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
         if (e.name !== 'select') return;
         setTimeout(function () {
           try {
-            $('.selectbox').addClass('bwa-skin');
+            $('.selectbox').addClass('nova-skin');
           } catch (err) {}
         }, 10);
       });
     } catch (e) {}
   }
-
-  /* ---------------------------------------------------------------- parts */
 
   function bind(element, opt, enter) {
     element.on('hover:focus', function (e) {
@@ -2989,7 +2941,6 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
 
   var SELECTORS = { sort: '.filter--sort', filter: '.filter--filter', search: '.filter--search' };
 
-  /* Штатный элемент фильтра дёргаем напрямую: кроме селекта там висит стоп таймера балансера. */
   function openSelect(opt, type) {
     try {
       var node = opt.filter.render().find(SELECTORS[type]);
@@ -3016,10 +2967,10 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
 
   function pill(opt, key, value, count, type) {
     var html = $(
-      '<div class="bwa-pill selector">' +
-      '<div class="bwa-pill__k">' + esc(key) + '</div>' +
-      '<div class="bwa-pill__v">' + esc(value) + '</div>' +
-      (count > 1 ? '<div class="bwa-pill__badge">' + count + '</div>' : '') +
+      '<div class="nova-pill selector">' +
+      '<div class="nova-pill__k">' + esc(key) + '</div>' +
+      '<div class="nova-pill__v">' + esc(value) + '</div>' +
+      (count > 1 ? '<div class="nova-pill__badge">' + count + '</div>' : '') +
       '</div>'
     );
     return bind(html, opt, function () {
@@ -3027,7 +2978,6 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
     });
   }
 
-  /* Карточка, на которую уходит Enter с hero: продолжаем с того, что в фокусе. */
   function pickCard(opt) {
     var cards = opt.scroll.body().find('.online-prestige--full');
     if (!cards.length) return null;
@@ -3049,7 +2999,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
     var quality = serial ? 'СЕЗОН ' + (season || 1) : itemQuality(opt.items[0]);
     var voice = serial ? '' : (opt.choice.voice_name || '');
 
-    var html = $(Lampa.Template.get('bwa_hero', {
+    var html = $(Lampa.Template.get('nova_hero', {
       art: heroArt(movie),
       quality: esc(quality || 'AUTO'),
       title: esc(movie.title || movie.name || ''),
@@ -3068,7 +3018,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
   }
 
   function buildPills(opt) {
-    var row = $('<div class="bwa-pills"></div>');
+    var row = $('<div class="nova-pills"></div>');
     var sources = opt.sources || {};
     var voices = (opt.filter_find && opt.filter_find.voice) || [];
     var seasons = (opt.filter_find && opt.filter_find.season) || [];
@@ -3091,7 +3041,6 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
       row.append(pill(opt, 'Сезон', title, seasons.length, 'filter'));
     }
 
-    /* Название для балансера можно уточнить вручную — штатная голова фильтра скрыта. */
     if (searchAvailable(opt)) row.append(pill(opt, 'Поиск', 'Уточнить', 0, 'search'));
 
     return row.children().length ? row : null;
@@ -3102,14 +3051,14 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
     if (!opt.serial || seasons.length < 2) return null;
 
     var selected = parseInt(opt.choice.season, 10) || 0;
-    var row = $('<div class="bwa-seasons"></div>');
+    var row = $('<div class="nova-seasons"></div>');
 
     seasons.forEach(function (item, index) {
-      var tile = $(Lampa.Template.get('bwa_season', { title: digits(item.title) || index + 1 }));
+      var tile = $(Lampa.Template.get('nova_season', { title: digits(item.title) || index + 1 }));
       if (index === selected) tile.addClass('is-sel');
       bind(tile, opt, function () {
         if (index === selected) return;
-        /* Штатный путь смены сезона: тот же, что у фильтра в online4. */
+
         var choice = opt.component.getChoice();
         choice.season = index;
         opt.component.saveChoice(choice);
@@ -3122,8 +3071,6 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
     return row;
   }
 
-  /* ------------------------------------------------------------------ api */
-
   var api = {
     install: function () {
       try {
@@ -3135,7 +3082,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
 
     scope: function (render) {
       try {
-        $(render).addClass('bwa-scope');
+        $(render).addClass('nova-scope');
       } catch (e) {}
     },
 
@@ -3145,7 +3092,6 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
       return (episode < 10 ? '0' : '') + episode;
     },
 
-    /* Шапка: hero + пилюли + сезоны. Зовётся из draw до отрисовки файлов. */
     head: function (opt) {
       try {
         if (!opt.items || !opt.items.length) return;
@@ -3159,19 +3105,18 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
 
         var seasons = buildSeasons(opt);
         if (seasons) {
-          opt.scroll.append($('<div class="bwa-note"></div>').text('Сезоны'));
+          opt.scroll.append($('<div class="nova-note"></div>').text('Сезоны'));
           opt.scroll.append(seasons);
         }
 
-        opt.scroll.append($('<div class="bwa-note"></div>').text(opt.serial ? 'Серии' : 'Озвучка'));
+        opt.scroll.append($('<div class="nova-note"></div>').text(opt.serial ? 'Серии' : 'Озвучка'));
       } catch (e) {}
     },
 
-    /* Штатная карточка -> вид BWA. Разметку и обработчики online4 не трогаем. */
     decorateCard: function (html, element, episode, serial) {
       try {
         if (!serial) {
-          html.addClass('bwa-as-voice');
+          html.addClass('nova-as-voice');
           return;
         }
 
@@ -3186,11 +3131,11 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
         html.find('.online-prestige__info').html(esc(sub.join(' • ')));
 
         var percent = (element.timeline && parseFloat(element.timeline.percent)) || 0;
-        if (percent >= 90) html.addClass('bwa-ep--watched');
-        else if (percent > 1) html.find('.bwa-ep__top').append('<span class="bwa-ep__resume">Продолжить</span>');
+        if (percent >= 90) html.addClass('nova-ep--watched');
+        else if (percent > 1) html.find('.nova-ep__top').append('<span class="nova-ep__resume">Продолжить</span>');
       } catch (e) {}
     }
   };
 
-  window.BWA_VIEW = api;
+  window.NOVA_VIEW = api;
 })();
