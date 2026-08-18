@@ -1,18 +1,14 @@
 (function () {
   'use strict';
-
   var LAMPAC_VERSION = '1.8.0';
   var REQUEST_TIMEOUT = 10000;
   var BALANCER_TIMEOUT = 60000;
-
   var Defined = {
     api: 'lampac',
     localhost: 'http://150.230.22.208:8080/',
     apn: ''
   };
-
   var balansers_with_search;
-
   var unic_id = Lampa.Storage.get('lampac_unic_id', '');
   if (!unic_id) {
     unic_id = Lampa.Utils.uid(8).toLowerCase();
