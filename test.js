@@ -250,6 +250,12 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
     return (episodeNumber < 10 ? '0' : '') + episodeNumber;
   }
 
+  /* S1E1 вместо 01: так бейдж выглядит в оригинальном BWA. */
+  function bwaBadge(season, episodeNumber) {
+    if (window.BWA_VIEW) return window.BWA_VIEW.episodeBadge(season, episodeNumber);
+    return formatEpisodeNumber(episodeNumber);
+  }
+
   var Network = Lampa.Reguest;
 
   function component(object) {
@@ -405,6 +411,10 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
       if (filter.addButtonBack) filter.addButtonBack();
       filter.render().find('.filter--sort span').text(Lampa.Lang.translate('lampac_balanser'));
       scroll.body().addClass('torrent-list');
+      if (window.BWA_VIEW) {
+        window.BWA_VIEW.install();
+        window.BWA_VIEW.scope(files.render());
+      }
       files.appendFiles(scroll.render());
       files.appendHead(filter.render());
       scroll.minus(files.render().find('.explorer__files-head'));
@@ -1312,9 +1322,30 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
       var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
       if (!items.length) return this.empty();
       scroll.clear();
-      if (!object.balanser) scroll.append(Lampa.Template.get('lampac_prestige_watched', {}));
       this.updateWatched();
       this.getEpisodes(items[0].season, function (episodes) {
+        if (window.BWA_VIEW) {
+          window.BWA_VIEW.head({
+            scroll: scroll,
+            object: object,
+            items: items,
+            episodes: episodes,
+            serial: object.movie.name ? true : false,
+            choice: _this8.getChoice(),
+            sources: sources,
+            balanser: balanser,
+            filter_find: filter_find,
+            filter: filter,
+            component: _this8,
+            getLast: function () {
+              return last;
+            },
+            onFocus: function (target) {
+              last = target;
+              scroll.update($(target), true);
+            }
+          });
+        }
         var viewed = Lampa.Storage.cache('online_view', 5000, []);
         var serial = object.movie.name ? true : false;
         var choice = _this8.getChoice();
@@ -1398,6 +1429,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
               })
               .join('<span class="online-prestige-split">●</span>');
           var html = Lampa.Template.get('lampac_prestige_full', element);
+          if (window.BWA_VIEW) window.BWA_VIEW.decorateCard(html, element, episode, serial);
           var loader = html.find('.online-prestige__loader');
           var image = html.find('.online-prestige__img');
           if (object.balanser) image.hide();
@@ -1409,7 +1441,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
           if (serial && !episode) {
             image.append(
               '<div class="online-prestige__episode-number">' +
-              formatEpisodeNumber(element.episode || index + 1) +
+              bwaBadge(element.season, element.episode || index + 1) +
               '</div>'
             );
             loader.remove();
@@ -1425,7 +1457,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
               if (serial)
                 image.append(
                   '<div class="online-prestige__episode-number">' +
-                  formatEpisodeNumber(element.episode || index + 1) +
+                  bwaBadge(element.season, element.episode || index + 1) +
                   '</div>'
                 );
             };
@@ -1549,6 +1581,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
               title: episode.name,
               quality: day > 0 ? txt : ''
             });
+            if (window.BWA_VIEW) html.addClass('bwa-ep--soon');
             var loader = html.find('.online-prestige__loader');
             var image = html.find('.online-prestige__img');
             var season = items[0] ? items[0].season : 1;
@@ -1571,7 +1604,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
                 loader.remove();
                 image.append(
                   '<div class="online-prestige__episode-number">' +
-                  formatEpisodeNumber(episode.episode_number) +
+                  bwaBadge(season, episode.episode_number) +
                   '</div>'
                 );
               };
@@ -1581,7 +1614,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
               loader.remove();
               image.append(
                 '<div class="online-prestige__episode-number">' +
-                formatEpisodeNumber(episode.episode_number) +
+                bwaBadge(season, episode.episode_number) +
                 '</div>'
               );
             }
@@ -2529,18 +2562,20 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
     }
 
     var LAMPAC_TEMPLATE_PRESTIGE_FULL = [
-      '<div class="online-prestige online-prestige--full selector">',
-      '  <div class="online-prestige__img">',
+      '<div class="online-prestige online-prestige--full selector bwa-ep">',
+      '  <div class="online-prestige__img bwa-ep__art">',
       '    <img alt="">',
       '    <div class="online-prestige__loader"></div>',
+      '    <div class="bwa-ep__scrim"></div>',
+      '    <div class="bwa-ep__play"><svg width="30" height="30" viewBox="0 0 24 24" fill="none"><path d="M6 4l14 8-14 8V4z" fill="currentColor"/></svg></div>',
+      '    <div class="online-prestige__timeline bwa-ep__prog"></div>',
       '  </div>',
-      '  <div class="online-prestige__body">',
-      '    <div class="online-prestige__head">',
-      '      <div class="online-prestige__title">{title}</div>',
-      '      <div class="online-prestige__time">{time}</div>',
+      '  <div class="online-prestige__body bwa-ep__body">',
+      '    <div class="online-prestige__head bwa-ep__top">',
+      '      <div class="online-prestige__title bwa-ep__title">{title}</div>',
+      '      <div class="online-prestige__time bwa-ep__time">{time}</div>',
       '    </div>',
-      '    <div class="online-prestige__timeline"></div>',
-      '    <div class="online-prestige__footer">',
+      '    <div class="online-prestige__footer bwa-ep__sub">',
       '      <div class="online-prestige__info">{info}</div>',
       '      <div class="online-prestige__quality">{quality}</div>',
       '    </div>',
@@ -2773,98 +2808,48 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
   if (!window.lampac_plugin) startPlugin();
 })();
 
-
 /* ==========================================================================
-   BWA visual layer: скин и шаблоны
+   BWA view layer
+
+   Портирован draw-слой оригинального плагина BWA (online777): hero, пилюли
+   ИСТОЧНИК/ОЗВУЧКА/СЕЗОН, плитки сезонов, карточки серий и чипсы озвучек.
+   Логика (балансеры, поиск, плеер, таймкоды) остаётся от online4 — модуль
+   только рисует и отдаёт управление штатным методам компонента.
+
+   CSS и шаблоны подставляет build_online_bwa.py.
    ========================================================================== */
-(function bwaVisualLayer() {
+(function () {
   'use strict';
 
-  if (window.__bwa_visual_installed) return;
-  window.__bwa_visual_installed = true;
+  if (window.BWA_VIEW) return;
 
-  var BWA_SKIN = "/* ==========================================================================\n   BWA skin for the lampac online plugin\n   \u0426\u0432\u0435\u0442\u0430 \u0438 \u0433\u0435\u043e\u043c\u0435\u0442\u0440\u0438\u044f \u0432\u0437\u044f\u0442\u044b \u0438\u0437 \u0432\u0438\u0437\u0443\u0430\u043b\u0430 BWA, \u043d\u043e \u043f\u0440\u0438\u043c\u0435\u043d\u0435\u043d\u044b \u043a \u0448\u0442\u0430\u0442\u043d\u043e\u0439 \u0440\u0430\u0437\u043c\u0435\u0442\u043a\u0435\n   online4 (.online-prestige*). \u0422\u0430\u043a \u043b\u043e\u0433\u0438\u043a\u0430 \u043f\u043b\u0430\u0433\u0438\u043d\u0430 \u043e\u0441\u0442\u0430\u0451\u0442\u0441\u044f \u0446\u0435\u043b\u043e\u0439, \u0430 \u0432\u0438\u0434 \u043c\u0435\u043d\u044f\u0435\u0442\u0441\u044f.\n   ========================================================================== */\n\n:root {\n  --bwa-bg: #0a0b12;\n  --bwa-accent: #5b6cff;\n  --bwa-accent2: #d05185;\n  --bwa-rgb: 91, 108, 255;\n  --bwa-accent-lt: #7b86ff;\n  --bwa-glow: rgba(var(--bwa-rgb), .5);\n  --bwa-glass: rgba(255, 255, 255, .055);\n  --bwa-line: rgba(255, 255, 255, .09);\n  --bwa-info: #8f909a;\n  --bwa-text: #eceefb;\n}\n\n/* \u2500\u2500 \u043a\u0430\u0440\u0442\u043e\u0447\u043a\u0430 \u0444\u0430\u0439\u043b\u0430/\u044d\u043f\u0438\u0437\u043e\u0434\u0430 \u2500\u2500 */\n.online-prestige {\n  border-radius: 1.1em;\n  background: var(--bwa-glass);\n  border: 1px solid var(--bwa-line);\n  transition: transform .2s ease, background .2s ease, border-color .2s ease, box-shadow .2s ease;\n}\n\n.online-prestige.focus,\n.online-prestige.selector.focus {\n  background: rgba(var(--bwa-rgb), .1);\n  border-color: transparent;\n  transform: scale(1.01);\n  box-shadow:\n    0 .8em 2.2em rgba(0, 0, 0, .55),\n    0 0 0 2px var(--bwa-accent),\n    0 0 2.2em var(--bwa-glow);\n}\n\n.online-prestige__img {\n  border-radius: .8em;\n  overflow: hidden;\n  background-image: linear-gradient(135deg, #2b2d3a, #181924);\n}\n\n.online-prestige__title {\n  color: var(--bwa-text);\n  font-weight: 700;\n}\n\n.online-prestige__info,\n.online-prestige__time {\n  color: var(--bwa-info);\n}\n\n/* \u043d\u043e\u043c\u0435\u0440 \u044d\u043f\u0438\u0437\u043e\u0434\u0430 \u2500 \u043a\u0430\u043a bwa-ep__badge */\n.online-prestige__episode-number {\n  background: rgba(var(--bwa-rgb), .85) !important;\n  color: #fff !important;\n  border-radius: .45em;\n  font-weight: 800;\n  box-shadow: 0 .2em .6em rgba(0, 0, 0, .4);\n}\n\n/* \u043a\u0430\u0447\u0435\u0441\u0442\u0432\u043e \u2500 \u0433\u0440\u0430\u0434\u0438\u0435\u043d\u0442\u043d\u044b\u0439 \u0431\u0435\u0439\u0434\u0436 \u043a\u0430\u043a bwa-hero__q */\n.online-prestige__quality {\n  color: #fff;\n  background: linear-gradient(120deg, var(--bwa-accent), var(--bwa-accent-lt));\n  padding: .16em .52em;\n  border-radius: .42em;\n  font-size: .78em;\n  font-weight: 800;\n  letter-spacing: .02em;\n  box-shadow: 0 .2em .8em var(--bwa-glow);\n}\n\n/* \u043f\u0440\u043e\u0433\u0440\u0435\u0441\u0441 \u043f\u0440\u043e\u0441\u043c\u043e\u0442\u0440\u0430 \u2500 \u0433\u0440\u0430\u0434\u0438\u0435\u043d\u0442 BWA */\n.online-prestige__timeline .time-line > div,\n.online-prestige__timeline .timeline-scroll__line > div {\n  background: linear-gradient(90deg, var(--bwa-accent), var(--bwa-accent2)) !important;\n}\n\n/* \u043e\u0442\u043c\u0435\u0442\u043a\u0430 \u00ab\u043f\u0440\u043e\u0441\u043c\u043e\u0442\u0440\u0435\u043d\u043e\u00bb \u2500 \u043a\u0430\u043a bwa-ep__mark */\n.online-prestige__viewed {\n  background: #54e08a !important;\n  color: #0b0d17 !important;\n  border-radius: 50%;\n  box-shadow: 0 .2em .6em rgba(0, 0, 0, .5);\n}\n\n/* \u2500\u2500 \u043f\u0430\u043f\u043a\u0438 (\u0441\u0435\u0437\u043e\u043d\u044b, \u043e\u0437\u0432\u0443\u0447\u043a\u0438) \u2500\u2500 */\n.online-prestige--folder .online-prestige__folder {\n  color: var(--bwa-accent);\n}\n\n/* \u2500\u2500 \u043f\u043b\u0430\u0448\u043a\u0430 \u00ab\u043f\u0440\u043e\u0434\u043e\u043b\u0436\u0438\u0442\u044c \u043f\u0440\u043e\u0441\u043c\u043e\u0442\u0440\u00bb \u2500\u2500 */\n.online-prestige-watched {\n  border-radius: 1.1em;\n  background: var(--bwa-glass);\n  border: 1px solid var(--bwa-line);\n}\n\n.online-prestige-watched__icon {\n  color: var(--bwa-accent);\n}\n\n/* \u2500\u2500 \u0444\u0438\u043b\u044c\u0442\u0440\u044b \u0438 \u043a\u043d\u043e\u043f\u043a\u0438 \u0432\u0435\u0440\u0445\u043d\u0435\u0433\u043e \u0440\u044f\u0434\u0430 \u2500\u2500 */\n.online-prestige__head .simple-button,\n.online-prestige__footer .simple-button {\n  border-radius: 2em;\n  background: var(--bwa-glass);\n  border: 1px solid var(--bwa-line);\n  color: var(--bwa-text);\n}\n\n.online-prestige__head .simple-button.focus,\n.online-prestige__footer .simple-button.focus {\n  background: rgba(var(--bwa-rgb), .16);\n  border-color: transparent;\n  box-shadow: 0 0 0 2px var(--bwa-accent), 0 0 1.8em var(--bwa-glow);\n}\n\n/* \u2500\u2500 \u043f\u0443\u0441\u0442\u043e\u0439 \u0440\u0435\u0437\u0443\u043b\u044c\u0442\u0430\u0442 / \u043e\u0448\u0438\u0431\u043a\u0438 \u2500\u2500 */\n.online-empty__title {\n  color: var(--bwa-text);\n  font-weight: 800;\n}\n\n.online-empty__time,\n.online-empty-template__body {\n  color: var(--bwa-info);\n}\n\n.online-empty__button {\n  border-radius: 2em;\n  background: var(--bwa-glass);\n  border: 1px solid var(--bwa-line);\n  color: var(--bwa-text);\n}\n\n.online-empty__button.focus {\n  background: rgba(var(--bwa-rgb), .16);\n  border-color: transparent;\n  box-shadow: 0 0 0 2px var(--bwa-accent), 0 0 1.8em var(--bwa-glow);\n}\n\n/* \u2500\u2500 \u0441\u043f\u0438\u0441\u043e\u043a \u0432\u044b\u0431\u043e\u0440\u0430 (\u0431\u0430\u043b\u0430\u043d\u0441\u0435\u0440\u044b, \u043e\u0437\u0432\u0443\u0447\u043a\u0438) \u2500\u2500 */\n.selectbox.bwa-skin .selectbox__content {\n  background: #0c0d14 !important;\n}\n\n.selectbox.bwa-skin .selectbox__title {\n  color: var(--bwa-accent) !important;\n  text-transform: uppercase;\n  letter-spacing: .05em;\n  font-weight: 700;\n}\n\n.selectbox.bwa-skin .selectbox-item {\n  background: transparent !important;\n  border: 0 !important;\n  border-radius: .9em;\n  margin: .15em .55em;\n  color: var(--bwa-text) !important;\n}\n\n.selectbox.bwa-skin .selectbox-item.focus {\n  background: rgba(var(--bwa-rgb), .18) !important;\n  box-shadow: 0 0 0 2px var(--bwa-accent), 0 0 1.4em var(--bwa-glow) !important;\n}\n\n.selectbox.bwa-skin .selectbox-item.selected {\n  box-shadow: inset .22em 0 0 var(--bwa-accent) !important;\n}\n";
+  var BWA_CSS = ":root{--bwa-bg:#0a0b12;--bwa-accent:#5b6cff;--bwa-accent2:#d05185;--bwa-rgb:91,108,255;--bwa-accent-lt:#7b86ff;--bwa-glow:rgba(var(--bwa-rgb),.5);--bwa-glass:rgba(255,255,255,.055);--bwa-line:rgba(255,255,255,.09);--bwa-info:#8f909a;--bwa-text:#eceefb}.bwa-scope .explorer__left{display:none!important}.bwa-scope .explorer__files{width:100%!important;left:0!important}.bwa-scope .explorer__files-head{display:none!important}.bwa-voices{display:flex;flex-wrap:wrap;gap:.7em;padding:.2em .2em 1.4em}.bwa-voice{display:inline-flex;align-items:center;gap:.7em;padding:.7em 1.15em;border-radius:1em;background:var(--bwa-glass);border:1px solid var(--bwa-line);transition:transform .2s,background .2s,border-color .2s,box-shadow .2s}.bwa-voice.focus{background:rgba(var(--bwa-rgb),.12);border-color:transparent;transform:scale(1.03);box-shadow:0 0 0 2px var(--bwa-accent),0 0 2em var(--bwa-glow)}.bwa-voice.is-sel{border-color:var(--bwa-accent)}.bwa-voice__q{color:#fff;background:linear-gradient(120deg,var(--bwa-accent),var(--bwa-accent-lt));padding:.16em .52em;border-radius:.42em;font-size:.78em;font-weight:800;letter-spacing:.02em}.bwa-voice__name{font-weight:600;color:var(--bwa-text)}.bwa-seasons{display:flex;flex-wrap:wrap;gap:.55em;padding:.2em .2em 1.3em}.bwa-season{display:inline-flex;align-items:center;justify-content:center;min-width:2.2em;padding:.55em 1.05em;border-radius:1em;font-size:.95em;font-weight:700;color:var(--bwa-text);background:var(--bwa-glass);border:1px solid var(--bwa-line);transition:transform .2s,background .2s,border-color .2s,box-shadow .2s}.bwa-season.focus{background:rgba(var(--bwa-rgb),.12);border-color:transparent;transform:scale(1.06);box-shadow:0 0 0 2px var(--bwa-accent),0 0 2em var(--bwa-glow)}.bwa-season.is-sel{border-color:var(--bwa-accent);background:rgba(var(--bwa-rgb),.16)}.bwa-pills{display:flex;flex-wrap:wrap;gap:.6em;padding:.1em .2em 1.1em}.bwa-pill{display:inline-flex;align-items:center;gap:.5em;padding:.55em 1.1em;border-radius:2em;background:var(--bwa-glass);border:1px solid var(--bwa-line);color:var(--bwa-text);transition:transform .2s,background .2s,border-color .2s,box-shadow .2s}.bwa-pill.focus{background:rgba(var(--bwa-rgb),.16);border-color:transparent;transform:scale(1.05);box-shadow:0 0 0 2px var(--bwa-accent),0 0 1.8em var(--bwa-glow)}.bwa-pill__k{font-size:.72em;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--bwa-info)}.bwa-pill__v{font-size:.95em;font-weight:700;max-width:14em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.bwa-pill__c{opacity:.55;font-size:.8em}.bwa-pill__badge{display:inline-flex;align-items:center;justify-content:center;min-width:1.35em;height:1.35em;padding:0 .35em;border-radius:1em;background:rgba(84,224,138,.16);color:#54e08a;font-size:.8em;font-weight:800;line-height:1}.selectbox.bwa-skin .selectbox__content{background:#0c0d14 !important}.selectbox.bwa-skin .selectbox__title{color:var(--bwa-accent) !important;text-transform:uppercase;letter-spacing:.05em;font-weight:700}.selectbox.bwa-skin .selectbox-item{background:transparent !important;border:0 !important;border-radius:.9em;margin:.15em .55em;color:var(--bwa-text) !important;transition:background .15s ease,box-shadow .15s ease}.selectbox.bwa-skin .selectbox-item.focus{background:rgba(var(--bwa-rgb),.18) !important;box-shadow:0 0 0 2px var(--bwa-accent),0 0 1.4em var(--bwa-glow) !important}.selectbox.bwa-skin .selectbox-item.selected{box-shadow:inset .22em 0 0 var(--bwa-accent) !important}.selectbox.bwa-skin .selectbox-item.selected.focus{background:rgba(var(--bwa-rgb),.24) !important;box-shadow:inset .22em 0 0 var(--bwa-accent),0 0 0 2px var(--bwa-accent),0 0 1.4em var(--bwa-glow) !important}.selectbox.bwa-skin .selectbox-item--checkbox{position:relative;padding-right:3.2em}.selectbox.bwa-skin .selectbox-item__checkbox{position:absolute;right:1.1em;top:50%;transform:translateY(-50%);width:1.5em;height:1.5em;border-radius:.42em;border:.14em solid rgba(var(--bwa-rgb),.55);background:transparent;box-sizing:border-box;margin:0}.selectbox.bwa-skin .selectbox-item--checked .selectbox-item__checkbox{background:var(--bwa-accent) !important;border-color:var(--bwa-accent) !important}.selectbox.bwa-skin .selectbox-item--checked .selectbox-item__checkbox::after{content:\"\";position:absolute;left:.46em;top:.18em;width:.34em;height:.66em;border:solid #0b0d17;border-width:0 .2em .2em 0;transform:rotate(45deg)}.bwa-hero{position:relative;display:block;height:23em;margin:.4em .4em 1em;border-radius:1.4em;overflow:hidden;background-size:cover;background-position:center 20%;background-color:#12131b;border:1px solid var(--bwa-line);background-clip:padding-box;transition:box-shadow .2s ease,border-color .2s ease,transform .2s ease}.bwa-hero.focus{transform:translateY(-.15em);border-color:transparent;box-shadow:0 1.4em 3.6em rgba(0,0,0,.75),0 0 0 2px var(--bwa-accent),0 0 3em var(--bwa-glow)}.bwa-hero__scrim{position:absolute;inset:0;background:linear-gradient(0deg,rgba(8,9,16,.98),rgba(8,9,16,.4) 48%,rgba(8,9,16,.03) 78%),linear-gradient(90deg,rgba(8,9,16,.72),transparent 62%),radial-gradient(120% 90% at 92% 8%,rgba(var(--bwa-rgb),.16),transparent 55%)}.bwa-hero__content{position:absolute;left:1.7em;right:1.7em;bottom:1.4em;z-index:2;display:flex;flex-direction:column;gap:.6em}.bwa-hero__title{font-size:2.7em;font-weight:800;letter-spacing:-.015em;line-height:1.03;color:#fff;text-shadow:0 2px 16px rgba(0,0,0,.8);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.bwa-hero__meta{display:flex;align-items:center;gap:.85em;font-size:.95em;color:#c9cad6;font-weight:600}.bwa-hero__q{color:#fff;background:linear-gradient(120deg,var(--bwa-accent),var(--bwa-accent-lt));padding:.2em .62em;border-radius:.5em;font-size:.8em;font-weight:800;letter-spacing:.03em;box-shadow:0 .2em .8em var(--bwa-glow)}.bwa-hero__chips{display:flex;gap:.5em;flex-wrap:wrap}.bwa-chip{display:inline-flex;align-items:center;gap:.45em;font-size:.82em;font-weight:600;color:#d8d9e6;background:rgba(255,255,255,.07);border:1px solid var(--bwa-line);padding:.3em .8em .3em .7em;border-radius:1.2em}.bwa-chip::before{content:\"\";width:.42em;height:.42em;border-radius:50%;background:var(--bwa-accent);box-shadow:0 0 .5em var(--bwa-glow)}.bwa-hero__desc{font-size:.92em;line-height:1.42;color:#b3b4c2;max-width:46em;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.bwa-hero__desc:empty{display:none}.bwa-hero__cta{display:flex;align-items:center;gap:1.1em;margin-top:.55em}.bwa-play{display:inline-flex;align-items:center;gap:.5em;font-size:1.05em;font-weight:800;color:#fff;background:linear-gradient(120deg,var(--bwa-accent),var(--bwa-accent-lt));padding:.62em 1.5em;border-radius:2em;box-shadow:0 .4em 1.4em var(--bwa-glow);transition:transform .2s,box-shadow .2s}.bwa-hero.focus .bwa-play{transform:scale(1.05);box-shadow:0 0 2em var(--bwa-glow),0 .5em 1.6em rgba(0,0,0,.45)}.bwa-hero__voice{font-size:.92em;color:#9a9ba7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.bwa-hero__prog{position:absolute;left:0;right:0;bottom:0;z-index:3;height:.3em;background:rgba(255,255,255,.14)}.bwa-hero__prog>i{display:block;height:100%;background:linear-gradient(90deg,var(--bwa-accent),var(--bwa-accent2))}.bwa-ep{display:flex;align-items:center;gap:1.2em;padding:.6em .75em;margin:.45em .2em;border-radius:1.1em;background:var(--bwa-glass);border:1px solid var(--bwa-line);transition:transform .2s ease,background .2s ease,border-color .2s ease,box-shadow .2s ease}.bwa-ep.focus{background:rgba(var(--bwa-rgb),.1);border-color:transparent;transform:scale(1.01);box-shadow:0 .8em 2.2em rgba(0,0,0,.55),0 0 0 2px var(--bwa-accent),0 0 2.2em var(--bwa-glow)}.bwa-ep__art{position:relative;flex:0 0 auto;width:11em;height:6.2em;border-radius:.8em;overflow:hidden;background-size:cover;background-position:center;background-image:linear-gradient(135deg,#2b2d3a,#181924)}.bwa-ep__scrim{position:absolute;inset:0;background:linear-gradient(90deg,rgba(0,0,0,.15),transparent 55%),linear-gradient(0deg,rgba(0,0,0,.45),transparent 55%)}.bwa-ep__badge{position:absolute;left:.5em;top:.45em;z-index:2;font-size:.85em;font-weight:800;color:#fff;background:rgba(var(--bwa-rgb),.85);padding:.12em .55em;border-radius:.45em;box-shadow:0 .2em .6em rgba(0,0,0,.4)}.bwa-ep__badge:empty{display:none}.bwa-ep__play{position:absolute;inset:0;z-index:2;display:flex;align-items:center;justify-content:center;color:#fff;opacity:0;transition:opacity .2s;text-shadow:0 2px 10px rgba(0,0,0,.7),0 0 1em var(--bwa-glow)}.bwa-ep.focus .bwa-ep__play{opacity:1}.bwa-ep__prog{position:absolute;left:0;right:0;bottom:0;z-index:2;height:.32em;background:rgba(255,255,255,.16)}.bwa-ep__prog>i{display:block;height:100%;background:linear-gradient(90deg,var(--bwa-accent),var(--bwa-accent2))}.bwa-ep__body{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:.32em}.bwa-ep__top{display:flex;align-items:baseline;gap:1em}.bwa-ep__title{flex:1 1 auto;min-width:0;font-size:1.35em;font-weight:700;color:var(--bwa-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.bwa-ep__time{flex:0 0 auto;font-size:.9em;color:var(--bwa-info)}.bwa-ep__sub{font-size:.9em;color:var(--bwa-info);line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.bwa-ep__mark{position:absolute;right:.5em;top:.45em;z-index:2;width:1.7em;height:1.7em;border-radius:50%;background:#54e08a;color:#0b0d17;display:flex;align-items:center;justify-content:center;font-size:.9em;font-weight:800;box-shadow:0 .2em .6em rgba(0,0,0,.5)}.bwa-ep__mark:empty{display:none}.bwa-ep__resume{flex:0 0 auto;padding:.16em .7em;border-radius:1em;background:var(--bwa-accent);color:#0b0d17;font-size:.72em;font-weight:800;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap;align-self:center}.bwa-ep__resume:empty{display:none}.bwa-ep--watched .bwa-ep__art{opacity:.6}.bwa-ep--watched .bwa-ep__title{color:var(--bwa-info)}.bwa-ep--soon{opacity:.5}.bwa-ep--soon .bwa-ep__play{display:none!important}.bwa-empty{padding:2.8em 1.4em;text-align:center;line-height:1.5}.bwa-empty__main{color:#eceefb;font-size:1.25em;font-weight:700}.bwa-empty__hint{margin-top:.7em;color:#9a9ba7;font-size:1.02em}.bwa-empty__btn{display:inline-block;margin-top:1.5em;padding:.7em 1.7em;border-radius:2em;background:rgba(var(--bwa-rgb),.14);border:1px solid var(--bwa-line);color:var(--bwa-text);font-weight:700;font-size:1.05em}.bwa-empty__btn.focus{background:rgba(var(--bwa-rgb),.2);border-color:transparent;box-shadow:0 0 0 2px var(--bwa-accent),0 0 1.6em var(--bwa-glow)}.bwa-skel{display:flex;align-items:center;gap:1.2em;padding:.6em .75em;margin:.45em .2em;border-radius:1.1em;background:var(--bwa-glass);pointer-events:none}.bwa-skel__art{flex:0 0 auto;width:11em;height:6.2em;border-radius:.8em;background:rgba(255,255,255,.06)}.bwa-skel__l{height:1em;border-radius:.4em;margin:.3em 0;background:rgba(255,255,255,.06)}.bwa-shine{position:relative;overflow:hidden}.bwa-shine:after{content:\"\";position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent,rgba(var(--bwa-rgb),.14),transparent);animation:bwaShine 1.3s infinite}@keyframes bwaShine{100%{transform:translateX(100%)}}.bwa-note{display:flex;align-items:center;gap:.5em;padding:.9em 1em .25em;color:#aeb0c8;font-size:.82em;font-weight:700;text-transform:uppercase;letter-spacing:.09em}.bwa-note::before{content:\"\";width:.35em;height:1em;border-radius:.2em;background:linear-gradient(var(--bwa-accent),var(--bwa-accent2));box-shadow:0 0 .6em var(--bwa-glow)}.bwa-actors{padding:.3em .2em 1.2em;overflow:hidden}.bwa-actors__track{display:flex;gap:1.2em}.bwa-actor{flex:0 0 auto;width:6.4em;text-align:center;border-radius:1em;padding:.4em .2em;transition:transform .2s,background .2s}.bwa-actor.focus{background:rgba(var(--bwa-rgb),.1);transform:translateY(-.25em)}.bwa-actor__ava{width:5em;height:5em;margin:0 auto .55em;border-radius:50%;background-size:cover;background-position:center;background-color:#20222e;box-shadow:0 .4em 1.2em rgba(0,0,0,.5)}.bwa-actor.focus .bwa-actor__ava{box-shadow:0 0 0 .16em var(--bwa-accent),0 0 1.6em var(--bwa-glow)}.bwa-actor__name{font-size:.86em;font-weight:600;color:var(--bwa-text);line-height:1.15;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}.bwa-actor__role{font-size:.78em;color:var(--bwa-info);margin-top:.15em;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}.bwa-info{display:flex;flex-wrap:wrap;gap:1.4em 2.4em;padding:.3em 1em 1.6em}.bwa-info__it{min-width:7em}.bwa-info__k{font-size:.72em;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#7d7f8c}.bwa-info__v{font-size:.98em;color:var(--bwa-text);margin-top:.2em}.view--bwa{display:inline-flex!important;align-items:center;gap:.5em;background:linear-gradient(120deg,var(--bwa-accent),var(--bwa-accent2))!important;border:0!important;color:#fff!important;box-shadow:0 .35em 1em var(--bwa-glow)!important}.view--bwa .bwa-btn__ico{flex:0 0 auto;color:#fff}.view--bwa span,.view--bwa .full-start__button-text{font-weight:800!important;letter-spacing:.08em;color:#fff!important}.view--bwa.focus{box-shadow:0 0 0 .16em #fff,0 0 1.8em var(--bwa-glow)!important;transform:translateY(-.05em) scale(1.02)}@media screen and (max-width:600px){.bwa-ep__art,.bwa-skel__art{width:7.5em;height:4.3em}.bwa-hero{height:12em}.bwa-hero__title{font-size:1.5em}.bwa-ep__title{font-size:1.15em}.bwa-ep__sub{font-size:.85em}\n\n/* ==========================================================================\n   BWA bridge: штатная разметка online4 (.online-prestige*) -> геометрия BWA.\n   Идёт СТРОГО после bwa_style.css: тут точечные перекрытия лампак-стилей,\n   которые грузятся в <body> и иначе перебивают наши правила.\n   ========================================================================== */\n\n/* ---- раскладка активности ---- */\n\n/* Голова фильтра не display:none, а сжата в ноль: обработчики выбора должны жить. */\n.bwa-scope .explorer__files-head {\n  display: block !important;\n  height: 0 !important;\n  min-height: 0 !important;\n  padding: 0 !important;\n  margin: 0 !important;\n  overflow: hidden !important;\n  opacity: 0 !important;\n  pointer-events: none !important;\n}\n\n.bwa-scope .online-prestige-watched { display: none !important; }\n.bwa-scope .torrent-list { padding: 0 .8em 2em !important; }\n\n/* ---- карточка серии ---- */\n\n.bwa-scope .online-prestige--full.bwa-ep {\n  display: flex !important;\n  align-items: center;\n  gap: 1.2em;\n  padding: .6em .75em !important;\n  margin: .45em .2em !important;\n  border-radius: 1.1em !important;\n  background: var(--bwa-glass) !important;\n  border: 1px solid var(--bwa-line) !important;\n  box-shadow: none;\n}\n\n.bwa-scope .online-prestige--full.bwa-ep.focus {\n  background: rgba(var(--bwa-rgb), .1) !important;\n  border-color: transparent !important;\n  transform: scale(1.01);\n  box-shadow: 0 .8em 2.2em rgba(0, 0, 0, .55), 0 0 0 2px var(--bwa-accent), 0 0 2.2em var(--bwa-glow);\n}\n\n.bwa-scope .online-prestige.focus::after { display: none !important; }\n.bwa-scope .online-prestige + .online-prestige { margin-top: .45em !important; border-top: 0 !important; }\n\n/* арт */\n.bwa-scope .bwa-ep .online-prestige__img {\n  position: relative;\n  flex: 0 0 auto;\n  width: 11em !important;\n  height: 6.2em !important;\n  margin: 0 !important;\n  border-radius: .8em !important;\n  overflow: hidden !important;\n  opacity: 1 !important;\n  background: linear-gradient(135deg, #2b2d3a, #181924) !important;\n}\n\n.bwa-scope .bwa-ep .online-prestige__img > img {\n  display: block;\n  width: 100% !important;\n  height: 100% !important;\n  margin: 0 !important;\n  border-radius: 0 !important;\n  object-fit: cover;\n  opacity: 1 !important;\n}\n\n.bwa-scope .bwa-ep .online-prestige__loader { z-index: 2; }\n\n/* номер серии = бейдж S1E1 */\n.bwa-scope .bwa-ep .online-prestige__episode-number {\n  position: absolute !important;\n  left: .5em !important;\n  top: .45em !important;\n  right: auto !important;\n  bottom: auto !important;\n  z-index: 3;\n  padding: .12em .55em !important;\n  border-radius: .45em !important;\n  font-size: .85em !important;\n  font-weight: 800;\n  color: #fff !important;\n  background: rgba(var(--bwa-rgb), .85) !important;\n  box-shadow: 0 .2em .6em rgba(0, 0, 0, .4);\n}\n\n/* отметка «просмотрено» */\n.bwa-scope .bwa-ep .online-prestige__viewed {\n  position: absolute !important;\n  right: .5em !important;\n  top: .45em !important;\n  left: auto !important;\n  bottom: auto !important;\n  z-index: 3;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  width: 1.7em;\n  height: 1.7em;\n  padding: 0 !important;\n  border-radius: 50%;\n  color: #0b0d17 !important;\n  background: #54e08a !important;\n  box-shadow: 0 .2em .6em rgba(0, 0, 0, .5);\n}\n\n.bwa-scope .bwa-ep .online-prestige__viewed > svg { width: 1em; height: 1em; }\n\n/* таймлайн = полоса прогресса на арте */\n.bwa-scope .bwa-ep .online-prestige__timeline {\n  position: absolute !important;\n  left: 0;\n  right: 0;\n  bottom: 0;\n  z-index: 3;\n  height: .32em !important;\n  margin: 0 !important;\n  padding: 0 !important;\n  background: rgba(255, 255, 255, .16);\n}\n\n.bwa-scope .bwa-ep .online-prestige__timeline > .time-line {\n  position: absolute;\n  left: 0;\n  right: 0;\n  top: 0;\n  bottom: 0;\n  height: 100% !important;\n  margin: 0 !important;\n  border-radius: 0 !important;\n  background: transparent !important;\n}\n\n.bwa-scope .bwa-ep .online-prestige__timeline > .time-line > div {\n  height: 100% !important;\n  border-radius: 0 !important;\n  background: linear-gradient(90deg, var(--bwa-accent), var(--bwa-accent2)) !important;\n}\n\n/* тело */\n.bwa-scope .bwa-ep .online-prestige__body {\n  flex: 1 1 auto;\n  min-width: 0;\n  display: flex !important;\n  flex-direction: column;\n  gap: .32em;\n  padding: 0 !important;\n  margin: 0 !important;\n}\n\n.bwa-scope .bwa-ep .online-prestige__head {\n  display: flex !important;\n  align-items: baseline;\n  gap: 1em;\n  margin: 0 !important;\n}\n\n.bwa-scope .bwa-ep .online-prestige__title {\n  flex: 1 1 auto;\n  min-width: 0;\n  margin: 0 !important;\n  font-size: 1.35em !important;\n  font-weight: 700;\n  color: var(--bwa-text) !important;\n  white-space: nowrap;\n  overflow: hidden;\n  text-overflow: ellipsis;\n}\n\n.bwa-scope .bwa-ep .online-prestige__time {\n  flex: 0 0 auto;\n  margin: 0 !important;\n  font-size: .9em !important;\n  color: var(--bwa-info) !important;\n  opacity: 1 !important;\n}\n\n.bwa-scope .bwa-ep .online-prestige__footer {\n  display: flex !important;\n  align-items: center;\n  gap: .8em;\n  margin: 0 !important;\n  font-size: .9em;\n  color: var(--bwa-info);\n}\n\n.bwa-scope .bwa-ep .online-prestige__info {\n  min-width: 0;\n  overflow: hidden;\n  display: -webkit-box;\n  -webkit-line-clamp: 2;\n  -webkit-box-orient: vertical;\n  color: var(--bwa-info) !important;\n  opacity: 1 !important;\n}\n\n.bwa-scope .bwa-ep .online-prestige__quality {\n  flex: 0 0 auto;\n  padding: .16em .52em;\n  border: 0 !important;\n  border-radius: .42em;\n  font-size: .78em;\n  font-weight: 800;\n  color: #fff !important;\n  background: linear-gradient(120deg, var(--bwa-accent), var(--bwa-accent-lt)) !important;\n}\n\n.bwa-scope .bwa-ep .online-prestige__quality:empty { display: none; }\n\n.bwa-scope .bwa-ep .bwa-ep__play {\n  position: absolute;\n  left: 0;\n  right: 0;\n  top: 0;\n  bottom: 0;\n  z-index: 2;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  color: #fff;\n  opacity: 0;\n  transition: opacity .2s;\n  text-shadow: 0 2px 10px rgba(0, 0, 0, .7);\n}\n\n.bwa-scope .bwa-ep.focus .bwa-ep__play { opacity: 1; }\n\n.bwa-scope .bwa-ep .bwa-ep__scrim {\n  position: absolute;\n  left: 0;\n  right: 0;\n  top: 0;\n  bottom: 0;\n  z-index: 1;\n  background: linear-gradient(0deg, rgba(0, 0, 0, .45), transparent 55%);\n}\n\n.bwa-scope .bwa-ep .bwa-ep__resume { margin-left: .2em; }\n\n/* ---- фильм: та же карточка в виде чипса озвучки ---- */\n\n.bwa-scope .online-prestige--full.bwa-as-voice {\n  display: inline-flex !important;\n  width: auto !important;\n  align-items: center;\n  gap: .7em;\n  padding: .7em 1.15em !important;\n  margin: .25em .3em !important;\n  border-radius: 1em !important;\n  vertical-align: middle;\n}\n\n.bwa-scope .bwa-as-voice .online-prestige__img,\n.bwa-scope .bwa-as-voice .bwa-ep__scrim,\n.bwa-scope .bwa-as-voice .bwa-ep__play,\n.bwa-scope .bwa-as-voice .online-prestige__time,\n.bwa-scope .bwa-as-voice .online-prestige__info { display: none !important; }\n\n.bwa-scope .bwa-as-voice .online-prestige__body {\n  flex-direction: row !important;\n  align-items: center;\n  gap: .7em;\n}\n\n.bwa-scope .bwa-as-voice .online-prestige__footer { order: 1; gap: 0; }\n.bwa-scope .bwa-as-voice .online-prestige__head { order: 2; }\n\n.bwa-scope .bwa-as-voice .online-prestige__title {\n  font-size: 1em !important;\n  font-weight: 600;\n  white-space: nowrap;\n}";
+  var BWA_TPL = {
+  "bwa_hero": "<div class=\"bwa-hero selector\" style=\"background-image:url({art})\"><div class=\"bwa-hero__scrim\"></div><div class=\"bwa-hero__content\"><div class=\"bwa-hero__title\">{title}</div><div class=\"bwa-hero__meta\"><span class=\"bwa-hero__q\">{quality}</span><span>{meta}</span></div><div class=\"bwa-hero__chips\">{chips}</div><div class=\"bwa-hero__desc\">{desc}</div><div class=\"bwa-hero__cta\"><span class=\"bwa-play\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\"><path d=\"M6 4l14 8-14 8V4z\" fill=\"currentColor\"/></svg>{playlabel}</span><span class=\"bwa-hero__voice\">{voice}</span></div></div><div class=\"bwa-hero__prog\"><i style=\"width:{progress}%\"></i></div></div>",
+  "bwa_episode": "<div class=\"bwa-ep selector\"><div class=\"bwa-ep__art\" style=\"background-image:url({still})\"><span class=\"bwa-ep__badge\">{num}</span><span class=\"bwa-ep__mark\">{mark}</span><span class=\"bwa-ep__scrim\"></span><span class=\"bwa-ep__play\"><svg width=\"30\" height=\"30\" viewBox=\"0 0 24 24\" fill=\"none\"><path d=\"M6 4l14 8-14 8V4z\" fill=\"currentColor\"/></svg></span><span class=\"bwa-ep__prog\"><i style=\"width:{progress}%\"></i></span></div><div class=\"bwa-ep__body\"><div class=\"bwa-ep__top\"><div class=\"bwa-ep__title\">{title}</div><span class=\"bwa-ep__resume\">{resume}</span><div class=\"bwa-ep__time\">{time}</div></div><div class=\"bwa-ep__sub\">{sub}</div></div></div>",
+  "bwa_voice": "<div class=\"bwa-voice selector\"><span class=\"bwa-voice__q\">{quality}</span><span class=\"bwa-voice__name\">{name}</span></div>",
+  "bwa_season": "<div class=\"bwa-season selector\">{title}</div>",
+  "bwa_actor": "<div class=\"bwa-actor selector\"><div class=\"bwa-actor__ava\" style=\"background-image:url({img})\"></div><div class=\"bwa-actor__name\">{name}</div><div class=\"bwa-actor__role\">{role}</div></div>"
+};
 
-  function addStyle() {
-    try {
-      if (document.getElementById('bwa-skin-style')) return;
-      var style = document.createElement('style');
-      style.id = 'bwa-skin-style';
-      style.textContent = BWA_SKIN;
-      document.head.appendChild(style);
-    } catch (e) {}
-  }
+  /* ---------------------------------------------------------------- utils */
 
-  function addTemplates() {
-    try {
-      if (typeof Lampa === 'undefined' || !Lampa.Template || !Lampa.Template.add) return;
-      Lampa.Template.add("bwa_hero", "<div class=\"bwa-hero selector\" style=\"background-image:url({art})\"><div class=\"bwa-hero__scrim\"></div><div class=\"bwa-hero__content\"><div class=\"bwa-hero__title\">{title}</div><div class=\"bwa-hero__meta\"><span class=\"bwa-hero__q\">{quality}</span><span>{meta}</span></div><div class=\"bwa-hero__chips\">{chips}</div><div class=\"bwa-hero__desc\">{desc}</div><div class=\"bwa-hero__cta\"><span class=\"bwa-play\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\"><path d=\"M6 4l14 8-14 8V4z\" fill=\"currentColor\"/></svg>{playlabel}</span><span class=\"bwa-hero__voice\">{voice}</span></div></div><div class=\"bwa-hero__prog\"><i style=\"width:{progress}%\"></i></div></div>");
-      Lampa.Template.add("bwa_episode", "<div class=\"bwa-ep selector\"><div class=\"bwa-ep__art\" style=\"background-image:url({still})\"><span class=\"bwa-ep__badge\">{num}</span><span class=\"bwa-ep__mark\">{mark}</span><span class=\"bwa-ep__scrim\"></span><span class=\"bwa-ep__play\"><svg width=\"30\" height=\"30\" viewBox=\"0 0 24 24\" fill=\"none\"><path d=\"M6 4l14 8-14 8V4z\" fill=\"currentColor\"/></svg></span><span class=\"bwa-ep__prog\"><i style=\"width:{progress}%\"></i></span></div><div class=\"bwa-ep__body\"><div class=\"bwa-ep__top\"><div class=\"bwa-ep__title\">{title}</div><span class=\"bwa-ep__resume\">{resume}</span><div class=\"bwa-ep__time\">{time}</div></div><div class=\"bwa-ep__sub\">{sub}</div></div></div>");
-      Lampa.Template.add("bwa_voice", "<div class=\"bwa-voice selector\"><span class=\"bwa-voice__q\">{quality}</span><span class=\"bwa-voice__name\">{name}</span></div>");
-      Lampa.Template.add("bwa_season", "<div class=\"bwa-season selector\">{title}</div>");
-      Lampa.Template.add("bwa_actor", "<div class=\"bwa-actor selector\"><div class=\"bwa-actor__ava\" style=\"background-image:url({img})\"></div><div class=\"bwa-actor__name\">{name}</div><div class=\"bwa-actor__role\">{role}</div></div>");
-    } catch (e) {}
-  }
-
-  function skinSelectbox() {
-    try {
-      if (!Lampa.Controller || !Lampa.Controller.listener) return;
-      Lampa.Controller.listener.follow('toggle', function (e) {
-        if (e.name !== 'select') return;
-        setTimeout(function () {
-          try { $('.selectbox').addClass('bwa-skin'); } catch (err) {}
-        }, 10);
-      });
-    } catch (e) {}
-  }
-
-  function install() {
-    addStyle();
-    addTemplates();
-    skinSelectbox();
-  }
-
-  if (window.appready) install();
-  else if (typeof Lampa !== 'undefined' && Lampa.Listener) {
-    Lampa.Listener.follow('app', function (e) {
-      if (e.type === 'ready') install();
+  function esc(value) {
+    return ('' + (value == null ? '' : value)).replace(/[&<>"]/g, function (ch) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch];
     });
-  } else {
-    install();
-  }
-})();
-
-/* ==========================================================================
-   BWA hero layer
-
-   Добавляет над списком большой блок как в BWA: арт, название, мета,
-   чипсы, описание, кнопка и полоса прогресса, а для сериалов — плитки сезонов.
-
-   Работает надстройкой: следит за появлением списка файлов и вставляет блок первым
-   элементом. Логика плагина (поиск, балансеры, плеер) не затрагивается: hero только
-   передаёт фокус на первый реальный элемент, а плитки сезонов жмут штатный
-   фильтр сезона.
-   ========================================================================== */
-(function bwaHeroLayer() {
-  'use strict';
-
-  if (window.__bwa_hero_installed) return;
-  window.__bwa_hero_installed = true;
-
-  function movieOf() {
-    try {
-      var active = Lampa.Activity.active();
-      return (active && active.movie) || {};
-    } catch (e) {
-      return {};
-    }
   }
 
-  function isSerial(movie) {
-    return !!(movie.name || movie.first_air_date || movie.number_of_seasons);
+  function strip(html) {
+    return ('' + (html == null ? '' : html)).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
   }
 
-  function img(path, size) {
+  function digits(value) {
+    var m = ('' + (value == null ? '' : value)).match(/\d+/);
+    return m ? m[0] : '';
+  }
+
+  function image(path, size) {
     if (!path) return '';
     if (/^https?:/.test(path)) return path;
     try {
@@ -2872,6 +2857,10 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
     } catch (e) {
       return '';
     }
+  }
+
+  function heroArt(movie) {
+    return image(movie.backdrop_path || movie.poster_path, 'w1280');
   }
 
   function year(movie) {
@@ -2883,18 +2872,10 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
     if (!mins) return '';
     var h = Math.floor(mins / 60);
     var m = mins % 60;
-    return h ? h + 'ч ' + (m ? m + 'м' : '') : m + 'м';
+    return h ? h + 'ч' + (m ? ' ' + m + 'м' : '') : m + 'м';
   }
 
-  function chips(movie) {
-    var out = [];
-    (movie.genres || []).slice(0, 3).forEach(function (g) {
-      if (g && g.name) out.push('<span class="bwa-chip">' + g.name + '</span>');
-    });
-    return out.join('');
-  }
-
-  function meta(movie) {
+  function meta(movie, serial) {
     var parts = [];
     var y = year(movie);
     if (y) parts.push(y);
@@ -2902,143 +2883,314 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
     if (rate) parts.push(rate.toFixed(1));
     var r = runtime(movie);
     if (r) parts.push(r);
-    if (isSerial(movie) && movie.number_of_seasons) {
-      parts.push(movie.number_of_seasons + ' сез.');
+    if (serial && movie.number_of_seasons) parts.push(movie.number_of_seasons + ' сез.');
+    return esc(parts.join('  ·  '));
+  }
+
+  function chips(movie) {
+    var out = [];
+    (movie.genres || []).slice(0, 3).forEach(function (g) {
+      if (g && g.name) out.push('<span class="bwa-chip">' + esc(g.name) + '</span>');
+    });
+    return out.join('');
+  }
+
+  function description(movie) {
+    return esc(('' + (movie.overview || movie.description || '')).replace(/\s+/g, ' ').trim());
+  }
+
+  function qualityLabel(text) {
+    text = ('' + (text == null ? '' : text)).trim();
+    if (!text) return '';
+    var m = text.match(/\d{3,4}/);
+    if (!m) return text.toUpperCase().slice(0, 12);
+    var n = parseInt(m[0], 10);
+    if (n >= 2160) return '4K';
+    if (n >= 1080) return 'FHD';
+    if (n >= 720) return 'HD';
+    return n + 'p';
+  }
+
+  function itemQuality(item) {
+    if (!item) return '';
+    var raw = item.quality;
+    if (raw && typeof raw === 'object') {
+      var keys = [];
+      for (var k in raw) keys.push(k);
+      raw = keys.length ? keys[0] : '';
     }
-    return parts.join('  ·  ');
+    return qualityLabel(raw || item.info || '');
   }
 
-  /* Качество берём из первого элемента списка: там его уже вычислил балансер. */
-  function qualityFrom(container) {
-    var text = '';
+  function movieProgress(movie) {
     try {
-      text = (container.find('.online-prestige__quality').first().text() || '').trim();
-    } catch (e) {}
-    if (!text) return 'AUTO';
-    var num = (text.match(/\d{3,4}/) || [])[0];
-    if (!num) return text.toUpperCase().slice(0, 12);
-    num = parseInt(num, 10);
-    if (num >= 2160) return '4K';
-    if (num >= 1080) return 'FHD';
-    if (num >= 720) return 'HD';
-    return num + 'p';
-  }
-
-  function progressOf(container) {
-    try {
-      var line = container.find('.online-prestige__timeline .time-line > div').first();
-      if (!line.length) return 0;
-      var w = parseFloat((line.attr('style') || '').replace(/[^0-9.]/g, ''));
-      return isNaN(w) ? 0 : Math.max(0, Math.min(100, w));
+      var hash = Lampa.Utils.hash(movie.original_title || movie.original_name || movie.title || movie.name);
+      var view = Lampa.Timeline.view(hash);
+      var percent = parseFloat(view && view.percent) || 0;
+      return Math.max(0, Math.min(100, percent));
     } catch (e) {
       return 0;
     }
   }
 
-  function buildHero(container, movie) {
-    var desc = ((movie.overview || movie.description || '') + '').replace(/\s+/g, ' ').trim();
-    var progress = progressOf(container);
-    var html = Lampa.Template.get('bwa_hero', {
-      art: img(movie.backdrop_path || movie.poster_path, 'w1280'),
-      quality: qualityFrom(container),
-      title: movie.title || movie.name || '',
-      meta: meta(movie),
-      chips: chips(movie),
-      desc: desc,
-      playlabel: progress > 0 ? 'Продолжить' : 'Смотреть',
-      voice: '',
-      progress: progress
-    });
-
-    /* Enter на hero = Enter на первом реальном элементе списка. */
-    html.on('hover:enter', function () {
-      var first = container.find('.online-prestige:not(.bwa-hero)').first();
-      if (first.length) first.trigger('hover:enter');
-    });
-
-    html.on('hover:focus', function (e) {
-      try {
-        Lampa.Controller.collectionFocus(e.target, container);
-      } catch (err) {}
-    });
-
-    return html;
-  }
-
-  function buildSeasons(movie) {
-    var total = parseInt(movie.number_of_seasons || 0, 10);
-    if (!total || total < 2) return null;
-
-    var wrap = $('<div class="bwa-seasons"></div>');
-    for (var i = 1; i <= total; i++) {
-      (function (num) {
-        var tile = Lampa.Template.get('bwa_season', { title: num });
-        tile.on('hover:enter', function () {
-          /* Штатный фильтр сезона: открываем его, чтобы не дублировать логику выборки. */
-          try {
-            $('.filter--season').trigger('hover:enter');
-          } catch (e) {}
-        });
-        wrap.append(tile);
-      })(i);
-    }
-    return wrap;
-  }
-
-  function alreadyHas(container) {
-    return container.find('.bwa-hero').length > 0;
-  }
-
-  function inject() {
+  function shortDate(value) {
     try {
-      var container = $('.activity--active .scroll__body').first();
-      if (!container.length) return;
-      if (alreadyHas(container)) return;
+      var parsed = Lampa.Utils.parseTime(value);
+      return parsed.short || parsed.full || '';
+    } catch (e) {
+      return '';
+    }
+  }
 
-      /* Ждём, пока появятся реальные карточки: до этого качество и прогресс неизвестны. */
-      if (!container.find('.online-prestige').length) return;
+  /* ------------------------------------------------------------- install */
 
-      var movie = movieOf();
-      if (!movie || (!movie.title && !movie.name)) return;
+  function addStyle() {
+    if (document.getElementById('bwa-view-style')) return;
+    var style = document.createElement('style');
+    style.id = 'bwa-view-style';
+    style.textContent = BWA_CSS;
+    document.head.appendChild(style);
+  }
 
-      var hero = buildHero(container, movie);
-      container.prepend(hero);
+  function addTemplates() {
+    if (typeof Lampa === 'undefined' || !Lampa.Template || !Lampa.Template.add) return;
+    for (var name in BWA_TPL) Lampa.Template.add(name, BWA_TPL[name]);
+  }
 
-      var seasons = buildSeasons(movie);
-      if (seasons) hero.after(seasons);
-
-      /* Пересобираем коллекцию фокуса, иначе пульт не увидит новые элементы. */
-      try {
-        Lampa.Controller.collectionSet($('.activity--active .scroll').first());
-      } catch (e) {}
+  /* Штатный селектбокс Lampa под палитру BWA: тот самый список источников. */
+  function skinSelect() {
+    if (skinSelect.done) return;
+    skinSelect.done = true;
+    try {
+      Lampa.Controller.listener.follow('toggle', function (e) {
+        if (e.name !== 'select') return;
+        setTimeout(function () {
+          try {
+            $('.selectbox').addClass('bwa-skin');
+          } catch (err) {}
+        }, 10);
+      });
     } catch (e) {}
   }
 
-  function watch() {
-    var timer = 0;
+  /* ---------------------------------------------------------------- parts */
 
-    function schedule() {
-      if (timer) clearTimeout(timer);
-      timer = setTimeout(inject, 260);
-    }
-
-    try {
-      Lampa.Listener.follow('activity', function (e) {
-        if (e.type === 'start' || e.type === 'ready') schedule();
-      });
-    } catch (err) {}
-
-    try {
-      Lampa.Controller.listener.follow('toggle', function (e) {
-        if (e.name === 'content') schedule();
-      });
-    } catch (err) {}
+  function bind(element, opt, enter) {
+    element.on('hover:focus', function (e) {
+      if (opt.onFocus) opt.onFocus(e.target);
+    });
+    element.on('hover:enter', function () {
+      try {
+        enter();
+      } catch (e) {}
+    });
+    return element;
   }
 
-  if (window.appready) watch();
-  else if (typeof Lampa !== 'undefined' && Lampa.Listener) {
-    Lampa.Listener.follow('app', function (e) {
-      if (e.type === 'ready') watch();
+  var SELECTORS = { sort: '.filter--sort', filter: '.filter--filter', search: '.filter--search' };
+
+  /* Штатный элемент фильтра дёргаем напрямую: кроме селекта там висит стоп таймера балансера. */
+  function openSelect(opt, type) {
+    try {
+      var node = opt.filter.render().find(SELECTORS[type]);
+      if (node.length) {
+        node.trigger('hover:enter');
+        return;
+      }
+    } catch (e) {}
+    try {
+      if (opt.filter && opt.filter.show && type !== 'search') {
+        opt.filter.show(Lampa.Lang.translate(type === 'sort' ? 'lampac_balanser' : 'title_filter'), type);
+      }
+    } catch (e) {}
+  }
+
+  function searchAvailable(opt) {
+    try {
+      var node = opt.filter.render().find('.filter--search');
+      return node.length && !node.hasClass('hide');
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function pill(opt, key, value, count, type) {
+    var html = $(
+      '<div class="bwa-pill selector">' +
+      '<div class="bwa-pill__k">' + esc(key) + '</div>' +
+      '<div class="bwa-pill__v">' + esc(value) + '</div>' +
+      (count > 1 ? '<div class="bwa-pill__badge">' + count + '</div>' : '') +
+      '</div>'
+    );
+    return bind(html, opt, function () {
+      openSelect(opt, type);
     });
   }
+
+  /* Карточка, на которую уходит Enter с hero: продолжаем с того, что в фокусе. */
+  function pickCard(opt) {
+    var cards = opt.scroll.body().find('.online-prestige--full');
+    if (!cards.length) return null;
+    try {
+      var last = opt.getLast && opt.getLast();
+      if (last) {
+        var node = $(last).closest('.online-prestige--full');
+        if (node.length) return node;
+      }
+    } catch (e) {}
+    return cards.first();
+  }
+
+  function buildHero(opt) {
+    var movie = opt.object.movie || {};
+    var serial = opt.serial;
+    var season = opt.season;
+    var progress = serial ? 0 : movieProgress(movie);
+    var quality = serial ? 'СЕЗОН ' + (season || 1) : itemQuality(opt.items[0]);
+    var voice = serial ? '' : (opt.choice.voice_name || '');
+
+    var html = $(Lampa.Template.get('bwa_hero', {
+      art: heroArt(movie),
+      quality: esc(quality || 'AUTO'),
+      title: esc(movie.title || movie.name || ''),
+      meta: meta(movie, serial),
+      chips: chips(movie),
+      desc: description(movie),
+      playlabel: progress > 0 ? 'Продолжить' : 'Смотреть',
+      voice: esc(voice),
+      progress: progress
+    }));
+
+    return bind(html, opt, function () {
+      var card = pickCard(opt);
+      if (card && card.length) card.trigger('hover:enter');
+    });
+  }
+
+  function buildPills(opt) {
+    var row = $('<div class="bwa-pills"></div>');
+    var sources = opt.sources || {};
+    var voices = (opt.filter_find && opt.filter_find.voice) || [];
+    var seasons = (opt.filter_find && opt.filter_find.season) || [];
+
+    if (opt.balanser && sources[opt.balanser]) {
+      var count = 0;
+      for (var s in sources) count++;
+      row.append(pill(opt, 'Источник', sources[opt.balanser].name || opt.balanser, count, 'sort'));
+    }
+
+    if (voices.length) {
+      var current = opt.choice.voice_name ||
+        (voices[opt.choice.voice] && voices[opt.choice.voice].title) ||
+        voices[0].title;
+      row.append(pill(opt, 'Озвучка', current, voices.length, 'filter'));
+    }
+
+    if (opt.serial && seasons.length) {
+      var title = seasons[opt.choice.season] ? seasons[opt.choice.season].title : 'Сезон ' + (opt.season || 1);
+      row.append(pill(opt, 'Сезон', title, seasons.length, 'filter'));
+    }
+
+    /* Название для балансера можно уточнить вручную — штатная голова фильтра скрыта. */
+    if (searchAvailable(opt)) row.append(pill(opt, 'Поиск', 'Уточнить', 0, 'search'));
+
+    return row.children().length ? row : null;
+  }
+
+  function buildSeasons(opt) {
+    var seasons = (opt.filter_find && opt.filter_find.season) || [];
+    if (!opt.serial || seasons.length < 2) return null;
+
+    var selected = parseInt(opt.choice.season, 10) || 0;
+    var row = $('<div class="bwa-seasons"></div>');
+
+    seasons.forEach(function (item, index) {
+      var tile = $(Lampa.Template.get('bwa_season', { title: digits(item.title) || index + 1 }));
+      if (index === selected) tile.addClass('is-sel');
+      bind(tile, opt, function () {
+        if (index === selected) return;
+        /* Штатный путь смены сезона: тот же, что у фильтра в online4. */
+        var choice = opt.component.getChoice();
+        choice.season = index;
+        opt.component.saveChoice(choice);
+        opt.component.reset();
+        opt.component.request(item.url);
+      });
+      row.append(tile);
+    });
+
+    return row;
+  }
+
+  /* ------------------------------------------------------------------ api */
+
+  var api = {
+    install: function () {
+      try {
+        addStyle();
+        addTemplates();
+        skinSelect();
+      } catch (e) {}
+    },
+
+    scope: function (render) {
+      try {
+        $(render).addClass('bwa-scope');
+      } catch (e) {}
+    },
+
+    episodeBadge: function (season, episode) {
+      if (!episode) return '';
+      if (season) return 'S' + season + 'E' + episode;
+      return (episode < 10 ? '0' : '') + episode;
+    },
+
+    /* Шапка: hero + пилюли + сезоны. Зовётся из draw до отрисовки файлов. */
+    head: function (opt) {
+      try {
+        if (!opt.items || !opt.items.length) return;
+        opt.choice = opt.choice || {};
+        opt.season = opt.serial && opt.items[0] ? opt.items[0].season : 0;
+
+        opt.scroll.append(buildHero(opt));
+
+        var pills = buildPills(opt);
+        if (pills) opt.scroll.append(pills);
+
+        var seasons = buildSeasons(opt);
+        if (seasons) {
+          opt.scroll.append($('<div class="bwa-note"></div>').text('Сезоны'));
+          opt.scroll.append(seasons);
+        }
+
+        opt.scroll.append($('<div class="bwa-note"></div>').text(opt.serial ? 'Серии' : 'Озвучка'));
+      } catch (e) {}
+    },
+
+    /* Штатная карточка -> вид BWA. Разметку и обработчики online4 не трогаем. */
+    decorateCard: function (html, element, episode, serial) {
+      try {
+        if (!serial) {
+          html.addClass('bwa-as-voice');
+          return;
+        }
+
+        var sub = [];
+        if (episode) {
+          var date = shortDate(episode.air_date);
+          if (date) sub.push(date);
+          var overview = ('' + (episode.overview || '')).replace(/\s+/g, ' ').trim();
+          if (overview) sub.push(overview);
+        }
+        if (!sub.length && element.info) sub.push(strip(element.info));
+        html.find('.online-prestige__info').html(esc(sub.join(' • ')));
+
+        var percent = (element.timeline && parseFloat(element.timeline.percent)) || 0;
+        if (percent >= 90) html.addClass('bwa-ep--watched');
+        else if (percent > 1) html.find('.bwa-ep__top').append('<span class="bwa-ep__resume">Продолжить</span>');
+      } catch (e) {}
+    }
+  };
+
+  window.BWA_VIEW = api;
 })();
