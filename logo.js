@@ -1,7 +1,7 @@
 (function () {
     'use strict';
 
-    var Lampa.TMDB.api = "apitmdb.cubnotrip.top";
+    var Lampa.TMDB = "apitmdb.cubnotrip.top";
 
     Lampa.SettingsApi.addParam({
         component: "interface",
@@ -51,7 +51,7 @@
             var lang = Lampa.Storage.get("language");
             var size = Lampa.Storage.get("logo_size", "w500");
 
-            var url = Lampa.TMDB.api(type + "/" + movie.id + "/images?api_key=" + Lampa.TMDB.key() + "&include_image_language=" + lang + ",en,null");
+            var url = Lampa.TMDB(type + "/" + movie.id + "/images?api_key=" + Lampa.TMDB.key() + "&include_image_language=" + lang + ",en,null");
 
             $.get(url, function (response) {
                 var logo_path = null;
