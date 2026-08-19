@@ -201,7 +201,11 @@
     add('localhost');
 
     var manual = '' + get('nova_ck_subnet', 'auto');
-    if (manual !== 'auto') near.push(manual);
+
+    if (manual !== 'auto') {
+      range(manual);
+      return jobs;
+    }
 
     hintList.forEach(function (ip) {
       add(ip);
@@ -242,7 +246,7 @@
   }
 
   function probe(job, timeout, aborts, done) {
-    var url = 'http://' + job.ip + ':' + job.port + '/echo';
+    var url = 'http://' + job.ip + ':' + job.port + '/';
     var over = false;
     var timer = null;
 
@@ -321,26 +325,29 @@
       done(text || '');
     }
 
+    function bySettings() {
+      fetch(url + '/settings', {
+        method: 'POST',
+        cache: 'no-store',
+        body: JSON.stringify({ action: 'get' })
+      }).then(function (res) {
+        return res.json();
+      }).then(function (json) {
+        finish(json && typeof json.CacheSize !== 'undefined' ? 'TorrServer' : '');
+      })['catch'](function () {
+        finish('');
+      });
+    }
+
     fetch(url + '/echo', { method: 'GET', cache: 'no-store' })
       .then(function (res) {
         return res.text();
       })
       .then(function (text) {
-        var clean = ('' + text).replace(/\s+/g, ' ').trim().slice(0, 40);
-        finish(clean ? 'TorrServer ' + clean : 'TorrServer');
-      })['catch'](function () {
-        fetch(url + '/settings', {
-          method: 'POST',
-          cache: 'no-store',
-          body: JSON.stringify({ action: 'get' })
-        }).then(function (res) {
-          return res.json();
-        }).then(function (json) {
-          finish(json && typeof json.CacheSize !== 'undefined' ? 'TorrServer' : '');
-        })['catch'](function () {
-          finish('');
-        });
-      });
+        var clean = ('' + text).replace(/\s+/g, ' ').trim();
+        if (!clean || clean.length > 40 || clean.indexOf('<') !== -1) return bySettings();
+        finish('TorrServer ' + clean);
+      })['catch'](bySettings);
   }
 
   function current() {
