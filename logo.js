@@ -49,7 +49,7 @@
 
             var lang = Lampa.Storage.get("language");
             var size = Lampa.Storage.get("logo_size", "w500");
-            var Lampa.TMDB.api = "apitmdb.cubnotrip.top";
+
             var url = Lampa.TMDB.api(type + "/" + movie.id + "/images?api_key=" + Lampa.TMDB.key() + "&include_image_language=" + lang + ",en,null");
 
             $.get(url, function (response) {
