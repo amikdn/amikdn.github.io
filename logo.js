@@ -1,8 +1,6 @@
 (function () {
     'use strict';
 
-    var LampaTMDB = "apitmdb.cubnotrip.top";
-
     Lampa.SettingsApi.addParam({
         component: "interface",
         param: { name: "logo_glav", type: "select", values: { 1: "Скрыть", 0: "Отображать" }, default: "0" },
@@ -50,8 +48,8 @@
 
             var lang = Lampa.Storage.get("language");
             var size = Lampa.Storage.get("logo_size", "w500");
-
-            var url = LampaTMDB(type + "/" + movie.id + "/images?api_key=" + Lampa.TMDB.key() + "&include_image_language=" + lang + ",en,null");
+            var LampaLogo = "apitmdb.cubnotrip.top";
+            var url = LampaLogo(type + "/" + movie.id + "/images?api_key=" + Lampa.TMDB.key() + "&include_image_language=" + lang + ",en,null");
 
             $.get(url, function (response) {
                 var logo_path = null;
