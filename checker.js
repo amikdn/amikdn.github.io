@@ -165,20 +165,32 @@
 
     try {
       pc = new RTC({ iceServers: [] });
+
       pc.onicecandidate = function (e) {
-        if (!e || !e.candidate) return finish();
+        if (!e || !e.candidate) return;
         collect(e.candidate.candidate);
       };
+
       if (pc.createDataChannel) pc.createDataChannel('nova');
-      pc.createOffer().then(function (offer) {
+
+      var offered = pc.createOffer(function (offer) {
         collect(offer.sdp);
-        return pc.setLocalDescription(offer);
-      })['catch'](function () {});
+        try {
+          pc.setLocalDescription(offer, function () {}, function () {});
+        } catch (err) {}
+      }, function () {});
+
+      if (offered && offered.then) {
+        offered.then(function (offer) {
+          collect(offer.sdp);
+          return pc.setLocalDescription(offer);
+        })['catch'](function () {});
+      }
     } catch (e) {
       return finish();
     }
 
-    setTimeout(finish, 1500);
+    setTimeout(finish, 2000);
   }
 
   function hints(done) {
@@ -234,13 +246,16 @@
       if (net && near.indexOf(net) === -1) near.push(net);
     });
 
-    if (!near.length) near.push('192.168.1', '192.168.0');
+    var known = near.length > 0;
+    if (!known) near.push('192.168.1', '192.168.0');
+
+    near.forEach(range);
+
+    if (known && !deep) return jobs;
 
     COMMON.forEach(function (net) {
       if (near.indexOf(net) === -1) rest.push(net);
     });
-
-    near.forEach(range);
 
     rest.forEach(function (net) {
       if (deep) range(net);
@@ -266,32 +281,66 @@
     run = null;
   }
 
-  function viaNative(url, timeout, done) {
-    var net = null;
+  function echoText(data) {
+    if (typeof data === 'string') return data;
+    if (!data) return '';
+    if (typeof data.message === 'string') return data.message;
+    if (data.body != null) return '' + data.body;
+    try {
+      return JSON.stringify(data);
+    } catch (e) {
+      return '';
+    }
+  }
+
+  function label(text) {
+    var hit = ('' + text).match(/MatriX[^\s"<]*/i);
+    if (hit) return 'TorrServer ' + hit[0];
+
+    var clean = ('' + text).replace(/\s+/g, ' ').trim();
+    if (clean && clean.length <= 40 && clean.indexOf('<') === -1) return 'TorrServer ' + clean;
+
+    return '';
+  }
+
+  function viaLampa(job, timeout, aborts, done) {
+    var url = 'http://' + job.ip + ':' + job.port + '/echo';
     var over = false;
     var timer = null;
+    var net = null;
 
-    function finish(open) {
+    function finish(open, version) {
       if (over) return;
       over = true;
       clearTimeout(timer);
       try {
         if (net) net.clear();
       } catch (e) {}
-      done(open);
+      done(open, version || '');
     }
 
     timer = setTimeout(function () {
       finish(false);
-    }, timeout + 600);
+    }, timeout + 700);
 
     try {
       net = new Lampa.Reguest();
       net.timeout(timeout);
-      net.native(url, function () {
-        finish(true);
+      aborts.push({
+        abort: function () {
+          try {
+            net.clear();
+          } catch (e) {}
+        }
+      });
+
+      net.silent(url, function (data) {
+        var found = label(echoText(data));
+        finish(!!found, found);
       }, function (a) {
-        finish(!!(a && a.status));
+        if (a && a.status === 401) return finish(true, 'TorrServer (пароль)');
+        if (a && a.status > 0 && a.status < 500) return finish(true, '');
+        finish(false);
       }, false, { dataType: 'text' });
     } catch (e) {
       finish(false);
@@ -299,18 +348,18 @@
   }
 
   function probe(job, timeout, aborts, done) {
-    var url = 'http://' + job.ip + ':' + job.port + '/';
+    if (window.Lampa && Lampa.Reguest) return viaLampa(job, timeout, aborts, done);
+
+    var url = 'http://' + job.ip + ':' + job.port + '/echo';
     var over = false;
     var timer = null;
 
-    function finish(open) {
+    function finish(open, version) {
       if (over) return;
       over = true;
       clearTimeout(timer);
-      done(open);
+      done(open, version || '');
     }
-
-    if (android()) return viaNative(url, timeout, done);
 
     if (window.fetch && window.AbortController) {
       var ctrl = new AbortController();
@@ -323,16 +372,16 @@
         finish(false);
       }, timeout);
 
-      fetch(url, {
-        method: 'GET',
-        mode: 'no-cors',
-        cache: 'no-store',
-        signal: ctrl.signal
-      }).then(function () {
-        finish(true);
-      })['catch'](function () {
-        finish(false);
-      });
+      fetch(url, { method: 'GET', cache: 'no-store' })
+        .then(function (res) {
+          return res.text();
+        })
+        .then(function (text) {
+          var found = label(text);
+          finish(!!found, found);
+        })['catch'](function () {
+          finish(false);
+        });
 
       return;
     }
@@ -347,7 +396,8 @@
     }, timeout);
 
     xhr.onload = function () {
-      finish(true);
+      var found = label(xhr.responseText);
+      finish(!!found || xhr.status === 401, found);
     };
     xhr.onerror = function () {
       finish(false);
@@ -359,92 +409,6 @@
     } catch (e) {
       finish(false);
     }
-  }
-
-  function torrText(text) {
-    var clean = ('' + (text == null ? '' : text)).replace(/\s+/g, ' ').trim();
-    if (!clean) return '';
-    if (clean.length > 40 || clean.indexOf('<') !== -1) return '';
-    return 'TorrServer ' + clean;
-  }
-
-  function verify(job, done) {
-    var url = 'http://' + job.ip + ':' + job.port;
-
-    if (android()) {
-      var net = null;
-      var closed = false;
-
-      var guard = setTimeout(function () {
-        if (closed) return;
-        closed = true;
-        done('');
-      }, 3000);
-
-      try {
-        net = new Lampa.Reguest();
-        net.timeout(2500);
-        net.native(url + '/echo', function (data) {
-          if (closed) return;
-          closed = true;
-          clearTimeout(guard);
-          done(torrText(data) || 'TorrServer');
-        }, function () {
-          if (closed) return;
-          closed = true;
-          clearTimeout(guard);
-          done('');
-        }, false, { dataType: 'text' });
-      } catch (e) {
-        if (!closed) {
-          closed = true;
-          clearTimeout(guard);
-          done('');
-        }
-      }
-      return;
-    }
-
-    if (!window.fetch || walled()) return done('');
-
-    var over = false;
-
-    var timer = setTimeout(function () {
-      if (over) return;
-      over = true;
-      done('');
-    }, 3000);
-
-    function finish(text) {
-      if (over) return;
-      over = true;
-      clearTimeout(timer);
-      done(text || '');
-    }
-
-    function bySettings() {
-      fetch(url + '/settings', {
-        method: 'POST',
-        cache: 'no-store',
-        body: JSON.stringify({ action: 'get' })
-      }).then(function (res) {
-        return res.json();
-      }).then(function (json) {
-        finish(json && typeof json.CacheSize !== 'undefined' ? 'TorrServer' : '');
-      })['catch'](function () {
-        finish('');
-      });
-    }
-
-    fetch(url + '/echo', { method: 'GET', cache: 'no-store' })
-      .then(function (res) {
-        return res.text();
-      })
-      .then(function (text) {
-        var label = torrText(text);
-        if (!label) return bySettings();
-        finish(label);
-      })['catch'](bySettings);
   }
 
   function current() {
@@ -493,33 +457,28 @@
       var active = 0;
 
       state.total = jobs.length;
+      state.subnet = hintList.length ? subnetOf(hintList[0]) + '.*' : '';
+      ui.net(state);
       ui.progress(state);
 
       if (!jobs.length) return ui.finish(state);
 
-      function hit(job) {
+      function hit(job, version) {
         var key = job.ip + ':' + job.port;
 
         for (var i = 0; i < state.found.length; i++) {
           if (state.found[i].key === key) return;
         }
 
-        var item = { key: key, ip: job.ip, port: job.port, version: '' };
+        var item = { key: key, ip: job.ip, port: job.port, version: version || '' };
         state.found.push(item);
         ui.found(item);
 
-        verify(job, function (version) {
-          if (state.cancelled) return;
-
-          item.version = version;
+        if (!state.applied && get('nova_ck_auto', true) === true) {
+          state.applied = true;
+          apply(item, true);
           ui.update(item);
-
-          if (version && !state.applied && get('nova_ck_auto', true) === true) {
-            state.applied = true;
-            apply(item, true);
-            ui.update(item);
-          }
-        });
+        }
       }
 
       function next() {
@@ -527,13 +486,13 @@
           active++;
 
           (function (job, started) {
-            probe(job, timeout, state.aborts, function (open) {
+            probe(job, timeout, state.aborts, function (open, version) {
               if (state.cancelled) return;
 
               active--;
               state.done++;
 
-              if (open) hit(job);
+              if (open) hit(job, version);
               else if (Date.now() - started < 25) state.instant++;
 
               ui.progress(state);
@@ -571,12 +530,11 @@
     var mine = now && hostOf(now) === item.ip;
     var tag = node.find('.nova-ck__tag');
 
-    node.find('.nova-ck__ver').text(item.version || 'порт открыт, ответа TorrServer нет');
+    node.find('.nova-ck__ver').text(item.version || 'ответил, версия неизвестна');
     tag.removeClass('nova-ck__tag--live nova-ck__tag--now');
 
     if (mine) tag.text('выбран').addClass('nova-ck__tag--now');
-    else if (item.version) tag.text('готов').addClass('nova-ck__tag--live');
-    else tag.text('?');
+    else tag.text('готов').addClass('nova-ck__tag--live');
   }
 
   function diagnose(state) {
@@ -584,8 +542,8 @@
 
     var blocked = state.total > 20 && state.instant > state.total * 0.8;
 
-    if (walled() && blocked) {
-      return 'Браузер блокирует запросы из сети в вашу локальную сеть (в консоли это видно как CORS error). Сам сервер тут ни при чём: Лампа открыта с адреса ' + window.location.host + ', и из такой страницы браузер вообще не даёт обращаться к 192.168.*. Локальный TorrServer там не заработает даже если вписать адрес вручную. Нужно открывать Лампу с локального адреса или из приложения (Android, Tizen, webOS): там ограничения нет.';
+    if (blocked && walled()) {
+      return 'Ни один адрес не ответил (в консоли CORS error). Если сервер точно жив, разрешите CORS в настройках TorrServer либо откройте Лампу с локального адреса или из приложения. Адрес можно ввести вручную кнопкой ниже.';
     }
 
     if (window.location.protocol === 'https:') {
@@ -665,9 +623,16 @@
         card.find('.nova-ck__state').text(deep ? 'Глубокий поиск…' : 'Ищу TorrServer…');
         card.find('.nova-ck__sub').text('Определяю вашу сеть');
         card.find('.nova-ck__bar').removeClass('is-idle').find('i').css('width', '0%');
-        hint.text(walled() ? 'Лампа открыта с внешнего адреса, браузер может не пустить запросы в локальную сеть.' : '');
+        hint.text('');
         list.empty().append(empty);
+        note.text('Сеть: определяю…');
         nodes = {};
+      },
+
+      net: function (state) {
+        var manual = '' + get('nova_ck_subnet', 'auto');
+        var where = manual !== 'auto' ? manual + '.*' : (state.subnet || 'типовые подсети');
+        note.text('Сеть: ' + where);
       },
 
       progress: function (state) {
