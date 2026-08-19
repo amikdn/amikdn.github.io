@@ -22,6 +22,7 @@
     if (window.logoplugin) return;
     window.logoplugin = true;
 
+    // Мгновенное применение изменений настроек
     Lampa.Storage.listener.follow('change', function (e) {
         if (['logo_glav', 'logo_size', 'logo_hide_year'].includes(e.param)) {
             var activity = Lampa.Activity.active();
@@ -48,13 +49,14 @@
 
             var lang = Lampa.Storage.get("language");
             var size = Lampa.Storage.get("logo_size", "w500");
-            var LampaLogo = "apitmdb.cubnotrip.top";
-            var url = LampaLogo(type + "/" + movie.id + "/images?api_key=" + Lampa.TMDB.key() + "&include_image_language=" + lang + ",en,null");
+            var Lampa.TMDB.api = "apitmdb.cubnotrip.top";
+            var url = Lampa.TMDB.api(type + "/" + movie.id + "/images?api_key=" + Lampa.TMDB.key() + "&include_image_language=" + lang + ",en,null");
 
             $.get(url, function (response) {
                 var logo_path = null;
 
                 if (response.logos && response.logos.length > 0) {
+                    // Приоритет: язык приложения → английский → любой
                     for (var i = 0; i < response.logos.length; i++) {
                         if (response.logos[i].iso_639_1 == lang) {
                             logo_path = response.logos[i].file_path;
@@ -77,10 +79,13 @@
                 if (logo_path) {
                     var logo_url = Lampa.TMDB.image("/t/p/" + (size === "original" ? "original" : size) + logo_path.replace(".svg", ".png"));
 
+                    // Замена названия на логотип
                     title.html('<img style="margin-top:5px; max-height:125px;" src="' + logo_url + '"/>');
 
+                    // Удаление теглайна
                     tagline.remove();
 
+                    // Перенос года и страны под логотип (если включено)
                     if (Lampa.Storage.get("logo_hide_year", true)) {
                         if (head.length && details.length && details.find(".logo-moved-head").length === 0) {
                             var head_html = head.html().trim();
