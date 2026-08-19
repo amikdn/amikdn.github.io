@@ -1,6 +1,8 @@
 (function () {
     'use strict';
 
+    var Lampa.TMDB.api = "apitmdb.cubnotrip.top";
+
     Lampa.SettingsApi.addParam({
         component: "interface",
         param: { name: "logo_glav", type: "select", values: { 1: "Скрыть", 0: "Отображать" }, default: "0" },
