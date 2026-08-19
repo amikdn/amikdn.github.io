@@ -78,6 +78,27 @@
     }
   }
 
+  function android() {
+    try {
+      return Lampa.Platform.is('android') && typeof AndroidJS !== 'undefined' && !!Lampa.Reguest;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function localOrigin() {
+    var host = '' + window.location.hostname;
+
+    if (window.location.protocol === 'file:') return true;
+    if (!host || host === 'localhost' || host === '127.0.0.1') return true;
+
+    return privateIp(host);
+  }
+
+  function walled() {
+    return !android() && (!localOrigin() || window.location.protocol === 'https:');
+  }
+
   function ports() {
     var raw = ('' + get('nova_ck_port', PORT_DEFAULT)).replace(/\s+/g, '');
     var out = [];
@@ -245,6 +266,38 @@
     run = null;
   }
 
+  function viaNative(url, timeout, done) {
+    var net = null;
+    var over = false;
+    var timer = null;
+
+    function finish(open) {
+      if (over) return;
+      over = true;
+      clearTimeout(timer);
+      try {
+        if (net) net.clear();
+      } catch (e) {}
+      done(open);
+    }
+
+    timer = setTimeout(function () {
+      finish(false);
+    }, timeout + 600);
+
+    try {
+      net = new Lampa.Reguest();
+      net.timeout(timeout);
+      net.native(url, function () {
+        finish(true);
+      }, function (a) {
+        finish(!!(a && a.status));
+      }, false, { dataType: 'text' });
+    } catch (e) {
+      finish(false);
+    }
+  }
+
   function probe(job, timeout, aborts, done) {
     var url = 'http://' + job.ip + ':' + job.port + '/';
     var over = false;
@@ -256,6 +309,8 @@
       clearTimeout(timer);
       done(open);
     }
+
+    if (android()) return viaNative(url, timeout, done);
 
     if (window.fetch && window.AbortController) {
       var ctrl = new AbortController();
@@ -306,10 +361,52 @@
     }
   }
 
-  function verify(job, done) {
-    if (!window.fetch) return done('');
+  function torrText(text) {
+    var clean = ('' + (text == null ? '' : text)).replace(/\s+/g, ' ').trim();
+    if (!clean) return '';
+    if (clean.length > 40 || clean.indexOf('<') !== -1) return '';
+    return 'TorrServer ' + clean;
+  }
 
+  function verify(job, done) {
     var url = 'http://' + job.ip + ':' + job.port;
+
+    if (android()) {
+      var net = null;
+      var closed = false;
+
+      var guard = setTimeout(function () {
+        if (closed) return;
+        closed = true;
+        done('');
+      }, 3000);
+
+      try {
+        net = new Lampa.Reguest();
+        net.timeout(2500);
+        net.native(url + '/echo', function (data) {
+          if (closed) return;
+          closed = true;
+          clearTimeout(guard);
+          done(torrText(data) || 'TorrServer');
+        }, function () {
+          if (closed) return;
+          closed = true;
+          clearTimeout(guard);
+          done('');
+        }, false, { dataType: 'text' });
+      } catch (e) {
+        if (!closed) {
+          closed = true;
+          clearTimeout(guard);
+          done('');
+        }
+      }
+      return;
+    }
+
+    if (!window.fetch || walled()) return done('');
+
     var over = false;
 
     var timer = setTimeout(function () {
@@ -344,9 +441,9 @@
         return res.text();
       })
       .then(function (text) {
-        var clean = ('' + text).replace(/\s+/g, ' ').trim();
-        if (!clean || clean.length > 40 || clean.indexOf('<') !== -1) return bySettings();
-        finish('TorrServer ' + clean);
+        var label = torrText(text);
+        if (!label) return bySettings();
+        finish(label);
       })['catch'](bySettings);
   }
 
@@ -483,21 +580,47 @@
   }
 
   function diagnose(state) {
-    var out = [];
+    if (state.found.length) return '';
+
+    var blocked = state.total > 20 && state.instant > state.total * 0.8;
+
+    if (walled() && blocked) {
+      return 'Браузер блокирует запросы из сети в вашу локальную сеть (в консоли это видно как CORS error). Сам сервер тут ни при чём: Лампа открыта с адреса ' + window.location.host + ', и из такой страницы браузер вообще не даёт обращаться к 192.168.*. Локальный TorrServer там не заработает даже если вписать адрес вручную. Нужно открывать Лампу с локального адреса или из приложения (Android, Tizen, webOS): там ограничения нет.';
+    }
 
     if (window.location.protocol === 'https:') {
-      out.push('Лампа открыта по https, а локальный сервер работает по http: браузер блокирует такие запросы. Откройте Лампу по http.');
+      return 'Лампа открыта по https, а TorrServer работает по http: браузер режет такие запросы. Откройте Лампу по http.';
     }
 
-    if (!state.found.length && state.total > 20 && state.instant > state.total * 0.9) {
-      out.push('Все запросы к локальной сети отбиты мгновенно: видимо, браузер не пускает сайт из интернета в вашу сеть. Откройте Лампу с локального адреса или через приложение.');
+    return 'Проверьте, что TorrServer запущен и слушает порт ' + ports().join(', ') + '. Если подсеть нестандартная, задайте её в настройках или укажите адрес вручную.';
+  }
+
+  function manual(after) {
+    var start = current().replace(/^https?:\/\//, '');
+
+    function save(value) {
+      var text = ('' + (value == null ? '' : value)).replace(/\s+/g, '').replace(/^https?:\/\//, '').replace(/\/+$/, '');
+      if (!text) return;
+
+      var host = text.split(':')[0];
+      var port = text.split(':')[1] || ports()[0];
+
+      apply({ ip: host, port: port });
+      if (after) after();
     }
 
-    if (!state.found.length && !out.length) {
-      out.push('Проверьте, что TorrServer запущен и слушает порт ' + ports().join(', ') + '. Если подсеть нестандартная, запустите глубокий поиск.');
+    try {
+      Lampa.Input.edit({
+        value: start,
+        nomic: true,
+        free: true
+      }, save);
+    } catch (e) {
+      try {
+        var typed = window.prompt('Адрес TorrServer', start || '192.168.1.1:8090');
+        if (typed) save(typed);
+      } catch (err) {}
     }
-
-    return out.join(' ');
   }
 
   function open() {
@@ -542,7 +665,7 @@
         card.find('.nova-ck__state').text(deep ? 'Глубокий поиск…' : 'Ищу TorrServer…');
         card.find('.nova-ck__sub').text('Определяю вашу сеть');
         card.find('.nova-ck__bar').removeClass('is-idle').find('i').css('width', '0%');
-        hint.text('');
+        hint.text(walled() ? 'Лампа открыта с внешнего адреса, браузер может не пустить запросы в локальную сеть.' : '');
         list.empty().append(empty);
         nodes = {};
       },
@@ -614,6 +737,12 @@
           name: 'Глубокий поиск',
           onSelect: function () {
             scan(true, ui);
+          }
+        },
+        {
+          name: 'Ввести адрес',
+          onSelect: function () {
+            manual(back);
           }
         }
       ],
