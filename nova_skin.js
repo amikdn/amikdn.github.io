@@ -4,52 +4,101 @@
   if (window.nova_skin) return;
   window.nova_skin = true;
 
-  var STORAGE_KEY = 'nova_skin_enabled';
+  var ENABLED_KEY = 'nova_skin_enabled';
+  var JUMP_FROM = 20;
+  var SEEN_PERCENT = 90;
+
   var filters = [];
+  var scrolls = [];
 
   function get(key, def) {
     try { return Lampa.Storage.get(key, def); } catch (e) { return def; }
   }
 
-  function enabled() { return get(STORAGE_KEY, true) !== false; }
+  function cached(key, size, def) {
+    try { return Lampa.Storage.cache(key, size, def); } catch (e) { return def; }
+  }
+
+  function save(key, value) {
+    try { Lampa.Storage.set(key, value); } catch (e) {}
+  }
+
+  function enabled() { return get(ENABLED_KEY, true) !== false; }
   function heroEnabled() { return get('nova_skin_hero', true) !== false; }
   function artEnabled() { return get('nova_skin_hero_art', true) !== false; }
   function viewMode() { return get('nova_skin_view', 'list'); }
   function preferredQuality() { return get('nova_skin_quality', 'auto'); }
 
+  var OWN = {
+    nova_skin_watch: 'Смотреть',
+    nova_skin_continue: 'Продолжить',
+    nova_skin_from_start: 'Смотреть с начала',
+    nova_skin_next_episode: 'Следующая серия',
+    nova_skin_first_new: 'Первая непросмотренная',
+    nova_skin_source: 'Источник',
+    nova_skin_season: 'Сезон',
+    nova_skin_voice: 'Перевод',
+    nova_skin_jump: 'Серии',
+    nova_skin_jump_pick: 'Выбрать серию',
+    nova_skin_view: 'Вид',
+    nova_skin_view_list: 'Список',
+    nova_skin_view_grid: 'Плитка',
+    nova_skin_clarify: 'Уточнить поиск',
+    nova_skin_more_sources: 'Ещё {count}',
+    nova_skin_season_progress: 'Просмотрено {seen} из {total}',
+    nova_skin_season_left: 'осталось {left}',
+    nova_skin_left: 'осталось',
+    nova_skin_loading_title: 'Ищем, где посмотреть',
+    nova_skin_loading_start: 'Опрашиваем источники',
+    nova_skin_sec: ' с',
+    nova_skin_episode: 'Серия',
+    nova_skin_action: 'Действие',
+    nova_skin_unknown: 'Неизвестно',
+    nova_skin_voice_dub: 'Дубляж',
+    nova_skin_voice_mvo: 'Многоголосый',
+    nova_skin_voice_dvo: 'Двухголосый',
+    nova_skin_voice_avo: 'Авторский',
+    nova_skin_voice_orig: 'Оригинал',
+    nova_skin_voice_sub: 'Субтитры',
+    nova_skin_voice_other: 'Другое'
+  };
+
   try {
-    Lampa.Lang.add({
-      nova_skin_watch: { ru: 'Смотреть', en: 'Watch', uk: 'Дивитися' },
-      nova_skin_continue: { ru: 'Продолжить', en: 'Continue', uk: 'Продовжити' },
-      nova_skin_next: { ru: 'Следующая серия', en: 'Next episode', uk: 'Наступна серія' },
-      nova_skin_source: { ru: 'Источник', en: 'Source', uk: 'Джерело' },
-      nova_skin_progress: { ru: 'Просмотрено {seen} из {total}', en: 'Watched {seen} of {total}', uk: 'Проглянуто {seen} з {total}' },
-      nova_skin_left: { ru: 'осталось {left}', en: '{left} left', uk: 'залишилось {left}' },
-      nova_skin_clarify: { ru: 'Уточнить поиск', en: 'Clarify search', uk: 'Уточнити пошук' }
-    });
+    var dict = {};
+    for (var lk in OWN) dict[lk] = { ru: OWN[lk], en: OWN[lk], uk: OWN[lk] };
+    Lampa.Lang.add(dict);
   } catch (e) {}
 
-  function text(key, fallback) {
+  function tr(key) {
     try {
       var value = Lampa.Lang.translate(key);
-      return value && value !== key ? value : (fallback || '');
-    } catch (e) { return fallback || ''; }
+      if (value && value !== key) return value;
+    } catch (e) {}
+    return '';
+  }
+
+  // prefer the wording of the online plugin, fall back to our own dictionary
+  function text(key, own) {
+    return tr(key) || tr(own) || OWN[own] || '';
   }
 
   var ICON = {
     play: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"></path></svg>',
     chevron: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"></path></svg>',
-    search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-4-4" stroke-linecap="round"></path></svg>'
+    search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-4-4" stroke-linecap="round"></path></svg>',
+    refresh: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 11a8 8 0 10-2.3 5.7" stroke-linecap="round"></path><path d="M20 4v7h-7" stroke-linecap="round" stroke-linejoin="round"></path></svg>',
+    grid: '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="3" width="8" height="8" rx="1.6"></rect><rect x="13" y="3" width="8" height="8" rx="1.6"></rect><rect x="3" y="13" width="8" height="8" rx="1.6"></rect><rect x="13" y="13" width="8" height="8" rx="1.6"></rect></svg>',
+    list: '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="4" width="18" height="4" rx="1.4"></rect><rect x="3" y="10" width="18" height="4" rx="1.4"></rect><rect x="3" y="16" width="18" height="4" rx="1.4"></rect></svg>'
   };
 
   function esc(value) {
-    return ('' + (value == null ? '' : value)).replace(/[&<>"]/g, function (c) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
-    });
+    return (value === undefined || value === null ? '' : String(value))
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
   function digits(value) {
-    var found = ('' + (value == null ? '' : value)).match(/\d+/);
+    var found = ('' + (value === undefined || value === null ? '' : value)).match(/\d+/);
     return found ? parseInt(found[0], 10) : 0;
   }
 
@@ -59,15 +108,73 @@
     try { return Lampa.TMDB.image('t/p/' + (size || 'w780') + path); } catch (e) { return ''; }
   }
 
+  function episodeNumber(value) {
+    var num = parseInt(value, 10);
+    if (!num && num !== 0) return String(value === undefined || value === null ? '' : value);
+    return num < 10 ? '0' + num : String(num);
+  }
+
   function shortQuality(value) {
-    var raw = ('' + (value == null ? '' : value)).toLowerCase();
-    if (!raw) return '';
-    if (raw.indexOf('4k') !== -1 || raw.indexOf('2160') !== -1 || raw.indexOf('uhd') !== -1) return '4K';
-    if (raw.indexOf('1440') !== -1 || raw.indexOf('2k') !== -1) return '2K';
-    if (raw.indexOf('1080') !== -1 || raw.indexOf('fullhd') !== -1 || raw.indexOf('fhd') !== -1) return 'FHD';
-    if (raw.indexOf('720') !== -1) return 'HD';
-    if (raw.indexOf('480') !== -1 || raw.indexOf('360') !== -1 || raw.indexOf('sd') !== -1) return 'SD';
+    if (!value) return '';
+    value = String(value);
+    var match = value.match(/(2160|1440|1080|720|576|480|360)\s*p?/i);
+    if (match) {
+      var num = parseInt(match[1], 10);
+      if (num >= 2160) return '4K';
+      if (num >= 1080) return 'FHD';
+      if (num >= 720) return 'HD';
+      return 'SD';
+    }
+    if (/4k|uhd/i.test(value)) return '4K';
+    if (/fhd/i.test(value)) return 'FHD';
+    if (/\bhd\b/i.test(value)) return 'HD';
     return '';
+  }
+
+  var QUALITY_RANK = { '4K': 4, FHD: 3, HD: 2, SD: 1 };
+  var PROBE_TTL_OK = 21600000;
+  var PROBE_TTL_EMPTY = 1800000;
+
+  function knownQuality(name) {
+    var all = cached('nova_source_quality', 500, {});
+    return all[name] || '';
+  }
+
+  function rememberQuality(name, label) {
+    if (!name || !label) return;
+    var all = cached('nova_source_quality', 500, {});
+    if ((QUALITY_RANK[label] || 0) <= (QUALITY_RANK[all[name]] || 0)) return;
+    all[name] = label;
+    save('nova_source_quality', all);
+  }
+
+  // the probe memory is shared with the online plugin, same keys and shape
+  function probeCache(id) {
+    var all = cached('nova_probe', 2000, {});
+    var mine = all[id];
+    if (!mine || typeof mine !== 'object' || !mine.list) {
+      mine = { time: Date.now(), list: {} };
+      all[id] = mine;
+    }
+    var list = mine.list || {};
+    var now = Date.now();
+    for (var key in list) {
+      var entry = list[key] || {};
+      var stamp = entry.t || mine.time || 0;
+      var ttl = entry.s === 'ok' ? PROBE_TTL_OK : PROBE_TTL_EMPTY;
+      if (now - stamp > ttl) delete list[key];
+    }
+    mine.list = list;
+    return mine;
+  }
+
+  function probeSave(id, name, state, count) {
+    if (!id || !name) return;
+    var all = cached('nova_probe', 2000, {});
+    var mine = probeCache(id);
+    mine.list[name] = { s: state, c: count || 0, t: Date.now() };
+    all[id] = mine;
+    save('nova_probe', all);
   }
 
   function splitSourceName(name) {
@@ -81,6 +188,68 @@
     return { name: name.replace(/\s+$/, ''), badge: badge };
   }
 
+  var VOICE_KINDS = [
+    { key: 'dub', own: 'nova_skin_voice_dub', title: 'nova_voice_dub', re: /дубляж|дублирован|\bdub\b|\bdubbing\b/i },
+    { key: 'mvo', own: 'nova_skin_voice_mvo', title: 'nova_voice_mvo', re: /многоголос|\bmvo\b|\bpmvo\b/i },
+    { key: 'dvo', own: 'nova_skin_voice_dvo', title: 'nova_voice_dvo', re: /двухголос|\bdvo\b/i },
+    { key: 'avo', own: 'nova_skin_voice_avo', title: 'nova_voice_avo', re: /авторск|одноголос|\bavo\b|\bvo\b/i },
+    { key: 'orig', own: 'nova_skin_voice_orig', title: 'nova_voice_orig', re: /оригинал|original|\beng\b|\bua\b|\bukr\b/i },
+    { key: 'sub', own: 'nova_skin_voice_sub', title: 'nova_voice_sub', re: /субтитр|sub(title)?s?\b/i }
+  ];
+
+  var VOICE_STUDIOS = [
+    { key: 'mvo', re: /lostfilm|лостфильм|tvshows|dniprofilm|невафильм|newstudio|newcomers|baibako|байбако|alexfilm|jaskier|coldfilm|колдфильм|hdrezka|rezkastudio|red head sound|sunshine|amedia|zakadry|закадры|linefilm|le-production|1win|kerob|profix|selena|октопус/i },
+    { key: 'dvo', re: /кубик в кубе|kubik|viruseproject|вирус|green ?tea|paradox/i },
+    { key: 'avo', re: /яроцк|гаврилов|володарск|сербин|горчаков|михал[её]в|живов|пучков|гоблин|кураж|дольск|есарев|карповск|визгунов/i }
+  ];
+
+  function voiceKind(title) {
+    var value = String(title || '');
+    var i;
+    for (i = 0; i < VOICE_KINDS.length; i++) {
+      if (VOICE_KINDS[i].re.test(value)) return VOICE_KINDS[i].key;
+    }
+    for (i = 0; i < VOICE_STUDIOS.length; i++) {
+      if (VOICE_STUDIOS[i].re.test(value)) return VOICE_STUDIOS[i].key;
+    }
+    return 'other';
+  }
+
+  function voiceRank(title) {
+    var kind = voiceKind(title);
+    for (var i = 0; i < VOICE_KINDS.length; i++) {
+      if (VOICE_KINDS[i].key === kind) return i;
+    }
+    return 90;
+  }
+
+  function pageSize(total) {
+    return total > 200 ? 50 : total > 80 ? 20 : 10;
+  }
+
+  function pages(total) {
+    var size = pageSize(total);
+    var out = [];
+    for (var start = 0; start < total; start += size) {
+      out.push({ start: start, end: Math.min(start + size, total) - 1 });
+    }
+    if (out.length > 1) {
+      var tail = out[out.length - 1];
+      if (tail.end - tail.start + 1 <= size / 2) {
+        out[out.length - 2].end = tail.end;
+        out.pop();
+      }
+    }
+    return out;
+  }
+
+  function pageAt(list, index) {
+    for (var i = 0; i < list.length; i++) {
+      if (index >= list[i].start && index <= list[i].end) return list[i];
+    }
+    return list[0] || { start: 0, end: -1 };
+  }
+
   function addCSS() {
     if (document.getElementById('nova-skin-css')) return;
     var style = document.createElement('style');
@@ -88,6 +257,8 @@
     style.textContent = SKIN_CSS + EXTRA_CSS;
     (document.body || document.head).appendChild(style);
   }
+
+  // ------------------------------------------------------------ lampa hooks
 
   function hookFilter() {
     if (!Lampa.Filter || Lampa.Filter.nova_wrapped) return;
@@ -97,8 +268,8 @@
       var inst = new real(params);
       var setter = inst.set;
       inst.nova_sets = {};
-      inst.set = function (type, items) {
-        inst.nova_sets[type] = items;
+      inst.set = function (type, list) {
+        inst.nova_sets[type] = list;
         return setter.apply(inst, arguments);
       };
       filters.unshift(inst);
@@ -111,6 +282,58 @@
     Lampa.Filter = Wrapped;
   }
 
+  function hookScroll() {
+    if (!Lampa.Scroll || Lampa.Scroll.nova_wrapped) return;
+    var real = Lampa.Scroll;
+
+    function Wrapped(params) {
+      var inst = new real(params);
+      scrolls.unshift(inst);
+      if (scrolls.length > 6) scrolls.pop();
+      return inst;
+    }
+
+    Wrapped.nova_wrapped = true;
+    for (var key in real) Wrapped[key] = real[key];
+    Lampa.Scroll = Wrapped;
+  }
+
+  function hookController() {
+    if (!Lampa.Controller || Lampa.Controller.nova_wrapped) return;
+    var add = Lampa.Controller.add;
+
+    Lampa.Controller.add = function (name, object) {
+      if (name === 'content' && object && !object.nova_hooked) {
+        object.nova_hooked = true;
+
+        if (typeof object.up === 'function') {
+          var up = object.up;
+          object.up = function () {
+            if (novaUp()) return;
+            return up.apply(this, arguments);
+          };
+        }
+        if (typeof object.down === 'function') {
+          var down = object.down;
+          object.down = function () {
+            if (novaDown()) return;
+            return down.apply(this, arguments);
+          };
+        }
+        if (typeof object.right === 'function') {
+          var right = object.right;
+          object.right = function () {
+            if (novaRight()) return;
+            return right.apply(this, arguments);
+          };
+        }
+      }
+      return add.apply(Lampa.Controller, arguments);
+    };
+
+    Lampa.Controller.nova_wrapped = true;
+  }
+
   function activeFilter(root) {
     for (var i = 0; i < filters.length; i++) {
       try {
@@ -120,62 +343,202 @@
     return null;
   }
 
-  function groups(filter) {
-    var out = { season: null, voice: null, sort: null };
-    if (!filter || !filter.nova_sets) return out;
+  function activeScroll(node) {
+    for (var i = 0; i < scrolls.length; i++) {
+      try {
+        var render = scrolls[i].render();
+        if (render && render.length && $.contains(render[0], node)) return scrolls[i];
+      } catch (e) {}
+    }
+    return null;
+  }
 
-    (filter.nova_sets.filter || []).forEach(function (group) {
+  function scrollTo(element) {
+    var node = element instanceof jQuery ? element[0] : element;
+    if (!node) return;
+    var scroll = activeScroll(node);
+    if (scroll) {
+      try {
+        scroll.update($(node), true);
+        return;
+      } catch (e) {}
+    }
+    try {
+      var box = $(node).closest('.scroll');
+      if (!box.length) return;
+      var body = box.find('.scroll__body').first();
+      if (!body.length) return;
+      var top = node.getBoundingClientRect().top - box[0].getBoundingClientRect().top;
+      if (top > -1 && top < box[0].offsetHeight * 0.6) return;
+      var style = body[0].style['-webkit-transform'] || body[0].style.transform || '';
+      if (style.indexOf('translate') !== -1) {
+        var pair = style.match(/-?[\d.]+px,\s*(-?[\d.]+)px/);
+        var now = pair ? parseFloat(pair[1]) || 0 : 0;
+        var next = Math.min(0, Math.round(now - top + 20));
+        body[0].style['-webkit-transform'] = 'translate3d(0px, ' + next + 'px, 0px)';
+        body[0].style.transform = 'translate3d(0px, ' + next + 'px, 0px)';
+      } else {
+        box[0].scrollTop = Math.max(0, box[0].scrollTop + top - 20);
+      }
+    } catch (e) {}
+  }
+
+  // ----------------------------------------------------------------- state
+
+  var ui = {};
+  var root = null;
+  var host = null;
+  var items = [];
+  var groups = { season: null, voice: null, sort: null };
+  var filter = null;
+  var movie = null;
+  var serial = false;
+  var nav = false;
+  var last = null;
+
+  var ui_open = '';
+  var ui_focus = '';
+  var ui_page = -1;
+  var ui_page_focus = -1;
+  var ui_all_sources = false;
+  var signature = '';
+  var busy = false;
+
+  function forget() {
+    ui = {};
+    root = null;
+    host = null;
+    items = [];
+    groups = { season: null, voice: null, sort: null };
+    filter = null;
+    movie = null;
+    last = null;
+    ui_open = '';
+    ui_focus = '';
+    ui_page = -1;
+    ui_page_focus = -1;
+    ui_all_sources = false;
+    signature = '';
+    busy = false;
+  }
+
+  function readGroups(inst) {
+    var out = { season: null, voice: null, sort: null };
+    if (!inst || !inst.nova_sets) return out;
+
+    (inst.nova_sets.filter || []).forEach(function (group) {
       if (!group || !group.items || !group.items.length) return;
       if (group.stype === 'season') out.season = group;
       if (group.stype === 'voice') out.voice = group;
     });
 
-    var sort = filter.nova_sets.sort || [];
+    var sort = inst.nova_sets.sort || [];
     if (sort.length) out.sort = sort;
     return out;
   }
 
-  function context() {
+  function scope() {
     if (!enabled()) return null;
 
     var current;
     try { current = Lampa.Activity.active(); } catch (e) { return null; }
     if (!current || !current.activity) return null;
 
-    var root;
-    try { root = current.activity.render(); } catch (e) { return null; }
-    if (!root || !root.length) return null;
-    if (!root.hasClass('explorer')) root = root.find('.explorer').first();
-    if (!root.length) return null;
+    var box;
+    try { box = current.activity.render(); } catch (e) { return null; }
+    if (!box || !box.length) return null;
+    if (!box.hasClass('explorer')) box = box.find('.explorer').first();
+    if (!box.length) return null;
 
-    var body = root.find('.explorer__files-body .scroll__body').first();
+    var body = box.find('.explorer__files-body .scroll__body').first();
     if (!body.length) return null;
     if (body.find('.torrent-item').length) return null;
-    if (body.find('.nova__list, .nova__hero').length) return null;
 
-    var files = body.find('.online-prestige--full');
-    var folders = body.find('.online-prestige--folder');
-    if (!files.length && !folders.length) return null;
+    // the online plugin already draws this interface itself
+    if (body.find('.nova__rows').length && !body.find('.nova-skin-root').length) return null;
 
-    var movie = current.movie || current.card;
-    if (!movie) return null;
+    var card = current.movie || current.card;
+    if (!card) return null;
 
-    var filter = activeFilter(root);
-
-    return {
-      root: root,
-      body: body,
-      movie: movie,
-      filter: filter,
-      groups: groups(filter),
-      serial: !!(movie.name || movie.number_of_seasons),
-      nav: !files.length && folders.length > 0
-    };
+    return { root: box, body: body, movie: card };
   }
 
-  function cardData(element, index) {
-    var card = $(element);
-    var line = card.find('.time-line').first();
+  function sourceTitle() {
+    var sort = groups.sort || [];
+    for (var i = 0; i < sort.length; i++) {
+      if (sort[i].selected) return sort[i].title || '';
+    }
+    return sort.length ? (sort[0].title || '') : '';
+  }
+
+  function seasonNumber() {
+    return groups.season ? digits(groups.season.subtitle) : 0;
+  }
+
+  function heroArt() {
+    return image(movie.backdrop_path || movie.poster_path, 'w780') || image(movie.img, 'w780');
+  }
+
+  function fallbackArt() {
+    var art = image(movie.backdrop_path, 'w300') || image(movie.poster_path, 'w300');
+    if (!art) {
+      try { art = Lampa.Utils.cardImgBackground(movie) || ''; } catch (e) { art = ''; }
+    }
+    if (!art) art = image(movie.img, 'w300');
+    return art;
+  }
+
+  function runtimeText(seconds) {
+    try { return Lampa.Utils.secondsToTime(seconds, true); } catch (e) { return ''; }
+  }
+
+  function bind(element, enter, long) {
+    element.on('hover:enter', function () {
+      try { enter(); } catch (e) {}
+    }).on('hover:focus', function (e) {
+      last = e.target;
+      ui_focus = $(e.target).attr('data-nova-focus') || '';
+      scrollTo(e.target);
+    });
+    if (long) {
+      element.on('hover:long', function () {
+        try { long(); } catch (e) {}
+      });
+    }
+    return element;
+  }
+
+  // ----------------------------------------------------------------- frame
+
+  function uiFrame() {
+    if (!ui.root) {
+      ui.root = $('<div class="nova nova-skin-root"></div>');
+      ui.hero_box = $('<div class="nova__hero"></div>');
+      ui.rows = $('<div class="nova__rows"></div>');
+      ui.list = $('<div class="nova__list"></div>');
+      ui.root.append(ui.hero_box).append(ui.rows).append(ui.list);
+    }
+    if (!ui.root.parent().length || !$.contains(host, ui.root[0])) {
+      $(host).prepend(ui.root);
+    }
+    return ui.root;
+  }
+
+  function skeleton(count) {
+    var box = $('<div class="nova-skeleton"></div>');
+    for (var i = 0; i < (count || 4); i++) {
+      box.append('<div class="nova-skeleton__row"><div class="nova-skeleton__thumb"></div>' +
+        '<div class="nova-skeleton__body"><div class="nova-skeleton__line"></div>' +
+        '<div class="nova-skeleton__line nova-skeleton__line--short"></div></div></div>');
+    }
+    return box;
+  }
+
+  // ----------------------------------------------------------------- cards
+
+  function readCard(node, index) {
+    var origin = $(node);
+    var line = origin.find('.time-line').first();
     var hash = line.attr('data-hash') || '';
     var percent = 0;
 
@@ -187,456 +550,926 @@
       if (raw) percent = parseFloat(raw[1]) || 0;
     }
 
+    var meta = [];
+    origin.find('.online-prestige__info').children().each(function () {
+      var part = $(this);
+      if (part.hasClass('online-prestige-split')) return;
+      var value = part.text().trim();
+      if (value) meta.push(value);
+    });
+    if (!meta.length) {
+      var plain = origin.find('.online-prestige__info').text().trim();
+      if (plain) meta.push(plain);
+    }
+
     return {
-      el: card,
+      origin: origin,
       index: index,
+      folder: origin.hasClass('online-prestige--folder'),
       percent: percent,
-      viewed: card.find('.online-prestige__viewed').length > 0,
-      num: digits(card.find('.online-prestige__episode-number').text()) || index + 1,
-      title: card.find('.online-prestige__title').text().trim(),
-      quality: card.find('.online-prestige__quality').text().trim()
+      hash: hash,
+      line: line,
+      viewed: origin.find('.online-prestige__viewed').length > 0,
+      num: digits(origin.find('.online-prestige__episode-number').text()) || index + 1,
+      numbered: origin.find('.online-prestige__episode-number').length > 0,
+      title: origin.find('.online-prestige__title').text().trim(),
+      meta: meta,
+      time: origin.find('.online-prestige__time').text().trim(),
+      quality: origin.find('.online-prestige__quality').text().trim(),
+      picture: origin.find('.online-prestige__img img').first()
     };
   }
 
-  function collect(ctx) {
+  function collect() {
     var list = [];
-    ctx.body.find('.online-prestige--full').each(function () {
-      list.push(cardData(this, list.length));
+    $(host).find('.online-prestige--full,.online-prestige--folder').each(function () {
+      if ($(this).closest('.nova-skin-root').length) return;
+      list.push(readCard(this, list.length));
     });
     return list;
   }
 
+  function isSeen(item) {
+    return item.viewed || item.percent >= SEEN_PERCENT;
+  }
+
   function pickResume(list) {
     var i;
-    if (!list.length) return null;
+    if (!list || !list.length) return null;
+
+    if (!serial) {
+      for (i = 0; i < list.length; i++) {
+        if (list[i].percent > 0 && list[i].percent < SEEN_PERCENT) return list[i];
+      }
+      return list[0];
+    }
+
+    var reached = 0;
     for (i = 0; i < list.length; i++) {
-      if (list[i].percent > 0 && list[i].percent < 90) return list[i];
+      if (isSeen(list[i])) reached = Math.max(reached, list[i].num);
     }
     for (i = 0; i < list.length; i++) {
-      if (!list[i].viewed) return list[i];
+      if (list[i].percent > 0 && list[i].percent < SEEN_PERCENT) return list[i];
+    }
+    if (reached) {
+      for (i = 0; i < list.length; i++) {
+        if (list[i].num > reached && !isSeen(list[i])) return list[i];
+      }
+      return list[list.length - 1];
+    }
+    for (i = 0; i < list.length; i++) {
+      if (!isSeen(list[i])) return list[i];
     }
     return list[0];
   }
 
-  function novaScroll(element) {
-    try {
-      var node = element instanceof jQuery ? element[0] : element;
-      if (!node) return;
-      var host = $(node).closest('.scroll');
-      if (!host.length) return;
-      var body = host.find('.scroll__body').first();
-      if (!body.length) return;
-      var top = node.getBoundingClientRect().top - host[0].getBoundingClientRect().top;
-      if (top > -1 && top < host[0].offsetHeight * 0.6) return;
+  function freshItem() {
+    for (var i = 0; i < items.length; i++) {
+      if (!isSeen(items[i])) return items[i];
+    }
+    return null;
+  }
 
-      var style = body[0].style['-webkit-transform'] || body[0].style.transform || '';
-      if (style.indexOf('translate') !== -1) {
-        var pair = style.match(/-?[\d.]+px,\s*(-?[\d.]+)px/);
-        var now = pair ? parseFloat(pair[1]) || 0 : 0;
-        var next = Math.min(0, Math.round(now - top + 20));
-        body[0].style['-webkit-transform'] = 'translate3d(0px, ' + next + 'px, 0px)';
-        body[0].style.transform = 'translate3d(0px, ' + next + 'px, 0px)';
-      } else {
-        host[0].scrollTop = Math.max(0, host[0].scrollTop + top - 20);
+  function nextItem(target) {
+    if (!target) return null;
+    return items[target.index + 1] || null;
+  }
+
+  function play(item) {
+    if (!item) return;
+    try { item.origin.trigger('hover:enter'); } catch (e) {}
+  }
+
+  function longPress(item) {
+    if (!item) return;
+    try { item.origin.trigger('hover:long'); } catch (e) {}
+  }
+
+  function buildCard(item, compact) {
+    var card = $('<div class="nova-card selector">' +
+      '<div class="nova-card__thumb"><img alt=""><div class="nova-card__num"></div><div class="nova-card__line"></div></div>' +
+      '<div class="nova-card__body"><div class="nova-card__title"></div><div class="nova-card__meta"></div></div>' +
+      '<div class="nova-card__side"><div class="nova-card__quality"></div><div class="nova-card__time"></div></div>' +
+      '</div>');
+
+    card.attr('data-nova-focus', 'item:' + item.index);
+    if (!serial) card.addClass('nova-card--file');
+
+    var thumb = card.find('.nova-card__thumb');
+    var body = card.find('.nova-card__body');
+
+    card.find('.nova-card__title').text(item.title || movie.title || movie.name || '');
+
+    var meta = item.meta.slice();
+    if (item.percent > 0 && item.percent < SEEN_PERCENT && item.time) {
+      var left = Math.round((100 - item.percent) / 100 * digitsTime(item.time));
+      if (left > 0) meta.push(text('nova_left', 'nova_skin_left') + ' ' + runtimeText(left));
+    }
+    card.find('.nova-card__meta').html(meta.map(function (part) {
+      return '<span>' + esc(part) + '</span>';
+    }).join('<span class="nova-dot">\u25cf</span>'));
+
+    if (item.numbered && serial) card.find('.nova-card__num').text(episodeNumber(item.num));
+    else card.find('.nova-card__num').remove();
+
+    var badge = shortQuality(item.quality);
+    if (badge) card.find('.nova-card__quality').addClass('nova-badge').text(badge);
+    else card.find('.nova-card__quality').remove();
+    card.find('.nova-card__time').text(item.time || '');
+
+    if (item.line.length) card.find('.nova-card__line').append(item.line.clone());
+    else card.find('.nova-card__line').remove();
+
+    if (compact) {
+      card.find('.nova-card__line').addClass('nova-card__line--body').appendTo(body);
+    }
+
+    if (item.folder) {
+      card.addClass('nova-card--nav nova-card--slim');
+      thumb.remove();
+      card.find('.nova-card__side').remove();
+      card.find('.nova-card__line').remove();
+      body.append('<div class="nova-card__go">' + ICON.chevron + '</div>');
+    } else {
+      var art = item.picture.length ? (item.picture.attr('src') || '') : '';
+      var isFallback = false;
+      if (!art) {
+        art = fallbackArt();
+        isFallback = !!art;
       }
+      var img = thumb.find('img')[0];
+      if (art && img) {
+        if (isFallback) thumb.addClass('nova-card__thumb--fallback');
+        img.onload = function () { thumb.addClass('nova-card__thumb--loaded'); };
+        img.onerror = function () { thumb.removeClass('nova-card__thumb--fallback'); };
+        img.src = art;
+        if (img.complete) thumb.addClass('nova-card__thumb--loaded');
+      }
+      if (item.viewed) thumb.append('<div class="nova-card__viewed"></div>');
+    }
+
+    bind(card, function () { play(item); }, item.folder ? null : function () { longPress(item); });
+
+    item.card = card;
+    return card;
+  }
+
+  function digitsTime(value) {
+    var parts = String(value || '').split(':');
+    if (parts.length === 3) {
+      return (parseInt(parts[0], 10) || 0) * 3600 + (parseInt(parts[1], 10) || 0) * 60 + (parseInt(parts[2], 10) || 0);
+    }
+    if (parts.length === 2) {
+      return (parseInt(parts[0], 10) || 0) * 3600 + (parseInt(parts[1], 10) || 0) * 60;
+    }
+    return (parseInt(parts[0], 10) || 0) * 60;
+  }
+
+  // ------------------------------------------------------------------ hero
+
+  function playButton() {
+    if (!ui.play) {
+      ui.play = $('<div class="nova-btn nova-btn--main selector" data-nova-focus="hero">' +
+        ICON.play + '<span class="nova-btn__label"></span></div>');
+      bind(ui.play, function () {
+        play(pickResume(items));
+      }, function () {
+        playMenu();
+      });
+    }
+    return ui.play;
+  }
+
+  function nextButton() {
+    if (!ui.next) {
+      ui.next = $('<div class="nova-btn nova-btn--ghost selector" data-nova-focus="hero-next">' +
+        '<span class="nova-btn__label"></span></div>');
+      bind(ui.next, function () {
+        play(nextItem(pickResume(items)));
+      });
+    }
+    return ui.next;
+  }
+
+  function episodeSuffix(item) {
+    if (!item || !serial || !item.numbered) return '';
+    return ' \u00b7 ' + text('torrent_serial_episode', 'nova_skin_episode') + ' ' + item.num;
+  }
+
+  function playMenu() {
+    var target = pickResume(items);
+    if (!target) return;
+
+    var active;
+    try { active = Lampa.Controller.enabled().name; } catch (e) { active = 'content'; }
+
+    var started = target.percent > 0 && target.percent < SEEN_PERCENT;
+    var menu = [{
+      title: (started ? text('nova_continue', 'nova_skin_continue') : text('nova_watch', 'nova_skin_watch')) + episodeSuffix(target),
+      item: target
+    }];
+
+    if (started) {
+      menu.push({
+        title: text('nova_from_start', 'nova_skin_from_start') + episodeSuffix(target),
+        item: target
+      });
+    }
+
+    var next = nextItem(target);
+    if (next) {
+      menu.push({
+        title: text('nova_next_episode', 'nova_skin_next_episode') + episodeSuffix(next),
+        item: next
+      });
+    }
+
+    var fresh = freshItem();
+    if (fresh && fresh !== target && fresh !== next) {
+      menu.push({
+        title: text('nova_first_new', 'nova_skin_first_new') + episodeSuffix(fresh),
+        item: fresh
+      });
+    }
+
+    if (items.length > JUMP_FROM) {
+      menu.push({ title: text('nova_jump_pick', 'nova_skin_jump_pick'), jump: true });
+    }
+
+    try {
+      Lampa.Select.show({
+        title: text('title_action', 'nova_skin_action'),
+        items: menu,
+        onBack: function () {
+          try { Lampa.Controller.toggle(active); } catch (e) {}
+        },
+        onSelect: function (a) {
+          try { Lampa.Controller.toggle(active); } catch (e) {}
+          if (a.jump) return uiToggle('jump');
+          play(a.item);
+        }
+      });
     } catch (e) {}
   }
 
-  function bind(element, enter) {
-    element.on('hover:enter', function () {
-      try { enter(); } catch (e) {}
-    }).on('hover:focus', function (e) {
-      novaScroll(e.target);
-    });
-    return element;
-  }
-
-  function heroArt(movie) {
-    return image(movie.backdrop_path || movie.poster_path, 'w780') || image(movie.img, 'w780');
-  }
-
-  function sourceName(ctx) {
-    var sort = ctx.groups.sort || [];
-    for (var i = 0; i < sort.length; i++) {
-      if (sort[i].selected) return sort[i].title || '';
+  function buildHero() {
+    if (!heroEnabled() || nav) {
+      ui.hero_box.empty();
+      ui.hero = null;
+      return null;
     }
-    return sort.length ? (sort[0].title || '') : '';
-  }
 
-  function voiceName(ctx) {
-    return ctx.groups.voice ? (ctx.groups.voice.subtitle || '') : '';
-  }
+    var target = pickResume(items);
+    var button = playButton();
 
-  function seasonNumber(ctx) {
-    if (ctx.groups.season) return digits(ctx.groups.season.subtitle);
-    return 0;
-  }
+    if (!target) {
+      button.detach();
+      ui.hero_box.empty();
+      ui.hero = null;
+      return null;
+    }
 
-  function buildHero(ctx, list) {
-    if (!heroEnabled() || ctx.nav) return null;
-
-    var target = pickResume(list);
-    if (!target) return null;
-
-    var movie = ctx.movie;
     var withArt = artEnabled();
-    var hero = $('<div class="nova-hero">' +
-      '<div class="nova-hero__bg"><img alt=""></div><div class="nova-hero__shade"></div>' +
-      '<div class="nova-hero__body">' +
-      (withArt ? '<div class="nova-hero__title"></div><div class="nova-hero__meta"></div><div class="nova-hero__descr"></div>' : '') +
-      '<div class="nova-hero__actions"><div class="nova-hero__hint"></div></div>' +
-      '<div class="nova-hero__season" style="display:none"></div>' +
-      '<div class="nova-hero__progress" style="display:none"></div>' +
-      '</div></div>');
 
-    if (!withArt) hero.addClass('nova-hero--compact');
+    if (!ui.hero) {
+      ui.hero = $('<div class="nova-hero">' +
+        '<div class="nova-hero__bg"><img alt=""></div><div class="nova-hero__shade"></div>' +
+        '<div class="nova-hero__body">' +
+        (withArt ? '<div class="nova-hero__title"></div><div class="nova-hero__meta"></div><div class="nova-hero__descr"></div>' : '') +
+        '<div class="nova-hero__actions"><div class="nova-hero__hint"></div></div>' +
+        '<div class="nova-hero__season" style="display:none"></div>' +
+        '<div class="nova-hero__progress" style="display:none"></div>' +
+        '</div></div>');
+
+      if (!withArt) ui.hero.addClass('nova-hero--compact');
+
+      if (withArt) {
+        ui.hero.find('.nova-hero__title').text(movie.title || movie.name || '');
+        ui.hero.find('.nova-hero__descr').text(movie.overview || '');
+      }
+
+      var art = heroArt();
+      if (art) {
+        var back = ui.hero.find('.nova-hero__bg');
+        var node = ui.hero.find('.nova-hero__bg img')[0];
+        node.onload = function () { back.addClass('nova-hero__bg--loaded'); };
+        node.onerror = function () {};
+        node.src = art;
+      }
+
+      ui.hero_box.empty().append(ui.hero);
+    }
+
+    ui.hero.find('.nova-hero__actions').prepend(button);
+
+    var started = target.percent > 0 && target.percent < SEEN_PERCENT;
+    var next = serial ? nextItem(target) : null;
+    var next_button = nextButton();
+    if (next && started) {
+      next_button.find('.nova-btn__label')
+        .text(text('nova_next_episode', 'nova_skin_next_episode') + episodeSuffix(next));
+      button.after(next_button);
+    } else next_button.detach();
 
     if (withArt) {
-      hero.find('.nova-hero__title').text(movie.title || movie.name || '');
-      hero.find('.nova-hero__descr').text(movie.overview || '');
-
-      var meta = hero.find('.nova-hero__meta');
-      var badge = shortQuality(target.quality) || splitSourceName(sourceName(ctx)).badge;
+      var meta = ui.hero.find('.nova-hero__meta').empty();
+      var badge = shortQuality(target.quality) || splitSourceName(sourceTitle()).badge;
       if (badge) meta.append('<div class="nova-badge">' + esc(badge) + '</div>');
-      if (movie.vote_average) meta.append('<div>★ ' + parseFloat(movie.vote_average + '').toFixed(1) + '</div>');
+      if (movie.vote_average) {
+        meta.append('<div>\u2605 ' + parseFloat(movie.vote_average + '').toFixed(1) + '</div>');
+      }
       var year = ((movie.release_date || movie.first_air_date || '') + '').slice(0, 4);
       if (year) meta.append('<div>' + esc(year) + '</div>');
-      var runtime = movie.runtime || (movie.episode_run_time || [])[0];
-      if (runtime) {
-        try { meta.append('<div>' + esc(Lampa.Utils.secondsToTime(runtime * 60, true)) + '</div>'); } catch (e) {}
-      }
+      if (target.time) meta.append('<div>' + esc(target.time) + '</div>');
     }
 
-    var art = heroArt(movie);
-    if (art) {
-      var back = hero.find('.nova-hero__bg');
-      var node = hero.find('.nova-hero__bg img')[0];
-      node.onload = function () { back.addClass('nova-hero__bg--loaded'); };
-      node.onerror = function () {};
-      node.src = art;
+    var label = started ? text('nova_continue', 'nova_skin_continue') : text('nova_watch', 'nova_skin_watch');
+    if (serial && target.numbered) {
+      label += ' \u00b7 S' + (seasonNumber() || 1) + ' E' + target.num;
     }
-
-    var started = target.percent > 0 && target.percent < 90;
-    var label = started ? text('nova_continue', text('nova_skin_continue', 'Продолжить'))
-      : text('nova_watch', text('nova_skin_watch', 'Смотреть'));
-    if (ctx.serial) {
-      var season = seasonNumber(ctx) || 1;
-      label += ' · S' + season + ' E' + target.num;
-    }
-
-    var play = bind($('<div class="nova-btn nova-btn--main selector"></div>').append(ICON.play)
-      .append($('<span class="nova-btn__label"></span>').text(label)), function () {
-      target.el.trigger('hover:enter');
-    });
-    hero.find('.nova-hero__actions').prepend(play);
-
-    if (ctx.serial && started) {
-      var next = list[target.index + 1];
-      if (next) {
-        var nextLabel = text('nova_next_episode', text('nova_skin_next', 'Следующая серия')) +
-          ' · ' + text('torrent_serial_episode', 'Серия') + ' ' + next.num;
-        play.after(bind($('<div class="nova-btn nova-btn--ghost selector"></div>')
-          .append($('<span class="nova-btn__label"></span>').text(nextLabel)), function () {
-          next.el.trigger('hover:enter');
-        }));
-      }
-    }
+    button.find('.nova-btn__label').text(label);
 
     var hint = [];
-    var source = splitSourceName(sourceName(ctx)).name;
+    var source = splitSourceName(sourceTitle()).name;
     if (source) hint.push(source);
-    var voice = voiceName(ctx);
+    var voice = groups.voice ? groups.voice.subtitle : '';
     if (voice) hint.push(voice);
-    hero.find('.nova-hero__hint').text(hint.join(' · '));
+    ui.hero.find('.nova-hero__hint').text(hint.join(' \u00b7 '));
 
+    var progress = ui.hero.find('.nova-hero__progress').empty();
     if (target.percent > 0) {
-      hero.find('.nova-hero__progress').show()
-        .append('<div class="time-line"><div style="width:' + Math.min(100, target.percent) + '%"></div></div>');
-    }
+      progress.show().append('<div class="time-line"><div style="width:' +
+        Math.min(100, target.percent) + '%"></div></div>');
+    } else progress.hide();
 
-    if (ctx.serial && list.length > 1) {
+    var season_line = ui.hero.find('.nova-hero__season');
+    if (serial && !nav && items.length > 1) {
       var seen = 0;
-      list.forEach(function (item) {
-        if (item.viewed || item.percent >= 90) seen++;
+      items.forEach(function (item) {
+        if (isSeen(item)) seen++;
       });
-      var progress = text('nova_season_progress', text('nova_skin_progress', 'Просмотрено {seen} из {total}'))
-        .replace('{seen}', seen).replace('{total}', list.length);
-      if (seen < list.length) {
-        progress += ' · ' + text('nova_season_left', text('nova_skin_left', 'осталось {left}'))
-          .replace('{left}', list.length - seen);
+      var line = text('nova_season_progress', 'nova_skin_season_progress')
+        .replace('{seen}', seen).replace('{total}', items.length);
+      if (seen < items.length) {
+        line += ' \u00b7 ' + text('nova_season_left', 'nova_skin_season_left')
+          .replace('{left}', items.length - seen);
       }
-      hero.find('.nova-hero__season').text(progress).show();
-    }
+      season_line.text(line).show();
+    } else season_line.hide();
 
-    return hero;
+    return button;
   }
 
-  function backToContent() {
-    try { Lampa.Controller.toggle('content'); } catch (e) {}
+  // ------------------------------------------------------------------ rows
+
+  function uiToggle(key) {
+    var opening = ui_open !== key;
+    ui_open = opening ? key : '';
+    ui_focus = key;
+
+    if (opening) {
+      if (key === 'source') {
+        var selected = 0;
+        (groups.sort || []).forEach(function (item, index) {
+          if (item.selected) selected = index;
+        });
+        ui_focus = 'src:' + selected;
+      } else if (key === 'season') ui_focus = 'season:' + selectedIndex(groups.season);
+      else if (key === 'voice') ui_focus = 'voice:' + selectedIndex(groups.voice);
+    }
+
+    buildRows();
+    restoreFocus(false);
+    try { Lampa.Controller.enable('content'); } catch (e) {}
+  }
+
+  function selectedIndex(group) {
+    if (!group || !group.items) return 0;
+    for (var i = 0; i < group.items.length; i++) {
+      if (group.items[i].selected) return typeof group.items[i].index === 'number' ? group.items[i].index : i;
+    }
+    return 0;
   }
 
   function chip(key, value, extra) {
     var box = $('<div class="nova-chip selector"></div>');
-    box.attr('data-nova-chip', key);
-    if (extra && extra.badge) box.append($('<span class="nova-chip__badge"></span>').text(extra.badge));
+    box.attr('data-nova-focus', key);
     if (extra && extra.icon) box.append(extra.icon);
-    if (value) box.append($('<span class="nova-chip__label"></span>').text(value));
+    if (extra && extra.badge) box.append($('<span class="nova-chip__badge"></span>').text(extra.badge));
+    box.append($('<span class="nova-chip__label"></span>').text(value || ''));
     if (!(extra && extra.plain)) box.append(ICON.chevron);
-    if (key === 'source') box.addClass('nova-chip--source');
+    if (extra && extra.active) box.addClass('nova-chip--active');
+    if (extra && extra.empty) box.addClass('nova-chip--empty');
+    if (extra && extra.dot) box.append('<span class="nova-chip__dot"></span>');
     return box;
   }
 
-  function label(title) {
-    return $('<div class="nova-toolbar__label"></div>').text(title);
+  function chooseSource(item) {
+    if (!filter || typeof filter.onSelect !== 'function') return;
+    ui_open = '';
+    ui_focus = 'source';
+    try { filter.onSelect('sort', item); } catch (e) {}
   }
 
-  function openSources(ctx) {
-    var sort = ctx.groups.sort || [];
-    if (!sort.length || !ctx.filter) return;
-    var items = [];
+  function chooseOption(group, index) {
+    if (!filter || typeof filter.onSelect !== 'function') return;
+    ui_open = '';
+    ui_focus = group.stype;
+    try { filter.onSelect('filter', { stype: group.stype }, { index: index }); } catch (e) {}
+  }
+
+  function sourceRow() {
+    var sort = groups.sort || [];
+    var probe = probeCache(movie.id).list || {};
+
+    var visible = [];
+    var hidden = [];
     sort.forEach(function (item) {
-      items.push({
-        title: item.title,
-        source: item.source,
-        selected: !!item.selected,
-        ghost: !!item.ghost
-      });
+      var key = item.source || item.title;
+      var state = probe[key] ? probe[key].s : '';
+      if (item.selected || state === 'ok' || knownQuality(key) || !item.ghost) visible.push(item);
+      else hidden.push(item);
     });
-    try {
-      Lampa.Select.show({
-        title: text('nova_skin_source', 'Источник'),
-        items: items,
-        onBack: backToContent,
-        onSelect: function (item) {
-          if (item.selected) return backToContent();
-          try { ctx.filter.onSelect('sort', item); } catch (e) {}
-        }
+    if (ui_all_sources) visible = visible.concat(hidden);
+
+    var row = $('<div class="nova-drop"></div>');
+
+    visible.forEach(function (item, order) {
+      var key = item.source || item.title;
+      var parts = splitSourceName(item.title);
+      var state = probe[key] ? probe[key].s : '';
+      var box = chip('src:' + sort.indexOf(item), parts.name, {
+        badge: knownQuality(key) || parts.badge,
+        active: !!item.selected,
+        empty: state === 'empty',
+        dot: state === 'ok',
+        plain: true
       });
-    } catch (e) {}
+      bind(box, function () {
+        if (item.selected) {
+          ui_open = '';
+          ui_focus = 'source';
+          buildRows();
+          restoreFocus(false);
+          try { Lampa.Controller.enable('content'); } catch (e) {}
+          return;
+        }
+        chooseSource(item);
+      });
+      row.append(box);
+    });
+
+    if (!ui_all_sources && hidden.length) {
+      var more = chip('src:more', text('nova_more_sources', 'nova_skin_more_sources')
+        .replace('{count}', hidden.length), { plain: true });
+      more.addClass('nova-chip--more');
+      bind(more, function () {
+        ui_all_sources = true;
+        ui_focus = 'src:' + (hidden.length ? (groups.sort || []).indexOf(hidden[0]) : 0);
+        buildRows();
+        restoreFocus(false);
+        try { Lampa.Controller.enable('content'); } catch (e) {}
+      });
+      row.append(more);
+    }
+
+    ui.rows.append(row);
   }
 
-  function openGroup(ctx, group, title) {
-    if (!group || !ctx.filter) return;
-    var items = [];
-    group.items.forEach(function (item, index) {
-      items.push({
-        title: item.title,
-        selected: !!item.selected,
-        index: typeof item.index === 'number' ? item.index : index
-      });
+  function optionRow(group) {
+    var order = group.items.map(function (item, index) {
+      return { item: item, index: typeof item.index === 'number' ? item.index : index, seat: index };
     });
-    try {
-      Lampa.Select.show({
-        title: title,
-        items: items,
-        onBack: backToContent,
-        onSelect: function (item) {
-          if (item.selected) return backToContent();
-          try { ctx.filter.onSelect('filter', { stype: group.stype }, { index: item.index }); } catch (e) {}
-        }
+
+    if (group.stype === 'voice') {
+      order.sort(function (a, b) {
+        return (voiceRank(a.item.title) - voiceRank(b.item.title)) || (a.seat - b.seat);
       });
-    } catch (e) {}
+    }
+
+    var row = $('<div class="nova-drop"></div>');
+    order.forEach(function (entry) {
+      var box = chip(group.stype + ':' + entry.index, entry.item.title, {
+        active: !!entry.item.selected,
+        plain: true
+      });
+      bind(box, function () {
+        if (entry.item.selected) return uiToggle(group.stype);
+        chooseOption(group, entry.index);
+      });
+      row.append(box);
+    });
+    ui.rows.append(row);
   }
 
-  function buildToolbar(ctx) {
+  function pageTitle(page) {
+    var first = items[page.start] ? items[page.start].num : page.start + 1;
+    var tail = items[page.end] ? items[page.end].num : page.end + 1;
+    return first === tail ? String(first) : first + '\u2013' + tail;
+  }
+
+  function jumpRow() {
+    var list = pages(items.length);
+    var row = $('<div class="nova-drop"></div>');
+    list.forEach(function (page) {
+      var box = chip('jump:' + page.start, pageTitle(page), {
+        active: page.start === ui_page,
+        plain: true
+      });
+      bind(box, function () {
+        showPage(page.start, page.start);
+      });
+      row.append(box);
+    });
+    ui.rows.append(row);
+  }
+
+  function buildRows() {
+    var rows = ui.rows.empty();
     var toolbar = $('<div class="nova-toolbar"></div>');
-    var added = 0;
 
-    var sort = ctx.groups.sort || [];
+    var addChip = function (key, title, value, extra) {
+      if (title) toolbar.append($('<div class="nova-toolbar__label"></div>').text(title));
+      var box = chip(key, value, extra);
+      if (ui_open === key) box.addClass('nova-chip--active');
+      bind(box, function () {
+        if (extra && extra.action) extra.action();
+        else uiToggle(key);
+      });
+      toolbar.append(box);
+    };
+
+    var sort = groups.sort || [];
     if (sort.length) {
-      var parts = splitSourceName(sourceName(ctx));
-      toolbar.append(label(text('nova_source', text('nova_skin_source', 'Источник'))));
-      toolbar.append(bind(chip('source', parts.name, { badge: parts.badge }), function () {
-        openSources(ctx);
-      }));
-      added++;
+      var parts = splitSourceName(sourceTitle());
+      var current = null;
+      sort.forEach(function (item) {
+        if (item.selected) current = item;
+      });
+      var key = current ? (current.source || current.title) : '';
+      addChip('source', text('nova_source', 'nova_skin_source'), parts.name, {
+        badge: knownQuality(key) || parts.badge
+      });
     }
 
-    var season = ctx.groups.season;
-    if (season && season.items.length > 1) {
-      var seasonTitle = season.title || text('torrent_serial_season', 'Сезон');
-      toolbar.append(label(seasonTitle));
-      toolbar.append(bind(chip('season', season.subtitle || '', {}), function () {
-        openGroup(ctx, season, seasonTitle);
-      }));
-      added++;
+    if (groups.season && groups.season.items.length > 1) {
+      addChip('season', groups.season.title || text('torrent_serial_season', 'nova_skin_season'),
+        groups.season.subtitle || '', {});
     }
 
-    var voice = ctx.groups.voice;
-    if (voice && voice.items.length > 1) {
-      var voiceTitle = voice.title || text('torrent_parser_voice', 'Перевод');
-      toolbar.append(label(voiceTitle));
-      toolbar.append(bind(chip('voice', voice.subtitle || '', {}), function () {
-        openGroup(ctx, voice, voiceTitle);
-      }));
-      added++;
+    if (groups.voice && groups.voice.items.length > 1) {
+      addChip('voice', groups.voice.title || text('torrent_parser_voice', 'nova_skin_voice'),
+        groups.voice.subtitle || '', {});
     }
 
-    var search = ctx.root.find('.filter--search').first();
-    if (search.length) {
-      toolbar.append(bind(chip('search', '', { icon: ICON.search, plain: true }), function () {
-        try { search.trigger('hover:enter'); } catch (e) {}
-      }));
+    if (!nav && items.length > JUMP_FROM) {
+      var now = pageAt(pages(items.length), ui_page > 0 ? ui_page : 0);
+      addChip('jump', text('nova_jump', 'nova_skin_jump'), pageTitle(now), {});
     }
 
-    return added ? toolbar : null;
+    rows.append(toolbar);
+
+    if (ui_open === 'source') sourceRow();
+    else if (ui_open === 'season' && groups.season) optionRow(groups.season);
+    else if (ui_open === 'voice' && groups.voice) optionRow(groups.voice);
+    else if (ui_open === 'jump') jumpRow();
   }
 
-  function rebuildCard(ctx, item, fallbackArt) {
-    var card = item.el;
-    if (card.hasClass('nova-card')) return;
+  // ------------------------------------------------------------- navigation
 
-    var thumb = card.find('.online-prestige__img').first();
-    var body = card.find('.online-prestige__body').first();
-    var head = card.find('.online-prestige__head').first();
-    var footer = card.find('.online-prestige__footer').first();
-    var title = card.find('.online-prestige__title').first();
-    var info = card.find('.online-prestige__info').first();
-    var quality = card.find('.online-prestige__quality').first();
-    var time = card.find('.online-prestige__time').first();
-    var timeline = card.find('.online-prestige__timeline').first();
-    var number = card.find('.online-prestige__episode-number').first();
-
-    var timeText = time.length ? time.text().trim() : '';
-    var badge = shortQuality(item.quality);
-
-    card.addClass('nova-card');
-    if (!ctx.serial) card.addClass('nova-card--file');
-    card.find('.online-prestige__loader').remove();
-
-    if (thumb.length) {
-      thumb.addClass('nova-card__thumb');
-      var picture = thumb.find('img').first();
-      if (picture.length) {
-        if (!picture.attr('src') && fallbackArt) {
-          thumb.addClass('nova-card__thumb--fallback');
-          picture.attr('src', fallbackArt);
-        }
-        if (picture[0].complete && picture.attr('src')) thumb.addClass('nova-card__thumb--loaded');
-        picture.on('load', function () { thumb.addClass('nova-card__thumb--loaded'); });
-        picture.on('error', function () { thumb.removeClass('nova-card__thumb--fallback'); });
-      }
-      if (number.length) number.addClass('nova-card__num');
-      if (timeline.length) timeline.addClass('nova-card__line').appendTo(thumb);
-      if (item.viewed) card.find('.online-prestige__viewed').addClass('nova-card__viewed').empty();
-    }
-
-    if (quality.length) quality.remove();
-    if (time.length) time.remove();
-
-    if (body.length) {
-      body.addClass('nova-card__body');
-      if (title.length) title.addClass('nova-card__title').appendTo(body);
-      if (info.length) {
-        info.addClass('nova-card__meta').appendTo(body);
-        info.find('.online-prestige-split').replaceWith('<span class="nova-dot">●</span>');
-      }
-      if (head.length && !head.children().length) head.remove();
-      if (footer.length && !footer.children().length) footer.remove();
-    }
-
-    var side = $('<div class="nova-card__side"></div>');
-    if (badge) side.append($('<div class="nova-badge"></div>').text(badge));
-    if (timeText) side.append($('<div class="nova-card__time"></div>').text(timeText));
-    if (side.children().length) card.append(side);
-
-    card.on('hover:focus', function (e) { novaScroll(e.target); });
+  function focusNode(target) {
+    if (!target) return false;
+    var node = target instanceof jQuery ? target[0] : target;
+    if (!node) return false;
+    last = node;
+    scrollTo(node);
+    try { Lampa.Controller.collectionFocus(node, host); } catch (e) {}
+    return true;
   }
 
-  function rebuildFolders(ctx) {
-    ctx.body.find('.online-prestige--folder').each(function () {
-      var folder = $(this);
-      if (folder.hasClass('nova-card')) return;
-      folder.addClass('nova-card nova-card--nav nova-card--slim');
-      folder.find('.online-prestige__folder').remove();
-
-      var body = folder.find('.online-prestige__body').first().addClass('nova-card__body');
-      folder.find('.online-prestige__title').addClass('nova-card__title').appendTo(body);
-      folder.find('.online-prestige__info').addClass('nova-card__meta').appendTo(body);
-      folder.find('.online-prestige__time').remove();
-      folder.find('.online-prestige__head').remove();
-      folder.find('.online-prestige__footer').remove();
-
-      if (!folder.find('.nova-card__go').length) {
-        body.append('<div class="nova-card__go">' + ICON.chevron + '</div>');
-      }
-      folder.on('hover:focus', function (e) { novaScroll(e.target); });
-    });
+  function seek(key) {
+    if (!key || !ui.root) return null;
+    var found = ui.root.find('[data-nova-focus="' + key + '"]').first();
+    return found.length ? found : null;
   }
 
-  function decorate(ctx, list) {
-    var fallbackArt = heroArt(ctx.movie);
-    list.forEach(function (item) {
-      rebuildCard(ctx, item, fallbackArt);
-    });
-    rebuildFolders(ctx);
-
-    var grid = ctx.serial && !ctx.nav && viewMode() === 'grid' && list.length > 3;
-    if (grid) ctx.body.addClass('nova__list--grid');
-    else ctx.body.removeClass('nova__list--grid');
+  function restoreFocus(fallback) {
+    refreshCollection();
+    var wanted = seek(ui_focus);
+    if (wanted) return focusNode(wanted);
+    if (fallback) return focusNode(fallback);
+    var chip = ui.rows.find('.nova-chip').first();
+    if (chip.length) return focusNode(chip);
+    return false;
   }
 
-  function refresh(ctx, focus) {
+  function refreshCollection() {
+    try { Lampa.Controller.collectionSet(host, false, true); } catch (e) {}
+  }
+
+  function inSkin() {
+    return !!(ui.root && ui.root.parent().length);
+  }
+
+  function toolbarFocused() {
+    if (!inSkin() || !last) return false;
+    return ui.rows.find('.nova-toolbar').find(last).length > 0;
+  }
+
+  function rowsFocused() {
+    if (!inSkin() || !last) return false;
+    return ui.rows.find(last).length > 0;
+  }
+
+  function listFocused() {
+    if (!inSkin() || !last) return false;
+    return ui.list.find(last).length > 0;
+  }
+
+  function toolbarFocus() {
+    if (!inSkin()) return false;
+    var chip = ui.rows.find('.nova-toolbar [data-nova-focus="source"]').first();
+    if (!chip.length) chip = ui.rows.find('.nova-toolbar .nova-chip').first();
+    if (!chip.length) return false;
+    return focusNode(chip);
+  }
+
+  function novaUp() {
+    if (!inSkin()) return false;
     try {
-      Lampa.Controller.collectionSet(ctx.root[0], false, true);
-      if (focus && focus.length) Lampa.Controller.collectionFocus(focus[0], ctx.root[0]);
+      if (window.Navigator && window.Navigator.canmove('up')) return false;
     } catch (e) {}
+
+    if (rowsFocused()) {
+      if (ui.play && ui.play.length && ui.play.parent().length) return focusNode(ui.play);
+      return false;
+    }
+    if (listFocused()) return toolbarFocus();
+    return false;
   }
 
-  var built = null;
-  var signature = '';
-  var busy = false;
+  function novaDown() {
+    if (!inSkin() || ui_open) return false;
+    if (!toolbarFocused() || items.length < 2) return false;
+    var target = pickResume(items);
+    if (target && target.card && target.card.length) return focusNode(target.card);
+    return false;
+  }
 
-  function stamp(ctx, list) {
+  function novaRight() {
+    if (!inSkin()) return false;
+    try {
+      if (window.Navigator && window.Navigator.canmove('right')) return false;
+    } catch (e) {}
+    return toolbarFocus();
+  }
+
+  // ------------------------------------------------------------------ panels
+
+  function nativeState() {
+    var empty = $(host).find('.online-empty').not('.nova-skin-root .online-empty').first();
+    if (!empty.length) return null;
+    if (empty.find('.broadcast__scan').length && !empty.find('.online-empty__title').length) {
+      return { kind: 'loading', node: empty };
+    }
+    return { kind: 'note', node: empty };
+  }
+
+  var loading_started = 0;
+  var loading_timer = null;
+
+  function loadingPanel() {
+    uiFrame();
+    ui.hero_box.empty();
+    ui.hero = null;
+    ui.rows.empty();
+
+    if (!ui.load) {
+      loading_started = Date.now();
+      ui.load = $('<div class="nova-loading">' +
+        '<div class="nova-loading__title"></div>' +
+        '<div class="nova-loading__text"></div>' +
+        '<div class="nova-loading__bar"><div></div></div>' +
+        '</div>');
+      ui.load.find('.nova-loading__title').text(text('nova_loading_title', 'nova_skin_loading_title'));
+    }
+
+    ui.list.empty().append(ui.load).append(skeleton(3));
+    loadingText();
+
+    clearInterval(loading_timer);
+    loading_timer = setInterval(loadingText, 1000);
+  }
+
+  function loadingText() {
+    if (!ui.load || !ui.load.parent().length) return loadingStop();
+    var seconds = Math.max(0, Math.round((Date.now() - loading_started) / 1000));
+    var line = text('nova_loading_start', 'nova_skin_loading_start') +
+      ' \u00b7 ' + seconds + text('nova_sec', 'nova_skin_sec');
+    ui.load.find('.nova-loading__text').text(line);
+    ui.load.find('.nova-loading__bar>div').css('width', Math.min(90, seconds * 7) + '%');
+  }
+
+  function loadingStop() {
+    clearInterval(loading_timer);
+    loading_timer = null;
+    ui.load = null;
+  }
+
+  function notePanel(native) {
+    uiFrame();
+    loadingStop();
+    ui.hero_box.empty();
+    ui.hero = null;
+    ui.rows.empty();
+
+    var note = $('<div class="nova-note"><div class="nova-note__main">' +
+      '<div class="nova-note__title"></div><div class="nova-note__text"></div>' +
+      '<div class="nova-note__actions"></div></div></div>');
+
+    note.find('.nova-note__title').text(native.node.find('.online-empty__title').text().trim());
+    note.find('.nova-note__text').text(native.node.find('.online-empty__time').text().trim());
+
+    var actions = note.find('.nova-note__actions');
+    native.node.find('.online-empty__button').each(function () {
+      var origin = $(this);
+      var button = $('<div class="nova-btn selector"></div>');
+      button.attr('data-nova-focus', 'note:' + actions.children().length);
+      if (origin.hasClass('change')) button.append(ICON.chevron);
+      else button.append(ICON.refresh);
+      button.append($('<span></span>').text(origin.text().trim()));
+      bind(button, function () {
+        try { origin.trigger('hover:enter'); } catch (e) {}
+      });
+      actions.append(button);
+    });
+
+    var search = root.find('.filter--search').first();
+    if (search.length) {
+      var clarify = $('<div class="nova-btn selector"></div>');
+      clarify.attr('data-nova-focus', 'note:clarify');
+      clarify.append(ICON.search).append($('<span></span>').text(text('nova_clarify', 'nova_skin_clarify')));
+      bind(clarify, function () {
+        try { search.trigger('hover:enter'); } catch (e) {}
+      });
+      actions.append(clarify);
+    }
+
+    ui.list.empty().append(note);
+    refreshCollection();
+    if (!seek(ui_focus)) focusNode(actions.find('.selector').first());
+    return note;
+  }
+
+  // -------------------------------------------------------------------- draw
+
+  function showPage(start, focus) {
+    ui_open = '';
+    ui_focus = '';
+    ui_page = start;
+    ui_page_focus = typeof focus === 'number' ? focus : start;
+    redraw();
+  }
+
+  function stamp() {
     return [
-      list.length,
-      ctx.nav ? 'nav' : 'files',
-      sourceName(ctx),
-      ctx.groups.season ? ctx.groups.season.subtitle : '',
-      ctx.groups.voice ? ctx.groups.voice.subtitle : '',
+      items.length,
+      nav ? 'nav' : 'files',
+      sourceTitle(),
+      groups.season ? groups.season.subtitle : '',
+      groups.voice ? groups.voice.subtitle : '',
       viewMode(),
-      list.length ? list[0].title : ''
+      ui_open,
+      ui_page,
+      ui_all_sources ? 1 : 0,
+      items.length ? items[0].title : '',
+      items.filter(function (i) { return isSeen(i); }).length
     ].join('|');
   }
 
   function draw() {
-    if (!enabled()) return;
-    var ctx = context();
-    if (!ctx) return;
+    if (!enabled() || busy) return;
 
-    var list = collect(ctx);
-    decorate(ctx, list);
+    var found = scope();
+    if (!found) return;
 
-    var mark = stamp(ctx, list);
-    var fresh = built !== ctx.body[0];
-    if (!fresh && mark === signature) return;
+    root = found.root;
+    host = found.body[0];
+    movie = found.movie;
+    filter = activeFilter(root) || filter;
+    groups = readGroups(filter);
 
-    busy = true;
-    built = ctx.body[0];
-    signature = mark;
-
-    ctx.body.find('.nova-head').remove();
-
-    var head = $('<div class="nova nova-head"></div>');
-    var hero = buildHero(ctx, list);
-    if (hero) head.append(hero);
-    var toolbar = buildToolbar(ctx);
-    if (toolbar) head.append(toolbar);
-
-    if (!head.children().length) {
+    var native = nativeState();
+    if (native) {
+      busy = true;
+      root.addClass('nova-skin-scope nova-skin-chips');
+      native.node.addClass('nova-hidden');
+      items = [];
+      if (native.kind === 'loading') loadingPanel();
+      else notePanel(native);
       busy = false;
       return;
     }
 
-    ctx.body.prepend(head);
-    ctx.root.addClass('nova-skin-scope');
-    if (toolbar) ctx.root.addClass('nova-skin-chips');
+    var list = collect();
+    if (!list.length) return;
 
-    var target = fresh ? head.find('.nova-btn--main').first() : null;
-    refresh(ctx, target && target.length ? target : null);
+    var files = list.filter(function (item) { return !item.folder; });
+    nav = files.length === 0;
+    serial = !!(movie.name || movie.number_of_seasons) && !nav;
 
-    setTimeout(function () { busy = false; }, 120);
+    items = list;
+    var mark = stamp();
+
+    if (signature === mark && ui.list && ui.list.children().length) return;
+
+    busy = true;
+    signature = mark;
+
+    loadingStop();
+    root.addClass('nova-skin-scope nova-skin-chips');
+    uiFrame();
+
+    // this source clearly answered, remember it the same way the plugin does
+    if (!nav) {
+      var current = null;
+      (groups.sort || []).forEach(function (entry) {
+        if (entry.selected) current = entry;
+      });
+      var key = current ? (current.source || current.title) : '';
+      if (key) {
+        probeSave(movie.id, key, 'ok', files.length);
+        var best = '';
+        files.forEach(function (item) {
+          var label = shortQuality(item.quality);
+          if ((QUALITY_RANK[label] || 0) > (QUALITY_RANK[best] || 0)) best = label;
+        });
+        rememberQuality(key, best);
+      }
+    }
+
+    // hide the original markup, keep it alive so the plugin handlers still work
+    $(host).children().each(function () {
+      if (this === ui.root[0]) return;
+      $(this).addClass('nova-hidden');
+    });
+    list.forEach(function (item) {
+      item.origin.removeClass('selector');
+    });
+
+    var compact = !serial && !nav && list.length > 1;
+    var grid = !nav && list.length > 3 && viewMode() === 'grid';
+    if (grid) ui.list.addClass('nova__list--grid');
+    else ui.list.removeClass('nova__list--grid');
+
+    var paged = !nav && list.length > JUMP_FROM;
+    var start = 0;
+    var end = list.length - 1;
+
+    if (paged) {
+      var all = pages(list.length);
+      var page;
+      if (ui_page < 0 || ui_page >= list.length) {
+        var resume = pickResume(list);
+        page = pageAt(all, resume ? resume.index : 0);
+      } else page = pageAt(all, ui_page);
+      ui_page = page.start;
+      start = page.start;
+      end = page.end;
+    } else ui_page = 0;
+
+    ui.list.empty();
+    list.forEach(function (item) {
+      if (paged && (item.index < start || item.index > end)) {
+        item.card = null;
+        return;
+      }
+      ui.list.append(buildCard(item, compact && !grid));
+    });
+
+    var button = buildHero();
+    buildRows();
+
+    var fallback = false;
+    if (ui_page_focus >= 0) {
+      var wanted = list[ui_page_focus];
+      if (wanted && wanted.card) fallback = wanted.card;
+      ui_page_focus = -1;
+    }
+    if (!fallback && button && button.length) fallback = button;
+    if (!fallback) fallback = ui.list.find('.nova-card').first();
+
+    restoreFocus(fallback);
+    busy = false;
   }
+
+  function redraw() {
+    signature = '';
+    if (ui.list) ui.list.empty();
+    draw();
+  }
+
+  // -------------------------------------------------------------- lifecycle
 
   var timer = null;
   var observer = null;
@@ -645,14 +1478,6 @@
     if (busy) return;
     clearTimeout(timer);
     timer = setTimeout(draw, 60);
-  }
-
-  function redraw() {
-    built = null;
-    signature = '';
-    var ctx = context();
-    if (ctx) ctx.body.find('.nova-head').remove();
-    draw();
   }
 
   function attach() {
@@ -667,8 +1492,22 @@
     } catch (e) { return; }
     if (!target) return;
 
-    observer = new MutationObserver(schedule);
+    observer = new MutationObserver(function (records) {
+      for (var i = 0; i < records.length; i++) {
+        var node = records[i].target;
+        if (node && node.nodeType === 1 && $(node).closest('.nova-skin-root').length) continue;
+        return schedule();
+      }
+    });
     observer.observe(target, { childList: true, subtree: true });
+  }
+
+  function detach() {
+    if (observer) observer.disconnect();
+    observer = null;
+    clearTimeout(timer);
+    loadingStop();
+    forget();
   }
 
   function hookQuality() {
@@ -709,36 +1548,58 @@
 
       Lampa.SettingsApi.addParam({
         component: 'nova_skin',
-        param: { name: STORAGE_KEY, type: 'trigger', default: true },
-        field: { name: 'Включить Nova Skin', description: 'Новый интерфейс для всех онлайн-плагинов' },
+        param: { name: ENABLED_KEY, type: 'trigger', default: true },
+        field: {
+          name: 'Включить Nova Skin',
+          description: 'Единый интерфейс для всех онлайн-плагинов'
+        },
         onChange: function () { try { Lampa.Activity.replace(); } catch (e) {} }
       });
 
       Lampa.SettingsApi.addParam({
         component: 'nova_skin',
         param: { name: 'nova_skin_hero', type: 'trigger', default: true },
-        field: { name: 'Шапка с кнопкой', description: 'Кадр, прогресс и кнопка продолжения сверху' },
+        field: {
+          name: 'Шапка с кнопкой',
+          description: 'Кадр, прогресс и кнопка продолжения сверху'
+        },
         onChange: function () { try { Lampa.Activity.replace(); } catch (e) {} }
       });
 
       Lampa.SettingsApi.addParam({
         component: 'nova_skin',
         param: { name: 'nova_skin_hero_art', type: 'trigger', default: true },
-        field: { name: 'Кадр в шапке', description: 'Выключите для компактной шапки без картинки' },
+        field: {
+          name: 'Кадр в шапке',
+          description: 'Выключите для компактной шапки без картинки'
+        },
         onChange: function () { try { Lampa.Activity.replace(); } catch (e) {} }
       });
 
       Lampa.SettingsApi.addParam({
         component: 'nova_skin',
-        param: { name: 'nova_skin_view', type: 'select', values: { list: 'Список', grid: 'Плитка' }, default: 'list' },
-        field: { name: 'Вид серий', description: 'Список или плитка (4 в ряд)' },
+        param: {
+          name: 'nova_skin_view',
+          type: 'select',
+          values: { list: 'Список', grid: 'Плитка' },
+          default: 'list'
+        },
+        field: { name: 'Вид списка', description: 'Список или плитка (4 в ряд)' },
         onChange: function () { redraw(); }
       });
 
       Lampa.SettingsApi.addParam({
         component: 'nova_skin',
-        param: { name: 'nova_skin_quality', type: 'select', values: { auto: 'Авто', 2160: '4K', 1080: '1080p', 720: '720p', 480: '480p' }, default: 'auto' },
-        field: { name: 'Качество по умолчанию', description: 'Предпочтительное качество воспроизведения' }
+        param: {
+          name: 'nova_skin_quality',
+          type: 'select',
+          values: { auto: 'Авто', 2160: '4K', 1080: '1080p', 720: '720p', 480: '480p' },
+          default: 'auto'
+        },
+        field: {
+          name: 'Качество по умолчанию',
+          description: 'Предпочтительное качество воспроизведения'
+        }
       });
     } catch (e) {}
   }
@@ -747,20 +1608,19 @@
     addCSS();
     settings();
     hookFilter();
+    hookScroll();
+    hookController();
     hookQuality();
 
     Lampa.Listener.follow('activity', function (e) {
       if (e.type === 'start' || e.type === 'archive') {
-        built = null;
-        signature = '';
-        busy = false;
-        setTimeout(function () { attach(); draw(); }, 100);
+        detach();
+        setTimeout(function () {
+          attach();
+          draw();
+        }, 100);
       }
-      if (e.type === 'destroy') {
-        built = null;
-        signature = '';
-        if (observer) observer.disconnect();
-      }
+      if (e.type === 'destroy') detach();
     });
 
     Lampa.Controller.listener.follow('toggle', function (e) {
@@ -770,7 +1630,7 @@
 
   var SKIN_CSS = ".nova{padding:0 0 3em 0}.nova *{-webkit-box-sizing:border-box;box-sizing:border-box}.nova-hero{position:relative;overflow:hidden;-webkit-border-radius:1.2em;border-radius:1.2em;margin-bottom:1.7em;background:rgba(255,255,255,.06);min-height:13em}.nova-hero--compact{min-height:0;margin-bottom:1.3em}.nova-hero--compact .nova-hero__body{padding:1.1em 1.4em;max-width:100%;min-height:5.2em;display:-webkit-box;display:-webkit-flex;display:-ms-flexbox;display:flex;-webkit-box-orient:vertical;-webkit-box-direction:normal;-webkit-flex-direction:column;-ms-flex-direction:column;flex-direction:column;-webkit-box-pack:center;-webkit-justify-content:center;-ms-flex-pack:center;justify-content:center}.nova-hero--compact .nova-hero__actions{margin:0}.nova-hero--compact .nova-btn--main{margin-bottom:0}.nova-hero--compact .nova-hero__season{margin:.6em 0 0 .2em;font-size:.95em;opacity:.55}.nova-hero--compact .nova-hero__progress{position:absolute;left:0;right:0;bottom:0;width:auto;height:.3em;margin:0;-webkit-border-radius:0;border-radius:0}.nova-hero--compact .nova-hero__shade{background:-webkit-linear-gradient(left,rgba(10,11,17,.94) 0%,rgba(10,11,17,.8) 45%,rgba(10,11,17,.3) 100%);background:linear-gradient(90deg,rgba(10,11,17,.94) 0%,rgba(10,11,17,.8) 45%,rgba(10,11,17,.3) 100%)}.nova-hero--compact .nova-hero__progress{margin-top:.8em}.nova-hero__bg{position:absolute;top:0;left:0;right:0;bottom:0}.nova-hero__bg img{display:block;width:100%;height:100%;-o-object-fit:cover;object-fit:cover;opacity:0;-webkit-transition:opacity .35s;transition:opacity .35s}.nova-hero__bg--loaded img{opacity:1}.nova-hero__shade{position:absolute;top:0;left:0;right:0;bottom:0;background:-webkit-linear-gradient(left,rgba(10,11,17,.97) 0%,rgba(10,11,17,.9) 36%,rgba(10,11,17,.45) 68%,rgba(10,11,17,.1) 100%);background:linear-gradient(90deg,rgba(10,11,17,.97) 0%,rgba(10,11,17,.9) 36%,rgba(10,11,17,.45) 68%,rgba(10,11,17,.1) 100%)}.nova-hero__body{position:relative;padding:2.2em;max-width:64%}.nova-hero__title{font-size:2.3em;font-weight:600;line-height:1.15;margin-bottom:.35em;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}.nova-hero__meta{display:-webkit-box;display:-webkit-flex;display:-ms-flexbox;display:flex;-webkit-flex-wrap:wrap;-ms-flex-wrap:wrap;flex-wrap:wrap;-webkit-box-align:center;-webkit-align-items:center;-ms-flex-align:center;align-items:center;font-size:1.1em;margin-bottom:.7em}.nova-hero__meta>*{margin:0 .7em .3em 0;opacity:.8}.nova-hero__meta>.nova-badge{opacity:1}.nova-hero__descr{font-size:1.05em;line-height:1.45;opacity:.65;margin-bottom:1.2em;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}.nova-hero__actions{display:-webkit-box;display:-webkit-flex;display:-ms-flexbox;display:flex;-webkit-flex-wrap:wrap;-ms-flex-wrap:wrap;flex-wrap:wrap;-webkit-box-align:center;-webkit-align-items:center;-ms-flex-align:center;align-items:center}.nova-hero__hint{font-size:1em;line-height:1.5;opacity:.55;margin:0 0 0 1.3em;max-width:24em;padding:.1em .15em;overflow:hidden;white-space:nowrap;-o-text-overflow:ellipsis;text-overflow:ellipsis}.nova-hero__progress{position:relative;height:.3em;width:16em;max-width:100%;-webkit-border-radius:.3em;border-radius:.3em;background:rgba(255,255,255,.2);margin-top:.9em;overflow:hidden}.nova-hero__progress .time-line{display:block !important;height:100%;margin:0;background:none}.nova-hero__progress .time-line>div{height:100%;background:#fff}.nova-badge{display:inline-block;padding:.2em .55em;-webkit-border-radius:.35em;border-radius:.35em;background:rgba(255,255,255,.18);font-size:.78em;font-weight:600;letter-spacing:.04em;line-height:1.4}.nova-btn{position:relative;display:-webkit-box;display:-webkit-flex;display:-ms-flexbox;display:flex;-webkit-box-align:center;-webkit-align-items:center;-ms-flex-align:center;align-items:center;padding:.7em 1.5em;-webkit-border-radius:2.4em;border-radius:2.4em;background:rgba(255,255,255,.12);font-size:1.15em;white-space:nowrap;margin:0 .8em .5em 0}.nova-btn>svg{width:1.15em;height:1.15em;margin-right:.6em;-webkit-flex-shrink:0;-ms-flex-negative:0;flex-shrink:0}.nova-btn.focus{background:#fff;color:#000}.nova-btn--main{background:rgba(255,255,255,.82);color:#000}.nova-btn--main.focus{background:#fff;-webkit-box-shadow:0 .25em .9em rgba(0,0,0,.45);box-shadow:0 .25em .9em rgba(0,0,0,.45)}.nova-btn--ghost{background:rgba(255,255,255,.14);font-size:1.05em}.nova-section{margin-bottom:1.1em}.nova-section__title{display:-webkit-box;display:-webkit-flex;display:-ms-flexbox;display:flex;-webkit-box-align:center;-webkit-align-items:center;-ms-flex-align:center;align-items:center;font-size:.95em;letter-spacing:.12em;text-transform:uppercase;opacity:.5;margin-bottom:.7em}.nova-section__title:before{content:\"\";display:inline-block;width:.25em;height:1.1em;background:currentColor;margin-right:.6em;-webkit-border-radius:.2em;border-radius:.2em}.nova-section__body{display:-webkit-box;display:-webkit-flex;display:-ms-flexbox;display:flex;-webkit-flex-wrap:wrap;-ms-flex-wrap:wrap;flex-wrap:wrap;-webkit-box-align:center;-webkit-align-items:center;-ms-flex-align:center;align-items:center}.nova-chip{position:relative;display:-webkit-box;display:-webkit-flex;display:-ms-flexbox;display:flex;-webkit-box-align:center;-webkit-align-items:center;-ms-flex-align:center;align-items:center;padding:.55em 1.1em;-webkit-border-radius:2em;border-radius:2em;background:rgba(255,255,255,.07);margin:0 .7em .7em 0;font-size:1.05em;white-space:nowrap;max-width:24em}.nova-chip.focus{background:#fff;color:#000}.nova-chip--active{background:rgba(255,255,255,.16);-webkit-box-shadow:inset 0 0 0 .1em rgba(255,255,255,.5);box-shadow:inset 0 0 0 .1em rgba(255,255,255,.5)}.nova-chip--active.focus{-webkit-box-shadow:0 .2em .7em rgba(0,0,0,.4);box-shadow:0 .2em .7em rgba(0,0,0,.4)}.nova-chip__idx{font-size:.85em;opacity:.45;margin-right:.55em}.nova-chip__badge{font-size:.7em;font-weight:600;padding:.2em .45em;-webkit-border-radius:.35em;border-radius:.35em;background:rgba(255,255,255,.2);margin-right:.6em;line-height:1.4}.nova-chip.focus .nova-chip__badge{background:rgba(0,0,0,.12)}.nova-chip--more{opacity:.75}.nova-chip__label{line-height:1.5;padding:.05em .1em;overflow:hidden;-o-text-overflow:ellipsis;text-overflow:ellipsis}.nova-chip>svg{width:1em;height:1em;-webkit-flex-shrink:0;-ms-flex-negative:0;flex-shrink:0}.nova-chip__label+svg{margin-left:.6em;opacity:.6}.nova-chip>svg:first-child{margin-right:.55em;opacity:.7}.nova-chip--source{font-size:1.15em;padding:.5em 1.1em}.nova-chip--ghost{opacity:.5}.nova-chip--busy .nova-chip__label{opacity:.5}.nova-chip__dot{width:.5em;height:.5em;-webkit-border-radius:50%;border-radius:50%;margin-left:.6em;-webkit-flex-shrink:0;-ms-flex-negative:0;flex-shrink:0;background:#4ade80}.nova-chip--checking{opacity:.55}.nova-chip--empty{opacity:.35}.nova-toolbar{display:-webkit-box;display:-webkit-flex;display:-ms-flexbox;display:flex;-webkit-flex-wrap:wrap;-ms-flex-wrap:wrap;flex-wrap:wrap;-webkit-box-align:center;-webkit-align-items:center;-ms-flex-align:center;align-items:center;margin-bottom:1em}.nova-toolbar__label{font-size:.95em;letter-spacing:.12em;text-transform:uppercase;opacity:.45;margin:0 .9em .7em 0}.nova-toolbar .nova-btn--main{margin:0 1.4em .7em 0;font-size:1.1em;padding:.55em 1.3em}.nova-toolbar .nova-btn__label{max-width:18em;overflow:hidden;-o-text-overflow:ellipsis;text-overflow:ellipsis;white-space:nowrap}.nova-card{position:relative;display:-webkit-box;display:-webkit-flex;display:-ms-flexbox;display:flex;-webkit-box-align:center;-webkit-align-items:center;-ms-flex-align:center;align-items:center;padding:.7em;-webkit-border-radius:.9em;border-radius:.9em;background:rgba(255,255,255,.05);margin-bottom:.7em}.nova-card.focus{background:#fff;color:#000}.nova-card__thumb{position:relative;width:10.5em;height:5.9em;-webkit-flex-shrink:0;-ms-flex-negative:0;flex-shrink:0;-webkit-border-radius:.5em;border-radius:.5em;overflow:hidden;background:rgba(0,0,0,.35)}.nova-card__thumb img{position:absolute;top:0;left:0;width:100%;height:100%;-o-object-fit:cover;object-fit:cover;opacity:0;-webkit-transition:opacity .3s;transition:opacity .3s}.nova-card__thumb--loaded img{opacity:1}.nova-card__num{position:absolute;top:0;left:0;right:0;bottom:0;display:-webkit-box;display:-webkit-flex;display:-ms-flexbox;display:flex;-webkit-box-align:center;-webkit-align-items:center;-ms-flex-align:center;align-items:center;-webkit-box-pack:center;-webkit-justify-content:center;-ms-flex-pack:center;justify-content:center;font-size:1.7em;font-weight:600;color:#fff;text-shadow:0 .05em .2em rgba(0,0,0,.7)}.nova-card__thumb--loaded .nova-card__num{-webkit-box-pack:end;-webkit-justify-content:flex-end;-ms-flex-pack:end;justify-content:flex-end;-webkit-box-align:end;-webkit-align-items:flex-end;-ms-flex-align:end;align-items:flex-end;font-size:1.1em;padding:0 .5em .35em 0}.nova-card__thumb--fallback.nova-card__thumb--loaded img{opacity:.4}.nova-card__thumb--fallback.nova-card__thumb--loaded .nova-card__num{-webkit-box-pack:center;-webkit-justify-content:center;-ms-flex-pack:center;justify-content:center;-webkit-box-align:center;-webkit-align-items:center;-ms-flex-align:center;align-items:center;font-size:1.7em;padding:0}.nova-card__viewed{position:absolute;top:.5em;left:.5em;width:.5em;height:.5em;-webkit-border-radius:50%;border-radius:50%;background:#fff;opacity:.85;-webkit-box-shadow:0 0 0 .16em rgba(0,0,0,.4);box-shadow:0 0 0 .16em rgba(0,0,0,.4)}.nova-card__line{position:absolute;left:0;right:0;bottom:0;height:.28em;background:rgba(0,0,0,.5)}.nova-card__line .time-line{display:block !important;height:100%;margin:0;background:none}.nova-card__line .time-line>div{height:100%;background:#fff}.nova-card__body{-webkit-box-flex:1;-webkit-flex-grow:1;-ms-flex-positive:1;flex-grow:1;padding:0 1.2em;min-width:1em;overflow:hidden}.nova-card__title{font-size:1.25em;line-height:1.4;margin-bottom:.3em;padding-bottom:.05em;overflow:hidden;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical}.nova-card__meta{font-size:.95em;line-height:1.45;opacity:.6;padding-bottom:.05em;overflow:hidden;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical}.nova-card__meta .nova-dot{margin:0 .5em;opacity:.6}.nova-card__match{display:inline-block;margin-top:.4em;padding:.15em .6em;-webkit-border-radius:.35em;border-radius:.35em;background:rgba(126,217,150,.2);color:#8fe0a4;font-size:.82em;font-weight:600}.nova-card--match .nova-card__thumb{-webkit-box-shadow:inset 0 0 0 .13em rgba(126,217,150,.75);box-shadow:inset 0 0 0 .13em rgba(126,217,150,.75)}.nova-card__side{-webkit-flex-shrink:0;-ms-flex-negative:0;flex-shrink:0;text-align:right;padding-right:.7em}.nova-card__time{font-size:.95em;opacity:.6;margin-top:.4em}.nova-card--soon{opacity:.45}.nova-card--nav .nova-card__body{display:-webkit-box;display:-webkit-flex;display:-ms-flexbox;display:flex;-webkit-box-align:center;-webkit-align-items:center;-ms-flex-align:center;align-items:center}.nova-card--nav .nova-card__body{-webkit-flex-wrap:wrap;-ms-flex-wrap:wrap;flex-wrap:wrap}.nova-card--nav .nova-card__title{-webkit-box-flex:1;-webkit-flex-grow:1;-ms-flex-positive:1;flex-grow:1;margin-bottom:0}.nova-card--nav .nova-card__meta{width:100%;margin-top:.2em;font-size:.85em}.nova-card__go{-webkit-flex-shrink:0;-ms-flex-negative:0;flex-shrink:0;opacity:.45;padding-left:1em}.nova-card__go>svg{width:1.2em;height:1.2em;-webkit-transform:rotate(-90deg);transform:rotate(-90deg)}.nova-card--slim{padding:.75em 1.1em}.nova-card--slim .nova-card__thumb{display:none}.nova-card--slim .nova-card__body{padding-left:0}.nova-card--slim .nova-card__title{font-size:1.2em;margin-bottom:0}.nova-card__line--body{position:static;height:.25em;margin-top:.55em;-webkit-border-radius:.2em;border-radius:.2em;background:rgba(255,255,255,.18)}.nova-card.focus .nova-card__line--body{background:rgba(0,0,0,.16)}.nova-card.focus .nova-card__line--body .time-line>div{background:#000}.nova-card--slim .nova-card__line{position:static;height:.25em;margin-top:.5em;-webkit-border-radius:.2em;border-radius:.2em;background:rgba(255,255,255,.16)}.nova-card--slim.focus .nova-card__line{background:rgba(0,0,0,.15)}.nova-card--slim.focus .nova-card__line .time-line>div{background:#000}.nova-list-group{font-size:.9em;letter-spacing:.12em;text-transform:uppercase;opacity:.45;margin:1.2em 0 .55em .2em}.nova-list-group:first-child{margin-top:0}.nova-card--file .nova-card__thumb{width:4.4em;height:4.4em}.nova-skeleton__row{display:-webkit-box;display:-webkit-flex;display:-ms-flexbox;display:flex;-webkit-box-align:center;-webkit-align-items:center;-ms-flex-align:center;align-items:center;padding:.7em;-webkit-border-radius:.9em;border-radius:.9em;background:rgba(255,255,255,.04);margin-bottom:.7em;-webkit-animation:novapulse 1.4s infinite;animation:novapulse 1.4s infinite}.nova-skeleton__thumb{width:10.5em;height:5.9em;-webkit-border-radius:.5em;border-radius:.5em;background:rgba(255,255,255,.08);-webkit-flex-shrink:0;-ms-flex-negative:0;flex-shrink:0}.nova-skeleton__body{-webkit-box-flex:1;-webkit-flex-grow:1;-ms-flex-positive:1;flex-grow:1;padding-left:1.2em}.nova-skeleton__line{height:1em;-webkit-border-radius:.3em;border-radius:.3em;background:rgba(255,255,255,.08);margin-bottom:.7em}.nova-skeleton__line--short{width:35%;margin-bottom:0}@-webkit-keyframes novapulse{0%{opacity:.45}50%{opacity:1}100%{opacity:.45}}@keyframes novapulse{0%{opacity:.45}50%{opacity:1}100%{opacity:.45}}.nova-loading{padding:1.6em 1.8em;-webkit-border-radius:1em;border-radius:1em;background:rgba(255,255,255,.05);margin-bottom:1.2em}.nova-loading__title{font-size:1.4em;margin-bottom:.35em}.nova-loading__text{font-size:1.05em;opacity:.6;margin-bottom:1em}.nova-loading__bar{position:relative;height:.3em;-webkit-border-radius:.3em;border-radius:.3em;background:rgba(255,255,255,.14);overflow:hidden}.nova-loading__bar>div{height:100%;width:0;background:#fff;-webkit-transition:width .4s;transition:width .4s}.nova-note{display:-webkit-box;display:-webkit-flex;display:-ms-flexbox;display:flex;-webkit-box-align:center;-webkit-align-items:center;-ms-flex-align:center;align-items:center;padding:2em;-webkit-border-radius:1em;border-radius:1em;background:rgba(255,255,255,.05)}.nova-note__main{-webkit-box-flex:1;-webkit-flex-grow:1;-ms-flex-positive:1;flex-grow:1;min-width:1em}.nova-note__text a{color:#fff;text-decoration:underline}.nova-note__text img{max-width:9em;height:auto;background:#fff;padding:.4em;-webkit-border-radius:.4em;border-radius:.4em;margin-top:.7em;opacity:1}.nova-note__text ul,.nova-note__text ol{margin:.5em 0;padding-left:1.2em}.nova-note__title{font-size:1.6em;margin-bottom:.4em;line-height:1.25}.nova-note__text{font-size:1.1em;color:rgba(255,255,255,.62);margin-bottom:1.3em;line-height:1.4}.nova-note__actions{display:-webkit-box;display:-webkit-flex;display:-ms-flexbox;display:flex;-webkit-flex-wrap:wrap;-ms-flex-wrap:wrap;flex-wrap:wrap}.nova-note__timer{font-weight:600}.nova-group{display:-webkit-box;display:-webkit-flex;display:-ms-flexbox;display:flex;-webkit-box-align:center;-webkit-align-items:center;-ms-flex-align:center;align-items:center;padding:.5em 1.1em;-webkit-border-radius:2em;border-radius:2em;background:rgba(255,255,255,.07);margin:0 .7em .7em 0;font-size:1.1em;white-space:nowrap}.nova-group.focus{background:#fff;color:#000}.nova-group--open{background:rgba(255,255,255,.2);-webkit-box-shadow:inset 0 0 0 .1em rgba(255,255,255,.5);box-shadow:inset 0 0 0 .1em rgba(255,255,255,.5)}.nova-group--open.focus{-webkit-box-shadow:0 .2em .7em rgba(0,0,0,.4);box-shadow:0 .2em .7em rgba(0,0,0,.4)}.nova-group__count{font-size:.78em;opacity:.55;margin-left:.6em}.nova-group__mark{width:.5em;height:.5em;-webkit-border-radius:50%;border-radius:50%;background:#fff;margin-right:.6em;-webkit-flex-shrink:0;-ms-flex-negative:0;flex-shrink:0}.nova-drop{display:-webkit-box;display:-webkit-flex;display:-ms-flexbox;display:flex;-webkit-flex-wrap:wrap;-ms-flex-wrap:wrap;flex-wrap:wrap;-webkit-box-align:center;-webkit-align-items:center;-ms-flex-align:center;align-items:center;padding:.3em 0 0 1em;margin:0 0 .7em .3em;-webkit-box-shadow:inset .16em 0 0 rgba(255,255,255,.18);box-shadow:inset .16em 0 0 rgba(255,255,255,.18)}.nova__list--grid{display:-webkit-box;display:-webkit-flex;display:-ms-flexbox;display:flex;-webkit-flex-wrap:wrap;-ms-flex-wrap:wrap;flex-wrap:wrap;margin:0 -.45em}.nova__list--grid .nova-card{display:block;width:25%;margin:0 0 1em 0;padding:0 .45em;background:none}.nova__list--grid .nova-card.focus{background:none;color:inherit}.nova__list--grid .nova-card__thumb{width:100%;height:0;padding-top:56%}.nova__list--grid .nova-card--file .nova-card__thumb{width:100%;height:0;padding-top:56%}.nova__list--grid .nova-card.focus .nova-card__thumb{-webkit-box-shadow:0 0 0 .2em #fff;box-shadow:0 0 0 .2em #fff}.nova__list--grid .nova-card__body{padding:.6em .1em 0 .1em}.nova__list--grid .nova-card__title{font-size:1.1em}.nova__list--grid .nova-card__side{position:absolute;top:.5em;right:.9em;text-align:right}.nova__list--grid .nova-card__time{display:none}.nova__list--grid .nova-card__num{-webkit-box-pack:start;-webkit-justify-content:flex-start;-ms-flex-pack:start;justify-content:flex-start;-webkit-box-align:start;-webkit-align-items:flex-start;-ms-flex-align:start;align-items:flex-start;padding:.4em 0 0 .55em;font-size:1.2em}.nova-hero__season{font-size:.95em;opacity:.55;margin-top:.8em}@media screen and (max-width:1200px){.nova__list--grid .nova-card{width:33.3333%}}@media screen and (max-width:580px){.nova__list--grid .nova-card{width:50%}.nova-hero__body{max-width:100%;padding:1.3em}.nova-hero__title{font-size:1.7em}.nova-hero__descr{display:none}.nova-hero__shade{background:-webkit-linear-gradient(top,rgba(10,11,17,.55) 0%,rgba(10,11,17,.94) 60%);background:linear-gradient(180deg,rgba(10,11,17,.55) 0%,rgba(10,11,17,.94) 60%)}.nova-card__thumb{width:7em;height:4.4em}.nova-card__side{display:none}.nova-chip{max-width:16em}}";
 
-  var EXTRA_CSS = ".nova-skin-chips .explorer__files-head{display:none!important}.nova-skin-scope .online-prestige-watched{display:none!important}.nova-skin-scope .nova-head{margin-bottom:0}.nova-skin-scope .nova-card{display:-webkit-box!important;display:-webkit-flex!important;display:-ms-flexbox!important;display:flex!important;-webkit-box-align:center;-webkit-align-items:center;-ms-flex-align:center;align-items:center!important;background:rgba(255,255,255,.05)!important;padding:.7em!important;margin:0 0 .7em 0!important;-webkit-border-radius:.9em!important;border-radius:.9em!important}.nova-skin-scope .nova-card.focus{background:#fff!important;color:#000!important}.nova-skin-scope .nova-card.focus::after{display:none!important;content:none!important;border:0!important}.nova-skin-scope .nova-card+.nova-card{margin-top:0!important}.nova-skin-scope .nova-card__thumb{position:relative;width:10.5em!important;height:5.9em!important;min-height:0!important;-webkit-flex-shrink:0;-ms-flex-negative:0;flex-shrink:0;-webkit-border-radius:.5em!important;border-radius:.5em!important;overflow:hidden!important;background:rgba(0,0,0,.35)}.nova-skin-scope .nova-card--file .nova-card__thumb{width:4.4em!important;height:4.4em!important}.nova-skin-scope .nova-card__thumb>img{-webkit-border-radius:0!important;border-radius:0!important}.nova-skin-scope .nova-card__num{font-size:1.7em!important}.nova-skin-scope .nova-card__thumb--loaded .nova-card__num{font-size:1.1em!important;-webkit-box-pack:end;-webkit-justify-content:flex-end;-ms-flex-pack:end;justify-content:flex-end!important;-webkit-box-align:end;-webkit-align-items:flex-end;-ms-flex-align:end;align-items:flex-end!important;padding:0 .5em .35em 0!important}.nova-skin-scope .nova-card__line{position:absolute!important;left:.4em;right:.4em;bottom:.4em;margin:0!important}.nova-skin-scope .nova-card__line>.time-line{display:block!important}.nova-skin-scope .nova-card__viewed{top:.5em!important;left:.5em!important;width:.5em!important;height:.5em!important;padding:0!important;background:#fff!important;opacity:.85;-webkit-box-shadow:0 0 0 .16em rgba(0,0,0,.4);box-shadow:0 0 0 .16em rgba(0,0,0,.4)}.nova-skin-scope .nova-card__viewed>svg{display:none!important}.nova-skin-scope .nova-card__body{-webkit-box-flex:1;-webkit-flex-grow:1;-ms-flex-positive:1;flex-grow:1;min-width:1em;padding:0 1.1em!important;line-height:1.3}.nova-skin-scope .nova-card__title{font-size:1.25em!important;margin-bottom:.25em!important;-webkit-line-clamp:1}.nova-skin-scope .nova-card__meta{display:-webkit-box!important;display:-webkit-flex!important;display:-ms-flexbox!important;display:flex!important;-webkit-flex-wrap:wrap;-ms-flex-wrap:wrap;flex-wrap:wrap;-webkit-box-align:center;-webkit-align-items:center;-ms-flex-align:center;align-items:center!important;font-size:.95em!important;opacity:.62;padding:0!important;margin:0!important}.nova-skin-scope .nova-card__meta>*{display:inline-block!important;overflow:visible!important;-webkit-line-clamp:none!important;margin:0!important;padding:0!important}.nova-skin-scope .nova-card__meta>.nova-dot{margin:0 .55em!important;font-size:.7em;opacity:.55}.nova-skin-scope .nova-card__side{-webkit-flex-shrink:0;-ms-flex-negative:0;flex-shrink:0;padding:0 .5em 0 1em!important;text-align:right}.nova-skin-scope .nova-card__time{padding:0!important;font-size:.95em;opacity:.6;margin-top:.4em;white-space:nowrap}.nova-skin-scope .nova-card--slim{padding:.75em 1.1em!important}.nova-skin-scope .nova-card--slim .nova-card__body{padding:0!important}.nova-skin-scope .nova-card--slim .nova-card__title{margin-bottom:0!important}.nova-skin-scope .nova-hero__progress .time-line{display:block!important}.nova-skin-scope .nova__list--grid .nova-card{display:block!important;padding:0 .45em!important;margin:0 0 1em 0!important;background:none!important}.nova-skin-scope .nova__list--grid .nova-card.focus{background:none!important;color:inherit!important}.nova-skin-scope .nova__list--grid .nova-card__thumb,.nova-skin-scope .nova__list--grid .nova-card--file .nova-card__thumb{width:100%!important;height:0!important;padding-top:56%!important}.nova-skin-scope .nova__list--grid .nova-card__body{padding:.6em .1em 0 .1em!important}.nova-skin-scope .nova__list--grid .nova-card__side{position:absolute;top:.5em;right:.9em;padding:0!important}.nova-skin-scope .nova__list--grid .nova-card__time{display:none!important}";
+  var EXTRA_CSS = ".nova-skin-chips .explorer__files-head{display:none!important}.nova-skin-scope .nova-hidden{display:none!important}.nova-skin-scope .nova{padding-top:0}.nova-skin-scope .nova-card__line>.time-line{display:block!important;height:100%;margin:0;background:none}.nova-skin-scope .nova-card__line>.time-line>div{height:100%;background:#fff}.nova-skin-scope .nova-card__line--body>.time-line>div{background:rgba(255,255,255,.9)}.nova-skin-scope .nova-hero__progress .time-line{display:block!important;height:100%;margin:0;background:none}.nova-skin-scope .nova-hero__progress .time-line>div{height:100%;background:#fff}";
 
   if (window.appready) start();
   else {
