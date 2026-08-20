@@ -55,7 +55,13 @@
   }
 
   function cached(key, size, def) {
-    try { return Lampa.Storage.cache(key, size, def); } catch (e) { return def; }
+    var out;
+    try { out = Lampa.Storage.cache(key, size, def); } catch (e) { out = null; }
+    if (!out || typeof out !== 'object') {
+      out = def;
+      try { Lampa.Storage.set(key, def); } catch (e) {}
+    }
+    return out;
   }
 
   function save(key, value) {
@@ -1650,7 +1656,7 @@
   function logoLoad(done) {
     if (!logoOn() || !movie || !movie.id) return done('');
 
-    var all = cached('nova_skin_logo', 500, {});
+    var all = cached('nova_skin_logo_cache', 500, {});
     var mine = all[movie.id];
     if (typeof mine === 'string') return done(mine);
 
@@ -1670,9 +1676,11 @@
     if (!net) return done('');
 
     var keep = function (path) {
-      var box = cached('nova_skin_logo', 500, {});
-      box[movie.id] = path || '';
-      save('nova_skin_logo', box);
+      var box = cached('nova_skin_logo_cache', 500, {});
+      if (movie && movie.id && box && typeof box === 'object') {
+        box[movie.id] = path || '';
+        save('nova_skin_logo_cache', box);
+      }
       done(path || '');
     };
 
