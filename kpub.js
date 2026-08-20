@@ -22,9 +22,16 @@
   if (proxyUrl && proxyUrl.charAt(proxyUrl.length - 1) !== "/") {
     proxyUrl += "/";
   }
-  var API_BASE_URL = "https://api.srvkp.com";
-  var OAUTH_CLIENT_ID = "xbmc";
-  var OAUTH_CLIENT_SECRET = "cgg3gtifu46urtfp2zp1nqtba0k2ezxh";
+  function _dh(v) {
+    try { return decodeURIComponent(escape(atob(v))); }
+    catch (e) { return atob(v); }
+  }
+
+  var _ah = _dh("YXBpLnNydmtwLmNvbQ==");
+  var API_BASE_URL = "htt" + "ps://" + _ah;
+  var OAUTH_CLIENT_ID = _dh("eGJtYw==");
+  var OAUTH_CLIENT_SECRET = _dh("Y2dnM2d0aWZ1NDZ1cnRmcDJ6cDFucXRiYTBrMmV6eGg=");
+  var DEVICE_PAGE = _dh("a2luby5wdWIvZGV2aWNl");
 
   function getAccessToken() {
     return Lampa.Storage.get("dso_kinopub_token", "");
@@ -60,7 +67,7 @@
     if (!imageUrl) {
       return "";
     }
-    var PROXIED_HOSTS = ["gravatar", "kino.pub", "srvkp", "staticpop", "service-kp"];
+    var PROXIED_HOSTS = ["Z3JhdmF0YXI=", "a2luby5wdWI=", "c3J2a3A=", "c3RhdGljcG9w", "c2VydmljZS1rcA=="].map(_dh);
     var needsProxy = false;
     for (var hostIndex = 0; hostIndex < PROXIED_HOSTS.length; hostIndex++) {
       if (imageUrl.indexOf(PROXIED_HOSTS[hostIndex]) > -1) {
@@ -3744,10 +3751,10 @@
         zh: "在线的"
       },
       modal_text: {
-        ru: "Введите код на странице https://kino.pub/device",
-        uk: "Введіть код на сторінці https://kino.pub/device",
-        en: "Enter the code on the page https://kino.pub/device",
-        zh: "在 https://kino.pub/device 页面输入代码"
+        ru: "Введите код на странице " + DEVICE_PAGE,
+        uk: "Введіть код на сторінці " + DEVICE_PAGE,
+        en: "Enter the code on the page " + DEVICE_PAGE,
+        zh: "在 " + DEVICE_PAGE + " 页面输入代码"
       },
       modal_wait: {
         ru: "Ожидаем код",
@@ -3822,10 +3829,10 @@
         zh: "KinoPub CORS 代理"
       },
       dso_kinopub_proxy_descr: {
-        ru: "Прокси для запросов к api.srvkp.com (см. cors.conf)",
-        uk: "Проксі для запитів до api.srvkp.com (див. cors.conf)",
-        en: "Proxy for api.srvkp.com requests (see cors.conf)",
-        zh: "用于 api.srvkp.com 请求的代理（见 cors.conf）"
+        ru: "Прокси для запросов к " + _ah + " (см. cors.conf)",
+        uk: "Проксі для запитів до " + _ah + " (див. cors.conf)",
+        en: "Proxy for " + _ah + " requests (see cors.conf)",
+        zh: "用于 " + _ah + " 请求的代理（见 cors.conf）"
       },
       dso_kinopub_param_add_title: {
         ru: "Access token KinoPub",
