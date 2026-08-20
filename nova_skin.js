@@ -10,7 +10,7 @@
 
   var aside = false;
 
-  var SIBLING_COMPONENTS = ['nova_video', 'lampacskaz', 'onlyskaz', 'skazonline'];
+  var SIBLING_COMPONENTS = ['lampacskaz', 'onlyskaz', 'skazonline'];
   var SIBLING_MARKUP = '.nova__rows,.nova__list,.nova-hero,.nova-card,.z01,.z01__rows,.z01__list,.z01-hero,.z01-card';
 
   function siblingInstalled() {
