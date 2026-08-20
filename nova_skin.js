@@ -10,7 +10,7 @@
 
   var aside = false;
 
-  var SIBLING_COMPONENTS = ['lampacskaz', 'onlyskaz', 'skazonline'];
+  var SIBLING_COMPONENTS = ['nova_video', 'lampacskaz', 'onlyskaz', 'skazonline'];
   var SIBLING_MARKUP = '.nova__rows,.nova__list,.nova-hero,.nova-card,.z01,.z01__rows,.z01__list,.z01-hero,.z01-card';
 
   function siblingInstalled() {
@@ -75,6 +75,26 @@
   function preferredQuality() { return get('nova_skin_quality', 'auto'); }
 
   function focusRing() { return get('nova_focus_style', 'ring') !== 'fill'; }
+
+  function fullScreen() { return get('nova_skin_fullscreen', false) === true; }
+
+  function applyFullScreen() {
+    try {
+      var body = $('body');
+      if (fullScreen()) body.addClass('nova-skin-full');
+      else body.removeClass('nova-skin-full');
+    } catch (e) {}
+  }
+
+  function edgeFade() { return get('nova_skin_fade', false) === true; }
+
+  function applyEdgeFade() {
+    try {
+      var body = $('body');
+      if (edgeFade()) body.addClass('nova-skin-fade');
+      else body.removeClass('nova-skin-fade');
+    } catch (e) {}
+  }
 
   function applyFocusStyle() {
     try {
@@ -312,7 +332,7 @@
     if (document.getElementById('nova-skin-css')) return;
     var style = document.createElement('style');
     style.id = 'nova-skin-css';
-    style.textContent = SKIN_CSS + EXTRA_CSS + FOCUS_CSS;
+    style.textContent = SKIN_CSS + EXTRA_CSS + FOCUS_CSS + FULL_CSS + FADE_CSS;
     (document.body || document.head).appendChild(style);
   }
 
@@ -2906,6 +2926,26 @@
 
       Lampa.SettingsApi.addParam({
         component: 'nova_skin',
+        param: { name: 'nova_skin_fullscreen', type: 'trigger', default: false },
+        field: {
+          name: 'Во всю ширину экрана',
+          description: 'Скрыть маленький постер и описание слева'
+        },
+        onChange: function () { applyFullScreen(); }
+      });
+
+      Lampa.SettingsApi.addParam({
+        component: 'nova_skin',
+        param: { name: 'nova_skin_fade', type: 'trigger', default: false },
+        field: {
+          name: 'Размытые края карточек',
+          description: 'Растворять карточку по краям со всех сторон'
+        },
+        onChange: function () { applyEdgeFade(); }
+      });
+
+      Lampa.SettingsApi.addParam({
+        component: 'nova_skin',
         param: { name: 'nova_skin_probe', type: 'trigger', default: true },
         field: {
           name: 'Проверять источники в фоне',
@@ -2969,6 +3009,8 @@
     settings();
     addCSS();
     applyFocusStyle();
+    applyFullScreen();
+    applyEdgeFade();
     hookFilter();
     hookScroll();
     hookSelect();
@@ -3044,10 +3086,22 @@
     'body.nova-focus-ring .nova-chip--active.focus,body.nova-focus-ring .nova-group--open.focus{-webkit-box-shadow:inset 0 0 0 .12em #fff!important;box-shadow:inset 0 0 0 .12em #fff!important}'
   ].join('');
 
+  var FULL_CSS = [
+    'body.nova-skin-full .nova-skin-scope .explorer__left{display:none!important}',
+    'body.nova-skin-full .nova-skin-scope .explorer__files{width:100%!important;left:0!important}'
+  ].join('');
+
+  var FADE_CSS = [
+    'body.nova-skin-fade .nova-skin-root .nova-card:not(.focus){-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 7%,#000 93%,transparent 100%),linear-gradient(180deg,transparent 0,#000 16%,#000 84%,transparent 100%);mask-image:linear-gradient(90deg,transparent 0,#000 7%,#000 93%,transparent 100%),linear-gradient(180deg,transparent 0,#000 16%,#000 84%,transparent 100%);-webkit-mask-composite:source-in;mask-composite:intersect;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-size:100% 100%;mask-size:100% 100%}',
+    'body.nova-skin-fade .nova-skin-root .nova-group:not(.focus){-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 7%,#000 93%,transparent 100%),linear-gradient(180deg,transparent 0,#000 16%,#000 84%,transparent 100%);mask-image:linear-gradient(90deg,transparent 0,#000 7%,#000 93%,transparent 100%),linear-gradient(180deg,transparent 0,#000 16%,#000 84%,transparent 100%);-webkit-mask-composite:source-in;mask-composite:intersect;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-size:100% 100%;mask-size:100% 100%}'
+  ].join('');
+
   if (window.appready) start();
   else {
-    Lampa.Listener.follow('app', function (e) {
-      if (e.type === 'ready') start();
-    });
+    try {
+      Lampa.Listener.follow('app', function (e) {
+        if (e.type === 'ready') start();
+      });
+    } catch (e) {}
   }
 })();
