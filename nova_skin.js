@@ -10,7 +10,7 @@
 
   var aside = false;
 
-  var SIBLING_COMPONENTS = ['lampacskaz', 'onlyskaz', 'skazonline'];
+  var SIBLING_COMPONENTS = ['nova_video', 'lampacskaz', 'onlyskaz', 'skazonline'];
   var SIBLING_MARKUP = '.nova__rows,.nova__list,.nova-hero,.nova-card,.z01,.z01__rows,.z01__list,.z01-hero,.z01-card';
 
   function siblingInstalled() {
@@ -916,8 +916,8 @@
   var probe_queue = {};
   var PROBE_TIMEOUT = 7000;
   var PROBE_PARALLEL = 2;
-  var PROBE_LIMIT = 26;
-  var PROBE_BUDGET = 45000;
+  var PROBE_LIMIT = 12;
+  var PROBE_BUDGET = 20000;
   var PROBE_DELAY = 1500;
 
   function componentNow() {
