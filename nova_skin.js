@@ -100,7 +100,12 @@
     nova_skin_voice_avo: 'Авторский',
     nova_skin_voice_orig: 'Оригинал',
     nova_skin_voice_sub: 'Субтитры',
-    nova_skin_voice_other: 'Другое'
+    nova_skin_voice_other: 'Другое',
+    nova_skin_try_source: 'Попробовать {name}',
+    nova_skin_all_sources: 'Все источники',
+    nova_skin_retry: 'Повторить',
+    nova_skin_auto_next: 'Через {sec} сек переключимся на «{name}»',
+    nova_skin_dead_all: 'Ни один источник ничего не нашёл'
   };
 
   try {
@@ -818,6 +823,8 @@
   var inplace_timer = null;
   var swallow = false;
   var real_replace = null;
+  var hop = { id: 0, tried: {} };
+  var hop_timer = null;
 
   function pageBackground() {
     var nodes = [];
@@ -860,6 +867,73 @@
     if (typeof comp.createSource !== 'function') return false;
     if (typeof comp.search !== 'function' && typeof comp.find !== 'function') return false;
     return true;
+  }
+
+  function autoSwitchOn() {
+    return get('nova_skin_auto_switch', true) !== false;
+  }
+
+  function sourceState(key) {
+    if (!movie) return '';
+    var list = probeCache(movie.id).list || {};
+    return list[key] ? list[key].s : '';
+  }
+
+  function sourceRank(item) {
+    var key = item.source || item.title;
+    var state = sourceState(key);
+    if (state === 'ok') return 0;
+    if (state === 'empty') return 3;
+    if (knownQuality(key)) return 1;
+    if (item.ghost) return 3;
+    return 2;
+  }
+
+  function nextSource() {
+    var list = groups.sort || [];
+    var pool = [];
+
+    for (var i = 0; i < list.length; i++) {
+      var item = list[i];
+      var key = item.source || item.title;
+      if (!key || item.selected) continue;
+      if (hop.tried[key]) continue;
+      var rank = sourceRank(item);
+      if (rank >= 3) continue;
+      pool.push({
+        item: item,
+        rank: rank,
+        quality: QUALITY_RANK[knownQuality(key) || splitSourceName(item.title).badge] || 0,
+        seat: i
+      });
+    }
+
+    pool.sort(function (a, b) {
+      return (a.rank - b.rank) || (b.quality - a.quality) || (a.seat - b.seat);
+    });
+
+    return pool.length ? pool[0].item : null;
+  }
+
+  function hopReset() {
+    var id = movie ? movie.id : 0;
+    if (hop.id !== id) hop = { id: id, tried: {} };
+  }
+
+  function hopStop() {
+    clearInterval(hop_timer);
+    hop_timer = null;
+  }
+
+  function hostTimerStop(native) {
+    try {
+      native.node.find('.online-empty__button.cancel').trigger('hover:enter');
+    } catch (e) {}
+    try {
+      if (Lampa.Timer && typeof Lampa.Timer.remove === 'function') {
+        native.node.find('.timeout').text('');
+      }
+    } catch (e) {}
   }
 
   function keepAlive(run) {
@@ -1541,6 +1615,8 @@
     focusChip('source');
     switchStart('source');
     inplaceStart();
+    hopReset();
+    hop.tried[item.source || item.title] = true;
     keepAlive(function () {
       host_filter.onSelect('sort', item);
     });
@@ -2046,18 +2122,76 @@
     note.find('.nova-note__text').text(native.node.find('.online-empty__time').text().trim());
 
     var actions = note.find('.nova-note__actions');
-    native.node.find('.online-empty__button').each(function () {
-      var origin = $(this);
+
+    var addAction = function (label, icon, run) {
       var button = $('<div class="nova-btn selector"></div>');
       button.attr('data-nova-focus', 'note:' + actions.children().length);
-      if (origin.hasClass('change')) button.append(ICON.chevron);
-      else button.append(ICON.refresh);
-      button.append($('<span></span>').text(origin.text().trim()));
+      if (icon) button.append(icon);
+      button.append($('<span></span>').text(label));
       bind(button, function () {
-        try { origin.trigger('hover:enter'); } catch (e) {}
+        hopStop();
+        try { run(); } catch (e) {}
       });
       actions.append(button);
+      return button;
+    };
+
+    hopReset();
+    hopStop();
+    hostTimerStop(native);
+    if (dead) hop.tried[dead] = true;
+
+    var next = (groups.sort || []).length > 1 ? nextSource() : null;
+    var auto = !!next && autoSwitchOn();
+
+    if (next) {
+      addAction(text('nova_try_source', 'nova_skin_try_source')
+        .replace('{name}', splitSourceName(next.title).name || next.title), ICON.play, function () {
+        chooseSource(next);
+      });
+    }
+
+    if ((groups.sort || []).length > 1) {
+      addAction(text('nova_all_sources', 'nova_skin_all_sources'), ICON.chevron, function () {
+        uiToggle('source');
+      });
+    }
+
+    addAction(text('nova_retry', 'nova_skin_retry'), ICON.refresh, function () {
+      var comp = componentNow();
+      if (reloadable(comp)) {
+        signature = '';
+        ui.list.empty().append(skeleton(4));
+        keepAlive(function () {
+          if (typeof comp.reset === 'function') comp.reset();
+          if (typeof comp.find === 'function') comp.find();
+        });
+        return;
+      }
+      try { Lampa.Activity.replace(); } catch (e) {}
     });
+
+    if (auto) {
+      var tic = 6;
+      var slot = note.find('.nova-note__text');
+      var name = splitSourceName(next.title).name || next.title;
+      var render = function () {
+        slot.text(text('nova_auto_next', 'nova_skin_auto_next')
+          .replace('{sec}', tic).replace('{name}', name));
+      };
+
+      render();
+      hop_timer = setInterval(function () {
+        if (!ui.root || !ui.root.parent().length || !slot.parent().length) return hopStop();
+        tic--;
+        render();
+        if (tic > 0) return;
+        hopStop();
+        chooseSource(next);
+      }, 1000);
+    } else if (!next && (groups.sort || []).length > 1) {
+      note.find('.nova-note__text').text(text('nova_dead_all', 'nova_skin_dead_all'));
+    }
 
     var search = root.find('.filter--search').first();
     if (search.length) {
@@ -2159,6 +2293,8 @@
     busy = true;
     signature = mark;
 
+    hopStop();
+    hopReset();
     loadingStop();
     root.addClass('nova-skin-scope nova-skin-chips');
     uiFrame();
@@ -2275,6 +2411,7 @@
   function detach() {
     if (observer) observer.disconnect();
     observer = null;
+    hopStop();
     clearTimeout(timer);
     lockStopWatch();
     loadingStop();
@@ -2347,6 +2484,15 @@
           description: 'Выключите для компактной шапки без картинки'
         },
         onChange: function () { try { Lampa.Activity.replace(); } catch (e) {} }
+      });
+
+      Lampa.SettingsApi.addParam({
+        component: 'nova_skin',
+        param: { name: 'nova_skin_auto_switch', type: 'trigger', default: true },
+        field: {
+          name: 'Автопереход по источникам',
+          description: 'Если ничего не найдено, пробовать следующий рабочий источник'
+        }
       });
 
       Lampa.SettingsApi.addParam({
