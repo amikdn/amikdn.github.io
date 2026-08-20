@@ -1610,26 +1610,55 @@
     } catch (e) {}
   }
 
+  function heroStatic(withArt) {
+    if (!ui.hero) return;
+
+    if (withArt) {
+      var meta = ui.hero.find('.nova-hero__meta').empty();
+      var badge = knownQuality(currentSourceKey()) || splitSourceName(sourceTitle()).badge;
+      if (badge) meta.append('<div class="nova-badge">' + esc(badge) + '</div>');
+      if (movie.vote_average) {
+        meta.append('<div>\u2605 ' + parseFloat(movie.vote_average + '').toFixed(1) + '</div>');
+      }
+      var year = ((movie.release_date || movie.first_air_date || '') + '').slice(0, 4);
+      if (year) meta.append('<div>' + esc(year) + '</div>');
+      var mins = episodeRuntime();
+      if (mins) meta.append('<div>' + esc(runtimeText(mins * 60)) + '</div>');
+    }
+
+    var hint = [];
+    var source = splitSourceName(sourceTitle()).name;
+    if (source) hint.push(source);
+    var voice = groups.voice ? groups.voice.subtitle : '';
+    if (voice) hint.push(voice);
+    ui.hero.find('.nova-hero__hint').text(hint.join(' \u00b7 '));
+
+    ui.hero.find('.nova-hero__progress').empty().hide();
+    ui.hero.find('.nova-hero__season').hide();
+  }
+
   function buildHero() {
-    if (!heroEnabled() || nav) {
+    if (!heroEnabled()) {
       ui.hero_box.empty();
       ui.hero = null;
+      ui.hero_kind = '';
       return null;
     }
 
-    var target = pickResume(items);
+    var target = nav ? null : pickResume(items);
     var button = playButton();
-
-    if (!target) {
-      button.detach();
-      ui.hero_box.empty();
-      ui.hero = null;
-      return null;
-    }
-
+    var kind = target ? 'full' : 'static';
     var withArt = artEnabled();
 
+    if (ui.hero && ui.hero_kind !== kind) {
+      button.detach();
+      nextButton().detach();
+      ui.hero_box.empty();
+      ui.hero = null;
+    }
+
     if (!ui.hero) {
+      ui.hero_kind = kind;
       ui.hero = $('<div class="nova-hero">' +
         '<div class="nova-hero__bg"><img alt=""></div><div class="nova-hero__shade"></div>' +
         '<div class="nova-hero__body">' +
@@ -1656,6 +1685,13 @@
       }
 
       ui.hero_box.empty().append(ui.hero);
+    }
+
+    if (!target) {
+      button.detach();
+      nextButton().detach();
+      heroStatic(withArt);
+      return null;
     }
 
     ui.hero.find('.nova-hero__actions').prepend(button);
@@ -1736,6 +1772,9 @@
     }
 
     buildRows();
+
+    if (opening && key === 'source') probeRun();
+    else probeStop();
 
     lockFocus(ui_focus);
 
@@ -1929,6 +1968,7 @@
         plain: true
       });
       box.attr('data-nova-src', key);
+      if (probe_busy && !state && !item.selected) box.addClass('nova-chip--checking');
       bind(box, function () {
         if (item.selected) return uiToggle('source');
         chooseSource(item);
@@ -2244,6 +2284,7 @@
 
     ui.hero_box.empty();
     ui.hero = null;
+    ui.hero_kind = '';
     ui.rows.empty();
 
     if (!ui.load) {
@@ -2283,11 +2324,8 @@
     loadingStop();
     lockRelease();
     switchDone();
-    ui.hero_box.empty();
-    ui.hero = null;
-    ui.play = null;
-    ui.next = null;
     ui_open = '';
+    buildHero();
     buildRows();
 
     var note = $('<div class="nova-note"><div class="nova-note__main">' +
