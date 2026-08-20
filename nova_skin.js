@@ -2938,8 +2938,8 @@
         component: 'nova_skin',
         param: { name: 'nova_skin_fade', type: 'trigger', default: false },
         field: {
-          name: 'Размытые края карточек',
-          description: 'Растворять карточку по краям со всех сторон'
+          name: 'Размытые края постера',
+          description: 'Растворять постер вверху по краям со всех сторон'
         },
         onChange: function () { applyEdgeFade(); }
       });
@@ -3091,9 +3091,12 @@
     'body.nova-skin-full .nova-skin-scope .explorer__files{width:100%!important;left:0!important}'
   ].join('');
 
+  var FADE_MASK = '-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 10%,#000 90%,transparent 100%),linear-gradient(180deg,transparent 0,#000 14%,#000 86%,transparent 100%);mask-image:linear-gradient(90deg,transparent 0,#000 10%,#000 90%,transparent 100%),linear-gradient(180deg,transparent 0,#000 14%,#000 86%,transparent 100%);-webkit-mask-composite:source-in;mask-composite:intersect;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-size:100% 100%;mask-size:100% 100%';
+
   var FADE_CSS = [
-    'body.nova-skin-fade .nova-skin-root .nova-card:not(.focus){-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 7%,#000 93%,transparent 100%),linear-gradient(180deg,transparent 0,#000 16%,#000 84%,transparent 100%);mask-image:linear-gradient(90deg,transparent 0,#000 7%,#000 93%,transparent 100%),linear-gradient(180deg,transparent 0,#000 16%,#000 84%,transparent 100%);-webkit-mask-composite:source-in;mask-composite:intersect;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-size:100% 100%;mask-size:100% 100%}',
-    'body.nova-skin-fade .nova-skin-root .nova-group:not(.focus){-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 7%,#000 93%,transparent 100%),linear-gradient(180deg,transparent 0,#000 16%,#000 84%,transparent 100%);mask-image:linear-gradient(90deg,transparent 0,#000 7%,#000 93%,transparent 100%),linear-gradient(180deg,transparent 0,#000 16%,#000 84%,transparent 100%);-webkit-mask-composite:source-in;mask-composite:intersect;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-size:100% 100%;mask-size:100% 100%}'
+    'body.nova-skin-fade .nova-skin-root .nova-hero{background:transparent;-webkit-border-radius:0;border-radius:0}',
+    'body.nova-skin-fade .nova-skin-root .nova-hero__bg{' + FADE_MASK + '}',
+    'body.nova-skin-fade .nova-skin-root .nova-hero__shade{' + FADE_MASK + '}'
   ].join('');
 
   if (window.appready) start();
