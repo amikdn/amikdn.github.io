@@ -2647,8 +2647,104 @@
     return !!(row.length && row.find(last).length);
   }
 
+  function dropItems() {
+    if (!inSkin()) return [];
+    var row = ui.rows.find('.nova-drop');
+    if (!row.length) return [];
+    var out = [];
+    row.find('.selector').each(function () {
+      if (shown(this)) out.push(this);
+    });
+    return out;
+  }
+
+  function rowStep(dir) {
+    var nodes = dropItems();
+    if (!nodes.length || !last) return null;
+    var from = last.getBoundingClientRect();
+    if (!from.width && !from.height) return null;
+    var mid = from.left + from.width / 2;
+    var tol = Math.max(6, from.height / 2);
+    var line = null;
+    var i, box, edge, dist;
+    for (i = 0; i < nodes.length; i++) {
+      if (nodes[i] === last) continue;
+      box = nodes[i].getBoundingClientRect();
+      if (!box.width && !box.height) continue;
+      if (dir === 'up') {
+        if (box.bottom > from.top + tol) continue;
+        if (line === null || box.bottom > line) line = box.bottom;
+      } else {
+        if (box.top < from.bottom - tol) continue;
+        if (line === null || box.top < line) line = box.top;
+      }
+    }
+    if (line === null) return null;
+    var best = null;
+    var gap = 0;
+    for (i = 0; i < nodes.length; i++) {
+      if (nodes[i] === last) continue;
+      box = nodes[i].getBoundingClientRect();
+      if (!box.width && !box.height) continue;
+      edge = dir === 'up' ? box.bottom : box.top;
+      if (Math.abs(edge - line) > tol) continue;
+      dist = Math.abs(box.left + box.width / 2 - mid);
+      if (best === null || dist < gap) {
+        best = nodes[i];
+        gap = dist;
+      }
+    }
+    return best;
+  }
+
+  function dropEntry() {
+    var nodes = dropItems();
+    if (!nodes.length) return null;
+    var row = ui.rows.find('.nova-drop');
+    var active = row.find('.nova-chip--active')[0];
+    if (active && shown(active)) return active;
+    var mid = null;
+    var from;
+    if (last) {
+      from = last.getBoundingClientRect();
+      if (from.width || from.height) mid = from.left + from.width / 2;
+    }
+    var top = null;
+    var i, box, dist;
+    for (i = 0; i < nodes.length; i++) {
+      box = nodes[i].getBoundingClientRect();
+      if (top === null || box.top < top) top = box.top;
+    }
+    var best = null;
+    var gap = 0;
+    for (i = 0; i < nodes.length; i++) {
+      box = nodes[i].getBoundingClientRect();
+      if (box.top - top > Math.max(6, box.height / 2)) continue;
+      if (mid === null) return nodes[i];
+      dist = Math.abs(box.left + box.width / 2 - mid);
+      if (best === null || dist < gap) {
+        best = nodes[i];
+        gap = dist;
+      }
+    }
+    return best || nodes[0];
+  }
+
+  function dropDown() {
+    if (!inSkin() || !ui_open) return false;
+    if (dropFocused()) {
+      var below = rowStep('down');
+      return below ? focusNode(below) : false;
+    }
+    if (!toolbarFocused()) return false;
+    var entry = dropEntry();
+    return entry ? focusNode(entry) : false;
+  }
+
   function dropUp() {
     if (!dropFocused() || !ui_open) return false;
+    var above = rowStep('up');
+    if (above) return focusNode(above);
     var bar = ui.rows.find('.nova-toolbar');
     var chip = bar.find('[data-nova-focus="' + ui_open + '"]').first();
     if (!chip.length) chip = bar.find('.nova-chip--active').first();
@@ -2679,12 +2775,8 @@
   }
 
   function novaDown() {
-    if (!inSkin() || ui_open) return false;
-    if (!toolbarFocused() || items.length < 2) return false;
-    lockRelease();
-    var target = pickResume(items);
-    if (target && target.card && target.card.length) return focusNode(target.card);
-    return false;
+    if (!inSkin()) return false;
+    return dropDown();
   }
 
   function novaRight() {
