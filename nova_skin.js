@@ -1648,6 +1648,7 @@
       card.addClass('nova-card--soon').removeClass('selector');
       card.find('.nova-card__line').remove();
     } else {
+      card.attr('data-nova-focus', 'item:' + item.index);
       bind(card, function () { play(item); }, item.folder ? null : function () { longPress(item); });
     }
 
@@ -2477,10 +2478,35 @@
     }
     var wanted = seek(ui_focus);
     if (wanted) return focusNode(wanted);
+    if (preselectPage(ui_focus)) return true;
     if (fallback) return focusNode(fallback);
     var chip = ui.rows.find('.nova-chip').first();
     if (chip.length) return focusNode(chip);
     return false;
+  }
+
+  function keyIndex(key) {
+    if (!key || String(key).indexOf('item:') !== 0) return -1;
+    var index = parseInt(String(key).slice(5), 10);
+    if (isNaN(index) || index < 0 || index >= items.length) return -1;
+    return index;
+  }
+
+  function preselectPage(key) {
+    var index = keyIndex(key);
+    if (index < 0) return false;
+    var item = items[index];
+    if (!item || (item.card && item.card.length)) return false;
+    if (items.length <= JUMP_FROM) return false;
+    var page = pageAt(pages(items.length), index);
+    if (page.start === ui_page) return false;
+    lockRelease();
+    ui_open = '';
+    ui_focus = '';
+    ui_page = page.start;
+    ui_page_focus = index;
+    setTimeout(redraw, 0);
+    return true;
   }
 
   function refreshCollection() {
@@ -2520,6 +2546,7 @@
     var wanted = lockActive() ? seek(ui_lock) : null;
     if (!wanted) wanted = seek(ui_focus);
     if (!wanted && last && $.contains(ui.root[0], last)) wanted = $(last);
+    if (!wanted && preselectPage(ui_focus)) return true;
     if (!wanted || !wanted.length) {
       if (ui.play && ui.play.length && ui.play.parent().length) wanted = ui.play;
       else {
@@ -3264,6 +3291,9 @@
 
   var FADE_CSS = [
     'body.nova-skin-fade .nova-skin-root .nova-hero{background:transparent;-webkit-border-radius:0;border-radius:0}',
+    'body.nova-skin-fade .nova-skin-root .nova-hero__progress{left:2.2em;right:2.2em;bottom:1.5em;width:auto;-webkit-border-radius:.3em;border-radius:.3em}',
+    'body.nova-skin-fade .nova-skin-root .nova-hero--compact .nova-hero__progress{left:1.4em;right:1.4em;bottom:.9em}',
+    '@media screen and (max-width:580px){body.nova-skin-fade .nova-skin-root .nova-hero__progress{left:1.3em;right:1.3em;bottom:1em}}',
     'body.nova-skin-fade .nova-skin-root .nova-hero__bg{' + FADE_MASK + '}',
     'body.nova-skin-fade .nova-skin-root .nova-hero__shade{' + FADE_MASK + '}'
   ].join('');
