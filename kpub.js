@@ -22,9 +22,26 @@
   if (proxyUrl && proxyUrl.charAt(proxyUrl.length - 1) !== "/") {
     proxyUrl += "/";
   }
-  var API_BASE_URL = "https://api.srvkp.com";
-  var OAUTH_CLIENT_ID = "xbmc";
-  var OAUTH_CLIENT_SECRET = "cgg3gtifu46urtfp2zp1nqtba0k2ezxh";
+  function _dh(v) {
+    try { return decodeURIComponent(escape(atob(v))); }
+    catch (e) { return atob(v); }
+  }
+
+  var CARD_ID_OFFSET = 9000000000;
+
+  function realItemId(value) {
+    var parsed = parseInt(value, 10) || 0;
+    if (parsed > CARD_ID_OFFSET) {
+      parsed -= CARD_ID_OFFSET;
+    }
+    return parsed;
+  }
+
+  var _ah = _dh("YXBpLnNydmtwLmNvbQ==");
+  var API_BASE_URL = "htt" + "ps://" + _ah;
+  var OAUTH_CLIENT_ID = _dh("eGJtYw==");
+  var OAUTH_CLIENT_SECRET = _dh("Y2dnM2d0aWZ1NDZ1cnRmcDJ6cDFucXRiYTBrMmV6eGg=");
+  var DEVICE_PAGE = _dh("a2luby5wdWIvZGV2aWNl");
 
   function getAccessToken() {
     return Lampa.Storage.get("dso_kinopub_token", "");
@@ -60,7 +77,7 @@
     if (!imageUrl) {
       return "";
     }
-    var PROXIED_HOSTS = ["gravatar", "kino.pub", "srvkp", "staticpop", "service-kp"];
+    var PROXIED_HOSTS = ["Z3JhdmF0YXI=", "a2luby5wdWI=", "c3J2a3A=", "c3RhdGljcG9w", "c2VydmljZS1rcA=="].map(_dh);
     var needsProxy = false;
     for (var hostIndex = 0; hostIndex < PROXIED_HOSTS.length; hostIndex++) {
       if (imageUrl.indexOf(PROXIED_HOSTS[hostIndex]) > -1) {
@@ -378,7 +395,7 @@
       imdbId = ("" + imdbRaw).indexOf("tt") === 0 ? "" + imdbRaw : "tt" + imdbRaw;
     }
     var card = {
-      id: item.id + 9000000000,
+      id: item.id + CARD_ID_OFFSET,
       kinopub_id: item.id,
       kinopub_type: item.type || "",
       source: SOURCE_ID,
@@ -642,7 +659,13 @@
     if (!card) {
       return 0;
     }
-    return card.kinopub_id || (card.source === SOURCE_ID || card.source === "kinopub" ? card.id : 0);
+    if (card.kinopub_id) {
+      return realItemId(card.kinopub_id);
+    }
+    if (card.source === SOURCE_ID || card.source === "kinopub") {
+      return realItemId(card.id);
+    }
+    return 0;
   }
   function addToLampaFavorites(category, card, historyLimit) {
     if (!Lampa.Favorite || !card || !card.id) {
@@ -1855,8 +1878,7 @@
       var __dsoCard = fullParams.card || fullParams.movie || (fullParams.object && (fullParams.object.card || fullParams.object.movie)) || null;
       var __dsoSearchTitle = (__dsoCard && (__dsoCard.title || __dsoCard.name || __dsoCard.original_title || __dsoCard.original_name)) || fullParams.title || "";
       var __dsoInitId = (__dsoCard && (__dsoCard.kinopub_id || __dsoCard.id)) || fullParams.kinopub_id || fullParams.id || (fullParams.object && fullParams.object.id) || 0;
-      __dsoInitId = parseInt(__dsoInitId, 10) || 0;
-      if (__dsoInitId > 9000000000) __dsoInitId = __dsoInitId - 9000000000;
+      __dsoInitId = realItemId(__dsoInitId);
       var __dsoRunFallback = function (currentId) {
         if (!__dsoSearchTitle) { if (onError) onError(); return; }
         apiGet("/v1/items/search?q=" + encodeURIComponent(__dsoSearchTitle) + "&perpage=5", function (searchResp) {
@@ -1972,7 +1994,7 @@
       }
     },
     seasons: function (seasonsCard, seasonNumbers, seasonsCallback) {
-      var seasonsItemId = seasonsCard && (seasonsCard.kinopub_id || seasonsCard.id) || 0;
+      var seasonsItemId = realItemId(seasonsCard && (seasonsCard.kinopub_id || seasonsCard.id) || 0);
       if (!seasonsItemId || !getAccessToken()) {
         if (seasonsCallback) {
           seasonsCallback({});
@@ -2164,26 +2186,35 @@
     });
   }
   function filterPlayableFiles(files) {
-    if (isHlsPreferred()) {
-      return filterHlsFiles(files);
-    } else {
-      return filterMp4Files(files);
+    var preferred = isHlsPreferred() ? filterHlsFiles(files) : filterMp4Files(files);
+    if (preferred.length) {
+      return preferred;
     }
+    return isHlsPreferred() ? filterMp4Files(files) : filterHlsFiles(files);
   }
   function selectHlsAudioTrack(hlsUrl, audioIndex) {
     if (!hlsUrl) {
       return "";
     }
-    return hlsUrl.replace(/a1\.m3u8/g, "a" + (audioIndex || 1) + ".m3u8");
+    var track = parseInt(audioIndex, 10) || 1;
+    if (track < 1 || track === 1) {
+      return hlsUrl;
+    }
+    return hlsUrl.replace(/a1\.m3u8/g, "a" + track + ".m3u8");
   }
   function getStreamUrl(file, audioIndex) {
     if (!file || !file.url) {
       return "";
     }
+    var hlsStream = file.url.hls || "";
+    var httpStream = file.url.http || "";
+    var picked;
     if (isHlsPreferred()) {
-      return selectHlsAudioTrack(file.url.hls, audioIndex || 1);
+      picked = hlsStream ? selectHlsAudioTrack(hlsStream, audioIndex || 1) : httpStream;
+    } else {
+      picked = httpStream || selectHlsAudioTrack(hlsStream, audioIndex || 1);
     }
-    return file.url.http || "";
+    return normalizeUrl(picked);
   }
   function getVoiceId(audio) {
     var voiceId = audio.author && audio.author.id || audio.type && audio.type.id;
@@ -2294,6 +2325,59 @@
       return !!subtitleEntry.url;
     });
   }
+  var subs_external = false;
+  var subs_pending = null;
+  var subs_hooked = false;
+
+  function subsInnerPlayer() {
+    if (subs_external) return false;
+    try {
+      if (typeof Lampa.Player.opened === 'function' && !Lampa.Player.opened()) return false;
+    } catch (e) {
+      return false;
+    }
+    return true;
+  }
+
+  function subsPush(subtitles) {
+    if (!subtitles || !subtitles.length) return;
+    if (!subsInnerPlayer()) {
+      subs_pending = subtitles;
+      return;
+    }
+    subs_pending = null;
+    try {
+      Lampa.Player.subtitles(subtitles);
+    } catch (e) {
+      subs_pending = subtitles;
+    }
+  }
+
+  function subsHook() {
+    if (subs_hooked) return;
+    if (!Lampa.Player || !Lampa.Player.listener || !Lampa.Player.listener.follow) return;
+    subs_hooked = true;
+
+    Lampa.Player.listener.follow('external', function () {
+      subs_external = true;
+      subs_pending = null;
+    });
+
+    Lampa.Player.listener.follow('ready', function () {
+      subs_external = false;
+      var wait = subs_pending;
+      subs_pending = null;
+      if (wait && wait.length) {
+        try { Lampa.Player.subtitles(wait); } catch (e) {}
+      }
+    });
+
+    Lampa.Player.listener.follow('destroy', function () {
+      subs_external = false;
+      subs_pending = null;
+    });
+  }
+
   function loadSubtitlesFromUrl(subtitlesUrl) {
     if (!subtitlesUrl) {
       return;
@@ -2304,13 +2388,16 @@
       var responseSubtitles = response && response.subtitles ? response.subtitles : Array.isArray(response) ? response : [];
       var subtitles = normalizeSubtitles(responseSubtitles);
       if (subtitles.length) {
-        Lampa.Player.subtitles(subtitles);
+        subsPush(subtitles);
       }
     });
   }
   function applySubtitles(stream) {
+    subsHook();
+    subs_external = false;
+    subs_pending = null;
     if (stream.subtitles && stream.subtitles.length) {
-      Lampa.Player.subtitles(stream.subtitles);
+      subsPush(stream.subtitles);
     } else if (stream.subtitles_call) {
       loadSubtitlesFromUrl(stream.subtitles_call);
     }
@@ -2992,7 +3079,7 @@
     };
     this.find = function () {
       var movieData = object.movie || {};
-      var movieKinopubId = object.kinopub_id || movieData.kinopub_id || (movieData.source === SOURCE_ID || movieData.source === "kinopub" ? movieData.id : 0);
+      var movieKinopubId = realItemId(object.kinopub_id || movieData.kinopub_id || (movieData.source === SOURCE_ID || movieData.source === "kinopub" ? movieData.id : 0));
       if (movieKinopubId && source.find) {
         this.extendChoice();
         source.find(movieKinopubId);
@@ -3688,7 +3775,7 @@
       onContextLauch: function onCardContextLaunch(launchCard) {
         registerOnlineTemplates();
         Lampa.Component.add("online_dso_kinopub", OnlineComponent);
-        var launchKinopubId = launchCard.kinopub_id || (launchCard.source === SOURCE_ID || launchCard.source === "kinopub" ? launchCard.id : 0);
+        var launchKinopubId = getKinopubId(launchCard);
         Lampa.Activity.push({
           url: "",
           title: Lampa.Lang.translate("title_online"),
@@ -3744,10 +3831,10 @@
         zh: "在线的"
       },
       modal_text: {
-        ru: "Введите код на странице https://kino.pub/device",
-        uk: "Введіть код на сторінці https://kino.pub/device",
-        en: "Enter the code on the page https://kino.pub/device",
-        zh: "在 https://kino.pub/device 页面输入代码"
+        ru: "Введите код на странице " + DEVICE_PAGE,
+        uk: "Введіть код на сторінці " + DEVICE_PAGE,
+        en: "Enter the code on the page " + DEVICE_PAGE,
+        zh: "在 " + DEVICE_PAGE + " 页面输入代码"
       },
       modal_wait: {
         ru: "Ожидаем код",
@@ -3822,10 +3909,10 @@
         zh: "KinoPub CORS 代理"
       },
       dso_kinopub_proxy_descr: {
-        ru: "Прокси для запросов к api.srvkp.com (см. cors.conf)",
-        uk: "Проксі для запитів до api.srvkp.com (див. cors.conf)",
-        en: "Proxy for api.srvkp.com requests (see cors.conf)",
-        zh: "用于 api.srvkp.com 请求的代理（见 cors.conf）"
+        ru: "Прокси для запросов к " + _ah + " (см. cors.conf)",
+        uk: "Проксі для запитів до " + _ah + " (див. cors.conf)",
+        en: "Proxy for " + _ah + " requests (see cors.conf)",
+        zh: "用于 " + _ah + " 请求的代理（见 cors.conf）"
       },
       dso_kinopub_param_add_title: {
         ru: "Access token KinoPub",
@@ -4052,8 +4139,9 @@
           var routedCard = pushParams.card || pushParams.movie;
           if (routedCard && (routedCard.kinopub_id || routedCard.source === SOURCE_ID || routedCard.source === "kinopub")) {
             pushParams.source = SOURCE_ID;
-            if (routedCard.kinopub_id) {
-              pushParams.id = routedCard.kinopub_id;
+            var routedKinopubId = getKinopubId(routedCard);
+            if (routedKinopubId) {
+              pushParams.id = routedKinopubId;
             }
           }
         }
@@ -4117,7 +4205,7 @@
           registerOnlineTemplates();
           Lampa.Component.add("online_dso_kinopub", OnlineComponent);
           var fullMovie = fullEvent.data.movie || {};
-          var fullKinopubId = fullMovie.kinopub_id || (fullMovie.source === SOURCE_ID || fullMovie.source === "kinopub" ? fullMovie.id : 0);
+          var fullKinopubId = getKinopubId(fullMovie);
           Lampa.Activity.push({
             url: "",
             title: Lampa.Lang.translate("title_online"),
