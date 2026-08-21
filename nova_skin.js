@@ -3289,18 +3289,66 @@
   function afterPlayerStop() {
     after_player.forEach(function (id) { clearTimeout(id); });
     after_player = [];
+    clearTimeout(soft_timer);
   }
+
+  function refreshBurst() {
+    afterPlayerStop();
+    refreshMarks();
+    [80, 400, 1200].forEach(function (wait) {
+      after_player.push(setTimeout(refreshMarks, wait));
+    });
+  }
+
+  var soft_timer = null;
+
+  function refreshSoft() {
+    clearTimeout(soft_timer);
+    soft_timer = setTimeout(function () {
+      try {
+        if (Lampa.Player && typeof Lampa.Player.opened === 'function' && Lampa.Player.opened()) return;
+      } catch (e) {}
+      refreshMarks();
+    }, 250);
+  }
+
+  var outside = false;
 
   function hookPlayer() {
     try {
-      if (!Lampa.Player || !Lampa.Player.listener) return;
-      Lampa.Player.listener.follow('destroy', function () {
-        afterPlayerStop();
-        refreshMarks();
-        [80, 400, 1200].forEach(function (wait) {
-          after_player.push(setTimeout(refreshMarks, wait));
+      if (Lampa.Player && Lampa.Player.listener) {
+        Lampa.Player.listener.follow('destroy', function () {
+          outside = false;
+          refreshBurst();
         });
-      });
+        Lampa.Player.listener.follow('external', function () {
+          outside = true;
+        });
+      }
+    } catch (e) {}
+
+    try {
+      if (Lampa.Timeline && Lampa.Timeline.listener && Lampa.Timeline.listener.follow) {
+        Lampa.Timeline.listener.follow('update', refreshSoft);
+      } else {
+        Lampa.Listener.follow('state:changed', function (e) {
+          if (e && e.target === 'timeline' && e.reason === 'update') refreshSoft();
+        });
+      }
+    } catch (e) {}
+
+    var back = function () {
+      try {
+        if (document.visibilityState && document.visibilityState !== 'visible') return;
+      } catch (e) {}
+      if (!outside) return;
+      outside = false;
+      refreshBurst();
+    };
+
+    try {
+      document.addEventListener('visibilitychange', back, false);
+      window.addEventListener('focus', back, false);
     } catch (e) {}
   }
 
