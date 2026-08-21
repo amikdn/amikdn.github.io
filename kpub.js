@@ -72,6 +72,28 @@
     }
     return url;
   }
+  var STREAM_PROXY_HOSTS = ["cdntogo.net", "srvkp.com", "service-kp.com", "staticpop.com"];
+  function proxyStreamUrl(streamUrl) {
+    streamUrl = normalizeUrl(streamUrl);
+    if (!streamUrl || !proxyUrl) {
+      return streamUrl;
+    }
+    if (streamUrl.indexOf(proxyUrl) === 0) {
+      return streamUrl;
+    }
+    // only HLS manifests need CORS; mp4 direct links play fine as-is
+    if (!/\.m3u8(\?|$)/i.test(streamUrl)) {
+      return streamUrl;
+    }
+    var host = (streamUrl.split("/")[2] || "").toLowerCase();
+    for (var i = 0; i < STREAM_PROXY_HOSTS.length; i++) {
+      var domain = STREAM_PROXY_HOSTS[i];
+      if (host === domain || host.slice(-(domain.length + 1)) === "." + domain) {
+        return proxyUrl + streamUrl;
+      }
+    }
+    return streamUrl;
+  }
   function proxyImageUrl(imageUrl) {
     imageUrl = normalizeUrl(imageUrl);
     if (!imageUrl) {
@@ -2214,7 +2236,7 @@
     } else {
       picked = httpStream || selectHlsAudioTrack(hlsStream, audioIndex || 1);
     }
-    return normalizeUrl(picked);
+    return proxyStreamUrl(picked);
   }
   function getVoiceId(audio) {
     var voiceId = audio.author && audio.author.id || audio.type && audio.type.id;
