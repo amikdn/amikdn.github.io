@@ -1422,6 +1422,12 @@
     return knownQuality(currentSourceKey()) || splitSourceName(sourceTitle()).badge || '';
   }
 
+  function soonCard(origin) {
+    var found = (origin.attr('style') || '').match(/opacity\s*:\s*([\d.]+)/);
+    if (!found) return false;
+    return (parseFloat(found[1]) || 1) < 0.9;
+  }
+
   function readCard(node, index) {
     var origin = $(node);
     var line = origin.find('.time-line').first();
@@ -1448,10 +1454,13 @@
       if (plain) meta.push(plain);
     }
 
+    var soon = soonCard(origin);
+
     return {
       origin: origin,
       index: index,
       folder: origin.hasClass('online-prestige--folder'),
+      soon: soon,
       percent: percent,
       hash: hash,
       line: line,
@@ -1460,10 +1469,12 @@
       numbered: origin.find('.online-prestige__episode-number').length > 0,
       title: origin.find('.online-prestige__title').text().trim(),
       meta: meta,
-      time: origin.find('.online-prestige__time').text().trim() ||
-        (origin.hasClass('online-prestige--folder') ? '' : fallbackTime()),
-      quality: origin.find('.online-prestige__quality').text().trim() ||
-        (origin.hasClass('online-prestige--folder') ? '' : fallbackQuality(origin)),
+      time: soon
+        ? origin.find('.online-prestige__quality').text().trim()
+        : (origin.find('.online-prestige__time').text().trim() ||
+          (origin.hasClass('online-prestige--folder') ? '' : fallbackTime())),
+      quality: soon ? '' : (origin.find('.online-prestige__quality').text().trim() ||
+        (origin.hasClass('online-prestige--folder') ? '' : fallbackQuality(origin))),
       picture: origin.find('.online-prestige__img img').first()
     };
   }
@@ -1483,15 +1494,23 @@
 
   function seasonSeen(list) {
     var seen = 0;
+    var total = 0;
     list.forEach(function (item) {
+      if (item.soon) return;
+      total++;
       if (isSeen(item)) seen++;
     });
-    return { seen: seen, total: list.length };
+    return { seen: seen, total: total };
   }
 
-  function pickResume(list) {
+  function pickResume(full) {
     var i;
-    if (!list || !list.length) return null;
+    if (!full || !full.length) return null;
+
+    var list = full.filter(function (item) {
+      return !item.soon;
+    });
+    if (!list.length) return null;
 
     if (!serial) {
       for (i = 0; i < list.length; i++) {
@@ -1521,14 +1540,16 @@
 
   function freshItem() {
     for (var i = 0; i < items.length; i++) {
-      if (!isSeen(items[i])) return items[i];
+      if (!items[i].soon && !isSeen(items[i])) return items[i];
     }
     return null;
   }
 
   function nextItem(target) {
     if (!target) return null;
-    return items[target.index + 1] || null;
+    var next = items[target.index + 1] || null;
+    if (next && next.soon) return null;
+    return next;
   }
 
   function play(item) {
@@ -1607,7 +1628,12 @@
       }
     }
 
-    bind(card, function () { play(item); }, item.folder ? null : function () { longPress(item); });
+    if (item.soon) {
+      card.addClass('nova-card--soon').removeClass('selector');
+      card.find('.nova-card__line').remove();
+    } else {
+      bind(card, function () { play(item); }, item.folder ? null : function () { longPress(item); });
+    }
 
     item.card = card;
     return card;
@@ -3147,6 +3173,8 @@
     '.nova-skin-root .nova-card.focus .nova-card__line--full{background:rgba(0,0,0,.16)}',
     '.nova-skin-root .nova-card.focus .nova-card__line--full>.time-line>div{background:#000}',
     '.nova-skin-root .nova-card--file .nova-card__line--full{bottom:.28em}',
+    '.nova-skin-root .nova-card--soon{opacity:.45}',
+    '.nova-skin-root .nova-card--soon .nova-card__time{white-space:nowrap}',
     '.nova-skin-root .nova-card__eye{display:block;margin-top:.4em;opacity:.5}',
     '.nova-skin-root .nova-card__eye>svg{display:block;width:1.2em;height:1.2em;margin-left:auto}',
     '.nova-skin-root .nova-card.focus .nova-card__eye{opacity:.65}',
