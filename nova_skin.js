@@ -3214,12 +3214,94 @@
   function detach() {
     if (observer) observer.disconnect();
     observer = null;
+    afterPlayerStop();
     hopStop();
     probeStop();
     clearTimeout(timer);
     lockStopWatch();
     loadingStop();
     forget();
+  }
+
+  function refreshMarks() {
+    if (!inSkin() || !items.length) return;
+    var grid = !!(ui.list && ui.list.hasClass('nova__list--grid'));
+
+    items.forEach(function (item) {
+      if (!item || item.soon || item.folder) return;
+
+      var line = item.origin ? item.origin.find('.time-line').first() : null;
+      if (line && line.length) item.line = line;
+
+      var percent = 0;
+      if (item.hash) {
+        try { percent = Lampa.Timeline.view(item.hash).percent || 0; } catch (e) { percent = 0; }
+      }
+      if (!percent && item.line && item.line.length) {
+        var raw = (item.line.children('div').first().attr('style') || '').match(/([\d.]+)%/);
+        if (raw) percent = parseFloat(raw[1]) || 0;
+      }
+      item.percent = percent;
+      if (item.origin && item.origin.find('.online-prestige__viewed').length) item.viewed = true;
+
+      var card = item.card;
+      if (!card || !card.length) return;
+
+      var box = card.find('.nova-card__line');
+      if (box.length && item.line && item.line.length) {
+        box.empty().append(item.line.clone());
+      }
+
+      if (isSeen(item)) {
+        if (grid) {
+          var thumb = card.find('.nova-card__thumb');
+          if (thumb.length && !thumb.find('.nova-card__viewed').length) {
+            thumb.append('<div class="nova-card__viewed">' + ICON.eye + '</div>');
+          }
+        } else {
+          var side = card.find('.nova-card__side');
+          if (side.length && !side.find('.nova-card__eye').length) {
+            side.append('<div class="nova-card__eye">' + ICON.eye + '</div>');
+          }
+        }
+      } else {
+        card.find('.nova-card__viewed,.nova-card__eye').remove();
+      }
+    });
+
+    var keep = last;
+    try { buildHero(); } catch (e) {}
+    if (keep && $.contains(document.body, keep) && shown(keep)) {
+      last = keep;
+      try {
+        var now = Lampa.Controller.enabled();
+        if (now && now.name === 'content') {
+          refreshCollection();
+          Lampa.Controller.collectionFocus(keep, host);
+        }
+      } catch (e) {}
+    } else keepFocus();
+    relayout();
+  }
+
+  var after_player = [];
+
+  function afterPlayerStop() {
+    after_player.forEach(function (id) { clearTimeout(id); });
+    after_player = [];
+  }
+
+  function hookPlayer() {
+    try {
+      if (!Lampa.Player || !Lampa.Player.listener) return;
+      Lampa.Player.listener.follow('destroy', function () {
+        afterPlayerStop();
+        refreshMarks();
+        [80, 400, 1200].forEach(function (wait) {
+          after_player.push(setTimeout(refreshMarks, wait));
+        });
+      });
+    } catch (e) {}
   }
 
   function hookQuality() {
@@ -3410,6 +3492,7 @@
     hookSelect();
     hookController();
     hookQuality();
+    hookPlayer();
     hookReplace();
     hookRequest();
     hookXHR();
