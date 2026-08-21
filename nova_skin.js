@@ -105,48 +105,72 @@
   }
 
   var OWN = {
-    nova_skin_watch: 'Смотреть',
-    nova_skin_continue: 'Продолжить',
-    nova_skin_from_start: 'Смотреть с начала',
-    nova_skin_next_episode: 'Следующая',
-    nova_skin_first_new: 'Первая непросмотренная',
-    nova_skin_source: 'Источник',
-    nova_skin_season: 'Сезон',
-    nova_skin_voice: 'Перевод',
-    nova_skin_jump: 'Серии',
-    nova_skin_jump_pick: 'Выбрать серию',
-    nova_skin_view: 'Вид',
-    nova_skin_view_list: 'Список',
-    nova_skin_view_grid: 'Плитка',
-    nova_skin_clarify: 'Уточнить поиск',
-    nova_skin_more_sources: 'Ещё {count}',
-    nova_skin_season_progress: 'Просмотрено {seen} из {total}',
-    nova_skin_season_left: 'осталось {left}',
-    nova_skin_left: 'осталось',
-    nova_skin_loading_title: 'Ищем, где посмотреть',
-    nova_skin_loading_start: 'Опрашиваем источники',
-    nova_skin_sec: ' с',
-    nova_skin_episode: 'Серия',
-    nova_skin_action: 'Действие',
-    nova_skin_unknown: 'Неизвестно',
-    nova_skin_voice_dub: 'Дубляж',
-    nova_skin_voice_mvo: 'Многоголосый',
-    nova_skin_voice_dvo: 'Двухголосый',
-    nova_skin_voice_avo: 'Авторский',
-    nova_skin_voice_orig: 'Оригинал',
-    nova_skin_voice_sub: 'Субтитры',
-    nova_skin_voice_other: 'Другое',
-    nova_skin_try_source: 'Попробовать {name}',
-    nova_skin_all_sources: 'Все источники',
-    nova_skin_retry: 'Повторить',
-    nova_skin_auto_next: 'Через {sec} сек переключимся на «{name}»',
-    nova_skin_dead_all: 'Ни один источник ничего не нашёл'
+    nova_skin_watch: { ru: 'Смотреть', uk: 'Дивитися', en: 'Watch' },
+    nova_skin_continue: { ru: 'Продолжить', uk: 'Продовжити', en: 'Continue' },
+    nova_skin_from_start: { ru: 'Смотреть с начала', uk: 'Дивитися з початку', en: 'Watch from start' },
+    nova_skin_next_episode: { ru: 'Следующая', uk: 'Наступна', en: 'Next' },
+    nova_skin_first_new: { ru: 'Первая непросмотренная', uk: 'Перша непроглянута', en: 'First unwatched' },
+    nova_skin_source: { ru: 'Источник', uk: 'Джерело', en: 'Source' },
+    nova_skin_season: { ru: 'Сезон', uk: 'Сезон', en: 'Season' },
+    nova_skin_voice: { ru: 'Перевод', uk: 'Переклад', en: 'Audio' },
+    nova_skin_jump: { ru: 'Серии', uk: 'Серії', en: 'Episodes' },
+    nova_skin_jump_pick: { ru: 'Выбрать серию', uk: 'Вибрати серію', en: 'Pick an episode' },
+    nova_skin_view: { ru: 'Вид', uk: 'Вигляд', en: 'View' },
+    nova_skin_view_list: { ru: 'Список', uk: 'Список', en: 'List' },
+    nova_skin_view_grid: { ru: 'Плитка', uk: 'Плитка', en: 'Grid' },
+    nova_skin_clarify: { ru: 'Уточнить поиск', uk: 'Уточнити пошук', en: 'Refine search' },
+    nova_skin_more_sources: { ru: 'Ещё {count}', uk: 'Ще {count}', en: '{count} more' },
+    nova_skin_season_progress: { ru: 'Просмотрено {seen} из {total}', uk: 'Переглянуто {seen} з {total}', en: 'Watched {seen} of {total}' },
+    nova_skin_season_left: { ru: 'осталось {left}', uk: 'залишилось {left}', en: '{left} left' },
+    nova_skin_left: { ru: 'осталось', uk: 'залишилось', en: 'left' },
+    nova_skin_loading_title: { ru: 'Ищем, где посмотреть', uk: 'Шукаємо, де подивитися', en: 'Looking for a source' },
+    nova_skin_loading_start: { ru: 'Опрашиваем источники', uk: 'Опитуємо джерела', en: 'Checking sources' },
+    nova_skin_sec: { ru: ' с', uk: ' с', en: ' s' },
+    nova_skin_episode: { ru: 'Серия', uk: 'Серія', en: 'Episode' },
+    nova_skin_action: { ru: 'Действие', uk: 'Дія', en: 'Action' },
+    nova_skin_unknown: { ru: 'Неизвестно', uk: 'Невідомо', en: 'Unknown' },
+    nova_skin_voice_dub: { ru: 'Дубляж', uk: 'Дубляж', en: 'Dubbed' },
+    nova_skin_voice_mvo: { ru: 'Многоголосый', uk: 'Багатоголосий', en: 'Multi-voice' },
+    nova_skin_voice_dvo: { ru: 'Двухголосый', uk: 'Двоголосий', en: 'Two-voice' },
+    nova_skin_voice_avo: { ru: 'Авторский', uk: 'Авторський', en: 'Single-voice' },
+    nova_skin_voice_orig: { ru: 'Оригинал', uk: 'Оригінал', en: 'Original' },
+    nova_skin_voice_sub: { ru: 'Субтитры', uk: 'Субтитри', en: 'Subtitles' },
+    nova_skin_voice_other: { ru: 'Другое', uk: 'Інше', en: 'Other' },
+    nova_skin_try_source: { ru: 'Попробовать {name}', uk: 'Спробувати {name}', en: 'Try {name}' },
+    nova_skin_all_sources: { ru: 'Все источники', uk: 'Всі джерела', en: 'All sources' },
+    nova_skin_retry: { ru: 'Повторить', uk: 'Повторити', en: 'Retry' },
+    nova_skin_auto_next: { ru: 'Через {sec} сек переключимся на «{name}»', uk: 'Через {sec} с перейдемо на «{name}»', en: 'Switching to "{name}" in {sec}s' },
+    nova_skin_dead_all: { ru: 'Ни один источник ничего не нашёл', uk: 'Жодне джерело нічого не знайшло', en: 'No source found anything' },
+    nova_skin_set_enable: { ru: 'Включить Nova Skin', uk: 'Увімкнути Nova Skin', en: 'Enable Nova Skin' },
+    nova_skin_set_enable_descr: { ru: 'Единый интерфейс для всех онлайн-плагинов', uk: 'Єдиний інтерфейс для всіх онлайн-плагінів', en: 'One interface for every online plugin' },
+    nova_skin_set_enable_descr_alt: { ru: 'Единый интерфейс для всех онлайн-плагинов, кроме тех, где он уже встроен', uk: 'Єдиний інтерфейс для всіх онлайн-плагінів, крім тих, де він уже вбудований', en: 'One interface for every online plugin except those that already ship with it' },
+    nova_skin_set_hero: { ru: 'Шапка с кнопкой', uk: 'Шапка з кнопкою', en: 'Header with button' },
+    nova_skin_set_hero_descr: { ru: 'Кадр, прогресс и кнопка продолжения сверху', uk: 'Кадр, прогрес і кнопка продовження вгорі', en: 'Backdrop, progress and continue button on top' },
+    nova_skin_set_hero_art: { ru: 'Кадр в шапке', uk: 'Кадр у шапці', en: 'Backdrop in header' },
+    nova_skin_set_hero_art_descr: { ru: 'Выключите для компактной шапки без картинки', uk: 'Вимкніть для компактної шапки без картинки', en: 'Turn off for a compact header without artwork' },
+    nova_skin_set_logo: { ru: 'Логотип вместо названия', uk: 'Логотип замість назви', en: 'Logo instead of title' },
+    nova_skin_set_logo_descr: { ru: 'Показывать логотип фильма в шапке, если он есть', uk: 'Показувати логотип фільму в шапці, якщо він є', en: 'Show the movie logo in the header when available' },
+    nova_skin_set_full: { ru: 'Во всю ширину экрана', uk: 'На всю ширину екрана', en: 'Full width' },
+    nova_skin_set_full_descr: { ru: 'Скрыть маленький постер и описание слева', uk: 'Сховати маленький постер і опис ліворуч', en: 'Hide the small poster and overview on the left' },
+    nova_skin_set_fade: { ru: 'Размытые края постера', uk: 'Розмиті краї постера', en: 'Faded poster edges' },
+    nova_skin_set_fade_descr: { ru: 'Растворять постер вверху по краям со всех сторон', uk: 'Розчиняти постер угорі по краях з усіх боків', en: 'Fade the header artwork out on every side' },
+    nova_skin_set_probe: { ru: 'Проверять источники в фоне', uk: 'Перевіряти джерела у фоні', en: 'Check sources in background' },
+    nova_skin_set_probe_descr: { ru: 'Отмечать рабочие точкой и показывать их качество', uk: 'Позначати робочі точкою та показувати їхню якість', en: 'Mark working ones with a dot and show their quality' },
+    nova_skin_set_switch: { ru: 'Автопереход по источникам', uk: 'Автоперехід по джерелах', en: 'Auto switch source' },
+    nova_skin_set_switch_descr: { ru: 'Если ничего не найдено, пробовать следующий рабочий источник', uk: 'Якщо нічого не знайдено, пробувати наступне робоче джерело', en: 'Try the next working source when nothing is found' },
+    nova_skin_set_view: { ru: 'Вид списка', uk: 'Вигляд списку', en: 'List layout' },
+    nova_skin_set_view_descr: { ru: 'Список или плитка (4 в ряд)', uk: 'Список або плитка (4 в ряд)', en: 'List or grid (4 per row)' },
+    nova_skin_set_quality: { ru: 'Качество по умолчанию', uk: 'Якість за замовчуванням', en: 'Default quality' },
+    nova_skin_set_quality_descr: { ru: 'Предпочтительное качество воспроизведения', uk: 'Бажана якість відтворення', en: 'Preferred playback quality' },
+    nova_skin_set_quality_auto: { ru: 'Авто', uk: 'Авто', en: 'Auto' },
+    nova_skin_set_focus: { ru: 'Выделение', uk: 'Виділення', en: 'Highlight style' },
+    nova_skin_set_focus_descr: { ru: 'Чем подсвечивать выбранную кнопку, серию или озвучку', uk: 'Чим підсвічувати вибрану кнопку, серію або озвучення', en: 'How the focused button, episode or voice is highlighted' },
+    nova_skin_set_focus_ring: { ru: 'Ободок', uk: 'Обідок', en: 'Outline' },
+    nova_skin_set_focus_fill: { ru: 'Белая заливка', uk: 'Біла заливка', en: 'White fill' }
   };
 
   try {
-    var dict = {};
-    for (var lk in OWN) dict[lk] = { ru: OWN[lk], en: OWN[lk], uk: OWN[lk] };
-    Lampa.Lang.add(dict);
+    Lampa.Lang.add(OWN);
   } catch (e) {}
 
   function tr(key) {
@@ -158,7 +182,11 @@
   }
 
   function text(key, own) {
-    return tr(key) || tr(own) || OWN[own] || '';
+    return tr(key) || tr(own) || (OWN[own] ? OWN[own].ru : '');
+  }
+
+  function label(key) {
+    return tr(key) || (OWN[key] ? OWN[key].ru : '');
   }
 
   var ICON = {
@@ -167,7 +195,8 @@
     search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-4-4" stroke-linecap="round"></path></svg>',
     refresh: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 11a8 8 0 10-2.3 5.7" stroke-linecap="round"></path><path d="M20 4v7h-7" stroke-linecap="round" stroke-linejoin="round"></path></svg>',
     grid: '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="3" width="8" height="8" rx="1.6"></rect><rect x="13" y="3" width="8" height="8" rx="1.6"></rect><rect x="3" y="13" width="8" height="8" rx="1.6"></rect><rect x="13" y="13" width="8" height="8" rx="1.6"></rect></svg>',
-    list: '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="4" width="18" height="4" rx="1.4"></rect><rect x="3" y="10" width="18" height="4" rx="1.4"></rect><rect x="3" y="16" width="18" height="4" rx="1.4"></rect></svg>'
+    list: '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="4" width="18" height="4" rx="1.4"></rect><rect x="3" y="10" width="18" height="4" rx="1.4"></rect><rect x="3" y="16" width="18" height="4" rx="1.4"></rect></svg>',
+    eye: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z" stroke-linecap="round" stroke-linejoin="round"></path><circle cx="12" cy="12" r="2.6"></circle></svg>'
   };
 
   function esc(value) {
@@ -332,7 +361,7 @@
     if (document.getElementById('nova-skin-css')) return;
     var style = document.createElement('style');
     style.id = 'nova-skin-css';
-    style.textContent = SKIN_CSS + EXTRA_CSS + FOCUS_CSS + FULL_CSS + FADE_CSS;
+    style.textContent = SKIN_CSS + EXTRA_CSS + CARD_CSS + FOCUS_CSS + FULL_CSS + FADE_CSS;
     (document.body || document.head).appendChild(style);
   }
 
@@ -1452,6 +1481,14 @@
     return item.viewed || item.percent >= SEEN_PERCENT;
   }
 
+  function seasonSeen(list) {
+    var seen = 0;
+    list.forEach(function (item) {
+      if (isSeen(item)) seen++;
+    });
+    return { seen: seen, total: list.length };
+  }
+
   function pickResume(list) {
     var i;
     if (!list || !list.length) return null;
@@ -1504,7 +1541,7 @@
     try { item.origin.trigger('hover:long'); } catch (e) {}
   }
 
-  function buildCard(item, compact) {
+  function buildCard(item, compact, grid) {
     var card = $('<div class="nova-card selector">' +
       '<div class="nova-card__thumb"><img alt=""><div class="nova-card__num"></div><div class="nova-card__line"></div></div>' +
       '<div class="nova-card__body"><div class="nova-card__title"></div><div class="nova-card__meta"></div></div>' +
@@ -1536,12 +1573,12 @@
     else card.find('.nova-card__quality').remove();
     card.find('.nova-card__time').text(item.time || '');
 
-    if (item.line.length) card.find('.nova-card__line').append(item.line.clone());
-    else card.find('.nova-card__line').remove();
-
-    if (compact) {
-      card.find('.nova-card__line').addClass('nova-card__line--body').appendTo(body);
-    }
+    var line = card.find('.nova-card__line');
+    if (item.line.length) {
+      line.append(item.line.clone());
+      if (compact) line.addClass('nova-card__line--body').appendTo(body);
+      else if (!grid) line.addClass('nova-card__line--full').appendTo(card);
+    } else line.remove();
 
     if (item.folder) {
       card.addClass('nova-card--nav nova-card--slim');
@@ -1564,7 +1601,10 @@
         img.src = art;
         if (img.complete) thumb.addClass('nova-card__thumb--loaded');
       }
-      if (item.viewed) thumb.append('<div class="nova-card__viewed"></div>');
+      if (item.viewed) {
+        if (grid) thumb.append('<div class="nova-card__viewed"></div>');
+        else card.find('.nova-card__side').append('<div class="nova-card__eye">' + ICON.eye + '</div>');
+      }
     }
 
     bind(card, function () { play(item); }, item.folder ? null : function () { longPress(item); });
@@ -1897,26 +1937,26 @@
     if (voice) hint.push(voice);
     ui.hero.find('.nova-hero__hint').text(hint.join(' \u00b7 '));
 
-    var progress = ui.hero.find('.nova-hero__progress').empty();
-    if (target.percent > 0) {
-      progress.show().append('<div class="time-line"><div style="width:' +
-        Math.min(100, target.percent) + '%"></div></div>');
-    } else progress.hide();
+    var season = serial && !nav && items.length > 1 ? seasonSeen(items) : null;
 
     var season_line = ui.hero.find('.nova-hero__season');
-    if (serial && !nav && items.length > 1) {
-      var seen = 0;
-      items.forEach(function (item) {
-        if (isSeen(item)) seen++;
-      });
+    if (season) {
       var line = text('nova_season_progress', 'nova_skin_season_progress')
-        .replace('{seen}', seen).replace('{total}', items.length);
-      if (seen < items.length) {
+        .replace('{seen}', season.seen).replace('{total}', season.total);
+      if (season.seen < season.total) {
         line += ' \u00b7 ' + text('nova_season_left', 'nova_skin_season_left')
-          .replace('{left}', items.length - seen);
+          .replace('{left}', season.total - season.seen);
       }
       season_line.text(line).show();
     } else season_line.hide();
+
+    var progress = ui.hero.find('.nova-hero__progress').empty();
+    var percent = season
+      ? Math.round(season.seen / season.total * 100)
+      : Math.min(100, target.percent);
+    if (percent > 0) {
+      progress.show().append('<div class="time-line"><div style="width:' + percent + '%"></div></div>');
+    } else progress.hide();
 
     return button;
   }
@@ -2133,7 +2173,7 @@
         badge: knownQuality(key) || parts.badge,
         active: !!item.selected,
         empty: state === 'empty',
-        dot: state === 'ok',
+        dot: probeOn() && state === 'ok',
         plain: true
       });
       box.attr('data-nova-src', key);
@@ -2757,7 +2797,7 @@
         item.card = null;
         return;
       }
-      ui.list.append(buildCard(item, compact && !grid));
+      ui.list.append(buildCard(item, compact && !grid, grid));
     });
 
     var button = buildHero();
@@ -2884,10 +2924,10 @@
         component: 'nova_skin',
         param: { name: ENABLED_KEY, type: 'trigger', default: true },
         field: {
-          name: 'Включить Nova Skin',
+          name: label('nova_skin_set_enable'),
           description: siblingInstalled()
-            ? 'Единый интерфейс для всех онлайн-плагинов, кроме тех, где он уже встроен'
-            : 'Единый интерфейс для всех онлайн-плагинов'
+            ? label('nova_skin_set_enable_descr_alt')
+            : label('nova_skin_set_enable_descr')
         },
         onChange: function () { try { Lampa.Activity.replace(); } catch (e) {} }
       });
@@ -2896,8 +2936,8 @@
         component: 'nova_skin',
         param: { name: 'nova_skin_hero', type: 'trigger', default: true },
         field: {
-          name: 'Шапка с кнопкой',
-          description: 'Кадр, прогресс и кнопка продолжения сверху'
+          name: label('nova_skin_set_hero'),
+          description: label('nova_skin_set_hero_descr')
         },
         onChange: function () { try { Lampa.Activity.replace(); } catch (e) {} }
       });
@@ -2906,8 +2946,8 @@
         component: 'nova_skin',
         param: { name: 'nova_skin_hero_art', type: 'trigger', default: true },
         field: {
-          name: 'Кадр в шапке',
-          description: 'Выключите для компактной шапки без картинки'
+          name: label('nova_skin_set_hero_art'),
+          description: label('nova_skin_set_hero_art_descr')
         },
         onChange: function () { try { Lampa.Activity.replace(); } catch (e) {} }
       });
@@ -2916,8 +2956,8 @@
         component: 'nova_skin',
         param: { name: 'nova_skin_logo', type: 'trigger', default: true },
         field: {
-          name: 'Логотип вместо названия',
-          description: 'Показывать логотип фильма в шапке, если он есть'
+          name: label('nova_skin_set_logo'),
+          description: label('nova_skin_set_logo_descr')
         },
         onChange: function () {
           if (movie && ui.hero) heroLogo();
@@ -2928,8 +2968,8 @@
         component: 'nova_skin',
         param: { name: 'nova_skin_fullscreen', type: 'trigger', default: false },
         field: {
-          name: 'Во всю ширину экрана',
-          description: 'Скрыть маленький постер и описание слева'
+          name: label('nova_skin_set_full'),
+          description: label('nova_skin_set_full_descr')
         },
         onChange: function () { applyFullScreen(); }
       });
@@ -2938,8 +2978,8 @@
         component: 'nova_skin',
         param: { name: 'nova_skin_fade', type: 'trigger', default: false },
         field: {
-          name: 'Размытые края постера',
-          description: 'Растворять постер вверху по краям со всех сторон'
+          name: label('nova_skin_set_fade'),
+          description: label('nova_skin_set_fade_descr')
         },
         onChange: function () { applyEdgeFade(); }
       });
@@ -2948,17 +2988,18 @@
         component: 'nova_skin',
         param: { name: 'nova_skin_probe', type: 'trigger', default: true },
         field: {
-          name: 'Проверять источники в фоне',
-          description: 'Отмечать рабочие точкой и показывать их качество'
-        }
+          name: label('nova_skin_set_probe'),
+          description: label('nova_skin_set_probe_descr')
+        },
+        onChange: function () { redraw(); }
       });
 
       Lampa.SettingsApi.addParam({
         component: 'nova_skin',
         param: { name: 'nova_skin_auto_switch', type: 'trigger', default: true },
         field: {
-          name: 'Автопереход по источникам',
-          description: 'Если ничего не найдено, пробовать следующий рабочий источник'
+          name: label('nova_skin_set_switch'),
+          description: label('nova_skin_set_switch_descr')
         }
       });
 
@@ -2967,10 +3008,16 @@
         param: {
           name: 'nova_skin_view',
           type: 'select',
-          values: { list: 'Список', grid: 'Плитка' },
+          values: {
+            list: label('nova_skin_view_list'),
+            grid: label('nova_skin_view_grid')
+          },
           default: 'list'
         },
-        field: { name: 'Вид списка', description: 'Список или плитка (4 в ряд)' },
+        field: {
+          name: label('nova_skin_set_view'),
+          description: label('nova_skin_set_view_descr')
+        },
         onChange: function () { redraw(); }
       });
 
@@ -2979,12 +3026,18 @@
         param: {
           name: 'nova_skin_quality',
           type: 'select',
-          values: { auto: 'Авто', 2160: '4K', 1080: '1080p', 720: '720p', 480: '480p' },
+          values: {
+            auto: label('nova_skin_set_quality_auto'),
+            2160: '4K',
+            1080: '1080p',
+            720: '720p',
+            480: '480p'
+          },
           default: 'auto'
         },
         field: {
-          name: 'Качество по умолчанию',
-          description: 'Предпочтительное качество воспроизведения'
+          name: label('nova_skin_set_quality'),
+          description: label('nova_skin_set_quality_descr')
         }
       });
 
@@ -2993,12 +3046,15 @@
         param: {
           name: 'nova_focus_style',
           type: 'select',
-          values: { ring: 'Ободок', fill: 'Белая заливка' },
+          values: {
+            ring: label('nova_skin_set_focus_ring'),
+            fill: label('nova_skin_set_focus_fill')
+          },
           default: 'ring'
         },
         field: {
-          name: 'Выделение',
-          description: 'Чем подсвечивать выбранную кнопку, серию или озвучку'
+          name: label('nova_skin_set_focus'),
+          description: label('nova_skin_set_focus_descr')
         },
         onChange: function () { applyFocusStyle(); }
       });
@@ -3084,6 +3140,18 @@
     'body.nova-focus-ring .nova__list--grid .nova-card.focus{background:none!important;color:inherit!important;-webkit-box-shadow:none!important;box-shadow:none!important}',
     'body.nova-focus-ring .nova__list--grid .nova-card.focus .nova-card__thumb{-webkit-box-shadow:0 0 0 .12em #fff!important;box-shadow:0 0 0 .12em #fff!important}',
     'body.nova-focus-ring .nova-chip--active.focus,body.nova-focus-ring .nova-group--open.focus{-webkit-box-shadow:inset 0 0 0 .12em #fff!important;box-shadow:inset 0 0 0 .12em #fff!important}'
+  ].join('');
+
+  var CARD_CSS = [
+    '.nova-skin-root .nova-card__line--full{position:absolute;left:.7em;right:.7em;bottom:.32em;height:.25em;-webkit-border-radius:.2em;border-radius:.2em;background:rgba(255,255,255,.18)}',
+    '.nova-skin-root .nova-card.focus .nova-card__line--full{background:rgba(0,0,0,.16)}',
+    '.nova-skin-root .nova-card.focus .nova-card__line--full>.time-line>div{background:#000}',
+    '.nova-skin-root .nova-card--file .nova-card__line--full{bottom:.28em}',
+    '.nova-skin-root .nova-card__eye{display:block;margin-top:.4em;opacity:.5}',
+    '.nova-skin-root .nova-card__eye>svg{display:block;width:1.2em;height:1.2em;margin-left:auto}',
+    '.nova-skin-root .nova-card.focus .nova-card__eye{opacity:.65}',
+    'body.nova-focus-ring .nova-card.focus .nova-card__line--full{background:rgba(255,255,255,.2)!important}',
+    'body.nova-focus-ring .nova-card.focus .nova-card__line--full>.time-line>div{background:#fff!important}'
   ].join('');
 
   var FULL_CSS = [
