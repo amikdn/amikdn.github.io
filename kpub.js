@@ -1,6 +1,5 @@
 (function () {
   'use strict';
-
   if (window.__dso_kinopub_loaded) {
     return;
   }
