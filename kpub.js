@@ -2325,6 +2325,59 @@
       return !!subtitleEntry.url;
     });
   }
+  var subs_external = false;
+  var subs_pending = null;
+  var subs_hooked = false;
+
+  function subsInnerPlayer() {
+    if (subs_external) return false;
+    try {
+      if (typeof Lampa.Player.opened === 'function' && !Lampa.Player.opened()) return false;
+    } catch (e) {
+      return false;
+    }
+    return true;
+  }
+
+  function subsPush(subtitles) {
+    if (!subtitles || !subtitles.length) return;
+    if (!subsInnerPlayer()) {
+      subs_pending = subtitles;
+      return;
+    }
+    subs_pending = null;
+    try {
+      Lampa.Player.subtitles(subtitles);
+    } catch (e) {
+      subs_pending = subtitles;
+    }
+  }
+
+  function subsHook() {
+    if (subs_hooked) return;
+    if (!Lampa.Player || !Lampa.Player.listener || !Lampa.Player.listener.follow) return;
+    subs_hooked = true;
+
+    Lampa.Player.listener.follow('external', function () {
+      subs_external = true;
+      subs_pending = null;
+    });
+
+    Lampa.Player.listener.follow('ready', function () {
+      subs_external = false;
+      var wait = subs_pending;
+      subs_pending = null;
+      if (wait && wait.length) {
+        try { Lampa.Player.subtitles(wait); } catch (e) {}
+      }
+    });
+
+    Lampa.Player.listener.follow('destroy', function () {
+      subs_external = false;
+      subs_pending = null;
+    });
+  }
+
   function loadSubtitlesFromUrl(subtitlesUrl) {
     if (!subtitlesUrl) {
       return;
@@ -2335,13 +2388,16 @@
       var responseSubtitles = response && response.subtitles ? response.subtitles : Array.isArray(response) ? response : [];
       var subtitles = normalizeSubtitles(responseSubtitles);
       if (subtitles.length) {
-        Lampa.Player.subtitles(subtitles);
+        subsPush(subtitles);
       }
     });
   }
   function applySubtitles(stream) {
+    subsHook();
+    subs_external = false;
+    subs_pending = null;
     if (stream.subtitles && stream.subtitles.length) {
-      Lampa.Player.subtitles(stream.subtitles);
+      subsPush(stream.subtitles);
     } else if (stream.subtitles_call) {
       loadSubtitlesFromUrl(stream.subtitles_call);
     }
