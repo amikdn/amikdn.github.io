@@ -1497,6 +1497,7 @@
   }
 
   function isSeen(item) {
+    if (item.percent > 0 && item.percent < SEEN_PERCENT) return false;
     return item.viewed || item.percent >= SEEN_PERCENT;
   }
 
