@@ -2776,7 +2776,13 @@
 
   function novaDown() {
     if (!inSkin()) return false;
-    return dropDown();
+    if (dropDown()) return true;
+    if (ui_open) return false;
+    if (!toolbarFocused() || items.length < 2) return false;
+    lockRelease();
+    var target = pickResume(items);
+    if (target && target.card && target.card.length) return focusNode(target.card);
+    return false;
   }
 
   function novaRight() {
