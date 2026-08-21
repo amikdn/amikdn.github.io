@@ -1491,11 +1491,21 @@
     return list;
   }
 
+  function percentOf(item) {
+    if (!item) return 0;
+    var value = parseFloat(item.percent);
+    return isNaN(value) || value < 0 ? 0 : value;
+  }
+
   function isSeen(item) {
     if (!item) return false;
-    var value = parseFloat(item.percent);
-    if (isNaN(value) || value < 0) value = 0;
-    return value >= SEEN_PERCENT;
+    if (item.viewed) return true;
+    return percentOf(item) >= SEEN_PERCENT;
+  }
+
+  function isStarted(item) {
+    var value = percentOf(item);
+    return value > 0 && value < SEEN_PERCENT;
   }
 
   function seasonText(season) {
@@ -1542,6 +1552,9 @@
       return list[0];
     }
 
+    for (i = 0; i < list.length; i++) {
+      if (isStarted(list[i])) return list[i];
+    }
     for (i = 0; i < list.length; i++) {
       if (!isSeen(list[i])) return list[i];
     }
