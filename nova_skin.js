@@ -523,11 +523,6 @@
             return right.apply(this, arguments);
           };
         }
-        var gone = typeof object.gone === 'function' ? object.gone : null;
-        object.gone = function (name) {
-          if (name === 'head' || name === 'menu') nova_back = name;
-          if (gone) return gone.apply(this, arguments);
-        };
         if (typeof object.toggle === 'function') {
           var toggle = object.toggle;
           object.toggle = function () {
@@ -1497,8 +1492,10 @@
   }
 
   function isSeen(item) {
-    if (item.percent > 0 && item.percent < SEEN_PERCENT) return false;
-    return item.viewed || item.percent >= SEEN_PERCENT;
+    if (!item) return false;
+    var value = parseFloat(item.percent);
+    if (isNaN(value) || value < 0) value = 0;
+    return value >= SEEN_PERCENT;
   }
 
   function seasonText(season) {
@@ -1545,33 +1542,10 @@
       return list[0];
     }
 
-    var reached = 0;
-    for (i = 0; i < list.length; i++) {
-      if (isSeen(list[i])) reached = Math.max(reached, list[i].num);
-    }
-
-    var started = null;
-    for (i = 0; i < list.length; i++) {
-      if (isSeen(list[i])) continue;
-      if (list[i].percent > 0 && list[i].percent < SEEN_PERCENT) started = list[i];
-    }
-    if (started && started.num >= reached) return started;
-
-    if (reached) {
-      for (i = 0; i < list.length; i++) {
-        if (list[i].num > reached && !isSeen(list[i])) return list[i];
-      }
-      for (i = 0; i < list.length; i++) {
-        if (!isSeen(list[i])) return list[i];
-      }
-      if (started) return started;
-      return list[list.length - 1];
-    }
-    if (started) return started;
     for (i = 0; i < list.length; i++) {
       if (!isSeen(list[i])) return list[i];
     }
-    return list[0];
+    return list[list.length - 1];
   }
 
   function freshItem() {
@@ -1657,7 +1631,7 @@
         img.src = art;
         if (img.complete) thumb.addClass('nova-card__thumb--loaded');
       }
-      if (item.viewed) {
+      if (item.viewed || isSeen(item)) {
         if (grid) thumb.append('<div class="nova-card__viewed">' + ICON.eye + '</div>');
         else card.find('.nova-card__side').append('<div class="nova-card__eye">' + ICON.eye + '</div>');
       }
@@ -2617,8 +2591,6 @@
     return focusNode(chip);
   }
 
-  var nova_back = '';
-
   function layoutReady() {
     try {
       return document.body.offsetWidth > 0 || document.body.offsetHeight > 0;
@@ -2651,14 +2623,7 @@
   function keepFocus() {
     if (!inSkin()) return false;
     refreshCollection();
-    var back = nova_back;
-    nova_back = '';
     var wanted = lockActive() ? seek(ui_lock) : null;
-    if (!wanted && back && !ui_open && !toolbarFocused() && !rowsFocused()) {
-      var jumped = resumeTarget();
-      if (jumped === true) return true;
-      if (jumped) wanted = jumped;
-    }
     if (!wanted) wanted = seek(ui_focus);
     if (wanted && !shown(wanted)) wanted = null;
     if (!wanted && last && $.contains(ui.root[0], last) && shown(last)) wanted = $(last);
@@ -2676,8 +2641,25 @@
     return focusNode(wanted);
   }
 
+  function dropFocused() {
+    if (!inSkin() || !last) return false;
+    var row = ui.rows.find('.nova-drop');
+    return !!(row.length && row.find(last).length);
+  }
+
+  function dropUp() {
+    if (!dropFocused() || !ui_open) return false;
+    var bar = ui.rows.find('.nova-toolbar');
+    var chip = bar.find('[data-nova-focus="' + ui_open + '"]').first();
+    if (!chip.length) chip = bar.find('.nova-chip--active').first();
+    if (!chip.length) chip = bar.find('.nova-chip').first();
+    if (!chip.length) return false;
+    return focusNode(chip);
+  }
+
   function novaUp() {
     if (!inSkin()) return false;
+    if (dropUp()) return true;
     try {
       if (window.Navigator && window.Navigator.canmove('up')) return false;
     } catch (e) {}
