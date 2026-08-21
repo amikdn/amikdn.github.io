@@ -27,6 +27,16 @@
     catch (e) { return atob(v); }
   }
 
+  var CARD_ID_OFFSET = 9000000000;
+
+  function realItemId(value) {
+    var parsed = parseInt(value, 10) || 0;
+    if (parsed > CARD_ID_OFFSET) {
+      parsed -= CARD_ID_OFFSET;
+    }
+    return parsed;
+  }
+
   var _ah = _dh("YXBpLnNydmtwLmNvbQ==");
   var API_BASE_URL = "htt" + "ps://" + _ah;
   var OAUTH_CLIENT_ID = _dh("eGJtYw==");
@@ -385,7 +395,7 @@
       imdbId = ("" + imdbRaw).indexOf("tt") === 0 ? "" + imdbRaw : "tt" + imdbRaw;
     }
     var card = {
-      id: item.id + 9000000000,
+      id: item.id + CARD_ID_OFFSET,
       kinopub_id: item.id,
       kinopub_type: item.type || "",
       source: SOURCE_ID,
@@ -649,7 +659,13 @@
     if (!card) {
       return 0;
     }
-    return card.kinopub_id || (card.source === SOURCE_ID || card.source === "kinopub" ? card.id : 0);
+    if (card.kinopub_id) {
+      return realItemId(card.kinopub_id);
+    }
+    if (card.source === SOURCE_ID || card.source === "kinopub") {
+      return realItemId(card.id);
+    }
+    return 0;
   }
   function addToLampaFavorites(category, card, historyLimit) {
     if (!Lampa.Favorite || !card || !card.id) {
@@ -1862,8 +1878,7 @@
       var __dsoCard = fullParams.card || fullParams.movie || (fullParams.object && (fullParams.object.card || fullParams.object.movie)) || null;
       var __dsoSearchTitle = (__dsoCard && (__dsoCard.title || __dsoCard.name || __dsoCard.original_title || __dsoCard.original_name)) || fullParams.title || "";
       var __dsoInitId = (__dsoCard && (__dsoCard.kinopub_id || __dsoCard.id)) || fullParams.kinopub_id || fullParams.id || (fullParams.object && fullParams.object.id) || 0;
-      __dsoInitId = parseInt(__dsoInitId, 10) || 0;
-      if (__dsoInitId > 9000000000) __dsoInitId = __dsoInitId - 9000000000;
+      __dsoInitId = realItemId(__dsoInitId);
       var __dsoRunFallback = function (currentId) {
         if (!__dsoSearchTitle) { if (onError) onError(); return; }
         apiGet("/v1/items/search?q=" + encodeURIComponent(__dsoSearchTitle) + "&perpage=5", function (searchResp) {
@@ -1979,7 +1994,7 @@
       }
     },
     seasons: function (seasonsCard, seasonNumbers, seasonsCallback) {
-      var seasonsItemId = seasonsCard && (seasonsCard.kinopub_id || seasonsCard.id) || 0;
+      var seasonsItemId = realItemId(seasonsCard && (seasonsCard.kinopub_id || seasonsCard.id) || 0);
       if (!seasonsItemId || !getAccessToken()) {
         if (seasonsCallback) {
           seasonsCallback({});
@@ -2171,26 +2186,35 @@
     });
   }
   function filterPlayableFiles(files) {
-    if (isHlsPreferred()) {
-      return filterHlsFiles(files);
-    } else {
-      return filterMp4Files(files);
+    var preferred = isHlsPreferred() ? filterHlsFiles(files) : filterMp4Files(files);
+    if (preferred.length) {
+      return preferred;
     }
+    return isHlsPreferred() ? filterMp4Files(files) : filterHlsFiles(files);
   }
   function selectHlsAudioTrack(hlsUrl, audioIndex) {
     if (!hlsUrl) {
       return "";
     }
-    return hlsUrl.replace(/a1\.m3u8/g, "a" + (audioIndex || 1) + ".m3u8");
+    var track = parseInt(audioIndex, 10) || 1;
+    if (track < 1 || track === 1) {
+      return hlsUrl;
+    }
+    return hlsUrl.replace(/a1\.m3u8/g, "a" + track + ".m3u8");
   }
   function getStreamUrl(file, audioIndex) {
     if (!file || !file.url) {
       return "";
     }
+    var hlsStream = file.url.hls || "";
+    var httpStream = file.url.http || "";
+    var picked;
     if (isHlsPreferred()) {
-      return selectHlsAudioTrack(file.url.hls, audioIndex || 1);
+      picked = hlsStream ? selectHlsAudioTrack(hlsStream, audioIndex || 1) : httpStream;
+    } else {
+      picked = httpStream || selectHlsAudioTrack(hlsStream, audioIndex || 1);
     }
-    return file.url.http || "";
+    return normalizeUrl(picked);
   }
   function getVoiceId(audio) {
     var voiceId = audio.author && audio.author.id || audio.type && audio.type.id;
@@ -2999,7 +3023,7 @@
     };
     this.find = function () {
       var movieData = object.movie || {};
-      var movieKinopubId = object.kinopub_id || movieData.kinopub_id || (movieData.source === SOURCE_ID || movieData.source === "kinopub" ? movieData.id : 0);
+      var movieKinopubId = realItemId(object.kinopub_id || movieData.kinopub_id || (movieData.source === SOURCE_ID || movieData.source === "kinopub" ? movieData.id : 0));
       if (movieKinopubId && source.find) {
         this.extendChoice();
         source.find(movieKinopubId);
@@ -3695,7 +3719,7 @@
       onContextLauch: function onCardContextLaunch(launchCard) {
         registerOnlineTemplates();
         Lampa.Component.add("online_dso_kinopub", OnlineComponent);
-        var launchKinopubId = launchCard.kinopub_id || (launchCard.source === SOURCE_ID || launchCard.source === "kinopub" ? launchCard.id : 0);
+        var launchKinopubId = getKinopubId(launchCard);
         Lampa.Activity.push({
           url: "",
           title: Lampa.Lang.translate("title_online"),
@@ -4059,8 +4083,9 @@
           var routedCard = pushParams.card || pushParams.movie;
           if (routedCard && (routedCard.kinopub_id || routedCard.source === SOURCE_ID || routedCard.source === "kinopub")) {
             pushParams.source = SOURCE_ID;
-            if (routedCard.kinopub_id) {
-              pushParams.id = routedCard.kinopub_id;
+            var routedKinopubId = getKinopubId(routedCard);
+            if (routedKinopubId) {
+              pushParams.id = routedKinopubId;
             }
           }
         }
@@ -4124,7 +4149,7 @@
           registerOnlineTemplates();
           Lampa.Component.add("online_dso_kinopub", OnlineComponent);
           var fullMovie = fullEvent.data.movie || {};
-          var fullKinopubId = fullMovie.kinopub_id || (fullMovie.source === SOURCE_ID || fullMovie.source === "kinopub" ? fullMovie.id : 0);
+          var fullKinopubId = getKinopubId(fullMovie);
           Lampa.Activity.push({
             url: "",
             title: Lampa.Lang.translate("title_online"),
