@@ -76,7 +76,7 @@
 
   function focusRing() { return get('nova_focus_style', 'ring') !== 'fill'; }
 
-  function fullScreen() { return get('nova_skin_fullscreen', false) === true; }
+  function fullScreen() { return get('nova_skin_fullscreen', true) === true; }
 
   function applyFullScreen() {
     try {
@@ -86,7 +86,7 @@
     } catch (e) {}
   }
 
-  function edgeFade() { return get('nova_skin_fade', false) === true; }
+  function edgeFade() { return get('nova_skin_fade', true) === true; }
 
   function applyEdgeFade() {
     try {
@@ -1042,7 +1042,7 @@
   }
 
   function probeOn() {
-    return get('nova_skin_probe', true) !== false;
+    return get('nova_skin_probe', false) === true;
   }
 
   function probeUrlFor(key) {
@@ -1623,7 +1623,7 @@
         if (img.complete) thumb.addClass('nova-card__thumb--loaded');
       }
       if (item.viewed) {
-        if (grid) thumb.append('<div class="nova-card__viewed"></div>');
+        if (grid) thumb.append('<div class="nova-card__viewed">' + ICON.eye + '</div>');
         else card.find('.nova-card__side').append('<div class="nova-card__eye">' + ICON.eye + '</div>');
       }
     }
@@ -2992,7 +2992,7 @@
 
       Lampa.SettingsApi.addParam({
         component: 'nova_skin',
-        param: { name: 'nova_skin_fullscreen', type: 'trigger', default: false },
+        param: { name: 'nova_skin_fullscreen', type: 'trigger', default: true },
         field: {
           name: label('nova_skin_set_full'),
           description: label('nova_skin_set_full_descr')
@@ -3002,7 +3002,7 @@
 
       Lampa.SettingsApi.addParam({
         component: 'nova_skin',
-        param: { name: 'nova_skin_fade', type: 'trigger', default: false },
+        param: { name: 'nova_skin_fade', type: 'trigger', default: true },
         field: {
           name: label('nova_skin_set_fade'),
           description: label('nova_skin_set_fade_descr')
@@ -3012,7 +3012,7 @@
 
       Lampa.SettingsApi.addParam({
         component: 'nova_skin',
-        param: { name: 'nova_skin_probe', type: 'trigger', default: true },
+        param: { name: 'nova_skin_probe', type: 'trigger', default: false },
         field: {
           name: label('nova_skin_set_probe'),
           description: label('nova_skin_set_probe_descr')
@@ -3175,6 +3175,8 @@
     '.nova-skin-root .nova-card--file .nova-card__line--full{bottom:.28em}',
     '.nova-skin-root .nova-card--soon{opacity:.45}',
     '.nova-skin-root .nova-card--soon .nova-card__time{white-space:nowrap}',
+    '.nova-skin-root .nova-card__viewed{top:auto;bottom:.55em;left:.55em;width:1.15em;height:1.15em;-webkit-border-radius:0;border-radius:0;background:none;opacity:.8;-webkit-box-shadow:none;box-shadow:none}',
+    '.nova-skin-root .nova-card__viewed>svg{display:block;width:100%;height:100%;-webkit-filter:drop-shadow(0 0 .2em rgba(0,0,0,.9));filter:drop-shadow(0 0 .2em rgba(0,0,0,.9))}',
     '.nova-skin-root .nova-card__eye{display:block;margin-top:.4em;opacity:.5}',
     '.nova-skin-root .nova-card__eye>svg{display:block;width:1.2em;height:1.2em;margin-left:auto}',
     '.nova-skin-root .nova-card.focus .nova-card__eye{opacity:.65}',
