@@ -22,26 +22,9 @@
   if (proxyUrl && proxyUrl.charAt(proxyUrl.length - 1) !== "/") {
     proxyUrl += "/";
   }
-  function _dh(v) {
-    try { return decodeURIComponent(escape(atob(v))); }
-    catch (e) { return atob(v); }
-  }
-
-  var CARD_ID_OFFSET = 9000000000;
-
-  function realItemId(value) {
-    var parsed = parseInt(value, 10) || 0;
-    if (parsed > CARD_ID_OFFSET) {
-      parsed -= CARD_ID_OFFSET;
-    }
-    return parsed;
-  }
-
-  var _ah = _dh("YXBpLnNydmtwLmNvbQ==");
-  var API_BASE_URL = "htt" + "ps://" + _ah;
-  var OAUTH_CLIENT_ID = _dh("eGJtYw==");
-  var OAUTH_CLIENT_SECRET = _dh("Y2dnM2d0aWZ1NDZ1cnRmcDJ6cDFucXRiYTBrMmV6eGg=");
-  var DEVICE_PAGE = _dh("a2luby5wdWIvZGV2aWNl");
+  var API_BASE_URL = "https://api.srvkp.com";
+  var OAUTH_CLIENT_ID = "xbmc";
+  var OAUTH_CLIENT_SECRET = "cgg3gtifu46urtfp2zp1nqtba0k2ezxh";
 
   function getAccessToken() {
     return Lampa.Storage.get("dso_kinopub_token", "");
@@ -50,40 +33,9 @@
     return Lampa.Storage.get("dso_kinopub_refresh", "");
   }
 
-  // KinoPub binds every playback link to the IP that asked for it. Routing the
-  // API through a CORS proxy makes it hand out links bound to the proxy, and the
-  // CDN then answers 403 to the device. When the platform can request without
-  // CORS (native Android bridge) we must talk to the API directly instead.
-  function nativeCapable() {
-    try {
-      if (!Lampa.Platform || !Lampa.Platform.is || !Lampa.Platform.is("android")) return false;
-      return typeof AndroidJS !== "undefined" && typeof AndroidJS.httpReq === "function";
-    } catch (e) {
-      return false;
-    }
-  }
-
-  function directMode() {
-    var mode = Lampa.Storage.get("dso_kinopub_direct", "auto");
-    if (mode === "off") return false;
-    if (mode === "on") return true;
-    if (!proxyUrl) return true;
-    return nativeCapable();
-  }
-
   function buildApiUrl(path) {
     var absoluteUrl = API_BASE_URL + (path.charAt(0) === "/" ? path : "/" + path);
-    if (directMode()) return absoluteUrl;
     return proxyUrl + absoluteUrl;
-  }
-
-  // Use the native bridge when we skip the proxy, otherwise the webview blocks
-  // the cross-origin call and nothing loads at all.
-  function apiFetch(request, url, onSuccess, onError) {
-    if (directMode() && typeof request.native === "function") {
-      return request.native(url, onSuccess, onError);
-    }
-    return request.silent(url, onSuccess, onError);
   }
   function normalizeUrl(url) {
     if (!url) {
@@ -108,7 +60,7 @@
     if (!imageUrl) {
       return "";
     }
-    var PROXIED_HOSTS = ["Z3JhdmF0YXI=", "a2luby5wdWI=", "c3J2a3A=", "c3RhdGljcG9w", "c2VydmljZS1rcA=="].map(_dh);
+    var PROXIED_HOSTS = ["gravatar", "kino.pub", "srvkp", "staticpop", "service-kp"];
     var needsProxy = false;
     for (var hostIndex = 0; hostIndex < PROXIED_HOSTS.length; hostIndex++) {
       if (imageUrl.indexOf(PROXIED_HOSTS[hostIndex]) > -1) {
@@ -252,7 +204,7 @@
     var request = new Lampa.Reguest();
     var url = buildApiUrl("/v1/user?access_token=" + encodeURIComponent(accessToken));
     request.timeout(8000);
-    apiFetch(request, url, function (response) {
+    request.silent(url, function (response) {
       if (response && response.user) {
         resetMaxQuality();
         Lampa.Storage.set("dso_kinopub_status", response);
@@ -288,7 +240,7 @@
     var request = trackRequest(new Lampa.Reguest());
     var url = buildApiUrl("/oauth2/token?grant_type=refresh_token&client_id=" + OAUTH_CLIENT_ID + "&client_secret=" + OAUTH_CLIENT_SECRET + "&refresh_token=" + encodeURIComponent(refreshToken));
     request.timeout(10000);
-    apiFetch(request, url, function (response) {
+    request.silent(url, function (response) {
       if (response && response.access_token) {
         Lampa.Storage.set("dso_kinopub_token", response.access_token);
         if (response.refresh_token) {
@@ -426,7 +378,7 @@
       imdbId = ("" + imdbRaw).indexOf("tt") === 0 ? "" + imdbRaw : "tt" + imdbRaw;
     }
     var card = {
-      id: item.id + CARD_ID_OFFSET,
+      id: item.id + 9000000000,
       kinopub_id: item.id,
       kinopub_type: item.type || "",
       source: SOURCE_ID,
@@ -542,7 +494,7 @@
     var url = buildApiUrl(path + separator + "access_token=" + encodeURIComponent(token));
     var request = trackRequest(new Lampa.Reguest());
     request.timeout(15000);
-    apiFetch(request, url, function (response) {
+    request.silent(url, function (response) {
       if (response && (response.error === "invalid_token" || response.status === 401 || response.error === "unauthorized")) {
         if (!isRetry) {
           refreshAccessToken(function (didRefresh) {
@@ -659,9 +611,7 @@
       return;
     }
     var separator = path.indexOf("?") >= 0 ? "&" : "?";
-    var absolute = API_BASE_URL + (path.charAt(0) === "/" ? path : "/" + path);
-    var url = (directMode() ? absolute : proxyUrl + absolute) +
-      separator + "access_token=" + encodeURIComponent(token);
+    var url = buildApiUrl(path + separator + "access_token=" + encodeURIComponent(token));
     var postData = data || {};
     $.ajax({
       url: url,
@@ -692,13 +642,7 @@
     if (!card) {
       return 0;
     }
-    if (card.kinopub_id) {
-      return realItemId(card.kinopub_id);
-    }
-    if (card.source === SOURCE_ID || card.source === "kinopub") {
-      return realItemId(card.id);
-    }
-    return 0;
+    return card.kinopub_id || (card.source === SOURCE_ID || card.source === "kinopub" ? card.id : 0);
   }
   function addToLampaFavorites(category, card, historyLimit) {
     if (!Lampa.Favorite || !card || !card.id) {
@@ -1666,11 +1610,11 @@
       var searchEndpoint = isTv ? "search/tv" : "search/movie";
       var yearParam = year ? (isTv ? "&first_air_date_year=" + year : "&year=" + year) : "";
       var searchUrl = Lampa.TMDB.api(searchEndpoint + "?api_key=" + Lampa.TMDB.key() + "&language=" + languageCode + "&query=" + encodeURIComponent(searchTitle) + yearParam);
-      apiFetch(request, searchUrl, function (searchResponse) {
+      request.silent(searchUrl, function (searchResponse) {
         var searchResults = searchResponse && searchResponse.results ? searchResponse.results : [];
         if (!searchResults.length && year) {
           var fallbackUrl = Lampa.TMDB.api(searchEndpoint + "?api_key=" + Lampa.TMDB.key() + "&language=" + languageCode + "&query=" + encodeURIComponent(searchTitle));
-          apiFetch(request, fallbackUrl, function (fallbackResponse) {
+          request.silent(fallbackUrl, function (fallbackResponse) {
             var fallbackResults = fallbackResponse && fallbackResponse.results ? fallbackResponse.results : [];
             applyTmdbMatch(fallbackResults[0]);
             callback();
@@ -1688,7 +1632,7 @@
 
     if (card.imdb_id) {
       var findUrl = Lampa.TMDB.api("find/" + encodeURIComponent(card.imdb_id) + "?api_key=" + Lampa.TMDB.key() + "&external_source=imdb_id&language=" + languageCode);
-      apiFetch(request, findUrl, function (findResponse) {
+      request.silent(findUrl, function (findResponse) {
         var matches = findResponse && (isTv ? findResponse.tv_results : findResponse.movie_results) || [];
         if (applyTmdbMatch(matches[0])) {
           callback();
@@ -1911,7 +1855,8 @@
       var __dsoCard = fullParams.card || fullParams.movie || (fullParams.object && (fullParams.object.card || fullParams.object.movie)) || null;
       var __dsoSearchTitle = (__dsoCard && (__dsoCard.title || __dsoCard.name || __dsoCard.original_title || __dsoCard.original_name)) || fullParams.title || "";
       var __dsoInitId = (__dsoCard && (__dsoCard.kinopub_id || __dsoCard.id)) || fullParams.kinopub_id || fullParams.id || (fullParams.object && fullParams.object.id) || 0;
-      __dsoInitId = realItemId(__dsoInitId);
+      __dsoInitId = parseInt(__dsoInitId, 10) || 0;
+      if (__dsoInitId > 9000000000) __dsoInitId = __dsoInitId - 9000000000;
       var __dsoRunFallback = function (currentId) {
         if (!__dsoSearchTitle) { if (onError) onError(); return; }
         apiGet("/v1/items/search?q=" + encodeURIComponent(__dsoSearchTitle) + "&perpage=5", function (searchResp) {
@@ -2027,7 +1972,7 @@
       }
     },
     seasons: function (seasonsCard, seasonNumbers, seasonsCallback) {
-      var seasonsItemId = realItemId(seasonsCard && (seasonsCard.kinopub_id || seasonsCard.id) || 0);
+      var seasonsItemId = seasonsCard && (seasonsCard.kinopub_id || seasonsCard.id) || 0;
       if (!seasonsItemId || !getAccessToken()) {
         if (seasonsCallback) {
           seasonsCallback({});
@@ -2219,35 +2164,26 @@
     });
   }
   function filterPlayableFiles(files) {
-    var preferred = isHlsPreferred() ? filterHlsFiles(files) : filterMp4Files(files);
-    if (preferred.length) {
-      return preferred;
+    if (isHlsPreferred()) {
+      return filterHlsFiles(files);
+    } else {
+      return filterMp4Files(files);
     }
-    return isHlsPreferred() ? filterMp4Files(files) : filterHlsFiles(files);
   }
   function selectHlsAudioTrack(hlsUrl, audioIndex) {
     if (!hlsUrl) {
       return "";
     }
-    var track = parseInt(audioIndex, 10) || 1;
-    if (track < 1 || track === 1) {
-      return hlsUrl;
-    }
-    return hlsUrl.replace(/a1\.m3u8/g, "a" + track + ".m3u8");
+    return hlsUrl.replace(/a1\.m3u8/g, "a" + (audioIndex || 1) + ".m3u8");
   }
   function getStreamUrl(file, audioIndex) {
     if (!file || !file.url) {
       return "";
     }
-    var hlsStream = file.url.hls || "";
-    var httpStream = file.url.http || "";
-    var picked;
     if (isHlsPreferred()) {
-      picked = hlsStream ? selectHlsAudioTrack(hlsStream, audioIndex || 1) : httpStream;
-    } else {
-      picked = httpStream || selectHlsAudioTrack(hlsStream, audioIndex || 1);
+      return selectHlsAudioTrack(file.url.hls, audioIndex || 1);
     }
-    return normalizeUrl(picked);
+    return file.url.http || "";
   }
   function getVoiceId(audio) {
     var voiceId = audio.author && audio.author.id || audio.type && audio.type.id;
@@ -2358,79 +2294,23 @@
       return !!subtitleEntry.url;
     });
   }
-  var subs_external = false;
-  var subs_pending = null;
-  var subs_hooked = false;
-
-  function subsInnerPlayer() {
-    if (subs_external) return false;
-    try {
-      if (typeof Lampa.Player.opened === 'function' && !Lampa.Player.opened()) return false;
-    } catch (e) {
-      return false;
-    }
-    return true;
-  }
-
-  function subsPush(subtitles) {
-    if (!subtitles || !subtitles.length) return;
-    if (!subsInnerPlayer()) {
-      subs_pending = subtitles;
-      return;
-    }
-    subs_pending = null;
-    try {
-      Lampa.Player.subtitles(subtitles);
-    } catch (e) {
-      subs_pending = subtitles;
-    }
-  }
-
-  function subsHook() {
-    if (subs_hooked) return;
-    if (!Lampa.Player || !Lampa.Player.listener || !Lampa.Player.listener.follow) return;
-    subs_hooked = true;
-
-    Lampa.Player.listener.follow('external', function () {
-      subs_external = true;
-      subs_pending = null;
-    });
-
-    Lampa.Player.listener.follow('ready', function () {
-      subs_external = false;
-      var wait = subs_pending;
-      subs_pending = null;
-      if (wait && wait.length) {
-        try { Lampa.Player.subtitles(wait); } catch (e) {}
-      }
-    });
-
-    Lampa.Player.listener.follow('destroy', function () {
-      subs_external = false;
-      subs_pending = null;
-    });
-  }
-
   function loadSubtitlesFromUrl(subtitlesUrl) {
     if (!subtitlesUrl) {
       return;
     }
     var request = new Lampa.Reguest();
     request.timeout(8000);
-    apiFetch(request, subtitlesUrl, function (response) {
+    request.silent(subtitlesUrl, function (response) {
       var responseSubtitles = response && response.subtitles ? response.subtitles : Array.isArray(response) ? response : [];
       var subtitles = normalizeSubtitles(responseSubtitles);
       if (subtitles.length) {
-        subsPush(subtitles);
+        Lampa.Player.subtitles(subtitles);
       }
     });
   }
   function applySubtitles(stream) {
-    subsHook();
-    subs_external = false;
-    subs_pending = null;
     if (stream.subtitles && stream.subtitles.length) {
-      subsPush(stream.subtitles);
+      Lampa.Player.subtitles(stream.subtitles);
     } else if (stream.subtitles_call) {
       loadSubtitlesFromUrl(stream.subtitles_call);
     }
@@ -2565,7 +2445,7 @@
       var searchUrl = buildApiUrl("/v1/items/search?q=" + encodeURIComponent(searchText) + "&access_token=" + encodeURIComponent(searchToken) + "&field=title&perpage=200");
       request.clear();
       request.timeout(10000);
-      apiFetch(request, searchUrl, function (searchItemsResponse) {
+      request.silent(searchUrl, function (searchItemsResponse) {
         searchDone(searchItemsResponse && searchItemsResponse.items ? searchItemsResponse.items : []);
       }, function () {
         searchDone([]);
@@ -2620,7 +2500,7 @@
       }
       request.clear();
       request.timeout(10000);
-      apiFetch(request, buildApiUrl("/v1/items/" + findItemId + "?access_token=" + encodeURIComponent(findToken)), function (findResponse) {
+      request.silent(buildApiUrl("/v1/items/" + findItemId + "?access_token=" + encodeURIComponent(findToken)), function (findResponse) {
         if (findResponse && hasPlayableContent(findResponse)) {
           buildFromResponse(findResponse);
           component.loading(false);
@@ -3112,7 +2992,7 @@
     };
     this.find = function () {
       var movieData = object.movie || {};
-      var movieKinopubId = realItemId(object.kinopub_id || movieData.kinopub_id || (movieData.source === SOURCE_ID || movieData.source === "kinopub" ? movieData.id : 0));
+      var movieKinopubId = object.kinopub_id || movieData.kinopub_id || (movieData.source === SOURCE_ID || movieData.source === "kinopub" ? movieData.id : 0);
       if (movieKinopubId && source.find) {
         this.extendChoice();
         source.find(movieKinopubId);
@@ -3808,7 +3688,7 @@
       onContextLauch: function onCardContextLaunch(launchCard) {
         registerOnlineTemplates();
         Lampa.Component.add("online_dso_kinopub", OnlineComponent);
-        var launchKinopubId = getKinopubId(launchCard);
+        var launchKinopubId = launchCard.kinopub_id || (launchCard.source === SOURCE_ID || launchCard.source === "kinopub" ? launchCard.id : 0);
         Lampa.Activity.push({
           url: "",
           title: Lampa.Lang.translate("title_online"),
@@ -3864,10 +3744,10 @@
         zh: "在线的"
       },
       modal_text: {
-        ru: "Введите код на странице " + DEVICE_PAGE,
-        uk: "Введіть код на сторінці " + DEVICE_PAGE,
-        en: "Enter the code on the page " + DEVICE_PAGE,
-        zh: "在 " + DEVICE_PAGE + " 页面输入代码"
+        ru: "Введите код на странице https://kino.pub/device",
+        uk: "Введіть код на сторінці https://kino.pub/device",
+        en: "Enter the code on the page https://kino.pub/device",
+        zh: "在 https://kino.pub/device 页面输入代码"
       },
       modal_wait: {
         ru: "Ожидаем код",
@@ -3935,36 +3815,6 @@
         en: "Content found, but video links are unavailable. Check the CORS proxy or KinoPub authorization.",
         zh: "找到内容，但视频链接不可用。请检查 CORS 代理或 KinoPub 授权。"
       },
-      dso_kinopub_direct_title: {
-        ru: "Запросы к API",
-        uk: "Запити до API",
-        en: "API requests",
-        zh: "API 请求"
-      },
-      dso_kinopub_direct_descr: {
-        ru: "Ссылки на видео привязаны к IP запроса. Через прокси плеер получает 403 — тогда нужны прямые запросы (работают в приложении на Android)",
-        uk: "Посилання на відео привязані до IP запиту. Через проксі плеєр отримує 403 — тоді потрібні прямі запити (працюють у застосунку на Android)",
-        en: "Playback links are bound to the requesting IP. Through a proxy the player gets 403, so direct requests are needed (works in the Android app)",
-        zh: "播放链接与请求方 IP 绑定。经代理时播放器会返回 403，需改为直连（Android 应用可用）"
-      },
-      dso_kinopub_direct_auto: {
-        ru: "Авто",
-        uk: "Авто",
-        en: "Auto",
-        zh: "自动"
-      },
-      dso_kinopub_direct_on: {
-        ru: "Напрямую",
-        uk: "Напряму",
-        en: "Direct",
-        zh: "直连"
-      },
-      dso_kinopub_direct_off: {
-        ru: "Через прокси",
-        uk: "Через проксі",
-        en: "Through proxy",
-        zh: "经由代理"
-      },
       dso_kinopub_proxy_title: {
         ru: "CORS прокси KinoPub",
         uk: "CORS проксі KinoPub",
@@ -3972,10 +3822,10 @@
         zh: "KinoPub CORS 代理"
       },
       dso_kinopub_proxy_descr: {
-        ru: "Прокси для запросов к " + _ah + " (см. cors.conf)",
-        uk: "Проксі для запитів до " + _ah + " (див. cors.conf)",
-        en: "Proxy for " + _ah + " requests (see cors.conf)",
-        zh: "用于 " + _ah + " 请求的代理（见 cors.conf）"
+        ru: "Прокси для запросов к api.srvkp.com (см. cors.conf)",
+        uk: "Проксі для запитів до api.srvkp.com (див. cors.conf)",
+        en: "Proxy for api.srvkp.com requests (see cors.conf)",
+        zh: "用于 api.srvkp.com 请求的代理（见 cors.conf）"
       },
       dso_kinopub_param_add_title: {
         ru: "Access token KinoPub",
@@ -4202,9 +4052,8 @@
           var routedCard = pushParams.card || pushParams.movie;
           if (routedCard && (routedCard.kinopub_id || routedCard.source === SOURCE_ID || routedCard.source === "kinopub")) {
             pushParams.source = SOURCE_ID;
-            var routedKinopubId = getKinopubId(routedCard);
-            if (routedKinopubId) {
-              pushParams.id = routedKinopubId;
+            if (routedCard.kinopub_id) {
+              pushParams.id = routedCard.kinopub_id;
             }
           }
         }
@@ -4268,7 +4117,7 @@
           registerOnlineTemplates();
           Lampa.Component.add("online_dso_kinopub", OnlineComponent);
           var fullMovie = fullEvent.data.movie || {};
-          var fullKinopubId = getKinopubId(fullMovie);
+          var fullKinopubId = fullMovie.kinopub_id || (fullMovie.source === SOURCE_ID || fullMovie.source === "kinopub" ? fullMovie.id : 0);
           Lampa.Activity.push({
             url: "",
             title: Lampa.Lang.translate("title_online"),
@@ -4312,17 +4161,12 @@
       hls: "#{dso_kinopub_filetype_hls}",
       mp4: "#{dso_kinopub_filetype_mp4}"
     }, "hls");
-    Lampa.Params.select("dso_kinopub_direct", {
-      auto: "#{dso_kinopub_direct_auto}",
-      on: "#{dso_kinopub_direct_on}",
-      off: "#{dso_kinopub_direct_off}"
-    }, "auto");
     Lampa.SettingsApi.addComponent({
       component: "dso_kinopub",
       name: "DSO KinoPub",
       icon: "<svg height=\"57\" viewBox=\"0 0 58 57\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M20 13H26.8281V45H20V13ZM26.8281 17.5L39 13V20.5L29.5 29L39 37.5V45L26.8281 40.5V17.5Z\" fill=\"white\"/><rect x=\"2\" y=\"2\" width=\"54\" height=\"53\" rx=\"5\" stroke=\"white\" stroke-width=\"4\"/></svg>"
     });
-    Lampa.Template.add("settings_dso_kinopub", "<div>\n        <div class=\"settings-param\" data-name=\"dso_kinopub_profile\" data-static=\"true\"></div>\n        <div class=\"settings-param selector\" data-name=\"dso_kinopub_refresh\" data-static=\"true\">\n            <div class=\"settings-param__name\">#{dso_kinopub_refresh_profile}</div>\n        </div>\n        <div class=\"settings-param selector\" data-name=\"dso_kinopub_sync\" data-static=\"true\">\n            <div class=\"settings-param__name\">#{dso_kinopub_sync_favorites}</div>\n        </div>\n        <div class=\"settings-param selector\" data-type=\"select\" data-name=\"dso_kinopub_filetype\">\n            <div class=\"settings-param__name\">#{dso_kinopub_filetype_title}</div>\n            <div class=\"settings-param__value\"></div>\n            <div class=\"settings-param__descr\">#{dso_kinopub_filetype_descr}</div>\n        </div>\n        <div class=\"settings-param selector\" data-type=\"select\" data-name=\"dso_kinopub_direct\">\n            <div class=\"settings-param__name\">#{dso_kinopub_direct_title}</div>\n            <div class=\"settings-param__value\"></div>\n            <div class=\"settings-param__descr\">#{dso_kinopub_direct_descr}</div>\n        </div>\n        <div class=\"settings-param selector\" data-name=\"dso_kinopub_proxy\" data-type=\"input\" placeholder=\"https://cors.example.com/\">\n            <div class=\"settings-param__name\">#{dso_kinopub_proxy_title}</div>\n            <div class=\"settings-param__value\"></div>\n            <div class=\"settings-param__descr\">#{dso_kinopub_proxy_descr}</div>\n        </div>\n        <div class=\"settings-param selector\" data-name=\"dso_kinopub_token\" data-type=\"input\" placeholder=\"#{dso_kinopub_param_placeholder}\">\n            <div class=\"settings-param__name\">#{dso_kinopub_param_add_title}</div>\n            <div class=\"settings-param__value\"></div>\n            <div class=\"settings-param__descr\">#{dso_kinopub_param_add_descr}</div>\n        </div>\n        <div class=\"settings-param selector\" data-name=\"dso_kinopub_add\" data-static=\"true\">\n            <div class=\"settings-param__name\">#{dso_kinopub_param_add_device}</div>\n        </div>\n    </div>");
+    Lampa.Template.add("settings_dso_kinopub", "<div>\n        <div class=\"settings-param\" data-name=\"dso_kinopub_profile\" data-static=\"true\"></div>\n        <div class=\"settings-param selector\" data-name=\"dso_kinopub_refresh\" data-static=\"true\">\n            <div class=\"settings-param__name\">#{dso_kinopub_refresh_profile}</div>\n        </div>\n        <div class=\"settings-param selector\" data-name=\"dso_kinopub_sync\" data-static=\"true\">\n            <div class=\"settings-param__name\">#{dso_kinopub_sync_favorites}</div>\n        </div>\n        <div class=\"settings-param selector\" data-type=\"select\" data-name=\"dso_kinopub_filetype\">\n            <div class=\"settings-param__name\">#{dso_kinopub_filetype_title}</div>\n            <div class=\"settings-param__value\"></div>\n            <div class=\"settings-param__descr\">#{dso_kinopub_filetype_descr}</div>\n        </div>\n        <div class=\"settings-param selector\" data-name=\"dso_kinopub_proxy\" data-type=\"input\" placeholder=\"https://cors.example.com/\">\n            <div class=\"settings-param__name\">#{dso_kinopub_proxy_title}</div>\n            <div class=\"settings-param__value\"></div>\n            <div class=\"settings-param__descr\">#{dso_kinopub_proxy_descr}</div>\n        </div>\n        <div class=\"settings-param selector\" data-name=\"dso_kinopub_token\" data-type=\"input\" placeholder=\"#{dso_kinopub_param_placeholder}\">\n            <div class=\"settings-param__name\">#{dso_kinopub_param_add_title}</div>\n            <div class=\"settings-param__value\"></div>\n            <div class=\"settings-param__descr\">#{dso_kinopub_param_add_descr}</div>\n        </div>\n        <div class=\"settings-param selector\" data-name=\"dso_kinopub_add\" data-static=\"true\">\n            <div class=\"settings-param__name\">#{dso_kinopub_param_add_device}</div>\n        </div>\n    </div>");
     Lampa.Storage.listener.follow("change", function (storageEvent) {
       if (storageEvent.name == "dso_kinopub_proxy") {
         proxyUrl = storageEvent.value || DEFAULT_PROXY;
