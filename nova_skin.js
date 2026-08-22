@@ -165,6 +165,7 @@
     nova_skin_set_fade_descr: { ru: 'Растворять постер вверху по краям со всех сторон', uk: 'Розчиняти постер угорі по краях з усіх боків', en: 'Fade the header artwork out on every side' },
     nova_skin_set_probe: { ru: 'Проверять источники в фоне', uk: 'Перевіряти джерела у фоні', en: 'Check sources in background' },
     nova_skin_set_probe_descr: { ru: 'Отмечать рабочие точкой и показывать их качество', uk: 'Позначати робочі точкою та показувати їхню якість', en: 'Mark working ones with a dot and show their quality' },
+    nova_skin_set_probe_ext: { ru: 'Проверкой управляет сервер, локальный переключатель не запускает её', uk: 'Перевіркою керує сервер, локальний перемикач її не запускає', en: 'Managed by the server, this switch does not start a local check' },
     nova_skin_set_switch: { ru: 'Автопереход по источникам', uk: 'Автоперехід по джерелах', en: 'Auto switch source' },
     nova_skin_set_switch_descr: { ru: 'Если ничего не найдено, пробовать следующий рабочий источник', uk: 'Якщо нічого не знайдено, пробувати наступне робоче джерело', en: 'Try the next working source when nothing is found' },
     nova_skin_set_view: { ru: 'Вид списка', uk: 'Вигляд списку', en: 'List layout' },
@@ -1068,6 +1069,28 @@
     return get('nova_skin_probe', false) === true;
   }
 
+  function probeMode() {
+    var mode = '';
+    try {
+      if (typeof window.nova_skin_probe_mode === 'function') mode = window.nova_skin_probe_mode();
+    } catch (e) {
+      mode = '';
+    }
+    if (mode === 'external' || mode === 'disabled') return mode;
+    return 'legacy';
+  }
+
+  function probeAllowed() {
+    return probeMode() === 'legacy' && probeOn();
+  }
+
+  function probeShow() {
+    var mode = probeMode();
+    if (mode === 'disabled') return false;
+    if (mode === 'external') return true;
+    return probeOn();
+  }
+
   function probeUrlFor(key) {
     if (!probe_url || !key) return '';
     return probe_url.replace(/(\/lite\/)[^\/?&]+/, '$1' + encodeURIComponent(key));
@@ -1142,7 +1165,7 @@
   }
 
   function probeRun() {
-    if (!probeOn() || !probe_url || !movie) return;
+    if (!probeAllowed() || !probe_url || !movie) return;
     if (lifeKnown()) return;
     var list = groups.sort || [];
     if (list.length < 2) return;
@@ -1213,7 +1236,7 @@
   }
 
   function probeSchedule() {
-    if (!probeOn() || !movie) return;
+    if (!probeAllowed() || !movie) return;
     if (probe_done_for === movie.id) return;
     clearTimeout(probe_timer);
     probe_timer = setTimeout(function () {
@@ -2069,10 +2092,8 @@
         ui.hero.find('.nova-hero__descr').text(movie.overview || '');
       }
 
-      // logo lives in the title slot with artwork, in the mark slot without it
       heroLogo();
 
-      // no artwork requested at all when the backdrop is switched off
       if (withArt) {
         var art = heroArt();
         if (art) {
@@ -2372,8 +2393,8 @@
       var box = chip('src:' + sort.indexOf(item), parts.name, {
         badge: knownQuality(key) || parts.badge,
         active: !!item.selected,
-        empty: state === 'empty',
-        dot: probeOn() && state === 'ok',
+        empty: probeShow() && state === 'empty',
+        dot: probeShow() && state === 'ok',
         plain: true
       });
       box.attr('data-nova-src', key);
@@ -3588,6 +3609,34 @@
         },
         onChange: function () { redraw(); }
       });
+
+      try {
+        Lampa.Settings.listener.follow('open', function (e) {
+          if (!e || e.name !== 'nova_skin' || !e.body) return;
+
+          var mode = probeMode();
+          var item = e.body.find('[data-name="nova_skin_probe"]');
+          if (!item.length) return;
+
+          if (mode === 'disabled') {
+            item.addClass('hide');
+            return;
+          }
+
+          item.removeClass('hide');
+
+          var descr = item.find('.settings-param__descr');
+          if (!descr.length) return;
+
+          if (mode === 'external') {
+            descr.text(label('nova_skin_set_probe_ext'));
+            item.css('opacity', '.6');
+          } else {
+            descr.text(label('nova_skin_set_probe_descr'));
+            item.css('opacity', '');
+          }
+        });
+      } catch (e) {}
 
       Lampa.SettingsApi.addParam({
         component: 'nova_skin',
