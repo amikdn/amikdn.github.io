@@ -152,6 +152,12 @@
     nova_skin_set_hero_art: { ru: 'Кадр в шапке', uk: 'Кадр у шапці', en: 'Backdrop in header' },
     nova_skin_set_hero_art_descr: { ru: 'Выключите для компактной шапки без картинки', uk: 'Вимкніть для компактної шапки без картинки', en: 'Turn off for a compact header without artwork' },
     nova_skin_set_logo: { ru: 'Логотип вместо названия', uk: 'Логотип замість назви', en: 'Logo instead of title' },
+    nova_skin_set_art_size: { ru: 'Качество кадра', uk: 'Якість кадру', en: 'Backdrop quality' },
+    nova_skin_set_art_size_descr: { ru: 'Разрешение картинки в шапке. Выше — резче, но тяжелее', uk: 'Роздільна здатність картинки в шапці. Вище — різкіше, але важче', en: 'Header artwork resolution. Higher is sharper but heavier' },
+    nova_skin_art_auto: { ru: 'Авто (по экрану)', uk: 'Авто (за екраном)', en: 'Auto (by screen)' },
+    nova_skin_art_780: { ru: 'Обычное — 780px', uk: 'Звичайна — 780px', en: 'Normal — 780px' },
+    nova_skin_art_1280: { ru: 'Высокое — 1280px', uk: 'Висока — 1280px', en: 'High — 1280px' },
+    nova_skin_art_orig: { ru: 'Максимальное (тяжёлое)', uk: 'Максимальна (важка)', en: 'Maximum (heavy)' },
     nova_skin_set_logo_descr: { ru: 'Показывать логотип фильма в шапке, если он есть', uk: 'Показувати логотип фільму в шапці, якщо він є', en: 'Show the movie logo in the header when available' },
     nova_skin_set_full: { ru: 'Во всю ширину экрана', uk: 'На всю ширину екрана', en: 'Full width' },
     nova_skin_set_full_descr: { ru: 'Скрыть маленький постер и описание слева', uk: 'Сховати маленький постер і опис ліворуч', en: 'Hide the small poster and overview on the left' },
@@ -364,7 +370,7 @@
     if (document.getElementById('nova-skin-css')) return;
     var style = document.createElement('style');
     style.id = 'nova-skin-css';
-    style.textContent = SKIN_CSS + EXTRA_CSS + CARD_CSS + FOCUS_CSS + FULL_CSS + FADE_CSS;
+    style.textContent = SKIN_CSS + EXTRA_CSS + CARD_CSS + FOCUS_CSS + FULL_CSS + FADE_CSS + MARK_CSS;
     (document.body || document.head).appendChild(style);
   }
 
@@ -756,8 +762,22 @@
     return groups.season ? digits(groups.season.subtitle) : 0;
   }
 
+  function artSize() {
+    var want = String(get('nova_skin_art_size', 'auto') || 'auto');
+    if (want === 'w780' || want === 'w1280' || want === 'original') return want;
+    var pixels = 0;
+    try {
+      pixels = (window.innerWidth || 0) * (window.devicePixelRatio || 1);
+    } catch (e) {
+      pixels = 0;
+    }
+
+    return pixels >= 1100 ? 'w1280' : 'w780';
+  }
+
   function heroArt() {
-    return image(movie.backdrop_path || movie.poster_path, 'w780') || image(movie.img, 'w780');
+    var size = artSize();
+    return image(movie.backdrop_path || movie.poster_path, size) || image(movie.img, size);
   }
 
   function fallbackArt() {
@@ -1944,10 +1964,17 @@
     }
   }
 
-  function heroLogo() {
-    if (!ui.hero) return;
+  function logoSlot() {
+    if (!ui.hero) return null;
     var slot = ui.hero.find('.nova-hero__title');
-    if (!slot.length) return;
+    if (slot.length) return slot;
+    slot = ui.hero.find('.nova-hero__mark');
+    return slot.length ? slot : null;
+  }
+
+  function heroLogo() {
+    var slot = logoSlot();
+    if (!slot) return;
 
     var name = movie.title || movie.name || '';
     if (!logoOn()) return slot.removeClass('nova-hero__title--logo').text(name);
@@ -1955,8 +1982,8 @@
     var want = movie.id;
     logoLoad(function (path) {
       if (!ui.hero || !movie || movie.id !== want) return;
-      var box = ui.hero.find('.nova-hero__title');
-      if (!box.length) return;
+      var box = logoSlot();
+      if (!box) return;
 
       var src = logoUrl(path);
       if (!src) return box.removeClass('nova-hero__title--logo').text(name);
@@ -2024,10 +2051,12 @@
     if (!ui.hero) {
       ui.hero_kind = kind;
       ui.hero = $('<div class="nova-hero">' +
-        '<div class="nova-hero__bg"><img alt=""></div><div class="nova-hero__shade"></div>' +
+        (withArt ? '<div class="nova-hero__bg"><img alt=""></div><div class="nova-hero__shade"></div>' : '') +
         '<div class="nova-hero__body">' +
         (withArt ? '<div class="nova-hero__title"></div><div class="nova-hero__meta"></div><div class="nova-hero__descr"></div>' : '') +
-        '<div class="nova-hero__actions"><div class="nova-hero__hint"></div></div>' +
+        '<div class="nova-hero__actions">' +
+        (withArt ? '' : '<div class="nova-hero__mark"></div>') +
+        '<div class="nova-hero__hint"></div></div>' +
         '<div class="nova-hero__season" style="display:none"></div>' +
         '</div>' +
         '<div class="nova-hero__progress" style="display:none"></div>' +
@@ -2038,16 +2067,21 @@
       if (withArt) {
         ui.hero.find('.nova-hero__title').text(movie.title || movie.name || '');
         ui.hero.find('.nova-hero__descr').text(movie.overview || '');
-        heroLogo();
       }
 
-      var art = heroArt();
-      if (art) {
-        var back = ui.hero.find('.nova-hero__bg');
-        var node = ui.hero.find('.nova-hero__bg img')[0];
-        node.onload = function () { back.addClass('nova-hero__bg--loaded'); };
-        node.onerror = function () {};
-        node.src = art;
+      // logo lives in the title slot with artwork, in the mark slot without it
+      heroLogo();
+
+      // no artwork requested at all when the backdrop is switched off
+      if (withArt) {
+        var art = heroArt();
+        if (art) {
+          var back = ui.hero.find('.nova-hero__bg');
+          var node = ui.hero.find('.nova-hero__bg img')[0];
+          node.onload = function () { back.addClass('nova-hero__bg--loaded'); };
+          node.onerror = function () {};
+          node.src = art;
+        }
       }
 
       ui.hero_box.empty().append(ui.hero);
@@ -3170,7 +3204,7 @@
     });
 
     var compact = !serial && !nav && list.length > 1;
-    var grid = !nav && list.length > 3 && viewMode() === 'grid';
+    var grid = !nav && list.length > 0 && viewMode() === 'grid';
     if (grid) ui.list.addClass('nova__list--grid');
     else ui.list.removeClass('nova__list--grid');
 
@@ -3495,6 +3529,26 @@
 
       Lampa.SettingsApi.addParam({
         component: 'nova_skin',
+        param: {
+          name: 'nova_skin_art_size',
+          type: 'select',
+          values: {
+            auto: label('nova_skin_art_auto'),
+            w780: label('nova_skin_art_780'),
+            w1280: label('nova_skin_art_1280'),
+            original: label('nova_skin_art_orig')
+          },
+          default: 'auto'
+        },
+        field: {
+          name: label('nova_skin_set_art_size'),
+          description: label('nova_skin_set_art_size_descr')
+        },
+        onChange: function () { try { Lampa.Activity.replace(); } catch (e) {} }
+      });
+
+      Lampa.SettingsApi.addParam({
+        component: 'nova_skin',
         param: { name: 'nova_skin_logo', type: 'trigger', default: true },
         field: {
           name: label('nova_skin_set_logo'),
@@ -3696,6 +3750,15 @@
     '.nova-skin-root .nova-card__eye>svg{display:block;width:1.2em;height:1.2em;margin:0 auto}',
     '.nova-skin-root .nova-card.focus .nova-card__eye{opacity:.65}',
     'body.nova-focus-ring .nova-card.focus .nova-card__eye{opacity:.75!important}'
+  ].join('');
+
+  var MARK_CSS = [
+    '.nova-skin-root .nova-hero__mark{display:-webkit-box;display:-webkit-flex;display:-ms-flexbox;display:flex;-webkit-box-align:center;-webkit-align-items:center;-ms-flex-align:center;align-items:center;-webkit-flex-shrink:0;-ms-flex-negative:0;flex-shrink:0;min-width:0;max-width:40%;margin:0 1.2em .4em 0;font-size:1.2em;font-weight:600;line-height:1.25;overflow:hidden;white-space:nowrap;-o-text-overflow:ellipsis;text-overflow:ellipsis}',
+    '.nova-skin-root .nova-hero__mark:empty{display:none}',
+    '.nova-skin-root .nova-hero__mark.nova-hero__title--logo{display:block;overflow:visible;padding:.08em 0 .06em;margin-bottom:.4em;line-height:1}',
+    '.nova-skin-root .nova-hero__mark>img{max-height:1.75em!important;max-width:100%!important;width:auto;height:auto}',
+    '@media screen and (max-width:900px){.nova-skin-root .nova-hero__mark{max-width:55%;font-size:1.05em}}',
+    '@media screen and (max-width:580px){.nova-skin-root .nova-hero__mark{-webkit-box-ordinal-group:2;-webkit-order:1;-ms-flex-order:1;order:1;max-width:100%;margin-right:0}.nova-skin-root .nova-hero__mark>img{max-height:1.5em!important}}'
   ].join('');
 
   var FULL_CSS = [
