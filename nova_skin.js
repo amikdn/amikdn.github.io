@@ -28,7 +28,22 @@
     }
     if (!name) return false;
     if (SIBLING_COMPONENTS.indexOf(name) !== -1) return true;
+    if (name === 'nova_online') return true;
     return /skaz/i.test(name);
+  }
+
+  function siblingModern(current) {
+    if (!siblingComponent(current)) return false;
+
+    var name = '';
+    try {
+      name = String((current && current.component) || '');
+    } catch (e) {
+      name = '';
+    }
+
+    if (name === 'nova_online') return get('nova_ui_mode', 'modern') !== 'classic';
+    return get('z01_ui_mode', 'modern') !== 'classic';
   }
 
   function stepAside() {
@@ -165,7 +180,7 @@
     nova_skin_set_fade_descr: { ru: 'Растворять постер вверху по краям со всех сторон', uk: 'Розчиняти постер угорі по краях з усіх боків', en: 'Fade the header artwork out on every side' },
     nova_skin_set_probe: { ru: 'Проверять источники в фоне', uk: 'Перевіряти джерела у фоні', en: 'Check sources in background' },
     nova_skin_set_probe_descr: { ru: 'Отмечать рабочие точкой и показывать их качество', uk: 'Позначати робочі точкою та показувати їхню якість', en: 'Mark working ones with a dot and show their quality' },
-    nova_skin_set_probe_ext: { ru: 'Проверкой управляет сервер, локальный переключатель не запускает её', uk: 'Перевіркою керує сервер, локальний перемикач її не запускає', en: 'Managed by the server, this switch does not start a local check' },
+    nova_skin_set_probe_ext: { ru: 'Источники проверяет сам онлайн-плагин, повторный обход не нужен', uk: 'Джерела перевіряє сам онлайн-плагін, повторний обхід не потрібен', en: 'The online plugin checks sources itself, no second pass needed' },
     nova_skin_set_switch: { ru: 'Автопереход по источникам', uk: 'Автоперехід по джерелах', en: 'Auto switch source' },
     nova_skin_set_switch_descr: { ru: 'Если ничего не найдено, пробовать следующий рабочий источник', uk: 'Якщо нічого не знайдено, пробувати наступне робоче джерело', en: 'Try the next working source when nothing is found' },
     nova_skin_set_view: { ru: 'Вид списка', uk: 'Вигляд списку', en: 'List layout' },
@@ -253,17 +268,70 @@
   var PROBE_TTL_OK = 21600000;
   var PROBE_TTL_EMPTY = 1800000;
 
-  function knownQuality(name) {
+  var QUALITY_TTL = 604800000;
+
+  function qualityBox() {
     var all = cached('nova_source_quality', 500, {});
-    return all[name] || '';
+    var key;
+
+    for (key in all) {
+      if (typeof all[key] === 'string') {
+        all = {};
+        save('nova_source_quality', all);
+        break;
+      }
+    }
+
+    var now = Date.now();
+    for (key in all) {
+      var entry = all[key];
+      if (!entry || typeof entry !== 'object' || !entry.list ||
+          now - (entry.t || 0) > QUALITY_TTL) delete all[key];
+    }
+    return all;
+  }
+
+  function qualityScope() {
+    return movie && movie.id ? String(movie.id) : '';
+  }
+
+  function knownQuality(name) {
+    var id = qualityScope();
+    if (!id || !name) return '';
+    var mine = qualityBox()[id];
+    return (mine && mine.list && mine.list[name]) || '';
   }
 
   function rememberQuality(name, label) {
-    if (!name || !label) return;
-    var all = cached('nova_source_quality', 500, {});
-    if ((QUALITY_RANK[label] || 0) <= (QUALITY_RANK[all[name]] || 0)) return;
-    all[name] = label;
+    var id = qualityScope();
+    if (!id || !name || !label) return;
+    var all = qualityBox();
+    var mine = all[id];
+    if (!mine || typeof mine !== 'object' || !mine.list) mine = { t: 0, list: {} };
+    if ((QUALITY_RANK[label] || 0) <= (QUALITY_RANK[mine.list[name]] || 0)) return;
+    mine.list[name] = label;
+    mine.t = Date.now();
+    all[id] = mine;
     save('nova_source_quality', all);
+  }
+
+  var PROBE_ALLY_KEYS = ['z01_probe'];
+
+  function probeAlly(id) {
+    var out = {};
+    PROBE_ALLY_KEYS.forEach(function (key) {
+      var all;
+      try { all = Lampa.Storage.cache(key, 2000, {}); } catch (e) { all = null; }
+      if (!all || typeof all !== 'object') return;
+      var mine = all[id];
+      if (!mine || typeof mine !== 'object' || !mine.list) return;
+      for (var name in mine.list) {
+        var entry = mine.list[name];
+        if (!entry || out[name]) continue;
+        out[name] = { s: entry.s, c: entry.c || 0, t: entry.t || mine.time || 0 };
+      }
+    });
+    return out;
   }
 
   function probeCache(id) {
@@ -274,6 +342,10 @@
       all[id] = mine;
     }
     var list = mine.list || {};
+    var ally = probeAlly(id);
+    for (var name in ally) {
+      if (!list[name]) list[name] = ally[name];
+    }
     var now = Date.now();
     for (var key in list) {
       var entry = list[key] || {};
@@ -285,8 +357,11 @@
     return mine;
   }
 
+  var probe_saves = 0;
+
   function probeSave(id, name, state, count) {
     if (!id || !name) return;
+    probe_saves++;
     var all = cached('nova_probe', 2000, {});
     var mine = probeCache(id);
     mine.list[name] = { s: state, c: count || 0, t: Date.now() };
@@ -530,6 +605,13 @@
             return right.apply(this, arguments);
           };
         }
+        if (typeof object.left === 'function') {
+          var left = object.left;
+          object.left = function () {
+            if (novaLeft()) return;
+            return left.apply(this, arguments);
+          };
+        }
         if (typeof object.toggle === 'function') {
           var toggle = object.toggle;
           object.toggle = function () {
@@ -691,7 +773,7 @@
     var current;
     try { current = Lampa.Activity.active(); } catch (e) { return null; }
     if (!current || !current.activity) return null;
-    if (siblingComponent(current)) {
+    if (siblingModern(current)) {
       stepAside();
       return null;
     }
@@ -1069,15 +1151,61 @@
     return get('nova_skin_probe', false) === true;
   }
 
-  function probeMode() {
+  function probeCovered() {
+    if (!movie) return false;
+    var list = groups.sort || [];
+    if (list.length < 2) return false;
+
+    var known = probeCache(movie.id).list || {};
+    var here = currentSourceKey();
+    var total = 0;
+    var seen = 0;
+
+    list.forEach(function (item) {
+      var key = item.source || item.title;
+      if (!key || key === here) return;
+      total++;
+      if (known[key]) seen++;
+    });
+    return total > 0 && seen === total;
+  }
+
+  function probeAuto() {
+    if (lifeKnown()) return 'external';
+    if (probeCovered()) return 'external';
+    return '';
+  }
+
+  function probeHook() {
     var mode = '';
     try {
       if (typeof window.nova_skin_probe_mode === 'function') mode = window.nova_skin_probe_mode();
     } catch (e) {
       mode = '';
     }
-    if (mode === 'external' || mode === 'disabled') return mode;
-    return 'legacy';
+    if (mode === 'external' || mode === 'disabled' || mode === 'legacy') return mode;
+    return '';
+  }
+
+  var probe_auto_memo = '';
+  var probe_auto_stamp = '';
+
+  function probeMode() {
+    var hook = probeHook();
+    if (hook) return hook;
+
+    var stamp = [
+      movie ? movie.id : '',
+      (groups.sort || []).length,
+      currentSourceKey(),
+      probe_saves
+    ].join('|');
+
+    if (probe_auto_stamp !== stamp) {
+      probe_auto_stamp = stamp;
+      probe_auto_memo = probeAuto();
+    }
+    return probe_auto_memo || 'legacy';
   }
 
   function probeAllowed() {
@@ -1087,7 +1215,7 @@
   function probeShow() {
     var mode = probeMode();
     if (mode === 'disabled') return false;
-    if (mode === 'external') return true;
+    if (mode === 'external' && probeHook() === 'external') return true;
     return probeOn();
   }
 
@@ -2412,10 +2540,12 @@
       more.addClass('nova-chip--more');
       bind(more, function () {
         ui_all_sources = true;
-        ui_focus = 'src:' + (hidden.length ? (groups.sort || []).indexOf(hidden[0]) : 0);
+        var seat = hidden.length ? (groups.sort || []).indexOf(hidden[0]) : 0;
         buildRows();
+        lockFocus('src:' + seat);
         restoreFocus(false);
         try { Lampa.Controller.enable('content'); } catch (e) {}
+        restoreFocus(false);
         probeRun();
       });
       row.append(more);
@@ -2860,12 +2990,47 @@
     return false;
   }
 
+  function dropSide(dir) {
+    var nodes = dropItems();
+    if (!nodes.length || !last) return null;
+    var at = -1;
+    for (var i = 0; i < nodes.length; i++) {
+      if (nodes[i] === last) {
+        at = i;
+        break;
+      }
+    }
+    if (at === -1) return null;
+    var next = dir === 'left' ? at - 1 : at + 1;
+    if (next < 0 || next >= nodes.length) return null;
+    return nodes[next];
+  }
+
   function novaRight() {
     if (!inSkin()) return false;
     try {
       if (window.Navigator && window.Navigator.canmove('right')) return false;
     } catch (e) {}
+    if (ui_open && dropFocused()) {
+      var ahead = dropSide('right');
+      if (ahead) return focusNode(ahead);
+    }
     return toolbarFocus();
+  }
+
+  function novaLeft() {
+    if (!inSkin()) return false;
+    try {
+      if (window.Navigator && window.Navigator.canmove('left')) return false;
+    } catch (e) {}
+    if (!ui_open) return false;
+    if (dropFocused()) {
+      var back = dropSide('left');
+      if (back) return focusNode(back);
+      return true;
+    }
+    if (toolbarFocused()) return true;
+    return false;
   }
 
   function nativeState() {
@@ -3614,7 +3779,7 @@
         Lampa.Settings.listener.follow('open', function (e) {
           if (!e || e.name !== 'nova_skin' || !e.body) return;
 
-          var mode = probeMode();
+          var mode = probeHook();
           var item = e.body.find('[data-name="nova_skin_probe"]');
           if (!item.length) return;
 
