@@ -8,6 +8,7 @@
     const scriptMirrors = [
     //  'https://ab2024.ru/sisi.js',
         'http://31.129.234.181/sisi.js',
+        'https://l.pashai.ru/sisi.js',
     ];
 
     // Выбираем случайное зеркало
