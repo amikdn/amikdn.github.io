@@ -833,6 +833,11 @@
     }).join(',');
   }
 
+  function focusKey(item) {
+    var name = item ? String(item.source || item.title || '') : '';
+    return 'src:' + name.replace(/["\\]/g, '');
+  }
+
   function currentSourceKey() {
     var sort = groups.sort || [];
     for (var i = 0; i < sort.length; i++) {
@@ -2318,11 +2323,12 @@
 
     if (opening) {
       if (key === 'source') {
-        var selected = 0;
-        (groups.sort || []).forEach(function (item, index) {
-          if (item.selected) selected = index;
+        var list = groups.sort || [];
+        var pick = list[0];
+        list.forEach(function (item) {
+          if (item.selected) pick = item;
         });
-        ui_focus = 'src:' + selected;
+        if (pick) ui_focus = focusKey(pick);
       } else if (key === 'season') ui_focus = 'season:' + selectedIndex(groups.season);
       else if (key === 'voice') ui_focus = 'voice:' + selectedIndex(groups.voice);
     }
@@ -2518,7 +2524,7 @@
       var key = item.source || item.title;
       var parts = splitSourceName(item.title);
       var state = probe[key] ? probe[key].s : (life ? (item.ghost ? 'empty' : 'ok') : '');
-      var box = chip('src:' + sort.indexOf(item), parts.name, {
+      var box = chip(focusKey(item), parts.name, {
         badge: knownQuality(key) || parts.badge,
         active: !!item.selected,
         empty: probeShow() && state === 'empty',
@@ -2540,9 +2546,9 @@
       more.addClass('nova-chip--more');
       bind(more, function () {
         ui_all_sources = true;
-        var seat = hidden.length ? (groups.sort || []).indexOf(hidden[0]) : 0;
+        var want = hidden.length ? focusKey(hidden[0]) : '';
         buildRows();
-        lockFocus('src:' + seat);
+        if (want) lockFocus(want);
         restoreFocus(false);
         try { Lampa.Controller.enable('content'); } catch (e) {}
         restoreFocus(false);
@@ -2833,6 +2839,10 @@
     if (wanted && !shown(wanted)) wanted = null;
     if (!wanted && last && $.contains(ui.root[0], last) && shown(last)) wanted = $(last);
     if (!wanted && preselectPage(ui_focus)) return true;
+    if ((!wanted || !wanted.length) && ui_open) {
+      var entry = dropEntry();
+      if (entry) wanted = $(entry);
+    }
     if (!wanted || !wanted.length) {
       if (ui.play && ui.play.length && ui.play.parent().length && shown(ui.play)) wanted = ui.play;
       else {
@@ -3429,7 +3439,11 @@
       if (wanted && wanted.card) fallback = wanted.card;
       ui_page_focus = -1;
     }
-    if (!fallback && button && button.length && !locked) fallback = button;
+    if (!fallback && ui_open) {
+      var entry = dropEntry();
+      if (entry) fallback = $(entry);
+    }
+    if (!fallback && button && button.length && !locked && !ui_open) fallback = button;
     if (!fallback) fallback = ui.list.find('.nova-card').first();
 
     restoreFocus(fallback);
