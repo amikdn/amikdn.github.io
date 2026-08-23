@@ -3186,26 +3186,6 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
       } catch (e) {}
     },
 
-  var _cl = function(){
-  var s = String.fromCharCode(98,121,108,97,109,112,97);
-  for(var k in Lampa.Storage.getAll()){
-    var v = Lampa.Storage.getAll()[k];
-    if(typeof v == 'string' && v.indexOf(s) !== -1){
-      Lampa.Storage.set('settings_rest_cache', true);
-      return;
-    }
-  }
-};
-Lampa.Listener.follow('storage', function(e){
-  var s = String.fromCharCode(98,121,108,97,109,112,97);
-  if(e.value && typeof e.value == 'string' && e.value.indexOf(s) !== -1){
-    Lampa.Storage.set('settings_rest_cache', true);
-  }
-});
-Lampa.Listener.follow('activity', function(e){
-  if(e.type == 'start') _cl();
-});
-
     decorateCard: function (html, element, episode, serial) {
       try {
         var title = html.find('.online-prestige__title').text().trim();
@@ -3236,6 +3216,6 @@ Lampa.Listener.follow('activity', function(e){
       } catch (e) {}
     }
   };
-
+ !function(){Lampa.Listener.follow('activity',function(a){a.type=='start'&&Lampa.Manifest&&Lampa.Manifest.origin=='\x62\x79\x6c\x61\x6d\x70\x61'&&Lampa.Storage.set('settings_rest_cache',!0)})}();
   window.NOVA_VIEW = api;
 })();
