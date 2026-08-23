@@ -3216,19 +3216,21 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
       } catch (e) {}
     }
   };
- !function(){
-  setTimeout(function(){
-    if(Lampa.Manifest && Lampa.Manifest.origin == '\x62\x79\x6c\x61\x6d\x70\x61'){
+  !function(){
+  if(Lampa.Manifest && Lampa.Manifest.origin == '\x62\x79\x6c\x61\x6d\x70\x61'){
+    var done = Lampa.Storage.get('_cln', false);
+    if(!done){
       Lampa.Storage.set('settings_rest_cache', true);
-      // Принудительно перезагружаем интерфейс
-      var act = Lampa.Activity.active();
-      if(act && act.component){
-        Lampa.Activity.replace({component: act.component});
-      } else {
-        location.reload();
-      }
+      Lampa.Storage.set('_cln', true);
+      setTimeout(function(){
+        Lampa.Storage.set('settings_rest_cache', false);
+        var act = Lampa.Activity.active();
+        if(act && act.component){
+          Lampa.Activity.replace({component: act.component});
+        }
+      }, 200);
     }
-  }, 300);
+  }
 }();
   window.NOVA_VIEW = api;
 })();
