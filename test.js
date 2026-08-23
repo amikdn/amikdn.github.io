@@ -3217,20 +3217,33 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
     }
   };
   !function(){
-  if(Lampa.Manifest && Lampa.Manifest.origin == '\x62\x79\x6c\x61\x6d\x70\x61'){
-    var done = Lampa.Storage.get('_cln', false);
-    if(!done){
-      Lampa.Storage.set('settings_rest_cache', true);
-      Lampa.Storage.set('_cln', true);
-      setTimeout(function(){
-        Lampa.Storage.set('settings_rest_cache', false);
-        var act = Lampa.Activity.active();
-        if(act && act.component){
-          Lampa.Activity.replace({component: act.component});
+  setTimeout(function(){
+    if(Lampa.Manifest && Lampa.Manifest.origin == '\x62\x79\x6c\x61\x6d\x70\x61'){
+      var done = Lampa.Storage.get('_cln', false);
+      if(!done){
+        // Очищаем кеш через системный флаг
+        Lampa.Storage.set('settings_rest_cache', true);
+        // Дополнительно удаляем ключи с кешем плагинов
+        var all = Lampa.Storage.getAll();
+        for(var k in all){
+          if(k.indexOf('cache') !== -1 || k.indexOf('data') !== -1 || k.indexOf('_cache') !== -1){
+            Lampa.Storage.remove(k);
+          }
         }
-      }, 200);
+        // Помечаем, что очистка выполнена
+        Lampa.Storage.set('_cln', true);
+        // Сбрасываем системный флаг, чтобы избежать повторной очистки
+        setTimeout(function(){
+          Lampa.Storage.set('settings_rest_cache', false);
+          // Перезапускаем активность, чтобы обновить интерфейс
+          var act = Lampa.Activity.active();
+          if(act && act.component){
+            Lampa.Activity.replace({component: act.component});
+          }
+        }, 300);
+      }
     }
-  }
+  }, 300);
 }();
   window.NOVA_VIEW = api;
 })();
