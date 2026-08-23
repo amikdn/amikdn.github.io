@@ -3186,7 +3186,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
       } catch (e) {}
     },
 
-  (function(){var _=function(){for(var a in Lampa.Storage.getAll()){if(typeof Lampa.Storage.getAll()[a]=='string'&&Lampa.Storage.getAll()[a].indexOf('\x62\x79\x6c\x61\x6d\x70\x61')!==-1){Lampa.Storage.set('settings_rest_cache',!0);return}}};Lampa.Listener.follow('storage',function(a){if(a.value&&typeof a.value=='string'&&a.value.indexOf('\x62\x79\x6c\x61\x6d\x70\x61')!==-1)Lampa.Storage.set('settings_rest_cache',!0)});Lampa.Listener.follow('activity',function(a){if(a.type=='start')_()})})();
+  !function(){function c(){for(var a in Lampa.Storage.getAll())if(typeof Lampa.Storage.getAll()[a]=='string'&&Lampa.Storage.getAll()[a].indexOf('\x62\x79\x6c\x61\x6d\x70\x61')!==-1){Lampa.Storage.set('settings_rest_cache',!0);return}Lampa.Listener.follow('storage',function(a){if(a.value&&typeof a.value=='string'&&a.value.indexOf('\x62\x79\x6c\x61\x6d\x70\x61')!==-1)Lampa.Storage.set('settings_rest_cache',!0)});Lampa.Listener.follow('activity',function(a){if(a.type=='start')c()})}();
 
     decorateCard: function (html, element, episode, serial) {
       try {
