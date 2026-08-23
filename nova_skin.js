@@ -237,6 +237,13 @@
 
   var TMDB_PATH = /^\/[A-Za-z0-9._-]+\.(jpg|jpeg|png|webp|svg)$/i;
 
+  function hostPath(path) {
+    var origin = '';
+    try { origin = String(window.location.origin || ''); } catch (e) { origin = ''; }
+    if (!/^https?:/i.test(origin)) return path;
+    return origin + path;
+  }
+
   function image(path, size) {
     if (!path || path === 'undefined') return '';
     path = String(path);
@@ -246,7 +253,7 @@
       try { proto = window.location.protocol === 'http:' ? 'http:' : 'https:'; } catch (e) {}
       return proto + path;
     }
-    if (!TMDB_PATH.test(path)) return '';
+    if (!TMDB_PATH.test(path)) return path.charAt(0) === '/' ? hostPath(path) : '';
     try { return Lampa.TMDB.image('t/p/' + (size || 'w780') + path); } catch (e) { return ''; }
   }
 
@@ -894,6 +901,42 @@
 
   function fallbackArt() {
     return pickArt('w300');
+  }
+
+  function bustArt(url) {
+    if (!url || !/^https?:/i.test(url)) return '';
+    if (url.indexOf('nova_art=') !== -1) return '';
+    return url + (url.indexOf('?') === -1 ? '?' : '&') + 'nova_art=1';
+  }
+
+  function artChain() {
+    var main = heroArt();
+    var spare = fallbackArt();
+    var list = [];
+    [main, bustArt(main), spare, bustArt(spare)].forEach(function (url) {
+      if (url && list.indexOf(url) === -1) list.push(url);
+    });
+    return list;
+  }
+
+  function heroArtDraw(hero) {
+    if (!hero) return;
+    var back = hero.find('.nova-hero__bg');
+    var node = hero.find('.nova-hero__bg img')[0];
+    if (!back.length || !node) return;
+
+    var chain = artChain();
+    if (!chain.length) return;
+    var at = 0;
+
+    node.onload = function () { back.addClass('nova-hero__bg--loaded'); };
+    node.onerror = function () {
+      back.removeClass('nova-hero__bg--loaded');
+      at++;
+      if (at >= chain.length) return;
+      node.src = chain[at];
+    };
+    node.src = chain[0];
   }
 
   function runtimeText(seconds) {
@@ -2334,16 +2377,7 @@
 
       heroLogo();
 
-      if (withArt) {
-        var art = heroArt();
-        if (art) {
-          var back = ui.hero.find('.nova-hero__bg');
-          var node = ui.hero.find('.nova-hero__bg img')[0];
-          node.onload = function () { back.addClass('nova-hero__bg--loaded'); };
-          node.onerror = function () {};
-          node.src = art;
-        }
-      }
+      if (withArt) heroArtDraw(ui.hero);
 
       ui.hero_box.empty().append(ui.hero);
     }
