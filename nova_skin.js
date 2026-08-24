@@ -1891,6 +1891,37 @@
     }, 60);
   }
 
+  function watchNumber(item, slot) {
+    if (!item || !item.origin || !slot || !slot.length) return;
+    var timer = null;
+    var tries = 0;
+
+    function take() {
+      var value = 0;
+      try { value = digits(item.origin.find('.online-prestige__episode-number').text()); } catch (e) { value = 0; }
+      if (!value) return false;
+      if (timer) {
+        clearInterval(timer);
+        timer = null;
+      }
+      item.num = value;
+      item.numbered = true;
+      slot.text(episodeNumber(value));
+      return true;
+    }
+
+    if (take()) return;
+
+    timer = setInterval(function () {
+      tries++;
+      if (take()) return;
+      if (tries > 100) {
+        clearInterval(timer);
+        timer = null;
+      }
+    }, 60);
+  }
+
   function buildCard(item, compact, grid) {
     var card = $('<div class="nova-card selector">' +
       '<div class="nova-card__thumb"><img alt=""><div class="nova-card__num"><span></span></div><div class="nova-card__line"></div></div>' +
@@ -1915,8 +1946,11 @@
       return '<span>' + esc(part) + '</span>';
     }).join('<span class="nova-dot">\u25cf</span>'));
 
-    if (item.numbered && serial) card.find('.nova-card__num > span').text(episodeNumber(item.num));
-    else card.find('.nova-card__num').remove();
+    if (serial && !item.folder) {
+      var slot = card.find('.nova-card__num > span');
+      slot.text(episodeNumber(item.num));
+      if (!item.numbered) watchNumber(item, slot);
+    } else card.find('.nova-card__num').remove();
 
     var badge = shortQuality(item.quality);
     if (badge) card.find('.nova-card__quality').addClass('nova-badge').text(badge);
