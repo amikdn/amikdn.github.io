@@ -12,6 +12,7 @@
   var LOGO_VISIBLE = 0.55;
   var LOGO_BRIGHT_SHARE = 0.12;
   var LOGO_TONE_KEY = 'nova_skin_logo_tone2';
+  var LOGO_BLIND = {};
 
   var aside = false;
 
@@ -468,7 +469,7 @@
     if (document.getElementById('nova-skin-css')) return;
     var style = document.createElement('style');
     style.id = 'nova-skin-css';
-    style.textContent = SKIN_CSS + EXTRA_CSS + CARD_CSS + FOCUS_CSS + FULL_CSS + FADE_CSS + MARK_CSS + BADGE_CSS;
+    style.textContent = SKIN_CSS + EXTRA_CSS + CARD_CSS + FOCUS_CSS + FULL_CSS + FADE_CSS + MARK_CSS + BADGE_CSS + LOGO_CSS;
     (document.body || document.head).appendChild(style);
   }
 
@@ -2213,29 +2214,46 @@
     return spread / dark < 0.18 ? 'invert' : 'glow';
   }
 
-  function logoTone(src, done) {
+  function logoDirect(path) {
+    if (!path) return '';
+    return 'https://image.tmdb.org/t/p/' + logoSize() + String(path).replace('.svg', '.png');
+  }
+
+  function logoTone(src, path, done) {
     if (!src) return done('ok');
     var box = cached(LOGO_TONE_KEY, 500, {});
     if (box && typeof box[src] === 'string') return done(box[src]);
+    if (LOGO_BLIND[src]) return done('blind');
 
-    var probe;
-    try { probe = new Image(); } catch (e) { return done('ok'); }
-    probe.crossOrigin = 'anonymous';
-    probe.onload = function () {
-      var tone = '';
-      try { tone = logoMeasure(probe); } catch (e) { tone = ''; }
-      if (tone !== 'invert' && tone !== 'glow') tone = 'ok';
-      var now = cached(LOGO_TONE_KEY, 500, {});
-      if (now && typeof now === 'object') {
-        now[src] = tone;
-        save(LOGO_TONE_KEY, now);
+    var urls = [src];
+    var direct = logoDirect(path);
+    if (direct && urls.indexOf(direct) === -1) urls.push(direct);
+
+    var at = 0;
+    var step = function () {
+      if (at >= urls.length) {
+        LOGO_BLIND[src] = true;
+        return done('blind');
       }
-      done(tone);
+      var url = urls[at++];
+      var probe;
+      try { probe = new Image(); } catch (e) { return done('blind'); }
+      probe.crossOrigin = 'anonymous';
+      probe.onload = function () {
+        var tone = '';
+        try { tone = logoMeasure(probe); } catch (e) { tone = ''; }
+        if (tone !== 'invert' && tone !== 'glow' && tone !== 'ok') return step();
+        var now = cached(LOGO_TONE_KEY, 500, {});
+        if (now && typeof now === 'object') {
+          now[src] = tone;
+          save(LOGO_TONE_KEY, now);
+        }
+        done(tone);
+      };
+      probe.onerror = step;
+      probe.src = url;
     };
-    probe.onerror = function () {
-      done('ok');
-    };
-    probe.src = src;
+    step();
   }
 
   function logoLoad(done) {
@@ -2366,10 +2384,11 @@
       });
       picture.attr('src', src);
       box.addClass('nova-hero__title--logo').empty().append(picture);
-      logoTone(src, function (tone) {
+      logoTone(src, path, function (tone) {
         if (!picture.parent().length) return;
         if (tone === 'invert') picture.addClass('nova-logo--invert');
         else if (tone === 'glow') picture.addClass('nova-logo--glow');
+        else if (tone === 'blind') picture.addClass('nova-logo--edge');
       });
     });
   }
@@ -4189,6 +4208,8 @@
       schedule();
     });
   }
+
+  var LOGO_CSS = ".nova-skin-root .nova-hero__title--logo>img.nova-logo--edge{-webkit-filter:drop-shadow(0 0 .02em rgba(255,255,255,.9)) drop-shadow(0 0 .06em rgba(255,255,255,.45)) drop-shadow(0 .04em .12em rgba(0,0,0,.5));filter:drop-shadow(0 0 .02em rgba(255,255,255,.9)) drop-shadow(0 0 .06em rgba(255,255,255,.45)) drop-shadow(0 .04em .12em rgba(0,0,0,.5))}";
 
   var BADGE_CSS = [
     '.nova-skin-root .nova__list--grid .nova-card__num{padding:.45em 0 0 .5em;font-size:1em}',
