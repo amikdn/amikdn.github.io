@@ -25,12 +25,12 @@
     var CACHE_NAME = 'logo_plugin_paths';
     var CACHE_MAX = 600;
     var CACHE_LIFE = 1000 * 60 * 60 * 24 * 30;
-    // var CACHE_LIFE_EMPTY = 1000 * 60 * 15;
     var WAIT_LIMIT = 2500;
 
     var network = new Lampa.Reguest();
     var store = Lampa.Storage.cache(CACHE_NAME, CACHE_MAX, {});
     var pending = {};
+    var warmed = {};
 
     var style = document.createElement('style');
     style.innerHTML = '.logo--wait{visibility:hidden}.logo--img{margin-top:5px;max-height:125px}';
@@ -50,11 +50,9 @@
 
     function cached(id, type) {
         var slot = store[key(id, type)];
-        if (!slot) return null;
+        if (!slot || !slot.p) return null;
 
-        var life = slot.p ? CACHE_LIFE : CACHE_LIFE_EMPTY;
-
-        if (Date.now() - (slot.t || 0) > life) {
+        if (Date.now() - (slot.t || 0) > CACHE_LIFE) {
             delete store[key(id, type)];
             return null;
         }
@@ -63,7 +61,9 @@
     }
 
     function remember(id, type, path) {
-        store[key(id, type)] = { p: path || '', t: Date.now() };
+        if (!path) return;
+
+        store[key(id, type)] = { p: path, t: Date.now() };
         Lampa.Storage.set(CACHE_NAME, store);
     }
 
@@ -94,12 +94,19 @@
 
     function preload(path, done) {
         var url = imageUrl(path);
+
+        if (warmed[url]) {
+            done(url);
+            return;
+        }
+
         var img = new Image();
         var fired = false;
 
         function finish() {
             if (fired) return;
             fired = true;
+            warmed[url] = true;
             done(url);
         }
 
@@ -130,6 +137,8 @@
 
         function resolve(path) {
             remember(id, type, path);
+
+            if (path) preload(path, function () {});
 
             var waiting = pending[k] || [];
             delete pending[k];
@@ -175,6 +184,19 @@
             moveHead(render);
         });
     }
+
+    Lampa.Listener.follow('activity', function (event) {
+        if (!enabled()) return;
+        if (!event || event.component !== 'full') return;
+        if (event.type !== 'init' && event.type !== 'create') return;
+
+        var object = event.object;
+        if (!object || !object.id) return;
+
+        var type = object.method === 'tv' || (object.card && object.card.original_name) ? 'tv' : 'movie';
+
+        load(object.id, type, function () {});
+    });
 
     Lampa.Listener.follow('full', function (event) {
         if (!enabled()) return;
