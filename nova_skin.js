@@ -2377,6 +2377,7 @@
     if (!id) return done('');
 
     var kind = tmdbKind(card);
+    var lang = logoLang();
     var url = '';
     var langs = lang === 'en' ? 'en,null' : lang + ',en,null';
 
@@ -4249,12 +4250,14 @@
   function hookLogo() {
     try {
       Lampa.Listener.follow('full', function (e) {
-        if (!e || e.type !== 'complite' || !logoOn()) return;
-        var card = e.data && e.data.movie;
-        if (!card || !card.id) return;
-        logoFetch(card, function (path) {
-          if (path) logoWarm(path);
-        });
+        try {
+          if (!e || e.type !== 'complite' || !logoOn()) return;
+          var card = e.data && e.data.movie;
+          if (!card || !card.id) return;
+          logoFetch(card, function (path) {
+            if (path) logoWarm(path);
+          });
+        } catch (err) {}
       });
     } catch (err) {}
   }
