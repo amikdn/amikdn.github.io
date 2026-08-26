@@ -1,90 +1,13 @@
 (function () {
     'use strict';
 
-    var PLUGIN_VERSION = '1.4.0';
-    var STORAGE_SCHEMA_VERSION = '1.4.0';
-    var nativeSetTimeout = window.setTimeout.bind(window);
-    var _lifecycleGeneration = 0;
-    var _activeGeneration = 0;
-    var _managedTimeouts = [];
-    var _subscriptions = [];
-    var _patches = [];
-    var OWNED_ATTR = 'data-card-overlay-owned';
-    var ROOT_ATTR = 'data-card-overlay-active';
-    var STYLE_ID = 'card-overlay-style-v' + PLUGIN_VERSION.replace(/[^a-z0-9_-]/gi, '-');
-    var _nativeState = typeof WeakMap !== 'undefined' ? new WeakMap() : null;
-    var _nativeNodes = [];
-    var _domObserver = null;
-    function markOwned(node) { if (node && node.setAttribute) node.setAttribute(OWNED_ATTR, '1'); return node; }
-    function isOwned(node) { return !!(node && node.getAttribute && node.getAttribute(OWNED_ATTR) === '1'); }
-    function removeNode(node) { if (!node || !node.parentNode) return; if (typeof node.remove === 'function') node.remove(); else node.parentNode.removeChild(node); }
-    function rememberNative(node) {
-        if (!node || isOwned(node) || !_nativeState || _nativeState.has(node)) return;
-        _nativeState.set(node, { parent: node.parentNode, next: node.nextSibling, className: node.className, style: node.getAttribute ? node.getAttribute('style') : null });
-        _nativeNodes.push(node);
-    }
-    function restoreNativeNodes() {
-        for (var i = _nativeNodes.length - 1; i >= 0; i--) { var node = _nativeNodes[i], st = _nativeState && _nativeState.get(node); if (!node || !st) continue; try { node.className = st.className; if (node.setAttribute) { if (st.style == null) node.removeAttribute('style'); else node.setAttribute('style', st.style); } if (st.parent) st.parent.insertBefore(node, st.next && st.next.parentNode === st.parent ? st.next : null); } catch (e) { logErr(e); } }
-        _nativeNodes = []; _nativeState = typeof WeakMap !== 'undefined' ? new WeakMap() : null;
-    }
-    function directChild(parent, selector) { if (!parent || !parent.children) return null; for (var i=0;i<parent.children.length;i++) { var c=parent.children[i]; try { if (c.matches && c.matches(selector)) return c; } catch(e) {} } return null; }
-
-    try { if (typeof window.__card_overlay_destroy__ === 'function') window.__card_overlay_destroy__(); } catch (e0) {}
-
-    function isCurrentGeneration(generation) {
-        return !!generation && generation === _activeGeneration && window.__card_overlay_initialized__ === true;
-    }
-    function lifecycleTimeout(fn, delay) {
-        var generation = _activeGeneration;
-        var id = nativeSetTimeout(function () {
-            var index = _managedTimeouts.indexOf(id);
-            if (index !== -1) _managedTimeouts.splice(index, 1);
-            if (isCurrentGeneration(generation)) safe(fn, 'timeout');
-        }, delay || 0);
-        _managedTimeouts.push(id);
-        return id;
-    }
-    function clearManagedTimeouts() {
-        for (var i = 0; i < _managedTimeouts.length; i++) try { clearTimeout(_managedTimeouts[i]); } catch (e) {}
-        _managedTimeouts = [];
-    }
-    function followLifecycle(listener, event, handler, label) {
-        if (!listener || typeof listener.follow !== 'function') return;
-        var generation = _activeGeneration;
-        var wrapped = function () {
-            if (isCurrentGeneration(generation)) return handler.apply(this, arguments);
-        };
-        listener.follow(event, wrapped);
-        _subscriptions.push({ listener: listener, event: event, handler: wrapped, label: label || event });
-    }
-    function clearSubscriptions() {
-        for (var i = _subscriptions.length - 1; i >= 0; i--) {
-            var item = _subscriptions[i];
-            try {
-                if (typeof item.listener.unfollow === 'function') item.listener.unfollow(item.event, item.handler);
-                else if (typeof item.listener.remove === 'function') item.listener.remove(item.event, item.handler);
-            } catch (e) { logErr(e); }
-        }
-        _subscriptions = [];
-    }
-    function restorePatches() {
-        for (var i = _patches.length - 1; i >= 0; i--) {
-            var patch = _patches[i];
-            try {
-                if (patch.original) Object.defineProperty(patch.target, patch.key, patch.original);
-                else delete patch.target[patch.key];
-                if (patch.marker) delete patch.target[patch.marker];
-            } catch (e) { logErr(e); }
-        }
-        _patches = [];
-    }
-
     var ANIMATED_REACTIONS_BASE_URL = 'https://amikdn.github.io/img';
     var SVG_REACTIONS_BASE_URL = 'https://cubnotrip.top/img/reactions';
     var DETAIL_LAMPA_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="110" height="104" viewBox="0 0 110 104" fill="none"><path d="M81.6744 103.11C98.5682 93.7234 110 75.6967 110 55C110 24.6243 85.3757 0 55 0C24.6243 0 0 24.6243 0 55C0 75.6967 11.4318 93.7234 28.3255 103.11C14.8869 94.3724 6 79.224 6 62C6 34.938 27.938 13 55 13C82.062 13 104 34.938 104 62C104 79.224 95.1131 94.3725 81.6744 103.11Z" fill="white"/><path d="M92.9546 80.0076C95.5485 74.5501 97 68.4446 97 62C97 38.804 78.196 20 55 20C31.804 20 13 38.804 13 62C13 68.4446 14.4515 74.5501 17.0454 80.0076C16.3618 77.1161 16 74.1003 16 71C16 49.4609 33.4609 32 55 32C76.5391 32 94 49.4609 94 71C94 74.1003 93.6382 77.1161 92.9546 80.0076Z" fill="white"/><path d="M55 89C69.3594 89 81 77.3594 81 63C81 57.9297 79.5486 53.1983 77.0387 49.1987C82.579 54.7989 86 62.5 86 71C86 88.1208 72.1208 102 55 102C37.8792 102 24 88.1208 24 71C24 62.5 27.421 54.7989 32.9613 49.1987C30.4514 53.1983 29 57.9297 29 63C29 77.3594 40.6406 89 55 89Z" fill="white"/><path d="M73 63C73 72.9411 64.9411 81 55 81C45.0589 81 37 72.9411 37 63C37 53.0589 45.0589 45 55 45C64.9411 45 73 53.0589 73 63Z" fill="white"/></svg>';
     var DETAIL_TMDB_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 150"><defs><linearGradient id="cardOverlayTmdbGrad" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#90cea1"/><stop offset="56%" stop-color="#3cbec9"/><stop offset="100%" stop-color="#00b3e5"/></linearGradient><style>.card-overlay-tmdb-text{font-weight:bold;fill:url(#cardOverlayTmdbGrad);text-anchor:start;dominant-baseline:middle;textLength:150;lengthAdjust:spacingAndGlyphs;font-size:70px;}</style></defs><text class="card-overlay-tmdb-text" x="0" y="50" textLength="150" lengthAdjust="spacingAndGlyphs">TM</text><text class="card-overlay-tmdb-text" x="0" y="120" textLength="150" lengthAdjust="spacingAndGlyphs">DB</text></svg>';
     var DETAIL_IMDB_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 122.88 122.88"><g><path fill="#F5C518" d="M18.43,0h86.02c10.18,0,18.43,8.25,18.43,18.43v86.02c0,10.18-8.25,18.43-18.43,18.43H18.43C8.25,122.88,0,114.63,0,104.45l0-86.02C0,8.25,8.25,0,18.43,0z"/><path fill="#000" d="M24.96,78.72V44.16h-9.6v34.56H24.96z M45.36,44.16L43.2,60.24L42,51.6l-1.2-7.44h-12v34.56h8.16v-22.8l3.36,22.8h6l3.12-23.28v23.28h8.16V44.16H45.36z M61.44,78.72V44.16h14.88c3.6,0,6.24,2.64,6.24,6v22.56c0,3.36-2.64,6-6.24,6H61.44z M72.72,50.4l-2.16-0.24v22.56c1.2,0,2.16-0.24,2.4-0.72c0.48-0.48,0.48-1.92,0.48-4.32V54.24v-2.88L72.72,50.4z M100.56,52.8h0.72c3.36,0,6.24,2.64,6.24,6v13.92c0,3.36-2.88,6-6.24,6h-0.72c-1.92,0-3.84-0.96-5.04-2.64l-0.48,2.16H86.4V44.16h9.12V55.2C96.72,53.76,98.64,52.8,100.56,52.8z M98.64,69.6v-8.16L98.4,58.8c-0.24-0.48-0.96-0.72-1.44-0.72c-0.48,0-1.2,0.24-1.44,0.72v13.68c0.24,0.48,0.96,0.72,1.44,0.72c0.48,0,1.44-0.24,1.44-0.72L98.64,69.6z"/></g></svg>';
     var DETAIL_KP_SVG = '<svg width="300" height="300" viewBox="0 0 300 300" fill="none" xmlns="http://www.w3.org/2000/svg"><mask id="cardOverlayKpMask" style="mask-type:alpha" maskUnits="userSpaceOnUse" x="0" y="0" width="300" height="300"><circle cx="150" cy="150" r="150" fill="white"/></mask><g mask="url(#cardOverlayKpMask)"><circle cx="150" cy="150" r="150" fill="black"/><path d="M300 45L145.26 127.827L225.9 45H181.2L126.3 121.203V45H89.9999V255H126.3V178.92L181.2 255H225.9L147.354 174.777L300 255V216L160.776 160.146L300 169.5V130.5L161.658 139.494L300 84V45Z" fill="url(#cardOverlayKpGradient)"/></g><defs><radialGradient id="cardOverlayKpGradient" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(89.9999 45) rotate(45) scale(296.985)"><stop offset="0.5" stop-color="#FF5500"/><stop offset="1" stop-color="#BBFF00"/></radialGradient></defs></svg>';
+    var PLUGIN_VERSION = '1.4.0';
     var KP_API_URL = 'https://kinopoiskapiunofficial.tech/';
     var QUALITY_CACHE_KEY = 'qualview_quality_cache';
     var QUALITY_API_DOMAIN = 'jr.maxvol.pro';
@@ -118,7 +41,7 @@
     var TYPE_LABEL_EPISODE_CACHE_KEY = 'type_label_episode_cache';
     var CARD_SERIES_FULL_INFO_KEY = 'card_series_full_info';
 
-    var DEFAULTS_VERSION = STORAGE_SCHEMA_VERSION;
+    var DEFAULTS_VERSION = '2';
     var DEFAULTS = {
         seasons_info_mode: 'aired',
         label_position: 'bottom-right',
@@ -149,8 +72,6 @@
 
         quality_show: true,
         quality_colored: true,
-        quality_external_lookup: true,
-        quality_send_install_uid: true,
 
         type_labels_show: true,
         type_labels_colored: true,
@@ -170,82 +91,42 @@
         return String(v);
     }
     function applyDefaults() {
+        var stored = String(Lampa.Storage.get('card_overlay_defaults_version', '0'));
+        var force = stored !== DEFAULTS_VERSION;
         var key;
+
         for (key in DEFAULTS) {
             if (!Object.prototype.hasOwnProperty.call(DEFAULTS, key)) continue;
+
             var current = Lampa.Storage.get(key, undefined);
-            if (current === undefined || current === null) Lampa.Storage.set(key, defStr(key));
+
+            if (force || current === undefined || current === null || current === '') {
+                Lampa.Storage.set(key, defStr(key));
+            }
         }
-        Lampa.Storage.set('card_overlay_defaults_version', DEFAULTS_VERSION);
+
+        if (force) Lampa.Storage.set('card_overlay_defaults_version', DEFAULTS_VERSION);
     }
+
+    var DEBUG = false;
+    try { DEBUG = isTruthy(Lampa.Storage.get('card_overlay_debug', false)); } catch (e) {}
 
     function isTruthy(v) {
         return (v === true || v === 'true' || v === '1' || v === 1);
     }
 
-    var Config = (function () {
-        var values = Object.create(null);
-        function typed(key, value) {
-            var fallback = DEFAULTS[key];
-            if (typeof fallback === 'boolean') return value == null ? fallback : isTruthy(value);
-            if (typeof fallback === 'number') { var n = Number(value); return isFinite(n) ? n : fallback; }
-            return value == null ? String(fallback) : String(value);
-        }
-        function refresh(key) {
-            if (key && Object.prototype.hasOwnProperty.call(DEFAULTS, key)) values[key] = typed(key, Lampa.Storage.get(key, DEFAULTS[key]));
-            else for (var name in DEFAULTS) if (Object.prototype.hasOwnProperty.call(DEFAULTS, name)) values[name] = typed(name, Lampa.Storage.get(name, DEFAULTS[name]));
-            return api.snapshot();
-        }
-        var api = {
-            get: function (key) { if (!Object.prototype.hasOwnProperty.call(values, key)) refresh(key); return values[key]; },
-            refresh: refresh,
-            snapshot: function () { var copy = {}; for (var key in values) if (Object.prototype.hasOwnProperty.call(values, key)) copy[key] = values[key]; return copy; },
-            defaults: function () { var copy = {}; for (var key in DEFAULTS) if (Object.prototype.hasOwnProperty.call(DEFAULTS, key)) copy[key] = DEFAULTS[key]; return copy; }
-        };
-        return api;
-    })();
-
-    var Telemetry = (function () {
-        var limit = 120, buffer = new Array(limit), cursor = 0, size = 0;
-        var counters = { request: 0, cache: 0, queue: 0, render: 0, lifecycle: 0 };
-        var allowed = { action: 1, status: 1, source: 1, reason: 1, count: 1, duration: 1, active: 1, queued: 1, hit: 1 };
-        function clean(meta) {
-            var out = {};
-            if (!meta || typeof meta !== 'object') return out;
-            for (var key in meta) if (Object.prototype.hasOwnProperty.call(meta, key) && allowed[key]) {
-                var value = meta[key];
-                if (typeof value === 'string') out[key] = value.replace(/https?:\/\/\S+|[?&][^\s=]+=[^\s&]+/gi, '[redacted]').slice(0, 48);
-                else if (typeof value === 'number' || typeof value === 'boolean') out[key] = value;
-            }
-            return out;
-        }
-        function record(category, action, meta) {
-            if (!Object.prototype.hasOwnProperty.call(counters, category)) return;
-            counters[category]++;
-            var event = { at: Date.now(), category: category, action: String(action || 'event').slice(0, 32), meta: clean(meta) };
-            buffer[cursor] = event; cursor = (cursor + 1) % limit; size = Math.min(size + 1, limit);
-        }
-        function snapshot() {
-            var events = [], start = (cursor - size + limit) % limit;
-            for (var i = 0; i < size; i++) events.push(buffer[(start + i) % limit]);
-            return { version: PLUGIN_VERSION, counters: { request: counters.request, cache: counters.cache, queue: counters.queue, render: counters.render, lifecycle: counters.lifecycle }, events: events };
-        }
-        return { record: record, snapshot: snapshot, clear: function () { buffer = new Array(limit); cursor = 0; size = 0; counters = { request: 0, cache: 0, queue: 0, render: 0, lifecycle: 0 }; } };
-    })();
-
-    function normalizeNetworkResult(ok, data, status, source) {
-        return { ok: !!ok, status: parseInt(status, 10) || 0, source: String(source || 'network').slice(0, 24), data: data == null ? null : data, error: ok ? null : 'request_failed' };
-    }
-
     function logErr(e) {
-        Telemetry.record('lifecycle', 'error', { reason: e && e.name ? e.name : 'error' });
+        if (!DEBUG) return;
+        try { console.error('[card_overlay]', e); } catch (e2) {}
     }
 
     function safe(fn, label) {
         try {
             return fn();
         } catch (e) {
-            Telemetry.record('lifecycle', 'error', { reason: label || (e && e.name) || 'error' });
+            if (DEBUG) {
+                try { console.error('[card_overlay] ' + (label || 'error'), e); } catch (e2) {}
+            }
             return undefined;
         }
     }
@@ -310,13 +191,34 @@
         _listeners = [];
     }
 
+    var _settingsMemo = null;
+
+    function bindSettingsMemo() {
+        if (_settingsMemo) return;
+        var ok = safe(function () {
+            Lampa.Storage.listener.follow('change', function (e) {
+                if (!_settingsMemo) return;
+                if (e && e.name) delete _settingsMemo[e.name];
+                else _settingsMemo = {};
+            });
+            return true;
+        }, 'settings memo');
+        if (ok === true) _settingsMemo = {};
+    }
+
+    function sget(key, fallback) {
+        if (_settingsMemo !== null && Object.prototype.hasOwnProperty.call(_settingsMemo, key)) return _settingsMemo[key];
+        var v = Lampa.Storage.get(key, fallback);
+        if (_settingsMemo !== null) _settingsMemo[key] = v;
+        return v;
+    }
+
     function isTriggerOn(key, def) {
-        if (Object.prototype.hasOwnProperty.call(DEFAULTS, key)) return Config.get(key);
-        var v = Lampa.Storage.get(key, def);
+        var v = sget(key, def);
         return isTruthy(v);
     }
     function getOverlayAlpha() {
-        var v = parseFloat(Lampa.Storage.get('rating_window_opacity', defStr('rating_window_opacity')));
+        var v = parseFloat(sget('rating_window_opacity', defStr('rating_window_opacity')));
         if (isNaN(v)) v = parseFloat(defStr('rating_window_opacity'));
         v = Math.max(0, Math.min(100, v));
         return 1 - (v / 100);
@@ -369,7 +271,7 @@
         return 'rgba(46,204,113,' + alpha + ')';
     }
     function getYearPositionCSS() {
-        var pos = Lampa.Storage.get('rating_position', defStr('rating_position'));
+        var pos = sget('rating_position', defStr('rating_position'));
         var rounded = getBadgeStyle() === 'rounded';
         var cornerShadowOn = getCornerShadow();
         var yearAtBottom = (pos === 'top');
@@ -388,7 +290,6 @@
         var age = card.querySelector('.card__age');
         if (!view || !age) return;
         markCardOverlayHost(card);
-        rememberNative(age);
         if (age.parentNode !== view) view.appendChild(age);
         age.classList.add('card__year-badge');
         age.style.cssText = 'position:absolute;line-height:1;box-sizing:border-box;user-select:none;padding:0.25em 0.45em;background:rgba(0,0,0,' + getOverlayAlpha() + ');color:#fff;font-size:var(--rating-font-size,1.1em);white-space:nowrap;margin-top:0;' + getYearPositionCSS();
@@ -434,10 +335,8 @@
         if (n === 10) return '10';
         return n.toFixed(1);
     }
-    var REACTION_NAME_ALLOWLIST = { fire: 1, nice: 1, think: 1, bore: 1, shit: 1 };
     function getReactionImageSrc(medianReaction, forDetail) {
-        medianReaction = String(medianReaction || '').toLowerCase();
-        if (!REACTION_NAME_ALLOWLIST[medianReaction]) return '';
+        if (!medianReaction) return '';
         var animated = forDetail ? isTriggerOn('lampa_rating_animated', false) : isTriggerOn('animated_reactions', false);
         if (animated) return ANIMATED_REACTIONS_BASE_URL + '/reaction-' + medianReaction + '.gif';
         return SVG_REACTIONS_BASE_URL + '/' + medianReaction + '.svg';
@@ -449,7 +348,7 @@
         return _lampaIconDataUrl;
     }
     function getLampaPosterIconMode() {
-        var mode = Lampa.Storage.get('lampa_poster_icon_mode', defStr('lampa_poster_icon_mode'));
+        var mode = sget('lampa_poster_icon_mode', defStr('lampa_poster_icon_mode'));
         return mode === 'lamp' ? 'lamp' : 'reaction';
     }
     function getLampaPosterIconBackground(medianReaction) {
@@ -457,74 +356,28 @@
         return 'url(' + getReactionImageSrc(medianReaction) + ')';
     }
 
-    var CACHE_SCHEMA_VERSION = 2;
-    var CACHE_MAX_ENTRIES = 500;
-    function canonicalMediaType(item, fallback) {
-        var type = item && (item.media_type || item.type || item.method) || fallback || '';
-        if (type === 'serial' || type === 'series') type = 'tv';
-        if (type !== 'movie' && type !== 'tv') type = item && (item.name || item.original_name || item.first_air_date || item.last_air_date || item.number_of_seasons) ? 'tv' : 'movie';
-        return type;
-    }
-    function canonicalMediaId(item) {
-        if (item == null) return '';
-        var id = typeof item === 'object' ? (item.tmdb_id || item.id || item.kinopoisk_id || item.kp_id || '') : item;
-        return String(id == null ? '' : id).trim();
-    }
-    function canonicalMediaKey(item, fallbackType) { return canonicalMediaType(item, fallbackType) + ':' + canonicalMediaId(item); }
-    function canonicalizeKey(key) {
-        key = String(key == null ? '' : key);
-        var match = /^(movie|tv)[_:](.+)$/.exec(key);
-        return match ? match[1] + ':' + match[2] : key;
-    }
-    function legacyKeysFor(key) {
-        var match = /^(movie|tv):(.+)$/.exec(canonicalizeKey(key));
-        return match ? [match[1] + '_' + match[2], match[2]] : [];
-    }
-    function cacheEntryTtl(entry) {
-        if (entry && (entry._failed || entry.failed)) return CACHE_NETWORK_ERROR_TTL;
-        if (entry && entry._empty) return CACHE_EMPTY_TTL;
-        return CACHE_TTL;
-    }
-    function isValidCacheEntry(entry, now) {
-        if (!entry || typeof entry !== 'object' || typeof entry.timestamp !== 'number' || !isFinite(entry.timestamp)) return false;
-        var age = now - entry.timestamp;
-        return age >= 0 && age < cacheEntryTtl(entry);
-    }
-    function cacheLookup(cache, key) {
-        var canonical = canonicalizeKey(key), entry = cache[canonical], changed = false;
-        if (!entry) {
-            var aliases = legacyKeysFor(canonical);
-            for (var i = 0; i < aliases.length && !entry; i++) if (cache[aliases[i]]) { entry = cache[aliases[i]]; delete cache[aliases[i]]; changed = true; }
-            if (entry) cache[canonical] = entry;
-        }
-        if (!isValidCacheEntry(entry, Date.now())) {
-            if (entry) { delete cache[canonical]; changed = true; }
-            return { value: null, changed: changed };
-        }
-        entry._accessed = Date.now();
-        return { value: entry, changed: changed };
-    }
-
     var ratingCache = {
         caches: {},
         get: function (source, key) {
             var cache = this.caches[source] || (this.caches[source] = loadPersistentCache(source));
-            var found = cacheLookup(cache, key);
-            Telemetry.record('cache', found.value ? 'hit' : 'miss', { source: source, hit: !!found.value });
-            if (found.changed) debouncedSave(source, cache);
-            return found.value;
+            var data = cache[key];
+            if (!data) return null;
+            var ttl = CACHE_TTL;
+            if (data._failed) ttl = CACHE_NETWORK_ERROR_TTL;
+            else if (data._empty) ttl = CACHE_EMPTY_TTL;
+            if (Date.now() - data.timestamp > ttl) {
+                delete cache[key];
+                debouncedSave(source, cache);
+                return null;
+            }
+            return data;
         },
         set: function (source, key, value) {
             var cache = this.caches[source] || (this.caches[source] = loadPersistentCache(source));
-            key = canonicalizeKey(key);
-            value = value && typeof value === 'object' ? value : {};
             value.timestamp = Date.now();
-            value._accessed = value.timestamp;
-            value._schema = CACHE_SCHEMA_VERSION;
             var isEmpty = ((!value.kp || value.kp === 0) && (!value.imdb || value.imdb === 0) && (!value.rating || value.rating === 0) && (!value.vote_average || value.vote_average === 0));
             if (isEmpty) value._empty = true;
             cache[key] = value;
-            pruneExpiredCacheEntries(cache, CACHE_MAX_ENTRIES);
             debouncedSave(source, cache);
             return value;
         }
@@ -532,19 +385,12 @@
     function getPersistentCacheKey(source) {
         return 'rating_cache_' + source;
     }
-    function pruneExpiredCacheEntries(cache, maxEntries) {
-        var now = Date.now(), removed = false, valid = [];
-        if (!cache || typeof cache !== 'object' || Array.isArray(cache)) return true;
+    function pruneExpiredCacheEntries(cache) {
+        var now = Date.now(), removed = false;
         for (var k in cache) {
-            if (!Object.prototype.hasOwnProperty.call(cache, k) || k === '__schema') continue;
             var entry = cache[k];
-            if (!isValidCacheEntry(entry, now)) { delete cache[k]; removed = true; }
-            else valid.push({ key: k, at: entry._accessed || entry.timestamp });
+            if (!entry || typeof entry !== 'object' || !entry.timestamp || now - entry.timestamp > CACHE_TTL) { delete cache[k]; removed = true; }
         }
-        valid.sort(function (a, b) { return b.at - a.at; });
-        var limit = maxEntries || CACHE_MAX_ENTRIES;
-        for (var i = limit; i < valid.length; i++) { delete cache[valid[i].key]; removed = true; }
-        if (cache.__schema !== CACHE_SCHEMA_VERSION) { cache.__schema = CACHE_SCHEMA_VERSION; removed = true; }
         return removed;
     }
     function loadPersistentCache(source) {
@@ -567,7 +413,7 @@
         state.timer = setTimeout(function () {
             state.timer = 0;
             try { Lampa.Storage.set(storageKey, state.cache); }
-            catch (error) { Telemetry.record('cache', 'save-error', { reason: error && error.name ? error.name : 'error' }); }
+            catch (error) { try { console.error('[card_overlay] cache save failed', storageKey, error); } catch (e2) { logErr(e2); } }
         }, 2000);
     }
     function debouncedSave(source, cache) { debouncedSaveByKey(getPersistentCacheKey(source), cache); }
@@ -601,129 +447,49 @@
         if (includeQuality) clearQualityCache();
     }
 
-    var QUEUE_MAX_TASKS = 120;
-    var REQUEST_MAX_CONCURRENCY = 4;
-    var requestPool = [];
-    var _requestTask = null;
-    var RequestManager = {
-        queue: [], active: 0, sequence: 0, generation: 1, inflight: {},
-        priority: { detail: 3, visible: 2, prefetch: 1 },
-        add: function (execute, options) {
-            options = options || {};
-            var dedupeKey = options.service && options.key ? options.service + ':' + canonicalizeKey(options.key) : '';
-            if (dedupeKey && this.inflight[dedupeKey]) {
-                if (options.onDrop) this.inflight[dedupeKey].subscribers.push(options.onDrop);
-                return this.inflight[dedupeKey];
-            }
-            var task = { execute: execute, onDrop: options.onDrop, subscribers: [], key: dedupeKey, priority: this.priority[options.priority] || this.priority.visible, order: ++this.sequence, generation: this.generation, acquired: false, released: false, request: null };
-            if (dedupeKey) this.inflight[dedupeKey] = task;
-            this.queue.push(task);
-            Telemetry.record('queue', 'add', { queued: this.queue.length, active: this.active });
-            this.queue.sort(function (a, b) { return b.priority - a.priority || a.order - b.order; });
-            while (this.queue.length > QUEUE_MAX_TASKS) this.drop(this.queue.pop(), 'overflow');
-            this.pump();
-            return task;
-        },
-        pump: function () {
-            while (this.active < REQUEST_MAX_CONCURRENCY && this.queue.length) {
-                var task = this.queue.shift();
-                if (!task || task.released || task.generation !== this.generation) { this.drop(task, 'stale'); continue; }
-                this.active++; task.acquired = true; _requestTask = task;
-                try { task.execute(); }
-                catch (e) { this.drop(task, 'exception'); logErr(e); }
-                finally { _requestTask = null; if (!task.request && !task.released) this.release(task); }
-            }
-        },
-        release: function (task) {
-            if (!task || task.released) return;
-            task.released = true;
-            if (task.acquired) this.active = Math.max(0, this.active - 1);
-            if (task.key && this.inflight[task.key] === task) delete this.inflight[task.key];
-            this.pump();
-        },
-        drop: function (task, reason) {
-            if (!task || task.released) return;
-            var callbacks = task.subscribers.slice();
-            if (task.onDrop) callbacks.unshift(task.onDrop);
-            task.subscribers = [];
-            for (var i = 0; i < callbacks.length; i++) try { callbacks[i](reason); } catch (e) { logErr(e); }
-            if (task.request) try { task.request.clear(); } catch (e2) { logErr(e2); }
-            this.release(task);
-        },
-        clear: function () {
-            this.generation++;
-            var pending = this.queue.slice(); this.queue = [];
-            for (var i = 0; i < pending.length; i++) this.drop(pending[i], 'clear');
-            for (var key in this.inflight) if (Object.prototype.hasOwnProperty.call(this.inflight, key)) this.drop(this.inflight[key], 'clear');
-            this.inflight = {};
-        }
+    var REQUEST_QUEUES = {
+        kp: { tasks: [], processing: false, interval: 350, batch: 1 },
+        fast: { tasks: [], processing: false, interval: 120, batch: 2 }
     };
-    function getRequest() {
-        var request = requestPool.pop() || new Lampa.Reguest();
-        Telemetry.record('request', 'acquire', { active: RequestManager.active, queued: RequestManager.queue.length });
-        request.__coReleased = false;
-        request.__coTask = _requestTask;
-        if (_requestTask) { _requestTask.request = request; request.__coGeneration = _requestTask.generation; }
-        if (!request.__coBaseSilent && typeof request.silent === 'function') request.__coBaseSilent = request.silent;
-        if (request.__coBaseSilent) request.silent = function (url, success, failure, post, options) {
-            var self = request, attempt = 0, generation = self.__coGeneration || RequestManager.generation;
-            function stale() { return generation !== RequestManager.generation || (self.__coTask && self.__coTask.released); }
-            function statusOf(args) {
-                for (var i = 0; i < args.length; i++) {
-                    var value = args[i];
-                    var status = value && (value.status || value.statusCode || (value.response && value.response.status));
-                    if (status) return parseInt(status, 10) || 0;
-                }
-                return 0;
+    var QUEUE_MAX_TASKS = 120;
+    var requestPool = [];
+    function getRequest() { return requestPool.pop() || new Lampa.Reguest(); }
+    function releaseRequest(request) { request.clear(); if (requestPool.length < 5) requestPool.push(request); }
+    function processQueue(queue) {
+        if (queue.processing || !queue.tasks.length) return;
+        queue.processing = true;
+        var batch = queue.tasks.splice(0, queue.batch);
+        for (var i = 0; i < batch.length; i++) {
+            var t = batch[i];
+            try { t.execute(); }
+            catch (e) {
+                try { if (t && t.onDrop) t.onDrop(); } catch (e2) { logErr(e2); }
+                try { console.error('[card_overlay] queue task error', e); } catch (e3) { logErr(e3); }
             }
-            function retryAfterOf(args) {
-                for (var i = 0; i < args.length; i++) {
-                    var value = args[i], raw = value && (value.retryAfter || value.retry_after);
-                    if (!raw && value && value.headers) raw = value.headers['Retry-After'] || value.headers['retry-after'];
-                    if (raw != null) {
-                        var seconds = parseFloat(raw);
-                        if (!isNaN(seconds)) return Math.max(0, seconds * 1000);
-                        var date = Date.parse(raw);
-                        if (!isNaN(date)) return Math.max(0, date - Date.now());
-                    }
-                }
-                return 0;
+        }
+        setTimeout(function () { queue.processing = false; processQueue(queue); }, queue.interval);
+    }
+    function addToQueue(task, queueName, onDrop) {
+        var queue = REQUEST_QUEUES[queueName] || REQUEST_QUEUES.fast;
+        queue.tasks.push({ execute: task, onDrop: onDrop });
+        while (queue.tasks.length > QUEUE_MAX_TASKS) {
+            var dropped = queue.tasks.shift();
+            if (dropped && dropped.onDrop) { try { dropped.onDrop(); } catch (e) { logErr(e); } }
+        }
+        processQueue(queue);
+    }
+    function clearRequestQueues() {
+        for (var qname in REQUEST_QUEUES) {
+            var q = REQUEST_QUEUES[qname];
+            if (!q) continue;
+            var pending = q.tasks;
+            q.tasks = [];
+            for (var i = 0; i < pending.length; i++) {
+                var t = pending[i];
+                if (t && t.onDrop) { try { t.onDrop(); } catch (e) { logErr(e); } }
             }
-            function send() {
-                self.__coBaseSilent.call(self, url, function () {
-                    if (stale()) { releaseRequest(self); return; }
-                    if (success) success.apply(this, arguments);
-                }, function () {
-                    var args = arguments, status = statusOf(args);
-                    if (stale()) { releaseRequest(self); return; }
-                    if (attempt < 2 && (status === 429 || status >= 500)) {
-                        attempt++;
-                        var wait = retryAfterOf(args) || (200 * Math.pow(2, attempt - 1) + Math.floor(Math.random() * 151));
-                        setTimeout(function () { if (stale()) releaseRequest(self); else send(); }, Math.min(wait, 5000));
-                        return;
-                    }
-                    if (failure) failure.apply(this, args);
-                }, post, options);
-            }
-            send();
-        };
-        return request;
+        }
     }
-    function releaseRequest(request) {
-        if (!request || request.__coReleased) return;
-        request.__coReleased = true;
-        try { request.clear(); } catch (e) { logErr(e); }
-        var task = request.__coTask;
-        request.__coTask = null;
-        if (requestPool.length < REQUEST_MAX_CONCURRENCY + 1) requestPool.push(request);
-        if (task) RequestManager.release(task);
-    }
-    function addToQueue(task, queueName, onDrop, key) {
-        return RequestManager.add(task, { service: queueName || 'fast', key: key || '', priority: queueName === 'detail' ? 'detail' : (queueName === 'prefetch' ? 'prefetch' : 'visible'), onDrop: onDrop });
-    }
-    function clearRequestQueues() { RequestManager.clear(); }
-    var REQUEST_QUEUES = { manager: RequestManager };
-
 
     var stringCache = {};
     var stringCacheSize = 0;
@@ -744,8 +510,10 @@
     function canUseKinopoiskApi() { return getKpApiKey().length > 0; }
     function getKpHeaders() { var k = getKpApiKey(); if (!k) return {}; return { 'X-API-KEY': k }; }
     function kpCacheKey(item) {
-        if (!item) return 'movie:unknown';
-        return canonicalMediaKey(item);
+        if (!item) return 'unknown_';
+        var t = item.type || item.media_type;
+        if (t !== 'movie' && t !== 'tv') t = (item.name || item.original_name || item.first_air_date || item.last_air_date) ? 'tv' : 'movie';
+        return t + '_' + item.id;
     }
     function cacheEmptyKpRating(item, failedNetwork) {
         var entry = { kp: 0, imdb: 0 };
@@ -797,7 +565,7 @@
                     notifyKp(ratingCache.set('kp_rating', kpKey, { kp: parseFloat(data.ratingKinopoisk) || 0, imdb: parseFloat(data.ratingImdb) || 0, timestamp: Date.now() }), true);
                     releaseRequest(request);
                 }, function () { releaseRequest(request); notifyKp(cacheEmptyKpRating(item, true), true); }, false, { headers: getKpHeaders() });
-            }, 'kp', function () { delete pendingKpCallbacks[pendingKey]; }, pendingKey); return;
+            }, 'kp', function () { delete pendingKpCallbacks[pendingKey]; }); return;
         }
         if (!(item.title || item.name) && !item.imdb_id) { notifyKp(cacheEmptyKpRating(item), true); return; }
         addToQueue(function () {
@@ -830,7 +598,7 @@
                     notifyKp(ratingCache.set('kp_rating', kpKey, { kp: kpFromSearch, imdb: imdbFromSearch, timestamp: Date.now() }), true);
                 }
             }, function () { releaseRequest(request); notifyKp(cacheEmptyKpRating(item, true), true); }, false, { headers: getKpHeaders() });
-        }, 'kp', function () { delete pendingKpCallbacks[pendingKey]; }, pendingKey);
+        }, 'kp', function () { delete pendingKpCallbacks[pendingKey]; });
     }
 
     function calculateLampaRating10(reactions) {
@@ -882,7 +650,7 @@
         if (!target) return;
         var icon = target.querySelector('.rate-icon-reaction');
         if (!icon) {
-            icon = markOwned(document.createElement('span'));
+            icon = document.createElement('span');
             icon.className = 'source--name rate-icon-reaction';
             target.appendChild(icon);
         }
@@ -916,7 +684,7 @@
         var type = getTmdbMediaType(data);
         var id = getTmdbId(data);
         if (!type || !id) return null;
-        return type + ':' + id;
+        return type + '_' + id;
     }
     function getTmdbVoteAverage(data) {
         var rating = parseFloat(data && data.vote_average);
@@ -1069,7 +837,7 @@
     }
 
     function getRatingPositionCSS() {
-        var pos = Lampa.Storage.get('rating_position', defStr('rating_position'));
+        var pos = sget('rating_position', defStr('rating_position'));
         var rounded = getBadgeStyle() === 'rounded';
         if (pos === 'bottom') {
             if (rounded) return 'right:0.4em!important;bottom:0.4em!important;top:auto!important;left:auto!important;';
@@ -1079,7 +847,7 @@
         return 'right:0!important;top:0!important;bottom:auto!important;left:auto!important;';
     }
     function voteClass(extra) {
-        var pos = Lampa.Storage.get('rating_position', defStr('rating_position'));
+        var pos = sget('rating_position', defStr('rating_position'));
         return 'card__vote card__vote--' + pos + (extra ? ' ' + extra : '');
     }
     function getRatingParent(card) {
@@ -1115,7 +883,7 @@
     function isRatingSourceVisible(source) {
         var key = 'rating_show_' + source;
         var fallback = Object.prototype.hasOwnProperty.call(DEFAULTS, key) ? defStr(key) : '1';
-        var v = Lampa.Storage.get(key, fallback);
+        var v = sget(key, fallback);
         return !(v === false || v === 'false' || v === 0 || v === '0' || v === '' || v === null || v === undefined);
     }
 
@@ -1124,8 +892,7 @@
     }
     function createRatingElement(card) {
         var parent = getRatingParent(card);
-        var ratingElement = directChild(parent, '.card__vote:not(.card__vote-line):not(.card__vote-separate-wrap)') || card.querySelector('.card__vote:not(.card__vote-line):not(.card__vote-separate-wrap)');
-        if (!ratingElement) ratingElement = markOwned(document.createElement('div')); else rememberNative(ratingElement);
+        var ratingElement = parent.querySelector(':scope > .card__vote:not(.card__vote-line):not(.card__vote-separate-wrap)') || card.querySelector('.card__vote:not(.card__vote-line):not(.card__vote-separate-wrap)') || document.createElement('div');
         ratingElement.className = voteClass();
         var posCSS = getRatingPositionCSS();
         var bgAlpha = getOverlayAlpha();
@@ -1134,7 +901,7 @@
         return ratingElement;
     }
     function createRatingInnerBlock() {
-        var el = markOwned(document.createElement('div'));
+        var el = document.createElement('div');
         el.className = voteClass();
         var bgAlpha = getOverlayAlpha();
         el.style.cssText = 'line-height:1;cursor:pointer;box-sizing:border-box;outline:none;user-select:none;background:rgba(0,0,0,' + bgAlpha + ');color:#fff;padding:0.25em 0.45em;';
@@ -1142,8 +909,7 @@
     }
     function createRatingLineElement(card) {
         var parent = getRatingParent(card);
-        var line = directChild(parent, '.card__vote-line') || directChild(parent, '.card__vote:not(.card__vote-separate-wrap)') || card.querySelector('.card__vote:not(.card__vote-separate-wrap)');
-        if (!line) line = markOwned(document.createElement('div')); else rememberNative(line);
+        var line = parent.querySelector(':scope > .card__vote-line') || parent.querySelector(':scope > .card__vote:not(.card__vote-separate-wrap)') || card.querySelector('.card__vote:not(.card__vote-separate-wrap)') || document.createElement('div');
         line.className = voteClass('card__vote-line');
         var posCSS = getRatingPositionCSS();
         var bgAlpha = getOverlayAlpha();
@@ -1166,11 +932,6 @@
 
     function isRatingLineItemVisible(item) {
         return !!(item && !item.classList.contains('card__rate-item--hidden'));
-    }
-    function renderRatingValue(el, value, withSource) {
-        if (!el) return; while (el.firstChild) el.removeChild(el.firstChild);
-        var valueNode = markOwned(document.createElement('span')); valueNode.style.color = getRatingColor(value); valueNode.textContent = formatRating(value); el.appendChild(valueNode);
-        if (withSource) { var sourceNode = markOwned(document.createElement('span')); sourceNode.className = 'source--name'; el.appendChild(sourceNode); }
     }
     function hideSingleRatingElement(el, rateClass) {
         if (!el) return;
@@ -1202,7 +963,7 @@
         try {
             var kpFromData = (data.kp_rating != null ? data.kp_rating : (data.ratingKinopoisk != null ? data.ratingKinopoisk : 0));
             var imdbFromData = (data.imdb_rating != null ? data.imdb_rating : (data.ratingImdb != null ? data.ratingImdb : 0));
-            var cachedKp = ratingCache.get('kp_rating', kpCacheKey(data));
+            var cachedKp = ratingCache.get('kp_rating', data.id);
             var kpVal = (kpFromData > 0 ? kpFromData : (cachedKp && cachedKp.kp)) || 0;
             var imdbVal = (imdbFromData > 0 ? imdbFromData : (cachedKp && cachedKp.imdb)) || 0;
             imdbItem = ratingLine.querySelector('.rate--imdb');
@@ -1248,7 +1009,7 @@
         updateEpisodeLabelPosition(ratingLine.closest ? ratingLine.closest('.card') : null);
     }
 
-    function getRatingDisplayMode() { return Lampa.Storage.get('rating_display_mode', defStr('rating_display_mode')); }
+    function getRatingDisplayMode() { return sget('rating_display_mode', defStr('rating_display_mode')); }
 
     function fillSingleRatingElement(el, data, rateSource) {
         if (!el || !data || !rateSource) return;
@@ -1260,7 +1021,7 @@
             var rating = getTMDBRating(data);
             if (rating !== '0.0') {
                 el.className = voteClass('rate--tmdb card__vote--separate');
-                renderRatingValue(el, rating, true);
+                el.innerHTML = '<span style="color:' + getRatingColor(rating) + '">' + formatRating(rating) + '</span><span class="source--name"></span>';
                 el.style.display = ''; el.classList.remove('card__vote--hidden');
                 el.style.background = getRatingBackgroundColor(rating) || ('rgba(0,0,0,' + getOverlayAlpha() + ')');
             } else { el.classList.add('card__vote--hidden'); }
@@ -1272,7 +1033,7 @@
                 var val = rateSource === 'kp' ? res.kp : res.imdb;
                 if (val && val > 0) {
                     el.className = voteClass('rate--' + rateSource + ' card__vote--separate');
-                    renderRatingValue(el, val, true);
+                    el.innerHTML = '<span style="color:' + getRatingColor(val) + '">' + formatRating(val) + '</span><span class="source--name"></span>';
                     el.style.display = ''; el.classList.remove('card__vote--hidden');
                     el.style.background = getRatingBackgroundColor(val) || ('rgba(0,0,0,' + getOverlayAlpha() + ')');
                 } else { el.classList.add('card__vote--hidden'); }
@@ -1285,7 +1046,7 @@
                 if (!el.parentNode || el.dataset.movieId !== idStr) return;
                 if (result.rating > 0) {
                     el.className = voteClass('rate--lampa card__vote--separate');
-                    renderRatingValue(el, result.rating, false);
+                    el.innerHTML = '<span style="color:' + getRatingColor(result.rating) + '">' + formatRating(result.rating) + '</span>';
                     renderLampaPosterIcon(el, result.medianReaction);
                     el.style.display = ''; el.classList.remove('card__vote--hidden');
                     el.style.background = getRatingBackgroundColor(result.rating) || ('rgba(0,0,0,' + getOverlayAlpha() + ')');
@@ -1301,7 +1062,7 @@
         if (isRatingSourceVisible('imdb')) sources.push('imdb');
         if (isRatingSourceVisible('kp')) sources.push('kp');
         if (isRatingSourceVisible('lampa')) sources.push('lampa');
-        var wrapper = markOwned(document.createElement('div'));
+        var wrapper = document.createElement('div');
         wrapper.className = voteClass('card__vote-separate-wrap');
         var posCSS = getRatingPositionCSS();
         wrapper.style.cssText = 'position:absolute;box-sizing:border-box;' + posCSS;
@@ -1335,7 +1096,7 @@
         var tmdb = getTMDBRating(data);
         if (tmdb !== '0.0') {
             ratingElement.className = voteClass('rate--tmdb');
-            renderRatingValue(ratingElement, tmdb, true);
+            ratingElement.innerHTML = '<span style="color:' + getRatingColor(tmdb) + '">' + formatRating(tmdb) + '</span><span class="source--name"></span>';
             ratingElement.style.background = getRatingBackgroundColor(tmdb) || ('rgba(0,0,0,' + getOverlayAlpha() + ')');
             updateEpisodeLabelPosition(ratingElement.closest ? ratingElement.closest('.card') : null);
             return;
@@ -1344,7 +1105,7 @@
         var cachedLampa = ratingCache.get('lampa_rating', lampaKey);
         if (cachedLampa && cachedLampa.rating > 0) {
             ratingElement.className = voteClass('rate--lampa');
-            renderRatingValue(ratingElement, cachedLampa.rating, false);
+            ratingElement.innerHTML = '<span style="color:' + getRatingColor(cachedLampa.rating) + '">' + formatRating(cachedLampa.rating) + '</span>';
             renderLampaPosterIcon(ratingElement, cachedLampa.medianReaction);
             ratingElement.style.background = getRatingBackgroundColor(cachedLampa.rating) || ('rgba(0,0,0,' + getOverlayAlpha() + ')');
             updateEpisodeLabelPosition(ratingElement.closest ? ratingElement.closest('.card') : null);
@@ -1354,7 +1115,7 @@
             if (!ratingElement.parentNode || ratingElement.dataset.movieId !== data.id.toString()) return;
             if (result.rating > 0) {
                 ratingElement.className = voteClass('rate--lampa');
-                renderRatingValue(ratingElement, result.rating, false);
+                ratingElement.innerHTML = '<span style="color:' + getRatingColor(result.rating) + '">' + formatRating(result.rating) + '</span>';
                 renderLampaPosterIcon(ratingElement, result.medianReaction);
                 ratingElement.style.background = getRatingBackgroundColor(result.rating) || ('rgba(0,0,0,' + getOverlayAlpha() + ')');
                 updateEpisodeLabelPosition(ratingElement.closest ? ratingElement.closest('.card') : null);
@@ -1364,8 +1125,8 @@
     function removeAllRatingElements(card) {
         var parent = card.querySelector && card.querySelector('[data-rate-anchor="1"]');
         if (!parent) return;
-        var list = parent.querySelectorAll('[' + OWNED_ATTR + '="1"].card__vote, [' + OWNED_ATTR + '="1"].card__vote-line');
-        for (var i = 0; i < list.length; i++) removeNode(list[i]);
+        var list = parent.querySelectorAll('.card__vote, .card__vote-line');
+        for (var i = 0; i < list.length; i++) list[i].remove();
         updateEpisodeLabelPosition(card);
     }
 
@@ -1375,7 +1136,7 @@
         var data = card.card_data || item.data || {};
         if (!data.id) return;
         var idStr = data.id.toString();
-        var source = Lampa.Storage.get('rating_source', defStr('rating_source'));
+        var source = sget('rating_source', defStr('rating_source'));
         var ratingElement;
         var displayMode = getRatingDisplayMode();
         var tmdbUpdateRequested = false;
@@ -1425,7 +1186,7 @@
             var tmdb = getTMDBRating(data);
             if (tmdb !== '0.0') {
                 el.className = voteClass('rate--tmdb');
-                renderRatingValue(el, tmdb, true);
+                el.innerHTML = '<span style="color:' + getRatingColor(tmdb) + '">' + formatRating(tmdb) + '</span><span class="source--name"></span>';
                 el.style.background = getRatingBackgroundColor(tmdb) || ('rgba(0,0,0,' + getOverlayAlpha() + ')');
                 if (el.closest) updateEpisodeLabelPosition(el.closest('.card'));
                 return true;
@@ -1443,7 +1204,7 @@
             var cached = ratingCache.get('lampa_rating', ratingKey);
             if (cached && cached.rating > 0) {
                 ratingElement.className = voteClass('rate--lampa card__vote--separate');
-                renderRatingValue(ratingElement, cached.rating, false);
+                ratingElement.innerHTML = '<span style="color:' + getRatingColor(cached.rating) + '">' + formatRating(cached.rating) + '</span>';
                 renderLampaPosterIcon(ratingElement, cached.medianReaction);
                 showSingleRatingElement(ratingElement);
                 ratingElement.style.background = getRatingBackgroundColor(cached.rating) || ('rgba(0,0,0,' + getOverlayAlpha() + ')');
@@ -1453,7 +1214,7 @@
             getLampaRating(ratingKey).then(function (result) {
                 if (ratingElement.parentNode && ratingElement.dataset.movieId === idStr && result.rating > 0) {
                     ratingElement.className = voteClass('rate--lampa card__vote--separate');
-                    renderRatingValue(ratingElement, result.rating, false);
+                    ratingElement.innerHTML = '<span style="color:' + getRatingColor(result.rating) + '">' + formatRating(result.rating) + '</span>';
                     renderLampaPosterIcon(ratingElement, result.medianReaction);
                     showSingleRatingElement(ratingElement);
                     ratingElement.style.background = getRatingBackgroundColor(result.rating) || ('rgba(0,0,0,' + getOverlayAlpha() + ')');
@@ -1466,7 +1227,7 @@
                     var val = source === 'kp' ? res.kp : res.imdb;
                     if (val && val > 0) {
                         ratingElement.className = voteClass('rate--' + source + ' card__vote--separate');
-                        renderRatingValue(ratingElement, val, true);
+                        ratingElement.innerHTML = '<span style="color:' + getRatingColor(val) + '">' + formatRating(val) + '</span><span class="source--name"></span>';
                         showSingleRatingElement(ratingElement);
                         ratingElement.style.background = getRatingBackgroundColor(val) || ('rgba(0,0,0,' + getOverlayAlpha() + ')');
                     }
@@ -1488,39 +1249,48 @@
     var _ratingUpdateTimer = 0;
     var _ratingUpdateRafScheduled = false;
     var _cardIntersectionObserver = null;
-    var _observedCards = typeof Set !== 'undefined' ? new Set() : [];
-    var _visibleCards = typeof Set !== 'undefined' ? new Set() : [];
-    var _dirtyCards = typeof Set !== 'undefined' ? new Set() : [];
-    var _dirtyReasons = typeof WeakMap !== 'undefined' ? new WeakMap() : null;
-    var _dirtyRaf = 0;
+    var _observedCards = [];
     var SCAN_DELAYS = [0, 150, 400, 900];
     var _settingsArranger = null;
     var _settingsArrangeTimer = 0;
+    var BLOCKING_SELECTORS = ['.modal', '.settings-input__content', '.selectbox__content', '.menu-edit-list'];
+    var _blockedCache = -1;
+    var _blockedCacheAt = 0;
+    /* perf: this runs 4 document.querySelector calls and reads offsetParent,
+       which forces a synchronous layout. It used to be called once per
+       IntersectionObserver entry, so a fast scroll paid for it dozens of times
+       in a single callback. A 100ms memo keeps it responsive (a modal opening is
+       a user action, not a per-frame event) while collapsing the burst. */
     function isCardUpdatesBlocked() {
+        var now = Date.now();
+        if (_blockedCache !== -1 && (now - _blockedCacheAt) < 100) return _blockedCache === 1;
+        var blocked = false;
         try {
-            var selectors = ['.modal', '.settings-input__content', '.selectbox__content', '.menu-edit-list'];
-            for (var i = 0; i < selectors.length; i++) {
-                var node = document.querySelector(selectors[i]);
-                if (node && node.offsetParent !== null) return true;
+            for (var i = 0; i < BLOCKING_SELECTORS.length; i++) {
+                var node = document.querySelector(BLOCKING_SELECTORS[i]);
+                if (node && node.offsetParent !== null) { blocked = true; break; }
             }
         } catch (e) { logErr(e); }
-        return false;
+        _blockedCache = blocked ? 1 : 0;
+        _blockedCacheAt = now;
+        return blocked;
     }
+    function invalidateBlockedCache() { _blockedCache = -1; }
     function isCardNearViewport(card, windowHeight) { var rect = card.getBoundingClientRect(); return !(rect.bottom < -200 || rect.top > windowHeight + 200); }
-    function setValues(setLike) { var out=[]; if (!setLike) return out; if (setLike.forEach) setLike.forEach(function(v){out.push(v);}); else out=setLike.slice(); return out; }
-    function markCardDirty(card, reason) {
-        if (!card) return; if (_dirtyCards.add) _dirtyCards.add(card); else if (_dirtyCards.indexOf(card)<0) _dirtyCards.push(card); if (_dirtyReasons) _dirtyReasons.set(card,(_dirtyReasons.get(card)||0)|(reason||1)); if (_dirtyRaf) return;
-        _dirtyRaf=requestAnimationFrame(function(){ _dirtyRaf=0; var cards=setValues(_dirtyCards), reads=[], wh=window.innerHeight||1000; if(_dirtyCards.clear)_dirtyCards.clear();else _dirtyCards=[]; for(var i=0;i<cards.length;i++){var c=cards[i];if(c&&c.getBoundingClientRect){var r=c.getBoundingClientRect();if(!(r.bottom < -200 || r.top > wh+200))reads.push(c);}} _batchOverlayPositions=true;_pendingSeriesStatus=[];try{for(var j=0;j<reads.length;j++){var card=reads[j],data=card.card_data;if(!data||!data.id||!document.body.contains(card))continue;updateCardRating({card:card,data:data});if(isQualityShowOn())processQualityForCards([card]);addTypeLabel(card);addYearBadge(card);}}finally{_batchOverlayPositions=false;}updateEpisodeLabelPositionsBatch(reads);flushSeriesStatusPositions(); });
-    }
     function updateVisibleCards(limit) {
         if (document.hidden || isCardUpdatesBlocked()) return;
-        var allCards = setValues(_visibleCards);
-        if (!allCards.length) allCards = setValues(_observedCards);
+        var allCards = document.querySelectorAll('.card[data-rating-visible="1"]');
+        /* perf: when the observer already flagged the visible cards we can trust
+           that flag. Its 250px rootMargin covers the same band this loop checked
+           by hand, and getBoundingClientRect() inside a loop that also writes
+           styles forces a reflow per card. Only fall back to measuring when the
+           flag is missing (no IntersectionObserver, or a fresh render). */
+        var trustVisibleFlag = allCards.length > 0;
         if (!allCards.length) allCards = document.querySelectorAll('.card');
         var maxCards = typeof limit === 'number' && limit > 0 ? limit : allCards.length;
         var wH = window.innerHeight || 1000;
         var updated = 0;
-        var source = Lampa.Storage.get('rating_source', defStr('rating_source'));
+        var source = sget('rating_source', defStr('rating_source'));
         var displayMode = getRatingDisplayMode();
         var episodeLabelCards = [];
         _batchOverlayPositions = true;
@@ -1529,7 +1299,7 @@
         for (var i = 0; i < allCards.length && updated < maxCards; i++) {
             var card = allCards[i]; var data = card.card_data;
             if (!data || !data.id) continue;
-            if (!isCardNearViewport(card, wH)) continue;
+            if (!trustVisibleFlag && !isCardNearViewport(card, wH)) continue;
             var idStr = data.id.toString();
             var lineEl = card.querySelector('.card__vote-line');
             var separateEls = card.querySelectorAll('.card__vote-separate-wrap [data-rate-source]');
@@ -1545,17 +1315,17 @@
                         var ratingKey = (data.seasons || data.first_air_date || data.original_name) ? 'tv_' + data.id : 'movie_' + data.id;
                         var cachedLampa = ratingCache.get('lampa_rating', ratingKey);
                         if (cachedLampa && cachedLampa.rating > 0) {
-                            renderRatingValue(singleEl, cachedLampa.rating, false);
+                            singleEl.innerHTML = '<span style="color:' + getRatingColor(cachedLampa.rating) + '">' + formatRating(cachedLampa.rating) + '</span>';
                             renderLampaPosterIcon(singleEl, cachedLampa.medianReaction);
                             showSingleRatingElement(singleEl);
                         }
                     } else if (source === 'tmdb') {
                         var tmdbKey = getTmdbRatingKey(data);
                         var cachedTmdb = tmdbKey ? ratingCache.get('tmdb_rating', tmdbKey) : null;
-                        if (cachedTmdb && cachedTmdb.vote_average > 0) { renderRatingValue(singleEl, cachedTmdb.vote_average, true); showSingleRatingElement(singleEl); }
+                        if (cachedTmdb && cachedTmdb.vote_average > 0) { singleEl.innerHTML = '<span style="color:' + getRatingColor(cachedTmdb.vote_average) + '">' + formatRating(cachedTmdb.vote_average) + '</span><span class="source--name"></span>'; showSingleRatingElement(singleEl); }
                     } else if (source === 'kp' || source === 'imdb') {
-                        var cachedKp = ratingCache.get('kp_rating', kpCacheKey(data));
-                        if (cachedKp && (cachedKp.kp > 0 || cachedKp.imdb > 0)) { var r = source === 'kp' ? cachedKp.kp : cachedKp.imdb; if (r > 0) { renderRatingValue(singleEl, r, true); showSingleRatingElement(singleEl); } }
+                        var cachedKp = ratingCache.get('kp_rating', data.id);
+                        if (cachedKp && (cachedKp.kp > 0 || cachedKp.imdb > 0)) { var r = source === 'kp' ? cachedKp.kp : cachedKp.imdb; if (r > 0) { singleEl.innerHTML = '<span style="color:' + getRatingColor(r) + '">' + formatRating(r) + '</span><span class="source--name"></span>'; showSingleRatingElement(singleEl); } }
                     }
                 }
             }
@@ -1585,18 +1355,65 @@
         if (card.getAttribute('data-card-overlay-seen') === '1') return;
         card.setAttribute('data-card-overlay-seen', '1');
         bindCardImageRepaint(card);
-        try { _cardIntersectionObserver.observe(card); (_observedCards.add ? _observedCards.add(card) : _observedCards.push(card)); } catch (e) { logErr(e); }
+        try { _cardIntersectionObserver.observe(card); _observedCards.push(card); } catch (e) { logErr(e); }
+    }
+    var _entryQueue = [];
+    var _entryFlushScheduled = false;
+    var ENTRY_FLUSH_BUDGET = 12;
+    function queueCardEntry(card) {
+        if (card.__coQueued) return;
+        card.__coQueued = true;
+        _entryQueue.push(card);
+    }
+    function flushCardEntries() {
+        _entryFlushScheduled = false;
+        if (!_entryQueue.length) return;
+        if (isCardUpdatesBlocked()) {
+            for (var c = 0; c < _entryQueue.length; c++) _entryQueue[c].__coQueued = false;
+            _entryQueue.length = 0;
+            return;
+        }
+        var qualityOn = isQualityShowOn();
+        var batch = _entryQueue.splice(0, ENTRY_FLUSH_BUDGET);
+        var qualityCards = [];
+        for (var i = 0; i < batch.length; i++) {
+            var card = batch[i];
+            card.__coQueued = false;
+            if (!card.card_data || !card.parentNode) continue;
+            safe(function (c) { return function () { updateCardRating({ card: c, data: c.card_data }); }; }(card), 'flush rating');
+            addTypeLabel(card);
+            addYearBadge(card);
+            if (qualityOn) qualityCards.push(card);
+        }
+        if (qualityCards.length) safe(function () { processQualityForCards(qualityCards); }, 'flush quality');
+        if (_entryQueue.length) flushCardEntriesSoon();
+    }
+    function flushCardEntriesSoon() {
+        if (_entryFlushScheduled || !_entryQueue.length) return;
+        _entryFlushScheduled = true;
+        if (typeof requestAnimationFrame === 'function') requestAnimationFrame(flushCardEntries);
+        else setTimeout(flushCardEntries, 16);
+    }
+    function clearCardEntryQueue() {
+        for (var i = 0; i < _entryQueue.length; i++) { if (_entryQueue[i]) _entryQueue[i].__coQueued = false; }
+        _entryQueue.length = 0;
+        _entryFlushScheduled = false;
     }
     function startCardWatch() {
-        if (_cardIntersectionObserver) return;
-        if (typeof IntersectionObserver === 'undefined') { scanContainer(document.body, false); scheduleVisibleRatingsUpdate(0); return; }
+        if (_cardIntersectionObserver || typeof IntersectionObserver === 'undefined') return;
         _cardIntersectionObserver = new IntersectionObserver(function (entries) {
+            /* perf: only flip the visibility flag here, which is cheap. The
+               actual work is queued and drained on an animation frame with a
+               per-run cap, so a fast scroll that reports 30 entries at once no
+               longer turns into one long blocking task. */
             for (var i = 0; i < entries.length; i++) {
                 var target = entries[i].target;
-                if (target) target.setAttribute('data-rating-visible', entries[i].isIntersecting ? '1' : '0');
-                if (_visibleCards.add) { if (entries[i].isIntersecting) _visibleCards.add(target); else _visibleCards.delete(target); }
-                if (entries[i].isIntersecting && target && target.card_data && !isCardUpdatesBlocked()) markCardDirty(target, 1);
+                if (!target) continue;
+                var visible = entries[i].isIntersecting;
+                target.setAttribute('data-rating-visible', visible ? '1' : '0');
+                if (visible && target.card_data) queueCardEntry(target);
             }
+            flushCardEntriesSoon();
         }, { root: null, rootMargin: '250px 0px 250px 0px', threshold: 0.01 });
         scanContainer(document.body, false);
     }
@@ -1659,9 +1476,11 @@
         else scanActiveNew();
     }
     function onSelectShown() {
+        invalidateBlockedCache();
         later(function () { if (document.querySelector('.selectbox-item__icon img')) applyReactionsToSelectbox(); }, 0, 'selectbox');
     }
     function onSettingsOpen() {
+        invalidateBlockedCache();
         if (!_settingsArranger || _settingsArrangeTimer) return;
         _settingsArrangeTimer = setTimeout(function () { _settingsArrangeTimer = 0; if (_settingsArranger) _settingsArranger(); }, 100);
     }
@@ -1716,7 +1535,7 @@
         if (!isTriggerOn('lampa_rating_show', true)) return false;
         var rateLine = $(render).find('.full-start-new__rate-line');
         if (!rateLine.length || rateLine.find('.rate--lampa').length > 0) return false;
-        var html = '<div data-card-overlay-owned="1" class="full-start-new__rate full-start__rate rate--lampa"><div class="rate-value">0.0</div><div class="rate-icon"></div><div class="source--name card-overlay-lampa-star" style="margin-left:-0.2em">★</div></div>';
+        var html = '<div class="full-start-new__rate full-start__rate rate--lampa"><div class="rate-value">0.0</div><div class="rate-icon"></div><div class="source--name card-overlay-lampa-star" style="margin-left:-0.2em">★</div></div>';
         var $anchor = rateLine.find('.full-start-new__rate.rate--tmdb, .full-start-new__rate.rate--kp, .full-start-new__rate.rate--imdb, .full-start__rate.rate--tmdb, .full-start__rate.rate--kp, .full-start__rate.rate--imdb').last();
         if (!$anchor.length) $anchor = rateLine.find('.rate--tmdb, .rate--kp, .rate--imdb').last().closest('.full-start-new__rate, .full-start__rate');
         if (!$anchor.length) $anchor = rateLine.find('.full-start-new__rate:not(.rate--lampa), .full-start__rate:not(.rate--lampa)').last();
@@ -1771,7 +1590,7 @@
         normalizeDetailRatingLine(render || document);
     }
     function applyRatingScale() {
-        var v = parseFloat(Lampa.Storage.get('rating_scale', defStr('rating_scale')));
+        var v = parseFloat(sget('rating_scale', defStr('rating_scale')));
         if (isNaN(v)) v = 100;
         v = Math.max(60, Math.min(150, v));
         try { document.body.style.setProperty('--rating-font-size', (1.1 * v / 100) + 'em'); } catch (e) { logErr(e); }
@@ -1822,7 +1641,6 @@
     }
 
     function fetchAllohaQuality(normalizedItem, onComplete) {
-        if (!isTriggerOn('quality_external_lookup', true)) { onComplete(null); return; }
         if (!Array.isArray(ALLOHA_API_SERVERS) || !ALLOHA_API_SERVERS.length) {
             onComplete(null);
             return;
@@ -1861,7 +1679,6 @@
     }
 
     function fetchJacRed(normalizedItem, itemId, onComplete) {
-        if (!isTriggerOn('quality_external_lookup', true)) { onComplete(null); return; }
         var HIGHEST_RES = 2160, detectedForbidden = false;
         function containsText(input) { return /[a-zа-яё]/i.test(input || ''); }
         function isNumericOnly(input) { return /^\d+$/.test(input); }
@@ -1869,9 +1686,8 @@
         var dateString = normalizedItem.release_date || '';
         if (dateString.length >= 4) releaseYear = dateString.substring(0, 4);
         if (!releaseYear || isNaN(releaseYear)) { onComplete(null); return; }
-        var uniqueId = isTriggerOn('quality_send_install_uid', true) ? Lampa.Storage.get('lampac_unic_id', '') : '';
-        var requestUrl = 'https://' + QUALITY_API_DOMAIN + '/api/v2.0/indexers/all/results?apikey=&year=' + releaseYear;
-        if (uniqueId) requestUrl += '&uid=' + encodeURIComponent(uniqueId);
+        var uniqueId = Lampa.Storage.get('lampac_unic_id', '');
+        var requestUrl = 'https://' + QUALITY_API_DOMAIN + '/api/v2.0/indexers/all/results?apikey=&uid=' + uniqueId + '&year=' + releaseYear;
         var titlePresent = false;
         if (normalizedItem.title && (containsText(normalizedItem.title) || isNumericOnly(normalizedItem.title))) { requestUrl += '&title=' + encodeURIComponent(normalizedItem.title.trim()); titlePresent = true; }
         if (normalizedItem.original_title && (containsText(normalizedItem.original_title) || isNumericOnly(normalizedItem.original_title))) { requestUrl += '&title_original=' + encodeURIComponent(normalizedItem.original_title.trim()); titlePresent = true; }
@@ -1908,7 +1724,7 @@
     }
 
     function fetchOptimalRelease(normalizedItem, itemId, onComplete) {
-        var source = Lampa.Storage.get('quality_source', defStr('quality_source'));
+        var source = sget('quality_source', defStr('quality_source'));
         function completeWithFallback(result) {
             if (result && result.quality) onComplete(result);
             else fetchAllohaQuality(normalizedItem, onComplete);
@@ -1928,15 +1744,16 @@
     var pendingQualityRequests = {};
     function getQualityCacheKey(item) {
         var source = 'both';
-        try { source = Lampa.Storage.get('quality_source', defStr('quality_source')); } catch (e) { logErr(e); }
-        return source + ':' + canonicalMediaKey(item || {}, 'movie');
+        try { source = sget('quality_source', defStr('quality_source')); } catch (e) { logErr(e); }
+        var t = (item && item.type) || 'movie';
+        return [CARD_OVERLAY_CACHE_VERSION, source, t, item ? item.id : ''].join(':');
     }
     function getQualityCacheMem() {
         if (_qualityCacheMem) return _qualityCacheMem;
         var stored = null;
         try { stored = Lampa.Storage.get(QUALITY_CACHE_KEY, null); } catch (e) { logErr(e); }
-        _qualityCacheMem = (stored && typeof stored === 'object' && !Array.isArray(stored)) ? stored : {};
-        if (pruneExpiredCacheEntries(_qualityCacheMem, CACHE_MAX_ENTRIES)) debouncedSaveByKey(QUALITY_CACHE_KEY, _qualityCacheMem);
+        _qualityCacheMem = (stored && typeof stored === 'object') ? stored : {};
+        if (pruneExpiredCacheEntries(_qualityCacheMem)) debouncedSaveByKey(QUALITY_CACHE_KEY, _qualityCacheMem);
         return _qualityCacheMem;
     }
     function clearQualityCache() {
@@ -1946,23 +1763,14 @@
         clearStorageObject(QUALITY_CACHE_KEY);
     }
     function retrieveQualityCache(entryKey) {
-        var cache = getQualityCacheMem();
-        var cacheEntry = cache[entryKey];
-        if (!cacheEntry) {
-            var parts = String(entryKey).split(':');
-            if (parts.length === 3) {
-                var legacy = [CARD_OVERLAY_CACHE_VERSION, parts[0], parts[1], parts[2]].join(':');
-                if (cache[legacy]) { cacheEntry = cache[legacy]; cache[entryKey] = cacheEntry; delete cache[legacy]; debouncedSaveByKey(QUALITY_CACHE_KEY, cache); }
-            }
-        }
+        var cacheEntry = getQualityCacheMem()[entryKey];
         if (!cacheEntry || !cacheEntry.timestamp) return null;
-        var ttl = cacheEntry._failed ? CACHE_NETWORK_ERROR_TTL : (cacheEntry.quality ? CACHE_TTL : QUALITY_EMPTY_CACHE_TTL);
+        var ttl = cacheEntry.quality ? CACHE_TTL : QUALITY_EMPTY_CACHE_TTL;
         if (Date.now() - cacheEntry.timestamp >= ttl) {
-            delete cache[entryKey];
-            debouncedSaveByKey(QUALITY_CACHE_KEY, cache);
+            delete getQualityCacheMem()[entryKey];
+            debouncedSaveByKey(QUALITY_CACHE_KEY, getQualityCacheMem());
             return null;
         }
-        cacheEntry._accessed = Date.now();
         return cacheEntry;
     }
     function storeQualityCache(entryKey, entryData) {
@@ -2024,7 +1832,7 @@
         else {
             var ratingSection = $('.full-start-new__rate-line', viewRenderer);
             if (!ratingSection.length) return;
-            var newEl = $('<div class="full-start__status qualview-quality" data-card-overlay-owned="1"></div>').text(String(resQuality || ''));
+            var newEl = $('<div class="full-start__status qualview-quality">' + resQuality + '</div>');
             if (colors) newEl.css({ backgroundColor: colors.bg, color: colors.text });
             ratingSection.append(newEl);
         }
@@ -2042,7 +1850,7 @@
         if (!viewRenderer) return;
         var ratingSection = $('.full-start-new__rate-line', viewRenderer);
         if (ratingSection.length && !$('.full-start__status.qualview-quality', viewRenderer).length) {
-            var loaderEl = $('<div class="full-start__status qualview-quality" data-card-overlay-owned="1"></div>').text('...');
+            var loaderEl = $('<div class="full-start__status qualview-quality">...</div>');
             loaderEl.css({ opacity: '0.7' });
             ratingSection.append(loaderEl);
         }
@@ -2059,11 +1867,11 @@
         if (!viewSection) return;
         markCardOverlayHost(itemElement);
         var existing = viewSection.querySelectorAll('.card__quality');
-        for (var i = 0; i < existing.length; i++) if (isOwned(existing[i])) removeNode(existing[i]);
+        for (var i = 0; i < existing.length; i++) existing[i].remove();
         if (resQuality && resQuality !== 'NO' && resQuality !== '...') {
-            var qualityContainer = markOwned(document.createElement('div'));
+            var qualityContainer = document.createElement('div');
             qualityContainer.className = 'card__quality card__quality-' + resQuality.toLowerCase();
-            var inner = markOwned(document.createElement('div'));
+            var inner = document.createElement('div');
             inner.textContent = resQuality;
             qualityContainer.appendChild(inner);
             qualityContainer.style.background = getQualityBackground(resQuality);
@@ -2121,7 +1929,7 @@
         if (!ratingSection.length) return $();
         var metaLine = ratingSection.siblings('.full-start-new__meta-line');
         if (!metaLine.length) {
-            metaLine = $('<div class="full-start-new__meta-line" data-card-overlay-owned="1"></div>');
+            metaLine = $('<div class="full-start-new__meta-line"></div>');
             ratingSection.after(metaLine);
         }
         return metaLine;
@@ -2172,13 +1980,16 @@
             $('.full-start-new__meta-line').each(function () {
                 var metaLine = $(this);
                 var rateLine = metaLine.prev('.full-start-new__rate-line');
+                // Лейбл о сериях в горизонтальном режиме возвращается на
+                // постер, в строку рейтингов его тащить не надо.
                 metaLine.find('.season-info-label').remove();
                 metaLine.children().each(function () { rateLine.append(this); });
                 metaLine.remove();
             });
             normalizeDetailRatingLine(document);
         }
-
+        // Поворот экрана меняет место лейбла: плашка в строке или метка на
+        // постере. Перерисовываем, иначе он останется там, где был.
         try { refreshSeasonInfo(); } catch (e) { logErr(e); }
     }
     function moveDetailMetaToSecondLine(viewRenderer) {
@@ -2191,6 +2002,10 @@
             if (el.hasClass('hide') || el.hasClass('nr')) return false;
             return $.trim(el.text()).length > 0;
         }).first();
+        // Исключаем только СВОЮ плашку. Родной статус помечается классом
+        // season-info-status при отрисовке информации о сериях, и если
+        // отсеивать по нему, при повторном вызове родной статус перестаёт
+        // переезжать во вторую строку и застревает среди рейтингов.
         var nativeStatus = render.find('.full-start__status').not('.qualview-quality').not('.co-own-status').filter(function () {
             var el = $(this);
             return !el.closest('.full-start-new__rate, .full-start__rate').length;
@@ -2224,15 +2039,15 @@
     }
 
     function getTypeLabelEpisodeCacheKey(data) {
-        return data && data.id ? canonicalMediaKey(data, 'tv') : '';
+        return data && data.id ? 'tv_' + data.id : '';
     }
     var _episodeCacheMem = null;
     function getEpisodeCacheMem() {
         if (_episodeCacheMem) return _episodeCacheMem;
         var stored = null;
         try { stored = Lampa.Storage.get(TYPE_LABEL_EPISODE_CACHE_KEY, null); } catch (e) { logErr(e); }
-        _episodeCacheMem = (stored && typeof stored === 'object' && !Array.isArray(stored)) ? stored : {};
-        if (pruneExpiredCacheEntries(_episodeCacheMem, CACHE_MAX_ENTRIES)) debouncedSaveByKey(TYPE_LABEL_EPISODE_CACHE_KEY, _episodeCacheMem);
+        _episodeCacheMem = (stored && typeof stored === 'object') ? stored : {};
+        if (pruneExpiredCacheEntries(_episodeCacheMem)) debouncedSaveByKey(TYPE_LABEL_EPISODE_CACHE_KEY, _episodeCacheMem);
         return _episodeCacheMem;
     }
     function getTypeLabelEpisodeCache(key) {
@@ -2354,18 +2169,10 @@
     function isVisibleOverlayElement(el) {
         if (!el) return false;
         try {
+            if (!(el.offsetWidth > 0) || !(el.offsetHeight > 0)) return false;
             var st = window.getComputedStyle(el);
-            return !!(st && st.display !== 'none' && st.visibility !== 'hidden' && st.opacity !== '0' && el.offsetWidth > 0 && el.offsetHeight > 0);
+            return !!(st && st.visibility !== 'hidden' && st.opacity !== '0');
         } catch (e) { return false; }
-    }
-    function getVisibleDirectOverlayBox(view, isMatch) {
-        var children = view.children || [];
-        for (var i = 0; i < children.length; i++) {
-            var el = children[i];
-            if (!isMatch(el) || !isVisibleOverlayElement(el)) continue;
-            return { left: el.offsetLeft, right: el.offsetLeft + el.offsetWidth };
-        }
-        return null;
     }
     function measureEpisodeLabelPosition(card) {
         var view = card && card.querySelector && card.querySelector('.card__view');
@@ -2406,21 +2213,51 @@
         }
         return { label: label, props: props };
     }
+    /* perf: single pass over view.children collecting every box a measure pass
+       needs. Each helper used to walk the children list on its own (2 walks for
+       the episode label, 2 more for the series status) and probe every candidate
+       with getComputedStyle. Same first-visible-match semantics, a quarter of
+       the work. */
+    function collectOverlayBoxes(view, ratingPos, wantYearBadge) {
+        var out = { quality: null, rating: null, year: null };
+        var children = view.children || [];
+        var ratingPosBottom = ratingPos === 'bottom';
+        for (var i = 0; i < children.length; i++) {
+            var el = children[i];
+            var cl = el && el.classList;
+            if (!cl) continue;
+            var isQuality = !out.quality && cl.contains('card__quality');
+            var isYear = !!wantYearBadge && !out.year && cl.contains('card__year-badge');
+            var isRating = false;
+            if (!out.rating && (cl.contains('card__vote--bottom') || ratingPosBottom)) {
+                isRating = cl.contains('card__vote-separate-wrap') || cl.contains('card__vote-line') ||
+                    (cl.contains('card__vote') && !cl.contains('card__vote-separate-wrap') && !cl.contains('card__vote-line'));
+            }
+            if (!isQuality && !isRating && !isYear) continue;
+            if (!isVisibleOverlayElement(el)) continue;
+            var box = { left: el.offsetLeft, right: el.offsetLeft + el.offsetWidth };
+            if (isQuality) out.quality = box;
+            else if (isRating) out.rating = box;
+            else if (isYear) out.year = box;
+        }
+        return out;
+    }
+    function centerBetween(view, leftBox, rightBox) {
+        var viewWidth = view.clientWidth || view.offsetWidth;
+        var leftEdge = leftBox ? leftBox.right : 0;
+        var rightEdge = rightBox ? rightBox.left : viewWidth;
+        if (rightEdge <= leftEdge) {
+            leftEdge = 0;
+            rightEdge = viewWidth;
+        }
+        return (leftEdge + rightEdge) / 2;
+    }
     function measureCenterBottom(view) {
         if (!view) return null;
         try {
-            var viewWidth = view.clientWidth || view.offsetWidth;
-            var qualityBox = getVisibleDirectOverlayBox(view, function (el) { return el.classList && el.classList.contains('card__quality'); });
-            var ratingBox = getVisibleDirectOverlayBox(view, function (el) {
-                return el.classList && (el.classList.contains('card__vote--bottom') || Lampa.Storage.get('rating_position', defStr('rating_position')) === 'bottom') && ((el.classList.contains('card__vote-separate-wrap') || el.classList.contains('card__vote-line') || (el.classList.contains('card__vote') && !el.classList.contains('card__vote-separate-wrap') && !el.classList.contains('card__vote-line'))));
-            });
-            var leftEdge = qualityBox ? qualityBox.right : 0;
-            var rightEdge = ratingBox ? ratingBox.left : viewWidth;
-            if (rightEdge <= leftEdge) {
-                leftEdge = 0;
-                rightEdge = viewWidth;
-            }
-            return (leftEdge + rightEdge) / 2;
+            var ratingPosSetting = sget('rating_position', defStr('rating_position'));
+            var boxes = collectOverlayBoxes(view, ratingPosSetting, false);
+            return centerBetween(view, boxes.quality, boxes.rating);
         } catch (e2) { return null; }
     }
     function applyEpisodeLabelStyles(measured) {
@@ -2450,7 +2287,7 @@
         markCardOverlayHost(card);
         var label = view.querySelector('.card__episode-label');
         if (!label) {
-            label = markOwned(document.createElement('div'));
+            label = document.createElement('div');
             label.className = 'card__episode-label';
             view.appendChild(label);
         }
@@ -2463,23 +2300,10 @@
     function measureSeriesStatusCenterBottom(view) {
         if (!view) return null;
         try {
-            var viewWidth = view.clientWidth || view.offsetWidth;
-            var qualityBox = getVisibleDirectOverlayBox(view, function (el) { return el.classList && el.classList.contains('card__quality'); });
-            var rightBox;
-            if (Lampa.Storage.get('rating_position', defStr('rating_position')) === 'top') {
-                rightBox = getVisibleDirectOverlayBox(view, function (el) { return el.classList && el.classList.contains('card__year-badge'); });
-            } else {
-                rightBox = getVisibleDirectOverlayBox(view, function (el) {
-                    return el.classList && (el.classList.contains('card__vote--bottom') || Lampa.Storage.get('rating_position', defStr('rating_position')) === 'bottom') && ((el.classList.contains('card__vote-separate-wrap') || el.classList.contains('card__vote-line') || (el.classList.contains('card__vote') && !el.classList.contains('card__vote-separate-wrap') && !el.classList.contains('card__vote-line'))));
-                });
-            }
-            var leftEdge = qualityBox ? qualityBox.right : 0;
-            var rightEdge = rightBox ? rightBox.left : viewWidth;
-            if (rightEdge <= leftEdge) {
-                leftEdge = 0;
-                rightEdge = viewWidth;
-            }
-            return (leftEdge + rightEdge) / 2;
+            var ratingPosSetting = sget('rating_position', defStr('rating_position'));
+            var topPos = ratingPosSetting === 'top';
+            var boxes = collectOverlayBoxes(view, ratingPosSetting, topPos);
+            return centerBetween(view, boxes.quality, topPos ? boxes.year : boxes.rating);
         } catch (e3) { return null; }
     }
     function positionCardSeriesStatus(view, label) {
@@ -2521,7 +2345,7 @@
         markCardOverlayHost(card);
         var label = view.querySelector('.card__series-status');
         if (!label) {
-            label = markOwned(document.createElement('div'));
+            label = document.createElement('div');
             label.className = 'card__series-status';
             view.appendChild(label);
         }
@@ -2697,11 +2521,11 @@
         'bottom-left': { bottom: '0', left: '0', borderRadius: '0 0.75em', textAlign: 'left' }
     };
     function getSeasonLabelPosition() {
-        var pos = Lampa.Storage.get('label_position', seasonInfoSettings.label_position || defStr('label_position'));
+        var pos = sget('label_position', seasonInfoSettings.label_position || defStr('label_position'));
         return SEASON_LABEL_POSITIONS[pos] ? pos : 'top-right';
     }
     function getSeasonInfoDetailsPosition() {
-        var pos = Lampa.Storage.get('seasons_info_details_position', seasonInfoSettings.details_position || defStr('seasons_info_details_position'));
+        var pos = sget('seasons_info_details_position', seasonInfoSettings.details_position || defStr('seasons_info_details_position'));
         return pos === 'under-type-label' ? 'under-type-label' : 'bottom';
     }
     function isEpisodeLabelUnderType() {
@@ -2756,8 +2580,11 @@
         var statusText = getStatusText(status);
         var txt = displaySeasons + ' ' + seasonsText + ' ' + displayEpisodes + ' ' + episodesText;
         if (seasonInfoSettings.seasons_info_mode === 'aired' && totalEpisodes > 0 && airedEpisodes < totalEpisodes && airedEpisodes > 0) txt = displaySeasons + ' ' + seasonsText + ' ' + airedEpisodes + ' ' + episodesText + ' из ' + totalEpisodes;
-        var info = $('<div class="season-info-label" data-card-overlay-owned="1"></div>').text(txt);
-        var statusLabel = $('<div class="full-start__status season-info-status co-own-status" data-card-overlay-owned="1"></div>').text(statusText);
+        var info = $('<div class="season-info-label"></div>').text(txt);
+        // Свой класс, чтобы отличать нашу плашку от родной ламповской:
+        // раньше обе висели с season-info-status, и очистка перед
+        // перерисовкой сносила заодно родную.
+        var statusLabel = $('<div class="full-start__status season-info-status co-own-status"></div>').text(statusText);
         var metaLine;
         var posKey = getSeasonLabelPosition();
         var pos = SEASON_LABEL_POSITIONS[posKey];
@@ -2773,9 +2600,16 @@
             }
             metaLine = ensureDetailMetaLine(render2);
             if (metaLine.length) {
+                // Сносим только свою плашку, родную не трогаем.
                 $(render2).find('.co-own-status').remove();
                 metaLine.find('.season-info-label').remove();
 
+                // Ищем родной статус ВЕЗДЕ, включая строку плашек.
+                //
+                // Тут и была причина двойного «Завершён»: перенос плашек во
+                // вторую строку успевал отработать раньше этого места, родной
+                // статус оказывался внутри meta-line, а он из поиска
+                // исключался. Мы решали, что статуса нет, и дорисовывали свой.
                 var nativeStatus = $(render2).find('.full-start__status').filter(function () {
                     var el = $(this);
                     if (el.hasClass('qualview-quality') || el.hasClass('co-own-status')) return false;
@@ -2784,6 +2618,8 @@
                 if (nativeStatus.length) nativeStatus.addClass('season-info-status');
                 else if (isMobilePortrait()) metaLine.append(statusLabel);
                 moveDetailMetaToSecondLine(render2);
+                // Сначала приводим текст к единому виду, потом убираем дубли:
+                // иначе «Завершено» и «Завершён» считаются разными плашками.
                 fixSeriesStatusText(render2);
                 dedupeDetailStatus(render2);
             }
@@ -2802,9 +2638,9 @@
         }
     }
 
-    function isColoredElementsOn() { return Config.get('colored_elements'); }
-    function getBadgeStyle() { return Lampa.Storage.get('badge_visual_style', defStr('badge_visual_style')) === 'rounded' ? 'rounded' : 'corner'; }
-    function getCornerShadow() { var v = Lampa.Storage.get('badge_corner_shadow', def('badge_corner_shadow')); return (v === true || v === 'true' || v === '1' || v === 1); }
+    function isColoredElementsOn() { return isTriggerOn('colored_elements', true); }
+    function getBadgeStyle() { return sget('badge_visual_style', defStr('badge_visual_style')) === 'rounded' ? 'rounded' : 'corner'; }
+    function getCornerShadow() { var v = sget('badge_corner_shadow', def('badge_corner_shadow')); return (v === true || v === 'true' || v === '1' || v === 1); }
     function applyBadgeStyle() { try { $('body').attr('data-badge-style', getBadgeStyle()); $('body').attr('data-badge-corner-shadow', getCornerShadow() ? 'on' : 'off'); } catch (e) { logErr(e); } }
     function colorizeSeriesStatus(render) {
         var map = { completed: ['завершён','завершен','ended'], canceled: ['отменён','отменен','canceled'], ongoing: ['онгоинг','выходит','в эфире','ongoing','returning series'], production: ['в производстве','production'], planned: ['запланирован','planned'], pilot: ['пилотный','pilot'], released: ['выпущен','вышел','released'], rumored: ['слухи','rumored'], post: ['скоро','post'] };
@@ -2816,7 +2652,9 @@
         var scope = render ? $(render) : $(document);
         scope.find('.full-start__status').each(function () { apply(this); });
     }
-
+    // Разные системы пишут один и тот же статус по-разному: «Завершено» и
+    // «Завершён», «Ended» и «Завершён». Для сравнения сводим к одному слову,
+    // иначе дубликат не распознается и на экране остаются обе плашки.
     var STATUS_SYNONYMS = [
         ['completed', ['завершен', 'завершено', 'ended', 'окончен', 'окончено']],
         ['canceled', ['отменен', 'отменено', 'canceled', 'cancelled']],
@@ -2839,6 +2677,9 @@
     }
 
     function dedupeDetailStatus(render) {
+        // Одинаковые плашки могут прийти из разных мест: своя, ламповская,
+        // чужого плагина. Оставляем первую, остальные с тем же текстом убираем.
+        // Своя копия уходит первой: родную оставлять правильнее.
         var scope = render ? $(render) : $(document);
         var seen = {};
         var nodes = scope.find('.full-start-new__rate-line .full-start__status, .full-start-new__meta-line .full-start__status').toArray();
@@ -2912,7 +2753,7 @@
             ".comodal__action--close.focus{border-color:#fff!important}\n" +
             ".comodal__note{text-align:center;opacity:.85;font-size:.85em;line-height:1.35;padding:.1em .4em}\n" +
             ".comodal__link{color:#8ab4ff!important;text-decoration:underline!important}\n";
-        var s = markOwned(document.createElement('style')); s.id = STYLE_ID + '-modal'; s.type = 'text/css'; s.appendChild(document.createTextNode(css)); document.head.appendChild(s);
+        var s = document.createElement('style'); s.type = 'text/css'; s.appendChild(document.createTextNode(css)); document.head.appendChild(s);
     }
     function openRatingSettingsModal() {
         var $ = typeof window.$ !== 'undefined' ? window.$ : (typeof window.jQuery !== 'undefined' ? window.jQuery : null);
@@ -3014,7 +2855,7 @@
             modal.append($('<div class="comodal__section">API</div>'));
             modal.append($('<div class="comodal__note">API-ключ можно получить на сайте</div>'));
             modal.append($('<div class="comodal__note"><a class="comodal__link" href="https://kinopoiskapiunofficial.tech/" target="_blank" rel="noopener noreferrer">kinopoiskapiunofficial.tech</a></div>'));
-            function kpApiKeyRowText() { var k = String(Lampa.Storage.get('rating_kp_api_key', '') || Lampa.Storage.get('source_api_key', '') || '').trim(); return k ? 'указан: ••••••••' : 'не задан'; }
+            function kpApiKeyRowText() { var k = String(Lampa.Storage.get('rating_kp_api_key', '') || Lampa.Storage.get('source_api_key', '') || '').trim(); if (!k) return 'не задан'; if (k.length <= 10) return 'указан: ' + k; return 'указан: ' + k.slice(0, 4) + '...' + k.slice(-4); }
             var rowKpKey = makeRow('API-ключ КиноПоиск', kpApiKeyRowText(), function (rowEl, valEl) {
                 if (typeof Lampa.Input !== 'undefined' && typeof Lampa.Input.edit === 'function') {
                     closeModalSafe();
@@ -3090,10 +2931,6 @@
         }, 0);
     }
     function migrateStorageFormat() {
-        if (Lampa.Storage.get('card_overlay_debug', undefined) !== undefined) {
-            if (typeof Lampa.Storage.remove === 'function') Lampa.Storage.remove('card_overlay_debug');
-            else Lampa.Storage.set('card_overlay_debug', null);
-        }
         var storedVersion = String(Lampa.Storage.get('card_overlay_cache_version', '0'));
         if (storedVersion !== CARD_OVERLAY_CACHE_VERSION) {
             clearRatingCaches(true);
@@ -3286,12 +3123,13 @@
         });
 
         Lampa.SettingsApi.addParam({
-            component: 'card_overlay', param: { name: 'quality_external_lookup', type: 'trigger', default: DEFAULTS.quality_external_lookup },
-            field: { name: 'Внешний поиск качества', description: 'Разрешить сетевые запросы определения качества (по умолчанию включено)' }, onChange: function () { clearQualityCache(); refreshAllQualityLabels(); }
-        });
-        Lampa.SettingsApi.addParam({
-            component: 'card_overlay', param: { name: 'quality_send_install_uid', type: 'trigger', default: DEFAULTS.quality_send_install_uid },
-            field: { name: 'Передавать install UID', description: 'Разрешить передачу идентификатора установки (по умолчанию включено)' }, onChange: function () { clearQualityCache(); refreshAllQualityLabels(); }
+            component: 'card_overlay',
+            param: { name: 'card_overlay_debug', type: 'trigger', default: false },
+            field: { name: 'Режим отладки', description: 'Выводить ошибки плагина в консоль' },
+            onChange: function (v) {
+                DEBUG = isTruthy(v);
+                updateSettingsKeepFocus('card_overlay_debug');
+            }
         });
 
         function moveAfterInterface() {
@@ -3461,18 +3299,15 @@
     function initPlugin() {
         if (window.__card_overlay_initialized__) return;
         window.__card_overlay_initialized__ = true;
-        _activeGeneration = ++_lifecycleGeneration;
+        try { console.log('[card_overlay] v' + PLUGIN_VERSION + ' active'); } catch (e) { logErr(e); }
         safe(applyDefaults, 'applyDefaults');
-        Config.refresh();
-        Telemetry.record('lifecycle', 'init', { active: 1 });
+        bindSettingsMemo();
 
-        if (document.body && document.body.setAttribute) document.body.setAttribute(ROOT_ATTR, PLUGIN_VERSION);
-        var existing = document.getElementById(STYLE_ID) || document.getElementById('card-overlay-style');
+        var existing = document.getElementById('card-overlay-style');
         if (existing && existing.parentNode) existing.parentNode.removeChild(existing);
 
-        var style = markOwned(document.createElement('style'));
-        style.id = STYLE_ID;
-        style.setAttribute('data-card-overlay-style-version', PLUGIN_VERSION);
+        var style = document.createElement('style');
+        style.id = 'card-overlay-style';
         style.type = 'text/css';
         var detailTmdbSvgCss = encodeURIComponent(DETAIL_TMDB_SVG).replace(/'/g, '%27').replace(/"/g, '%22');
         var detailImdbSvgCss = encodeURIComponent(DETAIL_IMDB_SVG).replace(/'/g, '%27').replace(/"/g, '%22');
@@ -3583,19 +3418,19 @@
         setupCardListener();
         startCardWatch();
 
-        safe(function () { followLifecycle(Lampa.Listener, 'activity', onActivityEvent, 'activity'); }, 'activity listener');
+        safe(function () { Lampa.Listener.follow('activity', onActivityEvent); }, 'activity listener');
 
-        safe(function () { followLifecycle(Lampa.Listener, 'line', onLineEvent, 'line'); }, 'line listener');
+        safe(function () { Lampa.Listener.follow('line', onLineEvent); }, 'line listener');
 
         safe(function () {
             if (Lampa.Select && Lampa.Select.listener) {
-                followLifecycle(Lampa.Select.listener, 'fullshow', onSelectShown, 'select fullshow');
-                followLifecycle(Lampa.Select.listener, 'toggle', onSelectShown, 'select toggle');
+                Lampa.Select.listener.follow('fullshow', onSelectShown);
+                Lampa.Select.listener.follow('toggle', onSelectShown);
             }
         }, 'select listener');
 
         safe(function () {
-            if (Lampa.Settings && Lampa.Settings.listener) followLifecycle(Lampa.Settings.listener, 'open', onSettingsOpen, 'settings open');
+            if (Lampa.Settings && Lampa.Settings.listener) Lampa.Settings.listener.follow('open', onSettingsOpen);
         }, 'settings listener');
 
         scheduleVisibleRatingsUpdate(120);
@@ -3607,6 +3442,7 @@
         on(document, 'touchend', function () { later(scanActiveNew, 200, 'scan-touch'); }, { passive: true });
 
         on(window, 'keydown', function (e) {
+            invalidateBlockedCache();
             if (isCardUpdatesBlocked()) return;
             later(scanActiveNew, 200, 'scan-key');
             var code = e && (e.code || e.key);
@@ -3628,7 +3464,7 @@
             if (!document.hidden) { scheduleVisibleRatingsUpdate(0); repositionDetailMeta(); }
         });
 
-        followLifecycle(Lampa.Listener, 'card', function (event) {
+        Lampa.Listener.follow('card', function (event) {
             if (event.type === 'build' && event.object.card) {
                 var data = event.object.card.card_data;
                 if (data && data.id) {
@@ -3641,7 +3477,7 @@
             }
         });
 
-        followLifecycle(Lampa.Listener, 'full', function (event) {
+        Lampa.Listener.follow('full', function (event) {
             if (event.type === 'complite') {
                 handleSeasonInfoFull(event);
                 applyPlayerReactions();
@@ -3668,9 +3504,8 @@
                         var kpVal = parseFloat(kpBlock.find('div').first().text().trim()) || 0;
                         var imdbVal = parseFloat(imdbBlock.find('div').first().text().trim()) || 0;
                         if (kpVal > 0 || imdbVal > 0) {
-                            var detailKpKey = canonicalMediaType({ method: event.object.method }, event.object.method) + ':' + event.object.id;
-                            var existing = ratingCache.get('kp_rating', detailKpKey) || {};
-                            ratingCache.set('kp_rating', detailKpKey, { kp: kpVal > 0 ? kpVal : (existing.kp || 0), imdb: imdbVal > 0 ? imdbVal : (existing.imdb || 0), timestamp: Date.now() });
+                            var existing = ratingCache.get('kp_rating', event.object.id) || {};
+                            ratingCache.set('kp_rating', event.object.id, { kp: kpVal > 0 ? kpVal : (existing.kp || 0), imdb: imdbVal > 0 ? imdbVal : (existing.imdb || 0), timestamp: Date.now() });
                         }
                     }
                 }
@@ -3723,8 +3558,7 @@
 
         processAllTypeLabels();
 
-        followLifecycle(Lampa.Storage.listener, 'change', function (e) {
-            Config.refresh(e && e.name);
+        Lampa.Storage.listener.follow('change', function (e) {
             if (e.name === 'activity') applyPlayerReactions();
             if (e.name === 'mine_reactions') later(applyPlayerReactions, 200, 'reactions-mine');
             if (e.name === 'animated_reactions_in_player') refreshPlayerReactions();
@@ -3732,50 +3566,31 @@
     }
 
     function destroyPlugin() {
-        Telemetry.record('lifecycle', 'destroy', { active: 0 });
         offAll();
-        clearSubscriptions();
-        clearManagedTimeouts();
         clearAllTimers();
 
         if (_ratingUpdateTimer) { clearTimeout(_ratingUpdateTimer); _ratingUpdateTimer = 0; }
         if (_settingsRefreshTimer) { clearTimeout(_settingsRefreshTimer); _settingsRefreshTimer = 0; }
         if (_settingsArrangeTimer) { clearTimeout(_settingsArrangeTimer); _settingsArrangeTimer = 0; }
         safe(clearRequestQueues, 'queues');
+        safe(clearCardEntryQueue, 'card queue');
 
         safe(function () { if (_cardIntersectionObserver) _cardIntersectionObserver.disconnect(); }, 'intersectionObserver');
 
         _cardIntersectionObserver = null;
-        safe(function(){if(_domObserver)_domObserver.disconnect();},'mutationObserver'); _domObserver=null;
-        if(_dirtyRaf && typeof cancelAnimationFrame==='function')cancelAnimationFrame(_dirtyRaf); _dirtyRaf=0;
-        _observedCards=typeof Set!=='undefined'?new Set():[]; _visibleCards=typeof Set!=='undefined'?new Set():[]; _dirtyCards=typeof Set!=='undefined'?new Set():[];
-        safe(restoreOriginalReactions,'restoreReactions');
-        var owned=document.querySelectorAll?document.querySelectorAll('['+OWNED_ATTR+'="1"]'):[]; for(var oi=owned.length-1;oi>=0;oi--)removeNode(owned[oi]);
-        restoreNativeNodes();
-        if(document.body){document.body.removeAttribute(ROOT_ATTR);document.body.removeAttribute('data-detail-rating-icons');document.body.removeAttribute('data-lampa-icon-on');document.body.removeAttribute('data-lampa-rating-off');document.body.classList.remove('colored-elements-on');}
-        window.__card_overlay_modal_style__=false;
+        _observedCards = [];
+
+        var style = document.getElementById('card-overlay-style');
+        if (style && style.parentNode) style.parentNode.removeChild(style);
+
         window.__card_overlay_initialized__ = false;
     }
 
-    var Identity = { mediaKey: canonicalMediaKey, canonicalize: canonicalizeKey, mediaType: canonicalMediaType, mediaId: canonicalMediaId };
-    var CacheStore = { ratings: ratingCache, lookup: cacheLookup, ttl: cacheEntryTtl, prune: pruneExpiredCacheEntries, clear: clearRatingCaches };
-    var RatingsService = { updateCard: updateCardRating, getLampa: getLampaRating, getKinopoisk: getKinopoiskRating, getTmdb: getTMDBRating, refreshTmdb: refreshTMDBRating };
-    var QualityService = { processCards: processQualityForCards, loadDetail: loadQualityForDetail, clear: clearQualityCache };
-    var EpisodeService = { updateCard: updateTypeLabelEpisodeInfo, renderDetail: renderSeasonInfo, refreshDetail: refreshSeasonInfo };
-    var CardScheduler = { scheduleVisible: scheduleVisibleRatingsUpdate, queue: addToQueue, clear: clearRequestQueues };
-    var CardRenderer = { rating: updateCardRating, typeLabel: addTypeLabel, year: addYearBadge, refresh: refreshAllCardOverlays };
-    var DetailRenderer = { season: renderSeasonInfo, ratings: applyDetailRatingIcons, quality: loadQualityForDetail, reposition: moveDetailMetaToSecondLine };
-    var SettingsUI = { register: addSettings, refresh: updateSettingsKeepFocus };
-    var Lifecycle = { version: PLUGIN_VERSION, init: initPlugin, destroy: destroyPlugin };
-    window.__card_overlay_modules__ = { Config: Config, Identity: Identity, CacheStore: CacheStore, RequestManager: RequestManager, RatingsService: RatingsService, QualityService: QualityService, EpisodeService: EpisodeService, CardScheduler: CardScheduler, CardRenderer: CardRenderer, DetailRenderer: DetailRenderer, SettingsUI: SettingsUI, Lifecycle: Lifecycle, NetworkResult: { normalize: normalizeNetworkResult } };
-
-    window.__card_overlay_init__ = initPlugin;
     window.__card_overlay_destroy__ = destroyPlugin;
-    window.__card_overlay_lifecycle__ = { version: PLUGIN_VERSION, init: initPlugin, destroy: destroyPlugin };
 
     var manifest = {
         name: 'Интерфейс Мод',
-        version: '1.4.0',
+        version: PLUGIN_VERSION,
         description: 'Рейтинги, качество, лейблы типа на карточках'
     };
 
@@ -3786,4 +3601,3 @@
     if (window.appready) { initPlugin(); }
     else { Lampa.Listener.follow('app', function (e) { if (e.type === 'ready') initPlugin(); }); }
 })();
-
