@@ -12,6 +12,8 @@
   var LOGO_VISIBLE = 0.55;
   var LOGO_BRIGHT_SHARE = 0.12;
   var LOGO_TONE_KEY = 'nova_skin_logo_tone2';
+  var LOGO_MEM = {};
+  var LOGO_WARM = {};
   var LOGO_BLIND = {};
 
   var aside = false;
@@ -669,6 +671,21 @@
     return null;
   }
 
+  function scrollAim(node) {
+    try {
+      var box = $(node).closest('.scroll');
+      if (!box.length) return node;
+      var hero = $(node).closest('.nova-hero');
+      if (!hero.length) return node;
+      var high = hero[0].offsetHeight || 0;
+      if (!high) return node;
+      if (high > (box[0].offsetHeight || 0) - 4) return node;
+      return hero[0];
+    } catch (e) {
+      return node;
+    }
+  }
+
   function scrollSeen(node) {
     try {
       var box = $(node).closest('.scroll');
@@ -685,6 +702,7 @@
   function scrollTo(element) {
     var node = element instanceof jQuery ? element[0] : element;
     if (!node) return;
+    node = scrollAim(node);
     if (scrollSeen(node)) return;
     var scroll = activeScroll(node);
     if (scroll) {
@@ -1975,6 +1993,29 @@
     }, 60);
   }
 
+  function metaFlat(value) {
+    return String(value == null ? '' : value)
+      .replace(/\s+/g, ' ')
+      .replace(/[\s.,;:\u00b7\u25cf|-]+$/, '')
+      .trim()
+      .toLowerCase();
+  }
+
+  function metaTrim(list, head) {
+    var mark = metaFlat(head);
+    var seen = {};
+    var out = [];
+    (list || []).forEach(function (part) {
+      var flat = metaFlat(part);
+      if (!flat) return;
+      if (mark && flat === mark) return;
+      if (seen[flat]) return;
+      seen[flat] = true;
+      out.push(part);
+    });
+    return out;
+  }
+
   function buildCard(item, compact, grid) {
     var card = $('<div class="nova-card selector">' +
       '<div class="nova-card__thumb"><img alt=""><div class="nova-card__num"><span></span></div><div class="nova-card__line"></div></div>' +
@@ -1988,9 +2029,10 @@
     var thumb = card.find('.nova-card__thumb');
     var body = card.find('.nova-card__body');
 
-    card.find('.nova-card__title').text(item.title || movie.title || movie.name || '');
+    var head = item.title || movie.title || movie.name || '';
+    card.find('.nova-card__title').text(head);
 
-    var meta = item.meta.slice();
+    var meta = metaTrim(item.meta, head);
     if (item.percent > 0 && item.percent < SEEN_PERCENT && item.time) {
       var left = Math.round((100 - item.percent) / 100 * digitsTime(item.time));
       if (left > 0) meta.push(text('nova_left', 'nova_skin_left') + ' ' + runtimeText(left));
@@ -2284,19 +2326,57 @@
     step();
   }
 
-  function logoLoad(done) {
-    if (!logoOn() || !movie || !movie.id) return done('');
+  function logoKey(target) {
+    var card = target || movie;
+    return ((card && card.id) || 0) + ':' + logoLang();
+  }
 
-    var lang = logoLang();
-    var cache_key = movie.id + ':' + lang;
+  function logoWarm(path) {
+    var src = logoUrl(path);
+    if (!src || LOGO_WARM[src]) return src;
+    try {
+      var probe = new Image();
+      probe.src = src;
+      LOGO_WARM[src] = probe;
+    } catch (e) {}
+    return src;
+  }
+
+  function logoPeek(target) {
+    if (!logoOn()) return '';
+    var key = logoKey(target);
+    if (typeof LOGO_MEM[key] === 'string') return LOGO_MEM[key];
+    var box = cached('nova_skin_logo_cache', 500, {});
+    var mine = box && box[key];
+    if (typeof mine !== 'string') return '';
+    LOGO_MEM[key] = mine;
+    if (mine) logoWarm(mine);
+    return mine;
+  }
+
+  function logoLoad(done) {
+    return logoFetch(movie, done);
+  }
+
+  function logoFetch(target, done) {
+    var card = target || movie;
+    if (!logoOn() || !card || !card.id) return done('');
+
+    var cache_key = logoKey(card);
+    if (typeof LOGO_MEM[cache_key] === 'string') return done(LOGO_MEM[cache_key]);
+
     var all = cached('nova_skin_logo_cache', 500, {});
     var mine = all[cache_key];
-    if (typeof mine === 'string') return done(mine);
+    if (typeof mine === 'string') {
+      LOGO_MEM[cache_key] = mine;
+      if (mine) logoWarm(mine);
+      return done(mine);
+    }
 
-    var id = tmdbId();
+    var id = tmdbId(card);
     if (!id) return done('');
 
-    var kind = tmdbKind();
+    var kind = tmdbKind(card);
     var url = '';
     var langs = lang === 'en' ? 'en,null' : lang + ',en,null';
 
@@ -2314,10 +2394,12 @@
 
     var keep = function (path) {
       var box = cached('nova_skin_logo_cache', 500, {});
-      if (movie && movie.id && box && typeof box === 'object') {
+      LOGO_MEM[cache_key] = path || '';
+      if (box && typeof box === 'object') {
         box[cache_key] = path || '';
         save('nova_skin_logo_cache', box);
       }
+      if (path) logoWarm(path);
       done(path || '');
     };
 
@@ -2335,18 +2417,20 @@
     return 0;
   }
 
-  function tmdbId() {
-    if (!movie) return 0;
-    var source = String(movie.source || 'tmdb').toLowerCase();
-    var own = (source === 'cub' || source === 'tmdb') ? movie.id : 0;
-    return numId(own) || numId(movie.tmdb_id) || 0;
+  function tmdbId(target) {
+    var card = target || movie;
+    if (!card) return 0;
+    var source = String(card.source || 'tmdb').toLowerCase();
+    var own = (source === 'cub' || source === 'tmdb') ? card.id : 0;
+    return numId(own) || numId(card.tmdb_id) || 0;
   }
 
-  function tmdbKind() {
-    if (!movie) return 'movie';
-    var kind = String(movie.media_type || movie.type || '').toLowerCase();
+  function tmdbKind(target) {
+    var card = target || movie;
+    if (!card) return 'movie';
+    var kind = String(card.media_type || card.type || '').toLowerCase();
     if (kind === 'tv' || kind === 'movie') return kind;
-    if (movie.number_of_seasons || movie.first_air_date || movie.name) return 'tv';
+    if (card.number_of_seasons || card.first_air_date || card.name) return 'tv';
     return 'movie';
   }
 
@@ -2390,6 +2474,25 @@
     return slot.length ? slot : null;
   }
 
+  function logoDraw(box, path, name) {
+    if (!box) return;
+    var src = logoUrl(path);
+    if (!src) return box.removeClass('nova-hero__title--logo').text(name);
+
+    var picture = $('<img alt="">');
+    picture.on('error', function () {
+      box.removeClass('nova-hero__title--logo').text(name);
+    });
+    picture.attr('src', src);
+    box.addClass('nova-hero__title--logo').empty().append(picture);
+    logoTone(src, path, function (tone) {
+      if (!picture.parent().length) return;
+      if (tone === 'invert') picture.addClass('nova-logo--invert');
+      else if (tone === 'glow') picture.addClass('nova-logo--glow');
+      else if (tone === 'blind') picture.addClass('nova-logo--edge');
+    });
+  }
+
   function heroLogo() {
     var slot = logoSlot();
     if (!slot) return;
@@ -2397,27 +2500,13 @@
     var name = movie.title || movie.name || '';
     if (!logoOn()) return slot.removeClass('nova-hero__title--logo').text(name);
 
+    var ready = logoPeek(movie);
+    if (ready) return logoDraw(slot, ready, name);
+
     var want = movie.id;
-    logoLoad(function (path) {
+    logoFetch(movie, function (path) {
       if (!ui.hero || !movie || movie.id !== want) return;
-      var box = logoSlot();
-      if (!box) return;
-
-      var src = logoUrl(path);
-      if (!src) return box.removeClass('nova-hero__title--logo').text(name);
-
-      var picture = $('<img alt="">');
-      picture.on('error', function () {
-        box.removeClass('nova-hero__title--logo').text(name);
-      });
-      picture.attr('src', src);
-      box.addClass('nova-hero__title--logo').empty().append(picture);
-      logoTone(src, path, function (tone) {
-        if (!picture.parent().length) return;
-        if (tone === 'invert') picture.addClass('nova-logo--invert');
-        else if (tone === 'glow') picture.addClass('nova-logo--glow');
-        else if (tone === 'blind') picture.addClass('nova-logo--edge');
-      });
+      logoDraw(logoSlot(), path, name);
     });
   }
 
@@ -4157,8 +4246,22 @@
     } catch (e) {}
   }
 
+  function hookLogo() {
+    try {
+      Lampa.Listener.follow('full', function (e) {
+        if (!e || e.type !== 'complite' || !logoOn()) return;
+        var card = e.data && e.data.movie;
+        if (!card || !card.id) return;
+        logoFetch(card, function (path) {
+          if (path) logoWarm(path);
+        });
+      });
+    } catch (err) {}
+  }
+
   function start() {
     settings();
+    hookLogo();
     addCSS();
     applyFocusStyle();
     applyFullScreen();
