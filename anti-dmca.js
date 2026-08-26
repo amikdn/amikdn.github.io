@@ -64,8 +64,56 @@
         return null;
     }
 
+    var titleCache = {};
+
+    function cacheTitles(item) {
+        if (!item || typeof item !== 'object') return;
+        var id = item.tmdb_id || item.id;
+        if (!id) return;
+        var name = item.title || item.name;
+        var orig = item.original_title || item.original_name;
+        if (!name && !orig) return;
+        var slot = titleCache[id] || (titleCache[id] = {});
+        if (name) slot.name = name;
+        if (orig) slot.orig = orig;
+    }
+
+    function ensureTitle(item, id, type) {
+        if (!item || typeof item !== 'object') return item;
+
+        var known = titleCache[item.tmdb_id || item.id || id] || {};
+        var isTv = type === 'tv' || !!(item.first_air_date || item.original_name || item.number_of_seasons || item.name);
+
+        var name = item.title || item.name || known.name || known.orig || '';
+        var orig = item.original_title || item.original_name || known.orig || name;
+
+        item.title = name;
+        item.original_title = orig;
+
+        if (isTv) {
+            item.name = item.name || name;
+            item.original_name = item.original_name || orig;
+        }
+
+        cacheTitles(item);
+        return item;
+    }
+
+    function fallbackCard(id, type, base) {
+        var card = base && typeof base === 'object' && !Array.isArray(base) ? base : {};
+        clearBlockedFlag(card);
+        if (!card.id) card.id = parseInt(id, 10);
+        if (!card.source) card.source = 'tmdb';
+        if (!card.media_type) card.media_type = type;
+        if (typeof card.runtime === 'undefined') card.runtime = 0;
+        if (!card.genres) card.genres = [];
+        if (type === 'tv' && !card.name) card.name = '';
+        return ensureTitle(card, id, type);
+    }
+
     function rememberItem(item) {
         clearBlockedFlag(item);
+        ensureTitle(item);
         var type = detectType(item);
         var id = item && (item.tmdb_id || item.id);
         if (type && id) rememberType(id, type);
@@ -75,6 +123,13 @@
         var results = data && data.results;
         if (!Array.isArray(results)) return;
         results.forEach(rememberItem);
+    }
+
+    function ensureTitlesInResults(data) {
+        var results = data && data.results;
+        if (!Array.isArray(results)) return data;
+        results.forEach(ensureTitle);
+        return data;
     }
 
     function resolvedType(id, type) {
@@ -118,9 +173,7 @@
 
     function fetchCardOnce(id, type) {
         var lang = getLang();
-        var append = type === 'tv'
-            ? 'credits,external_ids,videos,recommendations,similar,content_ratings'
-            : 'credits,external_ids,videos,recommendations,similar';
+        var append = 'content_ratings,release_dates,external_ids,keywords,alternative_titles,credits,videos,recommendations,similar';
         var url = directTmdbUrl(type, id, '', 'api_key=' + getApiKey() + '&language=' + lang + '&append_to_response=' + append);
         if (nativeFetch) {
             return nativeFetch(url).then(function (response) {
@@ -160,6 +213,8 @@
             return fetchCardOnce(id, candidate).then(function (data) {
                 rememberType(id, candidate);
                 clearBlockedFlag(data);
+                ensureTitle(data, id, candidate);
+                if (!data.source) data.source = 'tmdb';
                 data.media_type = candidate;
                 cardCache[candidate + '_' + id] = Promise.resolve(data);
                 return data;
@@ -376,7 +431,10 @@
                 fetchCard(id, type, !isBlocked && xhr.status === 404).then(function (data) {
                     patchXhr(xhr, data, sub);
                     done();
-                }, function () { done(); });
+                }, function () {
+                    if (!sub) patchXhr(xhr, fallbackCard(id, type), null);
+                    done();
+                });
             }
             return true;
         }
@@ -423,7 +481,10 @@
                 fetchCard(id, type).then(function (data) {
                     patchXhr(xhr, data, sub);
                     doneErr();
-                }, function () { doneErr(); });
+                }, function () {
+                    if (!sub) patchXhr(xhr, fallbackCard(id, type), null);
+                    doneErr();
+                });
             }
         };
         xhr.onabort = function () {
@@ -459,7 +520,10 @@
                 fetchCard(id, type).then(function (data) {
                     patchXhr(xhr, data, sub);
                     doneAbort();
-                }, function () { doneAbort(); });
+                }, function () {
+                    if (!sub) patchXhr(xhr, fallbackCard(id, type), null);
+                    doneAbort();
+                });
             }
         };
 
@@ -499,7 +563,10 @@
                     return fetchCard(id, type, !isBlocked && response.status === 404).then(function (data) {
                         var out = sub && data[sub] !== undefined ? data[sub] : data;
                         return new Response(JSON.stringify(out), { status: 200, headers: { 'Content-Type': 'application/json' } });
-                    }).catch(function () { return response; });
+                    }).catch(function () {
+                        if (sub) return response;
+                        return new Response(JSON.stringify(fallbackCard(id, type)), { status: 200, headers: { 'Content-Type': 'application/json' } });
+                    });
                 }).catch(function () { return response; });
             }).catch(function (err) {
                 if (!cardPathRe.test(requestedUrl)) throw err;
@@ -524,6 +591,9 @@
                 return fetchCard(id, type).then(function (data) {
                     var out = sub && data[sub] !== undefined ? data[sub] : data;
                     return new Response(JSON.stringify(out), { status: 200, headers: { 'Content-Type': 'application/json' } });
+                }).catch(function () {
+                    if (sub) throw err;
+                    return new Response(JSON.stringify(fallbackCard(id, type)), { status: 200, headers: { 'Content-Type': 'application/json' } });
                 });
             });
         };
@@ -560,16 +630,23 @@
                         resume(sub && card[sub] !== undefined ? card[sub] : card);
                     }, function () {
                         clearBlockedFlag(data);
-                        resume(data);
+                        resume(sub ? data : fallbackCard(id, type, data));
                     });
                     return;
                 }
 
                 clearBlockedFlag(data);
+                ensureTitlesInResults(data);
                 rememberResults(data);
+
+                if (match && data && typeof data === 'object') {
+                    var subM2 = url.match(subPathRe);
+                    if (!subM2) ensureTitle(data, match[2], match[1]);
+                }
             });
             Lampa.Listener.follow('line', function (event) {
                 if (!event) return;
+                ensureTitlesInResults(event.data);
                 rememberResults(event.data);
                 if (Array.isArray(event.items)) event.items.forEach(rememberItem);
             });
