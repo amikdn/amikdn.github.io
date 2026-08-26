@@ -26,11 +26,9 @@
     var CACHE_MAX = 600;
     var CACHE_LIFE = 1000 * 60 * 60 * 24 * 30;
     var WAIT_LIMIT = 2500;
-
     var network = new Lampa.Reguest();
     var store = Lampa.Storage.cache(CACHE_NAME, CACHE_MAX, {});
     var pending = {};
-
     var style = document.createElement('style');
     style.innerHTML = '.logo--wait{visibility:hidden}.logo--img{margin-top:5px;max-height:125px}';
     document.head.appendChild(style);
