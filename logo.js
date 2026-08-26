@@ -31,6 +31,7 @@
     var store = Lampa.Storage.cache(CACHE_NAME, CACHE_MAX, {});
     var pending = {};
     var warmed = {};
+    var misses = {};
 
     var style = document.createElement('style');
     style.innerHTML = '.logo--wait{visibility:hidden}.logo--img{margin-top:5px;max-height:125px}';
@@ -128,6 +129,11 @@
 
         var k = key(id, type);
 
+        if (misses[k]) {
+            done('', true);
+            return;
+        }
+
         if (pending[k]) {
             pending[k].push(done);
             return;
@@ -139,6 +145,7 @@
             remember(id, type, path);
 
             if (path) preload(path, function () {});
+            else misses[k] = true;
 
             var waiting = pending[k] || [];
             delete pending[k];
@@ -173,29 +180,55 @@
         head.remove();
     }
 
-    function draw(render, path) {
-        var title = render.find('.full-start-new__title');
-        if (!title.length) return;
+    function apply(render, title, url) {
+        title.html('<img class="logo--img" src="' + url + '"/>');
+        title.removeClass('logo--wait');
+        render.find('.full-start-new__tagline').remove();
+        moveHead(render);
+    }
 
-        preload(path, function (url) {
-            title.html('<img class="logo--img" src="' + url + '"/>');
-            title.removeClass('logo--wait');
-            render.find('.full-start-new__tagline').remove();
-            moveHead(render);
+    function ready(id, type) {
+        var slot = cached(id, type);
+        if (!slot) return '';
+
+        var url = imageUrl(slot.p);
+        return warmed[url] ? url : '';
+    }
+
+    function resolveLogo(id, type, done) {
+        var slot = cached(id, type);
+
+        if (slot) {
+            preload(slot.p, done);
+            return;
+        }
+
+        load(id, type, function (path) {
+            if (!path) {
+                done('');
+                return;
+            }
+
+            preload(path, done);
         });
+    }
+
+    function cardType(movie, object) {
+        if (movie) return movie.name || movie.original_name || movie.first_air_date || movie.number_of_seasons ? 'tv' : 'movie';
+        if (object && object.method) return object.method === 'tv' ? 'tv' : 'movie';
+        if (object && object.card && object.card.original_name) return 'tv';
+        return 'movie';
     }
 
     Lampa.Listener.follow('activity', function (event) {
         if (!enabled()) return;
         if (!event || event.component !== 'full') return;
-        if (event.type !== 'init' && event.type !== 'create') return;
+        if (event.type !== 'init') return;
 
         var object = event.object;
         if (!object || !object.id) return;
 
-        var type = object.method === 'tv' || (object.card && object.card.original_name) ? 'tv' : 'movie';
-
-        load(object.id, type, function () {});
+        resolveLogo(object.id, cardType(object.card, object), function () {});
     });
 
     Lampa.Listener.follow('full', function (event) {
@@ -204,10 +237,10 @@
         var movie = event.data && event.data.movie;
         if (!movie || !movie.id) return;
 
-        var type = movie.name ? 'tv' : 'movie';
+        var type = cardType(movie, event.object);
 
         if (event.type === 'start') {
-            load(movie.id, type, function () {});
+            resolveLogo(movie.id, type, function () {});
             return;
         }
 
@@ -219,33 +252,33 @@
         var title = render.find('.full-start-new__title');
         if (!title.length) return;
 
-        var slot = cached(movie.id, type);
+        var instant = ready(movie.id, type);
 
-        if (slot) {
-            if (slot.p) draw(render, slot.p);
+        if (instant) {
+            apply(render, title, instant);
             return;
         }
 
         title.addClass('logo--wait');
 
-        var released = false;
+        var settled = false;
 
         function release() {
-            if (released) return;
-            released = true;
+            if (settled) return;
+            settled = true;
             title.removeClass('logo--wait');
         }
 
         setTimeout(release, WAIT_LIMIT);
 
-        load(movie.id, type, function (path) {
-            if (!path) {
+        resolveLogo(movie.id, type, function (url) {
+            if (!url) {
                 release();
                 return;
             }
 
-            released = true;
-            draw(render, path);
+            settled = true;
+            apply(render, title, url);
         });
     });
 
