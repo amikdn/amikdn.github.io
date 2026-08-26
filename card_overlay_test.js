@@ -1256,11 +1256,6 @@
     var BLOCKING_SELECTORS = ['.modal', '.settings-input__content', '.selectbox__content', '.menu-edit-list'];
     var _blockedCache = -1;
     var _blockedCacheAt = 0;
-    /* perf: this runs 4 document.querySelector calls and reads offsetParent,
-       which forces a synchronous layout. It used to be called once per
-       IntersectionObserver entry, so a fast scroll paid for it dozens of times
-       in a single callback. A 100ms memo keeps it responsive (a modal opening is
-       a user action, not a per-frame event) while collapsing the burst. */
     function isCardUpdatesBlocked() {
         var now = Date.now();
         if (_blockedCache !== -1 && (now - _blockedCacheAt) < 100) return _blockedCache === 1;
@@ -1280,11 +1275,6 @@
     function updateVisibleCards(limit) {
         if (document.hidden || isCardUpdatesBlocked()) return;
         var allCards = document.querySelectorAll('.card[data-rating-visible="1"]');
-        /* perf: when the observer already flagged the visible cards we can trust
-           that flag. Its 250px rootMargin covers the same band this loop checked
-           by hand, and getBoundingClientRect() inside a loop that also writes
-           styles forces a reflow per card. Only fall back to measuring when the
-           flag is missing (no IntersectionObserver, or a fresh render). */
         var trustVisibleFlag = allCards.length > 0;
         if (!allCards.length) allCards = document.querySelectorAll('.card');
         var maxCards = typeof limit === 'number' && limit > 0 ? limit : allCards.length;
@@ -1402,10 +1392,6 @@
     function startCardWatch() {
         if (_cardIntersectionObserver || typeof IntersectionObserver === 'undefined') return;
         _cardIntersectionObserver = new IntersectionObserver(function (entries) {
-            /* perf: only flip the visibility flag here, which is cheap. The
-               actual work is queued and drained on an animation frame with a
-               per-run cap, so a fast scroll that reports 30 entries at once no
-               longer turns into one long blocking task. */
             for (var i = 0; i < entries.length; i++) {
                 var target = entries[i].target;
                 if (!target) continue;
@@ -1519,7 +1505,6 @@
             _settingsArrangeTimer = setTimeout(function () { _settingsArrangeTimer = 0; if (_settingsArranger) _settingsArranger(); }, 100);
         }
     }
-
     function colorizeFullCardRatings(render) {
         if (!isColoredRatingsPosterOn()) return;
         var scope = $(render).length ? $(render) : $(document);
@@ -1614,7 +1599,6 @@
         refreshAllYearBadges();
         refreshSeasonInfo();
     }
-
     function convertQuality(resolution) {
         switch (resolution) {
             case 2160: return '4K';
@@ -1628,7 +1612,6 @@
     var forbiddenPatterns = forbiddenTerms.map(function (term) { return new RegExp('\\b' + term + '\\b', 'i'); });
     function detectLowQuality(title) { if (!title) return false; var l = title.toLowerCase(); return forbiddenPatterns.some(function (p) { return p.test(l); }); }
     function determineType(item) { var ct = item.media_type || item.type; if (ct === 'movie' || ct === 'tv') return ct; return item.name || item.original_name ? 'tv' : 'movie'; }
-
     function normalizeQuality(value) {
         var text = String(value || '').toLowerCase();
         if (!text) return null;
@@ -1639,7 +1622,6 @@
         if (/480|360|(^|[^a-zа-яё])sd([^a-zа-яё]|$)/.test(text)) return 'SD';
         return null;
     }
-
     function fetchAllohaQuality(normalizedItem, onComplete) {
         if (!Array.isArray(ALLOHA_API_SERVERS) || !ALLOHA_API_SERVERS.length) {
             onComplete(null);
@@ -1677,7 +1659,6 @@
             } catch (e) { onComplete(null); }
         }, function () { releaseRequest(allohaRequest); onComplete(null); });
     }
-
     function fetchJacRed(normalizedItem, itemId, onComplete) {
         var HIGHEST_RES = 2160, detectedForbidden = false;
         function containsText(input) { return /[a-zа-яё]/i.test(input || ''); }
@@ -1722,7 +1703,6 @@
             } catch (error) { onComplete(null); }
         }, function () { releaseRequest(jacRequest); onComplete(null); });
     }
-
     function fetchOptimalRelease(normalizedItem, itemId, onComplete) {
         var source = sget('quality_source', defStr('quality_source'));
         function completeWithFallback(result) {
@@ -1859,7 +1839,6 @@
     function removeQualityElements(viewRenderer) {
         if (viewRenderer) $('.full-start__status.qualview-quality', viewRenderer).remove();
     }
-
     function applyQualityToItem(itemElement, resQuality) {
         if (!document.body.contains(itemElement)) return;
         itemElement.setAttribute('data-quality-added', 'true');
@@ -1921,7 +1900,6 @@
         updateEpisodeLabelPositionsBatch(allCards);
         if (isQualityShowOn()) processQualityForCards(allCards);
     }
-
     function ensureDetailMetaLine(viewRenderer) {
         if (!viewRenderer) return $();
         var render = $(viewRenderer);
@@ -1980,16 +1958,12 @@
             $('.full-start-new__meta-line').each(function () {
                 var metaLine = $(this);
                 var rateLine = metaLine.prev('.full-start-new__rate-line');
-                // Лейбл о сериях в горизонтальном режиме возвращается на
-                // постер, в строку рейтингов его тащить не надо.
                 metaLine.find('.season-info-label').remove();
                 metaLine.children().each(function () { rateLine.append(this); });
                 metaLine.remove();
             });
             normalizeDetailRatingLine(document);
         }
-        // Поворот экрана меняет место лейбла: плашка в строке или метка на
-        // постере. Перерисовываем, иначе он останется там, где был.
         try { refreshSeasonInfo(); } catch (e) { logErr(e); }
     }
     function moveDetailMetaToSecondLine(viewRenderer) {
@@ -2002,10 +1976,6 @@
             if (el.hasClass('hide') || el.hasClass('nr')) return false;
             return $.trim(el.text()).length > 0;
         }).first();
-        // Исключаем только СВОЮ плашку. Родной статус помечается классом
-        // season-info-status при отрисовке информации о сериях, и если
-        // отсеивать по нему, при повторном вызове родной статус перестаёт
-        // переезжать во вторую строку и застревает среди рейтингов.
         var nativeStatus = render.find('.full-start__status').not('.qualview-quality').not('.co-own-status').filter(function () {
             var el = $(this);
             return !el.closest('.full-start-new__rate, .full-start__rate').length;
@@ -2026,7 +1996,6 @@
         dedupeDetailStatus(viewRenderer);
         normalizeDetailRatingLine(viewRenderer);
     }
-
     function colorizeDetailQuality() {
         $('.full-start__status.qualview-quality').each(function () {
             var el = $(this);
@@ -2037,7 +2006,6 @@
             else el.css({ backgroundColor: '', color: '' });
         });
     }
-
     function getTypeLabelEpisodeCacheKey(data) {
         return data && data.id ? 'tv_' + data.id : '';
     }
@@ -2213,11 +2181,6 @@
         }
         return { label: label, props: props };
     }
-    /* perf: single pass over view.children collecting every box a measure pass
-       needs. Each helper used to walk the children list on its own (2 walks for
-       the episode label, 2 more for the series status) and probe every candidate
-       with getComputedStyle. Same first-visible-match semantics, a quarter of
-       the work. */
     function collectOverlayBoxes(view, ratingPos, wantYearBadge) {
         var out = { quality: null, rating: null, year: null };
         var children = view.children || [];
@@ -2398,7 +2361,6 @@
         var bestStatus = metaStatus || (cached && cached.status) || '';
         var bestSeasons = metaSeasons || (cached && cached.seasons) || 0;
         var bestEpisodes = metaEpisodes || (cached && cached.episodes) || 0;
-
         if (fullInfoOn) {
             var statusText = getSeriesFullStatusText(bestStatus);
             if (bestText) applyEpisodeLabelText(card, bestText); else removeEpisodeLabel(card);
@@ -2420,7 +2382,6 @@
             });
             return;
         }
-
         removeCardSeriesStatus(card);
         var haveEnough = !!bestStatus || (!replaceOn && !!bestText);
         var display = deriveEpisodeLabelDisplay({ text: bestText, status: bestStatus });
@@ -2507,7 +2468,6 @@
         lbl.text(isTV ? 'Сериал' : 'Фильм');
         poster.css('position', 'relative').append(lbl);
     }
-
     var seasonInfoSettings = {
         seasons_info_mode: DEFAULTS.seasons_info_mode,
         label_position: DEFAULTS.label_position,
@@ -2581,9 +2541,6 @@
         var txt = displaySeasons + ' ' + seasonsText + ' ' + displayEpisodes + ' ' + episodesText;
         if (seasonInfoSettings.seasons_info_mode === 'aired' && totalEpisodes > 0 && airedEpisodes < totalEpisodes && airedEpisodes > 0) txt = displaySeasons + ' ' + seasonsText + ' ' + airedEpisodes + ' ' + episodesText + ' из ' + totalEpisodes;
         var info = $('<div class="season-info-label"></div>').text(txt);
-        // Свой класс, чтобы отличать нашу плашку от родной ламповской:
-        // раньше обе висели с season-info-status, и очистка перед
-        // перерисовкой сносила заодно родную.
         var statusLabel = $('<div class="full-start__status season-info-status co-own-status"></div>').text(statusText);
         var metaLine;
         var posKey = getSeasonLabelPosition();
@@ -2600,16 +2557,8 @@
             }
             metaLine = ensureDetailMetaLine(render2);
             if (metaLine.length) {
-                // Сносим только свою плашку, родную не трогаем.
                 $(render2).find('.co-own-status').remove();
                 metaLine.find('.season-info-label').remove();
-
-                // Ищем родной статус ВЕЗДЕ, включая строку плашек.
-                //
-                // Тут и была причина двойного «Завершён»: перенос плашек во
-                // вторую строку успевал отработать раньше этого места, родной
-                // статус оказывался внутри meta-line, а он из поиска
-                // исключался. Мы решали, что статуса нет, и дорисовывали свой.
                 var nativeStatus = $(render2).find('.full-start__status').filter(function () {
                     var el = $(this);
                     if (el.hasClass('qualview-quality') || el.hasClass('co-own-status')) return false;
@@ -2618,8 +2567,6 @@
                 if (nativeStatus.length) nativeStatus.addClass('season-info-status');
                 else if (isMobilePortrait()) metaLine.append(statusLabel);
                 moveDetailMetaToSecondLine(render2);
-                // Сначала приводим текст к единому виду, потом убираем дубли:
-                // иначе «Завершено» и «Завершён» считаются разными плашками.
                 fixSeriesStatusText(render2);
                 dedupeDetailStatus(render2);
             }
@@ -2637,7 +2584,6 @@
             renderSeasonInfo(data.data.movie, data.object);
         }
     }
-
     function isColoredElementsOn() { return isTriggerOn('colored_elements', true); }
     function getBadgeStyle() { return sget('badge_visual_style', defStr('badge_visual_style')) === 'rounded' ? 'rounded' : 'corner'; }
     function getCornerShadow() { var v = sget('badge_corner_shadow', def('badge_corner_shadow')); return (v === true || v === 'true' || v === '1' || v === 1); }
@@ -2652,9 +2598,6 @@
         var scope = render ? $(render) : $(document);
         scope.find('.full-start__status').each(function () { apply(this); });
     }
-    // Разные системы пишут один и тот же статус по-разному: «Завершено» и
-    // «Завершён», «Ended» и «Завершён». Для сравнения сводим к одному слову,
-    // иначе дубликат не распознается и на экране остаются обе плашки.
     var STATUS_SYNONYMS = [
         ['completed', ['завершен', 'завершено', 'ended', 'окончен', 'окончено']],
         ['canceled', ['отменен', 'отменено', 'canceled', 'cancelled']],
@@ -2663,7 +2606,6 @@
         ['planned', ['запланирован', 'запланировано', 'planned']],
         ['released', ['выпущен', 'вышел', 'released']]
     ];
-
     function statusKey(text) {
         var t = (text || '').trim().toLowerCase().replace(/\s+/g, ' ').replace(/ё/g, 'е');
         if (!t) return '';
@@ -2675,21 +2617,15 @@
         }
         return t;
     }
-
     function dedupeDetailStatus(render) {
-        // Одинаковые плашки могут прийти из разных мест: своя, ламповская,
-        // чужого плагина. Оставляем первую, остальные с тем же текстом убираем.
-        // Своя копия уходит первой: родную оставлять правильнее.
         var scope = render ? $(render) : $(document);
         var seen = {};
         var nodes = scope.find('.full-start-new__rate-line .full-start__status, .full-start-new__meta-line .full-start__status').toArray();
-
         nodes.sort(function (a, b) {
             var ao = $(a).hasClass('co-own-status') ? 1 : 0;
             var bo = $(b).hasClass('co-own-status') ? 1 : 0;
             return ao - bo;
         });
-
         nodes.forEach(function (node) {
             var el = $(node);
             if (el.hasClass('qualview-quality')) return;
@@ -2729,7 +2665,6 @@
         var scope = render ? $(render) : $(document);
         scope.find('.full-start__pg').each(function () { apply(this); });
     }
-
     function injectModalStyle() {
         if (window.__card_overlay_modal_style__) return;
         window.__card_overlay_modal_style__ = true;
@@ -2815,13 +2750,11 @@
                 btnPlus.on('hover:enter', function () { applyChange(step || 1); }); btnPlus.on('click', function (e) { if (e && e.preventDefault) e.preventDefault(); if (e && e.stopPropagation) e.stopPropagation(); blurAfterMouse(e); });
                 modal.append(row); return { row: row, updateVal: function (text) { valEl.text(text); } };
             }
-
             modal.append($('<div class="comodal__section">Общие настройки окон</div>'));
             var rowOpacity = addNumberRow('Прозрачность окон (0–100)', 'rating_window_opacity', parseFloat(defStr('rating_window_opacity')), 0, 100, 10, '%');
             var rowScale = addNumberRow('Масштаб окон', 'rating_scale', parseFloat(defStr('rating_scale')), 60, 150, 5, '%');
             var rowBadgeStyle = addCycleRow('Стиль окон', 'badge_visual_style', BADGE_STYLE_LABELS, DEFAULTS.badge_visual_style);
             var rowCornerShadow = addTriggerRow('Тень для «Уголки»', 'badge_corner_shadow', DEFAULTS.badge_corner_shadow);
-
             modal.append($('<div class="comodal__divider"></div>'));
             modal.append($('<div class="comodal__section">Рейтинги</div>'));
             var rowSource = addCycleRow('Источник рейтинга', 'rating_source', SOURCE_LABELS, DEFAULTS.rating_source);
@@ -2831,17 +2764,14 @@
             var rowColoredWin = addTriggerRow('Цветные окна (цифры белые)', 'rating_colored_windows', DEFAULTS.rating_colored_windows);
             var rowAnimated = addTriggerRow('Анимированные реакции на постерах', 'animated_reactions', DEFAULTS.animated_reactions);
             var rowLampaPosterIcon = addCycleRow('Иконка Lampa на постере', 'lampa_poster_icon_mode', LAMPA_POSTER_ICON_LABELS, DEFAULTS.lampa_poster_icon_mode);
-
             var rowShowTmdb = addTriggerRow('Показывать TMDB', 'rating_show_tmdb', DEFAULTS.rating_show_tmdb);
             var rowShowImdb = addTriggerRow('Показывать IMDB', 'rating_show_imdb', DEFAULTS.rating_show_imdb);
             var rowShowKp = addTriggerRow('Показывать КиноПоиск', 'rating_show_kp', DEFAULTS.rating_show_kp);
             var rowShowLampa = addTriggerRow('Показывать Lampa', 'rating_show_lampa', DEFAULTS.rating_show_lampa);
-
             modal.append($('<div class="comodal__divider"></div>'));
             modal.append($('<div class="comodal__section">Качество</div>'));
             var rowQualityShow = addTriggerRow('Показывать качество', 'quality_show', DEFAULTS.quality_show);
             var rowQualityColored = addTriggerRow('Цветные окна качества', 'quality_colored', DEFAULTS.quality_colored);
-
             modal.append($('<div class="comodal__divider"></div>'));
             modal.append($('<div class="comodal__section">Лейблы типа</div>'));
             var rowTypeLabelsShow = addTriggerRow('Показывать «Фильм»/«Сериал»', 'type_labels_show', DEFAULTS.type_labels_show);
@@ -2850,7 +2780,6 @@
             var rowSeasonInfoDetailsPosition = addCycleRow('Позиция сезонов и серий', 'seasons_info_details_position', SEASON_INFO_DETAILS_POSITION_LABELS, DEFAULTS.seasons_info_details_position);
             var rowSeasonCompletedReplace = addTriggerRow('«Завершён» вместо сезонов/серий', 'season_completed_replace', DEFAULTS.season_completed_replace);
             var rowCardSeriesFullInfo = addTriggerRow('Статус снизу + S:E под «Сериал»', CARD_SERIES_FULL_INFO_KEY, DEFAULTS[CARD_SERIES_FULL_INFO_KEY]);
-
             modal.append($('<div class="comodal__divider"></div>'));
             modal.append($('<div class="comodal__section">API</div>'));
             modal.append($('<div class="comodal__note">API-ключ можно получить на сайте</div>'));
@@ -2866,16 +2795,12 @@
             });
             rowKpKey.updateVal(kpApiKeyRowText());
             modal.append(rowKpKey.row);
-
             function resetAllToDefault() {
                 var key;
-
                 for (key in DEFAULTS) {
                     if (Object.prototype.hasOwnProperty.call(DEFAULTS, key)) Lampa.Storage.set(key, defStr(key));
                 }
-
                 Lampa.Storage.set('rating_kp_api_key', '');
-
                 function onOff(k) { return def(k) ? 'Вкл' : 'Выкл'; }
 
                 rowSource.updateVal(SOURCE_LABELS[def('rating_source')]);
@@ -2902,11 +2827,9 @@
                 rowSeasonInfoDetailsPosition.updateVal(SEASON_INFO_DETAILS_POSITION_LABELS[def('seasons_info_details_position')]);
                 rowSeasonCompletedReplace.updateVal(onOff('season_completed_replace'));
                 rowCardSeriesFullInfo.updateVal(onOff(CARD_SERIES_FULL_INFO_KEY));
-
                 seasonInfoSettings.seasons_info_mode = def('seasons_info_mode');
                 seasonInfoSettings.label_position = def('label_position');
                 seasonInfoSettings.details_position = def('seasons_info_details_position');
-
                 scheduleSettingsRefresh(50);
                 try { Lampa.Noty.show('Настройки сброшены'); } catch (e) { logErr(e); }
             }
@@ -2922,7 +2845,6 @@
             }
         }, 200);
     }
-
     function positionAfter(element, anchorName) {
         setTimeout(function () {
             var node = element && (element.nodeType === 1 ? element : (element[0] || (element.get && element.get(0))));
@@ -2946,7 +2868,6 @@
     function closeModalSafe() {
         try { if (typeof Lampa.Modal !== 'undefined' && Lampa.Modal.close) Lampa.Modal.close(); } catch (e) { logErr(e); }
     }
-
     function findSettingsScrollElement() {
         var selectors = ['.settings__content', '.settings__body', '.settings .scroll__content', '.settings'];
         for (var i = 0; i < selectors.length; i++) {
@@ -2991,7 +2912,6 @@
         }
         retry(restoreScroll, [0, 80, 180], 'settings-scroll');
     }
-
     function addSettings() {
         if (!Lampa.SettingsApi) return;
         migrateStorageFormat();
@@ -3041,7 +2961,6 @@
                 else { $('body').removeClass('colored-elements-on'); colorizeDetailQuality(); }
             }
         });
-
         Lampa.SettingsApi.addParam({
             component: 'card_overlay',
             param: { name: 'lampa_rating_show', type: 'trigger', default: DEFAULTS.lampa_rating_show },
@@ -3077,7 +2996,6 @@
                 } catch (e) { applyDetailRatingIcons(); }
             }
         });
-
         Lampa.SettingsApi.addParam({
             component: 'card_overlay',
             param: { name: 'lampa_rating_animated', type: 'trigger', default: DEFAULTS.lampa_rating_animated },
@@ -3092,7 +3010,6 @@
                 $('.rate--lampa .rate-icon').each(function () { $(this).empty().hide(); });
             }
         });
-
         Lampa.SettingsApi.addParam({
             component: 'card_overlay',
             param: { name: 'clear_ratings_cache', type: 'trigger', default: false },
@@ -3121,7 +3038,6 @@
                 refreshAllQualityLabels();
             }
         });
-
         Lampa.SettingsApi.addParam({
             component: 'card_overlay',
             param: { name: 'card_overlay_debug', type: 'trigger', default: false },
@@ -3131,7 +3047,6 @@
                 updateSettingsKeepFocus('card_overlay_debug');
             }
         });
-
         function moveAfterInterface() {
             var $interface = $('.settings-folder[data-component="interface"]');
             if (!$interface.length) $interface = $('.settings-folder').filter(function () { return $(this).find('.settings-folder__name').text().trim() === 'Интерфейс'; });
@@ -3192,7 +3107,6 @@
             }
         }
     }
-
     var PLAYER_REACTIONS_BASE_URL = 'https://amikdn.github.io/img';
     var PLAYER_REACTION_IMAGE_PATHS = {
         shit: PLAYER_REACTIONS_BASE_URL + '/reaction-shit.gif',
@@ -3209,7 +3123,6 @@
         { selector: '.reaction--nice', url: PLAYER_REACTION_IMAGE_PATHS.nice, type: 'nice' }
     ];
     var PLAYER_REACTION_TYPES = ['fire', 'nice', 'think', 'bore', 'shit'];
-
     function isAnimatedReactionsInPlayerEnabled() {
         return isTriggerOn('animated_reactions_in_player', def('animated_reactions_in_player'));
     }
@@ -3284,7 +3197,6 @@
             applyReactionsToSelectbox();
         } catch (err) { logErr(err); }
     }
-
     function refreshPlayerReactions() {
         if (!isAnimatedReactionsInPlayerEnabled()) {
             retry(function () {
@@ -3292,7 +3204,6 @@
                 applyReactionsToSelectbox();
             }, [0, 150, 400], 'reactions-restore');
         }
-
         later(applyPlayerReactions, 100, 'reactions-apply');
     }
 
@@ -3302,10 +3213,8 @@
         try { console.log('[card_overlay] v' + PLUGIN_VERSION + ' active'); } catch (e) { logErr(e); }
         safe(applyDefaults, 'applyDefaults');
         bindSettingsMemo();
-
         var existing = document.getElementById('card-overlay-style');
         if (existing && existing.parentNode) existing.parentNode.removeChild(existing);
-
         var style = document.createElement('style');
         style.id = 'card-overlay-style';
         style.type = 'text/css';
@@ -3408,7 +3317,6 @@
             'body[data-badge-style="corner"][data-badge-corner-shadow="on"] .card__vote-separate-wrap{box-shadow:none!important}' +
             '.card .card__badge--next-episode,.card__badge--next-episode{display:none!important}';
         document.head.appendChild(style);
-
         applyRatingScale();
         applyBadgeStyle();
         if (isTriggerOn('lampa_rating_icon', true)) $('body').attr('data-lampa-icon-on', '1'); else $('body').removeAttr('data-lampa-icon-on');
@@ -3417,11 +3325,9 @@
         addSettings();
         setupCardListener();
         startCardWatch();
-
         safe(function () { Lampa.Listener.follow('activity', onActivityEvent); }, 'activity listener');
 
         safe(function () { Lampa.Listener.follow('line', onLineEvent); }, 'line listener');
-
         safe(function () {
             if (Lampa.Select && Lampa.Select.listener) {
                 Lampa.Select.listener.follow('fullshow', onSelectShown);
@@ -3436,11 +3342,8 @@
         scheduleVisibleRatingsUpdate(120);
         later(function () { scheduleVisibleRatingsUpdate(250); }, 250, 'boot-250');
         later(function () { scheduleVisibleRatingsUpdate(600); }, 600, 'boot-600');
-
         on(window, 'scroll', function () { scheduleVisibleRatingsUpdate(120); later(scanActiveNew, 120, 'scan-scroll'); }, { passive: true });
-
         on(document, 'touchend', function () { later(scanActiveNew, 200, 'scan-touch'); }, { passive: true });
-
         on(window, 'keydown', function (e) {
             invalidateBlockedCache();
             if (isCardUpdatesBlocked()) return;
@@ -3448,14 +3351,12 @@
             var code = e && (e.code || e.key);
             if (code === 'PageUp' || code === 'PageDown') scheduleVisibleRatingsUpdate(120);
         }, { passive: true });
-
         on(window, 'resize', function () {
             later(function () {
                 _posterRadiusGen++;
                 requestAnimationFrame(function () { scheduleVisibleRatingsUpdate(0); repositionDetailMeta(); });
             }, 150, 'resize');
         }, { passive: true });
-
         on(window, 'orientationchange', function () {
             later(repositionDetailMeta, 150, 'orientation');
         }, { passive: true });
@@ -3463,7 +3364,6 @@
         on(document, 'visibilitychange', function () {
             if (!document.hidden) { scheduleVisibleRatingsUpdate(0); repositionDetailMeta(); }
         });
-
         Lampa.Listener.follow('card', function (event) {
             if (event.type === 'build' && event.object.card) {
                 var data = event.object.card.card_data;
@@ -3476,7 +3376,6 @@
                 }
             }
         });
-
         Lampa.Listener.follow('full', function (event) {
             if (event.type === 'complite') {
                 handleSeasonInfoFull(event);
@@ -3548,23 +3447,18 @@
                 colorizeAgeRating(render);
             }
         });
-
         seasonInfoSettings.seasons_info_mode = Lampa.Storage.get('seasons_info_mode', defStr('seasons_info_mode'));
         seasonInfoSettings.label_position = Lampa.Storage.get('label_position', defStr('label_position'));
         seasonInfoSettings.details_position = Lampa.Storage.get('seasons_info_details_position', defStr('seasons_info_details_position'));
-
         if (isColoredElementsOn()) { $('body').addClass('colored-elements-on'); colorizeSeriesStatus(); colorizeAgeRating(); colorizeDetailQuality(); }
         else { $('body').removeClass('colored-elements-on'); }
-
         processAllTypeLabels();
-
         Lampa.Storage.listener.follow('change', function (e) {
             if (e.name === 'activity') applyPlayerReactions();
             if (e.name === 'mine_reactions') later(applyPlayerReactions, 200, 'reactions-mine');
             if (e.name === 'animated_reactions_in_player') refreshPlayerReactions();
         });
     }
-
     function destroyPlugin() {
         offAll();
         clearAllTimers();
@@ -3574,15 +3468,12 @@
         if (_settingsArrangeTimer) { clearTimeout(_settingsArrangeTimer); _settingsArrangeTimer = 0; }
         safe(clearRequestQueues, 'queues');
         safe(clearCardEntryQueue, 'card queue');
-
         safe(function () { if (_cardIntersectionObserver) _cardIntersectionObserver.disconnect(); }, 'intersectionObserver');
-
         _cardIntersectionObserver = null;
         _observedCards = [];
 
         var style = document.getElementById('card-overlay-style');
         if (style && style.parentNode) style.parentNode.removeChild(style);
-
         window.__card_overlay_initialized__ = false;
     }
 
@@ -3597,7 +3488,6 @@
     if (Array.isArray(Lampa.Manifest.plugins)) Lampa.Manifest.plugins.push(manifest);
     else if (Lampa.Manifest.plugins) Lampa.Manifest.plugins = [Lampa.Manifest.plugins, manifest];
     else Lampa.Manifest.plugins = manifest;
-
     if (window.appready) { initPlugin(); }
     else { Lampa.Listener.follow('app', function (e) { if (e.type === 'ready') initPlugin(); }); }
 })();
