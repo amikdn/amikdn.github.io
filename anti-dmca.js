@@ -1,6 +1,123 @@
 (function () {
     'use strict';
 
+    var glob = typeof window !== 'undefined' ? window : this;
+
+    if (typeof Object.values !== 'function') {
+        Object.values = function (obj) {
+            var out = [];
+            if (obj == null) return out;
+            var target = typeof obj === 'object' || typeof obj === 'function' ? obj : Object(obj);
+            for (var key in target) {
+                if (Object.prototype.hasOwnProperty.call(target, key)) out.push(target[key]);
+            }
+            return out;
+        };
+    }
+
+    if (typeof glob.Map !== 'function') {
+        var MapShim = function (entries) {
+            this._keys = [];
+            this._values = [];
+            this._index = {};
+            this.size = 0;
+
+            if (entries && entries.length) {
+                for (var i = 0; i < entries.length; i++) {
+                    if (entries[i]) this.set(entries[i][0], entries[i][1]);
+                }
+            }
+        };
+
+        MapShim.prototype._token = function (key) {
+            var t = typeof key;
+            if (t === 'string') return 's' + key;
+            if (t === 'number') return 'n' + key;
+            if (t === 'boolean') return 'b' + key;
+            if (key === null) return 'z';
+            if (key === undefined) return 'u';
+            return null;
+        };
+
+        MapShim.prototype._at = function (key) {
+            var token = this._token(key);
+            if (token !== null) {
+                var found = this._index[token];
+                return found === undefined ? -1 : found;
+            }
+            for (var i = 0; i < this._keys.length; i++) {
+                if (this._keys[i] === key) return i;
+            }
+            return -1;
+        };
+
+        MapShim.prototype.get = function (key) {
+            var at = this._at(key);
+            return at === -1 ? undefined : this._values[at];
+        };
+
+        MapShim.prototype.has = function (key) {
+            return this._at(key) !== -1;
+        };
+
+        MapShim.prototype.set = function (key, value) {
+            var at = this._at(key);
+            if (at === -1) {
+                this._keys.push(key);
+                this._values.push(value);
+                var token = this._token(key);
+                if (token !== null) this._index[token] = this._keys.length - 1;
+                this.size = this._keys.length;
+            } else {
+                this._values[at] = value;
+            }
+            return this;
+        };
+
+        MapShim.prototype['delete'] = function (key) {
+            var at = this._at(key);
+            if (at === -1) return false;
+            this._keys.splice(at, 1);
+            this._values.splice(at, 1);
+            this._index = {};
+            for (var i = 0; i < this._keys.length; i++) {
+                var token = this._token(this._keys[i]);
+                if (token !== null) this._index[token] = i;
+            }
+            this.size = this._keys.length;
+            return true;
+        };
+
+        MapShim.prototype.clear = function () {
+            this._keys = [];
+            this._values = [];
+            this._index = {};
+            this.size = 0;
+        };
+
+        MapShim.prototype.forEach = function (fn, thisArg) {
+            for (var i = 0; i < this._keys.length; i++) {
+                fn.call(thisArg, this._values[i], this._keys[i], this);
+            }
+        };
+
+        MapShim.prototype.keys = function () {
+            return this._keys.slice();
+        };
+
+        MapShim.prototype.values = function () {
+            return this._values.slice();
+        };
+
+        MapShim.prototype.entries = function () {
+            var out = [];
+            for (var i = 0; i < this._keys.length; i++) out.push([this._keys[i], this._values[i]]);
+            return out;
+        };
+
+        glob.Map = MapShim;
+    }
+
     var TMDB_HOST = 'api.themoviedb.org';
     var API_KEY = '4ef0d7355d9ffb5151e987764708ce96';
 
@@ -625,6 +742,36 @@
         };
     }
 
+    function wrapSourcesFull() {
+        var sources = Lampa.Api && Lampa.Api.sources;
+        if (!sources) return;
+
+        var names = ['tmdb', 'cub'];
+
+        for (var i = 0; i < names.length; i++) {
+            (function (source) {
+                if (!source || typeof source.full !== 'function' || source.__admca_full) return;
+
+                var origFull = source.full;
+
+                source.full = function (params, oncomplite, onerror) {
+                    var wrapped = typeof oncomplite === 'function' ? function (data) {
+                        if (data && data.movie) {
+                            var movie = data.movie;
+                            var type = (params && params.method) || (movie.name || movie.first_air_date || movie.number_of_seasons ? 'tv' : 'movie');
+                            ensureFullCard(movie, movie.id || (params && params.id), type);
+                        }
+                        return oncomplite(data);
+                    } : oncomplite;
+
+                    return origFull.call(this, params, wrapped, onerror);
+                };
+
+                source.__admca_full = true;
+            })(sources[names[i]]);
+        }
+    }
+
     function start() {
         if (window.anti_dmca_plugin) return;
         if (typeof Lampa === 'undefined' || !window.lampa_settings) return;
@@ -677,14 +824,9 @@
                 if (Array.isArray(event.items)) event.items.forEach(rememberItem);
             });
 
-            Lampa.Listener.follow('full', function (event) {
-                if (!event || event.type !== 'start') return;
-                var movie = event.data && event.data.movie;
-                if (!movie) return;
-                var type = (movie.name || movie.first_air_date || movie.number_of_seasons) ? 'tv' : 'movie';
-                ensureFullCard(movie, movie.id, type);
-            });
         }
+
+        wrapSourcesFull();
 
         Lampa.Utils.dcma = function () { return undefined; };
         try {
