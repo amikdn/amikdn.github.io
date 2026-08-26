@@ -25,10 +25,13 @@
     var CACHE_NAME = 'logo_plugin_paths';
     var CACHE_MAX = 600;
     var CACHE_LIFE = 1000 * 60 * 60 * 24 * 30;
+    // var CACHE_LIFE_EMPTY = 1000 * 60 * 15;
     var WAIT_LIMIT = 2500;
+
     var network = new Lampa.Reguest();
     var store = Lampa.Storage.cache(CACHE_NAME, CACHE_MAX, {});
     var pending = {};
+
     var style = document.createElement('style');
     style.innerHTML = '.logo--wait{visibility:hidden}.logo--img{margin-top:5px;max-height:125px}';
     document.head.appendChild(style);
@@ -48,10 +51,14 @@
     function cached(id, type) {
         var slot = store[key(id, type)];
         if (!slot) return null;
-        if (Date.now() - (slot.t || 0) > CACHE_LIFE) {
+
+        var life = slot.p ? CACHE_LIFE : CACHE_LIFE_EMPTY;
+
+        if (Date.now() - (slot.t || 0) > life) {
             delete store[key(id, type)];
             return null;
         }
+
         return slot;
     }
 
