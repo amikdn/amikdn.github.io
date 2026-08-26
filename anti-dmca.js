@@ -99,16 +99,44 @@
         return item;
     }
 
+    var CARD_ARRAYS = [
+        'genres',
+        'production_companies',
+        'production_countries',
+        'spoken_languages',
+        'origin_country',
+        'alternative_titles',
+        'seasons'
+    ];
+
+    function ensureFullCard(card, id, type) {
+        if (!card || typeof card !== 'object' || Array.isArray(card)) return card;
+
+        clearBlockedFlag(card);
+        ensureTitle(card, id, type);
+
+        for (var i = 0; i < CARD_ARRAYS.length; i++) {
+            var f = CARD_ARRAYS[i];
+            if (!card[f] || !Array.isArray(card[f])) card[f] = [];
+        }
+
+        if (typeof card.overview !== 'string') card.overview = '';
+        if (typeof card.runtime !== 'number') card.runtime = 0;
+        if (typeof card.budget !== 'number') card.budget = 0;
+        if (typeof card.vote_average !== 'number') card.vote_average = 0;
+        if (typeof card.vote_count !== 'number') card.vote_count = 0;
+        if (card.status && typeof card.status !== 'string') card.status = '';
+        if (!card.source) card.source = 'tmdb';
+
+        return card;
+    }
+
     function fallbackCard(id, type, base) {
         var card = base && typeof base === 'object' && !Array.isArray(base) ? base : {};
-        clearBlockedFlag(card);
         if (!card.id) card.id = parseInt(id, 10);
-        if (!card.source) card.source = 'tmdb';
         if (!card.media_type) card.media_type = type;
-        if (typeof card.runtime === 'undefined') card.runtime = 0;
-        if (!card.genres) card.genres = [];
         if (type === 'tv' && !card.name) card.name = '';
-        return ensureTitle(card, id, type);
+        return ensureFullCard(card, id, type);
     }
 
     function rememberItem(item) {
@@ -212,9 +240,7 @@
         function load(candidate) {
             return fetchCardOnce(id, candidate).then(function (data) {
                 rememberType(id, candidate);
-                clearBlockedFlag(data);
-                ensureTitle(data, id, candidate);
-                if (!data.source) data.source = 'tmdb';
+                ensureFullCard(data, id, candidate);
                 data.media_type = candidate;
                 cardCache[candidate + '_' + id] = Promise.resolve(data);
                 return data;
@@ -641,7 +667,7 @@
 
                 if (match && data && typeof data === 'object') {
                     var subM2 = url.match(subPathRe);
-                    if (!subM2) ensureTitle(data, match[2], match[1]);
+                    if (!subM2) ensureFullCard(data, match[2], match[1]);
                 }
             });
             Lampa.Listener.follow('line', function (event) {
@@ -649,6 +675,14 @@
                 ensureTitlesInResults(event.data);
                 rememberResults(event.data);
                 if (Array.isArray(event.items)) event.items.forEach(rememberItem);
+            });
+
+            Lampa.Listener.follow('full', function (event) {
+                if (!event || event.type !== 'start') return;
+                var movie = event.data && event.data.movie;
+                if (!movie) return;
+                var type = (movie.name || movie.first_air_date || movie.number_of_seasons) ? 'tv' : 'movie';
+                ensureFullCard(movie, movie.id, type);
             });
         }
 
