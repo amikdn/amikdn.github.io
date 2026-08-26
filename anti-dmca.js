@@ -30,7 +30,21 @@
         return data;
     }
 
-    var ownXhrs = new WeakSet();
+    var ownXhrs = (function () {
+        if (typeof WeakSet === 'function') {
+            try { return new WeakSet(); } catch (e) {}
+        }
+        var FLAG = '__anti_dmca_own__';
+        return {
+            add: function (obj) {
+                if (obj) { try { obj[FLAG] = true; } catch (e) {} }
+                return this;
+            },
+            has: function (obj) {
+                return !!(obj && obj[FLAG] === true);
+            }
+        };
+    })();
 
     var blockedCards = {};
     var resolvedTypes = {};
