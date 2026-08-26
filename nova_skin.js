@@ -699,11 +699,19 @@
     }
   }
 
+  function gentleMark(span) {
+    gentle_until = Date.now() + (span || 400);
+  }
+
+  function gentleNow() {
+    return Date.now() < gentle_until;
+  }
+
   function scrollTo(element, gentle) {
     var node = element instanceof jQuery ? element[0] : element;
     if (!node) return;
     node = scrollAim(node);
-    if (gentle && scrollSeen(node)) return;
+    if ((gentle || gentleNow()) && scrollSeen(node)) return;
     var scroll = activeScroll(node);
     if (scroll) {
       try {
@@ -754,6 +762,7 @@
   var ui_lock_time = 0;
   var lock_timer = null;
   var focusing = false;
+  var gentle_until = 0;
   var ui_page = -1;
   var ui_page_focus = -1;
   var ui_all_sources = false;
@@ -1122,6 +1131,7 @@
 
   function switchStart(key) {
     if (!movie) return;
+    gentleMark(1200);
     pending = { id: movie.id, key: key || '', time: Date.now() };
     lockFocus(key);
     switchMark(true);
@@ -1684,6 +1694,7 @@
   }
 
   function listHold() {
+    gentleMark(1200);
     try {
       var high = ui.list && ui.list[0] ? ui.list[0].offsetHeight : 0;
       if (high > 0) ui.list.css('min-height', high + 'px');
@@ -1692,6 +1703,7 @@
   }
 
   function listFree() {
+    gentle_until = 0;
     try { if (ui.list) ui.list.css('min-height', ''); } catch (e) {}
   }
 
@@ -3078,6 +3090,7 @@
     if (!target) return false;
     var node = target instanceof jQuery ? target[0] : target;
     if (!node) return false;
+    if (gentle) gentleMark();
     last = node;
     ui_focus = node.getAttribute ? (node.getAttribute('data-nova-focus') || '') : '';
     scrollTo(node, gentle);
@@ -3094,6 +3107,7 @@
   }
 
   function restoreFocus(fallback) {
+    gentleMark();
     refreshCollection();
     if (lockActive()) {
       var locked = seek(ui_lock);
