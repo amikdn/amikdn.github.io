@@ -699,11 +699,11 @@
     }
   }
 
-  function scrollTo(element) {
+  function scrollTo(element, gentle) {
     var node = element instanceof jQuery ? element[0] : element;
     if (!node) return;
     node = scrollAim(node);
-    if (scrollSeen(node)) return;
+    if (gentle && scrollSeen(node)) return;
     var scroll = activeScroll(node);
     if (scroll) {
       try {
@@ -717,16 +717,17 @@
       var body = box.find('.scroll__body').first();
       if (!body.length) return;
       var top = node.getBoundingClientRect().top - box[0].getBoundingClientRect().top;
-      if (top > -1 && top < box[0].offsetHeight * 0.6) return;
+      var seat = box[0].offsetHeight || 0;
+      var lift = Math.round(Math.max(20, seat / 2 - (node.offsetHeight || 0) / 2));
       var style = body[0].style['-webkit-transform'] || body[0].style.transform || '';
       if (style.indexOf('translate') !== -1) {
         var pair = style.match(/-?[\d.]+px,\s*(-?[\d.]+)px/);
         var now = pair ? parseFloat(pair[1]) || 0 : 0;
-        var next = Math.min(0, Math.round(now - top + 20));
+        var next = Math.min(0, Math.round(now - top + lift));
         body[0].style['-webkit-transform'] = 'translate3d(0px, ' + next + 'px, 0px)';
         body[0].style.transform = 'translate3d(0px, ' + next + 'px, 0px)';
       } else {
-        box[0].scrollTop = Math.max(0, box[0].scrollTop + top - 20);
+        box[0].scrollTop = Math.max(0, box[0].scrollTop + top - lift);
       }
     } catch (e) {}
   }
@@ -1010,7 +1011,7 @@
           here.closest('.nova-toolbar,.nova-drop').length === 0) {
         return lockStopWatch(true);
       }
-      focusNode(wanted);
+      focusNode(wanted, true);
     }, 120);
   }
 
@@ -1656,7 +1657,7 @@
     refreshCollection();
 
     var keep = seek(ui_lock) || seek(ui_focus);
-    if (keep) focusNode(keep);
+    if (keep) focusNode(keep, true);
     if (lockActive()) lockWatch();
     attach();
     return true;
@@ -3073,13 +3074,13 @@
     else if (extra_menu && ui_open === extra_menu.key) extraRow();
   }
 
-  function focusNode(target) {
+  function focusNode(target, gentle) {
     if (!target) return false;
     var node = target instanceof jQuery ? target[0] : target;
     if (!node) return false;
     last = node;
     ui_focus = node.getAttribute ? (node.getAttribute('data-nova-focus') || '') : '';
-    scrollTo(node);
+    scrollTo(node, gentle);
     focusing = true;
     try { Lampa.Controller.collectionFocus(node, host); } catch (e) {}
     focusing = false;
@@ -3096,15 +3097,15 @@
     refreshCollection();
     if (lockActive()) {
       var locked = seek(ui_lock);
-      if (locked) return focusNode(locked);
+      if (locked) return focusNode(locked, true);
       if (focusChip(ui_lock)) return true;
     }
     var wanted = seek(ui_focus);
-    if (wanted) return focusNode(wanted);
+    if (wanted) return focusNode(wanted, true);
     if (preselectPage(ui_focus)) return true;
-    if (fallback) return focusNode(fallback);
+    if (fallback) return focusNode(fallback, true);
     var chip = ui.rows.find('.nova-chip').first();
-    if (chip.length) return focusNode(chip);
+    if (chip.length) return focusNode(chip, true);
     return false;
   }
 
@@ -3460,7 +3461,7 @@
       listHold().empty().append(skeleton(4));
       refreshCollection();
       var keep = (lockActive() && seek(ui_lock)) || seek(ui_focus);
-      if (keep) focusNode(keep);
+      if (keep) focusNode(keep, true);
       return;
     }
 
@@ -3634,7 +3635,7 @@
     if (!wanted) wanted = ui.rows.find('.nova-chip').first();
     if (wanted && wanted.length) {
       ui_focus = wanted.attr('data-nova-focus') || '';
-      focusNode(wanted);
+      focusNode(wanted, true);
     }
     return note;
   }
