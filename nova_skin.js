@@ -4240,7 +4240,9 @@
 
   var LOGO_CSS = ".nova-skin-root .nova-hero__title--logo>img.nova-logo--edge{-webkit-filter:drop-shadow(0 0 .02em rgba(255,255,255,.9)) drop-shadow(0 0 .06em rgba(255,255,255,.45)) drop-shadow(0 .04em .12em rgba(0,0,0,.5));filter:drop-shadow(0 0 .02em rgba(255,255,255,.9)) drop-shadow(0 0 .06em rgba(255,255,255,.45)) drop-shadow(0 .04em .12em rgba(0,0,0,.5))}";
 
-  var LOGO_HOLD = '.nova-skin-root .nova-hero__title{min-height:2.3em}'+
+  var LOGO_HOLD = '.nova-skin-root .nova-loading,.nova-skin-root .nova-note{width:100%;-webkit-box-flex:1;-webkit-flex:1 1 100%;-ms-flex:1 1 100%;flex:1 1 100%;min-width:0}'+
+    '.nova-skin-root .nova-skeleton{width:100%;-webkit-box-flex:1;-webkit-flex:1 1 100%;-ms-flex:1 1 100%;flex:1 1 100%;min-width:0}'+
+    '.nova-skin-root .nova-hero__title{min-height:2.3em}'+
     '.nova-skin-root .nova-hero__title--logo{display:-webkit-box;display:-webkit-flex;display:-ms-flexbox;display:flex;-webkit-box-align:end;-webkit-align-items:flex-end;-ms-flex-align:end;align-items:flex-end;min-height:2.3em}'+
     '.nova-skin-root .nova-hero__mark.nova-hero__title--logo{min-height:0}'+
     '@media screen and (max-width:580px){.nova-skin-root .nova-hero__title{min-height:2.1em}.nova-skin-root .nova-hero__title--logo{min-height:2.1em}}'+
