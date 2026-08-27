@@ -612,6 +612,7 @@
         if (typeof object.up === 'function') {
           var up = object.up;
           object.up = function () {
+            pressMark();
             if (novaUp()) return;
             return up.apply(this, arguments);
           };
@@ -619,6 +620,7 @@
         if (typeof object.down === 'function') {
           var down = object.down;
           object.down = function () {
+            pressMark();
             if (novaDown()) return;
             return down.apply(this, arguments);
           };
@@ -626,6 +628,7 @@
         if (typeof object.right === 'function') {
           var right = object.right;
           object.right = function () {
+            pressMark();
             if (novaRight()) return;
             return right.apply(this, arguments);
           };
@@ -633,6 +636,7 @@
         if (typeof object.left === 'function') {
           var left = object.left;
           object.left = function () {
+            pressMark();
             if (novaLeft()) return;
             return left.apply(this, arguments);
           };
@@ -849,8 +853,10 @@
   var ui_focus = '';
   var ui_lock = '';
   var ui_lock_time = 0;
+  var ui_lock_span = 8000;
   var lock_timer = null;
   var focusing = false;
+  var press_at = 0;
   var gentle_until = 0;
   var ui_page = -1;
   var ui_page_focus = -1;
@@ -1088,8 +1094,17 @@
     try { return Lampa.Utils.secondsToTime(seconds, true); } catch (e) { return ''; }
   }
 
-  function lockFocus(key) {
+  function pressMark() {
+    press_at = Date.now();
+  }
+
+  function pressNow() {
+    return press_at > 0 && Date.now() - press_at < 500;
+  }
+
+  function lockFocus(key, span) {
     ui_lock = key || '';
+    ui_lock_span = span || 8000;
     ui_lock_time = ui_lock ? Date.now() : 0;
     if (ui_lock) {
       ui_focus = ui_lock;
@@ -1101,6 +1116,7 @@
     if (lock_timer) return;
     lock_timer = setInterval(function () {
       if (!lockActive() || !inSkin()) return lockStopWatch();
+      if (pressNow()) return;
       var wanted = seek(ui_lock);
       if (!wanted || !wanted.length) return;
       if (wanted.hasClass('focus')) return;
@@ -1125,7 +1141,7 @@
 
   function lockActive() {
     if (!ui_lock) return false;
-    if (Date.now() - ui_lock_time > 8000) {
+    if (Date.now() - ui_lock_time > (ui_lock_span || 8000)) {
       lockRelease();
       return false;
     }
@@ -1148,10 +1164,10 @@
       scrollTo(e.target);
       if (lockActive() && key !== ui_lock) {
         var stolen = false;
-        if (!focusing && ui_open) {
+        if (!focusing && !pressNow() && ui_open) {
           try { stolen = $(e.target).closest('.nova-toolbar').length > 0; } catch (e2) { stolen = false; }
         }
-        if (heroKey(key) || stolen) {
+        if ((heroKey(key) && !pressNow()) || stolen) {
           if (focusing) return;
           var back = seek(ui_lock);
           if (back && back.length && back[0] !== e.target) return focusNode(back);
@@ -2795,7 +2811,7 @@
     if (opening && key === 'source') probeRun();
     else probeStop();
 
-    lockFocus(ui_focus);
+    lockFocus(ui_focus, opening ? 0 : 900);
 
     restoreFocus(false);
     contentEnable();
