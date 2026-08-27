@@ -675,11 +675,19 @@
     try {
       var box = $(node).closest('.scroll');
       if (!box.length) return node;
+      var seat = box[0].offsetHeight || 0;
+      var drop = $(node).closest('.nova-drop');
+      if (drop.length) {
+        var deep = drop[0].offsetHeight || 0;
+        if (!seat || !deep) return node;
+        if (deep > seat - 4) return node;
+        return drop[0];
+      }
       var hero = $(node).closest('.nova-hero');
       if (!hero.length) return node;
       var high = hero[0].offsetHeight || 0;
       if (!high) return node;
-      if (high > (box[0].offsetHeight || 0) - 4) return node;
+      if (high > seat - 4) return node;
       return hero[0];
     } catch (e) {
       return node;
@@ -2914,16 +2922,17 @@
       more.addClass('nova-chip--more');
       bind(more, function () {
         ui_all_sources = true;
-        if (hidden.length) ui_focus = focusKey(hidden[0]);
+        var want = hidden.length ? focusKey(hidden[0]) : '';
         buildRows();
-        if (!seek(ui_focus)) {
+        if (want && !seek(want)) want = '';
+        if (!want) {
           var seat = dropEntry();
-          if (seat) ui_focus = $(seat).attr('data-nova-focus') || ui_focus;
+          if (seat) want = $(seat).attr('data-nova-focus') || '';
         }
-        probeRun();
-        lockFocus(ui_focus);
+        if (want) lockFocus(want);
         restoreFocus(false);
         try { Lampa.Controller.enable('content'); } catch (e) {}
+        probeRun();
       });
       row.append(more);
     }
