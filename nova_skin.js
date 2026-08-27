@@ -3421,6 +3421,7 @@
     if (ui_open && dropFocused()) {
       var ahead = dropSide('right');
       if (ahead) return focusNode(ahead);
+      return true;
     }
     return toolbarFocus();
   }
@@ -3436,7 +3437,6 @@
       if (back) return focusNode(back);
       return true;
     }
-    if (toolbarFocused()) return true;
     return false;
   }
 
