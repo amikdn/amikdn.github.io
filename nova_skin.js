@@ -640,8 +640,10 @@
         if (typeof object.toggle === 'function') {
           var toggle = object.toggle;
           object.toggle = function () {
+            var frozen = (lockActive() || ui_open) ? scrollFreeze() : null;
             var result = toggle.apply(this, arguments);
             keepFocus();
+            scrollThaw(frozen);
             return result;
           };
         }
@@ -746,6 +748,32 @@
         box[0].scrollTop = Math.max(0, box[0].scrollTop + top - lift);
       }
     } catch (e) {}
+  }
+
+  function contentEnable() {
+    try {
+      var now = Lampa.Controller.enabled();
+      if (now && now.name === 'content') return;
+    } catch (e) {}
+    try { Lampa.Controller.enable('content'); } catch (e) {}
+  }
+
+  function scrollFreeze() {
+    if (!ui.root) return null;
+    try {
+      var body = ui.root.closest('.scroll').find('.scroll__body').first();
+      if (!body.length) return null;
+      body.addClass('notransition');
+      return body;
+    } catch (e) {}
+    return null;
+  }
+
+  function scrollThaw(body) {
+    if (!body) return;
+    setTimeout(function () {
+      try { body.removeClass('notransition'); } catch (e) {}
+    }, 0);
   }
 
   function dropRow() {
@@ -2770,7 +2798,7 @@
     lockFocus(ui_focus);
 
     restoreFocus(false);
-    try { Lampa.Controller.enable('content'); } catch (e) {}
+    contentEnable();
     if (opening) dropShowSoon();
   }
 
@@ -2880,7 +2908,7 @@
     buildRows();
     lockFocus(ui_focus);
     restoreFocus(false);
-    try { Lampa.Controller.enable('content'); } catch (e) {}
+    contentEnable();
     dropShowSoon();
   }
 
@@ -2986,7 +3014,7 @@
         }
         if (want) lockFocus(want);
         restoreFocus(false);
-        try { Lampa.Controller.enable('content'); } catch (e) {}
+        contentEnable();
         dropShowSoon();
         probeRun();
       });
