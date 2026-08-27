@@ -748,6 +748,59 @@
     } catch (e) {}
   }
 
+  function dropRow() {
+    if (!ui_open || !ui.rows || !ui.rows.length) return null;
+    var row = ui.rows.find('.nova-drop').first();
+    return row.length ? row : null;
+  }
+
+  function dropShow() {
+    var row = dropRow();
+    if (!row) return;
+    try {
+      var node = row[0];
+      var box = row.closest('.scroll');
+      if (!box.length) return;
+      var seat = box[0].offsetHeight || 0;
+      var deep = node.offsetHeight || 0;
+      if (!seat || !deep) return;
+      var top = node.getBoundingClientRect().top - box[0].getBoundingClientRect().top;
+      var fits = deep <= seat - 4;
+      if (fits) {
+        if (top > -1 && top + deep <= seat + 1) return;
+      } else {
+        if (top > -1 && top <= 24) return;
+        if (last && $.contains(node, last) && scrollSeen(last) &&
+            last.getBoundingClientRect().top > node.getBoundingClientRect().top + 4) return;
+      }
+      var scroll = activeScroll(node);
+      if (scroll) {
+        try {
+          scroll.update(row, fits);
+          return;
+        } catch (e) {}
+      }
+      var body = box.find('.scroll__body').first();
+      if (!body.length) return;
+      var lift = fits ? Math.round((seat - deep) / 2) : 4;
+      var style = body[0].style['-webkit-transform'] || body[0].style.transform || '';
+      if (style.indexOf('translate') !== -1) {
+        var pair = style.match(/-?[\d.]+px,\s*(-?[\d.]+)px/);
+        var now = pair ? parseFloat(pair[1]) || 0 : 0;
+        var next = Math.min(0, Math.round(now - top + lift));
+        body[0].style['-webkit-transform'] = 'translate3d(0px, ' + next + 'px, 0px)';
+        body[0].style.transform = 'translate3d(0px, ' + next + 'px, 0px)';
+      } else {
+        box[0].scrollTop = Math.max(0, box[0].scrollTop + top - lift);
+      }
+    } catch (e) {}
+  }
+
+  function dropShowSoon() {
+    setTimeout(dropShow, 0);
+    setTimeout(dropShow, 140);
+  }
+
   var ui = {};
   var root = null;
   var host = null;
@@ -2718,6 +2771,7 @@
 
     restoreFocus(false);
     try { Lampa.Controller.enable('content'); } catch (e) {}
+    if (opening) dropShowSoon();
   }
 
   function selectedIndex(group) {
@@ -2827,6 +2881,7 @@
     lockFocus(ui_focus);
     restoreFocus(false);
     try { Lampa.Controller.enable('content'); } catch (e) {}
+    dropShowSoon();
   }
 
   function extraRow() {
@@ -2932,6 +2987,7 @@
         if (want) lockFocus(want);
         restoreFocus(false);
         try { Lampa.Controller.enable('content'); } catch (e) {}
+        dropShowSoon();
         probeRun();
       });
       row.append(more);
