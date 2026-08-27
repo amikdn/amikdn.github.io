@@ -3217,7 +3217,7 @@
     if (gentle) gentleMark();
     last = node;
     ui_focus = node.getAttribute ? (node.getAttribute('data-nova-focus') || '') : '';
-    scrollTo(node, gentle);
+    scrollTo(node, gentle || chipSeat(node));
     focusing = true;
     try { Lampa.Controller.collectionFocus(node, host); } catch (e) {}
     focusing = false;
