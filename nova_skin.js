@@ -1058,7 +1058,11 @@
       last = e.target;
       scrollTo(e.target);
       if (lockActive() && key !== ui_lock) {
-        if (heroKey(key)) {
+        var stolen = false;
+        if (!focusing && ui_open) {
+          try { stolen = $(e.target).closest('.nova-toolbar').length > 0; } catch (e2) { stolen = false; }
+        }
+        if (heroKey(key) || stolen) {
           if (focusing) return;
           var back = seek(ui_lock);
           if (back && back.length && back[0] !== e.target) return focusNode(back);
@@ -2910,13 +2914,16 @@
       more.addClass('nova-chip--more');
       bind(more, function () {
         ui_all_sources = true;
-        var want = hidden.length ? focusKey(hidden[0]) : '';
+        if (hidden.length) ui_focus = focusKey(hidden[0]);
         buildRows();
-        if (want) lockFocus(want);
+        if (!seek(ui_focus)) {
+          var seat = dropEntry();
+          if (seat) ui_focus = $(seat).attr('data-nova-focus') || ui_focus;
+        }
+        probeRun();
+        lockFocus(ui_focus);
         restoreFocus(false);
         try { Lampa.Controller.enable('content'); } catch (e) {}
-        restoreFocus(false);
-        probeRun();
       });
       row.append(more);
     }
@@ -3118,6 +3125,10 @@
     if (wanted) return focusNode(wanted, true);
     if (preselectPage(ui_focus)) return true;
     if (fallback) return focusNode(fallback, true);
+    if (ui_open) {
+      var seat = dropEntry();
+      if (seat) return focusNode(seat, true);
+    }
     var chip = ui.rows.find('.nova-chip').first();
     if (chip.length) return focusNode(chip, true);
     return false;
@@ -3325,15 +3336,26 @@
     return entry ? focusNode(entry) : false;
   }
 
-  function dropUp() {
-    if (!dropFocused() || !ui_open) return false;
-    var above = rowStep('up');
-    if (above) return focusNode(above);
+  function dropOwner() {
+    if (!inSkin() || !ui_open) return null;
     var bar = ui.rows.find('.nova-toolbar');
     var chip = bar.find('[data-nova-focus="' + ui_open + '"]').first();
     if (!chip.length) chip = bar.find('.nova-chip--active').first();
     if (!chip.length) chip = bar.find('.nova-chip').first();
-    if (!chip.length) return false;
+    return chip.length ? chip : null;
+  }
+
+  function heroFocused() {
+    if (!inSkin() || !last) return false;
+    return !!(ui.hero_box && ui.hero_box.find(last).length);
+  }
+
+  function dropUp() {
+    if (!dropFocused() || !ui_open) return false;
+    var above = rowStep('up');
+    if (above) return focusNode(above);
+    var chip = dropOwner();
+    if (!chip) return false;
     return focusNode(chip);
   }
 
@@ -3361,7 +3383,13 @@
   function novaDown() {
     if (!inSkin()) return false;
     if (dropDown()) return true;
-    if (ui_open) return false;
+    if (ui_open) {
+      if (heroFocused()) {
+        var owner = dropOwner();
+        if (owner) return focusNode(owner);
+      }
+      return false;
+    }
     if (!toolbarFocused() || items.length < 2) return false;
     lockRelease();
     var target = pickResume(items);
