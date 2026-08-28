@@ -15,6 +15,7 @@
   var LOGO_MEM = {};
   var LOGO_CACHE_KEY = 'nova_skin_logo_cache2';
   var LOGO_RETRY = 6 * 60 * 60 * 1000;
+  var LEAVE_GRACE = 2500;
   var LOGO_WARM = {};
   var LOGO_BLIND = {};
 
@@ -869,6 +870,7 @@
 
   var pending = null;
   var switch_observer = null;
+  var leave_guard = null;
 
   function forget() {
     if (pendingLive() && ui.root) {
@@ -1807,9 +1809,21 @@
 
   function switchDone() {
     pending = null;
+    clearTimeout(leave_guard);
+    leave_guard = null;
     switchMark(false);
     switchUnwatch();
     inplaceStop();
+  }
+
+  function leaveGuard() {
+    clearTimeout(leave_guard);
+    leave_guard = setTimeout(function () {
+      leave_guard = null;
+      if (!pendingLive() || inSkin()) return;
+      switchDone();
+      detach();
+    }, LEAVE_GRACE);
   }
 
   function listHold() {
@@ -3265,6 +3279,7 @@
     if (!target) return false;
     var node = target instanceof jQuery ? target[0] : target;
     if (!node) return false;
+    if (!alive(node)) return false;
     if (gentle) gentleMark();
     last = node;
     ui_focus = node.getAttribute ? (node.getAttribute('data-nova-focus') || '') : '';
@@ -3326,12 +3341,27 @@
     return true;
   }
 
+  function alive(node) {
+    var elem = node instanceof jQuery ? node[0] : node;
+    if (!elem) return false;
+    try {
+      return !!(document.body && document.body.contains(elem));
+    } catch (e) {
+      return false;
+    }
+  }
+
   function refreshCollection() {
+    if (!host || !alive(host)) return;
     try { Lampa.Controller.collectionSet(host, false, true); } catch (e) {}
   }
 
   function inSkin() {
-    return !!(ui.root && ui.root.parent().length);
+    if (!ui.root || !ui.root[0] || !alive(ui.root[0])) return false;
+    if (!host || !alive(host) || !$.contains(host, ui.root[0])) return false;
+    var live = activeNode();
+    if (live && live !== ui.root[0] && !$.contains(live, ui.root[0])) return false;
+    return true;
   }
 
   function toolbarFocused() {
@@ -4516,6 +4546,7 @@
           attach();
           if (reattach()) return schedule();
           switchDone();
+          forget();
         }
         attach();
         draw();
@@ -4531,6 +4562,8 @@
           observer = null;
           observed = null;
           clearTimeout(timer);
+          lockStopWatch();
+          leaveGuard();
           return;
         }
         inplaceStop();
