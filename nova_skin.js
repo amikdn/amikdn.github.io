@@ -13,6 +13,8 @@
   var LOGO_BRIGHT_SHARE = 0.12;
   var LOGO_TONE_KEY = 'nova_skin_logo_tone2';
   var LOGO_MEM = {};
+  var LOGO_CACHE_KEY = 'nova_skin_logo_cache2';
+  var LOGO_RETRY = 6 * 60 * 60 * 1000;
   var LOGO_WARM = {};
   var LOGO_BLIND = {};
 
@@ -2472,20 +2474,73 @@
     return src;
   }
 
+  function logoEntry(key) {
+    var box = cached(LOGO_CACHE_KEY, 500, {});
+    var mine = box && box[key];
+    if (typeof mine === 'string') return mine ? { p: mine, t: 0 } : null;
+    if (mine && typeof mine === 'object' && typeof mine.p === 'string') return mine;
+    var old = cached('nova_skin_logo_cache', 500, {});
+    var was = old && old[key];
+    return typeof was === 'string' && was ? { p: was, t: 0 } : null;
+  }
+
+  function logoFresh(entry) {
+    if (!entry) return false;
+    if (entry.p) return true;
+    return Date.now() - (entry.t || 0) < LOGO_RETRY;
+  }
+
+  function logoRemember(key, path, answered) {
+    if (path) LOGO_MEM[key] = path;
+    else if (answered) LOGO_MEM[key] = '';
+    else delete LOGO_MEM[key];
+    if (!path && !answered) return;
+    var box = cached(LOGO_CACHE_KEY, 500, {});
+    if (box && typeof box === 'object') {
+      box[key] = { p: path || '', t: Date.now() };
+      save(LOGO_CACHE_KEY, box);
+    }
+  }
+
   function logoPeek(target) {
     if (!logoOn()) return '';
     var key = logoKey(target);
     if (typeof LOGO_MEM[key] === 'string') return LOGO_MEM[key];
-    var box = cached('nova_skin_logo_cache', 500, {});
-    var mine = box && box[key];
-    if (typeof mine !== 'string') return '';
-    LOGO_MEM[key] = mine;
-    if (mine) logoWarm(mine);
-    return mine;
+    var entry = logoEntry(key);
+    if (!logoFresh(entry)) return '';
+    LOGO_MEM[key] = entry.p;
+    if (entry.p) logoWarm(entry.p);
+    return entry.p;
   }
 
   function logoLoad(done) {
     return logoFetch(movie, done);
+  }
+
+  function logoUrls(card) {
+    var id = tmdbId(card);
+    if (!id) return [];
+
+    var kind = tmdbKind(card);
+    var lang = logoLang();
+    var langs = lang === 'en' ? 'en,null' : lang + ',en,null';
+    var kinds = kind === 'tv' ? ['tv', 'movie'] : ['movie', 'tv'];
+    var out = [];
+
+    kinds.forEach(function (which) {
+      [langs, ''].forEach(function (filter) {
+        var url = '';
+        try {
+          url = Lampa.TMDB.api(which + '/' + id + '/images?api_key=' + Lampa.TMDB.key() +
+            (filter ? '&include_image_language=' + filter : ''));
+        } catch (e) {
+          url = '';
+        }
+        if (url && out.indexOf(url) === -1) out.push(url);
+      });
+    });
+
+    return out;
   }
 
   function logoFetch(target, done) {
@@ -2495,51 +2550,44 @@
     var cache_key = logoKey(card);
     if (typeof LOGO_MEM[cache_key] === 'string') return done(LOGO_MEM[cache_key]);
 
-    var all = cached('nova_skin_logo_cache', 500, {});
-    var mine = all[cache_key];
-    if (typeof mine === 'string') {
-      LOGO_MEM[cache_key] = mine;
-      if (mine) logoWarm(mine);
-      return done(mine);
+    var entry = logoEntry(cache_key);
+    if (logoFresh(entry)) {
+      LOGO_MEM[cache_key] = entry.p;
+      if (entry.p) logoWarm(entry.p);
+      return done(entry.p);
     }
 
-    var id = tmdbId(card);
-    if (!id) return done('');
+    var urls = logoUrls(card);
+    if (!urls.length) return done('');
 
-    var kind = tmdbKind(card);
-    var lang = logoLang();
-    var url = '';
-    var langs = lang === 'en' ? 'en,null' : lang + ',en,null';
+    var at = 0;
+    var answered = false;
 
-    try {
-      url = Lampa.TMDB.api(kind + '/' + id + '/images?api_key=' + Lampa.TMDB.key() +
-        '&include_image_language=' + langs);
-    } catch (e) {
-      url = '';
-    }
-    if (!url) return done('');
-
-    var net = null;
-    try { net = new Lampa.Reguest(); } catch (e) { net = null; }
-    if (!net) return done('');
-
-    var keep = function (path) {
-      var box = cached('nova_skin_logo_cache', 500, {});
-      LOGO_MEM[cache_key] = path || '';
-      if (box && typeof box === 'object') {
-        box[cache_key] = path || '';
-        save('nova_skin_logo_cache', box);
-      }
+    var finish = function (path) {
+      logoRemember(cache_key, path, answered);
       if (path) logoWarm(path);
       done(path || '');
     };
 
-    try { net.timeout(8000); } catch (e) {}
-    net.silent(url, function (answer) {
-      keep(logoPick(answer && answer.logos));
-    }, function () {
-      done('');
-    });
+    var step = function () {
+      if (at >= urls.length) return finish('');
+      var url = urls[at++];
+      var net = null;
+      try { net = new Lampa.Reguest(); } catch (e) { net = null; }
+      if (!net) return finish('');
+      try { net.timeout(8000); } catch (e) {}
+      net.silent(url, function (answer) {
+        var list = answer && typeof answer === 'object' ? answer.logos : null;
+        if (list && typeof list.length === 'number') answered = true;
+        var path = logoPick(list);
+        if (path) return finish(path);
+        step();
+      }, function () {
+        step();
+      });
+    };
+
+    step();
   }
 
   function numId(value) {
@@ -2561,7 +2609,10 @@
     if (!card) return 'movie';
     var kind = String(card.media_type || card.type || '').toLowerCase();
     if (kind === 'tv' || kind === 'movie') return kind;
-    if (card.number_of_seasons || card.first_air_date || card.name) return 'tv';
+    if (card.number_of_seasons || card.number_of_episodes || card.seasons ||
+        card.first_air_date || card.last_air_date ||
+        card.name || card.original_name) return 'tv';
+    if (card === movie && serial) return 'tv';
     return 'movie';
   }
 
