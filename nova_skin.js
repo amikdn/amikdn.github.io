@@ -729,6 +729,7 @@
     if (!node) return;
     node = scrollAim(node);
     if ((gentle || gentleNow()) && scrollSeen(node)) return;
+    if ((gentle || gentleNow()) && handNow() && !pressNow()) return;
     var scroll = activeScroll(node);
     if (scroll) {
       try {
@@ -1106,6 +1107,27 @@
     return press_at > 0 && Date.now() - press_at < 500;
   }
 
+  var hand_at = 0;
+
+  function handMark() {
+    hand_at = Date.now();
+  }
+
+  function handNow() {
+    return hand_at > 0 && Date.now() - hand_at < 1200;
+  }
+
+  function handWatch() {
+    var names = ['touchmove', 'wheel', 'mousewheel'];
+    names.forEach(function (name) {
+      try {
+        window.addEventListener(name, handMark, { passive: true, capture: true });
+      } catch (e) {
+        try { window.addEventListener(name, handMark, true); } catch (err) {}
+      }
+    });
+  }
+
   function lockFocus(key, span) {
     ui_lock = key || '';
     ui_lock_span = span || 8000;
@@ -1124,7 +1146,11 @@
       var wanted = seek(ui_lock);
       if (!wanted || !wanted.length) return;
       if (wanted.hasClass('focus')) return;
+      if (last && wanted[0] === last) return;
+      if (handNow()) return;
       var here = ui.root.find('.focus');
+      if (here.length && here[0] !== wanted[0] &&
+          here.closest('.nova-drop').length > 0) return lockStopWatch(true);
       if (here.length && !heroKey(here.attr('data-nova-focus') || '') &&
           here.closest('.nova-toolbar,.nova-drop').length === 0) {
         return lockStopWatch(true);
@@ -1188,6 +1214,13 @@
         lockRelease();
       }
       ui_focus = key;
+    }).on('hover:hover', function (e) {
+      if (focusing) return;
+      handMark();
+      var hover_key = $(e.target).attr('data-nova-focus') || '';
+      last = e.target;
+      if (lockActive() && hover_key && hover_key !== ui_lock) lockRelease();
+      if (hover_key) ui_focus = hover_key;
     });
     if (long) {
       element.on('hover:long', function () {
@@ -4510,6 +4543,7 @@
     applyFocusStyle();
     applyFullScreen();
     applyEdgeFade();
+    handWatch();
     hookFilter();
     hookScroll();
     hookSelect();
@@ -4638,7 +4672,10 @@
     '.nova-skin-root .nova-card__viewed{top:auto;bottom:.55em;left:.55em;width:1.15em;height:1.15em;-webkit-border-radius:0;border-radius:0;background:none;opacity:.8;-webkit-box-shadow:none;box-shadow:none}',
     '.nova-skin-root .nova-card__viewed>svg{display:block;width:100%;height:100%;-webkit-filter:drop-shadow(0 0 .2em rgba(0,0,0,.9));filter:drop-shadow(0 0 .2em rgba(0,0,0,.9))}',
     '.nova-skin-root .nova-card--soon{opacity:.45}',
-    '.nova-skin-root .nova-card--soon .nova-card__time{white-space:nowrap}',
+    '.nova-skin-root .nova-card--soon .nova-card__side{max-width:8em;min-width:0;padding-right:.35em;overflow:hidden}',
+    '.nova-skin-root .nova-card--soon .nova-card__time{white-space:normal;overflow-wrap:break-word;word-wrap:break-word;word-break:break-word;line-height:1.25;max-width:100%}',
+    '@media screen and (max-width:580px){.nova-skin-root .nova-card--soon .nova-card__side{max-width:6em;padding-right:.1em}.nova-skin-root .nova-card--soon .nova-card__time{font-size:.72em}}',
+    '@media screen and (max-width:420px){.nova-skin-root .nova-card--soon .nova-card__side{max-width:5em}.nova-skin-root .nova-card--soon .nova-card__time{font-size:.68em}}',
     '.nova-skin-root .nova-card__eye{display:block;margin-top:.4em;opacity:.5}',
     '.nova-skin-root .nova-card__eye>svg{display:block;width:1.2em;height:1.2em;margin:0 auto}',
     '.nova-skin-root .nova-card.focus .nova-card__eye{opacity:.65}',
