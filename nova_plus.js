@@ -4630,7 +4630,7 @@
   try { Lampa.Lang.add(WIDE_OWN); } catch (e) {}
 
   function wideSerial() {
-    try { return !!(movie && (movie.name || movie.original_name || movie.number_of_seasons)); } catch (e) { return false; }
+    try { return !!(movie && movie.number_of_seasons); } catch (e) { return false; }
   }
 
   function wideOn() { return modeWide() && wideSerial(); }
