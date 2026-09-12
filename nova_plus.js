@@ -22,7 +22,6 @@
 
   var filters = [];
   var scrolls = [];
-  var voice_url_map = {};
 
   function get(key, def) {
     try { return Lampa.Storage.get(key, def); } catch (e) { return def; }
@@ -353,7 +352,9 @@
   function voiceKey(name) {
     var clean = String(name == null ? '' : name).trim().toLowerCase();
     if (!clean) return '';
-    return (currentSourceKey() || '') + '|' + (seasonNumber() || 0) + '|' + clean;
+    var component = '';
+    try { component = Lampa.Activity.active().component || ''; } catch (e) {}
+    return component + '|' + (currentSourceKey() || '') + '|' + (seasonNumber() || 0) + '|' + clean;
   }
 
   function voiceSave(name, count) {
@@ -362,15 +363,22 @@
     if (!key) return;
     var all = cached('nova_voices2', 2000, {});
     var mine = voiceBook(movie.id);
-    var old = mine.list[key] && parseInt(mine.list[key].c, 10) || 0;
     count = parseInt(count, 10) || 0;
-    if (count < old) count = old;
     mine.list[key] = { c: count, t: Date.now() };
     all[movie.id] = mine;
     save('nova_voices2', all);
   }
 
+  function voiceMetadata(item) {
+    if (!item || typeof item.episode_count !== 'number' || !isFinite(item.episode_count) || item.episode_count < 0) return null;
+    return Math.floor(item.episode_count);
+  }
+
   function voiceCount(name) {
+    var list = groups.voice && groups.voice.items || [];
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].title === name && voiceMetadata(list[i]) !== null) return voiceMetadata(list[i]);
+    }
     if (!movie) return 0;
     var key = voiceKey(name);
     if (!key) return 0;
@@ -469,16 +477,6 @@
       inst.nova_sets = {};
       inst.set = function (type, list) {
         inst.nova_sets[type] = list;
-        if (type === 'filter' && Array.isArray(list)) {
-          list.forEach(function (group) {
-            if (!group || group.stype !== 'voice' || !group.items) return;
-            group.items.forEach(function (item) {
-              var key = voiceNorm(item.title || '');
-              var url = item.url || item.voice_url || item.href || '';
-              if (key && url) voice_url_map[key] = url;
-            });
-          });
-        }
         return setter.apply(inst, arguments);
       };
       filters.unshift(inst);
@@ -607,7 +605,7 @@
               args = Array.prototype.slice.call(arguments);
               var real_ok = args[1];
               args[1] = function (answer) {
-                try { learnBody(answer); } catch (e) {}
+                try { learnBody(answer, url); } catch (e) {}
                 return real_ok.apply(this, arguments);
               };
             }
@@ -1030,6 +1028,10 @@
     return out;
   }
 
+  function nativeOnlineSelector(selector) {
+    return selector + ',' + selector.replace(/\.online-(prestige|empty)/g, '.onl-online-$1');
+  }
+
   function scope() {
     if (!enabled()) return null;
 
@@ -1439,6 +1441,9 @@
   var voice_seen = { id: 0, season: 0, origin: '', list: [] };
   var voice_timer = null;
   var voice_busy = false;
+  var voice_generation = 0;
+  var voice_run_stamp = '';
+  var voice_seed_generation = 0;
   var voice_nets = [];
   var voice_done = '';
   var voice_seed_busy = false;
@@ -1447,10 +1452,8 @@
   var voice_retry_timer = null;
   var voice_retry_stamp = '';
   var VOICE_SEED_TIMEOUT = 10000;
-  var VOICE_LIMIT = 64;
   var VOICE_PARALLEL = 4;
   var VOICE_TIMEOUT = 12000;
-  var VOICE_BUDGET = 60000;
   var VOICE_DELAY = 250;
   var VOICE_OWN_PARAMS = ['id', 'imdb_id', 'kinopoisk_id', 'title', 'original_title',
     'original_language', 'serial', 'year', 'source', 'clarification', 'similar',
@@ -1547,7 +1550,7 @@
 
   function hostTimerStop(native) {
     try {
-      native.node.find('.online-empty__button.cancel').trigger('hover:enter');
+      native.node.find(nativeOnlineSelector('.online-empty__button.cancel')).trigger('hover:enter');
     } catch (e) {}
     try {
       if (Lampa.Timer && typeof Lampa.Timer.remove === 'function') {
@@ -1785,6 +1788,7 @@
   }
 
   function voiceSeedStop() {
+    voice_seed_generation++;
     voice_seed_busy = false;
     if (voice_seed_net) {
       try { voice_seed_net.clear(); } catch (e) {}
@@ -1793,6 +1797,7 @@
   }
 
   function voiceStop() {
+    voice_generation++;
     voice_busy = false;
     clearTimeout(voice_timer);
     voice_timer = null;
@@ -1939,17 +1944,19 @@
     if (voice_seed_done === stamp) return;
     voice_seed_done = stamp;
     voice_seed_busy = true;
+    var generation = ++voice_seed_generation;
 
     var seat = 0;
 
     var finish = function () {
+      if (generation !== voice_seed_generation) return;
       voice_seed_busy = false;
       voice_seed_net = null;
       if (typeof after === 'function') after();
     };
 
     var step = function () {
-      if (!voice_seed_busy) return;
+      if (!voice_seed_busy || generation !== voice_seed_generation) return;
       if (seat >= urls.length || !inSkin() || !movie) return finish();
 
       var url = urls[seat++];
@@ -1962,6 +1969,7 @@
       try { net.timeout(VOICE_SEED_TIMEOUT); } catch (e) {}
 
       var done = function (answer) {
+        if (!voice_seed_busy || generation !== voice_seed_generation) return;
         var body = typeof answer === 'string' ? answer : '';
         if (body.indexOf('videos__button') !== -1) {
           try { learnBody(body, url, seasonNumber() || 0); } catch (e) {}
@@ -2098,79 +2106,85 @@
     voicePaint();
   }
 
+  function voiceIdentity(name) {
+    return String(name == null ? '' : name).toLowerCase().replace(/ё/g, 'е').replace(/\s+/g, ' ').trim();
+  }
+
+  function voiceContext() {
+    var component = '';
+    try { component = Lampa.Activity.active().component || ''; } catch (e) {}
+    return [component, movie && movie.id, currentSourceKey(), seasonNumber() || 0].join('|');
+  }
+
   function voiceRun() {
     if (!voiceWanted()) return;
+    var stamp = voiceContext();
+    if (voice_busy && voice_run_stamp === stamp) return;
     voiceStop();
-
-    var book = voiceIndex();
+    voice_run_stamp = stamp;
+    var generation = voice_generation;
+    var book = voiceListFresh() ? voiceIndex() : { rows: [], exact: {} };
     var used = {};
     var queue = [];
-    var rest = [];
-
-    var take = function (name, row, directUrl) {
-      var rawUrl = directUrl || (row && row.entry && row.entry.url) || '';
-      if (!rawUrl) return false;
-      var link = voiceLink(rawUrl);
-      if (!link) return false;
-      if (row && typeof row.seat === 'number') used[row.seat] = true;
-      queue.push({ name: name, url: link });
-      return true;
-    };
 
     groups.voice.items.forEach(function (item) {
       var name = String(item.title == null ? '' : item.title).trim();
-      if (!name || item.selected) return;
-      if (voiceCount(name)) return;
-      var directUrl = item.url || item.voice_url || item.href || voice_url_map[voiceNorm(name)] || '';
-      if (directUrl && take(name, null, directUrl)) return;
-      var row = book.exact[voiceNorm(name)];
-      if (row && !used[row.seat] && take(name, row)) return;
-      var positionRow = book.rows[item.index != null ? item.index : groups.voice.items.indexOf(item)];
-      if (positionRow && !used[positionRow.seat] && take(name, positionRow)) return;
-      rest.push(name);
+      if (!name || item.selected || voiceMetadata(item) !== null || voiceCount(name)) return;
+      var directUrl = item.url || item.voice_url || item.href || '';
+      var row = null;
+      if (!directUrl) {
+        var matches = book.rows.filter(function (candidate) {
+          return !used[candidate.seat] && voiceIdentity(candidate.entry.name) === voiceIdentity(name);
+        });
+        if (matches.length === 1) row = matches[0];
+        else if (!matches.length) row = voiceNear(book, name, used);
+      }
+      if (row) used[row.seat] = true;
+      var raw = directUrl || (row && row.entry.url);
+      if (raw) queue.push({ name: name, url: voiceLink(raw), attempt: 0 });
     });
-
-    rest.forEach(function (name) {
-      take(name, voiceNear(book, name, used));
-    });
-
     if (!queue.length) return;
-    queue = queue.slice(0, VOICE_LIMIT);
-
     voice_busy = true;
-    var deadline = Date.now() + VOICE_BUDGET;
     var index = 0;
-
-    var step = function () {
-      if (!voice_busy || index >= queue.length) return;
-      if (Date.now() > deadline || !inSkin()) return voiceStop();
-
-      var entry = queue[index++];
-      var net = null;
-      try { net = new Lampa.Reguest(); } catch (e) { net = null; }
-      if (!net) return voiceStop();
-
+    var active = 0;
+    var pumping = false;
+    function valid() {
+      return voice_busy && generation === voice_generation && stamp === voiceContext() && inSkin();
+    }
+    function pump() {
+      if (pumping || !valid()) return;
+      pumping = true;
+      while (valid() && active < VOICE_PARALLEL && index < queue.length) request(queue[index++]);
+      pumping = false;
+      if (generation === voice_generation && !active && index >= queue.length) voice_busy = false;
+    }
+    function request(entry) {
+      var net;
+      try { net = new Lampa.Reguest(); } catch (e) { return; }
+      active++;
       net.nova_probe = true;
       voice_nets.push(net);
       try { net.timeout(VOICE_TIMEOUT); } catch (e) {}
-
-      var done = function (answer) {
+      var settled = false;
+      function done(answer) {
+        if (settled) return;
+        settled = true;
+        active--;
+        var at = voice_nets.indexOf(net);
+        if (at !== -1) voice_nets.splice(at, 1);
+        if (!valid()) return;
         voiceAnswer(entry.name, answer);
-        step();
-      };
-
-      try {
-        net['native'](entry.url, done, function () {
-          voiceAnswer(entry.name, '');
-          step();
-        }, false, { dataType: 'text', headers: voiceHeaders() });
-      } catch (e) {
-        voiceAnswer(entry.name, '');
-        step();
+        if (!voiceCount(entry.name) && !entry.attempt) {
+          queue.push({ name: entry.name, url: entry.url, attempt: 1 });
+        }
+        pump();
       }
-    };
-
-    for (var worker = 0; worker < VOICE_PARALLEL; worker++) step();
+      try {
+        net['native'](entry.url, done, function () { done(''); }, false,
+          { dataType: 'text', headers: voiceHeaders() });
+      } catch (e) { done(''); }
+    }
+    pump();
   }
 
   function voiceSchedule() {
@@ -2184,7 +2198,7 @@
     if (here && own) voiceSave(here.title, own);
     voicePaint();
 
-    var stamp = [movie.id, currentSourceKey(), seasonNumber() || 0].join('|');
+    var stamp = voiceContext() + '|' + groups.voice.items.map(function (item) { return item.title + ':' + (item.url || item.voice_url || item.href || ''); }).join('|');
     if (voice_done === stamp) return;
     voice_done = stamp;
 
@@ -2438,8 +2452,8 @@
   function fallbackQuality(origin) {
     var found = '';
     try {
-      found = shortQuality(origin.find('.online-prestige__info').text() + ' ' +
-        origin.find('.online-prestige__title').text());
+      found = shortQuality(origin.find(nativeOnlineSelector('.online-prestige__info')).text() + ' ' +
+        origin.find(nativeOnlineSelector('.online-prestige__title')).text());
     } catch (e) {
       found = '';
     }
@@ -2468,14 +2482,14 @@
     }
 
     var meta = [];
-    origin.find('.online-prestige__info').children().each(function () {
+    origin.find(nativeOnlineSelector('.online-prestige__info')).children().each(function () {
       var part = $(this);
-      if (part.hasClass('online-prestige-split')) return;
+      if (part.is('.online-prestige-split,.onl-online-prestige-split')) return;
       var value = part.text().trim();
       if (value) meta.push(value);
     });
     if (!meta.length) {
-      var plain = origin.find('.online-prestige__info').text().trim();
+      var plain = origin.find(nativeOnlineSelector('.online-prestige__info')).text().trim();
       if (plain) meta.push(plain);
     }
 
@@ -2484,29 +2498,29 @@
     return {
       origin: origin,
       index: index,
-      folder: origin.hasClass('online-prestige--folder'),
+      folder: origin.is('.online-prestige--folder,.onl-online-prestige--folder'),
       soon: soon,
       percent: percent,
       hash: hash,
       line: line,
-      viewed: origin.find('.online-prestige__viewed').length > 0,
-      num: digits(origin.find('.online-prestige__episode-number').text()) || index + 1,
-      numbered: origin.find('.online-prestige__episode-number').length > 0,
-      title: origin.find('.online-prestige__title').text().trim(),
+      viewed: origin.find(nativeOnlineSelector('.online-prestige__viewed')).length > 0,
+      num: digits(origin.find(nativeOnlineSelector('.online-prestige__episode-number')).text()) || index + 1,
+      numbered: origin.find(nativeOnlineSelector('.online-prestige__episode-number')).length > 0,
+      title: origin.find(nativeOnlineSelector('.online-prestige__title')).text().trim(),
       meta: meta,
       time: soon
-        ? origin.find('.online-prestige__quality').text().trim()
-        : (origin.find('.online-prestige__time').text().trim() ||
-          (origin.hasClass('online-prestige--folder') ? '' : fallbackTime())),
-      quality: soon ? '' : (origin.find('.online-prestige__quality').text().trim() ||
-        (origin.hasClass('online-prestige--folder') ? '' : fallbackQuality(origin))),
-      picture: origin.find('.online-prestige__img img, .online-prestige__folder img').first()
+        ? origin.find(nativeOnlineSelector('.online-prestige__quality')).text().trim()
+        : (origin.find(nativeOnlineSelector('.online-prestige__time')).text().trim() ||
+          (origin.is('.online-prestige--folder,.onl-online-prestige--folder') ? '' : fallbackTime())),
+      quality: soon ? '' : (origin.find(nativeOnlineSelector('.online-prestige__quality')).text().trim() ||
+        (origin.is('.online-prestige--folder,.onl-online-prestige--folder') ? '' : fallbackQuality(origin))),
+      picture: origin.find(nativeOnlineSelector('.online-prestige__img img, .online-prestige__folder img')).first()
     };
   }
 
   function collect() {
     var list = [];
-    $(host).find('.online-prestige--full,.online-prestige--folder').each(function () {
+    $(host).find(nativeOnlineSelector('.online-prestige--full,.online-prestige--folder')).each(function () {
       if ($(this).closest('.nova-plus-root').length) return;
       list.push(readCard(this, list.length));
     });
@@ -2682,7 +2696,7 @@
 
     function take() {
       var value = 0;
-      try { value = digits(item.origin.find('.online-prestige__episode-number').text()); } catch (e) { value = 0; }
+      try { value = digits(item.origin.find(nativeOnlineSelector('.online-prestige__episode-number')).text()); } catch (e) { value = 0; }
       if (!value) return false;
       if (timer) {
         clearInterval(timer);
@@ -4226,9 +4240,9 @@
   }
 
   function nativeState() {
-    var empty = $(host).find('.online-empty').not('.nova-plus-root .online-empty').first();
+    var empty = $(host).find(nativeOnlineSelector('.online-empty')).not(nativeOnlineSelector('.nova-plus-root .online-empty')).first();
     if (!empty.length) return null;
-    if (empty.find('.broadcast__scan').length && !empty.find('.online-empty__title').length) {
+    if (empty.find('.broadcast__scan').length && !empty.find(nativeOnlineSelector('.online-empty__title')).length) {
       return { kind: 'loading', node: empty };
     }
     return { kind: 'note', node: empty };
@@ -4331,7 +4345,7 @@
 
   function noteStamp(native) {
     return [
-      native.node.find('.online-empty__title').text().trim(),
+      native.node.find(nativeOnlineSelector('.online-empty__title')).text().trim(),
       currentSourceKey(),
       sourceTitle(),
       (groups.sort || []).length,
@@ -4365,8 +4379,8 @@
     var dead = currentSourceKey();
     if (dead && movie) probeSave(movie.id, dead, 'empty', 0);
 
-    note.find('.nova-note__title').text(native.node.find('.online-empty__title').text().trim());
-    note.find('.nova-note__text').text(native.node.find('.online-empty__time').text().trim());
+    note.find('.nova-note__title').text(native.node.find(nativeOnlineSelector('.online-empty__title')).text().trim());
+    note.find('.nova-note__text').text(native.node.find(nativeOnlineSelector('.online-empty__time')).text().trim());
 
     var actions = note.find('.nova-note__actions');
 
@@ -4733,6 +4747,9 @@
     voice_done = '';
     voice_seed_done = '';
     voice_seen = { id: 0, season: 0, origin: '', list: [] };
+    probe_url = '';
+    clearTimeout(voice_retry_timer);
+    voice_retry_stamp = '';
     clearTimeout(timer);
     lockStopWatch();
     loadingStop();
@@ -4758,7 +4775,7 @@
         if (raw) percent = parseFloat(raw[1]) || 0;
       }
       item.percent = percent;
-      if (item.origin && item.origin.find('.online-prestige__viewed').length) item.viewed = true;
+      if (item.origin && item.origin.find(nativeOnlineSelector('.online-prestige__viewed')).length) item.viewed = true;
 
       var card = item.card;
       if (!card || !card.length) return;
@@ -5269,7 +5286,7 @@
       body.children('.nova-plus-root').removeClass('nova-hidden nova-wide-hidden z01-hidden');
       var alien = body.find(ALIEN_ROOT);
       if (!alien.length) return;
-      var native = body.find('.online-prestige--full,.online-prestige--folder').filter(function () {
+      var native = body.find(nativeOnlineSelector('.online-prestige--full,.online-prestige--folder')).filter(function () {
         return !$(this).closest(ALIEN_ROOT).length;
       });
       if (!native.length) return;
@@ -5625,6 +5642,7 @@
 
   function wideVoiceCount(item) {
     if (!item) return 0;
+    if (voiceMetadata(item) !== null) return voiceMetadata(item);
     if (item.selected) {
       var own = wideFiles() || wideGroupCount();
       if (own) return own;
