@@ -551,13 +551,20 @@
         try {
           var data = JSON.parse(node.attr('data-json') || '{}');
           if (data) {
-            link = data.url || data.href || data.link || data.request || data.api || '';
-            if (link) link = String(link);
+            var candidates = [data.url, data.href, data.link, data.request, data.api, data.source_url, data.voice_url];
+            if (Array.isArray(data.urls)) candidates = candidates.concat(data.urls);
+            if (data.data && typeof data.data === 'object') candidates.push(data.data.url, data.data.href, data.data.link);
+            for (var ci = 0; ci < candidates.length; ci++) {
+              if (typeof candidates[ci] === 'string' && candidates[ci]) { link = candidates[ci]; break; }
+            }
           }
         } catch (e) {
           link = '';
         }
-        out.push({ name: name, url: link, active: node.hasClass('active') });
+        if (!link) {
+          link = node.attr('data-url') || node.attr('href') || '';
+        }
+        out.push({ name: name, url: link ? String(link) : '', active: node.hasClass('active') });
       });
     } catch (e) {
       return [];
@@ -2001,7 +2008,7 @@
         if (body.indexOf('videos__button') !== -1) {
           try { learnBody(body, url, seasonNumber() || 0); } catch (e) {}
         }
-        if (voiceListFresh()) return finish();
+        if (seat >= urls.length) return finish();
         step();
       };
 
