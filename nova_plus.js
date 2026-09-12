@@ -657,12 +657,21 @@
 
   function voiceLeft() {
     if (!ui.rows || !ui_focus || ui_focus.indexOf('voice:') !== 0) return false;
-    var row = ui.rows.find('[data-nova-focus^="voice:"]');
-    if (!row.length) return false;
-    var nodes = row.toArray();
-    var current = nodes.indexOf(ui.rows.find('[data-nova-focus="' + ui_focus + '"]')[0]);
-    if (current < 0) return false;
-    if (current > 0) return focusNode(nodes[current - 1], true);
+    var current = ui.rows.find('[data-nova-focus="' + ui_focus + '"]').first()[0];
+    if (!current) return false;
+    var cr = current.getBoundingClientRect();
+    var best = null;
+    var bestX = -Infinity;
+    ui.rows.find('[data-nova-focus^="voice:"]').each(function () {
+      if (this === current) return;
+      var r = this.getBoundingClientRect();
+      var sameRow = Math.abs((r.top + r.height / 2) - (cr.top + cr.height / 2)) <= Math.max(8, Math.min(r.height, cr.height) * 0.6);
+      if (sameRow && r.right <= cr.left + 2 && r.right > bestX) {
+        best = this;
+        bestX = r.right;
+      }
+    });
+    if (best) return focusNode(best, true);
     return true;
   }
 
