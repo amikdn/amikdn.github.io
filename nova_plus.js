@@ -1463,6 +1463,8 @@
   var voice_seed_net = null;
   var voice_retry_timer = null;
   var voice_retry_stamp = '';
+  var voice_group_retry_timer = null;
+  var voice_group_retry_until = 0;
   var VOICE_SEED_TIMEOUT = 6000;
   var VOICE_PARALLEL = 2;
   var VOICE_TIMEOUT = 6000;
@@ -4551,6 +4553,14 @@
     filter = activeFilter(root) || filter;
     groups = readGroups(filter);
     extras = readExtras();
+    if (serial && filter && !groups.voice && Date.now() < voice_group_retry_until) {
+      clearTimeout(voice_group_retry_timer);
+      voice_group_retry_timer = setTimeout(function () {
+        voice_group_retry_timer = null;
+        signature = '';
+        scheduleNow();
+      }, 250);
+    }
 
     var native = nativeState();
     if (native) {
@@ -4587,6 +4597,15 @@
     var files = list.filter(function (item) { return !item.folder; });
     nav = files.length === 0;
     serial = !!(movie.name || movie.number_of_seasons) && !nav;
+    if (serial && filter && !groups.voice && !voice_group_retry_until) {
+      voice_group_retry_until = Date.now() + 5000;
+      clearTimeout(voice_group_retry_timer);
+      voice_group_retry_timer = setTimeout(function () {
+        voice_group_retry_timer = null;
+        signature = '';
+        scheduleNow();
+      }, 250);
+    }
 
     items = list;
     var mark = stamp();
@@ -4779,7 +4798,10 @@
     voice_seen = { id: 0, season: 0, origin: '', list: [] };
     probe_url = '';
     clearTimeout(voice_retry_timer);
+    clearTimeout(voice_group_retry_timer);
     voice_retry_stamp = '';
+    voice_group_retry_timer = null;
+    voice_group_retry_until = 0;
     clearTimeout(timer);
     lockStopWatch();
     loadingStop();
