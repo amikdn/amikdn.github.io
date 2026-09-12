@@ -550,7 +550,10 @@
         var link = '';
         try {
           var data = JSON.parse(node.attr('data-json') || '{}');
-          if (data && data.url) link = String(data.url);
+          if (data) {
+            link = data.url || data.href || data.link || data.request || data.api || '';
+            if (link) link = String(link);
+          }
         } catch (e) {
           link = '';
         }
@@ -1861,7 +1864,7 @@
     var exact = {};
     var rows = [];
     (voice_seen.list || []).forEach(function (entry, seat) {
-      if (!entry || !entry.url) return;
+      if (!entry) return;
       var key = voiceNorm(entry.name);
       if (!key) return;
       var row = { key: key, entry: entry, seat: seat };
@@ -2095,6 +2098,8 @@
     if (cards) return cards;
     var playable = (text.match(/\"method\"\s*:\s*\"(play|call)\"/g) || []).length;
     if (playable) return playable;
+    var episodeRows = (text.match(/\"(?:episode|e)\"\s*:\s*\d+/gi) || []).length;
+    if (episodeRows) return episodeRows;
     return folders > 1 ? folders : 0;
   }
 
