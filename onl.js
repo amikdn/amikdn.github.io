@@ -10,9 +10,6 @@
   }
 
   var SERVER_BASE = decodeParts(['aH', 'R0', 'cD', 'ov', 'Lz', 'Mx', 'Lj', 'Ey', 'OS', '4y', 'Mz', 'Qu', 'MT', 'gx']);
-  var FILMIX_SERVER = decodeParts(['aHR0cHM6Ly9sYW1wYS5hemhhcmtvdi5ydS8=']);
-  var FILMIX_UID = 'azharkov';
-  var FILMIX_NWS_ID = 'fene5m084cvu5kpiu1ki8ef47xxenpgk';
   var GITHUB_URL = decodeParts(['aH', 'R0', 'cH', 'M6', 'Ly', '9n', 'aX', 'Ro', 'dW', 'Iu', 'Y2', '9t', 'Lw', '==']);
   var CORS_PATH = decodeParts(['L2', 'Nv', 'cn', 'Mv', 'Y2', 'hl', 'Y2', 's=']);
   var NWS_SCRIPT_URL = decodeParts(['aH', 'R0', 'cD', 'ov', 'Lz', 'Mx', 'Lj', 'Ey', 'OS', '4y', 'Mz', 'Qu', 'MT', 'gx', 'L2', 'pz', 'L2', '53', 'cy', '1j', 'bG', 'll', 'bn', 'Qt', 'ZX', 'M1', 'Lmp', 'zP', '3Y', 'yM', 'TA', '0M', 'jA', 'yN', 'g==']);
@@ -174,13 +171,17 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
       }
 
       if (url == 'eval') {
+        console.log('RCH', url, data);
         result(eval(data));
       } else if (url == 'evalrun') {
+        console.log('RCH', url, data);
         eval(data);
       } else if (url == 'ping') {
         result('pong');
       } else {
+        console.log('RCH', url);
         network["native"](url, result, function(e) {
+          console.log('RCH', 'result empty, ' + e.status);
           result('');
         }, data, {
           dataType: 'text',
@@ -192,11 +193,14 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
     });
 
     client.on('Connected', function(connectionId) {
+      console.log('RCH', 'ConnectionId: ' + connectionId);
       window.rch_nws[hostkey].connectionId = connectionId;
     });
     client.on('Closed', function() {
+      console.log('RCH', 'Connection closed');
     });
     client.on('Error', function(err) {
+      console.log('RCH', 'error:', err);
     });
   });
 };
@@ -212,6 +216,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
       call();
     }
     else if (client) {
+      console.log('RCH', 'Reconnecting...');
       client.reconnect(function() {
         call();
       });
@@ -241,25 +246,14 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
     }
   }
 
-  function isFilmixUrl(url) {
-    return /\/lite\/filmix(?:\?|$)/i.test(String(url || '')) || /filmix/i.test(String(url || ''));
-  }
-
-  function filmixUrl(url) {
-    var value = String(url || '');
-    if (!isFilmixUrl(value)) return value;
-    var at = value.indexOf('?');
-    return FILMIX_SERVER + 'lite/filmix' + (at >= 0 ? value.slice(at) : '');
-  }
-
   function account(url) {
-    url = filmixUrl(url + '');
+    url = url + '';
     if (url.indexOf('account_email=') == -1) {
       var email = Lampa.Storage.get('account_email');
       if (email) url = Lampa.Utils.addUrlComponent(url, 'account_email=' + encodeURIComponent(email));
     }
     if (url.indexOf('uid=') == -1) {
-      var uid = isFilmixUrl(url) ? FILMIX_UID : Lampa.Storage.get('lampac_unic_id', '');
+      var uid = Lampa.Storage.get('lampac_unic_id', '');
       if (uid) url = Lampa.Utils.addUrlComponent(url, 'uid=' + encodeURIComponent(uid));
     }
     if (url.indexOf('token=') == -1) {
@@ -267,7 +261,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
       if (token != '') url = Lampa.Utils.addUrlComponent(url, 'token=');
     }
     if (url.indexOf('nws_id=') == -1) {
-      var nws_id = isFilmixUrl(url) ? FILMIX_NWS_ID : Lampa.Storage.get('lampac_nws_id', '');
+      var nws_id = Lampa.Storage.get('lampac_nws_id', '');
       if (nws_id) url = Lampa.Utils.addUrlComponent(url, 'nws_id=' + encodeURIComponent(nws_id));
     }
     return url;
@@ -600,7 +594,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
           var name = balanserName(j);
           if (isBlockedBalanser(name)) return;
           sources[name] = {
-            url: filmixUrl(j.url),
+            url: j.url,
             name: j.name,
             show: typeof j.show == 'undefined' ? true : j.show
           };
@@ -658,7 +652,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
               json.online.forEach(function (j) {
                 var name = balanserName(j);
                 sources[name] = {
-                  url: filmixUrl(j.url),
+                  url: j.url,
                   name: j.name,
                   show: typeof j.show == 'undefined' ? true : j.show
                 };
@@ -1062,14 +1056,19 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
               });
               var find_voice_active = buttons.find(function (v) {
                 return v.active;
-              });
+              }); ////console.log('b',buttons)
+              ////console.log('u',find_voice_url)
+              ////console.log('n',find_voice_name)
+              ////console.log('a',find_voice_active)
               if (find_voice_url && !find_voice_url.active) {
+                //console.log('Lampac', 'go to voice', find_voice_url);
                 this.replaceChoice({
                   voice: buttons.indexOf(find_voice_url),
                   voice_name: find_voice_url.text
                 });
                 this.request(find_voice_url.url);
               } else if (find_voice_name && !find_voice_name.active) {
+                //console.log('Lampac', 'go to voice', find_voice_name);
                 this.replaceChoice({
                   voice: buttons.indexOf(find_voice_name),
                   voice_name: find_voice_name.text
@@ -1107,6 +1106,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
               var select_season = this.getChoice(balanser).season;
               var season = filter_find.season[select_season];
               if (!season) season = filter_find.season[0];
+              //console.log('Lampac', 'go to season', season);
               this.request(season.url);
             }
           } else {
@@ -1114,6 +1114,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
           }
         }
       } catch (e) {
+        //console.log('Lampac', 'error', e.stack);
         this.doesNotAnswer(e);
       }
     };
@@ -2708,6 +2709,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
     function addButton(e) {
       if (e.render.find('.lampac--button').length) return;
       var btn = $(Lampa.Lang.translate(button));
+      // //console.log(btn.clone().removeClass('focus').prop('outerHTML'))
       btn.on('hover:enter', function () {
         resetTemplates();
 
