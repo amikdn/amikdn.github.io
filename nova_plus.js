@@ -1454,7 +1454,7 @@
   var VOICE_SEED_TIMEOUT = 6000;
   var VOICE_PARALLEL = 2;
   var VOICE_TIMEOUT = 6000;
-  var VOICE_BUDGET = 15000;
+  var VOICE_BUDGET = 30000;
   var VOICE_DELAY = 500;
   var VOICE_OWN_PARAMS = ['id', 'imdb_id', 'kinopoisk_id', 'title', 'original_title',
     'original_language', 'serial', 'year', 'source', 'clarification', 'similar',
@@ -2147,7 +2147,6 @@
           return !used[candidate.seat] && voiceIdentity(candidate.entry.name) === voiceIdentity(name);
         });
         if (matches.length === 1) row = matches[0];
-        else if (!matches.length) row = voiceNear(book, name, used);
         if (!row) {
           var position = typeof item.index === 'number' ? item.index : groups.voice.items.indexOf(item);
           var positionRow = book.rows[position];
@@ -2155,6 +2154,7 @@
           var ambiguous = book.rows.filter(function (candidate) { return voiceNorm(candidate.entry.name) === base; }).length > 1;
           if (positionRow && !used[positionRow.seat] && !ambiguous) row = positionRow;
         }
+        if (!row && !matches.length) row = voiceNear(book, name, used);
       }
       if (row) used[row.seat] = true;
       var raw = directUrl || (row && row.entry.url);
@@ -2162,7 +2162,7 @@
     });
     if (!queue.length) return;
     voice_busy = true;
-    var deadline = Date.now() + VOICE_BUDGET;
+    var deadline = Date.now() + (typeof VOICE_BUDGET === 'number' ? VOICE_BUDGET : 30000);
     var index = 0;
     var active = 0;
     var pumping = false;
