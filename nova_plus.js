@@ -22,6 +22,7 @@
 
   var filters = [];
   var scrolls = [];
+  var voice_url_map = {};
 
   function get(key, def) {
     try { return Lampa.Storage.get(key, def); } catch (e) { return def; }
@@ -468,6 +469,16 @@
       inst.nova_sets = {};
       inst.set = function (type, list) {
         inst.nova_sets[type] = list;
+        if (type === 'filter' && Array.isArray(list)) {
+          list.forEach(function (group) {
+            if (!group || group.stype !== 'voice' || !group.items) return;
+            group.items.forEach(function (item) {
+              var key = voiceNorm(item.title || '');
+              var url = item.url || item.voice_url || item.href || '';
+              if (key && url) voice_url_map[key] = url;
+            });
+          });
+        }
         return setter.apply(inst, arguments);
       };
       filters.unshift(inst);
@@ -644,6 +655,17 @@
     Lampa.Scroll = Wrapped;
   }
 
+  function voiceLeft() {
+    if (!ui.rows || !ui_focus || ui_focus.indexOf('voice:') !== 0) return false;
+    var row = ui.rows.find('[data-nova-focus^="voice:"]');
+    if (!row.length) return false;
+    var nodes = row.toArray();
+    var current = nodes.indexOf(ui.rows.find('[data-nova-focus="' + ui_focus + '"]')[0]);
+    if (current < 0) return false;
+    if (current > 0) return focusNode(nodes[current - 1], true);
+    return true;
+  }
+
   function hookController() {
     if (!Lampa.Controller || Lampa.Controller.nova_plus_wrapped) return;
     var add = Lampa.Controller.add;
@@ -680,6 +702,7 @@
           var left = object.left;
           object.left = function () {
             pressMark();
+            if (voiceLeft()) return;
             if (novaLeft()) return;
             return left.apply(this, arguments);
           };
@@ -2064,7 +2087,7 @@
       var name = String(item.title == null ? '' : item.title).trim();
       if (!name || item.selected) return;
       if (voiceCount(name)) return;
-      var directUrl = item.url || item.voice_url || item.href || '';
+      var directUrl = item.url || item.voice_url || item.href || voice_url_map[voiceNorm(name)] || '';
       if (directUrl && take(name, null, directUrl)) return;
       var row = book.exact[voiceNorm(name)];
       if (row && !used[row.seat] && take(name, row)) return;
