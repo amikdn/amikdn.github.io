@@ -694,7 +694,7 @@
       }
     });
     if (best) return focusNode(best, true);
-    return false;
+    return 'delegate';
   }
 
   function hookController() {
@@ -734,7 +734,9 @@
           object.left = function () {
             pressMark();
             if (voiceLeft()) return;
-            if (itemLeft()) return;
+            var itemMove = itemLeft();
+            if (itemMove === 'delegate') return left.apply(this, arguments);
+            if (itemMove) return;
             if (novaLeft()) return;
             return left.apply(this, arguments);
           };
