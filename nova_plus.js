@@ -1944,6 +1944,9 @@
 
     base = voiceDropParam(base, 'e');
     base = voiceDropParam(base, 'episode');
+    base = voiceDropParam(base, 't');
+    base = voiceDropParam(base, 'voice');
+    base = voiceDropParam(base, 'translation');
 
     var season = seasonNumber() || 0;
     var out = [];
@@ -6923,7 +6926,7 @@
       if (seats.length && seats.indexOf(last) !== -1) {
         var step = wideRowSide(dir);
         if (step) return focusNode(step);
-        if (dir === 'left') return wideToHeroNear(last) || true;
+        if (dir === 'left') return wideToMenu();
         return true;
       }
       try { if (window.Navigator && window.Navigator.canmove(dir)) return false; } catch (e) {}
