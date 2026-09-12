@@ -5686,7 +5686,7 @@
       var group = groups[name];
       if (!group || !group.items || group.items.length < 2) return parts.push(name + ':-');
       parts.push(name + ':' + (group.title || '') + ':' + group.items.map(function (item, seat) {
-        return (typeof item.index === 'number' ? item.index : seat) + '|' + item.title;
+        return (typeof item.index === 'number' ? item.index : seat) + '|' + item.title + '|' + (voiceMetadata(item) === null ? '' : voiceMetadata(item));
       }).join(','));
     });
     parts.push('sort:' + (groups.sort || []).length);
@@ -6419,7 +6419,7 @@
       order.sort(function (a, b) { return (voiceRank(a.item.title) - voiceRank(b.item.title)) || (a.seat - b.seat); });
       order.forEach(function (entry) {
         var key = 'voice:' + entry.index;
-        put(voices, key, entry.item.title, '', { active: !!entry.item.selected, plain: true }, function () {
+        put(voices, key, entry.item.title, wideVoiceCount(entry.item) ? wideCount(wideVoiceCount(entry.item)) : '', { active: !!entry.item.selected, plain: true }, function () {
           wideChooseOption('voice', entry.index, key);
         });
       });
