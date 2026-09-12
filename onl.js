@@ -1,37 +1,39 @@
 (function () {
   'use strict';
 
-  var LAMPAC_VERSION = '1.8.0';
+  var LAMPAC_VERSION = '1.8.1';
   var REQUEST_TIMEOUT = 10000;
   var BALANCER_TIMEOUT = 60000;
-
-  var PLUGIN_ID = 'lampac_lom';
-  var PLUGIN_NAME = 'Lampac LOM';
-  var PLUGIN_FLAG = 'lampac_lom_plugin';
-  var PLUGIN_BUTTON_CLASS = 'lampac-lom--button';
-  var STORAGE_PREFIX = 'lom_';
-  var UNIC_ID_KEY = STORAGE_PREFIX + 'unic_id';
-  var NWS_ID_KEY = STORAGE_PREFIX + 'nws_id';
 
   function decodeParts(parts) {
     return atob(parts.join(''));
   }
 
-  var SERVER_BASE = decodeParts(['aH', 'R0', 'cD', 'ov', 'L2', 'xv', 'bS', '5t', 'eS', '50', 'bw', '==']);
+  var SERVER_BASE = decodeParts(['aH', 'R0', 'cD', 'ov', 'Lz', 'Mx', 'Lj', 'Ey', 'OS', '4y', 'Mz', 'Qu', 'MT', 'gx']);
+  var FILMIX_SERVER = decodeParts(['aHR0cHM6Ly9sYW1wYS5hemhhcmtvdi5ydS8=']);
+  var FILMIX_UID = 'azharkov';
+  var FILMIX_NWS_ID = 'fene5m084cvu5kpiu1ki8ef47xxenpgk';
   var GITHUB_URL = decodeParts(['aH', 'R0', 'cH', 'M6', 'Ly', '9n', 'aX', 'Ro', 'dW', 'Iu', 'Y2', '9t', 'Lw', '==']);
   var CORS_PATH = decodeParts(['L2', 'Nv', 'cn', 'Mv', 'Y2', 'hl', 'Y2', 's=']);
-  var NWS_SCRIPT_URL = decodeParts(['aH', 'R0', 'cD', 'ov', 'L2', 'xv', 'bS', '5t', 'eS', '50', 'by', '9q', 'cy', '9u', 'd3', 'Mt', 'Y2', 'xp', 'ZW', '50', 'LW', 'Vz', 'NS', '5q', 'cz', '92', 'Mj', 'Ew', 'ND', 'Iw', 'Mj', 'Y=']);
+  var NWS_SCRIPT_URL = decodeParts(['aH', 'R0', 'cD', 'ov', 'Lz', 'Mx', 'Lj', 'Ey', 'OS', '4y', 'Mz', 'Qu', 'MT', 'gx', 'L2', 'pz', 'L2', '53', 'cy', '1j', 'bG', 'll', 'bn', 'Qt', 'ZX', 'M1', 'Lmp', 'zP', '3Y', 'yM', 'TA', '0M', 'jA', 'yN', 'g==']);
   var SVG_NS = decodeParts(['aH', 'R0', 'cD', 'ov', 'L3', 'd3', 'dy', '53', 'My', '5v', 'cm', 'cv', 'Mj', 'Aw', 'MC', '9z', 'dm', 'c=']);
   var XLINK_NS = decodeParts(['aH', 'R0', 'cD', 'ov', 'L3', 'd3', 'dy', '53', 'My', '5v', 'cm', 'cv', 'MT', 'k5', 'OS', '94', 'bG', 'lu', 'aw', '==']);
 
-  var PLUGIN_ICON =
-    '<svg viewBox="0 0 36 36" xmlns="' +
-    SVG_NS +
-    '">' +
-    '<path fill="currentColor" d="M32.12 10H3.88A1.88 1.88 0 0 0 2 11.88v18.24A1.88 1.88 0 0 0 3.88 32h28.24A1.88 1.88 0 0 0 34 30.12V11.88A1.88 1.88 0 0 0 32.12 10Zm-7.94 11.83l-9.77 4.36a1 1 0 0 1-1.41-.91v-8.72a1 1 0 0 1 1.41-.91L24.18 20a1 1 0 0 1 0 1.83Z"/>' +
-    '<path fill="currentColor" d="M30.14 3a1 1 0 0 0-1-1h-22a1 1 0 0 0-1 1v1h24Z"/>' +
-    '<path fill="currentColor" d="M32.12 7a1 1 0 0 0-1-1h-26a1 1 0 0 0-1 1v1h28Z"/>' +
-    '</svg>';
+  var BLOCKED_BALANSERS = [
+    'eneyida',
+    'kinoukr',
+    'uafilm',
+    'uafilmme',
+    'uaflix',
+    'uakino',
+    'makhno',
+    'lme_eneyida',
+    'lme_kinoukr',
+    'lme_uafilmme',
+    'lme_uaflix',
+    'lme_uakino',
+    'lme_makhno'
+  ];
 
   var Defined = {
     api: 'lampac',
@@ -41,12 +43,10 @@
 
   var balansers_with_search;
 
-  var UNIC_ID_VALUE = 'lom';
-
-  var unic_id = Lampa.Storage.get(UNIC_ID_KEY, '');
-  if (unic_id !== UNIC_ID_VALUE) {
-    unic_id = UNIC_ID_VALUE;
-    Lampa.Storage.set(UNIC_ID_KEY, unic_id);
+  var unic_id = Lampa.Storage.get('lampac_unic_id', '');
+  if (!unic_id) {
+    unic_id = Lampa.Utils.uid(8).toLowerCase();
+    Lampa.Storage.set('lampac_unic_id', unic_id);
   }
 
     function getAndroidVersion() {
@@ -62,7 +62,7 @@
   }
 }
 
-var hostkey = SERVER_BASE.replace(/https?:\/\//, '').replace(/\/+$/, '');
+var hostkey = SERVER_BASE.replace(/^https?:\/\//, '').replace(/\/+$/, '');
 
 if (!window.rch_nws || !window.rch_nws[hostkey]) {
   if (!window.rch_nws) window.rch_nws = {};
@@ -174,17 +174,13 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
       }
 
       if (url == 'eval') {
-        console.log('RCH', url, data);
         result(eval(data));
       } else if (url == 'evalrun') {
-        console.log('RCH', url, data);
         eval(data);
       } else if (url == 'ping') {
         result('pong');
       } else {
-        console.log('RCH', url);
         network["native"](url, result, function(e) {
-          console.log('RCH', 'result empty, ' + e.status);
           result('');
         }, data, {
           dataType: 'text',
@@ -196,14 +192,11 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
     });
 
     client.on('Connected', function(connectionId) {
-      console.log('RCH', 'ConnectionId: ' + connectionId);
       window.rch_nws[hostkey].connectionId = connectionId;
     });
     client.on('Closed', function() {
-      console.log('RCH', 'Connection closed');
     });
     client.on('Error', function(err) {
-      console.log('RCH', 'error:', err);
     });
   });
 };
@@ -219,7 +212,6 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
       call();
     }
     else if (client) {
-      console.log('RCH', 'Reconnecting...');
       client.reconnect(function() {
         call();
       });
@@ -249,14 +241,25 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
     }
   }
 
+  function isFilmixUrl(url) {
+    return /\/lite\/filmix(?:\?|$)/i.test(String(url || '')) || /filmix/i.test(String(url || ''));
+  }
+
+  function filmixUrl(url) {
+    var value = String(url || '');
+    if (!isFilmixUrl(value)) return value;
+    var at = value.indexOf('?');
+    return FILMIX_SERVER + 'lite/filmix' + (at >= 0 ? value.slice(at) : '');
+  }
+
   function account(url) {
-    url = url + '';
+    url = filmixUrl(url + '');
     if (url.indexOf('account_email=') == -1) {
       var email = Lampa.Storage.get('account_email');
       if (email) url = Lampa.Utils.addUrlComponent(url, 'account_email=' + encodeURIComponent(email));
     }
     if (url.indexOf('uid=') == -1) {
-      var uid = Lampa.Storage.get(UNIC_ID_KEY, '') || UNIC_ID_VALUE;
+      var uid = isFilmixUrl(url) ? FILMIX_UID : Lampa.Storage.get('lampac_unic_id', '');
       if (uid) url = Lampa.Utils.addUrlComponent(url, 'uid=' + encodeURIComponent(uid));
     }
     if (url.indexOf('token=') == -1) {
@@ -264,7 +267,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
       if (token != '') url = Lampa.Utils.addUrlComponent(url, 'token=');
     }
     if (url.indexOf('nws_id=') == -1) {
-      var nws_id = Lampa.Storage.get(NWS_ID_KEY, '');
+      var nws_id = isFilmixUrl(url) ? FILMIX_NWS_ID : Lampa.Storage.get('lampac_nws_id', '');
       if (nws_id) url = Lampa.Utils.addUrlComponent(url, 'nws_id=' + encodeURIComponent(nws_id));
     }
     return url;
@@ -327,7 +330,9 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
       network.silent(
         account(SERVER_BASE + '/lite/withsearch'),
         function (json) {
-          balansers_with_search = json;
+          balansers_with_search = (json || []).filter(function (name) {
+            return !isBlockedBalanser(name);
+          });
         },
         function () {
           balansers_with_search = [];
@@ -339,6 +344,14 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
       var bals = j.balanser;
       var name = j.name.split(' ')[0];
       return (bals || name).toLowerCase();
+    }
+
+    function isBlockedBalanser(value) {
+      var name = typeof value === 'string' ? value : balanserName(value || { name: '' });
+      name = String(name || '').toLowerCase().replace(/[^a-z0-9_-]/g, '');
+      return BLOCKED_BALANSERS.some(function (blocked) {
+        return name === blocked || name.indexOf(blocked + '-') === 0 || name.indexOf(blocked + '_') === 0;
+      });
     }
 
     function clarificationSearchAdd(value) {
@@ -519,13 +532,13 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
     };
     // ── balanser ──
     this.updateBalanser = function (balanser_name) {
-      var last_select_balanser = Lampa.Storage.cache(STORAGE_PREFIX + 'online_last_balanser', 3000, {});
+      var last_select_balanser = Lampa.Storage.cache('online_last_balanser', 3000, {});
       last_select_balanser[object.movie.id] = balanser_name;
-      Lampa.Storage.set(STORAGE_PREFIX + 'online_last_balanser', last_select_balanser);
+      Lampa.Storage.set('online_last_balanser', last_select_balanser);
     };
     this.changeBalanser = function (balanser_name) {
       this.updateBalanser(balanser_name);
-      Lampa.Storage.set(STORAGE_PREFIX + 'online_balanser', balanser_name);
+      Lampa.Storage.set('online_balanser', balanser_name);
       var to = this.getChoice(balanser_name);
       var from = this.getChoice();
       if (from.voice_name) to.voice_name = from.voice_name;
@@ -574,30 +587,31 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
     };
     // ── source & life events ──
     this.getLastChoiceBalanser = function () {
-      var last_select_balanser = Lampa.Storage.cache(STORAGE_PREFIX + 'online_last_balanser', 3000, {});
+      var last_select_balanser = Lampa.Storage.cache('online_last_balanser', 3000, {});
       if (last_select_balanser[object.movie.id]) {
         return last_select_balanser[object.movie.id];
       } else {
-        return Lampa.Storage.get(STORAGE_PREFIX + 'online_balanser', filter_sources.length ? filter_sources[0] : '');
+        return Lampa.Storage.get('online_balanser', filter_sources.length ? filter_sources[0] : '');
       }
     };
     this.startSource = function (json) {
       return new Promise(function (resolve, reject) {
         json.forEach(function (j) {
           var name = balanserName(j);
+          if (isBlockedBalanser(name)) return;
           sources[name] = {
-            url: j.url,
+            url: filmixUrl(j.url),
             name: j.name,
             show: typeof j.show == 'undefined' ? true : j.show
           };
         });
         filter_sources = Lampa.Arrays.getKeys(sources);
         if (filter_sources.length) {
-          var last_select_balanser = Lampa.Storage.cache(STORAGE_PREFIX + 'online_last_balanser', 3000, {});
+          var last_select_balanser = Lampa.Storage.cache('online_last_balanser', 3000, {});
           if (last_select_balanser[object.movie.id]) {
             balanser = last_select_balanser[object.movie.id];
           } else {
-            balanser = Lampa.Storage.get(STORAGE_PREFIX + 'online_balanser', filter_sources[0]);
+            balanser = Lampa.Storage.get('online_balanser', filter_sources[0]);
           }
           if (!sources[balanser]) balanser = filter_sources[0];
           if (!sources[balanser].show && !object.lampac_custom_select) balanser = filter_sources[0];
@@ -617,15 +631,14 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
         var gou = function gou(json, any) {
           if (json.accsdb) return reject(json);
           var last_balanser = _this3.getLastChoiceBalanser();
-          var online = json.online || [];
           if (!red) {
-            var _filter = online.filter(function (c) {
+            var _filter = json.online.filter(function (c) {
               return any ? c.show : c.show && c.name.toLowerCase() == last_balanser;
             });
             if (_filter.length) {
               red = true;
               resolve(
-                online.filter(function (c) {
+                json.online.filter(function (c) {
                   return c.show;
                 })
               );
@@ -642,10 +655,10 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
               life_wait_times++;
               filter_sources = [];
               sources = {};
-              (json.online || []).forEach(function (j) {
+              json.online.forEach(function (j) {
                 var name = balanserName(j);
                 sources[name] = {
-                  url: j.url,
+                  url: filmixUrl(j.url),
                   name: j.name,
                   show: typeof j.show == 'undefined' ? true : j.show
                 };
@@ -1049,19 +1062,14 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
               });
               var find_voice_active = buttons.find(function (v) {
                 return v.active;
-              }); ////console.log('b',buttons)
-              ////console.log('u',find_voice_url)
-              ////console.log('n',find_voice_name)
-              ////console.log('a',find_voice_active)
+              });
               if (find_voice_url && !find_voice_url.active) {
-                //console.log('Lampac', 'go to voice', find_voice_url);
                 this.replaceChoice({
                   voice: buttons.indexOf(find_voice_url),
                   voice_name: find_voice_url.text
                 });
                 this.request(find_voice_url.url);
               } else if (find_voice_name && !find_voice_name.active) {
-                //console.log('Lampac', 'go to voice', find_voice_name);
                 this.replaceChoice({
                   voice: buttons.indexOf(find_voice_name),
                   voice_name: find_voice_name.text
@@ -1099,7 +1107,6 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
               var select_season = this.getChoice(balanser).season;
               var season = filter_find.season[select_season];
               if (!season) season = filter_find.season[0];
-              //console.log('Lampac', 'go to season', season);
               this.request(season.url);
             }
           } else {
@@ -1107,7 +1114,6 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
           }
         }
       } catch (e) {
-        //console.log('Lampac', 'error', e.stack);
         this.doesNotAnswer(e);
       }
     };
@@ -1165,7 +1171,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
     };
     // ── choice & storage ──
     this.getChoice = function (for_balanser) {
-      var data = Lampa.Storage.cache(STORAGE_PREFIX + 'online_choice_' + (for_balanser || balanser), 3000, {});
+      var data = Lampa.Storage.cache('online_choice_' + (for_balanser || balanser), 3000, {});
       var save = data[object.movie.id] || {};
       Lampa.Arrays.extend(save, {
         season: 0,
@@ -1178,9 +1184,9 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
       return save;
     };
     this.saveChoice = function (choice, for_balanser) {
-      var data = Lampa.Storage.cache(STORAGE_PREFIX + 'online_choice_' + (for_balanser || balanser), 3000, {});
+      var data = Lampa.Storage.cache('online_choice_' + (for_balanser || balanser), 3000, {});
       data[object.movie.id] = choice;
-      Lampa.Storage.set(STORAGE_PREFIX + 'online_choice_' + (for_balanser || balanser), data);
+      Lampa.Storage.set('online_choice_' + (for_balanser || balanser), data);
       this.updateBalanser(for_balanser || balanser);
     };
     this.replaceChoice = function (choice, for_balanser) {
@@ -1950,7 +1956,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
                     item.title = Lampa.Utils.capitalizeFirstLetter(item.title);
                     item.release_date = item.year || '0000';
                     item.balanser = spiderUri;
-                    item.source = PLUGIN_ID;
+                    item.source = 'lampac';
                     if (item.img !== undefined) {
                       if (item.img.charAt(0) === '/') item.img = Defined.localhost + item.img.substring(1);
                       if (item.img.indexOf('/proxyimg') !== -1) item.img = account(item.img);
@@ -1965,7 +1971,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
                         title: name,
                         results: cards
                       },
-                      PLUGIN_ID
+                      'lampac'
                     )
                   );
                 }
@@ -2042,7 +2048,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
         Lampa.Activity.push({
           url: params.element.url,
           title: 'Lampac - ' + params.element.title,
-          component: PLUGIN_ID,
+          component: 'lampac',
           movie: params.element,
           page: 1,
           search: params.element.title,
@@ -2059,15 +2065,15 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
   function startPlugin() {
     if (window.lampa_settings && window.lampa_settings.read_only) return;
 
-    window[PLUGIN_FLAG] = true;
-    Lampa.Component.add(PLUGIN_ID, component);
+    window.lampac_plugin = true;
+    Lampa.Component.add('lampac', component);
     var manifest = {
       type: 'video',
       version: LAMPAC_VERSION,
-      name: PLUGIN_NAME,
+      name: 'Lampac',
       description: 'Плагин для просмотра онлайн сериалов и фильмов',
-      component: PLUGIN_ID,
-      icon: PLUGIN_ICON,
+      component: 'lampac',
+      icon: '<svg height="57" viewBox="0 0 58 57" fill="none" xmlns="' + SVG_NS + '"><path d="M47 28.5L17 46V11L47 28.5Z" fill="white"/><rect x="2" y="2" width="54" height="53" rx="5" stroke="white" stroke-width="4"/></svg>',
       onContextMenu: function onContextMenu(object) {
         return {
           name: Lampa.Lang.translate('lampac_watch'),
@@ -2083,7 +2089,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
         Lampa.Activity.push({
           url: '',
           title: Lampa.Lang.translate('title_online'),
-          component: PLUGIN_ID,
+          component: 'lampac',
           search: all[id] ? all[id] : object.title,
           search_one: object.title,
           search_two: object.original_title,
@@ -2093,17 +2099,9 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
         });
       }
     };
-    addSourceSearch(PLUGIN_NAME, 'spider');
-    addSourceSearch(PLUGIN_NAME + ' - Anime', 'spider/anime');
-
-    // не затираем манифесты других онлайн-плагинов, а добавляемся рядом
-    if (Array.isArray(Lampa.Manifest.plugins)) {
-      Lampa.Manifest.plugins.push(manifest);
-    } else if (Lampa.Manifest.plugins) {
-      Lampa.Manifest.plugins = [Lampa.Manifest.plugins, manifest];
-    } else {
-      Lampa.Manifest.plugins = manifest;
-    }
+    addSourceSearch('Spider', 'spider');
+    addSourceSearch('Anime', 'spider/anime');
+    Lampa.Manifest.plugins = manifest;
     Lampa.Lang.add({
       lampac_watch: {
         //
@@ -2692,12 +2690,15 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
     }
 
     var LAMPAC_FULL_CARD_BUTTON = [
-      '<div class="full-start__button selector view--online ' + PLUGIN_BUTTON_CLASS + '" data-subtitle="' +
+      '<div class="full-start__button selector view--online lampac--button" data-subtitle="' +
         manifest.name +
         ' v' +
         manifest.version +
         '">',
-      '  ' + PLUGIN_ICON,
+      '  <svg width="135" height="147" viewBox="0 0 135 147" fill="none" xmlns="' + SVG_NS + '">',
+      '    <path d="M121.5 96.8823C139.5 86.49 139.5 60.5092 121.5 50.1169L41.25 3.78454C23.25 -6.60776 0.750004 6.38265 0.750001 27.1673L0.75 51.9742C4.70314 35.7475 23.6209 26.8138 39.0547 35.7701L94.8534 68.1505C110.252 77.0864 111.909 97.8693 99.8725 109.369L121.5 96.8823Z" fill="currentColor"/>',
+      '    <path d="M63 84.9836C80.3333 94.991 80.3333 120.01 63 130.017L39.75 143.44C22.4167 153.448 0.749999 140.938 0.75 120.924L0.750001 94.0769C0.750002 74.0621 22.4167 61.5528 39.75 71.5602L63 84.9836Z" fill="currentColor"/>',
+      '  </svg>',
       '  <span>#{title_online}</span>',
       '</div>'
     ].join('\n');
@@ -2705,10 +2706,8 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
     resetTemplates();
 
     function addButton(e) {
-      if (e.render.find('.' + PLUGIN_BUTTON_CLASS).length) return;
-      if (e.render.parent().find('.' + PLUGIN_BUTTON_CLASS).length) return;
+      if (e.render.find('.lampac--button').length) return;
       var btn = $(Lampa.Lang.translate(button));
-      // //console.log(btn.clone().removeClass('focus').prop('outerHTML'))
       btn.on('hover:enter', function () {
         resetTemplates();
 
@@ -2718,7 +2717,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
         Lampa.Activity.push({
           url: '',
           title: Lampa.Lang.translate('title_online'),
-          component: PLUGIN_ID,
+          component: 'lampac',
           search: all[id] ? all[id] : e.movie.title,
           search_one: e.movie.title,
           search_two: e.movie.original_title,
@@ -2797,10 +2796,10 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
         'dreamerscast'
       ];
       balansers_sync.forEach(function (name) {
-        Lampa.Storage.sync(STORAGE_PREFIX + 'online_choice_' + name, 'object_object');
+        Lampa.Storage.sync('online_choice_' + name, 'object_object');
       });
       Lampa.Storage.sync('online_watched_last', 'object_object');
     }
   }
-  if (!window[PLUGIN_FLAG]) startPlugin();
+  if (!window.lampac_plugin) startPlugin();
 })();
