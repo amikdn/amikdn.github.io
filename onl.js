@@ -6,6 +6,7 @@
   var FILMIX_UID = _d('YXpoYXJrb3Y=');
   var FILMIX_NWS_ID = _d('ZmVuZTVtMDg0Y3Z1NWtwaXUxazhlZjQ3eHhlbmtn');
 
+  var SVG_NS = 'http://www.w3.org/2000/svg';
   var LAMPAC_VERSION = '1.8.0';
   var REQUEST_TIMEOUT = 10000;
   var BALANCER_TIMEOUT = 60000;
