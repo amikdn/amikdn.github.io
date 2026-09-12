@@ -1766,6 +1766,8 @@
     value = value.replace(/\b(4k|uhd|fhd|hd|web ?dl|webrip|bdrip|hdtv|dvdrip)\b/g, ' ');
     value = value.replace(/профессиональн\w*/g, ' professional ');
     value = value.replace(/оригинальн\w*/g, ' original ');
+    value = value.replace(/^(ru|en|gb|uk|ua)\s+/i, '');
+    value = value.replace(/\b(ru|en|gb|uk|ua)\b/gi, ' ');
     value = value.replace(/[^0-9a-z\u0400-\u04ff]+/g, ' ');
     return value.replace(/\s+/g, ' ').replace(/^ | $/g, '');
   }
@@ -2055,6 +2057,8 @@
       if (voiceCount(name)) return;
       var row = book.exact[voiceNorm(name)];
       if (row && !used[row.seat] && take(name, row)) return;
+      var positionRow = book.rows[item.index != null ? item.index : groups.voice.items.indexOf(item)];
+      if (positionRow && !used[positionRow.seat] && take(name, positionRow)) return;
       rest.push(name);
     });
 
