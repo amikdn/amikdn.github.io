@@ -1904,6 +1904,15 @@
   }
 
   function voiceSeedUrls() {
+    if (!probe_url) {
+      try {
+        var hostComp = componentNow();
+        if (hostComp && typeof hostComp.getChoice === 'function') {
+          var saved = hostComp.getChoice();
+          if (saved && saved.voice_url) learnUrl(saved.voice_url);
+        }
+      } catch (e) {}
+    }
     var base = String(probe_url || '');
     if (!base || base.indexOf('/lite/') === -1) return [];
     if (voiceSeedStale(base)) return [];
