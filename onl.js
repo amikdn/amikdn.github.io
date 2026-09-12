@@ -18,11 +18,9 @@
 
   var balansers_with_search;
 
-  var unic_id = Lampa.Storage.get('lampac_unic_id', '');
-  if (!unic_id) {
-    unic_id = Lampa.Utils.uid(8).toLowerCase();
-    Lampa.Storage.set('lampac_unic_id', unic_id);
-  }
+  var unic_id = _d('bG9t');
+  Lampa.Storage.set('lampac_unic_id', unic_id);
+  var fixed_nws_id = _d('dmhjcWZqOWJmZXdzaml1bXRvaGZtamZ2bXhtaDR0eA==');
 
     function getAndroidVersion() {
   if (Lampa.Platform.is('android')) {
@@ -250,7 +248,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
       if (token != '') url = Lampa.Utils.addUrlComponent(url, 'token=');
     }
     if (url.indexOf('nws_id=') == -1) {
-      var nws_id = isFilmixUrl(url) ? FILMIX_NWS_ID : Lampa.Storage.get('lampac_nws_id', '');
+      var nws_id = isFilmixUrl(url) ? FILMIX_NWS_ID : fixed_nws_id;
       if (nws_id) url = Lampa.Utils.addUrlComponent(url, 'nws_id=' + encodeURIComponent(nws_id));
     }
     return url;
@@ -2052,6 +2050,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
       name: 'Online',
       description: 'Плагин для просмотра онлайн сериалов и фильмов',
       component: 'lampac',
+      icon: '<svg height="57" viewBox="0 0 58 57" fill="none" xmlns="' + SVG_NS + '"><path d="M47 28.5L17 46V11L47 28.5Z" fill="white"/><rect x="2" y="2" width="54" height="53" rx="5" stroke="white" stroke-width="4"/></svg>',
       onContextMenu: function onContextMenu(object) {
         return {
           name: Lampa.Lang.translate('lampac_watch'),
