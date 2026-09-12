@@ -1377,10 +1377,10 @@
   var voice_seed_done = '';
   var voice_seed_net = null;
   var VOICE_SEED_TIMEOUT = 10000;
-  var VOICE_LIMIT = 16;
-  var VOICE_PARALLEL = 2;
-  var VOICE_TIMEOUT = 8000;
-  var VOICE_BUDGET = 30000;
+  var VOICE_LIMIT = 64;
+  var VOICE_PARALLEL = 4;
+  var VOICE_TIMEOUT = 12000;
+  var VOICE_BUDGET = 60000;
   var VOICE_DELAY = 250;
   var VOICE_OWN_PARAMS = ['id', 'imdb_id', 'kinopoisk_id', 'title', 'original_title',
     'original_language', 'serial', 'year', 'source', 'clarification', 'similar',
@@ -1956,21 +1956,30 @@
     if (!text) return 0;
     var files = 0;
     var folders = 0;
+    var episodes = 0;
     try {
       $('<div>' + text + '</div>').find('.videos__item').each(function () {
         var node = $(this);
         var method = voiceNodeMethod(node);
         if (!method) return;
+        var raw = node.attr('data-json') || '';
         var folder = method === 'link' || node.hasClass('videos__season');
-        if (folder) folders++;
-        else files++;
+        if (folder) {
+          folders++;
+          if (/\"(?:episode|e)\"\s*:\s*\d+/i.test(raw) || /S\d+\s*E\d+/i.test(node.text())) episodes++;
+        } else {
+          files++;
+          episodes++;
+        }
       });
     } catch (e) {
       return 0;
     }
     if (files) return files;
-    if (folders) return 0;
-    return (text.match(/"method"\s*:\s*"(play|call)"/g) || []).length;
+    if (episodes) return episodes;
+    var playable = (text.match(/\"method\"\s*:\s*\"(play|call)\"/g) || []).length;
+    if (playable) return playable;
+    return folders > 1 ? folders : 0;
   }
 
   function voicePaint() {
