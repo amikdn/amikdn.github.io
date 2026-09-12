@@ -2123,7 +2123,7 @@
     voiceStop();
     voice_run_stamp = stamp;
     var generation = voice_generation;
-    var book = voiceListFresh() ? voiceIndex() : { rows: [], exact: {} };
+    var book = voice_seen && voice_seen.list && voice_seen.list.length >= 2 ? voiceIndex() : { rows: [], exact: {} };
     var used = {};
     var queue = [];
 
@@ -2138,6 +2138,13 @@
         });
         if (matches.length === 1) row = matches[0];
         else if (!matches.length) row = voiceNear(book, name, used);
+        if (!row) {
+          var position = typeof item.index === 'number' ? item.index : groups.voice.items.indexOf(item);
+          var positionRow = book.rows[position];
+          var base = voiceNorm(name);
+          var ambiguous = book.rows.filter(function (candidate) { return voiceNorm(candidate.entry.name) === base; }).length > 1;
+          if (positionRow && !used[positionRow.seat] && !ambiguous) row = positionRow;
+        }
       }
       if (row) used[row.seat] = true;
       var raw = directUrl || (row && row.entry.url);
