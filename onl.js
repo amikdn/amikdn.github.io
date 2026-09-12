@@ -1,40 +1,18 @@
 (function () {
   'use strict';
 
-  var LAMPAC_VERSION = '1.8.1';
+  var _d = function (v) { return decodeURIComponent(escape(atob(v))); };
+  var FILMIX_SERVER = _d('aHR0cHM6Ly9sYW1wYS5hemhhcmtvdi5ydS8=');
+  var FILMIX_UID = _d('YXpoYXJrb3Y=');
+  var FILMIX_NWS_ID = _d('ZmVuZTVtMDg0Y3Z1NWtwaXUxazhlZjQ3eHhlbmtn');
+
+  var LAMPAC_VERSION = '1.8.0';
   var REQUEST_TIMEOUT = 10000;
   var BALANCER_TIMEOUT = 60000;
 
-  function decodeParts(parts) {
-    return atob(parts.join(''));
-  }
-
-  var SERVER_BASE = decodeParts(['aH', 'R0', 'cD', 'ov', 'Lz', 'Mx', 'Lj', 'Ey', 'OS', '4y', 'Mz', 'Qu', 'MT', 'gx']);
-  var GITHUB_URL = decodeParts(['aH', 'R0', 'cH', 'M6', 'Ly', '9n', 'aX', 'Ro', 'dW', 'Iu', 'Y2', '9t', 'Lw', '==']);
-  var CORS_PATH = decodeParts(['L2', 'Nv', 'cn', 'Mv', 'Y2', 'hl', 'Y2', 's=']);
-  var NWS_SCRIPT_URL = decodeParts(['aH', 'R0', 'cD', 'ov', 'Lz', 'Mx', 'Lj', 'Ey', 'OS', '4y', 'Mz', 'Qu', 'MT', 'gx', 'L2', 'pz', 'L2', '53', 'cy', '1j', 'bG', 'll', 'bn', 'Qt', 'ZX', 'M1', 'Lmp', 'zP', '3Y', 'yM', 'TA', '0M', 'jA', 'yN', 'g==']);
-  var SVG_NS = decodeParts(['aH', 'R0', 'cD', 'ov', 'L3', 'd3', 'dy', '53', 'My', '5v', 'cm', 'cv', 'Mj', 'Aw', 'MC', '9z', 'dm', 'c=']);
-  var XLINK_NS = decodeParts(['aH', 'R0', 'cD', 'ov', 'L3', 'd3', 'dy', '53', 'My', '5v', 'cm', 'cv', 'MT', 'k5', 'OS', '94', 'bG', 'lu', 'aw', '==']);
-
-  var BLOCKED_BALANSERS = [
-    'eneyida',
-    'kinoukr',
-    'uafilm',
-    'uafilmme',
-    'uaflix',
-    'uakino',
-    'makhno',
-    'lme_eneyida',
-    'lme_kinoukr',
-    'lme_uafilmme',
-    'lme_uaflix',
-    'lme_uakino',
-    'lme_makhno'
-  ];
-
   var Defined = {
     api: 'lampac',
-    localhost: SERVER_BASE + '/',
+    localhost: _d('aHR0cDovL2xvbS5teS50by8='),
     apn: ''
   };
 
@@ -59,7 +37,7 @@
   }
 }
 
-var hostkey = SERVER_BASE.replace(/^https?:\/\//, '').replace(/\/+$/, '');
+var hostkey = _d('aHR0cDovL2xvbS5teS50bw==').replace('http://', '').replace('https://', '');
 
 if (!window.rch_nws || !window.rch_nws[hostkey]) {
   if (!window.rch_nws) window.rch_nws = {};
@@ -84,7 +62,7 @@ window.rch_nws[hostkey].typeInvoke = function rchtypeInvoke(host, call) {
     if (Lampa.Platform.is('android') || Lampa.Platform.is('tizen')) check(true);
     else {
       var net = new Lampa.Reguest();
-      net.silent(SERVER_BASE.indexOf(location.host) >= 0 ? GITHUB_URL : host + CORS_PATH, function() {
+      net.silent(_d('aHR0cDovL2xvbS5teS50bw==').indexOf(location.host) >= 0 ? 'https://github.com/' : host + '/cors/check', function() {
         check(true);
       }, function() {
         check(false);
@@ -96,7 +74,7 @@ window.rch_nws[hostkey].typeInvoke = function rchtypeInvoke(host, call) {
 };
 
 window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection) {
-  window.rch_nws[hostkey].typeInvoke(SERVER_BASE, function() {
+  window.rch_nws[hostkey].typeInvoke(_d('aHR0cDovL2xvbS5teS50bw=='), function() {
 
     client.invoke("RchRegistry", {
       host: location.host,
@@ -123,7 +101,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
 	  
 	  function sendResult(uri, html) {
 	    $.ajax({
-	      url: SERVER_BASE + '/rch/' + uri + '?id=' + rchId,
+	      url: _d('aHR0cDovL2xvbS5teS50by9yY2gv') + uri + '?id=' + rchId,
 	      type: 'POST',
 	      data: html,
 	      async: true,
@@ -205,7 +183,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
   });
 };
 
-  window.rch_nws[hostkey].typeInvoke(SERVER_BASE, function() {});
+  window.rch_nws[hostkey].typeInvoke(_d('aHR0cDovL2xvbS5teS50bw=='), function() {});
 
   function rchInvoke(json, call) {
     if (!window.nwsClient) 
@@ -238,7 +216,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
 
   function rchRun(json, call) {
     if (typeof NativeWsClient == 'undefined') {
-      Lampa.Utils.putScript([NWS_SCRIPT_URL], function() {}, false, function() {
+      Lampa.Utils.putScript([_d('aHR0cDovL2xvbS5teS50by9qcy9ud3MtY2xpZW50LWVzNS5qcz92MjEwNDIwMjY=')], function() {}, false, function() {
         rchInvoke(json, call);
       }, true);
     } else {
@@ -246,14 +224,25 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
     }
   }
 
+  function isFilmixUrl(url) {
+    return /\/lite\/filmix(?:\?|$)/i.test(String(url || '')) || /filmix/i.test(String(url || ''));
+  }
+
+  function filmixUrl(url) {
+    var value = String(url || '');
+    if (!isFilmixUrl(value)) return value;
+    var at = value.indexOf('?');
+    return FILMIX_SERVER + 'lite/filmix' + (at >= 0 ? value.slice(at) : '');
+  }
+
   function account(url) {
-    url = url + '';
+    url = filmixUrl(url + '');
     if (url.indexOf('account_email=') == -1) {
       var email = Lampa.Storage.get('account_email');
       if (email) url = Lampa.Utils.addUrlComponent(url, 'account_email=' + encodeURIComponent(email));
     }
     if (url.indexOf('uid=') == -1) {
-      var uid = Lampa.Storage.get('lampac_unic_id', '');
+      var uid = isFilmixUrl(url) ? FILMIX_UID : Lampa.Storage.get('lampac_unic_id', '');
       if (uid) url = Lampa.Utils.addUrlComponent(url, 'uid=' + encodeURIComponent(uid));
     }
     if (url.indexOf('token=') == -1) {
@@ -261,7 +250,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
       if (token != '') url = Lampa.Utils.addUrlComponent(url, 'token=');
     }
     if (url.indexOf('nws_id=') == -1) {
-      var nws_id = Lampa.Storage.get('lampac_nws_id', '');
+      var nws_id = isFilmixUrl(url) ? FILMIX_NWS_ID : Lampa.Storage.get('lampac_nws_id', '');
       if (nws_id) url = Lampa.Utils.addUrlComponent(url, 'nws_id=' + encodeURIComponent(nws_id));
     }
     return url;
@@ -322,11 +311,9 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
     if (balansers_with_search == undefined) {
       network.timeout(REQUEST_TIMEOUT);
       network.silent(
-        account(SERVER_BASE + '/lite/withsearch'),
+        account(_d('aHR0cDovL2xvbS5teS50by9saXRlL3dpdGhzZWFyY2g=')),
         function (json) {
-          balansers_with_search = (json || []).filter(function (name) {
-            return !isBlockedBalanser(name);
-          });
+          balansers_with_search = json;
         },
         function () {
           balansers_with_search = [];
@@ -338,14 +325,6 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
       var bals = j.balanser;
       var name = j.name.split(' ')[0];
       return (bals || name).toLowerCase();
-    }
-
-    function isBlockedBalanser(value) {
-      var name = typeof value === 'string' ? value : balanserName(value || { name: '' });
-      name = String(name || '').toLowerCase().replace(/[^a-z0-9_-]/g, '');
-      return BLOCKED_BALANSERS.some(function (blocked) {
-        return name === blocked || name.indexOf(blocked + '-') === 0 || name.indexOf(blocked + '_') === 0;
-      });
     }
 
     function clarificationSearchAdd(value) {
@@ -592,9 +571,8 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
       return new Promise(function (resolve, reject) {
         json.forEach(function (j) {
           var name = balanserName(j);
-          if (isBlockedBalanser(name)) return;
           sources[name] = {
-            url: j.url,
+            url: filmixUrl(j.url),
             name: j.name,
             show: typeof j.show == 'undefined' ? true : j.show
           };
@@ -652,7 +630,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
               json.online.forEach(function (j) {
                 var name = balanserName(j);
                 sources[name] = {
-                  url: j.url,
+                  url: filmixUrl(j.url),
                   name: j.name,
                   show: typeof j.show == 'undefined' ? true : j.show
                 };
@@ -2071,10 +2049,9 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
     var manifest = {
       type: 'video',
       version: LAMPAC_VERSION,
-      name: 'Lampac',
+      name: 'Online',
       description: 'Плагин для просмотра онлайн сериалов и фильмов',
       component: 'lampac',
-      icon: '<svg height="57" viewBox="0 0 58 57" fill="none" xmlns="' + SVG_NS + '"><path d="M47 28.5L17 46V11L47 28.5Z" fill="white"/><rect x="2" y="2" width="54" height="53" rx="5" stroke="white" stroke-width="4"/></svg>',
       onContextMenu: function onContextMenu(object) {
         return {
           name: Lampa.Lang.translate('lampac_watch'),
@@ -2100,8 +2077,8 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
         });
       }
     };
-    addSourceSearch('Spider', 'spider');
-    addSourceSearch('Anime', 'spider/anime');
+    addSourceSearch('Online', 'spider');
+    addSourceSearch('Online - Anime', 'spider/anime');
     Lampa.Manifest.plugins = manifest;
     Lampa.Lang.add({
       lampac_watch: {
@@ -2638,7 +2615,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
 
     var LAMPAC_TEMPLATE_PRESTIGE_RATE = [
       '<div class="online-prestige-rate">',
-      '  <svg width="17" height="16" viewBox="0 0 17 16" fill="none" xmlns="' + SVG_NS + '">',
+      '  <svg width="17" height="16" viewBox="0 0 17 16" fill="none" xmlns="http://www.w3.org/2000/svg">',
       '    <path d="M8.39409 0.192139L10.99 5.30994L16.7882 6.20387L12.5475 10.4277L13.5819 15.9311L8.39409 13.2425L3.20626 15.9311L4.24065 10.4277L0 6.20387L5.79819 5.30994L8.39409 0.192139Z" fill="#fff"></path>',
       '  </svg>',
       '  <span>{rate}</span>',
@@ -2648,7 +2625,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
     var LAMPAC_TEMPLATE_PRESTIGE_FOLDER = [
       '<div class="online-prestige online-prestige--folder selector">',
       '  <div class="online-prestige__folder">',
-      '    <svg viewBox="0 0 128 112" fill="none" xmlns="' + SVG_NS + '">',
+      '    <svg viewBox="0 0 128 112" fill="none" xmlns="http://www.w3.org/2000/svg">',
       '      <rect y="20" width="128" height="92" rx="13" fill="white"></rect>',
       '      <path d="M29.9963 8H98.0037C96.0446 3.3021 91.4079 0 86 0H42C36.5921 0 31.9555 3.3021 29.9963 8Z" fill="white" fill-opacity="0.23"></path>',
       '      <rect x="11" y="8" width="106" height="76" rx="13" fill="white" fill-opacity="0.51"></rect>',
@@ -2669,7 +2646,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
     var LAMPAC_TEMPLATE_PRESTIGE_WATCHED = [
       '<div class="online-prestige online-prestige-watched selector">',
       '  <div class="online-prestige-watched__icon">',
-      '    <svg width="21" height="21" viewBox="0 0 21 21" fill="none" xmlns="' + SVG_NS + '">',
+      '    <svg width="21" height="21" viewBox="0 0 21 21" fill="none" xmlns="http://www.w3.org/2000/svg">',
       '      <circle cx="10.5" cy="10.5" r="9" stroke="currentColor" stroke-width="3"/>',
       '      <path d="M14.8477 10.5628L8.20312 14.399L8.20313 6.72656L14.8477 10.5628Z" fill="currentColor"/>',
       '    </svg>',
@@ -2696,9 +2673,11 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
         ' v' +
         manifest.version +
         '">',
-      '  <svg width="135" height="147" viewBox="0 0 135 147" fill="none" xmlns="' + SVG_NS + '">',
-      '    <path d="M121.5 96.8823C139.5 86.49 139.5 60.5092 121.5 50.1169L41.25 3.78454C23.25 -6.60776 0.750004 6.38265 0.750001 27.1673L0.75 51.9742C4.70314 35.7475 23.6209 26.8138 39.0547 35.7701L94.8534 68.1505C110.252 77.0864 111.909 97.8693 99.8725 109.369L121.5 96.8823Z" fill="currentColor"/>',
-      '    <path d="M63 84.9836C80.3333 94.991 80.3333 120.01 63 130.017L39.75 143.44C22.4167 153.448 0.749999 140.938 0.75 120.924L0.750001 94.0769C0.750002 74.0621 22.4167 61.5528 39.75 71.5602L63 84.9836Z" fill="currentColor"/>',
+      '  <svg xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 392.697 392.697" xml:space="preserve">',
+      '    <path d="M21.837,83.419l36.496,16.678L227.72,19.886c1.229-0.592,2.002-1.846,1.98-3.209c-0.021-1.365-0.834-2.592-2.082-3.145 L197.766,0.3c-0.903-0.4-1.933-0.4-2.837,0L21.873,77.036c-1.259,0.559-2.073,1.803-2.081,3.18 C19.784,81.593,20.584,82.847,21.837,83.419z" fill="currentColor"></path>',
+      '    <path d="M185.689,177.261l-64.988-30.01v91.617c0,0.856-0.44,1.655-1.167,2.114c-0.406,0.257-0.869,0.386-1.333,0.386 c-0.368,0-0.736-0.082-1.079-0.244l-68.874-32.625c-0.869-0.416-1.421-1.293-1.421-2.256v-92.229L6.804,95.5 c-1.083-0.496-2.344-0.406-3.347,0.238c-1.002,0.645-1.608,1.754-1.608,2.944v208.744c0,1.371,0.799,2.615,2.045,3.185 l178.886,81.768c0.464,0.211,0.96,0.315,1.455,0.315c0.661,0,1.318-0.188,1.892-0.555c1.002-0.645,1.608-1.754,1.608-2.945 V180.445C187.735,179.076,186.936,177.831,185.689,177.261z" fill="currentColor"></path>',
+      '    <path d="M389.24,95.74c-1.002-0.644-2.264-0.732-3.347-0.238l-178.876,81.76c-1.246,0.57-2.045,1.814-2.045,3.185v208.751 c0,1.191,0.606,2.302,1.608,2.945c0.572,0.367,1.23,0.555,1.892,0.555c0.495,0,0.991-0.104,1.455-0.315l178.876-81.768 c1.246-0.568,2.045-1.813,2.045-3.185V98.685C390.849,97.494,390.242,96.384,389.24,95.74z" fill="currentColor"></path>',
+      '    <path d="M372.915,80.216c-0.009-1.377-0.823-2.621-2.082-3.18l-60.182-26.681c-0.938-0.418-2.013-0.399-2.938,0.045 l-173.755,82.992l60.933,29.117c0.462,0.211,0.958,0.316,1.455,0.316s0.993-0.105,1.455-0.316l173.066-79.092 C372.122,82.847,372.923,81.593,372.915,80.216z" fill="currentColor"></path>',
       '  </svg>',
       '  <span>#{title_online}</span>',
       '</div>'
@@ -2760,6 +2739,10 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
         'hdvb',
         'kodik',
         'bamboo',
+        'eneyida',
+        'kinoukr',
+        'uafilm',
+        'uakino',
         'kinotochka',
         'remux',
         'anilibria',
