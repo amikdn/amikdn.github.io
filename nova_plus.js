@@ -361,6 +361,9 @@
     if (!key) return;
     var all = cached('nova_voices2', 2000, {});
     var mine = voiceBook(movie.id);
+    var old = mine.list[key] && parseInt(mine.list[key].c, 10) || 0;
+    count = parseInt(count, 10) || 0;
+    if (count < old) count = old;
     mine.list[key] = { c: count, t: Date.now() };
     all[movie.id] = mine;
     save('nova_voices2', all);
@@ -1376,6 +1379,8 @@
   var voice_seed_busy = false;
   var voice_seed_done = '';
   var voice_seed_net = null;
+  var voice_retry_timer = null;
+  var voice_retry_stamp = '';
   var VOICE_SEED_TIMEOUT = 10000;
   var VOICE_LIMIT = 64;
   var VOICE_PARALLEL = 4;
@@ -1759,6 +1764,8 @@
     value = value.replace(/\([^)]*\)/g, ' ');
     value = value.replace(/\b(2160|1440|1080|720|576|480|360)p?\b/g, ' ');
     value = value.replace(/\b(4k|uhd|fhd|hd|web ?dl|webrip|bdrip|hdtv|dvdrip)\b/g, ' ');
+    value = value.replace(/профессиональн\w*/g, ' professional ');
+    value = value.replace(/оригинальн\w*/g, ' original ');
     value = value.replace(/[^0-9a-z\u0400-\u04ff]+/g, ' ');
     return value.replace(/\s+/g, ' ').replace(/^ | $/g, '');
   }
@@ -1911,6 +1918,14 @@
   function voiceLink(url) {
     var value = String(url || '').replace('rjson=', 'nojson=');
     if (!value) return '';
+    value = voiceDropParam(value, 'e');
+    value = voiceDropParam(value, 'episode');
+    value = voiceDropParam(value, 'number');
+    var season = seasonNumber() || 0;
+    if (season) {
+      if (/[?&]s=\d*/i.test(value)) value = value.replace(/([?&]s=)\d*/i, '$1' + season);
+      else value += (value.indexOf('?') === -1 ? '?' : '&') + 's=' + season;
+    }
     var origin = String(voice_seen.origin || probe_url || '');
     var at = origin.indexOf('?');
     if (at === -1) return value;
@@ -1977,6 +1992,8 @@
     }
     if (files) return files;
     if (episodes) return episodes;
+    var cards = (text.match(/class=[\"'][^\"']*videos__item[^\"']*[\"']/gi) || []).length;
+    if (cards) return cards;
     var playable = (text.match(/\"method\"\s*:\s*\"(play|call)\"/g) || []).length;
     if (playable) return playable;
     return folders > 1 ? folders : 0;
@@ -4549,6 +4566,17 @@
     relayout();
     probeSchedule();
     voiceSchedule();
+    var retryStamp = [movie && movie.id, currentSourceKey(), seasonNumber() || 0].join('|');
+    if (voice_retry_stamp !== retryStamp) {
+      voice_retry_stamp = retryStamp;
+      clearTimeout(voice_retry_timer);
+      voice_retry_timer = setTimeout(function () {
+        if (!inSkin() || !voiceWanted()) return;
+        voice_done = '';
+        voiceSchedule();
+        voicePaint();
+      }, 1800);
+    }
   }
 
   function relayout() {
