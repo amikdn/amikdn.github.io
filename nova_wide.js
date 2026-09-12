@@ -21,6 +21,7 @@
 
   var filters = [];
   var scrolls = [];
+  var voice_url_map = {};
 
   function get(key, def) {
     try { return Lampa.Storage.get(key, def); } catch (e) { return def; }
@@ -338,6 +339,9 @@
     if (!key) return;
     var all = cached('nova_voices2', 2000, {});
     var mine = voiceBook(movie.id);
+    var old = mine.list[key] && parseInt(mine.list[key].c, 10) || 0;
+    count = parseInt(count, 10) || 0;
+    if (count < old) count = old;
     mine.list[key] = { c: count, t: Date.now() };
     all[movie.id] = mine;
     save('nova_voices2', all);
@@ -442,6 +446,16 @@
       inst.nova_sets = {};
       inst.set = function (type, list) {
         inst.nova_sets[type] = list;
+        if (type === 'filter' && Array.isArray(list)) {
+          list.forEach(function (group) {
+            if (!group || group.stype !== 'voice' || !group.items) return;
+            group.items.forEach(function (item) {
+              var key = voiceNorm(item.title || '');
+              var url = item.url || item.voice_url || item.href || '';
+              if (key && url) voice_url_map[key] = url;
+            });
+          });
+        }
         return setter.apply(inst, arguments);
       };
       filters.unshift(inst);
@@ -541,6 +555,11 @@
       origin: origin || probe_url,
       list: list
     };
+    if (voiceWanted()) {
+      setTimeout(function () {
+        if (inSkin() && voiceWanted()) { voiceRun(); voicePaint(); }
+      }, 80);
+    }
   }
 
   function hookRequest() {
@@ -1353,10 +1372,10 @@
   var voice_seed_done = '';
   var voice_seed_net = null;
   var VOICE_SEED_TIMEOUT = 10000;
-  var VOICE_LIMIT = 16;
-  var VOICE_PARALLEL = 2;
-  var VOICE_TIMEOUT = 8000;
-  var VOICE_BUDGET = 30000;
+  var VOICE_LIMIT = 64;
+  var VOICE_PARALLEL = 4;
+  var VOICE_TIMEOUT = 12000;
+  var VOICE_BUDGET = 60000;
   var VOICE_DELAY = 250;
   var VOICE_OWN_PARAMS = ['id', 'imdb_id', 'kinopoisk_id', 'title', 'original_title',
     'original_language', 'serial', 'year', 'source', 'clarification', 'similar',
@@ -1735,6 +1754,9 @@
     value = value.replace(/\([^)]*\)/g, ' ');
     value = value.replace(/\b(2160|1440|1080|720|576|480|360)p?\b/g, ' ');
     value = value.replace(/\b(4k|uhd|fhd|hd|web ?dl|webrip|bdrip|hdtv|dvdrip)\b/g, ' ');
+    value = value.replace(/профессиональн\w*/g, ' professional ');
+    value = value.replace(/оригинальн\w*/g, ' original ');
+    value = value.replace(/\b(ru|en|gb|uk|ua)\b/gi, ' ');
     value = value.replace(/[^0-9a-z\u0400-\u04ff]+/g, ' ');
     return value.replace(/\s+/g, ' ').replace(/^ | $/g, '');
   }
@@ -1887,6 +1909,14 @@
   function voiceLink(url) {
     var value = String(url || '').replace('rjson=', 'nojson=');
     if (!value) return '';
+    value = voiceDropParam(value, 'e');
+    value = voiceDropParam(value, 'episode');
+    value = voiceDropParam(value, 'number');
+    var season = seasonNumber() || 0;
+    if (season) {
+      if (/[?&]s=\d*/i.test(value)) value = value.replace(/([?&]s=)\d*/i, '$1' + season);
+      else value += (value.indexOf('?') === -1 ? '?' : '&') + 's=' + season;
+    }
     var origin = String(voice_seen.origin || probe_url || '');
     var at = origin.indexOf('?');
     if (at === -1) return value;
@@ -1932,21 +1962,32 @@
     if (!text) return 0;
     var files = 0;
     var folders = 0;
+    var episodes = 0;
     try {
       $('<div>' + text + '</div>').find('.videos__item').each(function () {
         var node = $(this);
         var method = voiceNodeMethod(node);
         if (!method) return;
+        var raw = node.attr('data-json') || '';
         var folder = method === 'link' || node.hasClass('videos__season');
-        if (folder) folders++;
-        else files++;
+        if (folder) {
+          folders++;
+          if (/\"(?:episode|e)\"\s*:\s*\d+/i.test(raw) || /S\d+\s*E\d+/i.test(node.text())) episodes++;
+        } else {
+          files++;
+          episodes++;
+        }
       });
     } catch (e) {
       return 0;
     }
     if (files) return files;
-    if (folders) return 0;
-    return (text.match(/"method"\s*:\s*"(play|call)"/g) || []).length;
+    if (episodes) return episodes;
+    var cards = (text.match(/class=[\"'][^\"']*videos__item[^\"']*[\"']/gi) || []).length;
+    if (cards) return cards;
+    var playable = (text.match(/\"method\"\s*:\s*\"(play|call)\"/g) || []).length;
+    if (playable) return playable;
+    return folders > 1 ? folders : 0;
   }
 
   function voicePaint() {
@@ -1982,7 +2023,7 @@
   }
 
   function voiceRun() {
-    if (!voiceFresh()) return;
+    if (!voiceWanted()) return;
     voiceStop();
 
     var book = voiceIndex();
@@ -1990,11 +2031,12 @@
     var queue = [];
     var rest = [];
 
-    var take = function (name, row) {
-      if (!row || !row.entry || !row.entry.url) return false;
-      var link = voiceLink(row.entry.url);
+    var take = function (name, row, directUrl) {
+      var rawUrl = directUrl || (row && row.entry && row.entry.url) || '';
+      if (!rawUrl) return false;
+      var link = voiceLink(rawUrl);
       if (!link) return false;
-      used[row.seat] = true;
+      if (row && typeof row.seat === 'number') used[row.seat] = true;
       queue.push({ name: name, url: link });
       return true;
     };
@@ -2003,8 +2045,12 @@
       var name = String(item.title == null ? '' : item.title).trim();
       if (!name || item.selected) return;
       if (voiceCount(name)) return;
+      var directUrl = item.url || item.voice_url || item.href || voice_url_map[voiceNorm(name)] || '';
+      if (directUrl && take(name, null, directUrl)) return;
       var row = book.exact[voiceNorm(name)];
       if (row && !used[row.seat] && take(name, row)) return;
+      var positionRow = book.rows[item.index != null ? item.index : groups.voice.items.indexOf(item)];
+      if (positionRow && !used[positionRow.seat] && take(name, positionRow)) return;
       rest.push(name);
     });
 
@@ -2071,7 +2117,7 @@
       voice_timer = null;
       if (voiceListFresh()) return voiceRun();
       voiceSeed(function () {
-        if (voiceListFresh()) voiceRun();
+        voiceRun();
       });
     }, VOICE_DELAY);
   }
@@ -4513,6 +4559,12 @@
     relayout();
     probeSchedule();
     voiceSchedule();
+    setTimeout(function () {
+      if (!inSkin() || !voiceWanted()) return;
+      voice_done = '';
+      voiceSchedule();
+      voicePaint();
+    }, 1800);
   }
 
   function relayout() {
@@ -6624,7 +6676,11 @@
           var sameLine = Math.abs((box.top + box.height / 2) - (here.top + here.height / 2)) <= Math.max(6, here.height * .58);
           if (sameLine && box.left < here.left - 2) leftmost = false;
         });
-        if (leftmost) return wideToHeroNear(last) || true;
+        if (leftmost) {
+          var seasonGroup = ownRow.closest('[data-nova-group="season"]').length;
+          if (seasonGroup) return false;
+          return wideToHeroNear(last) || true;
+        }
         return true;
       }
       if (grouped) return true;
