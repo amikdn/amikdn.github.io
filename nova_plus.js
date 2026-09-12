@@ -567,6 +567,14 @@
       origin: origin || probe_url,
       list: list
     };
+    if (voiceWanted()) {
+      clearTimeout(voice_retry_timer);
+      voice_retry_timer = setTimeout(function () {
+        if (!inSkin() || !voiceWanted()) return;
+        voiceRun();
+        voicePaint();
+      }, 80);
+    }
   }
 
   function hookRequest() {
