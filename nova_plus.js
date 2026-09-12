@@ -2015,7 +2015,7 @@
   }
 
   function voiceRun() {
-    if (!voiceFresh()) return;
+    if (!voiceWanted()) return;
     voiceStop();
 
     var book = voiceIndex();
@@ -2104,7 +2104,7 @@
       voice_timer = null;
       if (voiceListFresh()) return voiceRun();
       voiceSeed(function () {
-        if (voiceListFresh()) voiceRun();
+        voiceRun();
       });
     }, VOICE_DELAY);
   }
@@ -3389,6 +3389,7 @@
     if (!(extra && extra.plain)) box.append(ICON.chevron);
     if (extra && extra.active) box.addClass('nova-chip--active');
     if (extra && extra.empty) box.addClass('nova-chip--empty');
+    if (extra && extra.num) box.append($('<span class="nova-chip__num"></span>').text(extra.num));
     if (extra && extra.dot) box.append('<span class="nova-chip__dot"></span>');
     return box;
   }
@@ -3615,7 +3616,8 @@
       var box = chip(group.stype + ':' + entry.index,
         plain_season ? partTitle(entry.item.title) : entry.item.title, {
         active: !!entry.item.selected,
-        plain: true
+        plain: true,
+        num: group.stype === 'voice' ? voiceCount(entry.item.title) : 0
       });
       bind(box, function () {
         if (entry.item.selected) return uiToggle(group.stype);
