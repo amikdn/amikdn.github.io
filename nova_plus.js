@@ -3891,9 +3891,9 @@
       }
     }
 
-    if (groups.voice && groups.voice.items.length > 1) {
+    if (groups.voice && groups.voice.items.length > 0) {
       addChip('voice', groups.voice.title || text('torrent_parser_voice', 'nova_plus_voice'),
-        groups.voice.subtitle || '', {});
+        groups.voice.subtitle || groups.voice.items[0].title || '', {});
     }
 
     if (!nav && items.length > JUMP_FROM) {
@@ -6478,7 +6478,7 @@
       });
     }
 
-    if (groups.voice && groups.voice.items.length > 1) {
+    if (groups.voice && groups.voice.items.length > 0) {
       var voices = group(groups.voice.title || label('nova_plus_voices'), 'voice');
       var order = groups.voice.items.map(function (item, seat) {
         return { item: item, index: typeof item.index === 'number' ? item.index : seat, seat: seat };
