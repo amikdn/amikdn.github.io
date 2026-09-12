@@ -672,7 +672,29 @@
       }
     });
     if (best) return focusNode(best, true);
-    return true;
+    var poster = ui.play && ui.play.length ? ui.play[0] : (ui.next && ui.next.length ? ui.next[0] : null);
+    if (poster) return focusNode(poster, true);
+    return false;
+  }
+
+  function itemLeft() {
+    if (!ui.rows || !ui_focus || ui_focus.indexOf('item:') !== 0) return false;
+    var current = ui.rows.find('[data-nova-focus="' + ui_focus + '"]').first()[0];
+    if (!current) return false;
+    var cr = current.getBoundingClientRect();
+    var best = null;
+    var bestX = -Infinity;
+    ui.rows.find('[data-nova-focus^="item:"]').each(function () {
+      if (this === current) return;
+      var r = this.getBoundingClientRect();
+      var sameRow = Math.abs((r.top + r.height / 2) - (cr.top + cr.height / 2)) <= Math.max(10, Math.min(r.height, cr.height) * 0.65);
+      if (sameRow && r.right <= cr.left + 2 && r.right > bestX) {
+        best = this;
+        bestX = r.right;
+      }
+    });
+    if (best) return focusNode(best, true);
+    return false;
   }
 
   function hookController() {
@@ -712,6 +734,7 @@
           object.left = function () {
             pressMark();
             if (voiceLeft()) return;
+            if (itemLeft()) return;
             if (novaLeft()) return;
             return left.apply(this, arguments);
           };
