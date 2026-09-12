@@ -1451,10 +1451,11 @@
   var voice_seed_net = null;
   var voice_retry_timer = null;
   var voice_retry_stamp = '';
-  var VOICE_SEED_TIMEOUT = 10000;
-  var VOICE_PARALLEL = 4;
-  var VOICE_TIMEOUT = 12000;
-  var VOICE_DELAY = 250;
+  var VOICE_SEED_TIMEOUT = 6000;
+  var VOICE_PARALLEL = 2;
+  var VOICE_TIMEOUT = 6000;
+  var VOICE_BUDGET = 15000;
+  var VOICE_DELAY = 500;
   var VOICE_OWN_PARAMS = ['id', 'imdb_id', 'kinopoisk_id', 'title', 'original_title',
     'original_language', 'serial', 'year', 'source', 'clarification', 'similar',
     's', 'e', 't', 'voice', 'translation', 'season', 'episode', 'number',
@@ -2161,11 +2162,12 @@
     });
     if (!queue.length) return;
     voice_busy = true;
+    var deadline = Date.now() + VOICE_BUDGET;
     var index = 0;
     var active = 0;
     var pumping = false;
     function valid() {
-      return voice_busy && generation === voice_generation && stamp === voiceContext() && inSkin();
+      return voice_busy && Date.now() < deadline && generation === voice_generation && stamp === voiceContext() && inSkin();
     }
     function pump() {
       if (pumping || !valid()) return;
