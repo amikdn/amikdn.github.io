@@ -6922,10 +6922,17 @@
     }
 
     if (listFocused()) {
-      var seats = wideNoteNodes();
-      if (seats.length && seats.indexOf(last) !== -1) {
+      var cards = wideListNodes();
+      if (cards.indexOf(last) !== -1) {
         var step = wideRowSide(dir);
         if (step) return focusNode(step);
+        if (dir === 'left') return wideToMenu();
+        return true;
+      }
+      var seats = wideNoteNodes();
+      if (seats.length && seats.indexOf(last) !== -1) {
+        var noteStep = wideRowSide(dir);
+        if (noteStep) return focusNode(noteStep);
         if (dir === 'left') return wideToMenu();
         return true;
       }
