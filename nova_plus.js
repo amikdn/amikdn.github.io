@@ -2042,11 +2042,12 @@
     var queue = [];
     var rest = [];
 
-    var take = function (name, row) {
-      if (!row || !row.entry || !row.entry.url) return false;
-      var link = voiceLink(row.entry.url);
+    var take = function (name, row, directUrl) {
+      var rawUrl = directUrl || (row && row.entry && row.entry.url) || '';
+      if (!rawUrl) return false;
+      var link = voiceLink(rawUrl);
       if (!link) return false;
-      used[row.seat] = true;
+      if (row && typeof row.seat === 'number') used[row.seat] = true;
       queue.push({ name: name, url: link });
       return true;
     };
@@ -2055,6 +2056,8 @@
       var name = String(item.title == null ? '' : item.title).trim();
       if (!name || item.selected) return;
       if (voiceCount(name)) return;
+      var directUrl = item.url || item.voice_url || item.href || '';
+      if (directUrl && take(name, null, directUrl)) return;
       var row = book.exact[voiceNorm(name)];
       if (row && !used[row.seat] && take(name, row)) return;
       var positionRow = book.rows[item.index != null ? item.index : groups.voice.items.indexOf(item)];
