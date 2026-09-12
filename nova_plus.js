@@ -570,11 +570,23 @@
     var mark = body.match(/\ss="(\d+)"/);
     var found = mark ? (parseInt(mark[1], 10) || 0) : 0;
     if (typeof season === 'number' && season) found = season;
+    var merged = [];
+    var oldList = voice_seen && voice_seen.list || [];
+    oldList.concat(list).forEach(function (entry) {
+      var key = voiceNorm(entry.name);
+      if (!key) return;
+      var existing = merged.find(function (item) { return voiceNorm(item.name) === key; });
+      if (!existing) merged.push({ name: entry.name, url: entry.url || '', active: !!entry.active });
+      else {
+        if (!existing.url && entry.url) existing.url = entry.url;
+        existing.active = existing.active || !!entry.active;
+      }
+    });
     voice_seen = {
       id: movie ? movie.id : 0,
-      season: found,
-      origin: origin || probe_url,
-      list: list
+      season: found || (voice_seen && voice_seen.season) || 0,
+      origin: origin || (voice_seen && voice_seen.origin) || probe_url,
+      list: merged
     };
     if (voiceWanted()) {
       clearTimeout(voice_retry_timer);
