@@ -6932,6 +6932,33 @@
     return false;
   }
 
+  function wideListSide(dir) {
+    if (!listFocused() || !last) return null;
+    var nodes = wideListNodes();
+    var from = last.getBoundingClientRect();
+    if (!from.width && !from.height) return null;
+    var midY = from.top + from.height / 2;
+    var midX = from.left + from.width / 2;
+    var tolY = Math.max(8, from.height * .6);
+    var best = null;
+    var gap = Infinity;
+    nodes.forEach(function (node) {
+      if (node === last) return;
+      var box = node.getBoundingClientRect();
+      if (!box.width && !box.height) return;
+      var y = box.top + box.height / 2;
+      var x = box.left + box.width / 2;
+      if (Math.abs(y - midY) > tolY) return;
+      var distance = dir === 'right' ? x - midX : midX - x;
+      if (distance < -tolY) return;
+      if (distance < gap) {
+        best = node;
+        gap = distance;
+      }
+    });
+    return best;
+  }
+
   function wideSide(dir) {
     if (!inSkin()) return false;
 
@@ -6988,7 +7015,9 @@
     if (listFocused()) {
       var cards = wideListNodes();
       if (cards.indexOf(last) !== -1) {
-        var step = wideRowSide(dir);
+
+
+        var step = wideListSide(dir) || wideRowSide(dir);
         if (step) return focusNode(step);
         if (dir === 'left') return wideToMenu();
         return true;
