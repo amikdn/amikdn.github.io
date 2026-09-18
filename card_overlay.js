@@ -500,13 +500,28 @@
     }
     function containsString(str1, str2) { return typeof str1 === 'string' && typeof str2 === 'string' && normalizeString(str1).indexOf(normalizeString(str2)) !== -1; }
 
+    function hasMovieMarkers(d) {
+        return !!(d && (d.release_date || d.original_title || (d.title && !d.name && !d.original_name)));
+    }
+    function hasSeasonsCollection(v) {
+        if (!v) return false;
+        if (Array.isArray(v)) return v.length > 0;
+        if (typeof v === 'object') return Object.keys(v).length > 0;
+        return false;
+    }
+    function isSeriesAirDate(d) {
+        if (!d) return false;
+        if (d.first_air_date) return true;
+        return !!(d.last_air_date && !hasMovieMarkers(d));
+    }
+
     function getKpApiKey() { var k = Lampa.Storage.get('rating_kp_api_key', '') || Lampa.Storage.get('source_api_key', ''); return String(k || '').trim(); }
     function canUseKinopoiskApi() { return getKpApiKey().length > 0; }
     function getKpHeaders() { var k = getKpApiKey(); if (!k) return {}; return { 'X-API-KEY': k }; }
     function kpCacheKey(item) {
         if (!item) return 'unknown_';
         var t = item.type || item.media_type;
-        if (t !== 'movie' && t !== 'tv') t = (item.name || item.original_name || item.first_air_date || item.last_air_date) ? 'tv' : 'movie';
+        if (t !== 'movie' && t !== 'tv') t = (item.name || item.original_name || isSeriesAirDate(item)) ? 'tv' : 'movie';
         return t + '_' + item.id;
     }
     function cacheEmptyKpRating(item, failedNetwork) {
@@ -662,7 +677,7 @@
         var mt = data.media_type || data.type || data.method;
         if (mt === 'movie' || mt === 'tv') return mt;
         if (mt === 'person' || mt === 'collection') return null;
-        if (data.number_of_seasons || data.seasons || data.first_air_date || data.last_air_date) return 'tv';
+        if (data.number_of_seasons || hasSeasonsCollection(data.seasons) || isSeriesAirDate(data)) return 'tv';
         if (data.release_date || data.title || data.original_title) return 'movie';
         if (data.name || data.original_name) return 'tv';
         return null;
@@ -2385,8 +2400,8 @@
             value = String(types[i] || '').toLowerCase();
             if (value === 'movie' || value === 'tv') return value;
         }
-        if (meta.first_air_date || meta.last_air_date || meta.number_of_seasons > 0 || meta.number_of_episodes > 0 ||
-            (Array.isArray(meta.seasons) && meta.seasons.length) || (Array.isArray(meta.episodes) && meta.episodes.length) || isTruthy(meta.is_series)) return 'tv';
+        if (isSeriesAirDate(meta) || meta.number_of_seasons > 0 || meta.number_of_episodes > 0 ||
+            hasSeasonsCollection(meta.seasons) || hasSeasonsCollection(meta.episodes) || isTruthy(meta.is_series)) return 'tv';
         if (meta.release_date || meta.original_title) return 'movie';
         if (meta.original_name) return 'tv';
         if (node && node.hasClass('card--tv')) return 'tv';
