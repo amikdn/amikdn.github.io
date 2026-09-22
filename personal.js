@@ -615,14 +615,10 @@
       });
 
       var personalRefreshTimer = 0,
-        personalPendingRefresh = false;
+        personalRefreshWatch = 0;
 
-      function runPersonalRefresh() {
+      function personalReplaceMain() {
         if (Lampa.Storage.get('source') != 'personal') return;
-        if ($('body').hasClass('settings--open') || $('body').hasClass('selectbox--open')) {
-          personalPendingRefresh = true;
-          return;
-        }
         var activity = Lampa.Activity.active();
         if (activity && activity.component == 'main') Lampa.Activity.replace({
           source: 'personal',
@@ -630,20 +626,34 @@
         });
       }
 
+      function personalStartRefresh() {
+        clearInterval(personalRefreshWatch);
+        var tries = 0;
+        personalRefreshWatch = setInterval(function() {
+          tries++;
+          if (Lampa.Storage.get('source') != 'personal' || tries > 1200) {
+            clearInterval(personalRefreshWatch);
+            personalRefreshWatch = 0;
+            return;
+          }
+          var busy = $('body').hasClass('settings--open') || $('body').hasClass('selectbox--open');
+          var activity = Lampa.Activity.active();
+          if (!busy && activity && activity.component == 'main') {
+            clearInterval(personalRefreshWatch);
+            personalRefreshWatch = 0;
+            personalReplaceMain();
+          }
+        }, 250);
+      }
+
+      function personalScheduleRefresh() {
+        clearTimeout(personalRefreshTimer);
+        personalRefreshTimer = setTimeout(personalStartRefresh, 300);
+      }
+
       Lampa.Storage.listener.follow('change', function(event) {
         var name = event && event.name ? event.name : '';
-        if (name == "source" || name == "genres_cat" || name.indexOf("number_") == 0 || /_(remove|display|shuffle)$/.test(name)) {
-          clearTimeout(personalRefreshTimer);
-          personalRefreshTimer = setTimeout(runPersonalRefresh, 300);
-        }
-      });
-
-      Lampa.Settings.listener.follow('close', function() {
-        if (personalPendingRefresh) {
-          personalPendingRefresh = false;
-          clearTimeout(personalRefreshTimer);
-          personalRefreshTimer = setTimeout(runPersonalRefresh, 150);
-        }
+        if (name == "source" || name == "genres_cat" || name.indexOf("number_") == 0 || /_(remove|display|shuffle)$/.test(name)) personalScheduleRefresh();
       });
 
       function addSetting(component2, title2, description2, removeDefault, displayDefault, orderDefault, shuffleDefault) {
@@ -691,7 +701,8 @@
           },
           field: {
             name: "Убрать с главной страницы"
-          }
+          },
+          onChange: personalScheduleRefresh
         }), Lampa.SettingsApi.addParam({
           component: component2,
           param: {
@@ -707,7 +718,8 @@
           },
           field: {
             name: "Вид отображения"
-          }
+          },
+          onChange: personalScheduleRefresh
         }), Lampa.SettingsApi.addParam({
           component: component2,
           param: {
@@ -757,7 +769,7 @@
           field: {
             name: "Порядок отображения"
           },
-          onChange: function(value) {}
+          onChange: personalScheduleRefresh
         }), Lampa.SettingsApi.addParam({
           component: component2,
           param: {
@@ -767,7 +779,8 @@
           },
           field: {
             name: "Изменять порядок карточек на главной"
-          }
+          },
+          onChange: personalScheduleRefresh
         });
       }
       addSetting('now_watch', "Сейчас смотрят", "Нажми для настройки", false, '1', '1', false), addSetting("trend_day", 'Сегодня в тренде', 'Нажми для настройки', false, '1', '3', false), addSetting("trend_day_tv", "Сегодня в тренде (сериалы)", "Нажми для настройки", false, '1', '4', false), addSetting('trend_day_film', 'Сегодня в тренде (фильмы)', "Нажми для настройки", false, '1', '5', false), addSetting('trend_week', "В тренде за неделю", "Нажми для настройки", false, '1', '6', false), addSetting("trend_week_tv", "В тренде за неделю (сериалы)", "Нажми для настройки", false, '1', '7', false), addSetting("trend_week_film", "В тренде за неделю (фильмы)", "Нажми для настройки", false, '1', '8', false), addSetting('upcoming', 'Смотрите в кинозалах', "Нажми для настройки", false, '1', '9', false), addSetting("popular_movie", "Популярные фильмы", "Нажми для настройки", false, '1', '10', false), addSetting("popular_tv", "Популярные сериалы", 'Нажми для настройки', false, '1', '11', false), addSetting("top_movie", "Топ фильмы", "Нажми для настройки", false, '4', '12', false), addSetting("top_tv", "Топ сериалы", "Нажми для настройки", false, '4', '13', false), addSetting("netflix", "Netflix", 'Нажми для настройки', false, '1', '14', false), addSetting("apple_tv", "Apple TV+", "Нажми для настройки", false, '1', '15', false), addSetting("prime_video", "Prime Video", "Нажми для настройки", false, '1', '16', false), addSetting("mgm", "MGM+", "Нажми для настройки", false, '1', '17', false), addSetting("hbo", "HBO", "Нажми для настройки", false, '1', '18', false), addSetting("dorams", "Дорамы", 'Нажми для настройки', false, '1', '19', false), addSetting("tur_serials", 'Турецкие сериалы', "Нажми для настройки", false, '1', '20', false), addSetting("ind_films", "Индийские фильмы", "Нажми для настройки", false, '1', '21', false), addSetting("rus_movie", "Русские фильмы", "Нажми для настройки", false, '1', '22', false), addSetting("rus_tv", "Русские сериалы", "Нажми для настройки", false, '1', '23', false), addSetting("rus_mult", "Русские мультфильмы", 'Нажми для настройки', false, '1', '24', false), addSetting('start', "Start", "Нажми для настройки", false, '1', '25', false), addSetting("premier", "Premier", "Нажми для настройки", false, '1', '26', false), addSetting("kion", "KION", "Нажми для настройки", false, '1', '27', false), addSetting("ivi", "ИВИ", 'Нажми для настройки', false, '1', '28', false), addSetting("okko", "Okko", "Нажми для настройки", false, '1', '29', false), addSetting("kinopoisk", "КиноПоиск", "Нажми для настройки", false, '1', '30', false), addSetting('wink', 'Wink', "Нажми для настройки", false, '1', '31', false), addSetting('sts', 'СТС', "Нажми для настройки", false, '1', '32', false), addSetting("tnt", "ТНТ", "Нажми для настройки", false, '1', '33', false), addSetting('collections_inter_tv', 'Подборки зарубежных сериалов', "Нажми для настройки", false, '1', '34', false), addSetting('collections_rus_tv', "Подборки русских сериалов", 'Нажми для настройки', false, '1', '35', false), addSetting("collections_inter_movie", 'Подборки зарубежных фильмов', "Нажми для настройки", false, '1', '36', false), addSetting("collections_rus_movie", 'Подборки русских фильмов', "Нажми для настройки", false, '1', '37', false), Lampa.SettingsApi.addParam({
