@@ -614,19 +614,35 @@
         }, 50);
       });
 
-      var personalRefreshTimer = 0;
+      var personalRefreshTimer = 0,
+        personalPendingRefresh = false;
+
+      function runPersonalRefresh() {
+        if (Lampa.Storage.get('source') != 'personal') return;
+        if ($('body').hasClass('settings--open') || $('body').hasClass('selectbox--open')) {
+          personalPendingRefresh = true;
+          return;
+        }
+        var activity = Lampa.Activity.active();
+        if (activity && activity.component == 'main') Lampa.Activity.replace({
+          source: 'personal',
+          title: Lampa.Lang.translate('title_main') + ' - ' + Lampa.Storage.field('source').toUpperCase()
+        });
+      }
+
       Lampa.Storage.listener.follow('change', function(event) {
         var name = event && event.name ? event.name : '';
         if (name == "source" || name == "genres_cat" || name.indexOf("number_") == 0 || /_(remove|display|shuffle)$/.test(name)) {
           clearTimeout(personalRefreshTimer);
-          personalRefreshTimer = setTimeout(function() {
-            if (Lampa.Storage.get('source') != 'personal') return;
-            var activity = Lampa.Activity.active();
-            if (activity && activity.component == 'main') Lampa.Activity.replace({
-              source: 'personal',
-              title: Lampa.Lang.translate('title_main') + ' - ' + Lampa.Storage.field('source').toUpperCase()
-            });
-          }, 300);
+          personalRefreshTimer = setTimeout(runPersonalRefresh, 300);
+        }
+      });
+
+      Lampa.Settings.listener.follow('close', function() {
+        if (personalPendingRefresh) {
+          personalPendingRefresh = false;
+          clearTimeout(personalRefreshTimer);
+          personalRefreshTimer = setTimeout(runPersonalRefresh, 150);
         }
       });
 
@@ -658,7 +674,10 @@
               Lampa.Settings.create(component2), Lampa.Controller.enabled().controller.back = function() {
                 Lampa.Settings.create("personal_source"), setTimeout(function() {
                   var element3 = document.querySelector("#app > div.settings.animate > div.settings__content.layer--height > div.settings__body > div > div > div > div > div:nth-child(" + nextIndex + ')');
-                  Lampa.Controller.focus(element3), Lampa.Controller.toggle('settings_component');
+                  if (element3) {
+                    Lampa.Controller.focus(element3);
+                    Lampa.Controller.toggle('settings_component');
+                  }
                 }, 5);
               };
             });
