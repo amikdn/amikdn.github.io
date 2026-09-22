@@ -272,14 +272,35 @@
             lastMonthDate.setMonth(lastMonthDate.getMonth() - 1);
             var lastMonth = lastMonthDate.toISOString().substr(0, 10);
 
+            function personalApplyDisplay(line, key) {
+              if (!line || !line.results) return line;
+              var mode = Lampa.Storage.get(key + '_display') + '';
+              line.params = line.params || {};
+              if (mode == '2') {
+                line.params.type = 'collection';
+                line.results.forEach(function (item) {
+                  item.params = item.params || {};
+                  item.params.style = { name: 'collection' };
+                });
+              } else if (mode == '3') {
+                line.results.forEach(function (item) {
+                  item.params = item.params || {};
+                  item.params.style = { name: 'wide' };
+                });
+                line.params.items = line.params.items || {};
+                line.params.items.view = 3;
+              } else if (mode == '4') {
+                line.params.type = 'top';
+              }
+              return line;
+            }
+
             function loadHome(onComplete5, onError) {
               var
                 loaders = {
                   now_watch: function(onNowWatch) {
                     self3.get("movie/now_playing", params, function(nowWatchLine) {
-                      nowWatchLine.title = Lampa.Lang.translate("title_now_watch"), Lampa.Storage.get("now_watch_display") == '2' && (nowWatchLine.collection = true, nowWatchLine.line_type = "collection"), Lampa.Storage.get('now_watch_display') == '3' && (nowWatchLine.small = true, nowWatchLine.wide = true, nowWatchLine.results.forEach(function(item37) {
-                        item37.promo = item37.overview, item37.promo_title = item37.title || item37.name;
-                      })), Lampa.Storage.get("now_watch_display") == '4' && (nowWatchLine.line_type = "top"), Lampa.Storage.get('now_watch_shuffle') == true && shuffle(nowWatchLine.results), onNowWatch(nowWatchLine);
+                      nowWatchLine.title = Lampa.Lang.translate("title_now_watch"), personalApplyDisplay(nowWatchLine, "now_watch"), Lampa.Storage.get('now_watch_shuffle') == true && shuffle(nowWatchLine.results), onNowWatch(nowWatchLine);
                     }, onNowWatch);
                   },
                   upcoming_episodes: function(onUpcomingEpisodes) {
@@ -295,247 +316,177 @@
                   },
                   trend_day: function(onTrendDay) {
                     self3.get("trending/all/day", params, function(trendDayLine) {
-                      trendDayLine.title = Lampa.Lang.translate('title_trend_day'), Lampa.Storage.get("trend_day_display") == '2' && (trendDayLine.collection = true, trendDayLine.line_type = 'collection'), Lampa.Storage.get("trend_day_display") == '3' && (trendDayLine.small = true, trendDayLine.wide = true, trendDayLine.results.forEach(function(item33) {
-                        item33.promo = item33.overview, item33.promo_title = item33.title || item33.name;
-                      })), Lampa.Storage.get("trend_day_display") == '4' && (trendDayLine.line_type = 'top'), Lampa.Storage.get("trend_day_shuffle") == true && shuffle(trendDayLine.results), onTrendDay(trendDayLine);
+                      trendDayLine.title = Lampa.Lang.translate('title_trend_day'), personalApplyDisplay(trendDayLine, "trend_day"), Lampa.Storage.get("trend_day_shuffle") == true && shuffle(trendDayLine.results), onTrendDay(trendDayLine);
                     }, onTrendDay);
                   },
                   trend_day_tv: function(onTrendDayTv) {
                     self3.get("trending/tv/day", params, function(trendDayTvLine) {
-                      trendDayTvLine.title = Lampa.Lang.translate("Сегодня в тренде (сериалы)"), Lampa.Storage.get("trend_day_tv_display") == '2' && (trendDayTvLine.collection = true, trendDayTvLine.line_type = "collection"), Lampa.Storage.get("trend_day_tv_display") == '3' && (trendDayTvLine.small = true, trendDayTvLine.wide = true, trendDayTvLine.results.forEach(function(item69) {
-                        item69.promo = item69.overview, item69.promo_title = item69.title || item69.name;
-                      })), Lampa.Storage.get("trend_day_tv_display") == '4' && (trendDayTvLine.line_type = "top"), Lampa.Storage.get('trend_day_tv_shuffle') == true && shuffle(trendDayTvLine.results), onTrendDayTv(trendDayTvLine);
+                      trendDayTvLine.title = Lampa.Lang.translate("Сегодня в тренде (сериалы)"), personalApplyDisplay(trendDayTvLine, "trend_day_tv"), Lampa.Storage.get('trend_day_tv_shuffle') == true && shuffle(trendDayTvLine.results), onTrendDayTv(trendDayTvLine);
                     }, onTrendDayTv);
                   },
                   trend_day_film: function(onTrendDayFilm) {
                     self3.get("trending/movie/day", params, function(trendDayFilmLine) {
-                      trendDayFilmLine.title = Lampa.Lang.translate("Сегодня в тренде (фильмы)"), Lampa.Storage.get("trend_day_film_display") == '2' && (trendDayFilmLine.collection = true, trendDayFilmLine.line_type = "collection"), Lampa.Storage.get("trend_day_film_display") == '3' && (trendDayFilmLine.small = true, trendDayFilmLine.wide = true, trendDayFilmLine.results.forEach(function(item13) {
-                        item13.promo = item13.overview, item13.promo_title = item13.title || item13.name;
-                      })), Lampa.Storage.get("trend_day_film_display") == '4' && (trendDayFilmLine.line_type = "top"), Lampa.Storage.get("trend_day_film_shuffle") == true && shuffle(trendDayFilmLine.results), onTrendDayFilm(trendDayFilmLine);
+                      trendDayFilmLine.title = Lampa.Lang.translate("Сегодня в тренде (фильмы)"), personalApplyDisplay(trendDayFilmLine, "trend_day_film"), Lampa.Storage.get("trend_day_film_shuffle") == true && shuffle(trendDayFilmLine.results), onTrendDayFilm(trendDayFilmLine);
                     }, onTrendDayFilm);
                   },
                   trend_week: function(onTrendWeek) {
                     self3.get("trending/all/week", params, function(trendWeekLine) {
-                      trendWeekLine.title = Lampa.Lang.translate("title_trend_week"), Lampa.Storage.get("trend_week_display") == '2' && (trendWeekLine.collection = true, trendWeekLine.line_type = 'collection'), Lampa.Storage.get('trend_week_display') == '3' && (trendWeekLine.small = true, trendWeekLine.wide = true, trendWeekLine.results.forEach(function(item29) {
-                        item29.promo = item29.overview, item29.promo_title = item29.title || item29.name;
-                      })), Lampa.Storage.get("trend_week_display") == '4' && (trendWeekLine.line_type = "top"), Lampa.Storage.get("trend_week_shuffle") == true && shuffle(trendWeekLine.results), onTrendWeek(trendWeekLine);
+                      trendWeekLine.title = Lampa.Lang.translate("title_trend_week"), personalApplyDisplay(trendWeekLine, "trend_week"), Lampa.Storage.get("trend_week_shuffle") == true && shuffle(trendWeekLine.results), onTrendWeek(trendWeekLine);
                     }, onTrendWeek);
                   },
                   trend_week_tv: function(onTrendWeekTv) {
                     self3.get("trending/tv/week", params, function(trendWeekTvLine) {
-                      trendWeekTvLine.title = Lampa.Lang.translate("В тренде за неделю (сериалы)"), Lampa.Storage.get('trend_week_tv_display') == '2' && (trendWeekTvLine.collection = true, trendWeekTvLine.line_type = "collection"), Lampa.Storage.get('trend_week_tv_display') == '3' && (trendWeekTvLine.small = true, trendWeekTvLine.wide = true, trendWeekTvLine.results.forEach(function(item39) {
-                        item39.promo = item39.overview, item39.promo_title = item39.title || item39.name;
-                      })), Lampa.Storage.get("trend_week_tv_display") == '4' && (trendWeekTvLine.line_type = 'top'), Lampa.Storage.get("trend_week_tv_shuffle") == true && shuffle(trendWeekTvLine.results), onTrendWeekTv(trendWeekTvLine);
+                      trendWeekTvLine.title = Lampa.Lang.translate("В тренде за неделю (сериалы)"), personalApplyDisplay(trendWeekTvLine, "trend_week_tv"), Lampa.Storage.get("trend_week_tv_shuffle") == true && shuffle(trendWeekTvLine.results), onTrendWeekTv(trendWeekTvLine);
                     }, onTrendWeekTv);
                   },
                   trend_week_film: function(onTrendWeekFilm) {
                     self3.get("trending/movie/week", params, function(trendWeekFilmLine) {
-                      trendWeekFilmLine.title = Lampa.Lang.translate('В тренде за неделю (фильмы)'), Lampa.Storage.get('trend_week_film_display') == '2' && (trendWeekFilmLine.collection = true, trendWeekFilmLine.line_type = "collection"), Lampa.Storage.get('trend_week_film_display') == '3' && (trendWeekFilmLine.small = true, trendWeekFilmLine.wide = true, trendWeekFilmLine.results.forEach(function(item35) {
-                        item35.promo = item35.overview, item35.promo_title = item35.title || item35.name;
-                      })), Lampa.Storage.get("trend_week_film_display") == '4' && (trendWeekFilmLine.line_type = 'top'), Lampa.Storage.get("trend_week_film_shuffle") == true && shuffle(trendWeekFilmLine.results), onTrendWeekFilm(trendWeekFilmLine);
+                      trendWeekFilmLine.title = Lampa.Lang.translate('В тренде за неделю (фильмы)'), personalApplyDisplay(trendWeekFilmLine, "trend_week_film"), Lampa.Storage.get("trend_week_film_shuffle") == true && shuffle(trendWeekFilmLine.results), onTrendWeekFilm(trendWeekFilmLine);
                     }, onTrendWeekFilm);
                   },
                   upcoming: function(onUpcoming) {
                     self3.get("movie/upcoming", params, function(upcomingLine) {
-                      upcomingLine.title = Lampa.Lang.translate("title_upcoming"), Lampa.Storage.get("upcoming_display") == '2' && (upcomingLine.collection = true, upcomingLine.line_type = "collection"), Lampa.Storage.get('upcoming_display') == '3' && (upcomingLine.small = true, upcomingLine.wide = true, upcomingLine.results.forEach(function(item11) {
-                        item11.promo = item11.overview, item11.promo_title = item11.title || item11.name;
-                      })), Lampa.Storage.get("upcoming_display") == '4' && (upcomingLine.line_type = "top"), Lampa.Storage.get("upcoming_shuffle") == true && shuffle(upcomingLine.results), onUpcoming(upcomingLine);
+                      upcomingLine.title = Lampa.Lang.translate("title_upcoming"), personalApplyDisplay(upcomingLine, "upcoming"), Lampa.Storage.get("upcoming_shuffle") == true && shuffle(upcomingLine.results), onUpcoming(upcomingLine);
                     }, onUpcoming);
                   },
                   popular_movie: function(onPopularMovie) {
                     self3.get("movie/popular", params, function(popularMovieLine) {
-                      popularMovieLine.title = Lampa.Lang.translate("title_popular_movie"), Lampa.Storage.get("popular_movie_display") == '2' && (popularMovieLine.collection = true, popularMovieLine.line_type = "collection"), Lampa.Storage.get("popular_movie_display") == '3' && (popularMovieLine.small = true, popularMovieLine.wide = true, popularMovieLine.results.forEach(function(item63) {
-                        item63.promo = item63.overview, item63.promo_title = item63.title || item63.name;
-                      })), Lampa.Storage.get("popular_movie_display") == '4' && (popularMovieLine.line_type = 'top'), Lampa.Storage.get("popular_movie_shuffle") == true && shuffle(popularMovieLine.results), onPopularMovie(popularMovieLine);
+                      popularMovieLine.title = Lampa.Lang.translate("title_popular_movie"), personalApplyDisplay(popularMovieLine, "popular_movie"), Lampa.Storage.get("popular_movie_shuffle") == true && shuffle(popularMovieLine.results), onPopularMovie(popularMovieLine);
                     }, onPopularMovie);
                   },
                   popular_tv: function(onPopularTv) {
                     self3.get('trending/tv/week', params, function(popularTvLine) {
-                      popularTvLine.title = Lampa.Lang.translate('title_popular_tv'), Lampa.Storage.get("popular_tv_display") == '2' && (popularTvLine.collection = true, popularTvLine.line_type = 'collection'), Lampa.Storage.get("popular_tv_display") == '3' && (popularTvLine.small = true, popularTvLine.wide = true, popularTvLine.results.forEach(function(item3) {
-                        item3.promo = item3.overview, item3.promo_title = item3.title || item3.name;
-                      })), Lampa.Storage.get("popular_tv_display") == '4' && (popularTvLine.line_type = "top"), Lampa.Storage.get("popular_tv_shuffle") == true && shuffle(popularTvLine.results), onPopularTv(popularTvLine);
+                      popularTvLine.title = Lampa.Lang.translate('title_popular_tv'), personalApplyDisplay(popularTvLine, "popular_tv"), Lampa.Storage.get("popular_tv_shuffle") == true && shuffle(popularTvLine.results), onPopularTv(popularTvLine);
                     }, onPopularTv);
                   },
                   top_movie: function(onTopMovie) {
                     self3.get('movie/top_rated', params, function(topMovieLine) {
-                      topMovieLine.title = Lampa.Lang.translate("title_top_movie"), Lampa.Storage.get("top_movie_display") == '2' && (topMovieLine.collection = true, topMovieLine.line_type = 'collection'), Lampa.Storage.get('top_movie_display') == '3' && (topMovieLine.small = true, topMovieLine.wide = true, topMovieLine.results.forEach(function(item9) {
-                        item9.promo = item9.overview, item9.promo_title = item9.title || item9.name;
-                      })), Lampa.Storage.get("top_movie_display") == '4' && (topMovieLine.line_type = 'top'), Lampa.Storage.get("top_movie_shuffle") == true && shuffle(topMovieLine.results), onTopMovie(topMovieLine);
+                      topMovieLine.title = Lampa.Lang.translate("title_top_movie"), personalApplyDisplay(topMovieLine, "top_movie"), Lampa.Storage.get("top_movie_shuffle") == true && shuffle(topMovieLine.results), onTopMovie(topMovieLine);
                     }, onTopMovie);
                   },
                   top_tv: function(onTopTv) {
                     self3.get("tv/top_rated", params, function(topTvLine) {
-                      topTvLine.title = Lampa.Lang.translate("title_top_tv"), Lampa.Storage.get("top_tv_display") == '2' && (topTvLine.collection = true, topTvLine.line_type = "collection"), Lampa.Storage.get("top_tv_display") == '3' && (topTvLine.small = true, topTvLine.wide = true, topTvLine.results.forEach(function(item) {
-                        item.promo = item.overview, item.promo_title = item.title || item.name;
-                      })), Lampa.Storage.get('top_tv_display') == '4' && (topTvLine.line_type = "top"), Lampa.Storage.get("top_tv_shuffle") == true && shuffle(topTvLine.results), onTopTv(topTvLine);
+                      topTvLine.title = Lampa.Lang.translate("title_top_tv"), personalApplyDisplay(topTvLine, "top_tv"), Lampa.Storage.get("top_tv_shuffle") == true && shuffle(topTvLine.results), onTopTv(topTvLine);
                     }, onTopTv);
                   },
                   netflix: function(onNetflix) {
                     self3.get("discover/tv?with_networks=213&first_air_date.gte=2020-01-01&vote_average.gte=6&vote_average.lte=10&first_air_date.lte=" + today, params, function(netflixLine) {
-                      netflixLine.title = Lampa.Lang.translate("Netflix"), Lampa.Storage.get("netflix_display") == '2' && (netflixLine.collection = true, netflixLine.line_type = "collection"), Lampa.Storage.get("netflix_display") == '3' && (netflixLine.small = true, netflixLine.wide = true, netflixLine.results.forEach(function(item65) {
-                        item65.promo = item65.overview, item65.promo_title = item65.title || item65.name;
-                      })), Lampa.Storage.get("netflix_display") == '4' && (netflixLine.line_type = "top"), Lampa.Storage.get("netflix_shuffle") == true && shuffle(netflixLine.results), onNetflix(netflixLine);
+                      netflixLine.title = Lampa.Lang.translate("Netflix"), personalApplyDisplay(netflixLine, "netflix"), Lampa.Storage.get("netflix_shuffle") == true && shuffle(netflixLine.results), onNetflix(netflixLine);
                     }, onNetflix);
                   },
                   apple_tv: function(onAppleTv) {
                     self3.get("discover/tv?with_networks=2552&first_air_date.gte=2020-01-01&vote_average.gte=6&vote_average.lte=10&first_air_date.lte=" + today, params, function(appleTvLine) {
-                      appleTvLine.title = Lampa.Lang.translate("Apple TV+"), Lampa.Storage.get("apple_tv_display") == '2' && (appleTvLine.collection = true, appleTvLine.line_type = "collection"), Lampa.Storage.get("apple_tv_display") == '3' && (appleTvLine.small = true, appleTvLine.wide = true, appleTvLine.results.forEach(function(item45) {
-                        item45.promo = item45.overview, item45.promo_title = item45.title || item45.name;
-                      })), Lampa.Storage.get("apple_tv_display") == '4' && (appleTvLine.line_type = "top"), Lampa.Storage.get("apple_tv_shuffle") == true && shuffle(appleTvLine.results), onAppleTv(appleTvLine);
+                      appleTvLine.title = Lampa.Lang.translate("Apple TV+"), personalApplyDisplay(appleTvLine, "apple_tv"), Lampa.Storage.get("apple_tv_shuffle") == true && shuffle(appleTvLine.results), onAppleTv(appleTvLine);
                     }, onAppleTv);
                   },
                   prime_video: function(onPrimeVideo) {
                     self3.get("discover/tv?with_networks=1024&first_air_date.gte=2020-01-01&vote_average.gte=6&vote_average.lte=10&first_air_date.lte=" + today, params, function(primeVideoLine) {
-                      primeVideoLine.title = Lampa.Lang.translate("Prime Video"), Lampa.Storage.get('prime_video_display') == '2' && (primeVideoLine.collection = true, primeVideoLine.line_type = "collection"), Lampa.Storage.get("prime_video_display") == '3' && (primeVideoLine.small = true, primeVideoLine.wide = true, primeVideoLine.results.forEach(function(item71) {
-                        item71.promo = item71.overview, item71.promo_title = item71.title || item71.name;
-                      })), Lampa.Storage.get("prime_video_display") == '4' && (primeVideoLine.line_type = "top"), Lampa.Storage.get("prime_video_shuffle") == true && shuffle(primeVideoLine.results), onPrimeVideo(primeVideoLine);
+                      primeVideoLine.title = Lampa.Lang.translate("Prime Video"), personalApplyDisplay(primeVideoLine, "prime_video"), Lampa.Storage.get("prime_video_shuffle") == true && shuffle(primeVideoLine.results), onPrimeVideo(primeVideoLine);
                     }, onPrimeVideo);
                   },
                   mgm: function(onMgm) {
                     self3.get("discover/tv?with_networks=6219&first_air_date.gte=2020-01-01&vote_average.gte=6&vote_average.lte=10&first_air_date.lte=" + today, params, function(mgmLine) {
-                      mgmLine.title = Lampa.Lang.translate("MGM+"), Lampa.Storage.get("mgm_display") == '2' && (mgmLine.collection = true, mgmLine.line_type = 'collection'), Lampa.Storage.get("mgm_display") == '3' && (mgmLine.small = true, mgmLine.wide = true, mgmLine.results.forEach(function(item41) {
-                        item41.promo = item41.overview, item41.promo_title = item41.title || item41.name;
-                      })), Lampa.Storage.get('mgm_display') == '4' && (mgmLine.line_type = "top"), Lampa.Storage.get("mgm_shuffle") == true && shuffle(mgmLine.results), onMgm(mgmLine);
+                      mgmLine.title = Lampa.Lang.translate("MGM+"), personalApplyDisplay(mgmLine, "mgm"), Lampa.Storage.get("mgm_shuffle") == true && shuffle(mgmLine.results), onMgm(mgmLine);
                     }, onMgm);
                   },
                   hbo: function(onHbo) {
                     self3.get('discover/tv?with_networks=49&first_air_date.gte=2020-01-01&vote_average.gte=6&vote_average.lte=10&first_air_date.lte=' + today, params, function(hboLine) {
-                      hboLine.title = Lampa.Lang.translate('HBO'), Lampa.Storage.get("hbo_display") == '2' && (hboLine.collection = true, hboLine.line_type = 'collection'), Lampa.Storage.get("hbo_display") == '3' && (hboLine.small = true, hboLine.wide = true, hboLine.results.forEach(function(item21) {
-                        item21.promo = item21.overview, item21.promo_title = item21.title || item21.name;
-                      })), Lampa.Storage.get("hbo_display") == '4' && (hboLine.line_type = "top"), Lampa.Storage.get("hbo_shuffle") == true && shuffle(hboLine.results), onHbo(hboLine);
+                      hboLine.title = Lampa.Lang.translate('HBO'), personalApplyDisplay(hboLine, "hbo"), Lampa.Storage.get("hbo_shuffle") == true && shuffle(hboLine.results), onHbo(hboLine);
                     }, onHbo);
                   },
                   dorams: function(onDorams) {
                     self3.get('discover/tv?first_air_date.gte=2020-01-01&without_genres=16&with_original_language=ko&vote_average.gte=6&vote_average.lte=10&first_air_date.lte=' + today, params, function(doramsLine) {
-                      doramsLine.title = Lampa.Lang.translate("Дорамы"), Lampa.Storage.get('dorams_display') == '2' && (doramsLine.collection = true, doramsLine.line_type = "collection"), Lampa.Storage.get("dorams_display") == '3' && (doramsLine.small = true, doramsLine.wide = true, doramsLine.results.forEach(function(item15) {
-                        item15.promo = item15.overview, item15.promo_title = item15.title || item15.name;
-                      })), Lampa.Storage.get("dorams_display") == '4' && (doramsLine.line_type = "top"), Lampa.Storage.get('dorams_shuffle') == true && shuffle(doramsLine.results), onDorams(doramsLine);
+                      doramsLine.title = Lampa.Lang.translate("Дорамы"), personalApplyDisplay(doramsLine, "dorams"), Lampa.Storage.get('dorams_shuffle') == true && shuffle(doramsLine.results), onDorams(doramsLine);
                     }, onDorams);
                   },
                   tur_serials: function(onTurSerials) {
                     self3.get("discover/tv?first_air_date.gte=2020-01-01&without_genres=16&with_original_language=tr&vote_average.gte=6&vote_average.lte=10&first_air_date.lte=" + today, params, function(turSerialsLine) {
-                      turSerialsLine.title = Lampa.Lang.translate("Турецкие сериалы"), Lampa.Storage.get('tur_serials_display') == '2' && (turSerialsLine.collection = true, turSerialsLine.line_type = "collection"), Lampa.Storage.get("tur_serials_display") == '3' && (turSerialsLine.small = true, turSerialsLine.wide = true, turSerialsLine.results.forEach(function(item47) {
-                        item47.promo = item47.overview, item47.promo_title = item47.title || item47.name;
-                      })), Lampa.Storage.get("tur_serials_display") == '4' && (turSerialsLine.line_type = 'top'), Lampa.Storage.get('tur_serials_shuffle') == true && shuffle(turSerialsLine.results), onTurSerials(turSerialsLine);
+                      turSerialsLine.title = Lampa.Lang.translate("Турецкие сериалы"), personalApplyDisplay(turSerialsLine, "tur_serials"), Lampa.Storage.get('tur_serials_shuffle') == true && shuffle(turSerialsLine.results), onTurSerials(turSerialsLine);
                     }, onTurSerials);
                   },
                   ind_films: function(onIndFilms) {
                     self3.get('discover/movie?primary_release_date.gte=2020-01-01&without_genres=16&with_original_language=hi&vote_average.gte=6&vote_average.lte=10&first_air_date.lte=' + today, params, function(indFilmsLine) {
-                      indFilmsLine.title = Lampa.Lang.translate("Индийские фильмы"), Lampa.Storage.get("ind_films_display") == '2' && (indFilmsLine.collection = true, indFilmsLine.line_type = "collection"), Lampa.Storage.get("ind_films_display") == '3' && (indFilmsLine.small = true, indFilmsLine.wide = true, indFilmsLine.results.forEach(function(item31) {
-                        item31.promo = item31.overview, item31.promo_title = item31.title || item31.name;
-                      })), Lampa.Storage.get("ind_films_display") == '4' && (indFilmsLine.line_type = "top"), Lampa.Storage.get('ind_films_shuffle') == true && shuffle(indFilmsLine.results), onIndFilms(indFilmsLine);
+                      indFilmsLine.title = Lampa.Lang.translate("Индийские фильмы"), personalApplyDisplay(indFilmsLine, "ind_films"), Lampa.Storage.get('ind_films_shuffle') == true && shuffle(indFilmsLine.results), onIndFilms(indFilmsLine);
                     }, onIndFilms);
                   },
                   rus_movie: function(onRusMovie) {
                     self3.get("discover/movie?vote_average.gte=5&vote_average.lte=9.5&with_original_language=ru&sort_by=primary_release_date.desc&primary_release_date.lte=" + new Date().toISOString().substr(0, 10), params, function(rusMovieLine) {
-                      rusMovieLine.title = Lampa.Lang.translate('Русские фильмы'), Lampa.Storage.get("rus_movie_display") == '2' && (rusMovieLine.collection = true, rusMovieLine.line_type = "collection"), Lampa.Storage.get("rus_movie_display") == '3' && (rusMovieLine.small = true, rusMovieLine.wide = true, rusMovieLine.results.forEach(function(item55) {
-                        item55.promo = item55.overview, item55.promo_title = item55.title || item55.name;
-                      })), Lampa.Storage.get("rus_movie_display") == '4' && (rusMovieLine.line_type = "top"), Lampa.Storage.get("rus_movi_shuffle") == true && shuffle(rusMovieLine.results), onRusMovie(rusMovieLine);
+                      rusMovieLine.title = Lampa.Lang.translate('Русские фильмы'), personalApplyDisplay(rusMovieLine, "rus_movie"), Lampa.Storage.get("rus_movi_shuffle") == true && shuffle(rusMovieLine.results), onRusMovie(rusMovieLine);
                     }, onRusMovie);
                   },
                   rus_tv: function(onRusTv) {
                     self3.get('discover/tv?with_original_language=ru&sort_by=first_air_date.desc&air_date.lte=' + today, params, function(rusTvLine) {
-                      rusTvLine.title = Lampa.Lang.translate("Русские сериалы"), Lampa.Storage.get("rus_tv_display") == '2' && (rusTvLine.collection = true, rusTvLine.line_type = "collection"), Lampa.Storage.get("rus_tv_display") == '3' && (rusTvLine.small = true, rusTvLine.wide = true, rusTvLine.results.forEach(function(item61) {
-                        item61.promo = item61.overview, item61.promo_title = item61.title || item61.name;
-                      })), Lampa.Storage.get('rus_tv_display') == '4' && (rusTvLine.line_type = "top"), Lampa.Storage.get("rus_tv_shuffle") == true && shuffle(rusTvLine.results), onRusTv(rusTvLine);
+                      rusTvLine.title = Lampa.Lang.translate("Русские сериалы"), personalApplyDisplay(rusTvLine, "rus_tv"), Lampa.Storage.get("rus_tv_shuffle") == true && shuffle(rusTvLine.results), onRusTv(rusTvLine);
                     }, onRusTv);
                   },
                   rus_mult: function(onRusMult) {
                     self3.get("discover/movie?vote_average.gte=5&vote_average.lte=9.5&with_genres=16&with_original_language=ru&sort_by=primary_release_date.desc&primary_release_date.lte=" + new Date().toISOString().substr(0, 10), params, function(rusMultLine) {
-                      rusMultLine.title = Lampa.Lang.translate("Русские мультфильмы"), Lampa.Storage.get("rus_mult_display") == '2' && (rusMultLine.collection = true, rusMultLine.line_type = "collection"), Lampa.Storage.get("rus_mult_display") == '3' && (rusMultLine.small = true, rusMultLine.wide = true, rusMultLine.results.forEach(function(item59) {
-                        item59.promo = item59.overview, item59.promo_title = item59.title || item59.name;
-                      })), Lampa.Storage.get("rus_mult_display") == '4' && (rusMultLine.line_type = "top"), Lampa.Storage.get("rus_mult_shuffle") == true && shuffle(rusMultLine.results), onRusMult(rusMultLine);
+                      rusMultLine.title = Lampa.Lang.translate("Русские мультфильмы"), personalApplyDisplay(rusMultLine, "rus_mult"), Lampa.Storage.get("rus_mult_shuffle") == true && shuffle(rusMultLine.results), onRusMult(rusMultLine);
                     }, onRusMult);
                   },
                   start: function(onStart) {
                     self3.get("discover/tv?with_networks=2493&sort_by=first_air_date.desc&air_date.lte=" + today, params, function(startLine) {
-                      startLine.title = Lampa.Lang.translate("Start"), Lampa.Storage.get("start_display") == '2' && (startLine.collection = true, startLine.line_type = "collection"), Lampa.Storage.get("start_display") == '3' && (startLine.small = true, startLine.wide = true, startLine.results.forEach(function(item53) {
-                        item53.promo = item53.overview, item53.promo_title = item53.title || item53.name;
-                      })), Lampa.Storage.get('start_display') == '4' && (startLine.line_type = "top"), Lampa.Storage.get('start_shuffle') == true && shuffle(startLine.results), onStart(startLine);
+                      startLine.title = Lampa.Lang.translate("Start"), personalApplyDisplay(startLine, "start"), Lampa.Storage.get('start_shuffle') == true && shuffle(startLine.results), onStart(startLine);
                     }, onStart);
                   },
                   premier: function(onPremier) {
                     self3.get('discover/tv?with_networks=2859&sort_by=first_air_date.desc&air_date.lte=' + today, params, function(premierLine) {
-                      premierLine.title = Lampa.Lang.translate("Premier"), Lampa.Storage.get("premier_display") == '2' && (premierLine.collection = true, premierLine.line_type = "collection"), Lampa.Storage.get('premier_display') == '3' && (premierLine.small = true, premierLine.wide = true, premierLine.results.forEach(function(item5) {
-                        item5.promo = item5.overview, item5.promo_title = item5.title || item5.name;
-                      })), Lampa.Storage.get("premier_display") == '4' && (premierLine.line_type = 'top'), Lampa.Storage.get("premier_shuffle") == true && shuffle(premierLine.results), onPremier(premierLine);
+                      premierLine.title = Lampa.Lang.translate("Premier"), personalApplyDisplay(premierLine, "premier"), Lampa.Storage.get("premier_shuffle") == true && shuffle(premierLine.results), onPremier(premierLine);
                     }, onPremier);
                   },
                   kion: function(onKion) {
                     self3.get("discover/tv?with_networks=4085&sort_by=first_air_date.desc&air_date.lte=" + today, params, function(kionLine) {
-                      kionLine.title = Lampa.Lang.translate("KION"), Lampa.Storage.get("kion_display") == '2' && (kionLine.collection = true, kionLine.line_type = "collection"), Lampa.Storage.get('kion_display') == '3' && (kionLine.small = true, kionLine.wide = true, kionLine.results.forEach(function(item51) {
-                        item51.promo = item51.overview, item51.promo_title = item51.title || item51.name;
-                      })), Lampa.Storage.get('kion_display') == '4' && (kionLine.line_type = "top"), Lampa.Storage.get('kion_shuffle') == true && shuffle(kionLine.results), onKion(kionLine);
+                      kionLine.title = Lampa.Lang.translate("KION"), personalApplyDisplay(kionLine, "kion"), Lampa.Storage.get('kion_shuffle') == true && shuffle(kionLine.results), onKion(kionLine);
                     }, onKion);
                   },
                   ivi: function(onIvi) {
                     self3.get('discover/tv?with_networks=3923&sort_by=first_air_date.desc&air_date.lte=' + today, params, function(iviLine) {
-                      iviLine.title = Lampa.Lang.translate("IVI"), Lampa.Storage.get("ivi_display") == '2' && (iviLine.collection = true, iviLine.line_type = 'collection'), Lampa.Storage.get('ivi_display') == '3' && (iviLine.small = true, iviLine.wide = true, iviLine.results.forEach(function(item7) {
-                        item7.promo = item7.overview, item7.promo_title = item7.title || item7.name;
-                      })), Lampa.Storage.get("ivi_display") == '4' && (iviLine.line_type = "top"), Lampa.Storage.get("ivi_shuffle") == true && shuffle(iviLine.results), onIvi(iviLine);
+                      iviLine.title = Lampa.Lang.translate("IVI"), personalApplyDisplay(iviLine, "ivi"), Lampa.Storage.get("ivi_shuffle") == true && shuffle(iviLine.results), onIvi(iviLine);
                     }, onIvi);
                   },
                   okko: function(onOkko) {
                     self3.get("discover/tv?with_networks=3871&sort_by=first_air_date.desc&air_date.lte=" + today, params, function(okkoLine) {
-                      okkoLine.title = Lampa.Lang.translate("OKKO"), Lampa.Storage.get("okko_display") == '2' && (okkoLine.collection = true, okkoLine.line_type = "collection"), Lampa.Storage.get("okko_display") == '3' && (okkoLine.small = true, okkoLine.wide = true, okkoLine.results.forEach(function(item23) {
-                        item23.promo = item23.overview, item23.promo_title = item23.title || item23.name;
-                      })), Lampa.Storage.get("okko_display") == '4' && (okkoLine.line_type = "top"), Lampa.Storage.get('okko_shuffle') == true && shuffle(okkoLine.results), onOkko(okkoLine);
+                      okkoLine.title = Lampa.Lang.translate("OKKO"), personalApplyDisplay(okkoLine, "okko"), Lampa.Storage.get('okko_shuffle') == true && shuffle(okkoLine.results), onOkko(okkoLine);
                     }, onOkko);
                   },
                   kinopoisk: function(onKinopoisk) {
                     self3.get("discover/tv?with_networks=3827&sort_by=first_air_date.desc&air_date.lte=" + today, params, function(kinopoiskLine) {
-                      kinopoiskLine.title = Lampa.Lang.translate('КиноПоиск'), Lampa.Storage.get("kinopoisk_display") == '2' && (kinopoiskLine.collection = true, kinopoiskLine.line_type = "collection"), Lampa.Storage.get("kinopoisk_display") == '3' && (kinopoiskLine.small = true, kinopoiskLine.wide = true, kinopoiskLine.results.forEach(function(item57) {
-                        item57.promo = item57.overview, item57.promo_title = item57.title || item57.name;
-                      })), Lampa.Storage.get("kinopoisk_display") == '4' && (kinopoiskLine.line_type = "top"), Lampa.Storage.get("kinopois_shuffle") == true && shuffle(kinopoiskLine.results), onKinopoisk(kinopoiskLine);
+                      kinopoiskLine.title = Lampa.Lang.translate('КиноПоиск'), personalApplyDisplay(kinopoiskLine, "kinopoisk"), Lampa.Storage.get("kinopois_shuffle") == true && shuffle(kinopoiskLine.results), onKinopoisk(kinopoiskLine);
                     }, onKinopoisk);
                   },
                   wink: function(onWink) {
                     self3.get("discover/tv?with_networks=5806&sort_by=first_air_date.desc&air_date.lte=" + today, params, function(winkLine) {
-                      winkLine.title = Lampa.Lang.translate('Wink'), Lampa.Storage.get("wink_display") == '2' && (winkLine.collection = true, winkLine.line_type = "collection"), Lampa.Storage.get('wink_display') == '3' && (winkLine.small = true, winkLine.wide = true, winkLine.results.forEach(function(item49) {
-                        item49.promo = item49.overview, item49.promo_title = item49.title || item49.name;
-                      })), Lampa.Storage.get("wink_display") == '4' && (winkLine.line_type = 'top'), Lampa.Storage.get("wink_shuffle") == true && shuffle(winkLine.results), onWink(winkLine);
+                      winkLine.title = Lampa.Lang.translate('Wink'), personalApplyDisplay(winkLine, "wink"), Lampa.Storage.get("wink_shuffle") == true && shuffle(winkLine.results), onWink(winkLine);
                     }, onWink);
                   },
                   sts: function(onSts) {
                     self3.get('discover/tv?with_networks=806&sort_by=first_air_date.desc&air_date.lte=' + today, params, function(stsLine) {
-                      stsLine.title = Lampa.Lang.translate("СТС"), Lampa.Storage.get("sts_display") == '2' && (stsLine.collection = true, stsLine.line_type = "collection"), Lampa.Storage.get('sts_display') == '3' && (stsLine.small = true, stsLine.wide = true, stsLine.results.forEach(function(item67) {
-                        item67.promo = item67.overview, item67.promo_title = item67.title || item67.name;
-                      })), Lampa.Storage.get('sts_display') == '4' && (stsLine.line_type = "top"), Lampa.Storage.get("sts_shuffle") == true && shuffle(stsLine.results), onSts(stsLine);
+                      stsLine.title = Lampa.Lang.translate("СТС"), personalApplyDisplay(stsLine, "sts"), Lampa.Storage.get("sts_shuffle") == true && shuffle(stsLine.results), onSts(stsLine);
                     }, onSts);
                   },
                   tnt: function(onTnt) {
                     self3.get("discover/tv?with_networks=1191&sort_by=first_air_date.desc&air_date.lte=" + today, params, function(tntLine) {
-                      tntLine.title = Lampa.Lang.translate("ТНТ"), Lampa.Storage.get("tnt_display") == '2' && (tntLine.collection = true, tntLine.line_type = "collection"), Lampa.Storage.get("tnt_display") == '3' && (tntLine.small = true, tntLine.wide = true, tntLine.results.forEach(function(item43) {
-                        item43.promo = item43.overview, item43.promo_title = item43.title || item43.name;
-                      })), Lampa.Storage.get("tnt_display") == '4' && (tntLine.line_type = 'top'), Lampa.Storage.get("tnt_shuffle") == true && shuffle(tntLine.results), onTnt(tntLine);
+                      tntLine.title = Lampa.Lang.translate("ТНТ"), personalApplyDisplay(tntLine, "tnt"), Lampa.Storage.get("tnt_shuffle") == true && shuffle(tntLine.results), onTnt(tntLine);
                     }, onTnt);
                   },
                   collections_inter_tv: function(onCollectionsInterTv) {
                     self3.get('discover/tv?with_networks=213|2552|1024|6219|49&sort_by=' + sortTv + "&first_air_date.gte=" + tvDateFrom + "&first_air_date.lte=" + tvDateTo, params, function(collectionsInterTvLine) {
-                      collectionsInterTvLine.title = Lampa.Lang.translate('Подборки зарубежных сериалов'), Lampa.Storage.get("collections_inter_tv_display") == '2' && (collectionsInterTvLine.collection = true, collectionsInterTvLine.line_type = "collection"), Lampa.Storage.get("collections_inter_tv_display") == '3' && (collectionsInterTvLine.small = true, collectionsInterTvLine.wide = true, collectionsInterTvLine.results.forEach(function(item25) {
-                        item25.promo = item25.overview, item25.promo_title = item25.title || item25.name;
-                      })), Lampa.Storage.get("collections_inter_tv_display") == '4' && (collectionsInterTvLine.line_type = "top"), Lampa.Storage.get('collections_inter_tv_shuffle') == true && shuffle(collectionsInterTvLine.results), onCollectionsInterTv(collectionsInterTvLine);
+                      collectionsInterTvLine.title = Lampa.Lang.translate('Подборки зарубежных сериалов'), personalApplyDisplay(collectionsInterTvLine, "collections_inter_tv"), Lampa.Storage.get('collections_inter_tv_shuffle') == true && shuffle(collectionsInterTvLine.results), onCollectionsInterTv(collectionsInterTvLine);
                     }, onCollectionsInterTv);
                   },
                   collections_rus_tv: function(onCollectionsRusTv) {
                     self3.get('discover/tv?with_networks=2493|2859|4085|3923|3871|3827|5806|806|1191&sort_by=' + sortTv + "&air_date.lte=" + tvDateTo + "&first_air_date.gte=" + tvDateFrom, params, function(collectionsRusTvLine) {
-                      collectionsRusTvLine.title = Lampa.Lang.translate("Подборки русских сериалов"), Lampa.Storage.get("collections_rus_tv_display") == '2' && (collectionsRusTvLine.collection = true, collectionsRusTvLine.line_type = "collection"), Lampa.Storage.get('collections_rus_tv_display') == '3' && (collectionsRusTvLine.small = true, collectionsRusTvLine.wide = true, collectionsRusTvLine.results.forEach(function(item19) {
-                        item19.promo = item19.overview, item19.promo_title = item19.title || item19.name;
-                      })), Lampa.Storage.get("collections_rus_tv_display") == '4' && (collectionsRusTvLine.line_type = "top"), Lampa.Storage.get("collections_rus_tv_shuffle") == true && shuffle(collectionsRusTvLine.results), onCollectionsRusTv(collectionsRusTvLine);
+                      collectionsRusTvLine.title = Lampa.Lang.translate("Подборки русских сериалов"), personalApplyDisplay(collectionsRusTvLine, "collections_rus_tv"), Lampa.Storage.get("collections_rus_tv_shuffle") == true && shuffle(collectionsRusTvLine.results), onCollectionsRusTv(collectionsRusTvLine);
                     }, onCollectionsRusTv);
                   },
                   collections_inter_movie: function(onCollectionsInterMovie) {
                     self3.get("discover/movie?vote_average.gte=5&vote_average.lte=9.5&sort_by=" + sortMovie + "&primary_release_date.gte=" + movieDateFrom + "&primary_release_date.lte=" + movieDateTo, params, function(collectionsInterMovieLine) {
-                      collectionsInterMovieLine.title = Lampa.Lang.translate("Подборки зарубежных фильмов"), Lampa.Storage.get("collections_inter_movie_display") == '2' && (collectionsInterMovieLine.collection = true, collectionsInterMovieLine.line_type = 'collection'), Lampa.Storage.get('collections_inter_movie_display') == '3' && (collectionsInterMovieLine.small = true, collectionsInterMovieLine.wide = true, collectionsInterMovieLine.results.forEach(function(item17) {
-                        item17.promo = item17.overview, item17.promo_title = item17.title || item17.name;
-                      })), Lampa.Storage.get("collections_inter_movie_display") == '4' && (collectionsInterMovieLine.line_type = 'top'), Lampa.Storage.get('collections_inter_movie_shuffle') == true && shuffle(collectionsInterMovieLine.results), onCollectionsInterMovie(collectionsInterMovieLine);
+                      collectionsInterMovieLine.title = Lampa.Lang.translate("Подборки зарубежных фильмов"), personalApplyDisplay(collectionsInterMovieLine, "collections_inter_movie"), Lampa.Storage.get('collections_inter_movie_shuffle') == true && shuffle(collectionsInterMovieLine.results), onCollectionsInterMovie(collectionsInterMovieLine);
                     }, onCollectionsInterMovie);
                   },
                   collections_rus_movie: function(onCollectionsRusMovie) {
                     self3.get('discover/movie?primary_release_date.gte=' + movieDateFrom + '&vote_average.gte=5&vote_average.lte=9.5&with_original_language=ru&sort_by=' + sortMovie + "&primary_release_date.lte=" + movieDateTo, params, function(collectionsRusMovieLine) {
-                      collectionsRusMovieLine.title = Lampa.Lang.translate("Подборки русских фильмов"), Lampa.Storage.get("collections_rus_movie_display") == '2' && (collectionsRusMovieLine.collection = true, collectionsRusMovieLine.line_type = "collection"), Lampa.Storage.get('collections_rus_movie_display') == '3' && (collectionsRusMovieLine.small = true, collectionsRusMovieLine.wide = true, collectionsRusMovieLine.results.forEach(function(item27) {
-                        item27.promo = item27.overview, item27.promo_title = item27.title || item27.name;
-                      })), Lampa.Storage.get('collections_rus_movie_display') == '4' && (collectionsRusMovieLine.line_type = "top"), Lampa.Storage.get("collections_rus_movie_shuffle") == true && shuffle(collectionsRusMovieLine.results), onCollectionsRusMovie(collectionsRusMovieLine);
+                      collectionsRusMovieLine.title = Lampa.Lang.translate("Подборки русских фильмов"), personalApplyDisplay(collectionsRusMovieLine, "collections_rus_movie"), Lampa.Storage.get("collections_rus_movie_shuffle") == true && shuffle(collectionsRusMovieLine.results), onCollectionsRusMovie(collectionsRusMovieLine);
                     }, onCollectionsRusMovie);
                   }
                 },
