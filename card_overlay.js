@@ -3515,7 +3515,8 @@
                     moveDetailMetaToSecondLine(render);
                     later(function () { moveDetailMetaToSecondLine(render); }, 150, 'detail-meta');
                     retry(function () {
-                        addTypeLabelToDetail($(render).find('.full-start-new__poster, .full-start__poster').first(), event.data.movie);
+                        var poster = $(render).find('.full-start-new__poster, .full-start__poster').first();
+                        poster.find('.content-label, .card__type').remove();
                     }, [0, 150, 400], 'detail-type-label');
                 }
                 scheduleVisibleRatingsUpdate(0);
