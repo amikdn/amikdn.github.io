@@ -610,6 +610,56 @@
         }, 'kp', function () { delete pendingKpCallbacks[pendingKey]; });
     }
 
+    var pendingDetailsRatings = {};
+    var _detailsRatingAttempts = {};
+    var DETAILS_RATING_RETRY_TTL = 6 * 60 * 60 * 1000;
+    function fetchDetailsRatings(data, callback) {
+        if (!callback) return;
+        var urlType = getTmdbMediaType(data);
+        if (!urlType || !getTmdbId(data)) { callback(null); return; }
+        var key = kpCacheKey(data);
+        var cached = ratingCache.get('kp_rating', key);
+        if (cached && (cached.imdb > 0 || cached.kp > 0)) { callback(cached); return; }
+        var last = _detailsRatingAttempts[key];
+        if (last && Date.now() - last < DETAILS_RATING_RETRY_TTL) { callback(null); return; }
+        if (pendingDetailsRatings[key]) { pendingDetailsRatings[key].push(callback); return; }
+        pendingDetailsRatings[key] = [callback];
+        addToQueue(function () {
+            function complete(entry) {
+                _detailsRatingAttempts[key] = Date.now();
+                var cbs = pendingDetailsRatings[key] || [];
+                delete pendingDetailsRatings[key];
+                for (var i = 0; i < cbs.length; i++) { try { cbs[i](entry); } catch (e) { logErr(e); } }
+            }
+            var url = buildTmdbApiUrl(urlType, getTmdbId(data));
+            if (!url) { complete(null); return; }
+            var request = getRequest();
+            request.timeout(6000);
+            request.silent(url, function (details) {
+                releaseRequest(request);
+                if (!details || typeof details !== 'object') { complete(null); return; }
+                var imdb = parseFloat(details.imdb_rating) || 0;
+                var kp = parseFloat(details.kp_rating) || 0;
+                if (!(imdb > 0) && !(kp > 0)) { complete(null); return; }
+                var prev = ratingCache.get('kp_rating', key) || {};
+                complete(ratingCache.set('kp_rating', key, { kp: kp > 0 ? kp : (prev.kp || 0), imdb: imdb > 0 ? imdb : (prev.imdb || 0) }));
+            }, function () { releaseRequest(request); complete(null); }, false);
+        }, 'fast', function () { delete pendingDetailsRatings[key]; });
+    }
+    function getCardRatings(data, callback) {
+        if (!callback) callback = function () {};
+        getKinopoiskRating(data, function (res) {
+            if (!isRatingSourceVisible('imdb') || (res && res.imdb > 0)) { callback(res); return; }
+            fetchDetailsRatings(data, function (entry) {
+                if (!entry || !(entry.imdb > 0 || entry.kp > 0)) { callback(res); return; }
+                callback({
+                    kp: entry.kp > 0 ? entry.kp : ((res && res.kp) || 0),
+                    imdb: entry.imdb > 0 ? entry.imdb : ((res && res.imdb) || 0)
+                });
+            });
+        });
+    }
+
     function calculateLampaRating10(reactions) {
         var weightedSum = 0, totalCount = 0, reactionCnt = {}, reactionCoef = { fire: 5, nice: 4, think: 3, bore: 2, shit: 1 };
         for (var i = 0; i < reactions.length; i++) { var item = reactions[i]; var count = parseInt(item.counter, 10) || 0; var coef = reactionCoef[item.type] || 0; weightedSum += count * coef; totalCount += count; reactionCnt[item.type] = (reactionCnt[item.type] || 0) + count; }
@@ -972,7 +1022,7 @@
         try {
             var kpFromData = (data.kp_rating != null ? data.kp_rating : (data.ratingKinopoisk != null ? data.ratingKinopoisk : 0));
             var imdbFromData = (data.imdb_rating != null ? data.imdb_rating : (data.ratingImdb != null ? data.ratingImdb : 0));
-            var cachedKp = ratingCache.get('kp_rating', data.id);
+            var cachedKp = ratingCache.get('kp_rating', kpCacheKey(data)) || ratingCache.get('kp_rating', data.id);
             var kpVal = (kpFromData > 0 ? kpFromData : (cachedKp && cachedKp.kp)) || 0;
             var imdbVal = (imdbFromData > 0 ? imdbFromData : (cachedKp && cachedKp.imdb)) || 0;
             imdbItem = ratingLine.querySelector('.rate--imdb');
@@ -1037,7 +1087,7 @@
             refreshBR(); return;
         }
         if (rateSource === 'imdb' || rateSource === 'kp') {
-            getKinopoiskRating(data, function (res) {
+            getCardRatings(data, function (res) {
                 if (!el.parentNode || el.dataset.movieId !== idStr) return;
                 var val = rateSource === 'kp' ? res.kp : res.imdb;
                 if (val && val > 0) {
@@ -1168,7 +1218,7 @@
                 if (separateWrap) { separateWrap.dataset.movieId = idStr; separateWrap.dataset.source = 'all'; }
                 updateCardRatingSeparate(card, data);
                 requestFreshTmdbUpdate(function () { updateCardRatingSeparate(card, data); });
-                if (canUseKinopoiskApi() && isAnyKinopoiskSourceVisible()) getKinopoiskRating(data, function () { if (card.parentNode && document.body.contains(card)) updateCardRatingSeparate(card, data); });
+                if (isAnyKinopoiskSourceVisible()) getCardRatings(data, function () { if (card.parentNode && document.body.contains(card)) updateCardRatingSeparate(card, data); });
                 var lampaKey = (data.seasons || data.first_air_date || data.original_name) ? 'tv_' + data.id : 'movie_' + data.id;
                 getLampaRating(lampaKey).then(function () { if (card.parentNode && document.body.contains(card)) updateCardRatingSeparate(card, data); });
             } else {
@@ -1178,9 +1228,9 @@
                 ratingElement.style.display = ''; ratingElement.classList.remove('card__vote--hidden');
                 updateCardRatingLine(ratingElement, data);
                 requestFreshTmdbUpdate(function () { if (ratingElement.parentNode && ratingElement.dataset.movieId === idStr) updateCardRatingLine(ratingElement, data); });
-                if (canUseKinopoiskApi() && isAnyKinopoiskSourceVisible() && !ratingElement.dataset.kpRequested) {
+                if (isAnyKinopoiskSourceVisible() && !ratingElement.dataset.kpRequested) {
                     ratingElement.dataset.kpRequested = String(Date.now());
-                    getKinopoiskRating(data, function () { if (ratingElement.parentNode && ratingElement.dataset.movieId === idStr) updateCardRatingLine(ratingElement, data); });
+                    getCardRatings(data, function () { if (ratingElement.parentNode && ratingElement.dataset.movieId === idStr) updateCardRatingLine(ratingElement, data); });
                 }
                 var lampaKey2 = (data.seasons || data.first_air_date || data.original_name) ? 'tv_' + data.id : 'movie_' + data.id;
                 getLampaRating(lampaKey2).then(function () { if (ratingElement.parentNode && ratingElement.dataset.movieId === idStr) updateCardRatingLine(ratingElement, data); });
@@ -1231,7 +1281,7 @@
             });
         } else if (source === 'kp' || source === 'imdb') {
             hideSingleRatingElement(ratingElement, 'rate--' + source);
-            getKinopoiskRating(data, function (res) {
+            getCardRatings(data, function (res) {
                 if (ratingElement.parentNode && ratingElement.dataset.movieId === idStr) {
                     var val = source === 'kp' ? res.kp : res.imdb;
                     if (val && val > 0) {
@@ -1314,7 +1364,7 @@
                         var cachedTmdb = tmdbKey ? ratingCache.get('tmdb_rating', tmdbKey) : null;
                         if (cachedTmdb && cachedTmdb.vote_average > 0) { singleEl.innerHTML = '<span style="color:' + getRatingColor(cachedTmdb.vote_average) + '">' + formatRating(cachedTmdb.vote_average) + '</span><span class="source--name"></span>'; showSingleRatingElement(singleEl); }
                     } else if (source === 'kp' || source === 'imdb') {
-                        var cachedKp = ratingCache.get('kp_rating', data.id);
+                        var cachedKp = ratingCache.get('kp_rating', kpCacheKey(data)) || ratingCache.get('kp_rating', data.id);
                         if (cachedKp && (cachedKp.kp > 0 || cachedKp.imdb > 0)) { var r = source === 'kp' ? cachedKp.kp : cachedKp.imdb; if (r > 0) { singleEl.innerHTML = '<span style="color:' + getRatingColor(r) + '">' + formatRating(r) + '</span><span class="source--name"></span>'; showSingleRatingElement(singleEl); } }
                     }
                 }
@@ -3480,7 +3530,12 @@
                         var imdbVal = parseFloat(imdbBlock.find('div').first().text().trim()) || 0;
                         if (kpVal > 0 || imdbVal > 0) {
                             var existing = ratingCache.get('kp_rating', event.object.id) || {};
-                            ratingCache.set('kp_rating', event.object.id, { kp: kpVal > 0 ? kpVal : (existing.kp || 0), imdb: imdbVal > 0 ? imdbVal : (existing.imdb || 0), timestamp: Date.now() });
+                            var detailEntry = { kp: kpVal > 0 ? kpVal : (existing.kp || 0), imdb: imdbVal > 0 ? imdbVal : (existing.imdb || 0), timestamp: Date.now() };
+                            ratingCache.set('kp_rating', event.object.id, detailEntry);
+                            if (event.data && event.data.movie) {
+                                var typedKey = kpCacheKey(event.data.movie);
+                                if (typedKey !== String(event.object.id)) ratingCache.set('kp_rating', typedKey, detailEntry);
+                            }
                         }
                     }
                 }
