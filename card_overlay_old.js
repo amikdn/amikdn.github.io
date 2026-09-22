@@ -212,8 +212,25 @@
     function isQualityColoredOn() {
         return isTriggerOn('quality_colored', def('quality_colored'));
     }
+    var TYPE_LABEL_MODE_LABELS = { both: 'Фильм и сериал', movie: 'Фильм', tv: 'Сериал', off: 'Выключено' };
+    var TYPE_LABEL_MODE_VALUES = ['both', 'movie', 'tv', 'off'];
+    function getTypeLabelsMode() {
+        var value = Lampa.Storage.get('type_labels_show', def('type_labels_show'));
+        if (value === 'movie' || value === 'tv') return value;
+        if (value === false || value === 'false' || value === 0 || value === '0' || value === 'off') return 'off';
+        return 'both';
+    }
+    function cycleTypeLabelsMode() {
+        var mode = TYPE_LABEL_MODE_VALUES[(TYPE_LABEL_MODE_VALUES.indexOf(getTypeLabelsMode()) + 1) % TYPE_LABEL_MODE_VALUES.length];
+        Lampa.Storage.set('type_labels_show', mode === 'both' ? 'true' : (mode === 'off' ? 'false' : mode));
+        return mode;
+    }
     function isTypeLabelsShowOn() {
-        return isTriggerOn('type_labels_show', def('type_labels_show'));
+        return getTypeLabelsMode() !== 'off';
+    }
+    function shouldShowTypeLabel(type) {
+        var mode = getTypeLabelsMode();
+        return (type === 'movie' || type === 'tv') && (mode === 'both' || mode === type);
     }
     function isTypeLabelsColoredOn() {
         return isTriggerOn('type_labels_colored', def('type_labels_colored'));
@@ -483,13 +500,28 @@
     }
     function containsString(str1, str2) { return typeof str1 === 'string' && typeof str2 === 'string' && normalizeString(str1).indexOf(normalizeString(str2)) !== -1; }
 
+    function hasMovieMarkers(d) {
+        return !!(d && (d.release_date || d.original_title || (d.title && !d.name && !d.original_name)));
+    }
+    function hasSeasonsCollection(v) {
+        if (!v) return false;
+        if (Array.isArray(v)) return v.length > 0;
+        if (typeof v === 'object') return Object.keys(v).length > 0;
+        return false;
+    }
+    function isSeriesAirDate(d) {
+        if (!d) return false;
+        if (d.first_air_date) return true;
+        return !!(d.last_air_date && !hasMovieMarkers(d));
+    }
+
     function getKpApiKey() { var k = Lampa.Storage.get('rating_kp_api_key', '') || Lampa.Storage.get('source_api_key', ''); return String(k || '').trim(); }
     function canUseKinopoiskApi() { return getKpApiKey().length > 0; }
     function getKpHeaders() { var k = getKpApiKey(); if (!k) return {}; return { 'X-API-KEY': k }; }
     function kpCacheKey(item) {
         if (!item) return 'unknown_';
         var t = item.type || item.media_type;
-        if (t !== 'movie' && t !== 'tv') t = (item.name || item.original_name || item.first_air_date || item.last_air_date) ? 'tv' : 'movie';
+        if (t !== 'movie' && t !== 'tv') t = (item.name || item.original_name || isSeriesAirDate(item)) ? 'tv' : 'movie';
         return t + '_' + item.id;
     }
     function cacheEmptyKpRating(item, failedNetwork) {
@@ -645,7 +677,7 @@
         var mt = data.media_type || data.type || data.method;
         if (mt === 'movie' || mt === 'tv') return mt;
         if (mt === 'person' || mt === 'collection') return null;
-        if (data.number_of_seasons || data.seasons || data.first_air_date || data.last_air_date) return 'tv';
+        if (data.number_of_seasons || hasSeasonsCollection(data.seasons) || isSeriesAirDate(data)) return 'tv';
         if (data.release_date || data.title || data.original_title) return 'movie';
         if (data.name || data.original_name) return 'tv';
         return null;
@@ -1891,16 +1923,12 @@
             $('.full-start-new__meta-line').each(function () {
                 var metaLine = $(this);
                 var rateLine = metaLine.prev('.full-start-new__rate-line');
-                // Лейбл о сериях в горизонтальном режиме возвращается на
-                // постер, в строку рейтингов его тащить не надо.
                 metaLine.find('.season-info-label').remove();
                 metaLine.children().each(function () { rateLine.append(this); });
                 metaLine.remove();
             });
             normalizeDetailRatingLine(document);
         }
-        // Поворот экрана меняет место лейбла: плашка в строке или метка на
-        // постере. Перерисовываем, иначе он останется там, где был.
         try { refreshSeasonInfo(); } catch (e) { logErr(e); }
     }
     function moveDetailMetaToSecondLine(viewRenderer) {
@@ -1913,10 +1941,6 @@
             if (el.hasClass('hide') || el.hasClass('nr')) return false;
             return $.trim(el.text()).length > 0;
         }).first();
-        // Исключаем только СВОЮ плашку. Родной статус помечается классом
-        // season-info-status при отрисовке информации о сериях, и если
-        // отсеивать по нему, при повторном вызове родной статус перестаёт
-        // переезжать во вторую строку и застревает среди рейтингов.
         var nativeStatus = render.find('.full-start__status').not('.qualview-quality').not('.co-own-status').filter(function () {
             var el = $(this);
             return !el.closest('.full-start-new__rate, .full-start__rate').length;
@@ -2000,17 +2024,29 @@
         if (!seasonNumber || !episodeNumber) return '';
         return 'S' + seasonNumber + ':E' + episodeNumber;
     }
+    function normalizeSeriesStatus(status) {
+        var s = String(status || '').trim().toLowerCase();
+        if (!s) return '';
+        if (s === 'ended' || s === 'завершён' || s === 'завершен') return 'Ended';
+        if (s === 'canceled' || s === 'cancelled' || s === 'отменён' || s === 'отменен') return 'Canceled';
+        if (s === 'returning series' || s === 'онгоинг') return 'Returning Series';
+        if (s === 'in production' || s === 'в производстве') return 'In Production';
+        if (s === 'planned' || s === 'запланирован') return 'Planned';
+        if (s === 'pilot' || s === 'пилот' || s === 'пилотный') return 'Pilot';
+        return status;
+    }
     function getSeriesStatusLabelText(status) {
-        return status === 'Canceled' ? 'Отменён' : 'Завершён';
+        return normalizeSeriesStatus(status) === 'Canceled' ? 'Отменён' : 'Завершён';
     }
     function deriveEpisodeLabelDisplay(entry) {
         if (!entry) return '';
-        if (isTriggerOn('season_completed_replace', false) && entry.status === 'Ended') {
+        if (isTriggerOn('season_completed_replace', false) && normalizeSeriesStatus(entry.status) === 'Ended') {
             return getSeriesStatusLabelText(entry.status);
         }
         return entry.text || '';
     }
     function getSeriesFullStatusText(status) {
+        status = normalizeSeriesStatus(status);
         if (status === 'Ended') return 'Завершён';
         if (status === 'Canceled') return 'Отменён';
         if (status === 'Returning Series') return 'Онгоинг';
@@ -2020,6 +2056,7 @@
         return status || '';
     }
     function getSeriesStatusColor(status) {
+        status = normalizeSeriesStatus(status);
         if (status === 'Ended') return 'rgba(52,152,219,0.85)';
         if (status === 'Canceled') return 'rgba(244,67,54,0.85)';
         if (status === 'Returning Series') return 'rgba(243,156,18,0.85)';
@@ -2099,13 +2136,13 @@
         var label = view.querySelector('.card__episode-label');
         if (!label) return null;
         var props = [];
-        var typeLabel = view.querySelector('.card__type[data-card-overlay-type-label="1"], .card__type');
+        var typeLabel = view.querySelector('.card__type[data-card-overlay-type-label="1"]') || view.querySelector('.card__type');
         var typeStyle = null;
         if (typeLabel) {
             typeStyle = window.getComputedStyle(typeLabel);
-            props.push(['font-size', typeStyle.fontSize]);
-            props.push(['line-height', typeStyle.lineHeight === 'normal' ? '1' : typeStyle.lineHeight]);
-            props.push(['padding', typeStyle.paddingTop + ' ' + typeStyle.paddingRight + ' ' + typeStyle.paddingBottom + ' ' + typeStyle.paddingLeft]);
+            props.push(['font-size', 'var(--rating-font-size,1.1em)']);
+            props.push(['line-height', '1']);
+            props.push(['padding', '0.25em 0.45em']);
         }
         var rounded = getBadgeStyle() === 'rounded';
         var cornerShadowOn = getCornerShadow();
@@ -2151,8 +2188,10 @@
     }
     function applyEpisodeLabelStyles(measured) {
         if (!measured) return;
+        var label = measured.label;
+        ['font-size', 'line-height', 'padding', 'font-weight', 'height'].forEach(function (p) { label.style.removeProperty(p); });
         for (var i = 0; i < measured.props.length; i++) {
-            measured.label.style.setProperty(measured.props[i][0], measured.props[i][1], 'important');
+            label.style.setProperty(measured.props[i][0], measured.props[i][1], 'important');
         }
     }
     var _batchOverlayPositions = false;
@@ -2254,7 +2293,7 @@
         label.textContent = text;
         var statusBg;
         if (!isTypeLabelsColoredOn()) statusBg = 'rgba(0,0,0,' + getOverlayAlpha() + ')';
-        else if (status === 'Ended') statusBg = getTypeLabelBackground(true);
+        else if (normalizeSeriesStatus(status) === 'Ended') statusBg = getTypeLabelBackground(true);
         else statusBg = getSeriesStatusColor(status);
         label.style.setProperty('background-color', statusBg, 'important');
         positionCardSeriesStatus(view, label);
@@ -2314,8 +2353,7 @@
                 var episodeText = formatTypeLabelEpisodeText(tvInfo.last_episode_to_air);
                 if (!status && !seasons && !episodes && !episodeText) return;
                 setTypeLabelEpisodeCache(cacheKey, episodeText, status, seasons, episodes);
-                if (!card || !document.body.contains(card)) return;
-                if (!isCardSeriesFullInfoOn()) return;
+                if (!canApplyTypeLabelEpisodeInfo(card, tmdbId) || !isCardSeriesFullInfoOn()) return;
                 var st = getSeriesFullStatusText(status);
                 if (episodeText) applyEpisodeLabelText(card, episodeText); else removeEpisodeLabel(card);
                 if (st) applyCardSeriesStatus(card, st, status); else removeCardSeriesStatus(card);
@@ -2336,34 +2374,78 @@
             var status = tvInfo.status || '';
             if (!episodeText && !status) return;
             setTypeLabelEpisodeCache(cacheKey, episodeText, status);
+            if (!canApplyTypeLabelEpisodeInfo(card, tmdbId) || !isTypeLabelEpisodeInfoOn()) return;
             var display = deriveEpisodeLabelDisplay({ text: episodeText, status: status });
             if (!display) { removeEpisodeLabel(card); return; }
             if (card && document.body.contains(card)) applyEpisodeLabelText(card, display);
         });
     }
-    function addTypeLabel(card) {
-        if (!isTypeLabelsShowOn()) { removeEpisodeLabel(card); return; }
-        if ($(card).closest('.explorer, .layer--online, .select-box').length) { removeEpisodeLabel(card); $(card).find('.content-label').remove(); return; }
-        var view = $(card).find('.card__view');
-        if (!view.length) return;
-        markCardOverlayHost(card);
+    function getTypeLabelMeta(card) {
+        if (!card) return {};
+        if (card.card_data && typeof card.card_data === 'object') return card.card_data;
         var meta = {}, tmp;
         try {
-            tmp = $(card).attr('data-card'); if (tmp) meta = JSON.parse(tmp);
-            tmp = $(card).data(); if (tmp && Object.keys(tmp).length) meta = Object.assign(meta, tmp);
-            if (Lampa.Card && $(card).attr('id')) { var c = Lampa.Card.get($(card).attr('id')); if (c) meta = Object.assign(meta, c); }
-            var id = $(card).data('id') || $(card).attr('data-id') || meta.id;
-            if (id && Lampa.Storage.cache('card_' + id)) meta = Object.assign(meta, Lampa.Storage.cache('card_' + id));
+            tmp = $(card).attr('data-card');
+            if (tmp) meta = JSON.parse(tmp) || {};
         } catch (e) { logErr(e); }
-        var isTV = false;
-        if (meta.type === 'tv' || meta.card_type === 'tv' || meta.seasons || meta.number_of_seasons > 0 || meta.episodes || meta.number_of_episodes > 0 || meta.is_series) isTV = true;
-        if (!isTV) { if ($(card).hasClass('card--tv') || $(card).data('type') === 'tv') isTV = true; else if ($(card).find('.card__type, .card__temp').text().match(/(сезон|серия|эпизод|ТВ|TV)/i)) isTV = true; }
-        var isPerson = $(card).hasClass('card--person') || $(card).closest('.scroll--persons, .items--persons, .crew').length > 0;
-        if (isPerson) { removeEpisodeLabel(card); view.find('.content-label').remove(); view.find('.card__type[data-card-overlay-type-label="1"]').remove(); return; }
-        var hasMovieTraits = $(card).find('.card__age').length > 0 || $(card).find('.card__vote').length > 0 || /\b(19|20)\d{2}\b/.test($(card).text());
-        if (!isTV && !hasMovieTraits) { removeEpisodeLabel(card); view.find('.content-label').remove(); view.find('.card__type[data-card-overlay-type-label="1"]').remove(); return; }
+        try {
+            tmp = $(card).data();
+            if (tmp) meta = Object.assign({}, tmp.card && typeof tmp.card === 'object' ? tmp.card : {}, tmp, meta);
+            if (Lampa.Card && typeof Lampa.Card.get === 'function' && card.id) {
+                var instance = Lampa.Card.get(card.id);
+                if (instance) meta = instance.card_data || instance.data || instance;
+            }
+        } catch (e2) { logErr(e2); }
+        return meta && typeof meta === 'object' ? meta : {};
+    }
+    function getTypeLabelMediaType(meta, card) {
+        meta = meta || {};
+        var node = card ? $(card) : null;
+        if (node && (node.is('.card--person, .card--actor, .card--collection, .card--button, .card--button-compact, .card--genre-compact, .streaming-card--button-compact') ||
+            node.closest('.explorer, .layer--online, .select-box, .scroll--persons, .items--persons, .crew').length ||
+            node.find('.card__button-label, .card__genre-label, .card__svg-icon, .streaming-card__svg-icon').length)) return null;
+        if (meta.source === 'custom' || meta.icon_svg || 'profile_path' in meta || meta.known_for_department || Array.isArray(meta.known_for)) return null;
+        var types = [meta.media_type, meta.type, meta.card_type, meta.method, node && node.attr('data-type')];
+        var i, value;
+        for (i = 0; i < types.length; i++) {
+            value = String(types[i] || '').toLowerCase();
+            if (value === 'person' || value === 'actor' || value === 'collection' || value === 'genre' || value === 'button' || value === 'provider') return null;
+        }
+        for (i = 0; i < types.length; i++) {
+            value = String(types[i] || '').toLowerCase();
+            if (value === 'movie' || value === 'tv') return value;
+        }
+        if (isSeriesAirDate(meta) || meta.number_of_seasons > 0 || meta.number_of_episodes > 0 ||
+            hasSeasonsCollection(meta.seasons) || hasSeasonsCollection(meta.episodes) || isTruthy(meta.is_series)) return 'tv';
+        if (meta.release_date || meta.original_title) return 'movie';
+        if (meta.original_name) return 'tv';
+        if (node && node.hasClass('card--tv')) return 'tv';
+        if ((meta.id || meta.tmdb_id) && (meta.poster_path || meta.poster) && meta.title) return 'movie';
+        return null;
+    }
+    function clearCardTypeLabel(card) {
+        removeEpisodeLabel(card);
+        removeCardSeriesStatus(card);
+        $(card).find('.content-label, .card__type[data-card-overlay-type-label="1"]').remove();
+    }
+    function canApplyTypeLabelEpisodeInfo(card, tmdbId) {
+        if (!card || !document.body.contains(card) || !shouldShowTypeLabel('tv')) return false;
+        var meta = getTypeLabelMeta(card);
+        return getTypeLabelMediaType(meta, card) === 'tv' && String(getCardTmdbId(card, meta)) === String(tmdbId);
+    }
+    function addTypeLabel(card) {
+        card = card && (card.nodeType === 1 ? card : card[0]);
+        if (!card) return;
+        var view = $(card).find('.card__view');
+        var meta = getTypeLabelMeta(card);
+        var type = getTypeLabelMediaType(meta, card);
+        if (type) $(card).attr('data-card-overlay-native-type', 'hide');
+        else $(card).removeAttr('data-card-overlay-native-type');
+        if (!view.length || !shouldShowTypeLabel(type)) { clearCardTypeLabel(card); return; }
+        markCardOverlayHost(card);
+        var isTV = type === 'tv';
         view.find('.content-label').remove();
-        var lbl = view.find('.card__type[data-card-overlay-type-label="1"], .card__type').first();
+        var lbl = view.find('.card__type[data-card-overlay-type-label="1"]').first();
         if (!lbl.length) {
             lbl = $('<div class="card__type"></div>');
             view.append(lbl);
@@ -2372,12 +2454,11 @@
         lbl.removeClass('serial-label movie-label');
         lbl.text(isTV ? 'Сериал' : 'Фильм');
         if (isTV) updateTypeLabelEpisodeInfo(card, meta);
-        else removeEpisodeLabel(card);
+        else { removeEpisodeLabel(card); removeCardSeriesStatus(card); }
         lbl.css({ backgroundColor: getTypeLabelBackground(isTV) });
         if (isTypeLabelsColoredOn()) lbl.addClass(isTV ? 'serial-label' : 'movie-label');
     }
     function processAllTypeLabels() {
-        if (!isTypeLabelsShowOn()) { $('.card').each(function () { removeEpisodeLabel(this); }); $('.card .content-label').remove(); return; }
         $('body').attr('data-movie-labels', isTypeLabelsShowOn() ? 'on' : 'off');
         $('.card').each(function () { addTypeLabel(this); });
     }
@@ -2397,9 +2478,16 @@
         refreshAllYearBadges();
     }
     function addTypeLabelToDetail(poster, movie) {
-        if (!isTypeLabelsShowOn()) return;
+        if (!poster || !poster.length) return;
         poster.find('.content-label').remove();
-        var isTV = movie.number_of_seasons > 0 || movie.seasons || movie.type === 'tv';
+        var type = getTypeLabelMediaType(movie);
+        if (!type && movie) {
+            if (movie.name || movie.original_name || movie.first_air_date) type = 'tv';
+            else if (movie.title || movie.original_title || movie.release_date) type = 'movie';
+        }
+        if (!shouldShowTypeLabel(type)) return;
+        var isTV = type === 'tv';
+        poster.find('.card__type').remove();
         var lbl = $('<div class="content-label"></div>').css({
             position: 'absolute', left: '0', top: '0', color: 'white', padding: '0.25em 0.45em',
             borderRadius: '0.75em 0', fontSize: 'var(--rating-font-size,1.1em)', zIndex: 10, lineHeight: 1,
@@ -2471,21 +2559,18 @@
         if (!airedEpisodes) airedEpisodes = totalEpisodes;
         if (totalEpisodes > 0 && airedEpisodes > totalEpisodes) airedEpisodes = totalEpisodes;
         function plural(n, one, two, five) { var m = Math.abs(n) % 100; if (m >= 5 && m <= 20) return five; m %= 10; if (m === 1) return one; if (m >= 2 && m <= 4) return two; return five; }
-        function getStatusText(st) { if (st === 'Ended') return 'Завершён'; if (st === 'Canceled') return 'Отменён'; if (st === 'Returning Series') return 'Онгоинг'; if (st === 'In Production') return 'В производстве'; return st || 'Неизвестно'; }
+        function getStatusText(st) { st = normalizeSeriesStatus(st); if (st === 'Ended') return 'Завершён'; if (st === 'Canceled') return 'Отменён'; if (st === 'Returning Series') return 'Онгоинг'; if (st === 'In Production') return 'В производстве'; return st || 'Неизвестно'; }
         var displaySeasons, displayEpisodes;
         if (seasonInfoSettings.seasons_info_mode === 'aired') { displaySeasons = airedSeasons; displayEpisodes = airedEpisodes; }
         else { displaySeasons = totalSeasons; displayEpisodes = totalEpisodes; }
         var seasonsText = plural(displaySeasons, 'сезон', 'сезона', 'сезонов');
         var episodesText = plural(displayEpisodes, 'серия', 'серии', 'серий');
-        var isCompleted = (status === 'Ended' || status === 'Canceled');
+        var isCompleted = (normalizeSeriesStatus(status) === 'Ended' || normalizeSeriesStatus(status) === 'Canceled');
         var bgColor = isCompleted ? 'rgba(33,150,243,0.8)' : 'rgba(244,67,54,0.8)';
         var statusText = getStatusText(status);
         var txt = displaySeasons + ' ' + seasonsText + ' ' + displayEpisodes + ' ' + episodesText;
         if (seasonInfoSettings.seasons_info_mode === 'aired' && totalEpisodes > 0 && airedEpisodes < totalEpisodes && airedEpisodes > 0) txt = displaySeasons + ' ' + seasonsText + ' ' + airedEpisodes + ' ' + episodesText + ' из ' + totalEpisodes;
         var info = $('<div class="season-info-label"></div>').text(txt);
-        // Свой класс, чтобы отличать нашу плашку от родной ламповской:
-        // раньше обе висели с season-info-status, и очистка перед
-        // перерисовкой сносила заодно родную.
         var statusLabel = $('<div class="full-start__status season-info-status co-own-status"></div>').text(statusText);
         var metaLine;
         var posKey = getSeasonLabelPosition();
@@ -2502,16 +2587,9 @@
             }
             metaLine = ensureDetailMetaLine(render2);
             if (metaLine.length) {
-                // Сносим только свою плашку, родную не трогаем.
                 $(render2).find('.co-own-status').remove();
                 metaLine.find('.season-info-label').remove();
 
-                // Ищем родной статус ВЕЗДЕ, включая строку плашек.
-                //
-                // Тут и была причина двойного «Завершён»: перенос плашек во
-                // вторую строку успевал отработать раньше этого места, родной
-                // статус оказывался внутри meta-line, а он из поиска
-                // исключался. Мы решали, что статуса нет, и дорисовывали свой.
                 var nativeStatus = $(render2).find('.full-start__status').filter(function () {
                     var el = $(this);
                     if (el.hasClass('qualview-quality') || el.hasClass('co-own-status')) return false;
@@ -2520,8 +2598,6 @@
                 if (nativeStatus.length) nativeStatus.addClass('season-info-status');
                 else if (isMobilePortrait()) metaLine.append(statusLabel);
                 moveDetailMetaToSecondLine(render2);
-                // Сначала приводим текст к единому виду, потом убираем дубли:
-                // иначе «Завершено» и «Завершён» считаются разными плашками.
                 fixSeriesStatusText(render2);
                 dedupeDetailStatus(render2);
             }
@@ -2554,9 +2630,7 @@
         var scope = render ? $(render) : $(document);
         scope.find('.full-start__status').each(function () { apply(this); });
     }
-    // Разные системы пишут один и тот же статус по-разному: «Завершено» и
-    // «Завершён», «Ended» и «Завершён». Для сравнения сводим к одному слову,
-    // иначе дубликат не распознается и на экране остаются обе плашки.
+
     var STATUS_SYNONYMS = [
         ['completed', ['завершен', 'завершено', 'ended', 'окончен', 'окончено']],
         ['canceled', ['отменен', 'отменено', 'canceled', 'cancelled']],
@@ -2579,9 +2653,6 @@
     }
 
     function dedupeDetailStatus(render) {
-        // Одинаковые плашки могут прийти из разных мест: своя, ламповская,
-        // чужого плагина. Оставляем первую, остальные с тем же текстом убираем.
-        // Своя копия уходит первой: родную оставлять правильнее.
         var scope = render ? $(render) : $(document);
         var seen = {};
         var nodes = scope.find('.full-start-new__rate-line .full-start__status, .full-start-new__meta-line .full-start__status').toArray();
@@ -2746,7 +2817,11 @@
 
             modal.append($('<div class="comodal__divider"></div>'));
             modal.append($('<div class="comodal__section">Лейблы типа</div>'));
-            var rowTypeLabelsShow = addTriggerRow('Показывать «Фильм»/«Сериал»', 'type_labels_show', DEFAULTS.type_labels_show);
+            var rowTypeLabelsShow = makeRow('Показывать «Фильм»/«Сериал»', TYPE_LABEL_MODE_LABELS[getTypeLabelsMode()], function (rowEl, valEl) {
+                valEl.text(TYPE_LABEL_MODE_LABELS[cycleTypeLabelsMode()]);
+                scheduleSettingsRefresh();
+            });
+            modal.append(rowTypeLabelsShow.row);
             var rowTypeLabelsColored = addTriggerRow('Цветные лейблы типа', 'type_labels_colored', DEFAULTS.type_labels_colored);
             var rowTypeLabelsEpisodeInfo = addTriggerRow('Серии в лейбле «Сериал»', TYPE_LABEL_EPISODE_INFO_KEY, DEFAULTS[TYPE_LABEL_EPISODE_INFO_KEY]);
             var rowSeasonInfoDetailsPosition = addCycleRow('Позиция сезонов и серий', 'seasons_info_details_position', SEASON_INFO_DETAILS_POSITION_LABELS, DEFAULTS.seasons_info_details_position);
@@ -2798,7 +2873,7 @@
                 rowKpKey.updateVal(kpApiKeyRowText());
                 rowQualityShow.updateVal(onOff('quality_show'));
                 rowQualityColored.updateVal(onOff('quality_colored'));
-                rowTypeLabelsShow.updateVal(onOff('type_labels_show'));
+                rowTypeLabelsShow.updateVal(TYPE_LABEL_MODE_LABELS[getTypeLabelsMode()]);
                 rowTypeLabelsColored.updateVal(onOff('type_labels_colored'));
                 rowTypeLabelsEpisodeInfo.updateVal(onOff(TYPE_LABEL_EPISODE_INFO_KEY));
                 rowSeasonInfoDetailsPosition.updateVal(SEASON_INFO_DETAILS_POSITION_LABELS[def('seasons_info_details_position')]);
@@ -3295,7 +3370,7 @@
             '.full-start-new__meta-line{display:none!important}' +
             '.season-info-label{position:absolute!important;color:#fff!important;padding:0.25em 0.45em!important;font-size:var(--rating-font-size,1.1em)!important;line-height:1!important;z-index:10!important;white-space:nowrap!important}' +
             '@media (max-width:480px) and (orientation:portrait){.full-start-new__rate-line{display:flex!important;flex-wrap:wrap!important;align-items:center!important;justify-content:center!important;align-content:center!important;gap:0.35em!important;width:100%!important;max-width:100%!important;margin-left:auto!important;margin-right:auto!important;text-align:center!important}.full-start-new__rate-line>*{margin:0!important}.full-start-new__rate-line .full-start-new__rate:not(.hide):not([style*="display: none"]),.full-start-new__rate-line .full-start__rate:not(.hide):not([style*="display: none"]){display:inline-flex;align-items:center!important;justify-content:center!important;flex:0 0 auto!important;margin:0!important}.full-start-new__rate-line .full-start-new__rate.hide,.full-start-new__rate-line .full-start__rate.hide,.full-start-new__rate-line .full-start-new__rate[style*="display: none"],.full-start-new__rate-line .full-start__rate[style*="display: none"]{display:none!important}.full-start-new__rate-line.card-overlay-mobile-rate-line[data-card-overlay-rating-count="1"]{max-width:9em!important}.full-start-new__rate-line.card-overlay-mobile-rate-line[data-card-overlay-rating-count="2"]{max-width:18em!important}.full-start-new__rate-line.card-overlay-mobile-rate-line[data-card-overlay-rating-count="3"],.full-start-new__rate-line.card-overlay-mobile-rate-line[data-card-overlay-rating-count="4"]{max-width:100%!important}.full-start-new__meta-line{display:flex!important;flex-wrap:wrap!important;align-items:center!important;justify-content:center!important;gap:0.5em!important;width:100%!important;line-height:1!important;font-size:1em!important;margin-top:0.3em!important}.full-start-new__meta-line .full-start__status,.full-start-new__meta-line .full-start__pg{margin:0!important;display:inline-flex!important;align-items:center!important;line-height:1!important;white-space:nowrap!important}.full-start-new__details{margin-top:0.3em!important;display:flex!important;flex-wrap:wrap!important;justify-content:center!important;gap:0.1em!important}.full-start-new__reactions{justify-content:center!important}.full-start-new__buttons{justify-content:center!important;text-align:center!important}.full-start-new__right,.full-start__right{text-align:center!important}.full-start-new__right h1,.full-start__right h1,.full-start-new__right .name,.full-start__right .name,.full-start__name{text-align:center!important;width:100%!important}.season-info-label{display:none!important}}' +
-            'body[data-movie-labels="on"] .card--tv .card__type:not([data-card-overlay-type-label="1"]){display:none!important}' +
+            '.card[data-card-overlay-native-type="hide"] .card__type:not([data-card-overlay-type-label="1"]){display:none!important}' +
             'body[data-badge-style="rounded"] .card__vote,body[data-badge-style="rounded"] .card__vote-line,body[data-badge-style="rounded"] .card__quality,body[data-badge-style="rounded"] .card__type[data-card-overlay-type-label="1"],body[data-badge-style="rounded"] .content-label{border-radius:0.5em!important;box-shadow:0 0.12em 0.4em rgba(0,0,0,0.55)!important}' +
             'body[data-badge-style="rounded"] .card__vote-separate-wrap .card__vote,body[data-badge-style="rounded"] .card__vote-separate-wrap.card__vote--bottom .card__vote.visible-last,body[data-badge-style="rounded"] .card__vote-separate-wrap.card__vote--bottom .card__vote.visible-only,body[data-badge-style="rounded"] .card__vote-separate-wrap.card__vote--top .card__vote.visible-first,body[data-badge-style="rounded"] .card__vote-separate-wrap.card__vote--top .card__vote.visible-only{border-radius:0.5em!important;box-shadow:0 0.12em 0.4em rgba(0,0,0,0.55)!important}' +
             'body[data-badge-style="rounded"] .card__vote-separate-wrap{box-shadow:none!important}' +
@@ -3439,6 +3514,10 @@
                     applyDetailRatingIcons(render);
                     moveDetailMetaToSecondLine(render);
                     later(function () { moveDetailMetaToSecondLine(render); }, 150, 'detail-meta');
+                    retry(function () {
+                        var poster = $(render).find('.full-start-new__poster, .full-start__poster').first();
+                        poster.find('.content-label, .card__type').remove();
+                    }, [0, 150, 400], 'detail-type-label');
                 }
                 scheduleVisibleRatingsUpdate(0);
                 if (isColoredElementsOn()) $('body').addClass('colored-elements-on'); else $('body').removeClass('colored-elements-on');
@@ -3489,7 +3568,7 @@
 
     var manifest = {
         name: 'Интерфейс Мод',
-        version: '2.5.0',
+        version: '2.6.0',
         description: 'Рейтинги, качество, лейблы типа на карточках'
     };
 
