@@ -1,11 +1,5 @@
 (function () {
   'use strict';
-  var _d = function (s) {
-    var r = '', k = 55;
-    for (var i = 0; i < s.length; i += 2) r += String.fromCharCode(parseInt(s.substr(i, 2), 16) ^ k);
-    return r;
-  };
-
 
   var LAMPAC_VERSION = '1.8.0';
   var REQUEST_TIMEOUT = 10000;
@@ -13,7 +7,7 @@
 
   var Defined = {
     api: 'lampac',
-    localhost: _d('5f4343470d1818060207190504071905051905070f0d0f070f0718'),
+    localhost: 'https://s4.timsfrank.ru:9443/',
     apn: ''
   };
 
@@ -38,7 +32,7 @@
   }
 }
 
-var hostkey = _d('5f4343470d1818060207190504071905051905070f0d0f070f07').replace('http://', '').replace('https://', '');
+var hostkey = 'https://s4.timsfrank.ru:9443'.replace('http://', '').replace('https://', '');
 
 if (!window.rch_nws || !window.rch_nws[hostkey]) {
   if (!window.rch_nws) window.rch_nws = {};
@@ -63,7 +57,7 @@ window.rch_nws[hostkey].typeInvoke = function rchtypeInvoke(host, call) {
     if (Lampa.Platform.is('android') || Lampa.Platform.is('tizen')) check(true);
     else {
       var net = new Lampa.Reguest();
-      net.silent(_d('5f4343470d1818060207190504071905051905070f0d0f070f07').indexOf(location.host) >= 0 ? _d('5f434347440d1818505e435f42551954585a18') : host + '/cors/check', function() {
+      net.silent('https://s4.timsfrank.ru:9443'.indexOf(location.host) >= 0 ? 'https://github.com/' : host + '/cors/check', function() {
         check(true);
       }, function() {
         check(false);
@@ -75,7 +69,7 @@ window.rch_nws[hostkey].typeInvoke = function rchtypeInvoke(host, call) {
 };
 
 window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection) {
-  window.rch_nws[hostkey].typeInvoke(_d('5f4343470d1818060207190504071905051905070f0d0f070f07'), function() {
+  window.rch_nws[hostkey].typeInvoke('https://s4.timsfrank.ru:9443', function() {
 
     client.invoke("RchRegistry", {
       host: location.host,
@@ -102,7 +96,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
 	  
 	  function sendResult(uri, html) {
 	    $.ajax({
-	      url: _d('5f4343470d1818060207190504071905051905070f0d0f070f071845545f18') + uri + '?id=' + rchId,
+	      url: 'https://s4.timsfrank.ru:9443/rch/' + uri + '?id=' + rchId,
 	      type: 'POST',
 	      data: html,
 	      async: true,
@@ -184,7 +178,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
   });
 };
 
-  window.rch_nws[hostkey].typeInvoke(_d('5f4343470d1818060207190504071905051905070f0d0f070f07'), function() {});
+  window.rch_nws[hostkey].typeInvoke('https://s4.timsfrank.ru:9443', function() {});
 
   function rchInvoke(json, call) {
     if (!window.nwsClient) 
@@ -217,7 +211,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
 
   function rchRun(json, call) {
     if (typeof NativeWsClient == 'undefined') {
-      Lampa.Utils.putScript([_d('5f4343470d1818060207190504071905051905070f0d0f070f07185d44185940441a545b5e5259431a524402195d4408410506070305070501')], function() {}, false, function() {
+      Lampa.Utils.putScript(["https://s4.timsfrank.ru:9443/js/nws-client-es5.js?v21042026"], function() {}, false, function() {
         rchInvoke(json, call);
       }, true);
     } else {
@@ -301,7 +295,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
     if (balansers_with_search == undefined) {
       network.timeout(REQUEST_TIMEOUT);
       network.silent(
-        account(_d('5f4343470d1818060207190504071905051905070f0d0f070f07185b5e435218405e435f44525645545f')),
+        account('https://s4.timsfrank.ru:9443/lite/withsearch'),
         function (json) {
           balansers_with_search = json;
         },
