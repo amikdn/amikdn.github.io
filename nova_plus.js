@@ -631,6 +631,24 @@
         try { learnUrl(url); } catch (e) {}
         return open.apply(this, arguments);
       };
+      try {
+        var send = XMLHttpRequest.prototype.send;
+        if (typeof send === 'function') {
+          XMLHttpRequest.prototype.send = function () {
+            var xhr = this;
+            try {
+              xhr.addEventListener('load', function () {
+                try {
+                  var body = xhr.response;
+                  if (typeof body !== 'string') body = xhr.responseText;
+                  if (typeof body === 'string') learnBody(body);
+                } catch (e) {}
+              });
+            } catch (e) {}
+            return send.apply(this, arguments);
+          };
+        }
+      } catch (e) {}
       XMLHttpRequest.prototype.nova_plus_wrapped = true;
     } catch (e) {}
   }
@@ -1428,7 +1446,7 @@
   var VOICE_OWN_PARAMS = ['id', 'imdb_id', 'kinopoisk_id', 'title', 'original_title',
     'original_language', 'serial', 'year', 'source', 'clarification', 'similar',
     's', 'e', 't', 'voice', 'translation', 'season', 'episode', 'number',
-    'rjson', 'nojson', 'life', 'box'];
+    'rjson', 'nojson', 'life', 'box', 'rchtype', 'nws_id', 'nws', 'rch', 'token'];
 
   var probe_queue = {};
   var PROBE_TIMEOUT = 7000;
@@ -1440,9 +1458,18 @@
   function componentNow() {
     try {
       var current = Lampa.Activity.active();
-      return (current && current.activity && current.activity.component) || null;
+      return (current && current.activity) || null;
     } catch (e) {
       return null;
+    }
+  }
+
+  function componentName() {
+    try {
+      var current = Lampa.Activity.active();
+      return String((current && current.activity && current.activity.component) || '');
+    } catch (e) {
+      return '';
     }
   }
 
@@ -1874,6 +1901,9 @@
 
     base = voiceDropParam(base, 'e');
     base = voiceDropParam(base, 'episode');
+    base = voiceDropParam(base, 'rchtype');
+    base = voiceDropParam(base, 'nws_id');
+    base = voiceDropParam(base, 'nws');
 
     var season = seasonNumber() || 0;
     var out = [];
@@ -2284,12 +2314,6 @@
 
     Lampa.Activity.replace = function (params) {
       if (swallow) return;
-      var empty_call = !params || !Object.keys(params).length;
-      if (inplace && empty_call) {
-        inplaceStop();
-        var comp = componentNow();
-        if (reloadable(comp) && reloadInPlace(comp)) return;
-      }
       return real.apply(Lampa.Activity, arguments);
     };
 
@@ -2319,21 +2343,16 @@
       };
     }
 
-    var real = comp.changeBalanser;
+    if (typeof comp.requestParams === 'function' && !comp.nova_rp_hooked) {
+      var reqparams = comp.requestParams;
+      comp.nova_rp_hooked = true;
+      comp.requestParams = function (url) {
+        var out = reqparams.apply(comp, arguments);
+        try { learnUrl(out); } catch (e) {}
+        return out;
+      };
+    }
 
-    comp.changeBalanser = function () {
-      if (!inplace || !reloadable(comp)) return real.apply(comp, arguments);
-
-      inplaceStop();
-      swallow = true;
-      try {
-        real.apply(comp, arguments);
-      } catch (e) {}
-      swallow = false;
-
-      if (reloadInPlace(comp)) return;
-      if (typeof real_replace === 'function') real_replace.call(Lampa.Activity, {});
-    };
   }
 
   function inplaceStart() {
@@ -5186,6 +5205,7 @@
           switchDone();
           forget();
         }
+        try { patchHost(componentNow()); } catch (err) {}
         attach();
         draw();
 
