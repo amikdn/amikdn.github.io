@@ -550,8 +550,25 @@
     return out;
   }
 
+  function voiceText(answer) {
+    if (typeof answer === 'string') return answer;
+    if (answer && typeof answer === 'object') {
+      var deep = answer.data || answer.html || answer.body || answer.result || '';
+      if (typeof deep === 'string' && deep) return deep;
+      try {
+        var json = JSON.stringify(answer) || '';
+        if (json.indexOf('videos__button') !== -1) json = json.split('\\"').join('"');
+        return json;
+      } catch (e) {
+        return '';
+      }
+    }
+    return '';
+  }
+
   function learnBody(body, origin, season) {
-    if (typeof body !== 'string') return;
+    body = voiceText(body);
+    if (!body) return;
     if (body.indexOf('videos__button') === -1) return;
     var list = voiceParse(body);
     if (list.length < 2) return;
@@ -1762,7 +1779,7 @@
   function voiceWanted() {
     if (!movie || !serial || nav) return false;
     var group = groups.voice;
-    if (!group || !group.items || group.items.length < 2) return false;
+    if (!group || !group.items || !group.items.length) return false;
     return true;
   }
 
@@ -1880,6 +1897,14 @@
     return out;
   }
 
+  function voiceSeedVariants() {
+    var list = [voiceHeaders()];
+    var alt = voiceHeadersAlt();
+    if (alt) list.push(alt);
+    list.push({});
+    return list;
+  }
+
   function voiceSeed(after) {
     if (voice_seed_busy) return;
     if (!voiceWanted()) return;
@@ -1892,7 +1917,16 @@
     voice_seed_done = stamp;
     voice_seed_busy = true;
 
+    var jobs = [];
+    var variants = voiceSeedVariants();
+    urls.forEach(function (url) {
+      variants.forEach(function (headers) {
+        jobs.push({ url: url, headers: headers });
+      });
+    });
+
     var seat = 0;
+    var deadline = Date.now() + VOICE_BUDGET;
 
     var finish = function () {
       voice_seed_busy = false;
@@ -1902,9 +1936,10 @@
 
     var step = function () {
       if (!voice_seed_busy) return;
-      if (seat >= urls.length || !inSkin() || !movie) return finish();
+      if (seat >= jobs.length || Date.now() > deadline || !inSkin() || !movie) return finish();
 
-      var url = urls[seat++];
+      var job = jobs[seat++];
+      var url = job.url;
       var net = null;
       try { net = new Lampa.Reguest(); } catch (e) { net = null; }
       if (!net) return finish();
@@ -1913,19 +1948,29 @@
       voice_seed_net = net;
       try { net.timeout(VOICE_SEED_TIMEOUT); } catch (e) {}
 
+      var settled = false;
       var done = function (answer) {
-        var body = typeof answer === 'string' ? answer : '';
+        if (settled) return;
+        settled = true;
+        clearTimeout(guard);
+        var body = voiceText(answer);
         if (body.indexOf('videos__button') !== -1) {
           try { learnBody(body, url, seasonNumber() || 0); } catch (e) {}
         }
         if (voiceListFresh()) return finish();
         step();
       };
+      var guard = setTimeout(function () {
+        if (settled) return;
+        settled = true;
+        try { net.clear(); } catch (e) {}
+        done('');
+      }, VOICE_SEED_TIMEOUT + 2500);
 
       try {
         net['native'](url, done, function () {
           done('');
-        }, false, { dataType: 'text', headers: voiceHeaders() });
+        }, false, { dataType: 'text', headers: job.headers });
       } catch (e) {
         done('');
       }
@@ -1995,7 +2040,7 @@
   }
 
   function voiceBodyCount(body) {
-    var text = typeof body === 'string' ? body : '';
+    var text = voiceText(body);
     if (!text) return 0;
     var files = 0;
     var folders = 0;
@@ -2038,7 +2083,7 @@
 
   function voiceAnswer(name, answer) {
     if (!voice_busy) return 0;
-    var body = typeof answer === 'string' ? answer : '';
+    var body = voiceText(answer);
     if (!body) return 0;
     if (body.indexOf('"rch"') !== -1) return 0;
     if (body.indexOf('"accsdb"') !== -1 || body.indexOf('"blocked"') !== -1) return 0;
@@ -2063,7 +2108,7 @@
       var link = voiceLink(row.entry.url);
       if (!link) return false;
       used[row.seat] = true;
-      queue.push({ name: name, url: link });
+      queue.push({ name: name, url: link, headers: voiceHeaders() });
       return true;
     };
 
@@ -2101,25 +2146,35 @@
       try { net.timeout(VOICE_TIMEOUT); } catch (e) {}
 
       var retryAlt = function () {
-        if (entry.alt) return;
+        if (entry.alt || entry.retried) return;
+        entry.retried = true;
         var alt = voiceHeadersAlt();
-        if (alt) queue.push({ name: entry.name, url: entry.url, alt: alt });
+        if (alt) return queue.push({ name: entry.name, url: entry.url, alt: alt });
+        var base = entry.headers || voiceHeaders();
+        if (base && base['X-Kit-AesGcm']) queue.push({ name: entry.name, url: entry.url, alt: {} });
       };
+      var settled = false;
       var done = function (answer) {
+        if (settled) return;
+        settled = true;
+        clearTimeout(guard);
         var got = voiceAnswer(entry.name, answer);
         if (!got) retryAlt();
         step();
       };
+      var guard = setTimeout(function () {
+        if (settled) return;
+        settled = true;
+        try { net.clear(); } catch (e) {}
+        done('');
+      }, VOICE_TIMEOUT + 2500);
 
       try {
         net['native'](entry.url, done, function () {
-          voiceAnswer(entry.name, '');
-          retryAlt();
-          step();
-        }, false, { dataType: 'text', headers: entry.alt || voiceHeaders() });
+          done('');
+        }, false, { dataType: 'text', headers: entry.alt || entry.headers || voiceHeaders() });
       } catch (e) {
-        voiceAnswer(entry.name, '');
-        step();
+        done('');
       }
     };
 
@@ -3800,7 +3855,7 @@
       }
     }
 
-    if (groups.voice && groups.voice.items.length > 1) {
+    if (groups.voice && groups.voice.items.length > 0) {
       addChip('voice', groups.voice.title || text('torrent_parser_voice', 'nova_plus_voice'),
         groups.voice.subtitle || '', {});
     }
@@ -6330,7 +6385,7 @@
       });
     }
 
-    if (groups.voice && groups.voice.items.length > 1) {
+    if (groups.voice && groups.voice.items.length > 0) {
       var voices = group(groups.voice.title || label('nova_plus_voices'), 'voice');
       var order = groups.voice.items.map(function (item, seat) {
         return { item: item, index: typeof item.index === 'number' ? item.index : seat, seat: seat };
