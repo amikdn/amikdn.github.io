@@ -477,6 +477,19 @@
     Lampa.Filter = Wrapped;
   }
 
+  function hookComponent() {
+    if (!Lampa.Component || typeof Lampa.Component.create !== 'function' || Lampa.Component.nova_plus_wrapped) return;
+    var real = Lampa.Component.create;
+    Lampa.Component.create = function (object) {
+      var comp = real.apply(Lampa.Component, arguments);
+      try {
+        if (comp && typeof comp.changeBalanser === 'function') patchHost(comp);
+      } catch (e) {}
+      return comp;
+    };
+    Lampa.Component.nova_plus_wrapped = true;
+  }
+
   function hookSelect() {
     if (!Lampa.Select || Lampa.Select.nova_plus_wrapped) return;
     var show = Lampa.Select.show;
@@ -3885,7 +3898,7 @@
       });
     }
 
-    if (groups.season && groups.season.items.length > 1) {
+    if (groups.season && groups.season.items.length > 0) {
       if (serial) {
         addChip('season', groups.season.title || text('torrent_serial_season', 'nova_plus_season'),
           groups.season.subtitle || '', {});
@@ -5191,6 +5204,7 @@
     handWatch();
     hookFilter();
     hookScroll();
+    hookComponent();
     hookSelect();
     hookController();
     hookQuality();
@@ -5218,6 +5232,10 @@
     } catch (e) {}
 
     Lampa.Listener.follow('activity', function (e) {
+      try {
+        var eo = e && e.object && e.object.activity && e.object.activity.component;
+        if (eo && typeof eo.changeBalanser === 'function') patchHost(eo);
+      } catch (err) {}
       if (e.type === 'start' || e.type === 'archive') {
         detach();
         if (pendingLive()) {
@@ -6415,7 +6433,7 @@
       return box;
     };
 
-    if (groups.season && groups.season.items.length > 1) {
+    if (groups.season && groups.season.items.length > 0) {
       var seasons = group(serial ? (groups.season.title || label('nova_plus_seasons')) : label('nova_plus_parts'), 'season');
       groups.season.items.forEach(function (item, seat) {
         var index = typeof item.index === 'number' ? item.index : seat;
