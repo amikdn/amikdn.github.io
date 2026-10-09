@@ -412,33 +412,6 @@
     return 'other';
   }
 
-  function voiceDedupKey(title) {
-    return String(title == null ? '' : title).toLowerCase()
-      .split('\u00a0').join(' ').split('\u0451').join('\u0435')
-      .replace(/\s+/g, ' ').replace(/^ | $/g, '');
-  }
-
-  function voiceOrder(group) {
-    var order = [];
-    var seen = {};
-    ((group && group.items) || []).forEach(function (item, seat) {
-      var entry = { item: item, index: typeof item.index === 'number' ? item.index : seat, seat: seat };
-      var key = voiceDedupKey(item.title) || ('#' + seat);
-      if (seen.hasOwnProperty(key)) {
-        var prev = seen[key];
-        if (item.selected && !order[prev].item.selected) {
-          entry.seat = order[prev].seat;
-          order[prev] = entry;
-        }
-        return;
-      }
-      seen[key] = order.length;
-      order.push(entry);
-    });
-    order.sort(function (a, b) { return (voiceRank(a.item.title) - voiceRank(b.item.title)) || (a.seat - b.seat); });
-    return order;
-  }
-
   function voiceRank(title) {
     var kind = voiceKind(title);
     for (var i = 0; i < VOICE_KINDS.length; i++) {
@@ -551,50 +524,8 @@
   function learnUrl(url) {
     var value = String(url == null ? '' : url);
     if (!/\/lite\/[^\/?&]+/.test(value)) return;
-    if (net_self > 0) return;
-    if (/\/lite\/(events|withsearch)\b/.test(value)) return;
+    if (value.indexOf('lite/events') !== -1) return;
     probe_url = value;
-  }
-
-  var net_self = 0;
-
-  function selfNative(net, url, ok, fail, params) {
-    params = params || {};
-    params.nova_probe = true;
-    net.nova_probe = true;
-    net_self++;
-    try {
-      net['native'](url, ok, fail, false, params);
-    } finally {
-      net_self--;
-    }
-  }
-
-  function isRch(answer) {
-    if (answer && typeof answer === 'object') return !!answer.rch;
-    return typeof answer === 'string' && answer.indexOf('"rch"') !== -1 && answer.indexOf('videos__') === -1;
-  }
-
-  function hookNetEvents() {
-    if (hookNetEvents.done) return;
-    try {
-      if (!Lampa.Listener || typeof Lampa.Listener.follow !== 'function') return;
-      hookNetEvents.done = true;
-      Lampa.Listener.follow('request_before', function (e) {
-        try {
-          var params = e && e.params;
-          if (!params || params.nova_probe) return;
-          learnUrl(params.url);
-        } catch (err) {}
-      });
-      Lampa.Listener.follow('request_secuses', function (e) {
-        try {
-          var params = e && e.params;
-          if (!params || params.nova_probe) return;
-          if (typeof e.data === 'string') learnBody(e.data);
-        } catch (err) {}
-      });
-    } catch (e) {}
   }
 
   function voiceParse(body) {
@@ -1451,7 +1382,6 @@
   var VOICE_TIMEOUT = 8000;
   var VOICE_BUDGET = 30000;
   var VOICE_DELAY = 250;
-  var VOICE_RCH_WAIT = 2000;
   var VOICE_OWN_PARAMS = ['id', 'imdb_id', 'kinopoisk_id', 'title', 'original_title',
     'original_language', 'serial', 'year', 'source', 'clarification', 'similar',
     's', 'e', 't', 'voice', 'translation', 'season', 'episode', 'number',
@@ -1759,10 +1689,10 @@
       };
 
       try {
-        selfNative(net, probeUrlFor(entry.key), done, function () {
+        net['native'](probeUrlFor(entry.key), done, function () {
           probeAnswer(entry.key, '');
           step();
-        }, { dataType: 'text', headers: voiceHeaders() });
+        }, false, { dataType: 'text' });
       } catch (e) {
         probeAnswer(entry.key, '');
         step();
@@ -1937,7 +1867,6 @@
     voice_seed_busy = true;
 
     var seat = 0;
-    var rch_again = false;
 
     var finish = function () {
       voice_seed_busy = false;
@@ -1959,11 +1888,6 @@
       try { net.timeout(VOICE_SEED_TIMEOUT); } catch (e) {}
 
       var done = function (answer) {
-        if (isRch(answer) && !rch_again) {
-          rch_again = true;
-          seat--;
-          return setTimeout(step, VOICE_RCH_WAIT);
-        }
         var body = typeof answer === 'string' ? answer : '';
         if (body.indexOf('videos__button') !== -1) {
           try { learnBody(body, url, seasonNumber() || 0); } catch (e) {}
@@ -1973,9 +1897,9 @@
       };
 
       try {
-        selfNative(net, url, done, function () {
+        net['native'](url, done, function () {
           done('');
-        }, { dataType: 'text', headers: voiceHeaders() });
+        }, false, { dataType: 'text', headers: voiceHeaders() });
       } catch (e) {
         done('');
       }
@@ -2002,7 +1926,7 @@
 
   function voiceHeaders() {
     try {
-      var key = Lampa.Storage.get('aesgcmkey', '') || Lampa.Storage.get('kit_aesgcmkey', '');
+      var key = Lampa.Storage.get('kit_aesgcmkey', '');
       if (key) return { 'X-Kit-AesGcm': key };
     } catch (e) {}
     return {};
@@ -2133,20 +2057,15 @@
       try { net.timeout(VOICE_TIMEOUT); } catch (e) {}
 
       var done = function (answer) {
-        if (isRch(answer) && !entry.again) {
-          entry.again = true;
-          queue.push(entry);
-          return setTimeout(step, VOICE_RCH_WAIT);
-        }
         voiceAnswer(entry.name, answer);
         step();
       };
 
       try {
-        selfNative(net, entry.url, done, function () {
+        net['native'](entry.url, done, function () {
           voiceAnswer(entry.name, '');
           step();
-        }, { dataType: 'text', headers: voiceHeaders() });
+        }, false, { dataType: 'text', headers: voiceHeaders() });
       } catch (e) {
         voiceAnswer(entry.name, '');
         step();
@@ -2175,10 +2094,6 @@
     voice_timer = setTimeout(function () {
       voice_timer = null;
       if (voiceListFresh()) return voiceRun();
-      if (!voiceSeedUrls().length) {
-        voice_done = '';
-        return;
-      }
       voiceSeed(function () {
         if (voiceListFresh()) voiceRun();
       });
@@ -3674,9 +3589,15 @@
   }
 
   function optionRow(group) {
-    var order = group.stype === 'voice' ? voiceOrder(group) : group.items.map(function (item, index) {
+    var order = group.items.map(function (item, index) {
       return { item: item, index: typeof item.index === 'number' ? item.index : index, seat: index };
     });
+
+    if (group.stype === 'voice') {
+      order.sort(function (a, b) {
+        return (voiceRank(a.item.title) - voiceRank(b.item.title)) || (a.seat - b.seat);
+      });
+    }
 
     var plain_season = group.stype === 'season' && !serial;
 
@@ -5110,7 +5031,6 @@
     hookReplace();
     hookRequest();
     hookXHR();
-    hookNetEvents();
 
     var lastW = 0;
     var lastH = 0;
@@ -6364,7 +6284,10 @@
 
     if (groups.voice && groups.voice.items.length > 1) {
       var voices = group(groups.voice.title || label('nova_plus_voices'), 'voice');
-      var order = voiceOrder(groups.voice);
+      var order = groups.voice.items.map(function (item, seat) {
+        return { item: item, index: typeof item.index === 'number' ? item.index : seat, seat: seat };
+      });
+      order.sort(function (a, b) { return (voiceRank(a.item.title) - voiceRank(b.item.title)) || (a.seat - b.seat); });
       order.forEach(function (entry) {
         var key = 'voice:' + entry.index;
         put(voices, key, entry.item.title, '', { active: !!entry.item.selected, plain: true }, function () {
