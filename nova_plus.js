@@ -631,24 +631,6 @@
         try { learnUrl(url); } catch (e) {}
         return open.apply(this, arguments);
       };
-      try {
-        var send = XMLHttpRequest.prototype.send;
-        if (typeof send === 'function') {
-          XMLHttpRequest.prototype.send = function () {
-            var xhr = this;
-            try {
-              xhr.addEventListener('load', function () {
-                try {
-                  var body = xhr.response;
-                  if (typeof body !== 'string') body = xhr.responseText;
-                  if (typeof body === 'string') learnBody(body);
-                } catch (e) {}
-              });
-            } catch (e) {}
-            return send.apply(this, arguments);
-          };
-        }
-      } catch (e) {}
       XMLHttpRequest.prototype.nova_plus_wrapped = true;
     } catch (e) {}
   }
@@ -1458,18 +1440,9 @@
   function componentNow() {
     try {
       var current = Lampa.Activity.active();
-      return (current && current.activity) || null;
+      return (current && current.activity && current.activity.component) || null;
     } catch (e) {
       return null;
-    }
-  }
-
-  function componentName() {
-    try {
-      var current = Lampa.Activity.active();
-      return String((current && current.activity && current.activity.component) || '');
-    } catch (e) {
-      return '';
     }
   }
 
@@ -2343,16 +2316,6 @@
       comp.parse = function (str) {
         try { learnBody(str); } catch (e) {}
         return parse.apply(comp, arguments);
-      };
-    }
-
-    if (typeof comp.requestParams === 'function' && !comp.nova_rp_hooked) {
-      var reqparams = comp.requestParams;
-      comp.nova_rp_hooked = true;
-      comp.requestParams = function (url) {
-        var out = reqparams.apply(comp, arguments);
-        try { learnUrl(out); } catch (e) {}
-        return out;
       };
     }
 
@@ -5223,7 +5186,6 @@
           switchDone();
           forget();
         }
-        try { patchHost(componentNow()); } catch (err) {}
         attach();
         draw();
 
