@@ -1458,7 +1458,7 @@
   function componentNow() {
     try {
       var current = Lampa.Activity.active();
-      return (current && current.activity) || null;
+      return (current && current.activity && current.activity.component) || null;
     } catch (e) {
       return null;
     }
@@ -2314,6 +2314,12 @@
 
     Lampa.Activity.replace = function (params) {
       if (swallow) return;
+      var empty_call = !params || !Object.keys(params).length;
+      if (inplace && empty_call) {
+        inplaceStop();
+        var comp = componentNow();
+        if (reloadable(comp) && reloadInPlace(comp)) return;
+      }
       return real.apply(Lampa.Activity, arguments);
     };
 
@@ -2353,6 +2359,21 @@
       };
     }
 
+    var real = comp.changeBalanser;
+
+    comp.changeBalanser = function () {
+      if (!inplace || !reloadable(comp)) return real.apply(comp, arguments);
+
+      inplaceStop();
+      swallow = true;
+      try {
+        real.apply(comp, arguments);
+      } catch (e) {}
+      swallow = false;
+
+      if (reloadInPlace(comp)) return;
+      if (typeof real_replace === 'function') real_replace.call(Lampa.Activity, {});
+    };
   }
 
   function inplaceStart() {
