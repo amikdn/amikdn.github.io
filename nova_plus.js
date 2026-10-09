@@ -1503,7 +1503,7 @@
 
   function hostTimerStop(native) {
     try {
-      native.node.find('.online-empty__button.cancel').trigger('hover:enter');
+      native.node.find('.online-empty__button.cancel,.onl-online-empty__button.cancel').trigger('hover:enter');
     } catch (e) {}
     try {
       if (Lampa.Timer && typeof Lampa.Timer.remove === 'function') {
@@ -1951,11 +1951,28 @@
   }
 
   function voiceHeaders() {
+    var keys = [];
     try {
-      var key = Lampa.Storage.get('kit_aesgcmkey', '');
-      if (key) return { 'X-Kit-AesGcm': key };
+      var host = Lampa.Storage.get('aesgcmkey', '');
+      if (host) keys.push(host);
     } catch (e) {}
-    return {};
+    try {
+      var kit = Lampa.Storage.get('kit_aesgcmkey', '');
+      if (kit && keys.indexOf(kit) === -1) keys.push(kit);
+    } catch (e) {}
+    return keys.length ? { 'X-Kit-AesGcm': keys[0] } : {};
+  }
+
+  function voiceHeadersAlt() {
+    var primary = voiceHeaders();
+    var mark = (primary && primary['X-Kit-AesGcm']) || '';
+    var keys = [];
+    try { var host = Lampa.Storage.get('aesgcmkey', ''); if (host) keys.push(host); } catch (e) {}
+    try { var kit = Lampa.Storage.get('kit_aesgcmkey', ''); if (kit) keys.push(kit); } catch (e) {}
+    for (var i = 0; i < keys.length; i++) {
+      if (keys[i] !== mark) return { 'X-Kit-AesGcm': keys[i] };
+    }
+    return null;
   }
 
   function voiceFiles() {
@@ -2020,15 +2037,16 @@
   }
 
   function voiceAnswer(name, answer) {
-    if (!voice_busy) return;
+    if (!voice_busy) return 0;
     var body = typeof answer === 'string' ? answer : '';
-    if (!body) return;
-    if (body.indexOf('"rch"') !== -1) return;
-    if (body.indexOf('"accsdb"') !== -1 || body.indexOf('"blocked"') !== -1) return;
+    if (!body) return 0;
+    if (body.indexOf('"rch"') !== -1) return 0;
+    if (body.indexOf('"accsdb"') !== -1 || body.indexOf('"blocked"') !== -1) return 0;
     var count = voiceBodyCount(body);
-    if (!count) return;
+    if (!count) return 0;
     voiceSave(name, count);
     voicePaint();
+    return count;
   }
 
   function voiceRun() {
@@ -2082,16 +2100,23 @@
       voice_nets.push(net);
       try { net.timeout(VOICE_TIMEOUT); } catch (e) {}
 
+      var retryAlt = function () {
+        if (entry.alt) return;
+        var alt = voiceHeadersAlt();
+        if (alt) queue.push({ name: entry.name, url: entry.url, alt: alt });
+      };
       var done = function (answer) {
-        voiceAnswer(entry.name, answer);
+        var got = voiceAnswer(entry.name, answer);
+        if (!got) retryAlt();
         step();
       };
 
       try {
         net['native'](entry.url, done, function () {
           voiceAnswer(entry.name, '');
+          retryAlt();
           step();
-        }, false, { dataType: 'text', headers: voiceHeaders() });
+        }, false, { dataType: 'text', headers: entry.alt || voiceHeaders() });
       } catch (e) {
         voiceAnswer(entry.name, '');
         step();
@@ -2227,6 +2252,15 @@
       comp.request = function (url) {
         try { learnUrl(url); } catch (e) {}
         return request.apply(comp, arguments);
+      };
+    }
+
+    if (typeof comp.parse === 'function' && !comp.nova_parse_hooked) {
+      var parse = comp.parse;
+      comp.nova_parse_hooked = true;
+      comp.parse = function (str) {
+        try { learnBody(str); } catch (e) {}
+        return parse.apply(comp, arguments);
       };
     }
 
@@ -2371,9 +2405,10 @@
 
   function fallbackQuality(origin) {
     var found = '';
+    var px = origin.hasClass('onl-online-prestige--folder') || origin.hasClass('onl-online-prestige--full') ? 'onl-' : '';
     try {
-      found = shortQuality(origin.find('.online-prestige__info').text() + ' ' +
-        origin.find('.online-prestige__title').text());
+      found = shortQuality(origin.find('.' + px + 'online-prestige__info').text() + ' ' +
+        origin.find('.' + px + 'online-prestige__title').text());
     } catch (e) {
       found = '';
     }
@@ -2389,6 +2424,7 @@
 
   function readCard(node, index) {
     var origin = $(node);
+    var px = origin.hasClass('onl-online-prestige--folder') || origin.hasClass('onl-online-prestige--full') ? 'onl-' : '';
     var line = origin.find('.time-line').first();
     var hash = line.attr('data-hash') || '';
     var percent = 0;
@@ -2402,14 +2438,14 @@
     }
 
     var meta = [];
-    origin.find('.online-prestige__info').children().each(function () {
+    origin.find('.' + px + 'online-prestige__info').children().each(function () {
       var part = $(this);
-      if (part.hasClass('online-prestige-split')) return;
+      if (part.hasClass(px + 'online-prestige-split')) return;
       var value = part.text().trim();
       if (value) meta.push(value);
     });
     if (!meta.length) {
-      var plain = origin.find('.online-prestige__info').text().trim();
+      var plain = origin.find('.' + px + 'online-prestige__info').text().trim();
       if (plain) meta.push(plain);
     }
 
@@ -2418,29 +2454,30 @@
     return {
       origin: origin,
       index: index,
-      folder: origin.hasClass('online-prestige--folder'),
+      px: px,
+      folder: origin.hasClass(px + 'online-prestige--folder'),
       soon: soon,
       percent: percent,
       hash: hash,
       line: line,
-      viewed: origin.find('.online-prestige__viewed').length > 0,
-      num: digits(origin.find('.online-prestige__episode-number').text()) || index + 1,
-      numbered: origin.find('.online-prestige__episode-number').length > 0,
-      title: origin.find('.online-prestige__title').text().trim(),
+      viewed: origin.find('.' + px + 'online-prestige__viewed').length > 0,
+      num: digits(origin.find('.' + px + 'online-prestige__episode-number').text()) || index + 1,
+      numbered: origin.find('.' + px + 'online-prestige__episode-number').length > 0,
+      title: origin.find('.' + px + 'online-prestige__title').text().trim(),
       meta: meta,
       time: soon
-        ? origin.find('.online-prestige__quality').text().trim()
-        : (origin.find('.online-prestige__time').text().trim() ||
-          (origin.hasClass('online-prestige--folder') ? '' : fallbackTime())),
-      quality: soon ? '' : (origin.find('.online-prestige__quality').text().trim() ||
-        (origin.hasClass('online-prestige--folder') ? '' : fallbackQuality(origin))),
-      picture: origin.find('.online-prestige__img img, .online-prestige__folder img').first()
+        ? origin.find('.' + px + 'online-prestige__quality').text().trim()
+        : (origin.find('.' + px + 'online-prestige__time').text().trim() ||
+          (origin.hasClass(px + 'online-prestige--folder') ? '' : fallbackTime())),
+      quality: soon ? '' : (origin.find('.' + px + 'online-prestige__quality').text().trim() ||
+        (origin.hasClass(px + 'online-prestige--folder') ? '' : fallbackQuality(origin))),
+      picture: origin.find('.' + px + 'online-prestige__img img, .' + px + 'online-prestige__folder img').first()
     };
   }
 
   function collect() {
     var list = [];
-    $(host).find('.online-prestige--full,.online-prestige--folder').each(function () {
+    $(host).find('.online-prestige--full,.online-prestige--folder,.onl-online-prestige--full,.onl-online-prestige--folder').each(function () {
       if ($(this).closest('.nova-plus-root').length) return;
       list.push(readCard(this, list.length));
     });
@@ -2616,7 +2653,7 @@
 
     function take() {
       var value = 0;
-      try { value = digits(item.origin.find('.online-prestige__episode-number').text()); } catch (e) { value = 0; }
+      try { value = digits(item.origin.find('.' + (item.px || '') + 'online-prestige__episode-number').text()); } catch (e) { value = 0; }
       if (!value) return false;
       if (timer) {
         clearInterval(timer);
@@ -4159,9 +4196,11 @@
   }
 
   function nativeState() {
-    var empty = $(host).find('.online-empty').not('.nova-plus-root .online-empty').first();
+    var empty = $(host).find('.online-empty,.onl-online-empty')
+      .not('.nova-plus-root .online-empty,.nova-plus-root .onl-online-empty').first();
     if (!empty.length) return null;
-    if (empty.find('.broadcast__scan').length && !empty.find('.online-empty__title').length) {
+    if (empty.find('.broadcast__scan').length &&
+      !empty.find('.online-empty__title,.onl-online-empty__title').length) {
       return { kind: 'loading', node: empty };
     }
     return { kind: 'note', node: empty };
@@ -4264,7 +4303,7 @@
 
   function noteStamp(native) {
     return [
-      native.node.find('.online-empty__title').text().trim(),
+      native.node.find('.online-empty__title,.onl-online-empty__title').text().trim(),
       currentSourceKey(),
       sourceTitle(),
       (groups.sort || []).length,
@@ -4298,8 +4337,8 @@
     var dead = currentSourceKey();
     if (dead && movie) probeSave(movie.id, dead, 'empty', 0);
 
-    note.find('.nova-note__title').text(native.node.find('.online-empty__title').text().trim());
-    note.find('.nova-note__text').text(native.node.find('.online-empty__time').text().trim());
+    note.find('.nova-note__title').text(native.node.find('.online-empty__title,.onl-online-empty__title').text().trim());
+    note.find('.nova-note__text').text(native.node.find('.online-empty__time,.onl-online-empty__time').text().trim());
 
     var actions = note.find('.nova-note__actions');
 
@@ -4680,7 +4719,7 @@
         if (raw) percent = parseFloat(raw[1]) || 0;
       }
       item.percent = percent;
-      if (item.origin && item.origin.find('.online-prestige__viewed').length) item.viewed = true;
+      if (item.origin && item.origin.find('.' + (item.px || '') + 'online-prestige__viewed').length) item.viewed = true;
 
       var card = item.card;
       if (!card || !card.length) return;
@@ -5191,7 +5230,7 @@
       body.children('.nova-plus-root').removeClass('nova-hidden nova-wide-hidden z01-hidden');
       var alien = body.find(ALIEN_ROOT);
       if (!alien.length) return;
-      var native = body.find('.online-prestige--full,.online-prestige--folder').filter(function () {
+      var native = body.find('.online-prestige--full,.online-prestige--folder,.onl-online-prestige--full,.onl-online-prestige--folder').filter(function () {
         return !$(this).closest(ALIEN_ROOT).length;
       });
       if (!native.length) return;
