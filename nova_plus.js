@@ -6017,6 +6017,7 @@
     try {
       var now = box[0].getBoundingClientRect().height || 0;
       if (!now || now >= keep - 1) return;
+      if (ui_open !== 'source') return;
       box.css('min-height', Math.round(keep) + 'px');
       clearTimeout(wide_hold_timer);
       wide_hold_timer = null;
@@ -6375,6 +6376,9 @@
 
     if (!wideSwapOn()) {
       panel.removeAttr('data-nova-reserve').css('min-height', '');
+      if (ui.rows) ui.rows.css({ minHeight: '', height: '' }).removeAttr('data-nova-source-height');
+      clearTimeout(wide_hold_timer);
+      wide_hold_timer = null;
     }
 
     var noteState = !!(ui.list && ui.list.find('.nova-note').length);
@@ -6388,6 +6392,7 @@
       if (wideSwapOn()) panel.prepend(bar);
       else panel.append(bar);
     }
+    if (wideSwapOn() && ui.rows) ui.rows.css({ minHeight: '', height: '' }).removeAttr('data-nova-source-height');
 
     var drop = panel.children('.nova-drop').first();
     if (!drop.length) return;
