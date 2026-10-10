@@ -6252,7 +6252,21 @@
   function wideStash(panel) {
     var blocks = panel.children('.nova-plus__group');
     if (!blocks.length) return;
+    var height = 0;
+    try {
+      blocks.each(function () {
+        var css = window.getComputedStyle ? window.getComputedStyle(this) : null;
+        var h = this.getBoundingClientRect().height || 0;
+        if (css) h += (parseFloat(css.marginTop) || 0) + (parseFloat(css.marginBottom) || 0);
+        height += h;
+      });
+    } catch (e) {}
     wide_hold = blocks.detach();
+    if (height > 0) {
+      wide_hold_spacer = $('<div class="nova-plus__hold-spacer" aria-hidden="true"></div>')
+        .css({ height: Math.ceil(height) + 'px', visibility: 'hidden', pointerEvents: 'none' });
+      panel.append(wide_hold_spacer);
+    }
   }
 
   function wideUnstash(panel) {
@@ -6385,7 +6399,12 @@
     drop.attr('data-nova-menu', ui_open);
     if (manual) drop.attr('data-nova-manual', '1');
     widePaneShift(wideDropPane(drop), shift);
-    drop.css({ position: '', top: '', left: '', right: '' });
+
+    var overlay = wideSwapOn() && !noteState && !panel.hasClass('nova-plus__panel--note-source');
+    if (overlay) {
+      var barHeight = bar.length ? (bar.outerHeight(true) || 0) : 0;
+      drop.css({ position: 'absolute', top: Math.ceil(barHeight) + 'px', left: 0, right: 0 });
+    } else drop.css({ position: '', top: '', left: '', right: '' });
     wideDropFit(drop);
   }
 
