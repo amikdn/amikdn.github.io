@@ -6366,9 +6366,6 @@
     var panel = ui.rows.children('.nova-plus__panel').first();
     if (!panel.length) return;
 
-    if (wideSwapOn() && !noteState) wideStash(panel);
-    else wideUnstash(panel);
-
     ui.rows.find('.nova-drop').remove();
     if (ui_open === 'source') sourceRow();
     else if (ui_open === 'jump') jumpRow();
@@ -6395,16 +6392,11 @@
 
     var drop = panel.children('.nova-drop').first();
     if (!drop.length) return;
-    if (widePosBottom() && bar.length && !wideSwapOn()) drop.insertBefore(bar);
+    if (bar.length) drop.insertAfter(bar);
     drop.attr('data-nova-menu', ui_open);
     if (manual) drop.attr('data-nova-manual', '1');
     widePaneShift(wideDropPane(drop), shift);
-
-    var overlay = wideSwapOn() && !noteState && !panel.hasClass('nova-plus__panel--note-source');
-    if (overlay) {
-      var barHeight = bar.length ? (bar.outerHeight(true) || 0) : 0;
-      drop.css({ position: 'absolute', top: Math.ceil(barHeight) + 'px', left: 0, right: 0 });
-    } else drop.css({ position: '', top: '', left: '', right: '' });
+    drop.css({ position: '', top: '', left: '', right: '' });
     wideDropFit(drop);
   }
 
