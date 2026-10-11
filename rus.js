@@ -458,7 +458,7 @@
       param: {
         name: 'rus_movie_main',
         type: 'trigger',
-        default: true
+        default: false
       },
       field: {
         name: 'Русские новинки на главной',
