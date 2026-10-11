@@ -152,7 +152,7 @@
     nova_plus_set_switch: { ru: 'Автопереход по источникам', uk: 'Автоперехід по джерелах', en: 'Auto switch source' },
     nova_plus_set_switch_descr: { ru: 'Если ничего не найдено, пробовать следующий рабочий источник', uk: 'Якщо нічого не знайдено, пробувати наступне робоче джерело', en: 'Try the next working source when nothing is found' },
     nova_plus_set_view: { ru: 'Вид списка', uk: 'Вигляд списку', en: 'List layout' },
-    nova_plus_set_view_descr: { ru: 'Список или плитка (4 в ряд)', uk: 'Список або плитка (4 в ряд)', en: 'List or grid (4 per row)' },
+    nova_plus_set_view_descr: { ru: 'Список или плитка — работает в любом виде карточки и переключается кнопкой', uk: 'Список або плитка — працює в будь-якому вигляді карток і перемикається кнопкою', en: 'List or grid — works in any card layout and switches by button' },
     nova_plus_set_quality: { ru: 'Качество по умолчанию', uk: 'Якість за замовчуванням', en: 'Default quality' },
     nova_plus_set_quality_descr: { ru: 'Предпочтительное качество воспроизведения', uk: 'Бажана якість відтворення', en: 'Preferred playback quality' },
     nova_plus_set_quality_auto: { ru: 'Авто', uk: 'Авто', en: 'Auto' },
@@ -451,7 +451,7 @@
     if (document.getElementById('nova-plus-css')) return;
     var style = document.createElement('style');
     style.id = 'nova-plus-css';
-    style.textContent = SKIN_CSS + EXTRA_CSS + CARD_CSS + FOCUS_CSS + FULL_CSS + FADE_CSS + MARK_CSS + BADGE_CSS + LOGO_CSS + LOGO_HOLD + WIDE_CSS;
+    style.textContent = SKIN_CSS + EXTRA_CSS + CARD_CSS + FOCUS_CSS + FULL_CSS + FADE_CSS + MARK_CSS + BADGE_CSS + LOGO_CSS + LOGO_HOLD + HERO_VOICE_CSS + WIDE_CSS + ROWLIST_CSS;
     (document.body || document.head).appendChild(style);
   }
 
@@ -2484,7 +2484,7 @@
   }
 
   function skeleton(count) {
-    var tiles = modeWide() ? !wideRow() : viewMode() === 'grid';
+    var tiles = viewMode() === 'grid';
     var box = $('<div class="nova-skeleton' + (tiles ? ' nova-skeleton--grid' : '') + '"></div>');
     var total = tiles ? Math.max(count || 4, 8) : (count || 4);
     for (var i = 0; i < total; i++) {
@@ -3353,6 +3353,15 @@
     });
   }
 
+  function heroVoice() {
+    if (!ui.hero) return;
+    var box = ui.hero.find('.nova-hero__voice');
+    if (!box.length) return;
+    var voice = wideOn() && !ui.hero.hasClass('nova-hero--compact') && groups.voice ? groups.voice.subtitle : '';
+    if (voice) box.text(voice).show();
+    else box.text('').hide();
+  }
+
   function heroStatic(withArt) {
     if (!ui.hero) return;
 
@@ -3373,8 +3382,9 @@
     var source = splitSourceName(sourceTitle()).name;
     if (source) hint.push(source);
     var voice = groups.voice ? groups.voice.subtitle : '';
-    if (voice) hint.push(voice);
+    if (voice && !wideOn()) hint.push(voice);
     ui.hero.find('.nova-hero__hint').text(hint.join(' \u00b7 '));
+    heroVoice();
 
     ui.hero.find('.nova-hero__progress').empty().hide();
     ui.hero.find('.nova-hero__season').hide();
@@ -3404,6 +3414,7 @@
       ui.hero_kind = kind;
       ui.hero = $('<div class="nova-hero">' +
         (withArt ? '<div class="nova-hero__bg"><img alt=""></div><div class="nova-hero__shade"></div>' : '') +
+        '<div class="nova-hero__voice" style="display:none"></div>' +
         '<div class="nova-hero__body">' +
         (withArt ? '<div class="nova-hero__title"></div><div class="nova-hero__meta"></div><div class="nova-hero__descr"></div>' : '') +
         '<div class="nova-hero__actions">' +
@@ -3468,8 +3479,9 @@
     var source = splitSourceName(sourceTitle()).name;
     if (source) hint.push(source);
     var voice = groups.voice ? groups.voice.subtitle : '';
-    if (voice) hint.push(voice);
+    if (voice && !wideOn()) hint.push(voice);
     ui.hero.find('.nova-hero__hint').text(hint.join(' \u00b7 '));
+    heroVoice();
 
     wideHeroTune();
 
@@ -3895,6 +3907,17 @@
       var key = current ? (current.source || current.title) : '';
       addChip('source', modeWide() ? '' : text('nova_source', 'nova_plus_source'), parts.name, {
         badge: knownQuality(key) || parts.badge
+      });
+    }
+
+    if (!nav && items.length > 0) {
+      addChip('view', '', label(viewMode() === 'list' ? 'nova_plus_view_list' : 'nova_plus_view_grid'), {
+        plain: true,
+        action: function () {
+          save(VIEW_KEY, viewMode() === 'list' ? 'grid' : 'list');
+          lockFocus('view');
+          redraw();
+        }
       });
     }
 
@@ -4663,12 +4686,12 @@
     });
 
     var compact = !serial && !nav && list.length > 1;
-    var grid = !nav && list.length > 0 && (modeWide() || viewMode() === 'grid');
+    var grid = !nav && list.length > 0 && viewMode() === 'grid';
     if (grid) ui.list.addClass('nova__list--grid');
     else ui.list.removeClass('nova__list--grid');
     wideStrip(list);
 
-    var paged = !nav && list.length > JUMP_FROM && !(wideOn() && wideRow());
+    var paged = !nav && list.length > JUMP_FROM && !(wideOn() && wideRowOn());
     var start = 0;
     var end = list.length - 1;
 
@@ -5133,7 +5156,7 @@
         },
         field: {
           name: label('nova_plus_set_view'),
-          description: lockedOff(label('nova_plus_set_view_descr'))
+          description: label('nova_plus_set_view_descr')
         },
         onChange: function () { redraw(); }
       });
@@ -5288,6 +5311,7 @@
   var WIDE_ORDER_KEY = 'nova_plus_order';
   var WIDE_META_KEY = 'nova_plus_meta';
   var WIDE_POS_KEY = 'nova_plus_source_pos';
+  var VIEW_KEY = 'nova_plus_view';
   var WIDE_MAX_LINES = 99;
   var wide_was = 0;
   var wide_hold_timer = null;
@@ -5329,6 +5353,7 @@
 
   function wideOn() { return modeWide() && wideSerial(); }
   function wideRow() { return get(WIDE_LAYOUT_KEY, 'grid') === 'row'; }
+  function wideRowOn() { return wideRow() && viewMode() === 'grid'; }
   function wideReverse() { return get(WIDE_ORDER_KEY, 'straight') === 'reverse'; }
   function wideMeta() { return get(WIDE_META_KEY, true) !== false; }
   function widePos() { return get(WIDE_POS_KEY, 'top') === 'bottom' ? 'bottom' : 'top'; }
@@ -5597,6 +5622,8 @@
       return card;
     }
 
+    if (serial && viewMode() === 'list') return wideDressList(card, item);
+
     card.addClass('nova-card--wide');
 
     var thumb = card.find('.nova-card__thumb');
@@ -5648,6 +5675,53 @@
 
     wideFill(item, card, descr, thumb);
     return card;
+  }
+
+  function wideDressList(card, item) {
+    card.addClass('nova-card--rowlist');
+
+    var thumb = card.find('.nova-card__thumb');
+    var picked = widePick(item);
+
+    var number = episodeNumber(item.num);
+    if (number) {
+      var plain = parseInt(digits(number), 10) || 0;
+      var slot = card.find('.nova-card__num > span');
+      if (slot.length) slot.text(plain ? ('0' + plain).slice(-2) : number);
+    } else card.find('.nova-card__num').remove();
+
+    var line = card.find('.nova-card__line');
+    if (!line.length) line = $('<div class="nova-card__line"></div>');
+    line.addClass('nova-card__line--body').appendTo(card.find('.nova-card__body'));
+
+    var bits = [];
+    if (picked.date) bits.push('<span class="nova-card__date">' + esc(picked.date) + '</span>');
+    if (picked.voice) bits.push('<span>' + esc(picked.voice) + '</span>');
+    card.find('.nova-card__meta').html(bits.join('<span class="nova-dot">\u25cf</span>'));
+
+    wideFillList(item, card, thumb);
+    return card;
+  }
+
+  function wideFillList(item, card, thumb) {
+    if (!serial || !wideMeta()) return;
+    var number = parseInt(episodeNumber(item.num), 10) || 0;
+    if (!number) return;
+    var season = seasonNumber() || 1;
+    var want = movie ? movie.id : 0;
+    wideBook(season, function (book) {
+      if (!book || !movie || movie.id !== want) return;
+      var episode = book[number];
+      if (!episode) return;
+      var title = card.find('.nova-card__title');
+      if (episode.name && !title.text()) title.text(episode.name);
+      var meta = card.find('.nova-card__meta');
+      if (episode.air_date && !meta.find('.nova-card__date').length) {
+        var when = wideDate(episode.air_date);
+        if (when) meta.prepend($('<span class="nova-card__date"></span>').text(when), $('<span class="nova-dot">\u25cf</span>'));
+      }
+      if (episode.still_path && !thumb.hasClass('nova-card__thumb--loaded')) paintThumb(thumb, image(episode.still_path, 'w500'), false);
+    });
   }
 
   function wideFill(item, card, descr, thumb) {
@@ -5748,7 +5822,7 @@
     });
     parts.push('sort:' + (groups.sort || []).length);
     parts.push('extras:' + extras.map(function (entry) { return entry.label + '=' + entry.value; }).join(','));
-    parts.push('flags:' + serial + ',' + nav + ',' + wideReverse() + ',' + wideRow() + ',' + widePos() + ',' + items.length);
+    parts.push('flags:' + serial + ',' + nav + ',' + wideReverse() + ',' + wideRowOn() + ',' + viewMode() + ',' + widePos() + ',' + items.length);
     return parts.join(';');
   }
 
@@ -6245,6 +6319,7 @@
       entry.row[0].getBoundingClientRect();
       wideDragEase(entry.row, 'x', true);
     });
+    try { wide_book_h = ui.rows[0].getBoundingClientRect().height || 0; } catch (e) {}
     wideHold();
   }
 
@@ -6370,8 +6445,8 @@
     if (!panel.length) return;
 
     if (opening && ui.rows) ui.rows.css('min-height', '');
-    if (opening) {
-      try { wide_book_h = Math.ceil(ui.rows[0].getBoundingClientRect().height || 0); } catch (e) { wide_book_h = 0; }
+    if (opening && !wide_book_h) {
+      try { wide_book_h = ui.rows[0].getBoundingClientRect().height || 0; } catch (e) { wide_book_h = 0; }
     }
     var wide_closed_h = wideSwapOn() ? wide_book_h : 0;
 
@@ -6517,16 +6592,20 @@
     }
 
     if (!nav) {
-      tool('look', label('nova_plus_look'), label(wideRow() ? 'nova_plus_look_row' : 'nova_plus_look_grid'), { plain: true }, function () {
+      tool('look', label('nova_plus_look'), label(wideRowOn() ? 'nova_plus_look_row' : 'nova_plus_look_grid'), { plain: true }, function () {
+        if (viewMode() !== 'grid') save(VIEW_KEY, 'grid');
         save(WIDE_LAYOUT_KEY, wideRow() ? 'grid' : 'row');
         lockFocus('look');
         redraw();
       });
+      tool('view', '', label(viewMode() === 'list' ? 'nova_plus_view_list' : 'nova_plus_view_grid'), { plain: true }, function () {
+        save(VIEW_KEY, viewMode() === 'list' ? 'grid' : 'list');
+        lockFocus('view');
+        redraw();
+      });
     }
 
-    if (wideResetable()) tool('reset', '', label('nova_plus_reset'), { plain: true }, wideReset);
-
-    if (!nav && items.length > JUMP_FROM && !wideRow()) {
+    if (!nav && items.length > JUMP_FROM && !wideRowOn()) {
       var now = pageAt(pages(items.length), ui_page > 0 ? ui_page : 0);
       tool('jump', serial ? text('nova_jump', 'nova_plus_jump') : text('nova_files', 'nova_plus_files'), pageTitle(now), {}, function () { uiToggle('jump'); });
     }
@@ -7007,7 +7086,7 @@
     try {
       if (node && ui.rows && ui.rows[0] && $.contains(ui.rows[0], node)) return wideSeen(node);
     } catch (e) {}
-    if (!wideRow()) return false;
+    if (!wideRowOn()) return false;
     if (!ui.list || !ui.list.hasClass('nova__list--row')) return false;
     if (!node || !ui.list[0] || !$.contains(ui.list[0], node)) return false;
     try {
@@ -7031,7 +7110,7 @@
 
   function wideStrip(list) {
     if (!wideOn() || !ui.list) return;
-    if (wideRow() && !nav && list.length > 0) ui.list.addClass('nova__list--row');
+    if (wideRowOn() && !nav && list.length > 0) ui.list.addClass('nova__list--row');
     else ui.list.removeClass('nova__list--row');
     var strip = ui.list.parent();
     if (ui.list.hasClass('nova__list--row')) {
@@ -7120,6 +7199,24 @@
     '.nova-plus-root .nova-hero__mark>img{max-height:1.75em!important;max-width:100%!important;width:auto;height:auto}',
     '@media screen and (max-width:900px){.nova-plus-root .nova-hero__mark{max-width:55%;font-size:1.05em}}',
     '@media screen and (max-width:580px){.nova-plus-root .nova-hero__mark{-webkit-box-ordinal-group:2;-webkit-order:1;-ms-flex-order:1;order:1;max-width:100%;margin-right:0}.nova-plus-root .nova-hero__mark>img{max-height:1.5em!important}}'
+  ].join('');
+
+  var HERO_VOICE_CSS = '.nova-hero__voice{display:none}.nova-plus .nova-hero__voice{display:block;position:absolute;top:.7em;left:.9em;right:auto;bottom:auto;z-index:3;max-width:46%;font-size:1.05em;line-height:1.35;text-align:left;opacity:.92;white-space:normal;overflow-wrap:anywhere;word-wrap:anywhere;text-shadow:0 .08em .28em rgba(0,0,0,.9);pointer-events:none}@media screen and (max-width:580px){.nova-plus .nova-hero__voice{max-width:52%}}';
+
+  var ROWLIST_CSS = [
+    '.nova-plus-root .nova__list .nova-card.nova-card--rowlist{display:-webkit-flex;display:-ms-flexbox;display:flex;-webkit-flex-direction:row;-ms-flex-direction:row;flex-direction:row;-webkit-align-items:center;-ms-flex-align:center;align-items:center;width:100%;max-width:100%;padding:.7em;margin:0 0 .95em 0;background:rgba(255,255,255,.05)}',
+    '.nova-plus-root .nova__list .nova-card--rowlist .nova-card__thumb{width:10.5em;height:5.9em;padding-top:0;-webkit-flex-shrink:0;-ms-flex-negative:0;flex-shrink:0}',
+    '.nova-plus-root .nova__list .nova-card--rowlist .nova-card__num{-webkit-justify-content:flex-start;-ms-flex-pack:start;justify-content:flex-start;-webkit-align-items:flex-end;-ms-flex-align:end;align-items:flex-end;padding:0 0 .3em .55em;font-size:1.1em}',
+    '.nova-plus-root .nova__list .nova-card--rowlist .nova-card__num>span{background:rgba(10,11,17,.62);-webkit-box-shadow:0 .12em .45em rgba(0,0,0,.4);box-shadow:0 .12em .45em rgba(0,0,0,.4);padding:.05em .35em;-webkit-border-radius:.3em;border-radius:.3em}',
+    '.nova-plus-root .nova__list .nova-card--rowlist .nova-card__body{-webkit-flex:1 1 0%;-ms-flex:1 1 0%;flex:1 1 0%;padding:0 1.2em;min-width:0}',
+    '.nova-plus-root .nova__list .nova-card--rowlist .nova-card__title{font-size:1.35em;line-height:1.3;margin-bottom:.3em;-webkit-line-clamp:1}',
+    '.nova-plus-root .nova__list .nova-card--rowlist .nova-card__meta{font-size:1em;line-height:1.4;-webkit-line-clamp:1}',
+    '.nova-plus-root .nova__list .nova-card--rowlist .nova-card__side{position:static;display:block;text-align:right;padding-right:.2em}',
+    '.nova-plus-root .nova__list .nova-card--rowlist .nova-card__line--body{margin-top:.5em}',
+    '.nova-plus-root .nova__list .nova-card.nova-card--rowlist.focus{background:rgba(255,255,255,.13);color:#fff;-webkit-box-shadow:0 0 0 .12em #fff;box-shadow:0 0 0 .12em #fff}',
+    '.nova-plus-root .nova__list .nova-card--rowlist.focus .nova-card__thumb{-webkit-box-shadow:none;box-shadow:none}',
+    '.nova-plus-root .nova__list .nova-card--rowlist.focus .nova-card__line--body{background:rgba(255,255,255,.3)}',
+    '.nova-plus-root .nova__list .nova-card--rowlist.focus .nova-card__line--body .time-line>div{background:#fff}'
   ].join('');
 
   var FULL_CSS = [
