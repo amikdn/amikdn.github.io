@@ -7,7 +7,6 @@
 
     var today = new Date().toISOString().substr(0, 10);
 
-    // SVG-иконки для плиток
     var rusSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 48 48"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" d="M12.071 33V15h5.893c3.331 0 6.032 2.707 6.032 6.045s-2.7 6.045-6.032 6.045h-5.893m5.893 0l5.892 5.905m3.073-11.92V28.5a4.5 4.5 0 0 0 4.5 4.5h0a4.5 4.5 0 0 0 4.5-4.5v-7.425m0 7.425V33"/><rect width="37" height="37" x="5.5" y="5.5" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" rx="4" ry="4"/></svg>';
 
     var startSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"><path fill="currentColor" d="M2.185 6.758c-1.495 0-2.193.849-2.193 2.171v1.534c0 1.373.246 1.959 1.235 2.58l.763.474c.618.374.698.651.698 1.453v1.354c0 .393-.18.636-.521.636c-.342 0-.522-.228-.522-.636v-2.125H-.008v2.14c0 1.338.683 2.17 2.159 2.17c1.526 0 2.224-.882 2.224-2.17v-1.666c0-1.272-.326-1.927-1.265-2.529l-.763-.49c-.537-.342-.668-.586-.668-1.469v-1.24c0-.394.18-.637.503-.637c.341 0 .537.247.537.636v2.105h1.656V8.93c0-1.307-.698-2.17-2.19-2.17m2.711.162v1.635h1.17v9.797h1.687V8.555h1.17V6.92zm5.066 0l-.943 11.427h1.672l.23-3.053h1.227l.23 3.053h1.706l-.94-11.427Zm4.985 0v11.427h1.687v-4.78h1.024v3.917c0 .652.276.863.276.863h1.687c.004.004-.272-.207-.272-.863v-2.972c0-.949-.357-1.47-1.22-1.65v-.197c.86-.131 1.3-.768 1.3-1.797V8.929c0-1.257-.747-2.009-2.193-2.009zm5.02 0v1.635h1.169v9.797h1.687V8.555h1.17V6.92zm-8.529 1.55h.2l.399 5.274h-.997zm5.2.004h.437c.522 0 .667.212.667 1.06v1.419c0 .817-.18 1.06-.732 1.06h-.372z"/></svg>';
@@ -40,7 +39,6 @@
       'ТНТ': 1191
     };
 
-    // Коллекции
     var collections = [
       { title: 'Русские фильмы',     img: 'https://amikdn.github.io/img/r_movies.jpg', svg: rusSvg },
       { title: 'Русские сериалы',    img: 'https://amikdn.github.io/img/r_serials.jpg',     svg: rusSvg },
@@ -222,7 +220,7 @@
         var params = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
         var callback = arguments.length > 1 ? arguments[1] : undefined;
         var errorCallback = arguments.length > 2 ? arguments[2] : undefined;
-        var q = this; // Используем this вместо self для правильного контекста
+        var q = this;
         
         var sections = [
           function(cb) {
@@ -443,7 +441,14 @@
       }
     }
 
-    if (Lampa.Storage.get('rus_movie_main') !== false) {
+    if (Lampa.Storage.get('rus_movie_main_migrated') !== true) {
+      if (Lampa.Storage.get('rus_movie_main') === true) {
+        Lampa.Storage.set('rus_movie_main', false);
+      }
+      Lampa.Storage.set('rus_movie_main_migrated', true);
+    }
+
+    if (Lampa.Storage.get('rus_movie_main') === true) {
       var newSource = new RusMainSource(Lampa.Api.sources.tmdb);
       for (var key in newSource) {
         if (newSource.hasOwnProperty(key)) {
