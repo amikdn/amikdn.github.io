@@ -5721,6 +5721,7 @@
     var bits = [];
     if (picked.date) bits.push('<span class="nova-card__date">' + esc(picked.date) + '</span>');
     if (picked.voice) bits.push('<span>' + esc(picked.voice) + '</span>');
+    if (!serial && picked.rest.length) bits.push('<span>' + esc(picked.rest[0]) + '</span>');
     card.find('.nova-card__meta').html(bits.join('<span class="nova-dot">\u25cf</span>'));
 
     wideFillList(item, card, thumb);
@@ -7240,7 +7241,13 @@
     '.nova-plus-root .nova__list .nova-card.nova-card--rowlist.focus{background:rgba(255,255,255,.13);color:#fff;-webkit-box-shadow:0 0 0 .12em #fff;box-shadow:0 0 0 .12em #fff}',
     '.nova-plus-root .nova__list .nova-card--rowlist.focus .nova-card__thumb{-webkit-box-shadow:none;box-shadow:none}',
     '.nova-plus-root .nova__list .nova-card--rowlist.focus .nova-card__line--body{background:rgba(255,255,255,.3)}',
-    '.nova-plus-root .nova__list .nova-card--rowlist.focus .nova-card__line--body .time-line>div{background:#fff}'
+    '.nova-plus-root .nova__list .nova-card--rowlist.focus .nova-card__line--body .time-line>div{background:#fff}',
+    '.nova-plus-root .nova__list .nova-card--rowlist.nova-card--file{padding:.55em .6em;margin:0 0 .8em 0}',
+    '.nova-plus-root .nova__list .nova-card--rowlist.nova-card--file .nova-card__thumb{width:6.5em;height:3.66em}',
+    '.nova-plus-root .nova__list .nova-card--rowlist.nova-card--file .nova-card__body{padding:0 1em}',
+    '.nova-plus-root .nova__list .nova-card--rowlist.nova-card--file .nova-card__title{font-size:1.1em;line-height:1.35;margin-bottom:.25em}',
+    '.nova-plus-root .nova__list .nova-card--rowlist.nova-card--file .nova-card__meta{font-size:.95em}',
+    '.nova-plus-root .nova__list .nova-card--rowlist.nova-card--file .nova-card__side .nova-card__time{font-size:.85em;margin-top:.3em}'
   ].join('');
 
   var FULL_CSS = [
