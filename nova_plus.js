@@ -48,7 +48,10 @@
   function lockedOff(line) { return modeWide() ? line + ' · ' + label('nova_plus_locked_off') : line; }
   function heroEnabled() { return modeWide() ? true : get('nova_plus_hero', true) !== false; }
   function artEnabled() { return modeWide() ? true : get('nova_plus_hero_art', true) !== false; }
-  function viewMode() { return get('nova_plus_view', 'list'); }
+  function viewSerial() { return get('nova_plus_view', 'list'); }
+  function viewMovie() { return get('nova_plus_movie_view', 'grid'); }
+  function viewMode() { return serial ? viewSerial() : viewMovie(); }
+  function viewKey() { return serial ? 'nova_plus_view' : 'nova_plus_movie_view'; }
   function preferredQuality() { return get('nova_plus_quality', 'auto'); }
 
   function focusRing() { return get('nova_plus_focus_style', 'ring') !== 'fill'; }
@@ -151,8 +154,10 @@
     nova_plus_set_probe_ext: { ru: 'Источники проверяет сам онлайн-плагин, повторный обход не нужен', uk: 'Джерела перевіряє сам онлайн-плагін, повторний обхід не потрібен', en: 'The online plugin checks sources itself, no second pass needed' },
     nova_plus_set_switch: { ru: 'Автопереход по источникам', uk: 'Автоперехід по джерелах', en: 'Auto switch source' },
     nova_plus_set_switch_descr: { ru: 'Если ничего не найдено, пробовать следующий рабочий источник', uk: 'Якщо нічого не знайдено, пробувати наступне робоче джерело', en: 'Try the next working source when nothing is found' },
-    nova_plus_set_view: { ru: 'Вид списка', uk: 'Вигляд списку', en: 'List layout' },
-    nova_plus_set_view_descr: { ru: 'Список или плитка — работает в любом виде карточки и переключается кнопкой', uk: 'Список або плитка — працює в будь-якому вигляді карток і перемикається кнопкою', en: 'List or grid — works in any card layout and switches by button' },
+    nova_plus_set_view: { ru: 'Вид серий', uk: 'Вигляд серій', en: 'Episodes layout' },
+    nova_plus_set_view_descr: { ru: 'Для серий: список или плитка — работает в любом виде карточки и переключается кнопкой', uk: 'Для серій: список або плитка — працює в будь-якому вигляді карток і перемикається кнопкою', en: 'For episodes: list or grid — works in any card layout and switches by button' },
+    nova_plus_set_movie_view: { ru: 'Вид файлов', uk: 'Вигляд файлів', en: 'Files layout' },
+    nova_plus_set_movie_view_descr: { ru: 'Для фильмов: список или плитка — настраивается отдельно от серий', uk: 'Для фільмів: список або плитка — налаштовується окремо від серій', en: 'For movies: list or grid — independent from episodes' },
     nova_plus_set_quality: { ru: 'Качество по умолчанию', uk: 'Якість за замовчуванням', en: 'Default quality' },
     nova_plus_set_quality_descr: { ru: 'Предпочтительное качество воспроизведения', uk: 'Бажана якість відтворення', en: 'Preferred playback quality' },
     nova_plus_set_quality_auto: { ru: 'Авто', uk: 'Авто', en: 'Auto' },
@@ -3914,7 +3919,7 @@
       addChip('view', '', label(viewMode() === 'list' ? 'nova_plus_view_list' : 'nova_plus_view_grid'), {
         plain: true,
         action: function () {
-          save(VIEW_KEY, viewMode() === 'list' ? 'grid' : 'list');
+          save(viewKey(), viewMode() === 'list' ? 'grid' : 'list');
           lockFocus('view');
           redraw();
         }
@@ -5164,6 +5169,24 @@
       Lampa.SettingsApi.addParam({
         component: 'nova_plus',
         param: {
+          name: MOVIE_VIEW_KEY,
+          type: 'select',
+          values: {
+            list: label('nova_plus_view_list'),
+            grid: label('nova_plus_view_grid')
+          },
+          default: 'grid'
+        },
+        field: {
+          name: label('nova_plus_set_movie_view'),
+          description: label('nova_plus_set_movie_view_descr')
+        },
+        onChange: function () { redraw(); }
+      });
+
+      Lampa.SettingsApi.addParam({
+        component: 'nova_plus',
+        param: {
           name: 'nova_plus_quality',
           type: 'select',
           values: {
@@ -5312,6 +5335,7 @@
   var WIDE_META_KEY = 'nova_plus_meta';
   var WIDE_POS_KEY = 'nova_plus_source_pos';
   var VIEW_KEY = 'nova_plus_view';
+  var MOVIE_VIEW_KEY = 'nova_plus_movie_view';
   var WIDE_MAX_LINES = 99;
   var wide_was = 0;
   var wide_hold_timer = null;
@@ -5353,7 +5377,7 @@
 
   function wideOn() { return modeWide() && wideSerial(); }
   function wideRow() { return get(WIDE_LAYOUT_KEY, 'grid') === 'row'; }
-  function wideRowOn() { return wideRow() && viewMode() === 'grid'; }
+  function wideRowOn() { return wideRow() && viewSerial() === 'grid'; }
   function wideReverse() { return get(WIDE_ORDER_KEY, 'straight') === 'reverse'; }
   function wideMeta() { return get(WIDE_META_KEY, true) !== false; }
   function widePos() { return get(WIDE_POS_KEY, 'top') === 'bottom' ? 'bottom' : 'top'; }
@@ -6593,13 +6617,13 @@
 
     if (!nav) {
       tool('look', label('nova_plus_look'), label(wideRowOn() ? 'nova_plus_look_row' : 'nova_plus_look_grid'), { plain: true }, function () {
-        if (viewMode() !== 'grid') save(VIEW_KEY, 'grid');
+        if (viewSerial() !== 'grid') save(VIEW_KEY, 'grid');
         save(WIDE_LAYOUT_KEY, wideRow() ? 'grid' : 'row');
         lockFocus('look');
         redraw();
       });
-      tool('view', '', label(viewMode() === 'list' ? 'nova_plus_view_list' : 'nova_plus_view_grid'), { plain: true }, function () {
-        save(VIEW_KEY, viewMode() === 'list' ? 'grid' : 'list');
+      tool('view', '', label(viewSerial() === 'list' ? 'nova_plus_view_list' : 'nova_plus_view_grid'), { plain: true }, function () {
+        save(VIEW_KEY, viewSerial() === 'list' ? 'grid' : 'list');
         lockFocus('view');
         redraw();
       });
