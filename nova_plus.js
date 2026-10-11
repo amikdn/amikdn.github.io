@@ -3367,6 +3367,13 @@
     else box.text('').hide();
   }
 
+  function heroSeasonHtml(season) {
+    var text = seasonText(season);
+    var source = wideOn() ? (splitSourceName(sourceTitle()).name || '') : '';
+    if (!source) return esc(text);
+    return '<span class="nova-hero__season-text">' + esc(text) + '</span><span class="nova-hero__season-source">' + esc(source) + '</span>';
+  }
+
   function heroStatic(withArt) {
     if (!ui.hero) return;
 
@@ -3482,7 +3489,7 @@
 
     var hint = [];
     var source = splitSourceName(sourceTitle()).name;
-    if (source) hint.push(source);
+    if (source && !wideOn()) hint.push(source);
     var voice = groups.voice ? groups.voice.subtitle : '';
     if (voice && !wideOn()) hint.push(voice);
     ui.hero.find('.nova-hero__hint').text(hint.join(' \u00b7 '));
@@ -3494,7 +3501,7 @@
 
     var season_line = ui.hero.find('.nova-hero__season');
     if (season) {
-      season_line.text(seasonText(season)).show();
+      season_line.html(heroSeasonHtml(season)).show();
 
       if (season.planned <= season.total) {
         var want_season = seasonNumber() || 1;
@@ -3505,7 +3512,7 @@
           var box = ui.hero.find('.nova-hero__season');
           if (!box.length) return;
           season.planned = planned;
-          box.text(seasonText(season)).show();
+          box.html(heroSeasonHtml(season)).show();
         });
       }
     } else season_line.hide();
@@ -7227,7 +7234,9 @@
     '@media screen and (max-width:580px){.nova-plus-root .nova-hero__mark{-webkit-box-ordinal-group:2;-webkit-order:1;-ms-flex-order:1;order:1;max-width:100%;margin-right:0}.nova-plus-root .nova-hero__mark>img{max-height:1.5em!important}}'
   ].join('');
 
-  var HERO_VOICE_CSS = '.nova-hero__voice{display:none}.nova-plus .nova-hero__voice{display:block;position:absolute;top:.7em;left:.9em;right:auto;bottom:auto;z-index:3;max-width:46%;font-size:1.05em;line-height:1.35;text-align:left;opacity:.92;white-space:normal;overflow-wrap:anywhere;word-wrap:anywhere;text-shadow:0 .08em .28em rgba(0,0,0,.9);pointer-events:none}@media screen and (max-width:580px){.nova-plus .nova-hero__voice{max-width:52%}}';
+  var HERO_VOICE_CSS = '.nova-hero__voice{display:none}.nova-plus .nova-hero__voice{display:block;position:absolute;top:.7em;left:.9em;right:auto;bottom:auto;z-index:3;max-width:46%;font-size:1.05em;line-height:1.35;text-align:left;opacity:.92;white-space:normal;overflow-wrap:anywhere;word-wrap:anywhere;text-shadow:0 .08em .28em rgba(0,0,0,.9);pointer-events:none}@media screen and (max-width:580px){.nova-plus .nova-hero__voice{max-width:52%}}' +
+    '.nova-plus .nova-hero__season{display:-webkit-flex;display:-ms-flexbox;display:flex;-webkit-justify-content:space-between;-ms-flex-pack:justify;justify-content:space-between;-webkit-align-items:baseline;-ms-flex-align:baseline;align-items:baseline;gap:1.2em;max-width:100%}' +
+    '.nova-plus .nova-hero__season-source{-webkit-flex-shrink:0;-ms-flex-negative:0;flex-shrink:0;min-width:0;max-width:55%;overflow:hidden;white-space:nowrap;-o-text-overflow:ellipsis;text-overflow:ellipsis;text-align:right}';
 
   var ROWLIST_CSS = [
     '.nova-plus-root .nova__list .nova-card.nova-card--rowlist{display:-webkit-flex;display:-ms-flexbox;display:flex;-webkit-flex-direction:row;-ms-flex-direction:row;flex-direction:row;-webkit-align-items:center;-ms-flex-align:center;align-items:center;width:100%;max-width:100%;padding:.7em;margin:0 0 .95em 0;background:rgba(255,255,255,.05)}',
