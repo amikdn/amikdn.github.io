@@ -4866,6 +4866,7 @@
       }
 
       if (isSeen(item)) {
+        item.nova_seen = true;
         if (grid) {
           var thumb = card.find('.nova-card__thumb');
           if (thumb.length && !thumb.find('.nova-card__viewed').length) {
@@ -4877,7 +4878,7 @@
             side.append('<div class="nova-card__eye">' + ICON.eye + '</div>');
           }
         }
-      } else {
+      } else if (!item.nova_seen) {
         card.find('.nova-card__viewed,.nova-card__eye').remove();
       }
     });
@@ -4942,10 +4943,10 @@
 
     try {
       if (Lampa.Timeline && Lampa.Timeline.listener && Lampa.Timeline.listener.follow) {
-        Lampa.Timeline.listener.follow('update', refreshSoft);
+        Lampa.Timeline.listener.follow('update', refreshBurst);
       } else {
         Lampa.Listener.follow('state:changed', function (e) {
-          if (e && e.target === 'timeline' && e.reason === 'update') refreshSoft();
+          if (e && e.target === 'timeline' && e.reason === 'update') refreshBurst();
         });
       }
     } catch (e) {}
@@ -7247,7 +7248,9 @@
     '.nova-plus-root .nova__list .nova-card--rowlist.nova-card--file .nova-card__body{padding:0 1em}',
     '.nova-plus-root .nova__list .nova-card--rowlist.nova-card--file .nova-card__title{font-size:1.1em;line-height:1.35;margin-bottom:.25em}',
     '.nova-plus-root .nova__list .nova-card--rowlist.nova-card--file .nova-card__meta{font-size:.95em}',
-    '.nova-plus-root .nova__list .nova-card--rowlist.nova-card--file .nova-card__side .nova-card__time{font-size:.85em;margin-top:.3em}'
+    '.nova-plus-root .nova__list .nova-card--rowlist.nova-card--file .nova-card__side .nova-card__time{font-size:.85em;margin-top:.3em}',
+    '.nova-plus-root .nova__list .nova-card--rowlist .nova-card__side .nova-card__eye{margin:.35em 0 0 auto!important;text-align:right}',
+    '.nova-plus-root .nova__list .nova-card--rowlist .nova-card__side .nova-card__eye>svg{margin:0 auto;display:block}'
   ].join('');
 
   var FULL_CSS = [
