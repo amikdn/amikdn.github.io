@@ -1859,10 +1859,6 @@
     Lampa.Search.addSource(v337);
   }
   function fn12() {
-    if (Lampa.Manifest.origin !== "bylampa") {
-      Lampa.Noty.show("Ошибка доступа");
-      return;
-    }
     window.lampac_plugin = true;
     var v357 = {
       type: "video",
