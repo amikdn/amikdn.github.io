@@ -7,9 +7,9 @@
     // Список зеркал для загрузки внешнего скрипта sisi.js
     const scriptMirrors = [
     //  'https://ab2024.ru/sisi.js',
-    //    'http://31.129.234.181/sisi.js',
-        'https://l.pashai.ru/sisi.js',
-   //   'http://150.241.116.154/sisi.js',
+    //  'http://31.129.234.181/sisi.js',
+    //  'https://l.pashai.ru/sisi.js',
+        'http://150.241.116.154/sisi.js',
     ];
 
     // Выбираем случайное зеркало
