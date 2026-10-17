@@ -273,10 +273,10 @@
         var shadow = (rounded || cornerShadowOn) ? 'box-shadow:0 ' + shadowY + ' 0.4em rgba(0,0,0,0.55)!important;' : '';
         if (pos === 'bottom') {
             if (rounded) return 'right:0.4em!important;top:0.4em!important;bottom:auto!important;left:auto!important;border-radius:0.5em!important;' + shadow;
-            return 'right:0!important;top:0!important;bottom:auto!important;left:auto!important;border-radius:0 var(--co-poster-radius,0.75em) 0 0.75em!important;' + shadow;
+            return 'right:0!important;top:0!important;bottom:auto!important;left:auto!important;border-radius:0 var(--co-poster-radius,var(--co-poster-radius-fallback,0.75em)) 0 0.75em!important;' + shadow;
         }
         if (rounded) return 'right:0.4em!important;bottom:0.4em!important;top:auto!important;left:auto!important;border-radius:0.5em!important;' + shadow;
-        return 'right:0!important;bottom:0!important;top:auto!important;left:auto!important;border-radius:0.75em 0 var(--co-poster-radius,0.75em) 0!important;' + shadow;
+        return 'right:0!important;bottom:0!important;top:auto!important;left:auto!important;border-radius:0.75em 0 var(--co-poster-radius,var(--co-poster-radius-fallback,0.75em)) 0!important;' + shadow;
     }
     function addYearBadge(card) {
         if (!card || !card.querySelector) return;
@@ -918,12 +918,35 @@
         return parent;
     }
     var _posterRadiusGen = 1;
+    function getPosterRadiusFallback() {
+        try {
+            var el = document.querySelector('.card__img') || document.querySelector('.card__view') || document.body;
+            if (!el) return '';
+            var fs = parseFloat(window.getComputedStyle(el).fontSize);
+            if (fs > 0) return fs + 'px';
+        } catch (e) { logErr(e); }
+        return '';
+    }
+    function applyPosterRadiusFallback() {
+        try {
+            var r = getPosterRadiusFallback();
+            if (r) document.body.style.setProperty('--co-poster-radius-fallback', r);
+            else document.body.style.removeProperty('--co-poster-radius-fallback');
+        } catch (e) { logErr(e); }
+    }
+    function isElementInDocument(el) {
+        if (!el) return false;
+        if (typeof el.isConnected === 'boolean') return el.isConnected;
+        var doc = el.ownerDocument || document;
+        return !!(doc && doc.body && doc.body.contains(el));
+    }
     function syncCardPosterRadius(card) {
         try {
             if (!card || !card.querySelector) return;
             var view = card.querySelector('.card__view');
             if (!view) return;
             if (view.dataset && +view.dataset.coPosterRadiusGen === _posterRadiusGen) return;
+            if (!isElementInDocument(view)) return;
             var img = card.querySelector('.card__img');
             var r = '';
             if (img) { var ri = window.getComputedStyle(img).borderTopLeftRadius; if (ri && parseFloat(ri) > 0) r = ri; }
@@ -1595,6 +1618,7 @@
     }
     function applyRatingSettingsRefresh() {
         applyRatingScale();
+        applyPosterRadiusFallback();
         applyBadgeStyle();
         if (isTriggerOn('lampa_rating_icon', true)) $('body').attr('data-lampa-icon-on', '1'); else $('body').removeAttr('data-lampa-icon-on');
         applyDetailRatingIcons();
@@ -2558,7 +2582,7 @@
         poster.find('.card__type').remove();
         var lbl = $('<div class="content-label"></div>').css({
             position: 'absolute', left: '0', top: '0', color: 'white', padding: '0.25em 0.45em',
-            borderRadius: 'var(--co-poster-radius,0.75em) 0 0.75em 0', fontSize: 'var(--rating-font-size,1.1em)', zIndex: 10, lineHeight: 1,
+            borderRadius: 'var(--co-poster-radius,var(--co-poster-radius-fallback,0.75em)) 0 0.75em 0', fontSize: 'var(--rating-font-size,1.1em)', zIndex: 10, lineHeight: 1,
             backgroundColor: getTypeLabelBackground(isTV)
         });
         if (isTypeLabelsColoredOn()) lbl.addClass(isTV ? 'serial-label' : 'movie-label');
@@ -2573,10 +2597,10 @@
     };
     var _seasonInfoLast = null;
     var SEASON_LABEL_POSITIONS = {
-        'top-right': { top: '0', right: '0', borderRadius: '0 var(--co-poster-radius,0.75em) 0 0.75em', textAlign: 'right' },
-        'top-left': { top: '0', left: '0', borderRadius: 'var(--co-poster-radius,0.75em) 0 0.75em 0', textAlign: 'left' },
-        'bottom-right': { bottom: '0', right: '0', borderRadius: '0.75em 0 var(--co-poster-radius,0.75em) 0', textAlign: 'right' },
-        'bottom-left': { bottom: '0', left: '0', borderRadius: '0 0.75em 0 var(--co-poster-radius,0.75em)', textAlign: 'left' }
+        'top-right': { top: '0', right: '0', borderRadius: '0 var(--co-poster-radius,var(--co-poster-radius-fallback,0.75em)) 0 0.75em', textAlign: 'right' },
+        'top-left': { top: '0', left: '0', borderRadius: 'var(--co-poster-radius,var(--co-poster-radius-fallback,0.75em)) 0 0.75em 0', textAlign: 'left' },
+        'bottom-right': { bottom: '0', right: '0', borderRadius: '0.75em 0 var(--co-poster-radius,var(--co-poster-radius-fallback,0.75em)) 0', textAlign: 'right' },
+        'bottom-left': { bottom: '0', left: '0', borderRadius: '0 0.75em 0 var(--co-poster-radius,var(--co-poster-radius-fallback,0.75em))', textAlign: 'left' }
     };
     function getSeasonLabelPosition() {
         var pos = Lampa.Storage.get('label_position', seasonInfoSettings.label_position || defStr('label_position'));
@@ -3369,23 +3393,23 @@
             '.card .card__vote,.card .card__vote-line,.card .card__vote-separate-wrap,.card .card__vote-separate-wrap .card__vote,.card .card__quality,.card .card__type[data-card-overlay-type-label="1"],.card .content-label,.card .card__episode-label,.card .card__series-status,.card .card__year-badge{z-index:10!important;opacity:1!important;-webkit-filter:none!important;filter:none!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}' +
             '.card.card-overlay-has-overlays>.card__age,.card.card-overlay-has-overlays>.card__vote{display:none!important}' +
             '.card__view > .card__vote:not(.card__vote--top):not(.card__vote--bottom):not(.card__vote-line):not(.card__vote-separate-wrap){display:none!important}' +
-            '.card__vote,.card__vote-separate-wrap .card__vote{display:flex!important;align-items:center!important;position:absolute!important;right:0!important;bottom:0!important;padding:0.25em 0.45em!important;border-radius:0.75em 0 var(--co-poster-radius,0.75em) 0!important;white-space:nowrap!important;font-size:var(--rating-font-size,1.1em)!important;font-weight:600!important;line-height:1!important;height:auto!important;border:none!important;margin:0!important}' +
+            '.card__vote,.card__vote-separate-wrap .card__vote{display:flex!important;align-items:center!important;position:absolute!important;right:0!important;bottom:0!important;padding:0.25em 0.45em!important;border-radius:0.75em 0 var(--co-poster-radius,var(--co-poster-radius-fallback,0.75em)) 0!important;white-space:nowrap!important;font-size:var(--rating-font-size,1.1em)!important;font-weight:600!important;line-height:1!important;height:auto!important;border:none!important;margin:0!important}' +
             '.card__vote-separate-wrap .card__vote{position:static!important;margin:0!important;font-size:1em!important}' +
             '.card__vote-separate-wrap .card__vote:not(.visible-last):not(.visible-only):not(.card__vote--hidden){margin-bottom:0.15em!important}' +
             '.card__vote.card__vote--hidden,.card__vote-separate-wrap .card__vote.card__vote--hidden{display:none!important;height:0!important;padding:0!important;margin:0!important;overflow:hidden!important;min-width:0!important;min-height:0!important;border:none!important;width:0!important;position:absolute!important;opacity:0!important;pointer-events:none!important}' +
-            '.card__vote-line{display:block!important;position:absolute!important;right:0!important;bottom:0!important;padding:0.25em 0.45em!important;border-radius:0.75em 0 var(--co-poster-radius,0.75em) 0!important;font-size:var(--rating-font-size,1.1em)!important;font-weight:600!important;line-height:1!important;height:auto!important;border:none!important;margin:0!important}' +
+            '.card__vote-line{display:block!important;position:absolute!important;right:0!important;bottom:0!important;padding:0.25em 0.45em!important;border-radius:0.75em 0 var(--co-poster-radius,var(--co-poster-radius-fallback,0.75em)) 0!important;font-size:var(--rating-font-size,1.1em)!important;font-weight:600!important;line-height:1!important;height:auto!important;border:none!important;margin:0!important}' +
             '.card__vote-separate-wrap{display:block!important;position:absolute!important;background:transparent!important;padding:0!important;width:auto!important;min-width:0!important;max-width:100%!important;overflow:visible!important;font-size:var(--rating-font-size,1.1em)!important;font-weight:600!important}' +
             '.card__vote > span:first-child,.card__vote-line .card__rate-item > div,.card__vote-line .card__rate-item > .rate-value{display:inline-block!important;min-width:2.4ch!important;text-align:left!important;vertical-align:middle!important}' +
             '.card__vote--top,.card__vote-line.card__vote--top,.card__vote-separate-wrap.card__vote--top{transform-origin:top right!important}' +
             '.card__vote--bottom,.card__vote-line.card__vote--bottom,.card__vote-separate-wrap.card__vote--bottom{transform-origin:bottom right!important}' +
-            '.card__vote--top{top:0!important;right:0!important;bottom:auto!important;border-radius:0 var(--co-poster-radius,0.75em) 0 0.75em!important}' +
-            '.card__vote--bottom{top:auto!important;right:0!important;bottom:0!important;border-radius:0.75em 0 var(--co-poster-radius,0.75em) 0!important}' +
+            '.card__vote--top{top:0!important;right:0!important;bottom:auto!important;border-radius:0 var(--co-poster-radius,var(--co-poster-radius-fallback,0.75em)) 0 0.75em!important}' +
+            '.card__vote--bottom{top:auto!important;right:0!important;bottom:0!important;border-radius:0.75em 0 var(--co-poster-radius,var(--co-poster-radius-fallback,0.75em)) 0!important}' +
             '.card__vote-separate-wrap.card__vote--bottom .card__vote{border-radius:0.75em 0 0 0.75em!important}' +
-            '.card__vote-separate-wrap.card__vote--bottom .card__vote.visible-last{border-radius:0.75em 0 var(--co-poster-radius,0.75em) 0!important}' +
-            '.card__vote-separate-wrap.card__vote--bottom .card__vote.visible-only{border-radius:0.75em 0 var(--co-poster-radius,0.75em) 0!important}' +
+            '.card__vote-separate-wrap.card__vote--bottom .card__vote.visible-last{border-radius:0.75em 0 var(--co-poster-radius,var(--co-poster-radius-fallback,0.75em)) 0!important}' +
+            '.card__vote-separate-wrap.card__vote--bottom .card__vote.visible-only{border-radius:0.75em 0 var(--co-poster-radius,var(--co-poster-radius-fallback,0.75em)) 0!important}' +
             '.card__vote-separate-wrap.card__vote--top .card__vote{border-radius:0.75em 0 0 0.75em!important}' +
-            '.card__vote-separate-wrap.card__vote--top .card__vote.visible-first{border-radius:0 var(--co-poster-radius,0.75em) 0 0.75em!important}' +
-            '.card__vote-separate-wrap.card__vote--top .card__vote.visible-only{border-radius:0 var(--co-poster-radius,0.75em) 0 0.75em!important}' +
+            '.card__vote-separate-wrap.card__vote--top .card__vote.visible-first{border-radius:0 var(--co-poster-radius,var(--co-poster-radius-fallback,0.75em)) 0 0.75em!important}' +
+            '.card__vote-separate-wrap.card__vote--top .card__vote.visible-only{border-radius:0 var(--co-poster-radius,var(--co-poster-radius-fallback,0.75em)) 0 0.75em!important}' +
             '.card__vote-line .card__rate-item{display:flex!important;align-items:center!important;white-space:nowrap}' +
             '.card__vote-line .card__rate-item.card__rate-item--hidden{display:none!important}' +
             '.card__vote-line .card__rate-item:last-child{margin-bottom:0}' +
@@ -3415,10 +3439,10 @@
             '.full-start-new__rate.rate--lampa .rate-icon img,.full-start__rate.rate--lampa .rate-icon img{max-height:1em!important;max-width:1em!important;object-fit:contain}' +
             '.rate--imdb .source--name{background-image:url("data:image/svg+xml,' + detailImdbSvgCss + '")}' +
             '@media (max-width:480px) and (orientation:portrait){.full-start-new__rate.rate--lampa,.full-start__rate.rate--lampa{min-width:0!important}body:not([data-lampa-icon-on]) .full-start-new__rate.rate--lampa,body:not([data-lampa-icon-on]) .full-start__rate.rate--lampa{min-width:0!important}}' +
-            '.card__quality{position:absolute!important;left:0!important;bottom:0!important;padding:0.25em 0.45em!important;border-radius:0 0.75em 0 var(--co-poster-radius,0.75em)!important;color:white!important;font-size:var(--rating-font-size,1.1em)!important;line-height:1!important;z-index:10!important;white-space:nowrap!important}' +
+            '.card__quality{position:absolute!important;left:0!important;bottom:0!important;padding:0.25em 0.45em!important;border-radius:0 0.75em 0 var(--co-poster-radius,var(--co-poster-radius-fallback,0.75em))!important;color:white!important;font-size:var(--rating-font-size,1.1em)!important;line-height:1!important;z-index:10!important;white-space:nowrap!important}' +
             '.card__episode-label{position:absolute!important;left:50%!important;right:auto!important;bottom:0!important;top:auto!important;transform:translateX(-50%)!important;color:white!important;padding:0.25em 0.45em!important;border-radius:0.75em 0.75em 0 0!important;font-size:var(--rating-font-size,1.1em)!important;font-weight:400!important;line-height:1!important;height:auto!important;z-index:10!important;white-space:nowrap!important;box-sizing:border-box!important;margin:0!important;border:none!important}' +
             '.card__series-status{position:absolute!important;left:50%!important;right:auto!important;bottom:0!important;top:auto!important;transform:translateX(-50%)!important;color:#fff!important;padding:0.25em 0.45em!important;border-radius:0.75em 0.75em 0 0!important;font-size:var(--rating-font-size,1.1em)!important;font-weight:400!important;line-height:1!important;height:auto!important;z-index:10!important;white-space:nowrap!important;box-sizing:border-box!important;margin:0!important;border:none!important}' +
-            '.content-label,.card__type[data-card-overlay-type-label="1"]{position:absolute!important;left:0!important;top:0!important;color:white!important;padding:0.25em 0.45em!important;border-radius:var(--co-poster-radius,0.75em) 0 0.75em 0!important;font-size:var(--rating-font-size,1.1em)!important;line-height:1!important;z-index:10!important;display:flex!important;align-items:center!important;justify-content:center!important}' +
+            '.content-label,.card__type[data-card-overlay-type-label="1"]{position:absolute!important;left:0!important;top:0!important;color:white!important;padding:0.25em 0.45em!important;border-radius:var(--co-poster-radius,var(--co-poster-radius-fallback,0.75em)) 0 0.75em 0!important;font-size:var(--rating-font-size,1.1em)!important;line-height:1!important;z-index:10!important;display:flex!important;align-items:center!important;justify-content:center!important}' +
             '.full-start-new__rate-line .full-start__status,.full-start-new__rate-line .full-start__pg:not(.hide),.full-start-new__meta-line .full-start__status,.full-start-new__meta-line .full-start__pg:not(.hide){border-radius:0.3em!important;padding:0.2em 0.4em!important;display:inline-block!important;line-height:1!important;white-space:nowrap!important}' +
             'body.colored-elements-on .full-start__pg.age-kids{background:#2ecc71!important;color:white!important}' +
             'body.colored-elements-on .full-start__pg.age-children{background:#3498db!important;color:white!important}' +
@@ -3454,6 +3478,7 @@
         document.head.appendChild(style);
 
         applyRatingScale();
+        applyPosterRadiusFallback();
         applyBadgeStyle();
         if (isTriggerOn('lampa_rating_icon', true)) $('body').attr('data-lampa-icon-on', '1'); else $('body').removeAttr('data-lampa-icon-on');
         if (isDetailRatingIconsOn()) $('body').attr('data-detail-rating-icons', 'on'); else $('body').attr('data-detail-rating-icons', 'off');
@@ -3495,6 +3520,7 @@
         on(window, 'resize', function () {
             later(function () {
                 _posterRadiusGen++;
+                applyPosterRadiusFallback();
                 requestAnimationFrame(function () { scheduleVisibleRatingsUpdate(0); repositionDetailMeta(); });
             }, 150, 'resize');
         }, { passive: true });
@@ -3614,6 +3640,11 @@
             if (e.name === 'activity') applyPlayerReactions();
             if (e.name === 'mine_reactions') later(applyPlayerReactions, 200, 'reactions-mine');
             if (e.name === 'animated_reactions_in_player') refreshPlayerReactions();
+            if (e.name === 'interface_size') later(function () {
+                _posterRadiusGen++;
+                applyPosterRadiusFallback();
+                scheduleVisibleRatingsUpdate(0);
+            }, 150, 'interface-size');
         });
     }
 
@@ -3641,7 +3672,7 @@
 
     var manifest = {
         name: 'Интерфейс Мод',
-        version: '2.6.0',
+        version: '2.6.1',
         description: 'Рейтинги, качество, лейблы типа на карточках'
     };
 
