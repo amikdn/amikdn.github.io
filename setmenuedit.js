@@ -4,7 +4,7 @@
     if (window.__settings_menu_editor_loaded__) return;
     window.__settings_menu_editor_loaded__ = true;
 
-    var VERSION = '1.0.0';
+    var VERSION = '1.1.0';
     var CONFIG_KEY = 'settings_menu_editor_config_v1';
     var ICONS_CACHE_KEY = 'settings_menu_editor_icons_cache_v1';
     var ICONS_URL = 'https://amikdn.github.io/lampa-button-icons.json';
@@ -27,6 +27,8 @@
         callbacks: []
     };
     var applyTimers = [];
+    var forceDefaultReorder = false;
+    var forceDefaultOrder = null;
     var started = false;
     var mainHookInstalled = false;
     var mainHookTimer = null;
@@ -85,6 +87,7 @@
         return {
             version: 1,
             order: [],
+            baseOrder: [],
             hidden: [],
             labels: {},
             icons: {}
@@ -260,6 +263,15 @@
             }
         }
 
+        if (isArray(raw.baseOrder)) {
+            for (var b = 0; b < raw.baseOrder.length && result.baseOrder.length < 200; b++) {
+                var baseKey = trim(raw.baseOrder[b]);
+                if (baseKey && result.baseOrder.indexOf(baseKey) === -1) {
+                    result.baseOrder.push(baseKey);
+                }
+            }
+        }
+
         if (isArray(raw.hidden)) {
             for (var h = 0; h < raw.hidden.length && result.hidden.length < 200; h++) {
                 var hiddenKey = trim(raw.hidden[h]);
@@ -315,6 +327,7 @@
             Lampa.Storage.set(CONFIG_KEY, {
                 version: 1,
                 order: state.order.slice(0),
+                baseOrder: state.baseOrder.slice(0),
                 hidden: state.hidden.slice(0),
                 labels: state.labels,
                 icons: state.icons
@@ -429,21 +442,103 @@
         }
     }
 
-    function getFullOrder() {
+    function getDomOrderKeys() {
         var result = [];
+        var seen = {};
+        var container = runtime.container;
+
+        if (!container) return result;
+
+        var children = container.children;
+
+        for (var i = 0; i < children.length; i++) {
+            var el = children[i];
+
+            if (!el || el.nodeType !== 1) continue;
+            if (el.getAttribute(EDITOR_ATTR) === '1') continue;
+            if (!hasClass(el, 'settings-folder')) continue;
+
+            var key = el.getAttribute('data-se-key');
+
+            if (key && runtime.items[key] && !seen[key]) {
+                seen[key] = true;
+                result.push(key);
+            }
+        }
+
+        return result;
+    }
+
+    function getDirectSettingsItems(container) {
+        var result = [];
+
+        if (!container) return result;
+
+        var children = container.children;
+
+        for (var i = 0; i < children.length; i++) {
+            var el = children[i];
+
+            if (!el || el.nodeType !== 1) continue;
+            if (el.getAttribute(EDITOR_ATTR) === '1') continue;
+            if (!hasClass(el, 'settings-folder')) continue;
+
+            result.push(el);
+        }
+
+        return result;
+    }
+
+    function findDirectItemByKey(container, key) {
+        if (!container || !key) return null;
+
+        var children = container.children;
+
+        for (var i = 0; i < children.length; i++) {
+            var el = children[i];
+
+            if (el && el.nodeType === 1 && el.getAttribute('data-se-key') === key) {
+                return el;
+            }
+        }
+
+        return null;
+    }
+
+    function nextSettingsKey(el) {
+        var node = el ? el.nextSibling : null;
+
+        while (node) {
+            if (node.nodeType === 1 && hasClass(node, 'settings-folder') && node.getAttribute(EDITOR_ATTR) !== '1') {
+                return node.getAttribute('data-se-key') || '';
+            }
+            node = node.nextSibling;
+        }
+
+        return '';
+    }
+
+    function prevSettingsKey(el) {
+        var node = el ? el.previousSibling : null;
+
+        while (node) {
+            if (node.nodeType === 1 && hasClass(node, 'settings-folder') && node.getAttribute(EDITOR_ATTR) !== '1') {
+                return node.getAttribute('data-se-key') || '';
+            }
+            node = node.previousSibling;
+        }
+
+        return '';
+    }
+
+    function captureCurrentOrder() {
+        var result = getDomOrderKeys();
         var seen = {};
         var rest = [];
         var key;
 
-        if (state && isArray(state.order)) {
-            for (var i = 0; i < state.order.length; i++) {
-                key = state.order[i];
-
-                if (runtime.items[key] && !seen[key]) {
-                    seen[key] = true;
-                    result.push(key);
-                }
-            }
+        for (var i = 0; i < result.length; i++) {
+            seen[result[i]] = true;
         }
 
         for (key in runtime.items) {
@@ -463,8 +558,49 @@
         return result;
     }
 
-    function ensureOrderSaved() {
-        state.order = getFullOrder();
+    function getFullOrder() {
+        var result = [];
+        var seen = {};
+        var rest = [];
+        var key;
+
+        if (state && isArray(state.order)) {
+            for (var i = 0; i < state.order.length; i++) {
+                key = state.order[i];
+
+                if (runtime.items[key] && !seen[key]) {
+                    seen[key] = true;
+                    result.push(key);
+                }
+            }
+        }
+
+        var domKeys = getDomOrderKeys();
+
+        for (var d = 0; d < domKeys.length; d++) {
+            key = domKeys[d];
+
+            if (!seen[key]) {
+                seen[key] = true;
+                result.push(key);
+            }
+        }
+
+        for (key in runtime.items) {
+            if (has(runtime.items, key) && !seen[key]) {
+                rest.push(runtime.items[key]);
+            }
+        }
+
+        rest.sort(function (a, b) {
+            return a.originalIndex - b.originalIndex;
+        });
+
+        for (var j = 0; j < rest.length; j++) {
+            result.push(rest[j].key);
+        }
+
+        return result;
     }
 
     function applyItemVisuals() {
@@ -505,61 +641,140 @@
 
     function applyOrderAndVisibility(container) {
         var order = getFullOrder();
-        var desired = [];
-        var visibleItem;
+        var hasCustomOrder = !!(state && isArray(state.order) && state.order.length);
+        var editor = ensureEditorEntry(container);
+        var toInsert = [];
+        var i;
+        var key;
+        var item;
 
-        for (var i = 0; i < order.length; i++) {
-            var key = order[i];
-            var item = runtime.items[key];
+        for (i = 0; i < order.length; i++) {
+            key = order[i];
+            item = runtime.items[key];
 
             if (!item) continue;
 
             if (isHidden(key)) {
                 if (item.el.parentNode) {
+                    item.stashNextKey = nextSettingsKey(item.el);
+                    item.stashPrevKey = prevSettingsKey(item.el);
                     item.el.parentNode.removeChild(item.el);
                 }
                 item.stashed = true;
                 continue;
             }
 
-            if (item.el.parentNode && item.el.parentNode !== container) {
-                item.el.parentNode.removeChild(item.el);
-            }
-
             item.stashed = false;
-            desired.push(item.el);
+
+            if (item.el.parentNode !== container) {
+                toInsert.push(item);
+            }
         }
 
-        var current = [];
+        if (forceDefaultReorder) {
+            var all = [];
+            var forcedSeen = {};
 
-        for (var c = 0; c < container.children.length; c++) {
-            var child = container.children[c];
+            if (forceDefaultOrder && forceDefaultOrder.length) {
+                for (i = 0; i < forceDefaultOrder.length; i++) {
+                    key = forceDefaultOrder[i];
+                    item = runtime.items[key];
 
-            if (!child || child.nodeType !== 1) continue;
-            if (child.getAttribute(EDITOR_ATTR) === '1') continue;
-            if (!hasClass(child, 'settings-folder')) continue;
-
-            current.push(child);
-        }
-
-        var same = current.length === desired.length;
-
-        if (same) {
-            for (var s = 0; s < desired.length; s++) {
-                if (current[s] !== desired[s]) {
-                    same = false;
-                    break;
+                    if (item && !isHidden(key) && !forcedSeen[key]) {
+                        forcedSeen[key] = true;
+                        all.push(item);
+                    }
                 }
             }
-        }
 
-        if (!same) {
-            for (var d = 0; d < desired.length; d++) {
-                container.appendChild(desired[d]);
+            var remaining = [];
+
+            for (key in runtime.items) {
+                if (has(runtime.items, key) && !isHidden(key) && !forcedSeen[key]) {
+                    remaining.push(runtime.items[key]);
+                }
+            }
+
+            remaining.sort(function (a, b) {
+                return a.originalIndex - b.originalIndex;
+            });
+
+            all = all.concat(remaining);
+
+            for (i = 0; i < all.length; i++) {
+                container.appendChild(all[i].el);
+            }
+
+            forceDefaultReorder = false;
+            forceDefaultOrder = null;
+        } else if (hasCustomOrder) {
+            var desired = [];
+
+            for (i = 0; i < order.length; i++) {
+                key = order[i];
+                item = runtime.items[key];
+
+                if (item && !isHidden(key)) {
+                    desired.push(item.el);
+                }
+            }
+
+            var current = getDirectSettingsItems(container);
+            var same = current.length === desired.length;
+
+            if (same) {
+                for (var s = 0; s < desired.length; s++) {
+                    if (current[s] !== desired[s]) {
+                        same = false;
+                        break;
+                    }
+                }
+            }
+
+            if (!same) {
+                for (var d = 0; d < desired.length; d++) {
+                    container.appendChild(desired[d]);
+                }
+            }
+        } else {
+            for (i = 0; i < toInsert.length; i++) {
+                item = toInsert[i];
+
+                var nextEl = findDirectItemByKey(container, item.stashNextKey);
+
+                if (nextEl) {
+                    container.insertBefore(item.el, nextEl);
+                } else {
+                    var prevEl = findDirectItemByKey(container, item.stashPrevKey);
+
+                    if (prevEl) {
+                        container.insertBefore(item.el, prevEl.nextSibling);
+                    } else {
+                        var inserted = false;
+                        var items = getDirectSettingsItems(container);
+
+                        for (var j = 0; j < items.length; j++) {
+                            var otherKey = items[j].getAttribute('data-se-key');
+                            var other = runtime.items[otherKey];
+
+                            if (other && other.originalIndex > item.originalIndex) {
+                                container.insertBefore(item.el, items[j]);
+                                inserted = true;
+                                break;
+                            }
+                        }
+
+                        if (!inserted) {
+                            container.insertBefore(item.el, editor);
+                        }
+                    }
+                }
+
+                item.stashNextKey = '';
+                item.stashPrevKey = '';
             }
         }
 
-        var editor = ensureEditorEntry(container);
         var last = container.children.length ? container.children[container.children.length - 1] : null;
 
         if (last !== editor) {
@@ -1005,7 +1220,12 @@
     }
 
     function resetAll(openUi) {
+        var hadOrder = !!(state && isArray(state.order) && state.order.length);
+        var baseOrder = state && isArray(state.baseOrder) ? state.baseOrder.slice(0) : [];
+
         state = defaultState();
+        forceDefaultReorder = hadOrder;
+        forceDefaultOrder = hadOrder && baseOrder.length ? baseOrder : null;
         saveState();
 
         if (runtime.container) {
@@ -1048,6 +1268,14 @@
         order.splice(index, 1);
         order.splice(next, 0, key);
 
+        if (!state.order.length) {
+            var currentOrder = captureCurrentOrder();
+
+            if (!state.baseOrder.length) {
+                state.baseOrder = currentOrder.slice(0);
+            }
+        }
+
         state.order = order;
         saveState();
 
@@ -1069,6 +1297,7 @@
     }
 
     function toggleHidden(key, row, control) {
+        var wasHidden = isHidden(key);
         var hidden = state.hidden.slice(0);
         var index = hidden.indexOf(key);
 
@@ -1079,7 +1308,17 @@
         }
 
         state.hidden = hidden;
-        ensureOrderSaved();
+
+        if (!wasHidden && !state.order.length) {
+            var currentOrder = captureCurrentOrder();
+
+            if (!state.baseOrder.length) {
+                state.baseOrder = currentOrder.slice(0);
+            }
+
+            state.order = currentOrder;
+        }
+
         saveState();
 
         var nowHidden = isHidden(key);
@@ -1540,7 +1779,16 @@
                 return cloneState();
             },
             setConfig: function (config) {
+                var hadOrder = !!(state && isArray(state.order) && state.order.length);
+                var oldBase = state && isArray(state.baseOrder) ? state.baseOrder.slice(0) : [];
+
                 state = normalizeState(config);
+
+                if (hadOrder && !state.order.length) {
+                    forceDefaultReorder = true;
+                    forceDefaultOrder = state.baseOrder.length ? state.baseOrder.slice(0) : (oldBase.length ? oldBase : null);
+                }
+
                 saveState();
 
                 if (runtime.container) {
