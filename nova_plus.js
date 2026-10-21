@@ -5446,7 +5446,7 @@
 
   function wideOn() { return modeWide() && wideSerial(); }
   function wideRow() { return get(WIDE_LAYOUT_KEY, 'grid') === 'row'; }
-  function wideRowOn() { return wideRow() && viewSerial() === 'grid'; }
+  function wideRowOn() { return wideRow() && viewMode() === 'grid'; }
   function wideReverse() { return get(WIDE_ORDER_KEY, 'straight') === 'reverse'; }
   function wideMeta() { return get(WIDE_META_KEY, true) !== false; }
   function widePos() { return get(WIDE_POS_KEY, 'top') === 'bottom' ? 'bottom' : 'top'; }
@@ -6710,13 +6710,13 @@
 
     if (!nav) {
       tool('look', label('nova_plus_look'), label(wideRowOn() ? 'nova_plus_look_row' : 'nova_plus_look_grid'), { plain: true }, function () {
-        if (viewSerial() !== 'grid') save(VIEW_KEY, 'grid');
+        if (viewMode() !== 'grid') save(viewKey(), 'grid');
         save(WIDE_LAYOUT_KEY, wideRow() ? 'grid' : 'row');
         lockFocus('look');
         redraw();
       });
-      tool('view', '', label(viewSerial() === 'list' ? 'nova_plus_view_list' : 'nova_plus_view_grid'), { plain: true }, function () {
-        save(VIEW_KEY, viewSerial() === 'list' ? 'grid' : 'list');
+      tool('view', '', label(viewMode() === 'list' ? 'nova_plus_view_list' : 'nova_plus_view_grid'), { plain: true }, function () {
+        save(viewKey(), viewMode() === 'list' ? 'grid' : 'list');
         lockFocus('view');
         redraw();
       });
