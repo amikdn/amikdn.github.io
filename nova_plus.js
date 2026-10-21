@@ -3431,6 +3431,7 @@
 
     ui.hero.find('.nova-hero__progress').empty().hide();
     ui.hero.find('.nova-hero__season').hide();
+    wideHeroTune();
   }
 
   function buildHero() {
