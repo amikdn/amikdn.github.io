@@ -5735,25 +5735,27 @@
     if (!thumb.length) return;
 
     card.find('.nova-card__listinfo').remove();
-    var strip = thumb.find('.nova-card__strip');
-    if (strip.length) strip.remove();
+    var side = card.find('.nova-card__side');
+    if (side.length) side.find('.nova-card__listpct').remove();
     thumb.find('.nova-card__viewed').remove();
 
-    var side = card.find('.nova-card__side');
-    if (!side.length) return;
-
     var percent = Math.round(percentOf(item));
-    var pct = side.find('.nova-card__listpct').first();
+    var total = wideSeconds(item.time);
+    var strip = thumb.find('.nova-card__strip').first();
+    if (!strip.length) strip = $('<div class="nova-card__strip"></div>');
+    strip.empty();
 
     if (percent > 0) {
-      if (!pct.length) {
-        pct = $('<div class="nova-card__listpct"></div>');
-        var time = side.find('.nova-card__time').first();
-        if (time.length) pct.insertAfter(time);
-        else side.append(pct);
+      strip.append($('<span class="nova-card__pct"></span>').text(percent + '%'));
+      if (total) {
+        var at = Math.round(total * Math.min(100, percent) / 100);
+        strip.append($('<span class="nova-card__clock"></span>').text(wideClock(at) + ' / ' + wideClock(total)));
       }
-      pct.text(percent + '%');
-    } else if (pct.length) pct.remove();
+      if (!strip.parent().length) thumb.append(strip);
+      strip.addClass('nova-card__strip--rowlist');
+    } else {
+      strip.remove();
+    }
   }
 
   function wideDress(card, item) {
@@ -7323,6 +7325,9 @@
     '.nova-plus-root .nova-card__listinfo .nova-card__pct{font-weight:600;flex-shrink:0}' +
     '.nova-plus-root .nova-card__listinfo .nova-card__clock{margin-left:auto;white-space:nowrap}' +
     '.nova-plus-root .nova__list>.nova-card--rowlist .nova-card__thumb{position:relative}' +
+    '.nova-plus-root .nova__list>.nova-card--rowlist .nova-card__num{top:.35em!important;bottom:auto!important;left:.4em!important;right:auto!important;padding:0!important;justify-content:flex-start!important;align-items:flex-start!important}' +
+    '.nova-plus-root .nova-card__strip.nova-card__strip--rowlist{left:.4em!important;right:.4em!important;bottom:.4em!important;max-width:none!important;padding:0 .4em!important;font-size:.8em!important;line-height:1.5!important;background:rgba(0,0,0,.5)!important;border-radius:.35em!important;min-height:0!important;justify-content:space-between!important}' +
+    '.nova-plus-root .nova-card__strip.nova-card__strip--rowlist .nova-card__clock{margin-left:auto!important}' +
     '.nova-plus-root .nova__list>.nova-card--rowlist .nova-card__side{display:grid!important;grid-template-columns:auto!important;justify-items:center!important;align-content:center!important;row-gap:.22em!important;column-gap:0!important;margin-left:auto!important;padding-right:.2em!important;text-align:center!important}' +
     '.nova-plus-root .nova__list>.nova-card--rowlist .nova-card__side>*{position:static!important;top:auto!important;right:auto!important;left:auto!important;bottom:auto!important;margin:0!important;justify-self:center!important;align-self:center!important;text-align:center!important;white-space:nowrap!important}' +
     '.nova-plus-root .nova__list>.nova-card--rowlist .nova-card__side .nova-card__time{display:block!important;font-size:1em!important}' +
