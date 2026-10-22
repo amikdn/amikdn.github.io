@@ -7326,10 +7326,13 @@
     '.nova-plus-root .nova-card__listinfo .nova-card__clock{margin-left:auto;white-space:nowrap}' +
     '.nova-plus-root .nova__list>.nova-card--rowlist .nova-card__thumb{position:relative}' +
     '.nova-plus-root .nova__list>.nova-card--rowlist .nova-card__num{top:.35em!important;bottom:auto!important;left:.4em!important;right:auto!important;padding:0!important;justify-content:flex-start!important;align-items:flex-start!important}' +
-    '.nova-plus-root .nova-card__strip.nova-card__strip--rowlist{left:.4em!important;right:.4em!important;bottom:.4em!important;max-width:none!important;padding:0 .4em!important;font-size:.8em!important;line-height:1.5!important;background:rgba(0,0,0,.5)!important;border-radius:.35em!important;min-height:0!important;justify-content:space-between!important}' +
+    '.nova-plus-root .nova-card__strip.nova-card__strip--rowlist{left:.4em!important;right:.4em!important;bottom:.4em!important;max-width:none!important;padding:0 .2em!important;font-size:.8em!important;line-height:1.5!important;background:transparent!important;border-radius:0!important;min-height:0!important;justify-content:space-between!important;text-shadow:0 .06em .25em rgba(0,0,0,.9)!important}' +
     '.nova-plus-root .nova-card__strip.nova-card__strip--rowlist .nova-card__clock{margin-left:auto!important}' +
     '.nova-plus-root .nova__list>.nova-card--rowlist .nova-card__side{display:grid!important;grid-template-columns:auto!important;justify-items:center!important;align-content:center!important;row-gap:.22em!important;column-gap:0!important;margin-left:auto!important;padding-right:.2em!important;text-align:center!important}' +
     '.nova-plus-root .nova__list>.nova-card--rowlist .nova-card__side>*{position:static!important;top:auto!important;right:auto!important;left:auto!important;bottom:auto!important;margin:0!important;justify-self:center!important;align-self:center!important;text-align:center!important;white-space:nowrap!important}' +
+    '.nova-plus-root .nova__list>.nova-card--rowlist .nova-card__side .nova-card__quality,' +
+    '.nova-plus-root .nova__list>.nova-card--rowlist .nova-card__side .nova-card__time,' +
+    '.nova-plus-root .nova__list>.nova-card--rowlist .nova-card__side .nova-card__eye{position:static!important;top:auto!important;right:auto!important;left:auto!important;bottom:auto!important;margin:0!important;justify-self:center!important;align-self:center!important;text-align:center!important;white-space:nowrap!important}' +
     '.nova-plus-root .nova__list>.nova-card--rowlist .nova-card__side .nova-card__time{display:block!important;font-size:1em!important}' +
     '.nova-plus-root .nova__list>.nova-card--rowlist .nova-card__side .nova-card__eye{display:block!important}' +
     '.nova-plus-root .nova__list>.nova-card--rowlist .nova-card__listpct{font-size:.82em!important;line-height:1.1!important;opacity:.72!important;font-weight:600!important}';
