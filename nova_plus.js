@@ -7162,7 +7162,11 @@
         if (dir === 'left') return wideToHeroNear(last) || true;
         return true;
       }
+      if (dir === 'left' && !(ui.list && (ui.list.hasClass('nova__list--grid') || ui.list.hasClass('nova__list--row')))) {
+        return wideToMenu();
+      }
       try { if (window.Navigator && window.Navigator.canmove(dir)) return false; } catch (e) {}
+      if (dir === 'left') return wideToMenu();
       return true;
     }
 
