@@ -41,6 +41,7 @@
     var CARD_SERIES_FULL_INFO_KEY = 'card_series_full_info';
 
     var DEFAULTS_VERSION = '2';
+    var RATING_SOURCES_DEFAULTS_VERSION = '1';
     var DEFAULTS = {
         seasons_info_mode: 'aired',
         label_position: 'bottom-right',
@@ -65,9 +66,10 @@
         animated_reactions: false,
         lampa_poster_icon_mode: 'lamp',
         rating_show_tmdb: true,
-        rating_show_imdb: false,
-        rating_show_kp: false,
+        rating_show_imdb: true,
+        rating_show_kp: true,
         rating_show_lampa: true,
+        force_cub_source: true,
 
         quality_show: true,
         quality_colored: true,
@@ -105,6 +107,12 @@
         }
 
         if (force) Lampa.Storage.set('card_overlay_defaults_version', DEFAULTS_VERSION);
+
+        if (String(Lampa.Storage.get('card_overlay_rating_sources_version', '0')) !== RATING_SOURCES_DEFAULTS_VERSION) {
+            Lampa.Storage.set('rating_show_imdb', 'true');
+            Lampa.Storage.set('rating_show_kp', 'true');
+            Lampa.Storage.set('card_overlay_rating_sources_version', RATING_SOURCES_DEFAULTS_VERSION);
+        }
     }
 
     var DEBUG = false;
@@ -616,7 +624,8 @@
     function fetchDetailsRatings(data, callback) {
         if (!callback) return;
         var urlType = getTmdbMediaType(data);
-        if (!urlType || !getTmdbId(data)) { callback(null); return; }
+        var tmdbId = getTmdbId(data);
+        if (!urlType || !tmdbId) { callback(null); return; }
         var key = kpCacheKey(data);
         var cached = ratingCache.get('kp_rating', key);
         if (cached && (cached.imdb > 0 || cached.kp > 0)) { callback(cached); return; }
@@ -631,30 +640,53 @@
                 delete pendingDetailsRatings[key];
                 for (var i = 0; i < cbs.length; i++) { try { cbs[i](entry); } catch (e) { logErr(e); } }
             }
-            var url = buildTmdbApiUrl(urlType, getTmdbId(data));
-            if (!url) { complete(null); return; }
-            var request = getRequest();
-            request.timeout(6000);
-            request.silent(url, function (details) {
-                releaseRequest(request);
-                if (!details || typeof details !== 'object') { complete(null); return; }
-                var imdb = parseFloat(details.imdb_rating) || 0;
-                var kp = parseFloat(details.kp_rating) || 0;
-                if (!(imdb > 0) && !(kp > 0)) { complete(null); return; }
-                var prev = ratingCache.get('kp_rating', key) || {};
-                complete(ratingCache.set('kp_rating', key, { kp: kp > 0 ? kp : (prev.kp || 0), imdb: imdb > 0 ? imdb : (prev.imdb || 0) }));
-            }, function () { releaseRequest(request); complete(null); }, false);
+            var urls = buildCubApiUrls(urlType, tmdbId);
+            var tmdbUrl = buildTmdbApiUrl(urlType, tmdbId);
+            var seen = {};
+            for (var ui = 0; ui < urls.length; ui++) seen[urls[ui].url] = true;
+            if (tmdbUrl && !seen[tmdbUrl]) urls.push({ url: tmdbUrl, base: '' });
+            if (!urls.length) { complete(null); return; }
+            var urlIndex = 0;
+            var skipOtherCubBases = false;
+            function tryNext() {
+                while (urlIndex < urls.length && skipOtherCubBases && urls[urlIndex].base) urlIndex++;
+                if (urlIndex >= urls.length) { complete(null); return; }
+                var current = urls[urlIndex++];
+                var request = getRequest();
+                request.timeout(6000);
+                request.silent(current.url, function (details) {
+                    releaseRequest(request);
+                    var parsed = parseDetailRatings(details);
+                    if (!(parsed.imdb > 0) && !(parsed.kp > 0)) {
+                        if (current.base && details && typeof details === 'object') skipOtherCubBases = true;
+                        tryNext();
+                        return;
+                    }
+                    if (current.base) _cubApiBasePreferred = current.base;
+                    var prev = ratingCache.get('kp_rating', key) || {};
+                    complete(ratingCache.set('kp_rating', key, {
+                        kp: parsed.kp > 0 ? parsed.kp : (prev.kp || 0),
+                        imdb: parsed.imdb > 0 ? parsed.imdb : (prev.imdb || 0)
+                    }));
+                }, function () { releaseRequest(request); tryNext(); }, false);
+            }
+            tryNext();
         }, 'fast', function () { delete pendingDetailsRatings[key]; });
     }
     function getCardRatings(data, callback) {
         if (!callback) callback = function () {};
         getKinopoiskRating(data, function (res) {
-            if (!isRatingSourceVisible('imdb') || (res && res.imdb > 0)) { callback(res); return; }
+            res = res || { kp: 0, imdb: 0 };
+            var resKp = parseFloat(res.kp) || 0;
+            var resImdb = parseFloat(res.imdb) || 0;
+            var needKp = isRatingSourceVisible('kp') && resKp <= 0;
+            var needImdb = isRatingSourceVisible('imdb') && resImdb <= 0;
+            if (!needKp && !needImdb) { callback(res); return; }
             fetchDetailsRatings(data, function (entry) {
-                if (!entry || !(entry.imdb > 0 || entry.kp > 0)) { callback(res); return; }
+                if (!entry || !(entry.kp > 0 || entry.imdb > 0)) { callback(res); return; }
                 callback({
-                    kp: entry.kp > 0 ? entry.kp : ((res && res.kp) || 0),
-                    imdb: entry.imdb > 0 ? entry.imdb : ((res && res.imdb) || 0)
+                    kp: entry.kp > 0 ? entry.kp : resKp,
+                    imdb: entry.imdb > 0 ? entry.imdb : resImdb
                 });
             });
         });
@@ -796,6 +828,64 @@
     function buildTmdbApiUrl(type, id) {
         if (typeof Lampa !== 'undefined' && Lampa.TMDB && Lampa.TMDB.api && Lampa.TMDB.key) return Lampa.TMDB.api(type + '/' + id + '?api_key=' + Lampa.TMDB.key());
         return '';
+    }
+    var _cubApiBasePreferred = '';
+    function getCubApiProtocol() {
+        var protocol = 'https://';
+        try { if (Lampa.Utils && Lampa.Utils.protocol) protocol = Lampa.Utils.protocol(); } catch (e) {}
+        return protocol;
+    }
+    function getCubApiBases() {
+        var bases = [];
+        var protocol = getCubApiProtocol();
+        function add(base) {
+            base = String(base || '').replace(/\/+$/, '');
+            if (!base) return;
+            if (!/^https?:\/\//i.test(base)) base = protocol + base;
+            if (bases.indexOf(base) === -1) bases.push(base);
+        }
+        function addMirror(mirror) {
+            mirror = String(mirror || '').replace(/^https?:\/\//i, '').replace(/\/+$/, '').replace(/^tmdb\./i, '');
+            if (mirror) add(protocol + 'tmdb.' + mirror);
+        }
+        if (_cubApiBasePreferred) add(_cubApiBasePreferred);
+        try {
+            var alive = String((Lampa.Manifest && Lampa.Manifest.cub_alive) || '');
+            if (alive) addMirror(alive);
+        } catch (e) {}
+        try {
+            var domain = String((Lampa.Manifest && Lampa.Manifest.cub_domain) || '');
+            if (domain) addMirror(domain);
+        } catch (e2) {}
+        try {
+            var mirrors = (Lampa.Manifest && Lampa.Manifest.cub_mirrors) || [];
+            for (var i = 0; i < mirrors.length; i++) addMirror(mirrors[i]);
+        } catch (e3) {}
+        add(protocol + 'tmdb.cubnotrip.top');
+        return bases;
+    }
+    function buildCubApiUrls(type, id) {
+        var key = '';
+        try { if (Lampa.TMDB && Lampa.TMDB.key) key = String(Lampa.TMDB.key() || ''); } catch (e) {}
+        if (!key || !type || !id) return [];
+        var lang = 'ru';
+        try { lang = String(Lampa.Storage.field('tmdb_lang') || Lampa.Storage.get('tmdb_lang', 'ru') || 'ru'); } catch (e2) { lang = 'ru'; }
+        var path = '/3/' + type + '/' + id + '?api_key=' + encodeURIComponent(key) + '&language=' + encodeURIComponent(lang);
+        var bases = getCubApiBases();
+        var urls = [];
+        for (var i = 0; i < bases.length; i++) urls.push({ url: bases[i] + path, base: bases[i] });
+        return urls;
+    }
+    function buildCubApiUrl(type, id) {
+        var urls = buildCubApiUrls(type, id);
+        return urls.length ? urls[0].url : '';
+    }
+    function parseDetailRatings(details) {
+        if (!details || typeof details !== 'object') return { kp: 0, imdb: 0 };
+        return {
+            kp: parseFloat(details.kp_rating) || parseFloat(details.ratingKinopoisk) || parseFloat(details.rating_kp) || 0,
+            imdb: parseFloat(details.imdb_rating) || parseFloat(details.ratingImdb) || parseFloat(details.rating_imdb) || 0
+        };
     }
     function refreshTMDBRating(data, callback, force) {
         var type = getTmdbMediaType(data);
@@ -2901,6 +2991,7 @@
             var rowShowImdb = addTriggerRow('Показывать IMDB', 'rating_show_imdb', DEFAULTS.rating_show_imdb);
             var rowShowKp = addTriggerRow('Показывать КиноПоиск', 'rating_show_kp', DEFAULTS.rating_show_kp);
             var rowShowLampa = addTriggerRow('Показывать Lampa', 'rating_show_lampa', DEFAULTS.rating_show_lampa);
+            var rowForceCub = addTriggerRow('Открывать карточки через CUB', 'force_cub_source', DEFAULTS.force_cub_source);
 
             modal.append($('<div class="comodal__divider"></div>'));
             modal.append($('<div class="comodal__section">Качество</div>'));
@@ -2958,6 +3049,7 @@
                 rowShowImdb.updateVal(onOff('rating_show_imdb'));
                 rowShowKp.updateVal(onOff('rating_show_kp'));
                 rowShowLampa.updateVal(onOff('rating_show_lampa'));
+                rowForceCub.updateVal(onOff('force_cub_source'));
                 rowOpacity.updateVal(defStr('rating_window_opacity') + '%');
                 rowScale.updateVal(defStr('rating_scale') + '%');
                 rowBadgeStyle.updateVal(BADGE_STYLE_LABELS[def('badge_visual_style')]);
@@ -3262,6 +3354,46 @@
         }
     }
 
+    function getConfiguredSource() {
+        var source = '';
+        try {
+            if (Lampa.Storage && Lampa.Storage.field) source = Lampa.Storage.field('source');
+            if (!source && Lampa.Storage && Lampa.Storage.get) source = Lampa.Storage.get('source', '');
+        } catch (e) { logErr(e); }
+        return String(source || '').toLowerCase();
+    }
+    function shouldForceCubSource(object) {
+        if (!object || object.component !== 'full') return false;
+        if (!isTriggerOn('force_cub_source', def('force_cub_source'))) return false;
+        if (getConfiguredSource() !== 'cub') return false;
+        if (String(object.source || '').toLowerCase() !== 'tmdb') return false;
+        return !!(object.id || (object.card && object.card.id));
+    }
+    function installCubSourceRedirect() {
+        var activity = Lampa.Activity;
+        if (!activity || typeof activity.push !== 'function' || activity.__card_overlay_cub_redirect__) return;
+        var originalPush = activity.push;
+        activity.push = function (object) {
+            try {
+                if (shouldForceCubSource(object)) object.source = 'cub';
+            } catch (e) { logErr(e); }
+            return originalPush.apply(this, arguments);
+        };
+        activity.__card_overlay_cub_redirect__ = true;
+
+        try {
+            if (window.start_deep_link && shouldForceCubSource(window.start_deep_link)) window.start_deep_link.source = 'cub';
+        } catch (e2) { logErr(e2); }
+
+        try {
+            var saved = Lampa.Storage.get('activity', false);
+            if (saved && shouldForceCubSource(saved)) {
+                saved.source = 'cub';
+                Lampa.Storage.set('activity', saved);
+            }
+        } catch (e3) { logErr(e3); }
+    }
+
     var PLAYER_REACTIONS_BASE_URL = 'https://amikdn.github.io/img';
     var PLAYER_REACTION_IMAGE_PATHS = {
         shit: PLAYER_REACTIONS_BASE_URL + '/reaction-shit.gif',
@@ -3370,6 +3502,7 @@
         window.__card_overlay_initialized__ = true;
         try { console.log('[card_overlay] v1.2.0 optimized active'); } catch (e) { logErr(e); }
         safe(applyDefaults, 'applyDefaults');
+        safe(installCubSourceRedirect, 'cub source redirect');
 
         var existing = document.getElementById('card-overlay-style');
         if (existing && existing.parentNode) existing.parentNode.removeChild(existing);
@@ -3672,7 +3805,7 @@
 
     var manifest = {
         name: 'Интерфейс Мод',
-        version: '2.6.1',
+        version: '2.6.2',
         description: 'Рейтинги, качество, лейблы типа на карточках'
     };
 
