@@ -70,6 +70,60 @@
         if (Lampa.Utils) Lampa.Utils.dcma = function () { return undefined; };
     }
 
+    var directTmdbCalls = 0;
+
+    function directTmdbApiUrl(path) {
+        var protocol = 'https://';
+
+        try {
+            if (Lampa.Utils && typeof Lampa.Utils.protocol === 'function') protocol = Lampa.Utils.protocol();
+        } catch (e) {}
+
+        return protocol + 'api.themoviedb.org/3/' + path;
+    }
+
+    function installDirectTmdbApi() {
+        if (!Lampa.TMDB || typeof Lampa.TMDB.api !== 'function') return;
+        if (Lampa.TMDB.__anti_dmca_direct_api) return;
+
+        var original = Lampa.TMDB.api;
+
+        Lampa.TMDB.api = function (path) {
+            if (directTmdbCalls > 0) return directTmdbApiUrl(path);
+            return original.apply(this, arguments);
+        };
+
+        Lampa.TMDB.__anti_dmca_direct_api = true;
+    }
+
+    function withDirectTmdb(callback) {
+        directTmdbCalls++;
+
+        var released = false;
+
+        function release() {
+            if (released) return;
+            released = true;
+            directTmdbCalls = Math.max(0, directTmdbCalls - 1);
+        }
+
+        try {
+            callback(release);
+        } catch (e) {
+            release();
+            throw e;
+        }
+    }
+
+    function isBlockedPayload(data) {
+        var movie = data && data.movie;
+
+        if (!movie || typeof movie !== 'object') return false;
+        if (movie.blocked === true) return true;
+
+        return !movie.id && !!(movie.status_code === 34 || (data && data.status_code === 34));
+    }
+
     function fixCard() {
         var sources = Lampa.Api && Lampa.Api.sources;
         var tmdb = sources && sources.tmdb;
@@ -80,9 +134,30 @@
         var origFull = tmdb.full;
 
         tmdb.full = function (params, oncomplite, onerror) {
-            origFull.call(this, params, function (data) {
+            var self = this;
+            var retried = false;
+
+            function handle(data) {
+                if (!retried && isBlockedPayload(data)) {
+                    retried = true;
+
+                    withDirectTmdb(function (release) {
+                        origFull.call(self, params, function (directData) {
+                            release();
+                            oncomplite(normalizeCard(directData, 'tmdb'));
+                        }, function (status) {
+                            release();
+                            if (onerror) onerror(status || {});
+                        });
+                    });
+
+                    return;
+                }
+
                 oncomplite(normalizeCard(data, 'tmdb'));
-            }, onerror);
+            }
+
+            origFull.call(self, params, handle, onerror);
         };
 
         tmdb.__anti_dmca_card = true;
@@ -105,7 +180,16 @@
             function useTmdb() {
                 if (switched) return;
                 switched = true;
-                tmdb.full(params, oncomplite, onerror);
+
+                withDirectTmdb(function (release) {
+                    tmdb.full(params, function (data) {
+                        release();
+                        oncomplite(normalizeCard(data, 'cub'));
+                    }, function (status) {
+                        release();
+                        if (onerror) onerror(status || {});
+                    });
+                });
             }
 
             origFull.call(self, params, function (data) {
@@ -216,6 +300,7 @@
 
         killBlockList();
         fixCountries();
+        installDirectTmdbApi();
         fixCard();
         redirectBlockedCards();
         fixDetails();
