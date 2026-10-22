@@ -7273,7 +7273,8 @@
   var DROP_CSS = '.nova-plus-root .nova-plus__panel>.nova-plus__drop--scroll{position:relative;padding-right:.55em}' +
     '.nova-plus-root .nova-plus__sbar{position:absolute;right:.16em;top:.3em;bottom:.3em;width:.22em;border-radius:.2em;background:rgba(255,255,255,.14);pointer-events:none;z-index:3}' +
     '.nova-plus-root .nova-plus__sbar-thumb{position:absolute;left:0;right:0;top:0;min-height:1.1em;border-radius:.2em;background:rgba(255,255,255,.5)}' +
-    '.nova-plus-root .nova__list>.nova-skeleton.nova-skeleton--list>.nova-skeleton__row{display:flex;flex:0 0 100%;width:100%;max-width:100%;align-items:center;margin:0 0 .7em 0;padding:.7em;border-radius:.9em;background:rgba(255,255,255,.04)}' +
+    '.nova-plus-root .nova__list>.nova-skeleton.nova-skeleton--list{display:block;flex:0 0 100%;width:100%;max-width:100%;height:auto;min-height:0;align-self:flex-start}' +
+    '.nova-plus-root .nova__list>.nova-skeleton.nova-skeleton--list>.nova-skeleton__row{display:flex;flex:0 0 auto;width:100%;max-width:100%;height:auto;min-height:0;align-self:flex-start;align-items:center;margin:0 0 .7em 0;padding:.7em;border-radius:.9em;background:rgba(255,255,255,.04)}' +
     '.nova-plus-root .nova__list>.nova-skeleton.nova-skeleton--list .nova-skeleton__thumb{width:10.5em;height:5.9em;padding-top:0;border-radius:.5em;flex-shrink:0}' +
     '.nova-plus-root .nova__list>.nova-skeleton.nova-skeleton--list .nova-skeleton__body{padding:0 0 0 1.2em;flex-grow:1}' +
     '.nova-plus-root .nova__list>.nova-skeleton.nova-skeleton--list .nova-skeleton__line{height:1em;margin-bottom:.7em;border-radius:.3em}' +
