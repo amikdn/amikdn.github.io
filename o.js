@@ -10,7 +10,7 @@
 
   var REST_ICON = "<svg width=\"135\" height=\"147\" viewBox=\"0 0 135 147\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\">\n            <path d=\"M121.5 96.8823C139.5 86.49 139.5 60.5092 121.5 50.1169L41.25 3.78454C23.25 -6.60776 0.750004 6.38265 0.750001 27.1673L0.75 51.9742C4.70314 35.7475 23.6209 26.8138 39.0547 35.7701L94.8534 68.1505C110.252 77.0864 111.909 97.8693 99.8725 109.369L121.5 96.8823Z\" fill=\"currentColor\"/>\n            <path d=\"M63 84.9836C80.3333 94.991 80.3333 120.01 63 130.017L39.75 143.44C22.4167 153.448 0.749999 140.938 0.75 120.924L0.750001 94.0769C0.750002 74.0621 22.4167 61.5528 39.75 71.5602L63 84.9836Z\" fill=\"currentColor\"/>\n        </svg>";
 
-  var BLOCKED_BALANSERS = ['veoveo', 'collaps', 'pizdatoehd'];
+  var BLOCKED_BALANSERS = ['veoveo', 'collaps', 'pizdatoehd', 'leproduction'];
 
   var LAMPAC_VERSION = '1.8.0';
   var REQUEST_TIMEOUT = 10000;
@@ -2812,7 +2812,6 @@ window.rest_rch_nws[hostkey].Registry = function RchRegistry(client, startConnec
         'videoseed',
         'iptvonline',
         'kinoflix',
-        'leproduction',
         'vkmovie',
         'kinogo',
         'kinobase',
