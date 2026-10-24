@@ -1139,7 +1139,7 @@ window.rest_rch_nws[hostkey].Registry = function RchRegistry(client, startConnec
         var name = elem.title || elem.text;
         elem.title = name;
         elem.time = elem.time || '';
-        elem.info = info.join('<span class="rest-online-prestige-split">●</span>');
+        elem.info = info.join('<span class="online-prestige-split">●</span>');
         var item = Lampa.Template.get('rest_lampac_prestige_folder', {
           title: escapeHtml(name),
           time: elem.time,
@@ -1147,7 +1147,7 @@ window.rest_rch_nws[hostkey].Registry = function RchRegistry(client, startConnec
         });
         if (elem.img) {
           var image = $('<img style="height: 7em; width: 7em; border-radius: 0.3em;"/>');
-          item.find('.rest-online-prestige__folder').empty().append(image);
+          item.find('.online-prestige__folder').empty().append(image);
 
           if (elem.img !== undefined) {
             if (elem.img.charAt(0) === '/') elem.img = Defined.localhost + elem.img.substring(1);
@@ -1340,7 +1340,7 @@ window.rest_rch_nws[hostkey].Registry = function RchRegistry(client, startConnec
     };
     this.updateWatched = function () {
       var watched = this.watched();
-      var body = scroll.body().find('.rest-online-prestige-watched .rest-online-prestige-watched__body').empty();
+      var body = scroll.body().find('.online-prestige-watched .online-prestige-watched__body').empty();
       if (watched) {
         var line = [];
         if (watched.balanser_name) line.push(watched.balanser_name);
@@ -1444,15 +1444,15 @@ window.rest_rch_nws[hostkey].Registry = function RchRegistry(client, startConnec
               .map(function (i) {
                 return '<span>' + i + '</span>';
               })
-              .join('<span class="rest-online-prestige-split">●</span>');
+              .join('<span class="online-prestige-split">●</span>');
           var html = Lampa.Template.get('rest_lampac_prestige_full', {
             title: escapeHtml(element.title),
             time: element.time,
             info: element.info,
             quality: escapeHtml(element.quality)
           });
-          var loader = html.find('.rest-online-prestige__loader');
-          var image = html.find('.rest-online-prestige__img');
+          var loader = html.find('.online-prestige__loader');
+          var image = html.find('.online-prestige__img');
           if (object.balanser) image.hide();
           if (!serial) {
             if (choice.movie_view == hash_behold) scroll_to_element = html;
@@ -1461,7 +1461,7 @@ window.rest_rch_nws[hostkey].Registry = function RchRegistry(client, startConnec
           }
           if (serial && !episode) {
             image.append(
-              '<div class="rest-online-prestige__episode-number">' +
+              '<div class="online-prestige__episode-number">' +
               formatEpisodeNumber(element.episode || index + 1) +
               '</div>'
             );
@@ -1473,11 +1473,11 @@ window.rest_rch_nws[hostkey].Registry = function RchRegistry(client, startConnec
               img.src = './img/img_broken.svg';
             };
             img.onload = function () {
-              image.addClass('rest-online-prestige__img--loaded');
+              image.addClass('online-prestige__img--loaded');
               loader.remove();
               if (serial)
                 image.append(
-                  '<div class="rest-online-prestige__episode-number">' +
+                  '<div class="online-prestige__episode-number">' +
                   formatEpisodeNumber(element.episode || index + 1) +
                   '</div>'
                 );
@@ -1486,23 +1486,23 @@ window.rest_rch_nws[hostkey].Registry = function RchRegistry(client, startConnec
             images.push(img);
             element.thumbnail = img.src;
           }
-          html.find('.rest-online-prestige__timeline').append(Lampa.Timeline.render(element.timeline));
+          html.find('.online-prestige__timeline').append(Lampa.Timeline.render(element.timeline));
           if (viewed.indexOf(hash_behold) !== -1) {
             scroll_to_mark = html;
             html
-              .find('.rest-online-prestige__img')
-              .append('<div class="rest-online-prestige__viewed">' + Lampa.Template.get('icon_viewed', {}, true) + '</div>');
+              .find('.online-prestige__img')
+              .append('<div class="online-prestige__viewed">' + Lampa.Template.get('icon_viewed', {}, true) + '</div>');
           }
           element.mark = function () {
             viewed = Lampa.Storage.cache('rest_online_view', 5000, []);
             if (viewed.indexOf(hash_behold) == -1) {
               viewed.push(hash_behold);
               Lampa.Storage.set('rest_online_view', viewed);
-              if (html.find('.rest-online-prestige__viewed').length == 0) {
+              if (html.find('.online-prestige__viewed').length == 0) {
                 html
-                  .find('.rest-online-prestige__img')
+                  .find('.online-prestige__img')
                   .append(
-                    '<div class="rest-online-prestige__viewed">' + Lampa.Template.get('icon_viewed', {}, true) + '</div>'
+                    '<div class="online-prestige__viewed">' + Lampa.Template.get('icon_viewed', {}, true) + '</div>'
                   );
               }
             }
@@ -1532,7 +1532,7 @@ window.rest_rch_nws[hostkey].Registry = function RchRegistry(client, startConnec
               Lampa.Arrays.remove(viewed, hash_behold);
               Lampa.Storage.set('rest_online_view', viewed);
               Lampa.Storage.remove('rest_online_view', hash_behold);
-              html.find('.rest-online-prestige__viewed').remove();
+              html.find('.online-prestige__viewed').remove();
             }
           };
           element.timeclear = function () {
@@ -1597,16 +1597,16 @@ window.rest_rch_nws[hostkey].Registry = function RchRegistry(client, startConnec
                   .map(function (i) {
                     return '<span>' + i + '</span>';
                   })
-                  .join('<span class="rest-online-prestige-split">●</span>')
+                  .join('<span class="online-prestige-split">●</span>')
                 : '',
               title: escapeHtml(episode.name),
               quality: escapeHtml(day > 0 ? txt : '')
             });
-            var loader = html.find('.rest-online-prestige__loader');
-            var image = html.find('.rest-online-prestige__img');
+            var loader = html.find('.online-prestige__loader');
+            var image = html.find('.online-prestige__img');
             var season = items[0] ? items[0].season : 1;
             html
-              .find('.rest-online-prestige__timeline')
+              .find('.online-prestige__timeline')
               .append(
                 Lampa.Timeline.render(
                   Lampa.Timeline.view(
@@ -1620,10 +1620,10 @@ window.rest_rch_nws[hostkey].Registry = function RchRegistry(client, startConnec
                 img.src = './img/img_broken.svg';
               };
               img.onload = function () {
-                image.addClass('rest-online-prestige__img--loaded');
+                image.addClass('online-prestige__img--loaded');
                 loader.remove();
                 image.append(
-                  '<div class="rest-online-prestige__episode-number">' +
+                  '<div class="online-prestige__episode-number">' +
                   formatEpisodeNumber(episode.episode_number) +
                   '</div>'
                 );
@@ -1633,7 +1633,7 @@ window.rest_rch_nws[hostkey].Registry = function RchRegistry(client, startConnec
             } else {
               loader.remove();
               image.append(
-                '<div class="rest-online-prestige__episode-number">' +
+                '<div class="online-prestige__episode-number">' +
                 formatEpisodeNumber(episode.episode_number) +
                 '</div>'
               );
@@ -1812,19 +1812,19 @@ window.rest_rch_nws[hostkey].Registry = function RchRegistry(client, startConnec
      */
     this.empty = function () {
       var html = Lampa.Template.get('rest_lampac_does_not_answer', {});
-      html.find('.rest-online-empty__buttons').remove();
-      html.find('.rest-online-empty__title').text(Lampa.Lang.translate('empty_title_two'));
-      html.find('.rest-online-empty__time').text(Lampa.Lang.translate('empty_text'));
+      html.find('.online-empty__buttons').remove();
+      html.find('.online-empty__title').text(Lampa.Lang.translate('empty_title_two'));
+      html.find('.online-empty__time').text(Lampa.Lang.translate('empty_text'));
       scroll.clear();
       scroll.append(html);
       this.loading(false);
     };
     this.noConnectToServer = function (er) {
       var html = Lampa.Template.get('rest_lampac_does_not_answer', {});
-      html.find('.rest-online-empty__buttons').remove();
-      html.find('.rest-online-empty__title').text(Lampa.Lang.translate('title_error'));
+      html.find('.online-empty__buttons').remove();
+      html.find('.online-empty__title').text(Lampa.Lang.translate('title_error'));
       html
-        .find('.rest-online-empty__time')
+        .find('.online-empty__time')
         .text(
           er && er.accsdb
             ? er.msg
@@ -1843,7 +1843,7 @@ window.rest_rch_nws[hostkey].Registry = function RchRegistry(client, startConnec
       var html = Lampa.Template.get('rest_lampac_does_not_answer', {
         balanser: balanser
       });
-      if (er && er.accsdb) html.find('.rest-online-empty__title').html(er.msg);
+      if (er && er.accsdb) html.find('.online-empty__title').html(er.msg);
 
       var tic = er && er.accsdb ? 10 : 5;
       html.find('.cancel').on('hover:enter', function () {
@@ -2244,7 +2244,7 @@ window.rest_rch_nws[hostkey].Registry = function RchRegistry(client, startConnec
         '<style>',
         '@charset \'UTF-8\';',
         '/* ── prestige card ── */',
-        '.rest-online-prestige {',
+        '.online-prestige {',
         '  position: relative;',
         '  -webkit-border-radius: 0.3em;',
         '  border-radius: 0.3em;',
@@ -2255,7 +2255,7 @@ window.rest_rch_nws[hostkey].Registry = function RchRegistry(client, startConnec
         '  display: -ms-flexbox;',
         '  display: flex;',
         '}',
-        '.rest-online-prestige__body {',
+        '.online-prestige__body {',
         '  padding: 1.2em;',
         '  line-height: 1.3;',
         '  -webkit-box-flex: 1;',
@@ -2266,11 +2266,11 @@ window.rest_rch_nws[hostkey].Registry = function RchRegistry(client, startConnec
         '  position: relative;',
         '}',
         '@media screen and (max-width: 480px) {',
-        '  .rest-online-prestige__body {',
+        '  .online-prestige__body {',
         '    padding: 0.8em 1.2em;',
         '  }',
         '}',
-        '.rest-online-prestige__img {',
+        '.online-prestige__img {',
         '  position: relative;',
         '  width: 13em;',
         '  -webkit-flex-shrink: 0;',
@@ -2278,7 +2278,7 @@ window.rest_rch_nws[hostkey].Registry = function RchRegistry(client, startConnec
         '  flex-shrink: 0;',
         '  min-height: 8.2em;',
         '}',
-        '.rest-online-prestige__img > img {',
+        '.online-prestige__img > img {',
         '  position: absolute;',
         '  top: 0;',
         '  left: 0;',
@@ -2294,26 +2294,26 @@ window.rest_rch_nws[hostkey].Registry = function RchRegistry(client, startConnec
         '  -moz-transition: opacity 0.3s;',
         '  transition: opacity 0.3s;',
         '}',
-        '.rest-online-prestige__img--loaded > img {',
+        '.online-prestige__img--loaded > img {',
         '  opacity: 1;',
         '}',
         '@media screen and (max-width: 480px) {',
-        '  .rest-online-prestige__img {',
+        '  .online-prestige__img {',
         '    width: 7em;',
         '    min-height: 6em;',
         '  }',
         '}',
-        '.rest-online-prestige__folder {',
+        '.online-prestige__folder {',
         '  padding: 1em;',
         '  -webkit-flex-shrink: 0;',
         '  -ms-flex-negative: 0;',
         '  flex-shrink: 0;',
         '}',
-        '.rest-online-prestige__folder > svg {',
+        '.online-prestige__folder > svg {',
         '  width: 4.4em !important;',
         '  height: 4.4em !important;',
         '}',
-        '.rest-online-prestige__viewed {',
+        '.online-prestige__viewed {',
         '  position: absolute;',
         '  top: 1em;',
         '  left: 1em;',
@@ -2323,11 +2323,11 @@ window.rest_rch_nws[hostkey].Registry = function RchRegistry(client, startConnec
         '  padding: 0.25em;',
         '  font-size: 0.76em;',
         '}',
-        '.rest-online-prestige__viewed > svg {',
+        '.online-prestige__viewed > svg {',
         '  width: 1.5em !important;',
         '  height: 1.5em !important;',
         '}',
-        '.rest-online-prestige__episode-number {',
+        '.online-prestige__episode-number {',
         '  position: absolute;',
         '  top: 0;',
         '  left: 0;',
@@ -2350,7 +2350,7 @@ window.rest_rch_nws[hostkey].Registry = function RchRegistry(client, startConnec
         '  justify-content: center;',
         '  font-size: 2em;',
         '}',
-        '.rest-online-prestige__loader {',
+        '.online-prestige__loader {',
         '  position: absolute;',
         '  top: 50%;',
         '  left: 50%;',
@@ -2363,8 +2363,8 @@ window.rest_rch_nws[hostkey].Registry = function RchRegistry(client, startConnec
         '  -o-background-size: contain;',
         '  background-size: contain;',
         '}',
-        '.rest-online-prestige__head,',
-        '.rest-online-prestige__footer {',
+        '.online-prestige__head,',
+        '.online-prestige__footer {',
         '  display: -webkit-box;',
         '  display: -webkit-flex;',
         '  display: -moz-box;',
@@ -2381,13 +2381,13 @@ window.rest_rch_nws[hostkey].Registry = function RchRegistry(client, startConnec
         '  -ms-flex-align: center;',
         '  align-items: center;',
         '}',
-        '.rest-online-prestige__timeline {',
+        '.online-prestige__timeline {',
         '  margin: 0.8em 0;',
         '}',
-        '.rest-online-prestige__timeline > .time-line {',
+        '.online-prestige__timeline > .time-line {',
         '  display: block !important;',
         '}',
-        '.rest-online-prestige__title {',
+        '.online-prestige__title {',
         '  font-size: 1.7em;',
         '  overflow: hidden;',
         '  -o-text-overflow: ellipsis;',
@@ -2398,14 +2398,14 @@ window.rest_rch_nws[hostkey].Registry = function RchRegistry(client, startConnec
         '  -webkit-box-orient: vertical;',
         '}',
         '@media screen and (max-width: 480px) {',
-        '  .rest-online-prestige__title {',
+        '  .online-prestige__title {',
         '    font-size: 1.4em;',
         '  }',
         '}',
-        '.rest-online-prestige__time {',
+        '.online-prestige__time {',
         '  padding-left: 2em;',
         '}',
-        '.rest-online-prestige__info {',
+        '.online-prestige__info {',
         '  display: -webkit-box;',
         '  display: -webkit-flex;',
         '  display: -moz-box;',
@@ -2417,7 +2417,7 @@ window.rest_rch_nws[hostkey].Registry = function RchRegistry(client, startConnec
         '  -ms-flex-align: center;',
         '  align-items: center;',
         '}',
-        '.rest-online-prestige__info > * {',
+        '.online-prestige__info > * {',
         '  overflow: hidden;',
         '  -o-text-overflow: ellipsis;',
         '  text-overflow: ellipsis;',
@@ -2426,27 +2426,27 @@ window.rest_rch_nws[hostkey].Registry = function RchRegistry(client, startConnec
         '  line-clamp: 1;',
         '  -webkit-box-orient: vertical;',
         '}',
-        '.rest-online-prestige__quality {',
+        '.online-prestige__quality {',
         '  padding-left: 1em;',
         '  white-space: nowrap;',
         '}',
-        '.rest-online-prestige__scan-file {',
+        '.online-prestige__scan-file {',
         '  position: absolute;',
         '  bottom: 0;',
         '  left: 0;',
         '  right: 0;',
         '}',
-        '.rest-online-prestige__scan-file .broadcast__scan {',
+        '.online-prestige__scan-file .broadcast__scan {',
         '  margin: 0;',
         '}',
-        '.rest-online-prestige .rest-online-prestige-split {',
+        '.online-prestige .online-prestige-split {',
         '  font-size: 0.8em;',
         '  margin: 0 1em;',
         '  -webkit-flex-shrink: 0;',
         '  -ms-flex-negative: 0;',
         '  flex-shrink: 0;',
         '}',
-        '.rest-online-prestige.focus::after {',
+        '.online-prestige.focus::after {',
         '  content: \'\';',
         '  position: absolute;',
         '  top: -0.6em;',
@@ -2459,21 +2459,21 @@ window.rest_rch_nws[hostkey].Registry = function RchRegistry(client, startConnec
         '  z-index: -1;',
         '  pointer-events: none;',
         '}',
-        '.rest-online-prestige + .rest-online-prestige {',
+        '.online-prestige + .online-prestige {',
         '  margin-top: 1.5em;',
         '}',
-        '.rest-online-prestige--folder .rest-online-prestige__footer {',
+        '.online-prestige--folder .online-prestige__footer {',
         '  margin-top: 0.8em;',
         '}',
         '/* ── watched row ── */',
-        '.rest-online-prestige-watched {',
+        '.online-prestige-watched {',
         '  padding: 1em;',
         '}',
-        '.rest-online-prestige-watched__icon > svg {',
+        '.online-prestige-watched__icon > svg {',
         '  width: 1.5em;',
         '  height: 1.5em;',
         '}',
-        '.rest-online-prestige-watched__body {',
+        '.online-prestige-watched__body {',
         '  padding-left: 1em;',
         '  padding-top: 0.1em;',
         '  display: -webkit-box;',
@@ -2485,14 +2485,14 @@ window.rest_rch_nws[hostkey].Registry = function RchRegistry(client, startConnec
         '  -ms-flex-wrap: wrap;',
         '  flex-wrap: wrap;',
         '}',
-        '.rest-online-prestige-watched__body > span + span::before {',
+        '.online-prestige-watched__body > span + span::before {',
         '  content: \' ● \';',
         '  vertical-align: top;',
         '  display: inline-block;',
         '  margin: 0 0.5em;',
         '}',
         '/* ── rate badge ── */',
-        '.rest-online-prestige-rate {',
+        '.online-prestige-rate {',
         '  display: -webkit-inline-box;',
         '  display: -webkit-inline-flex;',
         '  display: -moz-inline-box;',
@@ -2504,39 +2504,39 @@ window.rest_rch_nws[hostkey].Registry = function RchRegistry(client, startConnec
         '  -ms-flex-align: center;',
         '  align-items: center;',
         '}',
-        '.rest-online-prestige-rate > svg {',
+        '.online-prestige-rate > svg {',
         '  width: 1.3em !important;',
         '  height: 1.3em !important;',
         '}',
-        '.rest-online-prestige-rate > span {',
+        '.online-prestige-rate > span {',
         '  font-weight: 600;',
         '  font-size: 1.1em;',
         '  padding-left: 0.7em;',
         '}',
         '/* ── empty / error ── */',
-        '.rest-online-empty {',
+        '.online-empty {',
         '  line-height: 1.4;',
         '}',
-        '.rest-online-empty__title {',
+        '.online-empty__title {',
         '  font-size: 1.8em;',
         '  margin-bottom: 0.3em;',
         '}',
-        '.rest-online-empty__time {',
+        '.online-empty__time {',
         '  font-size: 1.2em;',
         '  font-weight: 300;',
         '  margin-bottom: 1.6em;',
         '}',
-        '.rest-online-empty__buttons {',
+        '.online-empty__buttons {',
         '  display: -webkit-box;',
         '  display: -webkit-flex;',
         '  display: -moz-box;',
         '  display: -ms-flexbox;',
         '  display: flex;',
         '}',
-        '.rest-online-empty__buttons > * + * {',
+        '.online-empty__buttons > * + * {',
         '  margin-left: 1em;',
         '}',
-        '.rest-online-empty__button {',
+        '.online-empty__button {',
         '  background: rgba(0, 0, 0, 0.3);',
         '  font-size: 1.2em;',
         '  padding: 0.5em 1.2em;',
@@ -2544,17 +2544,17 @@ window.rest_rch_nws[hostkey].Registry = function RchRegistry(client, startConnec
         '  border-radius: 0.2em;',
         '  margin-bottom: 2.4em;',
         '}',
-        '.rest-online-empty__button.focus {',
+        '.online-empty__button.focus {',
         '  background: #fff;',
         '  color: black;',
         '}',
-        '.rest-online-empty__templates .rest-online-empty-template:nth-child(2) {',
+        '.online-empty__templates .online-empty-template:nth-child(2) {',
         '  opacity: 0.5;',
         '}',
-        '.rest-online-empty__templates .rest-online-empty-template:nth-child(3) {',
+        '.online-empty__templates .online-empty-template:nth-child(3) {',
         '  opacity: 0.2;',
         '}',
-        '.rest-online-empty-template {',
+        '.online-empty-template {',
         '  background-color: rgba(255, 255, 255, 0.3);',
         '  padding: 1em;',
         '  display: -webkit-box;',
@@ -2570,21 +2570,21 @@ window.rest_rch_nws[hostkey].Registry = function RchRegistry(client, startConnec
         '  -webkit-border-radius: 0.3em;',
         '  border-radius: 0.3em;',
         '}',
-        '.rest-online-empty-template > * {',
+        '.online-empty-template > * {',
         '  background: rgba(0, 0, 0, 0.3);',
         '  -webkit-border-radius: 0.3em;',
         '  border-radius: 0.3em;',
         '}',
-        '.rest-online-empty-template__ico {',
+        '.online-empty-template__ico {',
         '  width: 4em;',
         '  height: 4em;',
         '  margin-right: 2.4em;',
         '}',
-        '.rest-online-empty-template__body {',
+        '.online-empty-template__body {',
         '  height: 1.7em;',
         '  width: 70%;',
         '}',
-        '.rest-online-empty-template + .rest-online-empty-template {',
+        '.online-empty-template + .online-empty-template {',
         '  margin-top: 1em;',
         '}',
         '</style>'
@@ -2592,76 +2592,76 @@ window.rest_rch_nws[hostkey].Registry = function RchRegistry(client, startConnec
     }
 
     var LAMPAC_TEMPLATE_PRESTIGE_FULL = [
-      '<div class="rest-online-prestige rest-online-prestige--full selector">',
-      '  <div class="rest-online-prestige__img">',
+      '<div class="online-prestige online-prestige--full selector">',
+      '  <div class="online-prestige__img">',
       '    <img alt="">',
-      '    <div class="rest-online-prestige__loader"></div>',
+      '    <div class="online-prestige__loader"></div>',
       '  </div>',
-      '  <div class="rest-online-prestige__body">',
-      '    <div class="rest-online-prestige__head">',
-      '      <div class="rest-online-prestige__title">{title}</div>',
-      '      <div class="rest-online-prestige__time">{time}</div>',
+      '  <div class="online-prestige__body">',
+      '    <div class="online-prestige__head">',
+      '      <div class="online-prestige__title">{title}</div>',
+      '      <div class="online-prestige__time">{time}</div>',
       '    </div>',
-      '    <div class="rest-online-prestige__timeline"></div>',
-      '    <div class="rest-online-prestige__footer">',
-      '      <div class="rest-online-prestige__info">{info}</div>',
-      '      <div class="rest-online-prestige__quality">{quality}</div>',
+      '    <div class="online-prestige__timeline"></div>',
+      '    <div class="online-prestige__footer">',
+      '      <div class="online-prestige__info">{info}</div>',
+      '      <div class="online-prestige__quality">{quality}</div>',
       '    </div>',
       '  </div>',
       '</div>'
     ].join('\n');
 
     var LAMPAC_TEMPLATE_CONTENT_LOADING = [
-      '<div class="rest-online-empty">',
+      '<div class="online-empty">',
       '  <div class="broadcast__scan"><div></div></div>',
-      '  <div class="rest-online-empty__templates">',
-      '    <div class="rest-online-empty-template selector">',
-      '      <div class="rest-online-empty-template__ico"></div>',
-      '      <div class="rest-online-empty-template__body"></div>',
+      '  <div class="online-empty__templates">',
+      '    <div class="online-empty-template selector">',
+      '      <div class="online-empty-template__ico"></div>',
+      '      <div class="online-empty-template__body"></div>',
       '    </div>',
-      '    <div class="rest-online-empty-template">',
-      '      <div class="rest-online-empty-template__ico"></div>',
-      '      <div class="rest-online-empty-template__body"></div>',
+      '    <div class="online-empty-template">',
+      '      <div class="online-empty-template__ico"></div>',
+      '      <div class="online-empty-template__body"></div>',
       '    </div>',
-      '    <div class="rest-online-empty-template">',
-      '      <div class="rest-online-empty-template__ico"></div>',
-      '      <div class="rest-online-empty-template__body"></div>',
+      '    <div class="online-empty-template">',
+      '      <div class="online-empty-template__ico"></div>',
+      '      <div class="online-empty-template__body"></div>',
       '    </div>',
       '  </div>',
       '</div>'
     ].join('\n');
 
     var LAMPAC_TEMPLATE_DOES_NOT_ANSWER = [
-      '<div class="rest-online-empty">',
-      '  <div class="rest-online-empty__title">',
+      '<div class="online-empty">',
+      '  <div class="online-empty__title">',
       '    #{rest_lampac_balanser_dont_work}',
       '  </div>',
-      '  <div class="rest-online-empty__time">',
+      '  <div class="online-empty__time">',
       '    #{rest_lampac_balanser_timeout}',
       '  </div>',
-      '  <div class="rest-online-empty__buttons">',
-      '    <div class="rest-online-empty__button selector cancel">#{cancel}</div>',
-      '    <div class="rest-online-empty__button selector change">#{rest_lampac_change_balanser}</div>',
+      '  <div class="online-empty__buttons">',
+      '    <div class="online-empty__button selector cancel">#{cancel}</div>',
+      '    <div class="online-empty__button selector change">#{rest_lampac_change_balanser}</div>',
       '  </div>',
-      '  <div class="rest-online-empty__templates">',
-      '    <div class="rest-online-empty-template">',
-      '      <div class="rest-online-empty-template__ico"></div>',
-      '      <div class="rest-online-empty-template__body"></div>',
+      '  <div class="online-empty__templates">',
+      '    <div class="online-empty-template">',
+      '      <div class="online-empty-template__ico"></div>',
+      '      <div class="online-empty-template__body"></div>',
       '    </div>',
-      '    <div class="rest-online-empty-template">',
-      '      <div class="rest-online-empty-template__ico"></div>',
-      '      <div class="rest-online-empty-template__body"></div>',
+      '    <div class="online-empty-template">',
+      '      <div class="online-empty-template__ico"></div>',
+      '      <div class="online-empty-template__body"></div>',
       '    </div>',
-      '    <div class="rest-online-empty-template">',
-      '      <div class="rest-online-empty-template__ico"></div>',
-      '      <div class="rest-online-empty-template__body"></div>',
+      '    <div class="online-empty-template">',
+      '      <div class="online-empty-template__ico"></div>',
+      '      <div class="online-empty-template__body"></div>',
       '    </div>',
       '  </div>',
       '</div>'
     ].join('\n');
 
     var LAMPAC_TEMPLATE_PRESTIGE_RATE = [
-      '<div class="rest-online-prestige-rate">',
+      '<div class="online-prestige-rate">',
       '  <svg width="17" height="16" viewBox="0 0 17 16" fill="none" xmlns="http://www.w3.org/2000/svg">',
       '    <path d="M8.39409 0.192139L10.99 5.30994L16.7882 6.20387L12.5475 10.4277L13.5819 15.9311L8.39409 13.2425L3.20626 15.9311L4.24065 10.4277L0 6.20387L5.79819 5.30994L8.39409 0.192139Z" fill="#fff"></path>',
       '  </svg>',
@@ -2670,35 +2670,35 @@ window.rest_rch_nws[hostkey].Registry = function RchRegistry(client, startConnec
     ].join('\n');
 
     var LAMPAC_TEMPLATE_PRESTIGE_FOLDER = [
-      '<div class="rest-online-prestige rest-online-prestige--folder selector">',
-      '  <div class="rest-online-prestige__folder">',
+      '<div class="online-prestige online-prestige--folder selector">',
+      '  <div class="online-prestige__folder">',
       '    <svg viewBox="0 0 128 112" fill="none" xmlns="http://www.w3.org/2000/svg">',
       '      <rect y="20" width="128" height="92" rx="13" fill="white"></rect>',
       '      <path d="M29.9963 8H98.0037C96.0446 3.3021 91.4079 0 86 0H42C36.5921 0 31.9555 3.3021 29.9963 8Z" fill="white" fill-opacity="0.23"></path>',
       '      <rect x="11" y="8" width="106" height="76" rx="13" fill="white" fill-opacity="0.51"></rect>',
       '    </svg>',
       '  </div>',
-      '  <div class="rest-online-prestige__body">',
-      '    <div class="rest-online-prestige__head">',
-      '      <div class="rest-online-prestige__title">{title}</div>',
-      '      <div class="rest-online-prestige__time">{time}</div>',
+      '  <div class="online-prestige__body">',
+      '    <div class="online-prestige__head">',
+      '      <div class="online-prestige__title">{title}</div>',
+      '      <div class="online-prestige__time">{time}</div>',
       '    </div>',
-      '    <div class="rest-online-prestige__footer">',
-      '      <div class="rest-online-prestige__info">{info}</div>',
+      '    <div class="online-prestige__footer">',
+      '      <div class="online-prestige__info">{info}</div>',
       '    </div>',
       '  </div>',
       '</div>'
     ].join('\n');
 
     var LAMPAC_TEMPLATE_PRESTIGE_WATCHED = [
-      '<div class="rest-online-prestige rest-online-prestige-watched selector">',
-      '  <div class="rest-online-prestige-watched__icon">',
+      '<div class="online-prestige online-prestige-watched selector">',
+      '  <div class="online-prestige-watched__icon">',
       '    <svg width="21" height="21" viewBox="0 0 21 21" fill="none" xmlns="http://www.w3.org/2000/svg">',
       '      <circle cx="10.5" cy="10.5" r="9" stroke="currentColor" stroke-width="3"/>',
       '      <path d="M14.8477 10.5628L8.20312 14.399L8.20313 6.72656L14.8477 10.5628Z" fill="currentColor"/>',
       '    </svg>',
       '  </div>',
-      '  <div class="rest-online-prestige-watched__body"></div>',
+      '  <div class="online-prestige-watched__body"></div>',
       '</div>'
     ].join('\n');
 
