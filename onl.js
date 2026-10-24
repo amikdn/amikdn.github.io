@@ -2082,6 +2082,10 @@ window.onl_rch_nws[hostkey].Registry = function RchRegistry(client, startConnect
       if (!Lampa.Manifest.plugins.some(function (entry) { return entry && entry.component === 'onl_lampac'; })) {
         Lampa.Manifest.plugins.push(manifest);
       }
+    } else if (Lampa.Manifest.plugins) {
+      if (Lampa.Manifest.plugins.component !== 'onl_lampac') {
+        Lampa.Manifest.plugins = [Lampa.Manifest.plugins, manifest];
+      }
     } else {
       Lampa.Manifest.plugins = manifest;
     }
