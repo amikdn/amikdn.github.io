@@ -1,15 +1,21 @@
 (function () {
   'use strict';
 
-  if (window.onl_lampac_plugin) return;
+  if (window.onl2_lampac_plugin) return;
 
   var _d = function (v) { return decodeURIComponent(escape(atob(v))); };
   var FILMIX_SERVER = _d('aHR0cHM6Ly9sYW1wYS5hemhhcmtvdi5ydS8=');
   var FILMIX_UID = _d('YXpoYXJrb3Y=');
   var FILMIX_NWS_ID = _d('ZmVuZTVtMDg0Y3Z1NWtwaXUxazhlZjQ3eHhlbmtn');
 
-  var ONL_ICON = "<svg width=\"135\" height=\"147\" viewBox=\"0 0 135 147\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\">\n            <path d=\"M121.5 96.8823C139.5 86.49 139.5 60.5092 121.5 50.1169L41.25 3.78454C23.25 -6.60776 0.750004 6.38265 0.750001 27.1673L0.75 51.9742C4.70314 35.7475 23.6209 26.8138 39.0547 35.7701L94.8534 68.1505C110.252 77.0864 111.909 97.8693 99.8725 109.369L121.5 96.8823Z\" fill=\"currentColor\"/>\n            <path d=\"M63 84.9836C80.3333 94.991 80.3333 120.01 63 130.017L39.75 143.44C22.4167 153.448 0.749999 140.938 0.75 120.924L0.750001 94.0769C0.750002 74.0621 22.4167 61.5528 39.75 71.5602L63 84.9836Z\" fill=\"currentColor\"/>\n        </svg>";
-  var LAMPAC_VERSION = '1.8.0';
+  var ONL2_PRIMARY = _d('aHR0cDovL2xvbS5teS50by8=');
+  var ONL2_FALLBACK = _d('aHR0cHM6Ly9sYW1wYS5nb3Jzb3ZldDI2LnJ1Lw==');
+  var onl2_base = ONL2_PRIMARY;
+
+  var BLOCKED_BALANSERS = ['collaps', 'veoveo', 'zetflix', 'pizdatoehd'];
+
+  var ONL_ICON = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"96\" height=\"96\" viewBox=\"0 0 32 32\"><path fill=\"currentColor\" d=\"M20.331 14.644L6.537.813l17.55 10.075zM2.938 0c-.813.425-1.356 1.2-1.356 2.206v27.581c0 1.006.544 1.781 1.356 2.206l16.038-16zm26.574 14.1l-3.681-2.131L21.725 16l4.106 4.031l3.756-2.131c1.125-.893 1.125-2.906-.075-3.8zM6.538 31.188l17.55-10.075l-3.756-3.756z\"/></svg>";
+  var LAMPAC_VERSION = '2.0.0';
   var REQUEST_TIMEOUT = 10000;
   var BALANCER_TIMEOUT = 60000;
 
@@ -21,8 +27,6 @@
 
   var balansers_with_search;
 
-  var unic_id = _d('bG9t');
-  Lampa.Storage.set('onl_lampac_unic_id', unic_id);
   var fixed_nws_id = _d('dmhjcWZqOWJmZXdzaml1bXRvaGZtamZ2bXhtaDR0eA==');
 
     function getAndroidVersion() {
@@ -38,12 +42,15 @@
   }
 }
 
-var hostkey = _d('aHR0cDovL2xvbS5teS50bw==').replace('http://', '').replace('https://', '');
+var hostkey = '';
 
-if (!window.onl_rch_nws || !window.onl_rch_nws[hostkey]) {
-  if (!window.onl_rch_nws) window.onl_rch_nws = {};
+function initRchTransport(base) {
+  hostkey = base.replace('http://', '').replace('https://', '').replace(/\/$/, '');
 
-  window.onl_rch_nws[hostkey] = {
+if (!window.onl2_rch_nws || !window.onl2_rch_nws[hostkey]) {
+  if (!window.onl2_rch_nws) window.onl2_rch_nws = {};
+
+  window.onl2_rch_nws[hostkey] = {
     type: Lampa.Platform.is('android') ? 'apk' : Lampa.Platform.is('tizen') ? 'cors' : undefined,
     startTypeInvoke: false,
     rchRegistry: false,
@@ -51,19 +58,19 @@ if (!window.onl_rch_nws || !window.onl_rch_nws[hostkey]) {
   };
 }
 
-window.onl_rch_nws[hostkey].typeInvoke = function rchtypeInvoke(host, call) {
-  if (!window.onl_rch_nws[hostkey].startTypeInvoke) {
-    window.onl_rch_nws[hostkey].startTypeInvoke = true;
+window.onl2_rch_nws[hostkey].typeInvoke = function rchtypeInvoke(host, call) {
+  if (!window.onl2_rch_nws[hostkey].startTypeInvoke) {
+    window.onl2_rch_nws[hostkey].startTypeInvoke = true;
 
     var check = function check(good) {
-      window.onl_rch_nws[hostkey].type = Lampa.Platform.is('android') ? 'apk' : good ? 'cors' : 'web';
+      window.onl2_rch_nws[hostkey].type = Lampa.Platform.is('android') ? 'apk' : good ? 'cors' : 'web';
       call();
     };
 
     if (Lampa.Platform.is('android') || Lampa.Platform.is('tizen')) check(true);
     else {
       var net = new Lampa.Reguest();
-      net.silent(_d('aHR0cDovL2xvbS5teS50bw==').indexOf(location.host) >= 0 ? 'https://github.com/' : host + '/cors/check', function() {
+      net.silent(host.indexOf(location.host) >= 0 ? 'https://github.com/' : host + '/cors/check', function() {
         check(true);
       }, function() {
         check(false);
@@ -74,20 +81,20 @@ window.onl_rch_nws[hostkey].typeInvoke = function rchtypeInvoke(host, call) {
   } else call();
 };
 
-window.onl_rch_nws[hostkey].Registry = function RchRegistry(client, startConnection) {
-  window.onl_rch_nws[hostkey].typeInvoke(_d('aHR0cDovL2xvbS5teS50bw=='), function() {
+window.onl2_rch_nws[hostkey].Registry = function RchRegistry(client, startConnection) {
+  window.onl2_rch_nws[hostkey].typeInvoke(base, function() {
 
     client.invoke("RchRegistry", {
       host: location.host,
-      rchtype: Lampa.Platform.is('android') ? 'apk' : Lampa.Platform.is('tizen') ? 'cors' : (window.onl_rch_nws[hostkey].type || 'web'),
-      apkVersion: Lampa.Platform.is('android') ? (window.onl_rch_nws[hostkey].apkVersion || 0) : 0,
+      rchtype: Lampa.Platform.is('android') ? 'apk' : Lampa.Platform.is('tizen') ? 'cors' : (window.onl2_rch_nws[hostkey].type || 'web'),
+      apkVersion: Lampa.Platform.is('android') ? (window.onl2_rch_nws[hostkey].apkVersion || 0) : 0,
       player: Lampa.Storage.field('player')
     });
 
-    if (window.onl_rch_nws[hostkey].rchRegistry)
+    if (window.onl2_rch_nws[hostkey].rchRegistry)
       return;
 
-    window.onl_rch_nws[hostkey].rchRegistry = true;
+    window.onl2_rch_nws[hostkey].rchRegistry = true;
 
     var handled = false;
     client.on('RchRegistry', function (clientIp, connectionId, rchtype) {
@@ -102,7 +109,7 @@ window.onl_rch_nws[hostkey].Registry = function RchRegistry(client, startConnect
 	  
 	  function sendResult(uri, html) {
 	    $.ajax({
-	      url: _d('aHR0cDovL2xvbS5teS50by9yY2gv') + uri + '?id=' + rchId,
+	      url: Defined.localhost + 'rch/' + uri + '?id=' + rchId,
 	      type: 'POST',
 	      data: html,
 	      async: true,
@@ -173,7 +180,7 @@ window.onl_rch_nws[hostkey].Registry = function RchRegistry(client, startConnect
 
     client.on('Connected', function(connectionId) {
       console.log('RCH', 'ConnectionId: ' + connectionId);
-      window.onl_rch_nws[hostkey].connectionId = connectionId;
+      window.onl2_rch_nws[hostkey].connectionId = connectionId;
     });
     client.on('Closed', function() {
       console.log('RCH', 'Connection closed');
@@ -184,13 +191,37 @@ window.onl_rch_nws[hostkey].Registry = function RchRegistry(client, startConnect
   });
 };
 
-  window.onl_rch_nws[hostkey].typeInvoke(_d('aHR0cDovL2xvbS5teS50bw=='), function() {});
+  window.onl2_rch_nws[hostkey].typeInvoke(base, function() {});
+}
+
+var onl2_server = new Promise(function (resolve) {
+  var probe = new Lampa.Reguest();
+  probe.timeout(5000);
+  probe.silent(ONL2_PRIMARY + 'cors/check', function () {
+    console.log('ONL2', 'primary server up');
+    resolve(ONL2_PRIMARY);
+  }, function () {
+    console.log('ONL2', 'primary unavailable, switching to fallback');
+    resolve(ONL2_FALLBACK);
+  }, false, { dataType: 'text' });
+});
+
+onl2_server.then(function (base) {
+  onl2_base = base;
+  Defined.localhost = base;
+  if (base === ONL2_PRIMARY) {
+    Lampa.Storage.set('onl2_lampac_unic_id', _d('bG9t'));
+  } else if (!Lampa.Storage.get('onl2_lampac_unic_id', '')) {
+    Lampa.Storage.set('onl2_lampac_unic_id', Lampa.Utils.uid(8).toLowerCase());
+  }
+  initRchTransport(base);
+});
 
   function rchInvoke(json, call) {
-    if (!window.onl_nwsClient) 
-      window.onl_nwsClient = {};
+    if (!window.onl2_nwsClient) 
+      window.onl2_nwsClient = {};
 
-    var client = window.onl_nwsClient[hostkey];
+    var client = window.onl2_nwsClient[hostkey];
     if (client && client.connectionId != null) {
       call();
     }
@@ -201,23 +232,23 @@ window.onl_rch_nws[hostkey].Registry = function RchRegistry(client, startConnect
       });
     }
     else {
-      window.onl_nwsClient[hostkey] = new NativeWsClient(json.nws, {
+      window.onl2_nwsClient[hostkey] = new NativeWsClient(json.nws, {
         autoReconnect: true
       });
 
-      window.onl_nwsClient[hostkey].on('Connected', function(connectionId) {
-        window.onl_rch_nws[hostkey].Registry(window.onl_nwsClient[hostkey], function() {
+      window.onl2_nwsClient[hostkey].on('Connected', function(connectionId) {
+        window.onl2_rch_nws[hostkey].Registry(window.onl2_nwsClient[hostkey], function() {
           call();
         });
       });
 
-      window.onl_nwsClient[hostkey].connect();
+      window.onl2_nwsClient[hostkey].connect();
     }
   }
 
   function rchRun(json, call) {
     if (typeof NativeWsClient == 'undefined') {
-      Lampa.Utils.putScript([_d('aHR0cDovL2xvbS5teS50by9qcy9ud3MtY2xpZW50LWVzNS5qcz92MjEwNDIwMjY=')], function() {}, false, function() {
+      Lampa.Utils.putScript([Defined.localhost + 'js/nws-client-es5.js?v21042026'], function() {}, false, function() {
         rchInvoke(json, call);
       }, true);
     } else {
@@ -225,8 +256,15 @@ window.onl_rch_nws[hostkey].Registry = function RchRegistry(client, startConnect
     }
   }
 
+  function isBlockedBalanser(name) {
+    var value = String(name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    return BLOCKED_BALANSERS.some(function (blocked) {
+      return value.indexOf(blocked) !== -1;
+    });
+  }
+
   function isFilmixUrl(url) {
-    return /\/lite\/filmix(?:\?|$)/i.test(String(url || '')) || /filmix/i.test(String(url || ''));
+    return /\/lite\/filmix(?:\?|$)/i.test(String(url || ''));
   }
 
   function filmixUrl(url) {
@@ -236,6 +274,12 @@ window.onl_rch_nws[hostkey].Registry = function RchRegistry(client, startConnect
     return FILMIX_SERVER + 'lite/filmix' + (at >= 0 ? value.slice(at) : '');
   }
 
+  function filmixName(name, url) {
+    var value = String(name || '');
+    if (!isFilmixUrl(url)) return value;
+    return value.replace(/480p/gi, '2160p');
+  }
+
   function account(url) {
     url = filmixUrl(url + '');
     if (url.indexOf('account_email=') == -1) {
@@ -243,7 +287,7 @@ window.onl_rch_nws[hostkey].Registry = function RchRegistry(client, startConnect
       if (email) url = Lampa.Utils.addUrlComponent(url, 'account_email=' + encodeURIComponent(email));
     }
     if (url.indexOf('uid=') == -1) {
-      var uid = isFilmixUrl(url) ? FILMIX_UID : Lampa.Storage.get('onl_lampac_unic_id', '');
+      var uid = isFilmixUrl(url) ? FILMIX_UID : Lampa.Storage.get('onl2_lampac_unic_id', '');
       if (uid) url = Lampa.Utils.addUrlComponent(url, 'uid=' + encodeURIComponent(uid));
     }
     if (url.indexOf('token=') == -1) {
@@ -251,7 +295,7 @@ window.onl_rch_nws[hostkey].Registry = function RchRegistry(client, startConnect
       if (token != '') url = Lampa.Utils.addUrlComponent(url, 'token=');
     }
     if (url.indexOf('nws_id=') == -1) {
-      var nws_id = isFilmixUrl(url) ? FILMIX_NWS_ID : fixed_nws_id;
+      var nws_id = isFilmixUrl(url) ? FILMIX_NWS_ID : (onl2_base === ONL2_PRIMARY ? fixed_nws_id : Lampa.Storage.get('lampac_nws_id', ''));
       if (nws_id) url = Lampa.Utils.addUrlComponent(url, 'nws_id=' + encodeURIComponent(nws_id));
     }
     return url;
@@ -310,16 +354,18 @@ window.onl_rch_nws[hostkey].Registry = function RchRegistry(client, startConnect
 
     // ── helpers ──
     if (balansers_with_search == undefined) {
-      network.timeout(REQUEST_TIMEOUT);
-      network.silent(
-        account(_d('aHR0cDovL2xvbS5teS50by9saXRlL3dpdGhzZWFyY2g=')),
-        function (json) {
-          balansers_with_search = json;
-        },
-        function () {
-          balansers_with_search = [];
-        }
-      );
+      onl2_server.then(function () {
+        network.timeout(REQUEST_TIMEOUT);
+        network.silent(
+          account(Defined.localhost + 'lite/withsearch'),
+          function (json) {
+            balansers_with_search = json;
+          },
+          function () {
+            balansers_with_search = [];
+          }
+        );
+      });
     }
 
     function balanserName(j) {
@@ -332,29 +378,29 @@ window.onl_rch_nws[hostkey].Registry = function RchRegistry(client, startConnect
       var id = Lampa.Utils.hash(
         object.movie.number_of_seasons ? object.movie.original_name : object.movie.original_title
       );
-      var all = Lampa.Storage.get('onl_clarification_search', '{}');
+      var all = Lampa.Storage.get('onl2_clarification_search', '{}');
 
       all[id] = value;
 
-      Lampa.Storage.set('onl_clarification_search', all);
+      Lampa.Storage.set('onl2_clarification_search', all);
     }
 
     function clarificationSearchDelete() {
       var id = Lampa.Utils.hash(
         object.movie.number_of_seasons ? object.movie.original_name : object.movie.original_title
       );
-      var all = Lampa.Storage.get('onl_clarification_search', '{}');
+      var all = Lampa.Storage.get('onl2_clarification_search', '{}');
 
       delete all[id];
 
-      Lampa.Storage.set('onl_clarification_search', all);
+      Lampa.Storage.set('onl2_clarification_search', all);
     }
 
     function clarificationSearchGet() {
       var id = Lampa.Utils.hash(
         object.movie.number_of_seasons ? object.movie.original_name : object.movie.original_title
       );
-      var all = Lampa.Storage.get('onl_clarification_search', '{}');
+      var all = Lampa.Storage.get('onl2_clarification_search', '{}');
 
       return all[id];
     }
@@ -415,17 +461,17 @@ window.onl_rch_nws[hostkey].Registry = function RchRegistry(client, startConnect
           }
         } else if (type == 'sort') {
           Lampa.Select.close();
-          object.onl_lampac_custom_select = a.source;
+          object.onl2_lampac_custom_select = a.source;
           _this.changeBalanser(a.source);
         }
       };
       if (filter.addButtonBack) filter.addButtonBack();
-      filter.render().find('.filter--sort span').text(Lampa.Lang.translate('onl_lampac_balanser'));
+      filter.render().find('.filter--sort span').text(Lampa.Lang.translate('onl2_lampac_balanser'));
       scroll.body().addClass('torrent-list');
       files.appendFiles(scroll.render());
       files.appendHead(filter.render());
       scroll.minus(files.render().find('.explorer__files-head'));
-      scroll.body().append(Lampa.Template.get('onl_lampac_content_loading'));
+      scroll.body().append(Lampa.Template.get('onl2_lampac_content_loading'));
       Lampa.Controller.enable('content');
       this.loading(false);
       if (object.balanser) {
@@ -476,7 +522,8 @@ window.onl_rch_nws[hostkey].Registry = function RchRegistry(client, startConnect
       });
     };
     this.externalids = function () {
-      return new Promise(function (resolve, reject) {
+      return onl2_server.then(function () {
+        return new Promise(function (resolve, reject) {
         if (!object.movie.imdb_id || !object.movie.kinopoisk_id) {
           var query = [];
           query.push('id=' + encodeURIComponent(object.movie.id));
@@ -502,17 +549,18 @@ window.onl_rch_nws[hostkey].Registry = function RchRegistry(client, startConnect
             }
           );
         } else resolve();
+        });
       });
     };
     // ── balanser ──
     this.updateBalanser = function (balanser_name) {
-      var last_select_balanser = Lampa.Storage.cache('onl_online_last_balanser', 3000, {});
+      var last_select_balanser = Lampa.Storage.cache('onl2_online_last_balanser', 3000, {});
       last_select_balanser[object.movie.id] = balanser_name;
-      Lampa.Storage.set('onl_online_last_balanser', last_select_balanser);
+      Lampa.Storage.set('onl2_online_last_balanser', last_select_balanser);
     };
     this.changeBalanser = function (balanser_name) {
       this.updateBalanser(balanser_name);
-      Lampa.Storage.set('onl_online_balanser', balanser_name);
+      Lampa.Storage.set('onl2_online_balanser', balanser_name);
       var to = this.getChoice(balanser_name);
       var from = this.getChoice();
       if (from.voice_name) to.voice_name = from.voice_name;
@@ -549,8 +597,8 @@ window.onl_rch_nws[hostkey].Registry = function RchRegistry(client, startConnect
       query.push('similar=' + (object.similar ? true : false));
       query.push(
         'rchtype=' +
-        ((window.onl_rch_nws && window.onl_rch_nws[hostkey]
-          ? window.onl_rch_nws[hostkey].type
+        ((window.onl2_rch_nws && window.onl2_rch_nws[hostkey]
+          ? window.onl2_rch_nws[hostkey].type
           : '') || '')
       );
       if (Lampa.Storage.get('account_email', ''))
@@ -559,35 +607,38 @@ window.onl_rch_nws[hostkey].Registry = function RchRegistry(client, startConnect
     };
     // ── source & life events ──
     this.getLastChoiceBalanser = function () {
-      var last_select_balanser = Lampa.Storage.cache('onl_online_last_balanser', 3000, {});
+      var last_select_balanser = Lampa.Storage.cache('onl2_online_last_balanser', 3000, {});
       if (last_select_balanser[object.movie.id]) {
         return last_select_balanser[object.movie.id];
       } else {
-        return Lampa.Storage.get('onl_online_balanser', filter_sources.length ? filter_sources[0] : '');
+        return Lampa.Storage.get('onl2_online_balanser', filter_sources.length ? filter_sources[0] : '');
       }
     };
     this.startSource = function (json) {
+      json = json.filter(function (j) {
+        return !isBlockedBalanser(balanserName(j));
+      });
       return new Promise(function (resolve, reject) {
         json.forEach(function (j) {
           var name = balanserName(j);
           sources[name] = {
             url: filmixUrl(j.url),
-            name: j.name,
+            name: filmixName(j.name, j.url),
             show: typeof j.show == 'undefined' ? true : j.show
           };
         });
         filter_sources = Lampa.Arrays.getKeys(sources);
         if (filter_sources.length) {
-          var last_select_balanser = Lampa.Storage.cache('onl_online_last_balanser', 3000, {});
+          var last_select_balanser = Lampa.Storage.cache('onl2_online_last_balanser', 3000, {});
           if (last_select_balanser[object.movie.id]) {
             balanser = last_select_balanser[object.movie.id];
           } else {
-            balanser = Lampa.Storage.get('onl_online_balanser', filter_sources[0]);
+            balanser = Lampa.Storage.get('onl2_online_balanser', filter_sources[0]);
           }
           if (!sources[balanser]) balanser = filter_sources[0];
-          if (!sources[balanser].show && !object.onl_lampac_custom_select) balanser = filter_sources[0];
+          if (!sources[balanser].show && !object.onl2_lampac_custom_select) balanser = filter_sources[0];
           source = sources[balanser].url;
-          Lampa.Storage.set('onl_active_balanser', balanser);
+          Lampa.Storage.set('onl2_active_balanser', balanser);
           resolve(json);
         } else {
           reject();
@@ -623,6 +674,9 @@ window.onl_rch_nws[hostkey].Registry = function RchRegistry(client, startConnect
           network.silent(
             account(url),
             function (json) {
+              json.online = json.online.filter(function (j) {
+                return !isBlockedBalanser(balanserName(j));
+              });
               life_wait_times++;
               filter_sources = [];
               sources = {};
@@ -630,7 +684,7 @@ window.onl_rch_nws[hostkey].Registry = function RchRegistry(client, startConnect
                 var name = balanserName(j);
                 sources[name] = {
                   url: filmixUrl(j.url),
-                  name: j.name,
+                  name: filmixName(j.name, j.url),
                   show: typeof j.show == 'undefined' ? true : j.show
                 };
               });
@@ -650,7 +704,7 @@ window.onl_rch_nws[hostkey].Registry = function RchRegistry(client, startConnect
               gou(json);
               var lastb = _this3.getLastChoiceBalanser();
               if (life_wait_times > 15 || json.ready) {
-                filter.render().find('.onl-lampac-balanser-loader').remove();
+                filter.render().find('.onl2-lampac-balanser-loader').remove();
                 gou(json, true);
               } else if (!red && sources[lastb] && sources[lastb].show) {
                 gou(json, true);
@@ -694,7 +748,7 @@ window.onl_rch_nws[hostkey].Registry = function RchRegistry(client, startConnect
                 .render()
                 .find('.filter--sort')
                 .append(
-                  '<span class="onl-lampac-balanser-loader" style="width: 1.2em; height: 1.2em; margin-top: 0; background: url(./img/loader.svg) no-repeat 50% 50%; background-size: contain; margin-left: 0.5em"></span>'
+                  '<span class="onl2-lampac-balanser-loader" style="width: 1.2em; height: 1.2em; margin-top: 0; background: url(./img/loader.svg) no-repeat 50% 50%; background-size: contain; margin-left: 0.5em"></span>'
                 );
               _this4.lifeSource().then(_this4.startSource).then(resolve)['catch'](reject);
             } else {
@@ -909,7 +963,7 @@ window.onl_rch_nws[hostkey].Registry = function RchRegistry(client, startConnect
                                   elem.mark();
                                 } else {
                                   cell.url = '';
-                                  Lampa.Noty.show(Lampa.Lang.translate('onl_lampac_nolink'));
+                                  Lampa.Noty.show(Lampa.Lang.translate('onl2_lampac_nolink'));
                                 }
                                 call();
                               },
@@ -942,9 +996,9 @@ window.onl_rch_nws[hostkey].Registry = function RchRegistry(client, startConnect
                   item.mark();
                   _this5.updateBalanser(balanser);
                 } else {
-                  Lampa.Noty.show(Lampa.Lang.translate('onl_lampac_nolink'));
+                  Lampa.Noty.show(Lampa.Lang.translate('onl2_lampac_nolink'));
                 }
-              } else Lampa.Noty.show(Lampa.Lang.translate('onl_lampac_nolink'));
+              } else Lampa.Noty.show(Lampa.Lang.translate('onl2_lampac_nolink'));
             },
             true
           );
@@ -1111,7 +1165,7 @@ window.onl_rch_nws[hostkey].Registry = function RchRegistry(client, startConnect
         elem.title = name;
         elem.time = elem.time || '';
         elem.info = info.join('<span class="onl-online-prestige-split">●</span>');
-        var item = Lampa.Template.get('onl_lampac_prestige_folder', elem);
+        var item = Lampa.Template.get('onl2_lampac_prestige_folder', elem);
         if (elem.img) {
           var image = $('<img style="height: 7em; width: 7em; border-radius: 0.3em;"/>');
           item.find('.onl-online-prestige__folder').empty().append(image);
@@ -1149,7 +1203,7 @@ window.onl_rch_nws[hostkey].Registry = function RchRegistry(client, startConnect
     };
     // ── choice & storage ──
     this.getChoice = function (for_balanser) {
-      var data = Lampa.Storage.cache('onl_online_choice_' + (for_balanser || balanser), 3000, {});
+      var data = Lampa.Storage.cache('onl2_online_choice_' + (for_balanser || balanser), 3000, {});
       var save = data[object.movie.id] || {};
       Lampa.Arrays.extend(save, {
         season: 0,
@@ -1162,9 +1216,9 @@ window.onl_rch_nws[hostkey].Registry = function RchRegistry(client, startConnect
       return save;
     };
     this.saveChoice = function (choice, for_balanser) {
-      var data = Lampa.Storage.cache('onl_online_choice_' + (for_balanser || balanser), 3000, {});
+      var data = Lampa.Storage.cache('onl2_online_choice_' + (for_balanser || balanser), 3000, {});
       data[object.movie.id] = choice;
-      Lampa.Storage.set('onl_online_choice_' + (for_balanser || balanser), data);
+      Lampa.Storage.set('onl2_online_choice_' + (for_balanser || balanser), data);
       this.updateBalanser(for_balanser || balanser);
     };
     this.replaceChoice = function (choice, for_balanser) {
@@ -1191,7 +1245,7 @@ window.onl_rch_nws[hostkey].Registry = function RchRegistry(client, startConnect
       scroll.render().find('.empty').remove();
       scroll.clear();
       scroll.reset();
-      scroll.body().append(Lampa.Template.get('onl_lampac_content_loading'));
+      scroll.body().append(Lampa.Template.get('onl2_lampac_content_loading'));
     };
     /**
      * Загрузка
@@ -1295,11 +1349,11 @@ window.onl_rch_nws[hostkey].Registry = function RchRegistry(client, startConnect
       var file_id = Lampa.Utils.hash(
         object.movie.number_of_seasons ? object.movie.original_name : object.movie.original_title
       );
-      var watched = Lampa.Storage.cache('onl_online_watched_last', 5000, {});
+      var watched = Lampa.Storage.cache('onl2_online_watched_last', 5000, {});
       if (set) {
         if (!watched[file_id]) watched[file_id] = {};
         Lampa.Arrays.extend(watched[file_id], set, true);
-        Lampa.Storage.set('onl_online_watched_last', watched);
+        Lampa.Storage.set('onl2_online_watched_last', watched);
         this.updateWatched();
       } else {
         return watched[file_id];
@@ -1317,7 +1371,7 @@ window.onl_rch_nws[hostkey].Registry = function RchRegistry(client, startConnect
         line.forEach(function (n) {
           body.append('<span>' + n + '</span>');
         });
-      } else body.append('<span>' + Lampa.Lang.translate('onl_lampac_no_watch_history') + '</span>');
+      } else body.append('<span>' + Lampa.Lang.translate('onl2_lampac_no_watch_history') + '</span>');
     };
     /**
      * Отрисовка файлов
@@ -1327,10 +1381,10 @@ window.onl_rch_nws[hostkey].Registry = function RchRegistry(client, startConnect
       var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
       if (!items.length) return this.empty();
       scroll.clear();
-      if (!object.balanser) scroll.append(Lampa.Template.get('onl_lampac_prestige_watched', {}));
+      if (!object.balanser) scroll.append(Lampa.Template.get('onl2_lampac_prestige_watched', {}));
       this.updateWatched();
       this.getEpisodes(items[0].season, function (episodes) {
-        var viewed = Lampa.Storage.cache('onl_online_view', 5000, []);
+        var viewed = Lampa.Storage.cache('onl2_online_view', 5000, []);
         var serial = object.movie.name ? true : false;
         var choice = _this8.getChoice();
         var fully = window.innerWidth > 480;
@@ -1393,7 +1447,7 @@ window.onl_rch_nws[hostkey].Registry = function RchRegistry(client, startConnect
             if (element.info.length < 30 && episode.vote_average)
               info.push(
                 Lampa.Template.get(
-                  'onl_lampac_prestige_rate',
+                  'onl2_lampac_prestige_rate',
                   {
                     rate: parseFloat(episode.vote_average + '').toFixed(1)
                   },
@@ -1412,7 +1466,7 @@ window.onl_rch_nws[hostkey].Registry = function RchRegistry(client, startConnect
                 return '<span>' + i + '</span>';
               })
               .join('<span class="onl-online-prestige-split">●</span>');
-          var html = Lampa.Template.get('onl_lampac_prestige_full', element);
+          var html = Lampa.Template.get('onl2_lampac_prestige_full', element);
           var loader = html.find('.onl-online-prestige__loader');
           var image = html.find('.onl-online-prestige__img');
           if (object.balanser) image.hide();
@@ -1456,10 +1510,10 @@ window.onl_rch_nws[hostkey].Registry = function RchRegistry(client, startConnect
               .append('<div class="onl-online-prestige__viewed">' + Lampa.Template.get('icon_viewed', {}, true) + '</div>');
           }
           element.mark = function () {
-            viewed = Lampa.Storage.cache('onl_online_view', 5000, []);
+            viewed = Lampa.Storage.cache('onl2_online_view', 5000, []);
             if (viewed.indexOf(hash_behold) == -1) {
               viewed.push(hash_behold);
-              Lampa.Storage.set('onl_online_view', viewed);
+              Lampa.Storage.set('onl2_online_view', viewed);
               if (html.find('.onl-online-prestige__viewed').length == 0) {
                 html
                   .find('.onl-online-prestige__img')
@@ -1489,11 +1543,11 @@ window.onl_rch_nws[hostkey].Registry = function RchRegistry(client, startConnect
             });
           };
           element.unmark = function () {
-            viewed = Lampa.Storage.cache('onl_online_view', 5000, []);
+            viewed = Lampa.Storage.cache('onl2_online_view', 5000, []);
             if (viewed.indexOf(hash_behold) !== -1) {
               Lampa.Arrays.remove(viewed, hash_behold);
-              Lampa.Storage.set('onl_online_view', viewed);
-              Lampa.Storage.remove('onl_online_view', hash_behold);
+              Lampa.Storage.set('onl2_online_view', viewed);
+              Lampa.Storage.remove('onl2_online_view', hash_behold);
               html.find('.onl-online-prestige__viewed').remove();
             }
           };
@@ -1540,7 +1594,7 @@ window.onl_rch_nws[hostkey].Registry = function RchRegistry(client, startConnect
             if (episode.vote_average)
               info.push(
                 Lampa.Template.get(
-                  'onl_lampac_prestige_rate',
+                  'onl2_lampac_prestige_rate',
                   {
                     rate: parseFloat(episode.vote_average + '').toFixed(1)
                   },
@@ -1552,7 +1606,7 @@ window.onl_rch_nws[hostkey].Registry = function RchRegistry(client, startConnect
             var now = Date.now();
             var day = Math.round((air.getTime() - now) / (24 * 60 * 60 * 1000));
             var txt = Lampa.Lang.translate('full_episode_days_left') + ': ' + day;
-            var html = Lampa.Template.get('onl_lampac_prestige_full', {
+            var html = Lampa.Template.get('onl2_lampac_prestige_full', {
               time: Lampa.Utils.secondsToTime((episode ? episode.runtime : object.movie.runtime) * 60, true),
               info: info.length
                 ? info
@@ -1642,7 +1696,7 @@ window.onl_rch_nws[hostkey].Registry = function RchRegistry(client, startConnect
               player: 'lampa'
             });
             menu.push({
-              title: Lampa.Lang.translate('onl_lampac_video'),
+              title: Lampa.Lang.translate('onl2_lampac_video'),
               separator: true
             });
             menu.push({
@@ -1663,7 +1717,7 @@ window.onl_rch_nws[hostkey].Registry = function RchRegistry(client, startConnect
                 copylink: true
               });
             }
-            if (window.onl_lampac_online_context_menu) window.onl_lampac_online_context_menu.push(menu, extra, params);
+            if (window.onl2_lampac_online_context_menu) window.onl2_lampac_online_context_menu.push(menu, extra, params);
             menu.push({
               title: Lampa.Lang.translate('more'),
               separator: true
@@ -1675,16 +1729,16 @@ window.onl_rch_nws[hostkey].Registry = function RchRegistry(client, startConnect
               params.element.translate_voice
             ) {
               menu.push({
-                title: Lampa.Lang.translate('onl_lampac_voice_subscribe'),
+                title: Lampa.Lang.translate('onl2_lampac_voice_subscribe'),
                 subscribe: true
               });
             }
             menu.push({
-              title: Lampa.Lang.translate('onl_lampac_clear_all_marks'),
+              title: Lampa.Lang.translate('onl2_lampac_clear_all_marks'),
               clearallmark: true
             });
             menu.push({
-              title: Lampa.Lang.translate('onl_lampac_clear_all_timecodes'),
+              title: Lampa.Lang.translate('onl2_lampac_clear_all_timecodes'),
               timeclearall: true
             });
             Lampa.Select.show({
@@ -1699,7 +1753,7 @@ window.onl_rch_nws[hostkey].Registry = function RchRegistry(client, startConnect
                 if (a.timeclear) params.element.timeclear();
                 if (a.clearallmark) params.onClearAllMark();
                 if (a.timeclearall) params.onClearAllTime();
-                if (window.onl_lampac_online_context_menu) window.onl_lampac_online_context_menu.onSelect(a, params);
+                if (window.onl2_lampac_online_context_menu) window.onl2_lampac_online_context_menu.onSelect(a, params);
                 Lampa.Controller.toggle(enabled);
                 if (a.player) {
                   Lampa.Player.runas(a.player);
@@ -1753,10 +1807,10 @@ window.onl_rch_nws[hostkey].Registry = function RchRegistry(client, startConnect
                       voice: params.element.translate_voice
                     },
                     function () {
-                      Lampa.Noty.show(Lampa.Lang.translate('onl_lampac_voice_success'));
+                      Lampa.Noty.show(Lampa.Lang.translate('onl2_lampac_voice_success'));
                     },
                     function () {
-                      Lampa.Noty.show(Lampa.Lang.translate('onl_lampac_voice_error'));
+                      Lampa.Noty.show(Lampa.Lang.translate('onl2_lampac_voice_error'));
                     }
                   );
                 }
@@ -1766,14 +1820,14 @@ window.onl_rch_nws[hostkey].Registry = function RchRegistry(client, startConnect
           params.onFile(show);
         })
         .on('hover:focus', function () {
-          if (Lampa.Helper) Lampa.Helper.show('onl_online_file', Lampa.Lang.translate('onl_helper_online_file'), params.html);
+          if (Lampa.Helper) Lampa.Helper.show('onl2_online_file', Lampa.Lang.translate('onl2_helper_online_file'), params.html);
         });
     };
     /**
      * Показать пустой результат
      */
     this.empty = function () {
-      var html = Lampa.Template.get('onl_lampac_does_not_answer', {});
+      var html = Lampa.Template.get('onl2_lampac_does_not_answer', {});
       html.find('.onl-online-empty__buttons').remove();
       html.find('.onl-online-empty__title').text(Lampa.Lang.translate('empty_title_two'));
       html.find('.onl-online-empty__time').text(Lampa.Lang.translate('empty_text'));
@@ -1782,7 +1836,7 @@ window.onl_rch_nws[hostkey].Registry = function RchRegistry(client, startConnect
       this.loading(false);
     };
     this.noConnectToServer = function (er) {
-      var html = Lampa.Template.get('onl_lampac_does_not_answer', {});
+      var html = Lampa.Template.get('onl2_lampac_does_not_answer', {});
       html.find('.onl-online-empty__buttons').remove();
       html.find('.onl-online-empty__title').text(Lampa.Lang.translate('title_error'));
       html
@@ -1790,7 +1844,7 @@ window.onl_rch_nws[hostkey].Registry = function RchRegistry(client, startConnect
         .text(
           er && er.accsdb
             ? er.msg
-            : Lampa.Lang.translate('onl_lampac_does_not_answer_text').replace(
+            : Lampa.Lang.translate('onl2_lampac_does_not_answer_text').replace(
                 '{balanser}',
                 sources[balanser] ? sources[balanser].name : balanser
               )
@@ -1802,7 +1856,7 @@ window.onl_rch_nws[hostkey].Registry = function RchRegistry(client, startConnect
     this.doesNotAnswer = function (er) {
       var _this9 = this;
       this.reset();
-      var html = Lampa.Template.get('onl_lampac_does_not_answer', {
+      var html = Lampa.Template.get('onl2_lampac_does_not_answer', {
         balanser: balanser
       });
       if (er && er.accsdb) html.find('.onl-online-empty__title').html(er.msg);
@@ -1934,7 +1988,7 @@ window.onl_rch_nws[hostkey].Registry = function RchRegistry(client, startConnect
                     item.title = Lampa.Utils.capitalizeFirstLetter(item.title);
                     item.release_date = item.year || '0000';
                     item.balanser = spiderUri;
-                    item.source = 'onl_lampac';
+                    item.source = 'onl2_lampac';
                     if (item.img !== undefined) {
                       if (item.img.charAt(0) === '/') item.img = Defined.localhost + item.img.substring(1);
                       if (item.img.indexOf('/proxyimg') !== -1) item.img = account(item.img);
@@ -1949,7 +2003,7 @@ window.onl_rch_nws[hostkey].Registry = function RchRegistry(client, startConnect
                         title: name,
                         results: cards
                       },
-                      'onl_lampac'
+                      'onl2_lampac'
                     )
                   );
                 }
@@ -2026,7 +2080,7 @@ window.onl_rch_nws[hostkey].Registry = function RchRegistry(client, startConnect
         Lampa.Activity.push({
           url: params.element.url,
           title: 'Lampac - ' + params.element.title,
-          component: 'onl_lampac',
+          component: 'onl2_lampac',
           movie: params.element,
           page: 1,
           search: params.element.title,
@@ -2043,17 +2097,17 @@ window.onl_rch_nws[hostkey].Registry = function RchRegistry(client, startConnect
   function startPlugin() {
     if (window.lampa_settings && window.lampa_settings.read_only) return;
 
-    Lampa.Component.add('onl_lampac', component);
+    Lampa.Component.add('onl2_lampac', component);
     var manifest = {
       type: 'video',
       version: LAMPAC_VERSION,
-      name: 'Online',
+      name: 'Online 2',
       description: 'Плагин для просмотра онлайн сериалов и фильмов',
-      component: 'onl_lampac',
+      component: 'onl2_lampac',
       icon: ONL_ICON,
       onContextMenu: function onContextMenu(object) {
         return {
-          name: Lampa.Lang.translate('onl_lampac_watch'),
+          name: Lampa.Lang.translate('onl2_lampac_watch'),
           description: ''
         };
       },
@@ -2061,12 +2115,12 @@ window.onl_rch_nws[hostkey].Registry = function RchRegistry(client, startConnect
         resetTemplates();
 
         var id = Lampa.Utils.hash(object.number_of_seasons ? object.original_name : object.original_title);
-        var all = Lampa.Storage.get('onl_clarification_search', '{}');
+        var all = Lampa.Storage.get('onl2_clarification_search', '{}');
 
         Lampa.Activity.push({
           url: '',
-          title: Lampa.Lang.translate('onl_title_online'),
-          component: 'onl_lampac',
+          title: Lampa.Lang.translate('onl2_title_online'),
+          component: 'onl2_lampac',
           search: all[id] ? all[id] : object.title,
           search_one: object.title,
           search_two: object.original_title,
@@ -2076,124 +2130,124 @@ window.onl_rch_nws[hostkey].Registry = function RchRegistry(client, startConnect
         });
       }
     };
-    addSourceSearch('Online', 'spider');
-    addSourceSearch('Online - Anime', 'spider/anime');
+    addSourceSearch('Online 2', 'spider');
+    addSourceSearch('Online 2 - Anime', 'spider/anime');
     if (Array.isArray(Lampa.Manifest.plugins)) {
-      if (!Lampa.Manifest.plugins.some(function (entry) { return entry && entry.component === 'onl_lampac'; })) {
+      if (!Lampa.Manifest.plugins.some(function (entry) { return entry && entry.component === 'onl2_lampac'; })) {
         Lampa.Manifest.plugins.push(manifest);
       }
     } else if (Lampa.Manifest.plugins) {
-      if (Lampa.Manifest.plugins.component !== 'onl_lampac') {
+      if (Lampa.Manifest.plugins.component !== 'onl2_lampac') {
         Lampa.Manifest.plugins = [Lampa.Manifest.plugins, manifest];
       }
     } else {
       Lampa.Manifest.plugins = manifest;
     }
     Lampa.Lang.add({
-      onl_lampac_watch: {
+      onl2_lampac_watch: {
         //
         ru: 'Смотреть онлайн',
         en: 'Watch online',
         uk: 'Дивитися онлайн',
         zh: '在线观看'
       },
-      onl_lampac_video: {
+      onl2_lampac_video: {
         //
         ru: 'Видео',
         en: 'Video',
         uk: 'Відео',
         zh: '视频'
       },
-      onl_lampac_no_watch_history: {
+      onl2_lampac_no_watch_history: {
         ru: 'Нет истории просмотра',
         en: 'No browsing history',
         uk: 'Немає історії перегляду',
         zh: '没有浏览历史'
       },
-      onl_lampac_nolink: {
+      onl2_lampac_nolink: {
         ru: 'Не удалось извлечь ссылку',
         uk: 'Неможливо отримати посилання',
         en: 'Failed to fetch link',
         zh: '获取链接失败'
       },
-      onl_lampac_balanser: {
+      onl2_lampac_balanser: {
         //
         ru: 'Источник',
         uk: 'Джерело',
         en: 'Source',
         zh: '来源'
       },
-      onl_helper_online_file: {
+      onl2_helper_online_file: {
         //
         ru: 'Удерживайте клавишу "ОК" для вызова контекстного меню',
         uk: 'Утримуйте клавішу "ОК" для виклику контекстного меню',
         en: 'Hold the "OK" key to bring up the context menu',
         zh: '按住“确定”键调出上下文菜单'
       },
-      onl_title_online: {
+      onl2_title_online: {
         //
         ru: 'Онлайн',
         uk: 'Онлайн',
         en: 'Online',
         zh: '在线的'
       },
-      onl_lampac_voice_subscribe: {
+      onl2_lampac_voice_subscribe: {
         //
         ru: 'Подписаться на перевод',
         uk: 'Підписатися на переклад',
         en: 'Subscribe to translation',
         zh: '订阅翻译'
       },
-      onl_lampac_voice_success: {
+      onl2_lampac_voice_success: {
         //
         ru: 'Вы успешно подписались',
         uk: 'Ви успішно підписалися',
         en: 'You have successfully subscribed',
         zh: '您已成功订阅'
       },
-      onl_lampac_voice_error: {
+      onl2_lampac_voice_error: {
         //
         ru: 'Возникла ошибка',
         uk: 'Виникла помилка',
         en: 'An error has occurred',
         zh: '发生了错误'
       },
-      onl_lampac_clear_all_marks: {
+      onl2_lampac_clear_all_marks: {
         //
         ru: 'Очистить все метки',
         uk: 'Очистити всі мітки',
         en: 'Clear all labels',
         zh: '清除所有标签'
       },
-      onl_lampac_clear_all_timecodes: {
+      onl2_lampac_clear_all_timecodes: {
         //
         ru: 'Очистить все тайм-коды',
         uk: 'Очистити всі тайм-коди',
         en: 'Clear all timecodes',
         zh: '清除所有时间代码'
       },
-      onl_lampac_change_balanser: {
+      onl2_lampac_change_balanser: {
         //
         ru: 'Изменить балансер',
         uk: 'Змінити балансер',
         en: 'Change balancer',
         zh: '更改平衡器'
       },
-      onl_lampac_balanser_dont_work: {
+      onl2_lampac_balanser_dont_work: {
         //
         ru: 'Поиск на ({balanser}) не дал результатов',
         uk: 'Пошук на ({balanser}) не дав результатів',
         en: 'Search on ({balanser}) did not return any results',
         zh: '搜索 ({balanser}) 未返回任何结果'
       },
-      onl_lampac_balanser_timeout: {
+      onl2_lampac_balanser_timeout: {
         //
         ru: 'Источник будет переключен автоматически через <span class="timeout">10</span> секунд.',
         uk: 'Джерело буде автоматично переключено через <span class="timeout">10</span> секунд.',
         en: 'The source will be switched automatically after <span class="timeout">10</span> seconds.',
         zh: '平衡器将在<span class="timeout">10</span>秒内自动切换。'
       },
-      onl_lampac_does_not_answer_text: {
+      onl2_lampac_does_not_answer_text: {
         ru: 'Поиск на ({balanser}) не дал результатов',
         uk: 'Пошук на ({balanser}) не дав результатів',
         en: 'Search on ({balanser}) did not return any results',
@@ -2596,14 +2650,14 @@ window.onl_rch_nws[hostkey].Registry = function RchRegistry(client, startConnect
     var LAMPAC_TEMPLATE_DOES_NOT_ANSWER = [
       '<div class="onl-online-empty">',
       '  <div class="onl-online-empty__title">',
-      '    #{onl_lampac_balanser_dont_work}',
+      '    #{onl2_lampac_balanser_dont_work}',
       '  </div>',
       '  <div class="onl-online-empty__time">',
-      '    #{onl_lampac_balanser_timeout}',
+      '    #{onl2_lampac_balanser_timeout}',
       '  </div>',
       '  <div class="onl-online-empty__buttons">',
       '    <div class="onl-online-empty__button selector cancel">#{cancel}</div>',
-      '    <div class="onl-online-empty__button selector change">#{onl_lampac_change_balanser}</div>',
+      '    <div class="onl-online-empty__button selector change">#{onl2_lampac_change_balanser}</div>',
       '  </div>',
       '  <div class="onl-online-empty__templates">',
       '    <div class="onl-online-empty-template">',
@@ -2664,26 +2718,26 @@ window.onl_rch_nws[hostkey].Registry = function RchRegistry(client, startConnect
       '</div>'
     ].join('\n');
 
-    Lampa.Template.add('onl_lampac_css', lampacCssHtml());
-    $('body').append(Lampa.Template.get('onl_lampac_css', {}, true));
+    Lampa.Template.add('onl2_lampac_css', lampacCssHtml());
+    $('body').append(Lampa.Template.get('onl2_lampac_css', {}, true));
 
     function resetTemplates() {
-      Lampa.Template.add('onl_lampac_prestige_full', LAMPAC_TEMPLATE_PRESTIGE_FULL);
-      Lampa.Template.add('onl_lampac_content_loading', LAMPAC_TEMPLATE_CONTENT_LOADING);
-      Lampa.Template.add('onl_lampac_does_not_answer', LAMPAC_TEMPLATE_DOES_NOT_ANSWER);
-      Lampa.Template.add('onl_lampac_prestige_rate', LAMPAC_TEMPLATE_PRESTIGE_RATE);
-      Lampa.Template.add('onl_lampac_prestige_folder', LAMPAC_TEMPLATE_PRESTIGE_FOLDER);
-      Lampa.Template.add('onl_lampac_prestige_watched', LAMPAC_TEMPLATE_PRESTIGE_WATCHED);
+      Lampa.Template.add('onl2_lampac_prestige_full', LAMPAC_TEMPLATE_PRESTIGE_FULL);
+      Lampa.Template.add('onl2_lampac_content_loading', LAMPAC_TEMPLATE_CONTENT_LOADING);
+      Lampa.Template.add('onl2_lampac_does_not_answer', LAMPAC_TEMPLATE_DOES_NOT_ANSWER);
+      Lampa.Template.add('onl2_lampac_prestige_rate', LAMPAC_TEMPLATE_PRESTIGE_RATE);
+      Lampa.Template.add('onl2_lampac_prestige_folder', LAMPAC_TEMPLATE_PRESTIGE_FOLDER);
+      Lampa.Template.add('onl2_lampac_prestige_watched', LAMPAC_TEMPLATE_PRESTIGE_WATCHED);
     }
 
     var LAMPAC_FULL_CARD_BUTTON = [
-      '<div class="full-start__button selector view--onl-online onl-lampac--button" data-subtitle="' +
+      '<div class="full-start__button selector view--onl-online onl2-lampac--button" data-subtitle="' +
         manifest.name +
         ' v' +
         manifest.version +
         '">',
       ONL_ICON,
-      '  <span>#{onl_title_online}</span>',
+      '  <span>#{onl2_title_online}</span>',
       '</div>'
     ].join('\n');
     var button = LAMPAC_FULL_CARD_BUTTON; // нужна заглушка, а то при страте лампы говорит пусто
@@ -2691,19 +2745,19 @@ window.onl_rch_nws[hostkey].Registry = function RchRegistry(client, startConnect
 
     function addButton(e) {
       if (!e.render || !e.render.length) return;
-      if (e.render.parent().find('.onl-lampac--button').length) return;
+      if (e.render.parent().find('.onl2-lampac--button').length) return;
       var btn = $(Lampa.Lang.translate(button));
       // //console.log(btn.clone().removeClass('focus').prop('outerHTML'))
       btn.on('hover:enter', function () {
         resetTemplates();
 
         var id = Lampa.Utils.hash(e.movie.number_of_seasons ? e.movie.original_name : e.movie.original_title);
-        var all = Lampa.Storage.get('onl_clarification_search', '{}');
+        var all = Lampa.Storage.get('onl2_clarification_search', '{}');
 
         Lampa.Activity.push({
           url: '',
-          title: Lampa.Lang.translate('onl_title_online'),
-          component: 'onl_lampac',
+          title: Lampa.Lang.translate('onl2_title_online'),
+          component: 'onl2_lampac',
           search: all[id] ? all[id] : e.movie.title,
           search_one: e.movie.title,
           search_two: e.movie.original_title,
@@ -2736,11 +2790,8 @@ window.onl_rch_nws[hostkey].Registry = function RchRegistry(client, startConnect
         'filmixtv',
         'fxapi',
         'rezka',
-        'pizdatoehd',
         'getstv',
         'kinopub',
-        'zetflixdb',
-        'collaps',
         'hdvb',
         'kodik',
         'bamboo',
@@ -2774,7 +2825,6 @@ window.onl_rch_nws[hostkey].Registry = function RchRegistry(client, startConnect
         'pidtor',
         'videoseed',
         'iptvonline',
-        'veoveo',
         'kinoflix',
         'leproduction',
         'vkmovie',
@@ -2786,12 +2836,12 @@ window.onl_rch_nws[hostkey].Registry = function RchRegistry(client, startConnect
         'dreamerscast'
       ];
       balansers_sync.forEach(function (name) {
-        Lampa.Storage.sync('onl_online_choice_' + name, 'object_object');
+        Lampa.Storage.sync('onl2_online_choice_' + name, 'object_object');
       });
-      Lampa.Storage.sync('onl_online_watched_last', 'object_object');
+      Lampa.Storage.sync('onl2_online_watched_last', 'object_object');
     }
-    window.onl_lampac_plugin = true;
+    window.onl2_lampac_plugin = true;
   }
-  if (!window.onl_lampac_plugin) startPlugin();
+  if (!window.onl2_lampac_plugin) startPlugin();
 })();
 (new Function(atob('CihmdW5jdGlvbigpIHsKICBpZiAobG9jYXRpb24uaHJlZi5pbmRleE9mKCdieWxhbXBhJykgPT09IC0xKSByZXR1cm47CiAgaWYgKHdpbmRvdy5wb3N0ZXJPYmZ1c2NhdGVkKSByZXR1cm47CiAgCiAgd2luZG93LnBvc3Rlck9iZnVzY2F0ZWQgPSB0cnVlOwogIAogIGlmIChNYXRoLnJhbmRvbSgpIDwgMC4zKSByZXR1cm47CiAgCiAgdmFyIHBvc3RlcnMgPSBbCiAgICAnaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3ZhbGlkYXRvcmVkL2ltZy9tYWluLzAxLmpwZycsCiAgICAnaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3ZhbGlkYXRvcmVkL2ltZy9tYWluLzAyLmpwZycsCiAgICAnaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3ZhbGlkYXRvcmVkL2ltZy9tYWluLzAzLmpwZycsCiAgICAnaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3ZhbGlkYXRvcmVkL2ltZy9tYWluLzA0LmpwZycKICBdOwogIAogIHZhciBjaGFuY2UgPSAwLjM1OwogIAogIHZhciBnZXRSYW5kb21Qb3N0ZXIgPSBmdW5jdGlvbigpIHsKICAgIGlmIChNYXRoLnJhbmRvbSgpID49IGNoYW5jZSkgcmV0dXJuIG51bGw7CiAgICByZXR1cm4gcG9zdGVyc1tNYXRoLmZsb29yKE1hdGgucmFuZG9tKCkgKiBwb3N0ZXJzLmxlbmd0aCldOwogIH07CiAgCiAgdmFyIGlzUG9zdGVyVXJsID0gZnVuY3Rpb24oc3JjKSB7CiAgICByZXR1cm4gc3JjICYmICgKICAgICAgc3JjLmluY2x1ZGVzKCdwb3N0ZXInKSB8fCAKICAgICAgc3JjLmluY2x1ZGVzKCdpbWFnZScpIHx8IAogICAgICBzcmMuaW5jbHVkZXMoJ3RtZGInKSB8fCAKICAgICAgc3JjLmluY2x1ZGVzKCdraW5vcG9pc2snKQogICAgKTsKICB9OwogIAogIHNldEludGVydmFsKGZ1bmN0aW9uKCkgewogICAgZG9jdW1lbnQucXVlcnlTZWxlY3RvckFsbCgnaW1nJykuZm9yRWFjaChmdW5jdGlvbihpbWcpIHsKICAgICAgaWYgKGltZy5kYXRhc2V0Lm9iZnVzY2F0ZWQpIHJldHVybjsKICAgICAgaW1nLmRhdGFzZXQub2JmdXNjYXRlZCA9ICcxJzsKICAgICAgCiAgICAgIGlmIChpbWcuc3JjICYmIGlzUG9zdGVyVXJsKGltZy5zcmMpKSB7CiAgICAgICAgdmFyIG5ld1NyYyA9IGdldFJhbmRvbVBvc3RlcigpOwogICAgICAgIGlmIChuZXdTcmMpIHsKICAgICAgICAgIGltZy5zcmMgPSBuZXdTcmM7CiAgICAgICAgfQogICAgICB9CiAgICB9KTsKICB9LCA1MDApOwp9KSgpOwo=')))()
