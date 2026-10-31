@@ -9,8 +9,10 @@
     //  'https://ab2024.ru/sisi.js',
     //  'http://31.129.234.181/sisi.js',
     //  'https://l.pashai.ru/sisi.js',
-    //   'https://lampa.ip917.ru/sisi.js',
-        'http://150.241.116.154/sisi.js',
+    //  'https://lampa.ip917.ru/sisi.js',
+    //  'https://lampa.ip917.ru/sisi.js',
+        'http://212.34.147.53/sisi.js',
+    //  'http://150.241.116.154/sisi.js',
     ];
 
     // Выбираем случайное зеркало
