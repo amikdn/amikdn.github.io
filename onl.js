@@ -106,7 +106,7 @@ window.onl2_rch_nws[hostkey].Registry = function RchRegistry(client, startConnec
 
     client.on("RchClient", function(rchId, url, data, headers, returnHeaders) {
       var network = new Lampa.Reguest();
-	  
+
 	  function sendResult(uri, html) {
 	    $.ajax({
 	      url: Defined.localhost + 'rch/' + uri + '?id=' + rchId,
@@ -218,7 +218,7 @@ onl2_server.then(function (base) {
 });
 
   function rchInvoke(json, call) {
-    if (!window.onl2_nwsClient) 
+    if (!window.onl2_nwsClient)
       window.onl2_nwsClient = {};
 
     var client = window.onl2_nwsClient[hostkey];
@@ -314,7 +314,7 @@ onl2_server.then(function (base) {
   var Network = Lampa.Reguest;
 
   function component(object) {
-    // ── state & UI scaffold ──
+
     var network = new Network();
     network.timeout(BALANCER_TIMEOUT);
     var scroll = new Lampa.Scroll({
@@ -352,7 +352,6 @@ onl2_server.then(function (base) {
       }
     }
 
-    // ── helpers ──
     if (balansers_with_search == undefined) {
       onl2_server.then(function () {
         network.timeout(REQUEST_TIMEOUT);
@@ -405,7 +404,6 @@ onl2_server.then(function (base) {
       return all[id];
     }
 
-    // ── init & filter ──
     this.initialize = function () {
       var _this = this;
       this.loading(true);
@@ -513,7 +511,7 @@ onl2_server.then(function (base) {
         _this.noConnectToServer(e);
       });
     };
-    // ── RCH & external IDs ──
+
     this.rch = function (json, noreset) {
       var _this2 = this;
       rchRun(json, function () {
@@ -552,7 +550,7 @@ onl2_server.then(function (base) {
         });
       });
     };
-    // ── balanser ──
+
     this.updateBalanser = function (balanser_name) {
       var last_select_balanser = Lampa.Storage.cache('onl2_online_last_balanser', 3000, {});
       last_select_balanser[object.movie.id] = balanser_name;
@@ -569,7 +567,7 @@ onl2_server.then(function (base) {
     };
     this.requestParams = function (url) {
       var query = [];
-      var card_source = object.movie.source || 'tmdb'; //Lampa.Storage.field('source')
+      var card_source = object.movie.source || 'tmdb';
       query.push('id=' + encodeURIComponent(object.movie.id));
 
       if (object.movie.imdb_id) query.push('imdb_id=' + (object.movie.imdb_id || ''));
@@ -605,7 +603,7 @@ onl2_server.then(function (base) {
         query.push('cub_id=' + Lampa.Utils.hash(Lampa.Storage.get('account_email', '')));
       return url + (url.indexOf('?') >= 0 ? '&' : '?') + query.join('&');
     };
-    // ── source & life events ──
+
     this.getLastChoiceBalanser = function () {
       var last_select_balanser = Lampa.Storage.cache('onl2_online_last_balanser', 3000, {});
       if (last_select_balanser[object.movie.id]) {
@@ -763,18 +761,13 @@ onl2_server.then(function (base) {
         );
       });
     };
-    /**
-     * Подготовка
-     */
+
     this.create = function () {
       return this.render();
     };
-    // ── search & request ──
-    /**
-     * Начать поиск
-     */
+
     this.search = function () {
-      //this.loading(true)
+
       this.filter(
         {
           source: filter_sources
@@ -832,7 +825,7 @@ onl2_server.then(function (base) {
         return [];
       }
     };
-    // ── play / quality ──
+
     this.getFileUrl = function (file, call, waiting_rch) {
       var _this = this;
 
@@ -981,7 +974,7 @@ onl2_server.then(function (base) {
                     _this5.orUrlReserve(cell);
                     _this5.setDefaultQuality(cell);
                     playlist.push(cell);
-                  }); //Lampa.Player.playlist(playlist)
+                  });
                 } else {
                   playlist.push(first);
                 }
@@ -989,7 +982,7 @@ onl2_server.then(function (base) {
                 if (first.url) {
                   var element = first;
                   element.isonline = true;
-                  
+
                   Lampa.Player.play(element);
                   Lampa.Player.playlist(playlist);
                   if (element.subtitles_call) _this5.loadSubtitles(element.subtitles_call);
@@ -1042,7 +1035,7 @@ onl2_server.then(function (base) {
         }
       );
     };
-    // ── parse response ──
+
     this.parse = function (str) {
       var json = Lampa.Arrays.decodeJson(str, {});
       if (Lampa.Arrays.isObject(str) && str.rch) json = str;
@@ -1087,19 +1080,17 @@ onl2_server.then(function (base) {
               });
               var find_voice_active = buttons.find(function (v) {
                 return v.active;
-              }); ////console.log('b',buttons)
-              ////console.log('u',find_voice_url)
-              ////console.log('n',find_voice_name)
-              ////console.log('a',find_voice_active)
+              });
+
               if (find_voice_url && !find_voice_url.active) {
-                //console.log('Lampac', 'go to voice', find_voice_url);
+
                 this.replaceChoice({
                   voice: buttons.indexOf(find_voice_url),
                   voice_name: find_voice_url.text
                 });
                 this.request(find_voice_url.url);
               } else if (find_voice_name && !find_voice_name.active) {
-                //console.log('Lampac', 'go to voice', find_voice_name);
+
                 this.replaceChoice({
                   voice: buttons.indexOf(find_voice_name),
                   voice_name: find_voice_name.text
@@ -1127,7 +1118,7 @@ onl2_server.then(function (base) {
               this.similars(similar);
               this.activity.loader(false);
             } else {
-              //this.activity.loader(true)
+
               filter_find.season = items.map(function (s) {
                 return {
                   title: s.text,
@@ -1137,7 +1128,7 @@ onl2_server.then(function (base) {
               var select_season = this.getChoice(balanser).season;
               var season = filter_find.season[select_season];
               if (!season) season = filter_find.season[0];
-              //console.log('Lampac', 'go to season', season);
+
               this.request(season.url);
             }
           } else {
@@ -1145,7 +1136,7 @@ onl2_server.then(function (base) {
           }
         }
       } catch (e) {
-        //console.log('Lampac', 'error', e.stack);
+
         this.doesNotAnswer(e);
       }
     };
@@ -1201,7 +1192,7 @@ onl2_server.then(function (base) {
       );
       Lampa.Controller.enable('content');
     };
-    // ── choice & storage ──
+
     this.getChoice = function (for_balanser) {
       var data = Lampa.Storage.cache('onl2_online_choice_' + (for_balanser || balanser), 3000, {});
       var save = data[object.movie.id] || {};
@@ -1234,9 +1225,7 @@ onl2_server.then(function (base) {
       });
       images = [];
     };
-    /**
-     * Очистить список файлов
-     */
+
     this.reset = function () {
       last = false;
       stopBalanserTimer();
@@ -1247,9 +1236,7 @@ onl2_server.then(function (base) {
       scroll.reset();
       scroll.body().append(Lampa.Template.get('onl2_lampac_content_loading'));
     };
-    /**
-     * Загрузка
-     */
+
     this.loading = function (status) {
       if (status) this.activity.loader(true);
       else {
@@ -1257,10 +1244,7 @@ onl2_server.then(function (base) {
         this.activity.toggle();
       }
     };
-    // ── UI: filter, draw, errors ──
-    /**
-     * Построить фильтр
-     */
+
     this.filter = function (filter_items, choice) {
       var _this7 = this;
       var select = [];
@@ -1306,9 +1290,7 @@ onl2_server.then(function (base) {
       );
       this.selected(filter_items);
     };
-    /**
-     * Показать что выбрано в фильтре
-     */
+
     this.selected = function (filter_items) {
       var need = this.getChoice(),
         select = [];
@@ -1373,9 +1355,7 @@ onl2_server.then(function (base) {
         });
       } else body.append('<span>' + Lampa.Lang.translate('onl2_lampac_no_watch_history') + '</span>');
     };
-    /**
-     * Отрисовка файлов
-     */
+
     this.draw = function (items) {
       var _this8 = this;
       var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
@@ -1670,9 +1650,7 @@ onl2_server.then(function (base) {
         Lampa.Controller.enable('content');
       });
     };
-    /**
-     * Меню
-     */
+
     this.contextMenu = function (params) {
       params.html
         .on('hover:long', function () {
@@ -1823,9 +1801,7 @@ onl2_server.then(function (base) {
           if (Lampa.Helper) Lampa.Helper.show('onl2_online_file', Lampa.Lang.translate('onl2_helper_online_file'), params.html);
         });
     };
-    /**
-     * Показать пустой результат
-     */
+
     this.empty = function () {
       var html = Lampa.Template.get('onl2_lampac_does_not_answer', {});
       html.find('.onl-online-empty__buttons').remove();
@@ -1894,13 +1870,11 @@ onl2_server.then(function (base) {
       });
       return last_episode;
     };
-    // ── activity lifecycle ──
+
     this.background = function () {
       Lampa.Background.immediately(Lampa.Utils.cardImgBackgroundBlur(object.movie));
     };
-    /**
-     * Начать навигацию по файлам
-     */
+
     this.start = function () {
       if (Lampa.Activity.active().activity !== this.activity) return;
       if (!initialized) {
@@ -2145,14 +2119,14 @@ onl2_server.then(function (base) {
     }
     Lampa.Lang.add({
       onl2_lampac_watch: {
-        //
+
         ru: 'Смотреть онлайн',
         en: 'Watch online',
         uk: 'Дивитися онлайн',
         zh: '在线观看'
       },
       onl2_lampac_video: {
-        //
+
         ru: 'Видео',
         en: 'Video',
         uk: 'Відео',
@@ -2171,77 +2145,77 @@ onl2_server.then(function (base) {
         zh: '获取链接失败'
       },
       onl2_lampac_balanser: {
-        //
+
         ru: 'Источник',
         uk: 'Джерело',
         en: 'Source',
         zh: '来源'
       },
       onl2_helper_online_file: {
-        //
+
         ru: 'Удерживайте клавишу "ОК" для вызова контекстного меню',
         uk: 'Утримуйте клавішу "ОК" для виклику контекстного меню',
         en: 'Hold the "OK" key to bring up the context menu',
         zh: '按住“确定”键调出上下文菜单'
       },
       onl2_title_online: {
-        //
+
         ru: 'Онлайн',
         uk: 'Онлайн',
         en: 'Online',
         zh: '在线的'
       },
       onl2_lampac_voice_subscribe: {
-        //
+
         ru: 'Подписаться на перевод',
         uk: 'Підписатися на переклад',
         en: 'Subscribe to translation',
         zh: '订阅翻译'
       },
       onl2_lampac_voice_success: {
-        //
+
         ru: 'Вы успешно подписались',
         uk: 'Ви успішно підписалися',
         en: 'You have successfully subscribed',
         zh: '您已成功订阅'
       },
       onl2_lampac_voice_error: {
-        //
+
         ru: 'Возникла ошибка',
         uk: 'Виникла помилка',
         en: 'An error has occurred',
         zh: '发生了错误'
       },
       onl2_lampac_clear_all_marks: {
-        //
+
         ru: 'Очистить все метки',
         uk: 'Очистити всі мітки',
         en: 'Clear all labels',
         zh: '清除所有标签'
       },
       onl2_lampac_clear_all_timecodes: {
-        //
+
         ru: 'Очистить все тайм-коды',
         uk: 'Очистити всі тайм-коди',
         en: 'Clear all timecodes',
         zh: '清除所有时间代码'
       },
       onl2_lampac_change_balanser: {
-        //
+
         ru: 'Изменить балансер',
         uk: 'Змінити балансер',
         en: 'Change balancer',
         zh: '更改平衡器'
       },
       onl2_lampac_balanser_dont_work: {
-        //
+
         ru: 'Поиск на ({balanser}) не дал результатов',
         uk: 'Пошук на ({balanser}) не дав результатів',
         en: 'Search on ({balanser}) did not return any results',
         zh: '搜索 ({balanser}) 未返回任何结果'
       },
       onl2_lampac_balanser_timeout: {
-        //
+
         ru: 'Источник будет переключен автоматически через <span class="timeout">10</span> секунд.',
         uk: 'Джерело буде автоматично переключено через <span class="timeout">10</span> секунд.',
         en: 'The source will be switched automatically after <span class="timeout">10</span> seconds.',
@@ -2254,12 +2228,12 @@ onl2_server.then(function (base) {
         zh: '搜索 ({balanser}) 未返回任何结果'
       }
     });
-    // ── UI assets: CSS + Lampa templates ──
+
     function lampacCssHtml() {
       return [
         '<style>',
         '@charset \'UTF-8\';',
-        '/* ── prestige card ── */',
+        '',
         '.onl-online-prestige {',
         '  position: relative;',
         '  -webkit-border-radius: 0.3em;',
@@ -2481,7 +2455,7 @@ onl2_server.then(function (base) {
         '.onl-online-prestige--folder .onl-online-prestige__footer {',
         '  margin-top: 0.8em;',
         '}',
-        '/* ── watched row ── */',
+        '',
         '.onl-online-prestige-watched {',
         '  padding: 1em;',
         '}',
@@ -2507,7 +2481,7 @@ onl2_server.then(function (base) {
         '  display: inline-block;',
         '  margin: 0 0.5em;',
         '}',
-        '/* ── rate badge ── */',
+        '',
         '.onl-online-prestige-rate {',
         '  display: -webkit-inline-box;',
         '  display: -webkit-inline-flex;',
@@ -2529,7 +2503,7 @@ onl2_server.then(function (base) {
         '  font-size: 1.1em;',
         '  padding-left: 0.7em;',
         '}',
-        '/* ── empty / error ── */',
+        '',
         '.onl-online-empty {',
         '  line-height: 1.4;',
         '}',
@@ -2740,14 +2714,14 @@ onl2_server.then(function (base) {
       '  <span>#{onl2_title_online}</span>',
       '</div>'
     ].join('\n');
-    var button = LAMPAC_FULL_CARD_BUTTON; // нужна заглушка, а то при страте лампы говорит пусто
+    var button = LAMPAC_FULL_CARD_BUTTON;
     resetTemplates();
 
     function addButton(e) {
       if (!e.render || !e.render.length) return;
       if (e.render.parent().find('.onl2-lampac--button').length) return;
       var btn = $(Lampa.Lang.translate(button));
-      // //console.log(btn.clone().removeClass('focus').prop('outerHTML'))
+
       btn.on('hover:enter', function () {
         resetTemplates();
 
