@@ -197,7 +197,7 @@ window.onl2_rch_nws[hostkey].Registry = function RchRegistry(client, startConnec
 var onl2_server = new Promise(function (resolve) {
   var probe = new Lampa.Reguest();
   probe.timeout(5000);
-  probe.silent(ONL2_PRIMARY + 'cors/check', function () {
+  probe.silent(ONL2_PRIMARY + 'lite/events?life=true&uid=onl2probe', function () {
     console.log('ONL2', 'primary server up');
     resolve(ONL2_PRIMARY);
   }, function () {
