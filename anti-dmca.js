@@ -70,7 +70,6 @@
         if (Lampa.Utils) Lampa.Utils.dcma = function () { return undefined; };
     }
 
-    var directTmdbCalls = 0;
 
     function directTmdbApiUrl(path) {
         var protocol = 'https://';
@@ -82,36 +81,34 @@
         return protocol + 'api.themoviedb.org/3/' + path;
     }
 
-    function installDirectTmdbApi() {
-        if (!Lampa.TMDB || typeof Lampa.TMDB.api !== 'function') return;
-        if (Lampa.TMDB.__anti_dmca_direct_api) return;
+    function isDirectApiUrl(u) {
+        return /^https?:\/\/api\.themoviedb\.org\/3\//.test(str(u));
+    }
+
+    function canDirectRetry() {
+        try {
+            if (!Lampa.TMDB || typeof Lampa.TMDB.api !== 'function') return false;
+            return !isDirectApiUrl(Lampa.TMDB.api('movie/1'));
+        } catch (e) {
+            return false;
+        }
+    }
+
+    function callDirectTmdb(self, origFull, params, oncomplite, onerror) {
+        if (!Lampa.TMDB || typeof Lampa.TMDB.api !== 'function') {
+            return origFull.call(self, params, oncomplite, onerror);
+        }
 
         var original = Lampa.TMDB.api;
 
         Lampa.TMDB.api = function (path) {
-            if (directTmdbCalls > 0) return directTmdbApiUrl(path);
-            return original.apply(this, arguments);
+            return directTmdbApiUrl(path);
         };
 
-        Lampa.TMDB.__anti_dmca_direct_api = true;
-    }
-
-    function withDirectTmdb(callback) {
-        directTmdbCalls++;
-
-        var released = false;
-
-        function release() {
-            if (released) return;
-            released = true;
-            directTmdbCalls = Math.max(0, directTmdbCalls - 1);
-        }
-
         try {
-            callback(release);
-        } catch (e) {
-            release();
-            throw e;
+            origFull.call(self, params, oncomplite, onerror);
+        } finally {
+            Lampa.TMDB.api = original;
         }
     }
 
@@ -135,29 +132,32 @@
 
         tmdb.full = function (params, oncomplite, onerror) {
             var self = this;
-            var retried = false;
 
-            function handle(data) {
-                if (!retried && isBlockedPayload(data)) {
-                    retried = true;
-
-                    withDirectTmdb(function (release) {
-                        origFull.call(self, params, function (directData) {
-                            release();
+            function attempt() {
+                origFull.call(self, params, function (data) {
+                    if (isBlockedPayload(data) && canDirectRetry()) {
+                        return callDirectTmdb(self, origFull, params, function (directData) {
                             oncomplite(normalizeCard(directData, 'tmdb'));
-                        }, function (status) {
-                            release();
-                            if (onerror) onerror(status || {});
+                        }, function (directStatus) {
+                            if (onerror) onerror(directStatus || {});
                         });
-                    });
+                    }
 
-                    return;
-                }
+                    oncomplite(normalizeCard(data, 'tmdb'));
+                }, function (status) {
+                    if (canDirectRetry()) {
+                        return callDirectTmdb(self, origFull, params, function (directData) {
+                            oncomplite(normalizeCard(directData, 'tmdb'));
+                        }, function (directStatus) {
+                            if (onerror) onerror(directStatus || status || {});
+                        });
+                    }
 
-                oncomplite(normalizeCard(data, 'tmdb'));
+                    if (onerror) onerror(status || {});
+                });
             }
 
-            origFull.call(self, params, handle, onerror);
+            attempt();
         };
 
         tmdb.__anti_dmca_card = true;
@@ -181,14 +181,10 @@
                 if (switched) return;
                 switched = true;
 
-                withDirectTmdb(function (release) {
-                    tmdb.full(params, function (data) {
-                        release();
-                        oncomplite(normalizeCard(data, 'cub'));
-                    }, function (status) {
-                        release();
-                        if (onerror) onerror(status || {});
-                    });
+                tmdb.full(params, function (data) {
+                    oncomplite(normalizeCard(data, 'cub'));
+                }, function (status) {
+                    if (onerror) onerror(status || {});
                 });
             }
 
@@ -300,7 +296,6 @@
 
         killBlockList();
         fixCountries();
-        installDirectTmdbApi();
         fixCard();
         redirectBlockedCards();
         fixDetails();
