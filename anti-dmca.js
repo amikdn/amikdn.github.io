@@ -70,31 +70,43 @@
         if (Lampa.Utils) Lampa.Utils.dcma = function () { return undefined; };
     }
 
+    var DIRECT_BASES = ['api.themoviedb.org/3/', 'api.tmdb.org/3/'];
 
-    function directTmdbApiUrl(path) {
-        var protocol = 'https://';
+    var preferredDirectBase = '';
 
+    function protocol() {
         try {
-            if (Lampa.Utils && typeof Lampa.Utils.protocol === 'function') protocol = Lampa.Utils.protocol();
+            if (Lampa.Utils && typeof Lampa.Utils.protocol === 'function') return Lampa.Utils.protocol();
         } catch (e) {}
 
-        return protocol + 'api.themoviedb.org/3/' + path;
+        return 'https://';
     }
 
-    function isDirectApiUrl(u) {
-        return /^https?:\/\/api\.themoviedb\.org\/3\//.test(str(u));
-    }
+    function isCurrentApiUrl(base) {
+        var probe = '';
 
-    function canDirectRetry() {
         try {
-            if (!Lampa.TMDB || typeof Lampa.TMDB.api !== 'function') return false;
-            return !isDirectApiUrl(Lampa.TMDB.api('movie/1'));
-        } catch (e) {
-            return false;
-        }
+            if (Lampa.TMDB && typeof Lampa.TMDB.api === 'function') probe = Lampa.TMDB.api('movie/1');
+        } catch (e) {}
+
+        return !!probe && str(probe).indexOf(protocol() + base) === 0;
     }
 
-    function callDirectTmdb(self, origFull, params, oncomplite, onerror) {
+    function directBaseChain() {
+        var bases = [];
+
+        function push(base) {
+            if (bases.indexOf(base) === -1 && !isCurrentApiUrl(base)) bases.push(base);
+        }
+
+        if (preferredDirectBase) push(preferredDirectBase);
+
+        for (var i = 0; i < DIRECT_BASES.length; i++) push(DIRECT_BASES[i]);
+
+        return bases;
+    }
+
+    function callWithApiBase(self, origFull, params, base, oncomplite, onerror) {
         if (!Lampa.TMDB || typeof Lampa.TMDB.api !== 'function') {
             return origFull.call(self, params, oncomplite, onerror);
         }
@@ -102,7 +114,7 @@
         var original = Lampa.TMDB.api;
 
         Lampa.TMDB.api = function (path) {
-            return directTmdbApiUrl(path);
+            return protocol() + base + path;
         };
 
         try {
@@ -110,6 +122,20 @@
         } finally {
             Lampa.TMDB.api = original;
         }
+    }
+
+    function tryDirectBases(self, origFull, params, bases, oncomplite, onerror, lastStatus) {
+        if (!bases.length) return onerror(lastStatus || {});
+
+        var base = bases[0];
+
+        callWithApiBase(self, origFull, params, base, function (data) {
+            preferredDirectBase = base;
+
+            oncomplite(normalizeCard(data, 'tmdb'));
+        }, function (status) {
+            tryDirectBases(self, origFull, params, bases.slice(1), oncomplite, onerror, status);
+        });
     }
 
     function isBlockedPayload(data) {
@@ -133,31 +159,25 @@
         tmdb.full = function (params, oncomplite, onerror) {
             var self = this;
 
-            function attempt() {
-                origFull.call(self, params, function (data) {
-                    if (isBlockedPayload(data) && canDirectRetry()) {
-                        return callDirectTmdb(self, origFull, params, function (directData) {
-                            oncomplite(normalizeCard(directData, 'tmdb'));
-                        }, function (directStatus) {
-                            if (onerror) onerror(directStatus || {});
-                        });
+            origFull.call(self, params, function (data) {
+                if (isBlockedPayload(data)) {
+                    var bases = directBaseChain();
+
+                    if (bases.length) {
+                        return tryDirectBases(self, origFull, params, bases, oncomplite, onerror);
                     }
+                }
 
-                    oncomplite(normalizeCard(data, 'tmdb'));
-                }, function (status) {
-                    if (canDirectRetry()) {
-                        return callDirectTmdb(self, origFull, params, function (directData) {
-                            oncomplite(normalizeCard(directData, 'tmdb'));
-                        }, function (directStatus) {
-                            if (onerror) onerror(directStatus || status || {});
-                        });
-                    }
+                oncomplite(normalizeCard(data, 'tmdb'));
+            }, function (status) {
+                var bases = directBaseChain();
 
-                    if (onerror) onerror(status || {});
-                });
-            }
+                if (bases.length) {
+                    return tryDirectBases(self, origFull, params, bases, oncomplite, onerror, status);
+                }
 
-            attempt();
+                if (onerror) onerror(status || {});
+            });
         };
 
         tmdb.__anti_dmca_card = true;
@@ -180,7 +200,6 @@
             function useTmdb() {
                 if (switched) return;
                 switched = true;
-
                 tmdb.full(params, function (data) {
                     oncomplite(normalizeCard(data, 'cub'));
                 }, function (status) {
