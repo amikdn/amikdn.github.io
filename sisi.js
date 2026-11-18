@@ -7,10 +7,10 @@
     // Список зеркал для загрузки внешнего скрипта sisi.js
     const scriptMirrors = [
     //  'https://ab2024.ru/sisi.js',
-    //  'https://cinema.n8n-leoto.ru/sisi.js',
+        'https://cinema.n8n-leoto.ru/sisi.js',
     //  'https://l.pashai.ru/sisi.js',
     //  'https://lampa.ip917.ru/sisi.js',
-        'https://lampac.top/sisi.js',
+    //    'https://lampac.top/sisi.js',
     //  'http://212.34.147.53/sisi.js',
     //  'http://150.241.116.154/sisi.js',
     ];
