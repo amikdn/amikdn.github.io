@@ -7,8 +7,9 @@
 
     var DEFAULTS = {
         series_status_show_cards: true,
-        series_status_position: 'bottom-center',
-        series_status_style: 'corner',
+        series_status_position: 'top-center',
+        series_status_style: 'rounded',
+        series_status_size: '100',
         series_status_colored: true,
         series_status_data: 'status',
         series_status_ended_replace: false,
@@ -146,10 +147,15 @@
     }
     function ssGetPosition() {
         var v = ssGetStr('series_status_position');
-        return (v === 'bottom-left' || v === 'bottom-right' || v === 'top-left' || v === 'top-right') ? v : 'bottom-center';
+        return (v === 'bottom-center' || v === 'bottom-left' || v === 'bottom-right' || v === 'top-left' || v === 'top-right') ? v : 'top-center';
     }
     function ssIsRounded() {
         return ssGetStr('series_status_style') === 'rounded';
+    }
+    function ssGetSize() {
+        var v = parseFloat(ssGetStr('series_status_size'));
+        if (!(v >= 60 && v <= 200)) v = 100;
+        return v;
     }
     function ssGetDataMode() {
         var v = ssGetStr('series_status_data');
@@ -410,60 +416,124 @@
         }
         return null;
     }
-    function ssMeasureCenter(view) {
+    function ssImgBox(view) {
+        try {
+            var img = view.querySelector('.card__img');
+            if (img && img.offsetWidth > 0) return { left: img.offsetLeft, width: img.offsetWidth };
+        } catch (e) { logErr(e); }
+        return { left: 0, width: view.clientWidth || view.offsetWidth || 0 };
+    }
+    function ssFitBadge(view, label) {
+        if (!view || !label) return;
+        try {
+            var box = ssImgBox(view);
+            var avail = box.width - 4;
+            if (avail <= 0) return;
+            var w = label.offsetWidth;
+            if (w > avail) {
+                var fs0 = parseFloat(window.getComputedStyle(label).fontSize) || 14;
+                var fs1 = Math.max(fs0 * avail / w, fs0 * 0.65);
+                label.style.setProperty('font-size', fs1.toFixed(3) + 'px', 'important');
+            }
+        } catch (e) { logErr(e); }
+    }
+    function ssCenterEdge(view, label, box, gap, isTop) {
         if (!view) return null;
         try {
-            var viewWidth = view.clientWidth || view.offsetWidth;
-            var qualityBox = ssFirstVisibleBox(view, 'card__quality');
-            var voteBox = ssFirstVisibleVoteBox(view);
-            var leftEdge = qualityBox ? qualityBox.right : 0;
-            var rightEdge = voteBox ? voteBox.left : viewWidth;
-            if (rightEdge <= leftEdge) {
-                leftEdge = 0;
-                rightEdge = viewWidth;
+            var imgLeft = box ? box.left : 0;
+            var imgWidth = box ? box.width : (view.clientWidth || view.offsetWidth);
+            if (!imgWidth) return null;
+            var leftOccupant = isTop ? ssFirstVisibleBox(view, 'card__type') : ssFirstVisibleBox(view, 'card__quality');
+            var rightOccupant = isTop ? ssFirstVisibleBox(view, 'card__year-badge') : ssFirstVisibleVoteBox(view);
+            var leftEdge = leftOccupant ? Math.max(imgLeft, leftOccupant.right + gap) : (imgLeft + gap);
+            var rightEdge = rightOccupant ? Math.min(imgLeft + imgWidth, rightOccupant.left - gap) : (imgLeft + imgWidth - gap);
+            var center = imgLeft + imgWidth / 2;
+            var badgeWidth = label ? label.offsetWidth : 0;
+            if (badgeWidth > 0 && rightEdge > leftEdge) {
+                var half = badgeWidth / 2;
+                var minCenter = leftEdge + half;
+                var maxCenter = rightEdge - half;
+                if (minCenter <= maxCenter) {
+                    if (center < minCenter) center = minCenter;
+                    if (center > maxCenter) center = maxCenter;
+                } else {
+                    var pad = 2;
+                    var minInPoster = imgLeft + pad + half;
+                    var maxInPoster = imgLeft + imgWidth - pad - half;
+                    if (minInPoster <= maxInPoster) {
+                        if (center < minInPoster) center = minInPoster;
+                        if (center > maxInPoster) center = maxInPoster;
+                    } else {
+                        center = imgLeft + imgWidth / 2;
+                    }
+                }
             }
-            return (leftEdge + rightEdge) / 2;
+            return center;
         } catch (e) { return null; }
     }
     function ssApplyPosition(view, label, pos, rounded, useSmart) {
         if (!view || !label) return;
-        var inset = rounded ? '0.4em' : '0';
-        var shadow = 'none';
-        var radius;
-        var radiusVar;
+        var box = ssImgBox(view);
+        var viewWidth = view.clientWidth || view.offsetWidth || box.width;
+        var fs = 14;
+        try { fs = parseFloat(window.getComputedStyle(label).fontSize) || 14; } catch (eF) { logErr(eF); }
+        var insetPx = rounded ? Math.round(fs * 0.4) : 0;
+        var gap = Math.round(fs * 0.25);
+        var radius = rounded ? '0.6em' : '0.75em';
+        var radiusVar = radius;
+        var shadow = rounded ? '0 0.15em 0.5em rgba(0,0,0,0.5)' : '0 0.12em 0.4em rgba(0,0,0,0.55)';
         var props = { top: 'auto', right: 'auto', bottom: 'auto', left: 'auto', transform: 'none' };
-        if (pos === 'bottom-center') {
-            var center = useSmart ? ssMeasureCenter(view) : null;
-            props.left = (center !== null && center !== undefined) ? center + 'px' : '50%';
-            props.bottom = inset;
+        var rightFromView = Math.max(0, viewWidth - (box.left + box.width));
+        if (pos === 'top-center') {
+            var centerTop = useSmart ? ssCenterEdge(view, label, box, gap, true) : null;
+            props.left = (centerTop !== null && centerTop !== undefined) ? centerTop + 'px' : '50%';
+            props.top = insetPx + 'px';
             props.transform = 'translateX(-50%)';
-            radius = rounded ? '0.5em' : '0.75em 0.75em 0 0';
-            radiusVar = rounded ? '0.5em' : 'var(--co-poster-radius,0.75em) var(--co-poster-radius,0.75em) 0 0';
-            if (rounded) shadow = '0 -0.12em 0.4em rgba(0,0,0,0.55)';
+            if (!rounded) {
+                radius = '0 0 0.75em 0.75em';
+                radiusVar = '0 0 var(--co-poster-radius,0.75em) var(--co-poster-radius,0.75em)';
+                shadow = '0 0.12em 0.4em rgba(0,0,0,0.55)';
+            }
+        } else if (pos === 'bottom-center') {
+            var center = useSmart ? ssCenterEdge(view, label, box, gap, false) : null;
+            props.left = (center !== null && center !== undefined) ? center + 'px' : '50%';
+            props.bottom = insetPx + 'px';
+            props.transform = 'translateX(-50%)';
+            if (!rounded) {
+                radius = '0.75em 0.75em 0 0';
+                radiusVar = 'var(--co-poster-radius,0.75em) var(--co-poster-radius,0.75em) 0 0';
+                shadow = '0 -0.12em 0.4em rgba(0,0,0,0.55)';
+            }
         } else if (pos === 'bottom-left') {
-            props.left = inset;
-            props.bottom = inset;
-            radius = rounded ? '0.5em' : '0 0 0 0.75em';
-            radiusVar = rounded ? '0.5em' : '0 0 0 var(--co-poster-radius,0.75em)';
-            if (rounded) shadow = '0 -0.12em 0.4em rgba(0,0,0,0.55)';
+            props.left = (box.left + insetPx) + 'px';
+            props.bottom = insetPx + 'px';
+            if (!rounded) {
+                radius = '0 0.75em 0 0.75em';
+                radiusVar = '0 0.75em 0 var(--co-poster-radius,0.75em)';
+                shadow = '0 -0.12em 0.4em rgba(0,0,0,0.55)';
+            }
         } else if (pos === 'bottom-right') {
-            props.right = inset;
-            props.bottom = inset;
-            radius = rounded ? '0.5em' : '0 0 0.75em 0';
-            radiusVar = rounded ? '0.5em' : '0 0 var(--co-poster-radius,0.75em) 0';
-            if (rounded) shadow = '0 -0.12em 0.4em rgba(0,0,0,0.55)';
+            props.right = (rightFromView + insetPx) + 'px';
+            props.bottom = insetPx + 'px';
+            if (!rounded) {
+                radius = '0.75em 0 0.75em 0';
+                radiusVar = '0.75em 0 var(--co-poster-radius,0.75em) 0';
+                shadow = '0 -0.12em 0.4em rgba(0,0,0,0.55)';
+            }
         } else if (pos === 'top-left') {
-            props.left = inset;
-            props.top = inset;
-            radius = rounded ? '0.5em' : '0.75em 0 0 0';
-            radiusVar = rounded ? '0.5em' : 'var(--co-poster-radius,0.75em) 0 0 0';
-            if (rounded) shadow = '0 0.12em 0.4em rgba(0,0,0,0.55)';
+            props.left = (box.left + insetPx) + 'px';
+            props.top = insetPx + 'px';
+            if (!rounded) {
+                radius = '0.75em 0 0.75em 0';
+                radiusVar = 'var(--co-poster-radius,0.75em) 0 0.75em 0';
+            }
         } else {
-            props.right = inset;
-            props.top = inset;
-            radius = rounded ? '0.5em' : '0 0.75em 0 0';
-            radiusVar = rounded ? '0.5em' : '0 var(--co-poster-radius,0.75em) 0 0';
-            if (rounded) shadow = '0 0.12em 0.4em rgba(0,0,0,0.55)';
+            props.right = (rightFromView + insetPx) + 'px';
+            props.top = insetPx + 'px';
+            if (!rounded) {
+                radius = '0 0.75em 0 0.75em';
+                radiusVar = '0 var(--co-poster-radius,0.75em) 0 0.75em';
+            }
         }
         props['box-shadow'] = shadow;
         for (var k in props) {
@@ -512,6 +582,8 @@
         var colored = ssGetBool('series_status_colored', true) && !!status;
         var bg = colored ? ssStatusColor(status) : 'rgba(0,0,0,0.75)';
         label.style.setProperty('background-color', bg, 'important');
+        label.style.setProperty('font-size', (1.1 * ssGetSize() / 100).toFixed(3) + 'em', 'important');
+        ssFitBadge(view, label);
         ssPositionLabel(view, label, true);
     }
     function ssRemoveFromCard(card) {
@@ -759,9 +831,11 @@
         label.textContent = text;
         var colored = ssGetBool('series_status_colored', true) && !!status;
         label.style.setProperty('background-color', colored ? ssStatusColor(status) : 'rgba(0,0,0,0.75)', 'important');
+        label.style.setProperty('font-size', (1.1 * ssGetSize() / 100).toFixed(3) + 'em', 'important');
+        ssFitBadge(poster, label);
         try { poster.style.position = 'relative'; } catch (e2) { logErr(e2); }
         poster.appendChild(label);
-        ssPositionLabel(poster, label, false);
+        ssPositionLabel(poster, label, true);
         return true;
     }
     function ssOnFull(e) {
@@ -853,7 +927,7 @@
             Lampa.SettingsApi.addComponent({
                 component: COMPONENT,
                 name: 'Состояние сериала',
-                icon: '<svg height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="4" y="7" width="36" height="24" rx="3" fill="white"></rect><rect x="16" y="33" width="12" height="4" rx="1.5" fill="white"></rect></svg>'
+                icon: '<svg width="44" height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="9" y="3" width="26" height="38" rx="4" stroke="white" stroke-width="3"></rect><rect x="14" y="27" width="16" height="7" rx="2.5" fill="white"></rect></svg>'
             });
         } catch (e) { logErr(e); return; }
 
@@ -872,14 +946,22 @@
             }
         );
         add(
-            { name: 'series_status_position', type: 'select', values: { 'bottom-center': 'Низ по центру', 'bottom-left': 'Нижний левый угол', 'bottom-right': 'Нижний правый угол', 'top-left': 'Верхний левый угол', 'top-right': 'Верхний правый угол' }, default: DEFAULTS.series_status_position },
-            { name: 'Позиция на постере', description: 'Низ по центру не пересекается с качеством и рейтингами. Учтите, что углы могут быть заняты бейджами «Интерфейс Мод»' },
+            { name: 'series_status_position', type: 'select', values: { 'top-center': 'Верх по центру', 'top-left': 'Верхний левый угол', 'top-right': 'Верхний правый угол', 'bottom-center': 'Низ по центру', 'bottom-left': 'Нижний левый угол', 'bottom-right': 'Нижний правый угол' }, default: DEFAULTS.series_status_position },
+            { name: 'Позиция на постере', description: 'Верх по центру не мешает рейтингу и качеству внизу; бейдж сдвигается только если сверху есть другие бейджи' },
             function () { ssReapplyAllCards(); }
         );
         add(
             { name: 'series_status_style', type: 'select', values: { 'corner': 'Уголки', 'rounded': 'Скругление + тень' }, default: DEFAULTS.series_status_style },
-            { name: 'Стиль бейджа', description: 'Внешний вид окна статуса (собственная настройка плагина)' },
+            { name: 'Стиль бейджа', description: 'Скругление + тень — плашка со сдвигом от краёв постера; Уголки — вплотную к краям' },
             function () { ssReapplyAllCards(); }
+        );
+        add(
+            { name: 'series_status_size', type: 'select', values: { '80': '80%', '90': '90%', '100': '100%', '110': '110%', '125': '125%', '150': '150%' }, default: DEFAULTS.series_status_size },
+            { name: 'Размер бейджа', description: 'Масштаб текста и окна статуса' },
+            function () {
+                ssReapplyAllCards();
+                ssRefreshDetail();
+            }
         );
         add(
             { name: 'series_status_colored', type: 'trigger', default: DEFAULTS.series_status_colored },
@@ -923,7 +1005,7 @@
         );
         add(
             { name: 'series_status_hide_dup', type: 'trigger', default: DEFAULTS.series_status_hide_dup },
-            { name: 'Скрывать дубликат от «Интерфейс Мод»', description: 'Скрывать статус-лейбл плагина «Интерфейс Мод» (card_overlay), чтобы не было двух одинаковых бейджей' },
+            { name: 'Скрывать дубликат статуса', description: 'Скрывать статус-лейбл другого плагина карточек, чтобы не было двух одинаковых бейджей' },
             function () { ssUpdateBodyAttrs(); }
         );
         add(
@@ -954,7 +1036,7 @@
     function ssInit() {
         if (window.__series_status_initialized__) return;
         window.__series_status_initialized__ = true;
-        try { console.log('[series_status] v1.1.0 active'); } catch (e) {}
+        try { console.log('[series_status] v1.3.1 active'); } catch (e) {}
         try { DEBUG = isTruthy(Lampa.Storage.get('series_status_debug', false)); } catch (e0) {}
         ssClearLegacyCacheKey();
         ssInjectStyle();
@@ -993,7 +1075,8 @@
         safe(function () {
             if (Lampa.Storage && Lampa.Storage.listener) {
                 Lampa.Storage.listener.follow('change', function (e) {
-                    if (e.name === 'interface_size' || e.name === 'rating_scale') later(ssRepositionAll, 150, 'ss-size');
+                    if (e.name === 'interface_size') later(ssReapplyAllCards, 150, 'ss-size');
+                    if (e.name === 'rating_scale') later(ssRepositionAll, 150, 'ss-rscale');
                     if (e.name === 'colored_elements') later(ssUpdateDetailColorAttr, 50, 'ss-modcolor');
                 });
             }
@@ -1042,6 +1125,13 @@
         ssRemoveAllCardLabels();
         ssRemoveDetailBadges(document);
         try {
+            var seenCards = document.querySelectorAll('[data-ssb-seen], [data-ssb-visible]');
+            for (var sc = 0; sc < seenCards.length; sc++) {
+                seenCards[sc].removeAttribute('data-ssb-seen');
+                seenCards[sc].removeAttribute('data-ssb-visible');
+            }
+        } catch (e5) { logErr(e5); }
+        try {
             document.body.removeAttribute('data-ssb-hide-dup');
             document.body.removeAttribute('data-ssb-hide-next');
             document.body.removeAttribute('data-ssb-detail-color');
@@ -1051,11 +1141,15 @@
         window.__series_status_initialized__ = false;
     }
     window.__series_status_destroy__ = ssDestroy;
+    window.__series_status_refresh__ = function () {
+        ssReapplyAllCards();
+        ssRefreshDetail();
+    };
 
     var manifest = {
         name: 'Состояние сериала',
-        version: '1.1.0',
-        description: 'Статус сериала на карточках и странице сериала (независимо от «Интерфейс Мод»)'
+        version: '1.3.1',
+        description: 'Статус сериала на карточках и странице сериала'
     };
     try {
         var plugins = Lampa.Manifest.plugins;
