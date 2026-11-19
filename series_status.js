@@ -10,6 +10,7 @@
         series_status_position: 'top-center',
         series_status_style: 'rounded',
         series_status_size: '100',
+        series_status_opacity: '80',
         series_status_colored: true,
         series_status_data: 'status',
         series_status_ended_replace: false,
@@ -29,12 +30,12 @@
         'Pilot': 'Пилотный'
     };
     var STATUS_COLORS = {
-        'Ended': 'rgba(52,152,219,0.85)',
-        'Canceled': 'rgba(244,67,54,0.85)',
-        'Returning Series': 'rgba(243,156,18,0.85)',
-        'In Production': 'rgba(52,152,219,0.85)',
-        'Planned': 'rgba(155,89,182,0.85)',
-        'Pilot': 'rgba(230,126,34,0.85)'
+        'Ended': '52,152,219',
+        'Canceled': '244,67,54',
+        'Returning Series': '243,156,18',
+        'In Production': '52,152,219',
+        'Planned': '155,89,182',
+        'Pilot': '230,126,34'
     };
     var STATUS_CSS_KEYS = {
         'Ended': 'completed',
@@ -147,7 +148,7 @@
     }
     function ssGetPosition() {
         var v = ssGetStr('series_status_position');
-        return (v === 'top-right' || v === 'bottom-left' || v === 'bottom-right') ? v : 'top-center';
+        return (v === 'top-right' || v === 'bottom-left') ? v : 'top-center';
     }
     function ssIsRounded() {
         return ssGetStr('series_status_style') === 'rounded';
@@ -156,6 +157,11 @@
         var v = parseFloat(ssGetStr('series_status_size'));
         if (!(v >= 50 && v <= 100)) v = 100;
         return v;
+    }
+    function ssGetOpacity() {
+        var v = parseFloat(ssGetStr('series_status_opacity'));
+        if (!(v >= 30 && v <= 100)) v = 80;
+        return v / 100;
     }
     function ssGetDataMode() {
         var v = ssGetStr('series_status_data');
@@ -274,7 +280,8 @@
         return STATUS_LABELS[n] || n;
     }
     function ssStatusColor(status) {
-        return STATUS_COLORS[ssNormalizeStatus(status)] || 'rgba(0,0,0,0.75)';
+        var rgb = STATUS_COLORS[ssNormalizeStatus(status)] || '0,0,0';
+        return 'rgba(' + rgb + ',' + ssGetOpacity() + ')';
     }
     function ssStatusCssKey(status) {
         return STATUS_CSS_KEYS[ssNormalizeStatus(status)] || '';
@@ -486,14 +493,6 @@
                 radiusVar = '0 0.75em 0 var(--co-poster-radius,0.75em)';
                 shadow = '0 -0.12em 0.4em rgba(0,0,0,0.55)';
             }
-        } else if (pos === 'bottom-right') {
-            props.right = (rightFromView + insetPx) + 'px';
-            props.bottom = insetPx + 'px';
-            if (!rounded) {
-                radius = '0.75em 0 0.75em 0';
-                radiusVar = '0.75em 0 var(--co-poster-radius,0.75em) 0';
-                shadow = '0 -0.12em 0.4em rgba(0,0,0,0.55)';
-            }
         } else {
             props.right = (rightFromView + insetPx) + 'px';
             props.top = insetPx + 'px';
@@ -562,7 +561,7 @@
         if (card.classList) card.classList.add('ssb-has-badge');
         label.textContent = text;
         var colored = ssGetBool('series_status_colored', true) && !!status;
-        var bg = colored ? ssStatusColor(status) : 'rgba(0,0,0,0.75)';
+        var bg = colored ? ssStatusColor(status) : 'rgba(0,0,0,' + ssGetOpacity() + ')';
         label.style.setProperty('background-color', bg, 'important');
         label.style.setProperty('font-size', (1.1 * ssGetSize() / 100).toFixed(3) + 'em', 'important');
         ssFitBadge(view, label);
@@ -815,7 +814,7 @@
         label.className = 'ssb-detail-label';
         label.textContent = text;
         var colored = ssGetBool('series_status_colored', true) && !!status;
-        label.style.setProperty('background-color', colored ? ssStatusColor(status) : 'rgba(0,0,0,0.75)', 'important');
+        label.style.setProperty('background-color', colored ? ssStatusColor(status) : 'rgba(0,0,0,' + ssGetOpacity() + ')', 'important');
         label.style.setProperty('font-size', (1.1 * ssGetSize() / 100).toFixed(3) + 'em', 'important');
         ssFitBadge(poster, label);
         try { poster.style.position = 'relative'; } catch (e2) { logErr(e2); }
@@ -931,7 +930,7 @@
             }
         );
         add(
-            { name: 'series_status_position', type: 'select', values: { 'top-center': 'Верх по центру', 'top-right': 'Верхний правый угол', 'bottom-left': 'Нижний левый угол', 'bottom-right': 'Нижний правый угол' }, default: DEFAULTS.series_status_position },
+            { name: 'series_status_position', type: 'select', values: { 'top-center': 'Верх по центру', 'top-right': 'Верхний правый угол', 'bottom-left': 'Нижний левый угол' }, default: DEFAULTS.series_status_position },
             { name: 'Позиция на постере', description: 'Верх по центру не пересекается с бейджем типа и рейтингом; бейдж сдвигается, только если сверху есть другие бейджи' },
             function () { ssReapplyAllCards(); }
         );
@@ -943,6 +942,14 @@
         add(
             { name: 'series_status_size', type: 'select', values: { '60': '60%', '70': '70%', '80': '80%', '90': '90%', '100': '100%' }, default: DEFAULTS.series_status_size },
             { name: 'Размер бейджа', description: 'Масштаб текста и окна статуса (только уменьшение)' },
+            function () {
+                ssReapplyAllCards();
+                ssRefreshDetail();
+            }
+        );
+        add(
+            { name: 'series_status_opacity', type: 'select', values: { '100': '100%', '90': '90%', '80': '80%', '70': '70%', '60': '60%', '50': '50%', '40': '40%', '30': '30%' }, default: DEFAULTS.series_status_opacity },
+            { name: 'Прозрачность бейджа', description: 'Прозрачность фона статуса' },
             function () {
                 ssReapplyAllCards();
                 ssRefreshDetail();
@@ -1021,7 +1028,7 @@
     function ssInit() {
         if (window.__series_status_initialized__) return;
         window.__series_status_initialized__ = true;
-        try { console.log('[series_status] v1.3.3 active'); } catch (e) {}
+        try { console.log('[series_status] v1.3.5 active'); } catch (e) {}
         try { DEBUG = isTruthy(Lampa.Storage.get('series_status_debug', false)); } catch (e0) {}
         ssClearLegacyCacheKey();
         ssInjectStyle();
@@ -1133,7 +1140,7 @@
 
     var manifest = {
         name: 'Состояние сериала',
-        version: '1.3.3',
+        version: '1.3.5',
         description: 'Статус сериала на карточках и странице сериала'
     };
     try {
