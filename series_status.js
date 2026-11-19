@@ -725,25 +725,31 @@
     function ssScanNew() {
         ssScanContainer(ssActiveRender() || document.body, true);
     }
-    var _mo = null;
-    var _moTimer = 0;
-    var _fallbackTimer = 0;
-    function ssStartWatch() {
-        ssScanContainer(document.body, false);
-        if (typeof MutationObserver === 'undefined') {
-            _fallbackTimer = setInterval(function () {
-                safe(function () { ssScanNew(); });
-            }, 1000);
+    function ssCardFromNode(node) {
+        while (node && node.nodeType === 1) {
+            if (node.classList && node.classList.contains('card')) return node;
+            node = node.parentNode;
+        }
+        return null;
+    }
+    function ssOnCardVisible(e) {
+        var el = e.target;
+        if (!el || el.nodeType !== 1) return;
+        var card = ssCardFromNode(el);
+        if (!card) {
+            later(function () { safe(function () { ssScanContainer(el, true); }); }, 0, 'ss-vis-scan');
             return;
         }
-        _mo = new MutationObserver(function () {
-            if (_moTimer) return;
-            _moTimer = setTimeout(function () {
-                _moTimer = 0;
-                safe(function () { ssScanNew(); });
-            }, 150);
-        });
-        _mo.observe(document.body, { childList: true, subtree: true });
+        try { card.setAttribute('data-ssb-visible', '1'); } catch (e2) { logErr(e2); }
+        if (ssBlocked()) {
+            later(ssApplyVisibleCards, 500, 'ss-unblocked');
+            return;
+        }
+        try { ssApplyToCard(card, true); } catch (e3) { logErr(e3); }
+    }
+    function ssStartWatch() {
+        onDom(document, 'visible', ssOnCardVisible, true);
+        ssScanContainer(document.body, false);
     }
 
     var _detailLast = null;
@@ -1039,7 +1045,7 @@
     function ssInit() {
         if (window.__series_status_initialized__) return;
         window.__series_status_initialized__ = true;
-        try { console.log('[series_status] v1.3.6 active'); } catch (e) {}
+        try { console.log('[series_status] v1.3.7 active'); } catch (e) {}
         try { DEBUG = isTruthy(Lampa.Storage.get('series_status_debug', false)); } catch (e0) {}
         ssClearLegacyCacheKey();
         ssInjectStyle();
@@ -1122,10 +1128,6 @@
         if (_arrangeTimer) { try { clearTimeout(_arrangeTimer); } catch (e2) {} _arrangeTimer = 0; }
         if (_retryTimer) { try { clearTimeout(_retryTimer); } catch (e6) {} _retryTimer = 0; }
         _retryCards = [];
-        if (_moTimer) { try { clearTimeout(_moTimer); } catch (e7) {} _moTimer = 0; }
-        if (_fallbackTimer) { try { clearInterval(_fallbackTimer); } catch (e8) {} _fallbackTimer = 0; }
-        safe(function () { if (_mo) _mo.disconnect(); });
-        _mo = null;
         ssClearQueue();
         _tvCache = {};
         ssRemoveAllCardLabels();
@@ -1155,7 +1157,7 @@
 
     var manifest = {
         name: 'Состояние сериала',
-        version: '1.3.6',
+        version: '1.3.7',
         description: 'Статус сериала на карточках и странице сериала'
     };
     try {
