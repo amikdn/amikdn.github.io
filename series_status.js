@@ -592,6 +592,12 @@
         if (!card || !card.querySelector) return;
         if (!ssGetBool('series_status_show_cards', true)) { ssRemoveFromCard(card); return; }
         var meta = ssGetCardMeta(card);
+        var hasMeta = !!(meta && (meta.id || meta.media_type || meta.type || meta.card_type || meta.method || meta.original_name || meta.original_title || meta.first_air_date || meta.release_date || meta.name || meta.title));
+        if (!hasMeta) {
+            ssRemoveFromCard(card);
+            ssScheduleRetry(card);
+            return;
+        }
         if (ssMediaType(meta, card) !== 'tv') { ssRemoveFromCard(card); return; }
         var id = ssCardId(card, meta);
         if (!id) { ssRemoveFromCard(card); return; }
@@ -634,9 +640,6 @@
         ssFlushPositions();
     }
 
-    var _io = null;
-    var _observedCards = [];
-
     function ssBlocked() {
         try {
             var selectors = ['.modal', '.settings-input__content', '.selectbox__content', '.menu-edit-list'];
@@ -653,34 +656,62 @@
             return !(rect.bottom < -200 || rect.top > windowHeight + 200);
         } catch (e) { return true; }
     }
-    function ssObserveCard(card) {
-        if (!_io || !card || card.nodeType !== 1) return;
-        if (card.getAttribute('data-ssb-seen') === '1') return;
+    var _retryCards = [];
+    var _retryTimer = 0;
+    var RETRY_MAX = 6;
+    function ssScheduleRetry(card) {
+        if (!card || card.nodeType !== 1) return;
+        var n = parseInt(card.getAttribute('data-ssb-wait') || '0', 10) || 0;
+        if (n >= RETRY_MAX) return;
+        try { card.setAttribute('data-ssb-wait', String(n + 1)); } catch (e) { logErr(e); }
+        if (_retryCards.indexOf(card) < 0) _retryCards.push(card);
+        if (!_retryTimer) _retryTimer = setTimeout(ssProcessRetries, 500);
+    }
+    function ssProcessRetries() {
+        _retryTimer = 0;
+        var list = _retryCards;
+        _retryCards = [];
+        if (ssBlocked()) {
+            _retryCards = list;
+            _retryTimer = setTimeout(ssProcessRetries, 500);
+            return;
+        }
+        _batch = true;
         try {
-            card.setAttribute('data-ssb-seen', '1');
-            _io.observe(card);
-            _observedCards.push(card);
-        } catch (e) { logErr(e); }
+            for (var i = 0; i < list.length; i++) {
+                var c = list[i];
+                if (!c || !document.body.contains(c)) continue;
+                try { ssApplyToCard(c, true); } catch (e) { logErr(e); }
+            }
+        } finally {
+            _batch = false;
+        }
+        ssFlushPositions();
     }
     function ssScanContainer(target, onlyNew) {
         if (!target || target.querySelectorAll === undefined) return;
         var cards;
         try { cards = target.querySelectorAll('.card'); } catch (e) { return; }
-        if (_io) {
-            for (var i = 0; i < cards.length; i++) ssObserveCard(cards[i]);
-            return;
-        }
+        if (!cards.length) return;
         var windowHeight = window.innerHeight || 1000;
-        _batch = true;
-        for (var j = 0; j < cards.length; j++) {
-            var card = cards[j];
-            if (onlyNew && card.getAttribute('data-ssb-seen') === '1') continue;
-            try { card.setAttribute('data-ssb-seen', '1'); } catch (e2) { logErr(e2); }
-            if (ssNearViewport(card, windowHeight)) {
-                try { ssApplyToCard(card, true); } catch (e3) { logErr(e3); }
+        var blocked = ssBlocked();
+        if (blocked) later(ssApplyVisibleCards, 500, 'ss-unblocked');
+        _batch = !blocked;
+        try {
+            for (var i = 0; i < cards.length; i++) {
+                var card = cards[i];
+                if (onlyNew && card.getAttribute('data-ssb-seen') === '1') continue;
+                if (card.getAttribute('data-ssb-seen') !== '1') {
+                    try { card.setAttribute('data-ssb-seen', '1'); } catch (e2) { logErr(e2); }
+                }
+                if (!ssNearViewport(card, windowHeight)) continue;
+                try { card.setAttribute('data-ssb-visible', '1'); } catch (e3) { logErr(e3); }
+                if (blocked) continue;
+                try { ssApplyToCard(card, true); } catch (e4) { logErr(e4); }
             }
+        } finally {
+            _batch = false;
         }
-        _batch = false;
         ssFlushPositions();
     }
     function ssActiveRender() {
@@ -694,45 +725,25 @@
     function ssScanNew() {
         ssScanContainer(ssActiveRender() || document.body, true);
     }
-    function ssPruneObserved() {
-        if (!_io || !_observedCards.length) return;
-        var alive = [];
-        for (var i = 0; i < _observedCards.length; i++) {
-            var node = _observedCards[i];
-            if (!node) continue;
-            if (node.parentNode && document.body.contains(node)) { alive.push(node); continue; }
-            try { _io.unobserve(node); } catch (e) { logErr(e); }
-            try {
-                node.removeAttribute('data-ssb-seen');
-                node.removeAttribute('data-ssb-visible');
-            } catch (e2) { logErr(e2); }
-        }
-        _observedCards = alive;
-    }
+    var _mo = null;
+    var _moTimer = 0;
+    var _fallbackTimer = 0;
     function ssStartWatch() {
-        if (typeof IntersectionObserver === 'undefined') return;
-        if (_io) return;
-        _io = new IntersectionObserver(function (entries) {
-            var didApply = false;
-            var blocked = false;
-            for (var i = 0; i < entries.length; i++) {
-                var entry = entries[i];
-                var card = entry.target;
-                try { if (card) card.setAttribute('data-ssb-visible', entry.isIntersecting ? '1' : '0'); } catch (e) { logErr(e); }
-                if (entry.isIntersecting && card) {
-                    if (ssBlocked()) { blocked = true; continue; }
-                    didApply = true;
-                    _batch = true;
-                    try { ssApplyToCard(card, true); } catch (e2) { logErr(e2); }
-                }
-            }
-            if (blocked) later(ssApplyVisibleCards, 500, 'ss-unblocked');
-            if (didApply) {
-                _batch = false;
-                ssFlushPositions();
-            }
-        }, { root: null, rootMargin: '250px 0px 250px 0px', threshold: 0.01 });
         ssScanContainer(document.body, false);
+        if (typeof MutationObserver === 'undefined') {
+            _fallbackTimer = setInterval(function () {
+                safe(function () { ssScanNew(); });
+            }, 1000);
+            return;
+        }
+        _mo = new MutationObserver(function () {
+            if (_moTimer) return;
+            _moTimer = setTimeout(function () {
+                _moTimer = 0;
+                safe(function () { ssScanNew(); });
+            }, 150);
+        });
+        _mo.observe(document.body, { childList: true, subtree: true });
     }
 
     var _detailLast = null;
@@ -1028,7 +1039,7 @@
     function ssInit() {
         if (window.__series_status_initialized__) return;
         window.__series_status_initialized__ = true;
-        try { console.log('[series_status] v1.3.5 active'); } catch (e) {}
+        try { console.log('[series_status] v1.3.6 active'); } catch (e) {}
         try { DEBUG = isTruthy(Lampa.Storage.get('series_status_debug', false)); } catch (e0) {}
         ssClearLegacyCacheKey();
         ssInjectStyle();
@@ -1039,7 +1050,7 @@
         safe(function () {
             Lampa.Listener.follow('activity', function (e) {
                 var t = e && e.type;
-                if (t === 'destroy' || t === 'archive') { later(ssPruneObserved, 0, 'ss-prune'); return; }
+                if (t === 'destroy' || t === 'archive') return;
                 retry(function () { ssScanContainer(ssActiveRender() || document.body, false); return false; }, SCAN_DELAYS, 'ss-activity');
             });
         });
@@ -1074,9 +1085,9 @@
             }
         });
 
-        onDom(window, 'scroll', function () {
+        onDom(document, 'scroll', function () {
             later(function () { ssScanNew(); if (!ssBlocked()) ssApplyVisibleCards(); ssRepositionAll(); }, 120, 'ss-scroll');
-        }, { passive: true });
+        }, { capture: true, passive: true });
         onDom(document, 'touchend', function () {
             later(function () { if (ssBlocked()) { later(ssApplyVisibleCards, 500, 'ss-unblocked'); return; } ssScanNew(); }, 200, 'ss-touch');
         }, { passive: true });
@@ -1109,18 +1120,22 @@
             }
         }
         if (_arrangeTimer) { try { clearTimeout(_arrangeTimer); } catch (e2) {} _arrangeTimer = 0; }
+        if (_retryTimer) { try { clearTimeout(_retryTimer); } catch (e6) {} _retryTimer = 0; }
+        _retryCards = [];
+        if (_moTimer) { try { clearTimeout(_moTimer); } catch (e7) {} _moTimer = 0; }
+        if (_fallbackTimer) { try { clearInterval(_fallbackTimer); } catch (e8) {} _fallbackTimer = 0; }
+        safe(function () { if (_mo) _mo.disconnect(); });
+        _mo = null;
         ssClearQueue();
-        safe(function () { if (_io) _io.disconnect(); });
-        _io = null;
-        _observedCards = [];
         _tvCache = {};
         ssRemoveAllCardLabels();
         ssRemoveDetailBadges(document);
         try {
-            var seenCards = document.querySelectorAll('[data-ssb-seen], [data-ssb-visible]');
+            var seenCards = document.querySelectorAll('[data-ssb-seen], [data-ssb-visible], [data-ssb-wait]');
             for (var sc = 0; sc < seenCards.length; sc++) {
                 seenCards[sc].removeAttribute('data-ssb-seen');
                 seenCards[sc].removeAttribute('data-ssb-visible');
+                seenCards[sc].removeAttribute('data-ssb-wait');
             }
         } catch (e5) { logErr(e5); }
         try {
@@ -1140,7 +1155,7 @@
 
     var manifest = {
         name: 'Состояние сериала',
-        version: '1.3.5',
+        version: '1.3.6',
         description: 'Статус сериала на карточках и странице сериала'
     };
     try {
