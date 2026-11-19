@@ -444,6 +444,7 @@
         if (typeof pendingTmdbRequests !== 'undefined') pendingTmdbRequests = {};
         if (typeof pendingLampaRequests !== 'undefined') pendingLampaRequests = {};
         if (typeof lampaFailRetryAt !== 'undefined') lampaFailRetryAt = {};
+        if (typeof lampaRetryCount !== 'undefined') lampaRetryCount = {};
         if (typeof pendingKpCallbacks !== 'undefined') pendingKpCallbacks = {};
         try { clearRequestQueues(); } catch (e) { logErr(e); }
         if (includeQuality) clearQualityCache();
@@ -723,19 +724,32 @@
     }
     var pendingLampaRequests = {};
     var lampaFailRetryAt = {};
+    var lampaRetryCount = {};
     var LAMPA_FAIL_RETRY_MS = 20000;
-    function getLampaRating(ratingKey) {
+    function getLampaRating(ratingKey, isRetry) {
         var cached = ratingCache.get('lampa_rating', ratingKey);
         if (cached) return Promise.resolve(cached);
         if (pendingLampaRequests[ratingKey]) return pendingLampaRequests[ratingKey];
         var failAt = lampaFailRetryAt[ratingKey];
-        if (failAt && Date.now() - failAt < LAMPA_FAIL_RETRY_MS) return Promise.resolve({ rating: 0, medianReaction: '', failed: true });
+        if (failAt && !isRetry && Date.now() - failAt < LAMPA_FAIL_RETRY_MS) return Promise.resolve({ rating: 0, medianReaction: '', failed: true });
         pendingLampaRequests[ratingKey] = fetchLampaRating(ratingKey).then(function (result) {
-            if (result && result.failed) { lampaFailRetryAt[ratingKey] = Date.now(); return result; }
+            if (result && result.failed) { lampaFailRetryAt[ratingKey] = Date.now(); scheduleLampaRetry(ratingKey); return result; }
             delete lampaFailRetryAt[ratingKey];
             return ratingCache.set('lampa_rating', ratingKey, result);
-        }).catch(function () { lampaFailRetryAt[ratingKey] = Date.now(); return { rating: 0, medianReaction: '', failed: true }; }).then(function (result) { delete pendingLampaRequests[ratingKey]; return result; }, function (error) { delete pendingLampaRequests[ratingKey]; throw error; });
+        }).catch(function () { lampaFailRetryAt[ratingKey] = Date.now(); scheduleLampaRetry(ratingKey); return { rating: 0, medianReaction: '', failed: true }; }).then(function (result) { delete pendingLampaRequests[ratingKey]; return result; }, function (error) { delete pendingLampaRequests[ratingKey]; throw error; });
         return pendingLampaRequests[ratingKey];
+    }
+    var LAMPA_RETRY_DELAYS = [22000, 50000, 100000];
+    function scheduleLampaRetry(ratingKey) {
+        var n = parseInt(lampaRetryCount[ratingKey] || '0', 10) || 0;
+        if (n >= LAMPA_RETRY_DELAYS.length) return;
+        lampaRetryCount[ratingKey] = String(n + 1);
+        later(function () {
+            getLampaRating(ratingKey, true).then(function (result) {
+                if (result && result.rating > 0) scheduleVisibleRatingsUpdate(0);
+                else scheduleLampaRetry(ratingKey);
+            });
+        }, LAMPA_RETRY_DELAYS[n], 'lampa-retry-' + ratingKey);
     }
     function renderLampaPosterIcon(target, medianReaction) {
         if (!target) return;
