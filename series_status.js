@@ -147,14 +147,14 @@
     }
     function ssGetPosition() {
         var v = ssGetStr('series_status_position');
-        return (v === 'bottom-center' || v === 'bottom-left' || v === 'bottom-right' || v === 'top-left' || v === 'top-right') ? v : 'top-center';
+        return (v === 'top-right' || v === 'bottom-left' || v === 'bottom-right') ? v : 'top-center';
     }
     function ssIsRounded() {
         return ssGetStr('series_status_style') === 'rounded';
     }
     function ssGetSize() {
         var v = parseFloat(ssGetStr('series_status_size'));
-        if (!(v >= 60 && v <= 200)) v = 100;
+        if (!(v >= 50 && v <= 100)) v = 100;
         return v;
     }
     function ssGetDataMode() {
@@ -400,22 +400,6 @@
         }
         return null;
     }
-    function ssFirstVisibleVoteBox(view) {
-        var children = view.children || [];
-        var votesBottom = true;
-        try { votesBottom = String(Lampa.Storage.get('rating_position', 'bottom')) !== 'top'; } catch (e) {}
-        if (!votesBottom) return null;
-        for (var i = 0; i < children.length; i++) {
-            var el = children[i];
-            if (!el.classList || !ssElVisible(el)) continue;
-            var isVote = el.classList.contains('card__vote--bottom') ||
-                el.classList.contains('card__vote-separate-wrap') ||
-                el.classList.contains('card__vote-line') ||
-                (el.classList.contains('card__vote') && !el.classList.contains('card__vote-separate-wrap') && !el.classList.contains('card__vote-line'));
-            if (isVote) return { left: el.offsetLeft, right: el.offsetLeft + el.offsetWidth };
-        }
-        return null;
-    }
     function ssImgBox(view) {
         try {
             var img = view.querySelector('.card__img');
@@ -437,14 +421,14 @@
             }
         } catch (e) { logErr(e); }
     }
-    function ssCenterEdge(view, label, box, gap, isTop) {
+    function ssCenterEdge(view, label, box, gap) {
         if (!view) return null;
         try {
             var imgLeft = box ? box.left : 0;
             var imgWidth = box ? box.width : (view.clientWidth || view.offsetWidth);
             if (!imgWidth) return null;
-            var leftOccupant = isTop ? ssFirstVisibleBox(view, 'card__type') : ssFirstVisibleBox(view, 'card__quality');
-            var rightOccupant = isTop ? ssFirstVisibleBox(view, 'card__year-badge') : ssFirstVisibleVoteBox(view);
+            var leftOccupant = ssFirstVisibleBox(view, 'card__type');
+            var rightOccupant = ssFirstVisibleBox(view, 'card__year-badge');
             var leftEdge = leftOccupant ? Math.max(imgLeft, leftOccupant.right + gap) : (imgLeft + gap);
             var rightEdge = rightOccupant ? Math.min(imgLeft + imgWidth, rightOccupant.left - gap) : (imgLeft + imgWidth - gap);
             var center = imgLeft + imgWidth / 2;
@@ -485,7 +469,7 @@
         var props = { top: 'auto', right: 'auto', bottom: 'auto', left: 'auto', transform: 'none' };
         var rightFromView = Math.max(0, viewWidth - (box.left + box.width));
         if (pos === 'top-center') {
-            var centerTop = useSmart ? ssCenterEdge(view, label, box, gap, true) : null;
+            var centerTop = useSmart ? ssCenterEdge(view, label, box, gap) : null;
             props.left = (centerTop !== null && centerTop !== undefined) ? centerTop + 'px' : '50%';
             props.top = insetPx + 'px';
             props.transform = 'translateX(-50%)';
@@ -493,16 +477,6 @@
                 radius = '0 0 0.75em 0.75em';
                 radiusVar = '0 0 var(--co-poster-radius,0.75em) var(--co-poster-radius,0.75em)';
                 shadow = '0 0.12em 0.4em rgba(0,0,0,0.55)';
-            }
-        } else if (pos === 'bottom-center') {
-            var center = useSmart ? ssCenterEdge(view, label, box, gap, false) : null;
-            props.left = (center !== null && center !== undefined) ? center + 'px' : '50%';
-            props.bottom = insetPx + 'px';
-            props.transform = 'translateX(-50%)';
-            if (!rounded) {
-                radius = '0.75em 0.75em 0 0';
-                radiusVar = 'var(--co-poster-radius,0.75em) var(--co-poster-radius,0.75em) 0 0';
-                shadow = '0 -0.12em 0.4em rgba(0,0,0,0.55)';
             }
         } else if (pos === 'bottom-left') {
             props.left = (box.left + insetPx) + 'px';
@@ -519,13 +493,6 @@
                 radius = '0.75em 0 0.75em 0';
                 radiusVar = '0.75em 0 var(--co-poster-radius,0.75em) 0';
                 shadow = '0 -0.12em 0.4em rgba(0,0,0,0.55)';
-            }
-        } else if (pos === 'top-left') {
-            props.left = (box.left + insetPx) + 'px';
-            props.top = insetPx + 'px';
-            if (!rounded) {
-                radius = '0.75em 0 0.75em 0';
-                radiusVar = 'var(--co-poster-radius,0.75em) 0 0.75em 0';
             }
         } else {
             props.right = (rightFromView + insetPx) + 'px';
@@ -566,6 +533,21 @@
             var view = label.parentNode;
             if (view && view.nodeType === 1) ssApplyPosition(view, label, pos, rounded, true);
         }
+    }
+
+    function ssApplyVisibleCards() {
+        var cards;
+        try { cards = document.querySelectorAll('[data-ssb-visible="1"]'); } catch (e) { return; }
+        if (!cards.length) return;
+        _batch = true;
+        try {
+            for (var i = 0; i < cards.length; i++) {
+                try { ssApplyToCard(cards[i], true); } catch (e2) { logErr(e2); }
+            }
+        } finally {
+            _batch = false;
+        }
+        ssFlushPositions();
     }
 
     function ssRenderCard(card, text, status) {
@@ -733,16 +715,19 @@
         if (_io) return;
         _io = new IntersectionObserver(function (entries) {
             var didApply = false;
+            var blocked = false;
             for (var i = 0; i < entries.length; i++) {
                 var entry = entries[i];
                 var card = entry.target;
                 try { if (card) card.setAttribute('data-ssb-visible', entry.isIntersecting ? '1' : '0'); } catch (e) { logErr(e); }
-                if (entry.isIntersecting && card && !ssBlocked()) {
+                if (entry.isIntersecting && card) {
+                    if (ssBlocked()) { blocked = true; continue; }
                     didApply = true;
                     _batch = true;
                     try { ssApplyToCard(card, true); } catch (e2) { logErr(e2); }
                 }
             }
+            if (blocked) later(ssApplyVisibleCards, 500, 'ss-unblocked');
             if (didApply) {
                 _batch = false;
                 ssFlushPositions();
@@ -927,7 +912,7 @@
             Lampa.SettingsApi.addComponent({
                 component: COMPONENT,
                 name: 'Состояние сериала',
-                icon: '<svg width="44" height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="9" y="3" width="26" height="38" rx="4" stroke="white" stroke-width="3"></rect><rect x="14" y="27" width="16" height="7" rx="2.5" fill="white"></rect></svg>'
+                icon: '<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" color="#FFFFFF"><path d="M23 41H9a5 5 0 0 1-5-5V10a5 5 0 0 1 5-5h24a5 5 0 0 1 5 5v12"></path><path d="m10 15 2 2 4-4"></path><path d="M22 15h9"></path><path d="m10 25 2 2 4-4"></path><path d="M22 25h5"></path><path d="M11 35h5"></path><circle cx="35" cy="35" r="9"></circle><path d="M35 30v5l3 2"></path></svg>'
             });
         } catch (e) { logErr(e); return; }
 
@@ -946,8 +931,8 @@
             }
         );
         add(
-            { name: 'series_status_position', type: 'select', values: { 'top-center': 'Верх по центру', 'top-left': 'Верхний левый угол', 'top-right': 'Верхний правый угол', 'bottom-center': 'Низ по центру', 'bottom-left': 'Нижний левый угол', 'bottom-right': 'Нижний правый угол' }, default: DEFAULTS.series_status_position },
-            { name: 'Позиция на постере', description: 'Верх по центру не мешает рейтингу и качеству внизу; бейдж сдвигается только если сверху есть другие бейджи' },
+            { name: 'series_status_position', type: 'select', values: { 'top-center': 'Верх по центру', 'top-right': 'Верхний правый угол', 'bottom-left': 'Нижний левый угол', 'bottom-right': 'Нижний правый угол' }, default: DEFAULTS.series_status_position },
+            { name: 'Позиция на постере', description: 'Верх по центру не пересекается с бейджем типа и рейтингом; бейдж сдвигается, только если сверху есть другие бейджи' },
             function () { ssReapplyAllCards(); }
         );
         add(
@@ -956,8 +941,8 @@
             function () { ssReapplyAllCards(); }
         );
         add(
-            { name: 'series_status_size', type: 'select', values: { '80': '80%', '90': '90%', '100': '100%', '110': '110%', '125': '125%', '150': '150%' }, default: DEFAULTS.series_status_size },
-            { name: 'Размер бейджа', description: 'Масштаб текста и окна статуса' },
+            { name: 'series_status_size', type: 'select', values: { '60': '60%', '70': '70%', '80': '80%', '90': '90%', '100': '100%' }, default: DEFAULTS.series_status_size },
+            { name: 'Размер бейджа', description: 'Масштаб текста и окна статуса (только уменьшение)' },
             function () {
                 ssReapplyAllCards();
                 ssRefreshDetail();
@@ -1036,7 +1021,7 @@
     function ssInit() {
         if (window.__series_status_initialized__) return;
         window.__series_status_initialized__ = true;
-        try { console.log('[series_status] v1.3.1 active'); } catch (e) {}
+        try { console.log('[series_status] v1.3.3 active'); } catch (e) {}
         try { DEBUG = isTruthy(Lampa.Storage.get('series_status_debug', false)); } catch (e0) {}
         ssClearLegacyCacheKey();
         ssInjectStyle();
@@ -1083,13 +1068,13 @@
         });
 
         onDom(window, 'scroll', function () {
-            later(function () { ssScanNew(); ssRepositionAll(); }, 120, 'ss-scroll');
+            later(function () { ssScanNew(); if (!ssBlocked()) ssApplyVisibleCards(); ssRepositionAll(); }, 120, 'ss-scroll');
         }, { passive: true });
         onDom(document, 'touchend', function () {
-            later(ssScanNew, 200, 'ss-touch');
+            later(function () { if (ssBlocked()) { later(ssApplyVisibleCards, 500, 'ss-unblocked'); return; } ssScanNew(); }, 200, 'ss-touch');
         }, { passive: true });
         onDom(window, 'keydown', function (e) {
-            if (ssBlocked()) return;
+            if (ssBlocked()) { later(ssApplyVisibleCards, 500, 'ss-unblocked'); return; }
             later(ssScanNew, 200, 'ss-key');
             var code = e && (e.code || e.key);
             if (code === 'PageUp' || code === 'PageDown') later(ssRepositionAll, 120, 'ss-key-page');
@@ -1148,7 +1133,7 @@
 
     var manifest = {
         name: 'Состояние сериала',
-        version: '1.3.1',
+        version: '1.3.3',
         description: 'Статус сериала на карточках и странице сериала'
     };
     try {
