@@ -9,6 +9,7 @@
   var FILMIX_NWS_ID = _d('ZmVuZTVtMDg0Y3Z1NWtwaXUxazhlZjQ3eHhlbmtn');
   var LAMPAC_SERVER = _d('aHR0cDovLzE0NC4xMjQuMjM1LjE1Mjo5MTE4');
   var LAMPAC_HOST = LAMPAC_SERVER.replace('http://', '').replace('https://', '');
+  var KINOPUB_SERVER = _d('aHR0cDovLzE1MC4yNDEuNjkuMTk5OjkxMTg=');
   var ONL_ICON = '<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M27 7H5a2 2 0 00-2 2v14a2 2 0 002 2h22a2 2 0 002-2V9a2 2 0 00-2-2z"/><path d="M7 13l3 6.5 3-6.5M16.5 13v6.5M20.5 17.275h1.48c.651 0 1.277-.275 1.721-.75a2.338 2.338 0 00.215-2.932 1.394 1.394 0 00-1.14-.593H20.5v4.275zm0 0V19.5"/></svg>';
 
   var LAMPAC_VERSION = '1.9.0';
@@ -240,6 +241,12 @@ window.onli_rch_nws[hostkey].Registry = function RchRegistry(client, startConnec
     return FILMIX_SERVER + 'lite/filmix' + (at >= 0 ? value.slice(at) : '');
   }
 
+  function filmixName(name, url) {
+    var value = String(name || '');
+    if (!isFilmixUrl(url)) return value;
+    return value.replace(/480p/gi, '2160p');
+  }
+
   var BLOCKED_BALANSERS = ['pizdatoehd', 'pidatoehd', 'phantom', 'mirage', 'collaps', 'pidtor'];
 
   function isBlockedBalanser(value) {
@@ -339,6 +346,32 @@ window.onli_rch_nws[hostkey].Registry = function RchRegistry(client, startConnec
       var bals = j.balanser;
       var name = j.name.split(' ')[0];
       return (bals || name).toLowerCase();
+    }
+
+    function ensureKinopub(json) {
+      var found = false;
+      json.forEach(function (j) {
+        if (balanserName(j) === 'kinopub') {
+          found = true;
+          j.url = KINOPUB_SERVER + '/lite/kinopub';
+          j.show = true;
+        }
+      });
+      if (!found) {
+        var kp = {
+          name: 'KinoPub - 2160p',
+          url: KINOPUB_SERVER + '/lite/kinopub',
+          balanser: 'kinopub',
+          show: true
+        };
+        var pos = -1;
+        json.forEach(function (j, i) {
+          if (balanserName(j) === 'filmix') pos = i;
+        });
+        if (pos >= 0) json.splice(pos + 1, 0, kp);
+        else json.push(kp);
+      }
+      return json;
     }
 
     function clarificationSearchAdd(value) {
@@ -583,12 +616,13 @@ window.onli_rch_nws[hostkey].Registry = function RchRegistry(client, startConnec
       json = json.filter(function (j) {
         return !isBlockedBalanser(balanserName(j));
       });
+      json = ensureKinopub(json);
       return new Promise(function (resolve, reject) {
         json.forEach(function (j) {
           var name = balanserName(j);
           sources[name] = {
             url: filmixUrl(j.url),
-            name: j.name,
+            name: filmixName(j.name, j.url),
             show: typeof j.show == 'undefined' ? true : j.show
           };
         });
@@ -642,6 +676,7 @@ window.onli_rch_nws[hostkey].Registry = function RchRegistry(client, startConnec
               json.online = json.online.filter(function (j) {
                 return !isBlockedBalanser(balanserName(j));
               });
+              json.online = ensureKinopub(json.online);
               life_wait_times++;
               filter_sources = [];
               sources = {};
@@ -649,7 +684,7 @@ window.onli_rch_nws[hostkey].Registry = function RchRegistry(client, startConnec
                 var name = balanserName(j);
                 sources[name] = {
                   url: filmixUrl(j.url),
-                  name: j.name,
+                  name: filmixName(j.name, j.url),
                   show: typeof j.show == 'undefined' ? true : j.show
                 };
               });
